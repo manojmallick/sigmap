@@ -1,0 +1,12 @@
+class EventEmitter
+  constructor()
+  on(event, handler)
+  emit(event, data)
+  static create()
+export class ApiClient
+  constructor(baseUrl)
+  async get(path)
+  async post(path, body)
+export async function fetchUser(id)
+export const createSession = async (userId) =>
+module.exports = { EventEmitter, ApiClient, fetchUser }

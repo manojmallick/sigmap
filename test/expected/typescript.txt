@@ -1,0 +1,15 @@
+export interface UserService
+  readonly version
+  getUser(id)
+  createUser(data)
+export type UserId
+export type UserRole
+export enum Status
+export class UserRepository
+  constructor(private db)
+  async findById(id)
+  async save(user)
+  static create(db)
+class InternalHelper
+  process(data)
+export async function hashPassword(password)
