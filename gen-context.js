@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * ContextForge — gen-context.js v0.2.0
+ * ContextForge — gen-context.js v0.3.0
  * Zero-dependency AI context engine.
  * Runs with: node gen-context.js
  * No npm install required. Node 18+ built-ins only.
@@ -13,7 +13,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 // ---------------------------------------------------------------------------
@@ -484,6 +484,7 @@ Usage:
   node gen-context.js                  Generate context once and exit
   node gen-context.js --watch          Generate + watch for file changes
   node gen-context.js --setup          Generate + install git hook + watch
+  node gen-context.js --mcp            Start MCP server on stdio
   node gen-context.js --report         Token reduction stats to stdout
   node gen-context.js --report --json  Token report as JSON (for CI)
   node gen-context.js --init           Write example config file
@@ -494,6 +495,40 @@ Config: gen-context.config.json
 Ignore: .contextignore, .repomixignore
 Output: .github/copilot-instructions.md (default)
 `);
+}
+
+// ---------------------------------------------------------------------------
+// MCP auto-registration
+// ---------------------------------------------------------------------------
+function registerMcp(cwd) {
+  const serverEntry = {
+    command: 'node',
+    args: [path.resolve(__dirname, 'gen-context.js'), '--mcp'],
+  };
+
+  const targets = [
+    path.join(cwd, '.claude', 'settings.json'),
+    path.join(cwd, '.cursor', 'mcp.json'),
+  ];
+
+  for (const settingsPath of targets) {
+    if (!fs.existsSync(settingsPath)) continue;
+    try {
+      const raw = fs.readFileSync(settingsPath, 'utf8');
+      const settings = JSON.parse(raw);
+      if (!settings.mcpServers) settings.mcpServers = {};
+      if (settings.mcpServers['context-forge']) continue; // already registered
+      settings.mcpServers['context-forge'] = serverEntry;
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+      console.warn(`[context-forge] registered MCP server in ${path.relative(cwd, settingsPath)}`);
+    } catch (err) {
+      console.warn(`[context-forge] could not update ${path.relative(cwd, settingsPath)}: ${err.message}`);
+    }
+  }
+
+  // Always print the manual snippet so users can configure other tools
+  console.warn('[context-forge] MCP server config snippet:');
+  console.warn(JSON.stringify({ mcpServers: { 'context-forge': serverEntry } }, null, 2));
 }
 
 function main() {
@@ -508,6 +543,13 @@ function main() {
   if (args.includes('--version') || args.includes('-v')) {
     console.log(VERSION);
     process.exit(0);
+  }
+
+  // MCP server — start before loading config (reads files on demand)
+  if (args.includes('--mcp')) {
+    const { start } = require('./src/mcp/server');
+    start(cwd);
+    return; // keep process alive — server drives lifecycle via stdin
   }
 
   const config = loadConfig(cwd);
@@ -525,6 +567,7 @@ function main() {
   if (args.includes('--setup')) {
     runGenerate(cwd, config, false);
     installHook(cwd);
+    registerMcp(cwd);
     watchMode(cwd, config);
     return; // keep process alive for watch
   }

@@ -1,0 +1,63 @@
+'use strict';
+
+/**
+ * MCP tool definitions for ContextForge.
+ * Three tools: read_context, search_signatures, get_map.
+ */
+
+const TOOLS = [
+  {
+    name: 'read_context',
+    description:
+      'Read extracted code signatures for the project or a specific module path. ' +
+      'Returns the full copilot-instructions.md content (~500–4K tokens) or a ' +
+      'filtered subset when a module path is provided (~50–500 tokens).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        module: {
+          type: 'string',
+          description:
+            'Optional subdirectory path to scope results (e.g. "src/services"). ' +
+            'Omit to get the full codebase context.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'search_signatures',
+    description:
+      'Search extracted code signatures for a keyword, function name, or class name. ' +
+      'Returns matching signature lines with their file paths.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Keyword to search for in signatures (case-insensitive).',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_map',
+    description:
+      'Read a section from PROJECT_MAP.md — import graph, class hierarchy, or route table. ' +
+      'Requires gen-project-map.js to have been run first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['imports', 'classes', 'routes'],
+          description: 'Which section to retrieve: imports, classes, or routes.',
+        },
+      },
+      required: ['type'],
+    },
+  },
+];
+
+module.exports = { TOOLS };
