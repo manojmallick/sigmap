@@ -1,0 +1,232 @@
+# ContextForge — Self-Healing CI Workflow
+#
+# Monitors Copilot acceptance rate weekly and automatically regenerates
+# context signatures when the rate drops below threshold or context is stale.
+#
+# Setup:
+#   1. Copy to .github/workflows/self-healing.yml in your repo
+#   2. (Enterprise only) Add COPILOT_API_TOKEN secret — GitHub Enterprise
+#      Copilot Business/Enterprise REST API token with read:org scope
+#   3. Adjust ACCEPTANCE_THRESHOLD (default: 30%) and STALE_DAYS (default: 7)
+#
+# Two triggers:
+#   - Weekly schedule (Monday 09:00 UTC)
+#   - Manual via workflow_dispatch (with optional force flag)
+#
+# When regeneration is needed a PR is opened automatically.
+# Merge it to update the AI context file in your default branch.
+
+name: ContextForge — Self-Healing CI
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      force_regenerate:
+        description: 'Force context regeneration regardless of acceptance rate'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+env:
+  ACCEPTANCE_THRESHOLD: '30'   # acceptance rate % below which we regenerate
+  STALE_DAYS: '7'              # regenerate if context file is older than this
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────
+  # Decide whether regeneration is needed
+  # ─────────────────────────────────────────────────────────────────
+  check:
+    name: Check health and acceptance rate
+    runs-on: ubuntu-latest
+    outputs:
+      should_regen: ${{ steps.decide.outputs.should_regen }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run ContextForge health check
+        id: health
+        run: |
+          HEALTH=$(node gen-context.js --health --json 2>/dev/null || echo '{}')
+          echo "health=$HEALTH" >> "$GITHUB_OUTPUT"
+          echo "[self-heal] Health: $HEALTH"
+
+      - name: Decide whether to regenerate
+        id: decide
+        env:
+          COPILOT_API_TOKEN: ${{ secrets.COPILOT_API_TOKEN }}
+          GITHUB_ORG: ${{ github.repository_owner }}
+          FORCE_REGEN: ${{ github.event.inputs.force_regenerate }}
+          HEALTH_JSON: ${{ steps.health.outputs.health }}
+        run: |
+          node - << 'EOF'
+          'use strict';
+          const fs = require('fs');
+          const https = require('https');
+
+          const force = process.env.FORCE_REGEN === 'true';
+          const threshold = parseInt(process.env.ACCEPTANCE_THRESHOLD || '30', 10);
+          const staleDays = parseInt(process.env.STALE_DAYS || '7', 10);
+
+          function setOutput(key, value) {
+            const envFile = process.env.GITHUB_OUTPUT;
+            if (envFile) fs.appendFileSync(envFile, `${key}=${value}\n`);
+            else console.log(`OUTPUT: ${key}=${value}`);
+          }
+
+          // Force flag short-circuits everything
+          if (force) {
+            console.log('[self-heal] Force regeneration requested via workflow_dispatch');
+            setOutput('should_regen', 'true');
+            setOutput('reason', 'forced via workflow_dispatch');
+            process.exit(0);
+          }
+
+          // Parse health output
+          let health = {};
+          try { health = JSON.parse(process.env.HEALTH_JSON || '{}'); } catch (_) {}
+          const daysSinceRegen = health.daysSinceRegen;
+
+          // Stale context check (always available, no API needed)
+          if (daysSinceRegen !== null && daysSinceRegen !== undefined && daysSinceRegen > staleDays) {
+            console.log(`[self-heal] Context is ${daysSinceRegen} days old (threshold: ${staleDays})`);
+            setOutput('should_regen', 'true');
+            setOutput('reason', `context stale (${daysSinceRegen} days old)`);
+            process.exit(0);
+          }
+
+          // GitHub Enterprise Copilot API acceptance rate check
+          const token = process.env.COPILOT_API_TOKEN;
+          const org = process.env.GITHUB_ORG;
+          if (!token || !org) {
+            console.log('[self-heal] No COPILOT_API_TOKEN set — skipping acceptance rate check');
+            setOutput('should_regen', 'false');
+            setOutput('reason', 'no API token; context is fresh');
+            process.exit(0);
+          }
+
+          const options = {
+            hostname: 'api.github.com',
+            path: `/orgs/${org}/copilot/usage`,
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'User-Agent': 'ContextForge-SelfHealing/1.0.0',
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+          };
+
+          https.get(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => { body += chunk; });
+            res.on('end', () => {
+              try {
+                const data = JSON.parse(body);
+                // data is an array of daily usage objects
+                if (!Array.isArray(data) || data.length === 0) {
+                  console.log('[self-heal] No Copilot usage data returned');
+                  setOutput('should_regen', 'false');
+                  setOutput('reason', 'no usage data from API');
+                  return;
+                }
+                // Calculate acceptance rate from the last 7 days
+                let totalSuggestions = 0, totalAccepted = 0;
+                data.slice(-7).forEach((day) => {
+                  totalSuggestions += (day.total_suggestions_count || 0);
+                  totalAccepted += (day.total_acceptances_count || 0);
+                });
+                const rate = totalSuggestions > 0
+                  ? parseFloat(((totalAccepted / totalSuggestions) * 100).toFixed(1))
+                  : null;
+                console.log(`[self-heal] Acceptance rate (last 7 days): ${rate !== null ? rate + '%' : 'n/a'}`);
+                if (rate !== null && rate < threshold) {
+                  setOutput('should_regen', 'true');
+                  setOutput('reason', `acceptance rate ${rate}% below threshold ${threshold}%`);
+                } else {
+                  setOutput('should_regen', 'false');
+                  setOutput('reason', `acceptance rate ${rate}% is healthy`);
+                }
+              } catch (err) {
+                console.warn(`[self-heal] Could not parse API response: ${err.message}`);
+                setOutput('should_regen', 'false');
+                setOutput('reason', 'API parse error');
+              }
+            });
+          }).on('error', (err) => {
+            console.warn(`[self-heal] Copilot API request failed: ${err.message}`);
+            setOutput('should_regen', 'false');
+            setOutput('reason', 'API request failed');
+          });
+          EOF
+
+  # ─────────────────────────────────────────────────────────────────
+  # Regenerate and open a PR
+  # ─────────────────────────────────────────────────────────────────
+  heal:
+    name: Regenerate context and open PR
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.should_regen == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Regenerate context signatures
+        run: node gen-context.js
+
+      - name: Print token report
+        run: node gen-context.js --report --json
+
+      - name: Open PR with regenerated context
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore(context): self-healing regeneration [skip ci]
+
+            Reason: ${{ needs.check.outputs.reason }}
+          title: '[ContextForge] Auto-regenerated context signatures'
+          body: |
+            ## ContextForge Self-Healing Regeneration
+
+            Context signatures were automatically regenerated.
+
+            **Reason:** ${{ needs.check.outputs.reason }}
+
+            ### What to review
+            - Diff in `.github/copilot-instructions.md` — verify signatures look correct
+            - Token report in the Actions log — confirm within budget
+
+            ### What happens after merging
+            The updated context will be used by Copilot, Cursor, and Claude Code
+            on their next request. Acceptance rate should recover within 24–48 hours.
+
+            ---
+            *Generated by [ContextForge](https://github.com/manojmallick/context-forge) self-healing CI*
+          branch: contextforge/auto-regenerate
+          delete-branch: true
+          labels: |
+            context-forge
+            automated
