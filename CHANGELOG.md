@@ -6,6 +6,33 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [0.9.0] — 2026-04-01
+
+### Added
+- **Enhanced `--report --json`** — structured JSON report now includes `version`, `timestamp`, `overBudget`, and `budgetLimit` fields alongside existing token stats; exits with code `1` when output exceeds `maxTokens` so CI pipelines can fail automatically
+- **`--track` CLI flag** — appends one NDJSON record per run to `.context/usage.ndjson`; also enabled by `"tracking": true` in config
+- **`src/tracking/logger.js`** — zero-dependency append-only log module; exports `logRun(entry, cwd)`, `readLog(cwd)`, and `summarize(entries)`; uses NDJSON (one JSON object per line) compatible with standard Unix tools
+- **`--report --history`** — prints aggregate summary from `.context/usage.ndjson` (total runs, avg reduction %, avg tokens, over-budget count, first/last run timestamps); add `--json` for machine-readable output
+- **`docs/ENTERPRISE_SETUP.md`** — comprehensive enterprise guide: GitHub Enterprise REST API acceptance rate tracking, CI token reporting with Prometheus/Grafana dashboard integration, self-hosted runner configuration, usage log analysis examples
+- `tracking: false` default added to `src/config/defaults.js`
+- Integration test: `test/integration/observability.test.js` — 23 tests covering `logRun`, `readLog`, `summarize`, CLI `--report --json`, `--track`, config-driven tracking, and `--report --history`
+
+### Changed
+- `gen-context.js` version bumped to `0.9.0`
+- `package.json` version bumped to `0.9.0`
+- `src/mcp/server.js` version bumped to `0.9.0`
+- `--report` human output now includes `version` and `budget limit` lines
+- README updated: `--track` / `--report --history` in CLI reference, new Observability section, updated project structure tree
+
+### Validation gate
+- 162/162 tests pass (21 extractor + 141 integration)
+- `node gen-context.js --report --json` outputs JSON with `version`, `timestamp`, `overBudget`
+- `node gen-context.js --track` writes `.context/usage.ndjson`
+- `node gen-context.js --report --history` prints usage summary
+- `node gen-context.js --report --history --json` outputs valid JSON
+
+---
+
 ## [0.8.0] — 2026-03-31
 
 ### Added
