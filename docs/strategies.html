@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Context Strategies — ContextForge</title>
+<meta name="description" content="Choose the right ContextForge strategy: full, per-module, or hot-cold. Detailed examples, decision tree, token trade-offs, and MCP vs non-MCP workflows.">
+<meta property="og:title" content="ContextForge strategies: full vs per-module vs hot-cold">
+<meta property="og:description" content="Detailed case-by-case guide to reduce tokens without losing context. Learn when to use each strategy and how to configure it.">
+<meta property="og:url" content="https://manojmallick.github.io/context-forge/strategies.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://manojmallick.github.io/context-forge/strategies.html">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#09090c;--s1:#0f0f13;--s2:#161619;--s3:#1d1d22;--s4:#25252c;
+  --line:#2a2a33;--line2:#38383f;
+  --t1:#f0eeff;--t2:#9896b0;--t3:#52506a;
+  --p:#7c6af7;--pl:rgba(124,106,247,.1);--pd:#b3aaff;
+  --g:#10b981;--gl:rgba(16,185,129,.1);--gd:#6ee7b7;
+  --a:#f59e0b;--al:rgba(245,158,11,.1);--ad:#fcd34d;
+  --r:#f43f5e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(9,9,12,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--pd);text-decoration:none}
+.nav-links{display:flex;align-items:center;gap:24px}
+.nav-links a{font-size:13px;color:var(--t2);text-decoration:none;transition:.15s}
+.nav-links a:hover{color:var(--t1)}
+.nav-links a.active{color:var(--t1)}
+.nav-gh{background:var(--p);color:#fff;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;transition:.15s}
+.nav-gh:hover{opacity:.85;color:#fff}
+@media(max-width:600px){.nav-links .hide-sm{display:none}}
+
+.page-hero{padding:120px 24px 56px;text-align:center;position:relative;overflow:hidden}
+.page-hero::before{content:'';position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:720px;height:720px;background:radial-gradient(circle,rgba(124,106,247,.08) 0%,transparent 65%);pointer-events:none}
+.hero-inner{max-width:780px;margin:0 auto;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--pl);border:1px solid rgba(124,106,247,.25);border-radius:20px;padding:5px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--pd);margin-bottom:20px;letter-spacing:.04em}
+h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:800;line-height:1.08;margin-bottom:12px;background:linear-gradient(135deg,var(--t1) 30%,var(--pd) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:clamp(15px,2vw,18px);color:var(--t2);max-width:620px;margin:0 auto;font-weight:300;line-height:1.65}
+
+.section{padding:56px 24px;max-width:980px;margin:0 auto}
+.section-ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pd);margin-bottom:10px;text-align:center}
+h2{font-family:'Syne',sans-serif;font-size:clamp(22px,3.5vw,34px);font-weight:800;text-align:center;margin-bottom:12px}
+.section-sub{font-size:15px;color:var(--t2);text-align:center;max-width:620px;margin:0 auto 32px;font-weight:300;line-height:1.65}
+.divider{border:none;border-top:1px solid var(--line);margin:0}
+
+.table-wrap{background:var(--s2);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:24px}
+.table{width:100%;border-collapse:collapse}
+.table th{padding:12px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);border-bottom:2px solid var(--line2);background:var(--s3)}
+.table td{padding:13px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--t2);vertical-align:top}
+.table tr:last-child td{border-bottom:none}
+.table td:first-child{font-weight:700;color:var(--t1)}
+
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:900px){.cards{grid-template-columns:1fr}}
+.card{background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{font-family:'Syne',sans-serif;font-size:18px;margin-bottom:8px}
+.card p{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:12px}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid}
+.badge.ok{background:var(--gl);color:var(--gd);border-color:rgba(16,185,129,.28)}
+.badge.warn{background:var(--al);color:var(--ad);border-color:rgba(245,158,11,.28)}
+.badge.info{background:var(--pl);color:var(--pd);border-color:rgba(124,106,247,.28)}
+.code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);border:1px solid var(--line2);padding:10px 12px;border-radius:8px;display:block;white-space:pre-wrap;color:var(--gd)}
+
+.scenarios{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.scenarios{grid-template-columns:1fr}}
+.scenario{background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:18px}
+.scenario h4{font-family:'Syne',sans-serif;font-size:17px;margin-bottom:8px}
+.scenario p{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:8px}
+.scenario .winner{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gd)}
+
+.list{background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:18px}
+.list li{margin-left:18px;color:var(--t2);font-size:13px;line-height:1.7}
+.list strong{color:var(--t1)}
+
+footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
+.footer-inner{max-width:980px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--t3)}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--t3);text-decoration:none;transition:.15s}
+.footer-links a:hover{color:var(--t2)}
+.footer-mit{font-size:12px;color:var(--t3)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">context-forge</a>
+  <div class="nav-links">
+    <a href="quick-start.html" class="hide-sm">Quick start</a>
+    <a href="strategies.html" class="hide-sm active">Strategies</a>
+    <a href="languages.html" class="hide-sm">Languages</a>
+    <a href="roadmap.html" class="hide-sm">Roadmap</a>
+    <a href="repomix.html" class="hide-sm">Repomix</a>
+    <a href="https://github.com/manojmallick/context-forge" class="nav-gh" target="_blank">★ GitHub</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="hero-inner">
+    <div class="hero-badge">v1.1 strategy guide</div>
+    <h1>Choose the right context strategy</h1>
+    <p class="hero-sub">ContextForge supports three modes: full, per-module, and hot-cold. This page shows exactly when to use each one, what token cost to expect, and how MCP changes the decision.</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">At a glance</p>
+  <h2>Quick comparison</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Strategy</th>
+          <th>Always injected</th>
+          <th>Context loss</th>
+          <th>MCP required</th>
+          <th>Best fit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>full</td>
+          <td>~4,000 tokens</td>
+          <td>No</td>
+          <td>No</td>
+          <td>Default for all IDEs and onboarding</td>
+        </tr>
+        <tr>
+          <td>per-module</td>
+          <td>~100-300 tokens overview</td>
+          <td>No</td>
+          <td>No</td>
+          <td>Module-based projects, focused work</td>
+        </tr>
+        <tr>
+          <td>hot-cold</td>
+          <td>~200-800 hot set</td>
+          <td>Cold files unless fetched</td>
+          <td>Yes for cold</td>
+          <td>Claude Code / Cursor with MCP</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">How to use</p>
+  <h2>Each strategy in detail</h2>
+  <p class="section-sub">Use the same config file key for all modes. Switch mode, run once, and compare token output with --report.</p>
+
+  <div class="cards">
+    <div class="card">
+      <h3>full</h3>
+      <div class="badges">
+        <span class="badge ok">No context loss</span>
+        <span class="badge info">No MCP needed</span>
+      </div>
+      <p>Single output file with all signatures. Best if you want complete context all the time and do not want to manage additional files.</p>
+      <span class="code">{
+  "strategy": "full",
+  "maxTokens": 6000
+}</span>
+    </div>
+
+    <div class="card">
+      <h3>per-module</h3>
+      <div class="badges">
+        <span class="badge ok">No context loss</span>
+        <span class="badge info">No MCP needed</span>
+      </div>
+      <p>Writes one file per top-level module plus a tiny overview. You inject only the module you are currently working on.</p>
+      <span class="code">{
+  "srcDirs": ["server", "web", "desktop"],
+  "strategy": "per-module"
+}</span>
+    </div>
+
+    <div class="card">
+      <h3>hot-cold</h3>
+      <div class="badges">
+        <span class="badge warn">Cold needs MCP</span>
+        <span class="badge ok">Smallest always-on</span>
+      </div>
+      <p>Recently changed files stay hot and auto-injected. Everything else goes to context-cold.md and should be pulled via MCP when needed.</p>
+      <span class="code">{
+  "strategy": "hot-cold",
+  "hotCommits": 10,
+  "diffPriority": true
+}</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Case by case</p>
+  <h2>Real usage scenarios</h2>
+  <p class="section-sub">Use this section to decide quickly based on your workflow, not just token numbers.</p>
+
+  <div class="scenarios">
+    <div class="scenario">
+      <h4>Scenario A: Fix a login bug</h4>
+      <p>You edited auth files in the last few commits and need fast iteration.</p>
+      <p class="winner">Winner: hot-cold. Hot set already contains the files you are editing.</p>
+    </div>
+
+    <div class="scenario">
+      <h4>Scenario B: Cross-module question</h4>
+      <p>You need frontend + backend context in one answer. MCP may or may not be available.</p>
+      <p class="winner">Winner: per-module. Load both module files, no context loss and no MCP dependency.</p>
+    </div>
+
+    <div class="scenario">
+      <h4>Scenario C: Team with MCP enabled</h4>
+      <p>Claude Code / Cursor is standard across the team and MCP is always available.</p>
+      <p class="winner">Winner: hot-cold. Keep always-on tiny and fetch cold context only when needed.</p>
+    </div>
+
+    <div class="scenario">
+      <h4>Scenario D: Onboarding new engineers</h4>
+      <p>Need broad project understanding quickly, with minimal setup complexity.</p>
+      <p class="winner">Winner: full. One file, complete picture, no additional workflow steps.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Decision tree</p>
+  <h2>Pick the right default for your team</h2>
+  <div class="list">
+    <ol>
+      <li><strong>No MCP in your IDE</strong>: choose <strong>full</strong> or <strong>per-module</strong>.</li>
+      <li><strong>Module boundaries are clear</strong>: choose <strong>per-module</strong>.</li>
+      <li><strong>MCP always available and active area is small</strong>: choose <strong>hot-cold</strong>.</li>
+      <li><strong>Unsure</strong>: start with <strong>full</strong>, then move to <strong>per-module</strong> when output grows.</li>
+    </ol>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">More detail</p>
+  <h2>Full reference docs</h2>
+  <p class="section-sub">For complete migration steps, compatibility matrix, and advanced examples, use the full Markdown guide.</p>
+  <div class="list">
+    <ol>
+      <li>Detailed guide in repository: <a href="https://github.com/manojmallick/context-forge/blob/main/docs/CONTEXT_STRATEGIES.md" style="color:var(--pd)">docs/CONTEXT_STRATEGIES.md</a></li>
+      <li>CLI reference and setup: <a href="quick-start.html" style="color:var(--pd)">Quick Start</a></li>
+      <li>MCP setup: <a href="https://github.com/manojmallick/context-forge/blob/main/docs/MCP_SETUP.md" style="color:var(--pd)">docs/MCP_SETUP.md</a></li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-logo">context-forge</span>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="quick-start.html">Quick start</a>
+      <a href="languages.html">Languages</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="repomix.html">Repomix</a>
+    </div>
+    <span class="footer-mit">MIT © 2026 Manoj Kumar</span>
+  </div>
+</footer>
+
+</body>
+</html>
