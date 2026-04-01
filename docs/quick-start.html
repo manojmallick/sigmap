@@ -11,6 +11,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://manojmallick.github.io/context-forge/quick-start.html">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
 <style>
 :root{
   --bg:#09090c;--s1:#0f0f13;--s2:#161619;--s3:#1d1d22;--s4:#25252c;
@@ -20,13 +21,24 @@
   --g:#10b981;--gl:rgba(16,185,129,.1);--gd:#6ee7b7;
   --a:#f59e0b;--al:rgba(245,158,11,.1);--ad:#fcd34d;
   --r:#f43f5e;
+  --nav-bg:rgba(9,9,12,.85);
+}
+:root.light{
+  --bg:#f8f7ff;--s1:#f2f0fd;--s2:#eceaff;--s3:#e4e2f8;--s4:#d8d6f0;
+  --line:#d0ceea;--line2:#bcb8da;
+  --t1:#1a1830;--t2:#5a5878;--t3:#8886a2;
+  --p:#6b57f5;--pl:rgba(107,87,245,.1);--pd:#4c3bc4;
+  --g:#059669;--gl:rgba(5,150,105,.1);--gd:#065f46;
+  --a:#d97706;--al:rgba(217,119,6,.1);--ad:#78350f;
+  --r:#e11d48;
+  --nav-bg:rgba(248,247,255,.92);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden;transition:background .25s,color .25s}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(9,9,12,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;transition:background .25s}
 .nav-logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--pd);text-decoration:none}
 .nav-links{display:flex;align-items:center;gap:24px}
 .nav-links a{font-size:13px;color:var(--t2);text-decoration:none;transition:.15s}
@@ -34,6 +46,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(9,9,12,.85);
 .nav-links a.active{color:var(--t1)}
 .nav-gh{background:var(--p);color:#fff;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;transition:.15s}
 .nav-gh:hover{opacity:.85;color:#fff}
+.theme-toggle{background:none;border:1px solid var(--line2);border-radius:7px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:.15s;flex-shrink:0;padding:0}
+.theme-toggle:hover{border-color:var(--p);color:var(--pd)}
+.theme-toggle svg{width:16px;height:16px;pointer-events:none;display:none}
+.theme-toggle .icon-moon{display:block}
+:root.light .theme-toggle .icon-sun{display:block}
+:root.light .theme-toggle .icon-moon{display:none}
 @media(max-width:600px){.nav-links .hide-sm{display:none}}
 
 /* HERO */
@@ -53,7 +71,7 @@ h2{font-family:'Syne',sans-serif;font-size:clamp(22px,3.5vw,34px);font-weight:80
 .section-sub{font-size:15px;color:var(--t2);text-align:center;max-width:500px;margin:0 auto 48px;font-weight:300;line-height:1.65}
 
 /* TERMINAL */
-.terminal{background:#06060a;border:1px solid var(--line2);border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto 32px;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.terminal{background:#06060a;border:1px solid var(--line2);border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto 32px;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.5);--t3:#52506a;--pd:#b3aaff;--gd:#6ee7b7;--ad:#fcd34d;--s2:#161619;--s3:#1d1d22;--line:#2a2a33;--line2:#38383f}
 .term-bar{background:var(--s2);padding:10px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
 .term-dot{width:11px;height:11px;border-radius:50%}
 .term-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);margin-left:6px}
@@ -125,6 +143,10 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
     <a href="languages.html" class="hide-sm">Languages</a>
     <a href="roadmap.html" class="hide-sm">Roadmap</a>
     <a href="repomix.html" class="hide-sm">Repomix</a>
+    <button class="theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
     <a href="https://github.com/manojmallick/context-forge" class="nav-gh" target="_blank">★ GitHub</a>
   </div>
 </nav>
