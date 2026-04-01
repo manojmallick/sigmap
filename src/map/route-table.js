@@ -15,12 +15,18 @@ const path = require('path');
 const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const PY_EXTS = new Set(['.py', '.pyw']);
 
+function shouldSkipFile(rel) {
+  const normalized = rel.replace(/\\/g, '/').toLowerCase();
+  return /(^|\/)(gen-context|gen-project-map)\.js$/.test(normalized);
+}
+
 function analyze(files, cwd) {
   const routes = [];
 
   for (const filePath of files) {
     const ext = path.extname(filePath).toLowerCase();
     const rel = path.relative(cwd, filePath).replace(/\\/g, '/');
+    if (shouldSkipFile(rel)) continue;
     let content;
     try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
 
