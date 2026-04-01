@@ -57,7 +57,7 @@ npx repomix --compress         # deep dive sessions
 
 ---
 
-## Languages supported (v0.1)
+## Languages supported
 
 | Language | Extensions |
 |---|---|
@@ -301,7 +301,7 @@ node test/run.js --update   # regenerate expected outputs
 ```bash
 # Gate 1: all tests pass
 node test/run.js
-# Expected: 21/21 PASS
+# Expected: 177/177 PASS (21 extractor + 156 integration)
 
 # Gate 2: no external imports
 grep "require(" gen-context.js | grep -v "^.*//.*require"
