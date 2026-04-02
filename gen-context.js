@@ -2351,7 +2351,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'context-forge',
-    version: '1.1.0',
+    version: '1.2.0',
     description: 'ContextForge MCP server — code signatures on demand',
   };
   
@@ -2986,7 +2986,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
 
 
 /**
- * ContextForge — gen-context.js v1.1.0
+ * ContextForge — gen-context.js v1.2.0
  * Zero-dependency AI context engine.
  * Runs with: node gen-context.js
  * No npm install required. Node 18+ built-ins only.
@@ -2997,7 +2997,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 // ---------------------------------------------------------------------------
