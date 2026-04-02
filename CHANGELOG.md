@@ -6,7 +6,50 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
-## [1.3.0] — 2026-04-03
+## [1.4.0] — 2026-04-04
+
+### Added
+- **`explain_file` MCP tool** — deep-dive tool for a single file. Given a relative path, returns three sections: `## Signatures` (from the indexed context file), `## Imports` (resolved relative dependencies from the live source file), and `## Callers` (reverse import lookup across all indexed files). Gracefully returns partial output if the file is not on disk.
+- **`list_modules` MCP tool** — returns a markdown table listing all top-level module directories found in the context file, sorted by token count descending, with columns: `Module | Files | Tokens`. Helps agents pick the right `module` arg for `read_context`.
+- **Strategy-aware health scorer** — `src/health/scorer.js` and `--health` display now read `gen-context.config.json` and adjust the low-reduction penalty threshold by strategy:
+  - `full` (default): 60% reduction threshold — unchanged behaviour.
+  - `hot-cold` / `per-module`: reduction penalty disabled — intentionally small hot outputs are not penalised.
+  - `hot-cold` only: adds a `context-cold.md` freshness check (`strategyFreshnessDays`). If the cold context file is >1 day stale, up to 10 pts are deducted.
+- **New `--health` output fields** — `strategy:` line always visible; `cold freshness:` line shown for `hot-cold` strategy.
+- **`test/integration/mcp-v14.test.js`** — 13 integration tests covering `explain_file` and `list_modules`:
+  - 7-tool count verification
+  - Signature extraction from index
+  - Imports and Callers sections (file on disk)
+  - Graceful error for unknown path, missing arg, no context file
+  - Token count and table structure in `list_modules`
+  - Multi-call session combining both new tools
+- **`test/integration/observability.test.js`** — 12 new unit tests for strategy-aware scorer:
+  - `strategy` field in all return objects
+  - No reduction penalty for `hot-cold` and `per-module`
+  - Reduction penalty still applied for `full`
+  - `strategyFreshnessDays` null/populated correctly
+  - Grade A for a fresh, untracked project
+
+### Fixed
+- Health scorer: projects with **zero tracking history** (brand-new or never run with `--track`) are no longer penalised for "0% reduction". `tokenReductionPct` is only set when `totalRuns > 0`.
+
+### Changed
+- MCP server now exposes **7 tools** (was 5 before v1.3, 5 in v1.3). `tools/list` assertion updated in `mcp-server.test.js`.
+- `gen-context.js` VERSION bumped to `1.4.0`
+- MCP server `SERVER_INFO.version` bumped to `1.4.0`
+- `package.json` version bumped to `1.4.0`
+
+### Validation gate
+- `node gen-context.js --version` → `1.4.0` ✔
+- `echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp` → 7 tools ✔
+- `node test/integration/mcp-v14.test.js` → 13/13 pass ✔
+- `node test/integration/observability.test.js` → 35/35 pass ✔
+- `node test/integration/mcp-server.test.js` → 16/16 pass ✔
+- `node test/run.js` → 21/21 extractor tests pass ✔
+
+---
+
+
 
 ### Added
 - **`--diff` CLI flag** — generates context only for files changed in the current git working tree (`git diff HEAD --name-only`). Useful in CI and pre-review workflows where you only want signatures for files you've touched.

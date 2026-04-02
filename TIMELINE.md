@@ -34,7 +34,7 @@ A version is NOT done until its validation gate is 100% green.
 | v1.1 | Context strategies | 3 days | per-module: −70% / hot-cold: −90% per question |
 | v1.2 | Version bump + test hardening | 1 day | correctness + npm discoverability |
 | v1.3 | `--diff` flag + watch debounce | 2 days | −50–90% tokens during active PR work |
-| v1.4 | MCP `explain_file` + strategy-aware health | 2 days | precision queries, accurate scoring |
+| v1.4 ✅ | MCP `explain_file` + strategy-aware health | 2 days | precision queries, accurate scoring |
 | v1.5 | VS Code extension + npm publish + docs search | 1 week | 10× adoption surface |
 
 ---
@@ -789,7 +789,7 @@ node test/run.js
 ---
 
 ## v1.4 — MCP `explain_file` tool + strategy-aware health score
-**Status: 📋 PLANNED**
+**Status: ✅ SHIPPED — v1.4.0**
 **Duration: 2 days | Owner: Platform**
 
 ### What ships
