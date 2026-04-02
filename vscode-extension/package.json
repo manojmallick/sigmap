@@ -7,6 +7,7 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "icon": "icon.png",
   "categories": ["Other", "AI", "Machine Learning"],
   "keywords": ["copilot", "ai-context", "token-reduction", "code-signatures", "claude", "cursor", "sigmap", "context", "llm", "zero-dependency", "mcp"],
   "galleryBanner": {
