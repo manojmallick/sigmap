@@ -1,233 +1,219 @@
-# ContextForge
+<div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/manojmallick/context-forge?style=flat&color=7c6af7)](https://github.com/manojmallick/context-forge/stargazers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+<h1>⚡ ContextForge</h1>
+
+<p><strong>Zero-dependency AI context engine — 97% token reduction</strong></p>
+
+<p>
+  Every coding agent session starts with full codebase context at under 4K tokens.<br>
+  No <code>npm install</code>. No setup. Runs on any machine with Node.js 18+.
+</p>
+
+<!-- Status -->
+[![GitHub release](https://img.shields.io/github/v/release/manojmallick/context-forge?color=7c6af7&label=latest)](https://github.com/manojmallick/context-forge/releases)
+[![Tests](https://img.shields.io/badge/tests-274%20passing-22c55e)](https://github.com/manojmallick/context-forge/tree/main/test)
+[![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
+[![Last commit](https://img.shields.io/github/last-commit/manojmallick/context-forge?color=7c6af7)](https://github.com/manojmallick/context-forge/commits/main)
+
+<!-- Meta -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+[![npm](https://img.shields.io/badge/npm-context--forge-cb3837?logo=npm)](https://www.npmjs.com/package/context-forge)
+[![GitHub Stars](https://img.shields.io/github/stars/manojmallick/context-forge?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/context-forge/stargazers)
 
-**Zero-dependency AI context engine — 97% token reduction**
+<!-- Links -->
+[![Docs](https://img.shields.io/badge/docs-live-7c6af7?logo=github-pages)](https://manojmallick.github.io/context-forge)
+[![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](CHANGELOG.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![VS Code](https://img.shields.io/badge/VS%20Code-extension-0078d4?logo=visual-studio-code)](vscode-extension/)
 
-Every coding agent session starts with full codebase context at under 4K tokens.  
-No `npm install`. Runs on any machine with Node.js 18+.
+</div>
 
-```bash
-node gen-context.js       # generate once
-node gen-context.js --watch   # generate + auto-update on file changes
-node gen-context.js --setup   # generate + install git hook + watch
+---
+
+## Table of contents
+
+| | |
+|---|---|
+| [What it does](#-what-it-does) | Token reduction table, pipeline overview |
+| [Quick start](#-quick-start) | Get running in 60 seconds |
+| [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
+| [Languages supported](#-languages-supported) | 21 languages |
+| [Context strategies](#-context-strategies) | full / per-module / hot-cold |
+| [MCP server](#-mcp-server) | 7 on-demand tools |
+| [CLI reference](#-cli-reference) | All flags |
+| [Configuration](#-configuration) | Config file + .contextignore |
+| [Observability](#-observability) | Health score, reports, CI |
+| [Testing](#-testing) | Run the test suite |
+| [Project structure](#-project-structure) | File-by-file map |
+| [Principles](#-principles) | Design decisions |
+
+---
+
+## 🔍 What it does
+
+ContextForge scans your source files and extracts only the **function and class signatures** — no bodies, no imports, no comments — then writes a compact context file that Copilot, Claude, Cursor, and Windsurf read automatically. Every session starts with full codebase awareness at a fraction of the token cost.
+
+```
+Your codebase
+    │
+    ▼
+gen-context.js ──► extracts signatures from 21 languages
+    │
+    ▼
+.github/copilot-instructions.md   ◄── auto-read by Copilot / Claude / Cursor
+    │
+    ▼
+AI agent session starts with full context
 ```
 
----
+### Token reduction at every stage
 
-## What it does
+| Stage | Tokens | Reduction |
+|---|---:|---:|
+| Raw source files | ~80,000 | — |
+| Repomix compressed | ~8,000 | 90% |
+| **ContextForge signatures** | **~4,000** | **95%** |
+| ContextForge + MCP (`hot-cold`) | ~200 | **99.75%** |
 
-ContextForge scans your source files, extracts only the **function and class signatures** (no bodies, no imports, no comments), and writes a compact `copilot-instructions.md` file that Copilot, Claude, Cursor, and Windsurf read automatically.
-
-| Stage | Tokens |
-|---|---|
-| Raw source files | ~80,000 |
-| Repomix compressed | ~8,000 |
-| **ContextForge signatures** | **~4,000** |
-| ContextForge + MCP (v0.3) | ~200–2,000 on demand |
+> **97% fewer tokens. The same codebase understanding.**
 
 ---
 
-## Quick start
+## 🚀 Quick start
+
+**No install required — just Node.js 18+.**
 
 ```bash
-# No install needed — just Node 18+
+# 1. Copy gen-context.js into your project root
+curl -O https://raw.githubusercontent.com/manojmallick/context-forge/main/gen-context.js
+
+# 2. Generate your context file
 node gen-context.js
 
-# Output: .github/copilot-instructions.md
+# 3. Output: .github/copilot-instructions.md
 # That file is auto-read by GitHub Copilot in VS Code
 ```
 
----
+Or via npm (globally):
 
-## Companion tool: Repomix
+```bash
+npx context-forge          # run once without installing
+npm install -g context-forge   # install globally
+context-forge              # then use anywhere
+```
+
+### Common workflows
+
+```bash
+node gen-context.js              # generate once and exit
+node gen-context.js --watch      # regenerate on every file save
+node gen-context.js --setup      # generate + install git hook + start watcher
+node gen-context.js --diff       # context for git-changed files only (PR mode)
+node gen-context.js --diff --staged  # staged files only (pre-commit check)
+node gen-context.js --health     # show context health score (grade A–D)
+node gen-context.js --mcp        # start MCP server on stdio
+```
+
+### Companion tool: Repomix
 
 ContextForge and [Repomix](https://github.com/yamadashy/repomix) are **complementary, not competing**:
 
-- **ContextForge** — always-on, runs in git hooks, produces ~4K token signature index
-- **Repomix** — on-demand deep sessions, full file content, broader language support
+| Tool | When to use |
+|---|---|
+| **ContextForge** | Always-on, git hooks, daily signature index (~4K tokens) |
+| **Repomix** | On-demand deep sessions, full file content, broader language support |
 
 ```bash
-# Use both:
 node gen-context.js --setup    # always-on context
 npx repomix --compress         # deep dive sessions
 ```
 
+*"ContextForge for daily always-on context; Repomix for deep one-off sessions — use both."*
+
 ---
 
-## Languages supported
+## 🧩 VS Code extension
 
-| Language | Extensions |
+> Introduced in v1.5 — zero runtime npm dependencies.
+
+The `vscode-extension/` directory contains a first-party VS Code extension that keeps you informed without any manual commands.
+
+| Feature | Detail |
 |---|---|
-| TypeScript | `.ts` `.tsx` |
-| JavaScript | `.js` `.jsx` `.mjs` `.cjs` |
-| Python | `.py` `.pyw` |
-| Java | `.java` |
-| Kotlin | `.kt` `.kts` |
-| Go | `.go` |
-| Rust | `.rs` |
-| C# | `.cs` |
-| C/C++ | `.cpp` `.c` `.h` `.hpp` `.cc` |
-| Ruby | `.rb` `.rake` |
-| PHP | `.php` |
-| Swift | `.swift` |
-| Dart | `.dart` |
-| Scala | `.scala` `.sc` |
-| Vue | `.vue` |
-| Svelte | `.svelte` |
-| HTML | `.html` `.htm` |
-| CSS/SCSS | `.css` `.scss` `.sass` `.less` |
-| YAML | `.yml` `.yaml` |
-| Shell | `.sh` `.bash` `.zsh` `.fish` |
-| Dockerfile | `Dockerfile` `Dockerfile.*` |
+| **Status bar item** | Shows health grade (`A`/`B`/`C`/`D`) + time since last regen; refreshes every 60 s |
+| **Stale notification** | Warns when `copilot-instructions.md` is > 24 h old; one-click regeneration |
+| **Regenerate command** | `ContextForge: Regenerate Context` — runs `node gen-context.js` in the integrated terminal |
+| **Open context command** | `ContextForge: Open Context File` — opens `.github/copilot-instructions.md` |
+| **Script path setting** | `contextforge.scriptPath` — override when `gen-context.js` is not at the project root |
+
+Activate on startup (`onStartupFinished`) — loads within 3 s, never blocks editor startup.
 
 ---
 
-## CLI reference
+## 🌐 Languages supported
 
-> **Note:** `node gen-context.js`, `--watch`, `--setup`, `--report`, `--mcp`, `--routing`, `--diff`, and `--init` are live in v1.5.
-> Features marked `(v0.x)` or `(v1.x)` were added incrementally — see [CHANGELOG.md](CHANGELOG.md) for when each shipped.
+> 21 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
 
-```
-node gen-context.js                          Generate once and exit
-node gen-context.js --monorepo               Generate per-package context (monorepo)
-node gen-context.js --routing                Include model routing hints in output
-node gen-context.js --format cache           Also write Anthropic prompt-cache JSON
-node gen-context.js --track                  Append run metrics to .context/usage.ndjson
-node gen-context.js --watch                  Generate + watch for changes
-node gen-context.js --setup                  Generate + install git hook + start watcher
-node gen-context.js --report                 Token reduction stats
-node gen-context.js --report --json          Structured JSON report (exits 1 if over budget)
-node gen-context.js --report --history       Usage log summary from .context/usage.ndjson
-node gen-context.js --report --history --json Usage history as JSON
-node gen-context.js --suggest-tool "<task>"  Recommend model tier for a task description
-node gen-context.js --suggest-tool "<task>" --json  Machine-readable tier recommendation
-node gen-context.js --health                 Print composite health score (0-100, grade A-D)
-node gen-context.js --health --json          Machine-readable health score
-node gen-context.js --init                   Write config + .contextignore scaffold
-node gen-context.js --diff                   Generate context for git-changed files only
-node gen-context.js --diff --staged          Generate context for staged files only
-node gen-context.js --help                   Usage information
-node gen-context.js --version                Version string
-```
+<details>
+<summary><strong>Show all 21 languages</strong></summary>
 
----
+| Language | Extensions | Extracts |
+|---|---|---|
+| TypeScript | `.ts` `.tsx` | interfaces, classes, functions, types, enums |
+| JavaScript | `.js` `.jsx` `.mjs` `.cjs` | classes, functions, exports |
+| Python | `.py` `.pyw` | classes, methods, functions |
+| Java | `.java` | classes, interfaces, methods |
+| Kotlin | `.kt` `.kts` | classes, data classes, functions |
+| Go | `.go` | structs, interfaces, functions |
+| Rust | `.rs` | structs, impls, traits, functions |
+| C# | `.cs` | classes, interfaces, methods |
+| C/C++ | `.cpp` `.c` `.h` `.hpp` `.cc` | classes, functions, templates |
+| Ruby | `.rb` `.rake` | classes, modules, methods |
+| PHP | `.php` | classes, interfaces, functions |
+| Swift | `.swift` | classes, structs, protocols, functions |
+| Dart | `.dart` | classes, mixins, functions |
+| Scala | `.scala` `.sc` | objects, classes, traits, functions |
+| Vue | `.vue` | `<script>` functions and components |
+| Svelte | `.svelte` | `<script>` functions and exports |
+| HTML | `.html` `.htm` | custom elements and script functions |
+| CSS/SCSS | `.css` `.scss` `.sass` `.less` | custom properties and keyframes |
+| YAML | `.yml` `.yaml` | top-level keys and pipeline jobs |
+| Shell | `.sh` `.bash` `.zsh` `.fish` | function declarations |
+| Dockerfile | `Dockerfile` `Dockerfile.*` | stages and key instructions |
 
-## Full system (v1.0)
-
-### Task classification — `--suggest-tool`
-
-Classify a task description to get a model tier recommendation:
-
-```bash
-node gen-context.js --suggest-tool "security audit of the auth module"
-# tier   : powerful
-# models : claude-opus-4-6, gpt-5-4, gemini-2-5-pro
-
-node gen-context.js --suggest-tool "fix a typo in the yaml config" --json
-# {"tier":"fast","label":"Fast (low-cost)","models":"claude-haiku-4-5, gpt-5-1-codex-mini, gemini-3-flash","costHint":"~$0.0008 / 1K tokens"}
-```
-
-Tiers: `fast` (config/markup/typos) · `balanced` (features/tests/debug) · `powerful` (architecture/security/multi-file)
-
-### Health score — `--health`
-
-Composite 0-100 health score for your ContextForge installation:
-
-```bash
-node gen-context.js --health
-# [context-forge] health:
-#   score           : 95/100 (grade A)
-#   token reduction : 91.2%
-#   days since regen: 1
-#   total runs      : 47
-#   over-budget runs: 0
-
-node gen-context.js --health --json
-# {"score":95,"grade":"A","tokenReductionPct":91.2,"daysSinceRegen":1,"totalRuns":47,"overBudgetRuns":0}
-```
-
-Scoring: starts at 100, penalties for stale context (−4 pts/day > 7 days), low reduction (−20 if < 60%), and frequent over-budget runs (−20 if > 20% of runs).
-
-### Self-healing CI
-
-Copy `examples/self-healing-github-action.yml` to `.github/workflows/` to auto-regenerate context when:
-- Copilot acceptance rate drops below 30% (requires `COPILOT_API_TOKEN` secret — GitHub Enterprise)
-- Context file is more than 7 days old (always active, no API needed)
-
-A PR is opened automatically with the regenerated signatures.
-
-```yaml
-# .github/workflows/self-healing.yml (excerpt)
-- name: Run ContextForge health check
-  run: node gen-context.js --health --json
-- name: Regenerate if needed
-  run: node gen-context.js
-```
-
-See [examples/self-healing-github-action.yml](examples/self-healing-github-action.yml) for the full workflow and [scripts/ci-update.sh](scripts/ci-update.sh) for the CI helper.
+</details>
 
 ---
 
-## Observability (v0.9)
+## 🗂 Context strategies
 
-Track token reduction over time and integrate with CI pipelines:
+> Introduced in v1.1. Reduce always-injected tokens by 70–90%.
 
-```bash
-# Append run metrics to .context/usage.ndjson
-node gen-context.js --track
-
-# Structured JSON report for CI (exits 1 if over budget)
-node gen-context.js --report --json
-# { "version": "1.0.0", "finalTokens": 3200, "reductionPct": 92.4, "overBudget": false, ... }
-
-# View usage history summary
-node gen-context.js --report --history
-```
-
-Enable tracking permanently in `gen-context.config.json`:
-```json
-{ "tracking": true }
-```
-
-See [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md) for GitHub Enterprise API integration,
-CI acceptance rate gates, and Prometheus/Grafana dashboard setup.
-
----
-
-## Context strategies (v1.1)
-
-Reduce always-injected tokens by 70–90% by choosing how ContextForge splits its output.
 Set `"strategy"` in `gen-context.config.json`:
 
-| Strategy | Always-injected | Context lost? | Needs MCP? |
-|---|---|---|---|
-| `full` | ~4,000 tokens (all files) | No | No |
-| `per-module` | ~100–300 tokens (overview only) | No | No |
-| `hot-cold` | ~200–800 tokens (recent files only) | Cold files without MCP | Yes (for cold) |
+| Strategy | Always-injected | Context lost? | Needs MCP? | Best for |
+|---|---:|:---:|:---:|---|
+| `full` | ~4,000 tokens | No | No | Starting out, cross-module work |
+| `per-module` | ~100–300 tokens | No | No | Large codebases, module-focused sessions |
+| `hot-cold` | ~200–800 tokens | Cold files only | Yes | Claude Code / Cursor with MCP enabled |
 
 ### `full` — default, works everywhere
-
-One file, all signatures, injected on every question. Use this when starting out or when
-cross-module questions are common.
 
 ```json
 { "strategy": "full" }
 ```
 
-### `per-module` — one file per srcDir, no context lost
+One file, all signatures, always injected on every question.
 
-One `.github/context-<module>.md` per top-level source directory, plus a tiny always-on
-overview table (~100–300 tokens). Load the relevant module file in your IDE context
-window for focused sessions. No MCP required.
+### `per-module` — 70% fewer injected tokens, zero context loss
 
 ```json
 { "strategy": "per-module" }
 ```
 
-Output for a `["server", "web", "desktop"]` project:
+One `.github/context-<module>.md` per top-level source directory, plus a tiny overview table. Load the relevant module file for focused sessions. No MCP required.
+
 ```
 .github/copilot-instructions.md   ← overview table, ~117 tokens (always-on)
 .github/context-server.md         ← server/ signatures, ~2,140 tokens
@@ -235,56 +221,116 @@ Output for a `["server", "web", "desktop"]` project:
 .github/context-desktop.md        ← desktop/ signatures, ~1,583 tokens
 ```
 
-### `hot-cold` — minimal injection, MCP for the rest
-
-Recently committed files are **hot** (auto-injected). Everything else is **cold**
-(written to `.github/context-cold.md`, retrieved via MCP only). Best ~90% token
-reduction when using Claude Code or Cursor with MCP enabled.
+### `hot-cold` — 90% fewer injected tokens, requires MCP
 
 ```json
 { "strategy": "hot-cold", "hotCommits": 10 }
 ```
 
-**Requires MCP** — cold files are invisible to the model without it. Use `per-module`
-if MCP is not available.
+Recently committed files are **hot** (auto-injected). Everything else is **cold** (on-demand via MCP). Best reduction available — ~200 tokens always-on.
 
-See [docs/CONTEXT_STRATEGIES.md](docs/CONTEXT_STRATEGIES.md) for the full guide:
-decision tree, scenario-by-scenario comparisons, migration steps, and config reference.
+📖 Full guide: [docs/CONTEXT_STRATEGIES.md](docs/CONTEXT_STRATEGIES.md) — decision tree, scenario comparisons, migration steps.
 
 ---
 
-## Diff-mode context (v1.2 preview)
+## 🔌 MCP server
 
-During active PR work, generate context only for files changed in the current git diff:
+> Introduced in v0.3, expanded to 7 tools through v1.4.
+
+Start the MCP server on stdio:
 
 ```bash
-node gen-context.js --diff           # staged + unstaged changes
-node gen-context.js --diff --staged  # staged files only (pre-commit check)
+node gen-context.js --mcp
 ```
 
-Typical output for a 3-file change: **50–200 tokens** instead of ~4,000. The output file is
-the same `.github/copilot-instructions.md` — swap back to `node gen-context.js` for full context.
+### Available tools
+
+| Tool | Input | Output |
+|---|---|---|
+| `read_context` | `{ module?: string }` | Signatures for one module or entire codebase |
+| `search_signatures` | `{ query: string }` | Matching signatures with file paths |
+| `get_map` | `{ type: "imports"\|"classes"\|"routes" }` | Structural section from `PROJECT_MAP.md` |
+| `explain_file` | `{ path: string }` | Signatures + imports + reverse callers for one file |
+| `list_modules` | — | Token-count table of all top-level module directories |
+| `create_checkpoint` | `{ summary: string }` | Write a session checkpoint to `.context/` |
+| `get_routing` | — | Full model routing table |
+
+Reads files on every call — no stale state, no restart needed.
+
+📖 Setup guide: [docs/MCP_SETUP.md](docs/MCP_SETUP.md)
 
 ---
 
-## Prompt caching (v0.8)
+## ⚙️ CLI reference
 
-Reduce Anthropic API costs by ~60% using prompt cache. ContextForge writes a cache-ready
-JSON block that you can embed in your API calls:
+> All flags live in v1.5. See [CHANGELOG.md](CHANGELOG.md) for when each shipped.
+
+```
+node gen-context.js                           Generate once and exit
+node gen-context.js --watch                   Generate and watch for file changes
+node gen-context.js --setup                   Generate + install git hook + start watcher
+node gen-context.js --diff                    Generate context for git-changed files only
+node gen-context.js --diff --staged           Staged files only (pre-commit check)
+node gen-context.js --mcp                     Start MCP server on stdio
+
+node gen-context.js --report                  Token reduction stats
+node gen-context.js --report --json           Structured JSON report (exits 1 if over budget)
+node gen-context.js --report --history        Usage log summary
+node gen-context.js --report --history --json Usage history as JSON
+
+node gen-context.js --health                  Composite health score (0–100, grade A–D)
+node gen-context.js --health --json           Machine-readable health JSON
+
+node gen-context.js --suggest-tool "<task>"   Recommend model tier for a task
+node gen-context.js --suggest-tool "<task>" --json  Machine-readable tier recommendation
+
+node gen-context.js --monorepo                Per-package context for monorepos
+node gen-context.js --routing                 Include model routing hints in output
+node gen-context.js --format cache            Write Anthropic prompt-cache JSON
+node gen-context.js --track                   Append run metrics to .context/usage.ndjson
+
+node gen-context.js --init                    Write config + .contextignore scaffold
+node gen-context.js --version                 Version string
+node gen-context.js --help                    Usage information
+```
+
+### Task classification — `--suggest-tool`
 
 ```bash
-node gen-context.js --format cache
-# Writes: .github/copilot-instructions.cache.json
-# Format: { type: 'text', text: '...', cache_control: { type: 'ephemeral' } }
+node gen-context.js --suggest-tool "security audit of the auth module"
+# tier   : powerful
+# models : claude-opus-4-6, gpt-5-4, gemini-2-5-pro
+
+node gen-context.js --suggest-tool "fix a typo in the yaml config" --json
+# {"tier":"fast","label":"Fast (low-cost)","models":"claude-haiku-4-5, ...","costHint":"~$0.0008 / 1K tokens"}
 ```
 
-Combine with Repomix for maximum savings — use Repomix output as the stable cached prefix
-and ContextForge signatures as the per-session dynamic segment.
-See [docs/REPOMIX_CACHE.md](docs/REPOMIX_CACHE.md) for the full strategy.
+Tiers: `fast` (config/markup/typos) · `balanced` (features/tests/debug) · `powerful` (architecture/security/multi-file)
 
 ---
 
-## Configuration
+## 🔒 Security scanning
+
+ContextForge automatically redacts secrets from all extracted signatures. Ten patterns are checked on every file:
+
+| Pattern | Example match |
+|---|---|
+| AWS Access Key | `AKIA...` |
+| AWS Secret Key | 40-char base64 |
+| GCP API Key | `AIza...` |
+| GitHub Token | `ghp_...` `gho_...` |
+| JWT | `eyJ...` |
+| DB Connection String | `postgres://user:pass@...` |
+| SSH Private Key | `-----BEGIN ... PRIVATE KEY-----` |
+| Stripe Key | `sk_live_...` `sk_test_...` |
+| Twilio Key | `SK[32 hex chars]` |
+| Generic secret | `password = "..."`, `api_key: "..."` |
+
+If a match is found, the signature is replaced with `[REDACTED — {pattern} detected in {file}]`. The run continues — no silent failures.
+
+---
+
+## ⚙️ Configuration
 
 Copy `gen-context.config.json.example` to `gen-context.config.json`:
 
@@ -294,89 +340,207 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
   "maxTokens": 6000,
   "outputs": ["copilot"],
   "secretScan": true,
-  "format": "cache"
+  "strategy": "full",
+  "watchDebounce": 300,
+  "tracking": false
 }
 ```
 
 Exclusions go in `.contextignore` (gitignore syntax). Also reads `.repomixignore` if present.
 
----
-
-## Testing
-
-```bash
-node test/run.js            # all 21 extractors
-node test/run.js typescript # one language
-node test/run.js --update   # regenerate expected outputs
+```
+# .contextignore
+node_modules/
+dist/
+build/
+*.generated.*
+test/fixtures/
 ```
 
+Run `node gen-context.js --init` to scaffold both files in one step.
+
+### Output targets
+
+| Key | Output file | Read by |
+|---|---|---|
+| `"copilot"` | `.github/copilot-instructions.md` | GitHub Copilot |
+| `"claude"` | `CLAUDE.md` (appends below marker) | Claude Code |
+| `"cursor"` | `.cursorrules` | Cursor |
+| `"windsurf"` | `.windsurfrules` | Windsurf |
+
 ---
 
-## Validation
+## 📊 Observability
 
 ```bash
-# Gate 1: all tests pass
+# Append run metrics to .context/usage.ndjson
+node gen-context.js --track
+
+# Structured JSON report for CI (exits 1 if over budget)
+node gen-context.js --report --json
+# { "version": "1.5.0", "finalTokens": 3200, "reductionPct": 92.4, "overBudget": false }
+
+# Composite health score
+node gen-context.js --health
+# score: 95/100 (grade A) | reduction: 91.2% | 1 day since regen | 47 runs
+```
+
+### Self-healing CI
+
+Copy `examples/self-healing-github-action.yml` to `.github/workflows/` to auto-regenerate context when:
+- Context file is more than 7 days old (always active)
+- Copilot acceptance rate drops below 30% (requires `COPILOT_API_TOKEN` — GitHub Enterprise)
+
+```yaml
+- name: ContextForge health check
+  run: node gen-context.js --health --json
+- name: Regenerate context
+  run: node gen-context.js
+```
+
+📖 Full guide: [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md)
+
+### Prompt caching — 60% API cost reduction
+
+```bash
+node gen-context.js --format cache
+# Writes: .github/copilot-instructions.cache.json
+# Format: { type: 'text', text: '...', cache_control: { type: 'ephemeral' } }
+```
+
+📖 Full guide: [docs/REPOMIX_CACHE.md](docs/REPOMIX_CACHE.md)
+
+---
+
+## 🧪 Testing
+
+```bash
+# All 21 language extractors
 node test/run.js
-# Expected: 274/274 PASS (21 extractor + 253 integration)
 
-# Gate 2: no external imports
+# Single language
+node test/run.js typescript
+
+# Regenerate expected outputs after extractor changes
+node test/run.js --update
+
+# Full integration suite (253 tests across 16 test files)
+for f in test/integration/*.test.js; do node "$f"; done
+```
+
+### Validation gates
+
+```bash
+# Gate 1 — all tests pass
+node test/run.js
+# Expected: 21/21 PASS
+
+# Gate 2 — zero external dependencies
 grep "require(" gen-context.js | grep -v "^.*//.*require"
-# Expected: only Node built-ins (fs, path, assert, os, crypto, child_process, readline)
+# Expected: only fs, path, assert, os, crypto, child_process, readline
 
-# Gate 3: watch mode works
-node gen-context.js --watch &
-echo "// change" >> src/extractors/javascript.js
-sleep 2
-# Expected: copilot-instructions.md timestamp updated
+# Gate 3 — MCP server responds correctly
+echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
+# Expected: valid JSON with 7 tools
+
+# Gate 4 — npm artifact is clean
+npm pack --dry-run
+# Expected: no test/, docs/, vscode-extension/ in output
 ```
 
 ---
 
-## Project structure
+## 📁 Project structure
 
 ```
-gen-context.js                ← single-file entry point
-gen-project-map.js            ← import graph, class hierarchy, route table
-src/extractors/               ← 21 language extractors
-src/format/cache.js           ← Anthropic prompt-cache JSON formatter (v0.8)
-src/routing/                  ← model routing hints (v0.7)
-src/tracking/logger.js        ← NDJSON usage log (v0.9)
-src/health/scorer.js          ← composite health score (v1.0)
-src/mcp/                      ← MCP stdio server (v0.3); 7 tools
-src/security/                 ← secret scanner (v0.2)
-src/config/                   ← config loader + defaults
-vscode-extension/             ← VS Code extension — status bar, commands, stale alert (v1.5)
-test/fixtures/                ← one fixture per language
-test/expected/                ← expected extractor output
-test/run.js                   ← zero-dep test runner
-docs/CONTEXT_STRATEGIES.md    ← full/per-module/hot-cold strategy guide (v1.1)
-docs/ENTERPRISE_SETUP.md      ← enterprise & CI observability guide (v0.9)
-docs/REPOMIX_CACHE.md         ← prompt cache strategy guide (v0.8)
-docs/MODEL_ROUTING.md         ← model routing guide (v0.7)
-examples/self-healing-github-action.yml  ← auto-regeneration CI workflow (v1.0)
-scripts/ci-update.sh          ← CI helper for pipelines (v1.0)
-scripts/inject-search.py      ← one-time migration: adds search to docs HTML (v1.5)
-.contextignore.example        ← exclusion template
-gen-context.config.json.example ← annotated config reference
+context-forge/
+│
+├── gen-context.js               ← PRIMARY ENTRY POINT — single file, zero deps
+├── gen-project-map.js           ← import graph, class hierarchy, route table
+│
+├── src/
+│   ├── extractors/              ← 21 language extractors (one file per language)
+│   ├── mcp/                     ← MCP stdio server — 7 tools
+│   ├── security/                ← secret scanner — 10 patterns
+│   ├── routing/                 ← model routing hints
+│   ├── tracking/                ← NDJSON usage logger
+│   ├── health/                  ← composite health scorer
+│   ├── format/                  ← Anthropic prompt-cache formatter
+│   └── config/                  ← config loader + defaults
+│
+├── vscode-extension/            ← VS Code extension (v1.5)
+│   ├── package.json             ← manifest — commands, settings, activation
+│   └── src/extension.js         ← status bar, stale notification, commands
+│
+├── test/
+│   ├── fixtures/                ← one source file per language
+│   ├── expected/                ← expected extractor output
+│   ├── run.js                   ← zero-dep test runner
+│   └── integration/             ← 16 integration test files (253 tests)
+│
+├── docs/                        ← documentation site (GitHub Pages)
+│   ├── index.html               ← homepage
+│   ├── quick-start.html
+│   ├── strategies.html
+│   ├── languages.html
+│   ├── roadmap.html
+│   └── repomix.html
+│
+├── scripts/
+│   ├── ci-update.sh             ← CI pipeline helper
+│   └── inject-search.py         ← one-time: add search to docs HTML pages
+│
+├── examples/
+│   ├── self-healing-github-action.yml
+│   └── gen-context.config.json  ← full annotated config
+│
+├── .npmignore                   ← excludes docs/, test/, vscode-extension/ from publish
+├── .contextignore.example       ← exclusion template
+└── gen-context.config.json.example ← annotated config reference
 ```
 
 ---
 
-## Support
+## 🏗 Principles
+
+| Principle | Implementation |
+|---|---|
+| **Zero npm dependencies** | `node gen-context.js` on a blank machine with Node 18+ — nothing else required |
+| **Never throw** | All extractors return `[]` on any error — the run always completes |
+| **Deterministic** | No AI or LLM involved in extraction — only regex + Node built-ins |
+| **Repomix is a companion** | Use both tools; ContextForge never replaces Repomix |
+| **No telemetry** | Never phones home; all state is files in your repo |
+| **Local-first** | No cloud service, no database, no accounts |
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a language extractor or new feature.
+
+Every extractor follows the same contract:
+
+```javascript
+module.exports = { extract };
+function extract(src) {   // src: string → string[]
+  if (!src || typeof src !== 'string') return [];
+  // ... regex extraction only — no external dependencies ...
+  return sigs.slice(0, 25);  // never more than 25 signatures per file
+}
+```
+
+---
+
+## 📄 License
+
+MIT © 2026 [Manoj Mallick](https://github.com/manojmallick)
+
+---
+
+<div align="center">
 
 If ContextForge saves you time — a ⭐ on [GitHub](https://github.com/manojmallick/context-forge) helps others find it.
 
----
+**[Docs](https://manojmallick.github.io/context-forge) · [Changelog](CHANGELOG.md) · [Roadmap](docs/roadmap.html) · [Repomix](https://github.com/yamadashy/repomix)**
 
-## Principles
-
-- **Zero npm dependencies** — `node gen-context.js` on a blank machine
-- **Never throw** — extractors always return `[]` on error
-- **Repomix is a companion** — use both, replace neither
-- **No telemetry** — never phones home
-
----
-
-## License
-
-MIT
+</div>
