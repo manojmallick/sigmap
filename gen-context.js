@@ -2351,7 +2351,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'context-forge',
-    version: '1.2.0',
+    version: '1.3.0',
     description: 'ContextForge MCP server — code signatures on demand',
   };
   
@@ -2997,7 +2997,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 // ---------------------------------------------------------------------------
@@ -3218,6 +3218,21 @@ function getRecentlyCommittedFiles(cwd, count) {
 }
 
 // ---------------------------------------------------------------------------
+// Diff mode: files changed in working tree or staging area
+// ---------------------------------------------------------------------------
+function getDiffFiles(cwd, stagedOnly) {
+  try {
+    const cmd = stagedOnly ? 'git diff --cached --name-only' : 'git diff HEAD --name-only';
+    const out = execSync(cmd, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    return new Set(
+      out.split('\n').map((f) => f.trim()).filter(Boolean).map((f) => path.resolve(cwd, f))
+    );
+  } catch (_) {
+    return new Set();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Output formatter
 // ---------------------------------------------------------------------------
 function formatOutput(fileEntries, cwd, routingEnabled) {
@@ -3377,7 +3392,7 @@ function watchMode(cwd, config) {
       debounce = setTimeout(() => {
         console.warn('[context-forge] change detected, regenerating…');
         runGenerate(cwd, config, false);
-      }, 500);
+      }, config.watchDebounce || 300);
     });
   }
 }
@@ -3563,6 +3578,89 @@ function runHotColdStrategy(cwd, config, fileEntries, recentFiles, inputTokenTot
   }
 
   return { inputTokenTotal, finalTokens: hotTokens, fileCount: fileEntries.length, droppedCount: 0 };
+}
+
+// ---------------------------------------------------------------------------
+// Diff-mode pipeline — context for changed files only
+// ---------------------------------------------------------------------------
+function runDiff(cwd, config, stagedOnly) {
+  const diffFiles = getDiffFiles(cwd, stagedOnly);
+
+  if (diffFiles.size === 0) {
+    const scope = stagedOnly ? 'staged' : 'working tree';
+    console.warn(`[context-forge] --diff: no changed files found in ${scope} — running full generate`);
+    runGenerate(cwd, config, false);
+    return;
+  }
+
+  const ignorePatterns = loadIgnorePatterns(cwd);
+  let allFiles = buildFileList(cwd, config);
+  allFiles = allFiles.filter((f) => {
+    const rel = path.relative(cwd, f).replace(/\\/g, '/');
+    return !matchesIgnore(rel, ignorePatterns);
+  });
+
+  // Restrict to diff files, keeping only those already in srcDirs
+  const diffFiltered = allFiles.filter((f) => diffFiles.has(f));
+
+  if (diffFiltered.length === 0) {
+    console.warn('[context-forge] --diff: changed files are outside tracked srcDirs — running full generate');
+    runGenerate(cwd, config, false);
+    return;
+  }
+
+  let inputTokenTotal = 0;
+  let fileEntries = [];
+
+  for (const filePath of diffFiltered) {
+    let content = '';
+    try {
+      content = fs.readFileSync(filePath, 'utf8');
+    } catch (_) {
+      continue;
+    }
+
+    let sigs = detectAndExtract(filePath, content, config.maxSigsPerFile);
+    if (sigs.length === 0) continue;
+
+    inputTokenTotal += estimateTokens(content);
+
+    if (config.secretScan) {
+      const { scan } = __require('./src/security/scanner');
+      const result = scan(sigs, filePath);
+      if (result.redacted) {
+        console.warn(`[context-forge] secrets redacted in ${path.relative(cwd, filePath)}`);
+      }
+      sigs = result.safe;
+    }
+
+    fileEntries.push({ filePath, sigs, mtime: Date.now() });
+  }
+
+  if (fileEntries.length === 0) {
+    console.warn('[context-forge] --diff: no extractable signatures in changed files — running full generate');
+    runGenerate(cwd, config, false);
+    return;
+  }
+
+  const routingEnabled = !!(config.routing || process.argv.includes('--routing'));
+  const content = formatOutput(fileEntries, cwd, routingEnabled);
+  const finalTokens = estimateTokens(content);
+  writeOutputs(content, config.outputs, cwd);
+
+  const scope = stagedOnly ? 'staged' : 'diff';
+  console.warn(`[context-forge] ${scope} files: ${fileEntries.length}, diff tokens: ~${finalTokens}`);
+
+  if (process.argv.includes('--report')) {
+    // Also show what the full run would cost for comparison
+    const fullResult = runGenerate(cwd, config, true);
+    console.log(`[context-forge] diff report:`);
+    console.log(`  mode            : ${scope}`);
+    console.log(`  diff files      : ${fileEntries.length}`);
+    console.log(`  diff tokens     : ~${finalTokens}`);
+    console.log(`  full tokens     : ~${fullResult.finalTokens}`);
+    console.log(`  savings         : ~${fullResult.finalTokens - finalTokens} tokens`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -3978,6 +4076,11 @@ function main() {
     runGenerate(cwd, config, false);
     watchMode(cwd, config);
     return; // keep process alive
+  }
+
+  if (args.includes('--diff')) {
+    runDiff(cwd, config, args.includes('--staged'));
+    process.exit(0);
   }
 
   // Default: generate once
