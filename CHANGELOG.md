@@ -6,6 +6,33 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.0] — 2026-04-02
+
+### Added
+- **`--init` now scaffolds `.contextignore`** alongside `gen-context.config.json`. Running `node gen-context.js --init` on a fresh project creates both files. `.contextignore` is pre-populated with sensible defaults (`node_modules/`, `dist/`, `build/`, `*.generated.*`, etc.). Safe to re-run — existing files are never overwritten.
+- **`test/integration/strategy.test.js`** — 9 integration tests covering `per-module` and `hot-cold` strategies:
+  - `per-module`: asserts one `context-<module>.md` per `srcDir`, overview file references all modules, cross-module signature isolation
+  - `hot-cold`: asserts `context-cold.md` is created, primary output contains only hot files, `hotCommits` config controls the boundary
+  - Both strategies: fallback behaviour when `srcDir` is missing or repo has no git history
+- **`context-forge` npm binary alias** — `package.json` `bin` now exposes both `gen-context` (existing) and `context-forge` (new alias), making `npx context-forge` work ahead of full npm publish in v1.5
+- **`--diff` and `--diff --staged` listed in `--help`** — help text documents the upcoming flags so tooling auto-complete picks them up
+
+### Changed
+- `package.json` version bumped to `1.1.0` (syncs with already-shipped v1.1 strategy features)
+- `gen-context.js` `VERSION` constant bumped to `1.1.0`
+- `src/mcp/server.js` `SERVER_INFO.version` bumped to `1.1.0`
+- `--init` no longer exits early when config already exists — it still skips writing config but continues to check / write `.contextignore`
+- `keywords` in `package.json` expanded: added `token-reduction`, `code-signatures`
+
+### Validation gate
+- `node gen-context.js --version` → `1.1.0` ✔
+- `cat package.json | grep version` → `"version": "1.1.0"` ✔
+- `node gen-context.js --init` on a fresh dir → both `gen-context.config.json` and `.contextignore` created ✔
+- `node test/integration/strategy.test.js` → all 9 tests pass ✔
+- `node test/run.js` → 21/21 extractor tests pass ✔
+
+---
+
 ## [1.1.0] — 2026-04-01
 
 ### Added

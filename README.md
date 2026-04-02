@@ -87,8 +87,8 @@ npx repomix --compress         # deep dive sessions
 
 ## CLI reference
 
-> **Note:** `node gen-context.js`, `--watch`, `--setup`, `--report`, `--mcp`, and `--routing` are live in v1.0.
-> Features marked `(v0.x)` were added incrementally — see [CHANGELOG.md](CHANGELOG.md) for when each shipped.
+> **Note:** `node gen-context.js`, `--watch`, `--setup`, `--report`, `--mcp`, `--routing`, `--diff`, and `--init` are live in v1.2.
+> Features marked `(v0.x)` or `(v1.x)` were added incrementally — see [CHANGELOG.md](CHANGELOG.md) for when each shipped.
 
 ```
 node gen-context.js                          Generate once and exit
@@ -106,7 +106,9 @@ node gen-context.js --suggest-tool "<task>"  Recommend model tier for a task des
 node gen-context.js --suggest-tool "<task>" --json  Machine-readable tier recommendation
 node gen-context.js --health                 Print composite health score (0-100, grade A-D)
 node gen-context.js --health --json          Machine-readable health score
-node gen-context.js --init                   Write example config file
+node gen-context.js --init                   Write config + .contextignore scaffold
+node gen-context.js --diff                   Generate context for git-changed files only
+node gen-context.js --diff --staged          Generate context for staged files only
 node gen-context.js --help                   Usage information
 node gen-context.js --version                Version string
 ```
@@ -248,6 +250,20 @@ if MCP is not available.
 
 See [docs/CONTEXT_STRATEGIES.md](docs/CONTEXT_STRATEGIES.md) for the full guide:
 decision tree, scenario-by-scenario comparisons, migration steps, and config reference.
+
+---
+
+## Diff-mode context (v1.2 preview)
+
+During active PR work, generate context only for files changed in the current git diff:
+
+```bash
+node gen-context.js --diff           # staged + unstaged changes
+node gen-context.js --diff --staged  # staged files only (pre-commit check)
+```
+
+Typical output for a 3-file change: **50–200 tokens** instead of ~4,000. The output file is
+the same `.github/copilot-instructions.md` — swap back to `node gen-context.js` for full context.
 
 ---
 

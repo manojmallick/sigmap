@@ -621,7 +621,7 @@ node gen-context.js --report
 ---
 
 ## v1.2 — Version bump + test hardening
-**Status: 🔨 NEXT UP**
+**Status: ✅ SHIPPED — tagged 2026-04-02**
 **Duration: 1 day | Owner: Platform**
 
 ### What ships
