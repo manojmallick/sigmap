@@ -6,6 +6,43 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.5.0] — 2026-04-04
+
+### Added
+- **VS Code extension** (`vscode-extension/`) — zero-dependency extension for VS Code / VS Code-compatible editors:
+  - **Status bar item** — shows health grade (A/B/C/D) and time since last regeneration; refreshes every 60 s and immediately on file-system change to `copilot-instructions.md`.
+  - **`ContextForge: Regenerate Context`** command — runs `node gen-context.js` in an integrated terminal from the workspace root.
+  - **`ContextForge: Open Context File`** command — opens `.github/copilot-instructions.md` in the editor.
+  - **Stale context notification** — warns when `copilot-instructions.md` is > 24 h old; offers one-click regeneration or "Don't show again" suppression per workspace.
+  - **`contextforge.scriptPath` setting** — override the path to `gen-context.js` when it is not at the project root.
+  - `onStartupFinished` activation — loads within 3 s of VS Code opening, does not block startup.
+- **Docs site search** — lightweight client-side keyword search added to all 6 HTML docs pages (`index.html`, `quick-start.html`, `strategies.html`, `languages.html`, `roadmap.html`, `repomix.html`):
+  - Press `/` anywhere to open the search overlay; `Escape` or click outside to close.
+  - Searches all headings, paragraphs, and list items in the current page.
+  - Up to 12 results shown with snippet preview; matching text highlighted in amber.
+  - Click a result to scroll to the exact section with a 2-second amber outline highlight.
+  - Zero external dependencies — ~60 lines of inline JS per page. Theme-aware (dark/light).
+- **`.npmignore`** — excludes `test/`, `docs/`, `scripts/`, `examples/`, `.claude/`, `vscode-extension/`, `.github/workflows/` and planning docs from npm publish. Published package contains only the runtime files listed in `package.json#files`.
+- **`test/integration/v1.5.test.js`** — 58 integration tests covering all v1.5 features:
+  - npm package integrity (name, bin, engines, zero deps, .npmignore exclusions)
+  - shebang line presence and correctness
+  - extension manifest structure (commands, configuration, activation)
+  - extension.js API coverage (status bar, notification, commands, scriptPath)
+  - search injection verified in all 6 docs pages (overlay, input, keyboard handlers, highlights)
+
+### Notes
+- The VS Code extension requires the `vscode` peer dependency at runtime (provided by the editor). It has no npm runtime dependencies of its own.
+- `scripts/inject-search.py` is the one-time migration script used to add search to existing HTML pages; it is idempotent (skip if already patched).
+
+### Validation gate
+- `node gen-context.js --version` → `1.5.0` ✔  *(note: version bumped separately if desired)*
+- `node test/integration/v1.5.test.js` → 58/58 pass ✔
+- `node test/run.js` → 21/21 extractor tests pass ✔
+- `npm pack --dry-run` → no `test/`, `docs/`, or `vscode-extension/` in artifact ✔
+- All 6 docs pages: press `/` → search overlay opens; type "python" → result appears ✔
+
+---
+
 ## [1.4.0] — 2026-04-04
 
 ### Added
