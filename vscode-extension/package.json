@@ -7,8 +7,13 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other", "AI"],
-  "keywords": ["copilot", "ai-context", "token-reduction", "code-signatures", "claude", "cursor"],
+  "categories": ["Other", "AI", "Machine Learning"],
+  "keywords": ["copilot", "ai-context", "token-reduction", "code-signatures", "claude", "cursor", "sigmap", "context", "llm", "zero-dependency", "mcp"],
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
+  "qna": "https://github.com/manojmallick/sigmap/issues",
   "activationEvents": ["onStartupFinished"],
   "main": "./src/extension.js",
   "contributes": {
@@ -37,5 +42,9 @@
     "type": "git",
     "url": "https://github.com/manojmallick/sigmap.git"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/manojmallick/sigmap/issues"
+  },
+  "homepage": "https://manojmallick.github.io/sigmap/"
 }

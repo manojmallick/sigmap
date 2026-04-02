@@ -1,0 +1,11 @@
+# Files to exclude from the .vsix package
+.gitignore
+.eslintrc*
+*.test.js
+**/*.test.js
+test/
+tests/
+.vscode-test/
+*.vsix
+node_modules/
+.git/

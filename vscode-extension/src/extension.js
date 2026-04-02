@@ -39,7 +39,7 @@ function workspaceRoot() {
  * Uses sigmap.scriptPath setting if set; otherwise looks in workspace root.
  */
 function resolveScript(root) {
-  const cfg = vscode.workspace.getConfiguration('contextforge');
+  const cfg = vscode.workspace.getConfiguration('sigmap');
   const custom = cfg.get('scriptPath', '').trim();
   if (custom && fs.existsSync(custom)) return custom;
   if (root) {
