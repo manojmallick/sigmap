@@ -72,14 +72,8 @@ const DEFAULTS = {
     autoRegister: true,
   },
 
-  // Enrich signatures with return types, type hints, and schema field collapse
-  enrichSignatures: true,
-
   // Include a compact import dependency map at top of output
   depMap: true,
-
-  // Collapse Pydantic BaseModel / @dataclass fields to a single line
-  schemaFields: true,
 
   // Include TODO/FIXME/HACK/XXX comments as compact section
   todos: true,

@@ -35,11 +35,11 @@ function buildTestIndex(cwd, testDirs) {
       }
 
       for (const m of src.matchAll(/\b(?:test_|it\(|test\(|describe\()\s*['"`]?([\w_]+)/g)) {
-        if (m[1]) names.add(m[1].toLowerCase());
+        if (m[1] && m[1].length >= 3) names.add(m[1].toLowerCase());
       }
 
       for (const m of src.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g)) {
-        if (m[1]) names.add(m[1].toLowerCase());
+        if (m[1] && m[1].length >= 4) names.add(m[1].toLowerCase());
       }
     }
   }
@@ -48,12 +48,9 @@ function buildTestIndex(cwd, testDirs) {
 }
 
 function isTested(funcName, testIndex) {
-  if (!funcName || !testIndex || testIndex.size === 0) return false;
+  if (!funcName || funcName.length < 3 || !testIndex || testIndex.size === 0) return false;
   const lower = funcName.toLowerCase();
   if (testIndex.has(lower) || testIndex.has(`test_${lower}`)) return true;
-  for (const token of testIndex) {
-    if (token.includes(lower)) return true;
-  }
   return false;
 }
 

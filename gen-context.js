@@ -1045,8 +1045,12 @@ __factories["./src/extractors/python"] = function(module, exports) {
   function tryExtractBaseModelFields(stripped, bodyStart) {
     const lines = stripped.slice(bodyStart, bodyStart + 800).split('\n');
     const fields = [];
+    let foundFirst = false;
     for (const line of lines) {
+      if (line.trim() === '') continue;
+      if (foundFirst && !/^\s/.test(line)) break;
       if (!line.match(/^\s{4}\w/)) continue;
+      foundFirst = true;
       const f = line.match(/^\s{4}(\w+)\s*(?::\s*([^=\n]+?))?(?:\s*=\s*(.*))?$/);
       if (!f || f[1].startsWith('_') || f[1] === 'class' || f[1] === 'def') continue;
       const isOptional = (f[2] || '').includes('Optional') || f[3] !== undefined;
@@ -1629,7 +1633,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     for (const m of block.matchAll(/^\s+(readonly\s+)?(\w+)(\??):\s*([^;]+);/gm)) {
       const readonly = m[1] ? 'readonly ' : '';
       const optional = m[3] ? '?' : '';
-      const typeStr = m[4].trim().replace(/\s+/g, ' ').slice(0, 20);
+      const typeStr = m[4].trim().replace(/\s+/g, ' ').slice(0, 35);
       members.push(`${readonly}${m[2]}${optional}: ${typeStr}`);
     }
     for (const m of block.matchAll(/^\s+(\w+)\s*(?:<[^(]*>)?\s*\(([^)]*)\)\s*:/gm)) {
@@ -1712,7 +1716,20 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     return [...deps].slice(0, 5);
   }
   
-  module.exports = { extractPythonDeps, extractTSDeps };
+  function buildReverseDepMap(forwardMap) {
+    const reverse = new Map();
+    if (!forwardMap || typeof forwardMap.entries !== 'function') return reverse;
+    for (const [file, deps] of forwardMap.entries()) {
+      if (!Array.isArray(deps)) continue;
+      for (const dep of deps) {
+        if (!reverse.has(dep)) reverse.set(dep, []);
+        reverse.get(dep).push(file);
+      }
+    }
+    return reverse;
+  }
+
+  module.exports = { extractPythonDeps, extractTSDeps, buildReverseDepMap };
   
 };
 
@@ -3840,8 +3857,13 @@ function getDiffFiles(cwd, stagedOnly) {
 }
 
 function getFilesChangedSinceBase(cwd, baseRef) {
+  if (!/^[A-Za-z0-9._/\-~^]+$/.test(baseRef)) {
+    console.warn(`[sigmap] --diff: invalid base ref '${baseRef}'`);
+    return new Set();
+  }
   try {
-    const out = execSync(`git diff ${baseRef}..HEAD --name-only`, {
+    const { execFileSync } = require('child_process');
+    const out = execFileSync('git', ['diff', `${baseRef}..HEAD`, '--name-only'], {
       cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
     });
     return new Set(out.split('\n').map((f) => f.trim()).filter(Boolean).map((f) => path.resolve(cwd, f)));
@@ -3858,7 +3880,8 @@ function buildDiffSectionFromBase(cwd, baseRef, currentEntries, config) {
     const rel = path.relative(cwd, entry.filePath);
     let baseSrc = '';
     try {
-      baseSrc = execSync(`git show ${baseRef}:"${rel}" 2>/dev/null`, {
+      const { execFileSync } = require('child_process');
+      baseSrc = execFileSync('git', ['show', `${baseRef}:${rel}`], {
         cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
       });
     } catch (_) {

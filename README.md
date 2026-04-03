@@ -95,7 +95,7 @@ AI agent session starts with full context
 | **Impact radius hints** | Reverse dependency annotations (used by: ...) |
 | **New helper extractors** | `deps.js`, `todos.js`, `coverage.js`, `prdiff.js` |
 
-All v2 features are opt-in via `gen-context.config.json` — existing setups continue to work unchanged.
+Several v2 enhancements (deps map, TODOs, recent changes) are enabled by default. All v2 sections can be tuned or disabled via `gen-context.config.json`.
 
 ---
 
