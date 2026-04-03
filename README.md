@@ -10,7 +10,7 @@
 </p>
 
 <!-- Status -->
-[![GitHub release](https://img.shields.io/github/v/release/manojmallick/sigmap?color=7c6af7&label=latest)](https://github.com/manojmallick/sigmap/releases)
+[![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
 [![Tests](https://img.shields.io/badge/tests-274%20passing-22c55e)](https://github.com/manojmallick/sigmap/tree/main/test)
 [![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
 [![Last commit](https://img.shields.io/github/last-commit/manojmallick/sigmap?color=7c6af7)](https://github.com/manojmallick/sigmap/commits/main)
@@ -18,7 +18,7 @@
 <!-- Meta -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
-[![npm](https://img.shields.io/badge/npm-context--forge-cb3837?logo=npm)](https://www.npmjs.com/package/sigmap)
+[![npm](https://img.shields.io/badge/npm-sigmap-cb3837?logo=npm)](https://www.npmjs.com/package/sigmap)
 [![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
 
 <!-- Links -->
