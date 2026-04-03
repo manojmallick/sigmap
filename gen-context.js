@@ -35,7 +35,12 @@ __factories["./src/config/defaults"] = function(module, exports) {
     outputs: ['copilot'],
   
     // Directories to scan (relative to project root)
-    srcDirs: ['src', 'app', 'lib', 'packages', 'services', 'api'],
+    srcDirs: [
+      'src', 'app', 'lib', 'packages', 'services', 'api',
+      'server', 'client', 'web', 'frontend', 'backend',
+      'desktop', 'mobile', 'shared', 'common', 'core',
+      'workers', 'functions', 'lambda', 'cmd',
+    ],
   
     // Directory/file names to exclude entirely
     exclude: [

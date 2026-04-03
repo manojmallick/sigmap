@@ -12,7 +12,13 @@ const DEFAULTS = {
   outputs: ['copilot'],
 
   // Directories to scan (relative to project root)
-  srcDirs: ['src', 'app', 'lib', 'packages', 'services', 'api'],
+  srcDirs: [
+    'src', 'app', 'lib', 'packages', 'services', 'api',
+    // common monorepo / multi-project top-level names
+    'server', 'client', 'web', 'frontend', 'backend',
+    'desktop', 'mobile', 'shared', 'common', 'core',
+    'workers', 'functions', 'lambda', 'cmd',
+  ],
 
   // Directory/file names to exclude entirely
   exclude: [
