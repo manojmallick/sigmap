@@ -4014,10 +4014,24 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
 // Monorepo support
 // ---------------------------------------------------------------------------
 const MONO_ROOTS  = ['packages', 'apps', 'services', 'libs'];
-const PKG_MANIFESTS = ['package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod', 'build.gradle', 'pom.xml'];
+const PKG_MANIFESTS = ['package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod', 'build.gradle', 'pom.xml', 'requirements.txt'];
 
-function detectMonorepoPackages(cwd) {
+function detectMonorepoPackages(cwd, config) {
   const packages = [];
+  const seen = new Set();
+
+  const addIfPackage = (pkgPath) => {
+    if (seen.has(pkgPath)) return;
+    seen.add(pkgPath);
+    for (const manifest of PKG_MANIFESTS) {
+      if (fs.existsSync(path.join(pkgPath, manifest))) {
+        packages.push(pkgPath);
+        return;
+      }
+    }
+  };
+
+  // Strategy 1: classic JS monorepo roots (packages/, apps/, services/, libs/)
   for (const monoDir of MONO_ROOTS) {
     const abs = path.join(cwd, monoDir);
     if (!fs.existsSync(abs)) continue;
@@ -4025,20 +4039,25 @@ function detectMonorepoPackages(cwd) {
     try { entries = fs.readdirSync(abs, { withFileTypes: true }); } catch (_) { continue; }
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
-      const pkgPath = path.join(abs, entry.name);
-      for (const manifest of PKG_MANIFESTS) {
-        if (fs.existsSync(path.join(pkgPath, manifest))) {
-          packages.push(pkgPath);
-          break;
-        }
-      }
+      addIfPackage(path.join(abs, entry.name));
     }
   }
+
+  // Strategy 2: treat each srcDir that has a manifest as its own package
+  // (covers server/web/desktop-style layouts)
+  if (packages.length === 0 && config && config.srcDirs) {
+    for (const srcDir of config.srcDirs) {
+      const abs = path.join(cwd, srcDir);
+      if (!fs.existsSync(abs)) continue;
+      addIfPackage(abs);
+    }
+  }
+
   return packages;
 }
 
 function runMonorepo(cwd, config) {
-  const packages = detectMonorepoPackages(cwd);
+  const packages = detectMonorepoPackages(cwd, config);
   if (packages.length === 0) {
     console.warn('[sigmap] no monorepo packages found — checked packages/, apps/, services/, libs/');
     return;
