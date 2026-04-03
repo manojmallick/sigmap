@@ -58,10 +58,10 @@ A persistent status bar item shows your context health at a glance — no need t
 
 | Grade | Status bar | Meaning |
 |:---:|---|---|
-| **A** | `✔ A • 2h ago` | Fresh and complete — AI has full codebase context |
-| **B** | `ℹ B • 6h ago` | Good — minor gaps, regenerate when convenient |
-| **C** | `⚠ C • 1d ago` | Stale — missing recent changes, regenerate soon |
-| **D** | `✖ D • 3d ago` | Very stale or incomplete — regenerate now |
+| **A** | `sm: ✔ A 2h ago` | Fresh and complete — AI has full codebase context |
+| **B** | `sm: ℹ B 6h ago` | Good — minor gaps, regenerate when convenient |
+| **C** | `sm: ⚠ C 1d ago` | Stale — missing recent changes, regenerate soon |
+| **D** | `sm: ✖ D 3d ago` | Very stale or incomplete — regenerate now |
 
 Click the status bar item to trigger an **instant regeneration**.
 
@@ -75,10 +75,14 @@ Run `SigMap: Regenerate Context` from the Command Palette and watch the terminal
 SigMap scans every signature before writing. If an AWS key, GitHub token, DB connection string, or Stripe key is detected in a function signature, it's **automatically redacted** — never leaks into your context file.
 
 ### 🗺 MCP server support
-SigMap ships with a built-in **Model Context Protocol (MCP) server** for Claude and Cursor, exposing three tools:
+SigMap ships with a built-in **Model Context Protocol (MCP) server** for Claude and Cursor, exposing **7 tools**:
 - `read_context` — full or per-module signature map
 - `search_signatures` — keyword search across all signatures
 - `get_map` — import graph, class hierarchy, or route table
+- `create_checkpoint` — session checkpoint with git state and context snapshot
+- `get_routing` — model routing hints (fast/balanced/powerful tiers)
+- `explain_file` — signatures, imports, and callers for a specific file
+- `list_modules` — all top-level modules sorted by token count
 
 ---
 
@@ -131,7 +135,7 @@ Open your project in VS Code, then open the Command Palette (`⇧⌘P` / `Ctrl+S
 SigMap: Regenerate Context
 ```
 
-This creates `.github/copilot-instructions.md` in your workspace root.
+This creates `.github/copilot-instructions.md` in your workspace root — including v2 sections like TODO/FIXME extraction, recent git changes, and coverage gaps (all enabled by default).
 
 ### Step 3 — Done
 
@@ -146,8 +150,9 @@ GitHub Copilot automatically picks up `.github/copilot-instructions.md`. Claude,
 | Requirement | Details |
 |---|---|
 | **Node.js** | Version 18 or higher — [download here](https://nodejs.org) |
-| **sigmap CLI** | `npm install -g sigmap` or `npx sigmap` per-project |
+| **sigmap CLI** | `npm install -g sigmap` (v2.0.0+) or `npx sigmap` per-project |
 | **VS Code** | 1.85.0 or higher |
+| **Dependencies** | **Zero** — no npm install needed for the CLI |
 
 > The extension automatically detects `gen-context.js` in your workspace root. If installed globally, set `sigmap.scriptPath` in settings.
 
@@ -178,6 +183,20 @@ Open the Command Palette (`⇧⌘P` / `Ctrl+Shift+P`) and type **SigMap**:
 |---|---|---|
 | `SigMap: Regenerate Context` | — | Runs `node gen-context.js` in your workspace root |
 | `SigMap: Open Context File` | — | Opens `.github/copilot-instructions.md` in the editor |
+
+### CLI commands (terminal)
+
+| Command | Description |
+|---|---|
+| `node gen-context.js` | Generate context once and exit |
+| `node gen-context.js --watch` | Generate + watch for changes |
+| `node gen-context.js --setup` | Generate + install git hook + start watcher |
+| `node gen-context.js --diff <base>` | Show changed-file signatures vs a git ref |
+| `node gen-context.js --health` | Print context health grade |
+| `node gen-context.js --report` | Token reduction stats to stdout |
+| `node gen-context.js --report --json` | Token report as JSON (for CI) |
+| `node gen-context.js --mcp` | Start MCP server on stdio |
+| `node gen-context.js --init` | Write example config file |
 
 ---
 
@@ -248,7 +267,7 @@ Add `.windsurfrules` output:
 ```bash
 node gen-context.js --mcp
 ```
-Exposes `read_context`, `search_signatures`, `get_map` over stdio JSON-RPC.
+Exposes 7 tools over stdio JSON-RPC: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`.
 
 ---
 
@@ -267,7 +286,7 @@ Use SigMap for every session. Reach for Repomix when you need full file content.
 
 ## 🐛 Troubleshooting
 
-**Status bar shows "no context"**
+**Status bar shows `sm: no context`**
 → Run `SigMap: Regenerate Context`. If it fails, check that Node.js 18+ is installed: `node --version`
 
 **"gen-context.js not found" warning**
