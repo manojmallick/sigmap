@@ -106,7 +106,14 @@ jobs:
 
       - name: Package and publish extension
         working-directory: vscode-extension
-        run: vsce publish --no-dependencies
+        run: |
+          vsce publish --no-dependencies 2>&1 | tee /tmp/vsce-out.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/vsce-out.txt; then
+            echo "✓ Version already on Marketplace — skipping (not an error)"
+            exit 0
+          fi
+          exit $EXIT
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
