@@ -48,6 +48,8 @@
 | [Project structure](#-project-structure) | File-by-file map |
 | [Principles](#-principles) | Design decisions |
 
+> 📖 **New to SigMap?** Read the **[Complete Getting Started Guide](docs/GETTING_STARTED.md)** — token savings walkthrough, every command, VS Code plugin, and CI setup.
+
 ---
 
 ## 🔍 What it does
