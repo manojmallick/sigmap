@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Publish to npm + GitHub Packages
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write   # needed for creating GitHub Releases
   id-token: write   # needed for npm provenance
+  packages: write   # needed for GitHub Packages
 
 jobs:
   test:
@@ -24,7 +25,7 @@ jobs:
       - name: Run test suite
         run: node test/run.js
 
-  publish:
+  publish-npm:
     name: Publish to npm
     needs: test
     runs-on: ubuntu-latest
@@ -51,6 +52,42 @@ jobs:
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-github:
+    name: Publish to GitHub Packages
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@manojmallick'
+
+      - name: Publish to GitHub Packages
+        run: |
+          # GitHub Packages requires a scoped name — publish as @manojmallick/sigmap
+          # without altering the canonical package.json (which stays as "sigmap" for npmjs.com)
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.name = '@manojmallick/sigmap';
+            pkg.publishConfig = { registry: 'https://npm.pkg.github.com' };
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Create GitHub Release
+    needs: [publish-npm, publish-github]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
