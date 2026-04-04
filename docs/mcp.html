@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Quick Start — SigMap</title>
-<meta name="description" content="Get SigMap running in under 2 minutes. One file download, zero npm install, instant 97% token reduction for your AI coding agent.">
-<meta property="og:title" content="SigMap Quick Start — under 2 minutes to working">
-<meta property="og:description" content="node gen-context.js. That's the entire install. Reduces AI context from 80K to 4K tokens automatically.">
-<meta property="og:url" content="https://manojmallick.github.io/sigmap/quick-start.html">
-<meta name="twitter:card" content="summary_large_image">
+<title>MCP Server Setup — SigMap</title>
+<meta name="description" content="Set up SigMap MCP server with Claude Code, Cursor, and Windsurf. 7 on-demand tools: read_context, search_signatures, get_map, explain_file, list_modules, create_checkpoint, get_routing.">
+<meta property="og:title" content="SigMap MCP Server Setup — Claude Code, Cursor, Windsurf">
+<meta property="og:description" content="Configure SigMap's 7 MCP tools for Claude Code, Cursor, and Windsurf. Zero-dependency stdio server.">
+<meta property="og:url" content="https://manojmallick.github.io/sigmap/mcp.html">
 <meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
-<meta name="twitter:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
-<link rel="canonical" href="https://manojmallick.github.io/sigmap/quick-start.html">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Get SigMap running in 60 seconds","description":"Zero npm install — reduce AI coding agent token usage by 97% in under 2 minutes.","url":"https://manojmallick.github.io/sigmap/quick-start.html","step":[{"@type":"HowToStep","name":"Install","text":"Run npx sigmap or npm install -g sigmap"},{"@type":"HowToStep","name":"Generate context","text":"Run sigmap in your project root to create .github/copilot-instructions.md"},{"@type":"HowToStep","name":"Commit","text":"git add .github/copilot-instructions.md and commit — Copilot reads it automatically"}]}</script>
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://manojmallick.github.io/sigmap/mcp.html">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap MCP Server Setup — Claude Code, Cursor, Windsurf","description":"Configure SigMap's 7 MCP tools for Claude Code, Cursor, and Windsurf. Zero-dependency stdio server.","url":"https://manojmallick.github.io/sigmap/mcp.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://manojmallick.github.io/sigmap/"}}</script>
 <script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
 <style>
 :root{
@@ -134,6 +133,28 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 .footer-links a{font-size:13px;color:var(--t3);text-decoration:none;transition:.15s}
 .footer-links a:hover{color:var(--t2)}
 .footer-mit{font-size:12px;color:var(--t3)}
+
+/* TOOLS TABLE */
+.tools-table{width:100%;border-collapse:collapse;margin-bottom:40px;font-size:13px}
+.tools-table th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);font-weight:500}
+.tools-table td{padding:12px 14px;border-bottom:1px solid var(--line);color:var(--t2);line-height:1.55;vertical-align:top}
+.tools-table tr:last-child td{border-bottom:none}
+.tools-table tr:hover td{background:var(--s3)}
+.tool-name{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--pd);white-space:nowrap}
+.tool-arg{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ad)}
+.tool-example{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);margin-top:4px}
+
+/* TOKEN TABLE */
+.token-table{width:100%;border-collapse:collapse;margin-bottom:40px;font-size:13px}
+.token-table th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);font-weight:500}
+.token-table td{padding:10px 14px;border-bottom:1px solid var(--line);color:var(--t2);vertical-align:middle}
+.token-table tr:last-child td{border-bottom:none}
+.token-table tr:hover td{background:var(--s3)}
+.token-call{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--pd)}
+.token-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gd)}
+
+/* INLINE CODE */
+code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px;color:var(--pd)}
 </style>
 </head>
 <body>
@@ -141,7 +162,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 <nav>
   <a class="nav-logo" href="index.html">sigmap</a>
   <div class="nav-links">
-    <a href="quick-start.html" class="hide-sm active">Quick start</a>
+    <a href="quick-start.html" class="hide-sm">Quick start</a>
     <a href="cli.html" class="hide-sm">CLI</a>
     <a href="config.html" class="hide-sm">Config</a>
     <a href="strategies.html" class="hide-sm">Strategies</a>
@@ -158,27 +179,252 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <div class="page-hero">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="dot"></span>Zero npm install</div>
-    <h1>Up and running<br>in under 2 minutes</h1>
-    <p class="hero-sub">One file. One command. Your AI coding agent gets full codebase context at every session start.</p>
-    <div class="time-badge">⏱ Average setup time: 90 seconds</div>
+    <div class="hero-badge"><span class="dot"></span>7 tools</div>
+    <h1>MCP Server Setup</h1>
+    <p class="hero-sub">Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.</p>
   </div>
 </div>
 
 <hr class="divider">
 
 <section class="section">
-  <p class="section-ey">Prerequisites</p>
-  <h2>Before you start</h2>
-  <p class="section-sub">One requirement. That's it.</p>
+  <p class="section-ey">Easiest path</p>
+  <h2>Auto-setup</h2>
+  <p class="section-sub">One command detects your editor config and wires everything up automatically.</p>
 
   <div class="prereq-box">
-    <div class="prereq-icon">🟢</div>
+    <div class="prereq-icon">⚡</div>
     <div>
-      <div class="prereq-title">Node.js 18 or later</div>
-      <div class="prereq-text">Check with <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">node --version</code>. Install from <a href="https://nodejs.org" style="color:var(--pd)">nodejs.org</a> if needed. No other tools, runtimes, or package managers required.</div>
+      <div class="prereq-title">sigmap --setup</div>
+      <div class="prereq-text">Detects <code>.claude/settings.json</code> and <code>.cursor/mcp.json</code> automatically, then adds the sigmap MCP server entry to each one it finds. Also installs a git post-commit hook and starts the file watcher.</div>
     </div>
   </div>
+
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">your-project/</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tc">$</span> <span class="tw">sigmap --setup</span></div>
+      <div>&nbsp;</div>
+      <div><span class="tk">[sigmap]</span> <span class="ts">✓ detected .claude/settings.json</span></div>
+      <div><span class="tk">[sigmap]</span> <span class="ts">✓ added MCP server entry → .claude/settings.json</span></div>
+      <div><span class="tk">[sigmap]</span> <span class="ts">✓ detected .cursor/mcp.json</span></div>
+      <div><span class="tk">[sigmap]</span> <span class="ts">✓ added MCP server entry → .cursor/mcp.json</span></div>
+      <div><span class="tk">[sigmap]</span> <span class="ts">✓ installed .git/hooks/post-commit</span></div>
+      <div><span class="tk">[sigmap]</span> <span class="ts">✓ watcher started on src/ app/ lib/</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Manual config</p>
+  <h2>Claude Code</h2>
+  <p class="section-sub">Add the sigmap MCP server to your Claude Code settings file.</p>
+
+  <div class="prereq-box">
+    <div class="prereq-icon">📄</div>
+    <div>
+      <div class="prereq-title">Which settings file?</div>
+      <div class="prereq-text">Use <code>.claude/settings.json</code> in your project root for project-level access, or <code>~/.claude/settings.json</code> for global access across all projects. The absolute path in <code>args</code> must point to the actual <code>gen-context.js</code> file on disk.</div>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">.claude/settings.json</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tc">{</span></div>
+      <div>  <span class="tk">"mcpServers"</span><span class="tc">: {</span></div>
+      <div>    <span class="tk">"sigmap"</span><span class="tc">: {</span></div>
+      <div>      <span class="tk">"command"</span><span class="tc">:</span> <span class="ts">"node"</span><span class="tc">,</span></div>
+      <div>      <span class="tk">"args"</span><span class="tc">: [</span><span class="ts">"/absolute/path/to/your/project/gen-context.js"</span><span class="tc">,</span> <span class="ts">"--mcp"</span><span class="tc">]</span></div>
+      <div>    <span class="tc">}</span></div>
+      <div>  <span class="tc">}</span></div>
+      <div><span class="tc">}</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Manual config</p>
+  <h2>Cursor</h2>
+  <p class="section-sub">Add sigmap to your Cursor MCP configuration file.</p>
+
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">.cursor/mcp.json</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tc">{</span></div>
+      <div>  <span class="tk">"mcpServers"</span><span class="tc">: {</span></div>
+      <div>    <span class="tk">"sigmap"</span><span class="tc">: {</span></div>
+      <div>      <span class="tk">"command"</span><span class="tc">:</span> <span class="ts">"node"</span><span class="tc">,</span></div>
+      <div>      <span class="tk">"args"</span><span class="tc">: [</span><span class="ts">"/absolute/path/to/your/project/gen-context.js"</span><span class="tc">,</span> <span class="ts">"--mcp"</span><span class="tc">]</span></div>
+      <div>    <span class="tc">}</span></div>
+      <div>  <span class="tc">}</span></div>
+      <div><span class="tc">}</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Combined setup</p>
+  <h2>SigMap + Repomix together</h2>
+  <p class="section-sub">Stack both MCP servers for the two-layer context strategy — SigMap for always-on signatures, Repomix for deep ad-hoc sessions.</p>
+
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">.claude/settings.json  or  .cursor/mcp.json</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tc">{</span></div>
+      <div>  <span class="tk">"mcpServers"</span><span class="tc">: {</span></div>
+      <div>    <span class="tk">"sigmap"</span><span class="tc">: {</span></div>
+      <div>      <span class="tk">"command"</span><span class="tc">:</span> <span class="ts">"node"</span><span class="tc">,</span></div>
+      <div>      <span class="tk">"args"</span><span class="tc">: [</span><span class="ts">"/path/to/project/gen-context.js"</span><span class="tc">,</span> <span class="ts">"--mcp"</span><span class="tc">]</span></div>
+      <div>    <span class="tc">},</span></div>
+      <div>    <span class="tk">"repomix"</span><span class="tc">: {</span></div>
+      <div>      <span class="tk">"command"</span><span class="tc">:</span> <span class="ts">"npx"</span><span class="tc">,</span></div>
+      <div>      <span class="tk">"args"</span><span class="tc">: [</span><span class="ts">"-y"</span><span class="tc">,</span> <span class="ts">"@repomix/mcp@latest"</span><span class="tc">]</span></div>
+      <div>    <span class="tc">}</span></div>
+      <div>  <span class="tc">}</span></div>
+      <div><span class="tc">}</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Reference</p>
+  <h2>7 available tools</h2>
+  <p class="section-sub">All tools are available on-demand — your AI agent calls only what it needs, keeping token costs low.</p>
+
+  <table class="tools-table">
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>What it does</th>
+        <th>Arg(s)</th>
+        <th>Example call</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tool-name">read_context</span></td>
+        <td>Returns signatures for the full codebase or a specific module path. Outputs ~50–500 tokens depending on scope.</td>
+        <td><span class="tool-arg">module</span> <span class="tc" style="font-size:11px">(optional string)</span></td>
+        <td><span class="tool-example">read_context(module="src/auth")</span></td>
+      </tr>
+      <tr>
+        <td><span class="tool-name">search_signatures</span></td>
+        <td>Case-insensitive keyword search across all extracted signatures. Returns matching lines grouped by file.</td>
+        <td><span class="tool-arg">query</span> <span class="tc" style="font-size:11px">(required string)</span></td>
+        <td><span class="tool-example">search_signatures(query="handleRequest")</span></td>
+      </tr>
+      <tr>
+        <td><span class="tool-name">get_map</span></td>
+        <td>Returns import graph, class hierarchy, or route table from PROJECT_MAP.md. Useful for understanding wiring without reading source.</td>
+        <td><span class="tool-arg">type</span> <span class="tc" style="font-size:11px">("imports"|"classes"|"routes")</span></td>
+        <td><span class="tool-example">get_map(type="routes")</span></td>
+      </tr>
+      <tr>
+        <td><span class="tool-name">explain_file</span></td>
+        <td>Returns signatures, imports, and reverse callers for a single file. Best for understanding what a file does and who calls it.</td>
+        <td><span class="tool-arg">path</span> <span class="tc" style="font-size:11px">(required string)</span></td>
+        <td><span class="tool-example">explain_file(path="src/auth/service.ts")</span></td>
+      </tr>
+      <tr>
+        <td><span class="tool-name">list_modules</span></td>
+        <td>Returns a token-count table of top-level source directories. Use this first to decide which module to load.</td>
+        <td><span class="tc" style="font-size:11px">none</span></td>
+        <td><span class="tool-example">list_modules()</span></td>
+      </tr>
+      <tr>
+        <td><span class="tool-name">create_checkpoint</span></td>
+        <td>Records session progress with a git state snapshot. Useful for marking stable points during long refactor sessions.</td>
+        <td><span class="tool-arg">summary</span> <span class="tc" style="font-size:11px">(required string)</span></td>
+        <td><span class="tool-example">create_checkpoint(summary="Added rate limiting")</span></td>
+      </tr>
+      <tr>
+        <td><span class="tool-name">get_routing</span></td>
+        <td>Returns the model tier hints table (fast / balanced / powerful per file) based on complexity scores.</td>
+        <td><span class="tc" style="font-size:11px">none</span></td>
+        <td><span class="tool-example">get_routing()</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Cost reference</p>
+  <h2>Token cost per tool call</h2>
+  <p class="section-sub">Approximate token consumption. Use <code>list_modules()</code> first and <code>read_context(module=...)</code> to stay efficient.</p>
+
+  <table class="token-table">
+    <thead>
+      <tr>
+        <th>Tool call</th>
+        <th>Approx. tokens</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="token-call">read_context()</span> <span class="tc" style="font-size:11px">full codebase</span></td>
+        <td><span class="token-count">200–4,000</span></td>
+      </tr>
+      <tr>
+        <td><span class="token-call">read_context(module="src/auth")</span></td>
+        <td><span class="token-count">20–500</span></td>
+      </tr>
+      <tr>
+        <td><span class="token-call">search_signatures(query="login")</span></td>
+        <td><span class="token-count">10–200</span></td>
+      </tr>
+      <tr>
+        <td><span class="token-call">get_map(type="routes")</span></td>
+        <td><span class="token-count">50–800</span></td>
+      </tr>
+      <tr>
+        <td><span class="token-call">explain_file(path="...")</span></td>
+        <td><span class="token-count">30–400</span></td>
+      </tr>
+      <tr>
+        <td><span class="token-call">list_modules()</span></td>
+        <td><span class="token-count">20–100</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Verification</p>
+  <h2>Test the server</h2>
+  <p class="section-sub">Send a raw JSON-RPC request to confirm the server starts and returns all 7 tool definitions.</p>
 
   <div class="terminal">
     <div class="term-bar">
@@ -188,278 +434,47 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       <span class="term-title">terminal</span>
     </div>
     <div class="term-body">
-      <div><span class="tc">$</span> <span class="tw">node --version</span></div>
-      <div><span class="ts">v22.11.0</span> <span class="tc"> ← v18+ required</span></div>
-    </div>
-  </div>
-</section>
-
-<hr class="divider">
-
-<section class="section">
-  <p class="section-ey">Installation</p>
-  <h2>Three steps</h2>
-  <p class="section-sub">No package manager. No build step. Just copy one file into your project.</p>
-
-  <div class="steps-flow">
-
-    <!-- Step 1 -->
-    <div class="step-row">
-      <div class="step-rail">
-        <div class="step-circle">1</div>
-        <div class="step-line"></div>
-      </div>
-      <div class="step-content">
-        <div class="step-label">Step 1 of 3</div>
-        <div class="step-title">Download gen-context.js</div>
-        <div class="step-desc">Copy the single-file entry point into the root of your project. No package.json changes needed.</div>
-        <div class="terminal">
-          <div class="term-bar">
-            <div class="term-dot" style="background:#ff5f57"></div>
-            <div class="term-dot" style="background:#febc2e"></div>
-            <div class="term-dot" style="background:#28c840"></div>
-            <span class="term-title">your-project/</span>
-          </div>
-          <div class="term-body">
-            <div><span class="tc">$</span> <span class="tw">curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.js</span></div>
-            <div><span class="ts">  % Total    % Received</span></div>
-            <div><span class="ts">100  48.2K  100  48.2K  ←  single file, ~50KB</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2 -->
-    <div class="step-row">
-      <div class="step-rail">
-        <div class="step-circle">2</div>
-        <div class="step-line"></div>
-      </div>
-      <div class="step-content">
-        <div class="step-label">Step 2 of 3</div>
-        <div class="step-title">Generate your context file</div>
-        <div class="step-desc">Run it once. It scans your codebase, extracts signatures from all 21 supported languages, and writes <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.github/copilot-instructions.md</code>.</div>
-        <div class="terminal">
-          <div class="term-bar">
-            <div class="term-dot" style="background:#ff5f57"></div>
-            <div class="term-dot" style="background:#febc2e"></div>
-            <div class="term-dot" style="background:#28c840"></div>
-            <span class="term-title">your-project/</span>
-          </div>
-          <div class="term-body">
-            <div><span class="tc">$</span> <span class="tw">node gen-context.js</span></div>
-            <div>&nbsp;</div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">scanning 247 files across src/ app/ lib/</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">extracted 1,842 signatures from 89 files</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">secret scan: clean (0 findings)</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="tw">budget: 6,000 tokens target, using 3,847</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">reduction: 82,400 → 3,847 tokens (95.3%)</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 3 -->
-    <div class="step-row">
-      <div class="step-rail">
-        <div class="step-circle">3</div>
-      </div>
-      <div class="step-content">
-        <div class="step-label">Step 3 of 3</div>
-        <div class="step-title">Enable always-on updates</div>
-        <div class="step-desc">The <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--setup</code> flag installs a git post-commit hook and starts a file watcher. From now on, every save and every commit automatically regenerates the context file.</div>
-        <div class="terminal">
-          <div class="term-bar">
-            <div class="term-dot" style="background:#ff5f57"></div>
-            <div class="term-dot" style="background:#febc2e"></div>
-            <div class="term-dot" style="background:#28c840"></div>
-            <span class="term-title">your-project/</span>
-          </div>
-          <div class="term-body">
-            <div><span class="tc">$</span> <span class="tw">node gen-context.js --setup</span></div>
-            <div>&nbsp;</div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">✓ installed .git/hooks/post-commit</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">✓ watcher started on src/ app/ lib/</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">watching for changes...</span> <span class="tc">(Ctrl+C to stop)</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<hr class="divider">
-
-<section class="section">
-  <p class="section-ey">Verification</p>
-  <h2>What you get</h2>
-  <p class="section-sub">The token report and a structured context file your AI agent reads at every session start.</p>
-
-  <div class="terminal" style="margin-bottom:32px">
-    <div class="term-bar">
-      <div class="term-dot" style="background:#ff5f57"></div>
-      <div class="term-dot" style="background:#febc2e"></div>
-      <div class="term-dot" style="background:#28c840"></div>
-      <span class="term-title">node gen-context.js --report</span>
-    </div>
-    <div class="term-body">
-      <div><span class="tp">╔══════════════════════════════════╗</span></div>
-      <div><span class="tp">║   SigMap Token Report       ║</span></div>
-      <div><span class="tp">╚══════════════════════════════════╝</span></div>
+      <div><span class="tc">$</span> <span class="tw">echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp</span></div>
       <div>&nbsp;</div>
-      <div><span class="tc">Input</span>    <span class="tw">82,400 tokens</span>   <span class="tc">(full source)</span></div>
-      <div><span class="tc">Output</span>   <span class="ts">3,847 tokens</span>    <span class="tc">(signatures only)</span></div>
-      <div><span class="tc">Saved</span>    <span class="ts">78,553 tokens</span>   <span class="tc">(95.3% reduction)</span></div>
-      <div>&nbsp;</div>
-      <div><span class="tc">Files scanned</span>  <span class="tw">247</span></div>
-      <div><span class="tc">Files included</span> <span class="tw">89</span>  <span class="tc">(dropped 158 under budget)</span></div>
-      <div><span class="tc">Languages</span>      <span class="tw">TypeScript, Python, Go, CSS</span></div>
-      <div><span class="tc">Secrets found</span>  <span class="ts">0</span>  <span class="tc">(clean)</span></div>
-      <div>&nbsp;</div>
-      <div><span class="ts">Output: .github/copilot-instructions.md</span></div>
-    </div>
-  </div>
-
-  <div class="terminal">
-    <div class="term-bar">
-      <div class="term-dot" style="background:#ff5f57"></div>
-      <div class="term-dot" style="background:#febc2e"></div>
-      <div class="term-dot" style="background:#28c840"></div>
-      <span class="term-title">.github/copilot-instructions.md (excerpt)</span>
-    </div>
-    <div class="term-body">
-      <div><span class="tp"># Code signatures</span></div>
-      <div>&nbsp;</div>
-      <div><span class="tp">## src/api/users.ts</span></div>
-      <div><span class="ts">export interface User</span></div>
-      <div><span class="ts">export class UserService</span></div>
-      <div><span class="ts">  async findById(id: string): Promise&lt;User&gt;</span></div>
-      <div><span class="ts">  async create(data: CreateUserDto): Promise&lt;User&gt;</span></div>
-      <div><span class="ts">  async delete(id: string): Promise&lt;void&gt;</span></div>
-      <div>&nbsp;</div>
-      <div><span class="tp">## src/auth/jwt.ts</span></div>
-      <div><span class="ts">export function signToken(payload: JwtPayload): string</span></div>
-      <div><span class="ts">export function verifyToken(token: string): JwtPayload</span></div>
-      <div>&nbsp;</div>
-      <div><span class="tc">...89 more files...</span></div>
-    </div>
-  </div>
-</section>
-
-<hr class="divider">
-
-<section class="section">
-  <p class="section-ey">Configuration</p>
-  <h2>Customise the output</h2>
-  <p class="section-sub">Create <code style="font-family:'IBM Plex Mono',monospace;font-size:13px;background:var(--s3);padding:2px 6px;border-radius:4px">gen-context.config.json</code> in your project root. All fields optional.</p>
-
-  <div class="terminal" style="margin-bottom:32px">
-    <div class="term-bar">
-      <div class="term-dot" style="background:#ff5f57"></div>
-      <div class="term-dot" style="background:#febc2e"></div>
-      <div class="term-dot" style="background:#28c840"></div>
-      <span class="term-title">gen-context.config.json</span>
-    </div>
-    <div class="term-body">
       <div><span class="tc">{</span></div>
-      <div>  <span class="tk">"output"</span><span class="tc">:</span> <span class="ts">".github/copilot-instructions.md"</span><span class="tc">,</span></div>
-      <div>  <span class="tk">"outputs"</span><span class="tc">:</span> <span class="tc">[</span><span class="ts">"copilot"</span><span class="tc">,</span> <span class="ts">"claude"</span><span class="tc">,</span> <span class="ts">"cursor"</span><span class="tc">],</span></div>
-      <div>  <span class="tk">"srcDirs"</span><span class="tc">:</span> <span class="tc">[</span><span class="ts">"src"</span><span class="tc">,</span> <span class="ts">"app"</span><span class="tc">,</span> <span class="ts">"lib"</span><span class="tc">],</span></div>
-      <div>  <span class="tk">"maxTokens"</span><span class="tc">:</span> <span class="tw">6000</span><span class="tc">,</span></div>
-      <div>  <span class="tk">"secretScan"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
-      <div>  <span class="tk">"monorepo"</span><span class="tc">:</span> <span class="tw">false</span><span class="tc">,</span></div>
-      <div>  <span class="tk">"diffPriority"</span><span class="tc">:</span> <span class="tw">true</span></div>
+      <div>  <span class="tk">"jsonrpc"</span><span class="tc">:</span> <span class="ts">"2.0"</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"id"</span><span class="tc">: 1,</span></div>
+      <div>  <span class="tk">"result"</span><span class="tc">: {</span></div>
+      <div>    <span class="tk">"tools"</span><span class="tc">: [</span></div>
+      <div>      <span class="tc">{ </span><span class="tk">"name"</span><span class="tc">:</span> <span class="ts">"read_context"</span> <span class="tc">},</span></div>
+      <div>      <span class="tc">{ </span><span class="tk">"name"</span><span class="tc">:</span> <span class="ts">"search_signatures"</span> <span class="tc">},</span></div>
+      <div>      <span class="tc">{ </span><span class="tk">"name"</span><span class="tc">:</span> <span class="ts">"get_map"</span> <span class="tc">},</span></div>
+      <div>      <span class="tc">{ </span><span class="tk">"name"</span><span class="tc">:</span> <span class="ts">"explain_file"</span> <span class="tc">},</span></div>
+      <div>      <span class="tc">{ </span><span class="tk">"name"</span><span class="tc">:</span> <span class="ts">"list_modules"</span> <span class="tc">},</span></div>
+      <div>      <span class="tc">{ </span><span class="tk">"name"</span><span class="tc">:</span> <span class="ts">"create_checkpoint"</span> <span class="tc">},</span></div>
+      <div>      <span class="tc">{ </span><span class="tk">"name"</span><span class="tc">:</span> <span class="ts">"get_routing"</span> <span class="tc">}</span></div>
+      <div>    <span class="tc">]</span>  <span class="ts">← 7 tools</span> <span class="tc">✓</span></div>
+      <div>  <span class="tc">}</span></div>
       <div><span class="tc">}</span></div>
     </div>
   </div>
+</section>
 
-  <div class="config-grid">
-    <div class="config-card">
-      <div class="config-key">outputs</div>
-      <div class="config-type">string[] — default: ["copilot"]</div>
-      <div class="config-desc">Write to multiple target files in one run. Supports <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">copilot</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">claude</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">cursor</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">windsurf</code>.</div>
-    </div>
-    <div class="config-card">
-      <div class="config-key">srcDirs</div>
-      <div class="config-type">string[] — default: ["src","app","lib","packages","services","api"]</div>
-      <div class="config-desc">Directories to scan. Relative to project root. Nested paths are scanned recursively up to maxDepth.</div>
-    </div>
-    <div class="config-card">
-      <div class="config-key">maxTokens</div>
-      <div class="config-type">number — default: 6000</div>
-      <div class="config-desc">Token budget for the output file. Files are dropped in priority order when the budget is exceeded.</div>
-    </div>
-    <div class="config-card">
-      <div class="config-key">maxDepth</div>
-      <div class="config-type">number — default: 6</div>
-      <div class="config-desc">Maximum directory depth to recurse into. Increase for deeply nested monorepos.</div>
-    </div>
-    <div class="config-card">
-      <div class="config-key">secretScan</div>
-      <div class="config-type">boolean — default: true</div>
-      <div class="config-desc">Scan extracted signatures for API keys, tokens, passwords, and secrets before writing. Redacts matches automatically.</div>
-    </div>
-    <div class="config-card">
-      <div class="config-key">diffPriority</div>
-      <div class="config-type">boolean — default: true</div>
-      <div class="config-desc">Files changed in recent git commits are prioritised within the token budget. Keeps the most relevant code front-and-center.</div>
-    </div>
-    <div class="config-card">
-      <div class="config-key">monorepo</div>
-      <div class="config-type">boolean — default: false</div>
-      <div class="config-desc">When enabled, generates a separate context file per package in a monorepo, using the package name as the section header.</div>
-    </div>
-    <div class="config-card">
-      <div class="config-key">routing</div>
-      <div class="config-type">boolean — default: false</div>
-      <div class="config-desc">Appends a model routing recommendation section: which AI model tier to use for each file based on its complexity score.</div>
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Staying current</p>
+  <h2>Keep context fresh</h2>
+  <p class="section-sub">The MCP server reads whatever context file is on disk. Keep that file up to date and every tool call reflects your latest code.</p>
+
+  <div class="prereq-box">
+    <div class="prereq-icon">👁️</div>
+    <div>
+      <div class="prereq-title">Option 1 — file watcher</div>
+      <div class="prereq-text">Run <code>sigmap --watch</code> in a terminal while you code. Every file save triggers an incremental regeneration. Best for active coding sessions.</div>
     </div>
   </div>
 
   <div class="prereq-box" style="margin-bottom:0">
-    <div class="prereq-icon">📄</div>
+    <div class="prereq-icon">🪝</div>
     <div>
-      <div class="prereq-title">.contextignore</div>
-      <div class="prereq-text">Create a <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.contextignore</code> file in your project root using the same gitignore syntax to exclude specific paths. This file is compatible with <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.repomixignore</code> — you can symlink them to share one exclusion list.</div>
-    </div>
-  </div>
-</section>
-
-<hr class="divider">
-
-<section class="section">
-  <p class="section-ey">All CLI flags</p>
-  <h2>Command reference</h2>
-  <p class="section-sub">Every flag the CLI accepts.</p>
-
-  <div class="terminal">
-    <div class="term-bar">
-      <div class="term-dot" style="background:#ff5f57"></div>
-      <div class="term-dot" style="background:#febc2e"></div>
-      <div class="term-dot" style="background:#28c840"></div>
-      <span class="term-title">node gen-context.js --help</span>
-    </div>
-    <div class="term-body">
-      <div><span class="tp">SigMap v2.0.0</span></div>
-      <div>&nbsp;</div>
-      <div><span class="tc">Usage:</span> <span class="tw">node gen-context.js [flag]</span></div>
-      <div>&nbsp;</div>
-      <div><span class="ts">  (no flags)         </span><span class="tc">Generate context and exit</span></div>
-      <div><span class="ts">  --watch            </span><span class="tc">Generate and watch for file changes</span></div>
-      <div><span class="ts">  --setup            </span><span class="tc">Generate + install git hook + start watcher</span></div>
-      <div><span class="ts">  --mcp              </span><span class="tc">Start MCP server on stdio</span></div>
-      <div><span class="ts">  --report           </span><span class="tc">Print token reduction stats to stdout</span></div>
-      <div><span class="ts">  --report --json    </span><span class="tc">Token report as JSON (for CI pipelines)</span></div>
-      <div><span class="ts">  --diff             </span><span class="tc">Generate context for git-changed files only</span></div>
-      <div><span class="ts">  --diff --staged    </span><span class="tc">Generate context for staged files only</span></div>
-      <div><span class="ts">  --health           </span><span class="tc">Composite 0-100 health score (grade A-D)</span></div>
-      <div><span class="ts">  --suggest-tool     </span><span class="tc">Recommend fast/balanced/powerful model tier</span></div>
-      <div><span class="ts">  --track            </span><span class="tc">Log run metrics to .sigmap/runs.jsonl</span></div>
-      <div><span class="ts">  --init             </span><span class="tc">Write gen-context.config.json.example</span></div>
-      <div><span class="ts">  --version          </span><span class="tc">Print version string</span></div>
-      <div><span class="ts">  --help             </span><span class="tc">Show this message</span></div>
+      <div class="prereq-title">Option 2 — git hook (recommended)</div>
+      <div class="prereq-text">Run <code>sigmap --setup</code> once. It installs a <code>.git/hooks/post-commit</code> hook that regenerates context automatically on every commit. More reliable than the watcher across sleep/wake cycles.</div>
     </div>
   </div>
 </section>
@@ -471,24 +486,19 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
   <h2>Explore further</h2>
   <div class="next-grid">
     <a class="next-card" href="strategies.html">
-      <div class="next-card-ey">v1.1</div>
-      <div class="next-card-title">Context strategies</div>
+      <div class="next-card-ey">Context strategies</div>
+      <div class="next-card-title">Strategies</div>
       <div class="next-card-desc">Full vs per-module vs hot-cold with case-by-case recommendations and token trade-offs.</div>
     </a>
-    <a class="next-card" href="languages.html">
-      <div class="next-card-ey">21 languages</div>
-      <div class="next-card-title">Language support</div>
-      <div class="next-card-desc">See what gets extracted for TypeScript, Python, Go, Rust, and 17 more languages.</div>
+    <a class="next-card" href="config.html">
+      <div class="next-card-ey">All options</div>
+      <div class="next-card-title">Config reference</div>
+      <div class="next-card-desc">Every field in gen-context.config.json with defaults, types, and examples.</div>
     </a>
-    <a class="next-card" href="repomix.html">
-      <div class="next-card-ey">Integration guide</div>
-      <div class="next-card-title">Repomix + SigMap</div>
-      <div class="next-card-desc">Stack both tools for the two-layer caching strategy. SigMap for daily; Repomix for deep sessions.</div>
-    </a>
-    <a class="next-card" href="roadmap.html">
-      <div class="next-card-ey">v0.1 → v2.0</div>
-      <div class="next-card-title">Full roadmap</div>
-      <div class="next-card-desc">All major versions shipped. 97% token reduction. 262 tests. MIT license.</div>
+    <a class="next-card" href="troubleshooting.html">
+      <div class="next-card-ey">Common fixes</div>
+      <div class="next-card-title">Troubleshooting</div>
+      <div class="next-card-desc">MCP server not appearing, tools/list returns nothing, path errors, and more.</div>
     </a>
   </div>
 </section>
@@ -534,7 +544,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 </style>
 <div id="cf-search-overlay" role="dialog" aria-modal="true" aria-label="Search documentation">
   <div id="cf-search-box">
-    <input id="cf-search-input" type="text" placeholder="Search docs\u2026 (Esc to close)" autocomplete="off" spellcheck="false">
+    <input id="cf-search-input" type="text" placeholder="Search docs… (Esc to close)" autocomplete="off" spellcheck="false">
     <div id="cf-search-results"></div>
   </div>
 </div>

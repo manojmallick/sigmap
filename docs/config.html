@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Configuration — SigMap</title>
+<meta name="description" content="Complete SigMap configuration reference. All 21 keys in gen-context.config.json with types, defaults, and examples. srcDirs, maxTokens, strategy, outputs, secretScan and more.">
+<meta property="og:title" content="SigMap Configuration Reference — all 21 keys">
+<meta property="og:description" content="Every gen-context.config.json key documented with types, defaults, and examples.">
+<meta property="og:url" content="https://manojmallick.github.io/sigmap/config.html">
+<meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://manojmallick.github.io/sigmap/config.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap Configuration Reference","description":"Complete gen-context.config.json reference. All 21 keys with types, defaults, and examples.","url":"https://manojmallick.github.io/sigmap/config.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://manojmallick.github.io/sigmap/"}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
+<style>
+:root{
+  --bg:#09090c;--s1:#0f0f13;--s2:#161619;--s3:#1d1d22;--s4:#25252c;
+  --line:#2a2a33;--line2:#38383f;
+  --t1:#f0eeff;--t2:#9896b0;--t3:#52506a;
+  --p:#7c6af7;--pl:rgba(124,106,247,.1);--pd:#b3aaff;
+  --g:#10b981;--gl:rgba(16,185,129,.1);--gd:#6ee7b7;
+  --a:#f59e0b;--al:rgba(245,158,11,.1);--ad:#fcd34d;
+  --r:#f43f5e;
+  --nav-bg:rgba(9,9,12,.85);
+}
+:root.light{
+  --bg:#f8f7ff;--s1:#f2f0fd;--s2:#eceaff;--s3:#e4e2f8;--s4:#d8d6f0;
+  --line:#d0ceea;--line2:#bcb8da;
+  --t1:#1a1830;--t2:#5a5878;--t3:#8886a2;
+  --p:#6b57f5;--pl:rgba(107,87,245,.1);--pd:#4c3bc4;
+  --g:#059669;--gl:rgba(5,150,105,.1);--gd:#065f46;
+  --a:#d97706;--al:rgba(217,119,6,.1);--ad:#78350f;
+  --r:#e11d48;
+  --nav-bg:rgba(248,247,255,.92);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden;transition:background .25s,color .25s}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;transition:background .25s}
+.nav-logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--pd);text-decoration:none}
+.nav-links{display:flex;align-items:center;gap:24px}
+.nav-links a{font-size:13px;color:var(--t2);text-decoration:none;transition:.15s}
+.nav-links a:hover{color:var(--t1)}
+.nav-links a.active{color:var(--t1)}
+.nav-gh{background:var(--p);color:#fff;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;transition:.15s}
+.nav-gh:hover{opacity:.85;color:#fff}
+.theme-toggle{background:none;border:1px solid var(--line2);border-radius:7px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:.15s;flex-shrink:0;padding:0}
+.theme-toggle:hover{border-color:var(--p);color:var(--pd)}
+.theme-toggle svg{width:16px;height:16px;pointer-events:none;display:none}
+.theme-toggle .icon-moon{display:block}
+:root.light .theme-toggle .icon-sun{display:block}
+:root.light .theme-toggle .icon-moon{display:none}
+@media(max-width:600px){.nav-links .hide-sm{display:none}}
+
+/* HERO */
+.page-hero{padding:120px 24px 64px;text-align:center;position:relative;overflow:hidden}
+.page-hero::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(124,106,247,.06) 0%,transparent 65%);pointer-events:none}
+.hero-inner{max-width:700px;margin:0 auto;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--gl);border:1px solid rgba(16,185,129,.25);border-radius:20px;padding:5px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gd);margin-bottom:24px;letter-spacing:.04em}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--g)}
+h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:800;line-height:1.08;margin-bottom:16px;background:linear-gradient(135deg,var(--t1) 30%,var(--pd) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:clamp(15px,2vw,18px);color:var(--t2);line-height:1.65;max-width:540px;margin:0 auto;font-weight:300}
+
+/* SECTIONS */
+.section{padding:64px 24px;max-width:860px;margin:0 auto}
+.section-ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pd);margin-bottom:10px;text-align:center}
+h2{font-family:'Syne',sans-serif;font-size:clamp(22px,3.5vw,34px);font-weight:800;text-align:center;margin-bottom:12px}
+h3{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:16px;color:var(--pd)}
+.section-sub{font-size:15px;color:var(--t2);text-align:center;max-width:500px;margin:0 auto 48px;font-weight:300;line-height:1.65}
+
+/* TERMINAL */
+.terminal{background:#06060a;border:1px solid var(--line2);border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto 32px;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.5);--t3:#52506a;--pd:#b3aaff;--gd:#6ee7b7;--ad:#fcd34d;--s2:#161619;--s3:#1d1d22;--line:#2a2a33;--line2:#38383f}
+.term-bar{background:var(--s2);padding:10px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.term-dot{width:11px;height:11px;border-radius:50%}
+.term-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);margin-left:6px}
+.term-body{padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.8}
+.tc{color:var(--t3)}.tk{color:var(--pd)}.ts{color:var(--gd)}.tw{color:var(--ad)}.tr{color:#fca5a5}.tp{color:#c084fc}
+
+/* CONFIG */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:40px}
+@media(max-width:640px){.config-grid{grid-template-columns:1fr}}
+.config-card{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:20px}
+.config-key{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--pd);margin-bottom:4px}
+.config-type{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t3);margin-bottom:8px}
+.config-desc{font-size:13px;color:var(--t2);line-height:1.55}
+.config-default{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ad);margin-top:6px}
+
+/* GROUP LABEL */
+.group-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pd);margin-bottom:14px;margin-top:40px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+
+/* CTA */
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.btn-primary{background:var(--p);color:#fff;padding:11px 24px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;transition:.15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary:hover{opacity:.85;color:#fff;transform:translateY(-1px)}
+.btn-secondary{background:transparent;color:var(--t1);border:1px solid var(--line2);padding:11px 20px;border-radius:9px;font-size:14px;font-weight:500;text-decoration:none;transition:.15s}
+.btn-secondary:hover{border-color:var(--p);color:var(--pd)}
+
+/* PREREQ */
+.prereq-box{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:40px;display:flex;align-items:flex-start;gap:16px}
+.prereq-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.prereq-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px}
+.prereq-text{font-size:13px;color:var(--t2);line-height:1.55}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--line);margin:0}
+
+/* NEXT STEPS */
+.next-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:640px){.next-grid{grid-template-columns:1fr}}
+.next-card{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:24px;text-decoration:none;transition:.2s;display:block}
+.next-card:hover{border-color:var(--p);transform:translateY(-2px)}
+.next-card-ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--pd);margin-bottom:8px}
+.next-card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:6px;color:var(--t1)}
+.next-card-desc{font-size:13px;color:var(--t2);line-height:1.55;font-weight:300}
+
+/* FOOTER */
+footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
+.footer-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--t3)}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--t3);text-decoration:none;transition:.15s}
+.footer-links a:hover{color:var(--t2)}
+.footer-mit{font-size:12px;color:var(--t3)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">sigmap</a>
+  <div class="nav-links">
+    <a href="quick-start.html" class="hide-sm">Quick start</a>
+    <a href="cli.html" class="hide-sm">CLI</a>
+    <a href="config.html" class="hide-sm active">Config</a>
+    <a href="strategies.html" class="hide-sm">Strategies</a>
+    <a href="languages.html" class="hide-sm">Languages</a>
+    <a href="roadmap.html" class="hide-sm">Roadmap</a>
+    <a href="repomix.html" class="hide-sm">Repomix</a>
+    <button class="theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+    <a href="https://github.com/manojmallick/sigmap" class="nav-gh" target="_blank">★ GitHub</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="hero-inner">
+    <div class="hero-badge"><span class="dot"></span>gen-context.config.json</div>
+    <h1>Configuration</h1>
+    <p class="hero-sub">All 21 keys. Run <code style="font-family:'IBM Plex Mono',monospace;font-size:15px;background:rgba(124,106,247,.12);padding:2px 8px;border-radius:5px;-webkit-text-fill-color:var(--pd)">sigmap --init</code> to create a starter config with all options annotated.</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Section 1: Full example config -->
+<section class="section">
+  <p class="section-ey">Full example</p>
+  <h2>Complete config with defaults</h2>
+  <p class="section-sub">Every available key shown with its default value. All fields are optional — omit any key to keep its default.</p>
+
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">gen-context.config.json</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tc">{</span></div>
+      <div>  <span class="tc">// Output</span></div>
+      <div>  <span class="tk">"outputs"</span><span class="tc">:</span> <span class="tc">[</span><span class="ts">"copilot"</span><span class="tc">],</span></div>
+      <div>  <span class="tk">"format"</span><span class="tc">:</span> <span class="ts">"default"</span><span class="tc">,</span></div>
+      <div>&nbsp;</div>
+      <div>  <span class="tc">// Source scanning</span></div>
+      <div>  <span class="tk">"srcDirs"</span><span class="tc">:</span> <span class="tc">[</span><span class="ts">"src"</span><span class="tc">,</span> <span class="ts">"app"</span><span class="tc">,</span> <span class="ts">"lib"</span><span class="tc">,</span> <span class="ts">"packages"</span><span class="tc">,</span> <span class="ts">"services"</span><span class="tc">,</span> <span class="ts">"api"</span><span class="tc">],</span></div>
+      <div>  <span class="tk">"exclude"</span><span class="tc">:</span> <span class="tc">[</span><span class="ts">"node_modules"</span><span class="tc">,</span> <span class="ts">".git"</span><span class="tc">,</span> <span class="ts">"dist"</span><span class="tc">,</span> <span class="ts">"build"</span><span class="tc">,</span> <span class="ts">"__pycache__"</span><span class="tc">],</span></div>
+      <div>  <span class="tk">"maxDepth"</span><span class="tc">:</span> <span class="tw">6</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"maxSigsPerFile"</span><span class="tc">:</span> <span class="tw">25</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"maxTokens"</span><span class="tc">:</span> <span class="tw">6000</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"diffPriority"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
+      <div>&nbsp;</div>
+      <div>  <span class="tc">// Strategy</span></div>
+      <div>  <span class="tk">"strategy"</span><span class="tc">:</span> <span class="ts">"full"</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"hotCommits"</span><span class="tc">:</span> <span class="tw">10</span><span class="tc">,</span></div>
+      <div>&nbsp;</div>
+      <div>  <span class="tc">// Features</span></div>
+      <div>  <span class="tk">"secretScan"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"routing"</span><span class="tc">:</span> <span class="tw">false</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"monorepo"</span><span class="tc">:</span> <span class="tw">false</span><span class="tc">,</span></div>
+      <div>&nbsp;</div>
+      <div>  <span class="tc">// Watch</span></div>
+      <div>  <span class="tk">"watchDebounce"</span><span class="tc">:</span> <span class="tw">300</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"tracking"</span><span class="tc">:</span> <span class="tw">false</span><span class="tc">,</span></div>
+      <div>&nbsp;</div>
+      <div>  <span class="tc">// v2 Enrichment</span></div>
+      <div>  <span class="tk">"enrichSignatures"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"depMap"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"todos"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"changes"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"changesCommits"</span><span class="tc">:</span> <span class="tw">5</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"testCoverage"</span><span class="tc">:</span> <span class="tw">false</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"testDirs"</span><span class="tc">:</span> <span class="tc">[</span><span class="ts">"test"</span><span class="tc">,</span> <span class="ts">"tests"</span><span class="tc">,</span> <span class="ts">"__tests__"</span><span class="tc">,</span> <span class="ts">"spec"</span><span class="tc">],</span></div>
+      <div>  <span class="tk">"impactRadius"</span><span class="tc">:</span> <span class="tw">false</span></div>
+      <div><span class="tc">}</span></div>
+    </div>
+  </div>
+
+  <div class="prereq-box" style="margin-bottom:0">
+    <div class="prereq-icon">⚡</div>
+    <div>
+      <div class="prereq-title">Generate a starter config automatically</div>
+      <div class="prereq-text">Run <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">node gen-context.js --init</code> to write a <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">gen-context.config.json</code> pre-filled with all defaults and inline comments. The command will not overwrite an existing file.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Section 2: Config reference cards -->
+<section class="section">
+  <p class="section-ey">Config reference</p>
+  <h2>All 21 keys</h2>
+  <p class="section-sub">Grouped by function. Every key is optional — SigMap uses the default when the key is absent.</p>
+
+  <!-- Group 1: Output -->
+  <div class="group-label">Output</div>
+  <div class="config-grid">
+    <div class="config-card">
+      <div class="config-key">outputs</div>
+      <div class="config-type">string[] — default: ["copilot"]</div>
+      <div class="config-desc">Write to multiple target files in one run. Each value maps to a specific file path: <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">copilot</code> → <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">.github/copilot-instructions.md</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">claude</code> → <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">CLAUDE.md</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">cursor</code> → <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">.cursorrules</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">windsurf</code> → <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">.windsurfrules</code>.</div>
+      <div class="config-default">values: "copilot" | "claude" | "cursor" | "windsurf"</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">format</div>
+      <div class="config-type">"default" | "cache" — default: "default"</div>
+      <div class="config-desc">Controls output format. <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">"cache"</code> writes an additional Anthropic prompt-cache JSON file alongside the standard markdown. Feed the JSON directly to the Anthropic API to reduce repeated context costs by up to 90%.</div>
+      <div class="config-default">CLI equivalent: --format cache</div>
+    </div>
+  </div>
+
+  <!-- Group 2: Source scanning -->
+  <div class="group-label">Source scanning</div>
+  <div class="config-grid">
+    <div class="config-card">
+      <div class="config-key">srcDirs</div>
+      <div class="config-type">string[] — default: ["src","app","lib","packages","services","api",...]</div>
+      <div class="config-desc">Directories scanned relative to the project root. Scanned recursively up to <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">maxDepth</code>. Full default list includes: components, pages, routes, controllers, models, utils, helpers, middleware, config, types, interfaces, schemas, stores, hooks.</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">exclude</div>
+      <div class="config-type">string[] — default: ["node_modules",".git","dist","build","__pycache__","coverage",".next",".nuxt","vendor"]</div>
+      <div class="config-desc">Paths excluded from scanning. Matched against relative paths using glob patterns. Also respects <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">.contextignore</code> in the project root.</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">maxDepth</div>
+      <div class="config-type">number — default: 6</div>
+      <div class="config-desc">Maximum directory recursion depth. Directories deeper than this limit are skipped entirely. Increase for deeply nested monorepos; decrease for faster scans on flat projects.</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">maxSigsPerFile</div>
+      <div class="config-type">number — default: 25</div>
+      <div class="config-desc">Cap on the number of signatures extracted from any single file. Prevents one large file with hundreds of exports from consuming the entire token budget, keeping the output representative across the whole codebase.</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">maxTokens</div>
+      <div class="config-type">number — default: 6000</div>
+      <div class="config-desc">Hard token budget for the output file. When the budget is exceeded, files are dropped in reverse priority order (least recently changed first) until the output fits. The <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">--report --json</code> flag exits 1 when over budget.</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">diffPriority</div>
+      <div class="config-type">boolean — default: true</div>
+      <div class="config-desc">Files touched in recent git commits are prioritised within the token budget. When the budget is tight, recently changed files stay in and older untouched files are dropped first. Keeps the most relevant code front-and-centre for your AI agent.</div>
+    </div>
+  </div>
+
+  <!-- Group 3: Strategy -->
+  <div class="group-label">Strategy</div>
+  <div class="config-grid">
+    <div class="config-card">
+      <div class="config-key">strategy</div>
+      <div class="config-type">"full" | "per-module" | "hot-cold" — default: "full"</div>
+      <div class="config-desc">Controls how signatures are organised in the output. <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">full</code> flattens everything into one file. <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">per-module</code> groups by top-level directory. <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">hot-cold</code> separates frequently-changed files from stable ones. See the Strategies page for trade-offs.</div>
+      <div class="config-default">see: strategies.html</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">hotCommits</div>
+      <div class="config-type">number — default: 10</div>
+      <div class="config-desc">Number of recent git commits used to determine which files are "hot" in the <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">hot-cold</code> strategy. Files touched in any of the last N commits are placed in the hot section. Only relevant when <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">strategy</code> is <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">"hot-cold"</code>.</div>
+    </div>
+  </div>
+
+  <!-- Group 4: Features -->
+  <div class="group-label">Features</div>
+  <div class="config-grid">
+    <div class="config-card">
+      <div class="config-key">secretScan</div>
+      <div class="config-type">boolean — default: true</div>
+      <div class="config-desc">Scans all extracted signatures for API keys, tokens, passwords, and other secrets before writing the output. Matches are automatically redacted with a placeholder. Recommended to keep enabled at all times, especially when committing the output file.</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">routing</div>
+      <div class="config-type">boolean — default: false</div>
+      <div class="config-desc">Appends an HTTP route extraction section to the output. Supports Express, Fastify, Flask, FastAPI, Spring Boot, Rails, and other common frameworks. Gives your AI agent a full API surface map without needing to read controller files.</div>
+      <div class="config-default">CLI equivalent: --routing</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">monorepo</div>
+      <div class="config-type">boolean — default: false</div>
+      <div class="config-desc">Generates a separate context file per package instead of a single project-wide file. Packages are detected by <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">package.json</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">pyproject.toml</code>, or <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">go.mod</code>. Each file is scoped to its own package tree.</div>
+      <div class="config-default">CLI equivalent: --monorepo</div>
+    </div>
+  </div>
+
+  <!-- Group 5: Watch -->
+  <div class="group-label">Watch</div>
+  <div class="config-grid">
+    <div class="config-card">
+      <div class="config-key">watchDebounce</div>
+      <div class="config-type">number — default: 300</div>
+      <div class="config-desc">Milliseconds to debounce file-change events when running in <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">--watch</code> mode. Increase if rapid successive saves cause unnecessary regenerations (e.g. editors that save multiple intermediate states). Decrease for faster response on slow machines.</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">tracking</div>
+      <div class="config-type">boolean — default: false</div>
+      <div class="config-desc">Appends a JSON record to <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">.context/usage.ndjson</code> on every run. Each record includes timestamp, token counts, file counts, and reduction percentage. Enables historical trend analysis via <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">--report --history</code>.</div>
+      <div class="config-default">CLI equivalent: --track</div>
+    </div>
+  </div>
+
+  <!-- Group 6: v2 Enrichment -->
+  <div class="group-label">v2 Enrichment</div>
+  <div class="config-grid">
+    <div class="config-card">
+      <div class="config-key">enrichSignatures</div>
+      <div class="config-type">boolean — default: true</div>
+      <div class="config-desc">New in v2.0. Adds return type hints and parameter type annotations to extracted signatures where the language supports inference. Gives your AI agent richer type context without increasing file count.</div>
+      <div class="config-default">v2.0+</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">depMap</div>
+      <div class="config-type">boolean — default: true</div>
+      <div class="config-desc">New in v2.0. Includes a dependency import section at the top of the output showing which external packages and internal modules each file imports. Helps the AI agent understand project structure at a glance.</div>
+      <div class="config-default">v2.0+</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">todos</div>
+      <div class="config-type">boolean — default: true</div>
+      <div class="config-desc">New in v2.0. Extracts TODO, FIXME, HACK, and XXX comments from source files and appends them as a section in the output (max 20 items). Gives the AI agent immediate visibility into known debt and pending work.</div>
+      <div class="config-default">v2.0+  —  max 20 items</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">changes</div>
+      <div class="config-type">boolean — default: true</div>
+      <div class="config-desc">New in v2.0. Includes a recent git commit summary section at the top of the output. Gives the AI agent instant context on what has changed recently without needing to read git log separately.</div>
+      <div class="config-default">v2.0+</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">changesCommits</div>
+      <div class="config-type">number — default: 5</div>
+      <div class="config-desc">Number of recent commits to include in the changes section. Only relevant when <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">changes</code> is <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">true</code>. Increase for longer project histories; decrease to keep the output leaner.</div>
+      <div class="config-default">v2.0+</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">testCoverage</div>
+      <div class="config-type">boolean — default: false</div>
+      <div class="config-desc">New in v2.0. Adds per-function test coverage markers (✓ covered / ✗ uncovered) next to each signature by cross-referencing the test directories. Useful for agents working on test gaps. Disabled by default as it requires a test scan pass.</div>
+      <div class="config-default">v2.0+  —  see testDirs</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">testDirs</div>
+      <div class="config-type">string[] — default: ["test","tests","__tests__","spec"]</div>
+      <div class="config-desc">Directories scanned for test functions when <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">testCoverage</code> is enabled. Add custom test directory names here if your project uses a non-standard layout such as <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">e2e</code> or <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">integration</code>.</div>
+      <div class="config-default">v2.0+</div>
+    </div>
+    <div class="config-card">
+      <div class="config-key">impactRadius</div>
+      <div class="config-type">boolean — default: false</div>
+      <div class="config-desc">New in v2.0. Adds reverse dependency annotations next to each exported symbol, showing which other files import it (e.g. "used by: 3 files"). Helps the AI agent reason about the blast radius of a change before making it. Adds a build-time reverse-graph pass.</div>
+      <div class="config-default">v2.0+</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Section 3: .contextignore -->
+<section class="section">
+  <p class="section-ey">.contextignore</p>
+  <h2>Fine-grained exclusions</h2>
+  <p class="section-sub">Use gitignore syntax to exclude specific files and paths that the <code style="font-family:'IBM Plex Mono',monospace;font-size:13px;background:var(--s3);padding:2px 6px;border-radius:4px">exclude</code> array alone can't express.</p>
+
+  <div class="prereq-box">
+    <div class="prereq-icon">📄</div>
+    <div>
+      <div class="prereq-title">Gitignore syntax, zero config</div>
+      <div class="prereq-text">Create a <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.contextignore</code> file in your project root. SigMap reads it automatically on every run — no config key needed. It is fully compatible with <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.repomixignore</code>, so you can symlink the two files to share one exclusion list across both tools.</div>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">.contextignore</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tc"># Generated and build artefacts</span></div>
+      <div><span class="tw">dist/</span></div>
+      <div><span class="tw">build/</span></div>
+      <div><span class="tw">.next/</span></div>
+      <div><span class="tw">coverage/</span></div>
+      <div>&nbsp;</div>
+      <div><span class="tc"># Large auto-generated files</span></div>
+      <div><span class="tw">src/generated/</span></div>
+      <div><span class="tw">**/*.generated.ts</span></div>
+      <div><span class="tw">**/*.pb.go</span></div>
+      <div>&nbsp;</div>
+      <div><span class="tc"># Fixtures and test snapshots</span></div>
+      <div><span class="tw">**/__snapshots__/</span></div>
+      <div><span class="tw">tests/fixtures/</span></div>
+      <div>&nbsp;</div>
+      <div><span class="tc"># Vendor and lock files</span></div>
+      <div><span class="tw">vendor/</span></div>
+      <div><span class="tw">*.lock</span></div>
+      <div>&nbsp;</div>
+      <div><span class="tc"># Specific noisy files</span></div>
+      <div><span class="tw">src/migrations/</span></div>
+      <div><span class="tw">docs/</span></div>
+    </div>
+  </div>
+
+  <div class="prereq-box" style="margin-bottom:0">
+    <div class="prereq-icon">🔗</div>
+    <div>
+      <div class="prereq-title">Share with Repomix</div>
+      <div class="prereq-text">If you use Repomix alongside SigMap, symlink the files so both tools respect the same exclusions: <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">ln -s .contextignore .repomixignore</code>. See the <a href="repomix.html" style="color:var(--pd)">Repomix integration guide</a> for the two-layer caching strategy.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Section 4: What's next -->
+<section class="section">
+  <p class="section-ey">What's next</p>
+  <h2>Explore further</h2>
+  <div class="next-grid">
+    <a class="next-card" href="cli.html">
+      <div class="next-card-ey">All flags</div>
+      <div class="next-card-title">CLI reference</div>
+      <div class="next-card-desc">Every CLI flag documented with runnable examples — --watch, --diff, --health, --mcp and more.</div>
+    </a>
+    <a class="next-card" href="strategies.html">
+      <div class="next-card-ey">v1.1</div>
+      <div class="next-card-title">Context strategies</div>
+      <div class="next-card-desc">Full vs per-module vs hot-cold. When to use each strategy and the token trade-offs involved.</div>
+    </a>
+    <a class="next-card" href="mcp.html">
+      <div class="next-card-ey">MCP</div>
+      <div class="next-card-title">MCP setup</div>
+      <div class="next-card-desc">Integrate SigMap as a Model Context Protocol server with Claude Desktop, Cursor, and Windsurf.</div>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-logo">sigmap v2.0.1</span>
+    <div class="footer-links">
+      <a href="quick-start.html">Quick start</a>
+      <a href="cli.html">CLI reference</a>
+      <a href="config.html">Config</a>
+      <a href="mcp.html">MCP setup</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="strategies.html">Strategies</a>
+      <a href="languages.html">Languages</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="repomix.html">Repomix</a>
+      <a href="https://github.com/manojmallick/sigmap">GitHub</a>
+      <a href="https://github.com/manojmallick/sigmap/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/manojmallick/sigmap/blob/main/CHANGELOG.md">Changelog</a>
+    </div>
+    <span class="footer-mit">MIT © 2026 Manoj Mallick</span>
+  </div>
+</footer>
+
+<!-- SigMap docs search — v2.0 -->
+<style>
+.cf-search-btn{background:none;border:1px solid var(--line2);border-radius:7px;padding:0 10px;height:32px;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--t2);font-size:12px;font-family:inherit;transition:.15s;flex-shrink:0}
+.cf-search-btn:hover{border-color:var(--p);color:var(--pd)}
+.cf-search-btn kbd{font-size:10px;opacity:.6;font-family:'IBM Plex Mono',monospace}
+#cf-search-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);padding:80px 20px 20px}
+#cf-search-overlay.open{display:flex;flex-direction:column;align-items:center}
+#cf-search-box{width:100%;max-width:620px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+#cf-search-input{width:100%;padding:14px 16px;background:none;border:none;outline:none;font-size:16px;color:var(--t1);font-family:inherit}
+#cf-search-input::placeholder{color:var(--t3)}
+#cf-search-results{max-height:60vh;overflow-y:auto;border-top:1px solid var(--line)}
+.cf-result{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--line);transition:.12s}
+.cf-result:hover{background:var(--pl)}
+.cf-result-title{font-size:14px;color:var(--t1);font-weight:500}
+.cf-result-snippet{font-size:12px;color:var(--t2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cf-no-results{padding:20px 16px;color:var(--t3);font-size:13px;text-align:center}
+.cf-highlight{background:var(--al);color:var(--ad);border-radius:3px;padding:0 2px}
+</style>
+<div id="cf-search-overlay" role="dialog" aria-modal="true" aria-label="Search documentation">
+  <div id="cf-search-box">
+    <input id="cf-search-input" type="text" placeholder="Search docs… (Esc to close)" autocomplete="off" spellcheck="false">
+    <div id="cf-search-results"></div>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var overlay=document.getElementById('cf-search-overlay');
+  var inp=document.getElementById('cf-search-input');
+  var results=document.getElementById('cf-search-results');
+  var navLinks=document.querySelector('.nav-links');
+  if(navLinks){
+    var btn=document.createElement('button');
+    btn.className='cf-search-btn';
+    btn.setAttribute('aria-label','Search documentation');
+    btn.title='Search docs (/)';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><kbd>/</kbd>';
+    btn.addEventListener('click',openSearch);
+    var gh=navLinks.querySelector('.nav-gh');
+    navLinks.insertBefore(btn,gh||null);
+  }
+  function openSearch(){overlay.classList.add('open');inp.focus();inp.select();}
+  function closeSearch(){overlay.classList.remove('open');clearHL();results.innerHTML='';inp.value='';}
+  document.addEventListener('keydown',function(e){
+    if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){e.preventDefault();openSearch();}
+    if(e.key==='Escape')closeSearch();
+  });
+  overlay.addEventListener('click',function(e){if(e.target===overlay)closeSearch();});
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function hl(text,q){
+    if(!q)return esc(text);
+    var i=text.toLowerCase().indexOf(q);
+    if(i<0)return esc(text);
+    return esc(text.slice(0,i))+'<mark class="cf-highlight">'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length));
+  }
+  var hlEls=[];
+  function clearHL(){hlEls.forEach(function(el){el.style.outline='';el.style.outlineOffset='';});hlEls=[];}
+  var idx=null;
+  function buildIdx(){
+    var items=[],lastH=null,lastEl=null;
+    document.querySelectorAll('h1,h2,h3,h4,p,li').forEach(function(el){
+      var t=el.tagName.toLowerCase();
+      if(t==='h1'||t==='h2'||t==='h3'||t==='h4'){lastH=el.textContent.trim();lastEl=el;items.push({el:el,title:lastH,snippet:''});}
+      else if(lastH){var tx=el.textContent.trim();if(tx.length>20)items.push({el:lastEl,title:lastH,snippet:tx.slice(0,120)});}
+    });
+    return items;
+  }
+  inp.addEventListener('input',function(){
+    if(!idx)idx=buildIdx();
+    var q=inp.value.toLowerCase().trim();
+    if(!q){results.innerHTML='';clearHL();return;}
+    var seen=new Set();
+    var hits=idx.filter(function(it){
+      var k=(it.el?it.el.id:'')||it.title;
+      if(seen.has(k))return false;
+      var m=(it.title+' '+it.snippet).toLowerCase().indexOf(q)>=0;
+      if(m)seen.add(k);
+      return m;
+    }).slice(0,12);
+    clearHL();
+    if(!hits.length){results.innerHTML='<div class="cf-no-results">No results for \u201c'+esc(inp.value)+'\u201d</div>';return;}
+    results.innerHTML='';
+    hits.forEach(function(hit){
+      var d=document.createElement('div');
+      d.className='cf-result';
+      d.innerHTML='<div class="cf-result-title">'+hl(hit.title,q)+'</div>'+(hit.snippet?'<div class="cf-result-snippet">'+hl(hit.snippet,q)+'</div>':'');
+      d.addEventListener('click',function(){
+        closeSearch();
+        hit.el.scrollIntoView({behavior:'smooth',block:'start'});
+        hit.el.style.outline='2px solid var(--a)';hit.el.style.outlineOffset='4px';
+        hlEls.push(hit.el);
+        setTimeout(function(){clearHL();},2000);
+      });
+      results.appendChild(d);
+    });
+  });
+})();
+</script>
+</body>
+</html>
