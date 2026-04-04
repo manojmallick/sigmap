@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Troubleshooting — SigMap</title>
+<meta name="description" content="Fix common SigMap issues. Context file not found, Copilot not reading context, low token reduction, VS Code extension errors, MCP server not appearing, secret scan false positives.">
+<meta property="og:title" content="SigMap Troubleshooting — common issues and fixes">
+<meta property="og:description" content="Fix context file not found, Copilot not reading context, low token reduction, VS Code issues, and MCP errors.">
+<meta property="og:url" content="https://manojmallick.github.io/sigmap/troubleshooting.html">
+<meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://manojmallick.github.io/sigmap/troubleshooting.html">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"SigMap context file not found","acceptedAnswer":{"@type":"Answer","text":"Run sigmap or node gen-context.js to generate .github/copilot-instructions.md. The file must be generated before the VS Code extension or MCP server can read it."}},{"@type":"Question","name":"GitHub Copilot not using SigMap context","acceptedAnswer":{"@type":"Answer","text":"The file must be at .github/copilot-instructions.md in your workspace root. Check with: ls .github/copilot-instructions.md"}},{"@type":"Question","name":"Token reduction is only 60%","acceptedAnswer":{"@type":"Answer","text":"You are likely indexing test files or generated code. Run sigmap --init to create a .contextignore and exclude test files, dist/, build/, and generated code."}},{"@type":"Question","name":"SigMap MCP server not appearing in tool list","acceptedAnswer":{"@type":"Answer","text":"Check that the absolute path in your settings file points to the correct gen-context.js. Use: node /path/to/gen-context.js --version to verify it resolves."}},{"@type":"Question","name":"Secret scan is redacting a false positive","acceptedAnswer":{"@type":"Answer","text":"Add a .contextignore rule to exclude that file, or check which pattern triggered. The 10 patterns are: AWS keys, GitHub tokens, JWTs, DB URLs, SSH keys, GCP keys, Stripe keys, Twilio keys, generic passwords/api_keys."}}]}</script>
+<script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
+<style>
+:root{
+  --bg:#09090c;--s1:#0f0f13;--s2:#161619;--s3:#1d1d22;--s4:#25252c;
+  --line:#2a2a33;--line2:#38383f;
+  --t1:#f0eeff;--t2:#9896b0;--t3:#52506a;
+  --p:#7c6af7;--pl:rgba(124,106,247,.1);--pd:#b3aaff;
+  --g:#10b981;--gl:rgba(16,185,129,.1);--gd:#6ee7b7;
+  --a:#f59e0b;--al:rgba(245,158,11,.1);--ad:#fcd34d;
+  --r:#f43f5e;
+  --nav-bg:rgba(9,9,12,.85);
+}
+:root.light{
+  --bg:#f8f7ff;--s1:#f2f0fd;--s2:#eceaff;--s3:#e4e2f8;--s4:#d8d6f0;
+  --line:#d0ceea;--line2:#bcb8da;
+  --t1:#1a1830;--t2:#5a5878;--t3:#8886a2;
+  --p:#6b57f5;--pl:rgba(107,87,245,.1);--pd:#4c3bc4;
+  --g:#059669;--gl:rgba(5,150,105,.1);--gd:#065f46;
+  --a:#d97706;--al:rgba(217,119,6,.1);--ad:#78350f;
+  --r:#e11d48;
+  --nav-bg:rgba(248,247,255,.92);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden;transition:background .25s,color .25s}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;transition:background .25s}
+.nav-logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--pd);text-decoration:none}
+.nav-links{display:flex;align-items:center;gap:24px}
+.nav-links a{font-size:13px;color:var(--t2);text-decoration:none;transition:.15s}
+.nav-links a:hover{color:var(--t1)}
+.nav-links a.active{color:var(--t1)}
+.nav-gh{background:var(--p);color:#fff;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;transition:.15s}
+.nav-gh:hover{opacity:.85;color:#fff}
+.theme-toggle{background:none;border:1px solid var(--line2);border-radius:7px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:.15s;flex-shrink:0;padding:0}
+.theme-toggle:hover{border-color:var(--p);color:var(--pd)}
+.theme-toggle svg{width:16px;height:16px;pointer-events:none;display:none}
+.theme-toggle .icon-moon{display:block}
+:root.light .theme-toggle .icon-sun{display:block}
+:root.light .theme-toggle .icon-moon{display:none}
+@media(max-width:600px){.nav-links .hide-sm{display:none}}
+
+/* HERO */
+.page-hero{padding:120px 24px 64px;text-align:center;position:relative;overflow:hidden}
+.page-hero::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(124,106,247,.06) 0%,transparent 65%);pointer-events:none}
+.hero-inner{max-width:700px;margin:0 auto;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--gl);border:1px solid rgba(16,185,129,.25);border-radius:20px;padding:5px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gd);margin-bottom:24px;letter-spacing:.04em}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--g)}
+h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:800;line-height:1.08;margin-bottom:16px;background:linear-gradient(135deg,var(--t1) 30%,var(--pd) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:clamp(15px,2vw,18px);color:var(--t2);line-height:1.65;max-width:480px;margin:0 auto;font-weight:300}
+.time-badge{display:inline-flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:8px 18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ad);margin-top:24px}
+
+/* SECTIONS */
+.section{padding:64px 24px;max-width:860px;margin:0 auto}
+.section-ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pd);margin-bottom:10px;text-align:center}
+h2{font-family:'Syne',sans-serif;font-size:clamp(22px,3.5vw,34px);font-weight:800;text-align:center;margin-bottom:12px}
+.section-sub{font-size:15px;color:var(--t2);text-align:center;max-width:500px;margin:0 auto 48px;font-weight:300;line-height:1.65}
+
+/* TERMINAL */
+.terminal{background:#06060a;border:1px solid var(--line2);border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto 32px;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.5);--t3:#52506a;--pd:#b3aaff;--gd:#6ee7b7;--ad:#fcd34d;--s2:#161619;--s3:#1d1d22;--line:#2a2a33;--line2:#38383f}
+.term-bar{background:var(--s2);padding:10px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.term-dot{width:11px;height:11px;border-radius:50%}
+.term-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);margin-left:6px}
+.term-body{padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.8}
+.tc{color:var(--t3)}.tk{color:var(--pd)}.ts{color:var(--gd)}.tw{color:var(--ad)}.tr{color:#fca5a5}.tp{color:#c084fc}
+
+/* STEPS */
+.steps-flow{display:flex;flex-direction:column;gap:0;margin-bottom:48px}
+.step-row{display:grid;grid-template-columns:80px 1fr;gap:0}
+.step-rail{display:flex;flex-direction:column;align-items:center}
+.step-circle{width:48px;height:48px;border-radius:50%;background:var(--pl);border:2px solid var(--p);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--pd);flex-shrink:0;position:relative;z-index:1}
+.step-line{flex:1;width:2px;background:var(--line);margin:4px 0}
+.step-content{padding:0 0 40px 16px}
+.step-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--pd);margin-bottom:6px}
+.step-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px}
+.step-desc{font-size:14px;color:var(--t2);line-height:1.65;margin-bottom:16px;font-weight:300}
+
+/* CONFIG */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:40px}
+@media(max-width:640px){.config-grid{grid-template-columns:1fr}}
+.config-card{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:20px}
+.config-key{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--pd);margin-bottom:4px}
+.config-type{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t3);margin-bottom:8px}
+.config-desc{font-size:13px;color:var(--t2);line-height:1.55}
+.config-default{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ad);margin-top:6px}
+
+/* CTA */
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.btn-primary{background:var(--p);color:#fff;padding:11px 24px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;transition:.15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary:hover{opacity:.85;color:#fff;transform:translateY(-1px)}
+.btn-secondary{background:transparent;color:var(--t1);border:1px solid var(--line2);padding:11px 20px;border-radius:9px;font-size:14px;font-weight:500;text-decoration:none;transition:.15s}
+.btn-secondary:hover{border-color:var(--p);color:var(--pd)}
+
+/* PREREQ */
+.prereq-box{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:40px;display:flex;align-items:flex-start;gap:16px}
+.prereq-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.prereq-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px}
+.prereq-text{font-size:13px;color:var(--t2);line-height:1.55}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--line);margin:0}
+
+/* NEXT STEPS */
+.next-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:640px){.next-grid{grid-template-columns:1fr}}
+.next-card{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:24px;text-decoration:none;transition:.2s;display:block}
+.next-card:hover{border-color:var(--p);transform:translateY(-2px)}
+.next-card-ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--pd);margin-bottom:8px}
+.next-card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:6px;color:var(--t1)}
+.next-card-desc{font-size:13px;color:var(--t2);line-height:1.55;font-weight:300}
+
+/* FOOTER */
+footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
+.footer-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--t3)}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--t3);text-decoration:none;transition:.15s}
+.footer-links a:hover{color:var(--t2)}
+.footer-mit{font-size:12px;color:var(--t3)}
+
+/* INLINE CODE */
+code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px;color:var(--pd)}
+
+/* ISSUE SECTION */
+.issue-section{margin-bottom:56px}
+.issue-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+.issue-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.issue-number{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+.issue-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px}
+.issue-symptom{font-size:13px;color:var(--t2);line-height:1.55;font-weight:300}
+.fix-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gd);margin-bottom:10px;margin-top:20px}
+.fix-list{list-style:none;padding:0;margin-bottom:16px}
+.fix-list li{font-size:13px;color:var(--t2);line-height:1.65;padding:6px 0 6px 20px;position:relative;border-bottom:1px solid var(--line)}
+.fix-list li:last-child{border-bottom:none}
+.fix-list li::before{content:'→';position:absolute;left:0;color:var(--pd);font-family:'IBM Plex Mono',monospace;font-size:11px;top:8px}
+
+/* WARNING BOX */
+.warn-box{background:rgba(244,63,94,.06);border:1px solid rgba(244,63,94,.2);border-radius:12px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:flex-start;gap:14px}
+.warn-box .prereq-title{color:var(--r)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">sigmap</a>
+  <div class="nav-links">
+    <a href="quick-start.html" class="hide-sm">Quick start</a>
+    <a href="cli.html" class="hide-sm">CLI</a>
+    <a href="config.html" class="hide-sm">Config</a>
+    <a href="strategies.html" class="hide-sm">Strategies</a>
+    <a href="languages.html" class="hide-sm">Languages</a>
+    <a href="roadmap.html" class="hide-sm">Roadmap</a>
+    <a href="repomix.html" class="hide-sm">Repomix</a>
+    <button class="theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+    <a href="https://github.com/manojmallick/sigmap" class="nav-gh" target="_blank">★ GitHub</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="hero-inner">
+    <div class="hero-badge"><span class="dot"></span>Common fixes</div>
+    <h1>Troubleshooting</h1>
+    <p class="hero-sub">Most issues resolve in under a minute. Start with the first section that matches your symptom.</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Issue 1</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🔴</div>
+      <div>
+        <div class="issue-number">Issue 1 of 10</div>
+        <div class="issue-title">"no context file found"</div>
+        <div class="issue-symptom">VS Code shows "no context", the MCP server returns an error, or Copilot doesn't know anything about your codebase.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>The context file must be generated before anything can read it. Run <code>sigmap</code> or <code>node gen-context.js</code> to create it.</li>
+      <li>Check your Node.js version — v18 or later is required. Run <code>node --version</code> to confirm.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node --version</span></div>
+        <div><span class="ts">v22.11.0</span>  <span class="tc">← v18+ required</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">$</span> <span class="tw">sigmap && ls .github/copilot-instructions.md</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
+        <div><span class="ts">.github/copilot-instructions.md</span>  <span class="tc">← file now exists</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 2</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 2 of 10</div>
+        <div class="issue-title">Copilot or Claude still asks "can you share some files?"</div>
+        <div class="issue-symptom">The AI doesn't appear to know your codebase structure even though the context file was generated.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>The file must be at exactly <code>.github/copilot-instructions.md</code> in the workspace root — not a subdirectory. Verify: <code>ls .github/copilot-instructions.md</code></li>
+      <li>For Claude Code: also commit <code>CLAUDE.md</code> by adding <code>"claude"</code> to the <code>outputs</code> array in your config, then rerun.</li>
+      <li>Restart the IDE after generating for the first time — some editors only read the file at startup.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">ls .github/copilot-instructions.md</span></div>
+        <div><span class="ts">.github/copilot-instructions.md</span>  <span class="tc">← must exist here</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 3</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 3 of 10</div>
+        <div class="issue-title">Token reduction is lower than expected (&lt; 80%)</div>
+        <div class="issue-symptom"><code>sigmap --report</code> shows only 60–70% reduction instead of the typical 90–97%.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Cause</div>
+    <ul class="fix-list">
+      <li>You are likely indexing test files, <code>dist/</code>, <code>build/</code> output, or generated code — these contain many signatures that add bulk without adding information.</li>
+    </ul>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>Run <code>sigmap --init</code> to generate a starter <code>.contextignore</code>, then add exclusions for any test or generated directories in your project.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">.contextignore</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc"># test files</span></div>
+        <div><span class="ts">**/*.test.*</span></div>
+        <div><span class="ts">**/*.spec.*</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc"># build output</span></div>
+        <div><span class="ts">dist/</span></div>
+        <div><span class="ts">build/</span></div>
+        <div><span class="ts">src/generated/</span></div>
+        <div><span class="ts">coverage/</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 4</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 4 of 10</div>
+        <div class="issue-title">Context file is stale — VS Code shows grade D or "3d ago"</div>
+        <div class="issue-symptom">The status bar shows a low grade or a large "last updated" timestamp, meaning the context no longer matches current code.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>Click the status bar item to trigger a manual regeneration from within VS Code.</li>
+      <li>For automatic freshness on every commit, run <code>sigmap --setup</code> once. It installs a <code>.git/hooks/post-commit</code> hook that regenerates context automatically.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">sigmap --setup</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ installed .git/hooks/post-commit</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">context will regenerate on every git commit</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 5</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 5 of 10</div>
+        <div class="issue-title">Over-budget warning: some files were dropped</div>
+        <div class="issue-symptom"><code>sigmap --report</code> shows <code>files dropped: N</code> — meaning important files are being cut to stay within the token budget.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Options</div>
+    <ul class="fix-list">
+      <li>Raise <code>maxTokens</code> in <code>gen-context.config.json</code> (e.g. <code>8000</code> or <code>10000</code>) to give the budget more headroom.</li>
+      <li>Add more exclusions to <code>.contextignore</code> to remove low-value files from the index.</li>
+      <li>Switch to <code>"strategy": "per-module"</code> or <code>"strategy": "hot-cold"</code> to load only the relevant portion of the codebase.</li>
+      <li>Run <code>sigmap --report --json</code> to see which specific files are consuming the most tokens, then target those first.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">gen-context.config.json</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">{</span></div>
+        <div>  <span class="tk">"maxTokens"</span><span class="tc">:</span> <span class="tw">10000</span><span class="tc">,</span>  <span class="tc">← raise from default 6000</span></div>
+        <div>  <span class="tk">"strategy"</span><span class="tc">:</span> <span class="ts">"hot-cold"</span>  <span class="tc">← or switch strategy</span></div>
+        <div><span class="tc">}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 6</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🔴</div>
+      <div>
+        <div class="issue-number">Issue 6 of 10</div>
+        <div class="issue-title">MCP server not appearing in tool list</div>
+        <div class="issue-symptom">Claude Code or Cursor doesn't show any sigmap tools, or <code>tools/list</code> returns an empty array.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>Verify the absolute path resolves: run <code>node /path/to/gen-context.js --version</code> in a terminal. If it errors, the path is wrong.</li>
+      <li>Check JSON syntax in the settings file — a missing comma or mismatched quote will silently prevent parsing.</li>
+      <li>Reload or fully restart the IDE after making config changes. MCP servers are registered at startup.</li>
+      <li>Test the server manually with the command below to confirm it responds before blaming the editor config.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal — manual test</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node /path/to/gen-context.js --version</span></div>
+        <div><span class="ts">sigmap v2.0.1</span>  <span class="tc">← must print a version</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">$</span> <span class="tw">echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp</span></div>
+        <div><span class="ts">{"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}</span>  <span class="tc">← 7 tools</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 7</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 7 of 10</div>
+        <div class="issue-title">"gen-context.js not found" in VS Code</div>
+        <div class="issue-symptom">The VS Code extension shows an error and can't regenerate the context file.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>Install globally so the extension can find it anywhere: <code>npm install -g sigmap</code></li>
+      <li>Or set the explicit path in VS Code settings using the <code>sigmap.scriptPath</code> option shown below.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">.vscode/settings.json</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">{</span></div>
+        <div>  <span class="tk">"sigmap.scriptPath"</span><span class="tc">:</span> <span class="ts">"${workspaceFolder}/gen-context.js"</span></div>
+        <div><span class="tc">}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 8</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 8 of 10</div>
+        <div class="issue-title">Secret scan is redacting a false positive</div>
+        <div class="issue-symptom">A variable name that happens to match a secret pattern appears as <code>[REDACTED]</code> in the output.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>Add a <code>.contextignore</code> rule to exclude that specific file from the index entirely.</li>
+      <li>Alternatively, set <code>"secretScan": false</code> in your config — but only do this if you are certain there are no real secrets in your source directories.</li>
+    </ul>
+
+    <div class="prereq-box" style="margin-bottom:20px">
+      <div class="prereq-icon">🔍</div>
+      <div>
+        <div class="prereq-title">The 10 secret patterns checked</div>
+        <div class="prereq-text">AWS Access Key, AWS Secret Key, GCP API Key, GitHub Token (<code>ghp_</code> / <code>gho_</code>), JWT (<code>eyJ...</code>), database connection string, SSH private key header, Stripe key (<code>sk_live_</code>), Twilio key, generic <code>password</code> / <code>api_key</code> assignments in code.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 9</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 9 of 10</div>
+        <div class="issue-title">Monorepo: context only covers one package</div>
+        <div class="issue-symptom">Only one package's signatures appear in the output even though your repo has multiple packages under <code>packages/</code> or <code>apps/</code>.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>Enable monorepo mode in <code>gen-context.config.json</code>: set <code>"monorepo": true</code>. SigMap will then generate a separate context section per package.</li>
+      <li>Or run <code>sigmap --monorepo</code> as a one-off flag without touching the config file.</li>
+      <li>Make sure your package directories use one of the standard names: <code>packages/</code>, <code>apps/</code>, or <code>services/</code>.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">gen-context.config.json</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">{</span></div>
+        <div>  <span class="tk">"monorepo"</span><span class="tc">:</span> <span class="tw">true</span></div>
+        <div><span class="tc">}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin-bottom:56px">
+
+  <p class="section-ey">Issue 10</p>
+
+  <div class="issue-section">
+    <div class="issue-header">
+      <div class="issue-icon">🟡</div>
+      <div>
+        <div class="issue-number">Issue 10 of 10</div>
+        <div class="issue-title">Watch mode stops working after sleep or wake</div>
+        <div class="issue-symptom"><code>sigmap --watch</code> was running fine, but after the machine slept and woke, file changes are no longer picked up.</div>
+      </div>
+    </div>
+
+    <div class="fix-label">Fix</div>
+    <ul class="fix-list">
+      <li>Restart the watcher process. This is an OS-level file descriptor limit issue that affects some macOS and Linux systems after sleep cycles.</li>
+      <li>On macOS, increase the file watch limit for the current session: <code>ulimit -n 10000</code></li>
+      <li>For a more reliable alternative, use the git hook approach via <code>sigmap --setup</code> — it regenerates on every commit and is not affected by sleep/wake cycles.</li>
+    </ul>
+
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal — macOS fix</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">ulimit -n 10000</span>  <span class="tc">← raise file watch limit</span></div>
+        <div><span class="tc">$</span> <span class="tw">sigmap --watch</span>    <span class="tc">← restart the watcher</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">watching for changes...</span></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">Still stuck?</p>
+  <h2>Get more help</h2>
+  <p class="section-sub">Run the health check and share the output in a GitHub issue — it includes everything needed to diagnose the problem.</p>
+
+  <div class="terminal" style="margin-bottom:32px">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">terminal</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tc">$</span> <span class="tw">sigmap --health --json</span></div>
+      <div>&nbsp;</div>
+      <div><span class="tc">{</span></div>
+      <div>  <span class="tk">"score"</span><span class="tc">: 94,</span></div>
+      <div>  <span class="tk">"grade"</span><span class="tc">:</span> <span class="ts">"A"</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"version"</span><span class="tc">:</span> <span class="ts">"2.0.1"</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"node"</span><span class="tc">:</span> <span class="ts">"22.11.0"</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"contextFile"</span><span class="tc">:</span> <span class="tw">true</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"lastGenerated"</span><span class="tc">:</span> <span class="ts">"2m ago"</span><span class="tc">,</span></div>
+      <div>  <span class="tk">"tokenReduction"</span><span class="tc">:</span> <span class="ts">"95.3%"</span></div>
+      <div><span class="tc">}</span></div>
+    </div>
+  </div>
+
+  <div class="prereq-box" style="margin-bottom:0">
+    <div class="prereq-icon">🐛</div>
+    <div>
+      <div class="prereq-title">Open a GitHub issue</div>
+      <div class="prereq-text">Share the output of <code>sigmap --health --json</code> at <a href="https://github.com/manojmallick/sigmap/issues" style="color:var(--pd)">github.com/manojmallick/sigmap/issues</a>. Include your OS, Node.js version, and a brief description of the symptom.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">What's next</p>
+  <h2>Explore further</h2>
+  <div class="next-grid">
+    <a class="next-card" href="cli.html">
+      <div class="next-card-ey">All flags</div>
+      <div class="next-card-title">CLI reference</div>
+      <div class="next-card-desc">Every flag sigmap accepts, with examples and expected output for each one.</div>
+    </a>
+    <a class="next-card" href="config.html">
+      <div class="next-card-ey">All options</div>
+      <div class="next-card-title">Config reference</div>
+      <div class="next-card-desc">Every field in gen-context.config.json with defaults, types, and examples.</div>
+    </a>
+    <a class="next-card" href="mcp.html">
+      <div class="next-card-ey">7 tools</div>
+      <div class="next-card-title">MCP server setup</div>
+      <div class="next-card-desc">Wire up sigmap's 7 on-demand MCP tools for Claude Code, Cursor, and Windsurf.</div>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-logo">sigmap v2.0.1</span>
+    <div class="footer-links">
+      <a href="quick-start.html">Quick start</a>
+      <a href="cli.html">CLI reference</a>
+      <a href="config.html">Config</a>
+      <a href="mcp.html">MCP setup</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="strategies.html">Strategies</a>
+      <a href="languages.html">Languages</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="repomix.html">Repomix</a>
+      <a href="https://github.com/manojmallick/sigmap">GitHub</a>
+      <a href="https://github.com/manojmallick/sigmap/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/manojmallick/sigmap/blob/main/CHANGELOG.md">Changelog</a>
+    </div>
+    <span class="footer-mit">MIT © 2026 Manoj Mallick</span>
+  </div>
+</footer>
+
+<!-- SigMap docs search — v2.0 -->
+<style>
+.cf-search-btn{background:none;border:1px solid var(--line2);border-radius:7px;padding:0 10px;height:32px;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--t2);font-size:12px;font-family:inherit;transition:.15s;flex-shrink:0}
+.cf-search-btn:hover{border-color:var(--p);color:var(--pd)}
+.cf-search-btn kbd{font-size:10px;opacity:.6;font-family:'IBM Plex Mono',monospace}
+#cf-search-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);padding:80px 20px 20px}
+#cf-search-overlay.open{display:flex;flex-direction:column;align-items:center}
+#cf-search-box{width:100%;max-width:620px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+#cf-search-input{width:100%;padding:14px 16px;background:none;border:none;outline:none;font-size:16px;color:var(--t1);font-family:inherit}
+#cf-search-input::placeholder{color:var(--t3)}
+#cf-search-results{max-height:60vh;overflow-y:auto;border-top:1px solid var(--line)}
+.cf-result{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--line);transition:.12s}
+.cf-result:hover{background:var(--pl)}
+.cf-result-title{font-size:14px;color:var(--t1);font-weight:500}
+.cf-result-snippet{font-size:12px;color:var(--t2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cf-no-results{padding:20px 16px;color:var(--t3);font-size:13px;text-align:center}
+.cf-highlight{background:var(--al);color:var(--ad);border-radius:3px;padding:0 2px}
+</style>
+<div id="cf-search-overlay" role="dialog" aria-modal="true" aria-label="Search documentation">
+  <div id="cf-search-box">
+    <input id="cf-search-input" type="text" placeholder="Search docs… (Esc to close)" autocomplete="off" spellcheck="false">
+    <div id="cf-search-results"></div>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var overlay=document.getElementById('cf-search-overlay');
+  var inp=document.getElementById('cf-search-input');
+  var results=document.getElementById('cf-search-results');
+  var navLinks=document.querySelector('.nav-links');
+  if(navLinks){
+    var btn=document.createElement('button');
+    btn.className='cf-search-btn';
+    btn.setAttribute('aria-label','Search documentation');
+    btn.title='Search docs (/)';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><kbd>/</kbd>';
+    btn.addEventListener('click',openSearch);
+    var gh=navLinks.querySelector('.nav-gh');
+    navLinks.insertBefore(btn,gh||null);
+  }
+  function openSearch(){overlay.classList.add('open');inp.focus();inp.select();}
+  function closeSearch(){overlay.classList.remove('open');clearHL();results.innerHTML='';inp.value='';}
+  document.addEventListener('keydown',function(e){
+    if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){e.preventDefault();openSearch();}
+    if(e.key==='Escape')closeSearch();
+  });
+  overlay.addEventListener('click',function(e){if(e.target===overlay)closeSearch();});
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function hl(text,q){
+    if(!q)return esc(text);
+    var i=text.toLowerCase().indexOf(q);
+    if(i<0)return esc(text);
+    return esc(text.slice(0,i))+'<mark class="cf-highlight">'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length));
+  }
+  var hlEls=[];
+  function clearHL(){hlEls.forEach(function(el){el.style.outline='';el.style.outlineOffset='';});hlEls=[];}
+  var idx=null;
+  function buildIdx(){
+    var items=[],lastH=null,lastEl=null;
+    document.querySelectorAll('h1,h2,h3,h4,p,li').forEach(function(el){
+      var t=el.tagName.toLowerCase();
+      if(t==='h1'||t==='h2'||t==='h3'||t==='h4'){lastH=el.textContent.trim();lastEl=el;items.push({el:el,title:lastH,snippet:''});}
+      else if(lastH){var tx=el.textContent.trim();if(tx.length>20)items.push({el:lastEl,title:lastH,snippet:tx.slice(0,120)});}
+    });
+    return items;
+  }
+  inp.addEventListener('input',function(){
+    if(!idx)idx=buildIdx();
+    var q=inp.value.toLowerCase().trim();
+    if(!q){results.innerHTML='';clearHL();return;}
+    var seen=new Set();
+    var hits=idx.filter(function(it){
+      var k=(it.el?it.el.id:'')||it.title;
+      if(seen.has(k))return false;
+      var m=(it.title+' '+it.snippet).toLowerCase().indexOf(q)>=0;
+      if(m)seen.add(k);
+      return m;
+    }).slice(0,12);
+    clearHL();
+    if(!hits.length){results.innerHTML='<div class="cf-no-results">No results for \u201c'+esc(inp.value)+'\u201d</div>';return;}
+    results.innerHTML='';
+    hits.forEach(function(hit){
+      var d=document.createElement('div');
+      d.className='cf-result';
+      d.innerHTML='<div class="cf-result-title">'+hl(hit.title,q)+'</div>'+(hit.snippet?'<div class="cf-result-snippet">'+hl(hit.snippet,q)+'</div>':'');
+      d.addEventListener('click',function(){
+        closeSearch();
+        hit.el.scrollIntoView({behavior:'smooth',block:'start'});
+        hit.el.style.outline='2px solid var(--a)';hit.el.style.outlineOffset='4px';
+        hlEls.push(hit.el);
+        setTimeout(function(){clearHL();},2000);
+      });
+      results.appendChild(d);
+    });
+  });
+})();
+</script>
+</body>
+</html>

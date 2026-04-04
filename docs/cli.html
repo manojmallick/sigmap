@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CLI Reference — SigMap</title>
+<meta name="description" content="Complete SigMap CLI reference. All flags with examples: --watch, --setup, --diff, --mcp, --report, --health, --suggest-tool, --monorepo, --format, --track, --init.">
+<meta property="og:title" content="SigMap CLI Reference — every flag with examples">
+<meta property="og:description" content="All 22 SigMap CLI flags documented with examples. --watch, --setup, --diff, --mcp, --report, --health and more.">
+<meta property="og:url" content="https://manojmallick.github.io/sigmap/cli.html">
+<meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://manojmallick.github.io/sigmap/cli.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap CLI Reference — every flag with examples","description":"Complete SigMap CLI reference. All flags documented with examples.","url":"https://manojmallick.github.io/sigmap/cli.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://manojmallick.github.io/sigmap/"}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
+<style>
+:root{
+  --bg:#09090c;--s1:#0f0f13;--s2:#161619;--s3:#1d1d22;--s4:#25252c;
+  --line:#2a2a33;--line2:#38383f;
+  --t1:#f0eeff;--t2:#9896b0;--t3:#52506a;
+  --p:#7c6af7;--pl:rgba(124,106,247,.1);--pd:#b3aaff;
+  --g:#10b981;--gl:rgba(16,185,129,.1);--gd:#6ee7b7;
+  --a:#f59e0b;--al:rgba(245,158,11,.1);--ad:#fcd34d;
+  --r:#f43f5e;
+  --nav-bg:rgba(9,9,12,.85);
+}
+:root.light{
+  --bg:#f8f7ff;--s1:#f2f0fd;--s2:#eceaff;--s3:#e4e2f8;--s4:#d8d6f0;
+  --line:#d0ceea;--line2:#bcb8da;
+  --t1:#1a1830;--t2:#5a5878;--t3:#8886a2;
+  --p:#6b57f5;--pl:rgba(107,87,245,.1);--pd:#4c3bc4;
+  --g:#059669;--gl:rgba(5,150,105,.1);--gd:#065f46;
+  --a:#d97706;--al:rgba(217,119,6,.1);--ad:#78350f;
+  --r:#e11d48;
+  --nav-bg:rgba(248,247,255,.92);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden;transition:background .25s,color .25s}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;transition:background .25s}
+.nav-logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--pd);text-decoration:none}
+.nav-links{display:flex;align-items:center;gap:24px}
+.nav-links a{font-size:13px;color:var(--t2);text-decoration:none;transition:.15s}
+.nav-links a:hover{color:var(--t1)}
+.nav-links a.active{color:var(--t1)}
+.nav-gh{background:var(--p);color:#fff;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;text-decoration:none;transition:.15s}
+.nav-gh:hover{opacity:.85;color:#fff}
+.theme-toggle{background:none;border:1px solid var(--line2);border-radius:7px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:.15s;flex-shrink:0;padding:0}
+.theme-toggle:hover{border-color:var(--p);color:var(--pd)}
+.theme-toggle svg{width:16px;height:16px;pointer-events:none;display:none}
+.theme-toggle .icon-moon{display:block}
+:root.light .theme-toggle .icon-sun{display:block}
+:root.light .theme-toggle .icon-moon{display:none}
+@media(max-width:600px){.nav-links .hide-sm{display:none}}
+
+/* HERO */
+.page-hero{padding:120px 24px 64px;text-align:center;position:relative;overflow:hidden}
+.page-hero::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(124,106,247,.06) 0%,transparent 65%);pointer-events:none}
+.hero-inner{max-width:700px;margin:0 auto;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--gl);border:1px solid rgba(16,185,129,.25);border-radius:20px;padding:5px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gd);margin-bottom:24px;letter-spacing:.04em}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--g)}
+h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:800;line-height:1.08;margin-bottom:16px;background:linear-gradient(135deg,var(--t1) 30%,var(--pd) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:clamp(15px,2vw,18px);color:var(--t2);line-height:1.65;max-width:480px;margin:0 auto;font-weight:300}
+.time-badge{display:inline-flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:8px 18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ad);margin-top:24px}
+
+/* SECTIONS */
+.section{padding:64px 24px;max-width:860px;margin:0 auto}
+.section-ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--pd);margin-bottom:10px;text-align:center}
+h2{font-family:'Syne',sans-serif;font-size:clamp(22px,3.5vw,34px);font-weight:800;text-align:center;margin-bottom:12px}
+h3{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:10px;color:var(--t1)}
+.section-sub{font-size:15px;color:var(--t2);text-align:center;max-width:500px;margin:0 auto 48px;font-weight:300;line-height:1.65}
+
+/* TERMINAL */
+.terminal{background:#06060a;border:1px solid var(--line2);border-radius:12px;overflow:hidden;max-width:700px;margin:0 auto 32px;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,.5);--t3:#52506a;--pd:#b3aaff;--gd:#6ee7b7;--ad:#fcd34d;--s2:#161619;--s3:#1d1d22;--line:#2a2a33;--line2:#38383f}
+.term-bar{background:var(--s2);padding:10px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.term-dot{width:11px;height:11px;border-radius:50%}
+.term-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);margin-left:6px}
+.term-body{padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.8}
+.tc{color:var(--t3)}.tk{color:var(--pd)}.ts{color:var(--gd)}.tw{color:var(--ad)}.tr{color:#fca5a5}.tp{color:#c084fc}
+
+/* STEPS */
+.steps-flow{display:flex;flex-direction:column;gap:0;margin-bottom:48px}
+.step-row{display:grid;grid-template-columns:80px 1fr;gap:0}
+.step-rail{display:flex;flex-direction:column;align-items:center}
+.step-circle{width:48px;height:48px;border-radius:50%;background:var(--pl);border:2px solid var(--p);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--pd);flex-shrink:0;position:relative;z-index:1}
+.step-line{flex:1;width:2px;background:var(--line);margin:4px 0}
+.step-content{padding:0 0 40px 16px}
+.step-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--pd);margin-bottom:6px}
+.step-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px}
+.step-desc{font-size:14px;color:var(--t2);line-height:1.65;margin-bottom:16px;font-weight:300}
+
+/* CONFIG */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:40px}
+@media(max-width:640px){.config-grid{grid-template-columns:1fr}}
+.config-card{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:20px}
+.config-key{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--pd);margin-bottom:4px}
+.config-type{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t3);margin-bottom:8px}
+.config-desc{font-size:13px;color:var(--t2);line-height:1.55}
+.config-default{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ad);margin-top:6px}
+
+/* CTA */
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.btn-primary{background:var(--p);color:#fff;padding:11px 24px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;transition:.15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary:hover{opacity:.85;color:#fff;transform:translateY(-1px)}
+.btn-secondary{background:transparent;color:var(--t1);border:1px solid var(--line2);padding:11px 20px;border-radius:9px;font-size:14px;font-weight:500;text-decoration:none;transition:.15s}
+.btn-secondary:hover{border-color:var(--p);color:var(--pd)}
+
+/* PREREQ */
+.prereq-box{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:40px;display:flex;align-items:flex-start;gap:16px}
+.prereq-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.prereq-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px}
+.prereq-text{font-size:13px;color:var(--t2);line-height:1.55}
+
+/* FLAG SECTION */
+.flag-section{margin-bottom:48px}
+.flag-section h3{margin-bottom:6px}
+.flag-desc{font-size:14px;color:var(--t2);line-height:1.65;margin-bottom:16px;font-weight:300}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--line);margin:0}
+
+/* NEXT STEPS */
+.next-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:640px){.next-grid{grid-template-columns:1fr}}
+.next-card{background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:24px;text-decoration:none;transition:.2s;display:block}
+.next-card:hover{border-color:var(--p);transform:translateY(-2px)}
+.next-card-ey{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--pd);margin-bottom:8px}
+.next-card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:6px;color:var(--t1)}
+.next-card-desc{font-size:13px;color:var(--t2);line-height:1.55;font-weight:300}
+
+/* FOOTER */
+footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
+.footer-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--t3)}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap}
+.footer-links a{font-size:13px;color:var(--t3);text-decoration:none;transition:.15s}
+.footer-links a:hover{color:var(--t2)}
+.footer-mit{font-size:12px;color:var(--t3)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">sigmap</a>
+  <div class="nav-links">
+    <a href="quick-start.html" class="hide-sm">Quick start</a>
+    <a href="cli.html" class="hide-sm active">CLI</a>
+    <a href="config.html" class="hide-sm">Config</a>
+    <a href="strategies.html" class="hide-sm">Strategies</a>
+    <a href="languages.html" class="hide-sm">Languages</a>
+    <a href="roadmap.html" class="hide-sm">Roadmap</a>
+    <a href="repomix.html" class="hide-sm">Repomix</a>
+    <button class="theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+    <a href="https://github.com/manojmallick/sigmap" class="nav-gh" target="_blank">★ GitHub</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="hero-inner">
+    <div class="hero-badge"><span class="dot"></span>v2.0.1</div>
+    <h1>CLI Reference</h1>
+    <p class="hero-sub">Every flag, with examples. Run <code style="font-family:'IBM Plex Mono',monospace;font-size:15px;background:rgba(124,106,247,.12);padding:2px 8px;border-radius:5px;-webkit-text-fill-color:var(--pd)">sigmap --help</code> to see the full list.</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- Section 1: Quick reference -->
+<section class="section">
+  <p class="section-ey">Quick reference</p>
+  <h2>All flags at a glance</h2>
+  <p class="section-sub">Every command SigMap accepts, one per line.</p>
+
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">node gen-context.js --help</span>
+    </div>
+    <div class="term-body">
+      <div><span class="tp">SigMap v2.0.1</span></div>
+      <div>&nbsp;</div>
+      <div><span class="tc">Usage:</span> <span class="tw">node gen-context.js [flag]</span></div>
+      <div>&nbsp;</div>
+      <div><span class="ts">  (no flags)              </span><span class="tc">Generate context and exit</span></div>
+      <div><span class="ts">  --watch                 </span><span class="tc">Watch for file changes, regenerate automatically</span></div>
+      <div><span class="ts">  --setup                 </span><span class="tc">Generate + install git pre-commit hook + start watcher</span></div>
+      <div><span class="ts">  --diff                  </span><span class="tc">Context for git-changed files only</span></div>
+      <div><span class="ts">  --diff --staged         </span><span class="tc">Context for staged files only (pre-commit)</span></div>
+      <div><span class="ts">  --mcp                   </span><span class="tc">Start MCP server on stdio</span></div>
+      <div><span class="ts">  --report                </span><span class="tc">Token reduction stats</span></div>
+      <div><span class="ts">  --report --json         </span><span class="tc">Token report as JSON (CI-compatible, exits 1 if over budget)</span></div>
+      <div><span class="ts">  --report --history      </span><span class="tc">Historical usage trends</span></div>
+      <div><span class="ts">  --health                </span><span class="tc">Composite health score (grade A–D)</span></div>
+      <div><span class="ts">  --health --json         </span><span class="tc">Health score as JSON</span></div>
+      <div><span class="ts">  --suggest-tool          </span><span class="tc">Recommend model tier for a task</span></div>
+      <div><span class="ts">  --monorepo              </span><span class="tc">Per-package context for monorepos</span></div>
+      <div><span class="ts">  --routing               </span><span class="tc">Include HTTP route extraction</span></div>
+      <div><span class="ts">  --format cache          </span><span class="tc">Write Anthropic prompt-cache JSON</span></div>
+      <div><span class="ts">  --track                 </span><span class="tc">Log run metrics to .context/usage.ndjson</span></div>
+      <div><span class="ts">  --init                  </span><span class="tc">Scaffold config + .contextignore</span></div>
+      <div><span class="ts">  --version               </span><span class="tc">Print version</span></div>
+      <div><span class="ts">  --help                  </span><span class="tc">Show help</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Section 2: Core commands -->
+<section class="section">
+  <p class="section-ey">Core commands</p>
+  <h2>Every flag explained</h2>
+  <p class="section-sub">Detailed reference for each flag with runnable examples.</p>
+
+  <!-- No flags -->
+  <div class="flag-section">
+    <h3>sigmap (no flags)</h3>
+    <p class="flag-desc">The default run mode. Scans all configured source directories, extracts signatures from every supported file, applies the token budget, and writes the output file(s). Use this in CI, as a pre-push check, or any time you want a one-shot refresh. Exits with code 0 on success.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">scanning 247 files across src/ app/ lib/</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">extracted 1,842 signatures from 89 files</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">secret scan: clean (0 findings)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="tw">budget: 6,000 tokens target, using 3,847</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">reduction: 82,400 → 3,847 tokens (95.3%)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --watch -->
+  <div class="flag-section">
+    <h3>--watch</h3>
+    <p class="flag-desc">Starts the file watcher and keeps the process running. Every time a file inside a configured <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">srcDir</code> changes, SigMap regenerates the context after the <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">watchDebounce</code> delay (default 300 ms). Ideal during active development when you want your AI agent to always have the freshest context. Press Ctrl+C to stop.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --watch</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">initial generation complete (3,847 tokens)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">watching src/ app/ lib/ for changes...</span> <span class="tc">(Ctrl+C to stop)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="tw">change detected: src/api/users.ts</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ regenerated in 0.42s</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --setup -->
+  <div class="flag-section">
+    <h3>--setup</h3>
+    <p class="flag-desc">The recommended one-time setup command. It generates the context file, installs a git pre-commit hook so every commit triggers a regen, and starts the file watcher in the foreground. Running this once means you never have to think about keeping context up to date again.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --setup</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ generated context (3,847 tokens)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ installed .git/hooks/pre-commit</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ watcher started on src/ app/ lib/</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">watching for changes...</span> <span class="tc">(Ctrl+C to stop)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --diff -->
+  <div class="flag-section">
+    <h3>--diff and --diff --staged</h3>
+    <p class="flag-desc"><code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--diff</code> limits the scan to files that have changed since the last git commit (unstaged + staged). <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--diff --staged</code> further narrows to only staged files, making it ideal as a pre-commit hook check. Both variants run significantly faster on large codebases since they skip unchanged files entirely.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --diff</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">diff mode: 4 changed files</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote diff context (412 tokens)</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --diff --staged</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">staged mode: 2 staged files</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote staged context (188 tokens)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --report -->
+  <div class="flag-section">
+    <h3>--report, --report --json, --report --history</h3>
+    <p class="flag-desc">Prints a human-readable token reduction breakdown to stdout. Add <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--json</code> for machine-readable output suitable for CI pipelines — the command exits with code 1 if the output exceeds <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">maxTokens</code>. The <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--history</code> flag shows trends across past runs stored in <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.context/usage.ndjson</code>.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">node gen-context.js --report</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tp">╔══════════════════════════════════╗</span></div>
+        <div><span class="tp">║   SigMap Token Report            ║</span></div>
+        <div><span class="tp">╚══════════════════════════════════╝</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">Input</span>    <span class="tw">82,400 tokens</span>   <span class="tc">(full source)</span></div>
+        <div><span class="tc">Output</span>   <span class="ts">3,847 tokens</span>    <span class="tc">(signatures only)</span></div>
+        <div><span class="tc">Saved</span>    <span class="ts">78,553 tokens</span>   <span class="tc">(95.3% reduction)</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">Files scanned</span>  <span class="tw">247</span></div>
+        <div><span class="tc">Files included</span> <span class="tw">89</span>  <span class="tc">(dropped 158 under budget)</span></div>
+        <div><span class="tc">Secrets found</span>  <span class="ts">0</span>  <span class="tc">(clean)</span></div>
+      </div>
+    </div>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">node gen-context.js --report --json</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">{</span></div>
+        <div>  <span class="tk">"inputTokens"</span><span class="tc">:</span> <span class="tw">82400</span><span class="tc">,</span></div>
+        <div>  <span class="tk">"outputTokens"</span><span class="tc">:</span> <span class="ts">3847</span><span class="tc">,</span></div>
+        <div>  <span class="tk">"reductionPct"</span><span class="tc">:</span> <span class="ts">95.3</span><span class="tc">,</span></div>
+        <div>  <span class="tk">"overBudget"</span><span class="tc">:</span> <span class="tw">false</span><span class="tc">,</span></div>
+        <div>  <span class="tk">"secretsFound"</span><span class="tc">:</span> <span class="tw">0</span></div>
+        <div><span class="tc">}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --health -->
+  <div class="flag-section">
+    <h3>--health and --health --json</h3>
+    <p class="flag-desc">Computes a composite health score (0–100, graded A through D) by combining token efficiency, secret-scan results, dependency freshness, and test coverage signals. Use it as a quick sanity check before a big session or in your CI dashboard. The <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--json</code> variant emits structured output for programmatic consumption.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">node gen-context.js --health</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tp">Health Score: 87 / 100  [A]</span></div>
+        <div>&nbsp;</div>
+        <div><span class="ts">  ✓ Token efficiency     </span><span class="tw">95.3% reduction</span></div>
+        <div><span class="ts">  ✓ Secret scan          </span><span class="tw">clean</span></div>
+        <div><span class="ts">  ✓ Dependency map       </span><span class="tw">present</span></div>
+        <div><span class="tr">  ✗ Test coverage        </span><span class="tw">disabled</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --suggest-tool -->
+  <div class="flag-section">
+    <h3>--suggest-tool "&lt;task&gt;"</h3>
+    <p class="flag-desc">Analyses the codebase complexity and the provided task description, then recommends the appropriate model tier: <em>fast</em> (Haiku-class), <em>balanced</em> (Sonnet-class), or <em>powerful</em> (Opus-class). Useful when you want to keep costs down by routing simple tasks to cheaper models and only reaching for the powerful tier when it is truly needed.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --suggest-tool "refactor auth middleware"</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tp">Recommended tier:</span> <span class="ts">balanced</span></div>
+        <div><span class="tc">Reason: mid-complexity cross-cutting change, 3 affected modules</span></div>
+        <div><span class="tc">Suggested models: Claude Sonnet, GPT-4o, Gemini 1.5 Pro</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --mcp -->
+  <div class="flag-section">
+    <h3>--mcp</h3>
+    <p class="flag-desc">Starts the Model Context Protocol server on stdio, exposing SigMap's context generation capabilities as MCP tools that any compatible client (Claude Desktop, Cursor, Windsurf) can call. The server stays alive until the parent process closes the pipe. See the MCP setup page for full integration instructions.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --mcp</span></div>
+        <div><span class="tk">[sigmap/mcp]</span> <span class="ts">server ready on stdio</span></div>
+        <div><span class="tk">[sigmap/mcp]</span> <span class="ts">tools: generate_context, get_report, get_health</span></div>
+      </div>
+    </div>
+    <div class="prereq-box" style="margin-top:0">
+      <div class="prereq-icon">📡</div>
+      <div>
+        <div class="prereq-title">MCP setup guide</div>
+        <div class="prereq-text">For Claude Desktop, Cursor, and Windsurf integration instructions, see the <a href="mcp.html" style="color:var(--pd)">MCP setup page</a>. The server exposes <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">generate_context</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">get_report</code>, and <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">get_health</code> as callable tools.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --monorepo -->
+  <div class="flag-section">
+    <h3>--monorepo</h3>
+    <p class="flag-desc">Activates monorepo mode, which generates a separate context file per package instead of a single project-wide file. SigMap detects packages by looking for <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">package.json</code>, <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">pyproject.toml</code>, or <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">go.mod</code> files. Each package gets its own context file scoped to only its own source tree, keeping token budgets lean per workspace.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --monorepo</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">monorepo: detected 4 packages</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ packages/api → .github/copilot-api.md (1,204 tokens)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ packages/web → .github/copilot-web.md (2,108 tokens)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ packages/shared → .github/copilot-shared.md (688 tokens)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ packages/cli → .github/copilot-cli.md (392 tokens)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --routing -->
+  <div class="flag-section">
+    <h3>--routing</h3>
+    <p class="flag-desc">Appends an HTTP route extraction section to the output file. SigMap scans for route definitions in Express, Fastify, Flask, FastAPI, Spring, Rails, and other common frameworks. The resulting section gives your AI agent a complete picture of your API surface without it having to read controller files.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --routing</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">routing: extracted 42 routes across 6 files</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md (4,211 tokens)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --format cache -->
+  <div class="flag-section">
+    <h3>--format cache</h3>
+    <p class="flag-desc">In addition to the standard markdown output, writes a companion <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.json</code> file structured for the Anthropic prompt-cache API. Feed the JSON directly to the API's <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">system</code> parameter with <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">cache_control</code> set to save up to 90% on repeated context costs when calling the API directly.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --format cache</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.cache.json</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --track -->
+  <div class="flag-section">
+    <h3>--track</h3>
+    <p class="flag-desc">Appends a newline-delimited JSON record to <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.context/usage.ndjson</code> on every run. Each record includes timestamp, token counts, file counts, and reduction percentage. Use this to track usage trends over time or pipe into your observability stack. The file is safe to commit alongside your project.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --track</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ run metrics appended to .context/usage.ndjson</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">$ cat .context/usage.ndjson | tail -1</span></div>
+        <div><span class="ts">{"ts":"2026-04-04T09:12:33Z","output":3847,"input":82400,"pct":95.3,"files":89}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --init -->
+  <div class="flag-section">
+    <h3>--init</h3>
+    <p class="flag-desc">Scaffolds a <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">gen-context.config.json</code> with every available option pre-filled with its default value and a comment explaining each key. Also creates a starter <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.contextignore</code> with common exclusion patterns. Neither file overwrites an existing one, so it is safe to run repeatedly.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --init</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote gen-context.config.json</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .contextignore</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --version -->
+  <div class="flag-section">
+    <h3>--version</h3>
+    <p class="flag-desc">Prints the current SigMap version string and exits. Useful in scripts to verify you have the expected version installed before running a pipeline.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --version</span></div>
+        <div><span class="ts">sigmap/2.0.1</span></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<hr class="divider">
+
+<!-- Section 3: What's next -->
+<section class="section">
+  <p class="section-ey">What's next</p>
+  <h2>Explore further</h2>
+  <div class="next-grid">
+    <a class="next-card" href="config.html">
+      <div class="next-card-ey">21 keys</div>
+      <div class="next-card-title">Configuration</div>
+      <div class="next-card-desc">Every gen-context.config.json option documented with types, defaults, and examples.</div>
+    </a>
+    <a class="next-card" href="strategies.html">
+      <div class="next-card-ey">v1.1</div>
+      <div class="next-card-title">Context strategies</div>
+      <div class="next-card-desc">Full vs per-module vs hot-cold. Pick the right strategy for your team and codebase size.</div>
+    </a>
+    <a class="next-card" href="mcp.html">
+      <div class="next-card-ey">MCP</div>
+      <div class="next-card-title">MCP setup</div>
+      <div class="next-card-desc">Integrate SigMap as a Model Context Protocol server with Claude Desktop, Cursor, and Windsurf.</div>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-logo">sigmap v2.0.1</span>
+    <div class="footer-links">
+      <a href="quick-start.html">Quick start</a>
+      <a href="cli.html">CLI reference</a>
+      <a href="config.html">Config</a>
+      <a href="mcp.html">MCP setup</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="strategies.html">Strategies</a>
+      <a href="languages.html">Languages</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="repomix.html">Repomix</a>
+      <a href="https://github.com/manojmallick/sigmap">GitHub</a>
+      <a href="https://github.com/manojmallick/sigmap/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/manojmallick/sigmap/blob/main/CHANGELOG.md">Changelog</a>
+    </div>
+    <span class="footer-mit">MIT © 2026 Manoj Mallick</span>
+  </div>
+</footer>
+
+<!-- SigMap docs search — v2.0 -->
+<style>
+.cf-search-btn{background:none;border:1px solid var(--line2);border-radius:7px;padding:0 10px;height:32px;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--t2);font-size:12px;font-family:inherit;transition:.15s;flex-shrink:0}
+.cf-search-btn:hover{border-color:var(--p);color:var(--pd)}
+.cf-search-btn kbd{font-size:10px;opacity:.6;font-family:'IBM Plex Mono',monospace}
+#cf-search-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);padding:80px 20px 20px}
+#cf-search-overlay.open{display:flex;flex-direction:column;align-items:center}
+#cf-search-box{width:100%;max-width:620px;background:var(--s2);border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+#cf-search-input{width:100%;padding:14px 16px;background:none;border:none;outline:none;font-size:16px;color:var(--t1);font-family:inherit}
+#cf-search-input::placeholder{color:var(--t3)}
+#cf-search-results{max-height:60vh;overflow-y:auto;border-top:1px solid var(--line)}
+.cf-result{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--line);transition:.12s}
+.cf-result:hover{background:var(--pl)}
+.cf-result-title{font-size:14px;color:var(--t1);font-weight:500}
+.cf-result-snippet{font-size:12px;color:var(--t2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cf-no-results{padding:20px 16px;color:var(--t3);font-size:13px;text-align:center}
+.cf-highlight{background:var(--al);color:var(--ad);border-radius:3px;padding:0 2px}
+</style>
+<div id="cf-search-overlay" role="dialog" aria-modal="true" aria-label="Search documentation">
+  <div id="cf-search-box">
+    <input id="cf-search-input" type="text" placeholder="Search docs… (Esc to close)" autocomplete="off" spellcheck="false">
+    <div id="cf-search-results"></div>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var overlay=document.getElementById('cf-search-overlay');
+  var inp=document.getElementById('cf-search-input');
+  var results=document.getElementById('cf-search-results');
+  var navLinks=document.querySelector('.nav-links');
+  if(navLinks){
+    var btn=document.createElement('button');
+    btn.className='cf-search-btn';
+    btn.setAttribute('aria-label','Search documentation');
+    btn.title='Search docs (/)';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><kbd>/</kbd>';
+    btn.addEventListener('click',openSearch);
+    var gh=navLinks.querySelector('.nav-gh');
+    navLinks.insertBefore(btn,gh||null);
+  }
+  function openSearch(){overlay.classList.add('open');inp.focus();inp.select();}
+  function closeSearch(){overlay.classList.remove('open');clearHL();results.innerHTML='';inp.value='';}
+  document.addEventListener('keydown',function(e){
+    if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){e.preventDefault();openSearch();}
+    if(e.key==='Escape')closeSearch();
+  });
+  overlay.addEventListener('click',function(e){if(e.target===overlay)closeSearch();});
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function hl(text,q){
+    if(!q)return esc(text);
+    var i=text.toLowerCase().indexOf(q);
+    if(i<0)return esc(text);
+    return esc(text.slice(0,i))+'<mark class="cf-highlight">'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length));
+  }
+  var hlEls=[];
+  function clearHL(){hlEls.forEach(function(el){el.style.outline='';el.style.outlineOffset='';});hlEls=[];}
+  var idx=null;
+  function buildIdx(){
+    var items=[],lastH=null,lastEl=null;
+    document.querySelectorAll('h1,h2,h3,h4,p,li').forEach(function(el){
+      var t=el.tagName.toLowerCase();
+      if(t==='h1'||t==='h2'||t==='h3'||t==='h4'){lastH=el.textContent.trim();lastEl=el;items.push({el:el,title:lastH,snippet:''});}
+      else if(lastH){var tx=el.textContent.trim();if(tx.length>20)items.push({el:lastEl,title:lastH,snippet:tx.slice(0,120)});}
+    });
+    return items;
+  }
+  inp.addEventListener('input',function(){
+    if(!idx)idx=buildIdx();
+    var q=inp.value.toLowerCase().trim();
+    if(!q){results.innerHTML='';clearHL();return;}
+    var seen=new Set();
+    var hits=idx.filter(function(it){
+      var k=(it.el?it.el.id:'')||it.title;
+      if(seen.has(k))return false;
+      var m=(it.title+' '+it.snippet).toLowerCase().indexOf(q)>=0;
+      if(m)seen.add(k);
+      return m;
+    }).slice(0,12);
+    clearHL();
+    if(!hits.length){results.innerHTML='<div class="cf-no-results">No results for \u201c'+esc(inp.value)+'\u201d</div>';return;}
+    results.innerHTML='';
+    hits.forEach(function(hit){
+      var d=document.createElement('div');
+      d.className='cf-result';
+      d.innerHTML='<div class="cf-result-title">'+hl(hit.title,q)+'</div>'+(hit.snippet?'<div class="cf-result-snippet">'+hl(hit.snippet,q)+'</div>':'');
+      d.addEventListener('click',function(){
+        closeSearch();
+        hit.el.scrollIntoView({behavior:'smooth',block:'start'});
+        hit.el.style.outline='2px solid var(--a)';hit.el.style.outlineOffset='4px';
+        hlEls.push(hit.el);
+        setTimeout(function(){clearHL();},2000);
+      });
+      results.appendChild(d);
+    });
+  });
+})();
+</script>
+</body>
+</html>
