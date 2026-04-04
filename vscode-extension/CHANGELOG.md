@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.2] - 2026-04-04
+
+### Changed
+- Added Open VSX badge and availability table to README
+- Added CLI commands reference table to README
+- Updated MCP section to list all 7 tools
+- Improved status bar format documentation
+
 ## [2.0.1] — 2026-04-04
 
 ### Added
