@@ -70,6 +70,9 @@ gen-context.js ──► extracts signatures from 21 languages
 AI agent session starts with full context
 ```
 
+> **Dogfooding:** SigMap runs on itself — 40 JS files, 8,600 lines of code.
+> View the generated context: [`.github/copilot-instructions.md`](.github/copilot-instructions.md)
+
 ### Token reduction at every stage
 
 | Stage | Tokens | Reduction |
@@ -604,6 +607,12 @@ function extract(src) {   // src: string → string[]
   return sigs.slice(0, 25);  // never more than 25 signatures per file
 }
 ```
+
+---
+
+## ⭐ Support
+
+If SigMap saves you context or API spend, a ⭐ on [GitHub](https://github.com/manojmallick/sigmap) helps others find it.
 
 ---
 
