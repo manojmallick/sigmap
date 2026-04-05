@@ -6,6 +6,29 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [2.9.0] — upcoming · [#23](https://github.com/manojmallick/sigmap/issues/23) · branch: `feat/v2.9-jetbrains-plugin`
+
+### Planned additions
+- **JetBrains plugin skeleton** — `jetbrains-plugin/` with Gradle build, plugin.xml manifest
+- **Context provider integration** — integrate SigMap MCP server into JetBrains Platform SDK
+- **Toolbar actions** — "Regenerate Context", "Open Context File", "View Roadmap" buttons
+- **Settings panel** — configure srcDirs, exclude patterns, maxTokens, routing presets
+- **File watcher integration** — auto-regenerate context on file changes (opt-in)
+- **Multi-IDE support** — test on IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine
+- **JetBrains Marketplace publishing** — automated release via GitHub Actions
+- **Documentation** — `docs/JETBRAINS_SETUP.md` with installation guide
+
+### Go / No-go criteria
+- Plugin installs successfully on IntelliJ IDEA 2024.1+
+- Context regeneration works via toolbar button
+- Settings panel allows configuration of all config options
+- File watcher detects changes and regenerates context
+- Plugin passes JetBrains Plugin Verifier
+- Published to JetBrains Marketplace
+- `docs/JETBRAINS_SETUP.md` covers installation and configuration
+
+---
+
 ## [2.8.0] — upcoming · [#21](https://github.com/manojmallick/sigmap/issues/21) · branch: `feat/v2.8-snippet-retrieval`
 
 ### Planned additions

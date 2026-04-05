@@ -110,17 +110,17 @@ AI agent session starts with full context
 
 ---
 
-## 🔭 What's next — v2.8 (in progress · [#21](https://github.com/manojmallick/sigmap/issues/21))
+## 🔭 What's next — v2.9 (in progress · [#23](https://github.com/manojmallick/sigmap/issues/23))
 
-### v2.8 — Hybrid Depth: Snippet Retrieval
+### v2.9 — IDE Expansion: JetBrains Plugin
 
 | Feature | Description |
 |---|---|
-| **Snippet extraction** | Extract relevant code blocks (functions, classes, methods) from ranked files |
-| **Hybrid scoring** | Combine file-level + snippet-level relevance for precision |
-| **`--query --snippets`** | Return top-k snippets with line numbers and context (not full files) |
-| **MCP enhancement** | `query_context` with `snippets: true` returns snippet text + line ranges |
-| **Smart context** | Include 2-3 lines before/after each snippet for readability |
+| **JetBrains plugin** | Install SigMap natively in IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine |
+| **Toolbar actions** | "Regenerate Context", "Open Context File", "View Roadmap" buttons |
+| **Settings panel** | Configure srcDirs, exclude patterns, maxTokens, routing presets from IDE |
+| **File watcher** | Auto-regenerate context on file changes (opt-in) |
+| **Marketplace publishing** | Automated publishing to JetBrains Marketplace via GitHub Actions |
 
 ---
 | **`get_impact` MCP tool** | 9th MCP tool — `{ file, depth? }` → impacted files + signatures |
