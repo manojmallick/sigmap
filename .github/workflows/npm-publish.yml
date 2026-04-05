@@ -181,6 +181,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
       
+      - name: Sync plugin version with tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          sed -i.bak "s/^version = .*/version = \"$TAG_VERSION\"/" jetbrains-plugin/build.gradle.kts
+          rm -f jetbrains-plugin/build.gradle.kts.bak
+          echo "✓ plugin version set to $TAG_VERSION"
+      
       - name: Verify plugin version matches tag
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
