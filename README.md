@@ -11,7 +11,7 @@
 
 <!-- Status -->
 [![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
-[![Tests](https://img.shields.io/badge/tests-325%20passing-22c55e)](https://github.com/manojmallick/sigmap/tree/main/test)
+[![Tests](https://img.shields.io/badge/tests-340%20passing-22c55e)](https://github.com/manojmallick/sigmap/tree/main/test)
 [![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
 [![Last commit](https://img.shields.io/github/last-commit/manojmallick/sigmap?color=7c6af7)](https://github.com/manojmallick/sigmap/commits/main)
 
@@ -85,6 +85,15 @@ AI agent session starts with full context
 > **97% fewer tokens. The same codebase understanding.**
 
 ---
+
+## 🆕 What's new in 2.4
+
+| Feature | Description |
+|---|---|
+| **Programmatic API** | `require('sigmap')` — use `extract`, `rank`, `buildSigIndex`, `scan`, `score` directly, no CLI subprocess |
+| **`packages/core/`** | New `sigmap-core` package with stable API surface for third-party integrations |
+| **`packages/cli/`** | Thin `sigmap-cli` forward-compat shim for the v3.0 adapter architecture |
+| **15 new tests** | `core-api.test.js` covers all exported functions, edge cases, and backward compat |
 
 ## 🆕 What's new in 2.3
 
