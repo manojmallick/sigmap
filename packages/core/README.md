@@ -128,9 +128,9 @@ const health = score('/path/to/project');
 
 All existing CLI flags (`--generate`, `--watch`, `--mcp`, `--query`, `--analyze`, `--benchmark`, `--health`, …) are unchanged.
 
-## What's next — v2.8
+## What's next — v2.9
 
-v2.8 adds hybrid depth snippet retrieval — return not just relevant files, but the exact code snippets within those files. Includes `--query --snippets` CLI flag and `snippets: true` option for MCP `query_context`. See [issue #21](https://github.com/manojmallick/sigmap/issues/21).
+v2.9 adds JetBrains plugin support — install SigMap natively in IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine. Includes toolbar actions, settings panel, file watcher integration, and automated JetBrains Marketplace publishing. See [issue #23](https://github.com/manojmallick/sigmap/issues/23).
 
 See the full [roadmap](https://manojmallick.github.io/sigmap/roadmap.html).
 
