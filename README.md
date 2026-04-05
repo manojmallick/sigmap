@@ -86,6 +86,16 @@ AI agent session starts with full context
 
 ---
 
+## 🔭 What's next — v2.5 (in progress · [#14](https://github.com/manojmallick/sigmap/issues/14))
+
+| Feature | Description |
+|---|---|
+| **`--impact <file>`** | Show every file that transitively depends on a changed file — instant blast-radius awareness |
+| **`--impact --json`** | Machine-readable output for CI pipelines |
+| **`get_impact` MCP tool** | 9th MCP tool — `{ file, depth? }` → impacted files + signatures |
+| **`src/map/dep-graph.js`** | Reverse-dependency graph built from the import analysis; circular deps handled safely |
+| **15 new tests** | `impact.test.js` — direct deps, transitive deps, depth limit, JSON output |
+
 ## 🆕 What's new in 2.4
 
 | Feature | Description |

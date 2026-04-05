@@ -128,6 +128,10 @@ const health = score('/path/to/project');
 
 All existing CLI flags (`--generate`, `--watch`, `--mcp`, `--query`, `--analyze`, `--benchmark`, `--health`, …) are unchanged.
 
+## What's next — v2.5 Impact layer
+
+v2.5 adds `analyzeImpact(changedFiles, cwd)` to `packages/core` — given a list of changed files, it returns every file that transitively imports them. See [issue #14](https://github.com/manojmallick/sigmap/issues/14) and the [roadmap](https://manojmallick.github.io/sigmap/roadmap.html).
+
 ## Zero dependencies
 
 This package has zero runtime npm dependencies. It uses only Node.js built-ins: `fs`, `path`.
