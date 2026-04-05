@@ -1,0 +1,52 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>com.sigmap.plugin</id>
+    <name>SigMap — AI Context Engine</name>
+    <vendor email="support@sigmap.dev" url="https://github.com/manojmallick/sigmap">SigMap</vendor>
+
+    <description><![CDATA[
+    <h2>SigMap — 97% Token Reduction for AI Coding Assistants</h2>
+    
+    <p>Zero-dependency AI context engine that extracts code signatures from 21 languages and generates compact context files for GitHub Copilot, Claude, Cursor, and other AI assistants.</p>
+    
+    <h3>Features</h3>
+    <ul>
+      <li><strong>Automatic Context Generation</strong> — Extracts function signatures, class definitions, and type information</li>
+      <li><strong>Health Status Bar</strong> — Shows context health grade (A-F) and time since last regeneration</li>
+      <li><strong>Toolbar Actions</strong> — Regenerate context, open context file, view roadmap with one click</li>
+      <li><strong>Stale Context Alerts</strong> — Notifies when context is over 24 hours old</li>
+      <li><strong>21 Language Support</strong> — TypeScript, JavaScript, Python, Java, Kotlin, Go, Rust, C++, C#, Ruby, PHP, Swift, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile</li>
+    </ul>
+    
+    <p>Learn more at <a href="https://manojmallick.github.io/sigmap/">manojmallick.github.io/sigmap/</a></p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <statusBarWidgetFactory implementation="com.sigmap.plugin.HealthStatusBarFactory" id="sigmap.healthStatusBar"/>
+    </extensions>
+
+    <actions>
+        <group id="SigMap.ActionGroup" text="SigMap" description="SigMap context generation actions" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            
+            <action id="SigMap.RegenerateContext" 
+                    class="com.sigmap.plugin.RegenerateAction" 
+                    text="Regenerate Context" 
+                    description="Regenerate SigMap context file">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G"/>
+            </action>
+            
+            <action id="SigMap.OpenContextFile" 
+                    class="com.sigmap.plugin.OpenContextFileAction" 
+                    text="Open Context File" 
+                    description="Open .github/copilot-instructions.md"/>
+            
+            <action id="SigMap.ViewRoadmap" 
+                    class="com.sigmap.plugin.ViewRoadmapAction" 
+                    text="View Roadmap" 
+                    description="Open SigMap roadmap in browser"/>
+        </group>
+    </actions>
+</idea-plugin>
