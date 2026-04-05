@@ -105,6 +105,8 @@ class HealthStatusBar(project: Project) : EditorBasedWidget(project), StatusBarW
         }
     }
     
+    override fun getAlignment(): Float = 1f  // Right-align in status bar
+    
     override fun dispose() {
         executor.shutdown()
         try {
