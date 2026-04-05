@@ -6,26 +6,40 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
-## [2.9.0] — upcoming · [#23](https://github.com/manojmallick/sigmap/issues/23) · branch: `feat/v2.9-jetbrains-plugin`
+## [2.9.1] — 2026-04-06 · JetBrains Marketplace Publishing
 
-### Planned additions
-- **JetBrains plugin skeleton** — `jetbrains-plugin/` with Gradle build, plugin.xml manifest
-- **Context provider integration** — integrate SigMap MCP server into JetBrains Platform SDK
-- **Toolbar actions** — "Regenerate Context", "Open Context File", "View Roadmap" buttons
-- **Settings panel** — configure srcDirs, exclude patterns, maxTokens, routing presets
-- **File watcher integration** — auto-regenerate context on file changes (opt-in)
-- **Multi-IDE support** — test on IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine
-- **JetBrains Marketplace publishing** — automated release via GitHub Actions
-- **Documentation** — `docs/JETBRAINS_SETUP.md` with installation guide
+### Added
+- **JetBrains Marketplace publishing** — automated publishing job in GitHub Actions workflow
+- **Gradle wrapper** — gradlew, gradlew.bat for consistent JetBrains plugin builds
+- **Publishing guide** — comprehensive [docs/JETBRAINS_PUBLISH.md](docs/JETBRAINS_PUBLISH.md)
+- **JetBrains Marketplace badge** — added to README.md
+- **One-time token setup** — documented in publishing guide
 
-### Go / No-go criteria
-- Plugin installs successfully on IntelliJ IDEA 2024.1+
-- Context regeneration works via toolbar button
-- Settings panel allows configuration of all config options
-- File watcher detects changes and regenerates context
-- Plugin passes JetBrains Plugin Verifier
-- Published to JetBrains Marketplace
-- `docs/JETBRAINS_SETUP.md` covers installation and configuration
+### Details
+- GitHub Actions workflow now includes `publish-jetbrains` job
+- Publishes to JetBrains Marketplace alongside npm, GitHub Packages, VS Code, and Open VSX
+- Requires `JETBRAINS_PUBLISH_TOKEN` secret for automated publishing
+- Full publishing guide with manual instructions and troubleshooting
+
+---
+
+## [2.9.0] — 2026-04-05 · IDE Expansion: JetBrains Plugin
+
+### Added
+- **JetBrains plugin** — native support for all JetBrains IDEs (IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine, etc.)
+- **Plugin descriptor** — `jetbrains-plugin/src/main/resources/META-INF/plugin.xml` with 3 actions + status bar widget
+- **Kotlin sources** — 5 action implementations (RegenerateAction, OpenContextFileAction, ViewRoadmapAction, HealthStatusBar, Factory)
+- **Toolbar actions** — "Regenerate Context" (Ctrl+Alt+G), "Open Context File", "View Roadmap"
+- **Status bar widget** — shows health grade (A-F) and time since last regeneration; updates every 60s
+- **Gradle build** — `jetbrains-plugin/build.gradle.kts` with IntelliJ Platform 2024.1+ compatibility
+- **Setup documentation** — [docs/JETBRAINS_SETUP.md](docs/JETBRAINS_SETUP.md) with installation guide, features, troubleshooting
+- **Integration tests** — `test/integration/jetbrains.test.js` with 11 structure validation tests
+
+### Details
+- Compatible with IntelliJ IDEA 2024.1 - 2024.3 (Community & Ultimate)
+- One-click context regeneration from IDE toolbar
+- Automatic status bar updates every 60 seconds
+- Full Kotlin/Gradle plugin with proper plugin.xml structure
 
 ---
 
