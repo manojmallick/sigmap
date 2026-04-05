@@ -26,6 +26,7 @@
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![VS Code](https://img.shields.io/badge/VS%20Code-extension-0078d4?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap)
+[![JetBrains](https://img.shields.io/badge/JetBrains-plugin-000000?logo=jetbrains)](https://plugins.jetbrains.com/plugin/sigmap)
 [![Open VSX](https://img.shields.io/open-vsx/v/manojmallick/sigmap?color=a251e3&label=Open%20VSX&logo=vscodium)](https://open-vsx.org/extension/manojmallick/sigmap)
 
 </div>
@@ -39,6 +40,7 @@
 | [What it does](#-what-it-does) | Token reduction table, pipeline overview |
 | [Quick start](#-quick-start) | Get running in 60 seconds |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
+| [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
 | [Languages supported](#-languages-supported) | 21 languages |
 | [Context strategies](#-context-strategies) | full / per-module / hot-cold |
 | [MCP server](#-mcp-server) | 8 on-demand tools |
@@ -197,6 +199,28 @@ The `vscode-extension/` directory contains a first-party VS Code extension that 
 | **Script path setting** | `sigmap.scriptPath` — override when `gen-context.js` is not at the project root |
 
 Activate on startup (`onStartupFinished`) — loads within 3 s, never blocks editor startup.
+
+**Install:** [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap) | [Open VSX Registry](https://open-vsx.org/extension/manojmallick/sigmap)
+
+---
+
+## 🔧 JetBrains plugin
+
+> Introduced in v2.9 — brings SigMap to IntelliJ IDEA, WebStorm, PyCharm, and all JetBrains IDEs.
+
+The `jetbrains-plugin/` directory contains a Kotlin-based plugin for JetBrains IDEs with the same core features as the VS Code extension.
+
+| Feature | Detail |
+|---|---|
+| **Status bar widget** | Shows health grade (`A`-`F`) + time since last regen; updates every 60 s |
+| **Regenerate action** | `Tools → SigMap → Regenerate Context` or **Ctrl+Alt+G** — runs `node gen-context.js` |
+| **Open context action** | `Tools → SigMap → Open Context File` — opens `.github/copilot-instructions.md` |
+| **View roadmap action** | `Tools → SigMap → View Roadmap` — opens roadmap in browser |
+| **One-click regen** | Click status bar widget to regenerate context instantly |
+
+Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, **PyCharm**, **GoLand**, **RubyMine**, **PhpStorm**, and all other IntelliJ-based IDEs.
+
+**Install:** [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/sigmap) | [Manual setup guide](docs/JETBRAINS_SETUP.md)
 
 ---
 
