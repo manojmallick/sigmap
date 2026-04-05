@@ -6,6 +6,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [2.5.0] — upcoming · [#14](https://github.com/manojmallick/sigmap/issues/14) · branch: `feat/v2.5-impact-layer`
+
+### Planned additions
+- **`src/map/dep-graph.js`** — reverse-dependency graph built from the existing import-graph analysis. `getImpacted(filePath, graph)` walks the graph via BFS/DFS and returns every file that transitively imports the given file.
+- **`src/map/impact.js`** — `analyzeImpact(changedFiles, cwd)` → `{ changed, impacted, totalFiles }`. Aggregates dep-graph traversal with optional signature lookup.
+- **`--impact <file>` CLI flag** — prints all files impacted by changing `<file>`, with their signatures. Supports `--impact --json` (machine-readable) and `--impact --depth <n>` (BFS depth limit).
+- **`get_impact` MCP tool** (9th tool) — `{ file: string, depth?: number }` → list of impacted files + signatures, usable live in any MCP session.
+- **`impact` config key** — `{ depth: 0, includeSigs: true }` in `gen-context.config.json`.
+- **`test/integration/impact.test.js`** — 15 tests: direct deps, transitive deps, circular deps (no infinite loop), depth limit, unknown file returns `[]`, JSON output shape, MCP tool shape.
+
+---
+
 ## [2.4.0] — 2026-04-05
 
 ### Added
