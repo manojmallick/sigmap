@@ -14,6 +14,8 @@ AI context engine for IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine, and al
 
 ### From JetBrains Marketplace (Recommended)
 
+Marketplace page: https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/
+
 1. **Settings** → **Plugins** → **Marketplace**
 2. Search for **"SigMap"**
 3. Click **Install**
@@ -28,7 +30,7 @@ AI context engine for IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine, and al
 
 ## Requirements
 
-- JetBrains IDE 2024.1+ (IntelliJ IDEA, WebStorm, PyCharm, etc.)
+- JetBrains IDE 2024.1 through 2026.1 (IntelliJ IDEA, WebStorm, PyCharm, etc.)
 - Node.js 18+ (for running gen-context.js)
 - `gen-context.js` in your project root (install via `npm install sigmap`)
 

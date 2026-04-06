@@ -1,8 +1,12 @@
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.22"
-    id("org.jetbrains.intellij") version "1.17.2"
+    id("org.jetbrains.intellij") version "1.17.4"
 }
+
+val ideSinceBuild = "241"
+val ideUntilBuild = "261.*"
+val verifierIdeVersions = listOf("IC-241.19416.15", "IC-252.28539.33")
 
 group = "com.sigmap"
 version = "3.0.1"
@@ -28,8 +32,12 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("241")
-        untilBuild.set("243.*")
+        sinceBuild.set(ideSinceBuild)
+        untilBuild.set(ideUntilBuild)
+    }
+
+    runPluginVerifier {
+        ideVersions.set(verifierIdeVersions)
     }
 
     signPlugin {

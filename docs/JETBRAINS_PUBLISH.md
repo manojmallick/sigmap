@@ -98,7 +98,7 @@ grep "version = " jetbrains-plugin/build.gradle.kts
 
 ```bash
 cd jetbrains-plugin
-./gradlew buildPlugin
+./gradlew buildPlugin verifyPlugin runPluginVerifier
 
 # Verify output
 ls -lh build/distributions/SigMap-*.zip
@@ -210,7 +210,7 @@ open https://plugins.jetbrains.com/plugin/PLUGIN_ID-sigmap
 **Solution**:
 ```bash
 cd jetbrains-plugin
-./gradlew verifyPlugin
+./gradlew verifyPlugin runPluginVerifier
 
 # Fix any reported issues in plugin.xml or build.gradle.kts
 ```
@@ -334,7 +334,7 @@ Before creating a release tag:
 - [ ] Version bumped in package.json
 - [ ] CHANGELOG.md updated with release notes
 - [ ] Plugin builds successfully: `cd jetbrains-plugin && ./gradlew buildPlugin`
-- [ ] Plugin verifies: `./gradlew verifyPlugin`
+- [ ] Plugin verifies locally against downloadable 2024 and 2025 IDE builds: `./gradlew verifyPlugin runPluginVerifier`
 - [ ] GitHub Secret `JETBRAINS_PUBLISH_TOKEN` is valid
 - [ ] No breaking changes to plugin API
 - [ ] IDE compatibility range updated in plugin.xml (if needed)
@@ -370,8 +370,8 @@ gh run watch <run-id>
 # Build plugin
 cd jetbrains-plugin && ./gradlew buildPlugin
 
-# Verify plugin structure
-./gradlew verifyPlugin
+# Verify plugin structure and compatibility targets
+./gradlew verifyPlugin runPluginVerifier
 
 # Run plugin in IDE sandbox (for testing)
 ./gradlew runIde

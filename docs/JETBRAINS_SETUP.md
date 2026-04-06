@@ -37,7 +37,7 @@ Complete installation and configuration guide for SigMap JetBrains plugin (Intel
 
 ```bash
 cd sigmap/jetbrains-plugin
-./gradlew buildPlugin
+./gradlew buildPlugin verifyPlugin runPluginVerifier
 # Output: build/distributions/sigmap-X.Y.Z.zip
 
 # Install the ZIP using Method 2

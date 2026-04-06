@@ -201,7 +201,7 @@ jobs:
       - name: Build and verify plugin
         working-directory: jetbrains-plugin
         run: |
-          ./gradlew buildPlugin verifyPlugin
+          ./gradlew buildPlugin verifyPlugin runPluginVerifier
           echo "✓ Plugin built and verified successfully"
       
       - name: Publish plugin to JetBrains Marketplace

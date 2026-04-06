@@ -26,7 +26,7 @@
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![VS Code](https://img.shields.io/badge/VS%20Code-extension-0078d4?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap)
-[![JetBrains](https://img.shields.io/badge/JetBrains-plugin-000000?logo=jetbrains)](https://plugins.jetbrains.com/plugin/sigmap)
+[![JetBrains](https://img.shields.io/badge/JetBrains-plugin-000000?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/)
 [![Open VSX](https://img.shields.io/open-vsx/v/manojmallick/sigmap?color=a251e3&label=Open%20VSX&logo=vscodium)](https://open-vsx.org/extension/manojmallick/sigmap)
 
 </div>
@@ -238,7 +238,7 @@ The `jetbrains-plugin/` directory contains a Kotlin-based plugin for JetBrains I
 
 Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, **PyCharm**, **GoLand**, **RubyMine**, **PhpStorm**, and all other IntelliJ-based IDEs.
 
-**Install:** [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/sigmap) | [Manual setup guide](docs/JETBRAINS_SETUP.md)
+**Install:** [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [Manual setup guide](docs/JETBRAINS_SETUP.md)
 
 ---
 
