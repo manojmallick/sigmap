@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.sigmap"
-version = "3.0.0"
+version = "3.0.1"
 
 repositories {
     mavenCentral()
