@@ -1,5 +1,6 @@
 package com.sigmap.plugin
 
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -42,14 +43,8 @@ class HealthStatusBar(project: Project) : EditorBasedWidget(project), StatusBarW
     
     override fun getClickConsumer(): Consumer<MouseEvent>? {
         return Consumer {
-            RegenerateAction().actionPerformed(
-                com.intellij.openapi.actionSystem.AnActionEvent.createFromAnAction(
-                    RegenerateAction(),
-                    null,
-                    "",
-                    com.intellij.openapi.actionSystem.DataContext.EMPTY_CONTEXT
-                )
-            )
+            val action = ActionManager.getInstance().getAction("SigMap.RegenerateContext") ?: return@Consumer
+            ActionManager.getInstance().tryToExecute(action, it, null, "SigMapHealthStatusBar", true)
         }
     }
     
