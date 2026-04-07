@@ -42,7 +42,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     outputs:
-      new_version: ${{ steps.version.outputs.new_version }}
+      npm_version: ${{ steps.version.outputs.npm_version }}
+      vscode_version: ${{ steps.version.outputs.vscode_version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,20 +54,33 @@ jobs:
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
+          BASE_VERSION="${CURRENT_VERSION%%-*}"
           PRERELEASE_TYPE="${{ inputs.prerelease_type }}"
           BUILD_NUMBER="${{ inputs.build_number }}"
-          NEW_VERSION="${CURRENT_VERSION}-${PRERELEASE_TYPE}.${BUILD_NUMBER}"
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Calculated prerelease version: $NEW_VERSION"
+
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || [ "$BUILD_NUMBER" -lt 1 ]; then
+            echo "build_number must be a positive integer"
+            exit 1
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+          VSCODE_PATCH=$((PATCH + BUILD_NUMBER))
+          VSCODE_VERSION="${MAJOR}.${MINOR}.${VSCODE_PATCH}"
+          NPM_VERSION="${BASE_VERSION}-${PRERELEASE_TYPE}.${BUILD_NUMBER}"
+
+          echo "npm_version=$NPM_VERSION" >> $GITHUB_OUTPUT
+          echo "vscode_version=$VSCODE_VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated npm prerelease version: $NPM_VERSION"
+          echo "Calculated VS Code prerelease version: $VSCODE_VERSION"
 
       - name: Update root package.json
         run: |
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '${{ steps.version.outputs.new_version }}';
+            pkg.version = '${{ steps.version.outputs.npm_version }}';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✓ root package.json updated to ${{ steps.version.outputs.new_version }}');
+            console.log('✓ root package.json updated to ${{ steps.version.outputs.npm_version }}');
           "
 
       - name: Update vscode-extension/package.json
@@ -74,23 +88,23 @@ jobs:
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
-            pkg.version = '${{ steps.version.outputs.new_version }}';
+            pkg.version = '${{ steps.version.outputs.vscode_version }}';
             fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✓ vscode-extension/package.json updated to ${{ steps.version.outputs.new_version }}');
+            console.log('✓ vscode-extension/package.json updated to ${{ steps.version.outputs.vscode_version }}');
           "
 
       - name: Update jetbrains-plugin/build.gradle.kts
         run: |
-          sed -i.bak "s/^version = \".*/version = \"${{ steps.version.outputs.new_version }}\"/" jetbrains-plugin/build.gradle.kts
+          sed -i.bak "s/^version = \".*/version = \"${{ steps.version.outputs.npm_version }}\"/" jetbrains-plugin/build.gradle.kts
           rm -f jetbrains-plugin/build.gradle.kts.bak
-          echo "✓ jetbrains-plugin/build.gradle.kts updated to ${{ steps.version.outputs.new_version }}"
+          echo "✓ jetbrains-plugin/build.gradle.kts updated to ${{ steps.version.outputs.npm_version }}"
 
       - name: Commit version updates
         run: |
           git config user.name "SigMap Bot"
           git config user.email "bot@sigmap.dev"
           git add package.json vscode-extension/package.json jetbrains-plugin/build.gradle.kts
-          git commit -m "prerelease: bump version to ${{ steps.version.outputs.new_version }}"
+          git commit -m "prerelease: npm ${{ steps.version.outputs.npm_version }}, vscode ${{ steps.version.outputs.vscode_version }}"
           git push origin HEAD:${GITHUB_REF#refs/heads/}
 
       - name: Show updated versions
@@ -203,7 +217,7 @@ jobs:
         working-directory: vscode-extension
         run: |
           npm install -g @vscode/vsce
-          vsce package --no-dependencies
+          vsce package --pre-release --no-dependencies
 
       - name: Publish to Open VSX
         working-directory: vscode-extension
@@ -273,12 +287,12 @@ jobs:
       - name: Build .vsix for prerelease attachment
         run: |
           npm install -g @vscode/vsce
-          cd vscode-extension && vsce package --no-dependencies
+          cd vscode-extension && vsce package --pre-release --no-dependencies
 
       - name: Create GitHub Prerelease
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.update-versions.outputs.new_version }}
+          tag_name: v${{ needs.update-versions.outputs.npm_version }}
           prerelease: true
           generate_release_notes: true
           files: vscode-extension/*.vsix
