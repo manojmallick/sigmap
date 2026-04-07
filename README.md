@@ -38,7 +38,8 @@
 | | |
 |---|---|
 | [What it does](#-what-it-does) | Token reduction table, pipeline overview |
-| [Quick start](#-quick-start) | Get running in 60 seconds |
+| [Quick start](#-quick-start) | Install (binary or npm), generate in 60 seconds |
+| [Standalone binaries](docs/binaries.md) | macOS, Linux, Windows — no Node required |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
 | [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
 | [Languages supported](#-languages-supported) | 21 languages |
@@ -158,6 +159,36 @@ See full roadmap: [manojmallick.github.io/sigmap/roadmap.html](https://manojmall
 ---
 
 ## ⚡ Quick start
+
+### Install
+
+**Standalone binary** — no Node.js or npm required:
+
+| Platform | Download |
+|---|---|
+| macOS Apple Silicon | [`sigmap-darwin-arm64`](https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-darwin-arm64) |
+| macOS Intel | [`sigmap-darwin-x64`](https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-darwin-x64) |
+| Linux x64 | [`sigmap-linux-x64`](https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-linux-x64) |
+| Windows x64 | [`sigmap-win32-x64.exe`](https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-win32-x64.exe) |
+
+```bash
+# macOS / Linux
+chmod +x ./sigmap-darwin-arm64
+./sigmap-darwin-arm64 generate
+```
+
+See [docs/binaries.md](docs/binaries.md) for Gatekeeper / SmartScreen notes and checksum verification.
+
+**npm** (requires Node.js 18+):
+
+```bash
+npx sigmap                  # run once without installing
+npm install -g sigmap       # install globally
+```
+
+---
+
+### Generate context
 
 Download the single-file CLI and generate context immediately:
 
