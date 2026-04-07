@@ -8,12 +8,40 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+---
+
+## [3.1.0] — 2026-04-07 — Global Command Detection & VS Code Prerelease Fix
+
+### Added
+- **VS Code extension: global command auto-detection** — extension now finds `gen-context` installed via Volta, nvm, npm, or Homebrew without requiring `gen-context.js` in the project root or a manual `sigmap.scriptPath` setting
+  - Probe chain: local `node_modules/.bin` → `~/.volta/bin` → `~/.nvm/versions/node/*/bin` (newest first) → `/usr/local/bin` → `/opt/homebrew/bin` → `~/.npm-global/bin` → login-shell `which`
+  - Works on macOS GUI apps that do not inherit shell `PATH`
+  - `resolveGlobalCommand()` + unified `resolveRunner()` added to `vscode-extension/src/extension.js`
+- **VS Code extension: actionable error message** — when command is not found, notification offers "Copy install command" (copies `npm install -g sigmap` to clipboard) and "Open settings" buttons instead of a plain warning
+- **Prerelease GitHub Actions workflow** — new `prerelease-publish.yml` for manual alpha/beta/rc releases across all 5 platforms (npm, GitHub Packages, VS Code, Open VSX, JetBrains) without marking as @latest
+  - VS Code/Open VSX uses `major.minor.patch` versioning (VSCE prerelease constraint)
+  - npm/JetBrains use full semver prerelease suffix (e.g. `3.1.0-beta.1`)
+
 ### Fixed
 - **`output` config key not honored for copilot adapter** · [#30](https://github.com/manojmallick/sigmap/issues/30)
   - Custom `output` path in config now correctly used for copilot adapter instead of hard-wired `.github/copilot-instructions.md`
   - Added `resolveAdapterPath()` helper to centralize adapter path resolution
   - Other adapters (claude, cursor, windsurf) continue to use fixed paths as designed
   - 5 new integration tests ensure custom paths work correctly across all config combinations
+- **JetBrains plugin: global `gen-context` command support** · [#29](https://github.com/manojmallick/sigmap/issues/29)
+  - Plugin now resolves command via fallback chain: local `gen-context.js` → `node_modules/.bin/gen-context` → system `PATH`
+  - Enables use in Java, Rust, Go and other non-Node projects with `gen-context` installed globally via Volta/nvm/npm
+- **VS Code prerelease versioning** — workflow previously failed publishing because semver-suffixed versions (e.g. `3.1.0-alpha.1`) are rejected by VSCE; fixed by splitting into separate `npm_version` and `vscode_version` outputs
+
+### Technical
+- `resolveRunner()` returns `{ type: 'script' | 'command', path }` allowing extension to run either `node "path/gen-context.js"` or `"~/.volta/bin/gen-context"` without modification to the terminal command
+
+### How to release (tag triggers automatic publish)
+```bash
+git tag v3.1.0
+git push origin v3.1.0
+# npm-publish.yml auto-triggers and publishes to all 5 platforms
+```
 
 ---
 
