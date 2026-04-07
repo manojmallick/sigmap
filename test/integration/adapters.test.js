@@ -37,6 +37,10 @@ const CORE = path.join(ROOT, 'packages', 'core', 'index.js');
 const SCRIPT = path.join(ROOT, 'gen-context.js');
 const LOADER = path.join(ROOT, 'src', 'config', 'loader.js');
 
+// Read version from package.json at runtime
+const PKG = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+const EXPECTED_VERSION = PKG.version;
+
 let passed = 0;
 let failed = 0;
 
@@ -190,7 +194,7 @@ test('--adapter copilot --json outputs valid JSON with adapter + outputPath', ()
   }
   assert.strictEqual(data.adapter, 'copilot', `expected adapter=copilot, got ${data.adapter}`);
   assert.ok(typeof data.outputPath === 'string' && data.outputPath.length > 0, 'outputPath must be a string');
-  assert.strictEqual(data.version, '3.0.0', `expected version 3.0.0, got ${data.version}`);
+  assert.strictEqual(data.version, EXPECTED_VERSION, `expected version ${EXPECTED_VERSION}, got ${data.version}`);
 });
 
 // ---------------------------------------------------------------------------
