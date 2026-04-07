@@ -1,0 +1,284 @@
+name: Prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease_type:
+        description: 'Prerelease type'
+        required: true
+        default: 'alpha'
+        type: choice
+        options:
+          - 'alpha'
+          - 'beta'
+          - 'rc'
+      build_number:
+        description: 'Build number (e.g., 1, 2, 3 for alpha.1, alpha.2, etc.)'
+        required: true
+        default: '1'
+        type: string
+
+permissions:
+  contents: write   # create GitHub Releases and commits
+  id-token: write   # npm provenance
+  packages: write   # GitHub Packages
+
+jobs:
+  # ── 1. Gate: all tests must pass ─────────────────────────────────────────
+  test:
+    name: Test (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run test suite
+        run: node test/run.js
+
+  # ── 2. Update versions for prerelease ────────────────────────────────────
+  update-versions:
+    name: Update Versions
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Calculate prerelease version
+        id: version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PRERELEASE_TYPE="${{ inputs.prerelease_type }}"
+          BUILD_NUMBER="${{ inputs.build_number }}"
+          NEW_VERSION="${CURRENT_VERSION}-${PRERELEASE_TYPE}.${BUILD_NUMBER}"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Calculated prerelease version: $NEW_VERSION"
+
+      - name: Update root package.json
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${{ steps.version.outputs.new_version }}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✓ root package.json updated to ${{ steps.version.outputs.new_version }}');
+          "
+
+      - name: Update vscode-extension/package.json
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
+            pkg.version = '${{ steps.version.outputs.new_version }}';
+            fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✓ vscode-extension/package.json updated to ${{ steps.version.outputs.new_version }}');
+          "
+
+      - name: Update jetbrains-plugin/build.gradle.kts
+        run: |
+          sed -i.bak "s/^version = \".*/version = \"${{ steps.version.outputs.new_version }}\"/" jetbrains-plugin/build.gradle.kts
+          rm -f jetbrains-plugin/build.gradle.kts.bak
+          echo "✓ jetbrains-plugin/build.gradle.kts updated to ${{ steps.version.outputs.new_version }}"
+
+      - name: Commit version updates
+        run: |
+          git config user.name "SigMap Bot"
+          git config user.email "bot@sigmap.dev"
+          git add package.json vscode-extension/package.json jetbrains-plugin/build.gradle.kts
+          git commit -m "prerelease: bump version to ${{ steps.version.outputs.new_version }}"
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
+
+      - name: Show updated versions
+        run: |
+          echo "=== Root package.json ==="
+          grep version package.json | head -1
+          echo ""
+          echo "=== VS Code Extension ==="
+          grep version vscode-extension/package.json | head -1
+          echo ""
+          echo "=== JetBrains Plugin ==="
+          grep "^version = " jetbrains-plugin/build.gradle.kts
+
+  # ── 3. Publish to npmjs.com (prerelease tag) ──────────────────────────────
+  publish-npm:
+    name: Publish → npmjs.com (prerelease)
+    needs: update-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to npm with prerelease tag
+        run: npm publish --tag ${{ inputs.prerelease_type }} --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Show published version
+        run: npm info sigmap@latest && npm info sigmap@${{ inputs.prerelease_type }}
+
+  # ── 4. Publish to GitHub Packages (prerelease) ────────────────────────────
+  publish-github:
+    name: Publish → GitHub Packages (prerelease)
+    needs: update-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@manojmallick'
+
+      - name: Publish to GitHub Packages
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.name = '@manojmallick/sigmap';
+            pkg.publishConfig = { registry: 'https://npm.pkg.github.com' };
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── 5. Publish VS Code extension (prerelease) ─────────────────────────────
+  publish-vscode:
+    name: Publish → VS Code Marketplace (prerelease)
+    needs: update-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Package and publish extension (prerelease)
+        working-directory: vscode-extension
+        run: |
+          vsce publish --pre-release --no-dependencies 2>&1 | tee /tmp/vsce-out.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/vsce-out.txt; then
+            echo "✓ Version already on Marketplace — skipping (not an error)"
+            exit 0
+          fi
+          exit $EXIT
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  # ── 6. Publish to Open VSX Registry (prerelease) ──────────────────────────
+  publish-openvsx:
+    name: Publish → Open VSX Registry (prerelease)
+    needs: update-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ovsx
+        run: npm install -g ovsx
+
+      - name: Package extension (.vsix)
+        working-directory: vscode-extension
+        run: |
+          npm install -g @vscode/vsce
+          vsce package --no-dependencies
+
+      - name: Publish to Open VSX
+        working-directory: vscode-extension
+        run: |
+          VSIX_FILE=$(ls *.vsix | head -1)
+          ovsx publish "$VSIX_FILE" --pat "$OVSX_PAT" 2>&1 | tee /tmp/ovsx-out.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/ovsx-out.txt; then
+            echo "✓ Version already on Open VSX — skipping (not an error)"
+            exit 0
+          fi
+          exit $EXIT
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+  # ── 7. Publish JetBrains Plugin (prerelease) ──────────────────────────────
+  publish-jetbrains:
+    name: Publish → JetBrains Marketplace (prerelease)
+    needs: update-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: Build and verify plugin
+        working-directory: jetbrains-plugin
+        run: |
+          ./gradlew buildPlugin verifyPlugin runPluginVerifier
+          echo "✓ Plugin built and verified successfully"
+
+      - name: Publish plugin to JetBrains Marketplace (prerelease channel)
+        working-directory: jetbrains-plugin
+        run: |
+          ./gradlew publishPlugin 2>&1 | tee /tmp/jetbrains-out.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/jetbrains-out.txt; then
+            echo "✓ Version already on JetBrains Marketplace — skipping (not an error)"
+            exit 0
+          fi
+          exit $EXIT
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
+
+  # ── 8. Create GitHub Prerelease (after all publishes succeed) ──────────────
+  release:
+    name: Create GitHub Prerelease
+    needs: [publish-npm, publish-github, publish-vscode, publish-openvsx, publish-jetbrains]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build .vsix for prerelease attachment
+        run: |
+          npm install -g @vscode/vsce
+          cd vscode-extension && vsce package --no-dependencies
+
+      - name: Create GitHub Prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.update-versions.outputs.new_version }}
+          prerelease: true
+          generate_release_notes: true
+          files: vscode-extension/*.vsix
