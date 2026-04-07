@@ -449,6 +449,7 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
 
 ```json
 {
+  "output": ".github/copilot-instructions.md",
   "srcDirs": ["src", "app", "lib"],
   "maxTokens": 6000,
   "outputs": ["copilot"],
@@ -458,6 +459,15 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
   "tracking": false
 }
 ```
+
+**Key fields:**
+
+- **`output`** — custom path for the primary markdown output file (used by `copilot` adapter). Default: `.github/copilot-instructions.md`
+- **`outputs`** — which adapters to write to: `copilot` | `claude` | `cursor` | `windsurf`
+- **`srcDirs`** — directories to scan (relative to project root)
+- **`maxTokens`** — max tokens in final output before budget enforcement
+- **`secretScan`** — redact secrets (AWS keys, tokens, etc.) from output
+- **`strategy`** — output mode: `full` (default) | `per-module` | `hot-cold`
 
 Exclusions go in `.contextignore` (gitignore syntax). Also reads `.repomixignore` if present.
 
@@ -476,12 +486,25 @@ Run `node gen-context.js --init` to scaffold both files in one step.
 
 | Key | Output file | Read by |
 |---|---|---|
-| `"copilot"` | `.github/copilot-instructions.md` | GitHub Copilot |
+| `"copilot"` | `.github/copilot-instructions.md` *(or custom path via `output`)* | GitHub Copilot |
 | `"claude"` | `CLAUDE.md` (appends below marker) | Claude Code |
 | `"cursor"` | `.cursorrules` | Cursor |
 | `"windsurf"` | `.windsurfrules` | Windsurf |
 
----
+The **`output`** config key sets the primary output file path. It is used by the `copilot` adapter when enabled. Other adapters always write to their fixed paths.
+
+**Example:**
+
+```json
+{
+  "output": ".context/ai-context.md",
+  "outputs": ["copilot"]
+}
+```
+
+This writes to `.context/ai-context.md` instead of `.github/copilot-instructions.md`.
+
+If `output` is omitted, the default `.github/copilot-instructions.md` is used.
 
 ## 📊 Observability
 
