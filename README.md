@@ -6,7 +6,7 @@
 
 <p>
   Every coding agent session starts with full codebase context at under 4K tokens.<br>
-  No <code>npm install</code>. No setup. Runs on any machine with Node.js 18+.
+  Multiple install options. Zero runtime dependencies. Requires only Node.js 18+.
 </p>
 
 <!-- Status -->
@@ -38,7 +38,9 @@
 | | |
 |---|---|
 | [What it does](#-what-it-does) | Token reduction table, pipeline overview |
-| [Quick start](#-quick-start) | Get running in 60 seconds |
+| [Installation](#-installation) | npx, npm global/local, Volta, single-file download |
+| [Features](#-features) | Adapters, strategies, MCP, API, and more |
+| [Common workflows](#common-workflows) | Everyday commands |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
 | [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
 | [Languages supported](#-languages-supported) | 21 languages |
@@ -47,6 +49,7 @@
 | [CLI reference](#-cli-reference) | All flags |
 | [Configuration](#-configuration) | Config file + .contextignore |
 | [Observability](#-observability) | Health score, reports, CI |
+| [Programmatic API](#-programmatic-api) | Use as a Node.js library |
 | [Testing](#-testing) | Run the test suite |
 | [Project structure](#-project-structure) | File-by-file map |
 | [Principles](#-principles) | Design decisions |
@@ -88,58 +91,96 @@ AI agent session starts with full context
 
 ---
 
-## 🆕 What's new in 2.4
+## ⚡ Installation
 
-| Feature | Description |
-|---|---|
-| **Programmatic API** | `require('sigmap')` — use `extract`, `rank`, `buildSigIndex`, `scan`, `score` directly, no CLI subprocess |
-| **`packages/core/`** | New `sigmap-core` package with stable API surface for third-party integrations |
-| **`packages/cli/`** | Thin `sigmap-cli` forward-compat shim for the v3.0 adapter architecture |
-| **15 new tests** | `core-api.test.js` covers all exported functions, edge cases, and backward compat |
+Pick the method that fits your workflow — all produce the same output.
 
-## 🆕 What's new in 2.3
+<details open>
+<summary><strong>npx — try without installing</strong></summary>
 
-| Feature | Description |
-|---|---|
-| **`--query "<text>"` CLI** | Rank all context files by relevance to a free-text query — scored table + top-3 signature blocks |
-| **`--query --json`** | Machine-readable ranked results (`{ query, results[], totalResults }`) |
-| **`--query --top <n>`** | Limit results (default 10, configurable via `retrieval.topK`) |
-| **`query_context` MCP tool** | 8th MCP tool — `{ query, topK? }` returns ranked file list, usable live in any MCP session |
-| **`--analyze` / `--diagnose-extractors`** | Per-file breakdown of sigs/tokens/extractor/coverage; self-tests all 21 extractors (v2.2) |
-| **`--benchmark` / `--eval`** | Measure hit@5 and MRR retrieval quality against a JSONL task file (v2.1) |
+```bash
+npx sigmap
+```
 
-> **Previous v2.0 additions:** enriched signatures, dependency map, TODO/FIXME section, test coverage markers, structural diff mode, impact radius hints. See [CHANGELOG.md](CHANGELOG.md) for the full history.
+Runs the latest version without any permanent install. Great for a quick try.
+
+</details>
+
+<details>
+<summary><strong>npm global — install once, run anywhere</strong></summary>
+
+```bash
+npm install -g sigmap
+sigmap
+```
+
+Available from any directory on your machine.
+
+</details>
+
+<details>
+<summary><strong>npm local — per-project, version-pinned</strong></summary>
+
+```bash
+npm install --save-dev sigmap
+```
+
+Add to `package.json` scripts for team consistency:
+
+```json
+{
+  "scripts": {
+    "context": "sigmap",
+    "context:watch": "sigmap --watch"
+  }
+}
+```
+
+Run with `npm run context`. Version is pinned per project.
+
+</details>
+
+<details>
+<summary><strong>Volta — team-friendly, auto-pinned version</strong></summary>
+
+```bash
+volta install sigmap
+sigmap
+```
+
+[Volta](https://volta.sh) pins the exact version in `package.json` — every team member runs the same version automatically without configuration.
+
+</details>
+
+<details>
+<summary><strong>Single-file download — no npm, any machine</strong></summary>
+
+```bash
+curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.js
+node gen-context.js
+```
+
+No npm, no `node_modules`. Drop `gen-context.js` into any project and run it directly. Requires only Node.js 18+. Ideal for CI, locked-down environments, or one-off use.
+
+</details>
+
+> **Note:** When using the single-file download, replace `sigmap` with `node gen-context.js` in all commands below.
 
 ---
 
-## 🔭 What's next — v2.10 (in progress · [#25](https://github.com/manojmallick/sigmap/issues/25))
+## 🚀 Features
 
-### v2.10 — Reporting: Charts + Advanced Metrics
+### Multi-adapter output
 
-| Feature | Description |
-|---|---|
-| **Charts in reports** | Visualize token reduction, signature counts, and budget usage per run |
-| **Advanced retrieval metrics** | Add precision@K, recall@K, MRR trend, and query-level diagnostics |
-| **Evaluation dashboard output** | Generate shareable HTML/JSON benchmark summaries from CLI runs |
-| **CI-friendly metrics export** | Persist machine-readable metrics for release gates and regression tracking |
-| **Release quality gates** | Add pass/fail thresholds for hit@5 and precision before publish |
-
-## 🔌 v3.0 — Platform: Multi-Adapter Architecture
-
-SigMap is now an **adapter platform**. Any AI assistant — Copilot, Claude, Cursor, Windsurf, OpenAI, or Gemini — plugs in through a standard interface.
+Generate context for any AI assistant from a single run:
 
 ```bash
-# Generate for a specific AI assistant
-node gen-context.js --adapter copilot    # → .github/copilot-instructions.md
-node gen-context.js --adapter openai     # → .github/openai-context.md
-node gen-context.js --adapter gemini     # → .github/gemini-context.md
-node gen-context.js --adapter claude     # → CLAUDE.md (append)
-```
-
-```js
-// Programmatic API — fully semver-stable from v3.0
-const { adapt } = require('sigmap');
-const systemPrompt = adapt(context, 'openai', { version: '3.0.0' });
+sigmap --adapter copilot    # → .github/copilot-instructions.md
+sigmap --adapter claude     # → CLAUDE.md (appended below marker)
+sigmap --adapter cursor     # → .cursorrules
+sigmap --adapter windsurf   # → .windsurfrules
+sigmap --adapter openai     # → .github/openai-context.md
+sigmap --adapter gemini     # → .github/gemini-context.md
 ```
 
 | Adapter | Output file | AI assistant |
@@ -151,45 +192,48 @@ const systemPrompt = adapt(context, 'openai', { version: '3.0.0' });
 | `openai` | `.github/openai-context.md` | Any OpenAI model |
 | `gemini` | `.github/gemini-context.md` | Google Gemini |
 
-**Backward compat:** existing `outputs` config key silently maps to `adapters` — no migration needed.
+Configure multiple adapters at once in `gen-context.config.json`:
 
-See full roadmap: [manojmallick.github.io/sigmap/roadmap.html](https://manojmallick.github.io/sigmap/roadmap.html)
+```json
+{ "outputs": ["copilot", "claude", "cursor"] }
+```
+
+### Programmatic API
+
+Use SigMap as a Node.js library without spawning a subprocess. See the [full API reference](#-programmatic-api) below.
+
+### Query-aware retrieval
+
+Find the most relevant files for any task without reading the whole codebase:
+
+```bash
+sigmap --query "authentication middleware"   # ranked file list
+sigmap --query "auth" --json                 # machine-readable output
+sigmap --query "auth" --top 5               # top 5 results only
+```
+
+### Diagnostic and evaluation tools
+
+```bash
+sigmap --analyze                  # per-file: sigs, tokens, extractor, coverage
+sigmap --analyze --slow           # include extraction timing
+sigmap --diagnose-extractors      # self-test all 21 extractors against fixtures
+sigmap --benchmark                # hit@5 and MRR retrieval quality
+sigmap --benchmark --json         # machine-readable benchmark results
+```
 
 ---
 
-## ⚡ Quick start
-
-Download the single-file CLI and generate context immediately:
+## Common workflows
 
 ```bash
-# 1. Download
-curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.js
-
-# 2. Generate your context file
-node gen-context.js
-
-# 3. Output: .github/copilot-instructions.md
-# That file is auto-read by GitHub Copilot in VS Code
-```
-
-Or via npm (globally):
-
-```bash
-npx sigmap          # run once without installing
-npm install -g sigmap   # install globally
-sigmap              # then use anywhere
-```
-
-### Common workflows
-
-```bash
-node gen-context.js              # generate once and exit
-node gen-context.js --watch      # regenerate on every file save
-node gen-context.js --setup      # generate + install git hook + start watcher
-node gen-context.js --diff       # context for git-changed files only (PR mode)
-node gen-context.js --diff --staged  # staged files only (pre-commit check)
-node gen-context.js --health     # show context health score (grade A–D)
-node gen-context.js --mcp        # start MCP server on stdio
+sigmap                         # generate once and exit
+sigmap --watch                 # regenerate on every file save
+sigmap --setup                 # generate + install git hook + start watcher
+sigmap --diff                  # context for git-changed files only (PR mode)
+sigmap --diff --staged         # staged files only (pre-commit check)
+sigmap --health                # show context health score (grade A–D)
+sigmap --mcp                   # start MCP server on stdio
 ```
 
 ### Companion tool: Repomix
@@ -202,8 +246,8 @@ SigMap and [Repomix](https://github.com/yamadashy/repomix) are **complementary, 
 | **Repomix** | On-demand deep sessions, full file content, broader language support |
 
 ```bash
-node gen-context.js --setup    # always-on context
-npx repomix --compress         # deep dive sessions
+sigmap --setup         # always-on context
+npx repomix --compress # deep dive sessions
 ```
 
 *"SigMap for daily always-on context; Repomix for deep one-off sessions — use both."*
@@ -211,8 +255,6 @@ npx repomix --compress         # deep dive sessions
 ---
 
 ## 🧩 VS Code extension
-
-> Introduced in v1.5 — zero runtime npm dependencies.
 
 The `vscode-extension/` directory contains a first-party VS Code extension that keeps you informed without any manual commands.
 
@@ -231,8 +273,6 @@ Activate on startup (`onStartupFinished`) — loads within 3 s, never blocks edi
 ---
 
 ## 🔧 JetBrains plugin
-
-> Introduced in v2.9 — brings SigMap to IntelliJ IDEA, WebStorm, PyCharm, and all JetBrains IDEs.
 
 The `jetbrains-plugin/` directory contains a Kotlin-based plugin for JetBrains IDEs with the same core features as the VS Code extension.
 
@@ -287,7 +327,7 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 
 ## 🗂 Context strategies
 
-> Introduced in v1.1. Reduce always-injected tokens by 70–90%.
+> Reduce always-injected tokens by 70–90%.
 
 Set `"strategy"` in `gen-context.config.json`:
 
@@ -334,8 +374,6 @@ Recently committed files are **hot** (auto-injected). Everything else is **cold*
 
 ## 🔌 MCP server
 
-> Introduced in v0.3, expanded to 8 tools through v2.3.
-
 Start the MCP server on stdio:
 
 ```bash
@@ -353,7 +391,7 @@ node gen-context.js --mcp
 | `list_modules` | — | Token-count table of all top-level module directories |
 | `create_checkpoint` | `{ summary: string }` | Write a session checkpoint to `.context/` |
 | `get_routing` | — | Full model routing table |
-| `query_context` | `{ query: string, topK?: number }` | Files ranked by relevance to the query (v2.3) |
+| `query_context` | `{ query: string, topK?: number }` | Files ranked by relevance to the query |
 
 Reads files on every call — no stale state, no restart needed.
 
@@ -363,7 +401,7 @@ Reads files on every call — no stale state, no restart needed.
 
 ## ⚙️ CLI reference
 
-> All flags live in v1.5. See [CHANGELOG.md](CHANGELOG.md) for when each shipped.
+> See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
 ```
 node gen-context.js                           Generate once and exit
@@ -548,7 +586,7 @@ node gen-context.js --format cache
 
 ---
 
-## 📦 Programmatic API (v2.4+)
+## 📦 Programmatic API
 
 Use SigMap as a library — no CLI subprocess needed:
 
@@ -680,61 +718,6 @@ sigmap/
 | **Repomix is a companion** | Use both tools; SigMap never replaces Repomix |
 | **No telemetry** | Never phones home; all state is files in your repo |
 | **Local-first** | No cloud service, no database, no accounts |
-
----
-
-## 📦 Publishing to npm
-
-Releases are published automatically via GitHub Actions whenever a version tag is pushed.
-
-### One-time setup
-
-1. **Create an npm account** at [npmjs.com](https://www.npmjs.com) (if you haven't already).
-
-2. **Generate an npm access token**:
-   - npmjs.com → Account → Access Tokens → Generate New Token → **Granular Access Token** (or Classic Automation token)
-   - Scope: `sigmap` package, permission: **Read and Write**
-
-3. **Add the secret to GitHub**:
-   ```
-   GitHub repo → Settings → Secrets and variables → Actions → New repository secret
-   Name:  NPM_TOKEN
-   Value: <paste token>
-   ```
-
-### Releasing a new version
-
-```bash
-# 1. Bump version in package.json
-npm version patch   # or minor / major
-
-# 2. Push the commit AND the new tag
-git push && git push --tags
-```
-
-The [npm-publish workflow](.github/workflows/npm-publish.yml) will:
-1. Run the full test suite
-2. Verify `package.json` version matches the pushed tag
-3. Publish to npm with provenance attestation
-4. Create a GitHub Release with auto-generated notes
-
-### Backfilling historical versions
-
-Tags that existed before the workflow was set up can be published retroactively:
-
-```bash
-# Dry run first — see what would be published
-./scripts/backfill-npm.sh
-
-# Actually publish all historical tags
-export NPM_TOKEN=npm_xxxxxxxxxxxx
-./scripts/backfill-npm.sh --publish
-
-# Start from a specific tag
-./scripts/backfill-npm.sh --publish --from v0.5.0
-```
-
-The script assigns `dist-tag: legacy` to all versions except `v1.5.0` (which gets `latest`), so `npm install sigmap` always resolves to the current release.
 
 ---
 
