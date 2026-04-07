@@ -123,6 +123,7 @@ AI agent session starts with full context
 | **Evaluation dashboard output** | Generate shareable HTML/JSON benchmark summaries from CLI runs |
 | **CI-friendly metrics export** | Persist machine-readable metrics for release gates and regression tracking |
 | **Release quality gates** | Add pass/fail thresholds for hit@5 and precision before publish |
+
 ## 🔌 v3.0 — Platform: Multi-Adapter Architecture
 
 SigMap is now an **adapter platform**. Any AI assistant — Copilot, Claude, Cursor, Windsurf, OpenAI, or Gemini — plugs in through a standard interface.
@@ -155,6 +156,13 @@ const systemPrompt = adapt(context, 'openai', { version: '3.0.0' });
 See full roadmap: [manojmallick.github.io/sigmap/roadmap.html](https://manojmallick.github.io/sigmap/roadmap.html)
 
 ---
+
+## ⚡ Quick start
+
+Download the single-file CLI and generate context immediately:
+
+```bash
+# 1. Download
 curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.js
 
 # 2. Generate your context file
