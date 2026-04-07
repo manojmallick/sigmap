@@ -15,7 +15,8 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
+const os = require('os');
+const { execFile, execFileSync } = require('child_process');
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -35,8 +36,9 @@ function workspaceRoot() {
 }
 
 /**
- * Resolve the path to gen-context.js.
- * Uses sigmap.scriptPath setting if set; otherwise looks in workspace root.
+ * Resolve the path to gen-context.js (local script).
+ * Uses sigmap.scriptPath setting if set; otherwise looks in workspace root
+ * and workspace node_modules/.bin.
  */
 function resolveScript(root) {
   const cfg = vscode.workspace.getConfiguration('sigmap');
@@ -50,16 +52,97 @@ function resolveScript(root) {
 }
 
 /**
- * Returns { daysSince: number, grade: string, score: number } for a given cwd.
- * Uses gen-context.js --health --json when available; falls back to mtime check.
+ * Probe common global installation paths for the gen-context binary.
+ * Required because macOS GUI apps (VS Code) do NOT inherit shell PATH,
+ * so ~/.volta/bin and nvm paths are invisible without this.
+ *
+ * Resolution order:
+ *  1. workspace node_modules/.bin/gen-context  (local npm install)
+ *  2. ~/.volta/bin/gen-context                 (Volta)
+ *  3. ~/.nvm/versions/node/<latest>/bin/gen-context (nvm)
+ *  4. /usr/local/bin, /opt/homebrew/bin        (classic npm / Homebrew)
+ *  5. ~/.npm-global/bin                        (npm prefix override)
+ *  6. login-shell `which gen-context`          (last resort)
+ *
+ * @param {string|null} root - workspace root (may be null)
+ * @returns {string|null} absolute path to binary, or null
  */
-function getStatus(root, scriptPath) {
+function resolveGlobalCommand(root) {
+  const home = os.homedir();
+  const candidates = [];
+
+  // 1. workspace-local node_modules
+  if (root) candidates.push(path.join(root, 'node_modules', '.bin', 'gen-context'));
+
+  // 2. Volta
+  candidates.push(path.join(home, '.volta', 'bin', 'gen-context'));
+
+  // 3. nvm — scan all installed versions, newest first
+  const nvmDir = path.join(home, '.nvm', 'versions', 'node');
+  if (fs.existsSync(nvmDir)) {
+    try {
+      fs.readdirSync(nvmDir)
+        .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
+        .forEach(v => candidates.push(path.join(nvmDir, v, 'bin', 'gen-context')));
+    } catch (_) {}
+  }
+
+  // 4. classic / Homebrew global paths
+  candidates.push('/usr/local/bin/gen-context');
+  candidates.push('/opt/homebrew/bin/gen-context');
+
+  // 5. npm prefix override
+  candidates.push(path.join(home, '.npm-global', 'bin', 'gen-context'));
+  candidates.push(path.join(home, 'npm', 'bin', 'gen-context'));
+
+  for (const c of candidates) {
+    if (!c) continue;
+    try {
+      fs.accessSync(c, fs.constants.X_OK);
+      return c;
+    } catch (_) {}
+  }
+
+  // 6. last resort: ask a login shell
+  for (const sh of ['/bin/zsh', '/bin/bash']) {
+    try {
+      const result = execFileSync(sh, ['-l', '-c', 'which gen-context'], { timeout: 4000, encoding: 'utf8' });
+      const cmd = result.trim();
+      if (cmd && fs.existsSync(cmd)) return cmd;
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+/**
+ * Returns a unified runner descriptor:
+ *   { type: 'script', path }  → run as `node "<path>"`
+ *   { type: 'command', path } → run as `"<path>"` directly
+ *   null                      → nothing found
+ */
+function resolveRunner(root) {
+  const script = resolveScript(root);
+  if (script) return { type: 'script', path: script };
+  const cmd = resolveGlobalCommand(root);
+  if (cmd) return { type: 'command', path: cmd };
+  return null;
+}
+
+/**
+ * Returns { daysSince: number, grade: string, score: number } for a given cwd.
+ * Uses gen-context --health --json when available; falls back to mtime check.
+ */
+function getStatus(root, runner) {
   return new Promise((resolve) => {
     if (!root) return resolve(null);
 
-    // Try gen-context.js --health --json for rich data
-    if (scriptPath) {
-      execFile(process.execPath, [scriptPath, '--health', '--json'], { cwd: root, timeout: 8000 }, (err, stdout) => {
+    // Try gen-context --health --json for rich data
+    if (runner) {
+      const [cmd, args] = runner.type === 'script'
+        ? [process.execPath, [runner.path, '--health', '--json']]
+        : [runner.path, ['--health', '--json']];
+      execFile(cmd, args, { cwd: root, timeout: 8000 }, (err, stdout) => {
         if (!err) {
           try {
             const data = JSON.parse(stdout.trim());
@@ -80,6 +163,7 @@ function getStatus(root, scriptPath) {
     }
   });
 }
+
 
 function mtimeFallback(root, resolve) {
   const ctxPath = path.join(root, CONTEXT_FILE);
@@ -111,14 +195,14 @@ function createStatusBarItem() {
 
 async function updateStatusBar(statusBar) {
   const root = workspaceRoot();
-  const scriptPath = resolveScript(root);
+  const runner = resolveRunner(root);
 
   if (!root) {
     statusBar.hide();
     return;
   }
 
-  const status = await getStatus(root, scriptPath);
+  const status = await getStatus(root, runner);
 
   if (!status) {
     statusBar.text = '$(file-code) sm: no context';
@@ -141,7 +225,7 @@ function suppressionKey(root) {
   return `cf.stale.suppress.${Buffer.from(root).toString('base64').slice(0, 16)}`;
 }
 
-async function checkStaleContext(context, root, scriptPath) {
+async function checkStaleContext(context, root, runner) {
   if (!root) return;
 
   const ctxPath = path.join(root, CONTEXT_FILE);
@@ -164,7 +248,7 @@ async function checkStaleContext(context, root, scriptPath) {
   );
 
   if (choice === 'Regenerate') {
-    await runRegenerate(root, scriptPath);
+    await runRegenerate(root, runner);
   } else if (choice === "Don't show again") {
     await context.workspaceState.update(key, true);
   }
@@ -172,21 +256,33 @@ async function checkStaleContext(context, root, scriptPath) {
 
 // ── Command: regenerate ───────────────────────────────────────────────────────
 
-async function runRegenerate(root, scriptPath) {
+async function runRegenerate(root, runner) {
   if (!root) {
     vscode.window.showWarningMessage('SigMap: no workspace folder open.');
     return;
   }
-  if (!scriptPath) {
-    vscode.window.showWarningMessage(
-      'SigMap: gen-context.js not found. Set sigmap.scriptPath or copy gen-context.js to your project root.'
+  if (!runner) {
+    const choice = await vscode.window.showWarningMessage(
+      'SigMap: gen-context not found. Install globally or set sigmap.scriptPath.',
+      'Copy install command',
+      'Open settings'
     );
+    if (choice === 'Copy install command') {
+      await vscode.env.clipboard.writeText('npm install -g sigmap');
+      vscode.window.showInformationMessage('Copied: npm install -g sigmap');
+    } else if (choice === 'Open settings') {
+      await vscode.commands.executeCommand('workbench.action.openSettings', 'sigmap.scriptPath');
+    }
     return;
   }
 
+  const cmd = runner.type === 'script'
+    ? `node "${runner.path}"`
+    : `"${runner.path}"`;
+
   const terminal = vscode.window.createTerminal({ name: 'SigMap', cwd: root });
   terminal.show(true); // show but don't steal focus
-  terminal.sendText(`node "${scriptPath}" && echo "[SigMap] done"`);
+  terminal.sendText(`${cmd} && echo "[SigMap] done"`);
 }
 
 // ── Activation ────────────────────────────────────────────────────────────────
@@ -213,8 +309,8 @@ async function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand('sigmap.regenerate', async () => {
       const root = workspaceRoot();
-      const scriptPath = resolveScript(root);
-      await runRegenerate(root, scriptPath);
+      const runner = resolveRunner(root);
+      await runRegenerate(root, runner);
     })
   );
 
@@ -239,8 +335,8 @@ async function activate(context) {
   // Stale check on activation (slight delay to not block startup)
   setTimeout(async () => {
     const root = workspaceRoot();
-    const scriptPath = resolveScript(root);
-    await checkStaleContext(context, root, scriptPath);
+    const runner = resolveRunner(root);
+    await checkStaleContext(context, root, runner);
   }, 3000);
 }
 
