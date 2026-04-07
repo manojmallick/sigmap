@@ -6,6 +6,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **`output` config key not honored for copilot adapter** · [#30](https://github.com/manojmallick/sigmap/issues/30)
+  - Custom `output` path in config now correctly used for copilot adapter instead of hard-wired `.github/copilot-instructions.md`
+  - Added `resolveAdapterPath()` helper to centralize adapter path resolution
+  - Other adapters (claude, cursor, windsurf) continue to use fixed paths as designed
+  - 5 new integration tests ensure custom paths work correctly across all config combinations
+
+---
+
 ## [3.0.0] — 2026-04-06 — Platform: Multi-Adapter Architecture
 
 ### Added

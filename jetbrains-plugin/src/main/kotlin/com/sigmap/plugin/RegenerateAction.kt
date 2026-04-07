@@ -21,26 +21,30 @@ class RegenerateAction : AnAction() {
         
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Regenerating SigMap Context", false) {
             override fun run(indicator: ProgressIndicator) {
-                indicator.text = "Running gen-context.js..."
+                indicator.text = "Running gen-context..."
                 
                 try {
                     val projectPath = project.basePath ?: return
-                    val genContextPath = File(projectPath, "gen-context.js")
                     
-                    if (!genContextPath.exists()) {
-                        showNotification(
-                            project,
-                            "SigMap: gen-context.js not found",
-                            "Run `npm install sigmap` or place gen-context.js in project root",
-                            NotificationType.WARNING
-                        )
-                        return
-                    }
+                    // Try to find gen-context: first local, then global
+                    val (commandExe, commandParams) = findGenContextCommand(projectPath)
+                        ?: run {
+                            showNotification(
+                                project,
+                                "SigMap: gen-context not found",
+                                "Install globally: npm install -g sigmap\nOr locally: npm install sigmap\nOr place gen-context.js in project root",
+                                NotificationType.WARNING
+                            )
+                            return
+                        }
                     
                     val commandLine = GeneralCommandLine()
                         .withWorkDirectory(projectPath)
-                        .withExePath("node")
-                        .withParameters(genContextPath.absolutePath)
+                        .withExePath(commandExe)
+                    
+                    commandParams.forEach { param ->
+                        commandLine.addParameter(param)
+                    }
                     
                     val processHandler: ProcessHandler = ProcessHandlerFactory.getInstance()
                         .createColoredProcessHandler(commandLine)
@@ -54,14 +58,14 @@ class RegenerateAction : AnAction() {
                         showNotification(
                             project,
                             "SigMap: Context Regenerated",
-                            "Successfully updated .github/copilot-instructions.md",
+                            "Successfully updated context file (.github/copilot-instructions.md or CLAUDE.md)",
                             NotificationType.INFORMATION
                         )
                     } else {
                         showNotification(
                             project,
                             "SigMap: Generation Failed",
-                            "gen-context.js exited with code $exitCode",
+                            "gen-context exited with code $exitCode",
                             NotificationType.ERROR
                         )
                     }
@@ -70,12 +74,56 @@ class RegenerateAction : AnAction() {
                     showNotification(
                         project,
                         "SigMap: Error",
-                        "Failed to run gen-context.js: ${ex.message}",
+                        "Failed to run gen-context: ${ex.message}",
                         NotificationType.ERROR
                     )
                 }
             }
         })
+    }
+    
+    /**
+     * Find gen-context command: tries local gen-context.js first, then global gen-context command.
+     * Returns a Pair of (executable, listOf(parameters)) or null if not found.
+     */
+    private fun findGenContextCommand(projectPath: String): Pair<String, List<String>>? {
+        // 1. Check for local gen-context.js
+        val localGenContext = File(projectPath, "gen-context.js")
+        if (localGenContext.exists()) {
+            return Pair("node", listOf(localGenContext.absolutePath))
+        }
+        
+        // 2. Try to find global gen-context command in PATH
+        val globalGenContext = findCommandInPath("gen-context")
+        if (globalGenContext != null) {
+            return Pair(globalGenContext, emptyList())
+        }
+        
+        // 3. Check node_modules/.bin
+        val nodeModulesGen = File(projectPath, "node_modules/.bin/gen-context")
+        if (nodeModulesGen.exists()) {
+            return Pair(nodeModulesGen.absolutePath, emptyList())
+        }
+        
+        return null
+    }
+    
+    /**
+     * Find an executable command in the system PATH.
+     * Returns the full path to the command if found, null otherwise.
+     */
+    private fun findCommandInPath(command: String): String? {
+        val pathEnv = System.getenv("PATH") ?: return null
+        val pathDirs = pathEnv.split(File.pathSeparator)
+        
+        for (dir in pathDirs) {
+            val executable = File(dir, command)
+            if (executable.exists() && executable.isFile && executable.canExecute()) {
+                return executable.absolutePath
+            }
+        }
+        
+        return null
     }
     
     override fun update(e: AnActionEvent) {
