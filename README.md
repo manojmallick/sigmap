@@ -239,7 +239,7 @@ sigmap --benchmark --json         # machine-readable benchmark results
 ```bash
 # macOS / Linux
 chmod +x ./sigmap-darwin-arm64
-./sigmap-darwin-arm64 generate
+./sigmap-darwin-arm64
 ```
 
 See [docs/binaries.md](docs/binaries.md) for Gatekeeper / SmartScreen notes and checksum verification.

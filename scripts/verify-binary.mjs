@@ -5,9 +5,9 @@
  * Verifies that the binary for the current platform:
  *   1. Prints a version string and exits 0
  *   2. Prints help and exits 0
- *   3. Runs `generate` on a fixture repo and produces output
- *   4. Runs `health` on the fixture repo and exits 0
- *   5. Runs `report` on the fixture repo and exits 0
+ *   3. Generates context (no args) on a fixture repo and produces output
+ *   4. Runs --health on the fixture repo and exits 0
+ *   5. Runs --report on the fixture repo and exits 0
  *
  * Usage:
  *   node scripts/verify-binary.mjs
@@ -15,10 +15,11 @@
 
 import { execFileSync } from 'child_process';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'fs';
-import { join, resolve } from 'path';
+import { join } from 'path';
 import { arch, platform, tmpdir } from 'os';
+import { fileURLToPath } from 'url';
 
-const ROOT    = resolve(new URL('.', import.meta.url).pathname, '..');
+const ROOT    = fileURLToPath(new URL('..', import.meta.url));
 const DIST    = join(ROOT, 'dist');
 const FIXTURE = join(ROOT, 'test', 'fixtures', 'binary-smoke');
 
@@ -105,9 +106,9 @@ try {
 
 // ── Test 3: generate ──────────────────────────────────────────────────────────
 
-console.log('\n[3] generate (fixture repo)');
+console.log('\n[3] generate (no args — default behaviour)');
 try {
-  run(binary, ['generate'], TMPDIR);
+  run(binary, [], TMPDIR);
   const outputFile = join(TMPDIR, '.github', 'copilot-instructions.md');
   if (existsSync(outputFile)) {
     const content = readFileSync(outputFile, 'utf8');
@@ -125,20 +126,24 @@ try {
 
 // ── Test 4: health ────────────────────────────────────────────────────────────
 
-console.log('\n[4] health (fixture repo)');
+console.log('\n[4] --health (fixture repo)');
 try {
-  const out = run(binary, ['health'], TMPDIR);
-  pass('health exited 0');
+  const out = run(binary, ['--health'], TMPDIR);
+  if (out.trim().length > 0) {
+    pass('--health exited 0 and produced output');
+  } else {
+    fail('--health exited 0 but produced no output', new Error('empty output'));
+  }
 } catch (e) {
   fail('health exited non-zero', e);
 }
 
 // ── Test 5: report ────────────────────────────────────────────────────────────
 
-console.log('\n[5] report (fixture repo)');
+console.log('\n[5] --report (fixture repo)');
 try {
-  const out = run(binary, ['report'], TMPDIR);
-  pass('report exited 0');
+  const out = run(binary, ['--report'], TMPDIR);
+  pass('--report exited 0');
 } catch (e) {
   fail('report exited non-zero', e);
 }

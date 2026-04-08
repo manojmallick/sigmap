@@ -17,12 +17,11 @@
 
 import { execSync } from 'child_process';
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { join } from 'path';
 import { arch, platform } from 'os';
-import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
 
-const __require = createRequire(import.meta.url);
-const ROOT = resolve(new URL('.', import.meta.url).pathname, '..');
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DIST = join(ROOT, 'dist');
 
 // ── Artifact naming ─────────────────────────────────────────────────────────
@@ -50,7 +49,7 @@ log('── Phase A: build standalone binary ───────────�
 
 // 1. Pre-flight: ensure all src/ modules are present in gen-context.js __factories
 {
-  const { readdirSync, readFileSync, statSync } = await import('fs');
+  const { readdirSync, readFileSync } = await import('fs');
   const { join: pjoin } = await import('path');
   const bundle = readFileSync(join(ROOT, 'gen-context.js'), 'utf8');
 

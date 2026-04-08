@@ -18,14 +18,14 @@ Format: [Semantic Versioning](https://semver.org/)
   - Download from GitHub Releases: `sigmap-darwin-arm64`, `sigmap-darwin-x64`, `sigmap-linux-x64`, `sigmap-win32-x64.exe`
   - SHA-256 checksums in `sigmap-checksums.txt` attached to every release
 - **`scripts/build-binary.mjs`** — reproducible local binary build for the current platform
-- **`scripts/verify-binary.mjs`** — smoke tests `--version`, `--help`, `generate`, `health`, `report` against a fixture repo
+- **`scripts/verify-binary.mjs`** — smoke tests `--version`, `--help`, default generate, `--health`, `--report` against a fixture repo
 - **`.github/workflows/release-binaries.yml`** — GHA matrix builds all 4 targets on tag push; attaches artifacts to the GitHub Release
 - **`test/fixtures/binary-smoke/`** — minimal fixture project used by CI smoke tests
 - **`docs/binaries.md`** — install guide covering download, `chmod +x`, macOS Gatekeeper, Windows SmartScreen, and checksum verification
 
 ### Technical
 - Uses [Node.js SEA](https://nodejs.org/api/single-executable-applications.html) (Node 20 `--experimental-sea-config` + `postject`)
-- `gen-context.js` required no changes — existing `requireSourceOrBundled()` fallback and DEFAULTS fallback in `writeInitConfig()` are both SEA-compatible
+- `gen-context.js` was updated to include previously-missing `src/` modules (`todos`, `coverage`, `prdiff`) in the SEA bundle; existing `requireSourceOrBundled()` fallback and DEFAULTS fallback in `writeInitConfig()` remain SEA-compatible
 - Binary builds run natively per OS in GHA (no cross-compilation)
 - `release-attach` job waits for the npm-publish Release to exist before uploading binary assets
 

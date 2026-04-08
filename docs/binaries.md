@@ -29,8 +29,8 @@ curl -Lo sigmap https://github.com/manojmallick/sigmap/releases/latest/download/
 chmod +x ./sigmap
 
 # Run
-./sigmap generate
-./sigmap health
+./sigmap             # generate context (default)
+./sigmap --health
 ./sigmap --version
 ```
 
@@ -38,7 +38,7 @@ To make it available system-wide:
 
 ```bash
 mv ./sigmap /usr/local/bin/sigmap
-sigmap generate
+sigmap
 ```
 
 ### macOS Gatekeeper
@@ -62,8 +62,8 @@ This is a one-time step. The binary is ad-hoc signed (not notarized).
 ```powershell
 # Download sigmap-win32-x64.exe from the GitHub Release page,
 # then run from the directory containing it:
-.\sigmap-win32-x64.exe generate
-.\sigmap-win32-x64.exe health
+.\sigmap-win32-x64.exe           # generate context (default)
+.\sigmap-win32-x64.exe --health
 .\sigmap-win32-x64.exe --version
 ```
 
@@ -95,11 +95,11 @@ shasum -a 256 -c sigmap-checksums.txt
 ## Available commands
 
 ```bash
-sigmap generate        # Scan project and write context file
-sigmap health          # Show health diagnostics
-sigmap report          # Show token budget report
+sigmap                 # Scan project and write context file (default)
+sigmap --health        # Show health diagnostics
+sigmap --report        # Show token budget report
 sigmap --version       # Print version
-sigmap --help          # Show all commands and flags
+sigmap --help          # Show all flags
 ```
 
 All flags documented in the [CLI reference](../README.md#-cli-reference).
