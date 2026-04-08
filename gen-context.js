@@ -6339,51 +6339,71 @@ function resolveProjectRoot(startDir) {
   return startDir;
 }
 
-function printHelp() {
+function detectInvokedAs() {
+  const argv1 = process.argv[1] || '';
+  const base = path.basename(argv1);
+  const baseNoExt = base.endsWith('.js') ? base.slice(0, -3) : base;
+  // npx: the script path goes through an _npx cache directory
+  if (argv1.includes('/_npx/') || argv1.includes('\\_npx\\') ||
+      argv1.includes('/.npm/_') || argv1.includes('\\.npm\\_')) {
+    return 'npx sigmap';
+  }
+  // globally-installed bin aliases (no .js extension)
+  if (baseNoExt === 'sigmap') return 'sigmap';
+  if (baseNoExt === 'gen-context') return 'gen-context';
+  // default: local file invocation
+  return 'node gen-context.js';
+}
+
+function printHelp(cmd) {
+  cmd = cmd || 'node gen-context.js';
+  const header = cmd === 'node gen-context.js'
+    ? `SigMap — gen-context.js v${VERSION}`
+    : `SigMap v${VERSION}  (${cmd})`;
   console.log(`
-SigMap — gen-context.js v${VERSION}
+${header}
 Zero-dependency AI context engine
 
 Usage:
-  node gen-context.js                                   Generate context once and exit
-  node gen-context.js --monorepo                        Generate per-package context (monorepo)
-  node gen-context.js --each                            Run for every repo in the current directory
-  node gen-context.js --routing                         Include model routing hints in output
-  node gen-context.js --format cache                    Also write Anthropic prompt-cache JSON
-  node gen-context.js --track                           Append run metrics to .context/usage.ndjson
-  node gen-context.js --watch                           Generate + watch for file changes
-  node gen-context.js --setup                           Generate + install git hook + watch
-  node gen-context.js --mcp                             Start MCP server on stdio
-  node gen-context.js --report                          Token reduction stats to stdout
-  node gen-context.js --report --json                   Token report as JSON (for CI; exits 1 if over budget)
-  node gen-context.js --report --history                Print usage log summary from .context/usage.ndjson
-  node gen-context.js --report --history --chart        Include inline SVG charts + Unicode sparklines
-  node gen-context.js --dashboard                       Write benchmarks/reports/dashboard.html
-  node gen-context.js --suggest-tool "<task>"           Recommend model tier for a task description
-  node gen-context.js --suggest-tool "<task>" --json    Machine-readable tier recommendation
-  node gen-context.js --health                          Print composite health score
-  node gen-context.js --health --json                   Machine-readable health score
-  node gen-context.js --diff                            Generate context for git-changed files only
-  node gen-context.js --diff <base-ref>                 Generate context + structural diff vs base ref (e.g. main)
-  node gen-context.js --diff --staged                   Generate context for staged files only
-  node gen-context.js --benchmark                       Run retrieval benchmark (benchmarks/tasks/retrieval.jsonl)
-  node gen-context.js --adapter <name>                  Generate for a specific adapter only (v3.0+)
-  node gen-context.js --adapter <name> --json           Show adapter output path as JSON
-  node gen-context.js --benchmark --json                Benchmark results as JSON
-  node gen-context.js --eval                            Alias for --benchmark
-  node gen-context.js --analyze                         Per-file breakdown: sigs, tokens, extractor, coverage
-  node gen-context.js --analyze --json                  Breakdown as JSON
-  node gen-context.js --analyze --slow                  Re-time each extractor; flag files >50ms
-  node gen-context.js --diagnose-extractors             Run all 21 extractors vs fixtures; show pass/fail + diff
-  node gen-context.js --query "<text>"                  Rank files by relevance to a query
-  node gen-context.js --query "<text>" --json           Ranked results as JSON
-  node gen-context.js --query "<text>" --top <n>        Limit results to top N files (default 10)
-  node gen-context.js --impact <file>                   Show every file impacted by changing <file>
-  node gen-context.js --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
-  node gen-context.js --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
-  node gen-context.js --init                            Write example config + .contextignore scaffold
-  node gen-context.js --help                            Show this message
-  node gen-context.js --version                         Show version
+  ${cmd}                                   Generate context once and exit
+  ${cmd} --monorepo                        Generate per-package context (monorepo)
+  ${cmd} --each                            Run for every repo in the current directory
+  ${cmd} --routing                         Include model routing hints in output
+  ${cmd} --format cache                    Also write Anthropic prompt-cache JSON
+  ${cmd} --track                           Append run metrics to .context/usage.ndjson
+  ${cmd} --watch                           Generate + watch for file changes
+  ${cmd} --setup                           Generate + install git hook + watch
+  ${cmd} --mcp                             Start MCP server on stdio
+  ${cmd} --report                          Token reduction stats to stdout
+  ${cmd} --report --json                   Token report as JSON (for CI; exits 1 if over budget)
+  ${cmd} --report --history                Print usage log summary from .context/usage.ndjson
+  ${cmd} --report --history --chart        Include inline SVG charts + Unicode sparklines
+  ${cmd} --dashboard                       Write benchmarks/reports/dashboard.html
+  ${cmd} --suggest-tool "<task>"           Recommend model tier for a task description
+  ${cmd} --suggest-tool "<task>" --json    Machine-readable tier recommendation
+  ${cmd} --health                          Print composite health score
+  ${cmd} --health --json                   Machine-readable health score
+  ${cmd} --diff                            Generate context for git-changed files only
+  ${cmd} --diff <base-ref>                 Generate context + structural diff vs base ref (e.g. main)
+  ${cmd} --diff --staged                   Generate context for staged files only
+  ${cmd} --benchmark                       Run retrieval benchmark (benchmarks/tasks/retrieval.jsonl)
+  ${cmd} --adapter <name>                  Generate for a specific adapter only (v3.0+)
+  ${cmd} --adapter <name> --json           Show adapter output path as JSON
+  ${cmd} --benchmark --json                Benchmark results as JSON
+  ${cmd} --eval                            Alias for --benchmark
+  ${cmd} --analyze                         Per-file breakdown: sigs, tokens, extractor, coverage
+  ${cmd} --analyze --json                  Breakdown as JSON
+  ${cmd} --analyze --slow                  Re-time each extractor; flag files >50ms
+  ${cmd} --diagnose-extractors             Run all 21 extractors vs fixtures; show pass/fail + diff
+  ${cmd} --query "<text>"                  Rank files by relevance to a query
+  ${cmd} --query "<text>" --json           Ranked results as JSON
+  ${cmd} --query "<text>" --top <n>        Limit results to top N files (default 10)
+  ${cmd} --impact <file>                   Show every file impacted by changing <file>
+  ${cmd} --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
+  ${cmd} --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
+  ${cmd} --init                            Write example config + .contextignore scaffold
+  ${cmd} --help                            Show this message
+  ${cmd} --version                         Show version
 
 Strategies (set via config "strategy" key):
   "full"        Single file, all signatures. Works everywhere. (default)
@@ -6448,7 +6468,7 @@ function main() {
   }
 
   if (args.includes('--help') || args.includes('-h')) {
-    printHelp();
+    printHelp(detectInvokedAs());
     process.exit(0);
   }
 

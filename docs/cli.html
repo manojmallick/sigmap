@@ -139,6 +139,13 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 .footer-links a{font-size:13px;color:var(--t3);text-decoration:none;transition:.15s}
 .footer-links a:hover{color:var(--t2)}
 .footer-mit{font-size:12px;color:var(--t3)}
+
+/* CMD SWITCHER */
+.cmd-switcher{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:24px;padding:12px 16px;background:var(--s2);border:1px solid var(--line);border-radius:10px}
+.cmd-switcher-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);flex-shrink:0;margin-right:4px}
+.cmd-tab{background:none;border:1px solid var(--line2);border-radius:7px;padding:5px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--t2);cursor:pointer;transition:.15s;white-space:nowrap}
+.cmd-tab:hover{border-color:var(--p);color:var(--pd)}
+.cmd-tab.active{background:var(--pl);border-color:var(--p);color:var(--pd)}
 </style>
 </head>
 <body>
@@ -177,6 +184,14 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
   <h2>All flags at a glance</h2>
   <p class="section-sub">Every command SigMap accepts, one per line.</p>
 
+  <div class="cmd-switcher">
+    <span class="cmd-switcher-label">How you run it:</span>
+    <button class="cmd-tab active" data-cmd="sigmap" onclick="setCLICmd('sigmap')">sigmap</button>
+    <button class="cmd-tab" data-cmd="npx sigmap" onclick="setCLICmd('npx sigmap')">npx sigmap</button>
+    <button class="cmd-tab" data-cmd="gen-context" onclick="setCLICmd('gen-context')">gen-context</button>
+    <button class="cmd-tab" data-cmd="node gen-context.js" onclick="setCLICmd('node gen-context.js')">node gen-context.js</button>
+  </div>
+
   <div class="terminal">
     <div class="term-bar">
       <div class="term-dot" style="background:#ff5f57"></div>
@@ -185,7 +200,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       <span class="term-title">node gen-context.js --help</span>
     </div>
     <div class="term-body">
-      <div><span class="tp">SigMap v3.0.0</span></div>
+      <div><span class="tp">SigMap v3.2.1</span></div>
       <div>&nbsp;</div>
       <div><span class="tc">Usage:</span> <span class="tw">node gen-context.js [flag]</span></div>
       <div>&nbsp;</div>
@@ -214,6 +229,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       <div><span class="ts">  --health --json         </span><span class="tc">Health score as JSON</span></div>
       <div><span class="ts">  --suggest-tool          </span><span class="tc">Recommend model tier for a task</span></div>
       <div><span class="ts">  --monorepo              </span><span class="tc">Per-package context for monorepos</span></div>
+      <div><span class="ts">  --each [&lt;dirs&gt;]         </span><span class="tc">Run generation separately per sub-directory (v3.2+)</span></div>
       <div><span class="ts">  --routing               </span><span class="tc">Include HTTP route extraction</span></div>
       <div><span class="ts">  --format cache          </span><span class="tc">Write Anthropic prompt-cache JSON</span></div>
       <div><span class="ts">  --track                 </span><span class="tc">Log run metrics to .context/usage.ndjson</span></div>
@@ -458,6 +474,30 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
     </div>
   </div>
 
+  <!-- --each -->
+  <div class="flag-section">
+    <h3>--each [&lt;dirs&gt;]</h3>
+    <p class="flag-desc">Runs context generation independently for each sub-directory, producing a separate output file per directory. Unlike <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--monorepo</code> (which detects packages via manifest files), <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--each</code> treats each top-level directory as an independent workspace. Pass an optional comma-separated list of dirs to limit which ones to process. Useful for polyglot repos or workspaces where each directory is a completely separate project.</p>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc"># all top-level sub-directories</span></div>
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --each</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ frontend/ → frontend/.github/copilot-instructions.md (1,842 tokens)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ backend/ → backend/.github/copilot-instructions.md (2,314 tokens)</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ shared/ → shared/.github/copilot-instructions.md (601 tokens)</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc"># specific directories only</span></div>
+        <div><span class="tc">$</span> <span class="tw">node gen-context.js --each frontend,backend</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- --routing -->
   <div class="flag-section">
     <h3>--routing</h3>
@@ -577,7 +617,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       </div>
       <div class="term-body">
         <div><span class="tc">$</span> <span class="tw">node gen-context.js --version</span></div>
-        <div><span class="ts">sigmap/2.4.0</span></div>
+        <div><span class="ts">sigmap/3.2.1</span></div>
       </div>
     </div>
   </div>
@@ -611,7 +651,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <footer>
   <div class="footer-inner">
-    <span class="footer-logo">sigmap v3.0.0</span>
+    <span class="footer-logo">sigmap v3.2.1</span>
     <div class="footer-links">
       <a href="quick-start.html">Quick start</a>
       <a href="cli.html">CLI reference</a>
@@ -629,6 +669,79 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
     <span class="footer-mit">MIT © 2026 Manoj Mallick · Made in Amsterdam 🇳🇱</span>
   </div>
 </footer>
+
+<!-- CMD SWITCHER JS -->
+<script>
+(function(){
+  'use strict';
+  var MAIN_CMDS=['node gen-context.js','sigmap','npx sigmap','gen-context'];
+  var MAP_CMDS=['node gen-project-map.js','gen-project-map','npx gen-project-map'];
+  var MAP_FOR={
+    'node gen-context.js':'node gen-project-map.js',
+    'sigmap':'gen-project-map',
+    'npx sigmap':'npx gen-project-map',
+    'gen-context':'gen-project-map'
+  };
+  var initialized=false;
+
+  function init(){
+    if(initialized)return;
+    initialized=true;
+    document.querySelectorAll('.tw').forEach(function(el){
+      var t=el.textContent;
+      for(var i=0;i<MAIN_CMDS.length;i++){
+        var v=MAIN_CMDS[i];
+        if(t===v||t.indexOf(v+' ')===0){el.dataset.tpl=t;el.dataset.cmdType='main';return;}
+      }
+      for(var j=0;j<MAP_CMDS.length;j++){
+        var mv=MAP_CMDS[j];
+        if(t===mv||t.indexOf(mv+' ')===0){el.dataset.tpl=t;el.dataset.cmdType='map';return;}
+      }
+    });
+    document.querySelectorAll('.term-title').forEach(function(el){
+      var t=el.textContent;
+      for(var i=0;i<MAIN_CMDS.length;i++){
+        if(t.indexOf(MAIN_CMDS[i])>=0){el.dataset.tpl=t;return;}
+      }
+    });
+  }
+
+  function applyCmd(key){
+    init();
+    var mapCmd=MAP_FOR[key]||'gen-project-map';
+    document.querySelectorAll('.tw[data-tpl]').forEach(function(el){
+      var tpl=el.dataset.tpl,type=el.dataset.cmdType;
+      if(type==='main'){
+        for(var i=0;i<MAIN_CMDS.length;i++){
+          if(tpl.indexOf(MAIN_CMDS[i])===0){el.textContent=key+tpl.slice(MAIN_CMDS[i].length);return;}
+        }
+      }else if(type==='map'){
+        for(var j=0;j<MAP_CMDS.length;j++){
+          if(tpl.indexOf(MAP_CMDS[j])===0){el.textContent=mapCmd+tpl.slice(MAP_CMDS[j].length);return;}
+        }
+      }
+    });
+    document.querySelectorAll('.term-title[data-tpl]').forEach(function(el){
+      var tpl=el.dataset.tpl;
+      for(var i=0;i<MAIN_CMDS.length;i++){
+        if(tpl.indexOf(MAIN_CMDS[i])>=0){el.textContent=tpl.replace(MAIN_CMDS[i],key);return;}
+      }
+    });
+    document.querySelectorAll('.cmd-tab').forEach(function(t){
+      t.classList.toggle('active',t.dataset.cmd===key);
+    });
+    try{localStorage.setItem('cf-cmd',key);}catch(e){}
+  }
+
+  window.setCLICmd=applyCmd;
+  document.addEventListener('DOMContentLoaded',function(){
+    var saved='sigmap';
+    try{saved=localStorage.getItem('cf-cmd')||'sigmap';}catch(e){}
+    if(!MAP_FOR.hasOwnProperty(saved))saved='sigmap';
+    applyCmd(saved);
+  });
+})();
+</script>
 
 <!-- SigMap docs search — v2.0 -->
 <style>

@@ -24,19 +24,32 @@ const OUTPUT_FILE = 'PROJECT_MAP.md';
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
 
+function detectInvokedAs() {
+  const argv1 = process.argv[1] || '';
+  const base = path.basename(argv1);
+  const baseNoExt = base.endsWith('.js') ? base.slice(0, -3) : base;
+  if (argv1.includes('/_npx/') || argv1.includes('\\_npx\\') ||
+      argv1.includes('/.npm/_') || argv1.includes('\\.npm\\_')) {
+    return 'npx gen-project-map';
+  }
+  if (baseNoExt === 'gen-project-map') return 'gen-project-map';
+  return 'node gen-project-map.js';
+}
+
 if (args.includes('--version')) {
   console.log(`gen-project-map.js v${VERSION}`);
   process.exit(0);
 }
 
 if (args.includes('--help')) {
+  const cmd = detectInvokedAs();
   console.log([
-    `gen-project-map.js v${VERSION} — SigMap project map generator`,
+    `SigMap project map generator v${VERSION}  (${cmd})`,
     '',
     'Usage:',
-    '  node gen-project-map.js           Generate PROJECT_MAP.md',
-    '  node gen-project-map.js --version Print version and exit',
-    '  node gen-project-map.js --help    Print this message',
+    `  ${cmd}           Generate PROJECT_MAP.md`,
+    `  ${cmd} --version Print version and exit`,
+    `  ${cmd} --help    Print this message`,
     '',
     'Configuration: gen-context.config.json (same file as gen-context.js)',
     '  srcDirs  — directories to scan  (default: ["src","app","lib",...])',
