@@ -11,6 +11,12 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
 <meta name="twitter:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SigMap">
+<meta name="twitter:title" content="SigMap Quick Start — under 2 minutes to working">
+<meta name="twitter:description" content="node gen-context.js. That's the entire install. Reduces AI context from 80K to 4K tokens automatically.">
+<meta name="twitter:image:alt" content="SigMap Quick Start Guide">
+<meta name="keywords" content="sigmap quick start, install sigmap, ai context setup, copilot instructions setup, zero npm install, sigmap tutorial, npx sigmap">
 <link rel="canonical" href="https://manojmallick.github.io/sigmap/quick-start.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"Get SigMap running in 60 seconds","description":"Zero npm install — reduce AI coding agent token usage by 97% in under 2 minutes.","url":"https://manojmallick.github.io/sigmap/quick-start.html","step":[{"@type":"HowToStep","name":"Install","text":"Run npx sigmap or npm install -g sigmap"},{"@type":"HowToStep","name":"Generate context","text":"Run sigmap in your project root to create .github/copilot-instructions.md"},{"@type":"HowToStep","name":"Commit","text":"git add .github/copilot-instructions.md and commit — Copilot reads it automatically"}]}</script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -196,98 +202,243 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <hr class="divider">
 
+<style>
+/* INSTALL TABS */
+.install-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.install-tab{background:var(--s2);border:1px solid var(--line2);border-radius:8px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--t2);cursor:pointer;transition:.15s;user-select:none}
+.install-tab:hover{border-color:var(--p);color:var(--pd)}
+.install-tab.active{background:var(--pl);border-color:var(--p);color:var(--pd)}
+.install-panel{display:none}
+.install-panel.active{display:block}
+/* PLUGIN CARDS */
+.plugin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:40px}
+@media(max-width:640px){.plugin-grid{grid-template-columns:1fr}}
+.plugin-card{background:var(--s2);border:1px solid var(--line);border-radius:16px;padding:28px;transition:.2s}
+.plugin-card:hover{border-color:var(--p)}
+.plugin-card-icon{font-size:28px;margin-bottom:12px}
+.plugin-card-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:4px}
+.plugin-card-sub{font-size:13px;color:var(--t2);margin-bottom:16px}
+.plugin-card-features{list-style:none;margin-bottom:20px}
+.plugin-card-features li{font-size:13px;color:var(--t2);padding:4px 0;display:flex;align-items:flex-start;gap:8px}
+.plugin-card-features li::before{content:'✓';color:var(--g);font-weight:700;flex-shrink:0}
+.plugin-badge{display:inline-block;background:var(--pl);border:1px solid rgba(124,106,247,.3);color:var(--pd);font-size:11px;font-family:'IBM Plex Mono',monospace;padding:4px 10px;border-radius:6px;text-decoration:none;margin-right:8px;margin-bottom:6px;transition:.15s}
+.plugin-badge:hover{background:var(--p);color:#fff}
+</style>
+
 <section class="section">
   <p class="section-ey">Installation</p>
-  <h2>Three steps</h2>
-  <p class="section-sub">No package manager. No build step. Just copy one file into your project.</p>
+  <h2>Choose your method</h2>
+  <p class="section-sub">npm global, npx, standalone binary, IDE plugin, or a manual single-file copy — all work on Node.js 18+.</p>
 
-  <div class="steps-flow">
-
-    <!-- Step 1 -->
-    <div class="step-row">
-      <div class="step-rail">
-        <div class="step-circle">1</div>
-        <div class="step-line"></div>
-      </div>
-      <div class="step-content">
-        <div class="step-label">Step 1 of 3</div>
-        <div class="step-title">Download gen-context.js</div>
-        <div class="step-desc">Copy the single-file entry point into the root of your project. No package.json changes needed.</div>
-        <div class="terminal">
-          <div class="term-bar">
-            <div class="term-dot" style="background:#ff5f57"></div>
-            <div class="term-dot" style="background:#febc2e"></div>
-            <div class="term-dot" style="background:#28c840"></div>
-            <span class="term-title">your-project/</span>
-          </div>
-          <div class="term-body">
-            <div><span class="tc">$</span> <span class="tw">curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.js</span></div>
-            <div><span class="ts">  % Total    % Received</span></div>
-            <div><span class="ts">100  48.2K  100  48.2K  ←  single file, ~50KB</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2 -->
-    <div class="step-row">
-      <div class="step-rail">
-        <div class="step-circle">2</div>
-        <div class="step-line"></div>
-      </div>
-      <div class="step-content">
-        <div class="step-label">Step 2 of 3</div>
-        <div class="step-title">Generate your context file</div>
-        <div class="step-desc">Run it once. It scans your codebase, extracts signatures from all 21 supported languages, and writes <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.github/copilot-instructions.md</code>.</div>
-        <div class="terminal">
-          <div class="term-bar">
-            <div class="term-dot" style="background:#ff5f57"></div>
-            <div class="term-dot" style="background:#febc2e"></div>
-            <div class="term-dot" style="background:#28c840"></div>
-            <span class="term-title">your-project/</span>
-          </div>
-          <div class="term-body">
-            <div><span class="tc">$</span> <span class="tw">node gen-context.js</span></div>
-            <div>&nbsp;</div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">scanning 247 files across src/ app/ lib/</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">extracted 1,842 signatures from 89 files</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">secret scan: clean (0 findings)</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="tw">budget: 6,000 tokens target, using 3,847</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">reduction: 82,400 → 3,847 tokens (95.3%)</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 3 -->
-    <div class="step-row">
-      <div class="step-rail">
-        <div class="step-circle">3</div>
-      </div>
-      <div class="step-content">
-        <div class="step-label">Step 3 of 3</div>
-        <div class="step-title">Enable always-on updates</div>
-        <div class="step-desc">The <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">--setup</code> flag installs a git post-commit hook and starts a file watcher. From now on, every save and every commit automatically regenerates the context file.</div>
-        <div class="terminal">
-          <div class="term-bar">
-            <div class="term-dot" style="background:#ff5f57"></div>
-            <div class="term-dot" style="background:#febc2e"></div>
-            <div class="term-dot" style="background:#28c840"></div>
-            <span class="term-title">your-project/</span>
-          </div>
-          <div class="term-body">
-            <div><span class="tc">$</span> <span class="tw">node gen-context.js --setup</span></div>
-            <div>&nbsp;</div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">✓ installed .git/hooks/post-commit</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">✓ watcher started on src/ app/ lib/</span></div>
-            <div><span class="tk">[sigmap]</span> <span class="ts">watching for changes...</span> <span class="tc">(Ctrl+C to stop)</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+  <div class="install-tabs">
+    <div class="install-tab active" onclick="showInstall('npm')">npm (recommended)</div>
+    <div class="install-tab" onclick="showInstall('npx')">npx (zero install)</div>
+    <div class="install-tab" onclick="showInstall('curl')">curl (offline)</div>
+    <div class="install-tab" onclick="showInstall('binary')">Binary</div>
+    <div class="install-tab" onclick="showInstall('vscode')">VS Code</div>
+    <div class="install-tab" onclick="showInstall('jetbrains')">JetBrains</div>
   </div>
+
+  <!-- npm -->
+  <div id="install-npm" class="install-panel active">
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">global install (run sigmap from any directory)</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">npm install -g sigmap</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">$</span> <span class="tw">cd your-project</span></div>
+        <div><span class="tc">$</span> <span class="tw">sigmap</span>  <span class="tc">← works from any directory</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">reduction: 82,400 → 3,847 tokens (95.3%)</span></div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--t2);margin-top:12px">Install once, use in every project. Also installs <code style="font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--s3);padding:2px 5px;border-radius:4px">gen-context</code> and <code style="font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--s3);padding:2px 5px;border-radius:4px">gen-project-map</code> globally.</p>
+  </div>
+
+  <!-- npx -->
+  <div id="install-npx" class="install-panel">
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">zero install — run directly without global install</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">npx sigmap</span>  <span class="tc">← auto-downloads latest version</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
+        <div><span class="tk">[sigmap]</span> <span class="ts">reduction: 82,400 → 3,847 tokens (95.3%)</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc"># pin to specific version</span></div>
+        <div><span class="tc">$</span> <span class="tw">npx sigmap@3.2.1</span></div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--t2);margin-top:12px">Ideal for CI pipelines or one-off generation. No global state changes to your machine.</p>
+  </div>
+
+  <!-- curl -->
+  <div id="install-curl" class="install-panel">
+    <div class="steps-flow">
+      <div class="step-row">
+        <div class="step-rail">
+          <div class="step-circle">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-label">Step 1 of 3</div>
+          <div class="step-title">Download gen-context.js</div>
+          <div class="step-desc">Copy the single-file entry point into the root of your project. No package.json changes needed.</div>
+          <div class="terminal">
+            <div class="term-bar">
+              <div class="term-dot" style="background:#ff5f57"></div>
+              <div class="term-dot" style="background:#febc2e"></div>
+              <div class="term-dot" style="background:#28c840"></div>
+              <span class="term-title">your-project/</span>
+            </div>
+            <div class="term-body">
+              <div><span class="tc">$</span> <span class="tw">curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.js</span></div>
+              <div><span class="ts">100  48.2K  100  48.2K  ←  single file, ~50KB</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-rail">
+          <div class="step-circle">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-label">Step 2 of 3</div>
+          <div class="step-title">Generate your context file</div>
+          <div class="step-desc">Run it once. Scans your codebase and writes <code style="font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s3);padding:2px 6px;border-radius:4px">.github/copilot-instructions.md</code>.</div>
+          <div class="terminal">
+            <div class="term-bar">
+              <div class="term-dot" style="background:#ff5f57"></div>
+              <div class="term-dot" style="background:#febc2e"></div>
+              <div class="term-dot" style="background:#28c840"></div>
+              <span class="term-title">your-project/</span>
+            </div>
+            <div class="term-body">
+              <div><span class="tc">$</span> <span class="tw">node gen-context.js</span></div>
+              <div><span class="tk">[sigmap]</span> <span class="ts">✓ wrote .github/copilot-instructions.md</span></div>
+              <div><span class="tk">[sigmap]</span> <span class="ts">reduction: 82,400 → 3,847 tokens (95.3%)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-rail">
+          <div class="step-circle">3</div>
+        </div>
+        <div class="step-content">
+          <div class="step-label">Step 3 of 3</div>
+          <div class="step-title">Enable always-on updates</div>
+          <div class="step-desc">Install a git post-commit hook and file watcher with one flag.</div>
+          <div class="terminal">
+            <div class="term-bar">
+              <div class="term-dot" style="background:#ff5f57"></div>
+              <div class="term-dot" style="background:#febc2e"></div>
+              <div class="term-dot" style="background:#28c840"></div>
+              <span class="term-title">your-project/</span>
+            </div>
+            <div class="term-body">
+              <div><span class="tc">$</span> <span class="tw">node gen-context.js --setup</span></div>
+              <div><span class="tk">[sigmap]</span> <span class="ts">✓ installed .git/hooks/post-commit</span></div>
+              <div><span class="tk">[sigmap]</span> <span class="ts">✓ watcher started on src/ app/ lib/</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- binary -->
+  <div id="install-binary" class="install-panel">
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">standalone binary — no Node.js required on the target machine</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc"># macOS Apple Silicon (arm64)</span></div>
+        <div><span class="tc">$</span> <span class="tw">curl -L https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-macos-arm64 -o sigmap &amp;&amp; chmod +x sigmap</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc"># macOS Intel (x64)</span></div>
+        <div><span class="tc">$</span> <span class="tw">curl -L https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-macos-x64 -o sigmap &amp;&amp; chmod +x sigmap</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc"># Linux (x64)</span></div>
+        <div><span class="tc">$</span> <span class="tw">curl -L https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-linux-x64 -o sigmap &amp;&amp; chmod +x sigmap</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc"># Windows (x64) — PowerShell</span></div>
+        <div><span class="tc">$</span> <span class="tw">curl.exe -L https://github.com/manojmallick/sigmap/releases/latest/download/sigmap-win-x64.exe -o sigmap.exe</span></div>
+        <div>&nbsp;</div>
+        <div><span class="tc">$</span> <span class="tw">./sigmap --version</span></div>
+        <div><span class="ts">sigmap v3.2.1</span></div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--t2);margin-top:12px">Built with Node.js SEA (Single Executable Application). No Node.js runtime needed. Available on the <a href="https://github.com/manojmallick/sigmap/releases" style="color:var(--pd)">GitHub Releases page</a>.</p>
+  </div>
+
+  <!-- vscode -->
+  <div id="install-vscode" class="install-panel">
+    <div class="prereq-box">
+      <div class="prereq-icon">🔵</div>
+      <div>
+        <div class="prereq-title">VS Code Extension</div>
+        <div class="prereq-text">Install from the VS Code Marketplace — no terminal needed. Press <kbd style="background:var(--s3);border:1px solid var(--line2);border-radius:4px;padding:2px 6px;font-size:11px">Ctrl+Shift+X</kbd>, search <strong>SigMap</strong>, click Install.</div>
+      </div>
+    </div>
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">or install via CLI</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tw">code --install-extension manojmallick.sigmap</span></div>
+        <div><span class="ts">Installing extensions...</span></div>
+        <div><span class="ts">Extension 'manojmallick.sigmap' v3.2.1 was successfully installed.</span></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap" class="plugin-badge" target="_blank">VS Code Marketplace</a>
+      <a href="https://open-vsx.org/extension/manojmallick/sigmap" class="plugin-badge" target="_blank">Open VSX Registry</a>
+    </div>
+  </div>
+
+  <!-- jetbrains -->
+  <div id="install-jetbrains" class="install-panel">
+    <div class="prereq-box">
+      <div class="prereq-icon">🟠</div>
+      <div>
+        <div class="prereq-title">JetBrains Plugin</div>
+        <div class="prereq-text">Works in IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine, and all JetBrains IDEs. Open <strong>Settings → Plugins → Marketplace</strong>, search <strong>SigMap</strong>, click Install.</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/" class="plugin-badge" target="_blank">JetBrains Marketplace</a>
+    </div>
+  </div>
+
+  <script>
+  function showInstall(id){
+    document.querySelectorAll('.install-panel').forEach(function(p){p.classList.remove('active');});
+    document.querySelectorAll('.install-tab').forEach(function(t){t.classList.remove('active');});
+    document.getElementById('install-'+id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+  </script>
+
 </section>
 
 <hr class="divider">
@@ -442,24 +593,73 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       <span class="term-title">node gen-context.js --help</span>
     </div>
     <div class="term-body">
-      <div><span class="tp">SigMap v3.0.0 &middot; <a href="roadmap.html#v3.0" style="color:var(--gd);text-decoration:none">Latest</a></span></div>
+      <div><span class="tp">SigMap v3.2.1 &middot; <a href="roadmap.html#v3.2" style="color:var(--gd);text-decoration:none">Latest</a></span></div>
       <div>&nbsp;</div>
-      <div><span class="tc">Usage:</span> <span class="tw">node gen-context.js [flag]</span></div>
+      <div><span class="tc">Usage:</span> <span class="tw">sigmap [flag]</span>  <span class="tc">or</span>  <span class="tw">node gen-context.js [flag]</span></div>
       <div>&nbsp;</div>
-      <div><span class="ts">  (no flags)         </span><span class="tc">Generate context and exit</span></div>
-      <div><span class="ts">  --watch            </span><span class="tc">Generate and watch for file changes</span></div>
-      <div><span class="ts">  --setup            </span><span class="tc">Generate + install git hook + start watcher</span></div>
-      <div><span class="ts">  --mcp              </span><span class="tc">Start MCP server on stdio</span></div>
-      <div><span class="ts">  --report           </span><span class="tc">Print token reduction stats to stdout</span></div>
-      <div><span class="ts">  --report --json    </span><span class="tc">Token report as JSON (for CI pipelines)</span></div>
-      <div><span class="ts">  --diff             </span><span class="tc">Generate context for git-changed files only</span></div>
-      <div><span class="ts">  --diff --staged    </span><span class="tc">Generate context for staged files only</span></div>
-      <div><span class="ts">  --health           </span><span class="tc">Composite 0-100 health score (grade A-D)</span></div>
-      <div><span class="ts">  --suggest-tool     </span><span class="tc">Recommend fast/balanced/powerful model tier</span></div>
-      <div><span class="ts">  --track            </span><span class="tc">Log run metrics to .sigmap/runs.jsonl</span></div>
-      <div><span class="ts">  --init             </span><span class="tc">Write gen-context.config.json.example</span></div>
-      <div><span class="ts">  --version          </span><span class="tc">Print version string</span></div>
-      <div><span class="ts">  --help             </span><span class="tc">Show this message</span></div>
+      <div><span class="ts">  (no flags)            </span><span class="tc">Generate context and exit</span></div>
+      <div><span class="ts">  --watch               </span><span class="tc">Generate and watch for file changes</span></div>
+      <div><span class="ts">  --setup               </span><span class="tc">Generate + install git hook + start watcher</span></div>
+      <div><span class="ts">  --adapter &lt;name&gt;      </span><span class="tc">Output for specific adapter (copilot, claude, cursor, windsurf, openai, gemini)</span></div>
+      <div><span class="ts">  --monorepo            </span><span class="tc">Generate per-package context files in a monorepo</span></div>
+      <div><span class="ts">  --each [&lt;dirs&gt;]       </span><span class="tc">Run context generation separately for each sub-directory</span></div>
+      <div><span class="ts">  --mcp                 </span><span class="tc">Start MCP server on stdio</span></div>
+      <div><span class="ts">  --report              </span><span class="tc">Print token reduction stats to stdout</span></div>
+      <div><span class="ts">  --report --json       </span><span class="tc">Token report as JSON (for CI pipelines)</span></div>
+      <div><span class="ts">  --diff                </span><span class="tc">Generate context for git-changed files only</span></div>
+      <div><span class="ts">  --diff --staged       </span><span class="tc">Generate context for staged files only</span></div>
+      <div><span class="ts">  --health              </span><span class="tc">Composite 0-100 health score (grade A-D)</span></div>
+      <div><span class="ts">  --suggest-tool        </span><span class="tc">Recommend fast/balanced/powerful model tier</span></div>
+      <div><span class="ts">  --track               </span><span class="tc">Log run metrics to .sigmap/runs.jsonl</span></div>
+      <div><span class="ts">  --init                </span><span class="tc">Write gen-context.config.json.example</span></div>
+      <div><span class="ts">  --version             </span><span class="tc">Print version string</span></div>
+      <div><span class="ts">  --help                </span><span class="tc">Show this message</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<hr class="divider">
+
+<section class="section">
+  <p class="section-ey">IDE Plugins</p>
+  <h2>Use from your IDE</h2>
+  <p class="section-sub">Native plugins for VS Code and JetBrains IDEs — regenerate context without leaving your editor.</p>
+
+  <div class="plugin-grid">
+    <div class="plugin-card">
+      <div class="plugin-card-icon">🔵</div>
+      <div class="plugin-card-title">VS Code Extension</div>
+      <div class="plugin-card-sub">For GitHub Copilot users and any VS Code AI extension</div>
+      <ul class="plugin-card-features">
+        <li>Status bar token count — always visible</li>
+        <li>Command Palette: <strong>SigMap: Regenerate Context</strong></li>
+        <li>File watcher: auto-regenerates on save</li>
+        <li>Inline token budget warning when over limit</li>
+        <li>Multi-adapter support (copilot, claude, cursor, windsurf)</li>
+        <li>Supports all CLI flags via settings panel</li>
+      </ul>
+      <div>
+        <a href="https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap" class="plugin-badge" target="_blank">VS Code Marketplace</a>
+        <a href="https://open-vsx.org/extension/manojmallick/sigmap" class="plugin-badge" target="_blank">Open VSX</a>
+      </div>
+    </div>
+    <div class="plugin-card">
+      <div class="plugin-card-icon">🟠</div>
+      <div class="plugin-card-title">JetBrains Plugin</div>
+      <div class="plugin-card-sub">IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine &amp; all JetBrains IDEs</div>
+      <ul class="plugin-card-features">
+        <li>Toolbar action: <strong>Regenerate Context</strong></li>
+        <li>File watcher: auto-regenerates on changes (opt-in)</li>
+        <li>Settings panel: srcDirs, maxTokens, routing presets</li>
+        <li>Context file viewer — open directly from toolbar</li>
+        <li>Passes JetBrains Plugin Verifier</li>
+        <li>Published on JetBrains Marketplace</li>
+      </ul>
+      <div>
+        <a href="https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/" class="plugin-badge" target="_blank">JetBrains Marketplace</a>
+      </div>
     </div>
   </div>
 </section>
@@ -486,16 +686,16 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       <div class="next-card-desc">Stack both tools for the two-layer caching strategy. SigMap for daily; Repomix for deep sessions.</div>
     </a>
     <a class="next-card" href="roadmap.html">
-      <div class="next-card-ey">v0.1 → v3.0</div>
+      <div class="next-card-ey">v0.1 → v3.2</div>
       <div class="next-card-title">Full roadmap</div>
-      <div class="next-card-desc">All major versions shipped. 97% token reduction. 340 tests. MIT license.</div>
+      <div class="next-card-desc">All major versions shipped. 97% token reduction. 360 tests. MIT license.</div>
     </a>
   </div>
 </section>
 
 <footer>
   <div class="footer-inner">
-    <span class="footer-logo">sigmap v3.0.0 &middot; <a href="roadmap.html#v3.0" style="color:var(--gd);text-decoration:none">Latest</a></span>
+    <span class="footer-logo">sigmap v3.2.1 &middot; <a href="roadmap.html#v3.2" style="color:var(--gd);text-decoration:none">Latest</a></span>
     <div class="footer-links">
       <a href="quick-start.html">Quick start</a>
       <a href="cli.html">CLI reference</a>

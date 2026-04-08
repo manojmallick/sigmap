@@ -10,6 +10,13 @@
 <meta property="og:url" content="https://manojmallick.github.io/sigmap/troubleshooting.html">
 <meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
 <meta name="twitter:card" content="summary_large_image">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SigMap">
+<meta name="twitter:title" content="SigMap Troubleshooting — common issues and fixes">
+<meta name="twitter:description" content="Fix context file not found, Copilot not reading context, low token reduction, VS Code issues, and MCP errors.">
+<meta name="twitter:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta name="twitter:image:alt" content="SigMap Troubleshooting Guide">
+<meta name="keywords" content="sigmap troubleshooting, sigmap errors, copilot context not found, mcp server not working, sigmap debug, token reduction fix, vs code sigmap">
 <link rel="canonical" href="https://manojmallick.github.io/sigmap/troubleshooting.html">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"SigMap context file not found","acceptedAnswer":{"@type":"Answer","text":"Run sigmap or node gen-context.js to generate .github/copilot-instructions.md. The file must be generated before the VS Code extension or MCP server can read it."}},{"@type":"Question","name":"GitHub Copilot not using SigMap context","acceptedAnswer":{"@type":"Answer","text":"The file must be at .github/copilot-instructions.md in your workspace root. Check with: ls .github/copilot-instructions.md"}},{"@type":"Question","name":"Token reduction is only 60%","acceptedAnswer":{"@type":"Answer","text":"You are likely indexing test files or generated code. Run sigmap --init to create a .contextignore and exclude test files, dist/, build/, and generated code."}},{"@type":"Question","name":"SigMap MCP server not appearing in tool list","acceptedAnswer":{"@type":"Answer","text":"Check that the absolute path in your settings file points to the correct gen-context.js. Use: node /path/to/gen-context.js --version to verify it resolves."}},{"@type":"Question","name":"Secret scan is redacting a false positive","acceptedAnswer":{"@type":"Answer","text":"Add a .contextignore rule to exclude that file, or check which pattern triggered. The 10 patterns are: AWS keys, GitHub tokens, JWTs, DB URLs, SSH keys, GCP keys, Stripe keys, Twilio keys, generic passwords/api_keys."}}]}</script>

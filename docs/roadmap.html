@@ -11,6 +11,12 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
 <meta name="twitter:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SigMap">
+<meta name="twitter:title" content="SigMap Roadmap — from v0.1 to v3.x">
+<meta name="twitter:description" content="25+ versions shipped. 97% token reduction. 360+ tests. MIT license. See how SigMap evolved.">
+<meta name="twitter:image:alt" content="SigMap Development Roadmap">
+<meta name="keywords" content="sigmap roadmap, sigmap versions, sigmap changelog, sigmap features, sigmap development, ai context engine roadmap">
 <link rel="canonical" href="https://manojmallick.github.io/sigmap/roadmap.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap roadmap — v0.1 to v2.10","description":"25 versions shipped/planned. 97% token reduction. 340+ tests. MIT license. Reporting charts and advanced metrics are the current milestone.","url":"https://manojmallick.github.io/sigmap/roadmap.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://manojmallick.github.io/sigmap/"}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -145,7 +151,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <div class="page-hero">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="dot" style="background:var(--g)"></span>v3.0.0 released</div>
+    <div class="hero-badge"><span class="dot" style="background:var(--g)"></span>v3.2.1 released</div>
     <h1>v0.0 → v3.0</h1>
     <p class="hero-sub">Twenty-five versions shipped/planned. Reporting charts and advanced metrics are now the active milestone. MIT open source from day one.</p>
     <div class="hero-stats">
@@ -927,12 +933,13 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
     <div id="v3.0" class="tl-item">
       <div class="tl-rail">
         <div class="tl-dot done">v3.0</div>
+        <div class="tl-line"></div>
       </div>
       <div class="tl-content">
         <div class="tl-header">
           <span class="tl-version">v3.0</span>
           <span class="tl-name">Platform — Multi-Adapter Architecture</span>
-          <span class="tl-badge done">✓ Complete — tagged v3.0.0</span>
+          <span class="tl-badge done">✓ Complete — tagged v3.0.0 (2026-04-06)</span>
         </div>
         <div class="tl-desc">SigMap becomes an adapter platform. Six output adapters ship: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>windsurf</code>, <code>openai</code>, and <code>gemini</code>. New <code>--adapter &lt;name&gt;</code> CLI flag generates output for a specific adapter. <code>packages/core</code> gains <code>adapt(context, adapterName)</code> for programmatic use. Old <code>outputs</code> config key silently maps to <code>adapters</code> — full backward compatibility. API stability guarantee: breaking changes require v4.0.</div>
         <div class="tl-tags">
@@ -947,6 +954,55 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       </div>
     </div>
 
+    <!-- v3.1 -->
+    <div id="v3.1" class="tl-item">
+      <div class="tl-rail">
+        <div class="tl-dot done">v3.1</div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-content">
+        <div class="tl-header">
+          <span class="tl-version">v3.1</span>
+          <span class="tl-name">Global Command &amp; VS Code Prerelease Fix</span>
+          <span class="tl-badge done">✓ Complete — tagged v3.1.0 (2026-04-07)</span>
+        </div>
+        <div class="tl-desc">Detects whether SigMap is installed globally (<code>npm install -g sigmap</code>) and automatically switches the invocation from <code>node gen-context.js</code> to the global <code>sigmap</code> command. VS Code extension prerelease channel bug fixed — extensions no longer fail to activate when installed from the prerelease channel. Improved first-run experience: clearer console messages, better error recovery on missing config.</div>
+        <div class="tl-tags">
+          <span class="tl-tag">global command detection</span>
+          <span class="tl-tag">VS Code prerelease fix</span>
+          <span class="tl-tag">first-run UX</span>
+          <span class="tl-tag">v3.1.0</span>
+        </div>
+        <div class="tl-impact">Seamless upgrade path from local file to global npm install</div>
+      </div>
+    </div>
+
+    <!-- v3.2 -->
+    <div id="v3.2" class="tl-item">
+      <div class="tl-rail">
+        <div class="tl-dot done">v3.2</div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-content">
+        <div class="tl-header">
+          <span class="tl-version">v3.2</span>
+          <span class="tl-name">Standalone Binaries + Monorepo &amp; Quality Fixes</span>
+          <span class="tl-badge done">✓ Current — v3.2.1</span>
+        </div>
+        <div class="tl-desc">Standalone binaries built with Node.js SEA (Single Executable Application) for macOS arm64/x64, Linux x64, and Windows x64 — no Node.js runtime required. Four pipeline quality fixes: <code>applyTokenBudget</code> loop direction, CSS utility heuristic, <code>coverage.js</code> Python test patterns, and <code>isTested</code> token splitting. New <code>--each [dirs]</code> flag runs context generation independently per sub-directory. Bug fix: <code>--monorepo</code> no longer hardcodes the <code>claude</code> output adapter.</div>
+        <div class="tl-tags">
+          <span class="tl-tag">standalone binaries</span>
+          <span class="tl-tag">Node.js SEA</span>
+          <span class="tl-tag">--each flag</span>
+          <span class="tl-tag">monorepo fix</span>
+          <span class="tl-tag">token budget fix</span>
+          <span class="tl-tag">360 tests</span>
+          <span class="tl-tag">v3.2.1</span>
+        </div>
+        <div class="tl-impact">Zero-dependency distribution — deploy sigmap anywhere without installing Node.js</div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -954,7 +1010,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <section class="section">
   <p class="section-ey">Final numbers</p>
-  <h2>v3.0.0 — Current milestone</h2>
+  <h2>v3.2.1 — Current milestone</h2>
 
   <div class="final-grid">
     <div class="final-stat">
@@ -983,7 +1039,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <footer>
   <div class="footer-inner">
-    <span class="footer-logo">sigmap v3.0.0 &middot; <span style="color:var(--gd)">Latest</span></span>
+    <span class="footer-logo">sigmap v3.2.1 &middot; <span style="color:var(--gd)">Latest</span></span>
     <div class="footer-links">
       <a href="quick-start.html">Quick start</a>
       <a href="cli.html">CLI reference</a>
