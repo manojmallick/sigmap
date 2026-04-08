@@ -72,29 +72,24 @@ jobs:
         working-directory: dist/release
         run: |
           # Only checksum files that were successfully built
-          sha256sum $(ls sigmap-darwin-arm64 sigmap-darwin-x64 sigmap-linux-x64 sigmap-win32-x64.exe 2>/dev/null) \
+          sha256sum $(ls sigmap-darwin-arm64 sigmap-linux-x64 sigmap-win32-x64.exe 2>/dev/null) \
             > sigmap-checksums.txt
           cat sigmap-checksums.txt
 
-      - name: Wait for GitHub Release to exist
-        # npm-publish.yml creates the Release via softprops/action-gh-release.
-        # This job waits up to 3 minutes for it to appear before attaching assets.
+      - name: Ensure GitHub Release exists
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF_NAME}"
-          for i in $(seq 1 18); do
-            if gh release view "$TAG" --json tagName -q .tagName > /dev/null 2>&1; then
-              echo "✓ Release $TAG found"
-              break
-            fi
-            echo "Waiting for release $TAG… (attempt $i/18)"
-            sleep 10
-          done
-          gh release view "$TAG" --json tagName -q .tagName || {
-            echo "ERROR: Release $TAG not found after 3 minutes"
-            exit 1
-          }
+          if gh release view "$TAG" --json tagName -q .tagName > /dev/null 2>&1; then
+            echo "✓ Release $TAG found"
+          else
+            echo "Release $TAG not found. Creating it..."
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "Automated release for $TAG"
+            echo "✓ Release $TAG created"
+          fi
 
       - name: Upload binaries and checksums to GitHub Release
         env:
@@ -102,6 +97,10 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           # Upload whatever binary artifacts were successfully built
-          FILES=$(find dist/release -name 'sigmap-*' -type f | sort | tr '\n' ' ')
-          gh release upload "$TAG" $FILES --clobber
+          mapfile -t FILES < <(find dist/release -name 'sigmap-*' -type f | sort)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "ERROR: no release files found in dist/release"
+            exit 1
+          fi
+          gh release upload "$TAG" "${FILES[@]}" --clobber
           echo "✓ Assets uploaded to $TAG"
