@@ -5251,6 +5251,13 @@ function isGeneratedFile(filePath) {
   return /(\.generated\.|\.pb\.|_pb\.)/.test(filePath);
 }
 
+function isMockFile(filePath) {
+  const p = filePath.replace(/\\/g, '/');
+  return /\/(mock|mocks|stub|stubs|fake|fakes|demo|demos|__mocks__|fixtures)\//i.test(p) ||
+    /\.(mock|stub|fake)\.[jt]sx?$/.test(p) ||
+    /mock\.(ts|js|tsx|jsx)$/.test(p);
+}
+
 function applyTokenBudget(fileEntries, maxTokens) {
   // fileEntries: [{ filePath, sigs, mtime }]
   // Reserve ~10% for formatting overhead (section headers, code fences, top-level header)
@@ -5262,6 +5269,7 @@ function applyTokenBudget(fileEntries, maxTokens) {
   const withPriority = fileEntries.map((e) => {
     let priority = 0;
     if (isGeneratedFile(e.filePath)) priority = 10;
+    else if (isMockFile(e.filePath)) priority = 9;
     else if (isTestFile(e.filePath)) priority = 8;
     else if (isConfigFile(e.filePath)) priority = 6;
     else priority = 4;
@@ -5276,14 +5284,15 @@ function applyTokenBudget(fileEntries, maxTokens) {
 
   const kept = [];
   let dropped = 0;
-  for (let i = withPriority.length - 1; i >= 0; i--) {
-    const entry = withPriority[i];
+  // Iterate forward: highest drop-priority files (generated=10, mock=9, test=8) are at index 0
+  // Drop those first until we're under budget, then keep everything else
+  for (const entry of withPriority) {
     const entryTokens = estimateTokens(entry.sigs.join('\n'));
-    if (total <= effectiveBudget) {
-      kept.unshift(entry);
-    } else {
+    if (total > effectiveBudget) {
       total -= entryTokens;
       dropped++;
+    } else {
+      kept.push(entry);
     }
   }
   if (dropped > 0) {
@@ -6206,11 +6215,10 @@ function runMonorepo(cwd, config) {
   for (const pkgPath of packages) {
     const pkgName = path.relative(cwd, pkgPath);
     console.warn(`[sigmap] monorepo: processing ${pkgName}`);
-    // Per-package config: scan src/ and package root, write CLAUDE.md per package
+    // Per-package config: scan src/ and package root, inherit outputs from parent config
     const pkgConfig = {
       ...config,
       srcDirs: ['src', 'lib', 'app', '.'],
-      outputs: ['claude'],
     };
     try {
       runGenerate(pkgPath, pkgConfig, false);
@@ -6218,7 +6226,66 @@ function runMonorepo(cwd, config) {
       console.warn(`[sigmap] monorepo: failed for ${pkgName}: ${err.message}`);
     }
   }
-  console.warn(`[sigmap] monorepo: wrote CLAUDE.md for ${packages.length} packages`);
+  console.warn(`[sigmap] monorepo: done — wrote context files for ${packages.length} packages`);
+}
+
+// ---------------------------------------------------------------------------
+// Multi-repo support  (--each)
+// Run sigmap independently for every immediate subdirectory that looks like
+// an independent git repo or project root.  Each sub-repo gets its own
+// context files written inside it, using its own gen-context.config.json
+// when present.
+// ---------------------------------------------------------------------------
+function detectRepoDirs(cwd) {
+  let entries;
+  try {
+    entries = fs.readdirSync(cwd, { withFileTypes: true });
+  } catch (_) {
+    return [];
+  }
+  const repos = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith('.')) continue;
+    const abs = path.join(cwd, entry.name);
+    // A directory qualifies if it has its own .git folder
+    // OR contains a recognised project manifest (fallback for un-initialised repos)
+    const hasGit = fs.existsSync(path.join(abs, '.git'));
+    const hasManifest = PKG_MANIFESTS.some((m) => fs.existsSync(path.join(abs, m)));
+    if (hasGit || hasManifest) repos.push(abs);
+  }
+  return repos;
+}
+
+function runEach(cwd, baseConfig) {
+  const repos = detectRepoDirs(cwd);
+  if (repos.length === 0) {
+    console.warn('[sigmap] --each: no project subdirectories found');
+    console.warn('[sigmap]   A subdirectory qualifies when it contains .git or a package manifest');
+    console.warn(`[sigmap]   (package.json / pyproject.toml / Cargo.toml / go.mod / etc.)`);
+    return;
+  }
+  console.warn(`[sigmap] --each: found ${repos.length} repos — ${repos.map((r) => path.basename(r)).join(', ')}`);
+  let ok = 0, failed = 0;
+  for (const repoDir of repos) {
+    const name = path.basename(repoDir);
+    // Load each repo's own config independently, fall back to base config
+    let repoConfig;
+    try {
+      repoConfig = loadConfig(repoDir);
+    } catch (_) {
+      repoConfig = { ...baseConfig };
+    }
+    console.warn(`[sigmap] --each: processing ${name} …`);
+    try {
+      runGenerate(repoDir, repoConfig, false);
+      ok++;
+    } catch (err) {
+      console.warn(`[sigmap] --each: FAILED for ${name}: ${err.message}`);
+      failed++;
+    }
+  }
+  console.warn(`[sigmap] --each: done — ${ok} succeeded${failed > 0 ? `, ${failed} failed` : ''}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -6280,6 +6347,7 @@ Zero-dependency AI context engine
 Usage:
   node gen-context.js                                   Generate context once and exit
   node gen-context.js --monorepo                        Generate per-package context (monorepo)
+  node gen-context.js --each                            Run for every repo in the current directory
   node gen-context.js --routing                         Include model routing hints in output
   node gen-context.js --format cache                    Also write Anthropic prompt-cache JSON
   node gen-context.js --track                           Append run metrics to .context/usage.ndjson
@@ -6776,6 +6844,11 @@ function main() {
 
   if (args.includes('--monorepo') || config.monorepo) {
     runMonorepo(cwd, config);
+    process.exit(0);
+  }
+
+  if (args.includes('--each')) {
+    runEach(cwd, config);
     process.exit(0);
   }
 

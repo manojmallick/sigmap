@@ -412,20 +412,49 @@ Adds a `## Routes` section to your context file listing every `app.get()`, `rout
 ---
 
 ### `sigmap --monorepo`
-**Generate one context file per package.**
+**Generate one context file per package in a single repo.**
+
+Designed for workspaces where packages live under `packages/`, `apps/`, `services/`, or `libs/` inside **one** git repo:
 
 ```bash
 sigmap --monorepo
 ```
 
-Produces:
+Produces one `copilot-instructions.md` inside each detected package:
 ```
-.github/context-packages-api.md
-.github/context-packages-web.md
-.github/context-packages-shared.md
+packages/api/.github/copilot-instructions.md
+packages/web/.github/copilot-instructions.md
+packages/shared/.github/copilot-instructions.md
 ```
 
 Each AI session works with only the relevant package context.
+
+---
+
+### `sigmap --each`
+**Process multiple independent repos from a parent directory.**
+
+Run from a directory that *contains* several git repos as siblings:
+
+```bash
+cd ~/projects          # parent of repo-a/, repo-b/, repo-c/
+sigmap --each
+```
+
+SigMap detects sub-directories that contain `.git` or a recognised manifest (`package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, etc.) and processes each independently. Each repo loads its own `gen-context.config.json` if present and writes its own output:
+
+```
+repo-a/.github/copilot-instructions.md
+repo-b/.github/copilot-instructions.md
+repo-c/.github/copilot-instructions.md
+```
+
+**When to use which:**
+
+| Scenario | Flag |
+|---|---|
+| Packages under `packages/`/`apps/` in one repo | `--monorepo` |
+| Multiple independent repos under one parent dir | `--each` |
 
 ---
 

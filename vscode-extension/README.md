@@ -193,6 +193,8 @@ Open the Command Palette (`⇧⌘P` / `Ctrl+Shift+P`) and type **SigMap**:
 | `node gen-context.js --watch` | Generate + watch for changes |
 | `node gen-context.js --setup` | Generate + install git hook + start watcher |
 | `node gen-context.js --diff <base>` | Show changed-file signatures vs a git ref |
+| `node gen-context.js --monorepo` | Per-package context for monorepos (`packages/`, `apps/`, `services/`) |
+| `node gen-context.js --each` | Process each sibling repo under a parent directory |
 | `node gen-context.js --health` | Print context health grade |
 | `node gen-context.js --report` | Token reduction stats to stdout |
 | `node gen-context.js --report --json` | Token report as JSON (for CI) |

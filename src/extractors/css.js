@@ -37,13 +37,31 @@ function extract(src) {
     sigs.push(`@function ${m[1]}(${m[2].trim()})`);
   }
 
-  // Key class names (top-level)
-  const classNames = new Set();
-  for (const m of stripped.matchAll(/^\.([\w-]+)(?=[^{]*\{)/gm)) {
-    classNames.add(m[1]);
-    if (classNames.size >= 10) break;
+  // Key class names (top-level) — prefer hyphenated BEM/component names over utilities
+  const allClassMatches = [...stripped.matchAll(/^\.([\w-]+)(?=[^{]*\{)/gm)];
+  // Utility-class detection: classes are "utility-like" if they have no hyphen (e.g. .flex)
+  // OR match Tailwind patterns: -digit suffix (.p-4, .bg-blue-500) or common size abbreviations
+  // (.text-sm, .py-lg). Files where ≥70% of selectors are utility-like are skipped to avoid noise.
+  function looksLikeUtility(name) {
+    if (!name.includes('-')) return true;
+    if (/-\d/.test(name)) return true;
+    if (/-(?:sm|md|lg|xl|xs|2xl|3xl|px|py|full|auto|none|screen)$/.test(name)) return true;
+    return false;
   }
-  for (const name of classNames) sigs.push(`.${name}`);
+  const utilityCount = allClassMatches.filter(m => looksLikeUtility(m[1])).length;
+  const isUtilityFile = allClassMatches.length >= 5 && (utilityCount / allClassMatches.length) >= 0.70;
+  if (!isUtilityFile) {
+    const hyphenated = [];
+    const singleWord = [];
+    for (const m of allClassMatches) {
+      if (m[1].includes('__') || m[1].includes('--')) hyphenated.push(m[1]); // BEM names first
+      else if (m[1].includes('-')) hyphenated.push(m[1]); // other hyphenated component names
+      else singleWord.push(m[1]);
+    }
+    // Up to 8 slots: hyphenated classes (semantic) first, then single-word to fill remaining
+    const selected = [...hyphenated, ...singleWord].slice(0, 8);
+    for (const name of selected) sigs.push(`.${name}`);
+  }
 
   return sigs.slice(0, 25);
 }

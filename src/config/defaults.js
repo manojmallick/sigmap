@@ -29,6 +29,12 @@ const DEFAULTS = {
     'node_modules', '.git', 'dist', 'build', 'out',
     '__pycache__', '.next', 'coverage', 'target', 'vendor',
     '.context',
+    // CI/test artifacts
+    'playwright-tmp', 'playwright-report', 'test-results',
+    // build/monorepo caches
+    '.turbo',
+    // documentation build output
+    'storybook-static', '.docusaurus',
   ],
 
   // Maximum directory depth to recurse
@@ -86,7 +92,7 @@ const DEFAULTS = {
   changes: true,
 
   // Number of commits used for changes section
-  changesCommits: 5,
+  changesCommits: 10,
 
   // Add test coverage markers to extracted function signatures (opt-in)
   testCoverage: false,
