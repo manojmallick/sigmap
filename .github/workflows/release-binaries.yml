@@ -1,0 +1,119 @@
+name: Release Binaries
+
+# Triggered by version tags, runs in parallel with npm-publish.yml.
+# Builds a standalone sigmap binary for each platform using Node.js SEA,
+# then attaches all artifacts + checksums to the GitHub Release.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # upload release assets
+
+jobs:
+  # ── Build matrix: one job per platform ──────────────────────────────────────
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest   # arm64 (GitHub default as of 2024)
+            artifact: sigmap-darwin-arm64
+          - os: macos-13       # x64
+            artifact: sigmap-darwin-x64
+          - os: ubuntu-latest  # x64
+            artifact: sigmap-linux-x64
+          - os: windows-latest # x64
+            artifact: sigmap-win32-x64.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build binary
+        run: node scripts/build-binary.mjs
+
+      - name: Smoke-test binary
+        run: node scripts/verify-binary.mjs
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── Attach all binaries + checksums to the GitHub Release ──────────────────
+  release-attach:
+    name: Attach to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/release
+
+      - name: Flatten artifact directories
+        run: |
+          # download-artifact v4 creates a subdirectory per artifact name;
+          # flatten so checksums work cleanly.
+          find dist/release -type f | while read f; do
+            mv "$f" dist/release/$(basename "$f")
+          done
+          find dist/release -mindepth 1 -maxdepth 1 -type d -empty -delete
+          ls -lh dist/release/
+
+      - name: Generate checksums
+        working-directory: dist/release
+        run: |
+          sha256sum sigmap-darwin-arm64 \
+                    sigmap-darwin-x64 \
+                    sigmap-linux-x64 \
+                    sigmap-win32-x64.exe \
+            > sigmap-checksums.txt
+          cat sigmap-checksums.txt
+
+      - name: Wait for GitHub Release to exist
+        # npm-publish.yml creates the Release via softprops/action-gh-release.
+        # This job waits up to 3 minutes for it to appear before attaching assets.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          for i in $(seq 1 18); do
+            if gh release view "$TAG" --json tagName -q .tagName > /dev/null 2>&1; then
+              echo "✓ Release $TAG found"
+              break
+            fi
+            echo "Waiting for release $TAG… (attempt $i/18)"
+            sleep 10
+          done
+          gh release view "$TAG" --json tagName -q .tagName || {
+            echo "ERROR: Release $TAG not found after 3 minutes"
+            exit 1
+          }
+
+      - name: Upload binaries and checksums to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          gh release upload "$TAG" \
+            dist/release/sigmap-darwin-arm64 \
+            dist/release/sigmap-darwin-x64 \
+            dist/release/sigmap-linux-x64 \
+            dist/release/sigmap-win32-x64.exe \
+            dist/release/sigmap-checksums.txt \
+            --clobber
+          echo "✓ All assets uploaded to $TAG"

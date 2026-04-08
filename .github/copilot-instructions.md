@@ -57,6 +57,12 @@ function format(context, opts = {}) → string
 function outputPath(cwd) → string
 ```
 
+### packages/cli/index.js
+```
+module.exports = { CLI_ENTRY, run }
+function run(argv, cwd) → void
+```
+
 ### packages/core/index.js
 ```
 module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
@@ -67,12 +73,6 @@ function buildSigIndex(cwd) → Map<string, string[]>
 function scan(sigs, filePath) → { safe: string[], redacte
 function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
-```
-
-### packages/cli/index.js
-```
-module.exports = { CLI_ENTRY, run }
-function run(argv, cwd) → void
 ```
 
 ## src
@@ -87,41 +87,6 @@ module.exports = { DEFAULTS }
 module.exports = { loadConfig }
 function loadConfig(cwd) → object
 function deepClone(obj)
-```
-
-### src/format/dashboard.js
-```
-module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak }
-function toNumber(v)
-function percentile(values, p)
-function overBudgetStreak(entries)
-function loadConfig(cwd)
-function shouldExclude(rel, excludeSet)
-function detectLanguage(filePath)
-function walkFiles(dir, maxDepth, depth, out, excludeSet)
-function computeExtractorCoverage(cwd)
-function readBenchmarkTrend(cwd)
-function lineChartSvg(values, title, ySuffix)
-function barChartSvg(perLanguage)
-function sparkline(values)
-function buildDashboardData(cwd, health)
-function generateDashboardHtml(cwd, health)
-function renderHistoryCharts(cwd, health)
-```
-
-### src/health/scorer.js
-```
-module.exports = { score }
-function score(cwd) → { * score: number, * grad
-```
-
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
 ```
 
 ### src/eval/analyzer.js
@@ -385,6 +350,26 @@ function formatCache(content) → string
 function formatCachePayload(content, model) → string
 ```
 
+### src/format/dashboard.js
+```
+module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak }
+function toNumber(v)
+function percentile(values, p)
+function overBudgetStreak(entries)
+function loadConfig(cwd)
+function shouldExclude(rel, excludeSet)
+function detectLanguage(filePath)
+function walkFiles(dir, maxDepth, depth, out, excludeSet)
+function computeExtractorCoverage(cwd)
+function readBenchmarkTrend(cwd)
+function lineChartSvg(values, title, ySuffix)
+function barChartSvg(perLanguage)
+function sparkline(values)
+function buildDashboardData(cwd, health)
+function generateDashboardHtml(cwd, health)
+function renderHistoryCharts(cwd, health)
+```
+
 ### src/graph/builder.js
 ```
 module.exports = { build, buildFromCwd, extractFileDeps }
@@ -404,6 +389,12 @@ function getImpact(changedFile, graph, opts) → { * changed: string, * di
 function analyzeImpact(changedFiles, cwd, opts) → { file: string, impact: o
 function formatImpact(result) → string
 function formatImpactJSON(result) → object
+```
+
+### src/health/scorer.js
+```
+module.exports = { score }
+function score(cwd) → { * score: number, * grad
 ```
 
 ### src/map/class-hierarchy.js
@@ -440,6 +431,15 @@ function explainFile(args, cwd)
 function listModules(args, cwd)
 function queryContext(args, cwd)
 function getImpact(args, cwd)
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
 ```
 
 ### src/mcp/tools.js

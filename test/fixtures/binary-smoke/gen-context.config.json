@@ -1,0 +1,5 @@
+{
+  "srcDirs": ["."],
+  "adapters": ["copilot"],
+  "exclude": ["node_modules", ".github"]
+}
