@@ -131,7 +131,10 @@ Available assets:
 - `sigmap-win32-x64.exe` (Windows x64)
 - `sigmap-checksums.txt` (SHA-256 checksums)
 
-macOS / Linux:
+<details>
+<summary><strong>macOS / Linux</strong></summary>
+
+Run directly:
 
 ```bash
 chmod +x ./sigmap-darwin-arm64   # or ./sigmap-linux-x64
@@ -148,22 +151,27 @@ mv ./sigmap-darwin-arm64 "$HOME/.local/bin/sigmap"   # or sigmap-linux-x64
 chmod +x "$HOME/.local/bin/sigmap"
 
 # 2) Add to PATH in your shell profile
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"   # zsh
-# echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc" # bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"    # zsh
+# echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"  # bash
 
 # 3) Reload shell and verify
 source "$HOME/.zshrc"   # or: source "$HOME/.bashrc"
 sigmap --version
 ```
 
-Windows (PowerShell):
+</details>
+
+<details>
+<summary><strong>Windows (PowerShell)</strong></summary>
+
+Run directly:
 
 ```powershell
 .\sigmap-win32-x64.exe --help
 .\sigmap-win32-x64.exe
 ```
 
-Make it globally available on Windows (PowerShell):
+Make it globally available:
 
 ```powershell
 # 1) Create a user bin directory and rename the binary
@@ -180,6 +188,8 @@ Move-Item .\sigmap-win32-x64.exe "$HOME\bin\sigmap.exe"
 # 3) Restart PowerShell and verify
 sigmap --version
 ```
+
+</details>
 
 Optional checksum verification:
 
