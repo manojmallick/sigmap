@@ -519,6 +519,152 @@ Reads files on every call — no stale state, no restart needed.
 
 > See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
+Pick your invocation style — all commands are identical, only the prefix changes:
+
+<details>
+<summary><strong>sigmap</strong> &nbsp;(npm global install)</summary>
+
+```
+sigmap                                        Generate once and exit
+sigmap --watch                                Generate and watch for file changes
+sigmap --setup                                Generate + install git hook + start watcher
+sigmap --diff                                 Generate context for git-changed files only
+sigmap --diff --staged                        Staged files only (pre-commit check)
+sigmap --mcp                                  Start MCP server on stdio
+
+sigmap --query "<text>"                       Rank files by relevance to a query
+sigmap --query "<text>" --json                Ranked results as JSON
+sigmap --query "<text>" --top <n>             Limit results to top N files (default 10)
+
+sigmap --analyze                              Per-file breakdown (sigs / tokens / extractor / coverage)
+sigmap --analyze --json                       Analysis as JSON
+sigmap --analyze --slow                       Include extraction timing per file
+sigmap --diagnose-extractors                  Self-test all 21 extractors against fixtures
+
+sigmap --benchmark                            Run retrieval quality benchmark (hit@5 / MRR)
+sigmap --benchmark --json                     Benchmark results as JSON
+sigmap --eval                                 Alias for --benchmark
+
+sigmap --report                               Token reduction stats
+sigmap --report --json                        Structured JSON report (exits 1 if over budget)
+sigmap --report --history                     Usage log summary
+sigmap --report --history --json              Usage history as JSON
+
+sigmap --health                               Composite health score (0–100, grade A–D)
+sigmap --health --json                        Machine-readable health JSON
+
+sigmap --suggest-tool "<task>"                Recommend model tier for a task
+sigmap --suggest-tool "<task>" --json         Machine-readable tier recommendation
+
+sigmap --monorepo                             Per-package context for monorepos (packages/, apps/, services/)
+sigmap --each                                 Process each sub-repo under a parent directory
+sigmap --routing                              Include model routing hints in output
+sigmap --format cache                         Write Anthropic prompt-cache JSON
+sigmap --track                                Append run metrics to .context/usage.ndjson
+
+sigmap --init                                 Write config + .contextignore scaffold
+sigmap --version                              Version string
+sigmap --help                                 Usage information
+```
+</details>
+
+<details>
+<summary><strong>npx sigmap</strong> &nbsp;(zero install)</summary>
+
+```
+npx sigmap                                    Generate once and exit
+npx sigmap --watch                            Generate and watch for file changes
+npx sigmap --setup                            Generate + install git hook + start watcher
+npx sigmap --diff                             Generate context for git-changed files only
+npx sigmap --diff --staged                    Staged files only (pre-commit check)
+npx sigmap --mcp                              Start MCP server on stdio
+
+npx sigmap --query "<text>"                   Rank files by relevance to a query
+npx sigmap --query "<text>" --json            Ranked results as JSON
+npx sigmap --query "<text>" --top <n>         Limit results to top N files (default 10)
+
+npx sigmap --analyze                          Per-file breakdown (sigs / tokens / extractor / coverage)
+npx sigmap --analyze --json                   Analysis as JSON
+npx sigmap --analyze --slow                   Include extraction timing per file
+npx sigmap --diagnose-extractors              Self-test all 21 extractors against fixtures
+
+npx sigmap --benchmark                        Run retrieval quality benchmark (hit@5 / MRR)
+npx sigmap --benchmark --json                 Benchmark results as JSON
+npx sigmap --eval                             Alias for --benchmark
+
+npx sigmap --report                           Token reduction stats
+npx sigmap --report --json                    Structured JSON report (exits 1 if over budget)
+npx sigmap --report --history                 Usage log summary
+npx sigmap --report --history --json          Usage history as JSON
+
+npx sigmap --health                           Composite health score (0–100, grade A–D)
+npx sigmap --health --json                    Machine-readable health JSON
+
+npx sigmap --suggest-tool "<task>"            Recommend model tier for a task
+npx sigmap --suggest-tool "<task>" --json     Machine-readable tier recommendation
+
+npx sigmap --monorepo                         Per-package context for monorepos (packages/, apps/, services/)
+npx sigmap --each                             Process each sub-repo under a parent directory
+npx sigmap --routing                          Include model routing hints in output
+npx sigmap --format cache                     Write Anthropic prompt-cache JSON
+npx sigmap --track                            Append run metrics to .context/usage.ndjson
+
+npx sigmap --init                             Write config + .contextignore scaffold
+npx sigmap --version                          Version string
+npx sigmap --help                             Usage information
+```
+</details>
+
+<details>
+<summary><strong>gen-context</strong> &nbsp;(bin alias)</summary>
+
+```
+gen-context                                   Generate once and exit
+gen-context --watch                           Generate and watch for file changes
+gen-context --setup                           Generate + install git hook + start watcher
+gen-context --diff                            Generate context for git-changed files only
+gen-context --diff --staged                   Staged files only (pre-commit check)
+gen-context --mcp                             Start MCP server on stdio
+
+gen-context --query "<text>"                  Rank files by relevance to a query
+gen-context --query "<text>" --json           Ranked results as JSON
+gen-context --query "<text>" --top <n>        Limit results to top N files (default 10)
+
+gen-context --analyze                         Per-file breakdown (sigs / tokens / extractor / coverage)
+gen-context --analyze --json                  Analysis as JSON
+gen-context --analyze --slow                  Include extraction timing per file
+gen-context --diagnose-extractors             Self-test all 21 extractors against fixtures
+
+gen-context --benchmark                       Run retrieval quality benchmark (hit@5 / MRR)
+gen-context --benchmark --json                Benchmark results as JSON
+gen-context --eval                            Alias for --benchmark
+
+gen-context --report                          Token reduction stats
+gen-context --report --json                   Structured JSON report (exits 1 if over budget)
+gen-context --report --history                Usage log summary
+gen-context --report --history --json         Usage history as JSON
+
+gen-context --health                          Composite health score (0–100, grade A–D)
+gen-context --health --json                   Machine-readable health JSON
+
+gen-context --suggest-tool "<task>"           Recommend model tier for a task
+gen-context --suggest-tool "<task>" --json    Machine-readable tier recommendation
+
+gen-context --monorepo                        Per-package context for monorepos (packages/, apps/, services/)
+gen-context --each                            Process each sub-repo under a parent directory
+gen-context --routing                         Include model routing hints in output
+gen-context --format cache                    Write Anthropic prompt-cache JSON
+gen-context --track                           Append run metrics to .context/usage.ndjson
+
+gen-context --init                            Write config + .contextignore scaffold
+gen-context --version                         Version string
+gen-context --help                            Usage information
+```
+</details>
+
+<details>
+<summary><strong>node gen-context.js</strong> &nbsp;(local / no install)</summary>
+
 ```
 node gen-context.js                           Generate once and exit
 node gen-context.js --watch                   Generate and watch for file changes
@@ -561,6 +707,8 @@ node gen-context.js --init                    Write config + .contextignore scaf
 node gen-context.js --version                 Version string
 node gen-context.js --help                    Usage information
 ```
+</details>
+
 
 ### Task classification — `--suggest-tool`
 
