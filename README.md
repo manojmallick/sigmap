@@ -118,6 +118,46 @@ Available from any directory on your machine.
 </details>
 
 <details>
+<summary><strong>Standalone binaries — no Node.js, no npm</strong></summary>
+
+Download from the latest release:
+
+- <https://github.com/manojmallick/sigmap/releases/latest>
+
+Available assets:
+
+- `sigmap-darwin-arm64` (macOS Apple Silicon)
+- `sigmap-linux-x64` (Linux x64)
+- `sigmap-win32-x64.exe` (Windows x64)
+- `sigmap-checksums.txt` (SHA-256 checksums)
+
+macOS / Linux:
+
+```bash
+chmod +x ./sigmap-darwin-arm64   # or ./sigmap-linux-x64
+./sigmap-darwin-arm64 --help
+./sigmap-darwin-arm64
+```
+
+Windows (PowerShell):
+
+```powershell
+.\sigmap-win32-x64.exe --help
+.\sigmap-win32-x64.exe
+```
+
+Optional checksum verification:
+
+```bash
+shasum -a 256 sigmap-darwin-arm64
+# Compare with sigmap-checksums.txt
+```
+
+Full guide: [docs/binaries.md](docs/binaries.md)
+
+</details>
+
+<details>
 <summary><strong>npm local — per-project, version-pinned</strong></summary>
 
 ```bash
