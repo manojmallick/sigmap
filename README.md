@@ -163,6 +163,24 @@ Windows (PowerShell):
 .\sigmap-win32-x64.exe
 ```
 
+Make it globally available on Windows (PowerShell):
+
+```powershell
+# 1) Create a user bin directory and rename the binary
+New-Item -ItemType Directory -Force "$HOME\bin" | Out-Null
+Move-Item .\sigmap-win32-x64.exe "$HOME\bin\sigmap.exe"
+
+# 2) Add user bin to PATH (current user)
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  $env:Path + ";$HOME\bin",
+  "User"
+)
+
+# 3) Restart PowerShell and verify
+sigmap --version
+```
+
 Optional checksum verification:
 
 ```bash
