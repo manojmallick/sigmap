@@ -10,6 +10,27 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [3.2.0] — Planned — Phase A: Cross-Platform Standalone Binaries
+
+### Added
+- **Standalone binaries** — macOS (arm64 + x64), Linux x64, Windows x64 built via Node.js SEA
+  - No Node.js or npm required to run SigMap
+  - Download from GitHub Releases: `sigmap-darwin-arm64`, `sigmap-darwin-x64`, `sigmap-linux-x64`, `sigmap-win32-x64.exe`
+  - SHA-256 checksums in `sigmap-checksums.txt` attached to every release
+- **`scripts/build-binary.mjs`** — reproducible local binary build for the current platform
+- **`scripts/verify-binary.mjs`** — smoke tests `--version`, `--help`, `generate`, `health`, `report` against a fixture repo
+- **`.github/workflows/release-binaries.yml`** — GHA matrix builds all 4 targets on tag push; attaches artifacts to the GitHub Release
+- **`test/fixtures/binary-smoke/`** — minimal fixture project used by CI smoke tests
+- **`docs/binaries.md`** — install guide covering download, `chmod +x`, macOS Gatekeeper, Windows SmartScreen, and checksum verification
+
+### Technical
+- Uses [Node.js SEA](https://nodejs.org/api/single-executable-applications.html) (Node 20 `--experimental-sea-config` + `postject`)
+- `gen-context.js` required no changes — existing `requireSourceOrBundled()` fallback and DEFAULTS fallback in `writeInitConfig()` are both SEA-compatible
+- Binary builds run natively per OS in GHA (no cross-compilation)
+- `release-attach` job waits for the npm-publish Release to exist before uploading binary assets
+
+---
+
 ## [3.1.0] — 2026-04-07 — Global Command Detection & VS Code Prerelease Fix
 
 ### Added

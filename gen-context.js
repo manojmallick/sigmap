@@ -1892,6 +1892,152 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
   
 };
 
+// ── ./src/extractors/todos ──
+__factories["./src/extractors/todos"] = function(module, exports) {
+
+  'use strict';
+
+  /**
+   * Extract TODO/FIXME/HACK/XXX comments from source text.
+   * @param {string} src - Raw file content
+   * @returns {{line:number, tag:string, text:string}[]}
+   */
+  function extractTodos(src) {
+    if (!src || typeof src !== 'string') return [];
+    const todos = [];
+    const lines = src.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/(?:\/\/|#)\s*(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)/i);
+      if (!m) continue;
+      todos.push({
+        line: i + 1,
+        tag: m[1].toUpperCase(),
+        text: m[2].trim().slice(0, 70),
+      });
+    }
+
+    return todos;
+  }
+
+  module.exports = { extractTodos };
+
+};
+
+// ── ./src/extractors/coverage ──
+__factories["./src/extractors/coverage"] = function(module, exports) {
+
+  'use strict';
+
+  const fs = require('fs');
+  const path = require('path');
+
+  function walkFiles(dir) {
+    let out = [];
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return out;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) out = out.concat(walkFiles(full));
+      else if (entry.isFile()) out.push(full);
+    }
+    return out;
+  }
+
+  function buildTestIndex(cwd, testDirs) {
+    const dirs = Array.isArray(testDirs) && testDirs.length ? testDirs : ['tests', 'test', '__tests__', 'spec'];
+    const names = new Set();
+
+    for (const dir of dirs) {
+      const abs = path.join(cwd, dir);
+      if (!fs.existsSync(abs)) continue;
+      for (const file of walkFiles(abs)) {
+        let src = '';
+        try {
+          src = fs.readFileSync(file, 'utf8');
+        } catch (_) {
+          continue;
+        }
+
+        for (const m of src.matchAll(/\b(?:test_|it\(|test\(|describe\()\s*['"`]?([\w_]+)/g)) {
+          if (m[1] && m[1].length >= 3) names.add(m[1].toLowerCase());
+        }
+
+        for (const m of src.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g)) {
+          if (m[1] && m[1].length >= 4) names.add(m[1].toLowerCase());
+        }
+      }
+    }
+
+    return names;
+  }
+
+  function isTested(funcName, testIndex) {
+    if (!funcName || funcName.length < 3 || !testIndex || testIndex.size === 0) return false;
+    const lower = funcName.toLowerCase();
+    if (testIndex.has(lower) || testIndex.has(`test_${lower}`)) return true;
+    return false;
+  }
+
+  module.exports = { buildTestIndex, isTested };
+
+};
+
+// ── ./src/extractors/prdiff ──
+__factories["./src/extractors/prdiff"] = function(module, exports) {
+
+  'use strict';
+
+  /**
+   * Compare signature arrays and produce compact diff markers.
+   * @param {string[]} baseSigs
+   * @param {string[]} currentSigs
+   * @returns {{added:string[], removed:string[], modified:string[]}}
+   */
+  function diffSignatures(baseSigs, currentSigs) {
+    const base = new Set(baseSigs || []);
+    const curr = new Set(currentSigs || []);
+
+    const added = [...curr].filter((s) => !base.has(s));
+    const removed = [...base].filter((s) => !curr.has(s));
+
+    const byName = (arr) => {
+      const m = new Map();
+      for (const s of arr) {
+        const n = extractName(s);
+        if (!n) continue;
+        if (!m.has(n)) m.set(n, []);
+        m.get(n).push(s);
+      }
+      return m;
+    };
+
+    const aBy = byName(added);
+    const rBy = byName(removed);
+    const modified = [];
+
+    for (const [name] of aBy) {
+      if (rBy.has(name)) modified.push(name);
+    }
+
+    return { added, removed, modified };
+  }
+
+  function extractName(sig) {
+    if (!sig) return '';
+    const t = sig.trim();
+    const m = t.match(/(?:def|function|func|class|interface|trait|struct|enum|record)?\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/);
+    return m ? m[1] : '';
+  }
+
+  module.exports = { diffSignatures, extractName };
+
+};
+
 // ── ./src/format/cache ──
 __factories["./src/format/cache"] = function(module, exports) {
   

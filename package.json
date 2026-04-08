@@ -25,7 +25,9 @@
     "report": "node gen-context.js --report",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",
-    "mcp": "node gen-context.js --mcp"
+    "mcp": "node gen-context.js --mcp",
+    "build:binary": "node scripts/build-binary.mjs",
+    "verify:binary": "node scripts/verify-binary.mjs"
   },
   "files": [
     "gen-context.js",
