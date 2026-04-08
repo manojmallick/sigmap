@@ -17,16 +17,12 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'macos-13' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-latest   # arm64 (GitHub default as of 2024)
             artifact: sigmap-darwin-arm64
-          - os: macos-13       # x64 (Intel; continue-on-error in case runner is unavailable)
-            artifact: sigmap-darwin-x64
-            continue-on-error: true
           - os: ubuntu-latest  # x64
             artifact: sigmap-linux-x64
           - os: windows-latest # x64
@@ -37,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Build binary
         run: node scripts/build-binary.mjs
@@ -57,6 +53,7 @@ jobs:
   release-attach:
     name: Attach to GitHub Release
     needs: build
+    if: always() && !cancelled() && needs.build.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
