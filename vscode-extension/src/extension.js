@@ -23,6 +23,7 @@ const { execFile, execFileSync } = require('child_process');
 const CONTEXT_FILE = '.github/copilot-instructions.md';
 const STALE_HOURS = 24;
 const STATUS_INTERVAL_MS = 60 * 1000; // refresh status bar every 60 s
+const EXECUTABLE_NAMES = ['sigmap', 'gen-context'];
 
 // Grade ≥ 90 → A, ≥ 75 → B, ≥ 60 → C, < 60 → D
 const GRADE_ICONS = { A: '$(check) A', B: '$(info) B', C: '$(warning) C', D: '$(error) D' };
@@ -51,6 +52,38 @@ function resolveScript(root) {
   return null;
 }
 
+function isWindows() {
+  return process.platform === 'win32';
+}
+
+function executableCandidates(baseDir, name) {
+  if (!baseDir) return [];
+  if (isWindows()) {
+    return [
+      path.join(baseDir, `${name}.cmd`),
+      path.join(baseDir, `${name}.exe`),
+      path.join(baseDir, `${name}.bat`),
+      path.join(baseDir, name),
+    ];
+  }
+  return [path.join(baseDir, name)];
+}
+
+function firstExecutable(paths) {
+  for (const p of paths) {
+    if (!p) continue;
+    try {
+      if (isWindows()) {
+        if (fs.existsSync(p)) return p;
+      } else {
+        fs.accessSync(p, fs.constants.X_OK);
+        return p;
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
 /**
  * Probe common global installation paths for the gen-context binary.
  * Required because macOS GUI apps (VS Code) do NOT inherit shell PATH,
@@ -70,12 +103,18 @@ function resolveScript(root) {
 function resolveGlobalCommand(root) {
   const home = os.homedir();
   const candidates = [];
+  const addDir = (dir) => {
+    if (!dir) return;
+    for (const name of EXECUTABLE_NAMES) {
+      candidates.push(...executableCandidates(dir, name));
+    }
+  };
 
   // 1. workspace-local node_modules
-  if (root) candidates.push(path.join(root, 'node_modules', '.bin', 'gen-context'));
+  if (root) addDir(path.join(root, 'node_modules', '.bin'));
 
   // 2. Volta
-  candidates.push(path.join(home, '.volta', 'bin', 'gen-context'));
+  addDir(path.join(home, '.volta', 'bin'));
 
   // 3. nvm — scan all installed versions, newest first
   const nvmDir = path.join(home, '.nvm', 'versions', 'node');
@@ -83,33 +122,50 @@ function resolveGlobalCommand(root) {
     try {
       fs.readdirSync(nvmDir)
         .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
-        .forEach(v => candidates.push(path.join(nvmDir, v, 'bin', 'gen-context')));
+        .forEach(v => addDir(path.join(nvmDir, v, 'bin')));
     } catch (_) {}
   }
 
   // 4. classic / Homebrew global paths
-  candidates.push('/usr/local/bin/gen-context');
-  candidates.push('/opt/homebrew/bin/gen-context');
+  addDir('/usr/local/bin');
+  addDir('/opt/homebrew/bin');
 
   // 5. npm prefix override
-  candidates.push(path.join(home, '.npm-global', 'bin', 'gen-context'));
-  candidates.push(path.join(home, 'npm', 'bin', 'gen-context'));
+  addDir(path.join(home, '.npm-global', 'bin'));
+  addDir(path.join(home, 'npm', 'bin'));
 
-  for (const c of candidates) {
-    if (!c) continue;
-    try {
-      fs.accessSync(c, fs.constants.X_OK);
-      return c;
-    } catch (_) {}
+  // 6. common Windows global npm / user bin dirs
+  if (isWindows()) {
+    const appData = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+    addDir(path.join(appData, 'npm'));
+    addDir(path.join(home, 'bin'));
+    addDir(path.join(home, '.local', 'bin'));
   }
 
-  // 6. last resort: ask a login shell
+  const known = firstExecutable(candidates);
+  if (known) return known;
+
+  // 7. last resort: ask shell/path resolver
+  if (isWindows()) {
+    for (const name of EXECUTABLE_NAMES) {
+      try {
+        const result = execFileSync('where', [name], { timeout: 4000, encoding: 'utf8' });
+        const first = result.split(/\r?\n/).map(s => s.trim()).find(Boolean);
+        if (first && fs.existsSync(first)) return first;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  // 8. last resort: ask a login shell
   for (const sh of ['/bin/zsh', '/bin/bash']) {
-    try {
-      const result = execFileSync(sh, ['-l', '-c', 'which gen-context'], { timeout: 4000, encoding: 'utf8' });
-      const cmd = result.trim();
-      if (cmd && fs.existsSync(cmd)) return cmd;
-    } catch (_) {}
+    for (const name of EXECUTABLE_NAMES) {
+      try {
+        const result = execFileSync(sh, ['-l', '-c', `command -v ${name} || which ${name}`], { timeout: 4000, encoding: 'utf8' });
+        const cmd = result.trim();
+        if (cmd && fs.existsSync(cmd)) return cmd;
+      } catch (_) {}
+    }
   }
 
   return null;
@@ -263,7 +319,7 @@ async function runRegenerate(root, runner) {
   }
   if (!runner) {
     const choice = await vscode.window.showWarningMessage(
-      'SigMap: gen-context not found. Install globally or set sigmap.scriptPath.',
+      'SigMap: command not found. Try npm global/local, npx, standalone binary in PATH, or set sigmap.scriptPath.',
       'Copy install command',
       'Open settings'
     );

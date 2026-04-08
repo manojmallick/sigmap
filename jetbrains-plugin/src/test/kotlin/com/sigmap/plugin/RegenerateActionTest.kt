@@ -35,7 +35,8 @@ class RegenerateActionTest {
         val result = findGenContextCommandReflection(action, testProjectDir.absolutePath)
         
         assertNotNull(result, "Should find local gen-context.js")
-        assertEquals("node", result.first, "Should use 'node' as executor for local gen-context.js")
+        assertTrue(result.first.endsWith("node") || result.first.endsWith("node.exe"),
+            "Should use node executor for local gen-context.js")
         assertEquals(genContextFile.absolutePath, result.second.firstOrNull(), "Should pass absolute path to gen-context.js")
     }
 
@@ -54,8 +55,12 @@ class RegenerateActionTest {
         // When gen-context.js doesn't exist locally, the code should find gen-context
         // either globally (if installed) or in node_modules/.bin
         assertNotNull(result, "Should find gen-context somewhere")
-        assertTrue(result.first.contains("gen-context") || result.first == "node", 
-                   "Executor should contain gen-context or be 'node'")
+        assertTrue(
+            result.first.contains("gen-context") ||
+            result.first.contains("sigmap") ||
+            result.first == "node",
+            "Executor should contain gen-context/sigmap or be 'node'"
+        )
     }
 
     @Test
@@ -91,7 +96,8 @@ class RegenerateActionTest {
         val result = findGenContextCommandReflection(action, testProjectDir.absolutePath)
         
         assertNotNull(result, "Should find gen-context")
-        assertEquals("node", result.first, "Should prefer local gen-context.js (use node executor)")
+        assertTrue(result.first.endsWith("node") || result.first.endsWith("node.exe"),
+            "Should prefer local gen-context.js (use node executor)")
         assertTrue(result.second.isNotEmpty(), "Should have parameters for node execution")
     }
 

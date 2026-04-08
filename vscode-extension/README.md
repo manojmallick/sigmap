@@ -151,11 +151,11 @@ GitHub Copilot automatically picks up `.github/copilot-instructions.md`. Claude,
 | Requirement | Details |
 |---|---|
 | **Node.js** | Version 18 or higher — [download here](https://nodejs.org) |
-| **sigmap CLI** | `npm install -g sigmap` (v2.0.0+) or `npx sigmap` per-project |
+| **sigmap CLI** | `npm install -g sigmap`, local `npm install sigmap`, `npx sigmap`, or standalone binary in `PATH` |
 | **VS Code** | 1.85.0 or higher |
 | **Dependencies** | **Zero** — no npm install needed for the CLI |
 
-> The extension automatically detects `gen-context.js` in your workspace root. If installed globally, set `sigmap.scriptPath` in settings.
+> Auto-detection order: `sigmap.scriptPath` → local `gen-context.js` → workspace `node_modules/.bin` (`sigmap`/`gen-context`) → common global locations (Volta, nvm, npm/global bins) → shell lookup.
 
 ---
 
@@ -290,8 +290,12 @@ Use SigMap for every session. Reach for Repomix when you need full file content.
 **Status bar shows `sm: no context`**
 → Run `SigMap: Regenerate Context`. If it fails, check that Node.js 18+ is installed: `node --version`
 
-**"gen-context.js not found" warning**
-→ Either run `npm install -g sigmap` or set `sigmap.scriptPath` in VS Code settings to the absolute path.
+**"command not found" warning**
+→ Try one of:
+1. `npm install -g sigmap`
+2. `npm install sigmap` (project-local)
+3. Add standalone binary (`sigmap`/`sigmap.exe`) to your system `PATH`
+4. Set `sigmap.scriptPath` to an absolute `gen-context.js` path
 
 **Context file is generated but Copilot doesn't seem to use it**
 → The file must be at `.github/copilot-instructions.md` in your workspace root. Check `File → Open Folder` opened the right directory.

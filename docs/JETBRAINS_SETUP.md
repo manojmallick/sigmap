@@ -10,7 +10,7 @@ Complete installation and configuration guide for SigMap JetBrains plugin (Intel
 |---|---|
 | JetBrains IDE | 2024.1 or later |
 | Node.js | 18+ |
-| SigMap | `npm install sigmap` or `gen-context.js` in project root |
+| SigMap | `npm install -g sigmap`, local `npm install sigmap`, standalone binary in `PATH`, or `gen-context.js` in project root |
 
 ---
 
@@ -183,19 +183,30 @@ See [Configuration Reference](https://manojmallick.github.io/sigmap/config.html)
 
 **Solution:**
 
-**Option 1: Install via npm**
+**Option 1: Install globally via npm**
 ```bash
-npm install sigmap
-# Creates node_modules/.bin/gen-context.js
+npm install -g sigmap
 ```
 
-**Option 2: Copy standalone script**
+**Option 2: Install locally via npm**
+```bash
+npm install sigmap
+# Creates node_modules/.bin/sigmap (and gen-context compatibility entry)
+```
+
+**Option 3: Standalone binary in PATH**
+```bash
+# macOS/Linux: move binary to ~/.local/bin/sigmap and ensure PATH includes ~/.local/bin
+# Windows: move sigmap.exe to %USERPROFILE%\\bin and add it to PATH
+```
+
+**Option 4: Copy standalone script**
 ```bash
 curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.js
 chmod +x gen-context.js
 ```
 
-**Option 3: Verify Node.js**
+**Option 5: Verify Node.js**
 ```bash
 node --version  # Must be v18 or later
 which node      # Should show a valid path
