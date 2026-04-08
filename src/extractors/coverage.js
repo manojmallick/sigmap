@@ -34,12 +34,17 @@ function buildTestIndex(cwd, testDirs) {
         continue;
       }
 
-      for (const m of src.matchAll(/\b(?:test_|it\(|test\(|describe\()\s*['"`]?([\w_]+)/g)) {
-        if (m[1] && m[1].length >= 3) names.add(m[1].toLowerCase());
+      // Only extract tokens from test name strings — not all identifiers
+      // This avoids false positives from common words appearing in test files
+      for (const m of src.matchAll(/\b(?:test_|it\s*\(|test\s*\(|describe\s*\()\s*['"`]([\w_ ]+)['"`]/g)) {
+        if (!m[1]) continue;
+        for (const word of m[1].split(/[\s_]+/)) {
+          if (word.length >= 3) names.add(word.toLowerCase());
+        }
       }
-
-      for (const m of src.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g)) {
-        if (m[1] && m[1].length >= 4) names.add(m[1].toLowerCase());
+      // Also capture identifiers directly invoked in expect/assert calls
+      for (const m of src.matchAll(/\b(?:expect|assert)\s*\(\s*(?:await\s+)?(\w+)\s*\(/g)) {
+        if (m[1] && m[1].length >= 3) names.add(m[1].toLowerCase());
       }
     }
   }

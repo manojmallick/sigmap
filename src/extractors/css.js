@@ -37,13 +37,23 @@ function extract(src) {
     sigs.push(`@function ${m[1]}(${m[2].trim()})`);
   }
 
-  // Key class names (top-level)
-  const classNames = new Set();
-  for (const m of stripped.matchAll(/^\.([\w-]+)(?=[^{]*\{)/gm)) {
-    classNames.add(m[1]);
-    if (classNames.size >= 10) break;
+  // Key class names (top-level) — prefer hyphenated BEM/component names over utilities
+  const allClassMatches = [...stripped.matchAll(/^\.([\w-]+)(?=[^{]*\{)/gm)];
+  // Utility-class detection: if 70%+ of top-level selectors are single-word (no hyphens),
+  // this is likely a compiled/utility CSS file — skip class extraction to avoid noise
+  const singleWordCount = allClassMatches.filter(m => !m[1].includes('-')).length;
+  const isUtilityFile = allClassMatches.length >= 5 && (singleWordCount / allClassMatches.length) > 0.70;
+  if (!isUtilityFile) {
+    const hyphenated = [];
+    const singleWord = [];
+    for (const m of allClassMatches) {
+      if (m[1].includes('-')) hyphenated.push(m[1]);
+      else singleWord.push(m[1]);
+    }
+    // Up to 8 slots: hyphenated classes (semantic) first, then single-word to fill remaining
+    const selected = [...hyphenated, ...singleWord].slice(0, 8);
+    for (const name of selected) sigs.push(`.${name}`);
   }
-  for (const name of classNames) sigs.push(`.${name}`);
 
   return sigs.slice(0, 25);
 }

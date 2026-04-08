@@ -5251,6 +5251,13 @@ function isGeneratedFile(filePath) {
   return /(\.generated\.|\.pb\.|_pb\.)/.test(filePath);
 }
 
+function isMockFile(filePath) {
+  const p = filePath.replace(/\\/g, '/');
+  return /\/(mock|mocks|stub|stubs|fake|fakes|demo|demos|__mocks__|fixtures)\//i.test(p) ||
+    /\.(mock|stub|fake)\.[jt]sx?$/.test(p) ||
+    /mock\.(ts|js|tsx|jsx)$/.test(p);
+}
+
 function applyTokenBudget(fileEntries, maxTokens) {
   // fileEntries: [{ filePath, sigs, mtime }]
   // Reserve ~10% for formatting overhead (section headers, code fences, top-level header)
@@ -5262,6 +5269,7 @@ function applyTokenBudget(fileEntries, maxTokens) {
   const withPriority = fileEntries.map((e) => {
     let priority = 0;
     if (isGeneratedFile(e.filePath)) priority = 10;
+    else if (isMockFile(e.filePath)) priority = 9;
     else if (isTestFile(e.filePath)) priority = 8;
     else if (isConfigFile(e.filePath)) priority = 6;
     else priority = 4;
