@@ -80,6 +80,19 @@ Place `gen-context.config.json` in your project root to customize:
 
 See [Configuration Guide](https://manojmallick.github.io/sigmap/config.html) for all options.
 
+## CLI Quick Reference
+
+Run these from a terminal in your project root:
+
+| Command | Description |
+|---|---|
+| `sigmap` | Generate context once |
+| `sigmap --watch` | Regenerate on file changes |
+| `sigmap --monorepo` | Per-package context (`packages/`, `apps/`, `services/`) |
+| `sigmap --each` | Process each sibling repo under a parent directory |
+| `sigmap --health` | Context health grade |
+| `sigmap --init` | Create starter config + `.contextignore` |
+
 ## Troubleshooting
 
 ### "gen-context.js not found"

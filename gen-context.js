@@ -5284,14 +5284,15 @@ function applyTokenBudget(fileEntries, maxTokens) {
 
   const kept = [];
   let dropped = 0;
-  for (let i = withPriority.length - 1; i >= 0; i--) {
-    const entry = withPriority[i];
+  // Iterate forward: highest drop-priority files (generated=10, mock=9, test=8) are at index 0
+  // Drop those first until we're under budget, then keep everything else
+  for (const entry of withPriority) {
     const entryTokens = estimateTokens(entry.sigs.join('\n'));
-    if (total <= effectiveBudget) {
-      kept.unshift(entry);
-    } else {
+    if (total > effectiveBudget) {
       total -= entryTokens;
       dropped++;
+    } else {
+      kept.push(entry);
     }
   }
   if (dropped > 0) {

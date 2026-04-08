@@ -551,7 +551,8 @@ node gen-context.js --health --json           Machine-readable health JSON
 node gen-context.js --suggest-tool "<task>"   Recommend model tier for a task
 node gen-context.js --suggest-tool "<task>" --json  Machine-readable tier recommendation
 
-node gen-context.js --monorepo                Per-package context for monorepos
+node gen-context.js --monorepo                Per-package context for monorepos (packages/, apps/, services/)
+node gen-context.js --each                    Process each sub-repo under a parent directory
 node gen-context.js --routing                 Include model routing hints in output
 node gen-context.js --format cache            Write Anthropic prompt-cache JSON
 node gen-context.js --track                   Append run metrics to .context/usage.ndjson
