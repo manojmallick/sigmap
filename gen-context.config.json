@@ -10,7 +10,8 @@
   "exclude": [
     "node_modules", ".git", "dist", "build", "out",
     "__pycache__", ".next", "coverage", "target", "vendor",
-    ".context", "playwright-tmp"
+    ".context", "playwright-tmp",
+    "docs", "test", "jetbrains-plugin", "benchmarks", "examples", "scripts"
   ],
 
   "maxDepth": 6,
