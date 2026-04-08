@@ -70,11 +70,15 @@ class GenContextCommandResolutionTest {
         assertTrue(genContextBin.exists(), "Test setup: bin/gen-context should exist")
         assertTrue(genContextBin.canExecute(), "Test setup: bin/gen-context should be executable")
         
-        // In real scenario, RegenerateAction would return:
-        // Pair("/path/to/node_modules/.bin/gen-context", emptyList())
+        // In real scenario, RegenerateAction would return either:
+        // Pair("/path/to/node_modules/.bin/sigmap", emptyList())
+        // or Pair("/path/to/node_modules/.bin/gen-context", emptyList())
         val expectedPath = genContextBin.absolutePath
-        assertTrue(expectedPath.contains("node_modules/.bin/gen-context"), 
-                   "Should resolve to node_modules/.bin/gen-context")
+        assertTrue(
+            expectedPath.contains("node_modules/.bin/gen-context") ||
+            expectedPath.contains("node_modules/.bin/sigmap"),
+            "Should resolve to node_modules/.bin/sigmap or gen-context"
+        )
     }
     
     @Test
@@ -112,8 +116,11 @@ class GenContextCommandResolutionTest {
                     "Empty project has no local gen-context.js")
         
         // No node_modules
-        assertFalse(File(testProjectDir, "node_modules/.bin/gen-context").exists(),
-                    "Empty project has no node_modules version")
+        assertFalse(
+            File(testProjectDir, "node_modules/.bin/gen-context").exists() ||
+            File(testProjectDir, "node_modules/.bin/sigmap").exists(),
+            "Empty project has no node_modules version"
+        )
         
         // In this case, the plugin should look in system PATH
         // The actual search would be: findCommandInPath("gen-context")
@@ -152,13 +159,13 @@ class GenContextCommandResolutionTest {
         assertEquals("/path/to/gen-context.js", params1[0], "Parameter is the path to gen-context.js")
         
         // Scenario 2: Global gen-context command
-        val executor2 = "/usr/local/bin/gen-context"
+        val executor2 = "/usr/local/bin/sigmap"
         val params2 = emptyList<String>()
-        assertTrue(executor2.endsWith("gen-context"), "Global execution has gen-context in path")
+        assertTrue(executor2.endsWith("sigmap") || executor2.endsWith("gen-context"), "Global execution has sigmap/gen-context in path")
         assertTrue(params2.isEmpty(), "Global execution has no parameters")
         
         // Scenario 3: From node_modules
-        val executor3 = "/path/to/project/node_modules/.bin/gen-context"
+        val executor3 = "/path/to/project/node_modules/.bin/sigmap"
         val params3 = emptyList<String>()
         assertTrue(executor3.contains("node_modules/.bin"), "npm bin execution")
         assertTrue(params3.isEmpty(), "npm bin execution has no parameters")
