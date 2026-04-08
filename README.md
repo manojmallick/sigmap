@@ -139,6 +139,23 @@ chmod +x ./sigmap-darwin-arm64   # or ./sigmap-linux-x64
 ./sigmap-darwin-arm64
 ```
 
+Make it globally available in Bash/Zsh (no `./` needed):
+
+```bash
+# 1) Pick a user bin dir and move/rename the binary
+mkdir -p "$HOME/.local/bin"
+mv ./sigmap-darwin-arm64 "$HOME/.local/bin/sigmap"   # or sigmap-linux-x64
+chmod +x "$HOME/.local/bin/sigmap"
+
+# 2) Add to PATH in your shell profile
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"   # zsh
+# echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc" # bash
+
+# 3) Reload shell and verify
+source "$HOME/.zshrc"   # or: source "$HOME/.bashrc"
+sigmap --version
+```
+
 Windows (PowerShell):
 
 ```powershell
