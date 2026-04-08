@@ -62,15 +62,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist/release
+          merge-multiple: true
 
-      - name: Flatten artifact directories
+      - name: List downloaded artifacts
         run: |
-          # download-artifact v4 creates a subdirectory per artifact name;
-          # flatten so checksums work cleanly.
-          find dist/release -type f | while read f; do
-            mv "$f" dist/release/$(basename "$f")
-          done
-          find dist/release -mindepth 1 -maxdepth 1 -type d -empty -delete
           ls -lh dist/release/
 
       - name: Generate checksums
