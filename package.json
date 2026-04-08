@@ -27,7 +27,8 @@
     "map": "node gen-project-map.js",
     "mcp": "node gen-context.js --mcp",
     "build:binary": "node scripts/build-binary.mjs",
-    "verify:binary": "node scripts/verify-binary.mjs"
+    "verify:binary": "node scripts/verify-binary.mjs",
+    "version:sync": "node scripts/sync-versions.mjs"
   },
   "files": [
     "gen-context.js",
