@@ -6230,6 +6230,65 @@ function runMonorepo(cwd, config) {
 }
 
 // ---------------------------------------------------------------------------
+// Multi-repo support  (--each)
+// Run sigmap independently for every immediate subdirectory that looks like
+// an independent git repo or project root.  Each sub-repo gets its own
+// context files written inside it, using its own gen-context.config.json
+// when present.
+// ---------------------------------------------------------------------------
+function detectRepoDirs(cwd) {
+  let entries;
+  try {
+    entries = fs.readdirSync(cwd, { withFileTypes: true });
+  } catch (_) {
+    return [];
+  }
+  const repos = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith('.')) continue;
+    const abs = path.join(cwd, entry.name);
+    // A directory qualifies if it has its own .git folder
+    // OR contains a recognised project manifest (fallback for un-initialised repos)
+    const hasGit = fs.existsSync(path.join(abs, '.git'));
+    const hasManifest = PKG_MANIFESTS.some((m) => fs.existsSync(path.join(abs, m)));
+    if (hasGit || hasManifest) repos.push(abs);
+  }
+  return repos;
+}
+
+function runEach(cwd, baseConfig) {
+  const repos = detectRepoDirs(cwd);
+  if (repos.length === 0) {
+    console.warn('[sigmap] --each: no project subdirectories found');
+    console.warn('[sigmap]   A subdirectory qualifies when it contains .git or a package manifest');
+    console.warn(`[sigmap]   (package.json / pyproject.toml / Cargo.toml / go.mod / etc.)`);
+    return;
+  }
+  console.warn(`[sigmap] --each: found ${repos.length} repos — ${repos.map((r) => path.basename(r)).join(', ')}`);
+  let ok = 0, failed = 0;
+  for (const repoDir of repos) {
+    const name = path.basename(repoDir);
+    // Load each repo's own config independently, fall back to base config
+    let repoConfig;
+    try {
+      repoConfig = loadConfig(repoDir);
+    } catch (_) {
+      repoConfig = { ...baseConfig };
+    }
+    console.warn(`[sigmap] --each: processing ${name} …`);
+    try {
+      runGenerate(repoDir, repoConfig, false);
+      ok++;
+    } catch (err) {
+      console.warn(`[sigmap] --each: FAILED for ${name}: ${err.message}`);
+      failed++;
+    }
+  }
+  console.warn(`[sigmap] --each: done — ${ok} succeeded${failed > 0 ? `, ${failed} failed` : ''}`);
+}
+
+// ---------------------------------------------------------------------------
 // CLI entry point
 // ---------------------------------------------------------------------------
 /**
@@ -6288,6 +6347,7 @@ Zero-dependency AI context engine
 Usage:
   node gen-context.js                                   Generate context once and exit
   node gen-context.js --monorepo                        Generate per-package context (monorepo)
+  node gen-context.js --each                            Run for every repo in the current directory
   node gen-context.js --routing                         Include model routing hints in output
   node gen-context.js --format cache                    Also write Anthropic prompt-cache JSON
   node gen-context.js --track                           Append run metrics to .context/usage.ndjson
@@ -6784,6 +6844,11 @@ function main() {
 
   if (args.includes('--monorepo') || config.monorepo) {
     runMonorepo(cwd, config);
+    process.exit(0);
+  }
+
+  if (args.includes('--each')) {
+    runEach(cwd, config);
     process.exit(0);
   }
 
