@@ -8,7 +8,24 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+---
+
+## [3.3.0] — 2026-04-08 — Context-Aware CLI & Command Switcher
+
 ### Added
+- **Context-aware `--help` output** — `gen-context.js` and `gen-project-map.js` now detect how they were invoked and show the matching command in every usage example:
+  - `npx sigmap --help` shows `npx sigmap <flag>`
+  - `sigmap --help` shows `sigmap <flag>`
+  - `gen-context --help` shows `gen-context <flag>`
+  - `node gen-context.js --help` shows `node gen-context.js <flag>` (unchanged for local users)
+  - Detection uses `process.argv[1]` path analysis (npx cache path, basename without `.js`, fallback)
+- **`docs/cli.html` command picker** — four-tab switcher ("How you run it:") above the flags reference terminal updates every code block on the page (all `.tw` spans and `.term-title` bars) to the selected invocation style. Applies equally to `gen-project-map` references. Selection is saved in `localStorage` and restored on next visit.
+- **`docs/readmes/`** — `vscode-extension.md` and `jetbrains-plugin.md` added for docs site cross-linking
+- **`gen-context.config.json`** — example config committed alongside the repo for reference
+- **Gemini adapter context file** — `.github/gemini-context.md` now generated alongside the copilot instructions file
+- **SEO improvements across all docs pages** — structured data, canonical tags, improved meta descriptions, and `sitemap.xml` updated to v3.3.0
+
+### Added (from `fix/defaults-css-coverage-budget-36` · #38)
 - **`--each` flag — multi-repo parent directory support** · [#37](https://github.com/manojmallick/sigmap/issues/37)
   - Running `node gen-context.js --each` (or `sigmap --each`) from a parent directory that contains multiple independent git repos now processes each repo in one shot.
   - Scans immediate subdirectories; a subdirectory qualifies when it contains `.git` or a recognised project manifest (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `build.gradle`, `pom.xml`, `requirements.txt`).
@@ -42,7 +59,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
-## [3.2.0] — Planned — Phase A: Cross-Platform Standalone Binaries
+## [3.2.1] — 2026-04-07 — Patch: IDE Command Resolution & Plugin Parity
+
+### Added
+- **IDE command resolution parity (VS Code / Open VSX / JetBrains)** · [#34](https://github.com/manojmallick/sigmap/issues/34)
+  - Unified resolver checks both `sigmap` and `gen-context` executables with consistent fallback order
+  - Improved cross-platform probing for local workspace bins, Volta/nvm/npm-global installs, and OS-specific command lookup (`where` on Windows, shell lookup on macOS/Linux)
+  - JetBrains plugin resolves commands more reliably outside Node-only projects and provides OS-aware install guidance when command lookup fails
+- **`scripts/sync-versions.mjs`** — one-shot script to bump version across all package manifests and `gen-context.js` in sync
+- **Updated plugin docs** — VS Code/Open VSX and JetBrains setup docs updated with all supported install paths (npm global, npm local, npx, standalone binaries, project-local `gen-context.js`)
+
+---
+
+## [3.2.0] — 2026-04-07 — Cross-Platform Standalone Binaries
 
 ### Added
 - **Standalone binaries** — macOS (arm64 + x64), Linux x64, Windows x64 built via Node.js SEA
@@ -57,7 +86,7 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ### Technical
 - Uses [Node.js SEA](https://nodejs.org/api/single-executable-applications.html) (Node 20 `--experimental-sea-config` + `postject`)
-- `gen-context.js` was updated to include previously-missing `src/` modules (`todos`, `coverage`, `prdiff`) in the SEA bundle; existing `requireSourceOrBundled()` fallback and DEFAULTS fallback in `writeInitConfig()` remain SEA-compatible
+- `gen-context.js` updated to include previously-missing `src/` modules (`todos`, `coverage`, `prdiff`) in the SEA bundle; `requireSourceOrBundled()` fallback remains SEA-compatible
 - Binary builds run natively per OS in GHA (no cross-compilation)
 - `release-attach` job waits for the npm-publish Release to exist before uploading binary assets
 

@@ -151,7 +151,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <div class="page-hero">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="dot" style="background:var(--g)"></span>v3.2.1 released</div>
+    <div class="hero-badge"><span class="dot" style="background:var(--g)"></span>v3.3.0 released</div>
     <h1>v0.0 → v3.0</h1>
     <p class="hero-sub">Twenty-five versions shipped/planned. Reporting charts and advanced metrics are now the active milestone. MIT open source from day one.</p>
     <div class="hero-stats">
@@ -987,7 +987,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
         <div class="tl-header">
           <span class="tl-version">v3.2</span>
           <span class="tl-name">Standalone Binaries + Monorepo &amp; Quality Fixes</span>
-          <span class="tl-badge done">✓ Current — v3.2.1</span>
+          <span class="tl-badge done">✓ v3.2.1</span>
         </div>
         <div class="tl-desc">Standalone binaries built with Node.js SEA (Single Executable Application) for macOS arm64/x64, Linux x64, and Windows x64 — no Node.js runtime required. Four pipeline quality fixes: <code>applyTokenBudget</code> loop direction, CSS utility heuristic, <code>coverage.js</code> Python test patterns, and <code>isTested</code> token splitting. New <code>--each [dirs]</code> flag runs context generation independently per sub-directory. Bug fix: <code>--monorepo</code> no longer hardcodes the <code>claude</code> output adapter.</div>
         <div class="tl-tags">
@@ -1003,6 +1003,31 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       </div>
     </div>
 
+    <!-- v3.3 -->
+    <div id="v3.3" class="tl-item">
+      <div class="tl-rail">
+        <div class="tl-dot done">v3.3</div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-content">
+        <div class="tl-header">
+          <span class="tl-version">v3.3</span>
+          <span class="tl-name">Context-Aware CLI &amp; Command Switcher</span>
+          <span class="tl-badge done">✓ Current — v3.3.0</span>
+        </div>
+        <div class="tl-desc">The <code>--help</code> output now adapts to how you invoke SigMap — running <code>npx sigmap --help</code>, <code>sigmap --help</code>, <code>gen-context --help</code>, or <code>node gen-context.js --help</code> each shows the matching command in every usage example. The CLI reference docs page gains a four-tab command picker ("How you run it:") that rewrites all terminal blocks on the page to the selected invocation style, persisted in <code>localStorage</code>. Includes SEO improvements across all docs pages and new Gemini adapter context generation.</div>
+        <div class="tl-tags">
+          <span class="tl-tag">context-aware --help</span>
+          <span class="tl-tag">command switcher UI</span>
+          <span class="tl-tag">npx / global / local detection</span>
+          <span class="tl-tag">Gemini adapter</span>
+          <span class="tl-tag">SEO</span>
+          <span class="tl-tag">v3.3.0</span>
+        </div>
+        <div class="tl-impact">Every user sees the exact command that works for their install method — no more copy-paste errors</div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -1010,7 +1035,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <section class="section">
   <p class="section-ey">Final numbers</p>
-  <h2>v3.2.1 — Current milestone</h2>
+  <h2>v3.3.0 — Current milestone</h2>
 
   <div class="final-grid">
     <div class="final-stat">
@@ -1039,7 +1064,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <footer>
   <div class="footer-inner">
-    <span class="footer-logo">sigmap v3.2.1 &middot; <span style="color:var(--gd)">Latest</span></span>
+    <span class="footer-logo">sigmap v3.3.0 &middot; <span style="color:var(--gd)">Latest</span></span>
     <div class="footer-links">
       <a href="quick-start.html">Quick start</a>
       <a href="cli.html">CLI reference</a>
