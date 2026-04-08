@@ -67,7 +67,7 @@ log('── Phase A: build standalone binary ───────────�
   const srcDir = join(ROOT, 'src');
   const missing = [];
   for (const file of walkSrc(srcDir)) {
-    const key = './' + file.slice(ROOT.length + 1).replace(/\.js$/, '').replace(/\\/g, '/');
+    const key = './' + file.slice(ROOT.length).replace(/\.js$/, '').replace(/\\/g, '/');
     if (!bundle.includes(`"${key}"`)) missing.push(key);
   }
 

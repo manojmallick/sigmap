@@ -17,14 +17,16 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'macos-13' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-latest   # arm64 (GitHub default as of 2024)
             artifact: sigmap-darwin-arm64
-          - os: macos-13       # x64
+          - os: macos-13       # x64 (Intel; continue-on-error in case runner is unavailable)
             artifact: sigmap-darwin-x64
+            continue-on-error: true
           - os: ubuntu-latest  # x64
             artifact: sigmap-linux-x64
           - os: windows-latest # x64
@@ -48,7 +50,7 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.artifact }}
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 1
 
   # ── Attach all binaries + checksums to the GitHub Release ──────────────────
@@ -77,10 +79,8 @@ jobs:
       - name: Generate checksums
         working-directory: dist/release
         run: |
-          sha256sum sigmap-darwin-arm64 \
-                    sigmap-darwin-x64 \
-                    sigmap-linux-x64 \
-                    sigmap-win32-x64.exe \
+          # Only checksum files that were successfully built
+          sha256sum $(ls sigmap-darwin-arm64 sigmap-darwin-x64 sigmap-linux-x64 sigmap-win32-x64.exe 2>/dev/null) \
             > sigmap-checksums.txt
           cat sigmap-checksums.txt
 
@@ -109,11 +109,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF_NAME}"
-          gh release upload "$TAG" \
-            dist/release/sigmap-darwin-arm64 \
-            dist/release/sigmap-darwin-x64 \
-            dist/release/sigmap-linux-x64 \
-            dist/release/sigmap-win32-x64.exe \
-            dist/release/sigmap-checksums.txt \
-            --clobber
-          echo "✓ All assets uploaded to $TAG"
+          # Upload whatever binary artifacts were successfully built
+          FILES=$(find dist/release -name 'sigmap-*' -type f | sort | tr '\n' ' ')
+          gh release upload "$TAG" $FILES --clobber
+          echo "✓ Assets uploaded to $TAG"
