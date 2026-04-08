@@ -6214,11 +6214,10 @@ function runMonorepo(cwd, config) {
   for (const pkgPath of packages) {
     const pkgName = path.relative(cwd, pkgPath);
     console.warn(`[sigmap] monorepo: processing ${pkgName}`);
-    // Per-package config: scan src/ and package root, write CLAUDE.md per package
+    // Per-package config: scan src/ and package root, inherit outputs from parent config
     const pkgConfig = {
       ...config,
       srcDirs: ['src', 'lib', 'app', '.'],
-      outputs: ['claude'],
     };
     try {
       runGenerate(pkgPath, pkgConfig, false);
@@ -6226,7 +6225,7 @@ function runMonorepo(cwd, config) {
       console.warn(`[sigmap] monorepo: failed for ${pkgName}: ${err.message}`);
     }
   }
-  console.warn(`[sigmap] monorepo: wrote CLAUDE.md for ${packages.length} packages`);
+  console.warn(`[sigmap] monorepo: done — wrote context files for ${packages.length} packages`);
 }
 
 // ---------------------------------------------------------------------------
