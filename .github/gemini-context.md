@@ -1,5 +1,5 @@
 You are a coding assistant with complete knowledge of this codebase.
-The following code signatures were extracted by SigMap v3.3.0 on 2026-04-08T20:30:18.335Z.
+The following code signatures were extracted by SigMap v3.3.0 on 2026-04-09T23:28:24.262Z.
 
 These signatures represent every public function, class, and type in the project.
 
@@ -10,7 +10,7 @@ These signatures represent every public function, class, and type in the project
 
 # Code signatures
 
-## changes (last 10 commits — 10 minutes ago)
+## changes (last 10 commits — 2 hours ago)
 ```
 src/extractors/coverage.js                    +test_funcname  ~buildTestIndex  ~isTested
 src/extractors/css.js                         +names  +detection  +looksLikeUtility  ~names
@@ -107,15 +107,6 @@ function isTested(funcName, testIndex)  ✗
 ```
 module.exports = { extract }
 function extract(src) → string[]  ✓
-```
-
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)  ✗
-function respondError(id, code, message)  ✗
-function dispatch(msg, cwd)  ✗
-function start(cwd)  ✗
 ```
 
 ### src/config/loader.js
@@ -453,6 +444,15 @@ function explainFile(args, cwd)  ✓
 function listModules(args, cwd)  ✓
 function queryContext(args, cwd)  ✗
 function getImpact(args, cwd)  ✗
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)  ✗
+function respondError(id, code, message)  ✗
+function dispatch(msg, cwd)  ✗
+function start(cwd)  ✗
 ```
 
 ### src/mcp/tools.js
