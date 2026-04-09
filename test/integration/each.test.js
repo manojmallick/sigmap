@@ -268,6 +268,89 @@ test('no crash when no qualifying sub-repos found', () => {
   }
 });
 
+// ── 9. --each --adapter claude → CLAUDE.md written per sub-repo ──────────
+test('--each --adapter claude writes CLAUDE.md per sub-repo', () => {
+  const parent = mkTmp();
+  try {
+    writeFixtures(parent, {
+      'svc-a/package.json': '{"name":"svc-a"}',
+      'svc-a/src/api.ts':   'export function getUser() {}',
+      'svc-b/package.json': '{"name":"svc-b"}',
+      'svc-b/src/api.ts':   'export function getOrder() {}',
+    });
+
+    const result = spawnSync(process.execPath, [GEN, '--each', '--adapter', 'claude'], {
+      cwd: parent,
+      encoding: 'utf8',
+      timeout: 20000,
+    });
+    assert.strictEqual(result.status, 0, `exit ${result.status}: ${result.stderr}`);
+
+    for (const svc of ['svc-a', 'svc-b']) {
+      const claudeMd = path.join(parent, svc, 'CLAUDE.md');
+      assert.ok(fs.existsSync(claudeMd), `CLAUDE.md missing for ${svc}`);
+      // Default copilot output should NOT be written
+      assert.ok(
+        !fs.existsSync(path.join(parent, svc, '.github', 'copilot-instructions.md')),
+        `copilot-instructions.md should not be written when adapter=claude (${svc})`
+      );
+    }
+  } finally {
+    rmdir(parent);
+  }
+});
+
+// ── 10. --each --adapter cursor → .cursorrules written per sub-repo ───────
+test('--each --adapter cursor writes .cursorrules per sub-repo', () => {
+  const parent = mkTmp();
+  try {
+    writeFixtures(parent, {
+      'frontend/package.json': '{"name":"frontend"}',
+      'frontend/src/App.tsx':  'export function App() { return null; }',
+      'backend/package.json':  '{"name":"backend"}',
+      'backend/src/server.ts': 'export function startServer() {}',
+    });
+
+    const result = spawnSync(process.execPath, [GEN, '--each', '--adapter', 'cursor'], {
+      cwd: parent,
+      encoding: 'utf8',
+      timeout: 20000,
+    });
+    assert.strictEqual(result.status, 0, `exit ${result.status}: ${result.stderr}`);
+
+    for (const repo of ['frontend', 'backend']) {
+      const cursorRules = path.join(parent, repo, '.cursorrules');
+      assert.ok(fs.existsSync(cursorRules), `.cursorrules missing for ${repo}`);
+    }
+  } finally {
+    rmdir(parent);
+  }
+});
+
+// ── 11. --each --adapter with unknown name fails with clear error ─────────
+test('--each --adapter with unknown adapter name exits non-zero', () => {
+  const parent = mkTmp();
+  try {
+    writeFixtures(parent, {
+      'repo/package.json': '{"name":"repo"}',
+      'repo/src/a.ts':     'export function a() {}',
+    });
+
+    const result = spawnSync(process.execPath, [GEN, '--each', '--adapter', 'notanadapter'], {
+      cwd: parent,
+      encoding: 'utf8',
+      timeout: 10000,
+    });
+    assert.notStrictEqual(result.status, 0, 'should exit non-zero for unknown adapter');
+    assert.ok(
+      result.stderr.includes('notanadapter') || result.stdout.includes('notanadapter'),
+      'error output should mention the unknown adapter name'
+    );
+  } finally {
+    rmdir(parent);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Results
 // ---------------------------------------------------------------------------
