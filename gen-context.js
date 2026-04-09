@@ -5049,7 +5049,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '3.3.0';
+const VERSION = '3.3.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -6257,7 +6257,7 @@ function detectRepoDirs(cwd) {
   return repos;
 }
 
-function runEach(cwd, baseConfig) {
+function runEach(cwd, baseConfig, adapterOverride) {
   const repos = detectRepoDirs(cwd);
   if (repos.length === 0) {
     console.warn('[sigmap] --each: no project subdirectories found');
@@ -6275,6 +6275,13 @@ function runEach(cwd, baseConfig) {
       repoConfig = loadConfig(repoDir);
     } catch (_) {
       repoConfig = { ...baseConfig };
+    }
+    // --adapter override: apply on top of per-repo config
+    if (adapterOverride) {
+      repoConfig = Object.assign({}, repoConfig, {
+        outputs: adapterOverride === 'claude' ? ['claude'] : [adapterOverride],
+        adapters: [adapterOverride],
+      });
     }
     console.warn(`[sigmap] --each: processing ${name} …`);
     try {
@@ -6748,6 +6755,23 @@ function main() {
     process.exit(0);
   }
 
+  // ── --each [--adapter <name>] ────────────────────────────────────────────
+  // Must be checked before --adapter so that --each --adapter <name> is
+  // handled here (per-repo) rather than running a single generate on the
+  // parent directory.
+  if (args.includes('--each')) {
+    const VALID_ADAPTERS = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini'];
+    const adpIdx = args.indexOf('--adapter');
+    const adapterOverride = adpIdx >= 0 ? (args[adpIdx + 1] || '').trim().toLowerCase() : null;
+    if (adapterOverride && !VALID_ADAPTERS.includes(adapterOverride)) {
+      console.error(`[sigmap] --each: unknown adapter "${adapterOverride}"`);
+      console.error(`  Valid adapters: ${VALID_ADAPTERS.join(', ')}`);
+      process.exit(1);
+    }
+    runEach(cwd, config, adapterOverride || null);
+    process.exit(0);
+  }
+
   // ── --adapter <name> ───────────────────────────────────────────────────────
   if (args.includes('--adapter')) {
     try {
@@ -6864,11 +6888,6 @@ function main() {
 
   if (args.includes('--monorepo') || config.monorepo) {
     runMonorepo(cwd, config);
-    process.exit(0);
-  }
-
-  if (args.includes('--each')) {
-    runEach(cwd, config);
     process.exit(0);
   }
 

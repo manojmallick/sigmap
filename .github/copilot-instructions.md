@@ -3,7 +3,7 @@
 
 # Code signatures
 
-## changes (last 10 commits — 10 minutes ago)
+## changes (last 10 commits — 2 hours ago)
 ```
 src/extractors/coverage.js                    +test_funcname  ~buildTestIndex  ~isTested
 src/extractors/css.js                         +names  +detection  +looksLikeUtility  ~names
@@ -100,15 +100,6 @@ function isTested(funcName, testIndex)  ✗
 ```
 module.exports = { extract }
 function extract(src) → string[]  ✓
-```
-
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)  ✗
-function respondError(id, code, message)  ✗
-function dispatch(msg, cwd)  ✗
-function start(cwd)  ✗
 ```
 
 ### src/config/loader.js
@@ -446,6 +437,15 @@ function explainFile(args, cwd)  ✓
 function listModules(args, cwd)  ✓
 function queryContext(args, cwd)  ✗
 function getImpact(args, cwd)  ✗
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)  ✗
+function respondError(id, code, message)  ✗
+function dispatch(msg, cwd)  ✗
+function start(cwd)  ✗
 ```
 
 ### src/mcp/tools.js

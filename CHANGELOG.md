@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [3.3.1] — 2026-04-10 — Patch: `--each --adapter` flag combination
+
+### Fixed
+- **`--each --adapter <name>` now works correctly** · [#37](https://github.com/manojmallick/sigmap/issues/37)
+  - Running `sigmap --each --adapter claude` (or any adapter) from a parent directory containing multiple git repos now correctly writes the chosen adapter output (e.g. `CLAUDE.md`) inside each sub-repo.
+  - Root cause: the `--adapter` handler ran before `--each` in `main()`, so `--each` was never reached when both flags were supplied together. The `--each` block is now evaluated first.
+  - `runEach()` accepts an optional `adapterOverride` parameter that merges `outputs`/`adapters` into each sub-repo's config before calling `runGenerate`, mirroring how the standalone `--adapter` flag works.
+  - Invalid adapter names passed alongside `--each` now exit non-zero with a clear error message listing valid adapters.
+
+---
+
 ## [3.3.0] — 2026-04-08 — Context-Aware CLI & Command Switcher
 
 ### Added
