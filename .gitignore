@@ -7,3 +7,4 @@ node_modules/
 *.vsix
 IMPL.md
 PLAN.md
+.DS_Store

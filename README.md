@@ -9,9 +9,11 @@
   Multiple install options. Zero runtime dependencies. Requires only Node.js 18+.
 </p>
 
+<img src="docs/sigmap-banner.png" alt="SigMap — AI context engine" width="700">
+
 <!-- Status -->
 [![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
-[![Tests](https://img.shields.io/badge/tests-340%20passing-22c55e)](https://github.com/manojmallick/sigmap/tree/main/test)
+[![CI](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml/badge.svg)](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml)
 [![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
 [![Last commit](https://img.shields.io/github/last-commit/manojmallick/sigmap?color=7c6af7)](https://github.com/manojmallick/sigmap/commits/main)
 
@@ -39,7 +41,7 @@
 |---|---|
 | [What it does](#-what-it-does) | Token reduction table, pipeline overview |
 | [Quick start](#-quick-start) | Install (binary or npm), generate in 60 seconds |
-| [Standalone binaries](docs/binaries.md) | macOS, Linux, Windows — no Node required |
+| [Standalone binaries](docs/readmes/binaries.md) | macOS, Linux, Windows — no Node required |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
 | [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
 | [Languages supported](#-languages-supported) | 21 languages |
@@ -53,7 +55,7 @@
 | [Project structure](#-project-structure) | File-by-file map |
 | [Principles](#-principles) | Design decisions |
 
-> 📖 **New to SigMap?** Read the **[Complete Getting Started Guide](docs/GETTING_STARTED.md)** — token savings walkthrough, every command, VS Code plugin, and CI setup.
+> 📖 **New to SigMap?** Read the **[Complete Getting Started Guide](docs/readmes/GETTING_STARTED.md)** — token savings walkthrough, every command, VS Code plugin, and CI setup.
 
 ---
 
@@ -198,7 +200,7 @@ shasum -a 256 sigmap-darwin-arm64
 # Compare with sigmap-checksums.txt
 ```
 
-Full guide: [docs/binaries.md](docs/binaries.md)
+Full guide: [docs/readmes/binaries.md](docs/readmes/binaries.md)
 
 </details>
 
@@ -327,7 +329,7 @@ chmod +x ./sigmap-darwin-arm64
 ./sigmap-darwin-arm64
 ```
 
-See [docs/binaries.md](docs/binaries.md) for Gatekeeper / SmartScreen notes and checksum verification.
+See [docs/readmes/binaries.md](docs/readmes/binaries.md) for Gatekeeper / SmartScreen notes and checksum verification.
 
 **npm** (requires Node.js 18+):
 
@@ -402,7 +404,7 @@ The `jetbrains-plugin/` directory contains a Kotlin-based plugin for JetBrains I
 
 Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, **PyCharm**, **GoLand**, **RubyMine**, **PhpStorm**, and all other IntelliJ-based IDEs.
 
-**Install:** [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [Manual setup guide](docs/JETBRAINS_SETUP.md)
+**Install:** [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [Manual setup guide](docs/readmes/JETBRAINS_SETUP.md)
 
 ---
 
@@ -484,7 +486,7 @@ One `.github/context-<module>.md` per top-level source directory, plus a tiny ov
 
 Recently committed files are **hot** (auto-injected). Everything else is **cold** (on-demand via MCP). Best reduction available — ~200 tokens always-on.
 
-📖 Full guide: [docs/CONTEXT_STRATEGIES.md](docs/CONTEXT_STRATEGIES.md) — decision tree, scenario comparisons, migration steps.
+📖 Full guide: [docs/readmes/CONTEXT_STRATEGIES.md](docs/readmes/CONTEXT_STRATEGIES.md) — decision tree, scenario comparisons, migration steps.
 
 ---
 
@@ -511,7 +513,7 @@ node gen-context.js --mcp
 
 Reads files on every call — no stale state, no restart needed.
 
-📖 Setup guide: [docs/MCP_SETUP.md](docs/MCP_SETUP.md)
+📖 Setup guide: [docs/readmes/MCP_SETUP.md](docs/readmes/MCP_SETUP.md)
 
 ---
 
@@ -519,10 +521,12 @@ Reads files on every call — no stale state, no restart needed.
 
 > See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
-Pick your invocation style — all commands are identical, only the prefix changes:
+All flags are the same regardless of how you invoke SigMap — swap the prefix to match your install:
+
+> `sigmap` · `npx sigmap` · `gen-context` · `node gen-context.js`
 
 <details>
-<summary><strong>sigmap</strong> &nbsp;(npm global install)</summary>
+<summary><strong>All flags</strong></summary>
 
 ```
 sigmap                                        Generate once and exit
@@ -565,147 +569,6 @@ sigmap --track                                Append run metrics to .context/usa
 sigmap --init                                 Write config + .contextignore scaffold
 sigmap --version                              Version string
 sigmap --help                                 Usage information
-```
-</details>
-
-<details>
-<summary><strong>npx sigmap</strong> &nbsp;(zero install)</summary>
-
-```
-npx sigmap                                    Generate once and exit
-npx sigmap --watch                            Generate and watch for file changes
-npx sigmap --setup                            Generate + install git hook + start watcher
-npx sigmap --diff                             Generate context for git-changed files only
-npx sigmap --diff --staged                    Staged files only (pre-commit check)
-npx sigmap --mcp                              Start MCP server on stdio
-
-npx sigmap --query "<text>"                   Rank files by relevance to a query
-npx sigmap --query "<text>" --json            Ranked results as JSON
-npx sigmap --query "<text>" --top <n>         Limit results to top N files (default 10)
-
-npx sigmap --analyze                          Per-file breakdown (sigs / tokens / extractor / coverage)
-npx sigmap --analyze --json                   Analysis as JSON
-npx sigmap --analyze --slow                   Include extraction timing per file
-npx sigmap --diagnose-extractors              Self-test all 21 extractors against fixtures
-
-npx sigmap --benchmark                        Run retrieval quality benchmark (hit@5 / MRR)
-npx sigmap --benchmark --json                 Benchmark results as JSON
-npx sigmap --eval                             Alias for --benchmark
-
-npx sigmap --report                           Token reduction stats
-npx sigmap --report --json                    Structured JSON report (exits 1 if over budget)
-npx sigmap --report --history                 Usage log summary
-npx sigmap --report --history --json          Usage history as JSON
-
-npx sigmap --health                           Composite health score (0–100, grade A–D)
-npx sigmap --health --json                    Machine-readable health JSON
-
-npx sigmap --suggest-tool "<task>"            Recommend model tier for a task
-npx sigmap --suggest-tool "<task>" --json     Machine-readable tier recommendation
-
-npx sigmap --monorepo                         Per-package context for monorepos (packages/, apps/, services/)
-npx sigmap --each                             Process each sub-repo under a parent directory
-npx sigmap --routing                          Include model routing hints in output
-npx sigmap --format cache                     Write Anthropic prompt-cache JSON
-npx sigmap --track                            Append run metrics to .context/usage.ndjson
-
-npx sigmap --init                             Write config + .contextignore scaffold
-npx sigmap --version                          Version string
-npx sigmap --help                             Usage information
-```
-</details>
-
-<details>
-<summary><strong>gen-context</strong> &nbsp;(bin alias)</summary>
-
-```
-gen-context                                   Generate once and exit
-gen-context --watch                           Generate and watch for file changes
-gen-context --setup                           Generate + install git hook + start watcher
-gen-context --diff                            Generate context for git-changed files only
-gen-context --diff --staged                   Staged files only (pre-commit check)
-gen-context --mcp                             Start MCP server on stdio
-
-gen-context --query "<text>"                  Rank files by relevance to a query
-gen-context --query "<text>" --json           Ranked results as JSON
-gen-context --query "<text>" --top <n>        Limit results to top N files (default 10)
-
-gen-context --analyze                         Per-file breakdown (sigs / tokens / extractor / coverage)
-gen-context --analyze --json                  Analysis as JSON
-gen-context --analyze --slow                  Include extraction timing per file
-gen-context --diagnose-extractors             Self-test all 21 extractors against fixtures
-
-gen-context --benchmark                       Run retrieval quality benchmark (hit@5 / MRR)
-gen-context --benchmark --json                Benchmark results as JSON
-gen-context --eval                            Alias for --benchmark
-
-gen-context --report                          Token reduction stats
-gen-context --report --json                   Structured JSON report (exits 1 if over budget)
-gen-context --report --history                Usage log summary
-gen-context --report --history --json         Usage history as JSON
-
-gen-context --health                          Composite health score (0–100, grade A–D)
-gen-context --health --json                   Machine-readable health JSON
-
-gen-context --suggest-tool "<task>"           Recommend model tier for a task
-gen-context --suggest-tool "<task>" --json    Machine-readable tier recommendation
-
-gen-context --monorepo                        Per-package context for monorepos (packages/, apps/, services/)
-gen-context --each                            Process each sub-repo under a parent directory
-gen-context --routing                         Include model routing hints in output
-gen-context --format cache                    Write Anthropic prompt-cache JSON
-gen-context --track                           Append run metrics to .context/usage.ndjson
-
-gen-context --init                            Write config + .contextignore scaffold
-gen-context --version                         Version string
-gen-context --help                            Usage information
-```
-</details>
-
-<details>
-<summary><strong>node gen-context.js</strong> &nbsp;(local / no install)</summary>
-
-```
-node gen-context.js                           Generate once and exit
-node gen-context.js --watch                   Generate and watch for file changes
-node gen-context.js --setup                   Generate + install git hook + start watcher
-node gen-context.js --diff                    Generate context for git-changed files only
-node gen-context.js --diff --staged           Staged files only (pre-commit check)
-node gen-context.js --mcp                     Start MCP server on stdio
-
-node gen-context.js --query "<text>"          Rank files by relevance to a query
-node gen-context.js --query "<text>" --json   Ranked results as JSON
-node gen-context.js --query "<text>" --top <n> Limit results to top N files (default 10)
-
-node gen-context.js --analyze                 Per-file breakdown (sigs / tokens / extractor / coverage)
-node gen-context.js --analyze --json          Analysis as JSON
-node gen-context.js --analyze --slow          Include extraction timing per file
-node gen-context.js --diagnose-extractors     Self-test all 21 extractors against fixtures
-
-node gen-context.js --benchmark               Run retrieval quality benchmark (hit@5 / MRR)
-node gen-context.js --benchmark --json        Benchmark results as JSON
-node gen-context.js --eval                    Alias for --benchmark
-
-node gen-context.js --report                  Token reduction stats
-node gen-context.js --report --json           Structured JSON report (exits 1 if over budget)
-node gen-context.js --report --history        Usage log summary
-node gen-context.js --report --history --json Usage history as JSON
-
-node gen-context.js --health                  Composite health score (0–100, grade A–D)
-node gen-context.js --health --json           Machine-readable health JSON
-
-node gen-context.js --suggest-tool "<task>"   Recommend model tier for a task
-node gen-context.js --suggest-tool "<task>" --json  Machine-readable tier recommendation
-
-node gen-context.js --monorepo                Per-package context for monorepos (packages/, apps/, services/)
-node gen-context.js --each                    Process each sub-repo under a parent directory
-node gen-context.js --routing                 Include model routing hints in output
-node gen-context.js --format cache            Write Anthropic prompt-cache JSON
-node gen-context.js --track                   Append run metrics to .context/usage.ndjson
-
-node gen-context.js --init                    Write config + .contextignore scaffold
-node gen-context.js --version                 Version string
-node gen-context.js --help                    Usage information
 ```
 </details>
 
@@ -837,7 +700,7 @@ Copy `examples/self-healing-github-action.yml` to `.github/workflows/` to auto-r
   run: node gen-context.js
 ```
 
-📖 Full guide: [docs/ENTERPRISE_SETUP.md](docs/ENTERPRISE_SETUP.md)
+📖 Full guide: [docs/readmes/ENTERPRISE_SETUP.md](docs/readmes/ENTERPRISE_SETUP.md)
 
 ### Prompt caching — 60% API cost reduction
 
@@ -847,7 +710,7 @@ node gen-context.js --format cache
 # Format: { type: 'text', text: '...', cache_control: { type: 'ephemeral' } }
 ```
 
-📖 Full guide: [docs/REPOMIX_CACHE.md](docs/REPOMIX_CACHE.md)
+📖 Full guide: [docs/readmes/REPOMIX_CACHE.md](docs/readmes/REPOMIX_CACHE.md)
 
 ---
 
