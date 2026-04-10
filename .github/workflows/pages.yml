@@ -16,7 +16,6 @@ concurrency:
 
 # PREREQUISITE (one-time, 30 seconds):
 # GitHub Settings → Pages → Source → select "GitHub Actions" → Save
-# After that this workflow runs fully automatically on every push to main.
 
 jobs:
   deploy:
@@ -28,10 +27,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Upload docs/ as Pages artifact
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs-vp/package-lock.json
+
+      - name: Install & Build VitePress
+        run: |
+          cd docs-vp
+          npm ci
+          npm run docs:build
+
+      - name: Upload built site as Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/
+          path: docs-vp/.vitepress/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
