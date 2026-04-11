@@ -140,3 +140,9 @@ zero output.
 The lowest value measured across the 16 repos was **94.9%** (serilog/C#).
 Even on a repo where most code is already terse, SigMap cuts context by more than 18×.
 :::
+
+---
+
+<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
+  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
+</div>

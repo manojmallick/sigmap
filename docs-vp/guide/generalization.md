@@ -124,3 +124,10 @@ Key signals that the results are not overfit:
 | vapor | Swift | Web framework | 131 | 60% |
 | vue-core | JavaScript | UI framework | 232 | 100% |
 | svelte | JavaScript | UI framework | 370 | 60% |
+
+
+---
+
+<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
+  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
+</div>

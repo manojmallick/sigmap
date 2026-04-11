@@ -262,3 +262,10 @@ included in the repo). Re-running recomputes from the same 80-task empirical ret
 
 No LLM API was used. All scores are computed from the [retrieval benchmark](/guide/retrieval-benchmark)
 — 80 tasks, 16 real-world repos, 7 languages.
+
+
+---
+
+<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
+  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
+</div>

@@ -160,3 +160,10 @@ The MCP server reads whatever context file is on disk. Keep that file up to date
 **Option 1 — file watcher:** Run `sigmap --watch` in a terminal while you code. Every file save triggers an incremental regeneration. Best for active coding sessions.
 
 **Option 2 — git hook (recommended):** Run `sigmap --setup` once. It installs a `.git/hooks/post-commit` hook that regenerates context automatically on every commit. More reliable than the watcher across sleep/wake cycles.
+
+
+---
+
+<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
+  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
+</div>

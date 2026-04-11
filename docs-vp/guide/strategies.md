@@ -110,3 +110,10 @@ Need broad project understanding quickly, with minimal setup complexity.
 - Detailed guide in repository: [docs/CONTEXT_STRATEGIES.md](https://github.com/manojmallick/sigmap/blob/main/docs/CONTEXT_STRATEGIES.md)
 - MCP setup: [MCP server](/guide/mcp)
 - CLI usage: [Quick start](/guide/quick-start)
+
+
+---
+
+<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
+  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
+</div>

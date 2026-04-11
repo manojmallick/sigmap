@@ -69,7 +69,7 @@ export default defineConfig({
 
     footer: {
       message: 'MIT License',
-      copyright: 'Copyright © 2026 Manoj Mallick · Made in Amsterdam',
+      copyright: 'Copyright © 2026 Manoj Mallick · Made in Amsterdam, Netherlands 🇳🇱',
     },
 
     editLink: {

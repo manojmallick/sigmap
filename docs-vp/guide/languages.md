@@ -116,3 +116,10 @@ export class UserService
 ## Contributing a new language
 
 Adding a language means contributing one extractor file. Follow the extractor contract, ensure all tests pass, and open a PR. See [CONTRIBUTING.md](https://github.com/manojmallick/sigmap/blob/main/CONTRIBUTING.md) for the full guide.
+
+
+---
+
+<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
+  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
+</div>
