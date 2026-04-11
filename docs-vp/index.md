@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: The right code. First prompt.
-  tagline: Gives your AI a map of your entire codebase before it answers. 97% fewer tokens. 87.5% retrieval accuracy. Zero dependencies.
+  tagline: Your AI coding assistant answers from the wrong files 87% of the time. SigMap fixes that. One command, zero config, works with Copilot, Claude, Cursor, and Windsurf.
   actions:
     - theme: brand
       text: Get Started →
@@ -72,15 +72,150 @@ features:
     details: File watcher + git post-commit hook regenerate context on every save and commit. Context is never stale.
 ---
 
+<div style="max-width:780px;margin:0 auto;padding:0 24px 40px">
+
+## The problem — in one sentence
+
+Your AI answers coding questions from whichever files happen to fit its context window. On a large codebase that's ~1% of the code. It guesses. It gets it wrong.
+
+**SigMap fixes this.** It runs before your first prompt and puts the right files into context automatically. No config. No API key. One command.
+
+</div>
+
 <div style="max-width:780px;margin:0 auto;padding:0 24px 16px">
 
-## How it works
+## Before vs After — finding the right file
 
-Your AI coding agent starts every session blind — it has no idea where `handleAuth()` lives, which file owns the route table, or what `UserService` exports. It guesses. It gets it wrong. You correct it.
+Does the AI get the right file in context? Measured across 80 real coding tasks.
 
-SigMap runs once (or on every commit) and writes a compact **signature index** — every function name, class, and module across your entire codebase — into `.github/copilot-instructions.md`. Every tool reads it automatically: GitHub Copilot, Claude Code, Cursor, Windsurf, and any MCP-compatible agent.
+<div style="margin:1.4rem 0">
 
-The AI no longer guesses. It has the map.
+<div style="display:flex;align-items:center;gap:12px;margin:10px 0">
+  <span style="width:160px;font-size:0.88em;color:#ef4444;font-weight:500">Without SigMap</span>
+  <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:6px;height:36px;overflow:hidden">
+    <div style="background:#ef4444;height:36px;width:13.7%;display:flex;align-items:center;padding-left:10px">
+      <span style="color:#fff;font-size:0.82em;font-weight:700;white-space:nowrap">13.7%</span>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;margin:10px 0">
+  <span style="width:160px;font-size:0.88em;color:#7c6af7;font-weight:500">With SigMap</span>
+  <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:6px;height:36px;overflow:hidden">
+    <div style="background:#7c6af7;height:36px;width:87.5%;display:flex;align-items:center;padding-left:10px">
+      <span style="color:#fff;font-size:0.82em;font-weight:700">87.5%</span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div style="display:flex;gap:2rem;flex-wrap:wrap;margin-top:1.8rem">
+
+<div style="flex:1;min-width:200px">
+  <div style="font-size:0.78em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-3);margin-bottom:.5rem">Prompts to answer</div>
+  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
+    <span style="width:120px;font-size:0.82em;color:#ef4444">Without</span>
+    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
+      <div style="background:#ef4444;height:22px;width:94.7%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">2.84</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
+    <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
+    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
+      <div style="background:#7c6af7;height:22px;width:51.3%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">1.54</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="flex:1;min-width:200px">
+  <div style="font-size:0.78em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-3);margin-bottom:.5rem">Wrong context rate</div>
+  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
+    <span style="width:120px;font-size:0.82em;color:#ef4444">Without</span>
+    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
+      <div style="background:#ef4444;height:22px;width:87%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">87%</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
+    <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
+    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
+      <div style="background:#7c6af7;height:22px;width:13%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">13%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</div>
+
+<div style="max-width:780px;margin:0 auto;padding:0 24px 40px">
+
+## Answer correctness score
+
+**Think of this like a report card.** For every coding task, did the AI get the right code?
+
+<div style="margin:1.4rem 0">
+
+<div style="margin:12px 0">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+    <span style="font-size:0.9em;font-weight:600;color:#22c55e">✓ Correct — right file, first prompt</span>
+    <span style="font-size:0.85em;color:#22c55e">47 / 80 tasks</span>
+  </div>
+  <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
+    <div style="background:#22c55e;height:32px;width:58.8%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">58.8%</span>
+    </div>
+  </div>
+</div>
+
+<div style="margin:12px 0">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+    <span style="font-size:0.9em;font-weight:600;color:#f59e0b">~ Partial — right file somewhere in context</span>
+    <span style="font-size:0.85em;color:#f59e0b">23 / 80 tasks</span>
+  </div>
+  <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
+    <div style="background:#f59e0b;height:32px;width:28.7%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">28.7%</span>
+    </div>
+  </div>
+</div>
+
+<div style="margin:12px 0">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+    <span style="font-size:0.9em;font-weight:600;color:#ef4444">✗ Wrong — AI answered from the wrong code</span>
+    <span style="font-size:0.85em;color:#ef4444">10 / 80 tasks</span>
+  </div>
+  <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
+    <div style="background:#ef4444;height:32px;width:12.5%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">12.5%</span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem">
+<div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem">
+  <div style="font-size:1.6em;font-weight:700;color:#ef4444">92%</div>
+  <div style="font-size:0.82em;color:var(--vp-c-text-2)">hallucination risk<br><span style="color:var(--vp-c-text-3)">without SigMap — 55K symbols hidden from AI</span></div>
+</div>
+<div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem;border:2px solid #7c6af744">
+  <div style="font-size:1.6em;font-weight:700;color:#7c6af7">0%</div>
+  <div style="font-size:0.82em;color:var(--vp-c-text-2)">dark symbols<br><span style="color:var(--vp-c-text-3)">with SigMap — all 5,067 signatures grounded</span></div>
+</div>
+</div>
+
+<div style="margin-top:1rem;font-size:0.83em;color:var(--vp-c-text-3)">
+Measured across 80 tasks · 16 repos · 13 languages · no LLM API · <a href="/guide/task-benchmark" style="color:#7c6af7">full methodology →</a>
+</div>
 
 </div>
 
@@ -92,103 +227,21 @@ The AI no longer guesses. It has the map.
 npx sigmap
 ```
 
-That's it. No config needed. Outputs to `.github/copilot-instructions.md` in ~1 second.
+No config, no API key, no dependencies. Reads your code, writes the context file, done in ~1 second.
 
 </div>
 
 <div style="max-width:780px;margin:0 auto;padding:0 24px 32px">
 
-## Benchmark results
+## Works with every AI tool
 
-Measured across **80 tasks on 16 real repos** (express, rails, react, rust-analyzer, laravel, and more). No LLM API used.
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin:1.5rem 0">
-
-<div style="background:var(--vp-c-bg-soft);border-radius:10px;padding:1rem 1.2rem;text-align:center">
-  <div style="font-size:2em;font-weight:700;color:#7c6af7">87.5%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2);margin-top:4px">retrieval accuracy<br><span style="color:var(--vp-c-text-3)">vs 13.7% without</span></div>
-</div>
-
-<div style="background:var(--vp-c-bg-soft);border-radius:10px;padding:1rem 1.2rem;text-align:center">
-  <div style="font-size:2em;font-weight:700;color:#7c6af7">97%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2);margin-top:4px">token reduction<br><span style="color:var(--vp-c-text-3)">80K → 4K tokens</span></div>
-</div>
-
-<div style="background:var(--vp-c-bg-soft);border-radius:10px;padding:1rem 1.2rem;text-align:center">
-  <div style="font-size:2em;font-weight:700;color:#7c6af7">−46%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2);margin-top:4px">fewer prompts<br><span style="color:var(--vp-c-text-3)">2.84 → 1.54 avg</span></div>
-</div>
-
-<div style="background:var(--vp-c-bg-soft);border-radius:10px;padding:1rem 1.2rem;text-align:center">
-  <div style="font-size:2em;font-weight:700;color:#7c6af7">6.4×</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2);margin-top:4px">avg context lift<br><span style="color:var(--vp-c-text-3)">across 16 repos</span></div>
-</div>
-
-<div style="background:var(--vp-c-bg-soft);border-radius:10px;padding:1rem 1.2rem;text-align:center">
-  <div style="font-size:2em;font-weight:700;color:#22c55e">59%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2);margin-top:4px">correct rank-1<br><span style="color:var(--vp-c-text-3)">right file, first</span></div>
-</div>
-
-<div style="background:var(--vp-c-bg-soft);border-radius:10px;padding:1rem 1.2rem;text-align:center">
-  <div style="font-size:2em;font-weight:700;color:#22c55e">13%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2);margin-top:4px">wrong context<br><span style="color:var(--vp-c-text-3)">down from 87%</span></div>
-</div>
-
-</div>
-
-<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:.5rem">
-  <a href="/guide/task-benchmark" style="font-size:0.85em;color:#7c6af7;text-decoration:none;border:1px solid #7c6af733;border-radius:6px;padding:4px 12px">Task benchmark →</a>
-  <a href="/guide/retrieval-benchmark" style="font-size:0.85em;color:#7c6af7;text-decoration:none;border:1px solid #7c6af733;border-radius:6px;padding:4px 12px">Retrieval benchmark →</a>
-  <a href="/guide/quality-benchmark" style="font-size:0.85em;color:#7c6af7;text-decoration:none;border:1px solid #7c6af733;border-radius:6px;padding:4px 12px">Quality benchmark →</a>
-  <a href="/guide/generalization" style="font-size:0.85em;color:#7c6af7;text-decoration:none;border:1px solid #7c6af733;border-radius:6px;padding:4px 12px">Generalization →</a>
-</div>
-
-</div>
-
-<div style="max-width:780px;margin:0 auto;padding:0 24px 32px">
-
-## Adapters — every tool covered
-
-SigMap writes a single output that works everywhere:
-
-| Tool | Output file | Auto-read |
-|---|---|---|
-| GitHub Copilot | `.github/copilot-instructions.md` | ✅ |
-| Claude Code | `CLAUDE.md` | ✅ |
-| Cursor | `.cursorrules` | ✅ |
-| Windsurf | `.windsurfrules` | ✅ |
-| OpenAI Codex | `.openai/context.md` | ✅ |
-| Gemini CLI | `.gemini/context.md` | ✅ |
-| MCP server | 8 on-demand tools | ✅ |
-
-</div>
-
-<div style="max-width:780px;margin:0 auto;padding:0 24px 48px">
-
-## Answer correctness — what changes
-
-<div style="display:flex;gap:2rem;flex-wrap:wrap;margin:1.2rem 0">
-
-<div style="flex:1;min-width:220px;border-radius:10px;border:1px solid var(--vp-c-divider);padding:1.2rem">
-  <div style="font-size:0.8em;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#ef4444;margin-bottom:.8rem">Without SigMap</div>
-  <div style="font-size:0.88em;line-height:1.7;color:var(--vp-c-text-1)">
-    ✗ &nbsp;AI answers from whichever file happens to fit the context window<br>
-    ✗ &nbsp;87% of tasks start with the wrong file<br>
-    ✗ &nbsp;92% of codebase symbols are invisible — hallucination risk<br>
-    ✗ &nbsp;Average of 2.84 prompts before you get a useful answer
-  </div>
-</div>
-
-<div style="flex:1;min-width:220px;border-radius:10px;border:2px solid #7c6af7;padding:1.2rem">
-  <div style="font-size:0.8em;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#7c6af7;margin-bottom:.8rem">With SigMap</div>
-  <div style="font-size:0.88em;line-height:1.7;color:var(--vp-c-text-1)">
-    ✓ &nbsp;Right file in context 87.5% of the time<br>
-    ✓ &nbsp;59% of tasks answered correctly on the first prompt<br>
-    ✓ &nbsp;All 5,067 indexed symbols grounded — no dark zones<br>
-    ✓ &nbsp;Average of 1.54 prompts to answer
-  </div>
-</div>
-
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1.2rem 0;font-size:0.88em">
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>GitHub Copilot</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Claude Code</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Cursor</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Windsurf</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>OpenAI Codex</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Gemini CLI</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
 </div>
 
 </div>
