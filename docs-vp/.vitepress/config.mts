@@ -33,6 +33,7 @@ export default defineConfig({
         items: [
           { text: 'Quick start', link: '/guide/quick-start' },
           { text: 'Benchmark', link: '/guide/benchmark' },
+          { text: 'Quality benchmark', link: '/guide/quality-benchmark' },
         ],
       },
       {
