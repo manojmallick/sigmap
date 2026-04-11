@@ -36,6 +36,7 @@
     "src/",
     "packages/",
     "README.md",
+    "AGENTS.md",
     "LICENSE",
     "CHANGELOG.md",
     ".contextignore.example",
