@@ -32,19 +32,24 @@
 
 ---
 
-**Without SigMap** — you ask your AI to trace a bug. It reads the wrong files, makes something up. You re-prompt twice. Still wrong.
+**✔ 6× better answers** — correct task answers: 10% → **59%**  
+**✔ 2× fewer prompts** — 2.84 → **1.54** prompts per task  
+**✔ 97% fewer tokens** — ~80,000 → **~2,000** per session  
+**✔ Consistent** — same gains across 16 repos and 21 languages  
 
-**With SigMap** — run one command. Your AI gets a map of every function in your codebase. First answer is right.
+| | Without SigMap | With SigMap |
+|---|:---:|:---:|
+| Task success | 10% | **59%** |
+| Prompts per task | 2.84 | **1.54** |
+| Tokens per session | ~80,000 | **~2,000** |
 
 ```sh
-npx sigmap   # ~10 seconds, zero config
+npx sigmap   # 10 seconds, zero config
 ```
-
-> **Correct answers jumped from 10% → 59%. Hallucination risk dropped 92% → 0%.** Measured across 80 tasks on 16 real repos — no LLM API.
 
 <div align="center">
 <img src="docs/comparison-chart.svg" alt="SigMap — before vs after" width="700" />
-<br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">80 tasks · 16 real repos · full methodology →</a></sub>
+<br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">Measured across 80 tasks · 16 real repos · no LLM API · <strong>full methodology →</strong></a></sub>
 </div>
 
 ---

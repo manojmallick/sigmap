@@ -30,8 +30,8 @@ head:
 
 hero:
   name: SigMap
-  text: The right code. First prompt.
-  tagline: Your AI coding assistant answers from the wrong files 87% of the time. SigMap fixes that. One command, zero config, works with Copilot, Claude, Cursor, and Windsurf.
+  text: 6× better AI answers.
+  tagline: "✔ 59% task success (was 10%)  ✔ 2× fewer prompts  ✔ 97% fewer tokens. One command, zero config — works with Copilot, Claude, Cursor, and Windsurf."
   actions:
     - theme: brand
       text: Get Started →

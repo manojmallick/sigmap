@@ -18,17 +18,28 @@ head:
 
 # Task benchmark
 
-**The problem:** You ask an AI *"how does the auth flow work?"* It confidently walks you through
-code from the wrong file. You correct it. It apologises and guesses again. Three prompts later
-you finally get the answer you needed in prompt one.
+<div style="background:var(--vp-c-brand-soft,#ede9fe);border-left:4px solid var(--vp-c-brand,#7c6af7);border-radius:0 8px 8px 0;padding:1.1rem 1.4rem;margin-bottom:1.8rem">
 
-This happens because the AI never saw the right file. It had no map.
+**SigMap Results** — 80 tasks · 16 real repos · no LLM API
 
-**SigMap fixes the map.** Before your first prompt, it builds a compact signature index of your
-entire codebase — every function, class, and module — and puts the most relevant files into
-context automatically. The right code is there when the AI starts, not after three retries.
+**✔ 6× better answers** — correct answers: 10% → **59%**  
+**✔ 2× fewer prompts** — 2.84 → **1.54** per task  
+**✔ 97% token reduction** — ~80,000 → **~2,000** per session  
+**✔ Consistent** — same gains across all 16 repos and 21 languages
 
-This benchmark measures exactly that impact across **80 real coding tasks on 16 repos**:
+| | Without SigMap | With SigMap |
+|---|:---:|:---:|
+| Task success | 10% | **59%** |
+| Prompts per task | 2.84 | **1.54** |
+| Tokens per session | ~80,000 | **~2,000** |
+
+</div>
+
+**The problem:** You ask your AI *"how does the auth flow work?"* It reads the wrong file, makes something up. You re-prompt. Still wrong.
+
+**SigMap fixes the map.** One command builds a compact signature index of your entire codebase. The right files are in context before your first prompt — not after three retries.
+
+This benchmark measures that impact across **80 real coding tasks on 16 repos**:
 
 | What we measured | Without SigMap | With SigMap |
 |---|---|---|
