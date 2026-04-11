@@ -4,12 +4,9 @@
 
 <h1>⚡ SigMap</h1>
 
-<p><strong>Your AI reads the wrong files 87% of the time. SigMap fixes that.</strong></p>
+<p><strong>Your AI gets coding answers right 6× more often.</strong></p>
 
-<p>
-  One command. Zero config. Your AI starts every session knowing your codebase.<br>
-  Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.
-</p>
+<p>One command. No config. Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.</p>
 
 <!-- Status -->
 [![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
@@ -35,41 +32,20 @@
 
 ---
 
-> You ask your AI about your codebase. It reads the wrong files, hallucinates an answer. You re-prompt. Repeat.
->
-> **SigMap maps every function signature into a compact index your AI reads first — before it reads anything else.**
+**Without SigMap** — you ask your AI to trace a bug. It reads the wrong files, makes something up. You re-prompt twice. Still wrong.
 
-<div align="center">
-<img src="docs/comparison-chart.svg" alt="SigMap benchmark — before vs after across 3 RAG quality metrics" width="700" />
-</div>
+**With SigMap** — run one command. Your AI gets a map of every function in your codebase. First answer is right.
 
 ```sh
-npx sigmap   # run once → your AI knows your whole codebase next session
+npx sigmap   # ~10 seconds, zero config
 ```
 
-[Full benchmark methodology →](https://manojmallick.github.io/sigmap/guide/task-benchmark.html)
+> **Correct answers jumped from 10% → 59%. Hallucination risk dropped 92% → 0%.** Measured across 80 tasks on 16 real repos — no LLM API.
 
----
-
-## Measured numbers
-
-|  | Without SigMap | With SigMap |
-|---|:---:|:---:|
-| Finds the right file | 13.7% 🔴 | **87.5%** 🟢 |
-| Correct answers | ~10% 🔴 | **59%** 🟢 |
-| Hallucination risk | 92% 🔴 | **0%** 🟢 |
-| Token cost per session | ~80,000 🔴 | **~2,000** 🟢 |
-| Prompts to get an answer | 2.84 🔴 | **1.54** 🟢 |
-
-### Answer correctness breakdown
-
-| Score | Without SigMap | With SigMap |
-|---|:---:|:---:|
-| ✅ Fully correct | ~10% | **59%** |
-| 🟡 Partially correct | ~10% | **29%** |
-| ❌ Wrong / hallucinated | ~80% | **12%** |
-
-Benchmarked across 80 tasks · 16 real open-source repos · no LLM API required. [Full methodology →](https://manojmallick.github.io/sigmap/guide/task-benchmark.html)
+<div align="center">
+<img src="docs/comparison-chart.svg" alt="SigMap — before vs after" width="700" />
+<br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">80 tasks · 16 real repos · full methodology →</a></sub>
+</div>
 
 ---
 
