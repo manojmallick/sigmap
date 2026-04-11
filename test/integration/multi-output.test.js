@@ -68,6 +68,33 @@ test('Default output writes copilot-instructions.md', () => {
   });
 });
 
+test('copilot output preserves human content above marker', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    const out = path.join(dir, '.github', 'copilot-instructions.md');
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(
+      out,
+      '# Team notes\n\nKeep this section manual.\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n\nold signatures\n',
+      'utf8'
+    );
+
+    fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({
+      outputs: ['copilot'],
+      secretScan: false,
+    }));
+
+    runGenerate(dir);
+
+    const content = fs.readFileSync(out, 'utf8');
+    assert.ok(content.startsWith('# Team notes'), 'Human content at top must be preserved');
+    assert.ok(content.includes('Keep this section manual.'), 'Human content must be intact');
+    assert.ok(content.includes('greet'), 'Signatures must be present');
+    const markerCount = (content.match(/Auto-generated signatures/g) || []).length;
+    assert.strictEqual(markerCount, 1, 'Marker should appear exactly once');
+  });
+});
+
 // ─────────────────────────────────────────────────────────────
 // cursor output
 // ─────────────────────────────────────────────────────────────
@@ -212,6 +239,33 @@ test('All 4 output targets written in a single run', () => {
       const content = fs.readFileSync(f, 'utf8');
       assert.ok(content.length > 0, `${path.basename(f)} should be non-empty`);
     }
+  });
+});
+
+test('gemini output preserves human content above marker', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    const out = path.join(dir, '.github', 'gemini-context.md');
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(
+      out,
+      '# Gemini setup notes\n\nUse concise answers.\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n\nold signatures\n',
+      'utf8'
+    );
+
+    fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({
+      outputs: ['gemini'],
+      secretScan: false,
+    }));
+
+    runGenerate(dir);
+
+    const content = fs.readFileSync(out, 'utf8');
+    assert.ok(content.startsWith('# Gemini setup notes'), 'Human content at top must be preserved');
+    assert.ok(content.includes('Use concise answers.'), 'Human content must be intact');
+    assert.ok(content.includes('greet'), 'Signatures must be present');
+    const markerCount = (content.match(/Auto-generated signatures/g) || []).length;
+    assert.strictEqual(markerCount, 1, 'Marker should appear exactly once');
   });
 });
 

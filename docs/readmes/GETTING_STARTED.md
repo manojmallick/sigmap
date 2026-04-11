@@ -667,10 +667,12 @@ Create `gen-context.config.json` in your project root (`sigmap --init` generates
 
 | Value | File written |
 |---|---|
-| `"copilot"` | `.github/copilot-instructions.md` |
+| `"copilot"` | `.github/copilot-instructions.md` (appends below `## Auto-generated signatures`) |
 | `"claude"` | `CLAUDE.md` (appends below `## Auto-generated signatures`) |
 | `"cursor"` | `.cursorrules` |
 | `"windsurf"` | `.windsurfrules` |
+| `"openai"` | `.github/openai-context.md` |
+| `"gemini"` | `.github/gemini-context.md` (appends below `## Auto-generated signatures`) |
 
 ### `.contextignore` — exclude files from indexing
 

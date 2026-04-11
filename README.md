@@ -313,17 +313,17 @@ sigmap --adapter claude     # → CLAUDE.md (appended below marker)
 sigmap --adapter cursor     # → .cursorrules
 sigmap --adapter windsurf   # → .windsurfrules
 sigmap --adapter openai     # → .github/openai-context.md
-sigmap --adapter gemini     # → .github/gemini-context.md
+sigmap --adapter gemini     # → .github/gemini-context.md (appended below marker)
 ```
 
 | Adapter | Output file | AI assistant |
 |---|---|---|
-| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot |
+| `copilot` | `.github/copilot-instructions.md` (append) | GitHub Copilot |
 | `claude` | `CLAUDE.md` (append) | Claude / Claude Code |
 | `cursor` | `.cursorrules` | Cursor |
 | `windsurf` | `.windsurfrules` | Windsurf |
 | `openai` | `.github/openai-context.md` | Any OpenAI model |
-| `gemini` | `.github/gemini-context.md` | Google Gemini |
+| `gemini` | `.github/gemini-context.md` (append) | Google Gemini |
 
 Configure multiple adapters at once in `gen-context.config.json`:
 
