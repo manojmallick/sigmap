@@ -35,17 +35,41 @@
 
 ---
 
-## Results at a glance
+> You ask your AI about your codebase. It reads the wrong files, hallucinates an answer. You re-prompt. Repeat.
+>
+> **SigMap maps every function signature into a compact index your AI reads first — before it reads anything else.**
+
+<div align="center">
+<img src="docs/comparison-chart.svg" alt="SigMap benchmark — before vs after across 3 RAG quality metrics" width="700" />
+</div>
+
+```sh
+npx sigmap   # run once → your AI knows your whole codebase next session
+```
+
+[Full benchmark methodology →](https://manojmallick.github.io/sigmap/guide/task-benchmark.html)
+
+---
+
+## Measured numbers
 
 |  | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Finds the right file | 13.7% 🔴 | **87.5%** 🟢 |
 | Correct answers | ~10% 🔴 | **59%** 🟢 |
-| Hallucination risk | ~80% 🔴 | **12%** 🟢 |
-| Token cost per session | ~80,000 🔴 | **~4,000** 🟢 |
-| Prompts needed to answer | 2.84 🔴 | **1.54** 🟢 |
+| Hallucination risk | 92% 🔴 | **0%** 🟢 |
+| Token cost per session | ~80,000 🔴 | **~2,000** 🟢 |
+| Prompts to get an answer | 2.84 🔴 | **1.54** 🟢 |
 
-Benchmarked across 16 real open-source repos. [Full methodology →](https://manojmallick.github.io/sigmap/)
+### Answer correctness breakdown
+
+| Score | Without SigMap | With SigMap |
+|---|:---:|:---:|
+| ✅ Fully correct | ~10% | **59%** |
+| 🟡 Partially correct | ~10% | **29%** |
+| ❌ Wrong / hallucinated | ~80% | **12%** |
+
+Benchmarked across 80 tasks · 16 real open-source repos · no LLM API required. [Full methodology →](https://manojmallick.github.io/sigmap/guide/task-benchmark.html)
 
 ---
 
@@ -128,18 +152,6 @@ Reproduced with `node scripts/run-benchmark.mjs` on public repos:
 | svelte | Svelte | 438.2K | 8.0K | **98.2%** |
 
 **Average: 99.3% reduction across 16 languages.** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
-
-### Answer correctness benchmark
-
-Measured across 80 coding tasks on 16 real repos — asking the AI to explain, fix, or trace code:
-
-| Outcome | Without SigMap | With SigMap |
-|---|:---:|:---:|
-| ✅ Correct | ~10% | **59%** |
-| 🟡 Partially correct | ~10% | **29%** |
-| ❌ Wrong / hallucinated | **~80%** | **12%** |
-
-> **Hallucination risk drops from 92% to 12%.** The AI isn't smarter — it just has the right context. Reproduce with `node scripts/run-task-benchmark.mjs`.
 
 ---
 
