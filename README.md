@@ -2,11 +2,11 @@
 
 <h1>⚡ SigMap</h1>
 
-<p><strong>Zero-dependency AI context engine — 97% token reduction</strong></p>
+<p><strong>Your AI reads the wrong files 87% of the time. SigMap fixes that.</strong></p>
 
 <p>
-  Every coding agent session starts with full codebase context at under 4K tokens.<br>
-  Multiple install options. Zero runtime dependencies. Requires only Node.js 18+.
+  One command. Zero config. Your AI starts every session knowing your codebase.<br>
+  Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.
 </p>
 
 <!-- Status -->
@@ -30,6 +30,20 @@
 [![Open VSX](https://img.shields.io/open-vsx/v/manojmallick/sigmap?color=a251e3&label=Open%20VSX&logo=vscodium)](https://open-vsx.org/extension/manojmallick/sigmap)
 
 </div>
+
+---
+
+## Results at a glance
+
+|  | Without SigMap | With SigMap |
+|---|:---:|:---:|
+| Finds the right file | 13.7% 🔴 | **87.5%** 🟢 |
+| Correct answers | ~10% 🔴 | **59%** 🟢 |
+| Hallucination risk | ~80% 🔴 | **12%** 🟢 |
+| Token cost per session | ~80,000 🔴 | **~4,000** 🟢 |
+| Prompts needed to answer | 2.84 🔴 | **1.54** 🟢 |
+
+Benchmarked across 16 real open-source repos. [Full methodology →](https://manojmallick.github.io/sigmap/)
 
 ---
 
@@ -112,6 +126,18 @@ Measured with `node gen-context.js --report --json` on public repos:
 | svelte | Svelte | 438.2K | 8.0K | **98.2%** |
 
 **Average: 99.3% reduction across 16 languages.** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
+
+### Answer correctness benchmark
+
+Measured across 80 coding tasks on 16 real repos — asking the AI to explain, fix, or trace code:
+
+| Outcome | Without SigMap | With SigMap |
+|---|:---:|:---:|
+| ✅ Correct | ~10% | **59%** |
+| 🟡 Partially correct | ~10% | **29%** |
+| ❌ Wrong / hallucinated | **~80%** | **12%** |
+
+> **Hallucination risk drops from 92% to 12%.** The AI isn't smarter — it just has the right context. Reproduce with `node scripts/run-task-benchmark.mjs`.
 
 ---
 
