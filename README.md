@@ -19,6 +19,10 @@
 npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again.
 ```
 
+<div align="center">
+<img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
+</div>
+
 <details>
 <summary><strong>Trust signals</strong></summary>
 
@@ -432,6 +436,11 @@ The official SigMap VS Code extension keeps your context fresh without any manua
 | **Regenerate command** | `SigMap: Regenerate Context` — runs `sigmap` in the integrated terminal |
 | **Open context command** | `SigMap: Open Context File` — opens `.github/copilot-instructions.md` |
 | **Script path setting** | `sigmap.scriptPath` — override the path to the `sigmap` binary or `gen-context.js` |
+
+<div align="center">
+<img src="vscode.gif" alt="SigMap VS Code extension — status bar, stale notification, regenerate context" width="760" />
+</div>
+
 
 Activates on startup (`onStartupFinished`) — loads within 3 s, never blocks editor startup.
 
