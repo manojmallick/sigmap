@@ -9,8 +9,6 @@
   Multiple install options. Zero runtime dependencies. Requires only Node.js 18+.
 </p>
 
-<img src="docs/sigmap-banner.png" alt="SigMap — AI context engine" width="700">
-
 <!-- Status -->
 [![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
 [![CI](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml/badge.svg)](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml)
