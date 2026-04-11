@@ -4,10 +4,10 @@
 
 <h1>⚡ SigMap</h1>
 
-<p><strong>Your AI just answered from the wrong file. Again.<br>
-It can see 8% of your codebase. The rest is invisible. Every answer is a guess.</strong></p>
+<p><strong>WITHOUT SIGMAP, YOUR AI IS GUESSING.</strong><br>
+<strong>It sees 8% of your codebase and invents the rest.</strong></p>
 
-<p><sub>One command changes that permanently. Works with Copilot, Claude Code, Cursor, Windsurf, Gemini.</sub></p>
+<p><sub>Run one command. Force every answer to come from real code.</sub></p>
 
 </div>
 
@@ -18,6 +18,9 @@ It can see 8% of your codebase. The rest is invisible. Every answer is a guess.<
 ```sh
 npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again.
 ```
+
+<details>
+<summary><strong>Trust signals</strong></summary>
 
 <div align="center">
 
@@ -31,6 +34,8 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 [![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
 
 </div>
+
+</details>
 
 <details>
 <summary><strong>Full benchmark breakdown →</strong></summary>

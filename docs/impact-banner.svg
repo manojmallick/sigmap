@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" width="760" height="380" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 402" width="760" height="402" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
 
   <!-- Background -->
-  <rect width="760" height="380" fill="#080610" rx="14"/>
-  <rect width="760" height="380" fill="none" stroke="#1e1440" stroke-width="1.5" rx="14"/>
+  <rect width="760" height="402" fill="#080610" rx="14"/>
+  <rect width="760" height="402" fill="none" stroke="#1e1440" stroke-width="1.5" rx="14"/>
 
   <defs>
     <linearGradient id="topglow" x1="0" x2="1" y1="0" y2="0">
@@ -27,63 +27,65 @@
   <!-- Top glow strip -->
   <rect x="0" y="0" width="760" height="4" fill="url(#topglow)" rx="14"/>
 
-  <!-- LABEL -->
-  <text x="380" y="30" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="4" fill="#5b4fcc">SIGMAP IMPACT</text>
+  <!-- WARNING STRIP -->
+  <rect x="194" y="10" width="372" height="22" rx="11" fill="#2a0d12" stroke="#5f2029" stroke-width="1"/>
+  <text x="380" y="25" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="2" fill="#f87171">WITHOUT SIGMAP, AI IS GUESSING</text>
+  <text x="380" y="45" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="1" fill="#86efac">SIGMAP FORCES ANSWERS TO COME FROM REAL CODE</text>
 
   <!-- STAT CARDS -->
 
   <!-- Card 1: 6x -->
-  <rect x="22" y="42" width="228" height="116" rx="10" fill="#0f0a24" stroke="#3a2b88" stroke-width="1.5"/>
-  <rect x="22" y="42" width="228" height="116" rx="10" fill="url(#cardglow)"/>
-  <text x="136" y="108" text-anchor="middle" font-size="64" font-weight="900" fill="#7c6af7">6x</text>
-  <text x="136" y="128" text-anchor="middle" font-size="13" font-weight="700" fill="#b8adff">better answers</text>
-  <text x="136" y="147" text-anchor="middle" font-size="11" fill="#5b4fcc">correct: 10% to 59%</text>
+  <rect x="22" y="56" width="228" height="116" rx="10" fill="#0f0a24" stroke="#3a2b88" stroke-width="1.5"/>
+  <rect x="22" y="56" width="228" height="116" rx="10" fill="url(#cardglow)"/>
+  <text x="136" y="122" text-anchor="middle" font-size="64" font-weight="900" fill="#7c6af7">6x</text>
+  <text x="136" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#b8adff">better answers</text>
+  <text x="136" y="161" text-anchor="middle" font-size="11" fill="#5b4fcc">correct: 10% to 59%</text>
 
   <!-- Card 2: 97% -->
-  <rect x="266" y="42" width="228" height="116" rx="10" fill="#071a10" stroke="#155228" stroke-width="1.5"/>
-  <rect x="266" y="42" width="228" height="116" rx="10" fill="url(#cardglow)"/>
-  <text x="380" y="108" text-anchor="middle" font-size="64" font-weight="900" fill="#22c55e">97%</text>
-  <text x="380" y="128" text-anchor="middle" font-size="13" font-weight="700" fill="#7de8a4">fewer tokens</text>
-  <text x="380" y="147" text-anchor="middle" font-size="11" fill="#236b3a">80,000 to 2,000 / session</text>
+  <rect x="266" y="56" width="228" height="116" rx="10" fill="#071a10" stroke="#155228" stroke-width="1.5"/>
+  <rect x="266" y="56" width="228" height="116" rx="10" fill="url(#cardglow)"/>
+  <text x="380" y="122" text-anchor="middle" font-size="64" font-weight="900" fill="#22c55e">97%</text>
+  <text x="380" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#7de8a4">fewer tokens</text>
+  <text x="380" y="161" text-anchor="middle" font-size="11" fill="#236b3a">80,000 to 2,000 / session</text>
 
   <!-- Card 3: 2x -->
-  <rect x="510" y="42" width="228" height="116" rx="10" fill="#1a1100" stroke="#5a3b00" stroke-width="1.5"/>
-  <rect x="510" y="42" width="228" height="116" rx="10" fill="url(#cardglow)"/>
-  <text x="624" y="108" text-anchor="middle" font-size="64" font-weight="900" fill="#f59e0b">2x</text>
-  <text x="624" y="128" text-anchor="middle" font-size="13" font-weight="700" fill="#fcd28a">fewer prompts</text>
-  <text x="624" y="147" text-anchor="middle" font-size="11" fill="#7a5500">2.84 to 1.54 per task</text>
+  <rect x="510" y="56" width="228" height="116" rx="10" fill="#1a1100" stroke="#5a3b00" stroke-width="1.5"/>
+  <rect x="510" y="56" width="228" height="116" rx="10" fill="url(#cardglow)"/>
+  <text x="624" y="122" text-anchor="middle" font-size="64" font-weight="900" fill="#f59e0b">2x</text>
+  <text x="624" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#fcd28a">fewer prompts</text>
+  <text x="624" y="161" text-anchor="middle" font-size="11" fill="#7a5500">2.84 to 1.54 per task</text>
 
   <!-- DIVIDER -->
-  <line x1="22" y1="178" x2="738" y2="178" stroke="#1e1440" stroke-width="1"/>
+  <line x1="22" y1="192" x2="738" y2="192" stroke="#1e1440" stroke-width="1"/>
 
   <!-- WITHOUT - left (red tint) -->
-  <rect x="22" y="181" width="352" height="158" rx="9" fill="url(#redglow)"/>
-  <rect x="22" y="181" width="352" height="158" rx="9" fill="none" stroke="#5c1f1f" stroke-width="1"/>
-  <text x="198" y="202" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#ef4444">WITHOUT SIGMAP</text>
-  <text x="38" y="223" font-size="12.5" fill="#f87171">&#x2715;  Blind to 92% of your codebase</text>
-  <text x="38" y="243" font-size="12.5" fill="#f87171">&#x2715;  Reads wrong files, hallucinates</text>
-  <text x="38" y="263" font-size="12.5" fill="#f87171">&#x2715;  3 prompts and still wrong</text>
-  <text x="38" y="283" font-size="12.5" fill="#f87171">&#x2715;  Invents code that does not exist</text>
-  <text x="38" y="306" font-size="10" fill="#6b3333">TASK SUCCESS</text>
-  <rect x="38" y="312" width="320" height="17" fill="#1a0808" rx="4"/>
-  <rect x="38" y="312" width="32" height="17" fill="#ef4444" rx="4"/>
-  <text x="76" y="324" font-size="12" font-weight="800" fill="#ef4444">10%</text>
+  <rect x="22" y="195" width="352" height="158" rx="9" fill="url(#redglow)"/>
+  <rect x="22" y="195" width="352" height="158" rx="9" fill="none" stroke="#5c1f1f" stroke-width="1"/>
+  <text x="198" y="216" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#ef4444">WITHOUT SIGMAP</text>
+  <text x="38" y="237" font-size="12.5" fill="#f87171">X  Blind to 92% of your codebase</text>
+  <text x="38" y="257" font-size="12.5" fill="#f87171">X  Reads wrong files, hallucinates</text>
+  <text x="38" y="277" font-size="12.5" fill="#f87171">X  3 prompts and still wrong</text>
+  <text x="38" y="297" font-size="12.5" fill="#f87171">X  Invents code that does not exist</text>
+  <text x="38" y="320" font-size="10" fill="#6b3333">TASK SUCCESS</text>
+  <rect x="38" y="326" width="320" height="17" fill="#1a0808" rx="4"/>
+  <rect x="38" y="326" width="32" height="17" fill="#ef4444" rx="4"/>
+  <text x="76" y="338" font-size="12" font-weight="800" fill="#ef4444">10%</text>
 
   <!-- WITH SIGMAP - right (green tint) -->
-  <rect x="386" y="181" width="352" height="158" rx="9" fill="url(#greenglow)"/>
-  <rect x="386" y="181" width="352" height="158" rx="9" fill="none" stroke="#1a4a2a" stroke-width="1"/>
-  <text x="562" y="202" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#22c55e">WITH SIGMAP</text>
-  <text x="402" y="223" font-size="12.5" fill="#86efac">&#x2713;  Every function fully indexed</text>
-  <text x="402" y="243" font-size="12.5" fill="#86efac">&#x2713;  Right file in context, first prompt</text>
-  <text x="402" y="263" font-size="12.5" fill="#86efac">&#x2713;  1&#x2013;2 prompts. Grounded answer.</text>
-  <text x="402" y="283" font-size="12.5" fill="#86efac">&#x2713;  5,067 symbols grounded in real code</text>
-  <text x="402" y="306" font-size="10" fill="#1a4a2a">TASK SUCCESS</text>
-  <rect x="402" y="312" width="320" height="17" fill="#071a0e" rx="4"/>
-  <rect x="402" y="312" width="189" height="17" fill="#22c55e" rx="4"/>
-  <text x="596" y="324" font-size="12" font-weight="800" fill="#22c55e">59% -- 6x better</text>
+  <rect x="386" y="195" width="352" height="158" rx="9" fill="url(#greenglow)"/>
+  <rect x="386" y="195" width="352" height="158" rx="9" fill="none" stroke="#1a4a2a" stroke-width="1"/>
+  <text x="562" y="216" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#22c55e">WITH SIGMAP</text>
+  <text x="402" y="237" font-size="12.5" fill="#86efac">+  Every function fully indexed</text>
+  <text x="402" y="257" font-size="12.5" fill="#86efac">+  Right file in context, first prompt</text>
+  <text x="402" y="277" font-size="12.5" fill="#86efac">+  1-2 prompts. Grounded answer.</text>
+  <text x="402" y="297" font-size="12.5" fill="#86efac">+  5,067 symbols grounded in real code</text>
+  <text x="402" y="320" font-size="10" fill="#1a4a2a">TASK SUCCESS</text>
+  <rect x="402" y="326" width="320" height="17" fill="#071a0e" rx="4"/>
+  <rect x="402" y="326" width="189" height="17" fill="#22c55e" rx="4"/>
+  <text x="596" y="338" font-size="12" font-weight="800" fill="#22c55e">59% -- 6x better</text>
 
   <!-- FOOTER -->
-  <line x1="22" y1="349" x2="738" y2="349" stroke="#1e1440" stroke-width="1"/>
-  <text x="380" y="368" text-anchor="middle" font-size="10.5" fill="#3d3460">Measured across 80 tasks  16 real repos  21 languages  no LLM API  fully reproducible</text>
+  <line x1="22" y1="363" x2="738" y2="363" stroke="#1e1440" stroke-width="1"/>
+  <text x="380" y="382" text-anchor="middle" font-size="10.5" fill="#3d3460">Measured across 80 tasks  16 real repos  21 languages  no LLM API  fully reproducible</text>
 
 </svg>
