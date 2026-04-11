@@ -36,6 +36,7 @@ export default defineConfig({
           { text: 'Quality benchmark', link: '/guide/quality-benchmark' },
           { text: 'Retrieval benchmark', link: '/guide/retrieval-benchmark' },
           { text: 'Task benchmark', link: '/guide/task-benchmark' },
+          { text: 'Generalization', link: '/guide/generalization' },
         ],
       },
       {

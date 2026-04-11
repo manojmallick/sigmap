@@ -40,6 +40,50 @@ index.
 
 ## 1. Real task benchmark — prompts to answer
 
+<div style="display:flex;gap:2rem;flex-wrap:wrap;margin:1.5rem 0">
+
+<div style="flex:1;min-width:220px;background:var(--vp-c-bg-soft);border-radius:10px;padding:1.2rem 1.5rem">
+  <div style="font-size:0.8em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-2);margin-bottom:.4rem">Without SigMap</div>
+  <div style="font-size:2.4em;font-weight:700;color:#ef4444">2.84</div>
+  <div style="font-size:0.85em;color:var(--vp-c-text-2)">avg prompts to answer</div>
+  <div style="margin-top:.8rem;font-size:0.85em;color:#ef4444">13.7% hit@5 · ~1% rank-1</div>
+</div>
+
+<div style="flex:1;min-width:220px;background:var(--vp-c-bg-soft);border-radius:10px;padding:1.2rem 1.5rem;border:2px solid #7c6af7">
+  <div style="font-size:0.8em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-2);margin-bottom:.4rem">With SigMap</div>
+  <div style="font-size:2.4em;font-weight:700;color:#7c6af7">1.54</div>
+  <div style="font-size:0.85em;color:var(--vp-c-text-2)">avg prompts to answer</div>
+  <div style="margin-top:.8rem;font-size:0.85em;color:#7c6af7">87.5% hit@5 · 59% rank-1</div>
+</div>
+
+<div style="flex:1;min-width:220px;background:var(--vp-c-bg-soft);border-radius:10px;padding:1.2rem 1.5rem">
+  <div style="font-size:0.8em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-2);margin-bottom:.4rem">Improvement</div>
+  <div style="font-size:2.4em;font-weight:700;color:#22c55e">−46%</div>
+  <div style="font-size:0.85em;color:var(--vp-c-text-2)">fewer prompts needed</div>
+  <div style="margin-top:.8rem;font-size:0.85em;color:#22c55e">6.4× lift in context relevance</div>
+</div>
+
+</div>
+
+**Hit@5 comparison**
+
+<div style="margin:1rem 0">
+<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+  <span style="width:160px;font-size:0.85em">Without SigMap</span>
+  <div style="position:relative;flex:1;background:var(--vp-c-bg-soft);border-radius:4px;height:22px">
+    <div style="background:#ef4444;height:22px;border-radius:4px;width:13.7%"></div>
+  </div>
+  <span style="font-size:0.85em;color:#ef4444;width:48px">13.7%</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+  <span style="width:160px;font-size:0.85em">With SigMap</span>
+  <div style="position:relative;flex:1;background:var(--vp-c-bg-soft);border-radius:4px;height:22px">
+    <div style="background:#7c6af7;height:22px;border-radius:4px;width:87.5%"></div>
+  </div>
+  <span style="font-size:0.85em;color:#7c6af7;width:48px">87.5%</span>
+</div>
+</div>
+
 | | Without SigMap | With SigMap | Change |
 |---|---|---|---|
 | **Avg prompts to answer** | 2.84 | 1.54 | **−46%** |
@@ -85,11 +129,39 @@ show the most dramatic gains because random selection is nearly hopeless.
 
 Quality tiers across 80 tasks on 16 repos:
 
-```
-Correct   58.8%  [████████████████████░░░░░░░░░░]  47/80 tasks
-Partial   28.8%  [▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░░░░░]  23/80 tasks
-Wrong     12.5%  [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  10/80 tasks
-```
+<div style="margin:1.2rem 0">
+
+<div style="margin:10px 0">
+  <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:4px">
+    <span style="color:#22c55e;font-weight:600">✓ Correct — right file at rank 1</span>
+    <span style="color:#22c55e">47 / 80 tasks</span>
+  </div>
+  <div style="background:var(--vp-c-bg-soft);border-radius:6px;height:28px;overflow:hidden">
+    <div style="background:#22c55e;height:28px;width:58.8%;display:flex;align-items:center;padding-left:10px;font-size:0.82em;color:#fff;font-weight:600">58.8%</div>
+  </div>
+</div>
+
+<div style="margin:10px 0">
+  <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:4px">
+    <span style="color:#f59e0b;font-weight:600">~ Partial — right file in top 5</span>
+    <span style="color:#f59e0b">23 / 80 tasks</span>
+  </div>
+  <div style="background:var(--vp-c-bg-soft);border-radius:6px;height:28px;overflow:hidden">
+    <div style="background:#f59e0b;height:28px;width:28.7%;display:flex;align-items:center;padding-left:10px;font-size:0.82em;color:#fff;font-weight:600">28.7%</div>
+  </div>
+</div>
+
+<div style="margin:10px 0">
+  <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:4px">
+    <span style="color:#ef4444;font-weight:600">✗ Wrong — right file not found</span>
+    <span style="color:#ef4444">10 / 80 tasks</span>
+  </div>
+  <div style="background:var(--vp-c-bg-soft);border-radius:6px;height:28px;overflow:hidden">
+    <div style="background:#ef4444;height:28px;width:12.5%;display:flex;align-items:center;padding-left:10px;font-size:0.82em;color:#fff;font-weight:600">12.5%</div>
+  </div>
+</div>
+
+</div>
 
 | Tier | Definition | Count | % |
 |---|---|---|---|
@@ -108,6 +180,24 @@ Without SigMap, **92% of codebase symbols are hidden from the AI**. The AI can o
 what fits in the context window — for large repos that is a tiny fraction of the codebase.
 Symbols outside context become **hallucination risk**: the AI may invent plausible-sounding
 but incorrect function names, method signatures, or file paths.
+
+<div style="display:flex;gap:2rem;flex-wrap:wrap;margin:1.5rem 0">
+
+<div style="flex:1;min-width:200px;background:var(--vp-c-bg-soft);border-radius:10px;padding:1.2rem 1.5rem">
+  <div style="font-size:0.8em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-2);margin-bottom:.4rem">Without SigMap</div>
+  <div style="font-size:2.4em;font-weight:700;color:#ef4444">92%</div>
+  <div style="font-size:0.85em;color:var(--vp-c-text-2)">of symbols hidden from AI</div>
+  <div style="margin-top:.6rem;font-size:0.82em;color:#ef4444">55,067 dark symbols</div>
+</div>
+
+<div style="flex:1;min-width:200px;background:var(--vp-c-bg-soft);border-radius:10px;padding:1.2rem 1.5rem;border:2px solid #7c6af7">
+  <div style="font-size:0.8em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-2);margin-bottom:.4rem">With SigMap</div>
+  <div style="font-size:2.4em;font-weight:700;color:#7c6af7">0%</div>
+  <div style="font-size:0.85em;color:var(--vp-c-text-2)">indexed symbols are dark</div>
+  <div style="margin-top:.6rem;font-size:0.82em;color:#7c6af7">5,067 grounded signatures</div>
+</div>
+
+</div>
 
 SigMap's signature index trades full file content for a compact, grounded representation
 that fits the entire codebase:
