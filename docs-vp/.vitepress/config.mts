@@ -32,6 +32,7 @@ export default defineConfig({
         text: 'Getting started',
         items: [
           { text: 'Quick start', link: '/guide/quick-start' },
+          { text: 'Benchmark', link: '/guide/benchmark' },
         ],
       },
       {
@@ -71,5 +72,9 @@ export default defineConfig({
       pattern: 'https://github.com/manojmallick/sigmap/edit/main/docs-vp/:path',
       text: 'Edit this page on GitHub',
     },
+  },
+
+  sitemap: {
+    hostname: 'https://manojmallick.github.io/sigmap/',
   },
 })
