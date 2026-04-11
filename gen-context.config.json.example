@@ -3,7 +3,7 @@
 
   "output": ".github/copilot-instructions.md",
 
-  "outputs": ["copilot"],
+  "outputs": ["copilot", "codex"],
 
   "srcDirs": ["src", "app", "lib", "packages", "services", "api"],
 

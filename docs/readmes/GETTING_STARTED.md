@@ -673,6 +673,7 @@ Create `gen-context.config.json` in your project root (`sigmap --init` generates
 | `"windsurf"` | `.windsurfrules` |
 | `"openai"` | `.github/openai-context.md` |
 | `"gemini"` | `.github/gemini-context.md` (appends below `## Auto-generated signatures`) |
+| `"codex"` | `AGENTS.md` (appends below `## Auto-generated signatures`) |
 
 ### `.contextignore` — exclude files from indexing
 

@@ -314,6 +314,7 @@ sigmap --adapter cursor     # → .cursorrules
 sigmap --adapter windsurf   # → .windsurfrules
 sigmap --adapter openai     # → .github/openai-context.md
 sigmap --adapter gemini     # → .github/gemini-context.md (appended below marker)
+sigmap --adapter codex      # → AGENTS.md (appended below marker)
 ```
 
 | Adapter | Output file | AI assistant |
@@ -324,6 +325,7 @@ sigmap --adapter gemini     # → .github/gemini-context.md (appended below mark
 | `windsurf` | `.windsurfrules` | Windsurf |
 | `openai` | `.github/openai-context.md` | Any OpenAI model |
 | `gemini` | `.github/gemini-context.md` (append) | Google Gemini |
+| `codex` | `AGENTS.md` (append) | OpenAI Codex |
 
 Configure multiple adapters at once in `gen-context.config.json`:
 

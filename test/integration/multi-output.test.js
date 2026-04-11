@@ -269,6 +269,32 @@ test('gemini output preserves human content above marker', () => {
   });
 });
 
+test('codex output writes AGENTS.md and preserves human content above marker', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    const out = path.join(dir, 'AGENTS.md');
+    fs.writeFileSync(
+      out,
+      '# Team agent rules\n\nDo not change this section.\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n\nold signatures\n',
+      'utf8'
+    );
+
+    fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({
+      outputs: ['codex'],
+      secretScan: false,
+    }));
+
+    runGenerate(dir);
+
+    const content = fs.readFileSync(out, 'utf8');
+    assert.ok(content.startsWith('# Team agent rules'), 'Human content at top must be preserved');
+    assert.ok(content.includes('Do not change this section.'), 'Human content must be intact');
+    assert.ok(content.includes('greet'), 'Signatures must be present');
+    const markerCount = (content.match(/Auto-generated signatures/g) || []).length;
+    assert.strictEqual(markerCount, 1, 'Marker should appear exactly once');
+  });
+});
+
 console.log('');
 console.log(`multi-output: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
