@@ -32,10 +32,15 @@ export default defineConfig({
         text: 'Getting started',
         items: [
           { text: 'Quick start', link: '/guide/quick-start' },
-          { text: 'Benchmark', link: '/guide/benchmark' },
-          { text: 'Quality benchmark', link: '/guide/quality-benchmark' },
-          { text: 'Retrieval benchmark', link: '/guide/retrieval-benchmark' },
-          { text: 'Task benchmark', link: '/guide/task-benchmark' },
+        ],
+      },
+      {
+        text: 'Benchmarks',
+        items: [
+          { text: 'Token reduction', link: '/guide/benchmark' },
+          { text: 'Quality', link: '/guide/quality-benchmark' },
+          { text: 'Retrieval', link: '/guide/retrieval-benchmark' },
+          { text: 'Task & prompts', link: '/guide/task-benchmark' },
           { text: 'Generalization', link: '/guide/generalization' },
         ],
       },
