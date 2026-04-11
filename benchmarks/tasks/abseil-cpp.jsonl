@@ -1,0 +1,5 @@
+{"id":"absl-t001","query":"absl Time Duration TimeZone civil breakdown","expected_files":["absl/time/time.h","absl/time/time.cc"]}
+{"id":"absl-t002","query":"SimulatedClock Sleep AdvanceTime wakeup SetTime","expected_files":["absl/time/simulated_clock.h","absl/time/simulated_clock.cc"]}
+{"id":"absl-t003","query":"time zone format parse civil time zone lookup","expected_files":["absl/time/internal/cctz/include/cctz/time_zone.h","absl/time/internal/cctz/src/time_zone_impl.h"]}
+{"id":"absl-t004","query":"Span at subspan first last AbslHashValue","expected_files":["absl/types/span.h","absl/types/internal/span.h"]}
+{"id":"absl-t005","query":"optional ref source location compare variant","expected_files":["absl/types/optional_ref.h","absl/types/source_location.h","absl/types/compare.h"]}

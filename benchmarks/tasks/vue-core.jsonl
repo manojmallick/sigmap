@@ -1,0 +1,5 @@
+{"id":"vue-t001","query":"component emit props slots options runtime","expected_files":["packages/runtime-core/src/componentEmits.ts","packages/runtime-core/src/componentProps.ts","packages/runtime-core/src/componentOptions.ts"]}
+{"id":"vue-t002","query":"component render context public instance","expected_files":["packages/runtime-core/src/componentRenderContext.ts","packages/runtime-core/src/componentPublicInstance.ts"]}
+{"id":"vue-t003","query":"KeepAlive Suspense Teleport built-in component","expected_files":["packages/runtime-core/src/components/KeepAlive.ts","packages/runtime-core/src/components/Suspense.ts","packages/runtime-core/src/components/Teleport.ts"]}
+{"id":"vue-t004","query":"directives custom directive bind update component","expected_files":["packages/runtime-core/src/directives.ts"]}
+{"id":"vue-t005","query":"compat Vue 2 vModel global config migration","expected_files":["packages/runtime-core/src/compat/componentVModel.ts","packages/runtime-core/src/compat/global.ts","packages/runtime-core/src/compat/globalConfig.ts"]}

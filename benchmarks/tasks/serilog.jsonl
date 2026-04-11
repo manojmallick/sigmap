@@ -1,0 +1,5 @@
+{"id":"serilog-t001","query":"create logger configuration write to sink","expected_files":["src/Serilog/LoggerConfiguration.cs","src/Serilog/Log.cs"]}
+{"id":"serilog-t002","query":"add sink event output write logs","expected_files":["src/Serilog/Configuration/LoggerSinkConfiguration.cs"]}
+{"id":"serilog-t003","query":"enrich log events properties context","expected_files":["src/Serilog/Configuration/LoggerEnrichmentConfiguration.cs","src/Serilog/Context/LogContext.cs"]}
+{"id":"serilog-t004","query":"minimum level filter override log level","expected_files":["src/Serilog/Configuration/LoggerMinimumLevelConfiguration.cs","src/Serilog/Configuration/LoggerFilterConfiguration.cs"]}
+{"id":"serilog-t005","query":"message template capture property binding","expected_files":["src/Serilog/Capturing/MessageTemplateProcessor.cs","src/Serilog/Capturing/PropertyBinder.cs"]}

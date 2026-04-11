@@ -1,0 +1,1144 @@
+{
+  "generated": "2026-04-11T08:23:10.498Z",
+  "repos": [
+    {
+      "repo": "express",
+      "fileCount": 6,
+      "sigCount": 6,
+      "tasks": 5,
+      "hitAt5": 0.8,
+      "mrr": 0.633,
+      "randomBaseline": 0.833,
+      "improvement": 1,
+      "tiers": {
+        "correct": 2,
+        "partial": 2,
+        "wrong": 1
+      },
+      "taskDetails": [
+        {
+          "id": "express-t001",
+          "query": "register middleware and route handlers on application",
+          "expected": [
+            "lib/application.js"
+          ],
+          "top1": "lib/express.js",
+          "firstHitRank": 2,
+          "tier": "partial"
+        },
+        {
+          "id": "express-t002",
+          "query": "build HTTP response set header send json",
+          "expected": [
+            "lib/response.js"
+          ],
+          "top1": "lib/response.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "express-t003",
+          "query": "parse incoming request path params query string",
+          "expected": [
+            "lib/request.js"
+          ],
+          "top1": "lib/utils.js",
+          "firstHitRank": 6,
+          "tier": "wrong"
+        },
+        {
+          "id": "express-t004",
+          "query": "define router group nested routes use method",
+          "expected": [
+            "lib/application.js",
+            "lib/express.js"
+          ],
+          "top1": "lib/request.js",
+          "firstHitRank": 2,
+          "tier": "partial"
+        },
+        {
+          "id": "express-t005",
+          "query": "render template view engine lookup",
+          "expected": [
+            "lib/view.js",
+            "lib/application.js"
+          ],
+          "top1": "lib/application.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "flask",
+      "fileCount": 19,
+      "sigCount": 19,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 1,
+      "randomBaseline": 0.263,
+      "improvement": 3.8,
+      "tiers": {
+        "correct": 5,
+        "partial": 0,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "flask-t001",
+          "query": "register route with url rules and HTTP methods",
+          "expected": [
+            "src/flask/app.py",
+            "src/flask/sansio/scaffold.py"
+          ],
+          "top1": "src/flask/sansio/scaffold.py",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "flask-t002",
+          "query": "request context push teardown g object",
+          "expected": [
+            "src/flask/ctx.py",
+            "src/flask/globals.py"
+          ],
+          "top1": "src/flask/ctx.py",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "flask-t003",
+          "query": "blueprint register endpoints url prefix",
+          "expected": [
+            "src/flask/blueprints.py",
+            "src/flask/sansio/blueprints.py"
+          ],
+          "top1": "src/flask/sansio/blueprints.py",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "flask-t004",
+          "query": "session interface cookie signing open save",
+          "expected": [
+            "src/flask/sessions.py"
+          ],
+          "top1": "src/flask/sessions.py",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "flask-t005",
+          "query": "render template Jinja2 template_rendered signal",
+          "expected": [
+            "src/flask/templating.py",
+            "src/flask/signals.py"
+          ],
+          "top1": "src/flask/templating.py",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "gin",
+      "fileCount": 107,
+      "sigCount": 68,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 0.733,
+      "randomBaseline": 0.047,
+      "improvement": 21.4,
+      "tiers": {
+        "correct": 3,
+        "partial": 2,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "gin-t001",
+          "query": "define route group middleware chain Use method",
+          "expected": [
+            "routergroup.go",
+            "gin.go"
+          ],
+          "top1": "gin.go",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "gin-t002",
+          "query": "bind JSON form request validation",
+          "expected": [
+            "binding/json.go",
+            "binding/form.go",
+            "binding/binding.go"
+          ],
+          "top1": "mode.go",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "gin-t003",
+          "query": "request context abort next handler",
+          "expected": [
+            "context.go"
+          ],
+          "top1": "context.go",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "gin-t004",
+          "query": "render response JSON XML HTML template",
+          "expected": [
+            "render/json.go",
+            "render/html.go",
+            "context.go"
+          ],
+          "top1": "render/html.go",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "gin-t005",
+          "query": "recovery middleware panic handler logger",
+          "expected": [
+            "recovery.go",
+            "logger.go"
+          ],
+          "top1": "gin.go",
+          "firstHitRank": 3,
+          "tier": "partial"
+        }
+      ]
+    },
+    {
+      "repo": "spring-petclinic",
+      "fileCount": 13,
+      "sigCount": 13,
+      "tasks": 5,
+      "hitAt5": 0.8,
+      "mrr": 0.825,
+      "randomBaseline": 0.385,
+      "improvement": 2.1,
+      "tiers": {
+        "correct": 4,
+        "partial": 0,
+        "wrong": 1
+      },
+      "taskDetails": [
+        {
+          "id": "spring-t001",
+          "query": "main application startup entry point",
+          "expected": [
+            "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java"
+          ],
+          "top1": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "spring-t002",
+          "query": "runtime hints register reflection proxies",
+          "expected": [
+            "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java"
+          ],
+          "top1": "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "spring-t003",
+          "query": "owner form create update template HTML",
+          "expected": [
+            "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+            "src/main/resources/templates/owners/findOwners.html"
+          ],
+          "top1": "src/main/resources/templates/owners/findOwners.html",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "spring-t004",
+          "query": "vet list template view specialists",
+          "expected": [
+            "src/main/resources/templates/vets/vetList.html"
+          ],
+          "top1": "src/main/resources/static/resources/css/petclinic.css",
+          "firstHitRank": 8,
+          "tier": "wrong"
+        },
+        {
+          "id": "spring-t005",
+          "query": "integration tests MySQL Postgres datasource",
+          "expected": [
+            "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+            "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java"
+          ],
+          "top1": "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "rails",
+      "fileCount": 1179,
+      "sigCount": 110,
+      "tasks": 5,
+      "hitAt5": 0.8,
+      "mrr": 0.55,
+      "randomBaseline": 0.004,
+      "improvement": 188.6,
+      "tiers": {
+        "correct": 2,
+        "partial": 2,
+        "wrong": 1
+      },
+      "taskDetails": [
+        {
+          "id": "rails-t001",
+          "query": "mailer callbacks before_action observer register",
+          "expected": [
+            "actionmailer/lib/action_mailer/callbacks.rb",
+            "actionmailer/lib/action_mailer/base.rb"
+          ],
+          "top1": "actionmailer/lib/action_mailer/base.rb",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "rails-t002",
+          "query": "mail delivery methods SMTP send queue job",
+          "expected": [
+            "actionmailer/lib/action_mailer/delivery_methods.rb",
+            "actionmailer/lib/action_mailer/mail_delivery_job.rb"
+          ],
+          "top1": "actionmailer/lib/action_mailer/test_helper.rb",
+          "firstHitRank": 2,
+          "tier": "partial"
+        },
+        {
+          "id": "rails-t003",
+          "query": "parameterized mailer with params preview",
+          "expected": [
+            "actionmailer/lib/action_mailer/parameterized.rb",
+            "actionmailer/lib/action_mailer/preview.rb"
+          ],
+          "top1": "actionmailer/lib/action_mailer/preview.rb",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "rails-t004",
+          "query": "render partial template collection streaming",
+          "expected": [
+            "actionview/lib/action_view/renderer/partial_renderer.rb",
+            "actionview/lib/action_view/renderer/streaming_template_renderer.rb"
+          ],
+          "top1": "actionview/lib/action_view/renderer/partial_renderer/collection_caching.rb",
+          "firstHitRank": 4,
+          "tier": "partial"
+        },
+        {
+          "id": "rails-t005",
+          "query": "template handler ERB builder HTML renderer",
+          "expected": [
+            "actionview/lib/action_view/renderer/template_renderer.rb",
+            "actionview/lib/action_view/template/handlers/erb.rb"
+          ],
+          "top1": "actionview/lib/action_view/template/handlers.rb",
+          "firstHitRank": null,
+          "tier": "wrong"
+        }
+      ]
+    },
+    {
+      "repo": "axios",
+      "fileCount": 25,
+      "sigCount": 25,
+      "tasks": 5,
+      "hitAt5": 0.6,
+      "mrr": 0.469,
+      "randomBaseline": 0.2,
+      "improvement": 3,
+      "tiers": {
+        "correct": 2,
+        "partial": 1,
+        "wrong": 2
+      },
+      "taskDetails": [
+        {
+          "id": "axios-t001",
+          "query": "cancel request CancelToken abort signal",
+          "expected": [
+            "lib/cancel/CancelToken.js",
+            "lib/cancel/CanceledError.js"
+          ],
+          "top1": "lib/cancel/CancelToken.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "axios-t002",
+          "query": "intercept request response transform chain",
+          "expected": [
+            "lib/core/InterceptorManager.js",
+            "lib/core/Axios.js"
+          ],
+          "top1": "lib/adapters/http.js",
+          "firstHitRank": 5,
+          "tier": "partial"
+        },
+        {
+          "id": "axios-t003",
+          "query": "merge config defaults baseURL headers",
+          "expected": [
+            "lib/core/mergeConfig.js",
+            "lib/defaults/index.js"
+          ],
+          "top1": "lib/core/Axios.js",
+          "firstHitRank": null,
+          "tier": "wrong"
+        },
+        {
+          "id": "axios-t004",
+          "query": "HTTP adapter fetch XHR send request",
+          "expected": [
+            "lib/adapters/http.js",
+            "lib/adapters/xhr.js"
+          ],
+          "top1": "lib/adapters/http.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "axios-t005",
+          "query": "build URL params serialization query string",
+          "expected": [
+            "lib/helpers/buildURL.js",
+            "lib/core/buildFullPath.js"
+          ],
+          "top1": "lib/core/Axios.js",
+          "firstHitRank": 7,
+          "tier": "wrong"
+        }
+      ]
+    },
+    {
+      "repo": "rust-analyzer",
+      "fileCount": 635,
+      "sigCount": 45,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 0.867,
+      "randomBaseline": 0.008,
+      "improvement": 127,
+      "tiers": {
+        "correct": 4,
+        "partial": 1,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "rust-t001",
+          "query": "parse syntax tree AST node expression",
+          "expected": [
+            "crates/syntax/src/ast.rs",
+            "crates/syntax/src/lib.rs"
+          ],
+          "top1": "crates/syntax-bridge/src/lib.rs",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "rust-t002",
+          "query": "syntax node token text ptr error",
+          "expected": [
+            "crates/syntax/src/syntax_node.rs",
+            "crates/syntax/src/syntax_error.rs",
+            "crates/syntax/src/token_text.rs"
+          ],
+          "top1": "crates/syntax/src/syntax_node.rs",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "rust-t003",
+          "query": "virtual filesystem file set path loader watcher",
+          "expected": [
+            "crates/vfs/src/lib.rs",
+            "crates/vfs/src/file_set.rs",
+            "crates/vfs/src/loader.rs"
+          ],
+          "top1": "crates/vfs/src/file_set.rs",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "rust-t004",
+          "query": "token tree buffer storage iter",
+          "expected": [
+            "crates/tt/src/lib.rs",
+            "crates/tt/src/buffer.rs",
+            "crates/tt/src/storage.rs"
+          ],
+          "top1": "crates/tt/src/storage.rs",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "rust-t005",
+          "query": "syntax editor edit algorithm mapping rewrite",
+          "expected": [
+            "crates/syntax/src/syntax_editor.rs",
+            "crates/syntax/src/syntax_editor/edit_algo.rs"
+          ],
+          "top1": "crates/syntax/src/syntax_editor.rs",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "abseil-cpp",
+      "fileCount": 700,
+      "sigCount": 38,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 0.9,
+      "randomBaseline": 0.007,
+      "improvement": 140,
+      "tiers": {
+        "correct": 4,
+        "partial": 1,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "absl-t001",
+          "query": "absl Time Duration TimeZone civil breakdown",
+          "expected": [
+            "absl/time/time.h",
+            "absl/time/time.cc"
+          ],
+          "top1": "absl/time/time.cc",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "absl-t002",
+          "query": "SimulatedClock Sleep AdvanceTime wakeup SetTime",
+          "expected": [
+            "absl/time/simulated_clock.h",
+            "absl/time/simulated_clock.cc"
+          ],
+          "top1": "absl/time/simulated_clock.h",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "absl-t003",
+          "query": "time zone format parse civil time zone lookup",
+          "expected": [
+            "absl/time/internal/cctz/include/cctz/time_zone.h",
+            "absl/time/internal/cctz/src/time_zone_impl.h"
+          ],
+          "top1": "absl/time/internal/cctz/src/time_zone_format.cc",
+          "firstHitRank": 2,
+          "tier": "partial"
+        },
+        {
+          "id": "absl-t004",
+          "query": "Span at subspan first last AbslHashValue",
+          "expected": [
+            "absl/types/span.h",
+            "absl/types/internal/span.h"
+          ],
+          "top1": "absl/types/span.h",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "absl-t005",
+          "query": "optional ref source location compare variant",
+          "expected": [
+            "absl/types/optional_ref.h",
+            "absl/types/source_location.h",
+            "absl/types/compare.h"
+          ],
+          "top1": "absl/types/optional_ref.h",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "serilog",
+      "fileCount": 99,
+      "sigCount": 99,
+      "tasks": 5,
+      "hitAt5": 0.8,
+      "mrr": 0.533,
+      "randomBaseline": 0.051,
+      "improvement": 15.8,
+      "tiers": {
+        "correct": 2,
+        "partial": 2,
+        "wrong": 1
+      },
+      "taskDetails": [
+        {
+          "id": "serilog-t001",
+          "query": "create logger configuration write to sink",
+          "expected": [
+            "src/Serilog/LoggerConfiguration.cs",
+            "src/Serilog/Log.cs"
+          ],
+          "top1": "src/Serilog/Configuration/LoggerAuditSinkConfiguration.cs",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "serilog-t002",
+          "query": "add sink event output write logs",
+          "expected": [
+            "src/Serilog/Configuration/LoggerSinkConfiguration.cs"
+          ],
+          "top1": "src/Serilog/Debugging/SelfLog.cs",
+          "firstHitRank": null,
+          "tier": "wrong"
+        },
+        {
+          "id": "serilog-t003",
+          "query": "enrich log events properties context",
+          "expected": [
+            "src/Serilog/Configuration/LoggerEnrichmentConfiguration.cs",
+            "src/Serilog/Context/LogContext.cs"
+          ],
+          "top1": "src/Serilog/Configuration/LoggerEnrichmentConfiguration.cs",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "serilog-t004",
+          "query": "minimum level filter override log level",
+          "expected": [
+            "src/Serilog/Configuration/LoggerMinimumLevelConfiguration.cs",
+            "src/Serilog/Configuration/LoggerFilterConfiguration.cs"
+          ],
+          "top1": "src/Serilog/Core/LevelOverrideMap.cs",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "serilog-t005",
+          "query": "message template capture property binding",
+          "expected": [
+            "src/Serilog/Capturing/MessageTemplateProcessor.cs",
+            "src/Serilog/Capturing/PropertyBinder.cs"
+          ],
+          "top1": "src/Serilog/Capturing/MessageTemplateProcessor.cs",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "riverpod",
+      "fileCount": 446,
+      "sigCount": 41,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 0.9,
+      "randomBaseline": 0.011,
+      "improvement": 89.2,
+      "tiers": {
+        "correct": 4,
+        "partial": 1,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "riverpod-t001",
+          "query": "persisted data destroy key expire toPersistedData row",
+          "expected": [
+            "packages/riverpod_sqflite/lib/src/riverpod_sqflite.dart"
+          ],
+          "top1": "packages/riverpod_sqflite/lib/src/riverpod_sqflite.dart",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "riverpod-t002",
+          "query": "storage Ref Future JsonSqFliteStorage provider",
+          "expected": [
+            "packages/riverpod_sqflite/example/lib/generated.dart"
+          ],
+          "top1": "packages/riverpod_sqflite/example/lib/generated.dart",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "riverpod-t003",
+          "query": "Todo Notifier build FutureOr list notifier",
+          "expected": [
+            "packages/riverpod_sqflite/example/lib/manual.dart"
+          ],
+          "top1": "packages/riverpod_sqflite/example/lib/manual.dart",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "riverpod-t004",
+          "query": "Todo freezed identical toString class",
+          "expected": [
+            "packages/riverpod_sqflite/example/lib/generated.freezed.dart"
+          ],
+          "top1": "packages/riverpod_lint_flutter_test/test/lints/provider_parameters.freezed.dart",
+          "firstHitRank": 2,
+          "tier": "partial"
+        },
+        {
+          "id": "riverpod-t005",
+          "query": "linter include analysis options rules",
+          "expected": [
+            "packages/riverpod_sqflite/example/analysis_options.yaml"
+          ],
+          "top1": "packages/riverpod_sqflite/example/analysis_options.yaml",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "okhttp",
+      "fileCount": 18,
+      "sigCount": 18,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 1,
+      "randomBaseline": 0.278,
+      "improvement": 3.6,
+      "tiers": {
+        "correct": 5,
+        "partial": 0,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "okhttp-t001",
+          "query": "log HTTP request response body headers interceptor",
+          "expected": [
+            "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt"
+          ],
+          "top1": "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "okhttp-t002",
+          "query": "redact sensitive header query param level logging",
+          "expected": [
+            "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt"
+          ],
+          "top1": "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "okhttp-t003",
+          "query": "call event listener DNS proxy connection timing",
+          "expected": [
+            "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/LoggingEventListener.kt"
+          ],
+          "top1": "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/LoggingEventListener.kt",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "okhttp-t004",
+          "query": "TLS handshake certificate SSL socket trust manager key",
+          "expected": [
+            "okhttp-tls/src/main/kotlin/okhttp3/tls/HandshakeCertificates.kt",
+            "okhttp-tls/src/main/kotlin/okhttp3/tls/HeldCertificate.kt"
+          ],
+          "top1": "okhttp-tls/src/main/kotlin/okhttp3/tls/HandshakeCertificates.kt",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "okhttp-t005",
+          "query": "held certificate PEM key pair X509 generate",
+          "expected": [
+            "okhttp-tls/src/main/kotlin/okhttp3/tls/HeldCertificate.kt"
+          ],
+          "top1": "okhttp-tls/src/main/kotlin/okhttp3/tls/HeldCertificate.kt",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "laravel",
+      "fileCount": 1533,
+      "sigCount": 113,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 0.59,
+      "randomBaseline": 0.003,
+      "improvement": 306.6,
+      "tiers": {
+        "correct": 2,
+        "partial": 3,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "laravel-t001",
+          "query": "translate message locale loader file array",
+          "expected": [
+            "src/Illuminate/Translation/Translator.php",
+            "src/Illuminate/Translation/FileLoader.php"
+          ],
+          "top1": "src/Illuminate/Translation/FileLoader.php",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "laravel-t002",
+          "query": "validation rule validate attributes message format",
+          "expected": [
+            "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
+            "src/Illuminate/Validation/Concerns/FormatsMessages.php"
+          ],
+          "top1": "src/Illuminate/Validation/Factory.php",
+          "firstHitRank": 5,
+          "tier": "partial"
+        },
+        {
+          "id": "laravel-t003",
+          "query": "validation factory make validator rules",
+          "expected": [
+            "src/Illuminate/Validation/Factory.php"
+          ],
+          "top1": "src/Illuminate/Validation/Factory.php",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "laravel-t004",
+          "query": "potentially translated string selector plural",
+          "expected": [
+            "src/Illuminate/Translation/PotentiallyTranslatedString.php",
+            "src/Illuminate/Translation/MessageSelector.php"
+          ],
+          "top1": "src/Illuminate/Translation/CreatesPotentiallyTranslatedStrings.php",
+          "firstHitRank": 2,
+          "tier": "partial"
+        },
+        {
+          "id": "laravel-t005",
+          "query": "conditional nested closure validation rule",
+          "expected": [
+            "src/Illuminate/Validation/ConditionalRules.php",
+            "src/Illuminate/Validation/NestedRules.php"
+          ],
+          "top1": "src/Illuminate/Validation/ClosureValidationRule.php",
+          "firstHitRank": 4,
+          "tier": "partial"
+        }
+      ]
+    },
+    {
+      "repo": "akka",
+      "fileCount": 211,
+      "sigCount": 64,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 0.707,
+      "randomBaseline": 0.024,
+      "improvement": 42.2,
+      "tiers": {
+        "correct": 3,
+        "partial": 2,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "akka-t001",
+          "query": "cluster join leave member gossip distributed",
+          "expected": [
+            "akka-cluster/src/main/scala/akka/cluster/Cluster.scala",
+            "akka-cluster/src/main/scala/akka/cluster/Gossip.scala"
+          ],
+          "top1": "akka-cluster/src/main/scala/akka/cluster/ClusterJmx.scala",
+          "firstHitRank": 5,
+          "tier": "partial"
+        },
+        {
+          "id": "akka-t002",
+          "query": "cluster events member up down reachable unreachable",
+          "expected": [
+            "akka-cluster/src/main/scala/akka/cluster/ClusterEvent.scala",
+            "akka-cluster/src/main/scala/akka/cluster/Member.scala"
+          ],
+          "top1": "akka-cluster/src/main/scala/akka/cluster/ClusterEvent.scala",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "akka-t003",
+          "query": "cluster settings configuration quorum roles",
+          "expected": [
+            "akka-cluster/src/main/scala/akka/cluster/ClusterSettings.scala"
+          ],
+          "top1": "akka-cluster/src/main/scala/akka/cluster/routing/ClusterRouterConfig.scala",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "akka-t004",
+          "query": "stream flow graph hub framing JSON processing",
+          "expected": [
+            "akka-stream/src/main/scala/akka/stream/javadsl/Framing.scala",
+            "akka-stream/src/main/scala/akka/stream/javadsl/JsonFraming.scala"
+          ],
+          "top1": "akka-stream/src/main/scala/akka/stream/javadsl/JsonFraming.scala",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "akka-t005",
+          "query": "stream restart backoff restart flow source",
+          "expected": [
+            "akka-stream/src/main/scala/akka/stream/javadsl/RestartFlow.scala"
+          ],
+          "top1": "akka-stream/src/main/scala/akka/stream/javadsl/RestartFlow.scala",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "vapor",
+      "fileCount": 131,
+      "sigCount": 131,
+      "tasks": 5,
+      "hitAt5": 0.6,
+      "mrr": 0.4,
+      "randomBaseline": 0.038,
+      "improvement": 15.7,
+      "tiers": {
+        "correct": 1,
+        "partial": 2,
+        "wrong": 2
+      },
+      "taskDetails": [
+        {
+          "id": "vapor-t001",
+          "query": "bearer session authentication middleware guard",
+          "expected": [
+            "Sources/Vapor/Authentication/Authenticator.swift",
+            "Sources/Vapor/Authentication/GuardMiddleware.swift"
+          ],
+          "top1": "Sources/Vapor/Concurrency/Authentication+Concurrency.swift",
+          "firstHitRank": 6,
+          "tier": "wrong"
+        },
+        {
+          "id": "vapor-t002",
+          "query": "route builder GET POST group middleware",
+          "expected": [
+            "Sources/Vapor/Routing/RoutesBuilder+Method.swift",
+            "Sources/Vapor/Application.swift"
+          ],
+          "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
+          "firstHitRank": null,
+          "tier": "wrong"
+        },
+        {
+          "id": "vapor-t003",
+          "query": "request content decode body JSON",
+          "expected": [
+            "Sources/Vapor/Content/ContentContainer.swift",
+            "Sources/Vapor/Content/Request+Content.swift"
+          ],
+          "top1": "Sources/Vapor/Content/ContentCoders.swift",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "vapor-t004",
+          "query": "HTTP client send request response",
+          "expected": [
+            "Sources/Vapor/Client/Client.swift",
+            "Sources/Vapor/Client/ClientRequest.swift"
+          ],
+          "top1": "Sources/Vapor/Client/Client.swift",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "vapor-t005",
+          "query": "cache get set memory store expiration",
+          "expected": [
+            "Sources/Vapor/Cache/Cache.swift",
+            "Sources/Vapor/Cache/MemoryCache.swift"
+          ],
+          "top1": "Sources/Development/configure.swift",
+          "firstHitRank": 2,
+          "tier": "partial"
+        }
+      ]
+    },
+    {
+      "repo": "vue-core",
+      "fileCount": 232,
+      "sigCount": 122,
+      "tasks": 5,
+      "hitAt5": 1,
+      "mrr": 0.767,
+      "randomBaseline": 0.022,
+      "improvement": 46.4,
+      "tiers": {
+        "correct": 3,
+        "partial": 2,
+        "wrong": 0
+      },
+      "taskDetails": [
+        {
+          "id": "vue-t001",
+          "query": "component emit props slots options runtime",
+          "expected": [
+            "packages/runtime-core/src/componentEmits.ts",
+            "packages/runtime-core/src/componentProps.ts",
+            "packages/runtime-core/src/componentOptions.ts"
+          ],
+          "top1": "packages/runtime-core/src/componentEmits.ts",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "vue-t002",
+          "query": "component render context public instance",
+          "expected": [
+            "packages/runtime-core/src/componentRenderContext.ts",
+            "packages/runtime-core/src/componentPublicInstance.ts"
+          ],
+          "top1": "packages/runtime-core/src/componentPublicInstance.ts",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "vue-t003",
+          "query": "KeepAlive Suspense Teleport built-in component",
+          "expected": [
+            "packages/runtime-core/src/components/KeepAlive.ts",
+            "packages/runtime-core/src/components/Suspense.ts",
+            "packages/runtime-core/src/components/Teleport.ts"
+          ],
+          "top1": "packages/runtime-core/src/component.ts",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "vue-t004",
+          "query": "directives custom directive bind update component",
+          "expected": [
+            "packages/runtime-core/src/directives.ts"
+          ],
+          "top1": "packages/runtime-core/src/component.ts",
+          "firstHitRank": 2,
+          "tier": "partial"
+        },
+        {
+          "id": "vue-t005",
+          "query": "compat Vue 2 vModel global config migration",
+          "expected": [
+            "packages/runtime-core/src/compat/componentVModel.ts",
+            "packages/runtime-core/src/compat/global.ts",
+            "packages/runtime-core/src/compat/globalConfig.ts"
+          ],
+          "top1": "packages/runtime-core/src/compat/componentVModel.ts",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "svelte",
+      "fileCount": 370,
+      "sigCount": 63,
+      "tasks": 5,
+      "hitAt5": 0.6,
+      "mrr": 0.387,
+      "randomBaseline": 0.014,
+      "improvement": 44.4,
+      "tiers": {
+        "correct": 1,
+        "partial": 2,
+        "wrong": 2
+      },
+      "taskDetails": [
+        {
+          "id": "svelte-t001",
+          "query": "reactivity source signal derived computed state",
+          "expected": [
+            "packages/svelte/src/internal/client/reactivity/sources.js",
+            "packages/svelte/src/internal/client/reactivity/deriveds.js"
+          ],
+          "top1": "packages/svelte/src/internal/client/reactivity/deriveds.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "svelte-t002",
+          "query": "effects side effect reactive run schedule",
+          "expected": [
+            "packages/svelte/src/internal/client/reactivity/effects.js"
+          ],
+          "top1": "packages/svelte/src/internal/client/reactivity/batch.js",
+          "firstHitRank": 8,
+          "tier": "wrong"
+        },
+        {
+          "id": "svelte-t003",
+          "query": "runtime component mount render client",
+          "expected": [
+            "packages/svelte/src/internal/client/runtime.js",
+            "packages/svelte/src/internal/client/render.js"
+          ],
+          "top1": "packages/svelte/src/internal/server/index.js",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "svelte-t004",
+          "query": "server render HTML snippet block hydrate",
+          "expected": [
+            "packages/svelte/src/internal/server/renderer.js",
+            "packages/svelte/src/internal/server/blocks/snippet.js"
+          ],
+          "top1": "packages/svelte/src/internal/client/warnings.js",
+          "firstHitRank": 7,
+          "tier": "wrong"
+        },
+        {
+          "id": "svelte-t005",
+          "query": "reactive props store subscribe batch",
+          "expected": [
+            "packages/svelte/src/internal/client/reactivity/props.js",
+            "packages/svelte/src/internal/client/reactivity/store.js",
+            "packages/svelte/src/internal/client/reactivity/batch.js"
+          ],
+          "top1": "packages/svelte/src/internal/server/index.js",
+          "firstHitRank": 3,
+          "tier": "partial"
+        }
+      ]
+    }
+  ]
+}

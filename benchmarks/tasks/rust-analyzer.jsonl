@@ -1,0 +1,5 @@
+{"id":"rust-t001","query":"parse syntax tree AST node expression","expected_files":["crates/syntax/src/ast.rs","crates/syntax/src/lib.rs"]}
+{"id":"rust-t002","query":"syntax node token text ptr error","expected_files":["crates/syntax/src/syntax_node.rs","crates/syntax/src/syntax_error.rs","crates/syntax/src/token_text.rs"]}
+{"id":"rust-t003","query":"virtual filesystem file set path loader watcher","expected_files":["crates/vfs/src/lib.rs","crates/vfs/src/file_set.rs","crates/vfs/src/loader.rs"]}
+{"id":"rust-t004","query":"token tree buffer storage iter","expected_files":["crates/tt/src/lib.rs","crates/tt/src/buffer.rs","crates/tt/src/storage.rs"]}
+{"id":"rust-t005","query":"syntax editor edit algorithm mapping rewrite","expected_files":["crates/syntax/src/syntax_editor.rs","crates/syntax/src/syntax_editor/edit_algo.rs"]}

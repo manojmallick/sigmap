@@ -1,0 +1,5 @@
+{"id":"laravel-t001","query":"translate message locale loader file array","expected_files":["src/Illuminate/Translation/Translator.php","src/Illuminate/Translation/FileLoader.php"]}
+{"id":"laravel-t002","query":"validation rule validate attributes message format","expected_files":["src/Illuminate/Validation/Concerns/ValidatesAttributes.php","src/Illuminate/Validation/Concerns/FormatsMessages.php"]}
+{"id":"laravel-t003","query":"validation factory make validator rules","expected_files":["src/Illuminate/Validation/Factory.php"]}
+{"id":"laravel-t004","query":"potentially translated string selector plural","expected_files":["src/Illuminate/Translation/PotentiallyTranslatedString.php","src/Illuminate/Translation/MessageSelector.php"]}
+{"id":"laravel-t005","query":"conditional nested closure validation rule","expected_files":["src/Illuminate/Validation/ConditionalRules.php","src/Illuminate/Validation/NestedRules.php"]}

@@ -1,0 +1,5 @@
+{"id":"axios-t001","query":"cancel request CancelToken abort signal","expected_files":["lib/cancel/CancelToken.js","lib/cancel/CanceledError.js"]}
+{"id":"axios-t002","query":"intercept request response transform chain","expected_files":["lib/core/InterceptorManager.js","lib/core/Axios.js"]}
+{"id":"axios-t003","query":"merge config defaults baseURL headers","expected_files":["lib/core/mergeConfig.js","lib/defaults/index.js"]}
+{"id":"axios-t004","query":"HTTP adapter fetch XHR send request","expected_files":["lib/adapters/http.js","lib/adapters/xhr.js"]}
+{"id":"axios-t005","query":"build URL params serialization query string","expected_files":["lib/helpers/buildURL.js","lib/core/buildFullPath.js"]}

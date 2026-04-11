@@ -1,0 +1,5 @@
+{"id":"gin-t001","query":"define route group middleware chain Use method","expected_files":["routergroup.go","gin.go"]}
+{"id":"gin-t002","query":"bind JSON form request validation","expected_files":["binding/json.go","binding/form.go","binding/binding.go"]}
+{"id":"gin-t003","query":"request context abort next handler","expected_files":["context.go"]}
+{"id":"gin-t004","query":"render response JSON XML HTML template","expected_files":["render/json.go","render/html.go","context.go"]}
+{"id":"gin-t005","query":"recovery middleware panic handler logger","expected_files":["recovery.go","logger.go"]}

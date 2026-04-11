@@ -1,0 +1,5 @@
+{"id":"spring-t001","query":"main application startup entry point","expected_files":["src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java"]}
+{"id":"spring-t002","query":"runtime hints register reflection proxies","expected_files":["src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java"]}
+{"id":"spring-t003","query":"owner form create update template HTML","expected_files":["src/main/resources/templates/owners/createOrUpdateOwnerForm.html","src/main/resources/templates/owners/findOwners.html"]}
+{"id":"spring-t004","query":"vet list template view specialists","expected_files":["src/main/resources/templates/vets/vetList.html"]}
+{"id":"spring-t005","query":"integration tests MySQL Postgres datasource","expected_files":["src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java","src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java"]}

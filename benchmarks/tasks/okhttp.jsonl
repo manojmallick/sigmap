@@ -1,0 +1,5 @@
+{"id":"okhttp-t001","query":"log HTTP request response body headers interceptor","expected_files":["okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt"]}
+{"id":"okhttp-t002","query":"redact sensitive header query param level logging","expected_files":["okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt"]}
+{"id":"okhttp-t003","query":"call event listener DNS proxy connection timing","expected_files":["okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/LoggingEventListener.kt"]}
+{"id":"okhttp-t004","query":"TLS handshake certificate SSL socket trust manager key","expected_files":["okhttp-tls/src/main/kotlin/okhttp3/tls/HandshakeCertificates.kt","okhttp-tls/src/main/kotlin/okhttp3/tls/HeldCertificate.kt"]}
+{"id":"okhttp-t005","query":"held certificate PEM key pair X509 generate","expected_files":["okhttp-tls/src/main/kotlin/okhttp3/tls/HeldCertificate.kt"]}

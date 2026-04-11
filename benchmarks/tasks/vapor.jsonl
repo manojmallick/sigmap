@@ -1,0 +1,5 @@
+{"id":"vapor-t001","query":"bearer session authentication middleware guard","expected_files":["Sources/Vapor/Authentication/Authenticator.swift","Sources/Vapor/Authentication/GuardMiddleware.swift"]}
+{"id":"vapor-t002","query":"route builder GET POST group middleware","expected_files":["Sources/Vapor/Routing/RoutesBuilder+Method.swift","Sources/Vapor/Application.swift"]}
+{"id":"vapor-t003","query":"request content decode body JSON","expected_files":["Sources/Vapor/Content/ContentContainer.swift","Sources/Vapor/Content/Request+Content.swift"]}
+{"id":"vapor-t004","query":"HTTP client send request response","expected_files":["Sources/Vapor/Client/Client.swift","Sources/Vapor/Client/ClientRequest.swift"]}
+{"id":"vapor-t005","query":"cache get set memory store expiration","expected_files":["Sources/Vapor/Cache/Cache.swift","Sources/Vapor/Cache/MemoryCache.swift"]}

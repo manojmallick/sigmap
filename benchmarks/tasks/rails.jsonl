@@ -1,0 +1,5 @@
+{"id":"rails-t001","query":"mailer callbacks before_action observer register","expected_files":["actionmailer/lib/action_mailer/callbacks.rb","actionmailer/lib/action_mailer/base.rb"]}
+{"id":"rails-t002","query":"mail delivery methods SMTP send queue job","expected_files":["actionmailer/lib/action_mailer/delivery_methods.rb","actionmailer/lib/action_mailer/mail_delivery_job.rb"]}
+{"id":"rails-t003","query":"parameterized mailer with params preview","expected_files":["actionmailer/lib/action_mailer/parameterized.rb","actionmailer/lib/action_mailer/preview.rb"]}
+{"id":"rails-t004","query":"render partial template collection streaming","expected_files":["actionview/lib/action_view/renderer/partial_renderer.rb","actionview/lib/action_view/renderer/streaming_template_renderer.rb"]}
+{"id":"rails-t005","query":"template handler ERB builder HTML renderer","expected_files":["actionview/lib/action_view/renderer/template_renderer.rb","actionview/lib/action_view/template/handlers/erb.rb"]}

@@ -34,6 +34,7 @@ export default defineConfig({
           { text: 'Quick start', link: '/guide/quick-start' },
           { text: 'Benchmark', link: '/guide/benchmark' },
           { text: 'Quality benchmark', link: '/guide/quality-benchmark' },
+          { text: 'Retrieval benchmark', link: '/guide/retrieval-benchmark' },
         ],
       },
       {

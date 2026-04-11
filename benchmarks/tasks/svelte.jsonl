@@ -1,0 +1,5 @@
+{"id":"svelte-t001","query":"reactivity source signal derived computed state","expected_files":["packages/svelte/src/internal/client/reactivity/sources.js","packages/svelte/src/internal/client/reactivity/deriveds.js"]}
+{"id":"svelte-t002","query":"effects side effect reactive run schedule","expected_files":["packages/svelte/src/internal/client/reactivity/effects.js"]}
+{"id":"svelte-t003","query":"runtime component mount render client","expected_files":["packages/svelte/src/internal/client/runtime.js","packages/svelte/src/internal/client/render.js"]}
+{"id":"svelte-t004","query":"server render HTML snippet block hydrate","expected_files":["packages/svelte/src/internal/server/renderer.js","packages/svelte/src/internal/server/blocks/snippet.js"]}
+{"id":"svelte-t005","query":"reactive props store subscribe batch","expected_files":["packages/svelte/src/internal/client/reactivity/props.js","packages/svelte/src/internal/client/reactivity/store.js","packages/svelte/src/internal/client/reactivity/batch.js"]}

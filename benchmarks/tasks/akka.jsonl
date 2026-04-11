@@ -1,0 +1,5 @@
+{"id":"akka-t001","query":"cluster join leave member gossip distributed","expected_files":["akka-cluster/src/main/scala/akka/cluster/Cluster.scala","akka-cluster/src/main/scala/akka/cluster/Gossip.scala"]}
+{"id":"akka-t002","query":"cluster events member up down reachable unreachable","expected_files":["akka-cluster/src/main/scala/akka/cluster/ClusterEvent.scala","akka-cluster/src/main/scala/akka/cluster/Member.scala"]}
+{"id":"akka-t003","query":"cluster settings configuration quorum roles","expected_files":["akka-cluster/src/main/scala/akka/cluster/ClusterSettings.scala"]}
+{"id":"akka-t004","query":"stream flow graph hub framing JSON processing","expected_files":["akka-stream/src/main/scala/akka/stream/javadsl/Framing.scala","akka-stream/src/main/scala/akka/stream/javadsl/JsonFraming.scala"]}
+{"id":"akka-t005","query":"stream restart backoff restart flow source","expected_files":["akka-stream/src/main/scala/akka/stream/javadsl/RestartFlow.scala"]}

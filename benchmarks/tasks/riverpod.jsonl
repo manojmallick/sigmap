@@ -1,0 +1,5 @@
+{"id":"riverpod-t001","query":"persisted data destroy key expire toPersistedData row","expected_files":["packages/riverpod_sqflite/lib/src/riverpod_sqflite.dart"]}
+{"id":"riverpod-t002","query":"storage Ref Future JsonSqFliteStorage provider","expected_files":["packages/riverpod_sqflite/example/lib/generated.dart"]}
+{"id":"riverpod-t003","query":"Todo Notifier build FutureOr list notifier","expected_files":["packages/riverpod_sqflite/example/lib/manual.dart"]}
+{"id":"riverpod-t004","query":"Todo freezed identical toString class","expected_files":["packages/riverpod_sqflite/example/lib/generated.freezed.dart"]}
+{"id":"riverpod-t005","query":"linter include analysis options rules","expected_files":["packages/riverpod_sqflite/example/analysis_options.yaml"]}

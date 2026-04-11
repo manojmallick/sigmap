@@ -1,0 +1,5 @@
+{"id":"flask-t001","query":"register route with url rules and HTTP methods","expected_files":["src/flask/app.py","src/flask/sansio/scaffold.py"]}
+{"id":"flask-t002","query":"request context push teardown g object","expected_files":["src/flask/ctx.py","src/flask/globals.py"]}
+{"id":"flask-t003","query":"blueprint register endpoints url prefix","expected_files":["src/flask/blueprints.py","src/flask/sansio/blueprints.py"]}
+{"id":"flask-t004","query":"session interface cookie signing open save","expected_files":["src/flask/sessions.py"]}
+{"id":"flask-t005","query":"render template Jinja2 template_rendered signal","expected_files":["src/flask/templating.py","src/flask/signals.py"]}
