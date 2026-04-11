@@ -214,7 +214,7 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
 </div>
 
 <div style="margin-top:1rem;font-size:0.83em;color:var(--vp-c-text-3)">
-Measured across 80 tasks · 16 repos · 13 languages · no LLM API · <a href="/guide/task-benchmark" style="color:#7c6af7">full methodology →</a>
+Measured across 80 tasks · 16 repos · 13 languages · no LLM API · <a href="/sigmap/guide/task-benchmark" style="color:#7c6af7">full methodology →</a>
 </div>
 
 </div>
