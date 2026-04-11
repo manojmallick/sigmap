@@ -1,28 +1,32 @@
 ---
-title: Quality benchmark — hallucination, overflow, cost
-description: What token reduction means for LLM behaviour. 10/16 real repos overflow GPT-4o without SigMap. 4,793 files hidden. $8,958/month saved.
+title: Quality benchmark — overflow risk, signature coverage, API cost
+description: What token reduction means in practice. 10/16 real repos exceed GPT-4o's context limit without SigMap. 4,793 files not in context. $8,958/month in API input cost.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Quality Benchmark — overflow, hallucination, cost"
+      content: "SigMap Quality Benchmark — overflow, coverage, cost"
   - - meta
     - property: og:description
-      content: "10/16 repos overflow GPT-4o without SigMap. 4,793 files hidden from the LLM. SigMap fixes all of it — no API key needed."
+      content: "10/16 repos exceed GPT-4o's 128K context limit without SigMap. 4,793 files not in context. $8,958/month in GPT-4o input-token cost."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/quality-benchmark"
   - - meta
     - name: keywords
-      content: "llm hallucination, context window overflow, ai assumptions, sigmap benchmark, token cost savings"
+      content: "llm context window overflow, context limit, sigmap benchmark, ai token cost savings, signature coverage"
 ---
 
 # Quality benchmark
 
-Token reduction is the mechanism. This page measures what it means for **LLM behaviour** —
-hallucination, assumptions, repeated questions, and API cost.
+Token reduction is the mechanism. This page measures what it means in practice —
+context window fit, signature coverage, and API cost.
 
-No LLM API key was used. All four metrics are computed directly from repo stats and
-published model specifications. Reproduce with:
+No LLM API key was used. All metrics are computed from:
+- **raw token counts** measured by `node gen-context.js --report --json` on each repo
+- **published model context-window sizes** from official documentation
+- **published API pricing** from OpenAI and Anthropic pricing pages
+
+Reproduce with:
 
 ```bash
 node scripts/run-quality-benchmark.mjs --save
@@ -30,120 +34,100 @@ node scripts/run-quality-benchmark.mjs --save
 
 ---
 
-## 1. Context window overflow risk
+## 1. Context window fit
 
-When raw repo content exceeds a model's context window, the LLM **must** either truncate silently,
-make assumptions about unseen files, or ask you to paste the relevant code before it can proceed.
+A model can only process what fits in its context window. When raw source exceeds the limit,
+content must be truncated or selectively omitted — the LLM works with an incomplete view of
+the codebase.
+
+The table below compares each repo's measured raw token count against published context limits.
+SigMap output always fits because the token budget is capped (default: 6,000 tokens).
 
 | Repo | Raw tokens | GPT-4o 128K | Claude 200K | Gemini 1M | SigMap |
 |------|:----------:|:-----------:|:-----------:|:---------:|:------:|
 | [express](https://github.com/expressjs/express) | 15.5K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
 | [flask](https://github.com/pallets/flask) | 84.8K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [gin](https://github.com/gin-gonic/gin) | 172.8K | OVERFLOW +35% | FITS ✓ | FITS ✓ | FITS ✓ |
+| [gin](https://github.com/gin-gonic/gin) | 172.8K | EXCEEDS +35% | FITS ✓ | FITS ✓ | FITS ✓ |
 | [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 77.0K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [rails](https://github.com/rails/rails) | 1.5M | OVERFLOW +1067% | OVERFLOW +647% | OVERFLOW +49% | FITS ✓ |
+| [rails](https://github.com/rails/rails) | 1.5M | EXCEEDS ×12 | EXCEEDS ×7.5 | EXCEEDS +49% | FITS ✓ |
 | [axios](https://github.com/axios/axios) | 31.7K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 3.5M | OVERFLOW +2652% | OVERFLOW +1661% | OVERFLOW +252% | FITS ✓ |
-| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 2.3M | OVERFLOW +1711% | OVERFLOW +1059% | OVERFLOW +132% | FITS ✓ |
+| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 3.5M | EXCEEDS ×27 | EXCEEDS ×17 | EXCEEDS ×3.5 | FITS ✓ |
+| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 2.3M | EXCEEDS ×18 | EXCEEDS ×11 | EXCEEDS ×2.3 | FITS ✓ |
 | [serilog](https://github.com/serilog/serilog) | 113.7K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [riverpod](https://github.com/rrousselGit/riverpod) | 682.7K | OVERFLOW +433% | OVERFLOW +241% | FITS ✓ | FITS ✓ |
+| [riverpod](https://github.com/rrousselGit/riverpod) | 682.7K | EXCEEDS ×5.3 | EXCEEDS ×3.4 | FITS ✓ | FITS ✓ |
 | [okhttp](https://github.com/square/okhttp) | 31.3K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [laravel](https://github.com/laravel/framework) | 1.7M | OVERFLOW +1211% | OVERFLOW +739% | OVERFLOW +68% | FITS ✓ |
-| [akka](https://github.com/akka/akka) | 790.5K | OVERFLOW +518% | OVERFLOW +295% | FITS ✓ | FITS ✓ |
-| [vapor](https://github.com/vapor/vapor) | 171.2K | OVERFLOW +34% | FITS ✓ | FITS ✓ | FITS ✓ |
-| [vue-core](https://github.com/vuejs/core) | 404.2K | OVERFLOW +216% | OVERFLOW +102% | FITS ✓ | FITS ✓ |
-| [svelte](https://github.com/sveltejs/svelte) | 438.2K | OVERFLOW +242% | OVERFLOW +119% | FITS ✓ | FITS ✓ |
+| [laravel](https://github.com/laravel/framework) | 1.7M | EXCEEDS ×13 | EXCEEDS ×8.5 | EXCEEDS +68% | FITS ✓ |
+| [akka](https://github.com/akka/akka) | 790.5K | EXCEEDS ×6.2 | EXCEEDS ×4.0 | FITS ✓ | FITS ✓ |
+| [vapor](https://github.com/vapor/vapor) | 171.2K | EXCEEDS +34% | FITS ✓ | FITS ✓ | FITS ✓ |
+| [vue-core](https://github.com/vuejs/core) | 404.2K | EXCEEDS ×3.2 | EXCEEDS ×2.0 | FITS ✓ | FITS ✓ |
+| [svelte](https://github.com/sveltejs/svelte) | 438.2K | EXCEEDS ×3.4 | EXCEEDS ×2.2 | FITS ✓ | FITS ✓ |
 
-**10/16 repos overflow GPT-4o's 128K window without SigMap. With SigMap: 0/16.**
+**10/16 repos exceed GPT-4o's 128K limit. 9/16 exceed Claude's 200K limit. With SigMap: 0/16 exceed any limit.**
 
-::: tip Why this matters
-When a repo overflows the context window, the LLM must say one of two things:
-1. *"Could you paste the relevant files?"* — the clarifying question that breaks your flow
-2. Silently truncate — seeing only the first N files, making assumptions about the rest
-
-SigMap ensures the LLM always sees 100% of the codebase structure in ≤7K tokens.
+::: info What "EXCEEDS" means technically
+When raw content is larger than the context window, it cannot be sent as-is. Tooling (IDEs,
+agents, API clients) must decide what to truncate or omit before the request is made. The
+LLM itself never sees the overflowing content. What gets omitted depends on the tool — there
+is no universal behaviour.
 :::
 
 ---
 
-## 2. Hallucination surface
+## 2. Signature coverage
 
-Without SigMap, the LLM has no grounding for function names in your codebase —
-it must guess or hallucinate names it hasn't seen. **Dark symbols** are functions the LLM cannot see.
+SigMap extracts function and class signatures from source files and writes them into a
+compact context file. This table measures two things that are directly countable:
 
-> **Methodology:** grounded symbols = lines in SigMap output that are function/class/interface signatures.
-> Dark symbols ≈ `rawTokens / 200` (average tokens per function body including whitespace/comments), minus grounded.
+- **Signatures in context (SigMap)** — lines in the SigMap output file that are function/class/interface declarations, counted exactly
+- **Source files not in context (no SigMap)** — files that would be truncated when raw content exceeds the GPT-4o 128K limit, assuming files are included in full and sequentially
 
-| Repo | Grounded (SigMap) | Dark (no SigMap) | Grounding % |
-|------|:-----------------:|:----------------:|:-----------:|
-| [express](https://github.com/expressjs/express) | 11 | ~66 | 14% |
-| [flask](https://github.com/pallets/flask) | 209 | ~215 | 49% |
-| [gin](https://github.com/gin-gonic/gin) | 450 | ~414 | 52% |
-| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 13 | ~372 | 3% |
-| [rails](https://github.com/rails/rails) | 648 | ~6,823 | 9% |
-| [axios](https://github.com/axios/axios) | 53 | ~105 | 34% |
-| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 395 | ~17,217 | 2% |
-| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 350 | ~11,240 | 3% |
-| [serilog](https://github.com/serilog/serilog) | 301 | ~268 | 53% |
-| [riverpod](https://github.com/rrousselGit/riverpod) | 672 | ~2,742 | 20% |
-| [okhttp](https://github.com/square/okhttp) | 115 | ~41 | 74% |
-| [laravel](https://github.com/laravel/framework) | 578 | ~7,815 | 7% |
-| [akka](https://github.com/akka/akka) | 508 | ~3,445 | 13% |
-| [vapor](https://github.com/vapor/vapor) | 364 | ~492 | 43% |
-| [vue-core](https://github.com/vuejs/core) | 205 | ~1,816 | 10% |
-| [svelte](https://github.com/sveltejs/svelte) | 195 | ~1,996 | 9% |
+> **What "not in context" means:** if a repo's raw source exceeds the GPT-4o 128K window and
+> you attempt to include all files, files beyond the limit are cut. SigMap avoids this entirely
+> because its output is always within the token budget.
 
-**~55,067 total "dark" symbols across all repos — functions the LLM cannot ground without SigMap.**
+| Repo | Signatures in SigMap output | Source files not in context (raw, GPT-4o limit) |
+|------|:---------------------------:|:-----------------------------------------------:|
+| [express](https://github.com/expressjs/express) | 11 | 0 of 6 |
+| [flask](https://github.com/pallets/flask) | 209 | 0 of 19 |
+| [gin](https://github.com/gin-gonic/gin) | 450 | 28 of 107 |
+| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 13 | 0 of 13 |
+| [rails](https://github.com/rails/rails) | 648 | **1,079 of 1,179** |
+| [axios](https://github.com/axios/axios) | 53 | 0 of 25 |
+| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 395 | **612 of 635** |
+| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 350 | **662 of 700** |
+| [serilog](https://github.com/serilog/serilog) | 301 | 0 of 99 |
+| [riverpod](https://github.com/rrousselGit/riverpod) | 672 | **363 of 446** |
+| [okhttp](https://github.com/square/okhttp) | 115 | 0 of 18 |
+| [laravel](https://github.com/laravel/framework) | 578 | **1,417 of 1,533** |
+| [akka](https://github.com/akka/akka) | 508 | **177 of 211** |
+| [vapor](https://github.com/vapor/vapor) | 364 | 34 of 131 |
+| [vue-core](https://github.com/vuejs/core) | 205 | **159 of 232** |
+| [svelte](https://github.com/sveltejs/svelte) | 195 | **262 of 370** |
 
-::: tip What SigMap provides
-The SigMap output gives the LLM the **full public API surface** of the codebase in a compact format:
-every exported function name, parameter list, and return type. This is exactly what the LLM needs
-to know *what exists* before it decides *how to call it*.
+**Total: 5,067 signatures extractable into context with SigMap. 4,793 source files not in context without it (raw, GPT-4o limit).**
+
+::: info Methodology notes
+- Signature count is exact: output file lines matching function/class/interface declaration patterns
+- "Files not in context" assumes worst-case: all files concatenated sequentially, truncated at 128K tokens. Real tools may use different file selection strategies.
+- SigMap output size for these repos ranges from 201 to 8,800 tokens — all within the default 6,000-token budget (some repos use a higher configured budget).
 :::
 
 ---
 
-## 3. Files hidden from the LLM (forced assumptions)
+## 3. API input-token cost
 
-When raw content overflows the context window, the LLM is limited to seeing only the first N files
-that fit. Every file beyond that becomes an **assumption**. SigMap always shows all files.
+This is the most directly computable metric: fewer tokens sent = lower API bill.
+Numbers use measured `rawTokens` and `finalTokens` from the [token reduction benchmark](/guide/benchmark),
+multiplied by published per-token prices. No modelling involved.
 
-| Repo | Total files | Visible without SigMap | Hidden without SigMap | With SigMap |
-|------|:-----------:|:----------------------:|:---------------------:|:-----------:|
-| [express](https://github.com/expressjs/express) | 6 | 6 | **0** | 0 |
-| [flask](https://github.com/pallets/flask) | 19 | 19 | **0** | 0 |
-| [gin](https://github.com/gin-gonic/gin) | 107 | 79 | **28** | 0 |
-| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 13 | 13 | **0** | 0 |
-| [rails](https://github.com/rails/rails) | 1,179 | 100 | **1,079** | 0 |
-| [axios](https://github.com/axios/axios) | 25 | 25 | **0** | 0 |
-| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 635 | 23 | **612** | 0 |
-| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 700 | 38 | **662** | 0 |
-| [serilog](https://github.com/serilog/serilog) | 99 | 99 | **0** | 0 |
-| [riverpod](https://github.com/rrousselGit/riverpod) | 446 | 83 | **363** | 0 |
-| [okhttp](https://github.com/square/okhttp) | 18 | 18 | **0** | 0 |
-| [laravel](https://github.com/laravel/framework) | 1,533 | 116 | **1,417** | 0 |
-| [akka](https://github.com/akka/akka) | 211 | 34 | **177** | 0 |
-| [vapor](https://github.com/vapor/vapor) | 131 | 97 | **34** | 0 |
-| [vue-core](https://github.com/vuejs/core) | 232 | 73 | **159** | 0 |
-| [svelte](https://github.com/sveltejs/svelte) | 370 | 108 | **262** | 0 |
-
-**4,793 files hidden from the LLM without SigMap across all repos. With SigMap: 0.**
-
-8 of 16 repos have more than 50% of their codebase invisible to the LLM without SigMap. The LLM on those repos is essentially guessing about structure it has never seen.
-
----
-
-## 4. API cost savings
-
-SigMap doesn't just save time — it directly reduces your API bill. The numbers below use
-published pricing and `rawTokens`/`finalTokens` from the token reduction benchmark.
-
-> **Pricing used:** GPT-4o $2.50/1M (regular) · $1.25/1M (cached). Claude Sonnet $3.00/1M · $0.30/1M cached. 10 calls/day per repo.
+> **Pricing source:** [OpenAI pricing page](https://openai.com/api/pricing/) · [Anthropic pricing page](https://www.anthropic.com/pricing)
+> GPT-4o: $2.50/1M input (regular) · $1.25/1M (cached). Claude Sonnet: $3.00/1M · $0.30/1M cached.
+> **Baseline assumption:** 10 API calls/day per repo. Adjust to your actual usage.
 
 ### GPT-4o
 
-| Repo | Raw/day | SigMap/day | Saved/day | Saved/month |
-|------|:-------:|:----------:|:---------:|:-----------:|
+| Repo | Raw cost/day | SigMap cost/day | Saved/day | Saved/month |
+|------|:--------:|:-----------:|:---------:|:-----------:|
 | [express](https://github.com/expressjs/express) | $0.39 | $0.005 | $0.38 | **$11.44** |
 | [flask](https://github.com/pallets/flask) | $2.12 | $0.08 | $2.04 | **$61.08** |
 | [gin](https://github.com/gin-gonic/gin) | $4.32 | $0.14 | $4.18 | **$125.31** |
@@ -162,26 +146,19 @@ published pricing and `rawTokens`/`finalTokens` from the token reduction benchma
 | [svelte](https://github.com/sveltejs/svelte) | $10.95 | $0.20 | $10.75 | **$322.62** |
 | **TOTAL** | | | **$298.54/day** | **$8,958/month** |
 
-**Claude Sonnet total: $358/day · $10,750/month saved** (cached: $35.83/day saved).
+**Claude Sonnet: $358/day · $10,750/month saved at regular pricing. At cached pricing: $35.83/day saved.**
 
 ---
 
-## Summary scorecard
+## Summary
 
-| Metric | Without SigMap | With SigMap |
-|--------|:--------------:|:-----------:|
-| Repos overflowing GPT-4o | **10/16** | 0/16 |
-| Repos overflowing Claude | **9/16** | 0/16 |
-| Files hidden from LLM | **4,793** | 0 |
-| Dark symbols (ungrounded) | **~55,067** | 0 |
-| Forced clarifying questions | **10/16 repos** | None |
-| GPT-4o cost (10 calls/day) | **~$299/day** | ~$0.43/day |
-
-::: tip One-line summary
-Without SigMap, the LLM on a large codebase is working blind — it can see only a fraction of the
-code, guesses function names it hasn't been shown, and asks clarifying questions before it can
-help. SigMap solves all three in under a second.
-:::
+| Metric | Source | Without SigMap | With SigMap |
+|--------|--------|:--------------:|:-----------:|
+| Repos exceeding GPT-4o 128K | Measured | **10/16** | 0/16 |
+| Repos exceeding Claude 200K | Measured | **9/16** | 0/16 |
+| Source files not in context (GPT-4o limit) | Measured | **4,793** | 0 |
+| Signatures extractable into context | Measured (SigMap output) | 0 | **5,067** |
+| GPT-4o input cost (10 calls/day, all repos) | Computed from measured tokens × pricing | **~$299/day** | **~$0.43/day** |
 
 ## Reproduce these numbers
 
