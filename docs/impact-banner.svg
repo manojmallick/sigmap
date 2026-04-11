@@ -60,10 +60,10 @@
   <rect x="22" y="181" width="352" height="158" rx="9" fill="url(#redglow)"/>
   <rect x="22" y="181" width="352" height="158" rx="9" fill="none" stroke="#5c1f1f" stroke-width="1"/>
   <text x="198" y="202" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#ef4444">WITHOUT SIGMAP</text>
-  <text x="38" y="223" font-size="12.5" fill="#9ca3af">Blind to 92% of your codebase</text>
-  <text x="38" y="243" font-size="12.5" fill="#9ca3af">Reads wrong files, hallucinates answers</text>
-  <text x="38" y="263" font-size="12.5" fill="#9ca3af">~3 prompts to maybe get an answer</text>
-  <text x="38" y="283" font-size="12.5" fill="#9ca3af">AI invents code that does not exist</text>
+  <text x="38" y="223" font-size="12.5" fill="#f87171">&#x2715;  Blind to 92% of your codebase</text>
+  <text x="38" y="243" font-size="12.5" fill="#f87171">&#x2715;  Reads wrong files, hallucinates</text>
+  <text x="38" y="263" font-size="12.5" fill="#f87171">&#x2715;  3 prompts and still wrong</text>
+  <text x="38" y="283" font-size="12.5" fill="#f87171">&#x2715;  Invents code that does not exist</text>
   <text x="38" y="306" font-size="10" fill="#6b3333">TASK SUCCESS</text>
   <rect x="38" y="312" width="320" height="17" fill="#1a0808" rx="4"/>
   <rect x="38" y="312" width="32" height="17" fill="#ef4444" rx="4"/>
@@ -73,10 +73,10 @@
   <rect x="386" y="181" width="352" height="158" rx="9" fill="url(#greenglow)"/>
   <rect x="386" y="181" width="352" height="158" rx="9" fill="none" stroke="#1a4a2a" stroke-width="1"/>
   <text x="562" y="202" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#22c55e">WITH SIGMAP</text>
-  <text x="402" y="223" font-size="12.5" fill="#9ca3af">Every function fully indexed</text>
-  <text x="402" y="243" font-size="12.5" fill="#9ca3af">Right file in context, first prompt</text>
-  <text x="402" y="263" font-size="12.5" fill="#9ca3af">1-2 prompts. Grounded answer.</text>
-  <text x="402" y="283" font-size="12.5" fill="#9ca3af">All 5,067 symbols grounded in real code</text>
+  <text x="402" y="223" font-size="12.5" fill="#86efac">&#x2713;  Every function fully indexed</text>
+  <text x="402" y="243" font-size="12.5" fill="#86efac">&#x2713;  Right file in context, first prompt</text>
+  <text x="402" y="263" font-size="12.5" fill="#86efac">&#x2713;  1&#x2013;2 prompts. Grounded answer.</text>
+  <text x="402" y="283" font-size="12.5" fill="#86efac">&#x2713;  5,067 symbols grounded in real code</text>
   <text x="402" y="306" font-size="10" fill="#1a4a2a">TASK SUCCESS</text>
   <rect x="402" y="312" width="320" height="17" fill="#071a0e" rx="4"/>
   <rect x="402" y="312" width="189" height="17" fill="#22c55e" rx="4"/>

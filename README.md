@@ -4,10 +4,10 @@
 
 <h1>⚡ SigMap</h1>
 
-<p><strong>Without SigMap, your AI is flying blind.<br>
-92% of your codebase is invisible to it. Every answer is a guess.</strong></p>
+<p><strong>Your AI just answered from the wrong file. Again.<br>
+It can see 8% of your codebase. The rest is invisible. Every answer is a guess.</strong></p>
 
-<p><sub>One command fixes that. Works with Copilot, Claude Code, Cursor, Windsurf, Gemini.</sub></p>
+<p><sub>One command changes that permanently. Works with Copilot, Claude Code, Cursor, Windsurf, Gemini.</sub></p>
 
 </div>
 
