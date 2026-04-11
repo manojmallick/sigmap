@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" width="760" height="360" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+
+  <!-- Background -->
+  <rect width="760" height="360" fill="#0a0812" rx="14"/>
+  <rect width="760" height="360" fill="none" stroke="#2d1f6e" stroke-width="1.5" rx="14"/>
+
+  <!-- Top glow strip -->
+  <rect x="0" y="0" width="760" height="4" fill="url(#topglow)" rx="14"/>
+  <defs>
+    <linearGradient id="topglow" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#7c6af7" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#7c6af7" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#7c6af7" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="statglow" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7c6af7" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#7c6af7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── SECTION LABEL ── -->
+  <text x="380" y="34" text-anchor="middle" font-size="11" font-weight="600"
+        letter-spacing="3" fill="#7c6af7" text-transform="uppercase">SIGMAP IMPACT</text>
+
+  <!-- ─────────────────────── STAT CARDS ─────────────────────── -->
+
+  <!-- Card 1: 6× answers -->
+  <rect x="28" y="48" width="216" height="104" rx="10" fill="#120d2a" stroke="#3d2e8a" stroke-width="1"/>
+  <rect x="28" y="48" width="216" height="104" rx="10" fill="url(#statglow)"/>
+  <text x="136" y="100" text-anchor="middle" font-size="52" font-weight="800" fill="#7c6af7">6×</text>
+  <text x="136" y="122" text-anchor="middle" font-size="12.5" font-weight="600" fill="#c4b9ff">better answers</text>
+  <text x="136" y="141" text-anchor="middle" font-size="11" fill="#6b5fb5">correct: 10% → 59%</text>
+
+  <!-- Card 2: 97% tokens -->
+  <rect x="272" y="48" width="216" height="104" rx="10" fill="#120d2a" stroke="#3d2e8a" stroke-width="1"/>
+  <rect x="272" y="48" width="216" height="104" rx="10" fill="url(#statglow)"/>
+  <text x="380" y="100" text-anchor="middle" font-size="52" font-weight="800" fill="#22c55e">97%</text>
+  <text x="380" y="122" text-anchor="middle" font-size="12.5" font-weight="600" fill="#9aeab8">fewer tokens</text>
+  <text x="380" y="141" text-anchor="middle" font-size="11" fill="#4a9a6a">80,000 → 2,000 / session</text>
+
+  <!-- Card 3: 2× prompts -->
+  <rect x="516" y="48" width="216" height="104" rx="10" fill="#120d2a" stroke="#3d2e8a" stroke-width="1"/>
+  <rect x="516" y="48" width="216" height="104" rx="10" fill="url(#statglow)"/>
+  <text x="624" y="100" text-anchor="middle" font-size="52" font-weight="800" fill="#f59e0b">2×</text>
+  <text x="624" y="122" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fcd88a">fewer prompts</text>
+  <text x="624" y="141" text-anchor="middle" font-size="11" fill="#a0700a">2.84 → 1.54 per task</text>
+
+  <!-- ─────────────── DIVIDER ─────────────── -->
+  <line x1="28" y1="172" x2="732" y2="172" stroke="#2d1f6e" stroke-width="1"/>
+
+  <!-- ─────────────── WITHOUT column ─────────────── -->
+  <text x="185" y="193" text-anchor="middle" font-size="10" font-weight="700"
+        letter-spacing="2" fill="#ef4444">WITHOUT SIGMAP</text>
+
+  <text x="185" y="214" text-anchor="middle" font-size="12.5" fill="#9ca3af">Blind to <tspan font-weight="700" fill="#ef4444">92%</tspan> of codebase</text>
+  <text x="185" y="233" text-anchor="middle" font-size="12.5" fill="#9ca3af">Wrong files → <tspan font-weight="700" fill="#ef4444">hallucinates</tspan></text>
+  <text x="185" y="252" text-anchor="middle" font-size="12.5" fill="#9ca3af">~<tspan font-weight="700" fill="#ef4444">3 prompts</tspan> per task</text>
+
+  <!-- Task success bar — without -->
+  <text x="28" y="277" font-size="10" fill="#6b7280">Task success</text>
+  <rect x="28" y="282" width="314" height="18" fill="#1e1528" rx="4"/>
+  <!-- 10% of 314 = 31.4 -->
+  <rect x="28" y="282" width="31" height="18" fill="#ef4444" rx="4"/>
+  <text x="65" y="295" font-size="11" font-weight="700" fill="#ef4444">10%</text>
+
+  <!-- ─────────────── VERTICAL DIVIDER ─────────────── -->
+  <line x1="380" y1="178" x2="380" y2="320" stroke="#2d1f6e" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ─────────────── WITH SIGMAP column ─────────────── -->
+  <text x="575" y="193" text-anchor="middle" font-size="10" font-weight="700"
+        letter-spacing="2" fill="#22c55e">WITH SIGMAP</text>
+
+  <text x="575" y="214" text-anchor="middle" font-size="12.5" fill="#9ca3af">Every function <tspan font-weight="700" fill="#22c55e">fully indexed</tspan></text>
+  <text x="575" y="233" text-anchor="middle" font-size="12.5" fill="#9ca3af"><tspan font-weight="700" fill="#22c55e">Right file</tspan> — first prompt</text>
+  <text x="575" y="252" text-anchor="middle" font-size="12.5" fill="#9ca3af"><tspan font-weight="700" fill="#22c55e">1–2 prompts.</tspan> Grounded answer.</text>
+
+  <!-- Task success bar — with -->
+  <text x="393" y="277" font-size="10" fill="#6b7280">Task success</text>
+  <rect x="393" y="282" width="314" height="18" fill="#1e1528" rx="4"/>
+  <!-- 59% of 314 = 185.3 -->
+  <rect x="393" y="282" width="185" height="18" fill="#22c55e" rx="4"/>
+  <text x="583" y="295" font-size="11" font-weight="700" fill="#22c55e">59%  ✓ 6× better</text>
+
+  <!-- ─────────────── FOOTER ─────────────── -->
+  <line x1="28" y1="320" x2="732" y2="320" stroke="#2d1f6e" stroke-width="1"/>
+  <text x="380" y="341" text-anchor="middle" font-size="10.5" fill="#4b4470">
+    Measured across
+    <tspan font-weight="600" fill="#6b5fb5">80 tasks</tspan>
+    ·
+    <tspan font-weight="600" fill="#6b5fb5">16 real repos</tspan>
+    ·
+    <tspan font-weight="600" fill="#6b5fb5">21 languages</tspan>
+    · no LLM API · fully reproducible
+  </text>
+
+</svg>

@@ -1,49 +1,20 @@
 <div align="center">
 
-<img src="docs-vp/.vitepress/public/logo.svg" alt="SigMap logo" width="80" height="104" />
+<img src="docs-vp/.vitepress/public/logo.svg" alt="SigMap logo" width="64" height="84" />
 
 <h1>⚡ SigMap</h1>
 
-<p><strong>Your AI gets coding answers right 6× more often.</strong><br>
-<sub>One command. No config. Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.</sub></p>
+<p><sub>One command. No config. Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.</sub></p>
 
 </div>
-
-<table>
-<tr>
-<th align="center" width="50%">❌ Without SigMap</th>
-<th align="center" width="50%">✅ With SigMap</th>
-</tr>
-<tr>
-<td align="center">Blind to <strong>92%</strong> of your codebase</td>
-<td align="center">Every function indexed — nothing hidden</td>
-</tr>
-<tr>
-<td align="center">Reads wrong files → <strong>hallucinates answers</strong></td>
-<td align="center">Right file in context, <strong>first prompt</strong></td>
-</tr>
-<tr>
-<td align="center">~3 prompts to get a correct answer</td>
-<td align="center"><strong>1–2 prompts.</strong> Answer is grounded.</td>
-</tr>
-<tr>
-<td align="center">~80,000 tokens per session</td>
-<td align="center"><strong>~2,000 tokens — 97% less</strong></td>
-</tr>
-<tr>
-<td align="center"><h3>10% task success</h3></td>
-<td align="center"><h3>59% task success — 6× better ✅</h3></td>
-</tr>
-</table>
-
-```sh
-npx sigmap   # 10 seconds. zero config.
-```
 
 <div align="center">
-<img src="docs/comparison-chart.svg" alt="SigMap — before vs after" width="700" />
-<br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">Measured across 80 tasks · 16 real repos · no LLM API · <strong>full methodology →</strong></a></sub>
+<img src="docs/impact-banner.svg" alt="SigMap — 6× better answers, 97% fewer tokens, 2× fewer prompts" width="760" />
 </div>
+
+```sh
+npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again.
+```
 
 <div align="center">
 
@@ -57,6 +28,26 @@ npx sigmap   # 10 seconds. zero config.
 [![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
 
 </div>
+
+<details>
+<summary><strong>Full benchmark breakdown →</strong></summary>
+
+<br/>
+
+<div align="center">
+<img src="docs/comparison-chart.svg" alt="SigMap benchmark — before vs after across 3 RAG quality metrics" width="700" />
+<br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">80 tasks · 16 real repos · no LLM API · <strong>full methodology →</strong></a></sub>
+</div>
+
+| | Without SigMap | With SigMap |
+|---|:---:|:---:|
+| Task success | 10% | **59%** |
+| Prompts per task | 2.84 | **1.54** |
+| Tokens per session | ~80,000 | **~2,000** |
+| Right file found | 13.7% | **87.5%** |
+| Hallucination risk | 92% | **0%** |
+
+</details>
 
 ---
 
