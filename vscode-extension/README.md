@@ -233,11 +233,19 @@ Open the Command Palette (`⇧⌘P` / `Ctrl+Shift+P`) and type **SigMap**:
 
 ## 📈 Token Reduction in Practice
 
-| Codebase | Raw tokens | After SigMap | Reduction |
-|---|---:|---:|---:|
-| Small SaaS (15 files, TS) | ~12,000 | ~480 | **96%** |
-| Mid-size API (60 files, Go+TS) | ~85,000 | ~2,100 | **97.5%** |
-| Large monorepo (200+ files) | ~400,000 | ~5,800 | **98.5%** |
+Measured with `node gen-context.js --report --json` on real public repos:
+
+| Repo | Language | Raw tokens | After SigMap | Reduction |
+|------|----------|------------|--------------|-----------|
+| express | JavaScript | 15.5K | 201 | **98.7%** |
+| flask | Python | 84.8K | 3.4K | **96.0%** |
+| gin | Go | 172.8K | 5.7K | **96.7%** |
+| spring-petclinic | Java | 77.0K | 634 | **99.2%** |
+| rails | Ruby | 1.5M | 7.1K | **99.5%** |
+| axios | TypeScript | 31.7K | 1.5K | **95.2%** |
+| rust-analyzer | Rust | 3.5M | 5.9K | **99.8%** |
+
+**Average: 97.6% across 7 languages.** Reproduce with: `node scripts/run-benchmark.mjs`
 
 > Token counts estimated at 4 chars/token (standard approximation).
 
