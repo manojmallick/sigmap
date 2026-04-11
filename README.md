@@ -79,7 +79,7 @@ SigMap scans your source files and extracts only the **function and class signat
 Your codebase
     │
     ▼
-gen-context.js ──► extracts signatures from 21 languages
+sigmap ─────────► extracts signatures from 21 languages
     │
     ▼
 .github/copilot-instructions.md   ◄── auto-read by Copilot / Claude / Cursor
@@ -104,7 +104,7 @@ AI agent session starts with full context
 
 ### Benchmark: real-world repos
 
-Measured with `node gen-context.js --report --json` on public repos:
+Reproduced with `node scripts/run-benchmark.mjs` on public repos:
 
 | Repo | Language | Raw tokens | After SigMap | Reduction |
 |------|----------|------------|--------------|-----------|
@@ -299,8 +299,6 @@ No npm, no `node_modules`. Drop `gen-context.js` into any project and run it dir
 
 </details>
 
-> **Note:** When using the single-file download, replace `sigmap` with `node gen-context.js` in all commands below.
-
 ---
 
 ## 🚀 Features
@@ -391,7 +389,7 @@ npm install -g sigmap       # install globally
 
 ### Generate context
 
-Download the single-file CLI and generate context immediately:
+Once installed, run from your project root:
 
 ```bash
 sigmap                         # generate once and exit
@@ -423,17 +421,17 @@ npx repomix --compress # deep dive sessions
 
 ## 🧩 VS Code extension
 
-The `vscode-extension/` directory contains a first-party VS Code extension that keeps you informed without any manual commands.
+The official SigMap VS Code extension keeps your context fresh without any manual commands. Install it once and it runs silently in the background.
 
 | Feature | Detail |
 |---|---|
 | **Status bar item** | Shows health grade (`A`/`B`/`C`/`D`) + time since last regen; refreshes every 60 s |
 | **Stale notification** | Warns when `copilot-instructions.md` is > 24 h old; one-click regeneration |
-| **Regenerate command** | `SigMap: Regenerate Context` — runs `node gen-context.js` in the integrated terminal |
+| **Regenerate command** | `SigMap: Regenerate Context` — runs `sigmap` in the integrated terminal |
 | **Open context command** | `SigMap: Open Context File` — opens `.github/copilot-instructions.md` |
-| **Script path setting** | `sigmap.scriptPath` — override when `gen-context.js` is not at the project root |
+| **Script path setting** | `sigmap.scriptPath` — override the path to the `sigmap` binary or `gen-context.js` |
 
-Activate on startup (`onStartupFinished`) — loads within 3 s, never blocks editor startup.
+Activates on startup (`onStartupFinished`) — loads within 3 s, never blocks editor startup.
 
 **Install:** [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap) | [Open VSX Registry](https://open-vsx.org/extension/manojmallick/sigmap)
 
@@ -441,12 +439,12 @@ Activate on startup (`onStartupFinished`) — loads within 3 s, never blocks edi
 
 ## 🔧 JetBrains plugin
 
-The `jetbrains-plugin/` directory contains a Kotlin-based plugin for JetBrains IDEs with the same core features as the VS Code extension.
+The official SigMap JetBrains plugin brings the same features to IntelliJ-based IDEs. Install it from the JetBrains Marketplace and it works identically to the VS Code extension.
 
 | Feature | Detail |
 |---|---|
 | **Status bar widget** | Shows health grade (`A`-`F`) + time since last regen; updates every 60 s |
-| **Regenerate action** | `Tools → SigMap → Regenerate Context` or **Ctrl+Alt+G** — runs `node gen-context.js` |
+| **Regenerate action** | `Tools → SigMap → Regenerate Context` or **Ctrl+Alt+G** — runs `sigmap` |
 | **Open context action** | `Tools → SigMap → Open Context File` — opens `.github/copilot-instructions.md` |
 | **View roadmap action** | `Tools → SigMap → View Roadmap` — opens roadmap in browser |
 | **One-click regen** | Click status bar widget to regenerate context instantly |
@@ -544,7 +542,7 @@ Recently committed files are **hot** (auto-injected). Everything else is **cold*
 Start the MCP server on stdio:
 
 ```bash
-node gen-context.js --mcp
+sigmap --mcp
 ```
 
 ### Available tools
@@ -625,11 +623,11 @@ sigmap --help                                 Usage information
 ### Task classification — `--suggest-tool`
 
 ```bash
-node gen-context.js --suggest-tool "security audit of the auth module"
+sigmap --suggest-tool "security audit of the auth module"
 # tier   : powerful
 # models : claude-opus-4-6, gpt-5-4, gemini-2-5-pro
 
-node gen-context.js --suggest-tool "fix a typo in the yaml config" --json
+sigmap --suggest-tool "fix a typo in the yaml config" --json
 # {"tier":"fast","label":"Fast (low-cost)","models":"claude-haiku-4-5, ...","costHint":"~$0.0008 / 1K tokens"}
 ```
 
@@ -695,7 +693,7 @@ build/
 test/fixtures/
 ```
 
-Run `node gen-context.js --init` to scaffold both files in one step.
+Run `sigmap --init` to scaffold both files in one step.
 
 ### Output targets
 
@@ -725,14 +723,14 @@ If `output` is omitted, the default `.github/copilot-instructions.md` is used.
 
 ```bash
 # Append run metrics to .context/usage.ndjson
-node gen-context.js --track
+sigmap --track
 
 # Structured JSON report for CI (exits 1 if over budget)
-node gen-context.js --report --json
+sigmap --report --json
 # { "version": "2.0.0", "finalTokens": 3200, "reductionPct": 92.4, "overBudget": false }
 
 # Composite health score
-node gen-context.js --health
+sigmap --health
 # score: 95/100 (grade A) | reduction: 91.2% | 1 day since regen | 47 runs
 ```
 
@@ -744,9 +742,9 @@ Copy `examples/self-healing-github-action.yml` to `.github/workflows/` to auto-r
 
 ```yaml
 - name: SigMap health check
-  run: node gen-context.js --health --json
+  run: sigmap --health --json
 - name: Regenerate context
-  run: node gen-context.js
+  run: sigmap
 ```
 
 📖 Full guide: [docs/readmes/ENTERPRISE_SETUP.md](docs/readmes/ENTERPRISE_SETUP.md)
@@ -754,7 +752,7 @@ Copy `examples/self-healing-github-action.yml` to `.github/workflows/` to auto-r
 ### Prompt caching — 60% API cost reduction
 
 ```bash
-node gen-context.js --format cache
+sigmap --format cache
 # Writes: .github/copilot-instructions.cache.json
 # Format: { type: 'text', text: '...', cache_control: { type: 'ephemeral' } }
 ```
@@ -889,7 +887,7 @@ sigmap/
 
 | Principle | Implementation |
 |---|---|
-| **Zero npm dependencies** | `node gen-context.js` on a blank machine with Node 18+ — nothing else required |
+| **Zero npm dependencies** | `npx sigmap` on any machine — no install required. Or use the standalone binary for zero Node.js dependency. |
 | **Never throw** | All extractors return `[]` on any error — the run always completes |
 | **Deterministic** | No AI or LLM involved in extraction — only regex + Node built-ins |
 | **Repomix is a companion** | Use both tools; SigMap never replaces Repomix |
