@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs-vp/.vitepress/public/logo.svg" alt="SigMap logo" width="80" height="104" />
+
 <h1>⚡ SigMap</h1>
 
 <p><strong>Your AI reads the wrong files 87% of the time. SigMap fixes that.</strong></p>

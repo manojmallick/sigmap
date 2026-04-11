@@ -8,7 +8,7 @@ export default defineConfig({
   appearance: 'dark',
 
   head: [
-    ['link', { rel: 'icon', href: '/sigmap/favicon.ico' }],
+    ['link', { rel: 'icon', href: '/sigmap/favicon.png' }],
     // Global defaults — overridden per-page via frontmatter head
     ['meta', { property: 'og:site_name', content: 'SigMap' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
@@ -18,7 +18,7 @@ export default defineConfig({
 
   themeConfig: {
     siteTitle: 'sigmap',
-
+    logo: '/logo.svg',
     nav: [
       { text: 'Docs', link: '/guide/quick-start', activeMatch: '/guide/' },
       {
