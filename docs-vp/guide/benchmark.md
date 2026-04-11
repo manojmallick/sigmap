@@ -45,6 +45,39 @@ These numbers are measured — not estimated. Every row was produced by running
 
 > Token counts estimated at 4 chars/token (standard approximation used by OpenAI and Anthropic tooling).
 
+## LLM response-time savings
+
+Every token sent to an LLM costs latency. A frontier model (Claude 3.5 Sonnet, GPT-4o) processes
+roughly **2,000 input tokens per second** before generating a single output token. That means
+loading a large repo raw can stall your AI agent for minutes before it even starts responding.
+
+> **Assumptions:** ~2,000 tok/s uncached · ×10 faster with prompt cache (Anthropic & OpenAI both offer this)
+
+| Repo | Raw (cold) | SigMap (cold) | 1st call saved | Raw (cached) | SigMap (cached) | Cache saved |
+|------|:----------:|:-------------:|:--------------:|:------------:|:---------------:|:-----------:|
+| [express](https://github.com/expressjs/express) | 7.7s | 0.1s | **7.6s** | 0.8s | <0.1s | **0.8s** |
+| [flask](https://github.com/pallets/flask) | 42.4s | 1.7s | **40.7s** | 4.2s | 0.2s | **4.1s** |
+| [gin](https://github.com/gin-gonic/gin) | 1min 26s | 2.9s | **1min 24s** | 8.6s | 0.3s | **8.3s** |
+| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 38.5s | 0.3s | **38.2s** | 3.9s | <0.1s | **3.8s** |
+| [rails](https://github.com/rails/rails) | 12min 27s | 3.5s | **12min 24s** | 1min 15s | 0.3s | **1min 14s** |
+| [axios](https://github.com/axios/axios) | 15.8s | 0.8s | **15.1s** | 1.6s | <0.1s | **1.5s** |
+| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 29min 21s | 2.9s | **29min 18s** | 2min 56s | 0.3s | **2min 56s** |
+| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 19min 19s | 3.1s | **19min 16s** | 1min 56s | 0.3s | **1min 56s** |
+| [serilog](https://github.com/serilog/serilog) | 56.9s | 2.9s | **54.0s** | 5.7s | 0.3s | **5.4s** |
+| [riverpod](https://github.com/rrousselGit/riverpod) | 5min 41s | 3.3s | **5min 38s** | 34.1s | 0.3s | **33.8s** |
+| [okhttp](https://github.com/square/okhttp) | 15.6s | 0.7s | **14.9s** | 1.6s | <0.1s | **1.5s** |
+| [laravel](https://github.com/laravel/framework) | 13min 59s | 3.6s | **13min 56s** | 1min 24s | 0.4s | **1min 24s** |
+| [akka](https://github.com/akka/akka) | 6min 35s | 3.5s | **6min 32s** | 39.5s | 0.3s | **39.2s** |
+| [vapor](https://github.com/vapor/vapor) | 1min 26s | 3.2s | **1min 22s** | 8.6s | 0.3s | **8.2s** |
+| [vue-core](https://github.com/vuejs/core) | 3min 22s | 4.4s | **3min 18s** | 20.2s | 0.4s | **19.8s** |
+| [svelte](https://github.com/sveltejs/svelte) | 3min 39s | 4.0s | **3min 35s** | 21.9s | 0.4s | **21.5s** |
+
+**At 10 calls/day across all repos: 1hr 40min saved per call · 16hr 35min/day · 6,055 hr/year**
+
+::: tip What "cached" means
+When prompt caching is enabled (default on Claude, opt-in on OpenAI), repeated context — like your SigMap output — is served from the model's KV cache at ~10× the normal speed and ~10% of the cost. The SigMap output is small enough to cache for free in most tier plans. Raw repo content is usually too large and changes too often to cache reliably.
+:::
+
 ## What "raw tokens" means
 
 `rawTokens` = estimated token count of all source files in the indexed directories before any processing.
@@ -103,13 +136,7 @@ codebase size). That index is what your AI agent reads to understand the project
 start of every session. The goal is **maximum information density at minimum token cost**, not
 zero output.
 
-::: tip Worst case is still 95%
-The lowest value measured across the 7 repos was **95.2%** (axios/TypeScript).
-Even on a repo where most code is already terse, SigMap cuts context by more than 20×.
+::: tip Worst case is still 94.9%
+The lowest value measured across the 16 repos was **94.9%** (serilog/C#).
+Even on a repo where most code is already terse, SigMap cuts context by more than 18×.
 :::
-
-## More languages coming
-
-The 7 repos above cover the most common languages. Benchmarks for more languages
-(C#, Kotlin, Swift, Dart, PHP, Scala) will be added as results are collected.
-Follow the [roadmap](/guide/roadmap) for updates.

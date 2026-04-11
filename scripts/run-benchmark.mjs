@@ -336,6 +336,95 @@ console.log(
 console.log('\n' + '═'.repeat(72));
 
 // ---------------------------------------------------------------------------
+// Time-savings analysis
+// Assumptions:
+//   TOKENS_PER_SEC  — frontier LLM input-processing speed (Claude 3.5 / GPT-4o, uncached)
+//   CACHE_SPEEDUP   — prompt-cache reads process ~10× faster (both Anthropic & OpenAI)
+//   CALLS_PER_DAY   — typical daily AI-agent invocations on a repo
+// ---------------------------------------------------------------------------
+const TOKENS_PER_SEC = 2000;
+const CACHE_SPEEDUP  = 10;
+const CALLS_PER_DAY  = 10;
+
+function fmtTime(sec) {
+  if (sec < 0.1)  return '<0.1s';
+  if (sec < 60)   return sec.toFixed(1) + 's';
+  if (sec < 3600) { const m = Math.floor(sec / 60), s = Math.round(sec % 60); return m + 'min ' + s + 's'; }
+  const h = Math.floor(sec / 3600), rm = Math.round((sec % 3600) / 60);
+  return h + 'hr ' + rm + 'min';
+}
+
+let totalSavedColdSec = 0, totalSavedCachedSec = 0;
+
+for (const r of results) {
+  const rawCold     = r.rawTokens   / TOKENS_PER_SEC;
+  const sigCold     = r.finalTokens / TOKENS_PER_SEC;
+  const savedCold   = rawCold - sigCold;
+  const rawCached   = rawCold   / CACHE_SPEEDUP;
+  const sigCached   = sigCold   / CACHE_SPEEDUP;
+  const savedCached = rawCached - sigCached;
+  totalSavedColdSec   += savedCold;
+  totalSavedCachedSec += savedCached;
+  r.timings = {
+    rawColdSec: parseFloat(rawCold.toFixed(2)),
+    sigColdSec: parseFloat(sigCold.toFixed(2)),
+    savedColdSec: parseFloat(savedCold.toFixed(2)),
+    rawCachedSec: parseFloat(rawCached.toFixed(2)),
+    sigCachedSec: parseFloat(sigCached.toFixed(2)),
+    savedCachedSec: parseFloat(savedCached.toFixed(2)),
+    savedPerDaySec: parseFloat((savedCold * CALLS_PER_DAY).toFixed(2)),
+  };
+}
+
+const W = 104;
+console.log('\n' + '═'.repeat(W));
+console.log('LLM Response-Time Savings');
+console.log(`Assumptions: ~${TOKENS_PER_SEC.toLocaleString()} tok/s uncached · ×${CACHE_SPEEDUP} faster with prompt cache · ${CALLS_PER_DAY} calls/day`);
+console.log('═'.repeat(W));
+
+const tcols = [
+  { label: 'Repo',           width: 22 },
+  { label: 'Raw (cold)',     width: 12, right: true },
+  { label: 'SigMap (cold)',  width: 13, right: true },
+  { label: '1st call saved', width: 14, right: true },
+  { label: 'Raw (cached)',   width: 13, right: true },
+  { label: 'SigMap (cache)', width: 14, right: true },
+  { label: 'Cache saved',    width: 13, right: true },
+];
+const thead = tcols.map(c => pad(c.label, c.width, c.right)).join('  ');
+const tdiv  = tcols.map(c => '-'.repeat(c.width)).join('  ');
+console.log('\n' + thead);
+console.log(tdiv);
+
+for (const r of results) {
+  const t = r.timings;
+  console.log([
+    pad(r.repo,                    tcols[0].width),
+    pad(fmtTime(t.rawColdSec),    tcols[1].width, true),
+    pad(fmtTime(t.sigColdSec),    tcols[2].width, true),
+    pad(fmtTime(t.savedColdSec),  tcols[3].width, true),
+    pad(fmtTime(t.rawCachedSec),  tcols[4].width, true),
+    pad(fmtTime(t.sigCachedSec),  tcols[5].width, true),
+    pad(fmtTime(t.savedCachedSec),tcols[6].width, true),
+  ].join('  '));
+}
+
+console.log(tdiv);
+const totalSavedPerDay = totalSavedColdSec * CALLS_PER_DAY;
+console.log(
+  pad('TOTAL (' + results.length + ' repos)', tcols[0].width + 2 + tcols[1].width + 2 + tcols[2].width, false) +
+  '  ' + pad(fmtTime(totalSavedColdSec),   tcols[3].width, true) +
+  '  ' + pad('', tcols[4].width + 2 + tcols[5].width, false) +
+  '  ' + pad(fmtTime(totalSavedCachedSec), tcols[6].width, true)
+);
+const yearlyHr = Math.round(totalSavedColdSec * CALLS_PER_DAY * 365 / 3600);
+console.log('\n  At ' + CALLS_PER_DAY + ' calls/day across all repos: ' +
+  fmtTime(totalSavedColdSec) + ' saved per call · ' +
+  fmtTime(totalSavedColdSec * CALLS_PER_DAY) + '/day · ' +
+  yearlyHr.toLocaleString() + ' hr/year');
+console.log('\n' + '═'.repeat(W));
+
+// ---------------------------------------------------------------------------
 // Markdown format (for copy-paste into README / LAUNCH.md)
 // ---------------------------------------------------------------------------
 const mdLines = [
@@ -354,6 +443,21 @@ mdLines.push(`| **AVERAGE** | ${results.length} repos | ${formatNum(totalRaw)} |
 mdLines.push('');
 mdLines.push(`*Measured with SigMap v${getVersion()} — \`node gen-context.js --report --json\` on each repo (depth-1 clone)*`);
 
+// Time-savings markdown table
+mdLines.push('');
+mdLines.push('## LLM response-time savings');
+mdLines.push('');
+mdLines.push('> Assumptions: ~2 000 tok/s uncached (frontier LLMs) · ×10 faster with prompt cache');
+mdLines.push('');
+mdLines.push('| Repo | Raw (cold) | SigMap (cold) | 1st call saved | Raw (cached) | SigMap (cached) | Cache saved |');
+mdLines.push('|------|:----------:|:-------------:|:--------------:|:------------:|:---------------:|:-----------:|');
+for (const r of results) {
+  const t = r.timings;
+  mdLines.push(`| **${r.repo}** | ${fmtTime(t.rawColdSec)} | ${fmtTime(t.sigColdSec)} | **${fmtTime(t.savedColdSec)}** | ${fmtTime(t.rawCachedSec)} | ${fmtTime(t.sigCachedSec)} | **${fmtTime(t.savedCachedSec)}** |`);
+}
+mdLines.push('');
+mdLines.push(`*At ${CALLS_PER_DAY} calls/day: **${fmtTime(totalSavedColdSec)}** saved per call · **${fmtTime(totalSavedColdSec * CALLS_PER_DAY)}/day** · **${Math.round(totalSavedColdSec * CALLS_PER_DAY * 365 / 3600).toLocaleString()} hr/year** across all repos*`);
+
 console.log('\nMarkdown table (copy into README):\n');
 console.log(mdLines.join('\n'));
 
@@ -365,6 +469,11 @@ if (SAVE) {
   const report = {
     version: getVersion(),
     timestamp: new Date().toISOString(),
+    assumptions: {
+      tokensPerSecUncached: TOKENS_PER_SEC,
+      cacheSpeedup: CACHE_SPEEDUP,
+      callsPerDay: CALLS_PER_DAY,
+    },
     repos: results,
     summary: {
       repoCount: results.length,
@@ -372,6 +481,9 @@ if (SAVE) {
       overallReductionPct: parseFloat(overallReduction),
       totalRawTokens: totalRaw,
       totalFinalTokens: totalFinal,
+      totalSavedColdSec: parseFloat(totalSavedColdSec.toFixed(2)),
+      totalSavedCachedSec: parseFloat(totalSavedCachedSec.toFixed(2)),
+      savedPerDaySec: parseFloat((totalSavedColdSec * CALLS_PER_DAY).toFixed(2)),
     },
   };
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
