@@ -1,6 +1,6 @@
 {
   "version": "3.3.1",
-  "timestamp": "2026-04-11T06:44:04.373Z",
+  "timestamp": "2026-04-11T07:22:07.635Z",
   "repos": [
     {
       "repo": "express",
@@ -11,7 +11,7 @@
       "reductionPct": 98.7,
       "fileCount": 6,
       "droppedCount": 0,
-      "timestamp": "2026-04-11T06:44:01.265Z"
+      "timestamp": "2026-04-11T07:21:59.404Z"
     },
     {
       "repo": "flask",
@@ -22,7 +22,7 @@
       "reductionPct": 96,
       "fileCount": 19,
       "droppedCount": 0,
-      "timestamp": "2026-04-11T06:44:01.697Z"
+      "timestamp": "2026-04-11T07:21:59.815Z"
     },
     {
       "repo": "gin",
@@ -33,7 +33,7 @@
       "reductionPct": 96.7,
       "fileCount": 107,
       "droppedCount": 39,
-      "timestamp": "2026-04-11T06:44:02.137Z"
+      "timestamp": "2026-04-11T07:22:00.343Z"
     },
     {
       "repo": "spring-petclinic",
@@ -44,7 +44,7 @@
       "reductionPct": 99.2,
       "fileCount": 13,
       "droppedCount": 0,
-      "timestamp": "2026-04-11T06:44:02.508Z"
+      "timestamp": "2026-04-11T07:22:00.724Z"
     },
     {
       "repo": "rails",
@@ -55,7 +55,7 @@
       "reductionPct": 99.5,
       "fileCount": 1179,
       "droppedCount": 1069,
-      "timestamp": "2026-04-11T06:44:03.199Z"
+      "timestamp": "2026-04-11T07:22:01.411Z"
     },
     {
       "repo": "axios",
@@ -66,7 +66,7 @@
       "reductionPct": 95.2,
       "fileCount": 25,
       "droppedCount": 0,
-      "timestamp": "2026-04-11T06:44:03.564Z"
+      "timestamp": "2026-04-11T07:22:01.811Z"
     },
     {
       "repo": "rust-analyzer",
@@ -77,14 +77,113 @@
       "reductionPct": 99.8,
       "fileCount": 635,
       "droppedCount": 590,
-      "timestamp": "2026-04-11T06:44:04.369Z"
+      "timestamp": "2026-04-11T07:22:02.654Z"
+    },
+    {
+      "repo": "abseil-cpp",
+      "language": "C++",
+      "description": "Google Abseil C++ library",
+      "rawTokens": 2318017,
+      "finalTokens": 6306,
+      "reductionPct": 99.7,
+      "fileCount": 700,
+      "droppedCount": 662,
+      "timestamp": "2026-04-11T07:22:03.388Z"
+    },
+    {
+      "repo": "serilog",
+      "language": "C#",
+      "description": "Structured logging for .NET",
+      "rawTokens": 113742,
+      "finalTokens": 5839,
+      "reductionPct": 94.9,
+      "fileCount": 99,
+      "droppedCount": 0,
+      "timestamp": "2026-04-11T07:22:03.762Z"
+    },
+    {
+      "repo": "riverpod",
+      "language": "Dart",
+      "description": "Flutter/Dart state management",
+      "rawTokens": 682729,
+      "finalTokens": 6519,
+      "reductionPct": 99,
+      "fileCount": 446,
+      "droppedCount": 405,
+      "timestamp": "2026-04-11T07:22:04.300Z"
+    },
+    {
+      "repo": "okhttp",
+      "language": "Kotlin",
+      "description": "HTTP client for Android/JVM",
+      "rawTokens": 31275,
+      "finalTokens": 1413,
+      "reductionPct": 95.5,
+      "fileCount": 18,
+      "droppedCount": 0,
+      "timestamp": "2026-04-11T07:22:04.680Z"
+    },
+    {
+      "repo": "laravel",
+      "language": "PHP",
+      "description": "Laravel PHP framework",
+      "rawTokens": 1678570,
+      "finalTokens": 7180,
+      "reductionPct": 99.6,
+      "fileCount": 1533,
+      "droppedCount": 1420,
+      "timestamp": "2026-04-11T07:22:05.372Z"
+    },
+    {
+      "repo": "akka",
+      "language": "Scala",
+      "description": "Actor model runtime for JVM",
+      "rawTokens": 790548,
+      "finalTokens": 7088,
+      "reductionPct": 99.1,
+      "fileCount": 211,
+      "droppedCount": 147,
+      "timestamp": "2026-04-11T07:22:05.838Z"
+    },
+    {
+      "repo": "vapor",
+      "language": "Swift",
+      "description": "Swift server-side web framework",
+      "rawTokens": 171162,
+      "finalTokens": 6389,
+      "reductionPct": 96.3,
+      "fileCount": 131,
+      "droppedCount": 0,
+      "timestamp": "2026-04-11T07:22:06.222Z"
+    },
+    {
+      "repo": "vue-core",
+      "language": "Vue",
+      "description": "Vue.js 3 core monorepo",
+      "rawTokens": 404152,
+      "finalTokens": 8818,
+      "reductionPct": 97.8,
+      "fileCount": 232,
+      "droppedCount": 110,
+      "timestamp": "2026-04-11T07:22:06.727Z"
+    },
+    {
+      "repo": "svelte",
+      "language": "Svelte",
+      "description": "Cybernetically enhanced web apps",
+      "rawTokens": 438182,
+      "finalTokens": 8020,
+      "reductionPct": 98.2,
+      "fileCount": 370,
+      "droppedCount": 307,
+      "timestamp": "2026-04-11T07:22:07.633Z"
     }
   ],
   "summary": {
-    "repoCount": 7,
-    "avgReductionPct": 97.9,
-    "overallReductionPct": 99.5,
-    "totalRawTokens": 5398405,
-    "totalFinalTokens": 24399
+    "repoCount": 16,
+    "avgReductionPct": 97.8,
+    "overallReductionPct": 99.3,
+    "totalRawTokens": 12026782,
+    "totalFinalTokens": 81971
   }
 }
