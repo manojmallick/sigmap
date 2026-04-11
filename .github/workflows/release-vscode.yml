@@ -1,0 +1,146 @@
+name: Release — VS Code & Open VSX
+
+# Triggered by vscode-v* tags (e.g. vscode-v3.3.2), completely independent
+# from core npm/binary releases. Publish to VS Code Marketplace and Open VSX,
+# then create a GitHub Release with the packaged .vsix attached.
+#
+# Tagging procedure:
+#   git tag vscode-v<version> && git push origin vscode-v<version>
+#
+# The <version> is extracted from the tag by stripping the "vscode-v" prefix.
+# It does NOT need to match the core sigmap version.
+
+on:
+  push:
+    tags:
+      - 'vscode-v*'
+
+permissions:
+  contents: write   # create GitHub Releases and upload assets
+
+jobs:
+  # ── 1. Publish to VS Code Marketplace ────────────────────────────────────
+  publish-vscode:
+    name: Publish → VS Code Marketplace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Sync extension version with tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#vscode-v}"
+          node -e "
+            const fs = require('fs');
+            const v = process.env.TAG_VERSION;
+            const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
+            pkg.version = v;
+            fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✓ extension version set to', v);
+          "
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+
+      - name: Package and publish extension
+        working-directory: vscode-extension
+        run: |
+          vsce publish --no-dependencies 2>&1 | tee /tmp/vsce-out.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/vsce-out.txt; then
+            echo "✓ Version already on Marketplace — skipping (not an error)"
+            exit 0
+          fi
+          exit $EXIT
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  # ── 2. Publish to Open VSX Registry ──────────────────────────────────────
+  publish-openvsx:
+    name: Publish → Open VSX Registry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install tooling
+        run: npm install -g ovsx @vscode/vsce
+
+      - name: Sync extension version with tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#vscode-v}"
+          node -e "
+            const fs = require('fs');
+            const v = process.env.TAG_VERSION;
+            const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
+            pkg.version = v;
+            fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✓ extension version set to', v);
+          "
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+
+      - name: Package extension (.vsix)
+        working-directory: vscode-extension
+        run: vsce package --no-dependencies
+
+      - name: Publish to Open VSX
+        working-directory: vscode-extension
+        run: |
+          VSIX_FILE=$(ls *.vsix | head -1)
+          ovsx publish "$VSIX_FILE" --pat "$OVSX_PAT" 2>&1 | tee /tmp/ovsx-out.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/ovsx-out.txt; then
+            echo "✓ Version already on Open VSX — skipping (not an error)"
+            exit 0
+          fi
+          exit $EXIT
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+  # ── 3. Create GitHub Release with .vsix attached ─────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: [publish-vscode, publish-openvsx]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Build .vsix for release attachment
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#vscode-v}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
+            pkg.version = process.env.TAG_VERSION;
+            fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          cd vscode-extension && vsce package --no-dependencies
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "VS Code Extension ${{ github.ref_name }}"
+          generate_release_notes: false
+          body: |
+            VS Code extension release `${{ github.ref_name }}`.
+
+            Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap)
+            or [Open VSX Registry](https://open-vsx.org/extension/manojmallick/sigmap).
+
+            The `.vsix` file below can be installed manually via **Extensions: Install from VSIX…** in VS Code.
+          files: vscode-extension/*.vsix

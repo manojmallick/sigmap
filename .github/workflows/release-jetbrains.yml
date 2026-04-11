@@ -1,0 +1,105 @@
+name: Release — JetBrains Plugin
+
+# Triggered by jetbrains-v* tags (e.g. jetbrains-v3.3.2), completely independent
+# from core npm/binary and VS Code releases. Builds, verifies, and publishes the
+# IntelliJ-family plugin to JetBrains Marketplace, then creates a GitHub Release.
+#
+# Tagging procedure:
+#   git tag jetbrains-v<version> && git push origin jetbrains-v<version>
+#
+# The <version> is extracted from the tag by stripping "jetbrains-v" prefix.
+# It does NOT need to match the core sigmap version.
+
+on:
+  push:
+    tags:
+      - 'jetbrains-v*'
+
+permissions:
+  contents: write   # create GitHub Releases and upload assets
+
+jobs:
+  # ── 1. Build, verify, and publish to JetBrains Marketplace ──────────────
+  publish-jetbrains:
+    name: Publish → JetBrains Marketplace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: Sync plugin version with tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#jetbrains-v}"
+          sed -i.bak "s/^version = .*/version = \"$TAG_VERSION\"/" jetbrains-plugin/build.gradle.kts
+          rm -f jetbrains-plugin/build.gradle.kts.bak
+          echo "✓ plugin version set to $TAG_VERSION"
+
+      - name: Verify plugin version matches tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#jetbrains-v}"
+          PLUGIN_VERSION=$(grep '^version = ' jetbrains-plugin/build.gradle.kts | sed 's/version = \"\(.*\)\"/\1/')
+          if [ "$PLUGIN_VERSION" != "$TAG_VERSION" ]; then
+            echo "ERROR: plugin version ($PLUGIN_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "✓ plugin version check passed: $PLUGIN_VERSION"
+
+      - name: Build and verify plugin
+        working-directory: jetbrains-plugin
+        run: |
+          ./gradlew buildPlugin verifyPlugin runPluginVerifier
+          echo "✓ Plugin built and verified successfully"
+
+      - name: Publish plugin to JetBrains Marketplace
+        working-directory: jetbrains-plugin
+        run: |
+          ./gradlew publishPlugin 2>&1 | tee /tmp/jetbrains-out.txt
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/jetbrains-out.txt; then
+            echo "✓ Version already on JetBrains Marketplace — skipping (not an error)"
+            exit 0
+          fi
+          exit $EXIT
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
+
+      - name: Upload plugin artifact for release step
+        uses: actions/upload-artifact@v4
+        with:
+          name: jetbrains-plugin-zip
+          path: jetbrains-plugin/build/distributions/*.zip
+          retention-days: 1
+
+  # ── 2. Create GitHub Release with plugin .zip attached ───────────────────
+  release:
+    name: Create GitHub Release
+    needs: publish-jetbrains
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download plugin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jetbrains-plugin-zip
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "JetBrains Plugin ${{ github.ref_name }}"
+          generate_release_notes: false
+          body: |
+            JetBrains plugin release `${{ github.ref_name }}`.
+
+            Install from the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/26371-sigmap).
+
+            The `.zip` file below can be installed manually via **Settings → Plugins → ⚙ → Install Plugin from Disk…**
+          files: dist/*.zip

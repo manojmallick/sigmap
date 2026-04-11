@@ -1,9 +1,9 @@
-name: Release
+name: Release — Core (npm + GitHub Packages)
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]*'
 
 permissions:
   contents: write   # create GitHub Releases
@@ -76,176 +76,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── 4. Publish VS Code extension ─────────────────────────────────────────
-  publish-vscode:
-    name: Publish → VS Code Marketplace
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install vsce
-        run: npm install -g @vscode/vsce
-
-      - name: Sync extension version with tag
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          node -e "
-            const fs = require('fs');
-            const v = process.env.TAG_VERSION;
-            const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
-            pkg.version = v;
-            fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✓ extension version set to', v);
-          "
-        env:
-          TAG_VERSION: ${{ github.ref_name }}
-
-      - name: Package and publish extension
-        working-directory: vscode-extension
-        run: |
-          vsce publish --no-dependencies 2>&1 | tee /tmp/vsce-out.txt
-          EXIT=${PIPESTATUS[0]}
-          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/vsce-out.txt; then
-            echo "✓ Version already on Marketplace — skipping (not an error)"
-            exit 0
-          fi
-          exit $EXIT
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
-  # ── 5. Publish to Open VSX Registry ──────────────────────────────────────
-  publish-openvsx:
-    name: Publish → Open VSX Registry
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install ovsx
-        run: npm install -g ovsx
-
-      - name: Sync extension version with tag
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          node -e "
-            const fs = require('fs');
-            const v = process.env.TAG_VERSION;
-            const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
-            pkg.version = v;
-            fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✓ extension version set to', v);
-          "
-        env:
-          TAG_VERSION: ${{ github.ref_name }}
-
-      - name: Package extension (.vsix)
-        working-directory: vscode-extension
-        run: |
-          npm install -g @vscode/vsce
-          vsce package --no-dependencies
-
-      - name: Publish to Open VSX
-        working-directory: vscode-extension
-        run: |
-          VSIX_FILE=$(ls *.vsix | head -1)
-          ovsx publish "$VSIX_FILE" --pat "$OVSX_PAT" 2>&1 | tee /tmp/ovsx-out.txt
-          EXIT=${PIPESTATUS[0]}
-          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/ovsx-out.txt; then
-            echo "✓ Version already on Open VSX — skipping (not an error)"
-            exit 0
-          fi
-          exit $EXIT
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-
-  # ── 6. Publish JetBrains Plugin ───────────────────────────────────────────
-  publish-jetbrains:
-    name: Publish → JetBrains Marketplace
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
-      
-      - name: Sync plugin version with tag
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          sed -i.bak "s/^version = .*/version = \"$TAG_VERSION\"/" jetbrains-plugin/build.gradle.kts
-          rm -f jetbrains-plugin/build.gradle.kts.bak
-          echo "✓ plugin version set to $TAG_VERSION"
-      
-      - name: Verify plugin version matches tag
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PLUGIN_VERSION=$(grep '^version = ' jetbrains-plugin/build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
-          if [ "$PLUGIN_VERSION" != "$TAG_VERSION" ]; then
-            echo "ERROR: plugin version ($PLUGIN_VERSION) does not match tag ($TAG_VERSION)"
-            exit 1
-          fi
-          echo "✓ plugin version check passed: $PLUGIN_VERSION"
-      
-      - name: Build and verify plugin
-        working-directory: jetbrains-plugin
-        run: |
-          ./gradlew buildPlugin verifyPlugin runPluginVerifier
-          echo "✓ Plugin built and verified successfully"
-      
-      - name: Publish plugin to JetBrains Marketplace
-        working-directory: jetbrains-plugin
-        run: |
-          ./gradlew publishPlugin 2>&1 | tee /tmp/jetbrains-out.txt
-          EXIT=${PIPESTATUS[0]}
-          if [ $EXIT -ne 0 ] && grep -q "already exists" /tmp/jetbrains-out.txt; then
-            echo "✓ Version already on JetBrains Marketplace — skipping (not an error)"
-            exit 0
-          fi
-          exit $EXIT
-        env:
-          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
-
-  # ── 7. Create GitHub Release (after all publishes succeed) ────────────────
+  # ── 4. Create GitHub Release (npm only) ──────────────────────────────────
   release:
     name: Create GitHub Release
-    needs: [publish-npm, publish-github, publish-vscode, publish-openvsx, publish-jetbrains]
+    needs: [publish-npm, publish-github]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build .vsix for release attachment
-        run: |
-          npm install -g @vscode/vsce
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('vscode-extension/package.json', 'utf8'));
-            pkg.version = process.env.TAG_VERSION;
-            fs.writeFileSync('vscode-extension/package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-          cd vscode-extension && vsce package --no-dependencies
-        env:
-          TAG_VERSION: ${{ github.ref_name }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           make_latest: true
-          files: vscode-extension/*.vsix
