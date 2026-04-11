@@ -418,10 +418,11 @@ console.log(
   '  ' + pad(fmtTime(totalSavedCachedSec), tcols[6].width, true)
 );
 const yearlyHr = Math.round(totalSavedColdSec * CALLS_PER_DAY * 365 / 3600);
-console.log('\n  At ' + CALLS_PER_DAY + ' calls/day across all repos: ' +
-  fmtTime(totalSavedColdSec) + ' saved per call · ' +
-  fmtTime(totalSavedColdSec * CALLS_PER_DAY) + '/day · ' +
-  yearlyHr.toLocaleString() + ' hr/year');
+console.log('\n  Summed across all ' + results.length + ' repos at ' + CALLS_PER_DAY + ' calls/day each:');
+console.log('    Per repo per call  → see table above (e.g. rust-analyzer saves 29min per call)');
+console.log('    All repos, 1 call  → ' + fmtTime(totalSavedColdSec) + ' total saved');
+console.log('    All repos, ' + CALLS_PER_DAY + ' calls/day → ' + fmtTime(totalSavedColdSec * CALLS_PER_DAY) + '/day');
+console.log('    Yearly             → ' + yearlyHr.toLocaleString() + ' hr/year');
 console.log('\n' + '═'.repeat(W));
 
 // ---------------------------------------------------------------------------
@@ -456,7 +457,7 @@ for (const r of results) {
   mdLines.push(`| **${r.repo}** | ${fmtTime(t.rawColdSec)} | ${fmtTime(t.sigColdSec)} | **${fmtTime(t.savedColdSec)}** | ${fmtTime(t.rawCachedSec)} | ${fmtTime(t.sigCachedSec)} | **${fmtTime(t.savedCachedSec)}** |`);
 }
 mdLines.push('');
-mdLines.push(`*At ${CALLS_PER_DAY} calls/day: **${fmtTime(totalSavedColdSec)}** saved per call · **${fmtTime(totalSavedColdSec * CALLS_PER_DAY)}/day** · **${Math.round(totalSavedColdSec * CALLS_PER_DAY * 365 / 3600).toLocaleString()} hr/year** across all repos*`);
+mdLines.push(`*At ${CALLS_PER_DAY} calls/day per repo: **${fmtTime(totalSavedColdSec)}** saved across all repos per round · **${fmtTime(totalSavedColdSec * CALLS_PER_DAY)}/day** · **${Math.round(totalSavedColdSec * CALLS_PER_DAY * 365 / 3600).toLocaleString()} hr/year***`);
 
 console.log('\nMarkdown table (copy into README):\n');
 console.log(mdLines.join('\n'));
