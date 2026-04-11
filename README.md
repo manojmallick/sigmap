@@ -4,52 +4,58 @@
 
 <h1>⚡ SigMap</h1>
 
-<p><strong>Your AI gets coding answers right 6× more often.</strong></p>
-
-<p>One command. No config. Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.</p>
-
-<!-- Status -->
-[![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
-[![CI](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml/badge.svg)](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml)
-[![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
-[![Last commit](https://img.shields.io/github/last-commit/manojmallick/sigmap?color=7c6af7)](https://github.com/manojmallick/sigmap/commits/main)
-
-<!-- Meta -->
-[![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
-[![npm](https://img.shields.io/badge/npm-sigmap-cb3837?logo=npm)](https://www.npmjs.com/package/sigmap)
-[![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
-
-<!-- Links -->
-[![Docs](https://img.shields.io/badge/docs-live-7c6af7?logo=github-pages)](https://manojmallick.github.io/sigmap)
-[![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-blue)](CHANGELOG.md)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![VS Code](https://img.shields.io/badge/VS%20Code-extension-0078d4?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap)
-[![JetBrains](https://img.shields.io/badge/JetBrains-plugin-000000?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/)
-[![Open VSX](https://img.shields.io/open-vsx/v/manojmallick/sigmap?color=a251e3&label=Open%20VSX&logo=vscodium)](https://open-vsx.org/extension/manojmallick/sigmap)
+<p><strong>Your AI gets coding answers right 6× more often.</strong><br>
+<sub>One command. No config. Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.</sub></p>
 
 </div>
 
----
-
-**✔ 6× better answers** — correct task answers: 10% → **59%**  
-**✔ 2× fewer prompts** — 2.84 → **1.54** prompts per task  
-**✔ 97% fewer tokens** — ~80,000 → **~2,000** per session  
-**✔ Consistent** — same gains across 16 repos and 21 languages  
-
-| | Without SigMap | With SigMap |
-|---|:---:|:---:|
-| Task success | 10% | **59%** |
-| Prompts per task | 2.84 | **1.54** |
-| Tokens per session | ~80,000 | **~2,000** |
+<table>
+<tr>
+<th align="center" width="50%">❌ Without SigMap</th>
+<th align="center" width="50%">✅ With SigMap</th>
+</tr>
+<tr>
+<td align="center">Blind to <strong>92%</strong> of your codebase</td>
+<td align="center">Every function indexed — nothing hidden</td>
+</tr>
+<tr>
+<td align="center">Reads wrong files → <strong>hallucinates answers</strong></td>
+<td align="center">Right file in context, <strong>first prompt</strong></td>
+</tr>
+<tr>
+<td align="center">~3 prompts to get a correct answer</td>
+<td align="center"><strong>1–2 prompts.</strong> Answer is grounded.</td>
+</tr>
+<tr>
+<td align="center">~80,000 tokens per session</td>
+<td align="center"><strong>~2,000 tokens — 97% less</strong></td>
+</tr>
+<tr>
+<td align="center"><h3>10% task success</h3></td>
+<td align="center"><h3>59% task success — 6× better ✅</h3></td>
+</tr>
+</table>
 
 ```sh
-npx sigmap   # 10 seconds, zero config
+npx sigmap   # 10 seconds. zero config.
 ```
 
 <div align="center">
 <img src="docs/comparison-chart.svg" alt="SigMap — before vs after" width="700" />
 <br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">Measured across 80 tasks · 16 real repos · no LLM API · <strong>full methodology →</strong></a></sub>
+</div>
+
+<div align="center">
+
+[![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
+[![CI](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml/badge.svg)](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml)
+[![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
+[![VS Code](https://img.shields.io/badge/VS%20Code-extension-0078d4?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap)
+[![JetBrains](https://img.shields.io/badge/JetBrains-plugin-000000?logo=jetbrains)](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/)
+[![Docs](https://img.shields.io/badge/docs-live-7c6af7?logo=github-pages)](https://manojmallick.github.io/sigmap)
+[![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
+
 </div>
 
 ---
