@@ -4,7 +4,10 @@
 
 <h1>⚡ SigMap</h1>
 
-<p><sub>One command. No config. Works with Copilot, Claude Code, Cursor, Windsurf, and Gemini.</sub></p>
+<p><strong>Without SigMap, your AI is flying blind.<br>
+92% of your codebase is invisible to it. Every answer is a guess.</strong></p>
+
+<p><sub>One command fixes that. Works with Copilot, Claude Code, Cursor, Windsurf, Gemini.</sub></p>
 
 </div>
 
