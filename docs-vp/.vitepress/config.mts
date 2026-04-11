@@ -74,7 +74,7 @@ export default defineConfig({
 
     footer: {
       message: 'MIT License',
-      copyright: 'Copyright © 2026 Manoj Mallick · Made in Amsterdam, Netherlands 🇳🇱',
+      copyright: 'Copyright © 2026 <a href="https://github.com/manojmallick" target="_blank" rel="noopener">Manoj Mallick</a> · Made in Amsterdam, Netherlands 🇳🇱',
     },
 
     editLink: {
