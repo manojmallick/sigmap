@@ -1,7 +1,7 @@
 ---
 layout: home
 title: SigMap — Zero-dependency AI context engine
-description: Reduce AI coding agent token consumption by 97%. Extracts signatures from 21 languages, writes copilot-instructions.md automatically. Zero npm install.
+description: Reduce AI coding agent token consumption by 97%. Extracts signatures from 29 languages, writes copilot-instructions.md automatically. Zero npm install.
 head:
   - - meta
     - property: og:title
@@ -60,8 +60,8 @@ features:
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🌐
-    title: 21 languages
-    details: TypeScript, JS, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile.
+    title: 29 languages
+    details: TypeScript, JS, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile, GraphQL, SQL, Terraform, Protobuf, TOML, XML, Properties, Markdown.
     link: /guide/languages
     linkText: All languages →
   - icon: 📦

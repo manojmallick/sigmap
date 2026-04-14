@@ -1,13 +1,13 @@
 ---
 title: Language support
-description: SigMap extracts signatures from 21 programming languages. Pure regex, zero Tree-sitter, no binary dependencies. TypeScript, Python, Go, Rust, Java, and more.
+description: SigMap extracts signatures from 29 programming languages and formats. Pure regex, zero Tree-sitter, no binary dependencies. TypeScript, Python, Go, Rust, Java, GraphQL, SQL, Terraform, and more.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Language Support — 21 languages, zero Tree-sitter"
+      content: "SigMap Language Support — 29 languages, zero Tree-sitter"
   - - meta
     - property: og:description
-      content: "Pure regex AST extraction for 21 languages. No compiler required, no binary dependencies."
+      content: "Pure regex AST extraction for 29 languages and formats. No compiler required, no binary dependencies."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/languages"
@@ -16,13 +16,13 @@ head:
       content: article
   - - meta
     - name: keywords
-      content: "sigmap languages, typescript signatures, python signatures, go signatures, rust signatures, ai context extraction"
+      content: "sigmap languages, typescript signatures, python signatures, go signatures, rust signatures, graphql signatures, sql signatures, terraform signatures, ai context extraction"
 ---
 # Language support
 
-SigMap extracts signatures from 21 programming languages using pure regex — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
+SigMap extracts signatures from 29 programming languages and formats using pure regex — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 21 languages · 25 max signatures per file · 0 npm packages · 162 tests passing
+**Stats:** 29 languages · 25 max signatures per file · 0 npm packages · 162 tests passing
 
 ## How extraction works
 
@@ -87,7 +87,7 @@ export class UserService
 - Generated files (`*.pb.*`, `*.generated.*`)
 - Any credential, key, token, or secret pattern
 
-## All 21 languages
+## All 29 languages
 
 | Language | Extensions | Extracts |
 |----------|------------|----------|
@@ -112,6 +112,14 @@ export class UserService
 | YAML | `.yml` `.yaml` | top-level keys, CI job names, K8s kind/name, second-level keys |
 | Shell | `.sh` `.bash` `.zsh` `.fish` | function names, exported vars, script description |
 | Dockerfile | `Dockerfile` `Dockerfile.*` | FROM image, EXPOSE ports, ENTRYPOINT, multi-stage names, ARG / ENV keys |
+| GraphQL | `.graphql` `.gql` | type, interface, input, enum, union, scalar, extend type, query / mutation |
+| SQL | `.sql` | CREATE TABLE, VIEW, FUNCTION, PROCEDURE, INDEX, TRIGGER, CREATE TYPE |
+| Terraform | `.tf` `.tfvars` | resource, data, module, variable, output, provider, locals |
+| Protocol Buffers | `.proto` | message, enum, service, rpc, syntax, package |
+| TOML | `.toml` | top-level tables (`[table]`), arrays of tables (`[[array]]`), key groups |
+| Properties | `.properties` | dotted-key namespaces, prefix groups (spring.*, db.*, server.*) |
+| XML | `.xml` | root element, bean/route/kind, top-level named elements, Spring beans |
+| Markdown | `.md` | h1–h3 headings, code-fence languages, link titles |
 
 ## Contributing a new language
 
