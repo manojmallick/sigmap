@@ -22,6 +22,10 @@ const DEFAULTS = {
     'server', 'client', 'web', 'frontend', 'backend',
     'desktop', 'mobile', 'shared', 'common', 'core',
     'workers', 'functions', 'lambda', 'cmd',
+    // framework convention folders
+    'pages', 'components', 'hooks', 'routes', 'controllers',
+    'models', 'views', 'resources', 'config', 'db',
+    'projects', 'apps', 'libs', 'instance', 'blueprints',
   ],
 
   // Directory/file names to exclude entirely

@@ -77,7 +77,7 @@ test('strategy audit emits coverage and strategy comparison metrics for re-audit
   });
 });
 
-test('strategy audit captures current high-value unsupported files for future Phase 3 reduction', () => {
+test('strategy audit no longer flags Phase A formats as high-value unsupported', () => {
   withTempDir((dir) => {
     const outDir = path.join(dir, '.context', 'strategy-audit');
     writeFiles(dir, {
@@ -93,9 +93,9 @@ test('strategy audit captures current high-value unsupported files for future Ph
 
     const summary = JSON.parse(fs.readFileSync(path.join(outDir, 'summary.json'), 'utf8'));
     const exts = summary.coverageSummary.missingImportantFiles.map((entry) => entry.ext);
-    assert.ok(exts.includes('.properties'), 'expected .properties to be counted as important unsupported baseline');
-    assert.ok(exts.includes('.xml'), 'expected .xml to be counted as important unsupported baseline');
-    assert.ok(exts.includes('.md'), 'expected .md to be counted as important unsupported baseline');
+    assert.ok(!exts.includes('.properties'), 'did not expect .properties to remain important unsupported after Phase A');
+    assert.ok(!exts.includes('.xml'), 'did not expect .xml to remain important unsupported after Phase A');
+    assert.ok(!exts.includes('.md'), 'did not expect .md to remain important unsupported after Phase A');
   });
 });
 

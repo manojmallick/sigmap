@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.0] - 2026-04-14
+
+### Added
+- Added support documentation for Phase A coverage formats: TOML (`.toml`), properties (`.properties`), XML (`.xml`), and Markdown (`.md`)
+
+### Changed
+- Version sync with SigMap core release 3.4.0
+
 ## [3.3.3] - 2026-04-14
 
 ### Added

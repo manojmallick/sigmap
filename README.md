@@ -469,6 +469,8 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 ## 🌐 Languages supported
 
 > 25 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
+>
+> Also includes lightweight config/doc extraction for `.toml`, `.properties`, `.xml`, and `.md` to improve real-repo coverage beyond source-code files.
 
 <details>
 <summary><strong>Show all 25 languages</strong></summary>

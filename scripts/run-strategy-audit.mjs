@@ -18,6 +18,9 @@ const DEFAULT_CONFIG = {
     'server', 'client', 'web', 'frontend', 'backend',
     'desktop', 'mobile', 'shared', 'common', 'core',
     'workers', 'functions', 'lambda', 'cmd',
+    'pages', 'components', 'hooks', 'routes', 'controllers',
+    'models', 'views', 'resources', 'config', 'db',
+    'projects', 'apps', 'libs', 'instance', 'blueprints',
   ],
   exclude: [
     'node_modules', '.git', 'dist', 'build', 'out',
@@ -70,10 +73,15 @@ const SUPPORTED_EXTENSIONS = new Map([
   ['.graphql', 'graphql'], ['.gql', 'graphql'],
   ['.tf', 'terraform'], ['.tfvars', 'terraform'],
   ['.proto', 'protobuf'],
+  // Phase A formats
+  ['.toml', 'toml'],
+  ['.properties', 'properties'],
+  ['.xml', 'xml'],
+  ['.md', 'markdown'],
 ]);
 
 const IMPORTANT_UNSUPPORTED_EXTENSIONS = new Set([
-  '.properties', '.md', '.xml', '.toml', '.ini', '.env', '.gradle',
+  '.ini', '.env', '.gradle',
 ]);
 
 const IMPORTANT_FILE_NAMES = new Set([

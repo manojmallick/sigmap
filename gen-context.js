@@ -2000,6 +2000,185 @@ __factories["./src/extractors/terraform"] = function(module, exports) {
   
 };
 
+// ── ./src/extractors/toml ──
+__factories["./src/extractors/toml"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Extract signatures from TOML configuration files.
+   * Focuses on section/table names and high-value keys.
+   *
+   * @param {string} src - Raw TOML content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    // Remove # comments while preserving values before comment markers.
+    const stripped = src.replace(/\s+#.*$/gm, '');
+  
+    // [section] and [[array.section]]
+    for (const m of stripped.matchAll(/^\s*(\[\[?[^\]]+\]\]?)\s*$/gm)) {
+      sigs.push(`table ${m[1].trim()}`);
+    }
+  
+    // Key-value lines (top-level and nested) — keep key names only.
+    for (const m of stripped.matchAll(/^\s*([A-Za-z0-9_.-]+)\s*=\s*(.+)$/gm)) {
+      const key = m[1].trim();
+      const value = m[2].trim();
+  
+      // Prefer common metadata/config keys for compact, useful output.
+      if (/^(name|version|description|authors|license|requires-python|dependencies|optional-dependencies|scripts|tool\.|build-system\.|project\.)/.test(key)) {
+        sigs.push(`key ${key}`);
+        continue;
+      }
+  
+      // Include booleans and simple scalar keys as generic config signal.
+      if (/^(true|false|"[^"]*"|'[^']*'|[0-9._-]+)$/.test(value)) {
+        sigs.push(`key ${key}`);
+      }
+    }
+  
+    return Array.from(new Set(sigs)).slice(0, 40);
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/properties ──
+__factories["./src/extractors/properties"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Extract signatures from .properties configuration files.
+   * Captures key names, grouped by prefixes where possible.
+   *
+   * @param {string} src - Raw properties content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    const lines = src.split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('!')) continue;
+  
+      const idxEq = trimmed.indexOf('=');
+      const idxColon = trimmed.indexOf(':');
+      const idx = idxEq >= 0 && idxColon >= 0 ? Math.min(idxEq, idxColon) : Math.max(idxEq, idxColon);
+      if (idx <= 0) continue;
+  
+      const key = trimmed.slice(0, idx).trim();
+      if (!key) continue;
+  
+      const parts = key.split('.').filter(Boolean);
+      if (parts.length >= 2) {
+        sigs.push(`group ${parts[0]}.${parts[1]}`);
+      }
+      sigs.push(`key ${key}`);
+    }
+  
+    return Array.from(new Set(sigs)).slice(0, 50);
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/xml ──
+__factories["./src/extractors/xml"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Lightweight XML config extractor.
+   * Captures root tags, key config tags, and id/name/class attributes.
+   *
+   * @param {string} src - Raw XML content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    // Remove comments and XML declaration for simpler scanning.
+    const stripped = src
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<\?xml[\s\S]*?\?>/gi, '');
+  
+    // Root element (first opening tag).
+    const root = stripped.match(/<\s*([A-Za-z_][\w:.-]*)\b[^>]*>/);
+    if (root) sigs.push(`root ${root[1]}`);
+  
+    // High-value config-like tags.
+    const tagRe = /<\s*([A-Za-z_][\w:.-]*)\b([^>]*)>/g;
+    for (const m of stripped.matchAll(tagRe)) {
+      const tag = m[1];
+      const attrs = m[2] || '';
+  
+      if (/^(bean|beans|route|routes|property|properties|dependency|dependencies|plugin|plugins|configuration|settings|profile|profiles|module|modules)$/i.test(tag)) {
+        sigs.push(`tag ${tag}`);
+      }
+  
+      const id = attrs.match(/\bid\s*=\s*"([^"]+)"/i);
+      if (id) sigs.push(`${tag}#${id[1]}`);
+  
+      const name = attrs.match(/\bname\s*=\s*"([^"]+)"/i);
+      if (name) sigs.push(`${tag}[name=${name[1]}]`);
+  
+      const cls = attrs.match(/\bclass\s*=\s*"([^"]+)"/i);
+      if (cls) sigs.push(`${tag} -> ${cls[1]}`);
+    }
+  
+    return Array.from(new Set(sigs)).slice(0, 50);
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/markdown ──
+__factories["./src/extractors/markdown"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Lightweight markdown technical indexer.
+   * Captures headings and fenced code block language hints only.
+   *
+   * @param {string} src - Raw markdown content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    // Headings: # .. ######
+    for (const m of src.matchAll(/^(#{1,6})\s+(.+)$/gm)) {
+      const level = m[1].length;
+      const title = m[2].trim().replace(/\s+/g, ' ');
+      if (title) sigs.push(`h${level} ${title}`);
+    }
+  
+    // Fenced code blocks: ```lang
+    for (const m of src.matchAll(/^```\s*([A-Za-z0-9_+-]*)\s*$/gm)) {
+      const lang = m[1] ? m[1].toLowerCase() : 'plain';
+      sigs.push(`code-fence ${lang}`);
+    }
+  
+    return Array.from(new Set(sigs)).slice(0, 40);
+  }
+  
+  module.exports = { extract };
+  
+};
+
 // ── ./src/extractors/deps ──
 __factories["./src/extractors/deps"] = function(module, exports) {
   
@@ -4020,7 +4199,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '3.3.3',
+    version: '3.4.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -4944,6 +5123,11 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     '.graphql': 'graphql', '.gql': 'graphql',
     '.tf': 'terraform', '.tfvars': 'terraform',
     '.proto': 'protobuf',
+    // Phase A formats
+    '.toml': 'toml',
+    '.properties': 'properties',
+    '.xml': 'xml',
+    '.md': 'markdown',
   };
 
   function isDockerfile(name) { return name === 'Dockerfile' || name.startsWith('Dockerfile.'); }
@@ -5430,7 +5614,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '3.3.3';
+const VERSION = '3.4.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -5477,6 +5661,11 @@ const EXT_MAP = {
   '.graphql': 'graphql', '.gql': 'graphql',
   '.tf': 'terraform', '.tfvars': 'terraform',
   '.proto': 'protobuf',
+  // Phase A formats
+  '.toml': 'toml',
+  '.properties': 'properties',
+  '.xml': 'xml',
+  '.md': 'markdown',
 };
 
 // Dockerfile handled separately (no extension)

@@ -35,6 +35,10 @@ const EXT_MAP = {
   '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',
   '.yml': 'yaml',      '.yaml': 'yaml',
   '.sh': 'shell',      '.bash': 'shell', '.zsh': 'shell', '.fish': 'shell',
+  '.toml': 'toml',
+  '.properties': 'properties',
+  '.xml': 'xml',
+  '.md': 'markdown',
 };
 
 function isDockerfile(name) {

@@ -26,6 +26,7 @@ const SUPPORTED_CODE_EXTS = new Set([
   '.html', '.htm', '.css', '.scss', '.sass', '.less',
   '.yml', '.yaml', '.sh', '.bash', '.zsh', '.fish',
   '.sql', '.graphql', '.gql', '.tf', '.tfvars', '.proto',
+  '.toml', '.properties', '.xml', '.md',
 ]);
 
 /**
@@ -71,7 +72,7 @@ function detectAutoSrcDirs(cwd, excludeList) {
   const hasRequirements = fs.existsSync(path.join(cwd, 'requirements.txt'));
   const hasSetupPy = fs.existsSync(path.join(cwd, 'setup.py'));
   if (hasPyproject || hasRequirements || hasSetupPy) {
-    for (const d of ['src', 'app', 'tests', 'examples']) candidates.add(d);
+    for (const d of ['src', 'app', 'apps', 'tests', 'examples', 'instance', 'blueprints']) candidates.add(d);
   }
 
   if (fs.existsSync(path.join(cwd, 'Gemfile'))) {
