@@ -1,0 +1,1775 @@
+{
+  "repo": "/Users/manojmallick/sigmap/benchmarks/repos/gin",
+  "recommendedStrategy": {
+    "strategy": "full",
+    "reason": "full is the simplest reliable option when the repo is small or module splits do not materially reduce injected context."
+  },
+  "currentConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "internal",
+      "binding",
+      "examples",
+      "ginS",
+      "render"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 5,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "suggestedConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "internal",
+      "binding",
+      "examples",
+      "ginS",
+      "render",
+      ".github",
+      "codec",
+      "testdata"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 5,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "coverageSummary": {
+    "discoveredFileCount": 133,
+    "analyzedFileCount": 53,
+    "missingSupportedFiles": [
+      {
+        "file": ".github/ISSUE_TEMPLATE/bug-report.yaml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/ISSUE_TEMPLATE/config.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/ISSUE_TEMPLATE/feature-request.yaml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/dependabot.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/codeql.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/gin.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/goreleaser.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/trivy-scan.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".golangci.yml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": ".goreleaser.yaml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": "auth.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "auth_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "benchmarks_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "codec/json/api.go",
+        "folder": "codec",
+        "language": "go"
+      },
+      {
+        "file": "codec/json/go_json.go",
+        "folder": "codec",
+        "language": "go"
+      },
+      {
+        "file": "codec/json/json.go",
+        "folder": "codec",
+        "language": "go"
+      },
+      {
+        "file": "codec/json/jsoniter.go",
+        "folder": "codec",
+        "language": "go"
+      },
+      {
+        "file": "codec/json/sonic.go",
+        "folder": "codec",
+        "language": "go"
+      },
+      {
+        "file": "codecov.yml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": "context.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "context_appengine.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "context_file_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "context_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "debug.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "debug_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "deprecated.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "deprecated_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "doc.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "errors.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "errors_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "fs.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "fs_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "gin.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "gin_integration_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "gin_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "githubapi_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "logger.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "logger_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "middleware_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "mode.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "mode_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "path.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "path_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "recovery.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "recovery_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "response_writer.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "response_writer_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "routergroup.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "routergroup_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "routes_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "test_helpers.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "testdata/protoexample/test.pb.go",
+        "folder": "testdata",
+        "language": "go"
+      },
+      {
+        "file": "testdata/protoexample/test.proto",
+        "folder": "testdata",
+        "language": "protobuf"
+      },
+      {
+        "file": "tree.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "tree_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "utils.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "utils_test.go",
+        "folder": ".",
+        "language": "go"
+      },
+      {
+        "file": "version.go",
+        "folder": ".",
+        "language": "go"
+      }
+    ],
+    "missingImportantFiles": [
+      {
+        "file": ".github/PULL_REQUEST_TEMPLATE.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/context-cold.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/copilot-instructions.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": "BENCHMARKS.md",
+        "folder": ".",
+        "ext": ".md"
+      },
+      {
+        "file": "CHANGELOG.md",
+        "folder": ".",
+        "ext": ".md"
+      },
+      {
+        "file": "CODE_OF_CONDUCT.md",
+        "folder": ".",
+        "ext": ".md"
+      },
+      {
+        "file": "CONTRIBUTING.md",
+        "folder": ".",
+        "ext": ".md"
+      },
+      {
+        "file": "README.md",
+        "folder": ".",
+        "ext": ".md"
+      },
+      {
+        "file": "docs/doc.md",
+        "folder": "docs",
+        "ext": ".md"
+      },
+      {
+        "file": "examples/README.md",
+        "folder": "examples",
+        "ext": ".md"
+      },
+      {
+        "file": "ginS/README.md",
+        "folder": "ginS",
+        "ext": ".md"
+      }
+    ],
+    "zeroSigFiles": [
+      {
+        "file": "binding/form.go",
+        "extractor": "go",
+        "folder": "binding"
+      }
+    ],
+    "recommendedSrcDirs": [
+      {
+        "folder": ".github",
+        "reason": "8 supported files are outside current coverage",
+        "examples": [
+          ".github/ISSUE_TEMPLATE/bug-report.yaml",
+          ".github/ISSUE_TEMPLATE/config.yml",
+          ".github/ISSUE_TEMPLATE/feature-request.yaml",
+          ".github/PULL_REQUEST_TEMPLATE.md",
+          ".github/context-cold.md"
+        ]
+      },
+      {
+        "folder": "codec",
+        "reason": "5 supported files are outside current coverage",
+        "examples": [
+          "codec/json/api.go",
+          "codec/json/go_json.go",
+          "codec/json/json.go",
+          "codec/json/jsoniter.go",
+          "codec/json/sonic.go"
+        ]
+      },
+      {
+        "folder": "testdata",
+        "reason": "2 supported files are outside current coverage",
+        "examples": [
+          "testdata/protoexample/test.pb.go",
+          "testdata/protoexample/test.proto"
+        ]
+      }
+    ],
+    "manualIndexFolders": [
+      {
+        "folder": ".",
+        "importantMissing": 5,
+        "unsupportedExts": [
+          [
+            ".md",
+            5
+          ]
+        ],
+        "examples": [
+          ".golangci.yml",
+          ".goreleaser.yaml",
+          "BENCHMARKS.md",
+          "CHANGELOG.md",
+          "CODE_OF_CONDUCT.md"
+        ]
+      },
+      {
+        "folder": ".github",
+        "importantMissing": 3,
+        "unsupportedExts": [
+          [
+            ".md",
+            3
+          ]
+        ],
+        "examples": [
+          ".github/ISSUE_TEMPLATE/bug-report.yaml",
+          ".github/ISSUE_TEMPLATE/config.yml",
+          ".github/ISSUE_TEMPLATE/feature-request.yaml",
+          ".github/PULL_REQUEST_TEMPLATE.md",
+          ".github/context-cold.md"
+        ]
+      },
+      {
+        "folder": "docs",
+        "importantMissing": 1,
+        "unsupportedExts": [
+          [
+            ".md",
+            1
+          ]
+        ],
+        "examples": [
+          "docs/doc.md"
+        ]
+      },
+      {
+        "folder": "examples",
+        "importantMissing": 1,
+        "unsupportedExts": [
+          [
+            ".md",
+            1
+          ]
+        ],
+        "examples": [
+          "examples/README.md"
+        ]
+      },
+      {
+        "folder": "ginS",
+        "importantMissing": 1,
+        "unsupportedExts": [
+          [
+            ".md",
+            1
+          ]
+        ],
+        "examples": [
+          "ginS/README.md"
+        ]
+      }
+    ],
+    "weakExtractorFolders": []
+  },
+  "strategies": {
+    "full": {
+      "strategy": "full",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:13.551Z",
+        "rawTokens": 47909,
+        "inputTokens": 47909,
+        "finalTokens": 4381,
+        "fileCount": 52,
+        "droppedCount": 0,
+        "reductionPct": 90.9,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "internal/bytesconv/bytesconv.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "internal/bytesconv/bytesconv_test.go",
+            "extractor": "go",
+            "sigs": 11,
+            "tokens": 118,
+            "covered": false
+          },
+          {
+            "file": "internal/fs/fs.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "internal/fs/fs_test.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": false
+          },
+          {
+            "file": "binding/binding.go",
+            "extractor": "go",
+            "sigs": 13,
+            "tokens": 93,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_msgpack_test.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 44,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_nomsgpack.go",
+            "extractor": "go",
+            "sigs": 13,
+            "tokens": 93,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 207,
+            "covered": false
+          },
+          {
+            "file": "binding/bson.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator.go",
+            "extractor": "go",
+            "sigs": 6,
+            "tokens": 45,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator_benchmark_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator_test.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "binding/form.go",
+            "extractor": "go",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 486,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping_benchmark_test.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 31,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 255,
+            "covered": false
+          },
+          {
+            "file": "binding/header.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 48,
+            "covered": false
+          },
+          {
+            "file": "binding/json.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/json_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 282,
+            "covered": false
+          },
+          {
+            "file": "binding/msgpack.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "binding/msgpack_test.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "binding/multipart_form_mapping.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 95,
+            "covered": false
+          },
+          {
+            "file": "binding/multipart_form_mapping_test.go",
+            "extractor": "go",
+            "sigs": 6,
+            "tokens": 87,
+            "covered": false
+          },
+          {
+            "file": "binding/plain.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "binding/protobuf.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "binding/query.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "binding/toml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/toml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "binding/uri.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "binding/validate_test.go",
+            "extractor": "go",
+            "sigs": 15,
+            "tokens": 146,
+            "covered": false
+          },
+          {
+            "file": "binding/xml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/xml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "binding/yaml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/yaml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "ginS/gins.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 359,
+            "covered": false
+          },
+          {
+            "file": "ginS/gins_test.go",
+            "extractor": "go",
+            "sigs": 19,
+            "tokens": 134,
+            "covered": false
+          },
+          {
+            "file": "render/bson.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/data.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "render/html.go",
+            "extractor": "go",
+            "sigs": 11,
+            "tokens": 94,
+            "covered": false
+          },
+          {
+            "file": "render/json.go",
+            "extractor": "go",
+            "sigs": 19,
+            "tokens": 187,
+            "covered": false
+          },
+          {
+            "file": "render/msgpack.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 43,
+            "covered": false
+          },
+          {
+            "file": "render/pdf.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/protobuf.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "render/reader.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "render/reader_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "render/redirect.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/render.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "render/render_msgpack_test.go",
+            "extractor": "go",
+            "sigs": 5,
+            "tokens": 44,
+            "covered": false
+          },
+          {
+            "file": "render/render_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 234,
+            "covered": false
+          },
+          {
+            "file": "render/text.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 48,
+            "covered": false
+          },
+          {
+            "file": "render/toml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/xml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/yaml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          }
+        ],
+        "totalSigs": 356,
+        "totalTokens": 3810,
+        "slowFiles": [],
+        "fileCount": 53
+      },
+      "stdoutMetrics": {}
+    },
+    "per-module": {
+      "strategy": "per-module",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:14.484Z",
+        "rawTokens": 47909,
+        "inputTokens": 47909,
+        "finalTokens": 4381,
+        "fileCount": 52,
+        "droppedCount": 0,
+        "reductionPct": 90.9,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "internal/bytesconv/bytesconv.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "internal/bytesconv/bytesconv_test.go",
+            "extractor": "go",
+            "sigs": 11,
+            "tokens": 118,
+            "covered": false
+          },
+          {
+            "file": "internal/fs/fs.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "internal/fs/fs_test.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": false
+          },
+          {
+            "file": "binding/binding.go",
+            "extractor": "go",
+            "sigs": 13,
+            "tokens": 93,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_msgpack_test.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 44,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_nomsgpack.go",
+            "extractor": "go",
+            "sigs": 13,
+            "tokens": 93,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 207,
+            "covered": false
+          },
+          {
+            "file": "binding/bson.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator.go",
+            "extractor": "go",
+            "sigs": 6,
+            "tokens": 45,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator_benchmark_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator_test.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "binding/form.go",
+            "extractor": "go",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 486,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping_benchmark_test.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 31,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 255,
+            "covered": false
+          },
+          {
+            "file": "binding/header.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 48,
+            "covered": false
+          },
+          {
+            "file": "binding/json.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/json_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 282,
+            "covered": false
+          },
+          {
+            "file": "binding/msgpack.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "binding/msgpack_test.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "binding/multipart_form_mapping.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 95,
+            "covered": false
+          },
+          {
+            "file": "binding/multipart_form_mapping_test.go",
+            "extractor": "go",
+            "sigs": 6,
+            "tokens": 87,
+            "covered": false
+          },
+          {
+            "file": "binding/plain.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "binding/protobuf.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "binding/query.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "binding/toml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/toml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "binding/uri.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "binding/validate_test.go",
+            "extractor": "go",
+            "sigs": 15,
+            "tokens": 146,
+            "covered": false
+          },
+          {
+            "file": "binding/xml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/xml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "binding/yaml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/yaml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "ginS/gins.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 359,
+            "covered": false
+          },
+          {
+            "file": "ginS/gins_test.go",
+            "extractor": "go",
+            "sigs": 19,
+            "tokens": 134,
+            "covered": false
+          },
+          {
+            "file": "render/bson.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/data.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "render/html.go",
+            "extractor": "go",
+            "sigs": 11,
+            "tokens": 94,
+            "covered": false
+          },
+          {
+            "file": "render/json.go",
+            "extractor": "go",
+            "sigs": 19,
+            "tokens": 187,
+            "covered": false
+          },
+          {
+            "file": "render/msgpack.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 43,
+            "covered": false
+          },
+          {
+            "file": "render/pdf.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/protobuf.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "render/reader.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "render/reader_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "render/redirect.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/render.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "render/render_msgpack_test.go",
+            "extractor": "go",
+            "sigs": 5,
+            "tokens": 44,
+            "covered": false
+          },
+          {
+            "file": "render/render_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 234,
+            "covered": false
+          },
+          {
+            "file": "render/text.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 48,
+            "covered": false
+          },
+          {
+            "file": "render/toml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/xml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/yaml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          }
+        ],
+        "totalSigs": 356,
+        "totalTokens": 3810,
+        "slowFiles": [],
+        "fileCount": 53
+      },
+      "stdoutMetrics": {
+        "moduleCount": null,
+        "modules": [],
+        "overviewTokens": null,
+        "moduleTokens": null
+      }
+    },
+    "hot-cold": {
+      "strategy": "hot-cold",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:15.114Z",
+        "rawTokens": 47909,
+        "inputTokens": 47909,
+        "finalTokens": 4381,
+        "fileCount": 52,
+        "droppedCount": 0,
+        "reductionPct": 90.9,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "internal/bytesconv/bytesconv.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "internal/bytesconv/bytesconv_test.go",
+            "extractor": "go",
+            "sigs": 11,
+            "tokens": 118,
+            "covered": false
+          },
+          {
+            "file": "internal/fs/fs.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "internal/fs/fs_test.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": false
+          },
+          {
+            "file": "binding/binding.go",
+            "extractor": "go",
+            "sigs": 13,
+            "tokens": 93,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_msgpack_test.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 44,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_nomsgpack.go",
+            "extractor": "go",
+            "sigs": 13,
+            "tokens": 93,
+            "covered": false
+          },
+          {
+            "file": "binding/binding_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 207,
+            "covered": false
+          },
+          {
+            "file": "binding/bson.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator.go",
+            "extractor": "go",
+            "sigs": 6,
+            "tokens": 45,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator_benchmark_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "binding/default_validator_test.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "binding/form.go",
+            "extractor": "go",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 486,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping_benchmark_test.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 31,
+            "covered": false
+          },
+          {
+            "file": "binding/form_mapping_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 255,
+            "covered": false
+          },
+          {
+            "file": "binding/header.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 48,
+            "covered": false
+          },
+          {
+            "file": "binding/json.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/json_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 282,
+            "covered": false
+          },
+          {
+            "file": "binding/msgpack.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "binding/msgpack_test.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "binding/multipart_form_mapping.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 95,
+            "covered": false
+          },
+          {
+            "file": "binding/multipart_form_mapping_test.go",
+            "extractor": "go",
+            "sigs": 6,
+            "tokens": 87,
+            "covered": false
+          },
+          {
+            "file": "binding/plain.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "binding/protobuf.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "binding/query.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "binding/toml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/toml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "binding/uri.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "binding/validate_test.go",
+            "extractor": "go",
+            "sigs": 15,
+            "tokens": 146,
+            "covered": false
+          },
+          {
+            "file": "binding/xml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/xml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "binding/yaml.go",
+            "extractor": "go",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": false
+          },
+          {
+            "file": "binding/yaml_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "ginS/gins.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 359,
+            "covered": false
+          },
+          {
+            "file": "ginS/gins_test.go",
+            "extractor": "go",
+            "sigs": 19,
+            "tokens": 134,
+            "covered": false
+          },
+          {
+            "file": "render/bson.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/data.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "render/html.go",
+            "extractor": "go",
+            "sigs": 11,
+            "tokens": 94,
+            "covered": false
+          },
+          {
+            "file": "render/json.go",
+            "extractor": "go",
+            "sigs": 19,
+            "tokens": 187,
+            "covered": false
+          },
+          {
+            "file": "render/msgpack.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 43,
+            "covered": false
+          },
+          {
+            "file": "render/pdf.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/protobuf.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "render/reader.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "render/reader_test.go",
+            "extractor": "go",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "render/redirect.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/render.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "render/render_msgpack_test.go",
+            "extractor": "go",
+            "sigs": 5,
+            "tokens": 44,
+            "covered": false
+          },
+          {
+            "file": "render/render_test.go",
+            "extractor": "go",
+            "sigs": 25,
+            "tokens": 234,
+            "covered": false
+          },
+          {
+            "file": "render/text.go",
+            "extractor": "go",
+            "sigs": 4,
+            "tokens": 48,
+            "covered": false
+          },
+          {
+            "file": "render/toml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/xml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          },
+          {
+            "file": "render/yaml.go",
+            "extractor": "go",
+            "sigs": 3,
+            "tokens": 28,
+            "covered": false
+          }
+        ],
+        "totalSigs": 356,
+        "totalTokens": 3810,
+        "slowFiles": [],
+        "fileCount": 53
+      },
+      "stdoutMetrics": {
+        "hotFiles": null,
+        "hotTokens": null,
+        "coldFiles": null,
+        "coldTokens": null
+      }
+    }
+  }
+}

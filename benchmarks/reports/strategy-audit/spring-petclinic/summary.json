@@ -1,0 +1,3392 @@
+{
+  "repo": "/Users/manojmallick/sigmap/benchmarks/repos/spring-petclinic",
+  "recommendedStrategy": {
+    "strategy": "full",
+    "reason": "full is the simplest reliable option when the repo is small or module splits do not materially reduce injected context."
+  },
+  "currentConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "src",
+      "src/main/java",
+      "src/main/resources",
+      "src/test/java",
+      "k8s"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 12,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "suggestedConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "src",
+      "src/main/java",
+      "src/main/resources",
+      "src/test/java",
+      "k8s",
+      ".github",
+      ".devcontainer"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 12,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "coverageSummary": {
+    "discoveredFileCount": 164,
+    "analyzedFileCount": 66,
+    "missingSupportedFiles": [
+      {
+        "file": ".devcontainer/Dockerfile",
+        "folder": ".devcontainer",
+        "language": "dockerfile"
+      },
+      {
+        "file": ".github/dco.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/deploy-and-test-cluster.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/gradle-build.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/maven-build.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".gitpod.yml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": "docker-compose.yml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": "src/main/resources/db/h2/data.sql",
+        "folder": "src/main/resources",
+        "language": "sql"
+      },
+      {
+        "file": "src/main/resources/db/h2/schema.sql",
+        "folder": "src/main/resources",
+        "language": "sql"
+      },
+      {
+        "file": "src/main/resources/db/mysql/data.sql",
+        "folder": "src/main/resources",
+        "language": "sql"
+      },
+      {
+        "file": "src/main/resources/db/mysql/schema.sql",
+        "folder": "src/main/resources",
+        "language": "sql"
+      },
+      {
+        "file": "src/main/resources/db/mysql/user.sql",
+        "folder": "src/main/resources",
+        "language": "sql"
+      },
+      {
+        "file": "src/main/resources/db/postgres/data.sql",
+        "folder": "src/main/resources",
+        "language": "sql"
+      },
+      {
+        "file": "src/main/resources/db/postgres/schema.sql",
+        "folder": "src/main/resources",
+        "language": "sql"
+      }
+    ],
+    "missingImportantFiles": [
+      {
+        "file": ".github/context-cold.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/copilot-instructions.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/README.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/full/AGENTS.full.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/full/copilot-instructions.full.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/hot-cold/AGENTS.hot-cold.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/hot-cold/context-cold.hot-cold.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/hot-cold/copilot-instructions.hot-cold.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/AGENTS.per-module.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/context-.devcontainer.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/context-.github.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/context-.gitpod.yml.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/context-docker-compose.yml.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/context-k8s.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/context-src.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/strategy-comparison/per-module/copilot-instructions.per-module.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".gradle/9.2.1/gc.properties",
+        "folder": ".gradle",
+        "ext": ".properties"
+      },
+      {
+        "file": ".gradle/buildOutputCleanup/cache.properties",
+        "folder": ".gradle",
+        "ext": ".properties"
+      },
+      {
+        "file": ".gradle/vcs-1/gc.properties",
+        "folder": ".gradle",
+        "ext": ".properties"
+      },
+      {
+        "file": ".idea/compiler.xml",
+        "folder": ".idea",
+        "ext": ".xml"
+      },
+      {
+        "file": ".idea/encodings.xml",
+        "folder": ".idea",
+        "ext": ".xml"
+      },
+      {
+        "file": ".idea/jarRepositories.xml",
+        "folder": ".idea",
+        "ext": ".xml"
+      },
+      {
+        "file": ".idea/misc.xml",
+        "folder": ".idea",
+        "ext": ".xml"
+      },
+      {
+        "file": ".idea/vcs.xml",
+        "folder": ".idea",
+        "ext": ".xml"
+      },
+      {
+        "file": ".idea/workspace.xml",
+        "folder": ".idea",
+        "ext": ".xml"
+      },
+      {
+        "file": ".mvn/wrapper/maven-wrapper.properties",
+        "folder": ".mvn",
+        "ext": ".properties"
+      },
+      {
+        "file": "README.md",
+        "folder": ".",
+        "ext": ".md"
+      },
+      {
+        "file": "build.gradle",
+        "folder": ".",
+        "ext": ".gradle"
+      },
+      {
+        "file": "gradle/wrapper/gradle-wrapper.properties",
+        "folder": "gradle",
+        "ext": ".properties"
+      },
+      {
+        "file": "pom.xml",
+        "folder": ".",
+        "ext": ".xml"
+      },
+      {
+        "file": "settings.gradle",
+        "folder": ".",
+        "ext": ".gradle"
+      },
+      {
+        "file": "src/checkstyle/nohttp-checkstyle-suppressions.xml",
+        "folder": "src",
+        "ext": ".xml"
+      },
+      {
+        "file": "src/checkstyle/nohttp-checkstyle.xml",
+        "folder": "src",
+        "ext": ".xml"
+      },
+      {
+        "file": "src/main/resources/application-mysql.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/application-postgres.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/application.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_de.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_en.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_es.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_fa.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_ko.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_pt.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_ru.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      },
+      {
+        "file": "src/main/resources/messages/messages_tr.properties",
+        "folder": "src/main/resources",
+        "ext": ".properties"
+      }
+    ],
+    "zeroSigFiles": [
+      {
+        "file": "src/main/java/org/springframework/samples/petclinic/model/package-info.java",
+        "extractor": "java",
+        "folder": "src/main/java"
+      },
+      {
+        "file": "src/main/java/org/springframework/samples/petclinic/owner/package-info.java",
+        "extractor": "java",
+        "folder": "src/main/java"
+      },
+      {
+        "file": "src/main/java/org/springframework/samples/petclinic/package-info.java",
+        "extractor": "java",
+        "folder": "src/main/java"
+      },
+      {
+        "file": "src/main/java/org/springframework/samples/petclinic/system/package-info.java",
+        "extractor": "java",
+        "folder": "src/main/java"
+      },
+      {
+        "file": "src/main/java/org/springframework/samples/petclinic/vet/package-info.java",
+        "extractor": "java",
+        "folder": "src/main/java"
+      },
+      {
+        "file": "src/main/resources/templates/error.html",
+        "extractor": "html",
+        "folder": "src/main/resources"
+      },
+      {
+        "file": "src/main/resources/templates/fragments/inputField.html",
+        "extractor": "html",
+        "folder": "src/main/resources"
+      },
+      {
+        "file": "src/main/resources/templates/fragments/selectField.html",
+        "extractor": "html",
+        "folder": "src/main/resources"
+      },
+      {
+        "file": "src/main/resources/templates/owners/ownerDetails.html",
+        "extractor": "html",
+        "folder": "src/main/resources"
+      },
+      {
+        "file": "src/main/resources/templates/pets/createOrUpdatePetForm.html",
+        "extractor": "html",
+        "folder": "src/main/resources"
+      },
+      {
+        "file": "src/main/resources/templates/pets/createOrUpdateVisitForm.html",
+        "extractor": "html",
+        "folder": "src/main/resources"
+      },
+      {
+        "file": "src/main/resources/templates/welcome.html",
+        "extractor": "html",
+        "folder": "src/main/resources"
+      },
+      {
+        "file": "src/main/scss/header.scss",
+        "extractor": "css",
+        "folder": "src/main/scss"
+      },
+      {
+        "file": "src/main/scss/responsive.scss",
+        "extractor": "css",
+        "folder": "src/main/scss"
+      },
+      {
+        "file": "src/main/scss/typography.scss",
+        "extractor": "css",
+        "folder": "src/main/scss"
+      }
+    ],
+    "recommendedSrcDirs": [
+      {
+        "folder": ".github",
+        "reason": "4 supported files are outside current coverage",
+        "examples": [
+          ".github/context-cold.md",
+          ".github/copilot-instructions.md",
+          ".github/dco.yml",
+          ".github/strategy-comparison/README.md",
+          ".github/strategy-comparison/full/AGENTS.full.md"
+        ]
+      },
+      {
+        "folder": ".devcontainer",
+        "reason": "1 supported files are outside current coverage",
+        "examples": [
+          ".devcontainer/Dockerfile"
+        ]
+      }
+    ],
+    "manualIndexFolders": [
+      {
+        "folder": ".github",
+        "importantMissing": 16,
+        "unsupportedExts": [
+          [
+            ".md",
+            16
+          ]
+        ],
+        "examples": [
+          ".github/context-cold.md",
+          ".github/copilot-instructions.md",
+          ".github/dco.yml",
+          ".github/strategy-comparison/README.md",
+          ".github/strategy-comparison/full/AGENTS.full.md"
+        ]
+      },
+      {
+        "folder": "src/main/resources",
+        "importantMissing": 12,
+        "unsupportedExts": [
+          [
+            ".properties",
+            12
+          ]
+        ],
+        "examples": [
+          "src/main/resources/application-mysql.properties",
+          "src/main/resources/application-postgres.properties",
+          "src/main/resources/application.properties",
+          "src/main/resources/db/h2/data.sql",
+          "src/main/resources/db/h2/schema.sql"
+        ]
+      },
+      {
+        "folder": ".idea",
+        "importantMissing": 6,
+        "unsupportedExts": [
+          [
+            ".xml",
+            6
+          ]
+        ],
+        "examples": [
+          ".idea/compiler.xml",
+          ".idea/encodings.xml",
+          ".idea/jarRepositories.xml",
+          ".idea/misc.xml",
+          ".idea/vcs.xml"
+        ]
+      },
+      {
+        "folder": ".",
+        "importantMissing": 4,
+        "unsupportedExts": [
+          [
+            ".gradle",
+            2
+          ],
+          [
+            ".md",
+            1
+          ],
+          [
+            ".xml",
+            1
+          ]
+        ],
+        "examples": [
+          ".gitpod.yml",
+          "README.md",
+          "build.gradle",
+          "docker-compose.yml",
+          "pom.xml"
+        ]
+      },
+      {
+        "folder": ".gradle",
+        "importantMissing": 3,
+        "unsupportedExts": [
+          [
+            ".properties",
+            3
+          ]
+        ],
+        "examples": [
+          ".gradle/9.2.1/gc.properties",
+          ".gradle/buildOutputCleanup/cache.properties",
+          ".gradle/vcs-1/gc.properties"
+        ]
+      },
+      {
+        "folder": "src",
+        "importantMissing": 2,
+        "unsupportedExts": [
+          [
+            ".xml",
+            2
+          ]
+        ],
+        "examples": [
+          "src/checkstyle/nohttp-checkstyle-suppressions.xml",
+          "src/checkstyle/nohttp-checkstyle.xml"
+        ]
+      },
+      {
+        "folder": ".mvn",
+        "importantMissing": 1,
+        "unsupportedExts": [
+          [
+            ".properties",
+            1
+          ]
+        ],
+        "examples": [
+          ".mvn/wrapper/maven-wrapper.properties"
+        ]
+      },
+      {
+        "folder": "gradle",
+        "importantMissing": 1,
+        "unsupportedExts": [
+          [
+            ".properties",
+            1
+          ]
+        ],
+        "examples": [
+          "gradle/wrapper/gradle-wrapper.properties"
+        ]
+      }
+    ],
+    "weakExtractorFolders": [
+      {
+        "folder": "src/main/resources",
+        "zeroSigFiles": 7,
+        "analyzedFiles": 13,
+        "totalTokens": 55
+      },
+      {
+        "folder": "src/main/java",
+        "zeroSigFiles": 5,
+        "analyzedFiles": 30,
+        "totalTokens": 811
+      },
+      {
+        "folder": "src/main/scss",
+        "zeroSigFiles": 3,
+        "analyzedFiles": 4,
+        "totalTokens": 171
+      }
+    ]
+  },
+  "strategies": {
+    "full": {
+      "strategy": "full",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:48.967Z",
+        "rawTokens": 104765,
+        "inputTokens": 104765,
+        "finalTokens": 2559,
+        "fileCount": 54,
+        "droppedCount": 0,
+        "reductionPct": 97.6,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/Person.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 35,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 58,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 125,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Pet.java",
+            "extractor": "java",
+            "sigs": 7,
+            "tokens": 49,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 112,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetType.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 25,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Visit.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 34,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 80,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CrashController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WebConfiguration.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Specialty.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vets.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/static/resources/css/petclinic.css",
+            "extractor": "css",
+            "sigs": 8,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/error.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/inputField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/layout.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/selectField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 2,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/findOwners.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownerDetails.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownersList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdatePetForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdateVisitForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/vets/vetList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/welcome.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/header.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/petclinic.scss",
+            "extractor": "css",
+            "sigs": 25,
+            "tokens": 171,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/responsive.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/typography.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 15,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 36,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 5,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/Person.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 35,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 58,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 125,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Pet.java",
+            "extractor": "java",
+            "sigs": 7,
+            "tokens": 49,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 112,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetType.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 25,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Visit.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 34,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 80,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CrashController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WebConfiguration.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Specialty.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vets.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/static/resources/css/petclinic.css",
+            "extractor": "css",
+            "sigs": 8,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/error.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/inputField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/layout.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/selectField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 2,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/findOwners.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownerDetails.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownersList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdatePetForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdateVisitForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/vets/vetList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/welcome.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 15,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 36,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 5,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "k8s/db.yml",
+            "extractor": "yaml",
+            "sigs": 1,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "k8s/petclinic.yml",
+            "extractor": "yaml",
+            "sigs": 1,
+            "tokens": 19,
+            "covered": false
+          }
+        ],
+        "totalSigs": 283,
+        "totalTokens": 2297,
+        "slowFiles": [],
+        "fileCount": 126
+      },
+      "stdoutMetrics": {}
+    },
+    "per-module": {
+      "strategy": "per-module",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:49.696Z",
+        "rawTokens": 104765,
+        "inputTokens": 104765,
+        "finalTokens": 2559,
+        "fileCount": 54,
+        "droppedCount": 0,
+        "reductionPct": 97.6,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/Person.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 35,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 58,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 125,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Pet.java",
+            "extractor": "java",
+            "sigs": 7,
+            "tokens": 49,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 112,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetType.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 25,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Visit.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 34,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 80,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CrashController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WebConfiguration.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Specialty.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vets.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/static/resources/css/petclinic.css",
+            "extractor": "css",
+            "sigs": 8,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/error.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/inputField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/layout.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/selectField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 2,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/findOwners.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownerDetails.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownersList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdatePetForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdateVisitForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/vets/vetList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/welcome.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/header.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/petclinic.scss",
+            "extractor": "css",
+            "sigs": 25,
+            "tokens": 171,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/responsive.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/typography.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 15,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 36,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 5,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/Person.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 35,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 58,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 125,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Pet.java",
+            "extractor": "java",
+            "sigs": 7,
+            "tokens": 49,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 112,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetType.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 25,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Visit.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 34,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 80,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CrashController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WebConfiguration.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Specialty.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vets.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/static/resources/css/petclinic.css",
+            "extractor": "css",
+            "sigs": 8,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/error.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/inputField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/layout.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/selectField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 2,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/findOwners.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownerDetails.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownersList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdatePetForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdateVisitForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/vets/vetList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/welcome.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 15,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 36,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 5,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "k8s/db.yml",
+            "extractor": "yaml",
+            "sigs": 1,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "k8s/petclinic.yml",
+            "extractor": "yaml",
+            "sigs": 1,
+            "tokens": 19,
+            "covered": false
+          }
+        ],
+        "totalSigs": 283,
+        "totalTokens": 2297,
+        "slowFiles": [],
+        "fileCount": 126
+      },
+      "stdoutMetrics": {
+        "moduleCount": null,
+        "modules": [],
+        "overviewTokens": null,
+        "moduleTokens": null
+      }
+    },
+    "hot-cold": {
+      "strategy": "hot-cold",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:50.375Z",
+        "rawTokens": 104765,
+        "inputTokens": 104765,
+        "finalTokens": 2559,
+        "fileCount": 54,
+        "droppedCount": 0,
+        "reductionPct": 97.6,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/Person.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 35,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 58,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 125,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Pet.java",
+            "extractor": "java",
+            "sigs": 7,
+            "tokens": 49,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 112,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetType.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 25,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Visit.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 34,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 80,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CrashController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WebConfiguration.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Specialty.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vets.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/static/resources/css/petclinic.css",
+            "extractor": "css",
+            "sigs": 8,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/error.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/inputField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/layout.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/selectField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 2,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/findOwners.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownerDetails.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownersList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdatePetForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdateVisitForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/vets/vetList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/welcome.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/header.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/petclinic.scss",
+            "extractor": "css",
+            "sigs": 25,
+            "tokens": 171,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/responsive.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/scss/typography.scss",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 15,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 36,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 5,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/Person.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 35,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/model/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 58,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 125,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Pet.java",
+            "extractor": "java",
+            "sigs": 7,
+            "tokens": 49,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "extractor": "java",
+            "sigs": 9,
+            "tokens": 112,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetType.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeFormatter.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java",
+            "extractor": "java",
+            "sigs": 3,
+            "tokens": 25,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/Visit.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 34,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 80,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/owner/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CacheConfiguration.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/CrashController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WebConfiguration.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 41,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/WelcomeController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/system/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Specialty.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
+            "extractor": "java",
+            "sigs": 5,
+            "tokens": 40,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetController.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/VetRepository.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/Vets.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "src/main/java/org/springframework/samples/petclinic/vet/package-info.java",
+            "extractor": "java",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/static/resources/css/petclinic.css",
+            "extractor": "css",
+            "sigs": 8,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/error.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/inputField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/layout.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 13,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/fragments/selectField.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 2,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/findOwners.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownerDetails.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/owners/ownersList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdatePetForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/pets/createOrUpdateVisitForm.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/vets/vetList.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "src/main/resources/templates/welcome.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/MysqlTestApplication.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PetClinicIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 15,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 4,
+            "tokens": 36,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/model/ValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 5,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/OwnerControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetTypeFormatterTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/PetValidatorTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/owner/VisitControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/ClinicServiceTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/service/EntityUtils.java",
+            "extractor": "java",
+            "sigs": 2,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerIntegrationTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/CrashControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetControllerTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "src/test/java/org/springframework/samples/petclinic/vet/VetTests.java",
+            "extractor": "java",
+            "sigs": 1,
+            "tokens": 4,
+            "covered": false
+          },
+          {
+            "file": "k8s/db.yml",
+            "extractor": "yaml",
+            "sigs": 1,
+            "tokens": 29,
+            "covered": false
+          },
+          {
+            "file": "k8s/petclinic.yml",
+            "extractor": "yaml",
+            "sigs": 1,
+            "tokens": 19,
+            "covered": false
+          }
+        ],
+        "totalSigs": 283,
+        "totalTokens": 2297,
+        "slowFiles": [],
+        "fileCount": 126
+      },
+      "stdoutMetrics": {
+        "hotFiles": null,
+        "hotTokens": null,
+        "coldFiles": null,
+        "coldTokens": null
+      }
+    }
+  }
+}

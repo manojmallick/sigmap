@@ -4619,6 +4619,11 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',
     '.yml': 'yaml',      '.yaml': 'yaml',
     '.sh': 'shell',      '.bash': 'shell', '.zsh': 'shell', '.fish': 'shell',
+    // P1 languages
+    '.sql': 'sql',
+    '.graphql': 'graphql', '.gql': 'graphql',
+    '.tf': 'terraform', '.tfvars': 'terraform',
+    '.proto': 'protobuf',
   };
 
   function isDockerfile(name) { return name === 'Dockerfile' || name.startsWith('Dockerfile.'); }
@@ -5147,6 +5152,11 @@ const EXT_MAP = {
   '.css': 'css', '.scss': 'css', '.sass': 'css', '.less': 'css',
   '.yml': 'yaml', '.yaml': 'yaml',
   '.sh': 'shell', '.bash': 'shell', '.zsh': 'shell', '.fish': 'shell',
+  // P1 languages
+  '.sql': 'sql',
+  '.graphql': 'graphql', '.gql': 'graphql',
+  '.tf': 'terraform', '.tfvars': 'terraform',
+  '.proto': 'protobuf',
 };
 
 // Dockerfile handled separately (no extension)

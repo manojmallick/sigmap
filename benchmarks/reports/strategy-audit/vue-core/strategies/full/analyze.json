@@ -1,0 +1,3900 @@
+{
+  "files": [
+    {
+      "file": "packages/compiler-core/__tests__/codegen.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/compile.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/parse.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/scopeId.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/testUtils.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 51,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transform.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/cacheStatic.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/noopDirectiveTransform.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/transformElement.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/transformExpressions.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/transformSlotOutlet.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/transformText.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vBind.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vFor.spec.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vIf.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vMemo.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vOn.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vOnce.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/transforms/vSlot.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/__tests__/utils.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/ast.ts",
+      "extractor": "typescript",
+      "sigs": 25,
+      "tokens": 183,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/babelUtils.ts",
+      "extractor": "typescript",
+      "sigs": 8,
+      "tokens": 110,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/codegen.ts",
+      "extractor": "typescript",
+      "sigs": 12,
+      "tokens": 74,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/compat/compatConfig.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 75,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/compat/transformFilter.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/compile.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 42,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/errors.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 69,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/options.ts",
+      "extractor": "typescript",
+      "sigs": 8,
+      "tokens": 59,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/parser.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 33,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/runtimeHelpers.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 16,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/tokenizer.ts",
+      "extractor": "typescript",
+      "sigs": 15,
+      "tokens": 108,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transform.ts",
+      "extractor": "typescript",
+      "sigs": 19,
+      "tokens": 274,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/cacheStatic.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 47,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/noopDirectiveTransform.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 11,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/transformElement.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 85,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/transformExpression.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 26,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/transformSlotOutlet.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 32,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/transformText.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/transformVBindShorthand.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vBind.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vFor.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 38,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vIf.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vMemo.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vModel.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vOn.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 24,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vOnce.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/transforms/vSlot.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 46,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/utils.ts",
+      "extractor": "typescript",
+      "sigs": 23,
+      "tokens": 329,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-core/src/validateExpression.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 27,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/decoderHtmlBrowser.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/index.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/parse.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/Transition.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/ignoreSideEffectTags.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/stringifyStatic.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/transformStyle.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/vHtml.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/vModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/vOn.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/vShow.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/vText.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/__tests__/transforms/validateHtmlNesting.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/decodeHtmlBrowser.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 16,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/errors.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 28,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/htmlNesting.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 27,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/parserOptions.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/runtimeHelpers.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/Transition.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/ignoreSideEffectTags.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/stringifyStatic.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 23,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/transformStyle.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/vHtml.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/vModel.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/vOn.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/vShow.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/vText.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-dom/src/transforms/validateHtmlNesting.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/defineEmits.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/defineExpose.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/defineModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/defineOptions.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/defineProps.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/definePropsDestructure.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/defineSlots.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/hoistStatic.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/importUsageCheck.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript/resolveType.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileScript.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileStyle.spec.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/compileTemplate.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/cssVars.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/fixture/import.scss",
+      "extractor": "css",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/parse.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/rewriteDefault.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/templateTransformAssetUrl.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/templateTransformSrcset.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/templateUtils.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/__tests__/utils.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 46,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/cache.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/compileScript.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 64,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/compileStyle.ts",
+      "extractor": "typescript",
+      "sigs": 7,
+      "tokens": 92,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/compileTemplate.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 60,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 10,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/parse.ts",
+      "extractor": "typescript",
+      "sigs": 9,
+      "tokens": 87,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/rewriteDefault.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 42,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/analyzeScriptBindings.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 31,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/context.ts",
+      "extractor": "typescript",
+      "sigs": 8,
+      "tokens": 81,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/defineEmits.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 44,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/defineExpose.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/defineModel.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 37,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/defineOptions.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/defineProps.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 69,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/definePropsDestructure.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 36,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/defineSlots.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 17,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/importUsageCheck.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 30,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/normalScript.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 17,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/resolveType.ts",
+      "extractor": "typescript",
+      "sigs": 10,
+      "tokens": 125,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/topLevelAwait.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/script/utils.ts",
+      "extractor": "typescript",
+      "sigs": 10,
+      "tokens": 142,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/shims.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/style/cssVars.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 78,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/style/pluginScoped.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/style/pluginTrim.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/style/preprocessors.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 24,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/template/templateUtils.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 60,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/template/transformAssetUrl.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 48,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/template/transformSrcset.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 30,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-sfc/src/warn.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 17,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrComponent.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrElement.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrFallthroughAttrs.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrInjectCssVars.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrPortal.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrScopeId.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrSlotOutlet.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrSuspense.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrText.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrTransition.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrTransitionGroup.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrVFor.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrVIf.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrVModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/ssrVShow.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/__tests__/utils.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/errors.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 28,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/runtimeHelpers.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/ssrCodegenTransform.ts",
+      "extractor": "typescript",
+      "sigs": 7,
+      "tokens": 102,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrInjectCssVars.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrInjectFallthroughAttrs.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrTransformComponent.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 31,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrTransformElement.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 46,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrTransformSlotOutlet.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 29,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrTransformSuspense.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 28,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrTransformTeleport.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrTransformTransition.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 29,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrTransformTransitionGroup.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 31,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrVFor.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 21,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrVIf.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 27,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrVModel.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/compiler-ssr/src/transforms/ssrVShow.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/global.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__benchmarks__/computed.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__benchmarks__/effect.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__benchmarks__/reactiveArray.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__benchmarks__/reactiveMap.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__benchmarks__/reactiveObject.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__benchmarks__/ref.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/collections/Map.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/collections/Set.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/collections/WeakMap.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/collections/WeakSet.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/collections/shallowReadonly.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/computed.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/effect.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/effectScope.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/gc.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/reactive.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/reactiveArray.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/readonly.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/ref.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/shallowReactive.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/shallowReadonly.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/__tests__/watch.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/arrayInstrumentations.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 23,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/baseHandlers.ts",
+      "extractor": "typescript",
+      "sigs": 23,
+      "tokens": 166,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/collectionHandlers.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/computed.ts",
+      "extractor": "typescript",
+      "sigs": 11,
+      "tokens": 94,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/constants.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 19,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/dep.ts",
+      "extractor": "typescript",
+      "sigs": 14,
+      "tokens": 137,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/effect.ts",
+      "extractor": "typescript",
+      "sigs": 25,
+      "tokens": 192,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/effectScope.ts",
+      "extractor": "typescript",
+      "sigs": 11,
+      "tokens": 94,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/reactive.ts",
+      "extractor": "typescript",
+      "sigs": 19,
+      "tokens": 177,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/ref.ts",
+      "extractor": "typescript",
+      "sigs": 25,
+      "tokens": 211,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/warning.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 11,
+      "covered": false
+    },
+    {
+      "file": "packages/reactivity/src/watch.ts",
+      "extractor": "typescript",
+      "sigs": 10,
+      "tokens": 93,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiAsyncComponent.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiCreateApp.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiExpose.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiInject.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiLifecycle.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiOptions.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiSetupContext.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiSetupHelpers.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiWatch.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/apiWatch.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/component.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/componentEmits.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/componentProps.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/componentPublicInstance.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/componentSlots.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/components/BaseTransition.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/components/KeepAlive.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/components/Suspense.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/components/Teleport.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/directives.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/errorHandling.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/h.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/createSlots.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/renderList.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/renderSlot.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/resolveAssets.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/toHandlers.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/useId.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/useModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/useTemplateRef.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/helpers/withMemo.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/hmr.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/hydration.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/misc.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/rendererAttrsFallthrough.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/rendererChildren.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/rendererComponent.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/rendererElement.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/rendererFragment.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/rendererOptimizedMode.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/rendererTemplateRef.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/scheduler.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/scopeId.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/vnode.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/__tests__/vnodeHooks.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiAsyncComponent.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 19,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiComputed.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiCreateApp.ts",
+      "extractor": "typescript",
+      "sigs": 15,
+      "tokens": 124,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiDefineComponent.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 20,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiInject.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 44,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiLifecycle.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 39,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiSetupHelpers.ts",
+      "extractor": "typescript",
+      "sigs": 17,
+      "tokens": 279,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/apiWatch.ts",
+      "extractor": "typescript",
+      "sigs": 9,
+      "tokens": 136,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/attrsFallthrough.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/compatConfig.ts",
+      "extractor": "typescript",
+      "sigs": 11,
+      "tokens": 163,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/component.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 17,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/componentAsync.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 16,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/componentFunctional.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 20,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/componentVModel.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 29,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/customDirective.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 32,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/data.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/global.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 42,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/globalConfig.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 36,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/instance.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 33,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/instanceChildren.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/instanceEventEmitter.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 89,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/instanceListeners.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 20,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/props.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 20,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/renderFn.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 47,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/compat/renderHelpers.ts",
+      "extractor": "typescript",
+      "sigs": 9,
+      "tokens": 175,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/component.ts",
+      "extractor": "typescript",
+      "sigs": 25,
+      "tokens": 248,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/componentEmits.ts",
+      "extractor": "typescript",
+      "sigs": 8,
+      "tokens": 94,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/componentOptions.ts",
+      "extractor": "typescript",
+      "sigs": 19,
+      "tokens": 209,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/componentProps.ts",
+      "extractor": "typescript",
+      "sigs": 10,
+      "tokens": 116,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/componentPublicInstance.ts",
+      "extractor": "typescript",
+      "sigs": 11,
+      "tokens": 113,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/componentRenderContext.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 72,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/componentRenderUtils.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 83,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/componentSlots.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 52,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/components/BaseTransition.ts",
+      "extractor": "typescript",
+      "sigs": 12,
+      "tokens": 108,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/components/KeepAlive.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 51,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/components/Suspense.ts",
+      "extractor": "typescript",
+      "sigs": 11,
+      "tokens": 94,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/components/Teleport.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 30,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/customFormatter.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 11,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/devtools.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 77,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/directives.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 69,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/enums.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 7,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/errorHandling.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 67,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/featureFlags.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 11,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/h.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 99,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/createSlots.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/renderList.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/renderSlot.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/resolveAssets.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 74,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/toHandlers.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 22,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/useId.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 21,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/useModel.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 22,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/useSsrContext.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/useTemplateRef.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 27,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/helpers/withMemo.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/hmr.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 39,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/hydration.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 48,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/hydrationStrategies.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 43,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/internalObject.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 21,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/profiling.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 26,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/renderer.ts",
+      "extractor": "typescript",
+      "sigs": 23,
+      "tokens": 216,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/rendererTemplateRef.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 23,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/scheduler.ts",
+      "extractor": "typescript",
+      "sigs": 8,
+      "tokens": 83,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/vnode.ts",
+      "extractor": "typescript",
+      "sigs": 24,
+      "tokens": 290,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/src/warning.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 59,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/types/globalComponents.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-core/types/scriptSetupHelpers.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/createApp.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/customElement.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/customizedBuiltIn.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/directives/vCloak.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/directives/vModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/directives/vOn.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/directives/vShow.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/helpers/useCssModule.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/helpers/useCssVars.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/nodeOps.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/patchAttrs.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/patchClass.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/patchEvents.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/patchProps.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/patchStyle.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/__tests__/rendererStaticNode.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/apiCustomElement.ts",
+      "extractor": "typescript",
+      "sigs": 14,
+      "tokens": 160,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/components/Transition.ts",
+      "extractor": "typescript",
+      "sigs": 8,
+      "tokens": 103,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/components/TransitionGroup.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/directives/vModel.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 17,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/directives/vOn.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/directives/vShow.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/helpers/useCssModule.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/helpers/useCssVars.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 38,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/jsx.ts",
+      "extractor": "typescript",
+      "sigs": 25,
+      "tokens": 223,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/modules/attrs.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/modules/class.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/modules/events.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 62,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/modules/props.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 20,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/modules/style.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/nodeOps.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-dom/src/patchProp.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 22,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-test/__tests__/testRuntime.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-test/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-test/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-test/src/nodeOps.ts",
+      "extractor": "typescript",
+      "sigs": 10,
+      "tokens": 70,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-test/src/patchProp.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 16,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-test/src/serialize.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 30,
+      "covered": false
+    },
+    {
+      "file": "packages/runtime-test/src/triggerEvent.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/createBuffer.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/render.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrAttrFallthrough.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrCompilerOptions.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrComputed.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrDirectives.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrDynamicComponent.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrInterpolate.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrRenderAttrs.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrRenderList.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrScopeId.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrSlot.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrSuspense.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrTeleport.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrVModelHelpers.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/ssrWatch.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/unrollBuffer.bench.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/__tests__/webStream.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrCompile.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 17,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrGetDirectiveProps.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 29,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrInterpolate.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrRenderAttrs.ts",
+      "extractor": "typescript",
+      "sigs": 5,
+      "tokens": 67,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrRenderComponent.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 31,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrRenderList.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrRenderSlot.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 10,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrRenderSuspense.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrRenderTeleport.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/helpers/ssrVModelHelpers.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 46,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/internal.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/render.ts",
+      "extractor": "typescript",
+      "sigs": 9,
+      "tokens": 103,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/renderToStream.ts",
+      "extractor": "typescript",
+      "sigs": 9,
+      "tokens": 112,
+      "covered": false
+    },
+    {
+      "file": "packages/server-renderer/src/renderToString.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 50,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/__tests__/codeframe.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/__tests__/cssVars.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/__tests__/escapeHtml.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/__tests__/looseEqual.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/__tests__/normalizeProp.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/__tests__/toDisplayString.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/codeframe.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 17,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/cssVars.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 13,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/domAttrConfig.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 39,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/domTagConfig.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/escapeHtml.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 39,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/general.ts",
+      "extractor": "typescript",
+      "sigs": 21,
+      "tokens": 193,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/globalsAllowList.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/looseEqual.ts",
+      "extractor": "typescript",
+      "sigs": 2,
+      "tokens": 23,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/makeMap.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/normalizeProp.ts",
+      "extractor": "typescript",
+      "sigs": 6,
+      "tokens": 83,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/patchFlags.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 6,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/shapeFlags.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 6,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/slotFlags.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 6,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/toDisplayString.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 10,
+      "covered": false
+    },
+    {
+      "file": "packages/shared/src/typeUtils.ts",
+      "extractor": "typescript",
+      "sigs": 4,
+      "tokens": 24,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/customElementCasing.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/Transition.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/TransitionGroup.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/commits.mock.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/commits.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/e2eUtils.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/grid.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/hydration-strat-custom.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/hydration-strat-idle.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/hydration-strat-interaction.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/hydration-strat-media.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/hydration-strat-visible.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/hydrationStrategies.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/markdown.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/memory-leak.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/ssr-custom-element.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/svg.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/todomvc.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/transition.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/tree.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/trusted-types.html",
+      "extractor": "html",
+      "sigs": 2,
+      "tokens": 6,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/trusted-types.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/e2e/vModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/index.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/mathmlNamespace.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/runtimeCompilerOptions.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/__tests__/svgNamespace.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/compiler-sfc/index.browser.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/compiler-sfc/index.browser.mjs",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/compiler-sfc/index.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/compiler-sfc/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/compiler-sfc/index.mjs",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/compiler-sfc/register-ts.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/classic/commits.html",
+      "extractor": "html",
+      "sigs": 2,
+      "tokens": 5,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/classic/grid.html",
+      "extractor": "html",
+      "sigs": 3,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/classic/markdown.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 3,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/classic/svg.html",
+      "extractor": "html",
+      "sigs": 4,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/classic/todomvc.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/classic/tree.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/composition/commits.html",
+      "extractor": "html",
+      "sigs": 2,
+      "tokens": 5,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/composition/grid.html",
+      "extractor": "html",
+      "sigs": 3,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/composition/markdown.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 3,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/composition/svg.html",
+      "extractor": "html",
+      "sigs": 4,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/composition/todomvc.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/composition/tree.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/transition/list.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/examples/transition/modal.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/index.mjs",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/jsx-runtime/index.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/jsx-runtime/index.js",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/jsx-runtime/index.mjs",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/jsx.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/server-renderer/index.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/server-renderer/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/server-renderer/index.mjs",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/src/dev.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue/src/runtime.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 7,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/compiler.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/componentAsync.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/componentFunctional.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/componentVModel.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/filters.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/global.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/globalConfig.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/instance.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/misc.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/options.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/renderFn.spec.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/__tests__/utils.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/index.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/src/createCompatVue.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/src/dev.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/src/esm-index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/src/esm-runtime.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages/vue-compat/src/runtime.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-built-test/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/appDirective.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/appUse.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/built.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/compiler.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/component.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/componentInstance.test-d.tsx",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/componentTypeExtensions.test-d.tsx",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/defineComponent.test-d.tsx",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/defineCustomElement.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/directives.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/extractProps.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/functionalComponent.test-d.tsx",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/h.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/inject.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/reactivity.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/ref.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/scheduler.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/setupHelpers.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/tsx.test-d.tsx",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/utils.d.ts",
+      "extractor": "typescript",
+      "sigs": 3,
+      "tokens": 26,
+      "covered": false
+    },
+    {
+      "file": "packages-private/dts-test/watch.test-d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/global.d.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/index.html",
+      "extractor": "html",
+      "sigs": 2,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/App.vue",
+      "extractor": "vue",
+      "sigs": 5,
+      "tokens": 32,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/Header.vue",
+      "extractor": "vue",
+      "sigs": 5,
+      "tokens": 54,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/VersionSelect.vue",
+      "extractor": "vue",
+      "sigs": 4,
+      "tokens": 34,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/download/download.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 11,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/download/template/index.html",
+      "extractor": "html",
+      "sigs": 2,
+      "tokens": 6,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/download/template/main.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/download/template/vite.config.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/icons/Copy.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/icons/Download.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/icons/GitHub.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/icons/Moon.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/icons/Reload.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/icons/Share.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/icons/Sun.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/main.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/vue-dev-proxy-prod.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/vue-dev-proxy.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/src/vue-server-renderer-dev-proxy.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/sfc-playground/vite.config.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/template-explorer/index.html",
+      "extractor": "html",
+      "sigs": 4,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages-private/template-explorer/local.html",
+      "extractor": "html",
+      "sigs": 4,
+      "tokens": 15,
+      "covered": false
+    },
+    {
+      "file": "packages-private/template-explorer/src/index.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/template-explorer/src/options.ts",
+      "extractor": "typescript",
+      "sigs": 1,
+      "tokens": 8,
+      "covered": false
+    },
+    {
+      "file": "packages-private/template-explorer/src/theme.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/template-explorer/style.css",
+      "extractor": "css",
+      "sigs": 2,
+      "tokens": 5,
+      "covered": false
+    },
+    {
+      "file": "packages-private/vite-debug/App.vue",
+      "extractor": "vue",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/vite-debug/index.html",
+      "extractor": "html",
+      "sigs": 1,
+      "tokens": 2,
+      "covered": false
+    },
+    {
+      "file": "packages-private/vite-debug/main.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "packages-private/vite-debug/vite.config.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "scripts/aliases.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "scripts/dev.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "scripts/inline-enums.js",
+      "extractor": "javascript",
+      "sigs": 3,
+      "tokens": 31,
+      "covered": false
+    },
+    {
+      "file": "scripts/pre-dev-sfc.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "scripts/release.js",
+      "extractor": "javascript",
+      "sigs": 12,
+      "tokens": 115,
+      "covered": false
+    },
+    {
+      "file": "scripts/setup-vitest.ts",
+      "extractor": "typescript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "scripts/size-report.js",
+      "extractor": "javascript",
+      "sigs": 5,
+      "tokens": 44,
+      "covered": false
+    },
+    {
+      "file": "scripts/usage-size.js",
+      "extractor": "javascript",
+      "sigs": 2,
+      "tokens": 22,
+      "covered": false
+    },
+    {
+      "file": "scripts/utils.js",
+      "extractor": "javascript",
+      "sigs": 2,
+      "tokens": 30,
+      "covered": false
+    },
+    {
+      "file": "scripts/verify-commit.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "scripts/verify-treeshaking.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    }
+  ],
+  "totalSigs": 1065,
+  "totalTokens": 11693,
+  "slowFiles": [],
+  "fileCount": 556
+}
