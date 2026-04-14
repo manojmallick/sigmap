@@ -1,13 +1,13 @@
 ---
-title: Retrieval benchmark — context relevance across 16 repos
-description: SigMap hit@5 = 87.5% vs 13.7% random baseline. 6.4× lift. 80 real coding tasks across 16 languages measured without an LLM API.
+title: Retrieval benchmark — context relevance across 18 repos
+description: SigMap hit@5 = 84.4% vs 13.6% random baseline. 6.2× lift. 90 real coding tasks across 18 repos measured without an LLM API.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Retrieval Benchmark — 87.5% hit@5 across 16 repos"
+      content: "SigMap Retrieval Benchmark — 84.4% hit@5 across 18 repos"
   - - meta
     - property: og:description
-      content: "SigMap puts the right file in context 87.5% of the time. Random selection: 13.7%. 6.4× lift across 80 real tasks, zero LLM API."
+      content: "SigMap puts the right file in context 84.4% of the time. Random selection: 13.6%. 6.2× lift across 90 real tasks, zero LLM API."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/retrieval-benchmark"
@@ -21,7 +21,7 @@ head:
 When you ask an LLM a coding question, the answer quality depends entirely on whether the
 **right files are in context**. This benchmark measures exactly that — without running any LLM.
 
-**Method:** For each of 16 real repos (5 tasks each, 80 total), we ask: *does SigMap's output
+**Method:** For each of 18 real repos (5 tasks each, 90 total), we ask: *does SigMap's output
 include the correct file in the top-5 ranked results?* We compare against the expected random
 probability of finding that file if files were selected at random.
 
@@ -41,24 +41,26 @@ node scripts/run-retrieval-benchmark.mjs --save
 | Repo | Files | Sigs | Random hit@5 | SigMap hit@5 | Lift | Correct | Partial | Wrong |
 |------|------:|-----:|:------------:|:------------:|:----:|:-------:|:-------:|:-----:|
 | [express](https://github.com/expressjs/express) | 6 | 6 | 83% | 80% | 1× | 2/5 | 2/5 | 1/5 |
-| [flask](https://github.com/pallets/flask) | 19 | 19 | 26% | **100%** | 3.8× | 5/5 | 0/5 | 0/5 |
-| [gin](https://github.com/gin-gonic/gin) | 107 | 68 | 5% | **100%** | 21× | 3/5 | 2/5 | 0/5 |
-| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 13 | 13 | 39% | 80% | 2.1× | 4/5 | 0/5 | 1/5 |
-| [rails](https://github.com/rails/rails) | 1,179 | 110 | 0.4% | 80% | **188×** | 2/5 | 2/5 | 1/5 |
-| [axios](https://github.com/axios/axios) | 25 | 25 | 20% | 60% | 3× | 2/5 | 1/5 | 2/5 |
-| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 635 | 45 | 0.8% | **100%** | **127×** | 4/5 | 1/5 | 0/5 |
+| [flask](https://github.com/pallets/flask) | 19 | 20 | 26% | **100%** | 3.8× | 5/5 | 0/5 | 0/5 |
+| [gin](https://github.com/gin-gonic/gin) | 107 | 76 | 5% | **100%** | 21× | 3/5 | 2/5 | 0/5 |
+| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 13 | 29 | 39% | 60% | 1.6× | 3/5 | 0/5 | 2/5 |
+| [rails](https://github.com/rails/rails) | 1,179 | 110 | 0.4% | 80% | **189×** | 2/5 | 2/5 | 1/5 |
+| [axios](https://github.com/axios/axios) | 25 | 29 | 20% | 60% | 3× | 2/5 | 1/5 | 2/5 |
+| [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 635 | 50 | 0.8% | **100%** | **127×** | 4/5 | 1/5 | 0/5 |
 | [abseil-cpp](https://github.com/abseil/abseil-cpp) | 700 | 38 | 0.7% | **100%** | **140×** | 4/5 | 1/5 | 0/5 |
-| [serilog](https://github.com/serilog/serilog) | 99 | 99 | 5% | 80% | 15.8× | 2/5 | 2/5 | 1/5 |
-| [riverpod](https://github.com/rrousselGit/riverpod) | 446 | 41 | 1.1% | **100%** | 89× | 4/5 | 1/5 | 0/5 |
+| [serilog](https://github.com/serilog/serilog) | 99 | 100 | 5% | 80% | 15.8× | 2/5 | 2/5 | 1/5 |
+| [riverpod](https://github.com/rrousselGit/riverpod) | 446 | 43 | 1.1% | **100%** | 89× | 4/5 | 1/5 | 0/5 |
 | [okhttp](https://github.com/square/okhttp) | 18 | 18 | 28% | **100%** | 3.6× | 5/5 | 0/5 | 0/5 |
-| [laravel](https://github.com/laravel/framework) | 1,533 | 113 | 0.3% | **100%** | **306×** | 2/5 | 3/5 | 0/5 |
+| [laravel](https://github.com/laravel/framework) | 1,533 | 113 | 0.3% | **100%** | **307×** | 2/5 | 3/5 | 0/5 |
 | [akka](https://github.com/akka/akka) | 211 | 64 | 2.4% | **100%** | 42× | 3/5 | 2/5 | 0/5 |
-| [vapor](https://github.com/vapor/vapor) | 131 | 131 | 3.8% | 60% | 15.7× | 1/5 | 2/5 | 2/5 |
-| [vue-core](https://github.com/vuejs/core) | 232 | 122 | 2.2% | **100%** | 46× | 3/5 | 2/5 | 0/5 |
+| [vapor](https://github.com/vapor/vapor) | 131 | 134 | 3.8% | 60% | 15.7× | 1/5 | 2/5 | 2/5 |
+| [vue-core](https://github.com/vuejs/core) | 232 | 121 | 2.2% | **100%** | 46× | 2/5 | 3/5 | 0/5 |
 | [svelte](https://github.com/sveltejs/svelte) | 370 | 63 | 1.4% | 60% | 44× | 1/5 | 2/5 | 2/5 |
-| **Average** | | | **13.7%** | **87.5%** | **6.4×** | **47/80** | **23/80** | **10/80** |
+| [fastify](https://github.com/fastify/fastify) | 31 | 28 | 16% | 60% | 3.7× | 3/5 | 0/5 | 2/5 |
+| [fastapi](https://github.com/tiangolo/fastapi) | 48 | 32 | 10% | 80% | 7.7× | 3/5 | 1/5 | 1/5 |
+| **Average** | | | **13.6%** | **84.4%** | **6.2×** | **51/90** | **25/90** | **14/90** |
 
-**10 of 16 repos hit 100% (all 5 tasks found in top-5). Only 10/80 tasks produced a wrong result.**
+**10 of 18 repos hit 100% (all 5 tasks found in top-5). Only 14/90 tasks produced a wrong result.**
 
 ---
 
@@ -68,17 +70,17 @@ Without SigMap, the context provided to the LLM is either truncated at the token
 assembled from an unordered file list — equivalent to random selection for large repos.
 
 ```
-Context quality — all 80 tasks across 16 repos
+Context quality — all 90 tasks across 18 repos
 
   Without SigMap (random selection):
-  Correct  ██░░░░░░░░░░░░░░░░░░░░░░  14%  —  11/80 tasks
-  Partial  ████░░░░░░░░░░░░░░░░░░░░  17%  —  14/80 tasks
-  Wrong    ████████████████████████  70%  —  55/80 tasks
+  Correct  ██░░░░░░░░░░░░░░░░░░░░░░  14%  —  12/90 tasks
+  Partial  ████░░░░░░░░░░░░░░░░░░░░  17%  —  15/90 tasks
+  Wrong    ████████████████████████  70%  —  63/90 tasks
 
   With SigMap:
-  Correct  ██████████████████████░░  59%  —  47/80 tasks
-  Partial  ████████████░░░░░░░░░░░░  29%  —  23/80 tasks
-  Wrong    ████░░░░░░░░░░░░░░░░░░░░  13%  —  10/80 tasks
+  Correct  █████████████████████░░░  57%  —  51/90 tasks
+  Partial  ████████████░░░░░░░░░░░░  28%  —  25/90 tasks
+  Wrong    ████░░░░░░░░░░░░░░░░░░░░  16%  —  14/90 tasks
 ```
 
 **Wrong context drops from 70% → 13%. Correct context jumps from 14% → 59%.**
@@ -98,7 +100,7 @@ For large repos (rails 1,179 files; laravel 1,533; rust-analyzer 635; abseil-cpp
 | **Wrong** | Target file not in top-5 | LLM operates without the key file in context |
 
 ::: info Methodology
-- **Tasks:** 5 per repo × 16 repos = 80 tasks. Each task is a natural-language query with one or more `expected_files` (real files from the cloned repo).
+- **Tasks:** 5 per repo × 18 repos = 90 tasks. Each task is a natural-language query with one or more `expected_files` (real files from the cloned repo).
 - **Random baseline:** `min(1, 5/fileCount)` — the probability that a uniformly random 5-file selection contains the target file.
 - **SigMap hit@5:** does the SigMap retrieval ranker return the expected file within its top-5 ranked results?
 - **No LLM API used.** Scores are purely rank-position arithmetic against ground-truth file labels.
@@ -111,11 +113,11 @@ For large repos (rails 1,179 files; laravel 1,533; rust-analyzer 635; abseil-cpp
 
 | Metric | Without SigMap | With SigMap |
 |--------|:--------------:|:-----------:|
-| Average hit@5 | 13.7% | **87.5%** |
-| Lift | — | **6.4×** |
-| Wrong context (top-5 miss) | **70%** | 13% |
-| Correct context (rank-1 hit) | 14% | **59%** |
-| 100% hit@5 repos | 0/16 | **10/16** |
+| Average hit@5 | 13.6% | **84.4%** |
+| Lift | — | **6.2×** |
+| Wrong context (top-5 miss) | **70%** | 16% |
+| Correct context (rank-1 hit) | 14% | **57%** |
+| 100% hit@5 repos | 0/18 | **10/18** |
 
 ## Reproduce
 
@@ -123,7 +125,7 @@ For large repos (rails 1,179 files; laravel 1,533; rust-analyzer 635; abseil-cpp
 # Uses existing generated output (fast, ~1s)
 node scripts/run-retrieval-benchmark.mjs --skip-run
 
-# Re-runs gen-context on all 16 repos first (~2 min)
+# Re-runs gen-context on all 18 repos first (~2 min)
 node scripts/run-retrieval-benchmark.mjs
 
 # Save results to benchmarks/reports/retrieval.json

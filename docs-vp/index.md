@@ -8,7 +8,7 @@ head:
       content: "SigMap — 97% token reduction for AI coding agents"
   - - meta
     - property: og:description
-      content: "SigMap gives your AI the right context before the first prompt. 87.5% retrieval accuracy, 46% fewer prompts, 16 real repos benchmarked."
+      content: "SigMap gives your AI the right context before the first prompt. 84.4% retrieval accuracy, 37% fewer prompts, 18 real repos benchmarked."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — 97% token reduction for AI coding agents"
   - - meta
     - name: twitter:description
-      content: "SigMap gives your AI the right context before the first prompt. 87.5% retrieval accuracy, 46% fewer prompts, 16 real repos benchmarked."
+      content: "SigMap gives your AI the right context before the first prompt. 84.4% retrieval accuracy, 37% fewer prompts, 18 real repos benchmarked."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — Zero-dependency AI context engine for AI coding agents"
@@ -46,17 +46,17 @@ hero:
 features:
   - icon: 🎯
     title: Right file, first prompt
-    details: 87.5% hit@5 across 80 real coding tasks on 16 repos. Without SigMap, random selection finds the right file 13.7% of the time.
+    details: 84.4% hit@5 across 90 real coding tasks on 18 repos. Without SigMap, random selection finds the right file 13.6% of the time.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚡
     title: 97% token reduction
-    details: From ~80,000 raw tokens to ~4,000 per session. Function signatures only — no bodies, no comments. Measured across 16 real codebases.
+    details: From ~80,000 raw tokens to ~4,000 per session. Function signatures only — no bodies, no comments. Measured across 18 real codebases.
     link: /guide/benchmark
     linkText: Token benchmark →
   - icon: 💬
-    title: 46% fewer prompts
-    details: Correct context lands at rank 1 in 59% of tasks. Wrong context drops from 87% to 13%. Fewer retries, faster answers.
+    title: 37% fewer prompts
+    details: Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🌐
@@ -86,15 +86,15 @@ Your AI answers coding questions from whichever files happen to fit its context 
 
 ## Before vs After — finding the right file
 
-Does the AI get the right file in context? Measured across 80 real coding tasks.
+Does the AI get the right file in context? Measured across 90 real coding tasks.
 
 <div style="margin:1.4rem 0">
 
 <div style="display:flex;align-items:center;gap:12px;margin:10px 0">
   <span style="width:160px;font-size:0.88em;color:#ef4444;font-weight:500">Without SigMap</span>
   <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:6px;height:36px;overflow:hidden">
-    <div style="background:#ef4444;height:36px;width:13.7%;display:flex;align-items:center;padding-left:10px">
-      <span style="color:#fff;font-size:0.82em;font-weight:700;white-space:nowrap">13.7%</span>
+    <div style="background:#ef4444;height:36px;width:13.6%;display:flex;align-items:center;padding-left:10px">
+      <span style="color:#fff;font-size:0.82em;font-weight:700;white-space:nowrap">13.6%</span>
     </div>
   </div>
 </div>
@@ -102,8 +102,8 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
 <div style="display:flex;align-items:center;gap:12px;margin:10px 0">
   <span style="width:160px;font-size:0.88em;color:#7c6af7;font-weight:500">With SigMap</span>
   <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:6px;height:36px;overflow:hidden">
-    <div style="background:#7c6af7;height:36px;width:87.5%;display:flex;align-items:center;padding-left:10px">
-      <span style="color:#fff;font-size:0.82em;font-weight:700">87.5%</span>
+    <div style="background:#7c6af7;height:36px;width:84.4%;display:flex;align-items:center;padding-left:10px">
+      <span style="color:#fff;font-size:0.82em;font-weight:700">84.4%</span>
     </div>
   </div>
 </div>
@@ -125,8 +125,8 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
   <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
     <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
     <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#7c6af7;height:22px;width:51.3%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">1.54</span>
+      <div style="background:#7c6af7;height:22px;width:59.3%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">1.78</span>
       </div>
     </div>
   </div>
@@ -145,8 +145,8 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
   <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
     <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
     <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#7c6af7;height:22px;width:13%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">13%</span>
+      <div style="background:#7c6af7;height:22px;width:16%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">16%</span>
       </div>
     </div>
   </div>
@@ -167,11 +167,11 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
 <div style="margin:12px 0">
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
     <span style="font-size:0.9em;font-weight:600;color:#22c55e">✓ Correct — right file, first prompt</span>
-    <span style="font-size:0.85em;color:#22c55e">47 / 80 tasks</span>
+    <span style="font-size:0.85em;color:#22c55e">51 / 90 tasks</span>
   </div>
   <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#22c55e;height:32px;width:58.8%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">58.8%</span>
+    <div style="background:#22c55e;height:32px;width:56.7%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">56.7%</span>
     </div>
   </div>
 </div>
@@ -179,11 +179,11 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
 <div style="margin:12px 0">
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
     <span style="font-size:0.9em;font-weight:600;color:#f59e0b">~ Partial — right file somewhere in context</span>
-    <span style="font-size:0.85em;color:#f59e0b">23 / 80 tasks</span>
+    <span style="font-size:0.85em;color:#f59e0b">25 / 90 tasks</span>
   </div>
   <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#f59e0b;height:32px;width:28.7%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">28.7%</span>
+    <div style="background:#f59e0b;height:32px;width:27.8%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">27.8%</span>
     </div>
   </div>
 </div>
@@ -191,11 +191,11 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
 <div style="margin:12px 0">
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
     <span style="font-size:0.9em;font-weight:600;color:#ef4444">✗ Wrong — AI answered from the wrong code</span>
-    <span style="font-size:0.85em;color:#ef4444">10 / 80 tasks</span>
+    <span style="font-size:0.85em;color:#ef4444">14 / 90 tasks</span>
   </div>
   <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#ef4444;height:32px;width:12.5%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">12.5%</span>
+    <div style="background:#ef4444;height:32px;width:15.6%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">15.6%</span>
     </div>
   </div>
 </div>
@@ -205,16 +205,16 @@ Does the AI get the right file in context? Measured across 80 real coding tasks.
 <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem">
 <div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem">
   <div style="font-size:1.6em;font-weight:700;color:#ef4444">92%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2)">hallucination risk<br><span style="color:var(--vp-c-text-3)">without SigMap — 55K symbols hidden from AI</span></div>
+  <div style="font-size:0.82em;color:var(--vp-c-text-2)">hallucination risk<br><span style="color:var(--vp-c-text-3)">without SigMap — 57K symbols hidden from AI</span></div>
 </div>
 <div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem;border:2px solid #7c6af744">
   <div style="font-size:1.6em;font-weight:700;color:#7c6af7">0%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2)">dark symbols<br><span style="color:var(--vp-c-text-3)">with SigMap — all 5,067 signatures grounded</span></div>
+  <div style="font-size:0.82em;color:var(--vp-c-text-2)">dark symbols<br><span style="color:var(--vp-c-text-3)">with SigMap — all 5,865 signatures grounded</span></div>
 </div>
 </div>
 
 <div style="margin-top:1rem;font-size:0.83em;color:var(--vp-c-text-3)">
-Measured across 80 tasks · 16 repos · 13 languages · no LLM API · <a href="/sigmap/guide/task-benchmark" style="color:#7c6af7">full methodology →</a>
+Measured across 90 tasks · 18 repos · 13 languages · no LLM API · <a href="/sigmap/guide/task-benchmark" style="color:#7c6af7">full methodology →</a>
 </div>
 
 </div>

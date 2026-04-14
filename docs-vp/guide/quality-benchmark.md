@@ -1,13 +1,13 @@
 ---
 title: Quality benchmark — overflow risk, signature coverage, API cost
-description: What token reduction means in practice. 10/16 real repos exceed GPT-4o's context limit without SigMap. 4,793 files not in context. $8,958/month in API input cost.
+description: What token reduction means in practice. 13/18 real repos exceed GPT-4o's context limit without SigMap. 4,977 files not in context. $9,435/month in API input cost.
 head:
   - - meta
     - property: og:title
       content: "SigMap Quality Benchmark — overflow, coverage, cost"
   - - meta
     - property: og:description
-      content: "10/16 repos exceed GPT-4o's 128K context limit without SigMap. 4,793 files not in context. $8,958/month in GPT-4o input-token cost."
+      content: "13/18 repos exceed GPT-4o's 128K context limit without SigMap. 4,977 files not in context. $9,435/month in GPT-4o input-token cost."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/quality-benchmark"
@@ -45,24 +45,26 @@ SigMap output always fits because the token budget is capped (default: 6,000 tok
 
 | Repo | Raw tokens | GPT-4o 128K | Claude 200K | Gemini 1M | SigMap |
 |------|:----------:|:-----------:|:-----------:|:---------:|:------:|
-| [express](https://github.com/expressjs/express) | 15.5K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [flask](https://github.com/pallets/flask) | 84.8K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [gin](https://github.com/gin-gonic/gin) | 172.8K | EXCEEDS +35% | FITS ✓ | FITS ✓ | FITS ✓ |
-| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 77.0K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
+| [express](https://github.com/expressjs/express) | 70.6K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
+| [flask](https://github.com/pallets/flask) | 147.9K | EXCEEDS +16% | FITS ✓ | FITS ✓ | FITS ✓ |
+| [gin](https://github.com/gin-gonic/gin) | 216.4K | EXCEEDS +69% | EXCEEDS +8% | FITS ✓ | FITS ✓ |
+| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 97.9K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
 | [rails](https://github.com/rails/rails) | 1.5M | EXCEEDS ×12 | EXCEEDS ×7.5 | EXCEEDS +49% | FITS ✓ |
-| [axios](https://github.com/axios/axios) | 31.7K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
+| [axios](https://github.com/axios/axios) | 105.7K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
 | [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 3.5M | EXCEEDS ×27 | EXCEEDS ×17 | EXCEEDS ×3.5 | FITS ✓ |
 | [abseil-cpp](https://github.com/abseil/abseil-cpp) | 2.3M | EXCEEDS ×18 | EXCEEDS ×11 | EXCEEDS ×2.3 | FITS ✓ |
-| [serilog](https://github.com/serilog/serilog) | 113.7K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
-| [riverpod](https://github.com/rrousselGit/riverpod) | 682.7K | EXCEEDS ×5.3 | EXCEEDS ×3.4 | FITS ✓ | FITS ✓ |
+| [serilog](https://github.com/serilog/serilog) | 195.5K | EXCEEDS +53% | FITS ✓ | FITS ✓ | FITS ✓ |
+| [riverpod](https://github.com/rrousselGit/riverpod) | 747.2K | EXCEEDS ×5.8 | EXCEEDS ×3.7 | FITS ✓ | FITS ✓ |
 | [okhttp](https://github.com/square/okhttp) | 31.3K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
 | [laravel](https://github.com/laravel/framework) | 1.7M | EXCEEDS ×13 | EXCEEDS ×8.5 | EXCEEDS +68% | FITS ✓ |
 | [akka](https://github.com/akka/akka) | 790.5K | EXCEEDS ×6.2 | EXCEEDS ×4.0 | FITS ✓ | FITS ✓ |
-| [vapor](https://github.com/vapor/vapor) | 171.2K | EXCEEDS +34% | FITS ✓ | FITS ✓ | FITS ✓ |
-| [vue-core](https://github.com/vuejs/core) | 404.2K | EXCEEDS ×3.2 | EXCEEDS ×2.0 | FITS ✓ | FITS ✓ |
+| [vapor](https://github.com/vapor/vapor) | 171.4K | EXCEEDS +34% | FITS ✓ | FITS ✓ | FITS ✓ |
+| [vue-core](https://github.com/vuejs/core) | 414.4K | EXCEEDS ×3.2 | EXCEEDS ×2.1 | FITS ✓ | FITS ✓ |
 | [svelte](https://github.com/sveltejs/svelte) | 438.2K | EXCEEDS ×3.4 | EXCEEDS ×2.2 | FITS ✓ | FITS ✓ |
+| [fastify](https://github.com/fastify/fastify) | 54.4K | FITS ✓ | FITS ✓ | FITS ✓ | FITS ✓ |
+| [fastapi](https://github.com/tiangolo/fastapi) | 178.4K | EXCEEDS +39% | FITS ✓ | FITS ✓ | FITS ✓ |
 
-**10/16 repos exceed GPT-4o's 128K limit. 9/16 exceed Claude's 200K limit. With SigMap: 0/16 exceed any limit.**
+**13/18 repos exceed GPT-4o's 128K limit. 9/18 exceed Claude's 200K limit. With SigMap: 0/18 exceed any limit.**
 
 ::: info What "EXCEEDS" means technically
 When raw content is larger than the context window, it cannot be sent as-is. Tooling (IDEs,
@@ -104,7 +106,7 @@ compact context file. This table measures two things that are directly countable
 | [vue-core](https://github.com/vuejs/core) | 205 | **159 of 232** |
 | [svelte](https://github.com/sveltejs/svelte) | 195 | **262 of 370** |
 
-**Total: 5,067 signatures extractable into context with SigMap. 4,793 source files not in context without it (raw, GPT-4o limit).**
+**Total: 5,865 signatures extractable into context with SigMap. 4,977 source files not in context without it (raw, GPT-4o limit).**
 
 ::: info Methodology notes
 - Signature count is exact: output file lines matching function/class/interface declaration patterns
@@ -144,9 +146,9 @@ multiplied by published per-token prices. No modelling involved.
 | [vapor](https://github.com/vapor/vapor) | $4.28 | $0.16 | $4.12 | **$123.58** |
 | [vue-core](https://github.com/vuejs/core) | $10.10 | $0.22 | $9.88 | **$296.50** |
 | [svelte](https://github.com/sveltejs/svelte) | $10.95 | $0.20 | $10.75 | **$322.62** |
-| **TOTAL** | | | **$298.54/day** | **$8,958/month** |
+| **TOTAL** | | | **$317/day** | **$9,435/month** |
 
-**Claude Sonnet: $358/day · $10,750/month saved at regular pricing. At cached pricing: $35.83/day saved.**
+**Claude Sonnet: $421/day · $12,630/month saved at regular pricing. At cached pricing: $42.10/day saved.**
 
 ---
 
@@ -154,11 +156,11 @@ multiplied by published per-token prices. No modelling involved.
 
 | Metric | Source | Without SigMap | With SigMap |
 |--------|--------|:--------------:|:-----------:|
-| Repos exceeding GPT-4o 128K | Measured | **10/16** | 0/16 |
-| Repos exceeding Claude 200K | Measured | **9/16** | 0/16 |
-| Source files not in context (GPT-4o limit) | Measured | **4,793** | 0 |
-| Signatures extractable into context | Measured (SigMap output) | 0 | **5,067** |
-| GPT-4o input cost (10 calls/day, all repos) | Computed from measured tokens × pricing | **~$299/day** | **~$0.43/day** |
+| Repos exceeding GPT-4o 128K | Measured | **13/18** | 0/18 |
+| Repos exceeding Claude 200K | Measured | **9/18** | 0/18 |
+| Source files not in context (GPT-4o limit) | Measured | **4,977** | 0 |
+| Signatures extractable into context | Measured (SigMap output) | 0 | **5,865** |
+| GPT-4o input cost (10 calls/day, all repos) | Computed from measured tokens × pricing | **~$317/day** | **~$2.57/day** |
 
 ## Reproduce these numbers
 
