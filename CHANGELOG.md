@@ -10,6 +10,24 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [3.3.3] — 2026-04-14 — Auto srcDirs + P1 Extractors
+
+### Added
+- **P1 extractor support** for additional high-value formats:
+  - SQL: `.sql`
+  - GraphQL: `.graphql`, `.gql`
+  - Terraform: `.tf`, `.tfvars`
+  - Protobuf: `.proto`
+- **Extractor registration updates** across runtime and core mapping so the new file types are parsed consistently.
+
+### Changed
+- **Auto source directory detection** (framework- and manifest-aware) in config loading and strategy auditing.
+- **Auto maxDepth tuning** in strategy audit based on repository file-depth distribution.
+- **Benchmark strategy-audit reports refreshed** to reflect improved source discovery and coverage.
+- **Language support count updated from 21 to 25** across core README and extension README.
+
+---
+
 ## [3.3.1] — 2026-04-10 — Patch: `--each --adapter` flag combination
 
 ### Fixed

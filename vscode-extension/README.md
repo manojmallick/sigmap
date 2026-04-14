@@ -4,7 +4,7 @@
 
 ### Zero-dependency AI context engine for VS Code
 
-**97% token reduction · 21 languages · Always-on · Node 18+**
+**97% token reduction · 25 languages · Always-on · Node 18+**
 
 [![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/manojmallick.sigmap?color=7c6af7&label=VS%20Marketplace&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap)
 [![Open VSX](https://img.shields.io/open-vsx/v/manojmallick/sigmap?color=a251e3&label=Open%20VSX&logo=vscodium)](https://open-vsx.org/extension/manojmallick/sigmap)
@@ -42,7 +42,7 @@ After SigMap:   "I can see your AuthService, UserRepository, 47 API routes …"
 | **PR diff context** | `--diff <base>` shows changed-file signatures for focused reviews |
 | **Dependency map** | Import/require graph for Python and TypeScript |
 | **Impact radius** | Reverse dependency annotations (used by: ...) |
-| **Enriched signatures** | Return types, type hints, and schema field collapse across all 21 languages |
+| **Enriched signatures** | Return types, type hints, and schema field collapse across all 25 languages |
 | **New helper extractors** | `deps.js`, `todos.js`, `coverage.js`, `prdiff.js` |
 
 Several v2 enhancements (deps map, TODOs, recent changes) are enabled by default. All v2 sections can be tuned or disabled via `gen-context.config.json`.
@@ -87,7 +87,7 @@ SigMap ships with a built-in **Model Context Protocol (MCP) server** for Claude 
 
 ---
 
-## 🌐 21 Language Support
+## 🌐 25 Language Support
 
 | Language | Extensions |
 |---|---|
@@ -111,6 +111,10 @@ SigMap ships with a built-in **Model Context Protocol (MCP) server** for Claude 
 | CSS / SCSS / Sass | `.css`, `.scss`, `.sass`, `.less` |
 | YAML | `.yml`, `.yaml` |
 | Shell | `.sh`, `.bash`, `.zsh`, `.fish` |
+| SQL | `.sql` |
+| GraphQL | `.graphql`, `.gql` |
+| Terraform | `.tf`, `.tfvars` |
+| Protobuf | `.proto` |
 | Dockerfile | `Dockerfile`, `Dockerfile.*` |
 
 ---
