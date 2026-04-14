@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [3.3.4] — 2026-04-14 — Binary Bundle Fix
+
+### Fixed
+- **Standalone binary pre-flight now passes for new P1 extractors**
+  - Added missing bundled `__factories` entries in `gen-context.js` for:
+    - `./src/extractors/graphql`
+    - `./src/extractors/protobuf`
+    - `./src/extractors/sql`
+    - `./src/extractors/terraform`
+  - Resolves CI/build failure in `scripts/build-binary.mjs` reporting missing `src/` modules in bundle.
+
+---
+
 ## [3.3.3] — 2026-04-14 — Auto srcDirs + P1 Extractors
 
 ### Added
