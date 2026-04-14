@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [3.4.0] — 2026-04-14 — Phase A/B Coverage Expansion
+
+### Added
+- **Phase A extractor support** for high-value config and docs formats:
+  - TOML: `.toml`
+  - Java/INI properties: `.properties`
+  - XML: `.xml`
+  - Markdown technical docs: `.md`
+- **Bundled runtime factory wiring** for new extractors so standalone/binary execution resolves the same modules as source mode.
+
+### Changed
+- **Framework-aware source discovery** defaults expanded for Next/React, Angular, Rails, Laravel, and Flask/Python-style layouts.
+- **Strategy audit coverage rules** updated to treat Phase A formats as supported instead of important unsupported baselines.
+- **Default srcDirs** broadened to improve first-run context quality on framework-heavy repositories.
 ## [3.3.4] — 2026-04-14 — Binary Bundle Fix
 
 ### Fixed

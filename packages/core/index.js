@@ -40,6 +40,11 @@ const EXT_MAP = {
   '.graphql': 'graphql', '.gql': 'graphql',
   '.tf': 'terraform', '.tfvars': 'terraform',
   '.proto': 'protobuf',
+  // Phase A formats
+  '.toml': 'toml',
+  '.properties': 'properties',
+  '.xml': 'xml',
+  '.md': 'markdown',
 };
 
 const SRC_ROOT = path.resolve(__dirname, '..', '..', 'src');
