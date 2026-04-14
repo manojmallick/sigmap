@@ -456,6 +456,10 @@ Activates on startup (`onStartupFinished`) — loads within 3 s, never blocks ed
 
 The official SigMap JetBrains plugin brings the same features to IntelliJ-based IDEs. Install it from the JetBrains Marketplace and it works identically to the VS Code extension.
 
+<div align="center">
+<img src="assets/intelij.gif" alt="SigMap JetBrains plugin — status bar health grade, regenerate action, and context auto-refresh in IntelliJ IDEA" width="700" />
+</div>
+
 | Feature | Detail |
 |---|---|
 | **Status bar widget** | Shows health grade (`A`-`F`) + time since last regen; updates every 60 s |

@@ -2,6 +2,8 @@
 
 AI context engine for IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine, and all JetBrains IDEs.
 
+![SigMap JetBrains plugin — status bar health grade, regenerate action, and context auto-refresh](https://raw.githubusercontent.com/manojmallick/sigmap/main/assets/intelij.gif)
+
 ## Features
 
 - **Health Status Bar** — Shows context health grade (A-F) and age (e.g., "SigMap: B 3h")
