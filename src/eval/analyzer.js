@@ -39,6 +39,9 @@ const EXT_MAP = {
   '.properties': 'properties',
   '.xml': 'xml',
   '.md': 'markdown',
+  // Phase C specialized extractors
+  '.tsx': 'typescript_react',
+  '.vue': 'vue_sfc',
 };
 
 function isDockerfile(name) {

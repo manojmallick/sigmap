@@ -45,6 +45,16 @@ const EXT_MAP = {
   '.properties': 'properties',
   '.xml': 'xml',
   '.md': 'markdown',
+  // Phase C specialized extractors
+  '.tsx': 'typescript_react',
+  '.vue': 'vue_sfc',
+};
+
+// Phase C fallback: also try specialized extractors for base extensions
+const PHASE_C_EXTRACTORS = {
+  'typescript_react': '.tsx',
+  'vue_sfc': '.vue',
+  'python_dataclass': '.py',
 };
 
 const SRC_ROOT = path.resolve(__dirname, '..', '..', 'src');

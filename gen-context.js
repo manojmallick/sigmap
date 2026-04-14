@@ -2179,6 +2179,176 @@ __factories["./src/extractors/markdown"] = function(module, exports) {
   
 };
 
+// ── ./src/extractors/typescript_react ──
+__factories["./src/extractors/typescript_react"] = function(module, exports) {
+  
+  'use strict';
+  
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+    const stripped = src
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    const compRe = /(?:export\s+)?(?:const|function)\s+([A-Z]\w*)\s*(?:<[^>]*>)?\s*\(\s*(?:props|{\s*[^}]*})?/g;
+    for (const m of stripped.matchAll(compRe)) {
+      sigs.push(`component ${m[1]}`);
+    }
+    const propsRe = /interface\s+(\w*Props)\s*(?:<[^>]*>)?\s*{/g;
+    for (const m of stripped.matchAll(propsRe)) {
+      sigs.push(`props ${m[1]}`);
+    }
+    const hookRe = /use([A-Z]\w*)\s*(?:<[^>]*>)?\s*\(/g;
+    const hooks = new Set();
+    for (const m of stripped.matchAll(hookRe)) {
+      hooks.add(m[1]);
+    }
+    for (const h of hooks) {
+      sigs.push(`hook use${h}`);
+    }
+    const exportRe = /export\s+(?:const|function|default|interface|type)\s+([A-Z]\w*)/g;
+    for (const m of stripped.matchAll(exportRe)) {
+      sigs.push(`export ${m[1]}`);
+    }
+    const handlerRe = /on([A-Z]\w+)\s*=\s*{?\s*\(?[a-zA-Z_$]/g;
+    const handlers = new Set();
+    for (const m of stripped.matchAll(handlerRe)) {
+      handlers.add(m[1]);
+    }
+    for (const h of handlers) {
+      sigs.push(`handler on${h}`);
+    }
+    return Array.from(new Set(sigs)).slice(0, 50);
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/vue_sfc ──
+__factories["./src/extractors/vue_sfc"] = function(module, exports) {
+  
+  'use strict';
+  
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+    const scriptMatch = src.match(/<script[^>]*>([\s\S]*?)<\/script>/);
+    if (!scriptMatch) return sigs;
+    const script = scriptMatch[1];
+    const nameRe = /(?:name\s*:\s*['"`]([a-zA-Z0-9]+)['"`]|export\s+default\s+defineComponent\s*\(\s*{\s*name\s*:\s*['"`]([a-zA-Z0-9]+)['"`])/;
+    const nameMatch = script.match(nameRe);
+    if (nameMatch) {
+      sigs.push(`component ${nameMatch[1] || nameMatch[2]}`);
+    }
+    const propsRe = /props\s*:\s*{([^}]*)}/;
+    const propsMatch = script.match(propsRe);
+    if (propsMatch) {
+      const propLines = propsMatch[1].split(',');
+      for (const line of propLines) {
+        const propName = line.trim().match(/([a-zA-Z_$]\w*)/);
+        if (propName) sigs.push(`prop ${propName[1]}`);
+      }
+    }
+    const definePropsRe = /defineProps\s*(?:<([^>]+)>)?\s*\(/;
+    if (definePropsRe.test(script)) {
+      sigs.push('props composition-api');
+    }
+    const emitsRe = /emits\s*:\s*\[([^\]]+)\]/;
+    const emitsMatch = script.match(emitsRe);
+    if (emitsMatch) {
+      const emitNames = emitsMatch[1].split(',').map(e => e.trim().replace(/['"`]/g, ''));
+      for (const e of emitNames) {
+        if (e) sigs.push(`emit ${e}`);
+      }
+    }
+    const defineEmitsRe = /defineEmits\s*(?:<([^>]+)>)?\s*\(/;
+    if (defineEmitsRe.test(script)) {
+      sigs.push('emits composition-api');
+    }
+    const lifecycleHooks = ['setup', 'created', 'mounted', 'updated', 'unmounted'];
+    for (const hook of lifecycleHooks) {
+      if (new RegExp(`\\b${hook}\\s*\\(`).test(script)) {
+        sigs.push(`lifecycle ${hook}`);
+      }
+    }
+    const namedSlotRe = /<slot\s+name=['"]([a-zA-Z_$]\w*)['"][^>]*>/g;
+    const templateSlotRe = /<template\s+#([a-zA-Z_$]\w*)|v-slot:([a-zA-Z_$]\w*)/g;
+    const slots = new Set();
+    for (const m of src.matchAll(namedSlotRe)) {
+      if (m[1]) slots.add(m[1]);
+    }
+    for (const m of src.matchAll(templateSlotRe)) {
+      const slotName = m[1] || m[2];
+      if (slotName) slots.add(slotName);
+    }
+    for (const s of slots) {
+      sigs.push(`slot ${s}`);
+    }
+    return Array.from(new Set(sigs)).slice(0, 50);
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/python_dataclass ──
+__factories["./src/extractors/python_dataclass"] = function(module, exports) {
+  
+  'use strict';
+  
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+    const dataclassRe = /@dataclass(?:\([^)]*\))?[\s\n]+class\s+([A-Z]\w*)/g;
+    for (const m of src.matchAll(dataclassRe)) {
+      sigs.push(`dataclass ${m[1]}`);
+    }
+    const pydanticRe = /class\s+([A-Z]\w*)\s*\([^)]*BaseModel[^)]*\)/g;
+    for (const m of src.matchAll(pydanticRe)) {
+      sigs.push(`model ${m[1]}`);
+    }
+    if (/model_validate|field_validator|computed_field/.test(src)) {
+      sigs.push('pydantic v2+');
+    }
+    const sqlalchemyRe = /class\s+([A-Z]\w*)\s*\([^)]*(?:Base|declarative_base)[^)]*\)/g;
+    for (const m of src.matchAll(sqlalchemyRe)) {
+      sigs.push(`orm ${m[1]}`);
+    }
+    const fieldRe = /^\s+([a-z_]\w*)\s*:\s*([A-Z]\w*|List|Dict|Optional|Union)[^=]*/gm;
+    const fields = new Set();
+    for (const m of src.matchAll(fieldRe)) {
+      if (fields.size < 15) fields.add(m[1]);
+    }
+    for (const f of fields) {
+      sigs.push(`field ${f}`);
+    }
+    const columnRe = /([a-z_]\w*)\s*=\s*Column\s*\([^)]*\)/g;
+    for (const m of src.matchAll(columnRe)) {
+      sigs.push(`column ${m[1]}`);
+    }
+    const relRe = /(?:ForeignKey|relationship)\s*\(\s*['"]([a-zA-Z_]\w*)['"]/g;
+    for (const m of src.matchAll(relRe)) {
+      sigs.push(`relation ${m[1]}`);
+    }
+    const validatorRe = /@(?:validator|field_validator)\s*\(\s*['"]?([a-z_]\w*)(?:['"]|,|\s|\))/g;
+    const validators = new Set();
+    for (const m of src.matchAll(validatorRe)) {
+      validators.add(m[1]);
+    }
+    for (const v of validators) {
+      sigs.push(`validator ${v}`);
+    }
+    if (/class\s+Config\s*:/.test(src)) {
+      sigs.push('config-class');
+    }
+    return Array.from(new Set(sigs)).slice(0, 50);
+  }
+  
+  module.exports = { extract };
+  
+};
+
 // ── ./src/extractors/deps ──
 __factories["./src/extractors/deps"] = function(module, exports) {
   
@@ -5098,7 +5268,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
   const path = require('path');
 
   const EXT_MAP = {
-    '.ts': 'typescript', '.tsx': 'typescript',
+    '.ts': 'typescript', '.tsx': 'typescript_react',
     '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
     '.py': 'python',     '.pyw': 'python',
     '.java': 'java',
@@ -5112,7 +5282,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     '.swift': 'swift',
     '.dart': 'dart',
     '.scala': 'scala',   '.sc': 'scala',
-    '.vue': 'vue',
+    '.vue': 'vue_sfc',
     '.svelte': 'svelte',
     '.html': 'html',     '.htm': 'html',
     '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',
@@ -5636,7 +5806,7 @@ const { DEFAULTS } = requireSourceOrBundled('./src/config/defaults');
 // Language → extractor mapping (by file extension)
 // ---------------------------------------------------------------------------
 const EXT_MAP = {
-  '.ts': 'typescript', '.tsx': 'typescript',
+  '.ts': 'typescript', '.tsx': 'typescript_react',
   '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
   '.py': 'python', '.pyw': 'python',
   '.java': 'java',
@@ -5650,7 +5820,7 @@ const EXT_MAP = {
   '.swift': 'swift',
   '.dart': 'dart',
   '.scala': 'scala', '.sc': 'scala',
-  '.vue': 'vue',
+  '.vue': 'vue_sfc',
   '.svelte': 'svelte',
   '.html': 'html', '.htm': 'html',
   '.css': 'css', '.scss': 'css', '.sass': 'css', '.less': 'css',
