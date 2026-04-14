@@ -3,15 +3,14 @@
 
   "output": ".github/copilot-instructions.md",
 
-  "outputs": ["copilot", "claude", "gemini"],
+  "outputs": ["copilot", "codex","claude", "gemini"],
 
-  "srcDirs": ["src", "apps/desktop", "lib", "packages", "services", "api"],
+  "srcDirs": ["src", "app", "lib", "packages", "services", "api"],
 
   "exclude": [
     "node_modules", ".git", "dist", "build", "out",
     "__pycache__", ".next", "coverage", "target", "vendor",
-    ".context", "playwright-tmp",
-    "docs", "test", "jetbrains-plugin", "benchmarks", "examples", "scripts"
+    ".context"
   ],
 
   "maxDepth": 6,
@@ -31,9 +30,9 @@
   },
 
   "_strategy_comment": "Context output strategy. Options: 'full' | 'per-module' | 'hot-cold'",
-  "_strategy_full": "  full       — single file, all signatures, always injected (default)",
+  "_strategy_full":       "  full       — single file, all signatures, always injected (default)",
   "_strategy_per_module": "  per-module — one .github/context-<module>.md per srcDir + thin overview",
-  "_strategy_hot_cold": "  hot-cold   — recently changed files injected; rest in context-cold.md (MCP)",
+  "_strategy_hot_cold":   "  hot-cold   — recently changed files injected; rest in context-cold.md (MCP)",
   "strategy": "full",
 
   "_hotCommits_comment": "Only used by hot-cold strategy: how many recent commits count as 'hot'",
@@ -49,14 +48,14 @@
   "changes": true,
 
   "_changesCommits_comment": "How many recent commits to analyze for the changes section",
-  "changesCommits": 10,
+  "changesCommits": 5,
 
   "_testCoverage_comment": "Append function-level coverage hints (✓/✗) by scanning tests",
-  "testCoverage": true,
+  "testCoverage": false,
 
   "_testDirs_comment": "Directories used when testCoverage is enabled",
   "testDirs": ["tests", "test", "__tests__", "spec"],
 
   "_impactRadius_comment": "Append reverse dependency hints in file headers (used by: ...)",
-  "impactRadius": true
+  "impactRadius": false
 }
