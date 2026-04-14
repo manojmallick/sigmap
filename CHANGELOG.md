@@ -10,6 +10,31 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [3.5.0] — 2026-04-14 — Phase C/D Intelligence Expansion
+
+### Added
+- **Phase C framework-specialized extractors** for richer framework-level signatures:
+  - TypeScript React: `.tsx` component metadata (props, hooks, handlers)
+  - Vue SFC: `.vue` component metadata (props, emits, slots, lifecycle)
+  - Python dataclass/model patterns: dataclasses, Pydantic models, ORM-style fields
+- **Phase D cross-module pattern extractor**:
+  - Detects DI containers and injection signatures
+  - Detects service, repository, middleware, and controller layer hints
+  - Detects type-to-implementation linkage and domain use-case cues
+  - Flags unsafe patterns (null-check risks, weak validation, error exposure)
+
+### Changed
+- **Extractor mapping expanded** so framework-specific files route to specialized extractors (`.tsx` and `.vue`) for higher-signal signatures.
+- **Standalone/bundled runtime wiring updated** to include new Phase C/D extractors in factory resolution.
+
+### Testing
+- Added integration coverage for Phase C extractors (`phase-c-extractors`) and Phase D pattern inference (`phase-d-patterns`).
+- Current results:
+  - `phase-c-extractors`: 3 passed, 0 failed
+  - `phase-d-patterns`: 10 passed, 0 failed
+
+---
+
 ## [3.4.0] — 2026-04-14 — Phase A/B Coverage Expansion
 
 ### Added
