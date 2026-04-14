@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "Zero-dependency AI context engine — 97% token reduction. No npm install. Runs on Node 18+.",
   "main": "gen-context.js",
   "exports": {
@@ -23,6 +23,7 @@
     "setup": "node gen-context.js --setup",
     "init": "node gen-context.js --init",
     "report": "node gen-context.js --report",
+    "audit:strategies": "node scripts/run-strategy-audit.mjs",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",
     "mcp": "node gen-context.js --mcp",

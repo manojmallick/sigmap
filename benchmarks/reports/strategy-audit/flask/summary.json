@@ -1,0 +1,3323 @@
+{
+  "repo": "/Users/manojmallick/sigmap/benchmarks/repos/flask",
+  "recommendedStrategy": {
+    "strategy": "full",
+    "reason": "full is the simplest reliable option when the repo is small or module splits do not materially reduce injected context."
+  },
+  "currentConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "src",
+      "tests",
+      "examples",
+      "src/flask",
+      "docs"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 7,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "suggestedConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "src",
+      "tests",
+      "examples",
+      "src/flask",
+      "docs",
+      ".github",
+      ".devcontainer"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 7,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "coverageSummary": {
+    "discoveredFileCount": 239,
+    "analyzedFileCount": 105,
+    "missingSupportedFiles": [
+      {
+        "file": ".devcontainer/on-create-command.sh",
+        "folder": ".devcontainer",
+        "language": "shell"
+      },
+      {
+        "file": ".github/ISSUE_TEMPLATE/config.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/lock.yaml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/pre-commit.yaml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/publish.yaml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/tests.yaml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/zizmor.yaml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".pre-commit-config.yaml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": ".readthedocs.yaml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": "examples/tutorial/flaskr/schema.sql",
+        "folder": "examples",
+        "language": "sql"
+      },
+      {
+        "file": "examples/tutorial/tests/data.sql",
+        "folder": "examples",
+        "language": "sql"
+      }
+    ],
+    "missingImportantFiles": [
+      {
+        "file": ".github/ISSUE_TEMPLATE/bug-report.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/ISSUE_TEMPLATE/feature-request.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/context-cold.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/copilot-instructions.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": ".github/pull_request_template.md",
+        "folder": ".github",
+        "ext": ".md"
+      },
+      {
+        "file": "README.md",
+        "folder": ".",
+        "ext": ".md"
+      },
+      {
+        "file": "examples/celery/README.md",
+        "folder": "examples",
+        "ext": ".md"
+      },
+      {
+        "file": "examples/celery/pyproject.toml",
+        "folder": "examples",
+        "ext": ".toml"
+      },
+      {
+        "file": "examples/javascript/pyproject.toml",
+        "folder": "examples",
+        "ext": ".toml"
+      },
+      {
+        "file": "examples/tutorial/pyproject.toml",
+        "folder": "examples",
+        "ext": ".toml"
+      },
+      {
+        "file": "pyproject.toml",
+        "folder": ".",
+        "ext": ".toml"
+      },
+      {
+        "file": "src/flask/sansio/README.md",
+        "folder": "src",
+        "ext": ".md"
+      },
+      {
+        "file": "tests/static/config.toml",
+        "folder": "tests",
+        "ext": ".toml"
+      }
+    ],
+    "zeroSigFiles": [
+      {
+        "file": "examples/celery/make_celery.py",
+        "extractor": "python",
+        "folder": "examples"
+      },
+      {
+        "file": "examples/javascript/js_example/__init__.py",
+        "extractor": "python",
+        "folder": "examples"
+      },
+      {
+        "file": "examples/javascript/js_example/templates/fetch.html",
+        "extractor": "html",
+        "folder": "examples"
+      },
+      {
+        "file": "examples/javascript/js_example/templates/jquery.html",
+        "extractor": "html",
+        "folder": "examples"
+      },
+      {
+        "file": "examples/javascript/js_example/templates/xhr.html",
+        "extractor": "html",
+        "folder": "examples"
+      },
+      {
+        "file": "examples/tutorial/flaskr/static/style.css",
+        "extractor": "css",
+        "folder": "examples"
+      },
+      {
+        "file": "examples/tutorial/flaskr/templates/blog/index.html",
+        "extractor": "html",
+        "folder": "examples"
+      },
+      {
+        "file": "src/flask/__init__.py",
+        "extractor": "python",
+        "folder": "src"
+      },
+      {
+        "file": "src/flask/__main__.py",
+        "extractor": "python",
+        "folder": "src"
+      },
+      {
+        "file": "src/flask/globals.py",
+        "extractor": "python",
+        "folder": "src"
+      },
+      {
+        "file": "src/flask/signals.py",
+        "extractor": "python",
+        "folder": "src"
+      },
+      {
+        "file": "src/flask/typing.py",
+        "extractor": "python",
+        "folder": "src"
+      },
+      {
+        "file": "tests/static/index.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/templates/_macro.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/templates/context_template.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/templates/escaping_template.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/templates/simple_template.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/templates/template_filter.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/templates/template_test.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/blueprintapp/__init__.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/blueprintapp/apps/__init__.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/blueprintapp/apps/admin/static/css/test.css",
+        "extractor": "css",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/blueprintapp/apps/admin/templates/admin/index.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/blueprintapp/apps/frontend/templates/frontend/index.html",
+        "extractor": "html",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/cliapp/__init__.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/cliapp/app.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/cliapp/importerrorapp.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/cliapp/inner1/__init__.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/cliapp/inner1/inner2/__init__.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/cliapp/multiapp.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/helloworld/wsgi.py",
+        "extractor": "python",
+        "folder": "tests"
+      },
+      {
+        "file": "tests/test_apps/subdomaintestmodule/__init__.py",
+        "extractor": "python",
+        "folder": "tests"
+      }
+    ],
+    "recommendedSrcDirs": [
+      {
+        "folder": ".github",
+        "reason": "6 supported files are outside current coverage",
+        "examples": [
+          ".github/ISSUE_TEMPLATE/bug-report.md",
+          ".github/ISSUE_TEMPLATE/config.yml",
+          ".github/ISSUE_TEMPLATE/feature-request.md",
+          ".github/context-cold.md",
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "folder": ".devcontainer",
+        "reason": "1 supported files are outside current coverage",
+        "examples": [
+          ".devcontainer/on-create-command.sh"
+        ]
+      }
+    ],
+    "manualIndexFolders": [
+      {
+        "folder": ".github",
+        "importantMissing": 5,
+        "unsupportedExts": [
+          [
+            ".md",
+            5
+          ]
+        ],
+        "examples": [
+          ".github/ISSUE_TEMPLATE/bug-report.md",
+          ".github/ISSUE_TEMPLATE/config.yml",
+          ".github/ISSUE_TEMPLATE/feature-request.md",
+          ".github/context-cold.md",
+          ".github/copilot-instructions.md"
+        ]
+      },
+      {
+        "folder": "examples",
+        "importantMissing": 4,
+        "unsupportedExts": [
+          [
+            ".toml",
+            3
+          ],
+          [
+            ".md",
+            1
+          ]
+        ],
+        "examples": [
+          "examples/celery/README.md",
+          "examples/celery/pyproject.toml",
+          "examples/javascript/pyproject.toml",
+          "examples/tutorial/flaskr/schema.sql",
+          "examples/tutorial/pyproject.toml"
+        ]
+      },
+      {
+        "folder": ".",
+        "importantMissing": 2,
+        "unsupportedExts": [
+          [
+            ".md",
+            1
+          ],
+          [
+            ".toml",
+            1
+          ]
+        ],
+        "examples": [
+          ".pre-commit-config.yaml",
+          ".readthedocs.yaml",
+          "README.md",
+          "pyproject.toml"
+        ]
+      },
+      {
+        "folder": "src",
+        "importantMissing": 1,
+        "unsupportedExts": [
+          [
+            ".md",
+            1
+          ]
+        ],
+        "examples": [
+          "src/flask/sansio/README.md"
+        ]
+      },
+      {
+        "folder": "tests",
+        "importantMissing": 1,
+        "unsupportedExts": [
+          [
+            ".toml",
+            1
+          ]
+        ],
+        "examples": [
+          "tests/static/config.toml"
+        ]
+      }
+    ],
+    "weakExtractorFolders": [
+      {
+        "folder": "tests",
+        "zeroSigFiles": 21,
+        "analyzedFiles": 51,
+        "totalTokens": 3575
+      },
+      {
+        "folder": "examples",
+        "zeroSigFiles": 7,
+        "analyzedFiles": 29,
+        "totalTokens": 713
+      },
+      {
+        "folder": "src",
+        "zeroSigFiles": 5,
+        "analyzedFiles": 24,
+        "totalTokens": 2825
+      }
+    ]
+  },
+  "strategies": {
+    "full": {
+      "strategy": "full",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:10.834Z",
+        "rawTokens": 147095,
+        "inputTokens": 147095,
+        "finalTokens": 6782,
+        "fileCount": 73,
+        "droppedCount": 12,
+        "reductionPct": 95.4,
+        "overBudget": true,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "src/flask/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__main__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/app.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 129,
+            "covered": true
+          },
+          {
+            "file": "src/flask/blueprints.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 36,
+            "covered": true
+          },
+          {
+            "file": "src/flask/cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 496,
+            "covered": true
+          },
+          {
+            "file": "src/flask/config.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": true
+          },
+          {
+            "file": "src/flask/ctx.py",
+            "extractor": "python",
+            "sigs": 17,
+            "tokens": 173,
+            "covered": true
+          },
+          {
+            "file": "src/flask/debughelpers.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 144,
+            "covered": false
+          },
+          {
+            "file": "src/flask/globals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/helpers.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 353,
+            "covered": true
+          },
+          {
+            "file": "src/flask/json/__init__.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 65,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/provider.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 128,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/tag.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 200,
+            "covered": true
+          },
+          {
+            "file": "src/flask/logging.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 79,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/app.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 81,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/blueprints.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/scaffold.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 140,
+            "covered": false
+          },
+          {
+            "file": "src/flask/sessions.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 204,
+            "covered": false
+          },
+          {
+            "file": "src/flask/signals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "src/flask/templating.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 198,
+            "covered": true
+          },
+          {
+            "file": "src/flask/testing.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 65,
+            "covered": true
+          },
+          {
+            "file": "src/flask/typing.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/views.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "src/flask/wrappers.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 102,
+            "covered": false
+          },
+          {
+            "file": "tests/conftest.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 102,
+            "covered": true
+          },
+          {
+            "file": "tests/static/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/_macro.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/context_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/escaping_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/simple_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/template_filter.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/template_test.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_appctx.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 188,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/static/css/test.css",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/templates/admin/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/frontend/templates/frontend/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/app.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/cliapp/factory.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/importerrorapp.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/inner2/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/multiapp.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/helloworld/hello.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/helloworld/wsgi.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/subdomaintestmodule/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_async.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 74,
+            "covered": true
+          },
+          {
+            "file": "tests/test_basic.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 383,
+            "covered": true
+          },
+          {
+            "file": "tests/test_blueprints.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 304,
+            "covered": true
+          },
+          {
+            "file": "tests/test_cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 248,
+            "covered": true
+          },
+          {
+            "file": "tests/test_config.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 156,
+            "covered": true
+          },
+          {
+            "file": "tests/test_converters.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 27,
+            "covered": true
+          },
+          {
+            "file": "tests/test_helpers.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 193,
+            "covered": true
+          },
+          {
+            "file": "tests/test_instance_config.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 140,
+            "covered": true
+          },
+          {
+            "file": "tests/test_json.py",
+            "extractor": "python",
+            "sigs": 22,
+            "tokens": 219,
+            "covered": true
+          },
+          {
+            "file": "tests/test_json_tag.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 31,
+            "covered": true
+          },
+          {
+            "file": "tests/test_logging.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 54,
+            "covered": true
+          },
+          {
+            "file": "tests/test_regression.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": true
+          },
+          {
+            "file": "tests/test_reqctx.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 126,
+            "covered": true
+          },
+          {
+            "file": "tests/test_request.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 46,
+            "covered": true
+          },
+          {
+            "file": "tests/test_session_interface.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": true
+          },
+          {
+            "file": "tests/test_signals.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "tests/test_subclassing.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": true
+          },
+          {
+            "file": "tests/test_templating.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 271,
+            "covered": true
+          },
+          {
+            "file": "tests/test_testing.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 262,
+            "covered": true
+          },
+          {
+            "file": "tests/test_user_error_handler.py",
+            "extractor": "python",
+            "sigs": 14,
+            "tokens": 98,
+            "covered": true
+          },
+          {
+            "file": "tests/test_views.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 231,
+            "covered": true
+          },
+          {
+            "file": "tests/type_check/typing_app_decorators.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 66,
+            "covered": false
+          },
+          {
+            "file": "tests/type_check/typing_error_handler.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 42,
+            "covered": false
+          },
+          {
+            "file": "tests/type_check/typing_route.py",
+            "extractor": "python",
+            "sigs": 19,
+            "tokens": 186,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/make_celery.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 16,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/tasks.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/templates/index.html",
+            "extractor": "html",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/views.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 58,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/js_example/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/base.html",
+            "extractor": "html",
+            "sigs": 4,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/fetch.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/jquery.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/xhr.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/views.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/tests/conftest.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 8,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/tests/test_js_example.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/__init__.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/auth.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 90,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/blog.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 67,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/db.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 82,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/static/style.css",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/auth/login.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/auth/register.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/base.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/create.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/update.html",
+            "extractor": "html",
+            "sigs": 3,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/conftest.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 68,
+            "covered": true
+          },
+          {
+            "file": "examples/tutorial/tests/test_auth.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 55,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_blog.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 77,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_db.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_factory.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__main__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/app.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 129,
+            "covered": true
+          },
+          {
+            "file": "src/flask/blueprints.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 36,
+            "covered": true
+          },
+          {
+            "file": "src/flask/cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 496,
+            "covered": true
+          },
+          {
+            "file": "src/flask/config.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": true
+          },
+          {
+            "file": "src/flask/ctx.py",
+            "extractor": "python",
+            "sigs": 17,
+            "tokens": 173,
+            "covered": true
+          },
+          {
+            "file": "src/flask/debughelpers.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 144,
+            "covered": false
+          },
+          {
+            "file": "src/flask/globals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/helpers.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 353,
+            "covered": true
+          },
+          {
+            "file": "src/flask/json/__init__.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 65,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/provider.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 128,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/tag.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 200,
+            "covered": true
+          },
+          {
+            "file": "src/flask/logging.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 79,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/app.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 81,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/blueprints.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/scaffold.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 140,
+            "covered": false
+          },
+          {
+            "file": "src/flask/sessions.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 204,
+            "covered": false
+          },
+          {
+            "file": "src/flask/signals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "src/flask/templating.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 198,
+            "covered": true
+          },
+          {
+            "file": "src/flask/testing.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 65,
+            "covered": true
+          },
+          {
+            "file": "src/flask/typing.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/views.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "src/flask/wrappers.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 102,
+            "covered": false
+          },
+          {
+            "file": "docs/conf.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 22,
+            "covered": true
+          }
+        ],
+        "totalSigs": 845,
+        "totalTokens": 9960,
+        "slowFiles": [],
+        "fileCount": 129
+      },
+      "stdoutMetrics": {}
+    },
+    "per-module": {
+      "strategy": "per-module",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:11.940Z",
+        "rawTokens": 147095,
+        "inputTokens": 147095,
+        "finalTokens": 6782,
+        "fileCount": 73,
+        "droppedCount": 12,
+        "reductionPct": 95.4,
+        "overBudget": true,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "src/flask/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__main__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/app.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 129,
+            "covered": true
+          },
+          {
+            "file": "src/flask/blueprints.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 36,
+            "covered": true
+          },
+          {
+            "file": "src/flask/cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 496,
+            "covered": true
+          },
+          {
+            "file": "src/flask/config.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": true
+          },
+          {
+            "file": "src/flask/ctx.py",
+            "extractor": "python",
+            "sigs": 17,
+            "tokens": 173,
+            "covered": true
+          },
+          {
+            "file": "src/flask/debughelpers.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 144,
+            "covered": false
+          },
+          {
+            "file": "src/flask/globals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/helpers.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 353,
+            "covered": true
+          },
+          {
+            "file": "src/flask/json/__init__.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 65,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/provider.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 128,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/tag.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 200,
+            "covered": true
+          },
+          {
+            "file": "src/flask/logging.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 79,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/app.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 81,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/blueprints.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/scaffold.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 140,
+            "covered": false
+          },
+          {
+            "file": "src/flask/sessions.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 204,
+            "covered": false
+          },
+          {
+            "file": "src/flask/signals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "src/flask/templating.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 198,
+            "covered": true
+          },
+          {
+            "file": "src/flask/testing.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 65,
+            "covered": true
+          },
+          {
+            "file": "src/flask/typing.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/views.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "src/flask/wrappers.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 102,
+            "covered": false
+          },
+          {
+            "file": "tests/conftest.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 102,
+            "covered": true
+          },
+          {
+            "file": "tests/static/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/_macro.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/context_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/escaping_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/simple_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/template_filter.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/template_test.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_appctx.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 188,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/static/css/test.css",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/templates/admin/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/frontend/templates/frontend/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/app.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/cliapp/factory.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/importerrorapp.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/inner2/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/multiapp.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/helloworld/hello.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/helloworld/wsgi.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/subdomaintestmodule/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_async.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 74,
+            "covered": true
+          },
+          {
+            "file": "tests/test_basic.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 383,
+            "covered": true
+          },
+          {
+            "file": "tests/test_blueprints.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 304,
+            "covered": true
+          },
+          {
+            "file": "tests/test_cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 248,
+            "covered": true
+          },
+          {
+            "file": "tests/test_config.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 156,
+            "covered": true
+          },
+          {
+            "file": "tests/test_converters.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 27,
+            "covered": true
+          },
+          {
+            "file": "tests/test_helpers.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 193,
+            "covered": true
+          },
+          {
+            "file": "tests/test_instance_config.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 140,
+            "covered": true
+          },
+          {
+            "file": "tests/test_json.py",
+            "extractor": "python",
+            "sigs": 22,
+            "tokens": 219,
+            "covered": true
+          },
+          {
+            "file": "tests/test_json_tag.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 31,
+            "covered": true
+          },
+          {
+            "file": "tests/test_logging.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 54,
+            "covered": true
+          },
+          {
+            "file": "tests/test_regression.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": true
+          },
+          {
+            "file": "tests/test_reqctx.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 126,
+            "covered": true
+          },
+          {
+            "file": "tests/test_request.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 46,
+            "covered": true
+          },
+          {
+            "file": "tests/test_session_interface.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": true
+          },
+          {
+            "file": "tests/test_signals.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "tests/test_subclassing.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": true
+          },
+          {
+            "file": "tests/test_templating.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 271,
+            "covered": true
+          },
+          {
+            "file": "tests/test_testing.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 262,
+            "covered": true
+          },
+          {
+            "file": "tests/test_user_error_handler.py",
+            "extractor": "python",
+            "sigs": 14,
+            "tokens": 98,
+            "covered": true
+          },
+          {
+            "file": "tests/test_views.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 231,
+            "covered": true
+          },
+          {
+            "file": "tests/type_check/typing_app_decorators.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 66,
+            "covered": false
+          },
+          {
+            "file": "tests/type_check/typing_error_handler.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 42,
+            "covered": false
+          },
+          {
+            "file": "tests/type_check/typing_route.py",
+            "extractor": "python",
+            "sigs": 19,
+            "tokens": 186,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/make_celery.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 16,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/tasks.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/templates/index.html",
+            "extractor": "html",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/views.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 58,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/js_example/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/base.html",
+            "extractor": "html",
+            "sigs": 4,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/fetch.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/jquery.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/xhr.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/views.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/tests/conftest.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 8,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/tests/test_js_example.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/__init__.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/auth.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 90,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/blog.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 67,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/db.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 82,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/static/style.css",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/auth/login.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/auth/register.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/base.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/create.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/update.html",
+            "extractor": "html",
+            "sigs": 3,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/conftest.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 68,
+            "covered": true
+          },
+          {
+            "file": "examples/tutorial/tests/test_auth.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 55,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_blog.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 77,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_db.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_factory.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__main__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/app.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 129,
+            "covered": true
+          },
+          {
+            "file": "src/flask/blueprints.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 36,
+            "covered": true
+          },
+          {
+            "file": "src/flask/cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 496,
+            "covered": true
+          },
+          {
+            "file": "src/flask/config.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": true
+          },
+          {
+            "file": "src/flask/ctx.py",
+            "extractor": "python",
+            "sigs": 17,
+            "tokens": 173,
+            "covered": true
+          },
+          {
+            "file": "src/flask/debughelpers.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 144,
+            "covered": false
+          },
+          {
+            "file": "src/flask/globals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/helpers.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 353,
+            "covered": true
+          },
+          {
+            "file": "src/flask/json/__init__.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 65,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/provider.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 128,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/tag.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 200,
+            "covered": true
+          },
+          {
+            "file": "src/flask/logging.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 79,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/app.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 81,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/blueprints.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/scaffold.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 140,
+            "covered": false
+          },
+          {
+            "file": "src/flask/sessions.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 204,
+            "covered": false
+          },
+          {
+            "file": "src/flask/signals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "src/flask/templating.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 198,
+            "covered": true
+          },
+          {
+            "file": "src/flask/testing.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 65,
+            "covered": true
+          },
+          {
+            "file": "src/flask/typing.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/views.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "src/flask/wrappers.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 102,
+            "covered": false
+          },
+          {
+            "file": "docs/conf.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 22,
+            "covered": true
+          }
+        ],
+        "totalSigs": 845,
+        "totalTokens": 9960,
+        "slowFiles": [],
+        "fileCount": 129
+      },
+      "stdoutMetrics": {
+        "moduleCount": null,
+        "modules": [],
+        "overviewTokens": null,
+        "moduleTokens": null
+      }
+    },
+    "hot-cold": {
+      "strategy": "hot-cold",
+      "report": {
+        "version": "3.3.2",
+        "timestamp": "2026-04-14T06:21:12.797Z",
+        "rawTokens": 147095,
+        "inputTokens": 147095,
+        "finalTokens": 6782,
+        "fileCount": 73,
+        "droppedCount": 12,
+        "reductionPct": 95.4,
+        "overBudget": true,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "src/flask/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__main__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/app.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 129,
+            "covered": true
+          },
+          {
+            "file": "src/flask/blueprints.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 36,
+            "covered": true
+          },
+          {
+            "file": "src/flask/cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 496,
+            "covered": true
+          },
+          {
+            "file": "src/flask/config.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": true
+          },
+          {
+            "file": "src/flask/ctx.py",
+            "extractor": "python",
+            "sigs": 17,
+            "tokens": 173,
+            "covered": true
+          },
+          {
+            "file": "src/flask/debughelpers.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 144,
+            "covered": false
+          },
+          {
+            "file": "src/flask/globals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/helpers.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 353,
+            "covered": true
+          },
+          {
+            "file": "src/flask/json/__init__.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 65,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/provider.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 128,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/tag.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 200,
+            "covered": true
+          },
+          {
+            "file": "src/flask/logging.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 79,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/app.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 81,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/blueprints.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/scaffold.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 140,
+            "covered": false
+          },
+          {
+            "file": "src/flask/sessions.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 204,
+            "covered": false
+          },
+          {
+            "file": "src/flask/signals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "src/flask/templating.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 198,
+            "covered": true
+          },
+          {
+            "file": "src/flask/testing.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 65,
+            "covered": true
+          },
+          {
+            "file": "src/flask/typing.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/views.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "src/flask/wrappers.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 102,
+            "covered": false
+          },
+          {
+            "file": "tests/conftest.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 102,
+            "covered": true
+          },
+          {
+            "file": "tests/static/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/_macro.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/context_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/escaping_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/simple_template.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/template_filter.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/templates/template_test.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_appctx.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 188,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/static/css/test.css",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/admin/templates/admin/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 9,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/blueprintapp/apps/frontend/templates/frontend/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/app.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "tests/test_apps/cliapp/factory.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/importerrorapp.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/inner2/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/cliapp/multiapp.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/helloworld/hello.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 3,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/helloworld/wsgi.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_apps/subdomaintestmodule/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "tests/test_async.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 74,
+            "covered": true
+          },
+          {
+            "file": "tests/test_basic.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 383,
+            "covered": true
+          },
+          {
+            "file": "tests/test_blueprints.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 304,
+            "covered": true
+          },
+          {
+            "file": "tests/test_cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 248,
+            "covered": true
+          },
+          {
+            "file": "tests/test_config.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 156,
+            "covered": true
+          },
+          {
+            "file": "tests/test_converters.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 27,
+            "covered": true
+          },
+          {
+            "file": "tests/test_helpers.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 193,
+            "covered": true
+          },
+          {
+            "file": "tests/test_instance_config.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 140,
+            "covered": true
+          },
+          {
+            "file": "tests/test_json.py",
+            "extractor": "python",
+            "sigs": 22,
+            "tokens": 219,
+            "covered": true
+          },
+          {
+            "file": "tests/test_json_tag.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 31,
+            "covered": true
+          },
+          {
+            "file": "tests/test_logging.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 54,
+            "covered": true
+          },
+          {
+            "file": "tests/test_regression.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 6,
+            "covered": true
+          },
+          {
+            "file": "tests/test_reqctx.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 126,
+            "covered": true
+          },
+          {
+            "file": "tests/test_request.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 46,
+            "covered": true
+          },
+          {
+            "file": "tests/test_session_interface.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 17,
+            "covered": true
+          },
+          {
+            "file": "tests/test_signals.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "tests/test_subclassing.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 10,
+            "covered": true
+          },
+          {
+            "file": "tests/test_templating.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 271,
+            "covered": true
+          },
+          {
+            "file": "tests/test_testing.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 262,
+            "covered": true
+          },
+          {
+            "file": "tests/test_user_error_handler.py",
+            "extractor": "python",
+            "sigs": 14,
+            "tokens": 98,
+            "covered": true
+          },
+          {
+            "file": "tests/test_views.py",
+            "extractor": "python",
+            "sigs": 16,
+            "tokens": 231,
+            "covered": true
+          },
+          {
+            "file": "tests/type_check/typing_app_decorators.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 66,
+            "covered": false
+          },
+          {
+            "file": "tests/type_check/typing_error_handler.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 42,
+            "covered": false
+          },
+          {
+            "file": "tests/type_check/typing_route.py",
+            "extractor": "python",
+            "sigs": 19,
+            "tokens": 186,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/make_celery.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/__init__.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 16,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/tasks.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 23,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/templates/index.html",
+            "extractor": "html",
+            "sigs": 4,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "examples/celery/src/task_app/views.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 58,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/js_example/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/base.html",
+            "extractor": "html",
+            "sigs": 4,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/fetch.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/jquery.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/templates/xhr.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/javascript/js_example/views.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/tests/conftest.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 8,
+            "covered": true
+          },
+          {
+            "file": "examples/javascript/tests/test_js_example.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/__init__.py",
+            "extractor": "python",
+            "sigs": 1,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/auth.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 90,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/blog.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 67,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/db.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 82,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/static/style.css",
+            "extractor": "css",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/auth/login.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/auth/register.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/base.html",
+            "extractor": "html",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/create.html",
+            "extractor": "html",
+            "sigs": 2,
+            "tokens": 6,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/index.html",
+            "extractor": "html",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/flaskr/templates/blog/update.html",
+            "extractor": "html",
+            "sigs": 3,
+            "tokens": 12,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/conftest.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 68,
+            "covered": true
+          },
+          {
+            "file": "examples/tutorial/tests/test_auth.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 55,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_blog.py",
+            "extractor": "python",
+            "sigs": 8,
+            "tokens": 77,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_db.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "examples/tutorial/tests/test_factory.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 22,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__init__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/__main__.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/app.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 129,
+            "covered": true
+          },
+          {
+            "file": "src/flask/blueprints.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 36,
+            "covered": true
+          },
+          {
+            "file": "src/flask/cli.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 496,
+            "covered": true
+          },
+          {
+            "file": "src/flask/config.py",
+            "extractor": "python",
+            "sigs": 4,
+            "tokens": 39,
+            "covered": true
+          },
+          {
+            "file": "src/flask/ctx.py",
+            "extractor": "python",
+            "sigs": 17,
+            "tokens": 173,
+            "covered": true
+          },
+          {
+            "file": "src/flask/debughelpers.py",
+            "extractor": "python",
+            "sigs": 7,
+            "tokens": 144,
+            "covered": false
+          },
+          {
+            "file": "src/flask/globals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/helpers.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 353,
+            "covered": true
+          },
+          {
+            "file": "src/flask/json/__init__.py",
+            "extractor": "python",
+            "sigs": 5,
+            "tokens": 65,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/provider.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 128,
+            "covered": false
+          },
+          {
+            "file": "src/flask/json/tag.py",
+            "extractor": "python",
+            "sigs": 25,
+            "tokens": 200,
+            "covered": true
+          },
+          {
+            "file": "src/flask/logging.py",
+            "extractor": "python",
+            "sigs": 3,
+            "tokens": 79,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/app.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 81,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/blueprints.py",
+            "extractor": "python",
+            "sigs": 10,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "src/flask/sansio/scaffold.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 140,
+            "covered": false
+          },
+          {
+            "file": "src/flask/sessions.py",
+            "extractor": "python",
+            "sigs": 18,
+            "tokens": 204,
+            "covered": false
+          },
+          {
+            "file": "src/flask/signals.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "src/flask/templating.py",
+            "extractor": "python",
+            "sigs": 9,
+            "tokens": 198,
+            "covered": true
+          },
+          {
+            "file": "src/flask/testing.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 65,
+            "covered": true
+          },
+          {
+            "file": "src/flask/typing.py",
+            "extractor": "python",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "src/flask/views.py",
+            "extractor": "python",
+            "sigs": 6,
+            "tokens": 63,
+            "covered": true
+          },
+          {
+            "file": "src/flask/wrappers.py",
+            "extractor": "python",
+            "sigs": 11,
+            "tokens": 102,
+            "covered": false
+          },
+          {
+            "file": "docs/conf.py",
+            "extractor": "python",
+            "sigs": 2,
+            "tokens": 22,
+            "covered": true
+          }
+        ],
+        "totalSigs": 845,
+        "totalTokens": 9960,
+        "slowFiles": [],
+        "fileCount": 129
+      },
+      "stdoutMetrics": {
+        "hotFiles": null,
+        "hotTokens": null,
+        "coldFiles": null,
+        "coldTokens": null
+      }
+    }
+  }
+}

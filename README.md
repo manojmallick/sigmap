@@ -72,7 +72,7 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 | [Standalone binaries](docs/readmes/binaries.md) | macOS, Linux, Windows — no Node required |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
 | [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
-| [Languages supported](#-languages-supported) | 21 languages |
+| [Languages supported](#-languages-supported) | 25 languages |
 | [Context strategies](#-context-strategies) | full / per-module / hot-cold |
 | [MCP server](#-mcp-server) | 8 on-demand tools |
 | [CLI reference](#-cli-reference) | All flags |
@@ -95,7 +95,7 @@ SigMap scans your source files and extracts only the **function and class signat
 Your codebase
     │
     ▼
-sigmap ─────────► extracts signatures from 21 languages
+sigmap ─────────► extracts signatures from 25 languages
     │
     ▼
 .github/copilot-instructions.md   ◄── auto-read by Copilot / Claude / Cursor
@@ -468,10 +468,10 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 
 ## 🌐 Languages supported
 
-> 21 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
+> 25 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
 
 <details>
-<summary><strong>Show all 21 languages</strong></summary>
+<summary><strong>Show all 25 languages</strong></summary>
 
 | Language | Extensions | Extracts |
 |---|---|---|
@@ -495,6 +495,10 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 | CSS/SCSS | `.css` `.scss` `.sass` `.less` | custom properties and keyframes |
 | YAML | `.yml` `.yaml` | top-level keys and pipeline jobs |
 | Shell | `.sh` `.bash` `.zsh` `.fish` | function declarations |
+| SQL | `.sql` | tables, views, indexes, functions, procedures |
+| GraphQL | `.graphql` `.gql` | types, interfaces, enums, operations, fragments |
+| Terraform | `.tf` `.tfvars` | resources, modules, variables, outputs |
+| Protobuf | `.proto` | messages, services, rpc, enums |
 | Dockerfile | `Dockerfile` `Dockerfile.*` | stages and key instructions |
 
 </details>

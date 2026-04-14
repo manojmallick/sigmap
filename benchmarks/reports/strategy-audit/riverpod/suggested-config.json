@@ -1,0 +1,58 @@
+{
+  "output": ".github/copilot-instructions.md",
+  "outputs": [
+    "copilot"
+  ],
+  "srcDirs": [
+    "packages",
+    "benchmarks",
+    "examples",
+    "scripts",
+    "website",
+    "packages/riverpod_generator",
+    ".github",
+    "tools",
+    "packages/riverpod",
+    "packages/lint_visitor_generator",
+    "packages/riverpod_lint_flutter_test",
+    "packages/flutter_riverpod/lib",
+    "packages/lint_visitor_generator/lib"
+  ],
+  "exclude": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "out",
+    "__pycache__",
+    ".next",
+    "coverage",
+    "target",
+    "vendor",
+    ".context"
+  ],
+  "maxDepth": 9,
+  "maxSigsPerFile": 25,
+  "maxTokens": 6000,
+  "secretScan": true,
+  "monorepo": false,
+  "diffPriority": true,
+  "mcp": {
+    "autoRegister": true
+  },
+  "strategy": "full",
+  "hotCommits": 10,
+  "depMap": true,
+  "todos": true,
+  "changes": true,
+  "changesCommits": 5,
+  "testCoverage": false,
+  "testDirs": [
+    "tests",
+    "src/test",
+    "test",
+    "__tests__",
+    "spec"
+  ],
+  "impactRadius": false
+}

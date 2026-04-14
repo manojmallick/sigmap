@@ -1,0 +1,12 @@
+{
+  "version": "3.3.2",
+  "timestamp": "2026-04-14T06:22:05.669Z",
+  "rawTokens": 299862,
+  "inputTokens": 299862,
+  "finalTokens": 7602,
+  "fileCount": 182,
+  "droppedCount": 43,
+  "reductionPct": 97.5,
+  "overBudget": true,
+  "budgetLimit": 6000
+}
