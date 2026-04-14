@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.3.3] - 2026-04-14
+
+### Added
+- Added support documentation for 4 new extractor-backed languages: SQL, GraphQL, Terraform, Protobuf
+
+### Changed
+- Updated language support references from 21 to 25
+- Version sync with SigMap core release 3.3.3
+
 ## [2.0.2] - 2026-04-04
 
 ### Changed
