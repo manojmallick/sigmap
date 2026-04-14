@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs-vp/.vitepress/public/logo.svg" alt="SigMap logo" width="64" height="84" />
+<img src="assets/logo.png" alt="SigMap logo" width="80" height="80" />
 
 <h1>⚡ SigMap</h1>
 

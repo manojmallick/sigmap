@@ -1,37 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130">
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
   <defs>
-    <clipPath id="pin-clip">
-      <path d="M63.1,6.6 A34,34 0 1,0 36.9,6.6 L50,126 Z"/>
-    </clipPath>
+    <linearGradient id="bg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#1a1740"/>
+      <stop offset="100%" stop-color="#2e2070"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="14" y1="50" x2="86" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
   </defs>
-
-  <!-- Pin fill -->
-  <path d="M63.1,6.6 A34,34 0 1,0 36.9,6.6 L50,126 Z" fill="#0f0d1a"/>
-
-  <!-- Funnel lines clipped to pin shape -->
-  <g clip-path="url(#pin-clip)">
-    <!-- Gray input lines (top → mid) -->
-    <line x1="38.5" y1="6"  x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="30.7" y1="10" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="25"   y1="15" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="21.2" y1="20" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="18.6" y1="25" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="17"   y1="30" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="16.1" y1="35" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="16"   y1="38" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <line x1="16.1" y1="41" x2="50" y2="124" stroke="#3c3a52" stroke-width="1.3"/>
-    <!-- Purple signal lines (bottom of circle = extracted signals) -->
-    <line x1="17"   y1="46" x2="50" y2="124" stroke="#7c6af7" stroke-width="2.1"/>
-    <line x1="19"   y1="52" x2="50" y2="124" stroke="#7c6af7" stroke-width="2.1"/>
-    <line x1="22.5" y1="58" x2="50" y2="124" stroke="#7c6af7" stroke-width="2.1"/>
-    <line x1="28.1" y1="64" x2="50" y2="124" stroke="#7c6af7" stroke-width="2.1"/>
-    <line x1="36"   y1="69" x2="50" y2="124" stroke="#7c6af7" stroke-width="2.1"/>
-  </g>
-
-  <!-- Pin outline -->
-  <path d="M63.1,6.6 A34,34 0 1,0 36.9,6.6 L50,126 Z"
-        fill="none" stroke="#7c6af7" stroke-width="2.5" stroke-linejoin="round"/>
-
-  <!-- Convergence dot at tip -->
-  <circle cx="50" cy="124" r="3.8" fill="#7c6af7"/>
+  <!-- Background -->
+  <rect width="100" height="100" rx="19" fill="url(#bg)"/>
+  <!-- Glow layer -->
+  <path d="M 14 53 C 23 27, 42 27, 50 50 C 58 73, 77 73, 86 47"
+        stroke="url(#wave)" stroke-width="7" fill="none"
+        stroke-linecap="round" opacity="0.25" filter="url(#glow)"/>
+  <!-- Main waveform -->
+  <path d="M 14 53 C 23 27, 42 27, 50 50 C 58 73, 77 73, 86 47"
+        stroke="url(#wave)" stroke-width="4.3" fill="none"
+        stroke-linecap="round"/>
+  <!-- Pin dots -->
+  <circle cx="14" cy="53" r="4.3" fill="#818cf8" opacity="0.92"/>
+  <circle cx="50" cy="50" r="5.5" fill="#a78bfa" opacity="0.92"/>
+  <circle cx="86" cy="47" r="4.3" fill="#c084fc" opacity="0.92"/>
 </svg>
