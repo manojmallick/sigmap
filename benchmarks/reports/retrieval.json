@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-11T08:23:10.498Z",
+  "generated": "2026-04-14T22:29:02.229Z",
   "repos": [
     {
       "repo": "express",
@@ -73,7 +73,7 @@
     {
       "repo": "flask",
       "fileCount": 19,
-      "sigCount": 19,
+      "sigCount": 20,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 1,
@@ -144,10 +144,10 @@
     {
       "repo": "gin",
       "fileCount": 107,
-      "sigCount": 68,
+      "sigCount": 76,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.733,
+      "mrr": 0.717,
       "randomBaseline": 0.047,
       "improvement": 21.4,
       "tiers": {
@@ -209,7 +209,7 @@
             "logger.go"
           ],
           "top1": "gin.go",
-          "firstHitRank": 3,
+          "firstHitRank": 4,
           "tier": "partial"
         }
       ]
@@ -217,16 +217,16 @@
     {
       "repo": "spring-petclinic",
       "fileCount": 13,
-      "sigCount": 13,
+      "sigCount": 29,
       "tasks": 5,
-      "hitAt5": 0.8,
-      "mrr": 0.825,
+      "hitAt5": 0.6,
+      "mrr": 0.622,
       "randomBaseline": 0.385,
-      "improvement": 2.1,
+      "improvement": 1.6,
       "tiers": {
-        "correct": 4,
+        "correct": 3,
         "partial": 0,
-        "wrong": 1
+        "wrong": 2
       },
       "taskDetails": [
         {
@@ -256,9 +256,9 @@
             "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
             "src/main/resources/templates/owners/findOwners.html"
           ],
-          "top1": "src/main/resources/templates/owners/findOwners.html",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "src/main/resources/messages/messages_de.properties",
+          "firstHitRank": 9,
+          "tier": "wrong"
         },
         {
           "id": "spring-t004",
@@ -266,8 +266,8 @@
           "expected": [
             "src/main/resources/templates/vets/vetList.html"
           ],
-          "top1": "src/main/resources/static/resources/css/petclinic.css",
-          "firstHitRank": 8,
+          "top1": "src/main/resources/application.properties",
+          "firstHitRank": null,
           "tier": "wrong"
         },
         {
@@ -358,7 +358,7 @@
     {
       "repo": "axios",
       "fileCount": 25,
-      "sigCount": 25,
+      "sigCount": 29,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.469,
@@ -430,7 +430,7 @@
     {
       "repo": "rust-analyzer",
       "fileCount": 635,
-      "sigCount": 45,
+      "sigCount": 50,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.867,
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 99,
+      "sigCount": 100,
       "tasks": 5,
       "hitAt5": 0.8,
       "mrr": 0.533,
@@ -649,7 +649,7 @@
     {
       "repo": "riverpod",
       "fileCount": 446,
-      "sigCount": 41,
+      "sigCount": 43,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -925,7 +925,7 @@
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 131,
+      "sigCount": 134,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.4,
@@ -997,15 +997,15 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 122,
+      "sigCount": 121,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.767,
+      "mrr": 0.633,
       "randomBaseline": 0.022,
       "improvement": 46.4,
       "tiers": {
-        "correct": 3,
-        "partial": 2,
+        "correct": 2,
+        "partial": 3,
         "wrong": 0
       },
       "taskDetails": [
@@ -1062,9 +1062,9 @@
             "packages/runtime-core/src/compat/global.ts",
             "packages/runtime-core/src/compat/globalConfig.ts"
           ],
-          "top1": "packages/runtime-core/src/compat/componentVModel.ts",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "packages/vue-compat/README.md",
+          "firstHitRank": 3,
+          "tier": "partial"
         }
       ]
     },
@@ -1137,6 +1137,140 @@
           "top1": "packages/svelte/src/internal/server/index.js",
           "firstHitRank": 3,
           "tier": "partial"
+        }
+      ]
+    },
+    {
+      "repo": "fastify",
+      "fileCount": 31,
+      "sigCount": 28,
+      "tasks": 5,
+      "hitAt5": 0.6,
+      "mrr": 0.6,
+      "randomBaseline": 0.161,
+      "improvement": 3.7,
+      "tiers": {
+        "correct": 3,
+        "partial": 0,
+        "wrong": 2
+      },
+      "taskDetails": [
+        {
+          "id": "fastify-t001",
+          "query": "define and register routes for HTTP methods",
+          "expected": [
+            "lib/route.js"
+          ],
+          "top1": "lib/server.js",
+          "firstHitRank": null,
+          "tier": "wrong"
+        },
+        {
+          "id": "fastify-t002",
+          "query": "request object parsing and helpers",
+          "expected": [
+            "lib/request.js"
+          ],
+          "top1": "lib/hooks.js",
+          "firstHitRank": null,
+          "tier": "wrong"
+        },
+        {
+          "id": "fastify-t003",
+          "query": "reply send status headers serialization",
+          "expected": [
+            "lib/reply.js"
+          ],
+          "top1": "lib/reply.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "fastify-t004",
+          "query": "hook lifecycle onRequest preHandler onResponse",
+          "expected": [
+            "lib/hooks.js"
+          ],
+          "top1": "lib/hooks.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "fastify-t005",
+          "query": "custom content type parser and body parsing",
+          "expected": [
+            "lib/content-type-parser.js"
+          ],
+          "top1": "lib/content-type-parser.js",
+          "firstHitRank": 1,
+          "tier": "correct"
+        }
+      ]
+    },
+    {
+      "repo": "fastapi",
+      "fileCount": 48,
+      "sigCount": 32,
+      "tasks": 5,
+      "hitAt5": 0.8,
+      "mrr": 0.689,
+      "randomBaseline": 0.104,
+      "improvement": 7.7,
+      "tiers": {
+        "correct": 3,
+        "partial": 1,
+        "wrong": 1
+      },
+      "taskDetails": [
+        {
+          "id": "fastapi-t001",
+          "query": "create FastAPI application and app level configuration",
+          "expected": [
+            "fastapi/applications.py"
+          ],
+          "top1": "fastapi/applications.py",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "fastapi-t002",
+          "query": "register API routes and request handling",
+          "expected": [
+            "fastapi/routing.py"
+          ],
+          "top1": "fastapi/applications.py",
+          "firstHitRank": 9,
+          "tier": "wrong"
+        },
+        {
+          "id": "fastapi-t003",
+          "query": "dependency injection resolution and dependency graph",
+          "expected": [
+            "fastapi/dependencies/utils.py"
+          ],
+          "top1": "fastapi/.agents/skills/fastapi/references/dependencies.md",
+          "firstHitRank": 3,
+          "tier": "partial"
+        },
+        {
+          "id": "fastapi-t004",
+          "query": "generate OpenAPI schema and docs metadata",
+          "expected": [
+            "fastapi/openapi/utils.py"
+          ],
+          "top1": "fastapi/openapi/utils.py",
+          "firstHitRank": 1,
+          "tier": "correct"
+        },
+        {
+          "id": "fastapi-t005",
+          "query": "oauth2 security scheme implementation",
+          "expected": [
+            "fastapi/security/oauth2.py"
+          ],
+          "top1": "fastapi/security/oauth2.py",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     }

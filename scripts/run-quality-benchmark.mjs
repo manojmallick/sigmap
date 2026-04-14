@@ -102,6 +102,8 @@ const CONFIG_OVERRIDES = {
   'vapor':            { srcDirs: ['Sources'] },
   'vue-core':         { srcDirs: ['packages'] },
   'svelte':           { srcDirs: ['packages/svelte/src'] },
+  'fastify':          { srcDirs: ['lib'] },
+  'fastapi':          { srcDirs: ['fastapi'] },
 };
 
 // ─── Per-repo analysis ────────────────────────────────────────────────────────

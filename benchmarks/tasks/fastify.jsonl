@@ -1,0 +1,5 @@
+{"id":"fastify-t001","query":"define and register routes for HTTP methods","expected_files":["lib/route.js"]}
+{"id":"fastify-t002","query":"request object parsing and helpers","expected_files":["lib/request.js"]}
+{"id":"fastify-t003","query":"reply send status headers serialization","expected_files":["lib/reply.js"]}
+{"id":"fastify-t004","query":"hook lifecycle onRequest preHandler onResponse","expected_files":["lib/hooks.js"]}
+{"id":"fastify-t005","query":"custom content type parser and body parsing","expected_files":["lib/content-type-parser.js"]}

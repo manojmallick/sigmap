@@ -1,0 +1,5 @@
+{"id":"fastapi-t001","query":"create FastAPI application and app level configuration","expected_files":["fastapi/applications.py"]}
+{"id":"fastapi-t002","query":"register API routes and request handling","expected_files":["fastapi/routing.py"]}
+{"id":"fastapi-t003","query":"dependency injection resolution and dependency graph","expected_files":["fastapi/dependencies/utils.py"]}
+{"id":"fastapi-t004","query":"generate OpenAPI schema and docs metadata","expected_files":["fastapi/openapi/utils.py"]}
+{"id":"fastapi-t005","query":"oauth2 security scheme implementation","expected_files":["fastapi/security/oauth2.py"]}

@@ -1,0 +1,63 @@
+{
+  "generated": "2026-04-14T22:08:29.158Z",
+  "success": true,
+  "steps": [
+    {
+      "name": "token-reduction benchmark",
+      "script": "scripts/run-benchmark.mjs",
+      "args": [
+        "--save",
+        "--skip-clone"
+      ],
+      "status": 0,
+      "ok": true,
+      "durationMs": 10758,
+      "stdoutTail": " 24s** | 1min 15s | 0.3s | **1min 14s** |\n| **axios** | 52.9s | 3.0s | **49.8s** | 5.3s | 0.3s | **5.0s** |\n| **rust-analyzer** | 29min 26s | 3.2s | **29min 22s** | 2min 57s | 0.3s | **2min 56s** |\n| **abseil-cpp** | 19min 19s | 3.1s | **19min 16s** | 1min 56s | 0.3s | **1min 56s** |\n| **serilog** | 1min 38s | 3.5s | **1min 34s** | 9.8s | 0.3s | **9.4s** |\n| **riverpod** | 6min 14s | 3.2s | **6min 10s** | 37.4s | 0.3s | **37.0s** |\n| **okhttp** | 15.6s | 0.7s | **14.9s** | 1.6s | <0.1s | **1.5s** |\n| **laravel** | 13min 60s | 3.6s | **13min 56s** | 1min 24s | 0.4s | **1min 24s** |\n| **akka** | 6min 35s | 3.5s | **6min 32s** | 39.5s | 0.3s | **39.2s** |\n| **vapor** | 1min 26s | 3.2s | **1min 22s** | 8.6s | 0.3s | **8.3s** |\n| **vue-core** | 3min 27s | 4.3s | **3min 23s** | 20.7s | 0.4s | **20.3s** |\n| **svelte** | 3min 39s | 4.0s | **3min 35s** | 21.9s | 0.4s | **21.5s** |\n| **fastify** | 27.2s | 1.3s | **25.9s** | 2.7s | 0.1s | **2.6s** |\n| **fastapi** | 1min 29s | 2.6s | **1min 27s** | 8.9s | 0.3s | **8.7s** |\n\n*At 10 calls/day per repo: **1hr 45min** saved across all repos per round · **17hr 28min/day** · **6,377 hr/year***\n\nReport saved → benchmarks/reports/token-reduction.json\n",
+      "stderrTail": ""
+    },
+    {
+      "name": "retrieval benchmark",
+      "script": "scripts/run-retrieval-benchmark.mjs",
+      "args": [
+        "--save"
+      ],
+      "status": 0,
+      "ok": true,
+      "durationMs": 10779,
+      "stdoutTail": " 18     28%     100%   3.6×     5/5     0/5    0/5\nlaravel            1533  113      0%     100% 306.6×     2/5     3/5    0/5\nakka                211   64      2%     100%  42.2×     3/5     2/5    0/5\nvapor               131  134      4%      60%  15.7×     1/5     2/5    2/5\nvue-core            232  121      2%     100%  46.4×     2/5     3/5    0/5\nsvelte              370   63      1%      60%  44.4×     1/5     2/5    2/5\nfastify              31   28     16%      60%   3.7×     3/5     0/5    2/5\nfastapi              48   32     10%      80%   7.7×     3/5     1/5    1/5\n──────────────────────────────────────────────────────────────────────────────────────────\nAVERAGE                        13.6%    73.3%   5.4×   44/90   22/90  24/90\n──────────────────────────────────────────────────────────────────────────────────────────\n\nMethodology:\n  Random baseline = min(1, 5/fileCount) — probability of a random 5-file selection containing the target\n  Correct = target file is rank-1 result\n  Partial = target file in ranks 2–5\n  Wrong   = target file not in top-5\n  No LLM API used. All scores are retrieval rank math.\n\n[saved] /Users/manojmallick/sigmap/benchmarks/reports/retrieval.json\n",
+      "stderrTail": "[run]  express ...\n[run]  flask ...\n[run]  gin ...\n[run]  spring-petclinic ...\n[run]  rails ...\n[run]  axios ...\n[run]  rust-analyzer ...\n[run]  abseil-cpp ...\n[run]  serilog ...\n[run]  riverpod ...\n[run]  okhttp ...\n[run]  laravel ...\n[run]  akka ...\n[run]  vapor ...\n[run]  vue-core ...\n[run]  svelte ...\n[run]  fastify ...\n[run]  fastapi ...\n"
+    },
+    {
+      "name": "quality benchmark",
+      "script": "scripts/run-quality-benchmark.mjs",
+      "args": [
+        "--save"
+      ],
+      "status": 0,
+      "ok": true,
+      "durationMs": 10567,
+      "stdoutTail": "\n|------|:------------:|:---------------:|:---------:|:-----------:|\n| **express** | $1.76 | $0.023 | $1.74 | **$52.26** |\n| **flask** | $3.70 | $0.168 | $3.53 | **$105.86** |\n| **gin** | $5.41 | $0.151 | $5.26 | **$157.78** |\n| **spring-petclinic** | $2.45 | $0.085 | $2.36 | **$70.86** |\n| **rails** | $37.36 | $0.177 | $37.18 | **$1115.36** |\n| **axios** | $2.64 | $0.152 | $2.49 | **$74.75** |\n| **rust-analyzer** | $88.28 | $0.158 | $88.12 | **$2643.60** |\n| **abseil-cpp** | $57.95 | $0.158 | $57.79 | **$1733.78** |\n| **serilog** | $4.89 | $0.174 | $4.71 | **$141.43** |\n| **riverpod** | $18.68 | $0.161 | $18.52 | **$555.57** |\n| **okhttp** | $0.782 | $0.035 | $0.747 | **$22.40** |\n| **laravel** | $41.99 | $0.179 | $41.81 | **$1254.19** |\n| **akka** | $19.76 | $0.177 | $19.59 | **$587.60** |\n| **vapor** | $4.28 | $0.161 | $4.12 | **$123.69** |\n| **vue-core** | $10.36 | $0.216 | $10.14 | **$304.31** |\n| **svelte** | $10.95 | $0.200 | $10.75 | **$322.62** |\n| **fastify** | $1.36 | $0.064 | $1.30 | **$38.88** |\n| **fastapi** | $4.46 | $0.131 | $4.33 | **$129.87** |\n\n*Total GPT-4o savings: ~$9434.78/month across 18 repos at 10 calls/day*\n\nReport saved → benchmarks/reports/quality.json\n",
+      "stderrTail": ""
+    },
+    {
+      "name": "task benchmark",
+      "script": "scripts/run-task-benchmark.mjs",
+      "args": [
+        "--save"
+      ],
+      "status": 0,
+      "ok": true,
+      "durationMs": 67,
+      "stdoutTail": "×\n  flask                   26.3%      40%     1.5×\n  gin                      4.7%     100%    21.3×\n  spring-petclinic        38.5%      60%     1.6×\n  rails                    0.4%      80%   200.0×\n  axios                   20.0%      40%     2.0×\n  rust-analyzer            0.8%     100%   125.0×\n  abseil-cpp               0.7%     100%   142.9×\n  serilog                  5.1%       0%     0.0×\n  riverpod                 1.1%     100%    90.9×\n  okhttp                  27.8%     100%     3.6×\n  laravel                  0.3%     100%   333.3×\n  akka                     2.4%     100%    41.7×\n  vapor                    3.8%      60%    15.8×\n  vue-core                 2.2%     100%    45.5×\n  svelte                   1.4%      60%    42.9×\n  fastify                 16.1%      60%     3.7×\n  fastapi                 10.4%      80%     7.7×\n\n  Hallucination risk proxy (dark symbols)\n\n  Without SigMap: 91% of codebase symbols hidden from AI\n  With    SigMap: 9% of indexed symbols grounded in signatures\n  (5,865 grounded, 57,548 dark — across 18 repos)\n\n──────────────────────────────────────────────────────────────────────────\n\n  Report saved → benchmarks/reports/task-benchmark.json\n\n",
+      "stderrTail": "[task-benchmark] saved → /Users/manojmallick/sigmap/benchmarks/reports/task-benchmark.json\n"
+    }
+  ],
+  "metrics": {
+    "reposToken": 18,
+    "reposRetrieval": 18,
+    "avgReductionPct": 97.5,
+    "avgHitAt5Pct": 73.3,
+    "taskPromptReductionPct": 37.5,
+    "gpt4oOverflowRepos": 13
+  }
+}

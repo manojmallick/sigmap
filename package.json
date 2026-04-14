@@ -24,6 +24,7 @@
     "init": "node gen-context.js --init",
     "report": "node gen-context.js --report",
     "audit:strategies": "node scripts/run-strategy-audit.mjs",
+    "benchmark:matrix": "node scripts/run-benchmark-matrix.mjs --save --skip-clone",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",
     "mcp": "node gen-context.js --mcp",

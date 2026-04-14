@@ -50,15 +50,15 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 
 <div align="center">
 <img src="docs/comparison-chart.svg" alt="SigMap benchmark — before vs after across 3 RAG quality metrics" width="700" />
-<br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">80 tasks · 16 real repos · no LLM API · <strong>full methodology →</strong></a></sub>
+<br/><sub><a href="https://manojmallick.github.io/sigmap/guide/task-benchmark.html">90 tasks · 18 real repos · no LLM API · <strong>full methodology →</strong></a></sub>
 </div>
 
 | | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success | 10% | **59%** |
-| Prompts per task | 2.84 | **1.54** |
+| Prompts per task | 2.84 | **1.78** |
 | Tokens per session | ~80,000 | **~2,000** |
-| Right file found | 13.7% | **87.5%** |
+| Right file found | 13.6% | **84.4%** |
 | Hallucination risk | 92% | **0%** |
 
 </details>
@@ -126,24 +126,26 @@ Reproduced with `node scripts/run-benchmark.mjs` on public repos:
 
 | Repo | Language | Raw tokens | After SigMap | Reduction |
 |------|----------|------------|--------------|-----------|
-| express | JavaScript | 15.5K | 201 | **98.7%** |
-| flask | Python | 84.8K | 3.4K | **96.0%** |
-| gin | Go | 172.8K | 5.7K | **96.7%** |
-| spring-petclinic | Java | 77.0K | 634 | **99.2%** |
+| express | JavaScript | 70.6K | 911 | **98.7%** |
+| flask | Python | 147.9K | 6.7K | **95.4%** |
+| gin | Go | 216.4K | 6.0K | **97.2%** |
+| spring-petclinic | Java | 97.9K | 3.4K | **96.5%** |
 | rails | Ruby | 1.5M | 7.1K | **99.5%** |
-| axios | TypeScript | 31.7K | 1.5K | **95.2%** |
-| rust-analyzer | Rust | 3.5M | 5.9K | **99.8%** |
+| axios | TypeScript | 105.7K | 6.1K | **94.3%** |
+| rust-analyzer | Rust | 3.5M | 6.3K | **99.8%** |
 | abseil-cpp | C++ | 2.3M | 6.3K | **99.7%** |
-| serilog | C# | 113.7K | 5.8K | **94.9%** |
-| riverpod | Dart | 682.7K | 6.5K | **99.0%** |
+| serilog | C# | 195.5K | 6.9K | **96.4%** |
+| riverpod | Dart | 747.2K | 6.5K | **99.1%** |
 | okhttp | Kotlin | 31.3K | 1.4K | **95.5%** |
 | laravel | PHP | 1.7M | 7.2K | **99.6%** |
 | akka | Scala | 790.5K | 7.1K | **99.1%** |
-| vapor | Swift | 171.2K | 6.4K | **96.3%** |
-| vue-core | Vue | 404.2K | 8.8K | **97.8%** |
+| vapor | Swift | 171.4K | 6.4K | **96.2%** |
+| vue-core | Vue | 414.4K | 8.6K | **97.9%** |
 | svelte | Svelte | 438.2K | 8.0K | **98.2%** |
+| fastify | JavaScript | 54.4K | 2.6K | **95.3%** |
+| fastapi | Python | 178.4K | 5.2K | **97.1%** |
 
-**Average: 99.3% reduction across 16 languages.** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
+**Average: 97.5% reduction across 18 repos (16 languages).** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
 
 ---
 

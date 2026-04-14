@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * SigMap retrieval benchmark — 16 real repos, 80 tasks
+ * SigMap retrieval benchmark — 18 real repos, 90 tasks
  *
  * For each repo:
- *   1. Runs `node gen-context.js --report --json` to build the SigMap output
+ *   1. Runs `node gen-context.js` to build the SigMap output
  *   2. Parses .github/copilot-instructions.md into a signature index
  *   3. Scores 5 retrieval queries against that index
  *   4. Computes random baseline: min(1, 5/fileCount)
@@ -53,7 +53,53 @@ const REPOS = [
   { repo: 'vapor',            fileCount: 131  },
   { repo: 'vue-core',         fileCount: 232  },
   { repo: 'svelte',           fileCount: 370  },
+  { repo: 'fastify',          fileCount: 31   },
+  { repo: 'fastapi',          fileCount: 48   },
 ];
+
+const CONFIG_OVERRIDES = {
+  // Explicit srcDirs prevent test/, docs/, .idea/ etc. from polluting the index
+  express: { srcDirs: ['lib'] },
+  flask: { srcDirs: ['src/flask'] },
+  'spring-petclinic': { srcDirs: ['src'] },
+  axios: { srcDirs: ['lib'] },
+  serilog: { srcDirs: ['src/Serilog'] },
+  gin: { srcDirs: ['.'] },
+  rails: {
+    srcDirs: [
+      'activesupport/lib',
+      'actionpack/lib',
+      'railties/lib',
+      'activerecord/lib',
+      'actionview/lib',
+      'actionmailer/lib',
+      'activejob/lib',
+    ],
+  },
+  'rust-analyzer': { srcDirs: ['crates'] },
+  'abseil-cpp': { srcDirs: ['absl'] },
+  riverpod: { srcDirs: ['packages'] },
+  okhttp: {
+    srcDirs: [
+      'okhttp/src/main/kotlin',
+      'okhttp-tls/src/main/kotlin',
+      'okhttp-logging-interceptor/src/main/kotlin',
+    ],
+  },
+  laravel: { srcDirs: ['src'] },
+  akka: {
+    srcDirs: [
+      'akka-actor/src/main/scala',
+      'akka-stream/src/main/scala',
+      'akka-cluster/src/main/scala',
+    ],
+  },
+  vapor: { srcDirs: ['Sources'] },
+  'vue-core': { srcDirs: ['packages'] },
+  svelte: { srcDirs: ['packages/svelte/src'] },
+  fastify: { srcDirs: ['lib'] },
+  fastapi: { srcDirs: ['fastapi'] },
+};
 
 // ---------------------------------------------------------------------------
 // Tokenizer — mirrors src/eval/runner.js
@@ -174,9 +220,20 @@ function loadTasks(tasksFile) {
 // ---------------------------------------------------------------------------
 // Gen-context runner
 // ---------------------------------------------------------------------------
-function runGenContext(repoDir) {
+function runGenContext(repo, repoDir) {
+  const configPath = path.join(repoDir, 'gen-context.config.json');
+  const configOverride = CONFIG_OVERRIDES[repo];
+  const existingConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : null;
+
+  // Always apply override when present — even if a config already exists.
+  // Without this, repos with pre-existing configs (e.g. spring-petclinic with
+  // srcDirs:["."] that picks up .idea/) bypass the benchmark srcDirs constraint.
+  if (configOverride) {
+    fs.writeFileSync(configPath, JSON.stringify(configOverride, null, 2));
+  }
+
   try {
-    execSync(`node "${path.join(ROOT, 'gen-context.js')}" --report --json`, {
+    execSync(`node "${path.join(ROOT, 'gen-context.js')}"`, {
       cwd: repoDir,
       stdio: 'pipe',
       timeout: 60_000,
@@ -184,6 +241,16 @@ function runGenContext(repoDir) {
     return true;
   } catch {
     return false;
+  } finally {
+    if (configOverride) {
+      try {
+        if (existingConfig !== null) {
+          fs.writeFileSync(configPath, existingConfig);
+        } else {
+          fs.unlinkSync(configPath);
+        }
+      } catch (_) {}
+    }
   }
 }
 
@@ -210,7 +277,7 @@ for (const { repo, fileCount } of REPOS) {
   // Step 1: run gen-context (or use existing output)
   if (!SKIP_RUN) {
     if (!JSON_OUT) process.stderr.write(`[run]  ${repo} ...\n`);
-    const ok = runGenContext(repoDir);
+    const ok = runGenContext(repo, repoDir);
     if (!ok && !fs.existsSync(contextPath)) {
       if (!JSON_OUT) process.stderr.write(`[fail] ${repo}: gen-context failed\n`);
       continue;

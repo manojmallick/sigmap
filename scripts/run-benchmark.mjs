@@ -173,6 +173,22 @@ const REPOS = [
     description: 'Cybernetically enhanced web apps',
     configOverride: { srcDirs: ['packages/svelte/src'] },
   },
+  {
+    name: 'fastify',
+    org: 'fastify',
+    url: 'https://github.com/fastify/fastify.git',
+    language: 'JavaScript',
+    description: 'Fast and low-overhead Node.js web framework',
+    configOverride: { srcDirs: ['lib'] },
+  },
+  {
+    name: 'fastapi',
+    org: 'fastapi',
+    url: 'https://github.com/fastapi/fastapi.git',
+    language: 'Python',
+    description: 'FastAPI Python framework',
+    configOverride: { srcDirs: ['fastapi'] },
+  },
 ];
 
 // ---------------------------------------------------------------------------

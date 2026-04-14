@@ -86,6 +86,6 @@
 
   <!-- FOOTER -->
   <line x1="22" y1="363" x2="738" y2="363" stroke="#1e1440" stroke-width="1"/>
-  <text x="380" y="382" text-anchor="middle" font-size="10.5" fill="#3d3460">Measured across 80 tasks  16 real repos  21 languages  no LLM API  fully reproducible</text>
+  <text x="380" y="382" text-anchor="middle" font-size="10.5" fill="#3d3460">Measured across 90 tasks  18 real repos  21 languages  no LLM API  fully reproducible</text>
 
 </svg>
