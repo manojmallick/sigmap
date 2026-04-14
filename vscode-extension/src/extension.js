@@ -186,7 +186,7 @@ function resolveRunner(root) {
 }
 
 /**
- * Returns { daysSince: number, grade: string, score: number } for a given cwd.
+ * Returns { daysSince, grade, score, tokens, reduction } for a given cwd.
  * Uses gen-context --health --json when available; falls back to mtime check.
  */
 function getStatus(root, runner) {
@@ -208,7 +208,13 @@ function getStatus(root, runner) {
               const mtime = fs.statSync(ctxPath).mtimeMs;
               daysSince = (Date.now() - mtime) / (1000 * 60 * 60 * 24);
             }
-            return resolve({ grade: data.grade || 'A', score: data.score || 100, daysSince });
+            return resolve({
+              grade:     data.grade     || 'A',
+              score:     data.score     || 100,
+              daysSince,
+              tokens:    data.tokens    || 0,
+              reduction: data.reduction || 0,
+            });
           } catch (_) {}
         }
         // Fallback to mtime-only
@@ -267,10 +273,18 @@ async function updateStatusBar(statusBar) {
     return;
   }
 
-  const icon = GRADE_ICONS[status.grade] || GRADE_ICONS.A;
-  const age = formatAge(status.daysSince);
-  statusBar.text = `$(file-code) sm: ${icon} ${age}`;
-  statusBar.tooltip = `SigMap health: ${status.grade} (${status.score}/100)\nLast regenerated: ${age}\nClick to regenerate`;
+  const icon    = GRADE_ICONS[status.grade] || GRADE_ICONS.A;
+  const age     = formatAge(status.daysSince);
+  const tokStr  = status.tokens    ? `${(status.tokens / 1000).toFixed(1)}K tok` : '';
+  const redStr  = status.reduction ? `${status.reduction}% \u2193` : '';
+  const extras  = [tokStr, redStr].filter(Boolean);
+  statusBar.text = `$(file-code) SigMap ${icon}${extras.length ? ' \u00b7 ' + extras.join(' \u00b7 ') : ''}`;
+  statusBar.tooltip = [
+    `SigMap health: ${status.grade} (${status.score}/100)`,
+    extras.length ? `Context size: ${tokStr}  Reduction: ${redStr}` : '',
+    `Last regenerated: ${age}`,
+    'Click to regenerate',
+  ].filter(Boolean).join('\n');
   statusBar.show();
 }
 
@@ -355,10 +369,19 @@ async function activate(context) {
   const interval = setInterval(() => updateStatusBar(statusBar), STATUS_INTERVAL_MS);
   context.subscriptions.push({ dispose: () => clearInterval(interval) });
 
+  // Feature 2: gutter decorations — green (included) / grey (excluded)
+  const decs = require('./decorations');
+  context.subscriptions.push(decs.GREEN, decs.GREY);
+  const root = workspaceRoot();
+  if (root) {
+    decs.applyDecorations(root);
+    vscode.window.onDidChangeActiveTextEditor(() => decs.scheduleUpdate(root), null, context.subscriptions);
+  }
+
   // Refresh when workspace files change (i.e. context file regenerated)
   const watcher = vscode.workspace.createFileSystemWatcher('**/.github/copilot-instructions.md');
-  watcher.onDidChange(() => updateStatusBar(statusBar));
-  watcher.onDidCreate(() => updateStatusBar(statusBar));
+  watcher.onDidChange(() => { updateStatusBar(statusBar); if (root) decs.scheduleUpdate(root); });
+  watcher.onDidCreate(() => { updateStatusBar(statusBar); if (root) decs.scheduleUpdate(root); });
   context.subscriptions.push(watcher);
 
   // Command: regenerate

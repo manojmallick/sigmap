@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get started with SigMap</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Inter, system-ui, sans-serif; background: #0d0d0d; color: #e5e7eb; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 48px 16px 80px; }
+    h1 { font-size: 2rem; font-weight: 600; margin-bottom: 8px; }
+    .sub { color: #9ca3af; margin-bottom: 48px; }
+    .wizard { width: 100%; max-width: 600px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step h2 { font-size: 1.25rem; font-weight: 500; margin-bottom: 20px; }
+    .choices { display: flex; flex-wrap: wrap; gap: 10px; }
+    .choice { border: 1.5px solid #374151; border-radius: 10px; padding: 12px 20px; cursor: pointer; font-size: 0.95rem; transition: border-color .15s, background .15s; background: #111827; }
+    .choice:hover { border-color: #6366f1; background: #1e1b4b; }
+    .choice.selected { border-color: #6366f1; background: #1e1b4b; }
+    .result { display: none; margin-top: 8px; }
+    .result.active { display: block; }
+    .result h2 { font-size: 1.25rem; font-weight: 500; margin-bottom: 16px; }
+    .cmd-block { background: #111827; border: 1px solid #374151; border-radius: 10px; padding: 20px 24px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; position: relative; white-space: pre; overflow-x: auto; }
+    .cmd-block .comment { color: #6b7280; }
+    .copy-btn { position: absolute; top: 12px; right: 14px; background: #374151; border: none; border-radius: 6px; color: #d1d5db; padding: 5px 12px; cursor: pointer; font-size: 0.8rem; }
+    .copy-btn:hover { background: #4b5563; }
+    .note { color: #9ca3af; font-size: 0.88rem; margin-top: 14px; line-height: 1.6; }
+    .progress { display: flex; gap: 8px; margin-bottom: 36px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #374151; transition: background .2s; }
+    .dot.done { background: #6366f1; }
+    .restart { margin-top: 28px; color: #6b7280; background: none; border: none; cursor: pointer; font-size: 0.9rem; text-decoration: underline; }
+    .restart:hover { color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <h1>Get started with SigMap</h1>
+  <p class="sub">Three questions. One command. Done.</p>
+
+  <div class="wizard">
+    <div class="progress">
+      <div class="dot" id="d0"></div>
+      <div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div>
+    </div>
+
+    <!-- Step 0: AI tool -->
+    <div class="step active" id="step-0">
+      <h2>Which AI tool do you use?</h2>
+      <div class="choices">
+        <button class="choice" data-key="tool" data-val="copilot">GitHub Copilot</button>
+        <button class="choice" data-key="tool" data-val="claude">Claude</button>
+        <button class="choice" data-key="tool" data-val="cursor">Cursor</button>
+        <button class="choice" data-key="tool" data-val="windsurf">Windsurf</button>
+        <button class="choice" data-key="tool" data-val="other">Other / multiple</button>
+      </div>
+    </div>
+
+    <!-- Step 1: Project structure -->
+    <div class="step" id="step-1">
+      <h2>What's your project structure?</h2>
+      <div class="choices">
+        <button class="choice" data-key="structure" data-val="single">Single repo</button>
+        <button class="choice" data-key="structure" data-val="monorepo">Monorepo (packages/ or apps/)</button>
+        <button class="choice" data-key="structure" data-val="multi">Multiple repos</button>
+      </div>
+    </div>
+
+    <!-- Step 2: First time? -->
+    <div class="step" id="step-2">
+      <h2>First time with SigMap?</h2>
+      <div class="choices">
+        <button class="choice" data-key="first" data-val="yes">Yes, never used it</button>
+        <button class="choice" data-key="first" data-val="no">Already installed / upgrading</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="result">
+      <h2>Your setup command</h2>
+      <div class="cmd-block" id="cmd-text"></div>
+      <p class="note" id="cmd-note"></p>
+      <button class="restart" onclick="restart()">&#8592; Start over</button>
+    </div>
+  </div>
+
+  <script>
+    const answers = {};
+    const ADAPTER_FLAGS = { copilot: '', claude: ' --adapter claude', cursor: ' --adapter cursor', windsurf: ' --adapter windsurf', other: ' --mode both' };
+
+    document.querySelectorAll('.choice').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key;
+        const val = btn.dataset.val;
+        answers[key] = val;
+        advance(key);
+      });
+    });
+
+    function advance(key) {
+      const steps = ['tool', 'structure', 'first'];
+      const idx = steps.indexOf(key);
+      document.getElementById('d' + idx).classList.add('done');
+      const next = document.getElementById('step-' + (idx + 1));
+      if (next) {
+        document.getElementById('step-' + idx).classList.remove('active');
+        next.classList.add('active');
+      } else {
+        document.getElementById('step-2').classList.remove('active');
+        showResult();
+      }
+    }
+
+    function showResult() {
+      const flag = ADAPTER_FLAGS[answers.tool] || '';
+      const isMonorepo = answers.structure === 'monorepo';
+      const isFirst = answers.first === 'yes';
+      const monoFlag = isMonorepo ? ' --monorepo' : '';
+
+      let cmd, note;
+      if (isFirst) {
+        cmd = `npx sigmap${flag}${monoFlag}\n<span class="comment"># Done. Ask your AI: "explain the architecture"</span>`;
+        note = 'SigMap writes a context file your AI reads automatically. No config needed.';
+      } else {
+        cmd = `npx sigmap@latest${flag}${monoFlag}\n<span class="comment"># Context refreshed to v${getVersion()}</span>`;
+        note = 'Re-run whenever your codebase changes significantly. Or add the git hook: <code>npx sigmap --setup</code>';
+      }
+
+      document.getElementById('cmd-text').innerHTML = cmd;
+      document.getElementById('cmd-note').innerHTML = note;
+      document.getElementById('result').classList.add('active');
+      document.getElementById('d2').classList.add('done');
+
+      // Add copy button
+      const block = document.getElementById('cmd-text');
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(block.innerText).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => copyBtn.textContent = 'Copy', 1500); });
+      };
+      block.appendChild(copyBtn);
+    }
+
+    function getVersion() { return '3.6.0'; }
+
+    function restart() {
+      Object.keys(answers).forEach(k => delete answers[k]);
+      document.querySelectorAll('.step').forEach((s, i) => { s.classList.toggle('active', i === 0); });
+      document.querySelectorAll('.dot').forEach(d => d.classList.remove('done'));
+      const result = document.getElementById('result');
+      result.classList.remove('active');
+      document.getElementById('cmd-text').innerHTML = '';
+      document.getElementById('cmd-note').innerHTML = '';
+    }
+  </script>
+</body>
+</html>
