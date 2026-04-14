@@ -1,0 +1,225 @@
+{
+  "files": [
+    {
+      "file": "lib/config-validator.js",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 24,
+      "covered": false
+    },
+    {
+      "file": "lib/content-type-parser.js",
+      "extractor": "javascript",
+      "sigs": 11,
+      "tokens": 138,
+      "covered": false
+    },
+    {
+      "file": "lib/content-type.js",
+      "extractor": "javascript",
+      "sigs": 9,
+      "tokens": 57,
+      "covered": true
+    },
+    {
+      "file": "lib/context.js",
+      "extractor": "javascript",
+      "sigs": 2,
+      "tokens": 90,
+      "covered": true
+    },
+    {
+      "file": "lib/decorate.js",
+      "extractor": "javascript",
+      "sigs": 14,
+      "tokens": 196,
+      "covered": false
+    },
+    {
+      "file": "lib/error-handler.js",
+      "extractor": "javascript",
+      "sigs": 6,
+      "tokens": 71,
+      "covered": true
+    },
+    {
+      "file": "lib/error-serializer.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "lib/error-status.js",
+      "extractor": "javascript",
+      "sigs": 2,
+      "tokens": 20,
+      "covered": false
+    },
+    {
+      "file": "lib/errors.js",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 11,
+      "covered": false
+    },
+    {
+      "file": "lib/four-oh-four.js",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 7,
+      "covered": false
+    },
+    {
+      "file": "lib/handle-request.js",
+      "extractor": "javascript",
+      "sigs": 6,
+      "tokens": 74,
+      "covered": false
+    },
+    {
+      "file": "lib/head-route.js",
+      "extractor": "javascript",
+      "sigs": 3,
+      "tokens": 38,
+      "covered": false
+    },
+    {
+      "file": "lib/hooks.js",
+      "extractor": "javascript",
+      "sigs": 11,
+      "tokens": 202,
+      "covered": true
+    },
+    {
+      "file": "lib/initial-config-validation.js",
+      "extractor": "javascript",
+      "sigs": 2,
+      "tokens": 18,
+      "covered": false
+    },
+    {
+      "file": "lib/logger-factory.js",
+      "extractor": "javascript",
+      "sigs": 6,
+      "tokens": 89,
+      "covered": true
+    },
+    {
+      "file": "lib/logger-pino.js",
+      "extractor": "javascript",
+      "sigs": 2,
+      "tokens": 21,
+      "covered": false
+    },
+    {
+      "file": "lib/noop-set.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": true
+    },
+    {
+      "file": "lib/plugin-override.js",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 14,
+      "covered": false
+    },
+    {
+      "file": "lib/plugin-utils.js",
+      "extractor": "javascript",
+      "sigs": 13,
+      "tokens": 121,
+      "covered": false
+    },
+    {
+      "file": "lib/promise.js",
+      "extractor": "javascript",
+      "sigs": 2,
+      "tokens": 53,
+      "covered": true
+    },
+    {
+      "file": "lib/reply.js",
+      "extractor": "javascript",
+      "sigs": 20,
+      "tokens": 203,
+      "covered": true
+    },
+    {
+      "file": "lib/req-id-gen-factory.js",
+      "extractor": "javascript",
+      "sigs": 5,
+      "tokens": 61,
+      "covered": false
+    },
+    {
+      "file": "lib/request.js",
+      "extractor": "javascript",
+      "sigs": 7,
+      "tokens": 75,
+      "covered": true
+    },
+    {
+      "file": "lib/route.js",
+      "extractor": "javascript",
+      "sigs": 12,
+      "tokens": 130,
+      "covered": true
+    },
+    {
+      "file": "lib/schema-controller.js",
+      "extractor": "javascript",
+      "sigs": 10,
+      "tokens": 71,
+      "covered": false
+    },
+    {
+      "file": "lib/schemas.js",
+      "extractor": "javascript",
+      "sigs": 6,
+      "tokens": 81,
+      "covered": false
+    },
+    {
+      "file": "lib/server.js",
+      "extractor": "javascript",
+      "sigs": 9,
+      "tokens": 122,
+      "covered": true
+    },
+    {
+      "file": "lib/symbols.js",
+      "extractor": "javascript",
+      "sigs": 0,
+      "tokens": 0,
+      "covered": false
+    },
+    {
+      "file": "lib/validation.js",
+      "extractor": "javascript",
+      "sigs": 10,
+      "tokens": 163,
+      "covered": true
+    },
+    {
+      "file": "lib/warnings.js",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 19,
+      "covered": false
+    },
+    {
+      "file": "lib/wrap-thenable.js",
+      "extractor": "javascript",
+      "sigs": 1,
+      "tokens": 12,
+      "covered": true
+    }
+  ],
+  "totalSigs": 174,
+  "totalTokens": 2181,
+  "slowFiles": [],
+  "fileCount": 31
+}

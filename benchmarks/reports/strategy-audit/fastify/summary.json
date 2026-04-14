@@ -1,0 +1,2661 @@
+{
+  "repo": "/Users/manojmallick/sigmap/benchmarks/repos/fastify",
+  "recommendedStrategy": {
+    "strategy": "full",
+    "reason": "full is the simplest reliable option when the repo is small or module splits do not materially reduce injected context."
+  },
+  "currentConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "lib"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 5,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "suggestedConfig": {
+    "output": ".github/copilot-instructions.md",
+    "outputs": [
+      "copilot"
+    ],
+    "srcDirs": [
+      "lib",
+      "test",
+      "docs",
+      ".github",
+      "examples",
+      "types",
+      "integration",
+      "scripts"
+    ],
+    "exclude": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "out",
+      "__pycache__",
+      ".next",
+      "coverage",
+      "target",
+      "vendor",
+      ".context"
+    ],
+    "maxDepth": 5,
+    "maxSigsPerFile": 25,
+    "maxTokens": 6000,
+    "secretScan": true,
+    "monorepo": false,
+    "diffPriority": true,
+    "mcp": {
+      "autoRegister": true
+    },
+    "strategy": "full",
+    "hotCommits": 10,
+    "depMap": true,
+    "todos": true,
+    "changes": true,
+    "changesCommits": 5,
+    "testCoverage": false,
+    "testDirs": [
+      "tests",
+      "src/test",
+      "test",
+      "__tests__",
+      "spec"
+    ],
+    "impactRadius": false
+  },
+  "coverageSummary": {
+    "discoveredFileCount": 390,
+    "analyzedFileCount": 31,
+    "missingSupportedFiles": [
+      {
+        "file": ".borp.yaml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/context-cold.md",
+        "folder": ".github",
+        "language": "markdown"
+      },
+      {
+        "file": ".github/copilot-instructions.md",
+        "folder": ".github",
+        "language": "markdown"
+      },
+      {
+        "file": ".github/dependabot.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/labeler.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/scripts/lint-ecosystem.js",
+        "folder": ".github",
+        "language": "javascript"
+      },
+      {
+        "file": ".github/workflows/backport.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/ci-alternative-runtime.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/ci.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/citgm-package.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/citgm.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/coverage-nix.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/coverage-win.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/integration-alternative-runtimes.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/integration.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/labeler.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/links-check.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/lint-ecosystem-order.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/lock-threads.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/md-lint.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/missing_types.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/package-manager-ci.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/pull-request-title.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/test-compare.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/validate-ecosystem-links.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".github/workflows/website.yml",
+        "folder": ".github",
+        "language": "yaml"
+      },
+      {
+        "file": ".gitpod.yml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": ".markdownlint-cli2.yaml",
+        "folder": ".",
+        "language": "yaml"
+      },
+      {
+        "file": "CODE_OF_CONDUCT.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "CONTRIBUTING.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "EXPENSE_POLICY.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "GOVERNANCE.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "PROJECT_CHARTER.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "README.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "SECURITY.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "SPONSORS.md",
+        "folder": ".",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Benchmarking.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Contributing.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Database.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Delay-Accepting-Requests.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Detecting-When-Clients-Abort.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Ecosystem.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Fluent-Schema.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Getting-Started.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Index.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Migration-Guide-V3.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Migration-Guide-V4.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Migration-Guide-V5.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Plugins-Guide.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Prototype-Poisoning.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Recommendations.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Serverless.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Style-Guide.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Testing.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Write-Plugin.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Guides/Write-Type-Provider.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/ContentTypeParser.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Decorators.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Encapsulation.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Errors.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/HTTP2.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Hooks.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Index.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/LTS.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Lifecycle.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Logging.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Middleware.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Plugins.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Principles.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Reply.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Request.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Routes.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Server.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Type-Providers.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/TypeScript.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Validation-and-Serialization.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/Reference/Warnings.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "docs/index.md",
+        "folder": "docs",
+        "language": "markdown"
+      },
+      {
+        "file": "eslint.config.js",
+        "folder": ".",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/asyncawait.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/benchmark/hooks-benchmark-async-await.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/benchmark/hooks-benchmark.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/benchmark/parser.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/benchmark/simple.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/benchmark/webstream.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/hooks.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/http2.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/https.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/parser.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/plugin.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/route-prefix.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/shared-schema.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/simple-stream.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/simple.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/simple.mjs",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "examples/typescript-server.ts",
+        "folder": "examples",
+        "language": "typescript"
+      },
+      {
+        "file": "examples/use-plugin.js",
+        "folder": "examples",
+        "language": "javascript"
+      },
+      {
+        "file": "fastify.d.ts",
+        "folder": ".",
+        "language": "typescript"
+      },
+      {
+        "file": "fastify.js",
+        "folder": ".",
+        "language": "javascript"
+      },
+      {
+        "file": "integration/server.js",
+        "folder": "integration",
+        "language": "javascript"
+      },
+      {
+        "file": "integration/test.sh",
+        "folder": "integration",
+        "language": "shell"
+      },
+      {
+        "file": "scripts/validate-ecosystem-links.js",
+        "folder": "scripts",
+        "language": "javascript"
+      },
+      {
+        "file": "test/404s.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/500s.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/allow-unsafe-regex.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/als.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/async-await.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/async-dispose.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/async_hooks.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/body-limit.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/buffer.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/build/error-serializer.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/build/version.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/build-certificate.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/bundler/README.md",
+        "folder": "test",
+        "language": "markdown"
+      },
+      {
+        "file": "test/bundler/esbuild/bundler-test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/bundler/esbuild/src/fail-plugin-version.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/bundler/esbuild/src/index.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/bundler/webpack/bundler-test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/bundler/webpack/src/fail-plugin-version.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/bundler/webpack/src/index.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/bundler/webpack/webpack.config.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/case-insensitive.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/chainable.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/child-logger-factory.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/client-timeout.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/close-pipelining.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/close.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/conditional-pino.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/connection-timeout.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/constrained-routes.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/content-length.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/content-parser.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/content-type.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/context-config.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-http-server.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-parser-async.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-parser.0.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-parser.1.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-parser.2.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-parser.3.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-parser.4.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-parser.5.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/custom-querystring-parser.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/decorator.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/delete.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/404.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/async-delay-request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/async-request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/error-before-handler.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/error-request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/error-status.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/init.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/sync-delay-request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/sync-request-reply.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/diagnostics-channel/sync-request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/encapsulated-child-logger-factory.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/encapsulated-error-handler.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/esm/errorCodes.test.mjs",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/esm/esm.test.mjs",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/esm/index.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/esm/named-exports.mjs",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/esm/other.mjs",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/esm/plugin.mjs",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/fastify-instance.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/find-route.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/fluent-schema.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/genReqId.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/handler-context.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/handler-timeout.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/has-route.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/header-overflow.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/helper.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/hooks-async.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/hooks.on-listen.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/hooks.on-ready.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/hooks.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/copy.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/custom-http-methods.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/get.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/head.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/lock.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/mkcalendar.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/mkcol.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/move.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/propfind.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/proppatch.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/report.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/search.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/trace.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http-methods/unlock.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http2/closing.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http2/constraint.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http2/head.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http2/plain.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http2/secure-with-fallback.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http2/secure.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/http2/unknown-http-method.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/https/custom-https-server.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/https/https.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/imports.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/inject.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/input-validation.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/all.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/content-type-parser.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/context.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/decorator.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/errors.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/handle-request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/hook-runner.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/hooks.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/initial-config.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/logger.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/plugin.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/promise.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/reply-serialize.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/reply.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/req-id-gen-factory.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/request-validate.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/schema-controller-perf.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/server.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/internals/validation.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/issue-4959.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/keep-alive-timeout.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/listen.1.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/listen.2.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/listen.3.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/listen.4.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/listen.5.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/logger/instantiation.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/logger/logger-test-utils.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/logger/logging.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/logger/options.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/logger/request.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/logger/response.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/max-requests-per-socket.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/middleware.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/noop-set.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/nullable-validation.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/options.error-handler.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/options.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/output-validation.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/patch.error-handler.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/patch.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/plugin.1.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/plugin.2.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/plugin.3.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/plugin.4.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/plugin.helper.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/plugin.name.display.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/post-empty-body.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/pretty-print.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/promises.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/proto-poisoning.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/put.error-handler.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/put.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/register.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/reply-code.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/reply-early-hints.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/reply-error.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/reply-trailers.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/reply-web-stream-locked.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/request-error.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/request-header-host.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/request-id.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/request-media-type.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/request-port.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/request-timeout.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route-hooks.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route-prefix.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route-shorthand.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.1.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.2.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.3.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.4.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.5.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.6.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.7.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/route.8.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/router-options.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/same-shape.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/schema-examples.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/schema-feature.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/schema-serialization.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/schema-special-usage.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/schema-validation.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/scripts/validate-ecosystem-links.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/serialize-response.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/server.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/set-error-handler.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/skip-reply-send.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/stream-serializers.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/stream.1.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/stream.2.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/stream.3.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/stream.4.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/stream.5.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/sync-routes.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/throw.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/toolkit.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/trust-proxy.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/type-provider.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/types/content-type-parser.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/decorate-request-reply.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/dummy-plugin.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/errors.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/fastify.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/hooks.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/import.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/instance.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/logger.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/plugin.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/register.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/reply.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/request.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/route.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/schema.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/serverFactory.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/type-provider.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/types/using.test-d.ts",
+        "folder": "test",
+        "language": "typescript"
+      },
+      {
+        "file": "test/upgrade.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/url-rewriting.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/use-semicolon-delimiter.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/validation-error-handling.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/versioned-routes.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/web-api.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "test/wrap-thenable.test.js",
+        "folder": "test",
+        "language": "javascript"
+      },
+      {
+        "file": "types/content-type-parser.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/context.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/errors.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/hooks.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/instance.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/logger.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/plugin.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/register.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/reply.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/request.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/route.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/schema.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/server-factory.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/type-provider.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      },
+      {
+        "file": "types/utils.d.ts",
+        "folder": "types",
+        "language": "typescript"
+      }
+    ],
+    "missingImportantFiles": [],
+    "zeroSigFiles": [
+      {
+        "file": "lib/error-serializer.js",
+        "extractor": "javascript",
+        "folder": "lib"
+      },
+      {
+        "file": "lib/noop-set.js",
+        "extractor": "javascript",
+        "folder": "lib"
+      },
+      {
+        "file": "lib/symbols.js",
+        "extractor": "javascript",
+        "folder": "lib"
+      }
+    ],
+    "recommendedSrcDirs": [
+      {
+        "folder": "test",
+        "reason": "226 supported files are outside current coverage",
+        "examples": [
+          "test/404s.test.js",
+          "test/500s.test.js",
+          "test/allow-unsafe-regex.test.js",
+          "test/als.test.js",
+          "test/async-await.test.js"
+        ]
+      },
+      {
+        "folder": "docs",
+        "reason": "42 supported files are outside current coverage",
+        "examples": [
+          "docs/Guides/Benchmarking.md",
+          "docs/Guides/Contributing.md",
+          "docs/Guides/Database.md",
+          "docs/Guides/Delay-Accepting-Requests.md",
+          "docs/Guides/Detecting-When-Clients-Abort.md"
+        ]
+      },
+      {
+        "folder": ".github",
+        "reason": "25 supported files are outside current coverage",
+        "examples": [
+          ".github/context-cold.md",
+          ".github/copilot-instructions.md",
+          ".github/dependabot.yml",
+          ".github/labeler.yml",
+          ".github/scripts/lint-ecosystem.js"
+        ]
+      },
+      {
+        "folder": "examples",
+        "reason": "18 supported files are outside current coverage",
+        "examples": [
+          "examples/asyncawait.js",
+          "examples/benchmark/hooks-benchmark-async-await.js",
+          "examples/benchmark/hooks-benchmark.js",
+          "examples/benchmark/parser.js",
+          "examples/benchmark/simple.js"
+        ]
+      },
+      {
+        "folder": "types",
+        "reason": "15 supported files are outside current coverage",
+        "examples": [
+          "types/content-type-parser.d.ts",
+          "types/context.d.ts",
+          "types/errors.d.ts",
+          "types/hooks.d.ts",
+          "types/instance.d.ts"
+        ]
+      },
+      {
+        "folder": "integration",
+        "reason": "2 supported files are outside current coverage",
+        "examples": [
+          "integration/server.js",
+          "integration/test.sh"
+        ]
+      },
+      {
+        "folder": "scripts",
+        "reason": "1 supported files are outside current coverage",
+        "examples": [
+          "scripts/validate-ecosystem-links.js"
+        ]
+      }
+    ],
+    "manualIndexFolders": [],
+    "weakExtractorFolders": [
+      {
+        "folder": "lib",
+        "zeroSigFiles": 3,
+        "analyzedFiles": 31,
+        "totalTokens": 2181
+      }
+    ]
+  },
+  "strategies": {
+    "full": {
+      "strategy": "full",
+      "report": {
+        "version": "3.5.0",
+        "timestamp": "2026-04-14T22:00:53.738Z",
+        "rawTokens": 54423,
+        "inputTokens": 54423,
+        "finalTokens": 2579,
+        "fileCount": 28,
+        "droppedCount": 0,
+        "reductionPct": 95.3,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "lib/config-validator.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "lib/content-type-parser.js",
+            "extractor": "javascript",
+            "sigs": 11,
+            "tokens": 138,
+            "covered": false
+          },
+          {
+            "file": "lib/content-type.js",
+            "extractor": "javascript",
+            "sigs": 9,
+            "tokens": 57,
+            "covered": true
+          },
+          {
+            "file": "lib/context.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 90,
+            "covered": true
+          },
+          {
+            "file": "lib/decorate.js",
+            "extractor": "javascript",
+            "sigs": 14,
+            "tokens": 196,
+            "covered": false
+          },
+          {
+            "file": "lib/error-handler.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 71,
+            "covered": true
+          },
+          {
+            "file": "lib/error-serializer.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "lib/error-status.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "lib/errors.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "lib/four-oh-four.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "lib/handle-request.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 74,
+            "covered": false
+          },
+          {
+            "file": "lib/head-route.js",
+            "extractor": "javascript",
+            "sigs": 3,
+            "tokens": 38,
+            "covered": false
+          },
+          {
+            "file": "lib/hooks.js",
+            "extractor": "javascript",
+            "sigs": 11,
+            "tokens": 202,
+            "covered": true
+          },
+          {
+            "file": "lib/initial-config-validation.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "lib/logger-factory.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 89,
+            "covered": true
+          },
+          {
+            "file": "lib/logger-pino.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "lib/noop-set.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "lib/plugin-override.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "lib/plugin-utils.js",
+            "extractor": "javascript",
+            "sigs": 13,
+            "tokens": 121,
+            "covered": false
+          },
+          {
+            "file": "lib/promise.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 53,
+            "covered": true
+          },
+          {
+            "file": "lib/reply.js",
+            "extractor": "javascript",
+            "sigs": 20,
+            "tokens": 203,
+            "covered": true
+          },
+          {
+            "file": "lib/req-id-gen-factory.js",
+            "extractor": "javascript",
+            "sigs": 5,
+            "tokens": 61,
+            "covered": false
+          },
+          {
+            "file": "lib/request.js",
+            "extractor": "javascript",
+            "sigs": 7,
+            "tokens": 75,
+            "covered": true
+          },
+          {
+            "file": "lib/route.js",
+            "extractor": "javascript",
+            "sigs": 12,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "lib/schema-controller.js",
+            "extractor": "javascript",
+            "sigs": 10,
+            "tokens": 71,
+            "covered": false
+          },
+          {
+            "file": "lib/schemas.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 81,
+            "covered": false
+          },
+          {
+            "file": "lib/server.js",
+            "extractor": "javascript",
+            "sigs": 9,
+            "tokens": 122,
+            "covered": true
+          },
+          {
+            "file": "lib/symbols.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "lib/validation.js",
+            "extractor": "javascript",
+            "sigs": 10,
+            "tokens": 163,
+            "covered": true
+          },
+          {
+            "file": "lib/warnings.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "lib/wrap-thenable.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": true
+          }
+        ],
+        "totalSigs": 174,
+        "totalTokens": 2181,
+        "slowFiles": [],
+        "fileCount": 31
+      },
+      "stdoutMetrics": {}
+    },
+    "per-module": {
+      "strategy": "per-module",
+      "report": {
+        "version": "3.5.0",
+        "timestamp": "2026-04-14T22:00:54.298Z",
+        "rawTokens": 54423,
+        "inputTokens": 54423,
+        "finalTokens": 2579,
+        "fileCount": 28,
+        "droppedCount": 0,
+        "reductionPct": 95.3,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "lib/config-validator.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "lib/content-type-parser.js",
+            "extractor": "javascript",
+            "sigs": 11,
+            "tokens": 138,
+            "covered": false
+          },
+          {
+            "file": "lib/content-type.js",
+            "extractor": "javascript",
+            "sigs": 9,
+            "tokens": 57,
+            "covered": true
+          },
+          {
+            "file": "lib/context.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 90,
+            "covered": true
+          },
+          {
+            "file": "lib/decorate.js",
+            "extractor": "javascript",
+            "sigs": 14,
+            "tokens": 196,
+            "covered": false
+          },
+          {
+            "file": "lib/error-handler.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 71,
+            "covered": true
+          },
+          {
+            "file": "lib/error-serializer.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "lib/error-status.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "lib/errors.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "lib/four-oh-four.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "lib/handle-request.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 74,
+            "covered": false
+          },
+          {
+            "file": "lib/head-route.js",
+            "extractor": "javascript",
+            "sigs": 3,
+            "tokens": 38,
+            "covered": false
+          },
+          {
+            "file": "lib/hooks.js",
+            "extractor": "javascript",
+            "sigs": 11,
+            "tokens": 202,
+            "covered": true
+          },
+          {
+            "file": "lib/initial-config-validation.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "lib/logger-factory.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 89,
+            "covered": true
+          },
+          {
+            "file": "lib/logger-pino.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "lib/noop-set.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "lib/plugin-override.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "lib/plugin-utils.js",
+            "extractor": "javascript",
+            "sigs": 13,
+            "tokens": 121,
+            "covered": false
+          },
+          {
+            "file": "lib/promise.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 53,
+            "covered": true
+          },
+          {
+            "file": "lib/reply.js",
+            "extractor": "javascript",
+            "sigs": 20,
+            "tokens": 203,
+            "covered": true
+          },
+          {
+            "file": "lib/req-id-gen-factory.js",
+            "extractor": "javascript",
+            "sigs": 5,
+            "tokens": 61,
+            "covered": false
+          },
+          {
+            "file": "lib/request.js",
+            "extractor": "javascript",
+            "sigs": 7,
+            "tokens": 75,
+            "covered": true
+          },
+          {
+            "file": "lib/route.js",
+            "extractor": "javascript",
+            "sigs": 12,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "lib/schema-controller.js",
+            "extractor": "javascript",
+            "sigs": 10,
+            "tokens": 71,
+            "covered": false
+          },
+          {
+            "file": "lib/schemas.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 81,
+            "covered": false
+          },
+          {
+            "file": "lib/server.js",
+            "extractor": "javascript",
+            "sigs": 9,
+            "tokens": 122,
+            "covered": true
+          },
+          {
+            "file": "lib/symbols.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "lib/validation.js",
+            "extractor": "javascript",
+            "sigs": 10,
+            "tokens": 163,
+            "covered": true
+          },
+          {
+            "file": "lib/warnings.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "lib/wrap-thenable.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": true
+          }
+        ],
+        "totalSigs": 174,
+        "totalTokens": 2181,
+        "slowFiles": [],
+        "fileCount": 31
+      },
+      "stdoutMetrics": {
+        "moduleCount": null,
+        "modules": [],
+        "overviewTokens": null,
+        "moduleTokens": null
+      }
+    },
+    "hot-cold": {
+      "strategy": "hot-cold",
+      "report": {
+        "version": "3.5.0",
+        "timestamp": "2026-04-14T22:00:54.975Z",
+        "rawTokens": 54423,
+        "inputTokens": 54423,
+        "finalTokens": 2579,
+        "fileCount": 28,
+        "droppedCount": 0,
+        "reductionPct": 95.3,
+        "overBudget": false,
+        "budgetLimit": 6000
+      },
+      "analyze": {
+        "files": [
+          {
+            "file": "lib/config-validator.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 24,
+            "covered": false
+          },
+          {
+            "file": "lib/content-type-parser.js",
+            "extractor": "javascript",
+            "sigs": 11,
+            "tokens": 138,
+            "covered": false
+          },
+          {
+            "file": "lib/content-type.js",
+            "extractor": "javascript",
+            "sigs": 9,
+            "tokens": 57,
+            "covered": true
+          },
+          {
+            "file": "lib/context.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 90,
+            "covered": true
+          },
+          {
+            "file": "lib/decorate.js",
+            "extractor": "javascript",
+            "sigs": 14,
+            "tokens": 196,
+            "covered": false
+          },
+          {
+            "file": "lib/error-handler.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 71,
+            "covered": true
+          },
+          {
+            "file": "lib/error-serializer.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "lib/error-status.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 20,
+            "covered": false
+          },
+          {
+            "file": "lib/errors.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 11,
+            "covered": false
+          },
+          {
+            "file": "lib/four-oh-four.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 7,
+            "covered": false
+          },
+          {
+            "file": "lib/handle-request.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 74,
+            "covered": false
+          },
+          {
+            "file": "lib/head-route.js",
+            "extractor": "javascript",
+            "sigs": 3,
+            "tokens": 38,
+            "covered": false
+          },
+          {
+            "file": "lib/hooks.js",
+            "extractor": "javascript",
+            "sigs": 11,
+            "tokens": 202,
+            "covered": true
+          },
+          {
+            "file": "lib/initial-config-validation.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 18,
+            "covered": false
+          },
+          {
+            "file": "lib/logger-factory.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 89,
+            "covered": true
+          },
+          {
+            "file": "lib/logger-pino.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 21,
+            "covered": false
+          },
+          {
+            "file": "lib/noop-set.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": true
+          },
+          {
+            "file": "lib/plugin-override.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 14,
+            "covered": false
+          },
+          {
+            "file": "lib/plugin-utils.js",
+            "extractor": "javascript",
+            "sigs": 13,
+            "tokens": 121,
+            "covered": false
+          },
+          {
+            "file": "lib/promise.js",
+            "extractor": "javascript",
+            "sigs": 2,
+            "tokens": 53,
+            "covered": true
+          },
+          {
+            "file": "lib/reply.js",
+            "extractor": "javascript",
+            "sigs": 20,
+            "tokens": 203,
+            "covered": true
+          },
+          {
+            "file": "lib/req-id-gen-factory.js",
+            "extractor": "javascript",
+            "sigs": 5,
+            "tokens": 61,
+            "covered": false
+          },
+          {
+            "file": "lib/request.js",
+            "extractor": "javascript",
+            "sigs": 7,
+            "tokens": 75,
+            "covered": true
+          },
+          {
+            "file": "lib/route.js",
+            "extractor": "javascript",
+            "sigs": 12,
+            "tokens": 130,
+            "covered": true
+          },
+          {
+            "file": "lib/schema-controller.js",
+            "extractor": "javascript",
+            "sigs": 10,
+            "tokens": 71,
+            "covered": false
+          },
+          {
+            "file": "lib/schemas.js",
+            "extractor": "javascript",
+            "sigs": 6,
+            "tokens": 81,
+            "covered": false
+          },
+          {
+            "file": "lib/server.js",
+            "extractor": "javascript",
+            "sigs": 9,
+            "tokens": 122,
+            "covered": true
+          },
+          {
+            "file": "lib/symbols.js",
+            "extractor": "javascript",
+            "sigs": 0,
+            "tokens": 0,
+            "covered": false
+          },
+          {
+            "file": "lib/validation.js",
+            "extractor": "javascript",
+            "sigs": 10,
+            "tokens": 163,
+            "covered": true
+          },
+          {
+            "file": "lib/warnings.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 19,
+            "covered": false
+          },
+          {
+            "file": "lib/wrap-thenable.js",
+            "extractor": "javascript",
+            "sigs": 1,
+            "tokens": 12,
+            "covered": true
+          }
+        ],
+        "totalSigs": 174,
+        "totalTokens": 2181,
+        "slowFiles": [],
+        "fileCount": 31
+      },
+      "stdoutMetrics": {
+        "hotFiles": null,
+        "hotTokens": null,
+        "coldFiles": null,
+        "coldTokens": null
+      }
+    }
+  }
+}

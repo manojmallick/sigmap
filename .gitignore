@@ -11,3 +11,7 @@ PLAN.md
 .DS_Store
 VISION.md
 benchmarks/repos/
+benchmarks/results/
+
+# Strategy-audit process logs — ephemeral stdout/stderr from benchmark runs
+benchmarks/reports/strategy-audit/**/*.log
