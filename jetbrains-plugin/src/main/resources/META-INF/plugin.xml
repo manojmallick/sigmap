@@ -25,6 +25,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <statusBarWidgetFactory implementation="com.sigmap.plugin.HealthStatusBarFactory" id="sigmap.healthStatusBar"/>
+        <!-- Feature 4: notification group for stale context popup -->
+        <notificationGroup id="SigMap" displayType="BALLOON" isLogByDefault="false"/>
     </extensions>
 
     <actions>

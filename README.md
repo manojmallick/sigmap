@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs-vp/.vitepress/public/logo.svg" alt="SigMap logo" width="64" height="84" />
+<img src="assets/logo.png" alt="SigMap logo" width="80" height="80" />
 
 <h1>⚡ SigMap</h1>
 
@@ -455,6 +455,10 @@ Activates on startup (`onStartupFinished`) — loads within 3 s, never blocks ed
 ## 🔧 JetBrains plugin
 
 The official SigMap JetBrains plugin brings the same features to IntelliJ-based IDEs. Install it from the JetBrains Marketplace and it works identically to the VS Code extension.
+
+<div align="center">
+<img src="assets/intelij.gif" alt="SigMap JetBrains plugin — status bar health grade, regenerate action, and context auto-refresh in IntelliJ IDEA" width="700" />
+</div>
 
 | Feature | Detail |
 |---|---|

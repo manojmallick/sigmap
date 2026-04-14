@@ -70,7 +70,7 @@ function teardown() {
 function testRunAlias() {
   const r = run(['run', '--version']);
   assert('feature-1 run alias: exits 0', r.status === 0, `exit ${r.status}`);
-  assert('feature-1 run alias: prints version', (r.stdout + r.stderr).includes('3.5.1'), `output: ${r.stdout}`);
+  assert('feature-1 run alias: prints version', /\d+\.\d+\.\d+/.test(r.stdout + r.stderr), `output: ${r.stdout}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ function testLlmTxtModule() {
   assert('feature-3 llm-txt: starts with # Project: my-app', out.startsWith('# Project: my-app'), 'wrong header');
   assert('feature-3 llm-txt: contains Languages', out.includes('Languages:'), 'no Languages line');
   assert('feature-3 llm-txt: contains ## Modules', out.includes('## Modules'), 'no Modules section');
-  assert('feature-3 llm-txt: contains SigMap v3.5.1', out.includes('SigMap v3.5.1'), 'no version');
+  assert('feature-3 llm-txt: contains SigMap v', out.includes('SigMap v'), 'no version');
   assert('feature-3 llm-txt: outputPath returns llm.txt', mod.outputPath('/cwd').endsWith('llm.txt'), 'wrong outputPath');
 }
 
@@ -229,7 +229,7 @@ function testGenericExtractor() {
 function testPostRunSummary() {
   const r = run([]);
   // Summary is written to stderr
-  assert('feature-8 post-run: SigMap v3.5.1 in stderr', r.stderr.includes('SigMap v3.5.1'), `stderr: ${r.stderr.slice(0, 200)}`);
+  assert('feature-8 post-run: SigMap v in stderr', r.stderr.includes('SigMap v'), `stderr: ${r.stderr.slice(0, 200)}`);
   assert('feature-8 post-run: Files scanned in stderr',  r.stderr.includes('Files scanned'), 'no Files scanned line');
   assert('feature-8 post-run: Token reduction in stderr', r.stderr.includes('Token reduction'), 'no Token reduction line');
 }

@@ -6040,7 +6040,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '3.5.1';
+const VERSION = '3.6.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -6270,12 +6270,13 @@ function applyTokenBudget(fileEntries, maxTokens) {
   // Sort by drop priority (drop first = index 0)
   const withPriority = fileEntries.map((e) => {
     let priority = 0;
-    if (isGeneratedFile(e.filePath)) priority = 10;
-    else if (isMockFile(e.filePath)) priority = 9;
-    else if (isTestFile(e.filePath)) priority = 8;
-    else if (isConfigFile(e.filePath)) priority = 6;
+    let dropReason = 'budget: low recency';
+    if (isGeneratedFile(e.filePath)) { priority = 10; dropReason = 'budget: generated file'; }
+    else if (isMockFile(e.filePath)) { priority = 9;  dropReason = 'budget: mock file'; }
+    else if (isTestFile(e.filePath)) { priority = 8;  dropReason = 'budget: test file'; }
+    else if (isConfigFile(e.filePath)) { priority = 6; dropReason = 'budget: config file'; }
     else priority = 4;
-    return { ...e, priority };
+    return { ...e, priority, dropReason };
   });
 
   // Within same priority, sort by mtime ascending (oldest first = drop first)
@@ -6285,20 +6286,27 @@ function applyTokenBudget(fileEntries, maxTokens) {
   });
 
   const kept = [];
-  let dropped = 0;
+  const verboseDropped = [];
   // Iterate forward: highest drop-priority files (generated=10, mock=9, test=8) are at index 0
   // Drop those first until we're under budget, then keep everything else
   for (const entry of withPriority) {
     const entryTokens = estimateTokens(entry.sigs.join('\n'));
     if (total > effectiveBudget) {
       total -= entryTokens;
-      dropped++;
+      verboseDropped.push({ filePath: entry.filePath, reason: entry.dropReason });
     } else {
       kept.push(entry);
     }
   }
-  if (dropped > 0) {
-    console.warn(`[sigmap] budget: dropped ${dropped} files to stay under ${maxTokens} tokens`);
+  if (verboseDropped.length > 0) {
+    console.warn(`[sigmap] budget: dropped ${verboseDropped.length} files to stay under ${maxTokens} tokens`);
+    // Feature 7: --verbose — print per-file drop reason
+    if (process.argv.includes('--verbose')) {
+      for (const { filePath, reason } of verboseDropped) {
+        console.warn(`[sigmap] dropped: ${path.relative(process.cwd(), filePath)} — ${reason}`);
+      }
+      console.warn(`[sigmap] included: ${kept.length} files, dropped: ${verboseDropped.length}`);
+    }
   }
   return kept;
 }
@@ -7628,6 +7636,87 @@ function main() {
     process.exit(0);
   }
 
+  // Feature 1: `sigmap explain <file>` — why a file is included or excluded
+  if (args[0] === 'explain' || args.includes('--explain')) {
+    const target = args[0] === 'explain'
+      ? args[1]
+      : args[args.indexOf('--explain') + 1];
+
+    if (!target || target.startsWith('--')) {
+      console.error('[sigmap] Usage: sigmap explain <file>');
+      process.exit(1);
+    }
+
+    const absPath = path.resolve(cwd, target);
+    const rel     = path.relative(cwd, absPath);
+    const jsonOut = args.includes('--json');
+
+    // 1. Check .contextignore
+    const ignorePatterns = loadIgnorePatterns(cwd);
+    const ignored = matchesIgnore(rel.replace(/\\/g, '/'), ignorePatterns);
+    if (ignored) {
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify({ status: 'excluded', reason: '.contextignore', fix: `remove the pattern or add '!${rel}' as an exception` }) + '\n');
+      } else {
+        console.log(`[sigmap] ${rel} — EXCLUDED`);
+        console.log(`  Reason: matched .contextignore`);
+        console.log(`  Fix:    remove the pattern or add '!${rel}' as an exception`);
+      }
+      process.exit(0);
+    }
+
+    // 2. Check srcDirs membership
+    const inSrcDirs = (config.srcDirs || []).some(d => absPath.startsWith(path.resolve(cwd, d)));
+    if (!inSrcDirs) {
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify({ status: 'excluded', reason: 'not in srcDirs', srcDirs: config.srcDirs, fix: 'add the containing directory to srcDirs in gen-context.config.json' }) + '\n');
+      } else {
+        console.log(`[sigmap] ${rel} — EXCLUDED`);
+        console.log(`  Reason: not under any srcDir (${(config.srcDirs || []).join(', ')})`);
+        console.log(`  Fix:    add the containing directory to srcDirs in gen-context.config.json`);
+      }
+      process.exit(0);
+    }
+
+    // 3. Detect extractor and extract sigs
+    const base    = path.basename(absPath);
+    const ext     = path.extname(base).toLowerCase();
+    let extractorName = EXT_MAP[ext] || null;
+    if (!extractorName && isDockerfile(base)) extractorName = 'dockerfile';
+    if (!extractorName) extractorName = 'generic';
+
+    let sigs = [];
+    if (fs.existsSync(absPath)) {
+      try {
+        const content = fs.readFileSync(absPath, 'utf8');
+        const extractor = getExtractor(extractorName);
+        if (extractor) sigs = extractor.extract(content).slice(0, config.maxSigsPerFile || 25);
+      } catch (_) {}
+    }
+
+    if (!sigs.length) {
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, fix: 'check that the file contains function/class definitions' }) + '\n');
+      } else {
+        console.log(`[sigmap] ${rel} — EXCLUDED`);
+        console.log(`  Reason: no extractable signatures (extractor: ${extractorName})`);
+        console.log(`  Fix:    check that the file contains function/class definitions`);
+      }
+      process.exit(0);
+    }
+
+    // 4. Included
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify({ status: 'included', extractor: extractorName, signatures: sigs.length, preview: sigs.slice(0, 3), sigs }) + '\n');
+    } else {
+      console.log(`[sigmap] ${rel} — INCLUDED`);
+      console.log(`  Extractor : ${extractorName}`);
+      console.log(`  Signatures: ${sigs.length}`);
+      console.log(`  Preview   : ${sigs.slice(0, 3).join(' · ')}`);
+    }
+    process.exit(0);
+  }
+
   if (args.includes('--init')) {
     writeInitConfig(cwd);
     process.exit(0);
@@ -7637,7 +7726,14 @@ function main() {
     const { score } = __require('./src/health/scorer');
     const result = score(cwd);
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      // Feature 3 (VS Code) + Feature 5 (JetBrains): emit tokens + reduction for plugins
+      const ctxPath = path.join(cwd, '.github', 'copilot-instructions.md');
+      let tokens = 0;
+      let reduction = result.tokenReductionPct || 0;
+      if (fs.existsSync(ctxPath)) {
+        try { tokens = estimateTokens(fs.readFileSync(ctxPath, 'utf8')); } catch (_) {}
+      }
+      process.stdout.write(JSON.stringify({ ...result, tokens, reduction }) + '\n');
     } else {
       console.log('[sigmap] health:');
       console.log(`  score           : ${result.score}/100 (grade ${result.grade})`);

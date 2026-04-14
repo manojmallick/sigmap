@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg512" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#1a1740"/>
+      <stop offset="100%" stop-color="#2e2070"/>
+    </linearGradient>
+    <linearGradient id="wave512" x1="72" y1="256" x2="440" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <filter id="glow512" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="97.28" fill="url(#bg512)"/>
+  <line x1="0" y1="168" x2="512" y2="168" stroke="#ffffff" stroke-width="0.6" opacity="0.05"/>
+  <line x1="0" y1="344" x2="512" y2="344" stroke="#ffffff" stroke-width="0.6" opacity="0.05"/>
+  <path d="M 72 272 C 120 136, 216 136, 256 256 C 296 376, 392 376, 440 240" stroke="url(#wave512)" stroke-width="36" fill="none"
+        stroke-linecap="round" opacity="0.25" filter="url(#glow512)"/>
+  <path d="M 72 272 C 120 136, 216 136, 256 256 C 296 376, 392 376, 440 240" stroke="url(#wave512)" stroke-width="22" fill="none"
+        stroke-linecap="round"/>
+  <circle cx="72" cy="272" r="22" fill="#818cf8" opacity="0.92"/>
+    <circle cx="256" cy="256" r="28" fill="#a78bfa" opacity="0.92"/>
+    <circle cx="440" cy="240" r="22" fill="#c084fc" opacity="0.92"/>
+  <text x="408" y="456"
+         font-family="'SF Mono','JetBrains Mono','Fira Code',monospace"
+         font-size="76" font-weight="700" fill="#c4b5fd" opacity="0.75"
+         text-anchor="middle" letter-spacing="-0.5">sm</text>
+</svg>
