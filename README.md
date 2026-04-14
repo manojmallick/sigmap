@@ -19,6 +19,8 @@
 npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again.
 ```
 
+> Latest: **v3.3.4** includes a standalone binary bundle fix for newly added P1 extractors.
+
 <div align="center">
 <img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
 </div>

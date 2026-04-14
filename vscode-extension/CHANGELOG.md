@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.3.4] - 2026-04-14
+
+### Changed
+- Version sync with SigMap core release 3.3.4
+- Updated marketplace description language count from 21 to 25
+
 ## [3.3.3] - 2026-04-14
 
 ### Added
