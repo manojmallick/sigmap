@@ -24,6 +24,16 @@ Format: [Semantic Versioning](https://semver.org/)
 - **Framework-aware source discovery** defaults expanded for Next/React, Angular, Rails, Laravel, and Flask/Python-style layouts.
 - **Strategy audit coverage rules** updated to treat Phase A formats as supported instead of important unsupported baselines.
 - **Default srcDirs** broadened to improve first-run context quality on framework-heavy repositories.
+## [3.3.4] — 2026-04-14 — Binary Bundle Fix
+
+### Fixed
+- **Standalone binary pre-flight now passes for new P1 extractors**
+  - Added missing bundled `__factories` entries in `gen-context.js` for:
+    - `./src/extractors/graphql`
+    - `./src/extractors/protobuf`
+    - `./src/extractors/sql`
+    - `./src/extractors/terraform`
+  - Resolves CI/build failure in `scripts/build-binary.mjs` reporting missing `src/` modules in bundle.
 
 ---
 
