@@ -1680,6 +1680,326 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
   
 };
 
+// ── ./src/extractors/graphql ──
+__factories["./src/extractors/graphql"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Extract signatures from GraphQL schema / operation files.
+   * Captures type, interface, enum, input, union, scalar, query, mutation,
+   * subscription, fragment definitions.
+   *
+   * @param {string} src - Raw GraphQL content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    // Strip comments (# style)
+    const stripped = src.replace(/#[^\n]*/g, '');
+  
+    // Schema type definitions: type Foo [implements Bar] { ... }
+    for (const m of stripped.matchAll(
+      /\b(type|interface|input)\s+(\w+)(?:\s+implements\s+([\w\s&]+))?\s*\{/g
+    )) {
+      const implements_ = m[3] ? ` implements ${m[3].trim().replace(/\s+/g, ' ')}` : '';
+      sigs.push(`${m[1]} ${m[2]}${implements_}`);
+    }
+  
+    // enum
+    for (const m of stripped.matchAll(/\benum\s+(\w+)\s*\{/g)) {
+      sigs.push(`enum ${m[1]}`);
+    }
+  
+    // union
+    for (const m of stripped.matchAll(/\bunion\s+(\w+)\s*=/g)) {
+      sigs.push(`union ${m[1]}`);
+    }
+  
+    // scalar
+    for (const m of stripped.matchAll(/\bscalar\s+(\w+)/g)) {
+      sigs.push(`scalar ${m[1]}`);
+    }
+  
+    // extend type / extend interface
+    for (const m of stripped.matchAll(/\bextend\s+(type|interface)\s+(\w+)/g)) {
+      sigs.push(`extend ${m[1]} ${m[2]}`);
+    }
+  
+    // Query / Mutation / Subscription operations
+    for (const m of stripped.matchAll(
+      /\b(query|mutation|subscription)\s+(\w+)\s*(?:\([^)]*\))?\s*\{/g
+    )) {
+      sigs.push(`${m[1]} ${m[2]}`);
+    }
+  
+    // Named fragments
+    for (const m of stripped.matchAll(/\bfragment\s+(\w+)\s+on\s+(\w+)/g)) {
+      sigs.push(`fragment ${m[1]} on ${m[2]}`);
+    }
+  
+    // Top-level schema { query: ... }
+    if (/\bschema\s*\{/.test(stripped)) {
+      sigs.push('schema { ... }');
+    }
+  
+    return sigs;
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/protobuf ──
+__factories["./src/extractors/protobuf"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Extract signatures from Protocol Buffer (.proto) files.
+   * Captures message, enum, service, rpc, oneof, extend definitions.
+   *
+   * @param {string} src - Raw .proto content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    // Strip single-line and block comments
+    const stripped = src
+      .replace(/\/\/[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+  
+    // syntax / package / option (top-level metadata)
+    const syntaxM = stripped.match(/\bsyntax\s*=\s*"([^"]+)"/);
+    if (syntaxM) sigs.push(`syntax = "${syntaxM[1]}"`);
+  
+    const pkgM = stripped.match(/\bpackage\s+([\w.]+)\s*;/);
+    if (pkgM) sigs.push(`package ${pkgM[1]}`);
+  
+    // message <Name> { ... }
+    for (const m of stripped.matchAll(/\bmessage\s+(\w+)\s*\{/g)) {
+      sigs.push(`message ${m[1]}`);
+    }
+  
+    // enum <Name> { ... }
+    for (const m of stripped.matchAll(/\benum\s+(\w+)\s*\{/g)) {
+      sigs.push(`enum ${m[1]}`);
+    }
+  
+    // service <Name> { ... }
+    for (const m of stripped.matchAll(/\bservice\s+(\w+)\s*\{/g)) {
+      sigs.push(`service ${m[1]}`);
+    }
+  
+    // rpc <Name>(<Request>) returns (<Response>)
+    for (const m of stripped.matchAll(
+      /\brpc\s+(\w+)\s*\(\s*(stream\s+)?(\w+)\s*\)\s+returns\s*\(\s*(stream\s+)?(\w+)\s*\)/g
+    )) {
+      const req = `${m[2] || ''}${m[3]}`.trim();
+      const res = `${m[4] || ''}${m[5]}`.trim();
+      sigs.push(`rpc ${m[1]}(${req}) returns (${res})`);
+    }
+  
+    // oneof <name>
+    for (const m of stripped.matchAll(/\boneof\s+(\w+)\s*\{/g)) {
+      sigs.push(`oneof ${m[1]}`);
+    }
+  
+    // extend <TypeName>
+    for (const m of stripped.matchAll(/\bextend\s+([\w.]+)\s*\{/g)) {
+      sigs.push(`extend ${m[1]}`);
+    }
+  
+    return sigs;
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/sql ──
+__factories["./src/extractors/sql"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Extract signatures from SQL source files.
+   * Captures CREATE TABLE, VIEW, INDEX, FUNCTION, PROCEDURE, TRIGGER, TYPE, SEQUENCE.
+   *
+   * @param {string} src - Raw SQL content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    // Strip single-line comments and block comments
+    const stripped = src
+      .replace(/--[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+  
+    // CREATE TABLE [IF NOT EXISTS] <name> / CREATE [TEMP] TABLE ...
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:OR\s+REPLACE\s+)?(?:TEMP(?:ORARY)?\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)/gi
+    )) {
+      sigs.push(`TABLE ${_cleanName(m[1])}`);
+    }
+  
+    // CREATE VIEW / MATERIALIZED VIEW
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:OR\s+REPLACE\s+)?(?:MATERIALIZED\s+)?VIEW\s+(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)/gi
+    )) {
+      sigs.push(`VIEW ${_cleanName(m[1])}`);
+    }
+  
+    // CREATE INDEX / UNIQUE INDEX
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)\s+ON\s+([`"[\w.]+)/gi
+    )) {
+      sigs.push(`INDEX ${_cleanName(m[1])} ON ${_cleanName(m[2])}`);
+    }
+  
+    // CREATE FUNCTION / CREATE OR REPLACE FUNCTION
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([`"[\w.]+)\s*\(([^)]*)\)/gi
+    )) {
+      const params = _normalizeParams(m[2]);
+      sigs.push(`FUNCTION ${_cleanName(m[1])}(${params})`);
+    }
+  
+    // CREATE PROCEDURE
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+([`"[\w.]+)\s*\(([^)]*)\)/gi
+    )) {
+      const params = _normalizeParams(m[2]);
+      sigs.push(`PROCEDURE ${_cleanName(m[1])}(${params})`);
+    }
+  
+    // CREATE TRIGGER
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:OR\s+REPLACE\s+)?(?:CONSTRAINT\s+)?TRIGGER\s+([`"[\w.]+)/gi
+    )) {
+      sigs.push(`TRIGGER ${_cleanName(m[1])}`);
+    }
+  
+    // CREATE TYPE (composite, enum, domain)
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:OR\s+REPLACE\s+)?TYPE\s+([`"[\w.]+)/gi
+    )) {
+      sigs.push(`TYPE ${_cleanName(m[1])}`);
+    }
+  
+    // CREATE SEQUENCE
+    for (const m of stripped.matchAll(
+      /CREATE\s+(?:OR\s+REPLACE\s+)?SEQUENCE\s+(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)/gi
+    )) {
+      sigs.push(`SEQUENCE ${_cleanName(m[1])}`);
+    }
+  
+    return sigs;
+  }
+  
+  function _cleanName(raw) {
+    return raw.replace(/^[`"[]|[`"\]]+$/g, '').trim();
+  }
+  
+  function _normalizeParams(raw) {
+    if (!raw || !raw.trim()) return '';
+    return raw.trim()
+      .split(',')
+      .map((p) => p.trim().replace(/\s+/g, ' ').split(' ').slice(0, 2).join(' '))
+      .filter(Boolean)
+      .join(', ');
+  }
+  
+  module.exports = { extract };
+  
+};
+
+// ── ./src/extractors/terraform ──
+__factories["./src/extractors/terraform"] = function(module, exports) {
+  
+  'use strict';
+  
+  /**
+   * Extract signatures from Terraform (.tf / .tfvars) configuration files.
+   * Captures resource, data, module, variable, output, locals, provider,
+   * terraform blocks, and moved/import blocks.
+   *
+   * @param {string} src - Raw Terraform content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+  
+    // Strip single-line comments
+    const stripped = src
+      .replace(/\/\/[^\n]*/g, '')
+      .replace(/#[^\n]*/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+  
+    // resource "<type>" "<name>" { ... }
+    for (const m of stripped.matchAll(/\bresource\s+"([^"]+)"\s+"([^"]+)"\s*\{/g)) {
+      sigs.push(`resource "${m[1]}" "${m[2]}"`);
+    }
+  
+    // data "<type>" "<name>" { ... }
+    for (const m of stripped.matchAll(/\bdata\s+"([^"]+)"\s+"([^"]+)"\s*\{/g)) {
+      sigs.push(`data "${m[1]}" "${m[2]}"`);
+    }
+  
+    // module "<name>" { ... }
+    for (const m of stripped.matchAll(/\bmodule\s+"([^"]+)"\s*\{/g)) {
+      sigs.push(`module "${m[1]}"`);
+    }
+  
+    // variable "<name>" { ... }
+    for (const m of stripped.matchAll(/\bvariable\s+"([^"]+)"\s*\{/g)) {
+      sigs.push(`variable "${m[1]}"`);
+    }
+  
+    // output "<name>" { ... }
+    for (const m of stripped.matchAll(/\boutput\s+"([^"]+)"\s*\{/g)) {
+      sigs.push(`output "${m[1]}"`);
+    }
+  
+    // provider "<name>" { ... }
+    for (const m of stripped.matchAll(/\bprovider\s+"([^"]+)"\s*\{/g)) {
+      sigs.push(`provider "${m[1]}"`);
+    }
+  
+    // locals { ... } (just mark presence; key names too noisy to enumerate)
+    if (/\blocals\s*\{/.test(stripped)) {
+      sigs.push('locals { ... }');
+    }
+  
+    // terraform { required_providers / backend }
+    if (/\bterraform\s*\{/.test(stripped)) {
+      sigs.push('terraform { ... }');
+    }
+  
+    // moved block
+    for (const m of stripped.matchAll(/\bmoved\s*\{[\s\S]*?from\s*=\s*([^\n]+)/g)) {
+      sigs.push(`moved from ${m[1].trim()}`);
+    }
+  
+    // import block (Terraform 1.5+)
+    for (const m of stripped.matchAll(/\bimport\s*\{[\s\S]*?to\s*=\s*([^\n]+)/g)) {
+      sigs.push(`import to ${m[1].trim()}`);
+    }
+  
+    return sigs;
+  }
+  
+  module.exports = { extract };
+  
+};
+
 // ── ./src/extractors/deps ──
 __factories["./src/extractors/deps"] = function(module, exports) {
   
