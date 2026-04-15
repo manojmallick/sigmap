@@ -34,9 +34,11 @@ function format(context, opts = {}) {
     ? `Project: ${opts.projectName}\n`
     : '';
 
+  const meta = _confidenceMeta(opts);
   return [
     `You are a coding assistant with full knowledge of this codebase.`,
     `Below are the code signatures extracted by SigMap v${version} on ${timestamp}.`,
+    `<!-- ${meta} -->`,
     projectLine,
     `Use these signatures to answer questions about the code accurately.`,
     `When the user asks about a specific file or function, refer to the signatures below.`,
@@ -55,6 +57,15 @@ function format(context, opts = {}) {
  */
 function outputPath(cwd) {
   return path.join(cwd, '.github', 'openai-context.md');
+}
+
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `sigmap: ${parts.join(' ')}`;
 }
 
 module.exports = { name, format, outputPath };

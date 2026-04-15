@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-14T22:29:02.229Z",
+  "generated": "2026-04-15T05:46:45.660Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 110,
+      "sigCount": 113,
       "tasks": 5,
       "hitAt5": 0.8,
       "mrr": 0.55,
@@ -338,7 +338,7 @@
             "actionview/lib/action_view/renderer/partial_renderer.rb",
             "actionview/lib/action_view/renderer/streaming_template_renderer.rb"
           ],
-          "top1": "actionview/lib/action_view/renderer/partial_renderer/collection_caching.rb",
+          "top1": "actionview/lib/action_view/renderer/renderer.rb",
           "firstHitRank": 4,
           "tier": "partial"
         },
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 113,
+      "sigCount": 112,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.59,
@@ -999,14 +999,14 @@
       "fileCount": 232,
       "sigCount": 121,
       "tasks": 5,
-      "hitAt5": 1,
-      "mrr": 0.633,
+      "hitAt5": 0.8,
+      "mrr": 0.567,
       "randomBaseline": 0.022,
-      "improvement": 46.4,
+      "improvement": 37.1,
       "tiers": {
         "correct": 2,
-        "partial": 3,
-        "wrong": 0
+        "partial": 2,
+        "wrong": 1
       },
       "taskDetails": [
         {
@@ -1063,18 +1063,18 @@
             "packages/runtime-core/src/compat/globalConfig.ts"
           ],
           "top1": "packages/vue-compat/README.md",
-          "firstHitRank": 3,
-          "tier": "partial"
+          "firstHitRank": null,
+          "tier": "wrong"
         }
       ]
     },
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 63,
+      "sigCount": 65,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.387,
+      "mrr": 0.384,
       "randomBaseline": 0.014,
       "improvement": 44.4,
       "tiers": {
@@ -1101,7 +1101,7 @@
             "packages/svelte/src/internal/client/reactivity/effects.js"
           ],
           "top1": "packages/svelte/src/internal/client/reactivity/batch.js",
-          "firstHitRank": 8,
+          "firstHitRank": 9,
           "tier": "wrong"
         },
         {

@@ -4478,7 +4478,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '3.5.0',
+    version: '4.0.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -6040,7 +6040,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '3.6.0';
+const VERSION = '4.0.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -6276,13 +6276,17 @@ function applyTokenBudget(fileEntries, maxTokens) {
     else if (isTestFile(e.filePath)) { priority = 8;  dropReason = 'budget: test file'; }
     else if (isConfigFile(e.filePath)) { priority = 6; dropReason = 'budget: config file'; }
     else priority = 4;
-    return { ...e, priority, dropReason };
+    // v4.0: signal quality = sigs per line-of-code (higher = more informative)
+    const loc = e.content ? e.content.split('\n').length : 1;
+    const signalQuality = loc > 0 ? (e.sigs ? e.sigs.length : 0) / loc : 0;
+    return { ...e, priority, dropReason, signalQuality };
   });
 
-  // Within same priority, sort by mtime ascending (oldest first = drop first)
+  // Within same priority: sort by mtime ascending (oldest first), then signalQuality ascending (least informative first)
   withPriority.sort((a, b) => {
     if (b.priority !== a.priority) return b.priority - a.priority;
-    return (a.mtime || 0) - (b.mtime || 0);
+    if ((a.mtime || 0) !== (b.mtime || 0)) return (a.mtime || 0) - (b.mtime || 0);
+    return (a.signalQuality || 0) - (b.signalQuality || 0);
   });
 
   const kept = [];
@@ -6716,11 +6720,17 @@ function writeClaude(content, cwd) {
 // ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
-function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, budgetLimit) {
+function _coverageBar(pct, width) {
+  width = width || 16;
+  const filled = Math.round(pct / 100 * width);
+  return '\u2588'.repeat(filled) + '\u2591'.repeat(width - filled);
+}
+
+function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, budgetLimit, coverageResult) {
   const reduction = inputTokens > 0 ? (100 - (finalTokens / inputTokens) * 100).toFixed(1) : 0;
   const overBudget = finalTokens > (budgetLimit || 6000);
   if (asJson) {
-    process.stdout.write(JSON.stringify({
+    const payload = {
       version: VERSION,
       timestamp: new Date().toISOString(),
       rawTokens: inputTokens,
@@ -6731,7 +6741,22 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
       reductionPct: parseFloat(reduction),
       overBudget,
       budgetLimit: budgetLimit || 6000,
-    }) + '\n');
+    };
+    if (coverageResult) {
+      payload.coverage = {
+        score: coverageResult.score,
+        grade: coverageResult.grade,
+        confidence: coverageResult.confidence,
+        totalFiles: coverageResult.total,
+        includedFiles: coverageResult.included,
+        droppedFiles: coverageResult.dropped,
+        perModule: Object.fromEntries(
+          Array.from(coverageResult.perModule.entries())
+            .map(([k, v]) => [k, v])
+        ),
+      };
+    }
+    process.stdout.write(JSON.stringify(payload) + '\n');
     // Exit 1 in CI if over budget — lets pipelines fail fast
     if (overBudget) process.exitCode = 1;
   } else {
@@ -6743,6 +6768,20 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
     console.log(`  output tokens   : ~${finalTokens}`);
     console.log(`  budget limit    : ${budgetLimit || 6000}`);
     console.log(`  reduction       : ${reduction}%`);
+    if (coverageResult) {
+      console.log(`  coverage        : ${coverageResult.grade} (${coverageResult.score}%)  — ${coverageResult.included} of ${coverageResult.total} source files included`);
+      console.log(`  confidence      : ${coverageResult.confidence}`);
+      if (coverageResult.perModule && coverageResult.perModule.size > 0) {
+        console.log('');
+        console.log('  Module Coverage:');
+        for (const [dir, mod] of coverageResult.perModule) {
+          if (mod.total === 0) continue;
+          const bar = _coverageBar(mod.pct);
+          const attention = mod.pct < 50 ? '  \u2190 attention needed' : '';
+          console.log(`    ${dir.padEnd(18)} ${bar} ${String(mod.pct).padStart(3)}% (${mod.included}/${mod.total} files)${attention}`);
+        }
+      }
+    }
     if (overBudget) console.warn(`[sigmap] WARNING: output (${finalTokens} tokens) exceeds budget (${budgetLimit || 6000})`);
   }
 }
@@ -7032,6 +7071,41 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
   const scope = baseRef ? `diff-vs-${baseRef}` : (stagedOnly ? 'staged' : 'diff');
   console.warn(`[sigmap] ${scope} files: ${fileEntries.length}, diff tokens: ~${finalTokens}`);
 
+  // v4.0: risk score per changed file
+  try {
+    const { buildFromCwd } = requireSourceOrBundled('./src/graph/builder');
+    const graph = buildFromCwd(cwd, { silent: true });
+    const reverseGraph = graph.reverse || new Map();
+
+    function _isRouteFile(f) {
+      return /\/(routes?|pages?|controllers?|handlers?|api)\//i.test(f)
+        || /\.(route|page|controller|handler)\.\w+$/.test(f);
+    }
+    function _riskScore(filePath, sigs, revGraph) {
+      let s = 0;
+      if (sigs.some(sig => sig.includes('export') || sig.includes('module.exports'))) s += 2;
+      const deps = revGraph.get(filePath) || new Set();
+      if (deps.size > 3) s += 2;
+      if (_isRouteFile(filePath)) s += 1;
+      if (/\.(config|env|settings)\.\w+$/.test(filePath)) s += 1;
+      return s >= 4 ? 'HIGH' : s >= 2 ? 'MEDIUM' : 'LOW';
+    }
+
+    console.warn(`[sigmap] Risk: Changed files (${fileEntries.length}):`);
+    for (const fe of fileEntries) {
+      const level = _riskScore(fe.filePath, fe.sigs, reverseGraph);
+      const rel   = path.relative(cwd, fe.filePath).replace(/\\/g, '/');
+      const deps  = reverseGraph.get(fe.filePath) || new Set();
+      const reasons = [];
+      if (fe.sigs.some(s => s.includes('export') || s.includes('module.exports'))) reasons.push('exports public API');
+      if (deps.size > 0) reasons.push(`${deps.size} downstream dependent${deps.size === 1 ? '' : 's'}`);
+      if (_isRouteFile(fe.filePath)) reasons.push('route file');
+      if (/\.(config|env|settings)\.\w+$/.test(fe.filePath)) reasons.push('config file');
+      const label = level === 'HIGH' ? '[HIGH]  ' : level === 'MEDIUM' ? '[MEDIUM]' : '[LOW]   ';
+      console.warn(`  ${rel.padEnd(40)} ${label}${reasons.length ? '  — ' + reasons.join(', ') : ''}`);
+    }
+  } catch (_) {}
+
   if (process.argv.includes('--report')) {
     // Also show what the full run would cost for comparison
     const fullResult = runGenerate(cwd, config, true);
@@ -7176,11 +7250,17 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     const droppedCount = beforeCount - budgeted.length;
     const content = formatOutput(budgeted, cwd, false, config, null);
     const finalTokens = estimateTokens(content);
-    result = { inputTokenTotal, finalTokens, fileCount: beforeCount, droppedCount };
+    // v4.0: compute coverage score for --report heatmap
+    let coverageResult = null;
+    try {
+      const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
+      coverageResult = coverageScore(cwd, budgeted, config);
+    } catch (_) {}
+    result = { inputTokenTotal, finalTokens, fileCount: beforeCount, droppedCount, coverageResult };
   }
 
   if (reportMode || process.argv.includes('--report')) {
-    printReport(result.inputTokenTotal, result.finalTokens, result.fileCount, result.droppedCount, reportJson, config.maxTokens);
+    printReport(result.inputTokenTotal, result.finalTokens, result.fileCount, result.droppedCount, reportJson, config.maxTokens, result.coverageResult);
   }
 
   // Usage tracking (v0.9) — optional append-only NDJSON log
@@ -7212,17 +7292,26 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     const pct  = result.inputTokenTotal > 0
       ? Math.round((1 - result.finalTokens / result.inputTokenTotal) * 100)
       : 0;
-    process.stderr.write([
+    // v4.0: coverage score in post-run summary
+    let coverageLine = '';
+    try {
+      const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
+      const cov = coverageScore(cwd, fileEntries, config);
+      coverageLine = ` Coverage       : ${cov.grade} (${cov.score}%)  \u2014 ${cov.included} of ${cov.total} source files included`;
+    } catch (_) {}
+    const lines = [
       bar,
       ` SigMap v${VERSION}`,
       ` Files scanned  : ${result.fileCount}`,
       ` Symbols found  : ${syms.toLocaleString()}`,
       ` Token reduction: ${pct}%  (${result.inputTokenTotal.toLocaleString()} \u2192 ${result.finalTokens.toLocaleString()})`,
-      ` Output         : .github/copilot-instructions.md`,
-      bar,
-      ` Try: "explain the architecture" \u00b7 "find the auth module"`,
-      bar, '',
-    ].join('\n'));
+    ];
+    if (coverageLine) lines.push(coverageLine);
+    lines.push(` Output         : .github/copilot-instructions.md`);
+    lines.push(bar);
+    lines.push(` Try: "explain the architecture" \u00b7 "find the auth module"`);
+    lines.push(bar, '');
+    process.stderr.write(lines.join('\n'));
   }
 
   return result;
@@ -7725,6 +7814,17 @@ function main() {
   if (args.includes('--health')) {
     const { score } = __require('./src/health/scorer');
     const result = score(cwd);
+    // v4.0: compute live coverage score to include in health output
+    let coverageResult = null;
+    try {
+      const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
+      const { loadConfig: lc } = requireSourceOrBundled('./src/config/loader');
+      const cfg = lc(cwd);
+      // Use all files from srcDirs as proxies for "included" (no budget applied in health mode)
+      const allFiles = buildFileList(cwd, cfg);
+      const fakeEntries = allFiles.map(f => ({ filePath: f }));
+      coverageResult = coverageScore(cwd, fakeEntries, cfg);
+    } catch (_) {}
     if (args.includes('--json')) {
       // Feature 3 (VS Code) + Feature 5 (JetBrains): emit tokens + reduction for plugins
       const ctxPath = path.join(cwd, '.github', 'copilot-instructions.md');
@@ -7733,10 +7833,21 @@ function main() {
       if (fs.existsSync(ctxPath)) {
         try { tokens = estimateTokens(fs.readFileSync(ctxPath, 'utf8')); } catch (_) {}
       }
-      process.stdout.write(JSON.stringify({ ...result, tokens, reduction }) + '\n');
+      const payload = { ...result, tokens, reduction };
+      if (coverageResult) {
+        payload.coverage = coverageResult.score;
+        payload.coverageGrade = coverageResult.grade;
+        payload.coverageConfidence = coverageResult.confidence;
+        payload.coverageTotalFiles = coverageResult.total;
+        payload.coverageIncludedFiles = coverageResult.included;
+      }
+      process.stdout.write(JSON.stringify(payload) + '\n');
     } else {
       console.log('[sigmap] health:');
       console.log(`  score           : ${result.score}/100 (grade ${result.grade})`);
+      if (coverageResult) {
+        console.log(`  coverage        : ${coverageResult.grade} (${coverageResult.score}%)  — ${coverageResult.included} of ${coverageResult.total} source files`);
+      }
       console.log(`  strategy        : ${result.strategy}`);
       console.log(`  token reduction : ${result.tokenReductionPct !== null ? result.tokenReductionPct + '%' : 'no history'}`);
       console.log(`  days since regen: ${result.daysSinceRegen !== null ? result.daysSinceRegen : 'context file not found'}`);

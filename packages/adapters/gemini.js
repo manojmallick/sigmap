@@ -36,9 +36,11 @@ function format(context, opts = {}) {
     ? `Project: ${opts.projectName}\n`
     : '';
 
+  const meta = _confidenceMeta(opts);
   return [
     `You are a coding assistant with complete knowledge of this codebase.`,
     `The following code signatures were extracted by SigMap v${version} on ${timestamp}.`,
+    `<!-- ${meta} -->`,
     projectLine,
     `These signatures represent every public function, class, and type in the project.`,
     `Refer to them when answering questions about code structure, APIs, and implementation.`,
@@ -89,6 +91,15 @@ function write(context, cwd, opts = {}) {
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, newContent, 'utf8');
+}
+
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `sigmap: ${parts.join(' ')}`;
 }
 
 module.exports = { name, format, outputPath, write };
