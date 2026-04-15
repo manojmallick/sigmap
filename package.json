@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "node test/run.js",
-    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/mcp-server.test.js",
+    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp-server.test.js",
     "test:integration:all": "node test/integration/all.js",
     "test:all": "node test/run.js && node test/integration/strategy.test.js && node test/integration/secret-scan.test.js",
     "generate": "node gen-context.js",
