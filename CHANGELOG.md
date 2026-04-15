@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.0.1] — 2026-04-15 — Config auto-detection fix
+
+### Fixed
+- **Bundled `loadConfig` lacked `detectAutoSrcDirs`**: the inline `__factories["./src/config/loader"]` copy inside `gen-context.js` was a stripped-down version that returned raw `DEFAULTS` without filesystem auto-detection. After `--init` wrote a config with 6 hardcoded `srcDirs`, auto-detection was bypassed and custom project directories were missed — causing coverage to drop for any project whose source lives outside those 6 dirs. The bundled loader is now fully in sync with `src/config/loader.js`.
+- **`--init` config hardcoded `srcDirs`**: `gen-context.config.json.example` had `"srcDirs": ["src","app","lib","packages","services","api"]` as a plain value. Any project that ran `--init` would lock into those 6 dirs and lose auto-detection. The example now omits `srcDirs` entirely and uses `_comment` keys to explain that auto-detection runs automatically. Users who need custom dirs can add `srcDirs` manually.
+- **`gen-context.config.json` (SigMap repo)**: restored explicit `"srcDirs": ["src","packages"]` so the repo's own context generation is not affected by auto-detection picking up `docs-vp/`, `scripts/`, `test/`, and `vscode-extension/`.
+- **Example `outputs` updated**: `gen-context.config.json.example` now lists all four standard adapters — `["copilot","codex","claude","gemini"]` — matching the recommended setup.
+
+### Benchmarks (v4.0.1)
+- Token reduction: **97.6% average** across 18 repos ✅
+- Retrieval hit@5: **84.4%** (up from 83.3% in v4.0.0)
+
+---
+
 ## [4.0.0] — 2026-04-15 — Intelligence Layer
 
 ### Added

@@ -1,7 +1,7 @@
 ## Auto-generated signatures
 <!-- Updated by gen-context.js -->
 You are a coding assistant with complete knowledge of this codebase.
-The following code signatures were extracted by SigMap v4.0.0 on 2026-04-15T05:40:32.013Z.
+The following code signatures were extracted by SigMap v4.0.0 on 2026-04-15T06:03:22.465Z.
 
 These signatures represent every public function, class, and type in the project.
 
@@ -12,37 +12,29 @@ These signatures represent every public function, class, and type in the project
 
 # Code signatures
 
-## changes (last 5 commits — 6 hours ago)
+## changes (last 5 commits — 7 minutes ago)
 ```
+src/analysis/coverage-score.js                +coverageScore  +_walk
+src/eval/analyzer.js                          ~analyzeFiles
 src/extractors/generic.js                     +extract
 src/format/llm-txt.js                         +outputPath  +format
 src/format/llms-txt.js                        +outputPath  +getShortCommit  +detectVersion  +format
+packages/adapters/claude.js                   +_confidenceMeta  ~format
+packages/adapters/copilot.js                  +_confidenceMeta  ~format
+packages/adapters/cursor.js                   +_confidenceMeta  ~format
+packages/adapters/gemini.js                   +_confidenceMeta  ~format  ~write
 packages/adapters/llm-full.js                 +outputPath  +format  +write
+packages/adapters/openai.js                   +_confidenceMeta  ~format  ~outputPath
+packages/adapters/windsurf.js                 +_confidenceMeta  ~format
 ```
 
 ## packages
-
-### packages/adapters/llm-full.js
-```
-module.exports = { name: 'llm-full', format, outputPath, write }
-function outputPath(cwd)
-function format(context, opts)
-function write(context, cwd, opts)
-```
 
 ### packages/adapters/claude.js
 ```
 module.exports = { name, format, outputPath, write }
 function format(context, opts = {}) → string
 function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-```
-
-### packages/adapters/codex.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
 function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
@@ -73,13 +65,12 @@ function write(context, cwd, opts = {})
 function _confidenceMeta(opts)
 ```
 
-### packages/adapters/index.js
+### packages/adapters/llm-full.js
 ```
-module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
-function getAdapter(name) → { name: string, format: F
-function listAdapters() → string[]
-function adapt(context, adapterName, opts = {}) → string
-function outputsToAdapters(outputs) → string[]
+module.exports = { name: 'llm-full', format, outputPath, write }
+function outputPath(cwd)
+function format(context, opts)
+function write(context, cwd, opts)
 ```
 
 ### packages/adapters/openai.js
@@ -96,6 +87,23 @@ module.exports = { name, format, outputPath }
 function format(context, opts = {}) → string
 function _confidenceMeta(opts)
 function outputPath(cwd) → string
+```
+
+### packages/adapters/codex.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+```
+
+### packages/adapters/index.js
+```
+module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
+function getAdapter(name) → { name: string, format: F
+function listAdapters() → string[]
+function adapt(context, adapterName, opts = {}) → string
+function outputsToAdapters(outputs) → string[]
 ```
 
 ### packages/cli/index.js
@@ -138,6 +146,26 @@ function adapt(context, adapterName, opts = {}) → string
 
 ## src
 
+### src/analysis/coverage-score.js
+```
+module.exports = { coverageScore }
+function coverageScore(cwd, fileEntries, config) → { * score: number, * grad
+function _walk(dir, excludeSet, out)
+```
+
+### src/eval/analyzer.js
+```
+module.exports = { analyzeFiles, formatAnalysisTable, formatAnalysisJSON }
+function isDockerfile(name)
+function getExtractorName(filePath)
+function tokenCount(sigs)
+function hasCoverage(filePath, cwd)
+function loadExtractor(name, cwd)
+function analyzeFiles(files, cwd, opts) → object[]
+function formatAnalysisTable(stats, showSlow) → string
+function formatAnalysisJSON(stats) → object
+```
+
 ### src/extractors/generic.js
 ```
 module.exports = { extract }
@@ -160,11 +188,13 @@ function detectVersion(cwd)
 function format(context, cwd, writtenFiles, sigmapVersion)
 ```
 
-### src/analysis/coverage-score.js
+### src/mcp/server.js
 ```
-module.exports = { coverageScore }
-function coverageScore(cwd, fileEntries, config) → { * score: number, * grad
-function _walk(dir, excludeSet, out)
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
 ```
 
 ### src/config/defaults.js
@@ -178,19 +208,6 @@ module.exports = { loadConfig }
 function detectAutoSrcDirs(cwd, excludeList) → string[]
 function loadConfig(cwd) → object
 function deepClone(obj)
-```
-
-### src/eval/analyzer.js
-```
-module.exports = { analyzeFiles, formatAnalysisTable, formatAnalysisJSON }
-function isDockerfile(name)
-function getExtractorName(filePath)
-function tokenCount(sigs)
-function hasCoverage(filePath, cwd)
-function loadExtractor(name, cwd)
-function analyzeFiles(files, cwd, opts) → object[]
-function formatAnalysisTable(stats, showSlow) → string
-function formatAnalysisJSON(stats) → object
 ```
 
 ### src/eval/runner.js
@@ -596,15 +613,6 @@ function explainFile(args, cwd)
 function listModules(args, cwd)
 function queryContext(args, cwd)
 function getImpact(args, cwd)
-```
-
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
 ```
 
 ### src/mcp/tools.js
