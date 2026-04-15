@@ -22,7 +22,7 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 **What you get in ~10 seconds**
 - A compact signature map of your codebase
 - The right file in context far more often (84.4% hit@5 vs 13.6% random)
-- Fewer retries (1.78 vs 2.84 prompts per task)
+- Fewer retries (1.59 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
 > Latest: **v4.0.2** — Intelligence Layer. Coverage score, confidence indicators in every output file, `--report` module heatmap, `--diff` risk scoring, and extractor quality-based drop order.
@@ -62,7 +62,7 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 | | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success | 10% | **59%** |
-| Prompts per task | 2.84 | **1.78** |
+| Prompts per task | 2.84 | **1.59** |
 | Tokens per session | ~80,000 | **~2,000** |
 | Right file found | 13.6% | **84.4%** |
 | Hallucination risk | 92% | **0%** |

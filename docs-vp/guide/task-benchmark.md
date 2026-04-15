@@ -23,14 +23,14 @@ head:
 **SigMap Results** — 90 tasks · 18 real repos · no LLM API
 
 **✔ 6× better answers** — correct answers: 10% → **57%**  
-**✔ 37% fewer prompts** — 2.84 → **1.78** per task  
+**✔ 44% fewer prompts** — 2.84 → **1.59** per task  
 **✔ 97% token reduction** — ~80,000 → **~2,000** per session  
 **✔ Consistent** — same gains across all 18 repos and 21 languages
 
 | | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success | 10% | **57%** |
-| Prompts per task | 2.84 | **1.78** |
+| Prompts per task | 2.84 | **1.59** |
 | Tokens per session | ~80,000 | **~2,000** |
 
 </div>
@@ -44,7 +44,7 @@ This benchmark measures that impact across **90 real coding tasks on 18 repos**:
 | What we measured | Without SigMap | With SigMap |
 |---|---|---|
 | Right file found | 13.6% of the time | **84.4%** of the time |
-| Prompts needed per task | 2.84 avg | **1.78 avg** |
+| Prompts needed per task | 2.84 avg | **1.59 avg** |
 | Answers from wrong context | 87% | **13%** |
 | Code symbols hidden from AI | 92% | **0%** |
 
@@ -129,14 +129,14 @@ real back-and-forth often takes longer.
 
 <div style="flex:1;min-width:220px;background:var(--vp-c-bg-soft);border-radius:10px;padding:1.2rem 1.5rem;border:2px solid #7c6af7">
   <div style="font-size:0.8em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-2);margin-bottom:.4rem">With SigMap</div>
-  <div style="font-size:2.4em;font-weight:700;color:#7c6af7">1.78</div>
+  <div style="font-size:2.4em;font-weight:700;color:#7c6af7">1.59</div>
   <div style="font-size:0.85em;color:var(--vp-c-text-2)">avg prompts to answer</div>
   <div style="margin-top:.8rem;font-size:0.85em;color:#7c6af7">84.4% hit@5 · 57% rank-1</div>
 </div>
 
 <div style="flex:1;min-width:220px;background:var(--vp-c-bg-soft);border-radius:10px;padding:1.2rem 1.5rem">
   <div style="font-size:0.8em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-2);margin-bottom:.4rem">Improvement</div>
-  <div style="font-size:2.4em;font-weight:700;color:#22c55e">−37%</div>
+  <div style="font-size:2.4em;font-weight:700;color:#22c55e">−44%</div>
   <div style="font-size:0.85em;color:var(--vp-c-text-2)">fewer prompts needed</div>
   <div style="margin-top:.8rem;font-size:0.85em;color:#22c55e">6.2× lift in context relevance</div>
 </div>
@@ -164,7 +164,7 @@ real back-and-forth often takes longer.
 
 | | Without SigMap | With SigMap | Change |
 |---|---|---|---|
-| **Avg prompts to answer** | 2.84 | 1.78 | **−37%** |
+| **Avg prompts to answer** | 2.84 | 1.59 | **−44%** |
 | **Hit@5 (context relevance)** | 13.6% | 84.4% | **+6.2×** |
 | **Context in rank 1** | ~1% | 57% | **+56 pts** |
 
@@ -322,24 +322,24 @@ that fits the entire codebase:
 
 | Repo | Grounded | Dark | Risk |
 |---|---|---|---|
-| express | 54 | 299 | 85% |
-| flask | 456 | 283 | 38% |
-| gin | 422 | 660 | 61% |
-| spring-petclinic | 13 | 476 | 97% |
-| rails | 648 | 6,823 | 91% |
-| axios | 102 | 427 | 81% |
-| rust-analyzer | 379 | 17,277 | 98% |
-| abseil-cpp | 350 | 11,240 | 97% |
-| serilog | 465 | 513 | 53% |
-| riverpod | 648 | 3,088 | 83% |
-| okhttp | 115 | 41 | 26% |
-| laravel | 578 | 7,819 | 93% |
-| akka | 508 | 3,445 | 87% |
-| vapor | 364 | 493 | 58% |
-| vue-core | 196 | 1,876 | 91% |
-| svelte | 195 | 1,996 | 91% |
-| fastify | 158 | 114 | 42% |
-| fastapi | 214 | 678 | 76% |
+| express | 54 | ~299 | 85% |
+| flask | 575 | ~638 | 53% |
+| gin | 422 | ~660 | 61% |
+| spring-petclinic | 114 | ~425 | 79% |
+| rails | 649 | ~6,846 | 91% |
+| axios | 102 | ~427 | 81% |
+| rust-analyzer | 379 | ~17,277 | 98% |
+| abseil-cpp | 350 | ~11,388 | 97% |
+| serilog | 465 | ~513 | 52% |
+| riverpod | 648 | ~3,088 | 83% |
+| okhttp | 115 | ~41 | 26% |
+| laravel | 572 | ~7,826 | 93% |
+| akka | 508 | ~3,445 | 87% |
+| vapor | 364 | ~493 | 58% |
+| vue-core | 196 | ~1,942 | 91% |
+| svelte | 198 | ~1,993 | 91% |
+| fastify | 158 | ~114 | 42% |
+| fastapi | 214 | ~678 | 76% |
 
 Large, mature repos (rust-analyzer, abseil-cpp, laravel, spring-petclinic) have the highest
 risk — over 90% of their symbols are invisible to the AI without SigMap.
@@ -441,18 +441,55 @@ included in the repo). Re-running recomputes from the same 90-task empirical ret
 
 ---
 
+## 6. Full verdict — per project
+
+All four benchmarks combined in one view: token reduction, retrieval quality, context overflow risk, and GPT-4o API cost savings. Measured with SigMap v4.0.2 on real depth-1 clones, April 2026.
+
+| Repo | Lang | Files | Token Reduction | Hit@5 | Correct / Partial / Wrong | GPT-4o Overflow | Files Hidden | GPT-4o $/mo saved | Grade |
+|---|---|---:|---:|---:|:---:|:---:|---:|---:|:---:|
+| **express** | JS | 38 | 98.7% | 80% | 2 / 2 / 1 | FITS | 0 | $52 | B |
+| **flask** | Python | 124 | 97.3% | 100% | 5 / 0 / 0 | +90% | 59 | $177 | **A** |
+| **gin** | Go | 118 | 97.2% | 100% | 3 / 2 / 0 | +69% | 49 | $158 | **A** |
+| **spring-petclinic** | Java | 67 | 96.5% | 60% | 3 / 0 / 2 | FITS | 0 | $78 | C |
+| **rails** | Ruby | 1,193 | 99.5% | 80% | 2 / 2 / 1 | +1071% | 1,092 | $1,119 | **A** |
+| **axios** | TS | 99 | 94.3% | 60% | 2 / 1 / 2 | FITS | 0 | $75 | C |
+| **rust-analyzer** | Rust | 675 | 99.8% | 100% | 4 / 1 / 0 | +2659% | 651 | $2,644 | **A** |
+| **abseil-cpp** | C++ | 703 | 99.7% | 100% | 4 / 1 / 0 | +1734% | 665 | $1,756 | **A** |
+| **serilog** | C# | 195 | 96.4% | 80% | 2 / 2 / 1 | +53% | 68 | $141 | B |
+| **riverpod** | Dart | 465 | 99.1% | 100% | 4 / 1 / 0 | +484% | 386 | $556 | **A** |
+| **okhttp** | Kotlin | 18 | 95.5% | 100% | 5 / 0 / 0 | FITS | 0 | $22 | **A** |
+| **laravel** | PHP | 1,536 | 99.6% | 100% | 2 / 3 / 0 | +1212% | 1,419 | $1,254 | **A** |
+| **akka** | Scala | 211 | 99.1% | 100% | 3 / 2 / 0 | +518% | 177 | $588 | **A** |
+| **vapor** | Swift | 134 | 96.2% | 60% | 1 / 2 / 2 | +34% | 34 | $124 | C |
+| **vue-core** | Vue | 249 | 98.0% | 100% | 2 / 3 / 0 | +234% | 175 | $314 | **A** |
+| **svelte** | Svelte | 370 | 98.2% | 60% | 1 / 2 / 2 | +242% | 262 | $323 | C |
+| **fastify** | JS | 28 | 95.3% | 60% | 3 / 0 / 2 | FITS | 0 | $39 | C |
+| **fastapi** | Python | 32 | 97.1% | 80% | 3 / 1 / 1 | +39% | 10 | $130 | B |
+| **Average / Total** | 18 repos | — | **97.6%** | **84.4%** | 51 / 25 / 14 | 13/18 overflow | **5,047** | **$9,549** | — |
+
+**Grade key:**
+- **A** — 100% hit@5, ≥97% token reduction. SigMap fully reliable on this repo.
+- **B** — 80% hit@5, ≥95% token reduction. Strong, one miss in 5 tasks.
+- **C** — 60% hit@5. Correct context 3 of 5 times; 2 tasks need a follow-up prompt.
+
+**Weakest repos (60% hit@5):** spring-petclinic, axios, vapor, svelte, fastify. On these the wrong file was ranked 1–5 in 2 of 5 tasks. For spring-petclinic this is expected — with only 67 files the random baseline is already 39%; SigMap still lifts to 60%. For the others the signature extractor finds the right module but fragment coverage limits precision.
+
+**Strongest:** rust-analyzer (675 files, 125× lift), laravel (1,536 files, 333× lift), abseil-cpp (703 files, 143× lift). The larger and denser the codebase, the more SigMap's token-based compression wins over random file selection.
+
+---
+
 ## Summary
 
 | Metric | Without SigMap | With SigMap |
 |---|---|---|
-| Avg prompts to answer | 2.84 | **1.78** (−37%) |
+| Avg prompts to answer | 2.84 | **1.59** (−44%) |
 | Context hit@5 | 13.6% | **84.4%** (+6.2×) |
 | Correct context (rank 1) | ~1% | **57%** |
 | Wrong context | ~87% | **16%** |
 | Hallucination risk zone | **92%** | **0%** (fully indexed) |
 
 No LLM API was used. All scores are computed from the [retrieval benchmark](/guide/retrieval-benchmark)
-— 80 tasks, 16 real-world repos, 7 languages.
+— 90 tasks, 18 real-world repos, 13 languages.
 
 
 ---

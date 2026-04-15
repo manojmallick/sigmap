@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: 6× better AI answers.
-  tagline: "✔ 59% task success (was 10%)  ✔ 2× fewer prompts  ✔ 97% fewer tokens. One command, zero config — works with Copilot, Claude, Cursor, and Windsurf."
+  tagline: "✔ 59% task success (was 10%)  ✔ 44% fewer prompts  ✔ 97% fewer tokens. One command, zero config — works with Copilot, Claude, Cursor, and Windsurf."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,7 +46,7 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to solve tasks
-    details: 37% fewer prompts per task. Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
+    details: 44% fewer prompts per task (2.84 → 1.59). Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
@@ -131,8 +131,8 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
   <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
     <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
     <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#7c6af7;height:22px;width:59.3%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">1.78</span>
+      <div style="background:#7c6af7;height:22px;width:56%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">1.59</span>
       </div>
     </div>
   </div>

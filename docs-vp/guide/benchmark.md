@@ -19,8 +19,8 @@ head:
 # Benchmark
 
 **At a glance**
-- Average reduction across 18 repos: 97.5%
-- Raw source: 12.7M tokens → 102.9K tokens after SigMap
+- Average reduction across 18 repos: 97.6%
+- Raw source: 12.8M tokens → 103.2K tokens after SigMap
 - Measured on real public repos, not estimates
 
 These numbers are measured — not estimated. Every row was produced by running
@@ -31,9 +31,9 @@ These numbers are measured — not estimated. Every row was produced by running
 | Repo | Language | Raw tokens | After SigMap | Reduction |
 |------|----------|------------|:------------:|:---------:|
 | [express](https://github.com/expressjs/express) | JavaScript | 70.6K | 911 | **98.7%** |
-| [flask](https://github.com/pallets/flask) | Python | 147.9K | 6.7K | **95.4%** |
+| [flask](https://github.com/pallets/flask) | Python | 242.6K | 6.7K | **97.3%** |
 | [gin](https://github.com/gin-gonic/gin) | Go | 216.4K | 6.0K | **97.2%** |
-| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | Java | 97.9K | 3.4K | **96.5%** |
+| [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | Java | 107.8K | 3.8K | **96.5%** |
 | [rails](https://github.com/rails/rails) | Ruby | 1.5M | 7.1K | **99.5%** |
 | [axios](https://github.com/axios/axios) | TypeScript | 105.7K | 6.1K | **94.3%** |
 | [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | Rust | 3.5M | 6.3K | **99.8%** |
@@ -44,11 +44,11 @@ These numbers are measured — not estimated. Every row was produced by running
 | [laravel](https://github.com/laravel/framework) | PHP | 1.7M | 7.2K | **99.6%** |
 | [akka](https://github.com/akka/akka) | Scala | 790.5K | 7.1K | **99.1%** |
 | [vapor](https://github.com/vapor/vapor) | Swift | 171.4K | 6.4K | **96.2%** |
-| [vue-core](https://github.com/vuejs/core) | Vue | 414.4K | 8.6K | **97.9%** |
+| [vue-core](https://github.com/vuejs/core) | Vue | 427.5K | 8.7K | **98.0%** |
 | [svelte](https://github.com/sveltejs/svelte) | Svelte | 438.2K | 8.0K | **98.2%** |
 | [fastify](https://github.com/fastify/fastify) | JavaScript | 54.4K | 2.6K | **95.3%** |
 | [fastapi](https://github.com/tiangolo/fastapi) | Python | 178.4K | 5.2K | **97.1%** |
-| **Average** | 18 repos | 12.7M | 102.9K | **97.5%** |
+| **Average** | 18 repos | 12.8M | 103.2K | **97.6%** |
 
 > Token counts estimated at 4 chars/token (standard approximation used by OpenAI and Anthropic tooling).
 
@@ -63,7 +63,7 @@ loading a large repo raw can stall your AI agent for minutes before it even star
 | Repo | Raw (cold) | SigMap (cold) | 1st call saved | Raw (cached) | SigMap (cached) | Cache saved |
 |------|:----------:|:-------------:|:--------------:|:------------:|:---------------:|:-----------:|
 | [express](https://github.com/expressjs/express) | 7.7s | 0.1s | **7.6s** | 0.8s | <0.1s | **0.8s** |
-| [flask](https://github.com/pallets/flask) | 42.4s | 1.7s | **40.7s** | 4.2s | 0.2s | **4.1s** |
+| [flask](https://github.com/pallets/flask) | 2min 1s | 3.3s | **1min 58s** | 12.1s | 0.3s | **11.8s** |
 | [gin](https://github.com/gin-gonic/gin) | 1min 26s | 2.9s | **1min 24s** | 8.6s | 0.3s | **8.3s** |
 | [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 38.5s | 0.3s | **38.2s** | 3.9s | <0.1s | **3.8s** |
 | [rails](https://github.com/rails/rails) | 12min 27s | 3.5s | **12min 24s** | 1min 15s | 0.3s | **1min 14s** |
@@ -76,10 +76,10 @@ loading a large repo raw can stall your AI agent for minutes before it even star
 | [laravel](https://github.com/laravel/framework) | 13min 59s | 3.6s | **13min 56s** | 1min 24s | 0.4s | **1min 24s** |
 | [akka](https://github.com/akka/akka) | 6min 35s | 3.5s | **6min 32s** | 39.5s | 0.3s | **39.2s** |
 | [vapor](https://github.com/vapor/vapor) | 1min 26s | 3.2s | **1min 22s** | 8.6s | 0.3s | **8.2s** |
-| [vue-core](https://github.com/vuejs/core) | 3min 22s | 4.4s | **3min 18s** | 20.2s | 0.4s | **19.8s** |
+| [vue-core](https://github.com/vuejs/core) | 3min 34s | 4.3s | **3min 29s** | 21.4s | 0.4s | **20.9s** |
 | [svelte](https://github.com/sveltejs/svelte) | 3min 39s | 4.0s | **3min 35s** | 21.9s | 0.4s | **21.5s** |
 
-**At 10 calls/day across all repos: 1hr 45min saved per call · 17hr 28min/day · 6,377 hr/year**
+**At 10 calls/day across all repos: 1hr 46min saved per call · 17hr 41min/day · 6,454 hr/year**
 
 ::: tip What "cached" means
 When prompt caching is enabled (default on Claude, opt-in on OpenAI), repeated context — like your SigMap output — is served from the model's KV cache at ~10× the normal speed and ~10% of the cost. The SigMap output is small enough to cache for free in most tier plans. Raw repo content is usually too large and changes too often to cache reliably.
@@ -146,6 +146,8 @@ zero output.
 ::: tip Worst case is still 94.3%
 The lowest value measured across the 18 repos was **94.3%** (axios/TypeScript).
 Even on a repo where most code is already terse, SigMap cuts context by more than 16×.
+
+*Measured with SigMap v4.0.2 — April 2026.*
 :::
 
 ---

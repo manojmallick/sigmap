@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-15T06:03:45.966Z",
+  "generated": "2026-04-15T07:46:00.476Z",
   "repos": [
     {
       "repo": "express",
@@ -217,10 +217,10 @@
     {
       "repo": "spring-petclinic",
       "fileCount": 13,
-      "sigCount": 29,
+      "sigCount": 67,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.622,
+      "mrr": 0.6,
       "randomBaseline": 0.385,
       "improvement": 1.6,
       "tiers": {
@@ -257,7 +257,7 @@
             "src/main/resources/templates/owners/findOwners.html"
           ],
           "top1": "src/main/resources/messages/messages_de.properties",
-          "firstHitRank": 9,
+          "firstHitRank": null,
           "tier": "wrong"
         },
         {
@@ -266,7 +266,7 @@
           "expected": [
             "src/main/resources/templates/vets/vetList.html"
           ],
-          "top1": "src/main/resources/application.properties",
+          "top1": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
           "firstHitRank": null,
           "tier": "wrong"
         },
