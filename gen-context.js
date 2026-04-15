@@ -3281,6 +3281,72 @@ __factories["./src/format/cache"] = function(module, exports) {
   };
 
 // ── ./src/health/scorer ──
+// ── ./src/analysis/coverage-score ──
+__factories["./src/analysis/coverage-score"] = function(module, exports) {
+
+'use strict';
+
+function coverageScore(cwd, fileEntries, config) {
+  const fs   = require('fs');
+  const path = require('path');
+
+  const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length > 0)
+    ? config.srcDirs
+    : ['src', 'app', 'lib'];
+
+  const excludeSet = new Set([
+    'node_modules', '.git', 'dist', 'build', 'out', '__pycache__',
+    '.next', 'coverage', 'target', 'vendor', '.context',
+  ]);
+  if (config && Array.isArray(config.exclude)) {
+    for (const x of config.exclude) excludeSet.add(String(x));
+  }
+
+  const includedSet = new Set((fileEntries || []).map(f => f.filePath));
+
+  const allSource = [];
+  for (const relDir of srcDirs) {
+    const absDir = path.resolve(cwd, relDir);
+    if (fs.existsSync(absDir)) _walkCov(absDir, excludeSet, allSource);
+  }
+
+  const total    = allSource.length;
+  const included = allSource.filter(f => includedSet.has(f)).length;
+  const dropped  = total - included;
+  const pct      = total > 0 ? Math.round((included / total) * 100) : 100;
+
+  const grade      = pct >= 90 ? 'A' : pct >= 75 ? 'B' : pct >= 50 ? 'C' : 'D';
+  const confidence = pct >= 90 ? 'HIGH' : pct >= 70 ? 'MEDIUM' : 'LOW';
+
+  const perModule = new Map();
+  for (const relDir of srcDirs) {
+    const absDir   = path.resolve(cwd, relDir);
+    const modFiles = allSource.filter(f => f.startsWith(absDir + path.sep) || f === absDir);
+    const modIncl  = modFiles.filter(f => includedSet.has(f)).length;
+    const modPct   = modFiles.length > 0 ? Math.round((modIncl / modFiles.length) * 100) : 100;
+    perModule.set(relDir, { total: modFiles.length, included: modIncl, pct: modPct });
+  }
+
+  return { score: pct, grade, total, included, dropped, confidence, perModule };
+}
+
+function _walkCov(dir, excludeSet, out) {
+  const fs   = require('fs');
+  const path = require('path');
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+  for (const e of entries) {
+    if (excludeSet.has(e.name)) continue;
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) { _walkCov(full, excludeSet, out); }
+    else if (e.isFile())  { out.push(full); }
+  }
+}
+
+module.exports = { coverageScore };
+
+};
+
 __factories["./src/health/scorer"] = function(module, exports) {
   
   /**
