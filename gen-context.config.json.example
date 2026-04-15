@@ -20,7 +20,22 @@
 
   "maxSigsPerFile": 25,
 
+  "_maxTokens_comment": "Used only when autoMaxTokens is false. Override to pin a fixed budget.",
   "maxTokens": 6000,
+
+  "_autoMaxTokens_comment": "Auto-scale budget based on repo size. Default: true.",
+  "_autoMaxTokens_formula": "effective = clamp(totalSigTokens × coverageTarget, 4000, modelContextLimit × maxTokensHeadroom)",
+  "autoMaxTokens": true,
+
+  "_coverageTarget_comment": "Fraction of source files to target for inclusion (0.0–1.0). Default: 0.80 = 80%.",
+  "coverageTarget": 0.80,
+
+  "_modelContextLimit_comment": "Model context window size (tokens). Hard cap = modelContextLimit × maxTokensHeadroom.",
+  "_modelContextLimit_examples": "128000 = GPT-4o/Claude (default)  |  200000 = Claude max  |  1000000 = Gemini 1M",
+  "modelContextLimit": 128000,
+
+  "_maxTokensHeadroom_comment": "Fraction of model context reserved for SigMap output. 0.20 = 25,600 token hard cap.",
+  "maxTokensHeadroom": 0.20,
 
   "secretScan": true,
 
