@@ -1,16 +1,17 @@
 {
-  "_comment": "SigMap configuration — all keys are optional (defaults shown)",
+  "_comment": "SigMap configuration for the SigMap repo itself.",
 
   "output": ".github/copilot-instructions.md",
 
-  "outputs": ["copilot", "codex","claude", "gemini"],
+  "outputs": ["copilot", "codex", "claude", "gemini"],
 
-  "srcDirs": ["src", "app", "lib", "packages", "services", "api"],
+  "_srcDirs_comment": "Explicitly scoped to sigmap's own source dirs. Auto-detection would also pick up docs/, scripts/, test/, etc.",
+  "srcDirs": ["src", "packages"],
 
   "exclude": [
     "node_modules", ".git", "dist", "build", "out",
     "__pycache__", ".next", "coverage", "target", "vendor",
-    ".context"
+    ".context", "benchmarks"
   ],
 
   "maxDepth": 6,
@@ -30,32 +31,21 @@
   },
 
   "_strategy_comment": "Context output strategy. Options: 'full' | 'per-module' | 'hot-cold'",
-  "_strategy_full":       "  full       — single file, all signatures, always injected (default)",
-  "_strategy_per_module": "  per-module — one .github/context-<module>.md per srcDir + thin overview",
-  "_strategy_hot_cold":   "  hot-cold   — recently changed files injected; rest in context-cold.md (MCP)",
   "strategy": "full",
 
-  "_hotCommits_comment": "Only used by hot-cold strategy: how many recent commits count as 'hot'",
   "hotCommits": 10,
 
-  "_depMap_comment": "Include a compact import dependency map at the top of the output (~50-100 extra tokens)",
   "depMap": true,
 
-  "_todos_comment": "Include compact TODO/FIXME/HACK/XXX section (max 20 entries)",
   "todos": true,
 
-  "_changes_comment": "Include compact recent git changes section",
   "changes": true,
 
-  "_changesCommits_comment": "How many recent commits to analyze for the changes section",
   "changesCommits": 5,
 
-  "_testCoverage_comment": "Append function-level coverage hints (✓/✗) by scanning tests",
   "testCoverage": false,
 
-  "_testDirs_comment": "Directories used when testCoverage is enabled",
   "testDirs": ["tests", "test", "__tests__", "spec"],
 
-  "_impactRadius_comment": "Append reverse dependency hints in file headers (used by: ...)",
   "impactRadius": false
 }

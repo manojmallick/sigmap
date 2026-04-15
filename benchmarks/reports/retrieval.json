@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-15T05:46:45.660Z",
+  "generated": "2026-04-15T06:03:45.966Z",
   "repos": [
     {
       "repo": "express",
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 112,
+      "sigCount": 113,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.59,
@@ -999,14 +999,14 @@
       "fileCount": 232,
       "sigCount": 121,
       "tasks": 5,
-      "hitAt5": 0.8,
-      "mrr": 0.567,
+      "hitAt5": 1,
+      "mrr": 0.633,
       "randomBaseline": 0.022,
-      "improvement": 37.1,
+      "improvement": 46.4,
       "tiers": {
         "correct": 2,
-        "partial": 2,
-        "wrong": 1
+        "partial": 3,
+        "wrong": 0
       },
       "taskDetails": [
         {
@@ -1063,18 +1063,18 @@
             "packages/runtime-core/src/compat/globalConfig.ts"
           ],
           "top1": "packages/vue-compat/README.md",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "firstHitRank": 3,
+          "tier": "partial"
         }
       ]
     },
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 65,
+      "sigCount": 63,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.384,
+      "mrr": 0.387,
       "randomBaseline": 0.014,
       "improvement": 44.4,
       "tiers": {
@@ -1101,7 +1101,7 @@
             "packages/svelte/src/internal/client/reactivity/effects.js"
           ],
           "top1": "packages/svelte/src/internal/client/reactivity/batch.js",
-          "firstHitRank": 9,
+          "firstHitRank": 8,
           "tier": "wrong"
         },
         {
