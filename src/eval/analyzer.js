@@ -147,6 +147,9 @@ function analyzeFiles(files, cwd, opts) {
     const tokens   = tokenCount(sigs);
     const covered  = hasCoverage(filePath, cwd);
     const isSlow   = slow && elapsedMs > slowMs;
+    // v4.0: signal quality = sigs per line-of-code (higher = more informative to LLMs)
+    const linesOfCode    = content.split('\n').length;
+    const signalQuality  = linesOfCode > 0 ? parseFloat((sigs.length / linesOfCode).toFixed(4)) : 0;
 
     stats.push({
       file:          rel,
@@ -154,6 +157,8 @@ function analyzeFiles(files, cwd, opts) {
       sigs:          sigs.length,
       tokens,
       covered,
+      linesOfCode,
+      signalQuality,
       elapsedMs:     slow ? elapsedMs : undefined,
       slow:          slow ? isSlow : undefined,
     });
