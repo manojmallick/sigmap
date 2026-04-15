@@ -42,7 +42,8 @@ sigmap --init
   "srcDirs": ["src", "app", "lib"],
   "outputPath": ".github/copilot-instructions.md",
   "outputs": ["copilot", "claude"],
-  "maxTokens": 6000,
+  "autoMaxTokens": true,
+  "coverageTarget": 0.80,
   "strategy": "full",
   "hotCommits": 10,
   "diffPriority": true,
@@ -66,7 +67,25 @@ sigmap --init
 |-----|------|---------|-------------|
 | `outputPath` | `string` | `.github/copilot-instructions.md` | Path to write the primary context file. |
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
-| `maxTokens` | `number` | `6000` | Token budget. Files are dropped in priority order when the budget is exceeded. Raise to `8000`–`10000` for large codebases. |
+
+## Token budget (v4.1.0)
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `autoMaxTokens` | `boolean` | `true` | Auto-scale the token budget based on repo size. Set `false` to use a fixed `maxTokens`. |
+| `coverageTarget` | `number` | `0.80` | Target fraction of source files to include (0.0–1.0). Default: 80%. |
+| `modelContextLimit` | `number` | `128000` | Model context window size in tokens. Hard cap = `modelContextLimit × maxTokensHeadroom`. |
+| `maxTokensHeadroom` | `number` | `0.20` | Fraction of the model context reserved for SigMap output. Default 0.20 = 25 600-token cap for 128K models. |
+| `maxTokens` | `number` | `6000` | Used only when `autoMaxTokens: false`, or as a minimum floor. |
+
+**Formula:** `effective = clamp(ceil(totalSigTokens × coverageTarget), 4000, floor(modelContextLimit × maxTokensHeadroom))`
+
+When the hard cap prevents hitting the coverage target by more than 10 percentage points, SigMap prints a warning and suggests switching to `strategy: "per-module"`.
+
+To pin a fixed budget (v4.0 behaviour):
+```json
+{ "autoMaxTokens": false, "maxTokens": 6000 }
+```
 
 ## Source scanning
 

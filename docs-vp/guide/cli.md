@@ -204,14 +204,14 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 4.0.0
+  version         : 4.1.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
   output tokens   : ~4,103
-  budget limit    : 6000
+  budget limit    : 4000 (auto-scaled)
   reduction       : 93.7%
-  coverage        : A (97%)  — 76 of 78 source files included
+  coverage        : A (97%)  — 76 of 78 source files included  [budget: 4000 auto-scaled]
   confidence      : HIGH
 
   Module Coverage:

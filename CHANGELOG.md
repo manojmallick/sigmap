@@ -10,6 +10,49 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.1.0] — 2026-04-15 — Smart Budget: auto-scaling token budget
+
+### Added
+
+- **Auto-scaling token budget** (`autoMaxTokens: true`, default on):  
+  Replaces the old fixed 6 000-token default with a formula that sizes the budget to your repo:
+  ```
+  effective = clamp(ceil(totalSigTokens × coverageTarget), 4000, floor(modelContextLimit × maxTokensHeadroom))
+  ```
+  - `coverageTarget` (default `0.80`) — target fraction of source files to include
+  - `modelContextLimit` (default `128000`) — model context window size; hard cap = `limit × headroom`
+  - `maxTokensHeadroom` (default `0.20`) — fraction of the model window reserved for SigMap output (default hard cap: **25 600 tokens**)
+  - Minimum floor: **4 000 tokens** (prevents tiny repos from being under-budgeted)
+  - When the hard cap prevents hitting the coverage target by more than 10 percentage points, SigMap warns and suggests `strategy: "per-module"`
+
+- **Four new config keys** (all optional, documented in `gen-context.config.json.example`):
+  | Key | Default | Description |
+  |---|---|---|
+  | `autoMaxTokens` | `true` | Enable auto-scaling |
+  | `coverageTarget` | `0.80` | Target fraction of source files |
+  | `modelContextLimit` | `128000` | Model context window (tokens) |
+  | `maxTokensHeadroom` | `0.20` | Fraction of context for SigMap |
+
+- **Post-run summary annotation**: coverage line now shows `[budget: N auto-scaled]` when the formula overrode the configured `maxTokens`.
+
+- **Per-module strategy budget fix**: each module now gets its own full effective budget instead of a proportional slice, which was the limiting factor that made `per-module` less useful than advertised.
+
+- **Tracking log fields**: `autoBudget: true/false` and `budgetLimit: N` added to `.context/usage.ndjson` entries.
+
+- **12 new integration tests** (`test/integration/auto-budget.test.js`): cover MIN floor, proportional scaling, hard cap, disabled auto-scaling, custom `coverageTarget`/`modelContextLimit`/`maxTokensHeadroom`, warning emission, and empty-project edge case.
+
+### Changed
+
+- `autoMaxTokens: false` + explicit `maxTokens` preserves the old fixed-budget behaviour exactly — fully backwards compatible.
+- `printReport` now labels the budget `(auto-scaled)` vs `(fixed)` in the report line.
+
+### Benchmarks (v4.1.0)
+- Token reduction: **97.6% average** across 18 repos ✅  
+- Retrieval hit@5: **84.4%** ✅  
+- With auto-scaling enabled, all 18 benchmark repos now stay within a sensible budget that targets ≥ 80% file coverage rather than the old 6 K ceiling.
+
+---
+
 ## [4.0.2] — 2026-04-15 — Bundle factory fix (re-release of 4.0.1)
 
 ### Fixed

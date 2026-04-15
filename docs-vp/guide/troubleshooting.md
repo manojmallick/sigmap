@@ -103,15 +103,25 @@ sigmap --setup
 
 **Options:**
 
-- Raise `maxTokens` in `gen-context.config.json` (e.g. `8000` or `10000`) to give the budget more headroom.
-- Add more exclusions to `.contextignore` to remove low-value files from the index.
-- Switch to `"strategy": "per-module"` or `"strategy": "hot-cold"` to load only the relevant portion of the codebase.
-- Run `sigmap --report --json` to see which specific files are consuming the most tokens, then target those first.
+- Since v4.1.0, the budget auto-scales to your repo by default (`autoMaxTokens: true`). If files are still being dropped, the repo is very large. Try the options below.
+- Switch to `"strategy": "per-module"` — each module gets its own full budget rather than sharing one pool.
+- Switch to `"strategy": "hot-cold"` — recently changed files are always injected; older files are served on demand via MCP.
+- Raise `coverageTarget` (default `0.80`) closer to `1.0` to push the formula toward a higher budget.
+- Raise `maxTokensHeadroom` (default `0.20`) to let SigMap use a larger fraction of the model context window.
+- Add exclusions to `.contextignore` to remove generated/vendor files from the index.
+- Run `sigmap --report --json` to see which files consume the most tokens.
 
 ```json
 {
-  "maxTokens": 10000,
-  "strategy": "hot-cold"
+  "strategy": "per-module"
+}
+```
+
+Or to use a larger fixed budget and disable auto-scaling:
+```json
+{
+  "autoMaxTokens": false,
+  "maxTokens": 12000
 }
 ```
 

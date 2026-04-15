@@ -25,7 +25,7 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 - Fewer retries (1.59 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v4.0.2** — Intelligence Layer. Coverage score, confidence indicators in every output file, `--report` module heatmap, `--diff` risk scoring, and extractor quality-based drop order.
+> Latest: **v4.1.0** — Smart Budget. Token budget now auto-scales to your repo size, targeting 80% source-file coverage by default. No config change needed — it just works.
 
 <div align="center">
 <img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
@@ -697,7 +697,6 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
 {
   "output": ".github/copilot-instructions.md",
   "srcDirs": ["src", "app", "lib"],
-  "maxTokens": 6000,
   "outputs": ["copilot"],
   "secretScan": true,
   "strategy": "full",
@@ -711,9 +710,20 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
 - **`output`** — custom path for the primary markdown output file (used by `copilot` adapter). Default: `.github/copilot-instructions.md`
 - **`outputs`** — which adapters to write to: `copilot` | `claude` | `cursor` | `windsurf`
 - **`srcDirs`** — directories to scan (relative to project root)
-- **`maxTokens`** — max tokens in final output before budget enforcement
 - **`secretScan`** — redact secrets (AWS keys, tokens, etc.) from output
 - **`strategy`** — output mode: `full` (default) | `per-module` | `hot-cold`
+
+**Token budget (v4.1.0 — auto-scaling):**
+
+| Key | Default | Description |
+|---|---|---|
+| `autoMaxTokens` | `true` | Auto-scale budget to repo size. Set `false` to pin a fixed `maxTokens`. |
+| `coverageTarget` | `0.80` | Fraction of source files to target (0.0–1.0). |
+| `modelContextLimit` | `128000` | Model context window size. Hard cap = `limit × maxTokensHeadroom`. |
+| `maxTokensHeadroom` | `0.20` | Fraction of the context window reserved for SigMap output (default: 25 600 tokens). |
+| `maxTokens` | `6000` | Used only when `autoMaxTokens: false`, or as a floor. |
+
+The formula: `effective = clamp(ceil(totalSigTokens × coverageTarget), 4000, floor(modelContextLimit × maxTokensHeadroom))`.
 
 Exclusions go in `.contextignore` (gitignore syntax). Also reads `.repomixignore` if present.
 
@@ -760,11 +770,11 @@ Every run now prints a coverage line alongside token reduction:
 
 ```
 ───────────────────────────────────────────
- SigMap v4.0.0
+ SigMap v4.1.0
  Files scanned  : 76
  Symbols found  : 332
  Token reduction: 94%  (65,227 → 4,103)
- Coverage       : A (97%)  — 76 of 78 source files included
+ Coverage       : A (97%)  — 76 of 78 source files included  [budget: 4000 auto-scaled]
  Output         : .github/copilot-instructions.md
 ───────────────────────────────────────────
 ```
@@ -779,7 +789,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 4.0.0
+  version         : 4.1.0
   files processed : 76
   reduction       : 93.7%
   coverage        : A (97%)  — 76 of 78 source files included

@@ -256,6 +256,33 @@ No config, no API key, no dependencies. Reads your code, writes the context file
 
 <div style="max-width:780px;margin:0 auto;padding:0 24px 32px">
 
+## What's new in v4.1 — Smart Budget
+
+v4.1 replaces the fixed 6 000-token limit with a formula that scales to your repo. No config change needed.
+
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.2rem;margin:1rem 0;font-size:0.88em;font-family:monospace">
+effective = clamp(ceil(totalSigTokens × coverageTarget), 4000, floor(modelContextLimit × maxTokensHeadroom))
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1.2rem 0;font-size:0.88em">
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">📐 Auto-scaled budget</div>
+  <div style="color:var(--vp-c-text-2)">Targets 80% source-file coverage by default. Grows with repo size, capped at 20% of your model's context window.</div>
+</div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">🔒 Hard cap safety</div>
+  <div style="color:var(--vp-c-text-2)">Never exceeds <code>modelContextLimit × maxTokensHeadroom</code> (default 25 600 tokens for 128K models).</div>
+</div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">⚙️ Fully configurable</div>
+  <div style="color:var(--vp-c-text-2)">Four new keys: <code>autoMaxTokens</code>, <code>coverageTarget</code>, <code>modelContextLimit</code>, <code>maxTokensHeadroom</code>. Set <code>autoMaxTokens: false</code> to keep the old fixed behaviour.</div>
+</div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">📊 Per-module fix</div>
+  <div style="color:var(--vp-c-text-2)">Each module in <code>per-module</code> strategy now gets its own full budget — not a proportional slice.</div>
+</div>
+</div>
+
 ## What's new in v4.0 — Intelligence Layer
 
 v4.0 adds observability signals so you know _how good_ your context is, not just that it ran.
