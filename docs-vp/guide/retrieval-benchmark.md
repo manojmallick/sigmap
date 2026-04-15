@@ -18,6 +18,8 @@ head:
 
 # Retrieval benchmark
 
+**Result:** SigMap finds the right file in the top 5 far more often than chance — 84.4% hit@5 vs 13.6% random across 90 tasks.
+
 When you ask an LLM a coding question, the answer quality depends entirely on whether the
 **right files are in context**. This benchmark measures exactly that — without running any LLM.
 

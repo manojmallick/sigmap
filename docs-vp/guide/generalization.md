@@ -29,6 +29,8 @@ means: *do the patterns hold up on codebases the authors never inspected?* The a
 these 90 tasks is yes — 84.4% hit@5 with no per-repo tuning.
 :::
 
+This matters because a context engine that only works on familiar repos is not reliable in real engineering work.
+
 ---
 
 ## By language — 13 languages tested

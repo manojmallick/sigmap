@@ -5,7 +5,7 @@
 <h1>⚡ SigMap</h1>
 
 <p><strong>WITHOUT SIGMAP, YOUR AI IS GUESSING.</strong><br>
-<strong>It sees 8% of your codebase and invents the rest.</strong></p>
+<strong>Without structured context, AI often reads the wrong file and fills the gaps with guesses.</strong></p>
 
 <p><sub>Run one command. Force every answer to come from real code.</sub></p>
 
@@ -19,7 +19,13 @@
 npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again.
 ```
 
-> Latest: **v4.0.0** — Intelligence Layer. Coverage score, confidence indicators in every output file, `--report` module heatmap, `--diff` risk scoring, and extractor quality-based drop order.
+**What you get in ~10 seconds**
+- A compact signature map of your codebase
+- The right file in context far more often (84.4% hit@5 vs 13.6% random)
+- Fewer retries (1.78 vs 2.84 prompts per task)
+- Far smaller context (~2K–4K tokens instead of ~80K)
+
+> Latest: **v4.0.2** — Intelligence Layer. Coverage score, confidence indicators in every output file, `--report` module heatmap, `--diff` risk scoring, and extractor quality-based drop order.
 
 <div align="center">
 <img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
@@ -60,6 +66,8 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 | Tokens per session | ~80,000 | **~2,000** |
 | Right file found | 13.6% | **84.4%** |
 | Hallucination risk | 92% | **0%** |
+
+Measured on 90 coding tasks across 18 real public repos. Full methodology and raw benchmark pages are linked below.
 
 </details>
 

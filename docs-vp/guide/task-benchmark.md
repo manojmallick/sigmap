@@ -16,7 +16,7 @@ head:
       content: "sigmap task benchmark, rag correctness, faithfulness, hallucination risk, llm-as-judge, answer quality, retrieval benchmark"
 ---
 
-# Task benchmark
+# Task benchmark: better answers with fewer prompts
 
 <div style="background:var(--vp-c-brand-soft,#ede9fe);border-left:4px solid var(--vp-c-brand,#7c6af7);border-radius:0 8px 8px 0;padding:1.1rem 1.4rem;margin-bottom:1.8rem">
 

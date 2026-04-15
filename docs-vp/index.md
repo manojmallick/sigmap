@@ -44,21 +44,21 @@ hero:
       link: https://github.com/manojmallick/sigmap
 
 features:
+  - icon: 💬
+    title: Fewer prompts to solve tasks
+    details: 37% fewer prompts per task. Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
+    link: /guide/task-benchmark
+    linkText: Task benchmark →
   - icon: 🎯
-    title: Right file, first prompt
+    title: Right file in context
     details: 84.4% hit@5 across 90 real coding tasks on 18 repos. Without SigMap, random selection finds the right file 13.6% of the time.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚡
-    title: 97% token reduction
+    title: Smaller context window load
     details: From ~80,000 raw tokens to ~4,000 per session. Function signatures only — no bodies, no comments. Measured across 18 real codebases.
     link: /guide/benchmark
     linkText: Token benchmark →
-  - icon: 💬
-    title: 37% fewer prompts
-    details: Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
-    link: /guide/task-benchmark
-    linkText: Task benchmark →
   - icon: 🌐
     title: 29 languages
     details: TypeScript, JS, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile, GraphQL, SQL, Terraform, Protobuf, TOML, XML, Properties, Markdown.
@@ -71,6 +71,12 @@ features:
     title: Always current
     details: File watcher + git post-commit hook regenerate context on every save and commit. Context is never stale.
 ---
+
+<div style="max-width:780px;margin:0 auto;padding:24px 24px 8px;text-align:center">
+<p style="font-size:1.05em;color:var(--vp-c-text-2)">
+  SigMap gives AI the right code context before the first prompt — so it answers from structure, not guesses.
+</p>
+</div>
 
 <div style="max-width:780px;margin:0 auto;padding:0 24px 40px">
 

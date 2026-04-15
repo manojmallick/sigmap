@@ -18,6 +18,11 @@ head:
 
 # Benchmark
 
+**At a glance**
+- Average reduction across 18 repos: 97.5%
+- Raw source: 12.7M tokens → 102.9K tokens after SigMap
+- Measured on real public repos, not estimates
+
 These numbers are measured — not estimated. Every row was produced by running
 `node gen-context.js --report --json` against a real public repository cloned at `--depth 1`.
 

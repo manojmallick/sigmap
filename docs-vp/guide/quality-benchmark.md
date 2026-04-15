@@ -21,6 +21,8 @@ head:
 Token reduction is the mechanism. This page measures what it means in practice —
 context window fit, signature coverage, and API cost.
 
+In practice: SigMap keeps context inside model limits by default and reduces the chance that code is silently omitted before the model answers.
+
 No LLM API key was used. All metrics are computed from:
 - **raw token counts** measured by `node gen-context.js --report --json` on each repo
 - **published model context-window sizes** from official documentation
