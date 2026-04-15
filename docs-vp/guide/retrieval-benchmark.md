@@ -66,6 +66,85 @@ node scripts/run-retrieval-benchmark.mjs --save
 
 ---
 
+## Source file coverage per project
+
+The default `maxTokens: 6000` budget fits only a fraction of source files for large repos. This table shows how many files SigMap includes vs drops, measured with scoped `srcDirs` (source code only, no test/examples).
+
+| Repo | Language | srcDirs | Total files | Included | Dropped | Coverage | Grade | Hit@5 |
+|---|---|---|---:|---:|---:|---:|:---:|:---:|
+| express | JavaScript | `lib/` | 6 | 6 | 0 | **100%** | A | 80% |
+| okhttp | Kotlin | 3 dirs | 19 | 18 | 1 | **95%** | A | 100% |
+| fastify | JavaScript | `lib/` | 31 | 28 | 3 | **90%** | A | 60% |
+| serilog | C# | `src/Serilog/` | 115 | 100 | 15 | **87%** | B | 80% |
+| flask | Python | `src/flask/` | 26 | 20 | 6 | **77%** | B | 100% |
+| gin | Go | `.` | 130 | 76 | 54 | **58%** | C | 100% |
+| vapor | Swift | `Sources/` | 250 | 134 | 116 | **54%** | C | 60% |
+| fastapi | Python | `fastapi/` | 53 | 32 | 21 | **60%** | C | 80% |
+| riverpod | Dart | `packages/` | 254 | 114 | 140 | **45%** | D | 100% |
+| axios | TypeScript | `lib/` | 67 | 29 | 38 | **43%** | D | 60% |
+| vue-core | Vue | `packages/` | 307 | 102 | 205 | **33%** | D | 100% |
+| spring-petclinic | Java | `src/` | 84 | 25 | 59 | **30%** | D | 60% |
+| svelte | Svelte | `packages/svelte/src`, `src/` | 410 | 63 | 347 | **15%** | D | 60% |
+| akka | Scala | 4 dirs | 398 | 64 | 334 | **16%** | D | 100% |
+| rails | Ruby | 7 dirs | 1,442 | 113 | 1,329 | **8%** | D | 80% |
+| laravel | PHP | `src/Illuminate/` | 1,842 | 113 | 1,729 | **6%** | D | 100% |
+| rust-analyzer | Rust | `crates/` | 2,007 | 50 | 1,957 | **2%** | D | 100% |
+| abseil-cpp | C++ | `absl/` | 1,542 | 38 | 1,504 | **2%** | D | 100% |
+
+**Grade key:** A ≥95% · B ≥80% · C ≥60% · D <60% (default 6K token budget)
+
+### Key finding: low coverage ≠ low retrieval quality
+
+The most striking result is that repos with the lowest file coverage still achieve the highest hit@5:
+
+- **rust-analyzer** — 2% file coverage (50 of 2,007 files) → **100% hit@5**
+- **abseil-cpp** — 2% file coverage (38 of 1,542 files) → **100% hit@5**
+- **laravel** — 6% file coverage (113 of 1,842 files) → **100% hit@5**
+- **rails** — 8% file coverage (113 of 1,442 files) → **80% hit@5**
+- **akka** — 16% file coverage (64 of 398 files) → **100% hit@5**
+
+This works because SigMap's token budget drop order prioritises **recently-changed and high-signal files first**. The files that answer real coding tasks tend to be the hot, actively-developed files — exactly the ones the budget keeps.
+
+The pattern breaks when task files are **structurally peripheral** (config, rarely-touched utilities). That is what causes the 60% hit@5 on svelte (15% coverage, 347 files dropped) and spring-petclinic (30% coverage, some task files dropped).
+
+### How to increase coverage for large repos
+
+**1. Raise `maxTokens` in your config**
+
+```json
+{ "maxTokens": 12000 }
+```
+
+Most frontier models (Claude, GPT-4o, Gemini) handle 12K–24K context easily. Doubling the budget roughly doubles file coverage on large repos.
+
+**2. Use `per-module` strategy for monorepos**
+
+For rails, laravel, vue-core, akka — each is a monorepo with distinct sub-packages:
+
+```json
+{ "strategy": "per-module" }
+```
+
+This writes one `context-<module>.md` per `srcDir` instead of one combined file, so each module gets its full budget.
+
+**3. Set explicit `srcDirs`**
+
+Without a config, SigMap auto-detects source dirs. Adding `srcDirs` prevents test files and generated code from consuming the budget:
+
+```json
+{ "srcDirs": ["src", "lib"] }
+```
+
+**4. Use `hot-cold` strategy**
+
+```json
+{ "strategy": "hot-cold" }
+```
+
+Recently-changed files go into the hot context (always injected). Older files go into a cold context served on demand via MCP. This is the highest-coverage option for very large repos.
+
+---
+
 ## Before vs after (quality tiers)
 
 Without SigMap, the context provided to the LLM is either truncated at the token limit or
