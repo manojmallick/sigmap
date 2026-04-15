@@ -37,16 +37,16 @@ All flags accepted by `sigmap` (or `node gen-context.js`).
 |------|-------------|
 | `--watch` | Watch for file changes and regenerate incrementally |
 | `--setup` | Auto-configure MCP servers, install git hook, start watcher |
-| `--diff` | Generate context only for changed files |
+| `--diff` | Generate context only for changed files (shows risk score per file) |
 | `--diff --staged` | Generate context only for staged files |
 | `--mcp` | Start the stdio MCP server |
 | `--query <text>` | Rank files by relevance to a free-text query (TF-IDF) |
 | `--analyze` | Per-file breakdown of signatures, tokens, and extractor |
-| `--report` | Token reduction summary |
-| `--report --json` | Machine-readable JSON report |
+| `--report` | Token reduction + coverage score + module heatmap |
+| `--report --json` | Machine-readable JSON report with coverage object |
 | `--report --paper` | LaTeX/markdown tables for academic export |
-| `--health` | Composite 0–100 health score |
-| `--health --json` | Machine-readable health output |
+| `--health` | Composite 0–100 health score + coverage grade |
+| `--health --json` | Machine-readable health output with coverage fields |
 | `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier |
 | `--monorepo` | Generate a separate context section per package |
 | `--each` | Run a command in each monorepo package |
@@ -111,6 +111,29 @@ sigmap --diff --staged
 
 Both modes automatically fall back to a full generate when run outside a git repository or when no files have changed.
 
+### Risk score (v4.0)
+
+Every `--diff` run now prints a **risk classification** for each changed file based on:
+- `+2` if the file exports public functions (`export` / `module.exports`)
+- `+2` if the file has more than 3 downstream dependents (reverse-dependency BFS)
+- `+1` if the file is a route/page/controller
+- `+1` if the file is a config/env/settings file
+- Total 0–1 → **LOW** · 2–3 → **MEDIUM** · 4+ → **HIGH**
+
+```
+[sigmap] Risk: Changed files (3):
+  src/auth/service.ts         [HIGH]    — exports public API, 5 downstream dependents
+  src/config/database.ts      [MEDIUM]  — config file
+  src/utils/format.ts         [LOW]     — no dependents, internal utility
+```
+
+You can also pass a specific base ref:
+
+```bash
+sigmap --diff HEAD~3
+sigmap --diff main
+```
+
 ---
 
 ## --mcp
@@ -173,13 +196,30 @@ sigmap --diagnose-extractors
 
 ## --report
 
-Print a token reduction summary.
+Print a token reduction summary with coverage score and module heatmap (v4.0).
 
 ```bash
 sigmap --report
 ```
 
-Machine-readable JSON (suitable for CI dashboards):
+```
+[sigmap] report:
+  version         : 4.0.0
+  files processed : 76
+  files dropped   : 0
+  input tokens    : ~65,227
+  output tokens   : ~4,103
+  budget limit    : 6000
+  reduction       : 93.7%
+  coverage        : A (97%)  — 76 of 78 source files included
+  confidence      : HIGH
+
+  Module Coverage:
+    src                ████████████████ 100% (64/64 files)
+    packages           ██████████████░░  86% (12/14 files)
+```
+
+Machine-readable JSON (suitable for CI dashboards). Includes a `coverage` object with `score`, `grade`, `confidence`, `totalFiles`, `includedFiles`, `droppedFiles`, and `perModule`:
 
 ```bash
 sigmap --report --json
@@ -195,20 +235,24 @@ sigmap --report --paper
 
 ## --health
 
-Run the composite health check. Returns a score from 0–100 plus a letter grade.
+Run the composite health check. Returns a 0–100 score, letter grade, and (v4.0) coverage score.
 
 ```bash
 sigmap --health
 ```
 
 ```
-[sigmap] score: 94  grade: A
-[sigmap] context: .github/copilot-instructions.md
-[sigmap] last generated: 2m ago
-[sigmap] token reduction: 95.3%
+[sigmap] health:
+  score           : 80/100 (grade B)
+  coverage        : A (97%)  — 76 of 78 source files
+  strategy        : full
+  token reduction : 93.7%
+  days since regen: 0
+  total runs      : 1
+  extractor cover.: 4.8%
 ```
 
-Machine-readable:
+Machine-readable (v4.0 adds coverage fields):
 
 ```bash
 sigmap --health --json
@@ -216,13 +260,15 @@ sigmap --health --json
 
 ```json
 {
-  "score": 94,
-  "grade": "A",
-  "version": "2.4.0",
-  "node": "22.11.0",
-  "contextFile": true,
-  "lastGenerated": "2m ago",
-  "tokenReduction": "95.3%"
+  "score": 80,
+  "grade": "B",
+  "coverage": 97,
+  "coverageGrade": "A",
+  "coverageConfidence": "HIGH",
+  "coverageTotalFiles": 78,
+  "coverageIncludedFiles": 76,
+  "tokens": 4103,
+  "reduction": 93.7
 }
 ```
 

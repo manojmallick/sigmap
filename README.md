@@ -19,7 +19,7 @@
 npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again.
 ```
 
-> Latest: **v3.5.0** adds Phase C/D intelligence expansion with framework-specialized extractors and cross-module pattern detection.
+> Latest: **v4.0.0** — Intelligence Layer. Coverage score, confidence indicators in every output file, `--report` module heatmap, `--diff` risk scoring, and extractor quality-based drop order.
 
 <div align="center">
 <img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
@@ -145,7 +145,7 @@ Reproduced with `node scripts/run-benchmark.mjs` on public repos:
 | fastify | JavaScript | 54.4K | 2.6K | **95.3%** |
 | fastapi | Python | 178.4K | 5.2K | **97.1%** |
 
-**Average: 97.5% reduction across 18 repos (16 languages).** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
+**Average: 97.6% reduction across 18 repos (16 languages).** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
 
 ---
 
@@ -746,17 +746,89 @@ If `output` is omitted, the default `.github/copilot-instructions.md` is used.
 
 ## 📊 Observability
 
+### Coverage score (v4.0)
+
+Every run now prints a coverage line alongside token reduction:
+
+```
+───────────────────────────────────────────
+ SigMap v4.0.0
+ Files scanned  : 76
+ Symbols found  : 332
+ Token reduction: 94%  (65,227 → 4,103)
+ Coverage       : A (97%)  — 76 of 78 source files included
+ Output         : .github/copilot-instructions.md
+───────────────────────────────────────────
+```
+
+The **coverage score** answers _how much of your codebase is represented in context_ after the token budget is applied. Grade scale: A ≥ 90% · B ≥ 75% · C ≥ 50% · D < 50%.
+
+### Module heatmap in `--report`
+
 ```bash
-# Append run metrics to .context/usage.ndjson
-sigmap --track
+sigmap --report
+```
 
-# Structured JSON report for CI (exits 1 if over budget)
+```
+[sigmap] report:
+  version         : 4.0.0
+  files processed : 76
+  reduction       : 93.7%
+  coverage        : A (97%)  — 76 of 78 source files included
+  confidence      : HIGH
+
+  Module Coverage:
+    src                ████████████████ 100% (64/64 files)
+    packages           ██████████████░░  86% (12/14 files)
+```
+
+Machine-readable JSON (suitable for CI dashboards):
+
+```bash
 sigmap --report --json
-# { "version": "2.0.0", "finalTokens": 3200, "reductionPct": 92.4, "overBudget": false }
+# { "version": "4.0.0", "finalTokens": 4103, "reductionPct": 93.7,
+#   "coverage": { "score": 97, "grade": "A", "confidence": "HIGH", ... } }
+```
 
-# Composite health score
+### Composite health score
+
+```bash
 sigmap --health
-# score: 95/100 (grade A) | reduction: 91.2% | 1 day since regen | 47 runs
+```
+
+```
+[sigmap] health:
+  score    : 80/100 (grade B)
+  coverage : A (97%)  — 76 of 78 source files
+  strategy : full
+  ...
+```
+
+```bash
+sigmap --health --json
+# { "score": 80, "grade": "B", "coverage": 97, "coverageGrade": "A",
+#   "tokens": 4103, "reduction": 93.7, ... }
+```
+
+### Confidence indicators in generated files
+
+Every output file now carries a metadata line so you can inspect freshness at a glance:
+
+```
+<!-- sigmap: version=4.0.0 confidence=HIGH coverage=97% dropped=2 commit=8540612 -->
+```
+
+### Diff risk score
+
+```bash
+sigmap --diff HEAD~3
+```
+
+```
+[sigmap] Risk: Changed files (4):
+  src/auth/service.ts         [HIGH]    — exports public API, 5 downstream dependents
+  src/config/database.ts      [MEDIUM]  — config file
+  src/utils/format.ts         [LOW]     — no dependents, internal utility
 ```
 
 ### Self-healing CI

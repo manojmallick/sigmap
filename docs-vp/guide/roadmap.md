@@ -22,7 +22,7 @@ head:
 
 Twenty-five versions shipped/planned. MIT open source from day one.
 
-**Stats:** 97% token reduction · 340 tests passing · 21 languages · 0 npm deps
+**Stats:** 97.6% token reduction · 340 tests passing · 25 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -252,9 +252,31 @@ Fine-tuned ranking algorithm weights. Configurable weight presets (`precision`, 
 
 ---
 
-## Current milestone — v3.x
+### v3.x — Multi-adapter platform ✓ (v3.0 – v3.6)
 
-Reporting charts, advanced metrics, and the multi-adapter platform (Copilot, Claude, Cursor, Windsurf, OpenAI, Gemini) are the active milestone. See [CHANGELOG.md](https://github.com/manojmallick/sigmap/blob/main/CHANGELOG.md) for the latest.
+The multi-adapter architecture (Copilot, Claude, Cursor, Windsurf, OpenAI, Gemini), reporting charts, advanced health metrics, VS Code + JetBrains plugins with real-time status bars, Phase C/D intelligence extractors (TypeScript React, Vue SFC, Python dataclasses), and the LLM-full write mode.
+
+**Tags:** `adapters` · `VS Code extension` · `JetBrains plugin` · `Phase C/D extractors` · `llm-full mode`
+
+---
+
+### v4.0 — Intelligence Layer ✓ (tagged v4.0.0 — 2026-04-15)
+
+Every run now tells you _how good_ your context is, not just that it ran.
+
+- **Coverage score**: fraction of source files that survived the token budget. Grade A–D per srcDir with per-module ASCII heatmap in `--report`.
+- **Confidence indicators**: every generated file carries `<!-- sigmap: version=4.0.0 confidence=HIGH coverage=97% dropped=2 commit=abc1234 -->` so you can inspect freshness at a glance.
+- **`--diff` risk score**: LOW / MEDIUM / HIGH per changed file based on reverse-dependency BFS, public exports, route status, and config-file status.
+- **Coverage in `--health` and `--health --json`**: coverage grade and source-file counts included in both text and JSON output.
+- **Extractor quality scoring**: token-budget drop order now uses `signalQuality = sigs / linesOfCode` — least-informative files are dropped first.
+
+**Benchmark:** 97.6% token reduction average across 18 repos.
+
+---
+
+## Current milestone — v4.x
+
+Intelligence layer shipped. Next: v4.5 — Adaptive Intelligence (adaptive query, CI gate, `--validate`).
 
 
 ---

@@ -10,6 +10,48 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.0.0] — 2026-04-15 — Intelligence Layer
+
+### Added
+- **Coverage score** (`src/analysis/coverage-score.js`): measures what fraction of source files made it into context after token-budget application.
+  - Grade scale: A ≥ 90% · B ≥ 75% · C ≥ 50% · D < 50%
+  - Confidence indicator: HIGH / MEDIUM / LOW
+  - Per-module breakdown per srcDir via `perModule` Map
+- **Confidence indicators in all output writers**: every generated file now includes a metadata comment:
+  ```
+  <!-- sigmap: version=4.0.0 confidence=HIGH coverage=94% dropped=9 commit=abc1234 -->
+  ```
+  Applies to: `copilot`, `claude`, `cursor`, `windsurf`, `openai`, `gemini` adapters.
+- **`--report` module heatmap**: ASCII bar chart per srcDir showing coverage percentage:
+  ```
+  Module Coverage:
+    src                ████████████████ 100% (64/64 files)
+    packages           ██████████████░░  86% (12/14 files)
+  ```
+  `--report --json` gains a `coverage` object with `score`, `grade`, `confidence`, `totalFiles`, `includedFiles`, `droppedFiles`, and `perModule`.
+- **`--diff` risk score**: each changed file is now classified LOW / MEDIUM / HIGH based on reverse-dependency BFS, public API exports, route status, and config-file status:
+  ```
+  [sigmap] Risk: Changed files (3):
+    src/auth/service.ts         [HIGH]    — exports public API, 5 downstream dependents
+    src/config/database.ts      [MEDIUM]  — config file
+    src/utils/format.ts         [LOW]     — no dependents, internal utility
+  ```
+- **Coverage in post-run summary**: every normal run now prints a `Coverage` line:
+  ```
+   Coverage       : A (97%)  — 76 of 78 source files included
+  ```
+- **Coverage in `--health` and `--health --json`**: coverage grade, score, and file counts are included in both text and JSON health output. `--health --json` adds `coverage`, `coverageGrade`, `coverageConfidence`, `coverageTotalFiles`, `coverageIncludedFiles`.
+
+### Changed
+- **Token budget drop order step 5**: now uses `signalQuality = sigs / linesOfCode` (least-informative files dropped first) instead of the previous "fewest sigs" heuristic.
+- **`src/eval/analyzer.js` `analyzeFiles()` output**: each file stat now includes `linesOfCode` and `signalQuality` fields.
+
+### Benchmark (v4.0.0)
+- Token reduction: **97.6% average** across 18 repos (target ≥ 97.0%) ✅
+- Retrieval hit@5: 83.3% (retrieval improvement targeted in v4.5 with adaptive query)
+
+---
+
 ## [3.5.0] — 2026-04-14 — Phase C/D Intelligence Expansion
 
 ### Added

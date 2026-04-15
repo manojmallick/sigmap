@@ -248,6 +248,35 @@ No config, no API key, no dependencies. Reads your code, writes the context file
 
 ---
 
+<div style="max-width:780px;margin:0 auto;padding:0 24px 32px">
+
+## What's new in v4.0 — Intelligence Layer
+
+v4.0 adds observability signals so you know _how good_ your context is, not just that it ran.
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1.2rem 0;font-size:0.88em">
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">📊 Coverage score</div>
+  <div style="color:var(--vp-c-text-2)">Grade A–D: what fraction of source files made it into context after token budget.</div>
+</div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">🔥 Module heatmap</div>
+  <div style="color:var(--vp-c-text-2)"><code>sigmap --report</code> prints an ASCII bar chart per srcDir showing per-module coverage %.</div>
+</div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">⚠️ Diff risk score</div>
+  <div style="color:var(--vp-c-text-2);"><code>sigmap --diff</code> classifies each changed file LOW / MEDIUM / HIGH based on downstream impact.</div>
+</div>
+<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
+  <div style="font-weight:600;margin-bottom:.3rem">🏷️ Confidence indicators</div>
+  <div style="color:var(--vp-c-text-2)">Every generated file carries <code>confidence=HIGH coverage=97%</code> metadata so you can inspect freshness at a glance.</div>
+</div>
+</div>
+
+</div>
+
+---
+
 <div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
   Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
 </div>
