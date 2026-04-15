@@ -59,9 +59,22 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // Maximum signatures extracted per file
     maxSigsPerFile: 25,
   
-    // Maximum tokens in final output before budget enforcement kicks in
+    // Maximum tokens in final output before budget enforcement kicks in.
+    // Used only when autoMaxTokens is false, or as a floor for auto-scaling.
     maxTokens: 6000,
-  
+
+    // Automatically scale the token budget based on repo size.
+    autoMaxTokens: true,
+
+    // Fraction of source files to target for inclusion (0.0–1.0).
+    coverageTarget: 0.80,
+
+    // Model context window size (tokens). Used to compute the hard cap.
+    modelContextLimit: 128000,
+
+    // Fraction of the model context window reserved for SigMap output.
+    maxTokensHeadroom: 0.20,
+
     // Scan signatures for secrets and redact matches
     secretScan: true,
   
@@ -4641,7 +4654,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '4.0.2',
+    version: '4.1.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -6203,7 +6216,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '4.0.2';
+const VERSION = '4.1.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -6421,6 +6434,61 @@ function isMockFile(filePath) {
   return /\/(mock|mocks|stub|stubs|fake|fakes|demo|demos|__mocks__|fixtures)\//i.test(p) ||
     /\.(mock|stub|fake)\.[jt]sx?$/.test(p) ||
     /mock\.(ts|js|tsx|jsx)$/.test(p);
+}
+
+/**
+ * Compute the effective token budget based on repo size and config.
+ *
+ * Formula:
+ *   totalSigTokens  = sum of estimated tokens for all extracted sig blocks
+ *   needed          = ceil(totalSigTokens * coverageTarget)   // tokens for target% coverage
+ *   hardCap         = floor(modelContextLimit * maxTokensHeadroom)
+ *   effective       = clamp(needed, 4000, hardCap)
+ *
+ * When autoMaxTokens is false the configured maxTokens is returned unchanged.
+ *
+ * @param {Array}  fileEntries - All file entries BEFORE budget enforcement
+ * @param {object} config
+ * @returns {number} effective token budget
+ */
+function computeEffectiveMaxTokens(fileEntries, config) {
+  if (config.autoMaxTokens === false) return config.maxTokens;
+
+  const coverageTarget    = (config.coverageTarget    != null) ? config.coverageTarget    : 0.80;
+  const modelContextLimit = (config.modelContextLimit != null) ? config.modelContextLimit : 128000;
+  const maxTokensHeadroom = (config.maxTokensHeadroom != null) ? config.maxTokensHeadroom : 0.20;
+
+  const totalSigTokens = fileEntries.reduce(
+    (s, e) => s + estimateTokens((e.sigs || []).join('\n')), 0
+  );
+  if (totalSigTokens === 0) return config.maxTokens;
+
+  const hardCap  = Math.floor(modelContextLimit * maxTokensHeadroom);
+  const needed   = Math.ceil(totalSigTokens * coverageTarget);
+  const MIN      = 4000;
+  const effective = Math.min(Math.max(MIN, needed), hardCap);
+
+  // Warn when repo is so large the hard cap prevents hitting the coverage target
+  if (needed > hardCap) {
+    const estimatedCovPct = Math.round((hardCap / totalSigTokens) * 100);
+    const targetPct       = Math.round(coverageTarget * 100);
+    if (estimatedCovPct < targetPct - 10) {
+      console.warn(
+        `[sigmap] auto-budget: ${fileEntries.length} files need ~${Math.round(needed / 1000)}K tokens ` +
+        `for ${targetPct}% coverage`
+      );
+      console.warn(
+        `[sigmap] auto-budget: capped at ${hardCap} ` +
+        `(${Math.round(maxTokensHeadroom * 100)}% of ${Math.round(modelContextLimit / 1000)}K model limit) ` +
+        `→ est. ${estimatedCovPct}% coverage`
+      );
+      console.warn(
+        `[sigmap] auto-budget: tip — set strategy:"per-module" for full coverage on large repos`
+      );
+    }
+  }
+
+  return effective;
 }
 
 function applyTokenBudget(fileEntries, maxTokens) {
@@ -6889,7 +6957,7 @@ function _coverageBar(pct, width) {
   return '\u2588'.repeat(filled) + '\u2591'.repeat(width - filled);
 }
 
-function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, budgetLimit, coverageResult) {
+function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, budgetLimit, coverageResult, isAutoBudget) {
   const reduction = inputTokens > 0 ? (100 - (finalTokens / inputTokens) * 100).toFixed(1) : 0;
   const overBudget = finalTokens > (budgetLimit || 6000);
   if (asJson) {
@@ -6904,6 +6972,7 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
       reductionPct: parseFloat(reduction),
       overBudget,
       budgetLimit: budgetLimit || 6000,
+      autoBudget: !!isAutoBudget,
     };
     if (coverageResult) {
       payload.coverage = {
@@ -6923,13 +6992,16 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
     // Exit 1 in CI if over budget — lets pipelines fail fast
     if (overBudget) process.exitCode = 1;
   } else {
+    const budgetLabel = isAutoBudget
+      ? `${budgetLimit || 6000} (auto-scaled)`
+      : `${budgetLimit || 6000} (fixed)`;
     console.log(`[sigmap] report:`);
     console.log(`  version         : ${VERSION}`);
     console.log(`  files processed : ${fileCount}`);
     console.log(`  files dropped   : ${droppedCount}`);
     console.log(`  input tokens    : ~${inputTokens}`);
     console.log(`  output tokens   : ~${finalTokens}`);
-    console.log(`  budget limit    : ${budgetLimit || 6000}`);
+    console.log(`  budget limit    : ${budgetLabel}`);
     console.log(`  reduction       : ${reduction}%`);
     if (coverageResult) {
       console.log(`  coverage        : ${coverageResult.grade} (${coverageResult.score}%)  — ${coverageResult.included} of ${coverageResult.total} source files included`);
@@ -7088,8 +7160,9 @@ function runPerModuleStrategy(cwd, config, fileEntries, inputTokenTotal) {
     const outPath = path.join(cwd, '.github', outName);
     const modEntries = modules[mod];
 
-    // Per-module budget: proportional share of maxTokens
-    const modBudget = Math.max(1000, Math.floor(config.maxTokens / moduleNames.length));
+    // Per-module budget: each module gets its own full effective budget
+    // (per-module strategy is the recommended path for large repos — no sharing needed)
+    const modBudget = Math.max(1000, config.maxTokens);
     const budgeted = applyTokenBudget(modEntries, modBudget);
 
     const content = formatOutput(budgeted, cwd, false, config, null);
@@ -7358,15 +7431,22 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     });
   }
 
+  // v4.1: compute effective budget once; used by all strategies
+  const effectiveMaxTokens = computeEffectiveMaxTokens(fileEntries, config);
+  // Propagate to config so per-module / hot-cold strategies pick it up
+  const configWithBudget = effectiveMaxTokens !== config.maxTokens
+    ? Object.assign({}, config, { maxTokens: effectiveMaxTokens, _autoMaxTokens: effectiveMaxTokens })
+    : config;
+
   let result;
   if (!reportMode) {
     if (strategy === 'per-module') {
-      result = runPerModuleStrategy(cwd, config, fileEntries, inputTokenTotal);
+      result = runPerModuleStrategy(cwd, configWithBudget, fileEntries, inputTokenTotal);
     } else if (strategy === 'hot-cold') {
-      result = runHotColdStrategy(cwd, config, fileEntries, recentFiles, inputTokenTotal);
+      result = runHotColdStrategy(cwd, configWithBudget, fileEntries, recentFiles, inputTokenTotal);
     } else {
       // 'full' — original behaviour
-      fileEntries = applyTokenBudget(fileEntries, config.maxTokens);
+      fileEntries = applyTokenBudget(fileEntries, effectiveMaxTokens);
       const droppedCount = beforeCount - fileEntries.length;
       const routingEnabled = !!(config.routing || process.argv.includes('--routing'));
       const content = formatOutput(fileEntries, cwd, routingEnabled, config, null);
@@ -7409,21 +7489,21 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     }
   } else {
     // report mode: always run full pipeline for accurate stats
-    const budgeted = applyTokenBudget([...fileEntries], config.maxTokens);
+    const budgeted = applyTokenBudget([...fileEntries], effectiveMaxTokens);
     const droppedCount = beforeCount - budgeted.length;
-    const content = formatOutput(budgeted, cwd, false, config, null);
+    const content = formatOutput(budgeted, cwd, false, configWithBudget, null);
     const finalTokens = estimateTokens(content);
     // v4.0: compute coverage score for --report heatmap
     let coverageResult = null;
     try {
       const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
-      coverageResult = coverageScore(cwd, budgeted, config);
+      coverageResult = coverageScore(cwd, budgeted, configWithBudget);
     } catch (_) {}
     result = { inputTokenTotal, finalTokens, fileCount: beforeCount, droppedCount, coverageResult };
   }
 
   if (reportMode || process.argv.includes('--report')) {
-    printReport(result.inputTokenTotal, result.finalTokens, result.fileCount, result.droppedCount, reportJson, config.maxTokens, result.coverageResult);
+    printReport(result.inputTokenTotal, result.finalTokens, result.fileCount, result.droppedCount, reportJson, effectiveMaxTokens, result.coverageResult, config.autoMaxTokens !== false && effectiveMaxTokens !== config.maxTokens);
   }
 
   // Usage tracking (v0.9) — optional append-only NDJSON log
@@ -7437,8 +7517,9 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
         droppedCount: result.droppedCount,
         rawTokens: result.inputTokenTotal,
         finalTokens: result.finalTokens,
-        overBudget: result.finalTokens > config.maxTokens,
-        budgetLimit: config.maxTokens,
+        overBudget: result.finalTokens > effectiveMaxTokens,
+        budgetLimit: effectiveMaxTokens,
+        autoBudget: config.autoMaxTokens !== false && effectiveMaxTokens !== config.maxTokens,
       }, cwd);
     } catch (err) {
       console.warn(`[sigmap] tracking: ${err.message}`);
@@ -7459,8 +7540,15 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     let coverageLine = '';
     try {
       const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
-      const cov = coverageScore(cwd, fileEntries, config);
-      coverageLine = ` Coverage       : ${cov.grade} (${cov.score}%)  \u2014 ${cov.included} of ${cov.total} source files included`;
+      const cov = coverageScore(cwd, fileEntries, configWithBudget);
+      const autoBudgetNote = (config.autoMaxTokens !== false && effectiveMaxTokens !== config.maxTokens)
+        ? `  [budget: ${effectiveMaxTokens} auto-scaled]`
+        : '';
+      coverageLine = ` Coverage       : ${cov.grade} (${cov.score}%)  \u2014 ${cov.included} of ${cov.total} source files included${autoBudgetNote}`;
+      // Extra warning line when coverage is still poor despite auto-scaling
+      if (cov.score < 40 && config.strategy !== 'per-module' && config.strategy !== 'hot-cold') {
+        coverageLine += '\n [sigmap] tip: large repo — consider strategy:"per-module" for full coverage';
+      }
     } catch (_) {}
     const lines = [
       bar,

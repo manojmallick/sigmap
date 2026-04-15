@@ -47,8 +47,29 @@ const DEFAULTS = {
   // Maximum signatures extracted per file
   maxSigsPerFile: 25,
 
-  // Maximum tokens in final output before budget enforcement kicks in
+  // Maximum tokens in final output before budget enforcement kicks in.
+  // Used only when autoMaxTokens is false, or as a floor for auto-scaling.
   maxTokens: 6000,
+
+  // Automatically scale the token budget based on repo size.
+  // When true, SigMap targets `coverageTarget` fraction of source files and
+  // raises the budget up to `modelContextLimit * maxTokensHeadroom`.
+  // Set to false (or set maxTokens explicitly) to pin the budget.
+  autoMaxTokens: true,
+
+  // Fraction of source files to target for inclusion (0.0–1.0).
+  // 0.80 = include at least 80% of source files in the context output.
+  coverageTarget: 0.80,
+
+  // Model context window size (tokens). Used to compute the hard cap:
+  //   hardCap = modelContextLimit × maxTokensHeadroom
+  // Default: GPT-4o / Claude Sonnet (128K). Set higher for Gemini 1M etc.
+  modelContextLimit: 128000,
+
+  // Fraction of the model context window reserved for SigMap output.
+  // Leaves the remaining fraction for the conversation, system prompt, etc.
+  // Default 0.20 = 20% of 128K = 25,600 token hard cap.
+  maxTokensHeadroom: 0.20,
 
   // Scan signatures for secrets and redact matches
   secretScan: true,

@@ -165,6 +165,7 @@ test('Custom maxTokens from config file is respected', () => {
 
     fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({
       maxTokens: 2000,
+      autoMaxTokens: false,   // v4.1.0: pin fixed budget, skip auto-scaling
       outputs: ['copilot'],
       secretScan: false,
     }));
