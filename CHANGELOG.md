@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.0.2] — 2026-04-15 — Bundle factory fix (re-release of 4.0.1)
+
+### Fixed
+- v4.0.1 was published to npm/GitHub Packages before the binary CI step ran, which meant the published package contained the incomplete bundle (missing `./src/analysis/coverage-score` factory). v4.0.2 is a clean re-release with all fixes from 4.0.1 and the correct bundle.
+
+---
+
 ## [4.0.1] — 2026-04-15 — Config auto-detection fix
 
 ### Fixed
