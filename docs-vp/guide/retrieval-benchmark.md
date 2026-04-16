@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark — context relevance across 18 repos
-description: SigMap hit@5 = 80% vs 13.6% random baseline. 5.9× lift. 90 real coding tasks across 18 repos measured without an LLM API.
+description: SigMap hit@5 = 80% vs 13.6% random baseline. 5.9× lift. 90 real coding tasks across 18 repos measured without an LLM API. Last run v5.1.0.
 head:
   - - meta
     - property: og:title
@@ -18,7 +18,7 @@ head:
 
 # Retrieval benchmark
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **80% hit@5** vs 13.6% random across 90 tasks (5.9× lift). Last run: 2026-04-16 (v5.0.0).
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **80% hit@5** vs 13.6% random across 90 tasks (5.9× lift). Last run: 2026-04-16 (v5.1.0).
 
 When you ask an LLM a coding question, the answer quality depends entirely on whether the
 **right files are in context**. This benchmark measures exactly that — without running any LLM.
@@ -46,23 +46,23 @@ node scripts/run-retrieval-benchmark.mjs --save
 | [flask](https://github.com/pallets/flask) | 19 | 20 | 26% | **100%** | 3.8× | 5/5 | 0/5 | 0/5 |
 | [gin](https://github.com/gin-gonic/gin) | 107 | 76 | 5% | **100%** | 21× | 3/5 | 2/5 | 0/5 |
 | [spring-petclinic](https://github.com/spring-projects/spring-petclinic) | 13 | 29 | 39% | 60% | 1.6× | 3/5 | 0/5 | 2/5 |
-| [rails](https://github.com/rails/rails) | 1,179 | 110 | 0.4% | 80% | **189×** | 2/5 | 2/5 | 1/5 |
+| [rails](https://github.com/rails/rails) | 1,179 | 389 | 0.4% | 60% | **142×** | 2/5 | 1/5 | 2/5 |
 | [axios](https://github.com/axios/axios) | 25 | 29 | 20% | 60% | 3× | 2/5 | 1/5 | 2/5 |
 | [rust-analyzer](https://github.com/rust-lang/rust-analyzer) | 635 | 50 | 0.8% | **100%** | **127×** | 4/5 | 1/5 | 0/5 |
-| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 700 | 38 | 0.7% | **100%** | **140×** | 4/5 | 1/5 | 0/5 |
-| [serilog](https://github.com/serilog/serilog) | 99 | 100 | 5% | 80% | 15.8× | 2/5 | 2/5 | 1/5 |
+| [abseil-cpp](https://github.com/abseil/abseil-cpp) | 700 | 176 | 0.7% | **100%** | **140×** | 3/5 | 2/5 | 0/5 |
+| [serilog](https://github.com/serilog/serilog) | 99 | 90 | 5% | 60% | 11.9× | 1/5 | 2/5 | 2/5 |
 | [riverpod](https://github.com/rrousselGit/riverpod) | 446 | 43 | 1.1% | **100%** | 89× | 4/5 | 1/5 | 0/5 |
 | [okhttp](https://github.com/square/okhttp) | 18 | 18 | 28% | **100%** | 3.6× | 5/5 | 0/5 | 0/5 |
 | [laravel](https://github.com/laravel/framework) | 1,533 | 113 | 0.3% | **100%** | **307×** | 2/5 | 3/5 | 0/5 |
 | [akka](https://github.com/akka/akka) | 211 | 64 | 2.4% | **100%** | 42× | 3/5 | 2/5 | 0/5 |
-| [vapor](https://github.com/vapor/vapor) | 131 | 134 | 3.8% | 60% | 15.7× | 1/5 | 2/5 | 2/5 |
-| [vue-core](https://github.com/vuejs/core) | 232 | 121 | 2.2% | **100%** | 46× | 2/5 | 3/5 | 0/5 |
-| [svelte](https://github.com/sveltejs/svelte) | 370 | 63 | 1.4% | 60% | 44× | 1/5 | 2/5 | 2/5 |
+| [vapor](https://github.com/vapor/vapor) | 131 | 121 | 3.8% | 40% | 10.5× | 1/5 | 1/5 | 3/5 |
+| [vue-core](https://github.com/vuejs/core) | 232 | 175 | 2.2% | **100%** | 46× | 1/5 | 4/5 | 0/5 |
+| [svelte](https://github.com/sveltejs/svelte) | 370 | 205 | 1.4% | 60% | 44× | 0/5 | 3/5 | 2/5 |
 | [fastify](https://github.com/fastify/fastify) | 31 | 28 | 16% | 60% | 3.7× | 3/5 | 0/5 | 2/5 |
 | [fastapi](https://github.com/tiangolo/fastapi) | 48 | 32 | 10% | 80% | 7.7× | 3/5 | 1/5 | 1/5 |
-| **Average** | | | **13.6%** | **84.4%** | **6.2×** | **51/90** | **25/90** | **14/90** |
+| **Average** | | | **13.6%** | **80.0%** | **5.9×** | **48/90** | **24/90** | **18/90** |
 
-**10 of 18 repos hit 100% (all 5 tasks found in top-5). Only 14/90 tasks produced a wrong result.**
+**9 of 18 repos hit 100% (all 5 tasks found in top-5). Only 18/90 tasks produced a wrong result.**
 
 ---
 
@@ -159,12 +159,12 @@ Context quality — all 90 tasks across 18 repos
   Wrong    ████████████████████████  70%  —  63/90 tasks
 
   With SigMap:
-  Correct  █████████████████████░░░  57%  —  51/90 tasks
-  Partial  ████████████░░░░░░░░░░░░  28%  —  25/90 tasks
-  Wrong    ████░░░░░░░░░░░░░░░░░░░░  16%  —  14/90 tasks
+  Correct  ████████████████████░░░░  53%  —  48/90 tasks
+  Partial  ████████████░░░░░░░░░░░░  27%  —  24/90 tasks
+  Wrong    █████░░░░░░░░░░░░░░░░░░░  20%  —  18/90 tasks
 ```
 
-**Wrong context drops from 70% → 13%. Correct context jumps from 14% → 59%.**
+**Wrong context drops from 70% → 20%. Correct context jumps from 14% → 53%.**
 
 For large repos (rails 1,179 files; laravel 1,533; rust-analyzer 635; abseil-cpp 700):
 - Without SigMap: random hit@5 is **0.3–0.8%** — effectively zero
@@ -194,11 +194,11 @@ For large repos (rails 1,179 files; laravel 1,533; rust-analyzer 635; abseil-cpp
 
 | Metric | Without SigMap | With SigMap |
 |--------|:--------------:|:-----------:|
-| Average hit@5 | 13.6% | **84.4%** |
-| Lift | — | **6.2×** |
-| Wrong context (top-5 miss) | **70%** | 16% |
-| Correct context (rank-1 hit) | 14% | **57%** |
-| 100% hit@5 repos | 0/18 | **10/18** |
+| Average hit@5 | 13.6% | **80.0%** |
+| Lift | — | **5.9×** |
+| Wrong context (top-5 miss) | **70%** | 20% |
+| Correct context (rank-1 hit) | 14% | **53%** |
+| 100% hit@5 repos | 0/18 | **9/18** |
 
 ## Reproduce
 
