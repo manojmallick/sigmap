@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.2.0] — 2026-04-16
+
+### Added
+
+- **`sigmap ask "<query>"`** — unified pipeline: intent detection → ranked mini-context → coverage check → cost estimate → risk level in one command. Supports `--json` for machine-readable output.
+- **Intent detection** (`detectIntent`) — classifies queries as `debug`, `explain`, `refactor`, `review`, or `search` and adjusts ranking weights accordingly for higher-relevance results.
+- **`sigmap query --context`** — writes a targeted mini-context (top-5 ranked files, ≤ 2 000 tokens) to `.context/query-context.md` for direct pasting into an LLM prompt.
+- **`--cost [--model <name>] [--json]`** — prints per-model token/dollar cost comparison (raw source vs SigMap output). Supports `gpt-4o`, `gpt-4`, `claude-3-5-sonnet`, `claude-opus-4`, `gemini-1.5-pro`, and more.
+- **`sigmap suggest-profile [--short]`** — reads the last git commit message and staged files to recommend a context profile (`debug`, `architecture`, `review`, or `default`).
+- **`sigmap compare [--json]`** — human-readable CLI wrapper over the retrieval benchmark scripts, showing SigMap vs baseline hit@5, token counts, and lift multiplier.
+- **`sigmap share`** — prints a shareable one-liner with live benchmark numbers and copies it to the clipboard via `pbcopy`/`xclip`.
+
+---
+
 ## [4.1.2] — 2026-04-16 — Feat: --output <file> flag for custom context path
 
 ### Added
