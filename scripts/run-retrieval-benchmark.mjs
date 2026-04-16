@@ -32,6 +32,7 @@ const REPORTS_DIR = path.join(ROOT, 'benchmarks', 'reports');
 const SAVE = process.argv.includes('--save');
 const JSON_OUT = process.argv.includes('--json');
 const SKIP_RUN = process.argv.includes('--skip-run');
+const COMPARE = process.argv.includes('--compare');
 
 // ---------------------------------------------------------------------------
 // Repos config
@@ -421,4 +422,13 @@ if (SAVE) {
   const outPath = path.join(REPORTS_DIR, 'retrieval.json');
   fs.writeFileSync(outPath, JSON.stringify({ generated: new Date().toISOString(), repos: results }, null, 2));
   console.log(`[saved] ${outPath}`);
+}
+
+if (COMPARE) {
+  const sigTokens = results.reduce((s, r) => s + (r.sigCount || 0), 0);
+  const baseTokens = results.reduce((s, r) => s + Math.round(r.fileCount * 4000), 0);
+  process.stdout.write(JSON.stringify({
+    sigmap:   { hitAt5: avgHit,  tokens: Math.round(sigTokens  / Math.max(results.length, 1)) },
+    baseline: { hitAt5: avgRand, tokens: Math.round(baseTokens / Math.max(results.length, 1)) },
+  }) + '\n');
 }

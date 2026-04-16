@@ -9,7 +9,7 @@ val ideUntilBuild = "261.*"
 val verifierIdeVersions = listOf("IC-241.19416.15", "IC-252.28539.33")
 
 group = "com.sigmap"
-version = "4.1.2"
+version = "4.2.0"
 
 repositories {
     mavenCentral()

@@ -307,4 +307,22 @@ function formatRankJSON(results, query) {
   };
 }
 
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS };
+// ---------------------------------------------------------------------------
+// Intent detection
+// ---------------------------------------------------------------------------
+const INTENT_PATTERNS = {
+  debug:    /\b(bug|fix|error|crash|exception|broken|failing|issue|problem|regression)\b/i,
+  explain:  /\b(explain|how does|what is|understand|overview|architecture|describe|walk me)\b/i,
+  refactor: /\b(refactor|restructure|redesign|clean up|extract|move|rename|simplify)\b/i,
+  review:   /\b(review|check|audit|security|pr|pull request|assess)\b/i,
+};
+
+function detectIntent(query) {
+  if (!query || typeof query !== 'string') return 'search';
+  for (const [intent, re] of Object.entries(INTENT_PATTERNS)) {
+    if (re.test(query)) return intent;
+  }
+  return 'search';
+}
+
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent };

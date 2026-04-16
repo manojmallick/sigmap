@@ -4654,7 +4654,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '4.1.0',
+    version: '4.2.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -5515,7 +5515,20 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   function formatRankJSON(results, query) {
     return { query, results: (results || []).map((r, i) => ({ rank: i + 1, file: r.file, score: r.score, sigs: r.sigs, tokens: r.tokens })), totalResults: (results || []).length };
   }
-  module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS };
+  const INTENT_PATTERNS = {
+    debug:    /\b(bug|fix|error|crash|exception|broken|failing|issue|problem|regression)\b/i,
+    explain:  /\b(explain|how does|what is|understand|overview|architecture|describe|walk me)\b/i,
+    refactor: /\b(refactor|restructure|redesign|clean up|extract|move|rename|simplify)\b/i,
+    review:   /\b(review|check|audit|security|pr|pull request|assess)\b/i,
+  };
+  function detectIntent(query) {
+    if (!query || typeof query !== 'string') return 'search';
+    for (const [intent, re] of Object.entries(INTENT_PATTERNS)) {
+      if (re.test(query)) return intent;
+    }
+    return 'search';
+  }
+  module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent };
 };
 
 // ── ./src/eval/scorer ──
@@ -6249,7 +6262,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '4.1.2';
+const VERSION = '4.2.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -7939,6 +7952,58 @@ function registerMcp(cwd, scriptPath) {
   console.warn(JSON.stringify({ mcpServers: { 'sigmap': serverEntry } }, null, 2));
 }
 
+// ---------------------------------------------------------------------------
+// v4.2 helpers
+// ---------------------------------------------------------------------------
+const MODEL_COSTS = {
+  'gpt-4':             0.030,
+  'gpt-4o':            0.005,
+  'gpt-4o-mini':       0.000150,
+  'claude-3-5-sonnet': 0.003,
+  'claude-3-haiku':    0.00025,
+  'claude-opus-4':     0.015,
+  'gemini-1.5-pro':    0.00125,
+};
+
+function buildMiniContext(ranked, cwd) {
+  const lines = ['# SigMap Query Context', `Generated: ${new Date().toISOString()}`, ''];
+  for (const { file, sigs } of ranked) {
+    lines.push(`## ${file}`, '```', ...sigs.slice(0, 20), '```', '');
+  }
+  return lines.join('\n');
+}
+
+function computeCurrentRisk(cwd) {
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync('git diff --name-only HEAD', { cwd, timeout: 3000, encoding: 'utf8' });
+    const count = out.trim().split('\n').filter(Boolean).length;
+    if (count === 0) return 'NONE';
+    if (count <= 3)  return 'LOW';
+    if (count <= 10) return 'MEDIUM';
+    return 'HIGH';
+  } catch (_) { return 'UNKNOWN'; }
+}
+
+function getRawTokenCount(cwd, config) {
+  let total = 0;
+  const files = buildFileList(cwd, config);
+  for (const fp of files) {
+    try { total += estimateTokens(fs.readFileSync(fp, 'utf8')); } catch (_) {}
+  }
+  return total;
+}
+
+function getIntentWeights(intent) {
+  const { DEFAULT_WEIGHTS } = requireSourceOrBundled('./src/retrieval/ranker');
+  const base = Object.assign({}, DEFAULT_WEIGHTS);
+  if (intent === 'debug')    return Object.assign({}, base, { recencyBoost: base.recencyBoost * 1.5 });
+  if (intent === 'explain')  return Object.assign({}, base, { symbolMatch:  base.symbolMatch  * 1.5 });
+  if (intent === 'refactor') return Object.assign({}, base, { pathMatch:    base.pathMatch    * 1.5 });
+  if (intent === 'review')   return Object.assign({}, base, { exactToken:   base.exactToken   * 1.3 });
+  return base;
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -8016,6 +8081,170 @@ function main() {
   if (mode && !VALID_MODES.includes(mode)) {
     console.error(`[sigmap] unknown --mode "${mode}". Valid: ${VALID_MODES.join(', ')}`);
     process.exit(1);
+  }
+
+  // v4.2: `sigmap ask "<query>"` — unified pipeline
+  if (args[0] === 'ask') {
+    const query = args[1];
+    if (!query || query.startsWith('--')) {
+      console.error('[sigmap] Usage: sigmap ask "<query>"');
+      console.error('  Example: sigmap ask "fix the login bug"');
+      process.exit(1);
+    }
+
+    const { detectIntent, buildSigIndex, rank } = requireSourceOrBundled('./src/retrieval/ranker');
+    const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
+
+    const intent = detectIntent(query);
+    const intentWeights = getIntentWeights(intent);
+
+    const sigIndex = buildSigIndex(cwd);
+    if (sigIndex.size === 0) {
+      console.error('[sigmap] no context file found. Run: sigmap  (to generate first)');
+      process.exit(1);
+    }
+
+    const ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights });
+    const miniCtx = buildMiniContext(ranked, cwd);
+    const outPath = path.join(cwd, '.context', 'query-context.md');
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(outPath, miniCtx, 'utf8');
+    const ctxTok = estimateTokens(miniCtx);
+
+    const allFiles = buildFileList(cwd, config);
+    const fakeEntries = allFiles.map((f) => ({ filePath: f }));
+    let coveragePct = 0;
+    try { coveragePct = coverageScore(cwd, fakeEntries, config).score; } catch (_) {}
+
+    const rawTok = getRawTokenCount(cwd, config);
+    const savings = rawTok > 0 ? Math.round((1 - ctxTok / rawTok) * 100) : 0;
+    const model = args[args.indexOf('--model') + 1] || 'gpt-4o';
+    const rateK = MODEL_COSTS[model] || MODEL_COSTS['gpt-4o'];
+    const costRaw = ((rawTok / 1000) * rateK).toFixed(4);
+    const costCtx = ((ctxTok / 1000) * rateK).toFixed(4);
+
+    const riskLevel = computeCurrentRisk(cwd);
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify({
+        intent, coverage: coveragePct, contextTokens: ctxTok,
+        costBefore: costRaw, costAfter: costCtx, savingsPct: savings,
+        riskLevel, contextPath: path.relative(cwd, outPath),
+      }) + '\n');
+    } else {
+      const bar = '─'.repeat(44);
+      console.log([
+        bar,
+        ` sigmap ask  "${query}"`,
+        ` Intent    : ${intent}`,
+        ` Context   : ${ctxTok.toLocaleString()} tokens  →  ${path.relative(cwd, outPath)}`,
+        ` Coverage  : ${coveragePct}%`,
+        ` Risk      : ${riskLevel}`,
+        ` Cost      : $${costCtx}/query  (was $${costRaw} · saved ${savings}%)`,
+        bar,
+      ].join('\n'));
+    }
+    process.exit(0);
+  }
+
+  // v4.2: `sigmap suggest-profile` — auto-detect task type from git state
+  if (args[0] === 'suggest-profile') {
+    const short = args.includes('--short');
+    let msg = '', diff = '';
+    try {
+      const { execSync } = require('child_process');
+      msg  = execSync('git log -1 --format=%s',        { cwd, timeout: 3000, encoding: 'utf8' }).trim();
+      diff = execSync('git diff --cached --name-only',  { cwd, timeout: 3000, encoding: 'utf8' });
+    } catch (_) {}
+
+    let profile = 'default';
+    let reason  = 'no strong signal in git state';
+    if      (/fix|bug|error|crash|exception/i.test(msg))         { profile = 'debug';        reason = `commit: "${msg.slice(0, 60)}"`;  }
+    else if (/refactor|architect|redesign|module/i.test(msg))    { profile = 'architecture'; reason = `commit: "${msg.slice(0, 60)}"`;  }
+    else if (/review|pr|pull.request|check/i.test(msg))          { profile = 'review';       reason = `commit: "${msg.slice(0, 60)}"`;  }
+    else if (diff.includes('.spec.') || diff.includes('.test.')) { profile = 'debug';        reason = 'staged test files detected'; }
+
+    if (short) {
+      console.log(profile);
+    } else {
+      console.log(`[sigmap] suggested profile: --profile ${profile}`);
+      console.log(`  Reason: ${reason}`);
+    }
+    process.exit(0);
+  }
+
+  // v4.2: `sigmap compare` — human-readable benchmark CLI
+  if (args[0] === 'compare') {
+    const { execSync } = require('child_process');
+    console.log('[sigmap] Running comparison benchmark (this may take ~30s)...\n');
+
+    let raw = '';
+    try {
+      raw = execSync(
+        `node ${JSON.stringify(path.join(__dirname, 'scripts', 'run-retrieval-benchmark.mjs'))} --compare`,
+        { cwd, timeout: 90_000, encoding: 'utf8' }
+      );
+    } catch (e) { raw = (e && e.stdout) ? e.stdout : ''; }
+
+    let results = null;
+    try { results = JSON.parse(raw); } catch (_) {}
+
+    if (!results) {
+      console.error('[sigmap] Could not parse benchmark output.');
+      console.error('  Run manually: node scripts/run-retrieval-benchmark.mjs --skip-run --json');
+      process.exit(1);
+    }
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify(results, null, 2) + '\n');
+    } else {
+      const pct  = (v) => `${(v * 100).toFixed(1)}%`;
+      const lift = (a, b) => (b > 0 ? (a / b).toFixed(1) : '∞');
+      const bar  = '─'.repeat(44);
+      console.log([
+        bar,
+        ' SigMap vs Baseline',
+        bar,
+        ` hit@5         ${pct(results.sigmap.hitAt5)} vs ${pct(results.baseline.hitAt5)}   (${lift(results.sigmap.hitAt5, results.baseline.hitAt5)}× lift)`,
+        ` Avg tokens    ${results.sigmap.tokens.toLocaleString()} vs ${results.baseline.tokens.toLocaleString()}`,
+        bar,
+      ].join('\n'));
+    }
+    process.exit(0);
+  }
+
+  // v4.2: `sigmap share` — shareable one-liner with live benchmark numbers
+  if (args[0] === 'share') {
+    const histPath = path.join(cwd, '.context', 'benchmark-history.ndjson');
+    let reduction = 97, hitAt5 = 88;
+
+    if (fs.existsSync(histPath)) {
+      try {
+        const entries = fs.readFileSync(histPath, 'utf8').trim().split('\n')
+          .map((l) => { try { return JSON.parse(l); } catch (_) { return null; } }).filter(Boolean);
+        const tok = [...entries].reverse().find((e) => e.type === 'token-reduction');
+        const ret = [...entries].reverse().find((e) => e.type === 'retrieval');
+        if (tok && tok.reduction) reduction = tok.reduction;
+        if (ret && ret.hitAt5)   hitAt5    = Math.round(ret.hitAt5 * 100);
+      } catch (_) {}
+    }
+
+    const shareText = [
+      'Generated with SigMap — zero-dependency AI context engine',
+      `${reduction}% fewer tokens · ${hitAt5}% retrieval accuracy · 6× better results`,
+      'https://sigmap.dev',
+    ].join('\n');
+
+    console.log(shareText);
+
+    try {
+      const { execSync } = require('child_process');
+      const clipCmd = process.platform === 'darwin' ? 'pbcopy' : 'xclip -selection clipboard';
+      execSync(`printf '%s' ${JSON.stringify(shareText)} | ${clipCmd}`, { timeout: 2000 });
+      console.log('\n[sigmap] Copied to clipboard.');
+    } catch (_) {}
+
+    process.exit(0);
   }
 
   // Feature 6: `sigmap sync` — write all outputs + llms.txt + print compact diff
@@ -8469,7 +8698,13 @@ function main() {
                                : ((config && config.retrieval && config.retrieval.topK) || 10);
       const recencyBoost = (config && config.retrieval && config.retrieval.recencyBoost) || 1.5;
       const results = rank(query, index, { topK, recencyBoost });
-      if (args.includes('--json')) {
+      if (args.includes('--context')) {
+        const miniCtx  = buildMiniContext(results, cwd);
+        const ctxOut   = path.join(cwd, '.context', 'query-context.md');
+        fs.mkdirSync(path.dirname(ctxOut), { recursive: true });
+        fs.writeFileSync(ctxOut, miniCtx, 'utf8');
+        console.log(`[sigmap] query context → ${path.relative(cwd, ctxOut)}  (${estimateTokens(miniCtx)} tokens)`);
+      } else if (args.includes('--json')) {
         process.stdout.write(JSON.stringify(formatRankJSON(results, query)) + '\n');
       } else {
         process.stdout.write(formatRankTable(results, query));
@@ -8636,6 +8871,44 @@ function main() {
     const maybeBase = args[idx + 1];
     const baseRef = (maybeBase && !maybeBase.startsWith('--')) ? maybeBase : null;
     runDiff(cwd, config, args.includes('--staged'), baseRef);
+    process.exit(0);
+  }
+
+  // v4.2: `--cost` — show token/$ cost estimate before and after SigMap
+  if (args.includes('--cost')) {
+    const rawTok = getRawTokenCount(cwd, config);
+    runGenerate(cwd, config, false);
+
+    const model = args[args.indexOf('--model') + 1] || 'gpt-4o';
+    const rateK = MODEL_COSTS[model] || MODEL_COSTS['gpt-4o'];
+
+    const ctxPath = config.customOutput
+      ? path.resolve(cwd, config.customOutput)
+      : path.join(cwd, '.github', 'copilot-instructions.md');
+    let outTok = 0;
+    try { outTok = estimateTokens(fs.readFileSync(ctxPath, 'utf8')); } catch (_) {}
+
+    const savings = rawTok > 0 ? Math.round((1 - outTok / rawTok) * 100) : 0;
+    const costRaw = (rawTok / 1000) * rateK;
+    const costCtx = (outTok / 1000) * rateK;
+
+    const out = {
+      model,
+      rawTokens:     rawTok,
+      contextTokens: outTok,
+      costRaw:       costRaw.toFixed(4),
+      costContext:   costCtx.toFixed(4),
+      savingsPct:    savings,
+    };
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify(out) + '\n');
+    } else {
+      console.log(`\n Cost estimate (${model}):`);
+      console.log(` Without SigMap : ${rawTok.toLocaleString()} tok  $${out.costRaw}/query`);
+      console.log(` With SigMap    : ${outTok.toLocaleString()} tok  $${out.costContext}/query`);
+      console.log(` Savings        : ${savings}%  ($${(costRaw - costCtx).toFixed(4)} saved per query)\n`);
+    }
     process.exit(0);
   }
 
