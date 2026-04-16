@@ -38,7 +38,7 @@ All commands and flags accepted by `sigmap` (or `node gen-context.js`).
 | `ask "<query>"` | Unified intent→rank→cost→risk pipeline in one command |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `validate` | Validate config and coverage; optional query symbol check |
-| `history` | Show usage log as a table with token sparkline |
+| `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
 | `suggest-profile` | Auto-detect context profile from git state |
 | `compare` | CLI wrapper for retrieval benchmark vs baseline |
 | `share` | Print shareable one-liner with live benchmark numbers |
@@ -154,7 +154,7 @@ JSON output includes `valid`, `issues`, `warnings`, and `coverage` fields. Exits
 
 ## history
 
-Display the last N usage log entries as a table with a Unicode token-trend sparkline. Requires `tracking: true` in `gen-context.config.json` (or `--track` on each run).
+Display the last N usage log entries as a table with Unicode sparklines for token trend, retrieval hit@5, and token-reduction benchmark history. Requires `tracking: true` in `gen-context.config.json` (or `--track` on each run) for usage rows; benchmark rows appear automatically once any benchmark script has run.
 
 ```bash
 sigmap history
@@ -172,10 +172,14 @@ sigmap history --json
  ...
 ──────────────────────────────────────────────────────────────
  Token trend: ▁▂▃▄▃▄▅▆▇█
+ hit@5 trend: ▃▄▅▆▇█  90.5% (latest)
+ tok reduce : ▅▆▇█▇█  97.2% (latest)
 ──────────────────────────────────────────────────────────────
 ```
 
-With `--json` returns a raw JSON array of log entries.
+The `hit@5` and `tok reduce` rows appear only when `.context/benchmark-history.ndjson` exists — it is created automatically the first time you run any of the benchmark scripts (`run-retrieval-benchmark.mjs`, `run-benchmark.mjs`, or `run-task-benchmark.mjs`). The dashboard hit@5 trend chart reads from the same file.
+
+With `--json` returns a raw JSON array of usage log entries.
 
 ---
 

@@ -1,7 +1,7 @@
 ## Auto-generated signatures
 <!-- Updated by gen-context.js -->
 You are a coding assistant with complete knowledge of this codebase.
-The following code signatures were extracted by SigMap v5.1.0 on 2026-04-16T21:17:31.915Z.
+The following code signatures were extracted by SigMap v5.1.0 on 2026-04-16T21:33:38.412Z.
 
 These signatures represent every public function, class, and type in the project.
 
@@ -12,7 +12,7 @@ These signatures represent every public function, class, and type in the project
 
 # Code signatures
 
-## changes (last 5 commits — 7 minutes ago)
+## changes (last 5 commits — 16 minutes ago)
 ```
 src/config/loader.js                          +loadBaseConfig  ~loadConfig  ~deepClone
 src/format/dashboard.js                       ~computeExtractorCoverage  ~readBenchmarkTrend

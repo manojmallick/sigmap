@@ -108,8 +108,8 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
 <div style="display:flex;align-items:center;gap:12px;margin:10px 0">
   <span style="width:160px;font-size:0.88em;color:#7c6af7;font-weight:500">With SigMap</span>
   <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:6px;height:36px;overflow:hidden">
-    <div style="background:#7c6af7;height:36px;width:84.4%;display:flex;align-items:center;padding-left:10px">
-      <span style="color:#fff;font-size:0.82em;font-weight:700">84.4%</span>
+    <div style="background:#7c6af7;height:36px;width:80%;display:flex;align-items:center;padding-left:10px">
+      <span style="color:#fff;font-size:0.82em;font-weight:700">80.0%</span>
     </div>
   </div>
 </div>
@@ -131,8 +131,8 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
   <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
     <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
     <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#7c6af7;height:22px;width:56%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">1.59</span>
+      <div style="background:#7c6af7;height:22px;width:59%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">1.67</span>
       </div>
     </div>
   </div>
@@ -151,8 +151,8 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
   <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
     <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
     <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#7c6af7;height:22px;width:16%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">16%</span>
+      <div style="background:#7c6af7;height:22px;width:20%;display:flex;align-items:center;padding-left:8px">
+        <span style="color:#fff;font-size:0.78em;font-weight:600">20%</span>
       </div>
     </div>
   </div>
@@ -173,11 +173,11 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
 <div style="margin:12px 0">
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
     <span style="font-size:0.9em;font-weight:600;color:#22c55e">✓ Correct — right file, first prompt</span>
-    <span style="font-size:0.85em;color:#22c55e">51 / 90 tasks</span>
+    <span style="font-size:0.85em;color:#22c55e">48 / 90 tasks</span>
   </div>
   <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#22c55e;height:32px;width:56.7%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">56.7%</span>
+    <div style="background:#22c55e;height:32px;width:53.3%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">53.3%</span>
     </div>
   </div>
 </div>
@@ -185,11 +185,11 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
 <div style="margin:12px 0">
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
     <span style="font-size:0.9em;font-weight:600;color:#f59e0b">~ Partial — right file somewhere in context</span>
-    <span style="font-size:0.85em;color:#f59e0b">25 / 90 tasks</span>
+    <span style="font-size:0.85em;color:#f59e0b">24 / 90 tasks</span>
   </div>
   <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#f59e0b;height:32px;width:27.8%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">27.8%</span>
+    <div style="background:#f59e0b;height:32px;width:26.7%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">26.7%</span>
     </div>
   </div>
 </div>
@@ -197,11 +197,11 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
 <div style="margin:12px 0">
   <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
     <span style="font-size:0.9em;font-weight:600;color:#ef4444">✗ Wrong — AI answered from the wrong code</span>
-    <span style="font-size:0.85em;color:#ef4444">14 / 90 tasks</span>
+    <span style="font-size:0.85em;color:#ef4444">18 / 90 tasks</span>
   </div>
   <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#ef4444;height:32px;width:15.6%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">15.6%</span>
+    <div style="background:#ef4444;height:32px;width:20%;display:flex;align-items:center;padding-left:12px">
+      <span style="color:#fff;font-weight:700;font-size:0.88em">20.0%</span>
     </div>
   </div>
 </div>
@@ -210,12 +210,12 @@ Does the AI get the right file in context? Measured across 90 real coding tasks.
 
 <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem">
 <div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem">
-  <div style="font-size:1.6em;font-weight:700;color:#ef4444">92%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2)">hallucination risk<br><span style="color:var(--vp-c-text-3)">without SigMap — 57K symbols hidden from AI</span></div>
+  <div style="font-size:1.6em;font-weight:700;color:#ef4444">75%</div>
+  <div style="font-size:0.82em;color:var(--vp-c-text-2)">hallucination risk<br><span style="color:var(--vp-c-text-3)">without SigMap — 47K symbols hidden from AI</span></div>
 </div>
 <div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem;border:2px solid #7c6af744">
   <div style="font-size:1.6em;font-weight:700;color:#7c6af7">0%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2)">dark symbols<br><span style="color:var(--vp-c-text-3)">with SigMap — all 5,865 signatures grounded</span></div>
+  <div style="font-size:0.82em;color:var(--vp-c-text-2)">dark symbols<br><span style="color:var(--vp-c-text-3)">with SigMap — all 16,114 signatures grounded</span></div>
 </div>
 </div>
 

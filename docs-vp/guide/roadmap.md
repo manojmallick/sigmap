@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. 30+ versions from v0.0 to v5.0. MIT open source, zero npm deps.
+description: SigMap version history and roadmap. 30+ versions from v0.0 to v5.1. MIT open source, zero npm deps.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped/planned. MIT open source from day one.
 
-**Stats:** 97.6% token reduction · 192 tests passing · 29 languages · 0 npm deps
+**Stats:** 97.6% token reduction · 464 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -308,13 +308,23 @@ Three new capabilities that close the feedback loop between context generation a
 
 **Tags:** `sigmap judge` · `groundedness scoring` · `config extends` · `HTTPS base config` · `sigmap history` · `sparkline`
 
-**Impact:** 192 tests passing · 12 new tests for v5.0 features
+**Impact:** 199 tests passing · 12 new tests for v5.0 features
+
+---
+
+### v5.1 — Benchmark history + sparkline trends ✓ (tagged v5.1.0 — 2026-04-16)
+
+Benchmark runs now leave a permanent record that feeds back into the UI. All three benchmark scripts append a structured NDJSON entry to `.context/benchmark-history.ndjson` on every run. `sigmap history` reads that file and prints a `hit@5` sparkline row and a token-reduction sparkline row below the usage table — visible even when the usage log is empty. The dashboard `readBenchmarkTrend` function now prefers the local history file over the CI-only `benchmarks/results/` directory, so the hit@5 trend chart works for every developer after running any benchmark locally.
+
+**Tags:** `benchmark-history.ndjson` · `sigmap history trends` · `hit@5 sparkline` · `dashboard readBenchmarkTrend` · `run-retrieval-benchmark` · `run-benchmark` · `run-task-benchmark`
+
+**Impact:** 464 tests passing · 7 new tests for v5.1 features
 
 ---
 
 ## Current milestone — v5.x
 
-Judge engine, config inheritance, and usage history shipped. Next: v5.1 — LLM-mode judge (optional API key for semantic groundedness beyond token overlap), adaptive threshold tuning, and multi-repo config inheritance chains.
+Benchmark observability shipped in v5.1. Next: v5.2 — learning engine (`sigmap learn`, `sigmap weights`, confidence-gated auto-learning from judge results, per-file score multipliers stored in `.context/weights.json`).
 
 ---
 

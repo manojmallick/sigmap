@@ -12,7 +12,7 @@ Use this marker block for all appendable context files:
 ## Auto-generated signatures
 <!-- Updated by gen-context.js -->
 You are a coding assistant with full knowledge of this codebase.
-Below are the code signatures extracted by SigMap v5.1.0 on 2026-04-16T21:17:31.914Z.
+Below are the code signatures extracted by SigMap v5.1.0 on 2026-04-16T21:33:38.411Z.
 
 Use these signatures to answer questions about the code accurately.
 
@@ -23,7 +23,7 @@ Use these signatures to answer questions about the code accurately.
 
 # Code signatures
 
-## changes (last 5 commits — 7 minutes ago)
+## changes (last 5 commits — 16 minutes ago)
 ```
 src/config/loader.js                          +loadBaseConfig  ~loadConfig  ~deepClone
 src/format/dashboard.js                       ~computeExtractorCoverage  ~readBenchmarkTrend
