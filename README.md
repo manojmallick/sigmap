@@ -21,11 +21,28 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 
 **What you get in ~10 seconds**
 - A compact signature map of your codebase
-- The right file in context far more often (84.4% hit@5 vs 13.6% random)
-- Fewer retries (1.59 vs 2.84 prompts per task)
+- The right file in context far more often (78.9% hit@5 vs 13.6% random)
+- Fewer retries (1.69 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v4.1.0** — Smart Budget. Token budget now auto-scales to your repo size, targeting 80% source-file coverage by default. No config change needed — it just works.
+> Latest: **v5.2.0** — Learning engine + workflow-first release. Use `ask`, `validate`, `judge`, `learn`, `weights`, `compare`, and `share` on top of the core signature pipeline.
+
+**What is new in v5.2**
+- `sigmap ask` creates task-focused context in one step
+- `sigmap validate` checks config health and query coverage
+- `sigmap judge` scores groundedness against the supplied context
+- `sigmap learn` and `sigmap weights` add safe local-only ranking feedback
+- `node scripts/run-benchmark-matrix.mjs --save --skip-clone` now writes an HTML benchmark dashboard
+
+**Daily workflow**
+
+```bash
+npx sigmap
+sigmap ask "explain the auth flow"
+sigmap validate --query "auth login token"
+sigmap judge --response response.txt --context .context/query-context.md
+sigmap weights
+```
 
 <div align="center">
 <img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
@@ -61,11 +78,11 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 
 | | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Task success | 10% | **59%** |
-| Prompts per task | 2.84 | **1.59** |
+| Task success | 10% | **52.2%** |
+| Prompts per task | 2.84 | **1.69** |
 | Tokens per session | ~80,000 | **~2,000** |
-| Right file found | 13.6% | **84.4%** |
-| Hallucination risk | 92% | **0%** |
+| Right file found | 13.6% | **78.9%** |
+| Hidden-symbol risk | 74.7% | **context surfaced locally** |
 
 Measured on 90 coding tasks across 18 real public repos. Full methodology and raw benchmark pages are linked below.
 
@@ -82,7 +99,7 @@ Measured on 90 coding tasks across 18 real public repos. Full methodology and ra
 | [Standalone binaries](docs/readmes/binaries.md) | macOS, Linux, Windows — no Node required |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
 | [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
-| [Languages supported](#-languages-supported) | 25 languages |
+| [Languages supported](#-languages-supported) | 29 languages |
 | [Context strategies](#-context-strategies) | full / per-module / hot-cold |
 | [MCP server](#-mcp-server) | 8 on-demand tools |
 | [CLI reference](#-cli-reference) | All flags |
@@ -105,7 +122,7 @@ SigMap scans your source files and extracts only the **function and class signat
 Your codebase
     │
     ▼
-sigmap ─────────► extracts signatures from 25 languages
+sigmap ─────────► extracts signatures from 29 languages
     │
     ▼
 .github/copilot-instructions.md   ◄── auto-read by Copilot / Claude / Cursor
@@ -153,7 +170,7 @@ Reproduced with `node scripts/run-benchmark.mjs` on public repos:
 | fastify | JavaScript | 54.4K | 2.6K | **95.3%** |
 | fastapi | Python | 178.4K | 5.2K | **97.1%** |
 
-**Average: 97.6% reduction across 18 repos (16 languages).** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
+**Average: 97.6% reduction across 18 repos (16 languages).** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md), open `benchmarks/reports/benchmark-report.html` after a matrix run, or reproduce with `node scripts/run-benchmark.mjs`.
 
 ---
 
@@ -503,12 +520,12 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 
 ## 🌐 Languages supported
 
-> 25 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
+> 29 languages and formats. All implemented with zero external dependencies — pure regex + Node built-ins.
 >
 > Also includes lightweight config/doc extraction for `.toml`, `.properties`, `.xml`, and `.md` to improve real-repo coverage beyond source-code files.
 
 <details>
-<summary><strong>Show all 25 languages</strong></summary>
+<summary><strong>Show all 29 languages</strong></summary>
 
 | Language | Extensions | Extracts |
 |---|---|---|
@@ -737,7 +754,7 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
 - **`secretScan`** — redact secrets (AWS keys, tokens, etc.) from output
 - **`strategy`** — output mode: `full` (default) | `per-module` | `hot-cold`
 
-**Token budget (v4.1.0 — auto-scaling):**
+**Token budget (auto-scaling):**
 
 | Key | Default | Description |
 |---|---|---|
@@ -788,13 +805,13 @@ If `output` is omitted, the default `.github/copilot-instructions.md` is used.
 
 ## 📊 Observability
 
-### Coverage score (v4.0)
+### Coverage score
 
 Every run now prints a coverage line alongside token reduction:
 
 ```
 ───────────────────────────────────────────
- SigMap v4.1.0
+ SigMap v5.2.0
  Files scanned  : 76
  Symbols found  : 332
  Token reduction: 94%  (65,227 → 4,103)
@@ -813,7 +830,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 4.1.0
+  version         : 5.2.0
   files processed : 76
   reduction       : 93.7%
   coverage        : A (97%)  — 76 of 78 source files included

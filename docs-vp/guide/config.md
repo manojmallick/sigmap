@@ -35,6 +35,51 @@ All configuration lives in `gen-context.config.json` at the project root. Genera
 sigmap --init
 ```
 
+## Copy-paste presets
+
+### Solo repo
+
+```json
+{
+  "srcDirs": ["src", "app", "lib"],
+  "strategy": "full",
+  "autoMaxTokens": true,
+  "outputs": ["copilot"]
+}
+```
+
+### Large monorepo
+
+```json
+{
+  "srcDirs": ["packages", "apps", "services"],
+  "strategy": "per-module",
+  "monorepo": true,
+  "autoMaxTokens": true
+}
+```
+
+### Claude Code or Cursor with MCP
+
+```json
+{
+  "srcDirs": ["src", "app", "lib"],
+  "strategy": "hot-cold",
+  "hotCommits": 10,
+  "diffPriority": true
+}
+```
+
+### Team shared base config
+
+```json
+{
+  "extends": "./configs/team-base.json",
+  "srcDirs": ["src", "packages"],
+  "outputs": ["copilot", "claude"]
+}
+```
+
 ## Full example
 
 ```json
@@ -95,7 +140,7 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 | `outputPath` | `string` | `.github/copilot-instructions.md` | Path to write the primary context file. |
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
 
-## Token budget (v4.1.0)
+## Token budget
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|

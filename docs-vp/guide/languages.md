@@ -22,7 +22,7 @@ head:
 
 SigMap extracts signatures from 29 programming languages and formats using pure regex — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 29 languages · 25 max signatures per file · 0 npm packages · 162 tests passing
+**Stats:** 29 languages · 25 max signatures per file · 0 npm packages · 400+ passing tests across unit and integration suites
 
 ## How extraction works
 
@@ -120,6 +120,24 @@ export class UserService
 | Properties | `.properties` | dotted-key namespaces, prefix groups (spring.*, db.*, server.*) |
 | XML | `.xml` | root element, bean/route/kind, top-level named elements, Spring beans |
 | Markdown | `.md` | h1–h3 headings, code-fence languages, link titles |
+
+## Extraction quality tiers
+
+### Mature
+
+TypeScript, JavaScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala.
+
+These extractors cover the public shapes most developers care about day to day and are the most proven in the benchmark set.
+
+### Stable
+
+Vue, Svelte, GraphQL, SQL, Terraform, Protobuf, YAML, Shell, Dockerfile, TOML, XML, Properties, Markdown.
+
+These are reliable for structure-first context, but some ecosystems have more variation in how teams write files.
+
+### Fallback or shape-level
+
+HTML and CSS-family files are intentionally shallower. They capture the top-level structure that helps navigation, not full semantic behavior.
 
 ## Contributing a new language
 
