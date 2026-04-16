@@ -353,6 +353,24 @@ Configure multiple adapters at once in `gen-context.config.json`:
 
 Use SigMap as a Node.js library without spawning a subprocess. See the [full API reference](#-programmatic-api) below.
 
+### Custom output path
+
+Write signatures to any file location — useful for shared docs folders, monorepos,
+or tooling that expects context at a non-standard path:
+
+```bash
+sigmap --output .context/ai-context.md           # write to custom path
+sigmap --adapter claude --output shared/sigs.md  # adapter + custom path
+```
+
+The path is persisted to `gen-context.config.json`, so `--query` finds it
+automatically on subsequent runs — no need to pass `--output` again:
+
+```bash
+sigmap --output .context/ai-context.md  # generates and saves the path
+sigmap --query "add an extractor"        # auto-discovers .context/ai-context.md
+```
+
 ### Query-aware retrieval
 
 Find the most relevant files for any task without reading the whole codebase:
@@ -361,6 +379,7 @@ Find the most relevant files for any task without reading the whole codebase:
 sigmap --query "authentication middleware"   # ranked file list
 sigmap --query "auth" --json                 # machine-readable output
 sigmap --query "auth" --top 5               # top 5 results only
+sigmap --query "auth" --adapter claude       # query against CLAUDE.md specifically
 ```
 
 ### Diagnostic and evaluation tools
@@ -616,9 +635,14 @@ sigmap --diff                                 Generate context for git-changed f
 sigmap --diff --staged                        Staged files only (pre-commit check)
 sigmap --mcp                                  Start MCP server on stdio
 
+sigmap --output <file>                        Write signatures to a custom path (persists for --query)
+sigmap --output <file> --adapter <name>       Adapter output + custom copy
+
 sigmap --query "<text>"                       Rank files by relevance to a query
 sigmap --query "<text>" --json                Ranked results as JSON
 sigmap --query "<text>" --top <n>             Limit results to top N files (default 10)
+sigmap --query "<text>" --adapter <name>      Query against a specific adapter's output file
+sigmap --query "<text>" --output <file>       Query against a specific custom file
 
 sigmap --analyze                              Per-file breakdown (sigs / tokens / extractor / coverage)
 sigmap --analyze --json                       Analysis as JSON

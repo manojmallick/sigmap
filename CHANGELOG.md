@@ -10,6 +10,46 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.1.2] — 2026-04-16 — Feat: --output <file> flag for custom context path
+
+### Added
+
+- **`--output <file>` flag** — write signatures to any custom path, not just
+  an adapter's fixed location:
+  ```bash
+  sigmap --output .context/ai-context.md          # default generation
+  sigmap --adapter claude --output shared/sigs.md # adapter + custom path
+  ```
+  The custom file is written **in addition to** the adapter's default output so
+  existing tooling is unaffected.
+
+- **Automatic discovery for `--query`** — the resolved path is persisted to
+  `gen-context.config.json` as `customOutput` so subsequent `--query` runs
+  find it automatically without needing to pass `--output` again:
+  ```bash
+  sigmap --output .context/ai-context.md          # generates + persists path
+  sigmap --query "add a new extractor"             # auto-finds .context/ai-context.md
+  ```
+
+- **Priority order for `--query` context resolution** (most specific first):
+  1. `--output <file>` flag — explicit path
+  2. `--adapter <name>` flag — adapter's fixed output path
+  3. `customOutput` in `gen-context.config.json` — persisted from last `--output` run
+  4. Probe all known adapter output paths — existing fallback behaviour
+
+- **Nested directories created automatically** — `--output a/b/c/file.md`
+  creates any missing parent directories.
+
+### Tests
+
+- Added `test/integration/output-flag.test.js` (13 tests) covering: custom
+  file creation, parseable headers, config persistence, nested dirs, missing
+  arg error, `--adapter` + `--output` combo, explicit `--query` with `--output`,
+  auto-discovery via persisted config, missing-file error, `--output` overrides
+  `--adapter` during `--query`.
+
+---
+
 ## [4.1.1] — 2026-04-16 — Fix: --query works with any adapter output
 
 ### Fixed
