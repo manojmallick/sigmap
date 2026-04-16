@@ -4654,7 +4654,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '4.2.0',
+    version: '4.3.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -6262,7 +6262,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '4.2.0';
+const VERSION = '4.3.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8004,6 +8004,10 @@ function getIntentWeights(intent) {
   return base;
 }
 
+function extractQuerySymbols(query) {
+  return (query.match(/\b[A-Z][a-zA-Z]+|[a-z]+(?:[A-Z][a-z]+)+\b/g) || []);
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -8132,6 +8136,9 @@ function main() {
         riskLevel, contextPath: path.relative(cwd, outPath),
       }) + '\n');
     } else {
+      if (coveragePct < 70) {
+        process.stderr.write(`[sigmap] ⚠  coverage ${coveragePct}% — consider running: sigmap validate\n`);
+      }
       const bar = '─'.repeat(44);
       console.log([
         bar,
@@ -8244,6 +8251,65 @@ function main() {
       console.log('\n[sigmap] Copied to clipboard.');
     } catch (_) {}
 
+    process.exit(0);
+  }
+
+  // v4.3: `sigmap validate` — config + coverage + optional query symbol check
+  if (args[0] === 'validate') {
+    const issues   = [];
+    const warnings = [];
+
+    // Config checks
+    for (const d of (config.srcDirs || [])) {
+      if (!fs.existsSync(path.join(cwd, d)))
+        issues.push(`srcDir '${d}' does not exist`);
+    }
+    if ((config.exclude || []).some((p) => p === 'src/**'))
+      issues.push(`exclude pattern 'src/**' will exclude all source files`);
+    if ((config.maxTokens || 0) < 1000)
+      warnings.push(`maxTokens ${config.maxTokens} is very low — consider ≥ 4000`);
+    if ((config.maxTokens || 0) > 50000)
+      warnings.push(`maxTokens ${config.maxTokens} is very high — may exceed LLM context windows`);
+
+    // Coverage check: files actually in context vs total source files
+    const { buildSigIndex: valBuildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
+    const valSigIndex  = valBuildSigIndex(cwd);
+    const valTotal     = buildFileList(cwd, config).length;
+    const coveragePct  = valTotal > 0 ? Math.round((valSigIndex.size / valTotal) * 100) : 0;
+    if (coveragePct < 70)
+      warnings.push(`coverage ${coveragePct}% is below recommended 70% — increase maxTokens or expand srcDirs`);
+
+    // Optional query symbol check
+    const valQueryIdx = args.indexOf('--query');
+    if (valQueryIdx !== -1) {
+      const q = (args[valQueryIdx + 1] || '').trim();
+      if (q && !q.startsWith('--')) {
+        try {
+          const { rank, buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
+          const ranked = rank(q, buildSigIndex(cwd), { topK: 5 });
+          const symbols = extractQuerySymbols(q);
+          const missing = symbols.filter((sym) =>
+            !ranked.some((r) => r.sigs && r.sigs.some((s) => s.toLowerCase().includes(sym.toLowerCase())))
+          );
+          if (missing.length > 0)
+            warnings.push(`query "${q}" references symbols not in top-5 context: ${missing.join(', ')}`);
+          else if (symbols.length > 0)
+            console.log(`[sigmap] ✓ query coverage OK — all ${symbols.length} symbols found`);
+        } catch (_) {}
+      }
+    }
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify({ valid: issues.length === 0, issues, warnings, coverage: coveragePct }) + '\n');
+    } else {
+      for (const w of warnings) console.warn(`[sigmap] ⚠  ${w}`);
+      if (issues.length === 0) {
+        console.log(`[sigmap] ✓ config valid  coverage: ${coveragePct}%`);
+      } else {
+        for (const iss of issues) console.error(`[sigmap] ✗ ${iss}`);
+        process.exit(1);
+      }
+    }
     process.exit(0);
   }
 
@@ -8910,6 +8976,30 @@ function main() {
       console.log(` Savings        : ${savings}%  ($${(costRaw - costCtx).toFixed(4)} saved per query)\n`);
     }
     process.exit(0);
+  }
+
+  // v4.3: `--ci [--min-coverage N] [--json]` — GitHub Actions exit gate
+  if (args.includes('--ci')) {
+    const minCovIdx = args.indexOf('--min-coverage');
+    const minCoverage = minCovIdx !== -1 ? Math.max(0, Math.min(100, parseInt(args[minCovIdx + 1], 10) || 80)) : 80;
+
+    // Coverage = files actually in context / total source files
+    const { buildSigIndex: ciBuildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
+    const ciSigIndex  = ciBuildSigIndex(cwd);
+    const ciTotal     = buildFileList(cwd, config).length;
+    const coveragePct = ciTotal > 0 ? Math.round((ciSigIndex.size / ciTotal) * 100) : 0;
+
+    const pass = coveragePct >= minCoverage;
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify({ pass, coverage: coveragePct, threshold: minCoverage }) + '\n');
+    } else if (pass) {
+      console.log(`[sigmap] ✓ CI gate passed — coverage ${coveragePct}% ≥ ${minCoverage}%`);
+    } else {
+      console.error(`[sigmap] ✗ CI gate FAILED — coverage ${coveragePct}% < ${minCoverage}%`);
+      console.error(`  Fix: increase maxTokens or expand srcDirs in gen-context.config.json`);
+    }
+    process.exit(pass ? 0 : 1);
   }
 
   // Default: generate once
