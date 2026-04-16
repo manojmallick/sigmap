@@ -10,6 +10,51 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.1.1] — 2026-04-16 — Fix: --query works with any adapter output
+
+### Fixed
+
+- **`--query` fails after `--adapter` generation** (`[sigmap] no context file found`):  
+  `buildSigIndex` hardcoded `.github/copilot-instructions.md` as the only
+  context file path, so `--query` always failed when any adapter other than
+  `copilot` wrote to a different location (`CLAUDE.md`, `AGENTS.md`,
+  `.cursorrules`, `.windsurfrules`, etc.).
+
+  `buildSigIndex` now probes all nine known adapter output paths in priority
+  order and returns the first non-empty index:
+  ```
+  copilot → claude → codex → cursor → windsurf → openai → gemini → llm-full → llm
+  ```
+  Human-written preamble before the `## Auto-generated signatures` marker
+  (e.g. custom content in `CLAUDE.md`) is skipped so those `###` sections
+  don't pollute the signature index.
+
+- **`--adapter <name> --query "..."` combination ignored the adapter flag**:  
+  The `--query` handler now detects a co-present `--adapter` flag, resolves
+  that adapter's output path, and reads from it directly — so both forms work:
+  ```bash
+  # generate with claude adapter, then query without re-specifying adapter
+  node gen-context.js --adapter claude
+  node gen-context.js --query "add a new extractor"
+
+  # or pin explicitly in one command
+  node gen-context.js --adapter claude --query "add a new extractor"
+  ```
+
+- **`--analyze --json` output truncated at ~8 KB on macOS**:  
+  Calling `process.exit(0)` immediately after `process.stdout.write(largeJson)`
+  truncated output because the underlying pipe write is asynchronous even
+  when `write()` returns `true`. Fixed by using the write callback so the
+  process exits only after the OS has accepted all bytes.
+
+### Tests
+
+- Added `test/integration/query-adapter.test.js` (17 tests) covering every
+  adapter output path (unit + CLI), probe order, marker-skipping, explicit
+  `opts.contextPath` override, and empty-project fallback.
+
+---
+
 ## [4.1.0] — 2026-04-15 — Smart Budget: auto-scaling token budget
 
 ### Added
