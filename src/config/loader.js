@@ -4,6 +4,65 @@ const fs = require('fs');
 const path = require('path');
 const { DEFAULTS } = require('./defaults');
 
+const BASE_CONFIG_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function loadBaseConfig(extendsVal, cwd) {
+  if (!extendsVal || typeof extendsVal !== 'string') return {};
+
+  if (extendsVal.startsWith('https://') || extendsVal.startsWith('http://')) {
+    const cacheDir  = path.join(cwd, '.context', 'config-cache');
+    const cacheKey  = Buffer.from(extendsVal).toString('base64url').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cachePath = path.join(cacheDir, `${cacheKey}.json`);
+
+    if (fs.existsSync(cachePath)) {
+      const age = Date.now() - fs.statSync(cachePath).mtimeMs;
+      if (age < BASE_CONFIG_TTL_MS) {
+        try { return JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch (_) {}
+      }
+    }
+
+    try {
+      const https = require('https');
+      const http  = require('http');
+      const mod   = extendsVal.startsWith('https://') ? https : http;
+      const raw   = (() => {
+        let data = '';
+        return new Promise((resolve, reject) => {
+          mod.get(extendsVal, (res) => {
+            res.on('data', (c) => { data += c; });
+            res.on('end', () => resolve(data));
+          }).on('error', reject);
+        });
+      })();
+      // sync fallback: use execSync with node -e
+      const { execSync } = require('child_process');
+      const out = execSync(
+        `node -e "const h=require('${extendsVal.startsWith('https') ? 'https' : 'http'}');let d='';h.get(${JSON.stringify(extendsVal)},r=>{r.on('data',c=>d+=c);r.on('end',()=>process.stdout.write(d))}).on('error',()=>process.exit(1))"`,
+        { timeout: 10000, encoding: 'utf8' }
+      );
+      const parsed = JSON.parse(out);
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+      fs.writeFileSync(cachePath, JSON.stringify(parsed), 'utf8');
+      return parsed;
+    } catch (err) {
+      process.stderr.write(`[sigmap] config extends: could not fetch ${extendsVal}: ${err.message}\n`);
+      if (fs.existsSync(cachePath)) {
+        try { return JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch (_) {}
+      }
+      return {};
+    }
+  }
+
+  // Local file path
+  const absPath = path.resolve(cwd, extendsVal);
+  try {
+    return JSON.parse(fs.readFileSync(absPath, 'utf8'));
+  } catch (err) {
+    process.stderr.write(`[sigmap] config extends: could not load ${absPath}: ${err.message}\n`);
+    return {};
+  }
+}
+
 // Keys that are valid in gen-context.config.json
 const KNOWN_KEYS = new Set(Object.keys(DEFAULTS));
 
@@ -173,17 +232,30 @@ function loadConfig(cwd) {
 
   // Warn on unknown keys (helps catch typos)
   for (const key of Object.keys(userConfig)) {
-    if (key.startsWith('_')) continue; // allow _comment etc.
+    if (key.startsWith('_') || key === 'extends') continue;
     if (!KNOWN_KEYS.has(key)) {
       console.warn(`[sigmap] unknown config key: "${key}" (ignored)`);
     }
   }
 
-  // Deep merge: top-level known keys from user override defaults
-  // For object values (e.g. mcp), merge one level deep
+  // Deep merge: DEFAULTS → base (extends) → user config
+  const baseConfig = loadBaseConfig(userConfig.extends, cwd);
   const merged = deepClone(DEFAULTS);
+
+  for (const key of Object.keys(baseConfig)) {
+    if (key.startsWith('_') || key === 'extends') continue;
+    if (!KNOWN_KEYS.has(key)) continue;
+    const val = baseConfig[key];
+    if (val !== null && typeof val === 'object' && !Array.isArray(val) &&
+        typeof merged[key] === 'object' && !Array.isArray(merged[key])) {
+      merged[key] = Object.assign({}, merged[key], val);
+    } else {
+      merged[key] = val;
+    }
+  }
+
   for (const key of Object.keys(userConfig)) {
-    if (key.startsWith('_')) continue;
+    if (key.startsWith('_') || key === 'extends') continue;
     if (!KNOWN_KEYS.has(key)) continue; // skip unknown keys
     const val = userConfig[key];
     if (val !== null && typeof val === 'object' && !Array.isArray(val) &&
@@ -214,4 +286,4 @@ function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
-module.exports = { loadConfig };
+module.exports = { loadConfig, loadBaseConfig };

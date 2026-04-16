@@ -221,6 +221,47 @@ __factories["./src/config/loader"] = function(module, exports) {
     });
   }
 
+  const BASE_CONFIG_TTL_MS = 60 * 60 * 1000;
+
+  function loadBaseConfig(extendsVal, cwd) {
+    if (!extendsVal || typeof extendsVal !== 'string') return {};
+    if (extendsVal.startsWith('https://') || extendsVal.startsWith('http://')) {
+      const cacheDir  = path.join(cwd, '.context', 'config-cache');
+      const cacheKey  = Buffer.from(extendsVal).toString('base64').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const cachePath = path.join(cacheDir, `${cacheKey}.json`);
+      if (fs.existsSync(cachePath)) {
+        const age = Date.now() - fs.statSync(cachePath).mtimeMs;
+        if (age < BASE_CONFIG_TTL_MS) {
+          try { return JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch (_) {}
+        }
+      }
+      try {
+        const { execSync } = require('child_process');
+        const proto = extendsVal.startsWith('https') ? 'https' : 'http';
+        const out = execSync(
+          `node -e "const h=require('${proto}');let d='';h.get(${JSON.stringify(extendsVal)},r=>{r.on('data',c=>d+=c);r.on('end',()=>process.stdout.write(d))}).on('error',()=>process.exit(1))"`,
+          { timeout: 10000, encoding: 'utf8' }
+        );
+        const parsed = JSON.parse(out);
+        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+        fs.writeFileSync(cachePath, JSON.stringify(parsed), 'utf8');
+        return parsed;
+      } catch (err) {
+        process.stderr.write(`[sigmap] config extends: could not fetch ${extendsVal}: ${err.message}\n`);
+        if (fs.existsSync(cachePath)) {
+          try { return JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch (_) {}
+        }
+        return {};
+      }
+    }
+    const absPath = path.resolve(cwd, extendsVal);
+    try { return JSON.parse(fs.readFileSync(absPath, 'utf8')); }
+    catch (err) {
+      process.stderr.write(`[sigmap] config extends: could not load ${absPath}: ${err.message}\n`);
+      return {};
+    }
+  }
+
   /**
    * Load and merge configuration for a given working directory.
    *
@@ -250,18 +291,31 @@ __factories["./src/config/loader"] = function(module, exports) {
 
     // Warn on unknown keys (helps catch typos)
     for (const key of Object.keys(userConfig)) {
-      if (key.startsWith('_')) continue; // allow _comment etc.
+      if (key.startsWith('_') || key === 'extends') continue;
       if (!KNOWN_KEYS.has(key)) {
         console.warn(`[sigmap] unknown config key: "${key}" (ignored)`);
       }
     }
 
-    // Deep merge: top-level known keys from user override defaults
-    // For object values (e.g. mcp), merge one level deep
+    // Deep merge: DEFAULTS → base (extends) → user config
+    const baseConfig = loadBaseConfig(userConfig.extends, cwd);
     const merged = deepClone(DEFAULTS);
+
+    for (const key of Object.keys(baseConfig)) {
+      if (key.startsWith('_') || key === 'extends') continue;
+      if (!KNOWN_KEYS.has(key)) continue;
+      const val = baseConfig[key];
+      if (val !== null && typeof val === 'object' && !Array.isArray(val) &&
+          typeof merged[key] === 'object' && !Array.isArray(merged[key])) {
+        merged[key] = Object.assign({}, merged[key], val);
+      } else {
+        merged[key] = val;
+      }
+    }
+
     for (const key of Object.keys(userConfig)) {
-      if (key.startsWith('_')) continue;
-      if (!KNOWN_KEYS.has(key)) continue; // skip unknown keys
+      if (key.startsWith('_') || key === 'extends') continue;
+      if (!KNOWN_KEYS.has(key)) continue;
       const val = userConfig[key];
       if (val !== null && typeof val === 'object' && !Array.isArray(val) &&
           typeof merged[key] === 'object' && !Array.isArray(merged[key])) {
@@ -292,7 +346,7 @@ __factories["./src/config/loader"] = function(module, exports) {
     return JSON.parse(JSON.stringify(obj));
   }
 
-  module.exports = { loadConfig, detectAutoSrcDirs };
+  module.exports = { loadConfig, loadBaseConfig, detectAutoSrcDirs };
 
 };
 
@@ -4654,7 +4708,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '4.3.0',
+    version: '5.0.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -5250,6 +5304,61 @@ __factories["./src/security/scanner"] = function(module, exports) {
   
   module.exports = { scan };
   
+};
+
+// ── ./src/judge/judge-engine ──
+__factories["./src/judge/judge-engine"] = function(module, exports) {
+  'use strict';
+
+  const STOP = new Set([
+    'the','a','an','in','on','at','to','of','for','and','or','but',
+    'is','are','was','were','be','been','being','have','has','had',
+    'do','does','did','will','would','could','should','may','might',
+    'shall','can','not','with','from','by','as','this','that','it',
+  ]);
+
+  function tokenize(text) {
+    return (text || '').toLowerCase().match(/\b[a-z][a-z0-9_]{2,}\b/g) || [];
+  }
+
+  function groundedness(response, context) {
+    if (!response || !context) return 0;
+    const ctxTokens = new Set(tokenize(context).filter((t) => !STOP.has(t)));
+    if (ctxTokens.size === 0) return 0;
+    const respTokens = tokenize(response).filter((t) => !STOP.has(t));
+    if (respTokens.length === 0) return 0;
+    const matched = respTokens.filter((t) => ctxTokens.has(t));
+    return parseFloat((matched.length / respTokens.length).toFixed(3));
+  }
+
+  const GENERIC_MARKERS = [
+    'however, based on my knowledge',
+    'generally speaking',
+    'in general',
+    'typically,',
+    'usually,',
+    'as a general rule',
+  ];
+
+  function judge(response, context, opts) {
+    opts = opts || {};
+    const score = groundedness(response, context);
+    const threshold = opts.threshold !== undefined ? opts.threshold : 0.25;
+    const reasons = [];
+    if (score < threshold) {
+      reasons.push(`score ${score} is below threshold ${threshold} — response may not be grounded in context`);
+    }
+    if (response) {
+      const lower = response.toLowerCase();
+      for (const m of GENERIC_MARKERS) {
+        if (lower.includes(m)) reasons.push(`response contains generic phrase: "${m}"`);
+      }
+    }
+    const verdict = score >= threshold && reasons.length === 0 ? 'pass' : 'fail';
+    return { score, verdict, reasons };
+  }
+
+  module.exports = { groundedness, judge };
 };
 
 // ── ./src/tracking/logger ──
@@ -6262,7 +6371,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '4.3.0';
+const VERSION = '5.0.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8310,6 +8419,106 @@ function main() {
         process.exit(1);
       }
     }
+    process.exit(0);
+  }
+
+  // v5.0: `sigmap judge --response <file> --context <file>` — groundedness scoring
+  if (args[0] === 'judge') {
+    const respIdx = args.indexOf('--response');
+    const ctxIdx  = args.indexOf('--context');
+
+    if (respIdx < 0 || ctxIdx < 0) {
+      console.error('[sigmap] Usage: sigmap judge --response <file> --context <file> [--json] [--threshold 0.25]');
+      process.exit(1);
+    }
+
+    const respFile = (args[respIdx + 1] || '').trim();
+    const ctxFile  = (args[ctxIdx + 1]  || '').trim();
+
+    if (!respFile || respFile.startsWith('--') || !ctxFile || ctxFile.startsWith('--')) {
+      console.error('[sigmap] --response and --context require file paths');
+      process.exit(1);
+    }
+
+    let responseText = '', contextText = '';
+    try { responseText = fs.readFileSync(path.resolve(cwd, respFile), 'utf8'); }
+    catch (e) { console.error(`[sigmap] cannot read --response file: ${e.message}`); process.exit(1); }
+    try { contextText = fs.readFileSync(path.resolve(cwd, ctxFile), 'utf8'); }
+    catch (e) { console.error(`[sigmap] cannot read --context file: ${e.message}`); process.exit(1); }
+
+    const thrIdx = args.indexOf('--threshold');
+    const judgeOpts = thrIdx >= 0 ? { threshold: parseFloat(args[thrIdx + 1]) || 0.25 } : {};
+
+    const { judge: runJudge } = requireSourceOrBundled('./src/judge/judge-engine');
+    const result = runJudge(responseText, contextText, judgeOpts);
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify(result) + '\n');
+    } else {
+      const bar = '─'.repeat(44);
+      console.log([
+        bar,
+        ` sigmap judge`,
+        ` Score     : ${result.score}`,
+        ` Verdict   : ${result.verdict}`,
+        result.reasons.length ? ` Reasons   :\n   ${result.reasons.join('\n   ')}` : ` Reasons   : none`,
+        bar,
+      ].join('\n'));
+    }
+    process.exit(result.verdict === 'pass' ? 0 : 1);
+  }
+
+  // v5.0: `sigmap history` — show last N usage log entries with sparkline
+  if (args[0] === 'history') {
+    const { readLog } = requireSourceOrBundled('./src/tracking/logger');
+    const entries = readLog(cwd);
+
+    const nIdx = args.indexOf('--last');
+    const n    = nIdx >= 0 ? (parseInt(args[nIdx + 1], 10) || 10) : 10;
+    const last = entries.slice(-n);
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify(last) + '\n');
+      process.exit(0);
+    }
+
+    if (last.length === 0) {
+      console.log('[sigmap] No history found. Run sigmap to generate entries (enable tracking: true in config).');
+      process.exit(0);
+    }
+
+    const SPARK_CHARS = '▁▂▃▄▅▆▇█';
+    function sparkline(values) {
+      if (values.length === 0) return '';
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = max - min || 1;
+      return values.map((v) => {
+        const idx = Math.round(((v - min) / range) * (SPARK_CHARS.length - 1));
+        return SPARK_CHARS[idx];
+      }).join('');
+    }
+
+    const tokens = last.map((e) => e.finalTokens || 0);
+    const spark  = sparkline(tokens);
+
+    const bar = '─'.repeat(62);
+    console.log(bar);
+    console.log(` sigmap history  (last ${last.length} runs)`);
+    console.log(bar);
+    console.log(` ${'Date'.padEnd(24)} ${'Files'.padStart(5)} ${'Tokens'.padStart(7)} ${'Reduction'.padStart(9)} ${'Budget?'.padStart(7)}`);
+    console.log(` ${'─'.repeat(24)} ${'─'.repeat(5)} ${'─'.repeat(7)} ${'─'.repeat(9)} ${'─'.repeat(7)}`);
+    for (const e of last) {
+      const date = (e.ts || '').slice(0, 19).replace('T', ' ');
+      const files = String(e.fileCount || 0).padStart(5);
+      const tok   = String(e.finalTokens || 0).padStart(7);
+      const red   = `${e.reductionPct || 0}%`.padStart(9);
+      const over  = (e.overBudget ? '  ⚠ yes' : '     no').padStart(7);
+      console.log(` ${date.padEnd(24)} ${files} ${tok} ${red} ${over}`);
+    }
+    console.log(bar);
+    console.log(` Token trend: ${spark}`);
+    console.log(bar);
     process.exit(0);
   }
 

@@ -10,6 +10,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.0.0] — 2026-04-16
+
+### Added
+
+- **`sigmap judge --response <file> --context <file>`** — rule-based groundedness scoring engine (`src/judge/judge-engine.js`). Computes a 0–1 score from token overlap between an LLM response and its source context. Exits 0 when verdict is `pass`, exits 1 on `fail`. Supports `--json` (emits `{ score, verdict, reasons }`) and `--threshold` override.
+- **Config `extends`** — `gen-context.config.json` now accepts an `"extends"` key pointing to a local JSON file path or HTTPS URL. The base config is deep-merged (DEFAULTS → base → local), with HTTPS responses cached for 1 hour in `.context/config-cache/`.
+- **`sigmap history [--last N] [--json]`** — displays last N usage log entries as a table with a Unicode sparkline (▁▂▃▄▅▆▇█) for the token trend. Reads from `.context/usage.ndjson` (requires `tracking: true` in config).
+
+---
+
 ## [4.3.0] — 2026-04-16
 
 ### Added

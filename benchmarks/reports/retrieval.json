@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-15T07:46:00.476Z",
+  "generated": "2026-04-16T20:35:49.787Z",
   "repos": [
     {
       "repo": "express",
@@ -144,16 +144,16 @@
     {
       "repo": "gin",
       "fileCount": 107,
-      "sigCount": 76,
+      "sigCount": 92,
       "tasks": 5,
-      "hitAt5": 1,
-      "mrr": 0.717,
+      "hitAt5": 0.8,
+      "mrr": 0.673,
       "randomBaseline": 0.047,
-      "improvement": 21.4,
+      "improvement": 17.1,
       "tiers": {
         "correct": 3,
-        "partial": 2,
-        "wrong": 0
+        "partial": 1,
+        "wrong": 1
       },
       "taskDetails": [
         {
@@ -175,8 +175,8 @@
             "binding/form.go",
             "binding/binding.go"
           ],
-          "top1": "mode.go",
-          "firstHitRank": 3,
+          "top1": "mode_test.go",
+          "firstHitRank": 5,
           "tier": "partial"
         },
         {
@@ -208,19 +208,19 @@
             "recovery.go",
             "logger.go"
           ],
-          "top1": "gin.go",
-          "firstHitRank": 4,
-          "tier": "partial"
+          "top1": "recovery_test.go",
+          "firstHitRank": 6,
+          "tier": "wrong"
         }
       ]
     },
     {
       "repo": "spring-petclinic",
       "fileCount": 13,
-      "sigCount": 67,
+      "sigCount": 29,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.6,
+      "mrr": 0.622,
       "randomBaseline": 0.385,
       "improvement": 1.6,
       "tiers": {
@@ -257,7 +257,7 @@
             "src/main/resources/templates/owners/findOwners.html"
           ],
           "top1": "src/main/resources/messages/messages_de.properties",
-          "firstHitRank": null,
+          "firstHitRank": 9,
           "tier": "wrong"
         },
         {
@@ -266,7 +266,7 @@
           "expected": [
             "src/main/resources/templates/vets/vetList.html"
           ],
-          "top1": "src/main/java/org/springframework/samples/petclinic/vet/Vet.java",
+          "top1": "src/main/resources/application.properties",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -286,16 +286,16 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 113,
+      "sigCount": 389,
       "tasks": 5,
-      "hitAt5": 0.8,
-      "mrr": 0.55,
+      "hitAt5": 0.6,
+      "mrr": 0.5,
       "randomBaseline": 0.004,
-      "improvement": 188.6,
+      "improvement": 141.5,
       "tiers": {
         "correct": 2,
-        "partial": 2,
-        "wrong": 1
+        "partial": 1,
+        "wrong": 2
       },
       "taskDetails": [
         {
@@ -338,9 +338,9 @@
             "actionview/lib/action_view/renderer/partial_renderer.rb",
             "actionview/lib/action_view/renderer/streaming_template_renderer.rb"
           ],
-          "top1": "actionview/lib/action_view/renderer/renderer.rb",
-          "firstHitRank": 4,
-          "tier": "partial"
+          "top1": "actionview/lib/action_view/renderer/abstract_renderer.rb",
+          "firstHitRank": null,
+          "tier": "wrong"
         },
         {
           "id": "rails-t005",
@@ -349,7 +349,7 @@
             "actionview/lib/action_view/renderer/template_renderer.rb",
             "actionview/lib/action_view/template/handlers/erb.rb"
           ],
-          "top1": "actionview/lib/action_view/template/handlers.rb",
+          "top1": "actionview/lib/action_view/helpers/tags/collection_helpers.rb",
           "firstHitRank": null,
           "tier": "wrong"
         }
@@ -430,10 +430,10 @@
     {
       "repo": "rust-analyzer",
       "fileCount": 635,
-      "sigCount": 50,
+      "sigCount": 307,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.867,
+      "mrr": 0.85,
       "randomBaseline": 0.008,
       "improvement": 127,
       "tiers": {
@@ -450,7 +450,7 @@
             "crates/syntax/src/lib.rs"
           ],
           "top1": "crates/syntax-bridge/src/lib.rs",
-          "firstHitRank": 3,
+          "firstHitRank": 4,
           "tier": "partial"
         },
         {
@@ -505,15 +505,15 @@
     {
       "repo": "abseil-cpp",
       "fileCount": 700,
-      "sigCount": 38,
+      "sigCount": 176,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.9,
+      "mrr": 0.767,
       "randomBaseline": 0.007,
       "improvement": 140,
       "tiers": {
-        "correct": 4,
-        "partial": 1,
+        "correct": 3,
+        "partial": 2,
         "wrong": 0
       },
       "taskDetails": [
@@ -569,25 +569,25 @@
             "absl/types/source_location.h",
             "absl/types/compare.h"
           ],
-          "top1": "absl/types/optional_ref.h",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "absl/strings/internal/generic_printer_internal.h",
+          "firstHitRank": 3,
+          "tier": "partial"
         }
       ]
     },
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 100,
+      "sigCount": 89,
       "tasks": 5,
-      "hitAt5": 0.8,
-      "mrr": 0.533,
+      "hitAt5": 0.6,
+      "mrr": 0.4,
       "randomBaseline": 0.051,
-      "improvement": 15.8,
+      "improvement": 11.9,
       "tiers": {
-        "correct": 2,
+        "correct": 1,
         "partial": 2,
-        "wrong": 1
+        "wrong": 2
       },
       "taskDetails": [
         {
@@ -597,9 +597,9 @@
             "src/Serilog/LoggerConfiguration.cs",
             "src/Serilog/Log.cs"
           ],
-          "top1": "src/Serilog/Configuration/LoggerAuditSinkConfiguration.cs",
-          "firstHitRank": 3,
-          "tier": "partial"
+          "top1": "src/Serilog/LoggerConfiguration.cs",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "serilog-t002",
@@ -618,9 +618,9 @@
             "src/Serilog/Configuration/LoggerEnrichmentConfiguration.cs",
             "src/Serilog/Context/LogContext.cs"
           ],
-          "top1": "src/Serilog/Configuration/LoggerEnrichmentConfiguration.cs",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "src/Serilog/Context/LogContextEnricher.cs",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "serilog-t004",
@@ -630,7 +630,7 @@
             "src/Serilog/Configuration/LoggerFilterConfiguration.cs"
           ],
           "top1": "src/Serilog/Core/LevelOverrideMap.cs",
-          "firstHitRank": 3,
+          "firstHitRank": 2,
           "tier": "partial"
         },
         {
@@ -640,16 +640,16 @@
             "src/Serilog/Capturing/MessageTemplateProcessor.cs",
             "src/Serilog/Capturing/PropertyBinder.cs"
           ],
-          "top1": "src/Serilog/Capturing/MessageTemplateProcessor.cs",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "src/Serilog/Core/Pipeline/SilentLogger.cs",
+          "firstHitRank": null,
+          "tier": "wrong"
         }
       ]
     },
     {
       "repo": "riverpod",
       "fileCount": 446,
-      "sigCount": 43,
+      "sigCount": 162,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -784,10 +784,10 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 113,
+      "sigCount": 541,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.59,
+      "mrr": 0.58,
       "randomBaseline": 0.003,
       "improvement": 306.6,
       "tiers": {
@@ -847,7 +847,7 @@
             "src/Illuminate/Validation/NestedRules.php"
           ],
           "top1": "src/Illuminate/Validation/ClosureValidationRule.php",
-          "firstHitRank": 4,
+          "firstHitRank": 5,
           "tier": "partial"
         }
       ]
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 64,
+      "sigCount": 150,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.707,
@@ -925,16 +925,16 @@
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 134,
+      "sigCount": 119,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.4,
+      "hitAt5": 0.4,
+      "mrr": 0.267,
       "randomBaseline": 0.038,
-      "improvement": 15.7,
+      "improvement": 10.5,
       "tiers": {
         "correct": 1,
-        "partial": 2,
-        "wrong": 2
+        "partial": 1,
+        "wrong": 3
       },
       "taskDetails": [
         {
@@ -945,7 +945,7 @@
             "Sources/Vapor/Authentication/GuardMiddleware.swift"
           ],
           "top1": "Sources/Vapor/Concurrency/Authentication+Concurrency.swift",
-          "firstHitRank": 6,
+          "firstHitRank": null,
           "tier": "wrong"
         },
         {
@@ -977,9 +977,9 @@
             "Sources/Vapor/Client/Client.swift",
             "Sources/Vapor/Client/ClientRequest.swift"
           ],
-          "top1": "Sources/Vapor/Client/Client.swift",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "Sources/Vapor/HTTP/Server/HTTPServerHandler.swift",
+          "firstHitRank": null,
+          "tier": "wrong"
         },
         {
           "id": "vapor-t005",
@@ -988,24 +988,24 @@
             "Sources/Vapor/Cache/Cache.swift",
             "Sources/Vapor/Cache/MemoryCache.swift"
           ],
-          "top1": "Sources/Development/configure.swift",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "Sources/Vapor/Cache/Cache.swift",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 121,
+      "sigCount": 175,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.633,
+      "mrr": 0.533,
       "randomBaseline": 0.022,
       "improvement": 46.4,
       "tiers": {
-        "correct": 2,
-        "partial": 3,
+        "correct": 1,
+        "partial": 4,
         "wrong": 0
       },
       "taskDetails": [
@@ -1017,9 +1017,9 @@
             "packages/runtime-core/src/componentProps.ts",
             "packages/runtime-core/src/componentOptions.ts"
           ],
-          "top1": "packages/runtime-core/src/componentEmits.ts",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "packages/runtime-core/src/apiSetupHelpers.ts",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "vue-t002",
@@ -1071,15 +1071,15 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 63,
+      "sigCount": 205,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.387,
+      "mrr": 0.18,
       "randomBaseline": 0.014,
       "improvement": 44.4,
       "tiers": {
-        "correct": 1,
-        "partial": 2,
+        "correct": 0,
+        "partial": 3,
         "wrong": 2
       },
       "taskDetails": [
@@ -1090,9 +1090,9 @@
             "packages/svelte/src/internal/client/reactivity/sources.js",
             "packages/svelte/src/internal/client/reactivity/deriveds.js"
           ],
-          "top1": "packages/svelte/src/internal/client/reactivity/deriveds.js",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "packages/svelte/src/internal/client/dev/tracing.js",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "svelte-t002",
@@ -1101,7 +1101,7 @@
             "packages/svelte/src/internal/client/reactivity/effects.js"
           ],
           "top1": "packages/svelte/src/internal/client/reactivity/batch.js",
-          "firstHitRank": 8,
+          "firstHitRank": null,
           "tier": "wrong"
         },
         {
@@ -1112,7 +1112,7 @@
             "packages/svelte/src/internal/client/render.js"
           ],
           "top1": "packages/svelte/src/internal/server/index.js",
-          "firstHitRank": 3,
+          "firstHitRank": 5,
           "tier": "partial"
         },
         {
@@ -1123,7 +1123,7 @@
             "packages/svelte/src/internal/server/blocks/snippet.js"
           ],
           "top1": "packages/svelte/src/internal/client/warnings.js",
-          "firstHitRank": 7,
+          "firstHitRank": null,
           "tier": "wrong"
         },
         {
@@ -1135,7 +1135,7 @@
             "packages/svelte/src/internal/client/reactivity/batch.js"
           ],
           "top1": "packages/svelte/src/internal/server/index.js",
-          "firstHitRank": 3,
+          "firstHitRank": 5,
           "tier": "partial"
         }
       ]
@@ -1210,15 +1210,15 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 32,
+      "sigCount": 26,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.689,
+      "mrr": 0.825,
       "randomBaseline": 0.104,
       "improvement": 7.7,
       "tiers": {
-        "correct": 3,
-        "partial": 1,
+        "correct": 4,
+        "partial": 0,
         "wrong": 1
       },
       "taskDetails": [
@@ -1239,7 +1239,7 @@
             "fastapi/routing.py"
           ],
           "top1": "fastapi/applications.py",
-          "firstHitRank": 9,
+          "firstHitRank": 8,
           "tier": "wrong"
         },
         {
@@ -1248,9 +1248,9 @@
           "expected": [
             "fastapi/dependencies/utils.py"
           ],
-          "top1": "fastapi/.agents/skills/fastapi/references/dependencies.md",
-          "firstHitRank": 3,
-          "tier": "partial"
+          "top1": "fastapi/dependencies/utils.py",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "fastapi-t004",

@@ -23,7 +23,7 @@ head:
 **SigMap Results** — 90 tasks · 18 real repos · no LLM API
 
 **✔ 6× better answers** — correct answers: 10% → **57%**  
-**✔ 44% fewer prompts** — 2.84 → **1.59** per task  
+**✔ 41.4% fewer prompts** — task prompt reduction measured on saved benchmark data  
 **✔ 97% token reduction** — ~80,000 → **~2,000** per session  
 **✔ Consistent** — same gains across all 18 repos and 21 languages
 

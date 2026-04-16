@@ -8,7 +8,7 @@ head:
       content: "SigMap — 97% token reduction for AI coding agents"
   - - meta
     - property: og:description
-      content: "SigMap gives your AI the right context before the first prompt. 84.4% retrieval accuracy, 37% fewer prompts, 18 real repos benchmarked."
+      content: "SigMap gives your AI the right context before the first prompt. 80% retrieval accuracy, 41% fewer prompts, 18 real repos benchmarked."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — 97% token reduction for AI coding agents"
   - - meta
     - name: twitter:description
-      content: "SigMap gives your AI the right context before the first prompt. 84.4% retrieval accuracy, 37% fewer prompts, 18 real repos benchmarked."
+      content: "SigMap gives your AI the right context before the first prompt. 80% retrieval accuracy, 41% fewer prompts, 18 real repos benchmarked."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — Zero-dependency AI context engine for AI coding agents"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: 6× better AI answers.
-  tagline: "✔ 59% task success (was 10%)  ✔ 44% fewer prompts  ✔ 97% fewer tokens. One command, zero config — works with Copilot, Claude, Cursor, and Windsurf."
+  tagline: "✔ 59% task success (was 10%)  ✔ 41% fewer prompts  ✔ 97% fewer tokens. One command, zero config — works with Copilot, Claude, Cursor, and Windsurf."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,12 +46,12 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to solve tasks
-    details: 44% fewer prompts per task (2.84 → 1.59). Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
+    details: 41% fewer prompts per task. Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 84.4% hit@5 across 90 real coding tasks on 18 repos. Without SigMap, random selection finds the right file 13.6% of the time.
+    details: 80% hit@5 across 90 real coding tasks on 18 repos (5.9× lift). Without SigMap, random selection finds the right file 13.6% of the time.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚡
