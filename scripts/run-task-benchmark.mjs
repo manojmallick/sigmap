@@ -215,3 +215,23 @@ console.log(`  With    SigMap: ${(100 - aggHallucinationRisk*100).toFixed(0)}% o
 console.log(`  (${totalGrounded.toLocaleString()} grounded, ${totalDark.toLocaleString()} dark — across ${quality.repos.length} repos)\n`);
 console.log('──────────────────────────────────────────────────────────────────────────\n');
 if (SAVE) console.log(`  Report saved → benchmarks/reports/task-benchmark.json\n`);
+
+// Append to benchmark history
+{
+  const histPath = path.join(ROOT, '.context', 'benchmark-history.ndjson');
+  try {
+    fs.mkdirSync(path.dirname(histPath), { recursive: true });
+    let version = 'unknown';
+    try { version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version || 'unknown'; } catch (_) {}
+    fs.appendFileSync(histPath, JSON.stringify({
+      ts: new Date().toISOString(),
+      type: 'task',
+      version,
+      hitAt5With: summary.hitAt5With,
+      hitAt5Without: summary.hitAt5Without,
+      avgReductionPct: summary.avgReductionPct,
+      repos: retrieval.repos.length,
+      tasks: totalTasks,
+    }) + '\n', 'utf8');
+  } catch (_) {}
+}

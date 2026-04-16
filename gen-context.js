@@ -3152,6 +3152,25 @@ __factories["./src/format/cache"] = function(module, exports) {
     }
 
     function readBenchmarkTrend(cwd) {
+      // Prefer per-user history file written by benchmark scripts
+      const histPath = path.join(cwd, '.context', 'benchmark-history.ndjson');
+      if (fs.existsSync(histPath)) {
+        const histValues = [];
+        try {
+          for (const line of fs.readFileSync(histPath, 'utf8').trim().split('\n').filter(Boolean)) {
+            try {
+              const obj = JSON.parse(line);
+              if (obj.type === 'retrieval') {
+                const v = toNumber(obj.hitAt5Pct);
+                if (v !== null) histValues.push(v);
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+        if (histValues.length > 0) return histValues.slice(-30);
+      }
+
+      // Fallback: legacy benchmarks/results directory (CI artifacts)
       const resultDir = path.join(cwd, 'benchmarks', 'results');
       if (!fs.existsSync(resultDir)) return [];
       const files = [];
@@ -8482,11 +8501,6 @@ function main() {
       process.exit(0);
     }
 
-    if (last.length === 0) {
-      console.log('[sigmap] No history found. Run sigmap to generate entries (enable tracking: true in config).');
-      process.exit(0);
-    }
-
     const SPARK_CHARS = '▁▂▃▄▅▆▇█';
     function sparkline(values) {
       if (values.length === 0) return '';
@@ -8499,25 +8513,48 @@ function main() {
       }).join('');
     }
 
-    const tokens = last.map((e) => e.finalTokens || 0);
-    const spark  = sparkline(tokens);
-
     const bar = '─'.repeat(62);
     console.log(bar);
-    console.log(` sigmap history  (last ${last.length} runs)`);
+    console.log(` sigmap history  (last ${Math.max(last.length, 1)} runs)`);
     console.log(bar);
-    console.log(` ${'Date'.padEnd(24)} ${'Files'.padStart(5)} ${'Tokens'.padStart(7)} ${'Reduction'.padStart(9)} ${'Budget?'.padStart(7)}`);
-    console.log(` ${'─'.repeat(24)} ${'─'.repeat(5)} ${'─'.repeat(7)} ${'─'.repeat(9)} ${'─'.repeat(7)}`);
-    for (const e of last) {
-      const date = (e.ts || '').slice(0, 19).replace('T', ' ');
-      const files = String(e.fileCount || 0).padStart(5);
-      const tok   = String(e.finalTokens || 0).padStart(7);
-      const red   = `${e.reductionPct || 0}%`.padStart(9);
-      const over  = (e.overBudget ? '  ⚠ yes' : '     no').padStart(7);
-      console.log(` ${date.padEnd(24)} ${files} ${tok} ${red} ${over}`);
+
+    if (last.length === 0) {
+      console.log(' No usage log entries. Enable tracking: true in config to start recording runs.');
+    } else {
+      console.log(` ${'Date'.padEnd(24)} ${'Files'.padStart(5)} ${'Tokens'.padStart(7)} ${'Reduction'.padStart(9)} ${'Budget?'.padStart(7)}`);
+      console.log(` ${'─'.repeat(24)} ${'─'.repeat(5)} ${'─'.repeat(7)} ${'─'.repeat(9)} ${'─'.repeat(7)}`);
+      for (const e of last) {
+        const date = (e.ts || '').slice(0, 19).replace('T', ' ');
+        const files = String(e.fileCount || 0).padStart(5);
+        const tok   = String(e.finalTokens || 0).padStart(7);
+        const red   = `${e.reductionPct || 0}%`.padStart(9);
+        const over  = (e.overBudget ? '  ⚠ yes' : '     no').padStart(7);
+        console.log(` ${date.padEnd(24)} ${files} ${tok} ${red} ${over}`);
+      }
+      console.log(bar);
+      const tokens = last.map((e) => e.finalTokens || 0);
+      console.log(` Token trend: ${sparkline(tokens)}`);
     }
-    console.log(bar);
-    console.log(` Token trend: ${spark}`);
+
+    // Show benchmark trend row if .context/benchmark-history.ndjson exists
+    const benchHistPath = path.join(cwd, '.context', 'benchmark-history.ndjson');
+    if (fs.existsSync(benchHistPath)) {
+      try {
+        const benchEntries = fs.readFileSync(benchHistPath, 'utf8').trim().split('\n')
+          .map((l) => { try { return JSON.parse(l); } catch (_) { return null; } }).filter(Boolean);
+        const retrieval = benchEntries.filter((e) => e.type === 'retrieval').slice(-n);
+        if (retrieval.length > 0) {
+          const hits = retrieval.map((e) => e.hitAt5Pct || 0);
+          console.log(` hit@5 trend: ${sparkline(hits)}  ${hits.at(-1)}% (latest)`);
+        }
+        const tokenBench = benchEntries.filter((e) => e.type === 'token-reduction').slice(-n);
+        if (tokenBench.length > 0) {
+          const reds = tokenBench.map((e) => e.reduction || e.avgReductionPct || 0);
+          console.log(` tok reduce : ${sparkline(reds)}  ${reds.at(-1)}% (latest)`);
+        }
+      } catch (_) {}
+    }
+
     console.log(bar);
     process.exit(0);
   }

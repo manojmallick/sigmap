@@ -507,6 +507,22 @@ if (SAVE) {
   console.log(`\nReport saved → ${path.relative(ROOT, reportPath)}`);
 }
 
+// Append to benchmark history
+{
+  const histPath = path.join(ROOT, '.context', 'benchmark-history.ndjson');
+  try {
+    fs.mkdirSync(path.dirname(histPath), { recursive: true });
+    fs.appendFileSync(histPath, JSON.stringify({
+      ts: new Date().toISOString(),
+      type: 'token-reduction',
+      version: getVersion(),
+      reduction: parseFloat(overallReduction),
+      avgReductionPct: parseFloat(avgReduction.toFixed(1)),
+      repos: results.length,
+    }) + '\n', 'utf8');
+  } catch (_) {}
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
