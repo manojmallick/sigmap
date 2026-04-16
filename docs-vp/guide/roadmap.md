@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. 30+ versions from v0.0 to v5.1. MIT open source, zero npm deps.
+description: SigMap version history and roadmap. 30+ versions from v0.0 to v5.2.0. MIT open source, zero npm deps.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped/planned. MIT open source from day one.
 
-**Stats:** 97.6% token reduction · 464 tests passing · 29 languages · 0 npm deps
+**Stats:** 98.1% overall token reduction · full CI suite passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -265,7 +265,7 @@ The multi-adapter architecture (Copilot, Claude, Cursor, Windsurf, OpenAI, Gemin
 Every run now tells you _how good_ your context is, not just that it ran.
 
 - **Coverage score**: fraction of source files that survived the token budget. Grade A–D per srcDir with per-module ASCII heatmap in `--report`.
-- **Confidence indicators**: every generated file carries `<!-- sigmap: version=4.0.0 confidence=HIGH coverage=97% dropped=2 commit=abc1234 -->` so you can inspect freshness at a glance.
+- **Confidence indicators**: every generated file carries metadata such as `version`, `confidence`, `coverage`, and `commit` so you can inspect freshness at a glance.
 - **`--diff` risk score**: LOW / MEDIUM / HIGH per changed file based on reverse-dependency BFS, public exports, route status, and config-file status.
 - **Coverage in `--health` and `--health --json`**: coverage grade and source-file counts included in both text and JSON output.
 - **Extractor quality scoring**: token-budget drop order now uses `signalQuality = sigs / linesOfCode` — least-informative files are dropped first.
@@ -318,13 +318,13 @@ Benchmark runs now leave a permanent record that feeds back into the UI. All thr
 
 **Tags:** `benchmark-history.ndjson` · `sigmap history trends` · `hit@5 sparkline` · `dashboard readBenchmarkTrend` · `run-retrieval-benchmark` · `run-benchmark` · `run-task-benchmark`
 
-**Impact:** 464 tests passing · 7 new tests for v5.1 features
+**Impact:** benchmark trends now persist locally and feed both CLI and dashboard views
 
 ---
 
-## Current milestone — v5.x
+## Current milestone — v5.2.x
 
-Benchmark observability shipped in v5.1. Next: v5.2 — learning engine (`sigmap learn`, `sigmap weights`, confidence-gated auto-learning from judge results, per-file score multipliers stored in `.context/weights.json`).
+The learning engine shipped in `v5.2.0`: `sigmap learn`, `sigmap weights`, opt-in judge-driven learning, and repo-local multipliers in `.context/weights.json`. The next docs/benchmark work should build on that released surface rather than the old v5.1 snapshot.
 
 ---
 

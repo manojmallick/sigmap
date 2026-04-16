@@ -12,7 +12,7 @@
 </div>
 
 <div align="center">
-<img src="docs/impact-banner.svg" alt="SigMap — 6× better answers, 97% fewer tokens, 2× fewer prompts" width="760" />
+<img src="docs/impact-banner.svg" alt="SigMap — grounded AI coding context with fewer prompts and smaller context windows" width="760" />
 </div>
 
 ```sh
@@ -21,11 +21,11 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 
 **What you get in ~10 seconds**
 - A compact signature map of your codebase
-- The right file in context far more often (84.4% hit@5 vs 13.6% random)
-- Fewer retries (1.59 vs 2.84 prompts per task)
+- The right file in context far more often (78.9% hit@5 vs 13.6% random)
+- Fewer retries (1.69 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v4.1.0** — Smart Budget. Token budget now auto-scales to your repo size, targeting 80% source-file coverage by default. No config change needed — it just works.
+> Latest: **v5.2.0** — Learning engine + workflow-first release. Use `ask`, `validate`, `judge`, `learn`, `weights`, `compare`, and `share` on top of the core signature pipeline.
 
 <div align="center">
 <img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
@@ -61,11 +61,11 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 
 | | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Task success | 10% | **59%** |
-| Prompts per task | 2.84 | **1.59** |
+| Task success | 10% | **52.2%** |
+| Prompts per task | 2.84 | **1.69** |
 | Tokens per session | ~80,000 | **~2,000** |
-| Right file found | 13.6% | **84.4%** |
-| Hallucination risk | 92% | **0%** |
+| Right file found | 13.6% | **78.9%** |
+| Hidden-symbol risk | 74.7% | **context surfaced locally** |
 
 Measured on 90 coding tasks across 18 real public repos. Full methodology and raw benchmark pages are linked below.
 
@@ -82,7 +82,7 @@ Measured on 90 coding tasks across 18 real public repos. Full methodology and ra
 | [Standalone binaries](docs/readmes/binaries.md) | macOS, Linux, Windows — no Node required |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
 | [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
-| [Languages supported](#-languages-supported) | 25 languages |
+| [Languages supported](#-languages-supported) | 29 languages |
 | [Context strategies](#-context-strategies) | full / per-module / hot-cold |
 | [MCP server](#-mcp-server) | 8 on-demand tools |
 | [CLI reference](#-cli-reference) | All flags |
@@ -105,7 +105,7 @@ SigMap scans your source files and extracts only the **function and class signat
 Your codebase
     │
     ▼
-sigmap ─────────► extracts signatures from 25 languages
+sigmap ─────────► extracts signatures from 29 languages
     │
     ▼
 .github/copilot-instructions.md   ◄── auto-read by Copilot / Claude / Cursor
@@ -126,7 +126,7 @@ AI agent session starts with full context
 | **SigMap signatures** | **~4,000** | **95%** |
 | SigMap + MCP (`hot-cold`) | ~200 | **99.75%** |
 
-> **97% fewer tokens. The same codebase understanding.**
+> **98.1% fewer tokens in the latest saved benchmark snapshot.**
 
 ### Benchmark: real-world repos
 
@@ -503,12 +503,12 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 
 ## 🌐 Languages supported
 
-> 25 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
+> 29 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
 >
 > Also includes lightweight config/doc extraction for `.toml`, `.properties`, `.xml`, and `.md` to improve real-repo coverage beyond source-code files.
 
 <details>
-<summary><strong>Show all 25 languages</strong></summary>
+<summary><strong>Show all 29 languages</strong></summary>
 
 | Language | Extensions | Extracts |
 |---|---|---|
@@ -737,7 +737,7 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
 - **`secretScan`** — redact secrets (AWS keys, tokens, etc.) from output
 - **`strategy`** — output mode: `full` (default) | `per-module` | `hot-cold`
 
-**Token budget (v4.1.0 — auto-scaling):**
+**Token budget (auto-scaling defaults):**
 
 | Key | Default | Description |
 |---|---|---|
@@ -794,7 +794,7 @@ Every run now prints a coverage line alongside token reduction:
 
 ```
 ───────────────────────────────────────────
- SigMap v4.1.0
+ SigMap v5.2.0
  Files scanned  : 76
  Symbols found  : 332
  Token reduction: 94%  (65,227 → 4,103)
@@ -857,7 +857,7 @@ sigmap --health --json
 Every output file now carries a metadata line so you can inspect freshness at a glance:
 
 ```
-<!-- sigmap: version=4.0.0 confidence=HIGH coverage=97% dropped=2 commit=8540612 -->
+<!-- sigmap: version=5.2.0 confidence=HIGH coverage=97% dropped=2 commit=8540612 -->
 ```
 
 ### Diff risk score

@@ -103,7 +103,7 @@ sigmap --setup
 
 **Options:**
 
-- Since v4.1.0, the budget auto-scales to your repo by default (`autoMaxTokens: true`). If files are still being dropped, the repo is very large. Try the options below.
+- The budget auto-scales to your repo by default (`autoMaxTokens: true`). If files are still being dropped, the repo is very large. Try the options below.
 - Switch to `"strategy": "per-module"` — each module gets its own full budget rather than sharing one pool.
 - Switch to `"strategy": "hot-cold"` — recently changed files are always injected; older files are served on demand via MCP.
 - Raise `coverageTarget` (default `0.80`) closer to `1.0` to push the formula toward a higher budget.

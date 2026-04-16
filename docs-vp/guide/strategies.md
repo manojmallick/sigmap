@@ -42,7 +42,7 @@ Single output file with all signatures. Best if you want complete context all th
 }
 ```
 
-Budget auto-scales by default (v4.1.0). For a fixed cap: `{ "autoMaxTokens": false, "maxTokens": 6000 }`.
+Budget auto-scales by default. For a fixed cap: `{ "autoMaxTokens": false, "maxTokens": 6000 }`.
 
 **No context loss. No MCP needed.**
 

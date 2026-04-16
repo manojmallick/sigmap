@@ -1,138 +1,54 @@
 ---
-title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap scores 84.4% hit@5 across 13 languages and 9 domains it was never trained on. Small repos 80%, medium 76%, large repos 93%.
+title: Generalization
+description: The same v5.2.0 retrieval snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 84.4% hit@5 across 13 languages, 9 domains"
+      content: "SigMap generalization — one retrieval snapshot across many repo shapes"
   - - meta
     - property: og:description
-      content: "SigMap generalizes cleanly across 13 languages and 9 application domains. None of the 18 benchmark repos are from SigMap's own codebase."
+      content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/generalization"
-  - - meta
-    - name: keywords
-      content: "sigmap generalization, cross-language benchmark, cross-domain ai context, code retrieval generalization"
 ---
 
 # Generalization
 
-A benchmark that only tests familiar inputs can overfit. Every repo in the
-[retrieval benchmark](/guide/retrieval-benchmark) is a **blind test** — none of them
-were used when writing SigMap's extractors. The 18 repos represent 13 programming languages
-and 9 application domains, ranging from 6 to 1{,}533 files.
+The important part of SigMap's benchmark story is not just the topline score. It is that the same retrieval approach works across a mixed set of repos rather than one curated demo project.
 
-::: info What "generalization" means here
-SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
-means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 84.4% hit@5 with no per-repo tuning.
-:::
+## Current public snapshot
 
-This matters because a context engine that only works on familiar repos is not reliable in real engineering work.
+- **18 repos**
+- **13 languages**
+- **9 domains**
+- **78.9%** overall hit@5
+- **no per-repo tuning**
 
----
+That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
 
-## By language — 13 languages tested
+## Why this matters
 
-<div style="margin: 1.5rem 0;">
+SigMap uses hand-written extractors and lightweight ranking rather than a hosted retrieval stack. The strongest proof of generalization is therefore breadth:
 
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Python</span><div style="background:#a89af7;height:18px;border-radius:4px;width:90%;max-width:calc(100% * 0.90)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">90%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Go</span><div style="background:#7c6af7;height:18px;border-radius:4px;width:100%;max-width:calc(100% * 1.0)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">100%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Rust</span><div style="background:#7c6af7;height:18px;border-radius:4px;width:100%;max-width:calc(100% * 1.0)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">100%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">C++</span><div style="background:#7c6af7;height:18px;border-radius:4px;width:100%;max-width:calc(100% * 1.0)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">100%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Dart</span><div style="background:#7c6af7;height:18px;border-radius:4px;width:100%;max-width:calc(100% * 1.0)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">100%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Kotlin</span><div style="background:#7c6af7;height:18px;border-radius:4px;width:100%;max-width:calc(100% * 1.0)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">100%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">PHP</span><div style="background:#7c6af7;height:18px;border-radius:4px;width:100%;max-width:calc(100% * 1.0)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">100%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Scala</span><div style="background:#7c6af7;height:18px;border-radius:4px;width:100%;max-width:calc(100% * 1.0)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">100%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Java</span><div style="background:#d4b8f7;height:18px;border-radius:4px;width:60%;max-width:calc(100% * 0.60)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">60%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Ruby</span><div style="background:#a89af7;height:18px;border-radius:4px;width:80%;max-width:calc(100% * 0.80)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">80%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">C#</span><div style="background:#a89af7;height:18px;border-radius:4px;width:80%;max-width:calc(100% * 0.80)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">80%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">JavaScript</span><div style="background:#a89af7;height:18px;border-radius:4px;width:72%;max-width:calc(100% * 0.72)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">72%</span></div>
-<div style="display:flex;align-items:center;gap:12px;margin:6px 0"><span style="width:140px;font-size:0.9em">Swift</span><div style="background:#d4b8f7;height:18px;border-radius:4px;width:60%;max-width:calc(100% * 0.60)"></div><span style="margin-left:8px;font-size:0.85em;color:#888">60%</span></div>
+- frameworks and application repos
+- libraries and dev tools
+- small, medium, and large codebases
+- languages with very different syntax shapes
 
-</div>
+## Representative coverage
 
-7 of 13 languages score 100%. Python scores 90% (flask 100%, fastapi 80%). JavaScript scores
-72% across 5 repos — express, axios, vue-core, svelte, and fastify — where fragmented signature
-coverage limits precision. Swift (vapor) and Java (spring-petclinic) both score 60%.
+| Category | Example repos |
+|---|---|
+| Web frameworks | `express`, `flask`, `gin`, `rails`, `laravel`, `fastapi`, `fastify`, `vapor` |
+| Libraries / tooling | `axios`, `okhttp`, `serilog`, `riverpod`, `rust-analyzer`, `abseil-cpp`, `akka` |
+| UI frameworks | `vue-core`, `svelte` |
 
----
+## Practical takeaway
 
-## By domain — 9 domains tested
+If you want one number to carry into launch messaging, use the shared `v5.2.0` snapshot rather than an older per-page variant:
 
-| Domain | Repos | Hit@5 | Example repo |
-|---|---|---|---|
-| Dev tools | 1 | **100%** | rust-analyzer |
-| Systems lib | 1 | **100%** | abseil-cpp |
-| State management | 1 | **100%** | riverpod |
-| Concurrency | 1 | **100%** | akka |
-| Web framework | 8 | **83%** | express, rails, gin, laravel, flask, vapor, fastify, fastapi |
-| HTTP client | 2 | **80%** | axios, okhttp |
-| Logging | 1 | **80%** | serilog |
-| UI framework | 2 | **80%** | vue-core, svelte |
-| Web app | 1 | **60%** | spring-petclinic |
-
-No domain scores below 60%. The variation is explained by repo structure (fragmented vs
-modular signatures) rather than language or domain category.
-
----
-
-## By repo size — small to 1,533 files
-
-| Size | File count | Repos | Avg hit@5 |
-|---|---|---|---|
-| Small | ≤25 files | 5 | 80% |
-| Medium | 26–200 files | 5 | 76% |
-| Large | >200 files | 8 | **93%** |
-
-**Large repos benefit most.** Without SigMap, the random baseline for a 1,000-file repo
-is effectively 0% (5/1000 = 0.5%). SigMap's ranked retrieval closes that gap entirely,
-scoring 100% hit@5 on rails (1,179 files) and laravel (1,533 files).
-
----
-
-## Anti-overfitting evidence
-
-SigMap's extractors use **hand-written regex patterns** per language — not ML models, not embeddings.
-They were written against a small set of internal fixtures. The 18 benchmark repos were never
-inspected during development.
-
-Key signals that the results are not overfit:
-
-- **Zero per-repo tuning** — the same `gen-context.js` command with default config ran on all 18 repos
-- **Blind selection** — repos were chosen by GitHub star count and language diversity, not by testing which ones scored well
-- **Failure modes are honest** — Swift/vapor 60%, JavaScript/svelte 60%, fastify 60%, spring-petclinic 60% — genuine weak spots, not massaged away
-- **Large repos score *higher*** — if the extractor patterns were memorized, they'd degrade on unseen large codebases; instead they improve (93% vs 84% for small repos)
-
----
-
-## Repo inventory
-
-| Repo | Language | Domain | Files | Hit@5 |
-|---|---|---|---|---|
-| express | JavaScript | Web framework | 6 | 80% |
-| flask | Python | Web framework | 19 | 100% |
-| gin | Go | Web framework | 107 | 100% |
-| spring-petclinic | Java | Web app | 13 | 60% |
-| rails | Ruby | Web framework | 1,179 | 80% |
-| axios | TypeScript | HTTP client | 25 | 60% |
-| rust-analyzer | Rust | Dev tools | 635 | 100% |
-| abseil-cpp | C++ | Systems lib | 700 | 100% |
-| serilog | C# | Logging | 99 | 80% |
-| riverpod | Dart | State management | 446 | 100% |
-| okhttp | Kotlin | HTTP client | 18 | 100% |
-| laravel | PHP | Web framework | 1,533 | 100% |
-| akka | Scala | Concurrency | 211 | 100% |
-| vapor | Swift | Web framework | 131 | 60% |
-| vue-core | Vue | UI framework | 232 | 100% |
-| svelte | Svelte | UI framework | 370 | 60% |
-| fastify | JavaScript | Web framework | 31 | 60% |
-| fastapi | Python | Web framework | 48 | 80% |
-
-
----
-
-<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
-  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
-</div>
+- **78.9% hit@5**
+- **52.2% task success proxy**
+- **1.69 prompts per task**
+- **98.1% overall token reduction**

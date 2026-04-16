@@ -1,14 +1,14 @@
 ---
 layout: home
-title: SigMap — Zero-dependency AI context engine
-description: Reduce AI coding agent token consumption by 97%. Extracts signatures from 29 languages, writes copilot-instructions.md automatically. Zero npm install.
+title: SigMap — workflow-first AI context for code
+description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 78.9% hit@5, 40.6% fewer prompts, 98.1% overall token reduction.
 head:
   - - meta
     - property: og:title
-      content: "SigMap — 97% token reduction for AI coding agents"
+      content: "SigMap — ask, validate, judge, and learn from real code context"
   - - meta
     - property: og:description
-      content: "SigMap gives your AI the right context before the first prompt. 80% retrieval accuracy, 41% fewer prompts, 18 real repos benchmarked."
+      content: "Workflow-first AI context for codebases. 78.9% hit@5, 40.6% fewer prompts, 98.1% overall token reduction."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -17,299 +17,114 @@ head:
       content: website
   - - meta
     - name: twitter:title
-      content: "SigMap — 97% token reduction for AI coding agents"
+      content: "SigMap — workflow-first AI context for code"
   - - meta
     - name: twitter:description
-      content: "SigMap gives your AI the right context before the first prompt. 80% retrieval accuracy, 41% fewer prompts, 18 real repos benchmarked."
-  - - meta
-    - name: twitter:image:alt
-      content: "SigMap — Zero-dependency AI context engine for AI coding agents"
+      content: "Ask, validate, judge, and learn from real code context. 78.9% hit@5, 40.6% fewer prompts, 98.1% overall token reduction."
   - - meta
     - name: keywords
-      content: "sigmap, ai context engine, copilot token reduction, ai coding agent, context window optimization, zero dependency, copilot-instructions, claude code context, cursor context, windsurf context"
+      content: "sigmap, ai context engine, grounded ai answers, code retrieval, mcp, sigmap ask, sigmap judge, sigmap validate, sigmap learn"
 
 hero:
   name: SigMap
-  text: 6× better AI answers.
-  tagline: "✔ 59% task success (was 10%)  ✔ 41% fewer prompts  ✔ 97% fewer tokens. One command, zero config — works with Copilot, Claude, Cursor, and Windsurf."
+  text: Grounded answers for coding agents.
+  tagline: "v5.2.0 adds ask, validate, judge, compare, share, and local learning weights on top of the core signature engine."
   actions:
     - theme: brand
       text: Get Started →
       link: /guide/quick-start
     - theme: alt
       text: Benchmarks →
-      link: /guide/task-benchmark
+      link: /guide/benchmark
     - theme: alt
       text: GitHub
       link: https://github.com/manojmallick/sigmap
 
 features:
-  - icon: 💬
-    title: Fewer prompts to solve tasks
-    details: 41% fewer prompts per task. Correct context lands at rank 1 in 57% of tasks. Wrong context drops from 87% to 16%. Fewer retries, faster answers.
-    link: /guide/task-benchmark
-    linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80% hit@5 across 90 real coding tasks on 18 repos (5.9× lift). Without SigMap, random selection finds the right file 13.6% of the time.
+    details: "78.9% hit@5 across 90 real coding tasks on 18 repos. Random selection finds the right file only 13.6% of the time."
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
+  - icon: 💬
+    title: Fewer prompts to finish the task
+    details: "1.69 prompts with SigMap vs 2.84 without it. That is a 40.6% reduction across the latest saved task benchmark."
+    link: /guide/task-benchmark
+    linkText: Task benchmark →
+  - icon: 🧭
+    title: Workflow-first trust layer
+    details: "Use ask to build focused context, validate to check coverage, judge to score groundedness, and learn to reinforce the files that actually helped."
+    link: /guide/cli
+    linkText: CLI reference →
   - icon: ⚡
     title: Smaller context window load
-    details: From ~80,000 raw tokens to ~4,000 per session. Function signatures only — no bodies, no comments. Measured across 18 real codebases.
+    details: "98.1% overall token reduction in the latest saved benchmark snapshot, measured on 18 real repos."
     link: /guide/benchmark
-    linkText: Token benchmark →
+    linkText: Benchmark overview →
   - icon: 🌐
     title: 29 languages
-    details: TypeScript, JS, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile, GraphQL, SQL, Terraform, Protobuf, TOML, XML, Properties, Markdown.
+    details: "TypeScript, JavaScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, and more."
     link: /guide/languages
-    linkText: All languages →
-  - icon: 📦
-    title: Zero dependencies
-    details: npx sigmap and done. No package.json changes, no compiler, no Tree-sitter. Requires only Node.js 18+.
-  - icon: 🔄
-    title: Always current
-    details: File watcher + git post-commit hook regenerate context on every save and commit. Context is never stale.
+    linkText: Language support →
+  - icon: 📊
+    title: HTML benchmark dashboard
+    details: "Run the benchmark matrix once and open a self-contained HTML report for token, retrieval, quality, and task metrics."
+    link: /guide/benchmark
+    linkText: See benchmark flow →
 ---
 
 <div style="max-width:780px;margin:0 auto;padding:24px 24px 8px;text-align:center">
 <p style="font-size:1.05em;color:var(--vp-c-text-2)">
-  SigMap gives AI the right code context before the first prompt — so it answers from structure, not guesses.
+  SigMap gives coding agents a compact, inspectable map of your repo before the first prompt, then lets you check whether the answer was actually grounded.
 </p>
 </div>
 
-<div style="max-width:780px;margin:0 auto;padding:0 24px 40px">
+<div style="max-width:780px;margin:0 auto;padding:0 24px 24px">
 
-## The problem — in one sentence
-
-Your AI answers coding questions from whichever files happen to fit its context window. On a large codebase that's ~1% of the code. It guesses. It gets it wrong.
-
-**SigMap fixes this.** It runs before your first prompt and puts the right files into context automatically. No config. No API key. One command.
-
-</div>
-
-<div style="max-width:780px;margin:0 auto;padding:0 24px 16px">
-
-## Before vs After — finding the right file
-
-Does the AI get the right file in context? Measured across 90 real coding tasks.
-
-<div style="margin:1.4rem 0">
-
-<div style="display:flex;align-items:center;gap:12px;margin:10px 0">
-  <span style="width:160px;font-size:0.88em;color:#ef4444;font-weight:500">Without SigMap</span>
-  <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:6px;height:36px;overflow:hidden">
-    <div style="background:#ef4444;height:36px;width:13.6%;display:flex;align-items:center;padding-left:10px">
-      <span style="color:#fff;font-size:0.82em;font-weight:700;white-space:nowrap">13.6%</span>
-    </div>
-  </div>
-</div>
-
-<div style="display:flex;align-items:center;gap:12px;margin:10px 0">
-  <span style="width:160px;font-size:0.88em;color:#7c6af7;font-weight:500">With SigMap</span>
-  <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:6px;height:36px;overflow:hidden">
-    <div style="background:#7c6af7;height:36px;width:80%;display:flex;align-items:center;padding-left:10px">
-      <span style="color:#fff;font-size:0.82em;font-weight:700">80.0%</span>
-    </div>
-  </div>
-</div>
-
-</div>
-
-<div style="display:flex;gap:2rem;flex-wrap:wrap;margin-top:1.8rem">
-
-<div style="flex:1;min-width:200px">
-  <div style="font-size:0.78em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-3);margin-bottom:.5rem">Prompts to answer</div>
-  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
-    <span style="width:120px;font-size:0.82em;color:#ef4444">Without</span>
-    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#ef4444;height:22px;width:94.7%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">2.84</span>
-      </div>
-    </div>
-  </div>
-  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
-    <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
-    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#7c6af7;height:22px;width:59%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">1.67</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div style="flex:1;min-width:200px">
-  <div style="font-size:0.78em;text-transform:uppercase;letter-spacing:.08em;color:var(--vp-c-text-3);margin-bottom:.5rem">Wrong context rate</div>
-  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
-    <span style="width:120px;font-size:0.82em;color:#ef4444">Without</span>
-    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#ef4444;height:22px;width:87%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">87%</span>
-      </div>
-    </div>
-  </div>
-  <div style="display:flex;align-items:center;gap:12px;margin:6px 0">
-    <span style="width:120px;font-size:0.82em;color:#7c6af7">With SigMap</span>
-    <div style="flex:1;background:var(--vp-c-bg-mute);border-radius:4px;height:22px;overflow:hidden">
-      <div style="background:#7c6af7;height:22px;width:20%;display:flex;align-items:center;padding-left:8px">
-        <span style="color:#fff;font-size:0.78em;font-weight:600">20%</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-</div>
-
-</div>
-
-<div style="max-width:780px;margin:0 auto;padding:0 24px 40px">
-
-## Answer correctness score
-
-**Think of this like a report card.** For every coding task, did the AI get the right code?
-
-<div style="margin:1.4rem 0">
-
-<div style="margin:12px 0">
-  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-    <span style="font-size:0.9em;font-weight:600;color:#22c55e">✓ Correct — right file, first prompt</span>
-    <span style="font-size:0.85em;color:#22c55e">48 / 90 tasks</span>
-  </div>
-  <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#22c55e;height:32px;width:53.3%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">53.3%</span>
-    </div>
-  </div>
-</div>
-
-<div style="margin:12px 0">
-  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-    <span style="font-size:0.9em;font-weight:600;color:#f59e0b">~ Partial — right file somewhere in context</span>
-    <span style="font-size:0.85em;color:#f59e0b">24 / 90 tasks</span>
-  </div>
-  <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#f59e0b;height:32px;width:26.7%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">26.7%</span>
-    </div>
-  </div>
-</div>
-
-<div style="margin:12px 0">
-  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-    <span style="font-size:0.9em;font-weight:600;color:#ef4444">✗ Wrong — AI answered from the wrong code</span>
-    <span style="font-size:0.85em;color:#ef4444">18 / 90 tasks</span>
-  </div>
-  <div style="background:var(--vp-c-bg-mute);border-radius:6px;height:32px;overflow:hidden">
-    <div style="background:#ef4444;height:32px;width:20%;display:flex;align-items:center;padding-left:12px">
-      <span style="color:#fff;font-weight:700;font-size:0.88em">20.0%</span>
-    </div>
-  </div>
-</div>
-
-</div>
-
-<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem">
-<div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem">
-  <div style="font-size:1.6em;font-weight:700;color:#ef4444">75%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2)">hallucination risk<br><span style="color:var(--vp-c-text-3)">without SigMap — 47K symbols hidden from AI</span></div>
-</div>
-<div style="flex:1;min-width:180px;background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.1rem;border:2px solid #7c6af744">
-  <div style="font-size:1.6em;font-weight:700;color:#7c6af7">0%</div>
-  <div style="font-size:0.82em;color:var(--vp-c-text-2)">dark symbols<br><span style="color:var(--vp-c-text-3)">with SigMap — all 16,114 signatures grounded</span></div>
-</div>
-</div>
-
-<div style="margin-top:1rem;font-size:0.83em;color:var(--vp-c-text-3)">
-Measured across 90 tasks · 18 repos · 13 languages · no LLM API · <a href="/sigmap/guide/task-benchmark" style="color:#7c6af7">full methodology →</a>
-</div>
-
-</div>
-
-<div style="max-width:780px;margin:0 auto;padding:0 24px 32px">
-
-## One command
+## Start here
 
 ```bash
 npx sigmap
+sigmap ask "explain the auth flow"
+sigmap validate --query "auth login token"
+sigmap judge --response response.txt --context .context/query-context.md
 ```
 
-No config, no API key, no dependencies. Reads your code, writes the context file, done in ~1 second.
+</div>
+
+<div style="max-width:780px;margin:0 auto;padding:0 24px 24px">
+
+## Latest release snapshot
+
+| Metric | Without SigMap | With SigMap |
+|---|:---:|:---:|
+| Task success proxy | 10% | **52.2%** |
+| Prompts per task | 2.84 | **1.69** |
+| Retrieval hit@5 | 13.6% | **78.9%** |
+| Overall token reduction | — | **98.1%** |
+
+Latest saved benchmark run: **2026-04-16 (v5.2.0)**.
 
 </div>
 
-<div style="max-width:780px;margin:0 auto;padding:0 24px 32px">
+<div style="max-width:780px;margin:0 auto;padding:0 24px 24px">
 
-## Works with every AI tool
+## What changed in v5.2.0
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1.2rem 0;font-size:0.88em">
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>GitHub Copilot</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Claude Code</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Cursor</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Windsurf</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>OpenAI Codex</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center"><span>Gemini CLI</span><span style="color:#22c55e;font-weight:600">✓ auto</span></div>
-</div>
+- `ask` builds task-focused context in one step
+- `validate` checks config health and query coverage
+- `judge` scores groundedness against the supplied context
+- `learn & weights` add safe, local-only ranking feedback
+- `compare & share` turn benchmark results into demo-ready output
 
 </div>
 
----
+<div style="max-width:780px;margin:0 auto;padding:0 24px 40px">
 
-<div style="max-width:780px;margin:0 auto;padding:0 24px 32px">
+## Proof, not vibes
 
-## What's new in v4.1 — Smart Budget
+- Want the benchmark hub: [benchmark overview](/guide/benchmark)
+- Want the daily flow: [quick start](/guide/quick-start) and [CLI reference](/guide/cli)
+- Want language and platform details: [language support](/guide/languages) and [MCP server](/guide/mcp)
 
-v4.1 replaces the fixed 6 000-token limit with a formula that scales to your repo. No config change needed.
-
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.9rem 1.2rem;margin:1rem 0;font-size:0.88em;font-family:monospace">
-effective = clamp(ceil(totalSigTokens × coverageTarget), 4000, floor(modelContextLimit × maxTokensHeadroom))
-</div>
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1.2rem 0;font-size:0.88em">
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">📐 Auto-scaled budget</div>
-  <div style="color:var(--vp-c-text-2)">Targets 80% source-file coverage by default. Grows with repo size, capped at 20% of your model's context window.</div>
-</div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">🔒 Hard cap safety</div>
-  <div style="color:var(--vp-c-text-2)">Never exceeds <code>modelContextLimit × maxTokensHeadroom</code> (default 25 600 tokens for 128K models).</div>
-</div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">⚙️ Fully configurable</div>
-  <div style="color:var(--vp-c-text-2)">Four new keys: <code>autoMaxTokens</code>, <code>coverageTarget</code>, <code>modelContextLimit</code>, <code>maxTokensHeadroom</code>. Set <code>autoMaxTokens: false</code> to keep the old fixed behaviour.</div>
-</div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">📊 Per-module fix</div>
-  <div style="color:var(--vp-c-text-2)">Each module in <code>per-module</code> strategy now gets its own full budget — not a proportional slice.</div>
-</div>
-</div>
-
-## What's new in v4.0 — Intelligence Layer
-
-v4.0 adds observability signals so you know _how good_ your context is, not just that it ran.
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem;margin:1.2rem 0;font-size:0.88em">
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">📊 Coverage score</div>
-  <div style="color:var(--vp-c-text-2)">Grade A–D: what fraction of source files made it into context after token budget.</div>
-</div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">🔥 Module heatmap</div>
-  <div style="color:var(--vp-c-text-2)"><code>sigmap --report</code> prints an ASCII bar chart per srcDir showing per-module coverage %.</div>
-</div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">⚠️ Diff risk score</div>
-  <div style="color:var(--vp-c-text-2);"><code>sigmap --diff</code> classifies each changed file LOW / MEDIUM / HIGH based on downstream impact.</div>
-</div>
-<div style="background:var(--vp-c-bg-soft);border-radius:8px;padding:.8rem 1rem">
-  <div style="font-weight:600;margin-bottom:.3rem">🏷️ Confidence indicators</div>
-  <div style="color:var(--vp-c-text-2)">Every generated file carries <code>confidence=HIGH coverage=97%</code> metadata so you can inspect freshness at a glance.</div>
-</div>
-</div>
-
-</div>
-
----
-
-<div style="text-align:center;margin-top:2.5rem;padding-bottom:.5rem;font-size:0.85em;color:var(--vp-c-text-3)">
-  Made in Amsterdam, Netherlands <span title="Netherlands">🇳🇱</span>
 </div>

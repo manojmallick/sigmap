@@ -40,7 +40,7 @@ export default defineConfig({
           { text: 'Token reduction', link: '/guide/benchmark' },
           { text: 'Quality', link: '/guide/quality-benchmark' },
           { text: 'Retrieval', link: '/guide/retrieval-benchmark' },
-          { text: 'Task & prompts', link: '/guide/task-benchmark' },
+          { text: 'Task benchmark', link: '/guide/task-benchmark' },
           { text: 'Generalization', link: '/guide/generalization' },
         ],
       },

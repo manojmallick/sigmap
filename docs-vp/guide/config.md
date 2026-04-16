@@ -95,7 +95,7 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 | `outputPath` | `string` | `.github/copilot-instructions.md` | Path to write the primary context file. |
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
 
-## Token budget (v4.1.0)
+## Token budget
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|

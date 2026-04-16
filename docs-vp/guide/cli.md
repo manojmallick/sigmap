@@ -248,7 +248,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         84.4% vs 13.6%   (6.2× lift)
+ hit@5         78.9% vs 13.6%   (5.8× lift)
  Avg tokens    4,103 vs 80,000
 ────────────────────────────────────────────
 ```
@@ -265,7 +265,7 @@ sigmap share
 
 ```
 Generated with SigMap — zero-dependency AI context engine
-97% fewer tokens · 84% retrieval accuracy · 6× better results
+98.1% fewer tokens · 78.9% retrieval hit@5 · 40.6% fewer prompts
 https://sigmap.dev
 [sigmap] Copied to clipboard.
 ```

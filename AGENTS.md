@@ -12,7 +12,7 @@ Use this marker block for all appendable context files:
 ## Auto-generated signatures
 <!-- Updated by gen-context.js -->
 You are a coding assistant with full knowledge of this codebase.
-Below are the code signatures extracted by SigMap v5.2.0 on 2026-04-16T22:22:03.099Z.
+Below are the code signatures extracted by SigMap v5.2.0 on 2026-04-16T23:13:56.540Z.
 
 Use these signatures to answer questions about the code accurately.
 
@@ -23,15 +23,50 @@ Use these signatures to answer questions about the code accurately.
 
 # Code signatures
 
-## changes (last 5 commits — 41 minutes ago)
+## changes (last 5 commits — 46 minutes ago)
 ```
 src/config/loader.js                          +loadBaseConfig  ~loadConfig  ~deepClone
 src/format/dashboard.js                       ~computeExtractorCoverage  ~readBenchmarkTrend
-src/judge/judge-engine.js                     +tokenize  +groundedness  +judge
-src/retrieval/ranker.js                       +detectIntent  ~formatRankJSON
+src/judge/judge-engine.js                     +tokenize  +groundedness  +extractContextFiles  +judge
+src/learning/weights.js                       +weightsPath  +clampMultiplier  +normalizeFile  +sanitizeWeights
+src/mcp/handlers.js                           ~queryContext  ~getImpact
+src/retrieval/ranker.js                       ~scoreFile  ~rank
+packages/core/index.js                        ~extract
 ```
 
 ## packages
+
+### packages/core/README.md
+```
+h1 sigmap-core
+h2 Installation
+h2 Quick start
+h2 API reference
+h3 `extract(src, language)` → `string[]`
+h3 `rank(query, sigIndex, opts?)` → `Result[]`
+h3 `buildSigIndex(cwd)` → `Map<string, string[]>`
+h3 `scan(sigs, filePath)` → `{ safe: string[], redacted: boolean }`
+h3 `score(cwd)` → `HealthResult`
+h2 Migration from v2.3 and earlier
+h2 v3.0 — Multi-Adapter Architecture (released)
+h2 Zero dependencies
+code-fence bash
+code-fence plain
+code-fence js
+code-fence ---
+```
+
+### packages/core/index.js
+```
+module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
+function _resolveExtractor(language)
+function extract(src, language) → string[]
+function rank(query, sigIndex, opts) → { file: string, score: nu
+function buildSigIndex(cwd) → Map<string, string[]>
+function scan(sigs, filePath) → { safe: string[], redacte
+function score(cwd) → { * score: number, * grad
+function adapt(context, adapterName, opts = {}) → string
+```
 
 ### packages/adapters/claude.js
 ```
@@ -115,38 +150,6 @@ module.exports = { CLI_ENTRY, run }
 function run(argv, cwd) → void
 ```
 
-### packages/core/README.md
-```
-h1 sigmap-core
-h2 Installation
-h2 Quick start
-h2 API reference
-h3 `extract(src, language)` → `string[]`
-h3 `rank(query, sigIndex, opts?)` → `Result[]`
-h3 `buildSigIndex(cwd)` → `Map<string, string[]>`
-h3 `scan(sigs, filePath)` → `{ safe: string[], redacted: boolean }`
-h3 `score(cwd)` → `HealthResult`
-h2 Migration from v2.3 and earlier
-h2 v3.0 — Multi-Adapter Architecture (released)
-h2 Zero dependencies
-code-fence bash
-code-fence plain
-code-fence js
-code-fence ---
-```
-
-### packages/core/index.js
-```
-module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
-function _resolveExtractor(language)
-function extract(src, language) → string[]
-function rank(query, sigIndex, opts) → { file: string, score: nu
-function buildSigIndex(cwd) → Map<string, string[]>
-function scan(sigs, filePath) → { safe: string[], redacte
-function score(cwd) → { * score: number, * grad
-function adapt(context, adapterName, opts = {}) → string
-```
-
 ## src
 
 ### src/config/loader.js
@@ -185,6 +188,35 @@ function tokenize(text)
 function groundedness(response, context)
 function extractContextFiles(context, cwd)
 function judge(response, context, opts = {})
+```
+
+### src/learning/weights.js
+```
+module.exports = { BASELINE, DECAY, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights }
+function weightsPath(cwd)
+function clampMultiplier(value)
+function normalizeFile(cwd, filePath)
+function sanitizeWeights(cwd, weights)
+function loadWeights(cwd)
+function saveWeights(cwd, weights)
+function updateWeights(cwd, opts = {})
+function boostFiles(cwd, files, amount = 0.15)
+function penalizeFiles(cwd, files, amount = 0.10)
+function resetWeights(cwd)
+```
+
+### src/mcp/handlers.js
+```
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact }
+function readContext(args, cwd)
+function searchSignatures(args, cwd)
+function getMap(args, cwd)
+function createCheckpoint(args, cwd)
+function getRouting(args, cwd)
+function explainFile(args, cwd)
+function listModules(args, cwd)
+function queryContext(args, cwd)
+function getImpact(args, cwd)
 ```
 
 ### src/mcp/server.js
@@ -604,21 +636,6 @@ module.exports = { score }
 function score(cwd) → { * score: number, * grad
 ```
 
-### src/learning/weights.js
-```
-module.exports = { BASELINE, DECAY, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights }
-function weightsPath(cwd)
-function clampMultiplier(value)
-function normalizeFile(cwd, filePath)
-function sanitizeWeights(cwd, weights)
-function loadWeights(cwd)
-function saveWeights(cwd, weights)
-function updateWeights(cwd, opts = {})
-function boostFiles(cwd, files, amount = 0.15)
-function penalizeFiles(cwd, files, amount = 0.10)
-function resetWeights(cwd)
-```
-
 ### src/map/class-hierarchy.js
 ```
 module.exports = { analyze }
@@ -639,20 +656,6 @@ function analyze(files, cwd)
 module.exports = { analyze }
 function shouldSkipFile(rel)
 function analyze(files, cwd)
-```
-
-### src/mcp/handlers.js
-```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact }
-function readContext(args, cwd)
-function searchSignatures(args, cwd)
-function getMap(args, cwd)
-function createCheckpoint(args, cwd)
-function getRouting(args, cwd)
-function explainFile(args, cwd)
-function listModules(args, cwd)
-function queryContext(args, cwd)
-function getImpact(args, cwd)
 ```
 
 ### src/mcp/tools.js
