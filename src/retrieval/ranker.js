@@ -141,24 +141,45 @@ function rank(query, sigIndex, opts) {
 }
 
 /**
- * Build a signature index from the generated context file.
- * Returns Map<filePath, string[]> where filePath is the relative path
- * as it appears in the ### headers of copilot-instructions.md.
+ * All paths where sigmap adapters write their context files, in probe order.
+ * The first existing file with a non-empty index wins when no explicit path
+ * is supplied.
+ */
+const ADAPTER_OUTPUT_PATHS = [
+  ['.github', 'copilot-instructions.md'], // copilot (default)
+  ['CLAUDE.md'],                           // claude
+  ['AGENTS.md'],                           // codex
+  ['.cursorrules'],                        // cursor
+  ['.windsurfrules'],                      // windsurf
+  ['.github', 'openai-context.md'],        // openai
+  ['.github', 'gemini-context.md'],        // gemini
+  ['llm-full.txt'],                        // llm-full
+  ['llm.txt'],                             // llm
+];
+
+/**
+ * Parse a single context file into a Map<filePath, string[]>.
  *
- * @param {string} cwd
+ * Files that contain human-written content before an
+ * "## Auto-generated signatures" marker (e.g. CLAUDE.md) are handled
+ * by skipping everything above the marker before scanning for ### headers.
+ *
+ * @param {string} contextPath  - absolute path to the context file
  * @returns {Map<string, string[]>}
  */
-function buildSigIndex(cwd) {
-  const fs   = require('fs');
-  const path = require('path');
-  const contextPath = path.join(cwd, '.github', 'copilot-instructions.md');
+function _parseContextFile(contextPath) {
+  const fs = require('fs');
   const index = new Map();
 
   if (!fs.existsSync(contextPath)) return index;
 
-  const content = fs.readFileSync(contextPath, 'utf8');
-  const lines = content.split('\n');
+  let content = fs.readFileSync(contextPath, 'utf8');
 
+  // Skip any human-written preamble that sits above the auto-generated block.
+  const markerIdx = content.indexOf('## Auto-generated signatures');
+  if (markerIdx !== -1) content = content.slice(markerIdx);
+
+  const lines = content.split('\n');
   let currentFile = null;
   let inBlock = false;
   let sigs = [];
@@ -178,6 +199,40 @@ function buildSigIndex(cwd) {
   if (currentFile !== null) index.set(currentFile, sigs);
 
   return index;
+}
+
+/**
+ * Build a signature index from the generated context file.
+ * Returns Map<filePath, string[]> where filePath is the relative path
+ * as it appears in the ### headers of the context file.
+ *
+ * When `opts.contextPath` is provided, that specific file is used.
+ * This is the case when the caller already knows the path (e.g. via
+ * --adapter <name> or --output <file>).
+ *
+ * Otherwise all known adapter output paths are probed in order and the
+ * first file that produces a non-empty index is returned.
+ *
+ * @param {string} cwd
+ * @param {{ contextPath?: string }} [opts]
+ * @returns {Map<string, string[]>}
+ */
+function buildSigIndex(cwd, opts) {
+  const path = require('path');
+
+  // Caller supplied an explicit path — use it directly.
+  if (opts && opts.contextPath) {
+    return _parseContextFile(opts.contextPath);
+  }
+
+  // Probe all known adapter output paths; return first non-empty index.
+  for (const parts of ADAPTER_OUTPUT_PATHS) {
+    const contextPath = path.join(cwd, ...parts);
+    const index = _parseContextFile(contextPath);
+    if (index.size > 0) return index;
+  }
+
+  return new Map();
 }
 
 /**

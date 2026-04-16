@@ -5449,12 +5449,24 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     scored.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
     return scored.slice(0, topK);
   }
-  function buildSigIndex(cwd) {
-    const fs = require('fs'); const path = require('path');
-    const contextPath = path.join(cwd, '.github', 'copilot-instructions.md');
+  const ADAPTER_OUTPUT_PATHS = [
+    ['.github', 'copilot-instructions.md'],
+    ['CLAUDE.md'],
+    ['AGENTS.md'],
+    ['.cursorrules'],
+    ['.windsurfrules'],
+    ['.github', 'openai-context.md'],
+    ['.github', 'gemini-context.md'],
+    ['llm-full.txt'],
+    ['llm.txt'],
+  ];
+  function _parseContextFile(contextPath) {
+    const fs = require('fs');
     const index = new Map();
     if (!fs.existsSync(contextPath)) return index;
-    const content = fs.readFileSync(contextPath, 'utf8');
+    let content = fs.readFileSync(contextPath, 'utf8');
+    const markerIdx = content.indexOf('## Auto-generated signatures');
+    if (markerIdx !== -1) content = content.slice(markerIdx);
     const lines = content.split('\n');
     let currentFile = null; let inBlock = false; let sigs = [];
     for (const line of lines) {
@@ -5465,6 +5477,16 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     if (currentFile !== null) index.set(currentFile, sigs);
     return index;
+  }
+  function buildSigIndex(cwd, opts) {
+    const path = require('path');
+    if (opts && opts.contextPath) return _parseContextFile(opts.contextPath);
+    for (const parts of ADAPTER_OUTPUT_PATHS) {
+      const contextPath = path.join(cwd, ...parts);
+      const index = _parseContextFile(contextPath);
+      if (index.size > 0) return index;
+    }
+    return new Map();
   }
   function formatRankTable(results, query) {
     if (!results || results.length === 0) return `No matching files found for query: "${query}"\n`;
@@ -8220,7 +8242,13 @@ function main() {
       const stats = analyzeFiles(allFiles, cwd, { slow, maxSigs: cfg.maxSigsPerFile || 25 });
 
       if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify(formatAnalysisJSON(stats)) + '\n');
+        const out = JSON.stringify(formatAnalysisJSON(stats)) + '\n';
+        // Use the write callback to exit only after the OS has accepted all
+        // bytes. Calling process.exit(0) synchronously after write() truncates
+        // large outputs because the underlying pipe write is asynchronous even
+        // when write() returns true.
+        process.stdout.write(out, 'utf8', () => process.exit(0));
+        return; // exit is handled by the callback above
       } else {
         const table = formatAnalysisTable(stats, slow);
         process.stdout.write(table);
@@ -8326,9 +8354,29 @@ function main() {
         process.exit(1);
       }
       const { rank, buildSigIndex, formatRankTable, formatRankJSON } = requireSourceOrBundled('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
+
+      // Resolve an explicit context file path when --adapter is present.
+      // This lets `--adapter claude --query "..."` read CLAUDE.md instead of
+      // falling through to the default copilot-instructions.md probe.
+      let queryOpts;
+      const adpIdx = args.indexOf('--adapter');
+      if (adpIdx >= 0) {
+        const adapterName = (args[adpIdx + 1] || '').trim().toLowerCase();
+        const VALID_ADAPTERS = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
+        if (VALID_ADAPTERS.includes(adapterName)) {
+          try {
+            const adapterMod = __require('./packages/adapters/' + adapterName);
+            queryOpts = { contextPath: adapterMod.outputPath(cwd) };
+          } catch (_) {}
+        }
+      }
+
+      const index = buildSigIndex(cwd, queryOpts);
       if (index.size === 0) {
         console.error('[sigmap] no context file found. Run: node gen-context.js');
+        if (adpIdx >= 0) {
+          console.error('  (tried the path for --adapter ' + (args[adpIdx + 1] || '') + ')');
+        }
         process.exit(1);
       }
       const topIdx = args.indexOf('--top');
