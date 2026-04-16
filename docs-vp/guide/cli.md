@@ -56,6 +56,8 @@ If you are new to the product, start with the workflow pages first:
 | Command / Flag | Description |
 |----------------|-------------|
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
+| `learn` | Boost, penalize, or reset learned file ranking weights |
+| `weights` | Show learned file multipliers or emit them as JSON |
 | `suggest-profile` | Auto-detect context profile from git state |
 | `explain <file>` | Why a file is included or excluded from context |
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
