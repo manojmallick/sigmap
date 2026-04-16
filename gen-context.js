@@ -6937,6 +6937,19 @@ function writeOutputs(content, targets, cwd, config) {
     if (ADAPTER_TARGETS.has(target)) {
       try {
         const adapterMod = __require('./packages/adapters/' + target);
+        // copilot: honour config.output custom path (redirects away from default .github/copilot-instructions.md)
+        if (target === 'copilot') {
+          const outPath = resolveAdapterPath('copilot', cwd, config);
+          const defaultPath = path.join(cwd, '.github', 'copilot-instructions.md');
+          if (outPath !== defaultPath) {
+            // custom path: format and write directly (no append logic)
+            const formatted = adapterMod.format(content, { version: VERSION });
+            ensureDir(outPath);
+            fs.writeFileSync(outPath, formatted, 'utf8');
+            console.warn(`[sigmap] wrote ${path.relative(cwd, outPath)}`);
+            continue;
+          }
+        }
         if (typeof adapterMod.write === 'function') {
           adapterMod.write(content, cwd, { version: VERSION });
           const outPath = adapterMod.outputPath(cwd);
