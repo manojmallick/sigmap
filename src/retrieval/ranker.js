@@ -206,26 +206,39 @@ function _parseContextFile(contextPath) {
  * Returns Map<filePath, string[]> where filePath is the relative path
  * as it appears in the ### headers of the context file.
  *
- * When `opts.contextPath` is provided, that specific file is used.
- * This is the case when the caller already knows the path (e.g. via
- * --adapter <name> or --output <file>).
- *
- * Otherwise all known adapter output paths are probed in order and the
- * first file that produces a non-empty index is returned.
+ * Resolution priority:
+ *  1. `opts.contextPath` — explicit path from --output or --adapter flag
+ *  2. `customOutput` key in gen-context.config.json — persisted from a
+ *     previous `--output <file>` generation run
+ *  3. All known adapter output paths probed in order (first non-empty wins)
  *
  * @param {string} cwd
  * @param {{ contextPath?: string }} [opts]
  * @returns {Map<string, string[]>}
  */
 function buildSigIndex(cwd, opts) {
+  const fs   = require('fs');
   const path = require('path');
 
-  // Caller supplied an explicit path — use it directly.
+  // 1. Caller supplied an explicit path — use it directly.
   if (opts && opts.contextPath) {
     return _parseContextFile(opts.contextPath);
   }
 
-  // Probe all known adapter output paths; return first non-empty index.
+  // 2. Check gen-context.config.json for a persisted customOutput path.
+  try {
+    const cfgPath = path.join(cwd, 'gen-context.config.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      if (cfg.customOutput) {
+        const customPath = path.resolve(cwd, cfg.customOutput);
+        const index = _parseContextFile(customPath);
+        if (index.size > 0) return index;
+      }
+    }
+  } catch (_) {}
+
+  // 3. Probe all known adapter output paths; return first non-empty index.
   for (const parts of ADAPTER_OUTPUT_PATHS) {
     const contextPath = path.join(cwd, ...parts);
     const index = _parseContextFile(contextPath);
