@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap scores 84.4% hit@5 across 13 languages and 9 domains it was never trained on. Small repos 80%, medium 76%, large repos 93%.
+description: SigMap generalizes across 18 repos, 13 languages, and 9 domains with 78.9% hit@5 in the latest saved v5.2 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 84.4% hit@5 across 13 languages, 9 domains"
+      content: "SigMap Generalization — 78.9% hit@5 across 13 languages and 9 domains"
   - - meta
     - property: og:description
       content: "SigMap generalizes cleanly across 13 languages and 9 application domains. None of the 18 benchmark repos are from SigMap's own codebase."
@@ -26,7 +26,7 @@ and 9 application domains, ranging from 6 to 1{,}533 files.
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 84.4% hit@5 with no per-repo tuning.
+these 90 tasks is yes — 78.9% hit@5 with no per-repo tuning in the latest saved v5.2 run.
 :::
 
 This matters because a context engine that only works on familiar repos is not reliable in real engineering work.

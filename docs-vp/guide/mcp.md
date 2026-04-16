@@ -124,6 +124,20 @@ Use `list_modules()` first and `read_context(module=...)` to stay efficient.
 | `explain_file(path="...")` | 30–400 |
 | `list_modules()` | 20–100 |
 
+## Three common MCP workflows
+
+### 1. Debug a bug
+
+Use `query_context(query="...")` to rank the likely files, then `explain_file(path="...")` on the most relevant result.
+
+### 2. Understand a module
+
+Start with `list_modules()`, then `read_context(module="src/auth")` or another focused module path instead of loading the whole codebase.
+
+### 3. Verify an AI answer
+
+Use `ask` to create `.context/query-context.md`, let the model answer, then run [judge](/guide/judge) against that same context file to check groundedness.
+
 ## Test the server
 
 Send a raw JSON-RPC request to confirm the server starts and returns all 8 tool definitions.

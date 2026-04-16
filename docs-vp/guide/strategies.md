@@ -30,6 +30,16 @@ SigMap supports three output strategies: `full`, `per-module`, and `hot-cold`. T
 | `per-module` | ~100–300 tokens overview | No | No | Module-based projects, focused work |
 | `hot-cold` | ~200–800 hot set | Cold files unless fetched | Yes for cold | Claude Code / Cursor with MCP |
 
+## Best strategy by task
+
+| Task | Best strategy | Why |
+|---|---|---|
+| Daily coding with `ask` | `full` | Fastest default path with no extra workflow steps |
+| Debugging with `ask` + MCP `query_context` | `full` or `hot-cold` | `full` keeps everything simple; `hot-cold` wins when MCP is always available |
+| Large repo with Claude Code or Cursor MCP | `hot-cold` | Lowest always-on token load while keeping cold context fetchable |
+| CI, reporting, and shared docs output | `full` or `per-module` | Easier to reason about and easier to compare across runs |
+| Clear module boundaries | `per-module` | Lets teams inject only the relevant package or service |
+
 ## Each strategy in detail
 
 ### full
@@ -42,7 +52,7 @@ Single output file with all signatures. Best if you want complete context all th
 }
 ```
 
-Budget auto-scales by default (v4.1.0). For a fixed cap: `{ "autoMaxTokens": false, "maxTokens": 6000 }`.
+Budget auto-scales by default. For a fixed cap: `{ "autoMaxTokens": false, "maxTokens": 6000 }`.
 
 **No context loss. No MCP needed.**
 
