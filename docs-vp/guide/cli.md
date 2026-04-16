@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All flags with examples — --watch, --setup, --diff, --mcp, --report, --health, --suggest-tool, --monorepo, --format, --track, --init.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more.
 head:
   - - meta
     - property: og:title
-      content: "SigMap CLI Reference — every flag with examples"
+      content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 22 SigMap CLI flags documented with examples. --watch, --setup, --diff, --mcp, --report, --health and more."
+      content: "All 30 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -16,31 +16,43 @@ head:
       content: article
   - - meta
     - name: twitter:title
-      content: "SigMap CLI Reference — every flag with examples"
+      content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 22 SigMap CLI flags documented with examples. --watch, --setup, --diff, --mcp, --report, --health and more."
+      content: "All 30 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
   - - meta
     - name: keywords
-      content: "sigmap cli, sigmap flags, sigmap --watch, sigmap --mcp, sigmap --diff, sigmap --report, sigmap --init, command line reference"
+      content: "sigmap cli, sigmap ask, sigmap judge, sigmap validate, sigmap history, sigmap --ci, sigmap --cost, sigmap flags, command line reference"
 ---
 # CLI reference
 
-All flags accepted by `sigmap` (or `node gen-context.js`).
+All commands and flags accepted by `sigmap` (or `node gen-context.js`).
 
 ## Quick reference
 
-| Flag | Description |
-|------|-------------|
+| Command / Flag | Description |
+|----------------|-------------|
+| `ask "<query>"` | Unified intent→rank→cost→risk pipeline in one command |
+| `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
+| `validate` | Validate config and coverage; optional query symbol check |
+| `history` | Show usage log as a table with token sparkline |
+| `suggest-profile` | Auto-detect context profile from git state |
+| `compare` | CLI wrapper for retrieval benchmark vs baseline |
+| `share` | Print shareable one-liner with live benchmark numbers |
+| `explain <file>` | Why a file is included or excluded from context |
+| `sync` | Write all adapter outputs + llm.txt + llms.txt |
 | `--watch` | Watch for file changes and regenerate incrementally |
 | `--setup` | Auto-configure MCP servers, install git hook, start watcher |
 | `--diff` | Generate context only for changed files (shows risk score per file) |
 | `--diff --staged` | Generate context only for staged files |
 | `--mcp` | Start the stdio MCP server |
 | `--query <text>` | Rank files by relevance to a free-text query (TF-IDF) |
+| `--output <file>` | Write context to a custom path (persisted to config) |
+| `--cost [--model <name>]` | Per-model token/dollar cost comparison |
+| `--ci [--min-coverage N]` | CI exit gate — exits 1 when coverage < threshold |
 | `--analyze` | Per-file breakdown of signatures, tokens, and extractor |
 | `--report` | Token reduction + coverage score + module heatmap |
 | `--report --json` | Machine-readable JSON report with coverage object |
@@ -52,12 +64,241 @@ All flags accepted by `sigmap` (or `node gen-context.js`).
 | `--each` | Run a command in each monorepo package |
 | `--routing` | Print the model routing table |
 | `--format cache` | Wrap output in Anthropic cache_control breakpoints |
-| `--track` | Log each run to `.sigmap/runs.jsonl` |
+| `--track` | Log each run to `.context/usage.ndjson` |
 | `--init` | Scaffold `gen-context.config.json` and `.contextignore` |
 | `--benchmark` | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--version` | Print version and exit |
 | `--help` | Print help and exit |
+
+---
+
+## ask
+
+Unified pipeline: intent detection → ranked mini-context → coverage check → cost estimate → risk level, all in one command.
+
+```bash
+sigmap ask "fix the login bug"
+sigmap ask "explain the rank function" --json
+```
+
+```
+────────────────────────────────────────────
+ sigmap ask  "fix the login bug"
+ Intent    : debug
+ Context   : 1,823 tokens  →  .context/query-context.md
+ Coverage  : 97%
+ Risk      : LOW
+ Cost      : $0.0005/query  (was $0.032 · saved 98%)
+────────────────────────────────────────────
+```
+
+With `--json` the output is a machine-readable object with `intent`, `coverage`, `cost`, `riskLevel`, and `rankedFiles`.
+
+When coverage drops below 70%, a warning is emitted on stderr pointing to `sigmap validate`.
+
+---
+
+## judge
+
+Rule-based groundedness scoring for LLM responses. Measures token overlap between the response and the source context to detect hallucination or off-context answers. Zero dependencies, no LLM API required.
+
+```bash
+sigmap judge --response response.txt --context .context/copilot-instructions.md
+sigmap judge --response response.txt --context .context/copilot-instructions.md --json
+```
+
+```
+────────────────────────────────────────────
+ sigmap judge
+ Score     : 0.72
+ Verdict   : pass
+ Reasons   : none
+────────────────────────────────────────────
+```
+
+JSON output:
+
+```json
+{ "score": 0.72, "verdict": "pass", "reasons": [] }
+```
+
+| Option | Description |
+|--------|-------------|
+| `--response <file>` | Path to the LLM response text file (required) |
+| `--context <file>` | Path to the context/source file (required) |
+| `--threshold <n>` | Minimum score to pass (default: `0.25`) |
+| `--json` | Emit JSON instead of human-readable output |
+
+Exit code `0` = pass, `1` = fail. Use in CI to gate on response quality.
+
+---
+
+## validate
+
+Validates your SigMap configuration and measures context coverage. Checks that every `srcDir` exists, exclude patterns are safe, `maxTokens` is in a sensible range, and that ≥ 70% of your source files are in context. Optionally checks that PascalCase and camelCase symbols in a query appear in the top-5 ranked results.
+
+```bash
+sigmap validate
+sigmap validate --json
+sigmap validate --query "loginUser validateToken"
+```
+
+```
+[sigmap] ✓ config valid  coverage: 97%
+```
+
+JSON output includes `valid`, `issues`, `warnings`, and `coverage` fields. Exits `1` when hard issues are found.
+
+---
+
+## history
+
+Display the last N usage log entries as a table with a Unicode token-trend sparkline. Requires `tracking: true` in `gen-context.config.json` (or `--track` on each run).
+
+```bash
+sigmap history
+sigmap history --last 20
+sigmap history --json
+```
+
+```
+──────────────────────────────────────────────────────────────
+ sigmap history  (last 10 runs)
+──────────────────────────────────────────────────────────────
+ Date                     Files  Tokens Reduction Budget?
+ ──────────────────────── ───── ─────── ───────── ───────
+ 2026-04-16 14:22:01         76    4103    -93.7%      no
+ ...
+──────────────────────────────────────────────────────────────
+ Token trend: ▁▂▃▄▃▄▅▆▇█
+──────────────────────────────────────────────────────────────
+```
+
+With `--json` returns a raw JSON array of log entries.
+
+---
+
+## suggest-profile
+
+Read the last git commit message and staged files, then recommend the best context profile.
+
+```bash
+sigmap suggest-profile
+sigmap suggest-profile --short   # prints only the profile name
+```
+
+```
+[sigmap] suggested profile: --profile debug
+  Reason: commit: "fix: null pointer in UserService.findById"
+```
+
+Profiles: `debug`, `architecture`, `review`, `default`.
+
+---
+
+## compare
+
+Human-readable CLI wrapper for the retrieval benchmark. Runs SigMap vs a random baseline and shows hit@5, token counts, and lift multiplier.
+
+```bash
+sigmap compare
+sigmap compare --json
+```
+
+```
+────────────────────────────────────────────
+ SigMap vs Baseline
+────────────────────────────────────────────
+ hit@5         84.4% vs 13.6%   (6.2× lift)
+ Avg tokens    4,103 vs 80,000
+────────────────────────────────────────────
+```
+
+---
+
+## share
+
+Print a shareable one-liner with live benchmark numbers and copy it to the clipboard.
+
+```bash
+sigmap share
+```
+
+```
+Generated with SigMap — zero-dependency AI context engine
+97% fewer tokens · 84% retrieval accuracy · 6× better results
+https://sigmap.dev
+[sigmap] Copied to clipboard.
+```
+
+---
+
+## --output
+
+Write the generated context to a custom file path instead of the default adapter location. The path is persisted to `gen-context.config.json` as `customOutput` so subsequent `--query` runs find it automatically.
+
+```bash
+sigmap --output .context/ai-context.md
+sigmap --adapter claude --output shared/sigs.md
+```
+
+Priority order for `--query` context resolution:
+1. `--output <file>` flag
+2. `--adapter <name>` flag
+3. `customOutput` in config
+4. Probe all known adapter output paths
+
+---
+
+## --cost
+
+Print per-model token/dollar cost comparison for the current project — raw source vs SigMap output.
+
+```bash
+sigmap --cost
+sigmap --cost --model gpt-4o
+sigmap --cost --json
+```
+
+```
+[sigmap] cost estimate (4,103 tokens after SigMap):
+  gpt-4o-mini    $0.000062  (was $0.012 · 99.5% saved)
+  claude-3-haiku $0.000103  (was $0.020 · 99.5% saved)
+  gpt-4o         $0.000205  (was $0.040 · 99.5% saved)
+  claude-sonnet  $0.000411  (was $0.080 · 99.5% saved)
+  claude-opus-4  $0.001236  (was $0.240 · 99.5% saved)
+```
+
+Supported models: `gpt-4`, `gpt-4o`, `gpt-4o-mini`, `claude-3-5-sonnet`, `claude-3-haiku`, `claude-opus-4`, `gemini-1.5-pro`.
+
+---
+
+## --ci
+
+CI exit gate for coverage. Exits `0` when coverage ≥ threshold, exits `1` otherwise. Uses sig-index size vs total source file count — the same budget-aware metric as `sigmap validate`.
+
+```bash
+sigmap --ci                    # default threshold: 80%
+sigmap --ci --min-coverage 90
+sigmap --ci --json
+```
+
+```
+[sigmap] CI gate: coverage 97% ≥ 80% — PASS
+```
+
+JSON output:
+
+```json
+{ "pass": true, "coverage": 97, "threshold": 80 }
+```
+
+Add to `.github/workflows/ci.yml`:
+
+```yaml
+- run: npx sigmap --ci --min-coverage 80
+```
 
 ---
 
@@ -113,7 +354,7 @@ Both modes automatically fall back to a full generate when run outside a git rep
 
 ### Risk score (v4.0)
 
-Every `--diff` run now prints a **risk classification** for each changed file based on:
+Every `--diff` run prints a **risk classification** for each changed file:
 - `+2` if the file exports public functions (`export` / `module.exports`)
 - `+2` if the file has more than 3 downstream dependents (reverse-dependency BFS)
 - `+1` if the file is a route/page/controller
@@ -170,6 +411,12 @@ Machine-readable output:
 sigmap --query "authentication flow" --json
 ```
 
+Write a focused mini-context (top-5 ranked files) to `.context/query-context.md`:
+
+```bash
+sigmap --query "authentication flow" --context
+```
+
 ---
 
 ## --analyze
@@ -186,7 +433,7 @@ Add `--slow` to re-time each extractor and flag files taking over 50ms:
 sigmap --analyze --slow
 ```
 
-`--diagnose-extractors` self-tests all 21 extractors against their fixture files and reports any mismatch:
+`--diagnose-extractors` self-tests all extractors against their fixture files:
 
 ```bash
 sigmap --diagnose-extractors
@@ -204,7 +451,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 4.1.0
+  version         : 5.0.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
@@ -219,7 +466,7 @@ sigmap --report
     packages           ██████████████░░  86% (12/14 files)
 ```
 
-Machine-readable JSON (suitable for CI dashboards). Includes a `coverage` object with `score`, `grade`, `confidence`, `totalFiles`, `includedFiles`, `droppedFiles`, and `perModule`:
+Machine-readable JSON (suitable for CI dashboards):
 
 ```bash
 sigmap --report --json
@@ -235,7 +482,7 @@ sigmap --report --paper
 
 ## --health
 
-Run the composite health check. Returns a 0–100 score, letter grade, and (v4.0) coverage score.
+Run the composite health check. Returns a 0–100 score, letter grade, and coverage score.
 
 ```bash
 sigmap --health
@@ -249,10 +496,9 @@ sigmap --health
   token reduction : 93.7%
   days since regen: 0
   total runs      : 1
-  extractor cover.: 4.8%
 ```
 
-Machine-readable (v4.0 adds coverage fields):
+Machine-readable:
 
 ```bash
 sigmap --health --json
@@ -335,7 +581,7 @@ See [Repomix integration](/guide/repomix) for an example of using this with the 
 
 ## --track
 
-Log each run to `.sigmap/runs.jsonl` for monitoring and audit.
+Log each run to `.context/usage.ndjson` for monitoring and audit. View history with `sigmap history`.
 
 ```bash
 sigmap --track
@@ -379,7 +625,7 @@ sigmap --impact src/auth/service.ts --json
 
 ```bash
 sigmap --version
-# sigmap v3.3.1
+# 5.0.0
 ```
 
 ---
@@ -389,7 +635,6 @@ sigmap --version
 ```bash
 sigmap --help
 ```
-
 
 ---
 

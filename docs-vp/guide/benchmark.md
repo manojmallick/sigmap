@@ -1,13 +1,13 @@
 ---
 title: Benchmark — token reduction results
-description: Real-world token reduction numbers. SigMap measured on 18 open-source repos across 16 languages. Average 97.5% reduction.
+description: Real-world token reduction numbers. SigMap measured on 18 open-source repos across 16 languages. Average 96.7% reduction.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Benchmark — 97.5% token reduction across 18 repos"
+      content: "SigMap Benchmark — 96.7% token reduction across 18 repos"
   - - meta
     - property: og:description
-      content: "Measured on express, flask, rails, rust-analyzer, laravel, akka, svelte, fastify, fastapi and more. Average 97.5% reduction across 18 repos."
+      content: "Measured on express, flask, rails, rust-analyzer, laravel, akka, svelte, fastify, fastapi and more. Average 96.7% reduction across 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
@@ -19,9 +19,10 @@ head:
 # Benchmark
 
 **At a glance**
-- Average reduction across 18 repos: 97.6%
+- Average reduction across 18 repos: **96.7%**
 - Raw source: 12.8M tokens → 103.2K tokens after SigMap
 - Measured on real public repos, not estimates
+- Last benchmark run: 2026-04-16 (v5.0.0)
 
 These numbers are measured — not estimated. Every row was produced by running
 `node gen-context.js --report --json` against a real public repository cloned at `--depth 1`.

@@ -1,6 +1,6 @@
 ---
 title: Config reference
-description: Complete SigMap configuration reference. All 21 keys in gen-context.config.json with types, defaults, and examples. srcDirs, maxTokens, strategy, outputs, secretScan and more.
+description: Complete SigMap configuration reference. All 22 keys in gen-context.config.json with types, defaults, and examples. srcDirs, maxTokens, extends, strategy, outputs, secretScan and more.
 head:
   - - meta
     - property: og:title
@@ -25,7 +25,7 @@ head:
       content: "SigMap Configuration Reference"
   - - meta
     - name: keywords
-      content: "sigmap config, gen-context.config.json, sigmap configuration, srcDirs, maxTokens, strategy, outputs, secretScan, sigmap settings"
+      content: "sigmap config, gen-context.config.json, sigmap configuration, srcDirs, maxTokens, extends, strategy, outputs, secretScan, sigmap settings"
 ---
 # Config reference
 
@@ -39,6 +39,7 @@ sigmap --init
 
 ```json
 {
+  "extends": "./team-base.json",
   "srcDirs": ["src", "app", "lib"],
   "outputPath": ".github/copilot-instructions.md",
   "outputs": ["copilot", "claude"],
@@ -60,6 +61,32 @@ sigmap --init
   }
 }
 ```
+
+## Inheritance (v5.0)
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `extends` | `string` | _(none)_ | Path to a base config JSON file (local or HTTPS URL) to inherit from before applying local overrides. |
+
+### extends
+
+Inherit from a shared team base config. The merge order is: **DEFAULTS → base → local config**. Every local key overrides the base.
+
+Local file:
+
+```json
+{ "extends": "./configs/team-base.json" }
+```
+
+Remote URL (cached 1 hour in `.context/config-cache/`):
+
+```json
+{ "extends": "https://raw.githubusercontent.com/your-org/sigmap-config/main/base.json" }
+```
+
+The base file is a plain `gen-context.config.json` without an `extends` key itself.
+
+---
 
 ## Output
 

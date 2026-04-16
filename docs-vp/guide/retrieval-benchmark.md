@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark — context relevance across 18 repos
-description: SigMap hit@5 = 84.4% vs 13.6% random baseline. 6.2× lift. 90 real coding tasks across 18 repos measured without an LLM API.
+description: SigMap hit@5 = 80% vs 13.6% random baseline. 5.9× lift. 90 real coding tasks across 18 repos measured without an LLM API.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Retrieval Benchmark — 84.4% hit@5 across 18 repos"
+      content: "SigMap Retrieval Benchmark — 80% hit@5 across 18 repos"
   - - meta
     - property: og:description
-      content: "SigMap puts the right file in context 84.4% of the time. Random selection: 13.6%. 6.2× lift across 90 real tasks, zero LLM API."
+      content: "SigMap puts the right file in context 80% of the time. Random selection: 13.6%. 5.9× lift across 90 real tasks, zero LLM API."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/retrieval-benchmark"
@@ -18,7 +18,7 @@ head:
 
 # Retrieval benchmark
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — 84.4% hit@5 vs 13.6% random across 90 tasks.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **80% hit@5** vs 13.6% random across 90 tasks (5.9× lift). Last run: 2026-04-16 (v5.0.0).
 
 When you ask an LLM a coding question, the answer quality depends entirely on whether the
 **right files are in context**. This benchmark measures exactly that — without running any LLM.

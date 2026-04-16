@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. 25 versions from v0.0 to v3.3+. MIT open source, zero npm deps.
+description: SigMap version history and roadmap. 30+ versions from v0.0 to v5.0. MIT open source, zero npm deps.
 head:
   - - meta
     - property: og:title
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Twenty-five versions shipped/planned. MIT open source from day one.
+Thirty-plus versions shipped/planned. MIT open source from day one.
 
-**Stats:** 97.6% token reduction · 340 tests passing · 25 languages · 0 npm deps
+**Stats:** 97.6% token reduction · 192 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -274,10 +274,47 @@ Every run now tells you _how good_ your context is, not just that it ran.
 
 ---
 
-## Current milestone — v4.x
+### v4.1 — Smart budget + output flag ✓ (tagged v4.1.2 — 2026-04-16)
 
-Intelligence layer shipped. Next: v4.5 — Adaptive Intelligence (adaptive query, CI gate, `--validate`).
+Auto-scaled token budget: SigMap now picks an appropriate `maxTokens` ceiling based on detected context window size, eliminating the need for manual tuning on most projects. The `--output <file>` flag writes context to any custom path and persists it to config so subsequent `--query` runs find it automatically.
 
+**Tags:** `auto-budget` · `--output flag` · `customOutput config` · `--query auto-discovery`
+
+---
+
+### v4.2 — Unified ask pipeline ✓ (tagged v4.2.0 — 2026-04-16)
+
+A single `sigmap ask "<query>"` command replaces the manual intent→rank→generate flow. Intent detection (`detectIntent`) classifies queries as `debug`, `explain`, `refactor`, `review`, or `search` and tunes ranking weights for each. New commands: `suggest-profile` (reads git state), `compare` (benchmark CLI), `share` (shareable stats), `--cost` (per-model cost table).
+
+**Tags:** `sigmap ask` · `detectIntent` · `suggest-profile` · `compare` · `share` · `--cost flag`
+
+---
+
+### v4.3 — CI gate + validate ✓ (tagged v4.3.0 — 2026-04-16)
+
+`sigmap validate` checks config and measures coverage (sig-index size / source file count), warns below 70%, and optionally verifies that query symbols appear in ranked context. `sigmap --ci [--min-coverage N]` is a GitHub Actions exit gate ready for `npx sigmap --ci`. `sigmap ask` now warns on stderr when coverage drops below 70%.
+
+**Tags:** `sigmap validate` · `--ci gate` · `extractQuerySymbols` · `coverage warning`
+
+---
+
+### v5.0 — Judge engine + config extends + history ✓ (tagged v5.0.0 — 2026-04-16)
+
+Three new capabilities that close the feedback loop between context generation and LLM output quality.
+
+- **`sigmap judge`**: rule-based groundedness scorer (`src/judge/judge-engine.js`). Computes a 0–1 token-overlap score between any LLM response and its source context. Exits 0 on `pass`, 1 on `fail`. Works with `--json` and `--threshold` overrides. Zero dependencies, no LLM API key required.
+- **Config `extends`**: `gen-context.config.json` now supports an `"extends"` key pointing to a local JSON file or HTTPS URL. Base configs are deep-merged (DEFAULTS → base → local). HTTPS responses are cached for 1 hour in `.context/config-cache/` — teams can share a common base and override locally.
+- **`sigmap history`**: reads `.context/usage.ndjson` and renders the last N runs as a table with a Unicode sparkline (▁▂▃▄▅▆▇█) for token trend. `--json` returns the raw array for dashboards.
+
+**Tags:** `sigmap judge` · `groundedness scoring` · `config extends` · `HTTPS base config` · `sigmap history` · `sparkline`
+
+**Impact:** 192 tests passing · 12 new tests for v5.0 features
+
+---
+
+## Current milestone — v5.x
+
+Judge engine, config inheritance, and usage history shipped. Next: v5.1 — LLM-mode judge (optional API key for semantic groundedness beyond token overlap), adaptive threshold tuning, and multi-repo config inheritance chains.
 
 ---
 
