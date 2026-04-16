@@ -17,6 +17,7 @@
  *   // results: [{ file, score, sigs, tokens }]
  */
 
+const { loadWeights } = require('../learning/weights');
 const { tokenize, STOP_WORDS } = require('./tokenizer');
 
 // ---------------------------------------------------------------------------
@@ -97,6 +98,7 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
  * @param {number}  [opts.recencyBoost=1.5]       - multiplier for recent files
  * @param {Set<string>} [opts.recencySet]         - set of recently-changed file paths
  * @param {object}  [opts.weights]               - override scoring weights
+ * @param {string}  [opts.cwd]                   - project root for learned ranking weights
  * @returns {{ file: string, score: number, sigs: string[], tokens: number }[]}
  */
 function rank(query, sigIndex, opts) {
@@ -107,6 +109,7 @@ function rank(query, sigIndex, opts) {
   const recencyMultiplier = (opts && opts.recencyBoost) || DEFAULT_WEIGHTS.recencyBoost;
   const recencySet = (opts && opts.recencySet) || null;
   const weights = (opts && opts.weights) ? Object.assign({}, DEFAULT_WEIGHTS, opts.weights) : DEFAULT_WEIGHTS;
+  const learnedWeights = opts && opts.cwd ? loadWeights(opts.cwd) : null;
 
   const queryTokens = tokenize(query);
   if (queryTokens.length === 0) {
@@ -126,6 +129,10 @@ function rank(query, sigIndex, opts) {
     // Recency boost
     if (recencySet && recencySet.has(file) && score > 0) {
       score *= recencyMultiplier;
+    }
+
+    if (learnedWeights && score > 0) {
+      score *= learnedWeights[file] || 1.0;
     }
 
     scored.push({

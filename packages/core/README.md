@@ -71,6 +71,7 @@ Rank all files in a signature index against a natural-language query.
 | `opts.topK` | `number` | Max files to return (default: `10`) |
 | `opts.weights` | `object` | Override default scoring weights |
 | `opts.recencySet` | `Set<string>` | Files to boost with `recencyBoost` multiplier |
+| `opts.cwd` | `string` | Project root used to load learned ranking weights from `.context/weights.json` |
 
 Each result: `{ file: string, score: number, sigs: string[], tokens: number }`
 

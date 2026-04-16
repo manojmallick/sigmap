@@ -4684,7 +4684,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       const index = buildSigIndex(cwd);
       if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
       const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
-      const results = rank(args.query, index, { topK });
+      const results = rank(args.query, index, { topK, cwd });
       return formatRankTable(results, args.query);
     } catch (err) {
       return `_query_context failed: ${err.message}_`;
@@ -4704,6 +4704,132 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   }
 
   module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact };
+};
+
+// ── ./src/learning/weights ──
+__factories["./src/learning/weights"] = function(module, exports) {
+  'use strict';
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const DECAY = 0.95;
+  const MAX_MULT = 3.0;
+  const MIN_MULT = 0.30;
+  const BASELINE = 1.0;
+
+  function weightsPath(cwd) {
+    return path.join(cwd, '.context', 'weights.json');
+  }
+
+  function clampMultiplier(value) {
+    if (!Number.isFinite(value)) return BASELINE;
+    if (value > MAX_MULT) return MAX_MULT;
+    if (value < MIN_MULT) return MIN_MULT;
+    return parseFloat(value.toFixed(6));
+  }
+
+  function normalizeFile(cwd, filePath) {
+    if (!cwd || !filePath || typeof filePath !== 'string') return null;
+    const cleaned = filePath.trim().replace(/\\/g, '/');
+    if (!cleaned) return null;
+    const abs = path.resolve(cwd, cleaned);
+    const rel = path.relative(cwd, abs);
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return null;
+    return rel.split(path.sep).join('/');
+  }
+
+  function sanitizeWeights(cwd, weights) {
+    const out = {};
+    const entries = weights && typeof weights === 'object' ? Object.entries(weights) : [];
+    for (const [filePath, raw] of entries) {
+      const normalized = normalizeFile(cwd, filePath);
+      if (!normalized) continue;
+      const mult = clampMultiplier(Number(raw));
+      if (Math.abs(mult - BASELINE) < 1e-9) continue;
+      out[normalized] = mult;
+    }
+    return out;
+  }
+
+  function loadWeights(cwd) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(weightsPath(cwd), 'utf8'));
+      return sanitizeWeights(cwd, parsed);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function saveWeights(cwd, weights) {
+    const cleaned = sanitizeWeights(cwd, weights);
+    const outPath = weightsPath(cwd);
+    if (Object.keys(cleaned).length === 0) {
+      try {
+        if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
+      } catch (_) {}
+      return;
+    }
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    const sorted = Object.keys(cleaned).sort().reduce((acc, key) => {
+      acc[key] = cleaned[key];
+      return acc;
+    }, {});
+    fs.writeFileSync(outPath, JSON.stringify(sorted, null, 2) + '\n', 'utf8');
+  }
+
+  function updateWeights(cwd, opts) {
+    opts = opts || {};
+    const goodAmount = Number.isFinite(opts.goodAmount) ? opts.goodAmount : 0.15;
+    const badAmount = Number.isFinite(opts.badAmount) ? opts.badAmount : 0.10;
+    const goodFiles = Array.isArray(opts.goodFiles) ? opts.goodFiles : [];
+    const badFiles = Array.isArray(opts.badFiles) ? opts.badFiles : [];
+    const weights = loadWeights(cwd);
+
+    for (const key of Object.keys(weights)) {
+      weights[key] = clampMultiplier(weights[key] * DECAY);
+    }
+
+    const good = [];
+    const bad = [];
+
+    for (const filePath of goodFiles) {
+      const normalized = normalizeFile(cwd, filePath);
+      if (!normalized) continue;
+      weights[normalized] = clampMultiplier((weights[normalized] || BASELINE) + goodAmount);
+      good.push(normalized);
+    }
+
+    for (const filePath of badFiles) {
+      const normalized = normalizeFile(cwd, filePath);
+      if (!normalized) continue;
+      weights[normalized] = clampMultiplier((weights[normalized] || BASELINE) - badAmount);
+      bad.push(normalized);
+    }
+
+    saveWeights(cwd, weights);
+    return { good, bad, weights: loadWeights(cwd) };
+  }
+
+  function boostFiles(cwd, files, amount) {
+    return updateWeights(cwd, { goodFiles: files, goodAmount: amount });
+  }
+
+  function penalizeFiles(cwd, files, amount) {
+    return updateWeights(cwd, { badFiles: files, badAmount: amount });
+  }
+
+  function resetWeights(cwd) {
+    const outPath = weightsPath(cwd);
+    if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
+  }
+
+  module.exports = {
+    BASELINE, DECAY, MAX_MULT, MIN_MULT,
+    weightsPath, clampMultiplier, normalizeFile,
+    loadWeights, saveWeights, updateWeights,
+    boostFiles, penalizeFiles, resetWeights,
+  };
 };
 
 // ── ./src/mcp/server ──
@@ -4727,7 +4853,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '5.1.0',
+  version: '5.2.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -5329,6 +5455,10 @@ __factories["./src/security/scanner"] = function(module, exports) {
 __factories["./src/judge/judge-engine"] = function(module, exports) {
   'use strict';
 
+  const fs = require('fs');
+  const path = require('path');
+  const { boostFiles, normalizeFile, penalizeFiles } = __require('./src/learning/weights');
+
   const STOP = new Set([
     'the','a','an','in','on','at','to','of','for','and','or','but',
     'is','are','was','were','be','been','being','have','has','had',
@@ -5359,6 +5489,24 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     'as a general rule',
   ];
 
+  function extractContextFiles(context, cwd) {
+    if (!context || !cwd) return [];
+    const seen = new Set();
+    const files = [];
+    const lines = context.split('\n');
+    for (const line of lines) {
+      const match = line.match(/^#{2,3}\s+(.+?)\s*$/);
+      if (!match) continue;
+      const normalized = normalizeFile(cwd, match[1]);
+      if (!normalized) continue;
+      const abs = path.join(cwd, normalized);
+      if (!fs.existsSync(abs) || seen.has(normalized)) continue;
+      seen.add(normalized);
+      files.push(normalized);
+    }
+    return files;
+  }
+
   function judge(response, context, opts) {
     opts = opts || {};
     const score = groundedness(response, context);
@@ -5374,7 +5522,37 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       }
     }
     const verdict = score >= threshold && reasons.length === 0 ? 'pass' : 'fail';
-    return { score, verdict, reasons };
+    const result = { score, verdict, reasons };
+
+    if (opts.learn) {
+      const learning = { applied: false, action: 'none', files: [] };
+      if (!opts.cwd) {
+        learning.reason = 'cwd is required for learning';
+        result.learning = learning;
+        return result;
+      }
+      const contextFiles = extractContextFiles(context, opts.cwd);
+      learning.files = contextFiles;
+      if (contextFiles.length === 0) {
+        learning.reason = 'no context files found in context headings';
+        result.learning = learning;
+        return result;
+      }
+      if (score > 0.75) {
+        boostFiles(opts.cwd, contextFiles, 0.05);
+        learning.applied = true;
+        learning.action = 'boost';
+      } else if (score < 0.40) {
+        penalizeFiles(opts.cwd, contextFiles, 0.03);
+        learning.applied = true;
+        learning.action = 'penalize';
+      } else {
+        learning.reason = 'groundedness in no-op band (0.40-0.75)';
+      }
+      result.learning = learning;
+    }
+
+    return result;
   }
 
   module.exports = { groundedness, judge };
@@ -5529,6 +5707,7 @@ __factories["./src/retrieval/tokenizer"] = function(module, exports) {
 // ── ./src/retrieval/ranker ──
 __factories["./src/retrieval/ranker"] = function(module, exports) {
   'use strict';
+  const { loadWeights } = __require('./src/learning/weights');
   const { tokenize, STOP_WORDS } = __require('./src/retrieval/tokenizer');
   const DEFAULT_WEIGHTS = {
     exactToken: 1.0, symbolMatch: 0.5, prefixMatch: 0.3, pathMatch: 0.8, recencyBoost: 1.5,
@@ -5561,6 +5740,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     const recencyMultiplier = (opts && opts.recencyBoost) || DEFAULT_WEIGHTS.recencyBoost;
     const recencySet = (opts && opts.recencySet) || null;
     const weights = (opts && opts.weights) ? Object.assign({}, DEFAULT_WEIGHTS, opts.weights) : DEFAULT_WEIGHTS;
+    const learnedWeights = opts && opts.cwd ? loadWeights(opts.cwd) : null;
     const queryTokens = tokenize(query);
     if (queryTokens.length === 0) {
       const all = [];
@@ -5572,6 +5752,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     for (const [file, sigs] of sigIndex.entries()) {
       let score = scoreFile(file, sigs, queryTokens, weights);
       if (recencySet && recencySet.has(file) && score > 0) score *= recencyMultiplier;
+      if (learnedWeights && score > 0) score *= learnedWeights[file] || 1.0;
       scored.push({ file, score, sigs, tokens: Math.ceil(sigs.join('\n').length / 4) });
     }
     scored.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
@@ -6390,7 +6571,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '5.1.0';
+const VERSION = '5.2.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8021,6 +8202,11 @@ Usage:
   ${cmd} --query "<text>"                  Rank files by relevance to a query
   ${cmd} --query "<text>" --json           Ranked results as JSON
   ${cmd} --query "<text>" --top <n>        Limit results to top N files (default 10)
+  ${cmd} learn --good <files...>           Boost files in .context/weights.json
+  ${cmd} learn --bad <files...>            Penalize files in .context/weights.json
+  ${cmd} learn --reset                     Delete learned file weights
+  ${cmd} weights                           Show learned file multipliers
+  ${cmd} weights --json                    Learned weights as JSON
   ${cmd} --impact <file>                   Show every file impacted by changing <file>
   ${cmd} --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
   ${cmd} --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
@@ -8136,6 +8322,38 @@ function extractQuerySymbols(query) {
   return (query.match(/\b[A-Z][a-zA-Z]+|[a-z]+(?:[A-Z][a-z]+)+\b/g) || []);
 }
 
+function collectLearnFiles(args, flag, cwd) {
+  const idx = args.indexOf(flag);
+  if (idx < 0) return { rawCount: 0, files: [], warnings: [] };
+
+  const { normalizeFile } = requireSourceOrBundled('./src/learning/weights');
+  const seen = new Set();
+  const files = [];
+  const warnings = [];
+  let rawCount = 0;
+
+  for (let i = idx + 1; i < args.length; i++) {
+    const value = args[i];
+    if (!value || value.startsWith('--')) break;
+    rawCount++;
+    const normalized = normalizeFile(cwd, value);
+    if (!normalized) {
+      warnings.push(`${value} is outside the repo`);
+      continue;
+    }
+    if (!fs.existsSync(path.join(cwd, normalized))) {
+      warnings.push(`${normalized} does not exist`);
+      continue;
+    }
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      files.push(normalized);
+    }
+  }
+
+  return { rawCount, files, warnings };
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -8236,7 +8454,7 @@ function main() {
       process.exit(1);
     }
 
-    const ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights });
+    const ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd });
     const miniCtx = buildMiniContext(ranked, cwd);
     const outPath = path.join(cwd, '.context', 'query-context.md');
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
@@ -8382,6 +8600,75 @@ function main() {
     process.exit(0);
   }
 
+  // v5.2: `sigmap learn` — manual learning controls for ranking
+  if (args[0] === 'learn') {
+    const doReset = args.includes('--reset');
+    const good = collectLearnFiles(args, '--good', cwd);
+    const bad = collectLearnFiles(args, '--bad', cwd);
+
+    if (doReset && (good.rawCount > 0 || bad.rawCount > 0)) {
+      console.error('[sigmap] --reset cannot be combined with --good or --bad');
+      process.exit(1);
+    }
+
+    if (doReset) {
+      const { resetWeights } = requireSourceOrBundled('./src/learning/weights');
+      resetWeights(cwd);
+      console.log('[sigmap] weights reset — all files back to baseline');
+      process.exit(0);
+    }
+
+    if (good.rawCount === 0 && bad.rawCount === 0) {
+      console.error('[sigmap] Usage: sigmap learn --good <files...> [--bad <files...>] | sigmap learn --reset');
+      process.exit(1);
+    }
+
+    for (const warning of [...good.warnings, ...bad.warnings]) {
+      console.warn(`[sigmap] warning: ${warning}`);
+    }
+
+    if (good.files.length === 0 && bad.files.length === 0) {
+      console.error('[sigmap] No valid files to learn from.');
+      process.exit(1);
+    }
+
+    const { updateWeights } = requireSourceOrBundled('./src/learning/weights');
+    const result = updateWeights(cwd, { goodFiles: good.files, badFiles: bad.files });
+    const parts = [];
+    if (result.good.length) parts.push(`boosted ${result.good.length} file(s)`);
+    if (result.bad.length) parts.push(`penalized ${result.bad.length} file(s)`);
+    console.log(`[sigmap] learned: ${parts.join(', ')}`);
+    process.exit(0);
+  }
+
+  // v5.2: `sigmap weights` — explain learned ranking multipliers
+  if (args[0] === 'weights') {
+    const { loadWeights } = requireSourceOrBundled('./src/learning/weights');
+    const weights = loadWeights(cwd);
+    const entries = Object.entries(weights).sort(([, a], [, b]) => b - a || 0);
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify(weights, null, 2) + '\n');
+      process.exit(0);
+    }
+
+    if (entries.length === 0) {
+      console.log('[sigmap] No learned weights yet. Run: sigmap learn --good <file>');
+      process.exit(0);
+    }
+
+    console.log('[sigmap] Learned file weights (xmultiplier vs baseline):');
+    for (const [file, mult] of entries) {
+      const bar = mult >= 1
+        ? `+${'█'.repeat(Math.max(1, Math.round((mult - 1) * 10)))}`
+        : `-${'░'.repeat(Math.max(1, Math.round((1 - mult) * 10)))}`;
+      console.log(`  ${file.padEnd(50)} x${mult.toFixed(2)}  ${bar}`);
+    }
+    console.log(`\n  Total files with learned weights: ${entries.length}`);
+    console.log('  To reset: sigmap learn --reset');
+    process.exit(0);
+  }
+
   // v4.3: `sigmap validate` — config + coverage + optional query symbol check
   if (args[0] === 'validate') {
     const issues   = [];
@@ -8414,7 +8701,7 @@ function main() {
       if (q && !q.startsWith('--')) {
         try {
           const { rank, buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
-          const ranked = rank(q, buildSigIndex(cwd), { topK: 5 });
+          const ranked = rank(q, buildSigIndex(cwd), { topK: 5, cwd });
           const symbols = extractQuerySymbols(q);
           const missing = symbols.filter((sym) =>
             !ranked.some((r) => r.sigs && r.sigs.some((s) => s.toLowerCase().includes(sym.toLowerCase())))
@@ -8447,7 +8734,7 @@ function main() {
     const ctxIdx  = args.indexOf('--context');
 
     if (respIdx < 0 || ctxIdx < 0) {
-      console.error('[sigmap] Usage: sigmap judge --response <file> --context <file> [--json] [--threshold 0.25]');
+      console.error('[sigmap] Usage: sigmap judge --response <file> --context <file> [--json] [--threshold 0.25] [--learn]');
       process.exit(1);
     }
 
@@ -8467,6 +8754,10 @@ function main() {
 
     const thrIdx = args.indexOf('--threshold');
     const judgeOpts = thrIdx >= 0 ? { threshold: parseFloat(args[thrIdx + 1]) || 0.25 } : {};
+    if (args.includes('--learn')) {
+      judgeOpts.learn = true;
+      judgeOpts.cwd = cwd;
+    }
 
     const { judge: runJudge } = requireSourceOrBundled('./src/judge/judge-engine');
     const result = runJudge(responseText, contextText, judgeOpts);
@@ -8481,8 +8772,11 @@ function main() {
         ` Score     : ${result.score}`,
         ` Verdict   : ${result.verdict}`,
         result.reasons.length ? ` Reasons   :\n   ${result.reasons.join('\n   ')}` : ` Reasons   : none`,
+        result.learning
+          ? ` Learning  : ${result.learning.applied ? result.learning.action : 'skipped'}${result.learning.files.length ? ` (${result.learning.files.join(', ')})` : ''}${result.learning.reason ? ` — ${result.learning.reason}` : ''}`
+          : null,
         bar,
-      ].join('\n'));
+      ].filter(Boolean).join('\n'));
     }
     process.exit(result.verdict === 'pass' ? 0 : 1);
   }
@@ -9009,7 +9303,7 @@ function main() {
       const topK = topIdx >= 0 ? Math.min(Math.max(1, parseInt(args[topIdx + 1], 10) || 10), 25)
                                : ((config && config.retrieval && config.retrieval.topK) || 10);
       const recencyBoost = (config && config.retrieval && config.retrieval.recencyBoost) || 1.5;
-      const results = rank(query, index, { topK, recencyBoost });
+      const results = rank(query, index, { topK, recencyBoost, cwd });
       if (args.includes('--context')) {
         const miniCtx  = buildMiniContext(results, cwd);
         const ctxOut   = path.join(cwd, '.context', 'query-context.md');

@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.2.0] — 2026-04-17
+
+### Added
+
+- **Learning engine** — new local-only weight store at `.context/weights.json` with path-normalized per-file multipliers, clamp safety (`0.30..3.00`), and decay on every non-reset mutation.
+- **`sigmap learn`** — manually boost or penalize ranked files with `--good <files...>`, `--bad <files...>`, and `--reset`. Invalid or out-of-repo paths are skipped with warnings; the command exits non-zero when no valid targets remain.
+- **`sigmap weights [--json]`** — explainability view for learned ranking multipliers. Human mode prints a compact table and reset hint; JSON mode emits the raw learned-weight object.
+- **Opt-in judge learning** — `sigmap judge --response <file> --context <file> --learn` now extracts file headings from query/generated context files and applies small boosts or penalties when groundedness is confidently high or low.
+
+### Changed
+
+- **Ranker learned weighting** — `rank(query, sigIndex, { cwd })` now loads `.context/weights.json` and multiplies non-empty-query scores by learned file multipliers. Empty-query fallback ordering is unchanged.
+- **Learning-aware rank call sites** — `sigmap ask`, `sigmap --query`, `sigmap validate --query`, and MCP `query_context` now pass `cwd` into the ranker so learned weights apply consistently across CLI and MCP flows.
+
 ## [5.1.0] — 2026-04-16
 
 ### Added
