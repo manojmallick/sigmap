@@ -10,6 +10,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.1.0] — 2026-04-16
+
+### Added
+
+- **Benchmark history tracking** — all three benchmark scripts (`run-retrieval-benchmark.mjs`, `run-benchmark.mjs`, `run-task-benchmark.mjs`) now append a structured NDJSON entry to `.context/benchmark-history.ndjson` after each run (`type: "retrieval" | "token-reduction" | "task"`).
+- **`sigmap history` benchmark trend rows** — when `.context/benchmark-history.ndjson` exists, `sigmap history` prints a retrieval `hit@5` sparkline row and a token-reduction sparkline row below the usage table. The command no longer exits early when the usage log is empty.
+- **Dashboard `readBenchmarkTrend` uses local history** — `src/format/dashboard.js` now prefers `.context/benchmark-history.ndjson` over the CI-only `benchmarks/results/` directory, so the dashboard hit@5 trend chart populates for all users after running any benchmark locally.
+
+---
+
 ## [5.0.0] — 2026-04-16
 
 ### Added

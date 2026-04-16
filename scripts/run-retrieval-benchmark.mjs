@@ -432,3 +432,22 @@ if (COMPARE) {
     baseline: { hitAt5: avgRand, tokens: Math.round(baseTokens / Math.max(results.length, 1)) },
   }) + '\n');
 }
+
+// Append to benchmark history
+{
+  const histPath = path.join(ROOT, '.context', 'benchmark-history.ndjson');
+  try {
+    fs.mkdirSync(path.dirname(histPath), { recursive: true });
+    let version = 'unknown';
+    try { version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version || 'unknown'; } catch (_) {}
+    fs.appendFileSync(histPath, JSON.stringify({
+      ts: new Date().toISOString(),
+      type: 'retrieval',
+      version,
+      hitAt5: Math.round(avgHit * 1000) / 1000,
+      hitAt5Pct: parseFloat((avgHit * 100).toFixed(1)),
+      repos: results.length,
+      tasks: totTasks,
+    }) + '\n', 'utf8');
+  } catch (_) {}
+}

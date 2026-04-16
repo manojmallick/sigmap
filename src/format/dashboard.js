@@ -140,6 +140,26 @@ function computeExtractorCoverage(cwd) {
 }
 
 function readBenchmarkTrend(cwd) {
+  // Prefer per-user history file written by benchmark scripts
+  const histPath = path.join(cwd, '.context', 'benchmark-history.ndjson');
+  if (fs.existsSync(histPath)) {
+    const values = [];
+    try {
+      const lines = fs.readFileSync(histPath, 'utf8').trim().split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj.type === 'retrieval') {
+            const v = toNumber(obj.hitAt5Pct);
+            if (v !== null) values.push(v);
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    if (values.length > 0) return values.slice(-30);
+  }
+
+  // Fallback: legacy benchmarks/results directory (CI artifacts)
   const resultDir = path.join(cwd, 'benchmarks', 'results');
   if (!fs.existsSync(resultDir)) return [];
 
