@@ -450,7 +450,7 @@ function queryContext(args, cwd) {
     if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
 
     const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
-    const results = rank(args.query, index, { topK });
+    const results = rank(args.query, index, { topK, cwd });
     return formatRankTable(results, args.query);
   } catch (err) {
     return `_query_context failed: ${err.message}_`;

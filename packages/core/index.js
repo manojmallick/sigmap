@@ -130,6 +130,7 @@ function extract(src, language) {
  * @param {number} [opts.recencyBoost]   - Score multiplier for recent files
  * @param {Set<string>} [opts.recencySet] - Set of file paths considered recent
  * @param {object} [opts.weights]        - Override default scoring weights
+ * @param {string} [opts.cwd]            - Project root for learned ranking weights
  * @returns {{ file: string, score: number, sigs: string[], tokens: number }[]}
  *
  * @example

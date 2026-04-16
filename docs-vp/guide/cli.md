@@ -39,6 +39,8 @@ All commands and flags accepted by `sigmap` (or `node gen-context.js`).
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `validate` | Validate config and coverage; optional query symbol check |
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
+| `learn` | Boost, penalize, or reset learned file ranking weights |
+| `weights` | Show learned file multipliers or emit them as JSON |
 | `suggest-profile` | Auto-detect context profile from git state |
 | `compare` | CLI wrapper for retrieval benchmark vs baseline |
 | `share` | Print shareable one-liner with live benchmark numbers |
@@ -101,11 +103,12 @@ When coverage drops below 70%, a warning is emitted on stderr pointing to `sigma
 
 ## judge
 
-Rule-based groundedness scoring for LLM responses. Measures token overlap between the response and the source context to detect hallucination or off-context answers. Zero dependencies, no LLM API required.
+Rule-based groundedness scoring for LLM responses. Measures token overlap between the response and the source context to detect off-context answers. Zero dependencies, no LLM API required.
 
 ```bash
 sigmap judge --response response.txt --context .context/copilot-instructions.md
 sigmap judge --response response.txt --context .context/copilot-instructions.md --json
+sigmap judge --response response.txt --context .context/query-context.md --learn
 ```
 
 ```
@@ -123,14 +126,45 @@ JSON output:
 { "score": 0.72, "verdict": "pass", "reasons": [] }
 ```
 
+With `--learn`, judge becomes an opt-in feedback loop. It reads file headings from the context file (`### path` in generated context or `## path` in `.context/query-context.md`) and applies a small learned boost or penalty when groundedness is confidently high or low.
+
 | Option | Description |
 |--------|-------------|
 | `--response <file>` | Path to the LLM response text file (required) |
 | `--context <file>` | Path to the context/source file (required) |
 | `--threshold <n>` | Minimum score to pass (default: `0.25`) |
+| `--learn` | Apply opt-in learned boosts/penalties to files referenced by context headings |
 | `--json` | Emit JSON instead of human-readable output |
 
 Exit code `0` = pass, `1` = fail. Use in CI to gate on response quality.
+
+---
+
+## learn
+
+Manual feedback loop for the ranker. Learned weights live in `.context/weights.json` and are always local to the repo.
+
+```bash
+sigmap learn --good src/auth/service.js
+sigmap learn --bad src/legacy/old-api.js
+sigmap learn --good src/auth/service.js --bad src/legacy/old-api.js
+sigmap learn --reset
+```
+
+Each non-reset mutation decays existing weights first, then applies boosts/penalties in one transaction. Paths outside the repo are ignored, missing files are skipped with warnings, and the command exits non-zero if no valid file paths remain.
+
+---
+
+## weights
+
+Show the learned multiplier table used by `sigmap ask`, `sigmap --query`, `sigmap validate --query`, and MCP `query_context`.
+
+```bash
+sigmap weights
+sigmap weights --json
+```
+
+Human output is sorted highest boost first and includes a reset hint. JSON output emits the exact `.context/weights.json` object.
 
 ---
 
@@ -455,7 +489,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.1.0
+  version         : 5.2.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
@@ -629,7 +663,7 @@ sigmap --impact src/auth/service.ts --json
 
 ```bash
 sigmap --version
-# 5.1.0
+# 5.2.0
 ```
 
 ---
