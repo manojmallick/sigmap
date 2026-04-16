@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [4.3.0] — 2026-04-16
+
+### Added
+
+- **`sigmap validate`** — validates config (srcDirs exist, exclude patterns, maxTokens range), computes coverage as sig-index size / total source files, warns when coverage < 70%, exits 1 on hard errors. Optional `--query "<q>"` checks that PascalCase/camelCase symbols in the query appear in top-5 ranked context. Supports `--json`.
+- **`sigmap --ci [--min-coverage N] [--json]`** — GitHub Actions exit gate: exits 0 when coverage ≥ threshold (default 80%), exits 1 otherwise. Uses sig-index vs source file count for a budget-aware coverage metric. Ready for `npx sigmap --ci` in CI workflows.
+- **`extractQuerySymbols(query)`** — internal helper that extracts PascalCase and camelCase identifiers from a query string for symbol-level coverage checks in `sigmap validate`.
+
+### Changed
+
+- **`sigmap ask`** — now emits a stderr warning when coverage < 70%, pointing users to `sigmap validate` for diagnosis.
+
+---
+
 ## [4.2.0] — 2026-04-16
 
 ### Added
