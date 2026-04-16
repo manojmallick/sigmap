@@ -31,19 +31,34 @@ head:
 
 All commands and flags accepted by `sigmap` (or `node gen-context.js`).
 
-## Quick reference
+If you are new to the product, start with the workflow pages first:
+
+- [ask](/guide/ask)
+- [validate](/guide/validate)
+- [judge](/guide/judge)
+- [learning](/guide/learning)
+- [compare](/guide/compare)
+
+## Daily workflow
 
 | Command / Flag | Description |
 |----------------|-------------|
 | `ask "<query>"` | Unified intent→rank→cost→risk pipeline in one command |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `validate` | Validate config and coverage; optional query symbol check |
+| `learn` | Boost, penalize, or reset learned file ranking weights |
+| `weights` | Show learned file multipliers or emit them as JSON |
+| `compare` | CLI wrapper for retrieval benchmark vs baseline |
+| `share` | Print shareable one-liner with live benchmark numbers |
+
+## Team, CI, and observability
+
+| Command / Flag | Description |
+|----------------|-------------|
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
 | `suggest-profile` | Auto-detect context profile from git state |
-| `compare` | CLI wrapper for retrieval benchmark vs baseline |
-| `share` | Print shareable one-liner with live benchmark numbers |
 | `explain <file>` | Why a file is included or excluded from context |
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
 | `--watch` | Watch for file changes and regenerate incrementally |
@@ -61,7 +76,6 @@ All commands and flags accepted by `sigmap` (or `node gen-context.js`).
 | `--report --paper` | LaTeX/markdown tables for academic export |
 | `--health` | Composite 0–100 health score + coverage grade |
 | `--health --json` | Machine-readable health output with coverage fields |
-| `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier |
 | `--monorepo` | Generate a separate context section per package |
 | `--each` | Run a command in each monorepo package |
 | `--routing` | Print the model routing table |
@@ -70,6 +84,7 @@ All commands and flags accepted by `sigmap` (or `node gen-context.js`).
 | `--init` | Scaffold `gen-context.config.json` and `.contextignore` |
 | `--benchmark` | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
+| `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier |
 | `--version` | Print version and exit |
 | `--help` | Print help and exit |
 
@@ -114,16 +129,16 @@ sigmap judge --response response.txt --context .context/query-context.md --learn
 ```
 ────────────────────────────────────────────
  sigmap judge
- Score     : 0.72
- Verdict   : pass
- Reasons   : none
+ Groundedness       : 0.72
+ Support level      : pass
+ Unsupported symbols: none
 ────────────────────────────────────────────
 ```
 
 JSON output:
 
 ```json
-{ "score": 0.72, "verdict": "pass", "reasons": [] }
+{ "score": 0.72, "verdict": "pass", "reasons": [], "learning": null }
 ```
 
 With `--learn`, judge becomes an opt-in feedback loop. It reads file headings from the context file (`### path` in generated context or `## path` in `.context/query-context.md`) and applies a small learned boost or penalty when groundedness is confidently high or low.
@@ -249,7 +264,8 @@ sigmap compare --json
  SigMap vs Baseline
 ────────────────────────────────────────────
  hit@5         78.9% vs 13.6%   (5.8× lift)
- Avg tokens    4,103 vs 80,000
+ Avg prompts   1.69 vs 2.84
+ Token story   98.1% overall reduction
 ────────────────────────────────────────────
 ```
 

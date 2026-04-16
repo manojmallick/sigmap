@@ -140,7 +140,7 @@ Or to use a larger fixed budget and disable auto-scaling:
 
 ```bash
 node /path/to/gen-context.js --version
-# sigmap v2.8.0  ← must print a version
+# sigmap v5.2.0  ← must print a version
 
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
 # {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 8 tools
@@ -214,6 +214,58 @@ sigmap --watch    # restart the watcher
 
 ---
 
+## Issue 11 — `ask` returns low coverage
+
+**Symptom:** `sigmap ask` works, but coverage is low or the context looks too thin for the task.
+
+**Fix:** run `sigmap validate --query "<same query>"` first. If coverage is still low, widen `srcDirs`, raise the budget, or switch to `per-module` / `hot-cold`.
+
+---
+
+## Issue 12 — `judge` reports low support
+
+**Symptom:** the answer sounds plausible, but `judge` returns a weak groundedness score.
+
+**Fix:** regenerate the query context with `sigmap ask`, then re-run `judge` against `.context/query-context.md`. A low score often means the answer drifted beyond the supplied files, not that SigMap itself failed.
+
+---
+
+## Issue 13 — `weights` look wrong
+
+**Symptom:** ranked files feel over-boosted or a stale file keeps winning.
+
+**Fix:** inspect `sigmap weights`, then reset with:
+
+```bash
+sigmap learn --reset
+```
+
+The learning layer is local-only, so reset is safe and immediate.
+
+---
+
+## Issue 14 — `compare` or `share` numbers look stale
+
+**Symptom:** the CLI output does not match the latest docs or release notes.
+
+**Fix:** re-run the benchmark matrix before using `compare` or `share`:
+
+```bash
+node scripts/run-benchmark-matrix.mjs --save --skip-clone
+```
+
+That refreshes the saved JSON reports and the HTML benchmark dashboard together.
+
+---
+
+## Issue 15 — MCP config exists but tools still do not appear
+
+**Symptom:** the config file looks correct, but Claude Code or Cursor still shows no SigMap tools.
+
+**Fix:** restart the IDE completely, then test the server manually with `tools/list`. Editors usually register MCP servers only at startup.
+
+---
+
 ## Still stuck? Get more help
 
 Run the health check and share the output in a GitHub issue — it includes everything needed to diagnose the problem.
@@ -226,7 +278,7 @@ sigmap --health --json
 {
   "score": 94,
   "grade": "A",
-  "version": "2.4.0",
+  "version": "5.2.0",
   "node": "22.11.0",
   "contextFile": true,
   "lastGenerated": "2m ago",

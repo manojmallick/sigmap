@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. 30+ versions from v0.0 to v5.2.0. MIT open source, zero npm deps.
+description: SigMap version history and roadmap. From v0.0 to v5.2, with the latest milestone focused on trust, workflow, and local learning.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped/planned. MIT open source from day one.
 
-**Stats:** 98.1% overall token reduction · full CI suite passing · 29 languages · 0 npm deps
+**Stats:** 98.1% overall token reduction · 460+ tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -322,9 +322,23 @@ Benchmark runs now leave a permanent record that feeds back into the UI. All thr
 
 ---
 
-## Current milestone — v5.2.x
+### v5.2 — Learning engine + workflow-first docs ✓ (tagged v5.2.0 — 2026-04-16)
 
-The learning engine shipped in `v5.2.0`: `sigmap learn`, `sigmap weights`, opt-in judge-driven learning, and repo-local multipliers in `.context/weights.json`. The next docs/benchmark work should build on that released surface rather than the old v5.1 snapshot.
+This release turns SigMap into a stronger daily workflow product, not just a signature generator.
+
+- **`sigmap learn`** adds safe local-only ranking feedback for good and bad files.
+- **`sigmap weights`** makes the learned multipliers visible and resettable.
+- **`sigmap judge --learn`** can apply opt-in confidence-gated updates based on groundedness.
+- **HTML benchmark report** consolidates token, retrieval, quality, and task metrics into one self-contained page.
+- **Workflow-first docs** elevate `ask`, `validate`, `judge`, and learning as first-class product surfaces.
+
+**Tags:** `sigmap learn` · `sigmap weights` · `judge --learn` · `.context/weights.json` · `benchmark-report.html`
+
+---
+
+## Current milestone — v5.x
+
+Current focus after v5.2: unify the benchmark runners around the shared ranker, benchmark the learning engine directly, and keep the public metrics synchronized across CLI, docs, and release surfaces.
 
 ---
 

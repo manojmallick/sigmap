@@ -30,7 +30,7 @@ Each tool is optimised for a specific workflow. They stack, not compete.
 
 ### sigmap — Always-on signatures
 
-Runs automatically on every save and every commit. Extracts function and class signatures from 21 languages. Writes a compact context file under 4K tokens that every AI coding agent reads at session start.
+Runs automatically on every save and every commit. Extracts function and class signatures from 29 languages and formats. Writes a compact context file that every AI coding agent can read at session start.
 
 - Automatic — zero manual steps after `--setup`
 - Under 4,000 tokens for any codebase
@@ -110,6 +110,17 @@ cat .context/repomix.md .github/copilot-instructions.md \
 | CI token budget check | sigmap | `--report --json` outputs machine-readable stats for CI dashboards |
 | Sharing context with a team | repomix | Repomix Cloud handles team sharing; SigMap output goes in git |
 | Security audit | sigmap | Secret scanning redacts credentials before any output is written |
+
+## When not to use Repomix
+
+SigMap is enough most of the time when:
+
+- you are doing day-to-day coding in the same repo
+- you mainly need the right files, not every file body
+- you want always-fresh context on save or commit
+- you are using `ask`, `validate`, `judge`, or MCP `query_context`
+
+Repomix becomes useful when you truly need a deep one-off session over the full file contents.
 
 ## Prompt cache payload
 

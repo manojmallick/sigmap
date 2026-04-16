@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v5.2.0. 78.9% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
+description: Latest saved retrieval benchmark for SigMap v5.2. 78.9% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
@@ -17,45 +17,76 @@ head:
 
 Latest saved run: **2026-04-16 (v5.2.0)**
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **78.9% hit@5** vs **13.6%** random baseline across 90 coding tasks on 18 public repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **78.9% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
-## Summary
+## Why this benchmark matters
 
-| Metric | Baseline | SigMap |
+When a coding assistant misses the key file, everything downstream gets worse:
+
+- more retries
+- more clarifying questions
+- more wrong-context answers
+
+This benchmark isolates that first question: *did the right file appear in context?*
+
+## Headline numbers
+
+| Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Average hit@5 | 13.6% | **78.9%** |
-| Lift | — | **5.8×** |
+| Lift | — | **5.8x** |
 | Correct (rank 1) | ~1% | **52.2%** |
-| Partial (ranks 2-5) | — | **27.8%** |
-| Wrong (miss) | **86.4%** | **20.0%** |
+| Partial (ranks 2–5) | ~13% | **26.7%** |
+| Wrong (not in top 5) | ~86% | **21.1%** |
 
-## Quality tiers across 90 tasks
+## Quality tiers from the saved run
 
 | Tier | Tasks | Share |
 |---|---:|---:|
 | Correct | 47 / 90 | **52.2%** |
-| Partial | 25 / 90 | **27.8%** |
-| Wrong | 18 / 90 | **20.0%** |
+| Partial | 24 / 90 | **26.7%** |
+| Wrong | 19 / 90 | **21.1%** |
 
-## What this benchmark answers
+## Per-repo results
 
-When you ask an LLM a coding question, the first failure mode is simple: the model never saw the file that mattered. This benchmark measures whether SigMap surfaces that file high enough in the ranked context to make a good answer possible.
+| Repo | Random hit@5 | SigMap hit@5 | Lift | Correct / Partial / Wrong |
+|---|:---:|:---:|:---:|---:|
+| express | 83.3% | 80% | 1.0x | 2 / 2 / 1 |
+| flask | 26.3% | 100% | 3.8x | 5 / 0 / 0 |
+| gin | 4.7% | 80% | 17.0x | 3 / 1 / 1 |
+| spring-petclinic | 38.5% | 60% | 1.6x | 3 / 0 / 2 |
+| rails | 0.4% | 60% | 150.0x | 2 / 1 / 2 |
+| axios | 20.0% | 60% | 3.0x | 2 / 1 / 2 |
+| rust-analyzer | 0.8% | 100% | 125.0x | 4 / 1 / 0 |
+| abseil-cpp | 0.7% | 100% | 142.9x | 3 / 2 / 0 |
+| serilog | 5.1% | 40% | 7.8x | 0 / 2 / 3 |
+| riverpod | 1.1% | 100% | 90.9x | 4 / 1 / 0 |
+| okhttp | 27.8% | 100% | 3.6x | 5 / 0 / 0 |
+| laravel | 0.3% | 100% | 333.3x | 2 / 3 / 0 |
+| akka | 2.4% | 100% | 41.7x | 3 / 2 / 0 |
+| vapor | 3.8% | 40% | 10.5x | 1 / 1 / 3 |
+| vue-core | 2.2% | 100% | 45.5x | 1 / 4 / 0 |
+| svelte | 1.4% | 60% | 42.9x | 0 / 3 / 2 |
+| fastify | 16.1% | 60% | 3.7x | 3 / 0 / 2 |
+| fastapi | 10.4% | 80% | 7.7x | 4 / 0 / 1 |
 
-It does **not** measure prose quality directly. That is why it pairs with the [task benchmark](/guide/task-benchmark) and `sigmap judge`.
+## What the benchmark does not measure
 
-## Representative repo results
+This benchmark does **not** score answer wording, correctness of prose, or stylistic quality. It measures a narrower prerequisite:
 
-| Repo | Random hit@5 | SigMap hit@5 | Notes |
-|---|:---:|:---:|---|
-| `flask` | 26.3% | **100%** | small, well-scoped source tree |
-| `rails` | 0.4% | **60%** | large repo, still a major lift |
-| `rust-analyzer` | 0.8% | **100%** | large repo, low random baseline |
-| `laravel` | 0.3% | **100%** | huge search space, strong retrieval gain |
-| `fastapi` | 10.4% | **80%** | mid-sized Python framework |
+> whether the right source file is present in the ranked context.
+
+That is why it pairs well with [judge](/guide/judge) and the [task benchmark](/guide/task-benchmark).
 
 ## Reproduce
 
 ```bash
 node scripts/run-retrieval-benchmark.mjs --save
 node scripts/run-retrieval-benchmark.mjs --json
+```
+
+For the full multi-benchmark dashboard:
+
+```bash
+node scripts/run-benchmark-matrix.mjs --save --skip-clone
 ```

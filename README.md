@@ -27,6 +27,23 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 
 > Latest: **v5.2.0** — Learning engine + workflow-first release. Use `ask`, `validate`, `judge`, `learn`, `weights`, `compare`, and `share` on top of the core signature pipeline.
 
+**What is new in v5.2**
+- `sigmap ask` creates task-focused context in one step
+- `sigmap validate` checks config health and query coverage
+- `sigmap judge` scores groundedness against the supplied context
+- `sigmap learn` and `sigmap weights` add safe local-only ranking feedback
+- `node scripts/run-benchmark-matrix.mjs --save --skip-clone` now writes an HTML benchmark dashboard
+
+**Daily workflow**
+
+```bash
+npx sigmap
+sigmap ask "explain the auth flow"
+sigmap validate --query "auth login token"
+sigmap judge --response response.txt --context .context/query-context.md
+sigmap weights
+```
+
 <div align="center">
 <img src="demo.gif" alt="SigMap demo — reducing 80K tokens to 4K in under 10 seconds" width="760" />
 </div>
@@ -153,7 +170,7 @@ Reproduced with `node scripts/run-benchmark.mjs` on public repos:
 | fastify | JavaScript | 54.4K | 2.6K | **95.3%** |
 | fastapi | Python | 178.4K | 5.2K | **97.1%** |
 
-**Average: 97.6% reduction across 18 repos (16 languages).** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md) or reproduce with `node scripts/run-benchmark.mjs`.
+**Average: 97.6% reduction across 18 repos (16 languages).** See [`benchmarks/reports/token-reduction.md`](benchmarks/reports/token-reduction.md), open `benchmarks/reports/benchmark-report.html` after a matrix run, or reproduce with `node scripts/run-benchmark.mjs`.
 
 ---
 
@@ -503,7 +520,7 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 
 ## 🌐 Languages supported
 
-> 29 languages. All implemented with zero external dependencies — pure regex + Node built-ins.
+> 29 languages and formats. All implemented with zero external dependencies — pure regex + Node built-ins.
 >
 > Also includes lightweight config/doc extraction for `.toml`, `.properties`, `.xml`, and `.md` to improve real-repo coverage beyond source-code files.
 
@@ -737,7 +754,7 @@ Copy `gen-context.config.json.example` to `gen-context.config.json`:
 - **`secretScan`** — redact secrets (AWS keys, tokens, etc.) from output
 - **`strategy`** — output mode: `full` (default) | `per-module` | `hot-cold`
 
-**Token budget (auto-scaling defaults):**
+**Token budget (auto-scaling):**
 
 | Key | Default | Description |
 |---|---|---|
@@ -788,7 +805,7 @@ If `output` is omitted, the default `.github/copilot-instructions.md` is used.
 
 ## 📊 Observability
 
-### Coverage score (v4.0)
+### Coverage score
 
 Every run now prints a coverage line alongside token reduction:
 
@@ -813,7 +830,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 4.1.0
+  version         : 5.2.0
   files processed : 76
   reduction       : 93.7%
   coverage        : A (97%)  — 76 of 78 source files included

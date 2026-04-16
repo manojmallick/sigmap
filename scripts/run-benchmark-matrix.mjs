@@ -4,9 +4,12 @@ import { spawnSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
+const require = createRequire(import.meta.url);
+const { writeBenchmarkReport } = require('../src/format/benchmark-report');
 
 const SAVE = process.argv.includes('--save');
 const SKIP_CLONE = process.argv.includes('--skip-clone');
@@ -111,6 +114,8 @@ if (SAVE) {
   const outPath = path.join(ROOT, 'benchmarks', 'reports', 'benchmark-matrix.json');
   fs.writeFileSync(outPath, JSON.stringify(summary, null, 2) + '\n');
   process.stderr.write(`[matrix] saved -> ${outPath}\n`);
+  const html = writeBenchmarkReport(ROOT, { matrixSummary: summary });
+  process.stderr.write(`[matrix] html report -> ${html.file}\n`);
 }
 
 if (JSON_SUMMARY) {

@@ -35,9 +35,19 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Core workflow',
+        items: [
+          { text: 'ask', link: '/guide/ask' },
+          { text: 'validate', link: '/guide/validate' },
+          { text: 'judge', link: '/guide/judge' },
+          { text: 'Learning & weights', link: '/guide/learning' },
+          { text: 'compare & share', link: '/guide/compare' },
+        ],
+      },
+      {
         text: 'Benchmarks',
         items: [
-          { text: 'Token reduction', link: '/guide/benchmark' },
+          { text: 'Overview', link: '/guide/benchmark' },
           { text: 'Quality', link: '/guide/quality-benchmark' },
           { text: 'Retrieval', link: '/guide/retrieval-benchmark' },
           { text: 'Task benchmark', link: '/guide/task-benchmark' },
