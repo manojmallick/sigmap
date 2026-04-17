@@ -521,6 +521,10 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 
 ## 🖥️ Neovim plugin
 
+<a href="https://dotfyle.com/plugins/manojmallick/sigmap.nvim">
+	<img src="https://dotfyle.com/plugins/manojmallick/sigmap.nvim/shield?style=flat" />
+</a>
+
 The official SigMap Neovim plugin (`sigmap.nvim`) brings first-class integration to the #1 most-admired editor (Stack Overflow 2025, 83% admiration rate). Power users who live in the terminal get context regeneration, ranked retrieval, and health checks without leaving Neovim.
 
 | Feature | Detail |
@@ -534,8 +538,7 @@ The official SigMap Neovim plugin (`sigmap.nvim`) brings first-class integration
 
 **Install (lazy.nvim):**
 ```lua
-{ 'manojmallick/sigmap',
-  subdir = 'neovim-plugin',
+{ 'manojmallick/sigmap.nvim',
   config = function()
     require('sigmap').setup({
       auto_run    = true,   -- regenerate on save
@@ -545,7 +548,7 @@ The official SigMap Neovim plugin (`sigmap.nvim`) brings first-class integration
 }
 ```
 
-**Source:** [`neovim-plugin/`](neovim-plugin/) | **Docs:** [`neovim-plugin/README.md`](neovim-plugin/README.md)
+**Repo:** [manojmallick/sigmap.nvim](https://github.com/manojmallick/sigmap.nvim)
 
 ---
 
