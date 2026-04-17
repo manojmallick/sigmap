@@ -66,6 +66,13 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Guides',
+        items: [
+          { text: 'End-to-end walkthrough', link: '/guide/walkthrough' },
+          { text: 'Compare alternatives', link: '/guide/compare-alternatives' },
+        ],
+      },
+      {
         text: 'More',
         items: [
           { text: 'Troubleshooting', link: '/guide/troubleshooting' },

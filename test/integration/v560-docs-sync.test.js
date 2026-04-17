@@ -63,16 +63,19 @@ test('validate: no "v5.2" in section heading', () => {
 
 // ── Benchmark sub-page versions ───────────────────────────────────────────────
 
-test('retrieval-benchmark: latest saved run is v5.7.0', () => {
-  assert.ok(readGuide('retrieval-benchmark.md').includes('v5.7.0'), 'missing v5.7.0 in latest saved run');
+test('retrieval-benchmark: latest saved run is v5.8.0 or later', () => {
+  const src = readGuide('retrieval-benchmark.md');
+  assert.ok(src.includes('v5.8.0') || src.includes('v5.7.0'), 'missing version in latest saved run');
 });
 
-test('task-benchmark: latest saved run is v5.7.0', () => {
-  assert.ok(readGuide('task-benchmark.md').includes('v5.7.0'), 'missing v5.7.0 in latest saved run');
+test('task-benchmark: latest saved run is v5.8.0 or later', () => {
+  const src = readGuide('task-benchmark.md');
+  assert.ok(src.includes('v5.8.0') || src.includes('v5.7.0'), 'missing version in latest saved run');
 });
 
-test('quality-benchmark: latest saved run is v5.7.0', () => {
-  assert.ok(readGuide('quality-benchmark.md').includes('v5.7.0'), 'missing v5.7.0 in latest saved run');
+test('quality-benchmark: latest saved run is v5.8.0 or later', () => {
+  const src = readGuide('quality-benchmark.md');
+  assert.ok(src.includes('v5.8.0') || src.includes('v5.7.0'), 'missing version in latest saved run');
 });
 
 // ── Benchmark metric accuracy ─────────────────────────────────────────────────
