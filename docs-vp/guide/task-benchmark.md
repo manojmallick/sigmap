@@ -1,6 +1,6 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v5.5. 52.2% correct, 40.8% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
+description: Latest saved task benchmark for SigMap v5.7. 52.2% correct, 40.8% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
@@ -15,7 +15,7 @@ head:
 
 # Task benchmark
 
-Latest saved run: **2026-04-17 (v5.5.0)**
+Latest saved run: **2026-04-17 (v5.7.0)**
 
 This page answers the question people care about most:
 
@@ -63,7 +63,7 @@ The task benchmark models that outcome from the ranked file quality tiers:
 
 ## What changed in the v5 story
 
-The earlier SigMap story was mostly "smaller context." The v5.5 story is more useful:
+The earlier SigMap story was mostly "smaller context." The v5 story is more useful:
 
 - use [ask](/guide/ask) to build the focused context
 - use [validate](/guide/validate) to make sure coverage is healthy

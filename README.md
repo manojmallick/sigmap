@@ -21,18 +21,17 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 
 **What you get in ~10 seconds**
 - A compact signature map of your codebase
-- The right file in context far more often (78.9% hit@5 vs 13.6% random)
-- Fewer retries (1.69 vs 2.84 prompts per task)
+- The right file in context far more often (80.0% hit@5 vs 13.6% random)
+- Fewer retries (1.68 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v5.6.0** — Website & docs sync. All guide pages updated to v5.5 reality: canonical metrics, judge vocabulary, language count, MCP tool count, and troubleshooting coverage entry. (`sigmap.nvim`). `:SigMap`, `:SigMapQuery`, auto-run on save, statusline widget, and `:checkhealth sigmap` for the #1 most-admired editor.
+> Latest: **v5.7.0** — Growth & Positioning. Canonical `version.json`, README rewrite, language count corrected to 29 everywhere, softwareVersion updated, stale metrics replaced with official v5.7 snapshot.
 
-**What is new in v5.2**
-- `sigmap ask` creates task-focused context in one step
-- `sigmap validate` checks config health and query coverage
-- `sigmap judge` scores groundedness against the supplied context
-- `sigmap learn` and `sigmap weights` add safe local-only ranking feedback
-- `node scripts/run-benchmark-matrix.mjs --save --skip-clone` now writes an HTML benchmark dashboard
+**What's new in v5.7**
+- Canonical `version.json` — single source of truth for version, metrics, language count
+- README and all docs updated to official v5.7 benchmark snapshot
+- All surfaces now say `29 languages and formats` (corrected from 21)
+- 30-second quickstart and proof strip added to README
 
 **Daily workflow**
 
@@ -79,9 +78,9 @@ sigmap weights
 | | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success | 10% | **52.2%** |
-| Prompts per task | 2.84 | **1.69** |
+| Prompts per task | 2.84 | **1.68** |
 | Tokens per session | ~80,000 | **~2,000** |
-| Right file found | 13.6% | **78.9%** |
+| Right file found | 13.6% | **80.0%** |
 | Hidden-symbol risk | 74.7% | **context surfaced locally** |
 
 Measured on 90 coding tasks across 18 real public repos. Full methodology and raw benchmark pages are linked below.

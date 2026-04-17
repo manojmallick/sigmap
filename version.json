@@ -1,0 +1,16 @@
+{
+  "version": "5.7.0",
+  "benchmark_date": "2026-04-17",
+  "benchmark_id": "sigmap-v5.7-main",
+  "languages": 29,
+  "mcp_tools": 9,
+  "tests": 495,
+  "metrics": {
+    "hit_at_5": 0.800,
+    "baseline_hit_at_5": 0.136,
+    "prompt_reduction_pct": 40.8,
+    "task_success_proxy_pct": 52.2,
+    "prompts_per_task": 1.68,
+    "overall_token_reduction_pct": 98.1
+  }
+}
