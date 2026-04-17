@@ -10,6 +10,23 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.5.0] — 2026-04-17
+
+### Fixed
+
+- **Coverage grade now accurate for mixed-content projects** — `coverageScore()` counts only code files (`.ts`, `.js`, `.py`, `.go`, etc.) in the denominator. Previously, `package.json`, `tsconfig.json`, `README.md`, and other non-code files were counted, causing inflated D-grades even when all code was covered (reported in discussion #81).
+- **`--report` coverage label** — now reads `code files` instead of `source files`, and prints `(N non-code files skipped — json, md, config)` when non-code files were excluded.
+- **`--report` actionable guidance** — modules marked `← attention needed` (<50% coverage) now show a tip block listing the three common causes and how to fix each.
+- **`--health` label disambiguation** — coverage line renamed from `coverage … source files` to `file access … files accessible in srcDirs`, making it clearly distinct from the `--report` coverage metric.
+- **`autoMaxTokens` silent-override warning** — when `autoMaxTokens` is active and overrides the user's `maxTokens` config value, `--report` now emits an explicit note explaining the override and how to disable it.
+
+### Changed
+
+- `src/analysis/coverage-score.js` exports `CODE_EXTS` (the allowlist Set) for use by other modules and tests.
+- `coverageScore()` return object gains a `nonCodeSkipped` field (number of non-code files found in srcDirs but excluded from the denominator).
+
+---
+
 ## [5.4.0] — 2026-04-17
 
 ### Added
