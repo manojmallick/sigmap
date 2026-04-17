@@ -140,10 +140,10 @@ Or to use a larger fixed budget and disable auto-scaling:
 
 ```bash
 node /path/to/gen-context.js --version
-# sigmap v5.3.0  ← must print a version
+# sigmap v5.5.0  ← must print a version
 
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
-# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 8 tools
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 9 tools
 ```
 
 ---
@@ -266,6 +266,29 @@ That refreshes the saved JSON reports and the HTML benchmark dashboard together.
 
 ---
 
+## Issue 16 — `--report` shows a low coverage grade but `--health` shows A
+
+**Symptom:** `sigmap --report` shows coverage D (30–50%) while `sigmap --health` shows grade A (100%). The numbers look inconsistent and alarming.
+
+**Root cause (pre-v5.5):** Before v5.5, `--report` counted every file found in `srcDirs` — including `package.json`, `tsconfig.json`, `README.md`, and other non-code files — in the coverage denominator. Those files have no extractor and can never appear in the output, inflating the "missing" count.
+
+**Fix:** Upgrade to v5.5+ and regenerate:
+
+```bash
+npm install -g sigmap@latest
+sigmap
+sigmap --report
+```
+
+After upgrading, `--report` counts only code files (`.ts`, `.js`, `.py`, `.go`, etc.) in the denominator and prints a separate `(N non-code files skipped)` line. The two outputs now answer different questions:
+
+| Command | Measures |
+|---|---|
+| `--health` | All files in srcDirs accessible (always 100% if srcDirs is correct) |
+| `--report` | Code files that have at least one extractable signature |
+
+---
+
 ## Still stuck? Get more help
 
 Run the health check and share the output in a GitHub issue — it includes everything needed to diagnose the problem.
@@ -278,7 +301,7 @@ sigmap --health --json
 {
   "score": 94,
   "grade": "A",
-  "version": "5.3.0",
+  "version": "5.5.0",
   "node": "22.11.0",
   "contextFile": true,
   "lastGenerated": "2m ago",
@@ -292,7 +315,7 @@ Open an issue at [github.com/manojmallick/sigmap/issues](https://github.com/mano
 
 - [CLI reference](/guide/cli) — every flag with examples and expected output
 - [Config reference](/guide/config) — every field in gen-context.config.json with defaults
-- [MCP server setup](/guide/mcp) — wire up sigmap's 8 on-demand MCP tools
+- [MCP server setup](/guide/mcp) — wire up sigmap's 9 on-demand MCP tools
 
 
 ---

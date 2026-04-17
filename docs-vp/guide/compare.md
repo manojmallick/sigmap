@@ -4,7 +4,7 @@ description: Use sigmap compare and sigmap share to show the before-vs-after sto
 ---
 # compare and share
 
-`compare` and `share` are the demo-friendly commands in the v5.2 workflow.
+`compare` and `share` are the demo-friendly commands in the v5.5 workflow.
 
 ```bash
 sigmap compare

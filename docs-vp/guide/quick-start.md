@@ -1,6 +1,6 @@
 ---
 title: Quick start
-description: "Get SigMap running in minutes, then use the v5.2 workflow: ask, validate, judge, and optional learning."
+description: "Get SigMap running in minutes, then use the v5.5 workflow: ask, validate, judge, and optional learning."
 head:
   - - meta
     - property: og:title
@@ -14,7 +14,7 @@ head:
 ---
 # Quick start
 
-This page is the fastest path to the real v5.2 workflow.
+This page is the fastest path to the real v5.5 workflow.
 
 ## 1. Install or run directly
 

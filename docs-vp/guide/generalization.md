@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 18 repos, 13 languages, and 9 domains with 78.9% hit@5 in the latest saved v5.2 retrieval run.
+description: SigMap generalizes across 18 repos, 13 languages, and 9 domains with 80.0% hit@5 in the latest saved v5.5 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 78.9% hit@5 across 13 languages and 9 domains"
+      content: "SigMap Generalization — 80.0% hit@5 across 13 languages and 9 domains"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
@@ -20,13 +20,13 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 78.9% hit@5 with no per-repo tuning in the latest saved v5.2 run.
+these 90 tasks is yes — 80.0% hit@5 with no per-repo tuning in the latest saved v5.5 run.
 :::
 
 - **18 repos**
 - **13 languages**
 - **9 domains**
-- **78.9%** overall hit@5
+- **80.0%** overall hit@5
 - **no per-repo tuning**
 
 That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
@@ -50,7 +50,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v5.2.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v5.5.0` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|
