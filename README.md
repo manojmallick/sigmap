@@ -535,6 +535,7 @@ The official SigMap Neovim plugin (`sigmap.nvim`) brings first-class integration
 **Install (lazy.nvim):**
 ```lua
 { 'manojmallick/sigmap',
+  subdir = 'neovim-plugin',
   config = function()
     require('sigmap').setup({
       auto_run    = true,   -- regenerate on save

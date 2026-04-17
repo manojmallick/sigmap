@@ -19,9 +19,9 @@ Neovim plugin for [SigMap](https://github.com/manojmallick/sigmap) — the zero-
 
 **lazy.nvim:**
 ```lua
-{ 'manojmallick/sigmap',
-  -- path inside the monorepo:
-  -- dir = vim.fn.expand('~') .. '/path/to/sigmap/neovim-plugin',
+{
+  'manojmallick/sigmap',
+  subdir = 'neovim-plugin',
   config = function()
     require('sigmap').setup({
       auto_run    = true,   -- regen on BufWritePost for source files
