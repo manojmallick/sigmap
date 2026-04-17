@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.3.0] — 2026-04-17
+
+### Added
+
+- **MCP auto-wire: Windsurf** — `sigmap --setup` now registers the MCP server in `.windsurf/mcp.json` (project-level) and `~/.codeium/windsurf/mcp_config.json` (global) using the standard `mcpServers` shape.
+- **MCP auto-wire: Zed** — `sigmap --setup` now registers a context server in `~/.config/zed/settings.json` using Zed's `context_servers` shape (`command.path` / `command.args`).
+- **Updated `--setup` snippet** — help output now prints manual config snippets for all four tools: Claude, Cursor, Windsurf, and Zed.
+
+### Changed
+
+- `registerMcp()` skips each target when the file does not exist and never overwrites an already-registered `sigmap` entry (idempotent).
+
+---
+
 ## [5.2.0] — 2026-04-17
 
 ### Added

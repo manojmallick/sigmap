@@ -25,7 +25,7 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 - Fewer retries (1.69 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v5.2.0** — Learning engine + workflow-first release. Use `ask`, `validate`, `judge`, `learn`, `weights`, `compare`, and `share` on top of the core signature pipeline.
+> Latest: **v5.3.0** — Learning engine + workflow-first release. Use `ask`, `validate`, `judge`, `learn`, `weights`, `compare`, and `share` on top of the core signature pipeline.
 
 **What is new in v5.2**
 - `sigmap ask` creates task-focused context in one step
@@ -811,7 +811,7 @@ Every run now prints a coverage line alongside token reduction:
 
 ```
 ───────────────────────────────────────────
- SigMap v5.2.0
+ SigMap v5.3.0
  Files scanned  : 76
  Symbols found  : 332
  Token reduction: 94%  (65,227 → 4,103)
@@ -830,7 +830,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.2.0
+  version         : 5.3.0
   files processed : 76
   reduction       : 93.7%
   coverage        : A (97%)  — 76 of 78 source files included
@@ -874,7 +874,7 @@ sigmap --health --json
 Every output file now carries a metadata line so you can inspect freshness at a glance:
 
 ```
-<!-- sigmap: version=5.2.0 confidence=HIGH coverage=97% dropped=2 commit=8540612 -->
+<!-- sigmap: version=5.3.0 confidence=HIGH coverage=97% dropped=2 commit=8540612 -->
 ```
 
 ### Diff risk score
