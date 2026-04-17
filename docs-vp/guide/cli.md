@@ -505,7 +505,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.2.0
+  version         : 5.3.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
@@ -679,7 +679,7 @@ sigmap --impact src/auth/service.ts --json
 
 ```bash
 sigmap --version
-# 5.2.0
+# 5.3.0
 ```
 
 ---

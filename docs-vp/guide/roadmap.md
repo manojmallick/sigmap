@@ -322,6 +322,8 @@ Benchmark runs now leave a permanent record that feeds back into the UI. All thr
 
 ---
 
+### v5.3 — MCP ecosystem completeness ✓ (tagged v5.3.0 — 2026-04-17)
+
 ### v5.2 — Learning engine + workflow-first docs ✓ (tagged v5.2.0 — 2026-04-16)
 
 This release turns SigMap into a stronger daily workflow product, not just a signature generator.

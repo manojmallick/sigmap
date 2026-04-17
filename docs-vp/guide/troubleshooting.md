@@ -140,7 +140,7 @@ Or to use a larger fixed budget and disable auto-scaling:
 
 ```bash
 node /path/to/gen-context.js --version
-# sigmap v5.2.0  ← must print a version
+# sigmap v5.3.0  ← must print a version
 
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
 # {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 8 tools
@@ -278,7 +278,7 @@ sigmap --health --json
 {
   "score": 94,
   "grade": "A",
-  "version": "5.2.0",
+  "version": "5.3.0",
   "node": "22.11.0",
   "contextFile": true,
   "lastGenerated": "2m ago",
