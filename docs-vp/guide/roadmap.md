@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.3, with the latest milestone completing MCP auto-wire for Windsurf and Zed.
+description: SigMap version history and roadmap. From v0.0 to v5.4, with the latest milestone adding a first-class Neovim plugin (sigmap.nvim).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "25 versions shipped and planned. See what changed in each release and what is coming next."
+      content: "26 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Thirty-plus versions shipped/planned. MIT open source from day one.
+Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 98.1% overall token reduction · 480+ tests passing · 29 languages · 0 npm deps
+**Stats:** 98.1% overall token reduction · 247 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -337,6 +337,23 @@ Benchmark runs now leave a permanent record that feeds back into the UI. All thr
 
 ---
 
+### v5.4 — Neovim plugin (sigmap.nvim) ✓ (tagged v5.4.0 — 2026-04-17)
+
+First-class Neovim integration for the #1 most-admired editor (Stack Overflow 2025, 83% admiration). The plugin lives in `neovim-plugin/` and ships as a self-contained Lua package requiring zero configuration for most setups.
+
+- **`:SigMap [args]`** — regenerate the AI context file asynchronously via `vim.fn.jobstart`; notifies with `vim.notify` on completion.
+- **`:SigMapQuery <text>`** — runs `sigmap query` and displays ranked results in a centered floating window with rounded borders; close with `q` or `<Esc>`.
+- **Auto-run on save** — `setup({ auto_run = true })` creates a `BufWritePost` autocmd for `.js`, `.ts`, `.py`, `.go`, `.rs`, `.java`, `.rb`, and `.lua`.
+- **Statusline widget** — `require('sigmap').statusline()` returns `sm:✓` when the context file is < 24 h old and `sm:⚠ Nh` otherwise; integrates with lualine and any custom statusline.
+- **`:checkhealth sigmap`** — validates Node 18+, binary presence (global → `npx` → local `gen-context.js`), and context file freshness.
+- **`release-neovim.yml`** — new GitHub Actions workflow; tag `neovim-v*` to validate Lua, run the full integration suite across Node 18/20/22, package a `.tar.gz`, and publish a GitHub Release.
+
+**Tags:** `sigmap.nvim` · `:SigMap` · `:SigMapQuery` · `auto_run` · `M.statusline()` · `:checkhealth sigmap` · `release-neovim.yml`
+
+**Impact:** 30 new integration tests · Neovim joins VS Code, JetBrains, Claude Code, Cursor, Windsurf, and Zed as a fully supported editor
+
+---
+
 ### v5.2 — Learning engine + workflow-first docs ✓ (tagged v5.2.0 — 2026-04-16)
 
 This release turns SigMap into a stronger daily workflow product, not just a signature generator.
@@ -353,7 +370,7 @@ This release turns SigMap into a stronger daily workflow product, not just a sig
 
 ## Current milestone — v5.x
 
-Current focus after v5.3: build the `sigmap.nvim` Neovim plugin (separate repo) and continue expanding IDE coverage. Also planned: unify benchmark runners around the shared ranker, benchmark the learning engine directly, and keep public metrics synchronised across CLI, docs, and release surfaces.
+v5.4 shipped the Neovim plugin. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `scripts/sync-versions.mjs`.
 
 ---
 

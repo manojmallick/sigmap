@@ -1,6 +1,6 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v5.3. 13/18 repos overflow GPT-4o without SigMap, 5,047 files would be hidden, and GPT-4o input savings reach $9,390.15/month at 10 calls/day.
+description: What token reduction means operationally in v5.4. 13/18 repos overflow GPT-4o without SigMap, 5,047 files would be hidden, and GPT-4o input savings reach $9,390.15/month at 10 calls/day.
 head:
   - - meta
     - property: og:title

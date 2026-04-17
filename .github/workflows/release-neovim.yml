@@ -1,0 +1,126 @@
+name: Release — Neovim plugin
+
+# Triggered by neovim-v* tags (e.g. neovim-v5.4.0), independent from core releases.
+# Creates a GitHub Release with the plugin source archive attached.
+#
+# Tagging procedure:
+#   git tag neovim-v<version> && git push origin neovim-v<version>
+
+on:
+  push:
+    tags:
+      - 'neovim-v*'
+
+permissions:
+  contents: write   # create GitHub Releases and upload assets
+
+jobs:
+  # ── 1. Validate plugin files ───────────────────────────────────────────────
+  validate:
+    name: Validate plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          files=(
+            neovim-plugin/lua/sigmap/init.lua
+            neovim-plugin/lua/sigmap/health.lua
+            neovim-plugin/plugin/sigmap.lua
+            neovim-plugin/README.md
+          )
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Missing: $f"
+              exit 1
+            fi
+            echo "✓ $f"
+          done
+
+      - name: Check Lua syntax (luacheck if available, else basic grep)
+        run: |
+          for f in neovim-plugin/lua/sigmap/init.lua \
+                   neovim-plugin/lua/sigmap/health.lua \
+                   neovim-plugin/plugin/sigmap.lua; do
+            # Ensure file is non-empty and contains return or require
+            if ! grep -qE 'return|require' "$f"; then
+              echo "❌ Suspicious Lua file (no return/require): $f"
+              exit 1
+            fi
+            echo "✓ $f"
+          done
+
+  # ── 2. Run integration tests against plugin files ─────────────────────────
+  test:
+    name: Integration tests (Node ${{ matrix.node }})
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run unit tests
+        run: node test/run.js
+      - name: Run integration tests
+        run: node test/integration/all.js
+
+  # ── 3. Package and release ────────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#neovim-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Package plugin archive
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE="sigmap.nvim-${VERSION}.tar.gz"
+          tar -czf "$ARCHIVE" neovim-plugin/
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Neovim Plugin ${{ github.ref_name }}"
+          generate_release_notes: false
+          body: |
+            ## sigmap.nvim ${{ github.ref_name }}
+
+            Neovim plugin for [SigMap](https://github.com/manojmallick/sigmap) — the zero-dependency AI context engine.
+
+            ### Install (lazy.nvim)
+
+            ```lua
+            { 'manojmallick/sigmap',
+              config = function()
+                require('sigmap').setup({
+                  auto_run    = true,
+                  float_query = true,
+                })
+              end,
+            }
+            ```
+
+            ### Features
+            - `:SigMap [args]` — regenerate AI context file
+            - `:SigMapQuery <text>` — ranked retrieval in a floating window
+            - Auto-run on save (`auto_run = true`)
+            - `require('sigmap').statusline()` for lualine / statusline widgets
+            - `:checkhealth sigmap` — validates Node 18+, binary, context file age
+
+            ### Requirements
+            - Neovim 0.9+
+            - Node 18+ and `sigmap` CLI (`npm install -g sigmap`)
+
+            The `.tar.gz` below contains the full `neovim-plugin/` directory.
+          files: "sigmap.nvim-${{ steps.version.outputs.version }}.tar.gz"

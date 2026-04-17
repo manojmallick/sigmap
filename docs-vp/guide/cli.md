@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 30 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
+      content: "All 31 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 30 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
+      content: "All 31 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -375,7 +375,7 @@ sigmap --watch
 
 One-command setup. Auto-wires the SigMap MCP server into all detected AI editor config files, installs a git post-commit hook, and starts the file watcher.
 
-**Supported editors (v5.3.0):**
+**Supported editors (v5.4.0):**
 
 | Editor | Config file written |
 |--------|-------------------|
@@ -384,6 +384,8 @@ One-command setup. Auto-wires the SigMap MCP server into all detected AI editor 
 | Windsurf (project) | `.windsurf/mcp.json` → `mcpServers.sigmap` |
 | Windsurf (global) | `~/.codeium/windsurf/mcp_config.json` → `mcpServers.sigmap` |
 | Zed | `~/.config/zed/settings.json` → `context_servers.sigmap` |
+
+> **Neovim users:** `--setup` does not write Neovim config (Neovim uses a Lua plugin instead of a JSON config file). Install the `sigmap.nvim` plugin directly — see [`neovim-plugin/README.md`](https://github.com/manojmallick/sigmap/blob/main/neovim-plugin/README.md).
 
 Each target is only written if the file already exists — `--setup` will not create IDE config files. Running `--setup` again is safe: existing `sigmap` entries are never overwritten (idempotent).
 
@@ -527,7 +529,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.3.0
+  version         : 5.4.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
@@ -701,7 +703,7 @@ sigmap --impact src/auth/service.ts --json
 
 ```bash
 sigmap --version
-# 5.3.0
+# 5.4.0
 ```
 
 ---

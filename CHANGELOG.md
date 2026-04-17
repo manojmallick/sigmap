@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.4.0] — 2026-04-17
+
+### Added
+
+- **Neovim plugin (`sigmap.nvim`)** — first-class Neovim integration in `neovim-plugin/`. Provides `:SigMap [args]` (async regen), `:SigMapQuery <text>` (TF-IDF retrieval in a floating window), `auto_run = true` (`BufWritePost` autocmd for source files), `require('sigmap').statusline()` for lualine/statusline widgets, and `:checkhealth sigmap` (validates Node 18+, binary presence, context file freshness).
+- **Binary auto-detection** — plugin resolves the sigmap binary automatically: global `sigmap` → `npx sigmap` → local `gen-context.js` fallback; no manual config needed for most setups.
+- **`release-neovim.yml` workflow** — tag `neovim-v*` to validate Lua files, run the full integration suite across Node 18/20/22, package the plugin as a `.tar.gz`, and create a GitHub Release.
+- **CI now runs integration tests** — `ci.yml` runs both `node test/run.js` and `node test/integration/all.js` on every push and pull request.
+
+---
+
 ## [5.3.0] — 2026-04-17
 
 ### Added

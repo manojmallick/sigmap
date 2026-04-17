@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — zero-dependency AI context engine
-description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 80.0% hit@5, 41.4% fewer prompts, 98.1% overall token reduction.
+description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 80.0% hit@5, 40.8% fewer prompts, 96.7% average token reduction.
 head:
   - - meta
     - property: og:title
-      content: "SigMap — grounded AI coding context for v5.3"
+      content: "SigMap — grounded AI coding context for v5.4"
   - - meta
     - property: og:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41.4% fewer prompts, 98.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 98.1% overall token reduction."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -17,13 +17,13 @@ head:
       content: website
   - - meta
     - name: twitter:title
-      content: "SigMap — grounded AI coding context for v5.3"
+      content: "SigMap — grounded AI coding context for v5.4"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41.4% fewer prompts, 98.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 98.1% overall token reduction."
   - - meta
     - name: twitter:image:alt
-      content: "SigMap v5.3 homepage"
+      content: "SigMap v5.4 homepage"
   - - meta
     - name: keywords
       content: "sigmap, ai context engine, grounded ai answers, code retrieval, mcp, sigmap ask, sigmap judge, sigmap validate, sigmap learn"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Better context. More grounded answers.
-  tagline: "v5.3 adds Windsurf and Zed MCP auto-wire on top of ask, validate, judge, compare, and local learning weights on top of the core signature engine."
+  tagline: "v5.4 adds a Neovim plugin (sigmap.nvim) on top of Windsurf, Zed, and the ask, validate, judge, compare, and local learning weights on top of the core signature engine."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,7 +46,7 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.69 with SigMap. That is a 41.4% reduction across 90 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.68 with SigMap. That is a 40.8% reduction across 90 real coding tasks."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
@@ -78,13 +78,11 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>v5.3 launch:</strong></span>
-  <span><code>ask</code></span>
-  <span><code>validate</code></span>
-  <span><code>judge</code></span>
-  <span><code>learn</code></span>
-  <span><code>weights</code></span>
-  <span><code>compare</code></span>
+  <span><strong>v5.4 launch:</strong></span>
+  <span><code>sigmap.nvim</code></span>
+  <span><code>:SigMap</code></span>
+  <span><code>:SigMapQuery</code></span>
+  <span><code>:checkhealth sigmap</code></span>
 </div>
 </div>
 
@@ -92,7 +90,7 @@ features:
 
 ## Start here
 
-The fastest way to understand SigMap v5.3 is to use the same workflow you would use during a real coding session:
+The fastest way to understand SigMap v5.4 is to use the same workflow you would use during a real coding session:
 
 ```bash
 npx sigmap
@@ -112,7 +110,7 @@ That flow gives you:
 
 <div style="max-width:840px;margin:0 auto;padding:0 24px 8px">
 
-## The v5.3 story
+## The v5.4 story
 
 SigMap is no longer just "shrink the context file." The v5 line turns the product into a daily workflow:
 
@@ -131,7 +129,7 @@ SigMap is no longer just "shrink the context file." The v5 line turns the produc
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success proxy | 10% | **52.2%** |
-| Prompts per task | 2.84 | **1.69** |
+| Prompts per task | 2.84 | **1.68** |
 | Retrieval hit@5 | 13.6% | **80.0%** |
 | Overall token reduction | — | **98.1%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
