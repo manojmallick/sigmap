@@ -8241,9 +8241,13 @@ function registerMcp(cwd, scriptPath) {
     args: [path.resolve(scriptPath), '--mcp'],
   };
 
+  // mcpServers shape: Claude (.claude/settings.json), Cursor (.cursor/mcp.json),
+  // Windsurf project (.windsurf/mcp.json) and global (~/.codeium/windsurf/mcp_config.json)
   const targets = [
     path.join(cwd, '.claude', 'settings.json'),
     path.join(cwd, '.cursor', 'mcp.json'),
+    path.join(cwd, '.windsurf', 'mcp.json'),
+    path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json'),
   ];
 
   for (const settingsPath of targets) {
@@ -8255,15 +8259,37 @@ function registerMcp(cwd, scriptPath) {
       if (settings.mcpServers['sigmap']) continue; // already registered
       settings.mcpServers['sigmap'] = serverEntry;
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
-      console.warn(`[sigmap] registered MCP server in ${path.relative(cwd, settingsPath)}`);
+      console.warn(`[sigmap] registered MCP server in ${settingsPath.startsWith(os.homedir()) ? '~' + settingsPath.slice(os.homedir().length) : path.relative(cwd, settingsPath)}`);
     } catch (err) {
       console.warn(`[sigmap] could not update ${path.relative(cwd, settingsPath)}: ${err.message}`);
     }
   }
 
-  // Always print the manual snippet so users can configure other tools
-  console.warn('[sigmap] MCP server config snippet:');
-  console.warn(JSON.stringify({ mcpServers: { 'sigmap': serverEntry } }, null, 2));
+  // Zed uses context_servers (different shape from mcpServers)
+  const zedSettingsPath = path.join(os.homedir(), '.config', 'zed', 'settings.json');
+  if (fs.existsSync(zedSettingsPath)) {
+    try {
+      const raw      = fs.readFileSync(zedSettingsPath, 'utf8');
+      const settings = JSON.parse(raw);
+      if (!settings.context_servers) settings.context_servers = {};
+      if (!settings.context_servers['sigmap']) {
+        settings.context_servers['sigmap'] = {
+          command: { path: 'node', args: [path.resolve(scriptPath), '--mcp'] },
+        };
+        fs.writeFileSync(zedSettingsPath, JSON.stringify(settings, null, 2) + '\n');
+        console.warn('[sigmap] registered context server in ~/.config/zed/settings.json');
+      }
+    } catch (err) {
+      console.warn(`[sigmap] could not update ~/.config/zed/settings.json: ${err.message}`);
+    }
+  }
+
+  // Print manual snippets for all 4 tools
+  console.warn('[sigmap] MCP / context server config snippets:');
+  console.warn('  Claude / Cursor / Windsurf (.claude/settings.json | .cursor/mcp.json | .windsurf/mcp.json):');
+  console.warn(JSON.stringify({ mcpServers: { sigmap: serverEntry } }, null, 2));
+  console.warn('  Zed (~/.config/zed/settings.json):');
+  console.warn(JSON.stringify({ context_servers: { sigmap: { command: { path: 'node', args: [path.resolve(scriptPath), '--mcp'] } } } }, null, 2));
 }
 
 // ---------------------------------------------------------------------------
