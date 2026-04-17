@@ -25,7 +25,7 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 - Fewer retries (1.69 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v5.3.0** — Learning engine + workflow-first release. Use `ask`, `validate`, `judge`, `learn`, `weights`, `compare`, and `share` on top of the core signature pipeline.
+> Latest: **v5.4.0** — Neovim plugin (`sigmap.nvim`). `:SigMap`, `:SigMapQuery`, auto-run on save, statusline widget, and `:checkhealth sigmap` for the #1 most-admired editor.
 
 **What is new in v5.2**
 - `sigmap ask` creates task-focused context in one step
@@ -99,6 +99,7 @@ Measured on 90 coding tasks across 18 real public repos. Full methodology and ra
 | [Standalone binaries](docs/readmes/binaries.md) | macOS, Linux, Windows — no Node required |
 | [VS Code extension](#-vs-code-extension) | Status bar, stale alerts, commands |
 | [JetBrains plugin](#-jetbrains-plugin) | IntelliJ IDEA, WebStorm, PyCharm support |
+| [Neovim plugin](#-neovim-plugin) | `:SigMap`, `:SigMapQuery`, statusline, health check |
 | [Languages supported](#-languages-supported) | 29 languages |
 | [Context strategies](#-context-strategies) | full / per-module / hot-cold |
 | [MCP server](#-mcp-server) | 8 on-demand tools |
@@ -518,6 +519,35 @@ Compatible with **IntelliJ IDEA 2024.1+** (Community & Ultimate), **WebStorm**, 
 
 ---
 
+## 🖥️ Neovim plugin
+
+The official SigMap Neovim plugin (`sigmap.nvim`) brings first-class integration to the #1 most-admired editor (Stack Overflow 2025, 83% admiration rate). Power users who live in the terminal get context regeneration, ranked retrieval, and health checks without leaving Neovim.
+
+| Feature | Detail |
+|---|---|
+| **`:SigMap [args]`** | Regenerate your AI context file asynchronously |
+| **`:SigMapQuery <text>`** | TF-IDF ranked retrieval — results appear in a centered floating window |
+| **Auto-run on save** | `auto_run = true` triggers regen on `BufWritePost` for `.js/ts/py/go/rs/java/rb/lua` |
+| **Statusline widget** | `require('sigmap').statusline()` returns `sm:✓` (fresh) or `sm:⚠ Nh` (stale) |
+| **`:checkhealth sigmap`** | Validates Node 18+, binary presence, and context file freshness |
+| **Binary auto-detection** | Finds `sigmap` → `npx sigmap` → local `gen-context.js` automatically |
+
+**Install (lazy.nvim):**
+```lua
+{ 'manojmallick/sigmap',
+  config = function()
+    require('sigmap').setup({
+      auto_run    = true,   -- regenerate on save
+      float_query = true,   -- show query results in a floating window
+    })
+  end,
+}
+```
+
+**Source:** [`neovim-plugin/`](neovim-plugin/) | **Docs:** [`neovim-plugin/README.md`](neovim-plugin/README.md)
+
+---
+
 ## 🌐 Languages supported
 
 > 29 languages and formats. All implemented with zero external dependencies — pure regex + Node built-ins.
@@ -811,7 +841,7 @@ Every run now prints a coverage line alongside token reduction:
 
 ```
 ───────────────────────────────────────────
- SigMap v5.3.0
+ SigMap v5.4.0
  Files scanned  : 76
  Symbols found  : 332
  Token reduction: 94%  (65,227 → 4,103)
@@ -1008,6 +1038,11 @@ sigmap/
 ├── vscode-extension/            ← VS Code extension (v1.5)
 │   ├── package.json             ← manifest — commands, settings, activation
 │   └── src/extension.js         ← status bar, stale notification, commands
+│
+├── neovim-plugin/               ← Neovim plugin — sigmap.nvim (v5.4)
+│   ├── lua/sigmap/init.lua      ← M.setup(), M.run(), M.query(), M.statusline()
+│   ├── lua/sigmap/health.lua    ← :checkhealth sigmap
+│   └── plugin/sigmap.lua        ← :SigMap and :SigMapQuery user commands
 │
 ├── test/
 │   ├── fixtures/                ← one source file per language
