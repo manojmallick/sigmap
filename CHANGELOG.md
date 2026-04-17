@@ -10,6 +10,23 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.9.0] — 2026-04-18
+
+### Added
+
+- **`sigmap bench --submit`** — new CLI command that reads `version.json` + local `.context/benchmark-history.ndjson` and formats a shareable community benchmark submission block (text and `--json`).
+- **`scripts/verify-checksums.mjs`** — new standalone script to verify a downloaded binary against its `.sha256` checksum file; exits 0 on match, 1 on mismatch.
+- **SHA-256 checksum generation in `build-binary.mjs`** — each binary build now writes a matching `dist/<artifact>.sha256` file automatically.
+- **22 integration tests** in `test/integration/v590-binary-polish.test.js` covering all acceptance criteria.
+
+### Changed
+
+- **`scripts/verify-binary.mjs`** — extended smoke tests with 5 new checks (tests 6–10): `ask`, `weights`, `history`, `bench --submit`, and `bench --submit --json`.
+- **`version.json`** — bumped to `5.9.0`, `benchmark_id` updated to `sigmap-v5.9-main`.
+- **`test/integration/v580-trust-completion.test.js`** — version assertion relaxed from exact `5.8.0` to `>= 5.8.0` so future releases don't break the test.
+
+---
+
 ## [5.8.0] — 2026-04-18
 
 ### Added

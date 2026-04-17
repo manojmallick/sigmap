@@ -25,14 +25,13 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 - Fewer retries (1.68 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v5.8.0** — Trust Completion & Conversion. Canonical benchmark headers on all 5 benchmark pages, 30-second demo strip on homepage, user-type routing table, new compare-alternatives and walkthrough guide pages, micro trust-leak audit.
+> Latest: **v5.9.0** — Binary Polish & Community Benchmarks. SHA-256 checksum generation for binaries, `sigmap bench --submit` for community benchmark sharing, extended binary smoke tests covering the full v5.x workflow.
 
-**What's new in v5.8**
-- Canonical `:::info` benchmark snapshot block on all 5 benchmark pages (`sigmap-v5.8-main`)
-- New guide pages: `compare-alternatives` and end-to-end `walkthrough` on the `gin` repo
-- Homepage demo strip showing `ask → validate → judge` in sequence
-- "Who is this for?" routing table in docs landing for 6 user archetypes
-- `version.json` gains `retrieval_lift: 5.9` field; all packages bumped to 5.8.0
+**What's new in v5.9**
+- `sigmap bench --submit` — formats local benchmark history as a shareable community block (text and `--json`)
+- Binary builds now write a `.sha256` checksum file alongside each artifact
+- `scripts/verify-checksums.mjs` — verify any downloaded binary against its checksum
+- Extended `verify-binary.mjs` smoke tests: `ask`, `weights`, `history`, `bench --submit`
 
 **Daily workflow**
 
