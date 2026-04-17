@@ -7763,7 +7763,7 @@ function _coverageBar(pct, width) {
   return '\u2588'.repeat(filled) + '\u2591'.repeat(width - filled);
 }
 
-function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, budgetLimit, coverageResult, isAutoBudget) {
+function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, budgetLimit, coverageResult, isAutoBudget, configuredMaxTokens) {
   const reduction = inputTokens > 0 ? (100 - (finalTokens / inputTokens) * 100).toFixed(1) : 0;
   const overBudget = finalTokens > (budgetLimit || 6000);
   if (asJson) {
@@ -7801,6 +7801,10 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
     const budgetLabel = isAutoBudget
       ? `${budgetLimit || 6000} (auto-scaled)`
       : `${budgetLimit || 6000} (fixed)`;
+    if (isAutoBudget && configuredMaxTokens && configuredMaxTokens !== budgetLimit) {
+      console.warn(`[sigmap] note: autoMaxTokens is active — your maxTokens:${configuredMaxTokens} config was overridden by auto-scaled budget (${budgetLimit})`);
+      console.warn(`  to use your value, set "autoMaxTokens": false in gen-context.config.json`);
+    }
     console.log(`[sigmap] report:`);
     console.log(`  version         : ${VERSION}`);
     console.log(`  files processed : ${fileCount}`);
@@ -7810,7 +7814,11 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
     console.log(`  budget limit    : ${budgetLabel}`);
     console.log(`  reduction       : ${reduction}%`);
     if (coverageResult) {
-      console.log(`  coverage        : ${coverageResult.grade} (${coverageResult.score}%)  — ${coverageResult.included} of ${coverageResult.total} source files included`);
+      const skipNote = coverageResult.nonCodeSkipped > 0
+        ? `  (${coverageResult.nonCodeSkipped} non-code files skipped — json, md, config)`
+        : '';
+      console.log(`  coverage        : ${coverageResult.grade} (${coverageResult.score}%)  — ${coverageResult.included} of ${coverageResult.total} code files included`);
+      if (skipNote) console.log(`                  ${skipNote}`);
       console.log(`  confidence      : ${coverageResult.confidence}`);
       if (coverageResult.perModule && coverageResult.perModule.size > 0) {
         console.log('');
@@ -7820,6 +7828,15 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
           const bar = _coverageBar(mod.pct);
           const attention = mod.pct < 50 ? '  \u2190 attention needed' : '';
           console.log(`    ${dir.padEnd(18)} ${bar} ${String(mod.pct).padStart(3)}% (${mod.included}/${mod.total} files)${attention}`);
+        }
+        const lowModules = [...coverageResult.perModule.entries()].filter(([, m]) => m.pct < 50 && m.total > 0);
+        if (lowModules.length > 0) {
+          console.log('');
+          console.log('  tip: modules marked "\u2190 attention needed" have <50% code-file coverage.');
+          console.log('       Common causes:');
+          console.log('         \u2022 token budget dropped files \u2014 raise maxTokens or use strategy:"per-module"');
+          console.log('         \u2022 srcDir path includes non-code files \u2014 check .contextignore or exclude config');
+          console.log('         \u2022 srcDir path is wrong \u2014 verify srcDirs in gen-context.config.json');
         }
       }
     }
@@ -8328,7 +8345,7 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
   }
 
   if (reportMode || process.argv.includes('--report')) {
-    printReport(result.inputTokenTotal, result.finalTokens, result.fileCount, result.droppedCount, reportJson, effectiveMaxTokens, result.coverageResult, config.autoMaxTokens !== false && effectiveMaxTokens !== config.maxTokens);
+    printReport(result.inputTokenTotal, result.finalTokens, result.fileCount, result.droppedCount, reportJson, effectiveMaxTokens, result.coverageResult, config.autoMaxTokens !== false && effectiveMaxTokens !== config.maxTokens, config.maxTokens);
   }
 
   // Usage tracking (v0.9) — optional append-only NDJSON log
@@ -9494,7 +9511,7 @@ function main() {
       console.log('[sigmap] health:');
       console.log(`  score           : ${result.score}/100 (grade ${result.grade})`);
       if (coverageResult) {
-        console.log(`  coverage        : ${coverageResult.grade} (${coverageResult.score}%)  — ${coverageResult.included} of ${coverageResult.total} source files`);
+        console.log(`  file access     : ${coverageResult.grade} (${coverageResult.score}%)  — ${coverageResult.included} of ${coverageResult.total} files accessible in srcDirs`);
       }
       console.log(`  strategy        : ${result.strategy}`);
       console.log(`  token reduction : ${result.tokenReductionPct !== null ? result.tokenReductionPct + '%' : 'no history'}`);
