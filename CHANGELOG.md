@@ -10,6 +10,23 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.7.0] — 2026-04-17
+
+### Added
+
+- **`version.json`** — canonical source of truth for version, benchmark date, language count (29), MCP tools (9), tests (495), and official benchmark metrics snapshot.
+
+### Changed
+
+- **README metrics** — `78.9%` → `80.0%` hit@5 and `1.69` → `1.68` prompts per task; benchmark table now matches official v5.7 snapshot.
+- **README what's-new block** — replaced stale "v5.2" section with "What's new in v5.7" entry covering version.json, metrics sync, and language count correction.
+- **`docs/index.html`** — `softwareVersion` updated from `5.5.0` to `5.7.0`.
+- **`docs/languages.html`** — all user-facing "21 languages" occurrences updated to "29 languages and formats" (OG meta, Twitter meta, structured data headline, hero heading, stat badge, section heading, section sub).
+- **`docs/quick-start.html`** — language count nav card updated from "21 languages" to "29 languages and formats".
+- **`docs/repomix.html`** — current-copy language count updated from "21 languages" to "29 languages and formats".
+
+---
+
 ## [5.6.0] — 2026-04-17
 
 ### Changed
