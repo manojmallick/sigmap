@@ -860,7 +860,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.3.0
+  version         : 5.4.0
   files processed : 76
   reduction       : 93.7%
   coverage        : A (97%)  — 76 of 78 source files included
@@ -904,7 +904,7 @@ sigmap --health --json
 Every output file now carries a metadata line so you can inspect freshness at a glance:
 
 ```
-<!-- sigmap: version=5.3.0 confidence=HIGH coverage=97% dropped=2 commit=8540612 -->
+<!-- sigmap: version=5.4.0 confidence=HIGH coverage=97% dropped=2 commit=8540612 -->
 ```
 
 ### Diff risk score
