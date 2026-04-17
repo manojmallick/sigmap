@@ -25,13 +25,14 @@ npx sigmap   # 10 seconds. zero config. your AI never reads the wrong file again
 - Fewer retries (1.68 vs 2.84 prompts per task)
 - Far smaller context (~2K–4K tokens instead of ~80K)
 
-> Latest: **v5.7.0** — Growth & Positioning. Canonical `version.json`, README rewrite, language count corrected to 29 everywhere, softwareVersion updated, stale metrics replaced with official v5.7 snapshot.
+> Latest: **v5.8.0** — Trust Completion & Conversion. Canonical benchmark headers on all 5 benchmark pages, 30-second demo strip on homepage, user-type routing table, new compare-alternatives and walkthrough guide pages, micro trust-leak audit.
 
-**What's new in v5.7**
-- Canonical `version.json` — single source of truth for version, metrics, language count
-- README and all docs updated to official v5.7 benchmark snapshot
-- All surfaces now say `29 languages and formats` (corrected from 21)
-- 30-second quickstart and proof strip added to README
+**What's new in v5.8**
+- Canonical `:::info` benchmark snapshot block on all 5 benchmark pages (`sigmap-v5.8-main`)
+- New guide pages: `compare-alternatives` and end-to-end `walkthrough` on the `gin` repo
+- Homepage demo strip showing `ask → validate → judge` in sequence
+- "Who is this for?" routing table in docs landing for 6 user archetypes
+- `version.json` gains `retrieval_lift: 5.9` field; all packages bumped to 5.8.0
 
 **Daily workflow**
 
