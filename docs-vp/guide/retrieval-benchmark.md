@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v5.2. 78.9% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
+description: Latest saved retrieval benchmark for SigMap v5.3. 80.0% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 78.9% hit@5"
+      content: "SigMap retrieval benchmark — 80.0% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 78.9% hit@5 vs 13.6% random baseline, 5.8x lift, 90 tasks, 18 repos."
+      content: "Latest saved run: 80.0% hit@5 vs 13.6% random baseline, 5.9x lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/retrieval-benchmark"
@@ -15,9 +15,9 @@ head:
 
 # Retrieval benchmark
 
-Latest saved run: **2026-04-16 (v5.2.0)**
+Latest saved run: **2026-04-17 (v5.3.0)**
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **78.9% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **80.0% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
 ## Why this benchmark matters
 
@@ -33,8 +33,8 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 | 13.6% | **78.9%** |
-| Lift | — | **5.8x** |
+| Average hit@5 | 13.6% | **80.0%** |
+| Lift | — | **5.9x** |
 | Correct (rank 1) | ~1% | **52.2%** |
 | Partial (ranks 2–5) | ~13% | **26.7%** |
 | Wrong (not in top 5) | ~86% | **21.1%** |

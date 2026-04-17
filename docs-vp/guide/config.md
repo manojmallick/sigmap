@@ -59,7 +59,7 @@ sigmap --init
 }
 ```
 
-### Claude Code or Cursor with MCP
+### Claude Code, Cursor, Windsurf, or Zed with MCP
 
 ```json
 {

@@ -1,13 +1,13 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v5.2. 52.2% correct, 40.6% fewer prompts, and 78.9% hit@5 across 90 tasks on 18 repos.
+description: Latest saved task benchmark for SigMap v5.3. 52.2% correct, 41.4% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
       content: "SigMap task benchmark — fewer retries, better context"
   - - meta
     - property: og:description
-      content: "Latest saved run: 52.2% correct, 1.69 prompts per task, 40.6% prompt reduction, 90 tasks, 18 repos."
+      content: "Latest saved run: 52.2% correct, 1.69 prompts per task, 41.4% prompt reduction, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/task-benchmark"
@@ -15,7 +15,7 @@ head:
 
 # Task benchmark
 
-Latest saved run: **2026-04-16 (v5.2.0)**
+Latest saved run: **2026-04-17 (v5.3.0)**
 
 This page answers the question people care about most:
 
@@ -27,8 +27,8 @@ This page answers the question people care about most:
 |---|:---:|:---:|
 | Task success proxy | 10% | **52.2%** |
 | Prompts per task | 2.84 | **1.69** |
-| Prompt reduction | — | **40.6%** |
-| Retrieval hit@5 | 13.6% | **78.9%** |
+| Prompt reduction | — | **41.4%** |
+| Retrieval hit@5 | 13.6% | **80.0%** |
 
 ## Why the task benchmark exists
 
@@ -58,12 +58,12 @@ The task benchmark models that outcome from the ranked file quality tiers:
 |---|---:|
 | Average prompts without SigMap | 2.84 |
 | Average prompts with SigMap | **1.69** |
-| Reduction | **40.6%** |
+| Reduction | **41.4%** |
 | Average hit@5 lift | **55.4x** across repo baselines |
 
 ## What changed in the v5 story
 
-The earlier SigMap story was mostly "smaller context." The v5.2 story is more useful:
+The earlier SigMap story was mostly "smaller context." The v5.3 story is more useful:
 
 - use [ask](/guide/ask) to build the focused context
 - use [validate](/guide/validate) to make sure coverage is healthy

@@ -62,7 +62,7 @@ If you are new to the product, start with the workflow pages first:
 | `explain <file>` | Why a file is included or excluded from context |
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
 | `--watch` | Watch for file changes and regenerate incrementally |
-| `--setup` | Auto-configure MCP servers, install git hook, start watcher |
+| `--setup` | Auto-wire MCP for Claude, Cursor, Windsurf, and Zed; install git hook; start watcher |
 | `--diff` | Generate context only for changed files (shows risk score per file) |
 | `--diff --staged` | Generate context only for staged files |
 | `--mcp` | Start the stdio MCP server |
@@ -373,19 +373,41 @@ sigmap --watch
 
 ## --setup
 
-One-command setup. Detects `.claude/settings.json` and `.cursor/mcp.json` automatically, adds the sigmap MCP server entry, installs a git post-commit hook, and starts the file watcher.
+One-command setup. Auto-wires the SigMap MCP server into all detected AI editor config files, installs a git post-commit hook, and starts the file watcher.
+
+**Supported editors (v5.3.0):**
+
+| Editor | Config file written |
+|--------|-------------------|
+| Claude Code | `.claude/settings.json` → `mcpServers.sigmap` |
+| Cursor | `.cursor/mcp.json` → `mcpServers.sigmap` |
+| Windsurf (project) | `.windsurf/mcp.json` → `mcpServers.sigmap` |
+| Windsurf (global) | `~/.codeium/windsurf/mcp_config.json` → `mcpServers.sigmap` |
+| Zed | `~/.config/zed/settings.json` → `context_servers.sigmap` |
+
+Each target is only written if the file already exists — `--setup` will not create IDE config files. Running `--setup` again is safe: existing `sigmap` entries are never overwritten (idempotent).
 
 ```bash
 sigmap --setup
 ```
 
 ```
-[sigmap] ✓ detected .claude/settings.json
-[sigmap] ✓ added MCP server entry → .claude/settings.json
-[sigmap] ✓ detected .cursor/mcp.json
-[sigmap] ✓ added MCP server entry → .cursor/mcp.json
-[sigmap] ✓ installed .git/hooks/post-commit
-[sigmap] ✓ watcher started on src/ app/ lib/
+[sigmap] registered MCP server in .claude/settings.json
+[sigmap] registered MCP server in .cursor/mcp.json
+[sigmap] registered MCP server in .windsurf/mcp.json
+[sigmap] registered context server in ~/.config/zed/settings.json
+[sigmap] installed .git/hooks/post-commit
+[sigmap] watching for changes (Ctrl+C to stop)…
+```
+
+After registration `--setup` also prints manual snippets for all four tools so you can configure any editor not listed above:
+
+```
+[sigmap] MCP / context server config snippets:
+  Claude / Cursor / Windsurf:
+  { "mcpServers": { "sigmap": { "command": "node", "args": ["./gen-context.js", "--mcp"] } } }
+  Zed:
+  { "context_servers": { "sigmap": { "command": { "path": "node", "args": ["./gen-context.js", "--mcp"] } } } }
 ```
 
 ---
@@ -433,7 +455,7 @@ sigmap --diff main
 
 ## --mcp
 
-Start the stdio MCP server implementing the Model Context Protocol. Used by Claude Code, Cursor, and Windsurf. Do not call this directly — wire it via the IDE config (see [MCP setup](/guide/mcp)).
+Start the stdio MCP server implementing the Model Context Protocol. Used by Claude Code, Cursor, Windsurf, and Zed. Do not call this directly — wire it via `sigmap --setup` or the IDE config (see [MCP setup](/guide/mcp)).
 
 ```bash
 node gen-context.js --mcp

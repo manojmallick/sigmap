@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.2, with the latest milestone focused on trust, workflow, and local learning.
+description: SigMap version history and roadmap. From v0.0 to v5.3, with the latest milestone completing MCP auto-wire for Windsurf and Zed.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped/planned. MIT open source from day one.
 
-**Stats:** 98.1% overall token reduction · 460+ tests passing · 29 languages · 0 npm deps
+**Stats:** 98.1% overall token reduction · 480+ tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -324,6 +324,19 @@ Benchmark runs now leave a permanent record that feeds back into the UI. All thr
 
 ### v5.3 — MCP ecosystem completeness ✓ (tagged v5.3.0 — 2026-04-17)
 
+`sigmap --setup` previously only auto-wired MCP for Claude Code and Cursor. v5.3 closes that gap so all four major AI editors are covered with a single command.
+
+- **Windsurf** — writes `mcpServers.sigmap` to `.windsurf/mcp.json` (project-level) and `~/.codeium/windsurf/mcp_config.json` (global).
+- **Zed** — writes `context_servers.sigmap` to `~/.config/zed/settings.json` using Zed's distinct `command.path`/`command.args` shape.
+- **Idempotent** — each target is skipped when the file does not exist; existing `sigmap` entries are never overwritten.
+- **Updated snippets** — `--setup` now prints manual config blocks for all four tools so other editors can be wired by hand.
+
+**Tags:** `--setup` · Windsurf MCP · Zed context_servers · `registerMcp()`
+
+**Impact:** MCP auto-wire coverage: 2 editors → 4 editors
+
+---
+
 ### v5.2 — Learning engine + workflow-first docs ✓ (tagged v5.2.0 — 2026-04-16)
 
 This release turns SigMap into a stronger daily workflow product, not just a signature generator.
@@ -340,7 +353,7 @@ This release turns SigMap into a stronger daily workflow product, not just a sig
 
 ## Current milestone — v5.x
 
-Current focus after v5.2: unify the benchmark runners around the shared ranker, benchmark the learning engine directly, and keep the public metrics synchronized across CLI, docs, and release surfaces.
+Current focus after v5.3: build the `sigmap.nvim` Neovim plugin (separate repo) and continue expanding IDE coverage. Also planned: unify benchmark runners around the shared ranker, benchmark the learning engine directly, and keep public metrics synchronised across CLI, docs, and release surfaces.
 
 ---
 
