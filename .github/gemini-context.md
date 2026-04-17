@@ -1,7 +1,7 @@
 ## Auto-generated signatures
 <!-- Updated by gen-context.js -->
 You are a coding assistant with complete knowledge of this codebase.
-The following code signatures were extracted by SigMap v5.6.0 on 2026-04-17T16:53:06.596Z.
+The following code signatures were extracted by SigMap v5.6.0 on 2026-04-17T17:05:56.880Z.
 
 These signatures represent every public function, class, and type in the project.
 
@@ -12,7 +12,7 @@ These signatures represent every public function, class, and type in the project
 
 # Code signatures
 
-## changes (last 5 commits — 15 minutes ago)
+## changes (last 5 commits — 9 minutes ago)
 ```
 src/analysis/coverage-score.js                ~coverageScore  ~_walk
 ```
@@ -622,13 +622,6 @@ function formatRankJSON(results, query) → object
 function detectIntent(query)
 ```
 
-### src/analysis/coverage-score.js
-```
-module.exports = { coverageScore, CODE_EXTS }
-function coverageScore(cwd, fileEntries, config)
-function _walk(dir, excludeSet, out)
-```
-
 ### src/format/benchmark-report.js
 ```
 module.exports = { loadBenchmarkReports, buildBenchmarkSummary, generateBenchmarkReportHtml, writeBenchmarkReport }
@@ -654,6 +647,13 @@ function renderQualitySection(quality)
 function renderTaskSection(task)
 function generateBenchmarkReportHtml(reports, opts = {})
 function writeBenchmarkReport(cwd, opts = {})
+```
+
+### src/analysis/coverage-score.js
+```
+module.exports = { coverageScore, CODE_EXTS }
+function coverageScore(cwd, fileEntries, config)
+function _walk(dir, excludeSet, out)
 ```
 
 ### src/mcp/server.js

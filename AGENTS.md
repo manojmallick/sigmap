@@ -12,7 +12,7 @@ Use this marker block for all appendable context files:
 ## Auto-generated signatures
 <!-- Updated by gen-context.js -->
 You are a coding assistant with full knowledge of this codebase.
-Below are the code signatures extracted by SigMap v5.6.0 on 2026-04-17T16:53:06.594Z.
+Below are the code signatures extracted by SigMap v5.6.0 on 2026-04-17T17:05:56.879Z.
 
 Use these signatures to answer questions about the code accurately.
 
@@ -23,7 +23,7 @@ Use these signatures to answer questions about the code accurately.
 
 # Code signatures
 
-## changes (last 5 commits — 15 minutes ago)
+## changes (last 5 commits — 9 minutes ago)
 ```
 src/analysis/coverage-score.js                ~coverageScore  ~_walk
 ```
@@ -633,13 +633,6 @@ function formatRankJSON(results, query) → object
 function detectIntent(query)
 ```
 
-### src/analysis/coverage-score.js
-```
-module.exports = { coverageScore, CODE_EXTS }
-function coverageScore(cwd, fileEntries, config)
-function _walk(dir, excludeSet, out)
-```
-
 ### src/format/benchmark-report.js
 ```
 module.exports = { loadBenchmarkReports, buildBenchmarkSummary, generateBenchmarkReportHtml, writeBenchmarkReport }
@@ -665,6 +658,13 @@ function renderQualitySection(quality)
 function renderTaskSection(task)
 function generateBenchmarkReportHtml(reports, opts = {})
 function writeBenchmarkReport(cwd, opts = {})
+```
+
+### src/analysis/coverage-score.js
+```
+module.exports = { coverageScore, CODE_EXTS }
+function coverageScore(cwd, fileEntries, config)
+function _walk(dir, excludeSet, out)
 ```
 
 ### src/mcp/server.js
