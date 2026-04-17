@@ -9081,6 +9081,74 @@ function main() {
     process.exit(0);
   }
 
+  // v5.9: `sigmap bench --submit` — format local benchmark history as a shareable community block
+  if (args[0] === 'bench' && args.includes('--submit')) {
+    const versionMeta = (() => {
+      try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'version.json'), 'utf8')); }
+      catch (_) { return {}; }
+    })();
+
+    const histPath = path.join(cwd, '.context', 'benchmark-history.ndjson');
+    let localMetrics = null;
+    if (fs.existsSync(histPath)) {
+      try {
+        const entries = fs.readFileSync(histPath, 'utf8').trim().split('\n')
+          .map((l) => { try { return JSON.parse(l); } catch (_) { return null; } }).filter(Boolean);
+        const ret = [...entries].reverse().find((e) => e.type === 'retrieval');
+        const tok = [...entries].reverse().find((e) => e.type === 'token-reduction');
+        if (ret || tok) {
+          localMetrics = {
+            hitAt5Pct:       ret ? (ret.hitAt5Pct || Math.round((ret.hitAt5 || 0) * 100)) : null,
+            reductionPct:    tok ? (tok.reduction || tok.avgReductionPct || null) : null,
+            runDate:         (ret || tok).ts ? new Date((ret || tok).ts).toISOString().slice(0, 10) : null,
+          };
+        }
+      } catch (_) {}
+    }
+
+    const canonical = versionMeta.metrics || {};
+    const submission = {
+      sigmapVersion:     versionMeta.version || 'unknown',
+      benchmarkId:       versionMeta.benchmark_id || 'unknown',
+      canonicalHitAt5:   canonical.hit_at_5 != null ? Math.round(canonical.hit_at_5 * 1000) / 10 : null,
+      canonicalReduction: canonical.overall_token_reduction_pct || null,
+      local:             localMetrics,
+      submittedAt:       new Date().toISOString().slice(0, 10),
+    };
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify(submission, null, 2) + '\n');
+    } else {
+      const bar = '─'.repeat(56);
+      const lines = [
+        bar,
+        ' SigMap Community Benchmark Submission',
+        bar,
+        ` SigMap version : ${submission.sigmapVersion}`,
+        ` Benchmark ID   : ${submission.benchmarkId}`,
+        ` Submitted      : ${submission.submittedAt}`,
+        bar,
+        ' Canonical metrics (official release):',
+        ` hit@5          : ${submission.canonicalHitAt5 != null ? submission.canonicalHitAt5 + '%' : 'n/a'}`,
+        ` token reduction: ${submission.canonicalReduction != null ? submission.canonicalReduction + '%' : 'n/a'}`,
+      ];
+      if (localMetrics) {
+        lines.push(bar, ' Local run metrics (this repo):');
+        if (localMetrics.hitAt5Pct != null)    lines.push(` hit@5          : ${localMetrics.hitAt5Pct}%`);
+        if (localMetrics.reductionPct != null)  lines.push(` token reduction: ${localMetrics.reductionPct}%`);
+        if (localMetrics.runDate)               lines.push(` run date       : ${localMetrics.runDate}`);
+      } else {
+        lines.push(bar, ' Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs');
+      }
+      lines.push(bar);
+      lines.push(' Paste the block above into a GitHub Discussion to share your results.');
+      lines.push(' https://github.com/manojmallick/sigmap/discussions');
+      lines.push(bar);
+      console.log(lines.join('\n'));
+    }
+    process.exit(0);
+  }
+
   // v5.2: `sigmap learn` — manual learning controls for ranking
   if (args[0] === 'learn') {
     const doReset = args.includes('--reset');

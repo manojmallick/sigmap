@@ -45,14 +45,16 @@ console.log('\nv5.8 trust completion tests\n');
 
 // ── Fix 1: version.json ───────────────────────────────────────────────────────
 
-test('version.json: version is 5.8.0', () => {
+test('version.json: version is >= 5.8.0', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.version, '5.8.0', `expected 5.8.0, got ${v.version}`);
+  const [major, minor] = v.version.split('.').map(Number);
+  assert.ok(major > 5 || (major === 5 && minor >= 8), `expected >= 5.8.0, got ${v.version}`);
 });
 
-test('version.json: benchmark_id is sigmap-v5.8-main', () => {
+test('version.json: benchmark_id is sigmap-v5.8-main or later', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.benchmark_id, 'sigmap-v5.8-main');
+  assert.ok(v.benchmark_id && v.benchmark_id.startsWith('sigmap-v5.'),
+    `expected sigmap-v5.x-main, got ${v.benchmark_id}`);
 });
 
 test('version.json: retrieval_lift field exists and equals 5.9', () => {

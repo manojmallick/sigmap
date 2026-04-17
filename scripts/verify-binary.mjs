@@ -148,6 +148,69 @@ try {
   fail('report exited non-zero', e);
 }
 
+// ── Test 6: ask ───────────────────────────────────────────────────────────────
+
+console.log('\n[6] ask (v5.x workflow)');
+try {
+  const out = run(binary, ['ask', 'explain the main function'], TMPDIR);
+  if (out.includes('Intent') || out.includes('Context') || out.includes('sigmap ask')) {
+    pass('ask produced expected output structure');
+  } else {
+    fail('ask output missing expected fields', new Error(`output: ${out.slice(0, 200)}`));
+  }
+} catch (e) {
+  fail('ask exited non-zero', e);
+}
+
+// ── Test 7: weights ───────────────────────────────────────────────────────────
+
+console.log('\n[7] weights (v5.x workflow)');
+try {
+  run(binary, ['weights'], TMPDIR);
+  pass('weights exited 0');
+} catch (e) {
+  fail('weights exited non-zero', e);
+}
+
+// ── Test 8: history ───────────────────────────────────────────────────────────
+
+console.log('\n[8] history (v5.x workflow)');
+try {
+  run(binary, ['history'], TMPDIR);
+  pass('history exited 0');
+} catch (e) {
+  fail('history exited non-zero', e);
+}
+
+// ── Test 9: bench --submit ────────────────────────────────────────────────────
+
+console.log('\n[9] bench --submit (v5.9 community benchmarks)');
+try {
+  const out = run(binary, ['bench', '--submit'], TMPDIR);
+  if (out.includes('SigMap') || out.includes('sigmap')) {
+    pass('bench --submit produced output');
+  } else {
+    fail('bench --submit output missing expected content', new Error(`output: ${out.slice(0, 200)}`));
+  }
+} catch (e) {
+  fail('bench --submit exited non-zero', e);
+}
+
+// ── Test 10: bench --submit --json ───────────────────────────────────────────
+
+console.log('\n[10] bench --submit --json (v5.9 machine-readable)');
+try {
+  const out = run(binary, ['bench', '--submit', '--json'], TMPDIR);
+  const data = JSON.parse(out);
+  if (data.sigmapVersion && data.benchmarkId) {
+    pass(`bench --submit --json valid JSON (version: ${data.sigmapVersion})`);
+  } else {
+    fail('bench --submit --json missing required fields', new Error(`output: ${out.slice(0, 200)}`));
+  }
+} catch (e) {
+  fail('bench --submit --json failed or produced invalid JSON', e);
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log(`\n──────────────────────────────────────────────────────────────────────────`);
