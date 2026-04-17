@@ -1,10 +1,10 @@
 ---
 title: Learning and weights
-description: Local-only ranking feedback in v5.2. Use sigmap learn and sigmap weights to reinforce helpful files and penalize misleading ones.
+description: Local-only ranking feedback in v5.5. Use sigmap learn and sigmap weights to reinforce helpful files and penalize misleading ones.
 ---
 # Learning and weights
 
-v5.2 adds a safe, local-only learning layer on top of the ranker.
+v5.5 adds a safe, local-only learning layer on top of the ranker.
 
 Commands:
 

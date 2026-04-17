@@ -15,7 +15,7 @@ sigmap judge --response response.txt --context .context/query-context.md --learn
 ## What it reports
 
 - **Groundedness** — overlap score between the answer and the source context
-- **Support level** — pass/fail style verdict
+- **Support level** — high / medium / low based on groundedness ratio
 - **Unsupported symbols** — tokens and claims that look weakly supported
 
 This is a traceability check, not a truth oracle. It helps answer: *"Did this response come from the code I provided, or did the model drift?"*
@@ -23,8 +23,8 @@ This is a traceability check, not a truth oracle. It helps answer: *"Did this re
 ## Typical output
 
 ```text
-Groundedness       : 0.78
-Support level      : pass
+Groundedness       : 78%
+Support level      : HIGH
 Unsupported symbols: none
 ```
 

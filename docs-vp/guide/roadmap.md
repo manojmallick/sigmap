@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.5, with the latest milestone fixing coverage clarity and report UX.
+description: SigMap version history and roadmap. From v0.0 to v5.6, with the latest milestone syncing all public surfaces to v5.5 reality.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 98.1% overall token reduction · 478 tests passing · 29 languages · 0 npm deps
+**Stats:** 98.1% overall token reduction · 495 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -384,9 +384,27 @@ This release turns SigMap into a stronger daily workflow product, not just a sig
 
 ---
 
+### v5.6 — Website & docs sync ✓ (tagged v5.6.0 — 2026-04-17)
+
+All public surfaces now reflect v5.5 reality. Before this release, several guide pages still referenced `v5.2`/`v5.3`/`v5.4` workflow labels, benchmark sub-pages showed outdated "latest saved run" versions, and the homepage language count said `21` while the extractors covered 29.
+
+- **Version labels**: `ask.md`, `compare.md`, `learning.md`, `quick-start.md`, `validate.md` — all `v5.2 workflow` references updated to `v5.5`.
+- **Benchmark sub-pages**: `retrieval-benchmark.md`, `task-benchmark.md`, `quality-benchmark.md` — "latest saved run" updated to `v5.5.0` (was `v5.3.0`/`v5.4.0`).
+- **Canonical metrics**: `generalization.md`, `cli.md` — `78.9%` → `80.0%` hit@5, `1.69` → `1.68` prompts per task.
+- **Judge vocabulary**: `judge.md`, `cli.md` — removed `pass/fail`/`"verdict"`; standardised to `Groundedness` / `Support level` / `Unsupported symbols`.
+- **Language count**: `docs/index.html` heading, list item, and structured-data description — `21 languages` → `29 languages and formats`; `softwareVersion` `2.8.0` → `5.5.0`.
+- **MCP tool count**: `mcp.md` — `8 tools` → `9 tools` throughout.
+- **Troubleshooting Issue 16**: new entry explaining the `--report` vs `--health` coverage-grade inconsistency and the v5.5 fix with a before/after comparison table.
+
+**Tags:** `docs-sync` · `canonical-metrics` · `judge-vocabulary` · `29-languages` · `9-mcp-tools`
+
+**Impact:** 17 new doc-sync tests — every acceptance criterion machine-verified on each CI run
+
+---
+
 ## Current milestone — v5.x
 
-v5.5 fixed coverage clarity and report UX. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `scripts/sync-versions.mjs`.
+v5.6 completed the website and docs sync. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `scripts/sync-versions.mjs`.
 
 ---
 

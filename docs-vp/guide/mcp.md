@@ -1,13 +1,13 @@
 ---
 title: MCP server setup
-description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 8 tools over stdio. Zero npm install.
+description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 9 tools over stdio. Zero npm install.
 head:
   - - meta
     - property: og:title
       content: "SigMap MCP Server — on-demand codebase context"
   - - meta
     - property: og:description
-      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 8 MCP tools over stdio."
+      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 9 MCP tools over stdio."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/mcp"
@@ -22,7 +22,7 @@ head:
 
 Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.
 
-The SigMap MCP server exposes 8 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
+The SigMap MCP server exposes 9 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
 
 > **Setup time: under 2 minutes.** Use `sigmap --setup` for automatic configuration.
 
@@ -96,7 +96,7 @@ Stack both MCP servers for the two-layer context strategy — SigMap for always-
 }
 ```
 
-## 8 available tools
+## 9 available tools
 
 All tools are available on-demand — your AI agent calls only what it needs.
 
@@ -140,7 +140,7 @@ Use `ask` to create `.context/query-context.md`, let the model answer, then run 
 
 ## Test the server
 
-Send a raw JSON-RPC request to confirm the server starts and returns all 8 tool definitions.
+Send a raw JSON-RPC request to confirm the server starts and returns all 9 tool definitions.
 
 ```bash
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp

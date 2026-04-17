@@ -10,6 +10,24 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.6.0] — 2026-04-17
+
+### Changed
+
+- **Docs version labels** — all guide pages updated from `v5.2`/`v5.3`/`v5.4` workflow references to `v5.5`.
+- **Benchmark sub-pages** — `retrieval-benchmark.md`, `task-benchmark.md`, `quality-benchmark.md` now show `v5.5.0` as the latest saved run (was `v5.3.0`/`v5.4.0`).
+- **Canonical metrics** — `generalization.md` and `cli.md` updated to `80.0%` hit@5 and `1.68` prompts per task (were `78.9%` / `1.69`).
+- **Judge vocabulary** — `judge.md` and `cli.md` judge examples now use only `Groundedness`, `Support level`, `Unsupported symbols`; removed `pass/fail` and raw `"verdict"` key.
+- **Language count** — `docs/index.html` heading, list item, and structured-data description updated from `21 languages` to `29 languages and formats`; `softwareVersion` updated to `5.5.0`.
+- **MCP tool count** — `mcp.md` description, heading, and test example updated from `8 tools` to `9 tools`.
+
+### Added
+
+- **Troubleshooting Issue 16** — new entry explaining the `--report` vs `--health` coverage-grade inconsistency and the v5.5 fix, with a before/after comparison table.
+- **`test/integration/v560-docs-sync.test.js`** — 17 assertions covering all acceptance criteria for the docs sync.
+
+---
+
 ## [5.5.0] — 2026-04-17
 
 ### Fixed

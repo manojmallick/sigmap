@@ -19,7 +19,7 @@ sigmap validate --query "loginUser validateToken"
 - warning thresholds for low coverage
 - optional query-symbol presence in the ranked results
 
-## Why it matters in v5.2
+## Why it matters in v5.5
 
 The v5 workflow is not just "generate once and hope." `validate` tells you when the current context is too thin, stale, or misconfigured for reliable answers.
 

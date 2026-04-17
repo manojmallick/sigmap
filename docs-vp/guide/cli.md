@@ -138,7 +138,7 @@ sigmap judge --response response.txt --context .context/query-context.md --learn
 JSON output:
 
 ```json
-{ "score": 0.72, "verdict": "pass", "reasons": [], "learning": null }
+{ "groundedness": 0.72, "supportLevel": "high", "reasons": [], "learning": null }
 ```
 
 With `--learn`, judge becomes an opt-in feedback loop. It reads file headings from the context file (`### path` in generated context or `## path` in `.context/query-context.md`) and applies a small learned boost or penalty when groundedness is confidently high or low.
@@ -263,8 +263,8 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         78.9% vs 13.6%   (5.8× lift)
- Avg prompts   1.69 vs 2.84
+ hit@5         80.0% vs 13.6%   (5.9× lift)
+ Avg prompts   1.68 vs 2.84
  Token story   98.1% overall reduction
 ────────────────────────────────────────────
 ```
@@ -281,7 +281,7 @@ sigmap share
 
 ```
 Generated with SigMap — zero-dependency AI context engine
-98.1% fewer tokens · 78.9% retrieval hit@5 · 40.6% fewer prompts
+98.1% fewer tokens · 80.0% retrieval hit@5 · 40.8% fewer prompts
 https://sigmap.dev
 [sigmap] Copied to clipboard.
 ```

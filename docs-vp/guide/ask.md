@@ -4,7 +4,7 @@ description: Use sigmap ask to turn a natural-language coding question into focu
 ---
 # ask
 
-`sigmap ask` is the daily command in v5.2. It turns a natural-language coding question into a focused mini-context plus useful metadata.
+`sigmap ask` is the daily command in v5.5. It turns a natural-language coding question into a focused mini-context plus useful metadata.
 
 ```bash
 sigmap ask "fix the login bug"
