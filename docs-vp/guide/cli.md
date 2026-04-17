@@ -375,7 +375,7 @@ sigmap --watch
 
 One-command setup. Auto-wires the SigMap MCP server into all detected AI editor config files, installs a git post-commit hook, and starts the file watcher.
 
-**Supported editors (v5.4.0):**
+**Supported editors (v5.5.0):**
 
 | Editor | Config file written |
 |--------|-------------------|
@@ -529,14 +529,15 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.4.0
+  version         : 5.5.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
   output tokens   : ~4,103
   budget limit    : 4000 (auto-scaled)
   reduction       : 93.7%
-  coverage        : A (97%)  — 76 of 78 source files included  [budget: 4000 auto-scaled]
+  coverage        : A (97%)  — 76 of 76 code files included
+                    (2 non-code files skipped — json, md, config)
   confidence      : HIGH
 
   Module Coverage:
@@ -569,7 +570,7 @@ sigmap --health
 ```
 [sigmap] health:
   score           : 80/100 (grade B)
-  coverage        : A (97%)  — 76 of 78 source files
+  file access     : A (97%)  — 76 of 78 files accessible in srcDirs
   strategy        : full
   token reduction : 93.7%
   days since regen: 0
@@ -703,7 +704,7 @@ sigmap --impact src/auth/service.ts --json
 
 ```bash
 sigmap --version
-# 5.4.0
+# 5.5.0
 ```
 
 ---

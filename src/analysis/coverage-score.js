@@ -1,10 +1,12 @@
 'use strict';
 
 /**
- * SigMap coverage scorer — v4.0.0
+ * SigMap coverage scorer — v5.5.0
  *
- * Measures what fraction of source files made it into the context output
- * after token-budget application. This is complementary to the health score:
+ * Measures what fraction of *code* files made it into the context output
+ * after token-budget application. Non-code files (json, md, config) are
+ * counted separately as `nonCodeSkipped` so the grade reflects real coverage.
+ *
  *   - Health score = context freshness / reduction quality / budget compliance
  *   - Coverage score = how much of the codebase is represented in context
  *
@@ -19,10 +21,23 @@
  *   total: number,
  *   included: number,
  *   dropped: number,
+ *   nonCodeSkipped: number,
  *   confidence: 'HIGH'|'MEDIUM'|'LOW',
  *   perModule: Map<string, {total:number, included:number, pct:number}>,
  * }}
  */
+
+const CODE_EXTS = new Set([
+  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx',
+  '.py', '.rb', '.go', '.rs', '.java', '.kt',
+  '.cs', '.cpp', '.c', '.h', '.hpp',
+  '.swift', '.dart', '.scala', '.php',
+  '.vue', '.svelte', '.css', '.scss',
+  '.sql', '.graphql', '.proto', '.tf',
+  '.lua', '.r', '.jl', '.ex', '.exs',
+  '.sh', '.bash', '.zsh', '.ps1',
+]);
+
 function coverageScore(cwd, fileEntries, config) {
   const fs   = require('fs');
   const path = require('path');
@@ -41,12 +56,17 @@ function coverageScore(cwd, fileEntries, config) {
 
   const includedSet = new Set((fileEntries || []).map(f => f.filePath));
 
-  // Walk all source files from srcDirs
+  // Walk srcDirs: separate code files from non-code files
+  const allFiles  = [];
   const allSource = [];
   for (const relDir of srcDirs) {
     const absDir = path.resolve(cwd, relDir);
-    if (fs.existsSync(absDir)) _walk(absDir, excludeSet, allSource);
+    if (fs.existsSync(absDir)) _walk(absDir, excludeSet, allFiles);
   }
+  for (const f of allFiles) {
+    if (CODE_EXTS.has(path.extname(f).toLowerCase())) allSource.push(f);
+  }
+  const nonCodeSkipped = allFiles.length - allSource.length;
 
   const total    = allSource.length;
   const included = allSource.filter(f => includedSet.has(f)).length;
@@ -66,7 +86,7 @@ function coverageScore(cwd, fileEntries, config) {
     perModule.set(relDir, { total: modFiles.length, included: modIncl, pct: modPct });
   }
 
-  return { score: pct, grade, total, included, dropped, confidence, perModule };
+  return { score: pct, grade, total, included, dropped, nonCodeSkipped, confidence, perModule };
 }
 
 function _walk(dir, excludeSet, out) {
@@ -82,4 +102,4 @@ function _walk(dir, excludeSet, out) {
   }
 }
 
-module.exports = { coverageScore };
+module.exports = { coverageScore, CODE_EXTS };
