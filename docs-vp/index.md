@@ -134,7 +134,7 @@ SigMap is no longer just "shrink the context file." The v5 line turns the produc
 | Overall token reduction | — | **98.1%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-17 (v5.5.0)**.
+Latest saved benchmark run: **2026-04-17 (v5.7.0)**.
 
 </div>
 

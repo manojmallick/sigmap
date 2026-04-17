@@ -375,7 +375,7 @@ sigmap --watch
 
 One-command setup. Auto-wires the SigMap MCP server into all detected AI editor config files, installs a git post-commit hook, and starts the file watcher.
 
-**Supported editors (v5.5.0):**
+**Supported editors (v5.7.0):**
 
 | Editor | Config file written |
 |--------|-------------------|
@@ -529,7 +529,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.5.0
+  version         : 5.7.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
@@ -704,7 +704,7 @@ sigmap --impact src/auth/service.ts --json
 
 ```bash
 sigmap --version
-# 5.5.0
+# 5.7.0
 ```
 
 ---

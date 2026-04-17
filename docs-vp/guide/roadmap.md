@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.6, with the latest milestone syncing all public surfaces to v5.5 reality.
+description: SigMap version history and roadmap. From v0.0 to v5.7, with the latest milestone adding a canonical version.json and correcting all public surfaces to v5.7 reality.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "27 versions shipped. See what changed in each release and what is coming next."
+      content: "28 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -402,9 +402,25 @@ All public surfaces now reflect v5.5 reality. Before this release, several guide
 
 ---
 
+### v5.7 — Growth & positioning ✓ (tagged v5.7.0 — 2026-04-17)
+
+v5.7 adds `version.json` as the single canonical source of truth for version, benchmark date, language count, MCP tool count, test count, and official benchmark metrics — eliminating the manual, error-prone sync that caused version drift across public surfaces in every prior release. All user-facing "21 languages" references across `docs/languages.html`, `docs/quick-start.html`, and `docs/repomix.html` were corrected to `29 languages and formats`. README benchmark numbers were updated to the official v5.7 snapshot (`80.0%` hit@5, `1.68` prompts per task). `docs/index.html` structured-data `softwareVersion` was bumped from `5.5.0` to `5.7.0`.
+
+- **`version.json`** (new): machine-readable record of version, benchmark_date, languages, mcp_tools, tests, and metrics snapshot — referenced by docs and CI.
+- **README benchmark table**: `78.9%` → `80.0%` hit@5; `1.69` → `1.68` prompts per task.
+- **Language count**: corrected to `29 languages and formats` across all affected HTML pages (8 occurrences in `languages.html`, plus `quick-start.html` and `repomix.html`).
+- **`docs/index.html`**: `softwareVersion` `5.5.0` → `5.7.0` in structured data.
+- **All sub-packages**: `package.json`, `packages/core`, `packages/cli`, `vscode-extension`, `jetbrains-plugin`, `gen-context.js`, `src/mcp/server.js` — all bumped to `5.7.0` via `scripts/sync-versions.mjs`.
+
+**Tags:** `version.json` · `canonical-metrics` · `29-languages` · `growth` · `positioning`
+
+**Impact:** single `version.json` eliminates per-release manual sync of 7+ files; 44 integration tests pass
+
+---
+
 ## Current milestone — v5.x
 
-v5.6 completed the website and docs sync. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `scripts/sync-versions.mjs`.
+v5.7 completed the growth & positioning release. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 
