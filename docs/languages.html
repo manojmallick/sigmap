@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Language Support — SigMap</title>
-<meta name="description" content="SigMap extracts signatures from 21 programming languages using pure regex — no npm install, no Tree-sitter. TypeScript, Python, Go, Rust, Java, Kotlin, C#, C++, Ruby, PHP, Swift, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile.">
-<meta property="og:title" content="SigMap — 21 languages, zero dependencies">
+<meta name="description" content="SigMap extracts signatures from 29 languages and formats using pure regex — no npm install, no Tree-sitter. TypeScript, Python, Go, Rust, Java, Kotlin, C#, C++, Ruby, PHP, Swift, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile.">
+<meta property="og:title" content="SigMap — 29 languages and formats, zero dependencies">
 <meta property="og:description" content="Signature extraction for TypeScript, Python, Go, Rust, Java, Kotlin, C#, C++, Ruby, PHP, Swift, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile.">
 <meta property="og:url" content="https://manojmallick.github.io/sigmap/languages.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -13,12 +13,12 @@
 <meta name="twitter:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="SigMap">
-<meta name="twitter:title" content="SigMap — 21 languages, zero dependencies">
+<meta name="twitter:title" content="SigMap — 29 languages and formats, zero dependencies">
 <meta name="twitter:description" content="Signature extraction for TypeScript, Python, Go, Rust, Java, Kotlin, C#, C++, Ruby, PHP, Swift, Dart, Scala, Vue, Svelte and more.">
-<meta name="twitter:image:alt" content="SigMap Language Support — 21 programming languages">
+<meta name="twitter:image:alt" content="SigMap Language Support — 29 languages and formats">
 <meta name="keywords" content="sigmap languages, typescript context, python ai context, go context, rust context, java ai coding, kotlin context, csharp ai, multi-language ai context">
 <link rel="canonical" href="https://manojmallick.github.io/sigmap/languages.html">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap language support — 21 languages, zero dependencies","description":"Signature extraction for TypeScript, Python, Go, Rust, Java, Kotlin, C#, C++, Ruby, PHP, Swift, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile. Pure regex, no npm install.","url":"https://manojmallick.github.io/sigmap/languages.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://manojmallick.github.io/sigmap/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap language support — 29 languages and formats, zero dependencies","description":"Signature extraction for TypeScript, Python, Go, Rust, Java, Kotlin, C#, C++, Ruby, PHP, Swift, Dart, Scala, Vue, Svelte, HTML, CSS, YAML, Shell, Dockerfile. Pure regex, no npm install.","url":"https://manojmallick.github.io/sigmap/languages.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://manojmallick.github.io/sigmap/"}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
 <style>
@@ -150,10 +150,10 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 <div class="page-hero">
   <div class="hero-inner">
     <div class="hero-badge">Pure regex — no Tree-sitter, no native binaries</div>
-    <h1>21 languages.<br>Zero install.</h1>
+    <h1>29 languages<br>and formats.<br>Zero install.</h1>
     <p class="hero-sub">Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.</p>
     <div class="lang-count">
-      <div class="lang-stat"><span class="lang-stat-val">21</span><span class="lang-stat-lbl">Languages</span></div>
+      <div class="lang-stat"><span class="lang-stat-val">29</span><span class="lang-stat-lbl">Languages &amp; Formats</span></div>
       <div class="lang-stat"><span class="lang-stat-val">25</span><span class="lang-stat-lbl">Max sigs/file</span></div>
       <div class="lang-stat"><span class="lang-stat-val">0</span><span class="lang-stat-lbl">npm packages</span></div>
       <div class="lang-stat"><span class="lang-stat-val">162</span><span class="lang-stat-lbl">Tests passing</span></div>
@@ -270,7 +270,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 <section class="section">
   <p class="section-ey">Extraction rules</p>
   <h2>What's in, what's out</h2>
-  <p class="section-sub">Consistent rules across all 21 languages. Deterministic. Always the same output for the same input.</p>
+  <p class="section-sub">Consistent rules across all 29 languages and formats. Deterministic. Always the same output for the same input.</p>
 
   <div class="note-box">
     <div>
@@ -306,7 +306,7 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
 
 <section class="section">
   <p class="section-ey">Reference</p>
-  <h2>All 21 languages</h2>
+  <h2>All 29 languages and formats</h2>
   <p class="section-sub">One extractor file per language. Add a language by contributing a file to src/extractors/.</p>
 
   <div class="lang-grid">
