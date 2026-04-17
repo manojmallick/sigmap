@@ -19,7 +19,7 @@
 <meta name="keywords" content="sigmap, ai context engine, copilot token reduction, ai coding agent, context window optimization, zero dependency, copilot-instructions, claude code context, cursor context, windsurf context">
 <link rel="canonical" href="https://manojmallick.github.io/sigmap/">
 <link rel="sitemap" type="application/xml" href="https://manojmallick.github.io/sigmap/sitemap.xml">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SigMap","applicationCategory":"DeveloperApplication","description":"Zero-dependency AI context engine. 97% token reduction for AI coding agents. Extracts signatures from 29 languages and formats. No npm install.","url":"https://manojmallick.github.io/sigmap/","downloadUrl":"https://www.npmjs.com/package/sigmap","softwareVersion":"5.7.0","operatingSystem":"Any (Node.js 18+)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SigMap","applicationCategory":"DeveloperApplication","description":"Zero-dependency AI context engine. 97% token reduction for AI coding agents. Extracts signatures from 29 languages and formats. No npm install.","url":"https://manojmallick.github.io/sigmap/","downloadUrl":"https://www.npmjs.com/package/sigmap","softwareVersion":"5.8.0","operatingSystem":"Any (Node.js 18+)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
 <style>
@@ -227,11 +227,39 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px;t
 <div class="stats">
   <div class="stats-inner">
     <div class="stat"><span class="stat-val">97%</span><span class="stat-label">Token reduction</span></div>
-    <div class="stat"><span class="stat-val">21</span><span class="stat-label">Languages</span></div>
+    <div class="stat"><span class="stat-val">29</span><span class="stat-label">Languages</span></div>
     <div class="stat"><span class="stat-val">0</span><span class="stat-label">npm deps</span></div>
     <div class="stat"><span class="stat-val">4K</span><span class="stat-label">Tokens / session</span></div>
   </div>
 </div>
+
+<!-- DEMO STRIP -->
+<section class="section" id="demo-strip" style="padding-top:0">
+  <div style="max-width:660px;margin:0 auto;padding:0 24px">
+    <div class="section-ey" style="text-align:center">Try in 30 seconds</div>
+    <div class="terminal" style="margin-top:12px">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="term-title">terminal</span>
+      </div>
+      <div class="term-body">
+        <div><span class="tc">$</span> <span class="tk">npx sigmap</span></div>
+        <div style="color:var(--t3);margin-left:1rem">→ writes .github/copilot-instructions.md</div>
+        <div style="margin-top:8px"><span class="tc">$</span> <span class="tk">sigmap ask</span> <span class="tw">"Where is auth handled?"</span></div>
+        <div style="color:var(--t3);margin-left:1rem">→ ranks the right files, writes query-context.md</div>
+        <div style="margin-top:8px"><span class="tc">$</span> <span class="tk">sigmap validate</span></div>
+        <div style="color:var(--t3);margin-left:1rem">→ confirms coverage ≥ 80%</div>
+        <div style="margin-top:8px"><span class="tc">$</span> <span class="tk">sigmap judge</span> <span class="tw">--answer "loginUser calls validateToken"</span></div>
+        <div style="color:var(--t3);margin-left:1rem">→ Groundedness: 87% · Support level: HIGH</div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:14px;font-size:.9rem;color:var(--t2)">
+      See the <a href="https://manojmallick.github.io/sigmap/guide/walkthrough" style="color:var(--p)">full end-to-end walkthrough →</a>
+    </p>
+  </div>
+</section>
 
 <!-- HOW IT WORKS -->
 <section class="section" id="how-it-works">

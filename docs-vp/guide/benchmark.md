@@ -1,19 +1,32 @@
 ---
 title: Benchmark overview
-description: Official v5.7 benchmark snapshot. 96.7% average token reduction, 80.0% retrieval hit@5, 41% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
+description: Official v5.8 benchmark snapshot. 96.7% average token reduction, 80.0% retrieval hit@5, 40.8% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v5.7 snapshot"
+      content: "SigMap benchmark overview — v5.8 snapshot"
   - - meta
     - property: og:description
-      content: "One place for token, retrieval, quality, and task metrics from the latest saved v5.7 benchmark run."
+      content: "One place for token, retrieval, quality, and task metrics from the latest saved v5.8 benchmark run."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
 ---
 
 # Benchmark overview
+
+::: info Official v5.8 benchmark snapshot
+**Benchmark ID:** sigmap-v5.8-main &nbsp;·&nbsp; **Date:** 2026-04-17
+
+| Metric | Value |
+|---|---:|
+| Hit@5 | **80.0%** vs 13.6% baseline |
+| Retrieval lift | **5.9×** |
+| Prompt reduction | **40.8%** (2.84 → 1.68) |
+| Task success proxy | **52.2%** |
+| Overall token reduction | **98.1%** |
+| GPT-4o overflow (without → with) | **13/18 → 0/18** |
+:::
 
 This is the landing page for the public benchmark story. It answers four different questions:
 
@@ -24,9 +37,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v5.7 snapshot
+## Official v5.8 snapshot
 
-Latest saved benchmark run: **2026-04-17 (v5.7.0)**
+Latest saved benchmark run: **2026-04-17 (v5.8.0)**
 
 | Metric | Result |
 |---|---:|
@@ -51,7 +64,7 @@ Latest saved benchmark run: **2026-04-17 (v5.7.0)**
 
 - SigMap hit@5: **80.0%**
 - Random baseline: **13.6%**
-- Lift: **5.8x**
+- Lift: **5.9x**
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 

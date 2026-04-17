@@ -10,6 +10,32 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [5.8.0] — 2026-04-18
+
+### Added
+
+- **`docs-vp/guide/compare-alternatives.md`** — new page comparing SigMap vs embeddings/RAG, RepoMix, Copilot context, and manual curation with side-by-side tables.
+- **`docs-vp/guide/walkthrough.md`** — end-to-end walkthrough on a real repo (gin): ask → validate → judge → learn, with before/after token and cost table.
+- **Canonical benchmark header block** — `:::info` snapshot block added to all 5 benchmark guide pages (benchmark, retrieval, task, quality, generalization), each referencing `sigmap-v5.8-main`.
+- **30-second demo strip** — homepage `docs/index.html` now shows a terminal demo section (ask → validate → judge) directly below the stats bar.
+- **User-type routing table** — `docs-vp/index.md` landing now opens with a "Who is this for?" table routing new users, daily users, team setup, MCP users, and monorepo evaluators.
+- **Both new guide pages in sidebar** — `compare-alternatives` and `walkthrough` added under a new "Guides" section in `docs-vp/.vitepress/config.mts`.
+- **`version.json` — `retrieval_lift` field** — `metrics.retrieval_lift: 5.9` added; `version` bumped to `5.8.0`; `benchmark_id` updated to `sigmap-v5.8-main`.
+- **33 new integration tests** in `test/integration/v580-trust-completion.test.js` covering all 7 acceptance criteria.
+
+### Changed
+
+- **`version.json`** — bumped to `5.8.0`, `benchmark_id` updated to `sigmap-v5.8-main`.
+- **SVG metrics** — `docs/impact-banner.svg`: `78.9%→80.0%` hit@5, `1.69→1.68` prompts, `40.6%→40.8%` prompt reduction card, "hallucinates" replaced with "unsupported answers"; `docs/comparison-chart.svg`: `78.9%→80.0%`.
+- **`docs/index.html`** — `softwareVersion` structured-data updated to `5.8.0`; stats bar language count corrected from `21` to `29`.
+- **`docs/readmes/vscode-extension.md`** — language count updated from `21` to `29 languages and formats` in badge, table, and architecture diagram.
+- **`docs-vp/index.md`** — tagline updated to remove stale v5.5 text; `v5.7.0` snapshot reference updated to `v5.8.0`; stale v5.5 launch strip replaced with v5.8 announcement.
+- **Benchmark sub-pages** — `retrieval-benchmark.md`, `task-benchmark.md`, `quality-benchmark.md`, `generalization.md` all updated to `v5.8.0` as latest saved run.
+- **`generalization.md`** — adds "Why this matters" intro callout; stale `v5.5.0` snapshot reference updated to `v5.8.0`.
+- **`v560-docs-sync` tests** — version assertions updated to accept `v5.8.0` as the current benchmark version.
+
+---
+
 ## [5.7.0] — 2026-04-17
 
 ### Added

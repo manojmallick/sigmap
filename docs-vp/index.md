@@ -5,10 +5,10 @@ description: SigMap makes AI coding answers more grounded with compact signature
 head:
   - - meta
     - property: og:title
-      content: "SigMap — grounded AI coding context for v5.5"
+      content: "SigMap — grounded AI coding context"
   - - meta
     - property: og:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41% fewer prompts, 98.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 98.1% overall token reduction."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -17,13 +17,13 @@ head:
       content: website
   - - meta
     - name: twitter:title
-      content: "SigMap — grounded AI coding context for v5.5"
+      content: "SigMap — grounded AI coding context"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41% fewer prompts, 98.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 98.1% overall token reduction."
   - - meta
     - name: twitter:image:alt
-      content: "SigMap v5.5 homepage"
+      content: "SigMap — zero-dependency AI context engine"
   - - meta
     - name: keywords
       content: "sigmap, ai context engine, grounded ai answers, code retrieval, mcp, sigmap ask, sigmap judge, sigmap validate, sigmap learn"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Better context. More grounded answers.
-  tagline: "v5.5 fixes coverage metrics: --report now grades only code files, --health labels file access separately, and both outputs explain what they measure."
+  tagline: "Zero-dependency AI context engine. 80.0% hit@5 · 98.1% token reduction · Ask → Validate → Judge → Learn."
   actions:
     - theme: brand
       text: Get Started →
@@ -78,19 +78,32 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>v5.5 launch:</strong></span>
-  <span><code>code files</code> in --report</span>
-  <span><code>file access</code> in --health</span>
-  <span><code>nonCodeSkipped</code> count</span>
-  <span>autoMaxTokens warning</span>
+  <span><strong>Latest:</strong></span>
+  <span>v5.8 · trust completion</span>
+  <span>benchmark headers on every page</span>
+  <span>compare-alternatives guide</span>
+  <span>end-to-end walkthrough</span>
 </div>
 </div>
 
 <div style="max-width:840px;margin:0 auto;padding:24px">
 
-## Start here
+## Who is this for?
 
-The fastest way to understand SigMap v5.5 is to use the same workflow you would use during a real coding session:
+| I am… | Go to |
+|---|---|
+| New to SigMap | [Quick start](/guide/quick-start) |
+| Using it daily | [ask](/guide/ask) · [validate](/guide/validate) · [judge](/guide/judge) |
+| Setting up a team / CI | [Config](/guide/config) · [Strategies](/guide/strategies) |
+| Integrating with MCP, Claude, or Cursor | [MCP setup](/guide/mcp) |
+| Evaluating for a monorepo | [Strategies](/guide/strategies) · [Generalization](/guide/generalization) |
+| Comparing against embeddings or RAG | [Compare alternatives](/guide/compare-alternatives) |
+
+</div>
+
+<div style="max-width:840px;margin:0 auto;padding:0 24px 8px">
+
+## 30-second start
 
 ```bash
 npx sigmap
@@ -99,26 +112,23 @@ sigmap validate --query "auth login token"
 sigmap judge --response response.txt --context .context/query-context.md
 ```
 
-That flow gives you:
-
-- a compact signature map
-- a focused query context
-- a coverage sanity check
-- and a groundedness score for the answer you got back
+That flow gives you: a compact signature map · a focused query context · a coverage sanity check · a groundedness score for the answer.
 
 </div>
 
 <div style="max-width:840px;margin:0 auto;padding:0 24px 8px">
 
-## The v5.5 story
+## The workflow
 
-SigMap is no longer just "shrink the context file." The v5 line turns the product into a daily workflow:
+SigMap is no longer just "shrink the context file." Every step has a purpose:
 
 - **Generate** a compact signature map once
 - **Ask** for the files that matter to the current task
 - **Validate** whether coverage is high enough to trust the context
 - **Judge** whether an answer is grounded in the supplied code
 - **Learn** from good and bad results locally, inside the repo
+
+See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in action on a real repo.
 
 </div>
 
@@ -134,7 +144,7 @@ SigMap is no longer just "shrink the context file." The v5 line turns the produc
 | Overall token reduction | — | **98.1%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-17 (v5.7.0)**.
+Latest saved benchmark run: **2026-04-17 (v5.8.0)**.
 
 </div>
 
