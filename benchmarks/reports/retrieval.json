@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-16T22:44:18.989Z",
+  "generated": "2026-04-17T11:10:56.381Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 389,
+      "sigCount": 388,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.5,
@@ -430,7 +430,7 @@
     {
       "repo": "rust-analyzer",
       "fileCount": 635,
-      "sigCount": 306,
+      "sigCount": 307,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.85,
@@ -580,14 +580,14 @@
       "fileCount": 99,
       "sigCount": 89,
       "tasks": 5,
-      "hitAt5": 0.4,
-      "mrr": 0.2,
+      "hitAt5": 0.6,
+      "mrr": 0.3,
       "randomBaseline": 0.051,
-      "improvement": 7.9,
+      "improvement": 11.9,
       "tiers": {
         "correct": 0,
-        "partial": 2,
-        "wrong": 3
+        "partial": 3,
+        "wrong": 2
       },
       "taskDetails": [
         {
@@ -630,8 +630,8 @@
             "src/Serilog/Configuration/LoggerFilterConfiguration.cs"
           ],
           "top1": "src/Serilog/Core/LevelOverrideMap.cs",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "serilog-t005",
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 539,
+      "sigCount": 540,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.58,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 150,
+      "sigCount": 147,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.707,

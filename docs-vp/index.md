@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — zero-dependency AI context engine
-description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 80.0% hit@5, 40.8% fewer prompts, 96.7% average token reduction.
+description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 80.0% hit@5, 41% fewer prompts, 96.7% average token reduction.
 head:
   - - meta
     - property: og:title
-      content: "SigMap — grounded AI coding context for v5.4"
+      content: "SigMap — grounded AI coding context for v5.5"
   - - meta
     - property: og:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 98.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41% fewer prompts, 98.1% overall token reduction."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -17,13 +17,13 @@ head:
       content: website
   - - meta
     - name: twitter:title
-      content: "SigMap — grounded AI coding context for v5.4"
+      content: "SigMap — grounded AI coding context for v5.5"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 98.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41% fewer prompts, 98.1% overall token reduction."
   - - meta
     - name: twitter:image:alt
-      content: "SigMap v5.4 homepage"
+      content: "SigMap v5.5 homepage"
   - - meta
     - name: keywords
       content: "sigmap, ai context engine, grounded ai answers, code retrieval, mcp, sigmap ask, sigmap judge, sigmap validate, sigmap learn"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Better context. More grounded answers.
-  tagline: "v5.4 adds a Neovim plugin (sigmap.nvim) on top of Windsurf, Zed, and the ask, validate, judge, compare, and local learning weights on top of the core signature engine."
+  tagline: "v5.5 fixes coverage metrics: --report now grades only code files, --health labels file access separately, and both outputs explain what they measure."
   actions:
     - theme: brand
       text: Get Started →
@@ -78,11 +78,11 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>v5.4 launch:</strong></span>
-  <span><code>sigmap.nvim</code></span>
-  <span><code>:SigMap</code></span>
-  <span><code>:SigMapQuery</code></span>
-  <span><code>:checkhealth sigmap</code></span>
+  <span><strong>v5.5 launch:</strong></span>
+  <span><code>code files</code> in --report</span>
+  <span><code>file access</code> in --health</span>
+  <span><code>nonCodeSkipped</code> count</span>
+  <span>autoMaxTokens warning</span>
 </div>
 </div>
 
@@ -90,7 +90,7 @@ features:
 
 ## Start here
 
-The fastest way to understand SigMap v5.4 is to use the same workflow you would use during a real coding session:
+The fastest way to understand SigMap v5.5 is to use the same workflow you would use during a real coding session:
 
 ```bash
 npx sigmap
@@ -110,7 +110,7 @@ That flow gives you:
 
 <div style="max-width:840px;margin:0 auto;padding:0 24px 8px">
 
-## The v5.4 story
+## The v5.5 story
 
 SigMap is no longer just "shrink the context file." The v5 line turns the product into a daily workflow:
 
@@ -134,7 +134,7 @@ SigMap is no longer just "shrink the context file." The v5 line turns the produc
 | Overall token reduction | — | **98.1%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-17 (v5.3.0)**.
+Latest saved benchmark run: **2026-04-17 (v5.5.0)**.
 
 </div>
 

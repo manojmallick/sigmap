@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.4, with the latest milestone adding a first-class Neovim plugin (sigmap.nvim).
+description: SigMap version history and roadmap. From v0.0 to v5.5, with the latest milestone fixing coverage clarity and report UX.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "26 versions shipped. See what changed in each release and what is coming next."
+      content: "27 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 98.1% overall token reduction · 247 tests passing · 29 languages · 0 npm deps
+**Stats:** 98.1% overall token reduction · 478 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -354,6 +354,22 @@ First-class Neovim integration for the #1 most-admired editor (Stack Overflow 20
 
 ---
 
+### v5.5 — Coverage clarity + report UX ✓ (tagged v5.5.0 — 2026-04-17)
+
+Coverage metrics now tell the truth. Before v5.5, `--report` could show a D grade (39%) on a project whose code was 100% covered — because json, md, and config files were counted in the denominator. `--health` always showed A (100%) using a different measurement. Both outputs shared the label `source files`, making the divergence impossible to diagnose.
+
+- **Bug fix (denominator)**: `coverageScore()` now counts only code files (`.ts`, `.js`, `.py`, `.go`, and 25 other extensions) in the denominator. Non-code files are counted separately as `nonCodeSkipped` and shown in `--report` as `(N non-code files skipped — json, md, config)`.
+- **`--report` label**: changed from `source files included` → `code files included` to match what is actually measured.
+- **`--health` label**: changed from `coverage … source files` → `file access … files accessible in srcDirs` to make clear that health always checks filesystem access, not budget coverage.
+- **Actionable tip**: when any module scores below 50%, `--report` now prints the three most common causes (token budget too low, srcDir misconfiguration, wrong strategy) with the exact config keys to fix.
+- **`autoMaxTokens` transparency**: `--report` now emits a warning on stderr when the auto-budget override silently replaced a user-configured `maxTokens` value, with the exact config key to opt out.
+
+**Tags:** `coverageScore` · `CODE_EXTS` · `nonCodeSkipped` · `--report` · `--health` · `autoMaxTokens warning`
+
+**Impact:** 10 new tests · coverage grade now reflects only code files — eliminates false D grades on documentation-heavy projects
+
+---
+
 ### v5.2 — Learning engine + workflow-first docs ✓ (tagged v5.2.0 — 2026-04-16)
 
 This release turns SigMap into a stronger daily workflow product, not just a signature generator.
@@ -370,7 +386,7 @@ This release turns SigMap into a stronger daily workflow product, not just a sig
 
 ## Current milestone — v5.x
 
-v5.4 shipped the Neovim plugin. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `scripts/sync-versions.mjs`.
+v5.5 fixed coverage clarity and report UX. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `scripts/sync-versions.mjs`.
 
 ---
 
