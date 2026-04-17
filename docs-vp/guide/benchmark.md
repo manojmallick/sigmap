@@ -64,7 +64,7 @@ Latest saved benchmark run: **2026-04-17 (v5.8.0)**
 
 - SigMap hit@5: **80.0%**
 - Random baseline: **13.6%**
-- Lift: **5.8x**
+- Lift: **5.9x**
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 

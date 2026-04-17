@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.7, with the latest milestone adding a canonical version.json and correcting all public surfaces to v5.7 reality.
+description: SigMap version history and roadmap. From v0.0 to v5.8, with the latest milestone adding trust-building surfaces — canonical benchmark headers, demo strip, compare-alternatives, and walkthrough pages.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "28 versions shipped. See what changed in each release and what is coming next."
+      content: "29 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -418,9 +418,27 @@ v5.7 adds `version.json` as the single canonical source of truth for version, be
 
 ---
 
+### v5.8 — Trust completion & conversion ✓ (tagged v5.8.0 — 2026-04-18)
+
+v5.8 closes the gap between accurate internal metrics and what a new user sees when they land on the docs for the first time. The release adds five trust-building surfaces and audits every user-facing metric for staleness.
+
+- **Canonical benchmark headers** — all five benchmark pages (`benchmark`, `retrieval-benchmark`, `task-benchmark`, `quality-benchmark`, `generalization`) now open with a `:::info` snapshot block containing the official `sigmap-v5.8-main` ID, run date (2026-04-17), and key metrics. A new user immediately sees verifiable numbers, not a wall of methodology text.
+- **30-second demo strip** — `docs/index.html` homepage now includes a terminal mockup directly below the stats bar showing `ask → validate → judge` in sequence, giving new visitors an instant "what does this do?" answer.
+- **User-type routing table** — `docs-vp/index.md` opens with a "Who is this for?" table that routes six user archetypes (new users, daily users, teams, MCP users, monorepo evaluators, AI evaluators) to the page that matters most for them.
+- **`compare-alternatives.md`** — new guide page with side-by-side tables comparing SigMap vs embeddings/RAG, RepoMix, Copilot context, and manual curation. Uses the canonical 80.0% hit@5 figure and clearly states what SigMap does *not* replace.
+- **`walkthrough.md`** — end-to-end walkthrough on the real `gin` repo (Go web framework, 107 files): generate context → ask → validate → AI answer → judge → learn, with a before/after token cost table (142 000 → 1 240 tokens; $0.71 → $0.006 per query).
+- **Micro trust-leak audit** — `docs/impact-banner.svg` updated from stale `78.9%`/`1.69`/`40.6%` to canonical `80.0%`/`1.68`/`40.8%`; "hallucinates" replaced with "unsupported answers"; `docs/comparison-chart.svg` bar recalculated for 80.0%; stats bar corrected from `>21<` to `>29<` languages; `softwareVersion` in structured data updated to `5.8.0`.
+- **`version.json` — `retrieval_lift` field** — `metrics.retrieval_lift: 5.9` added; `benchmark_id` updated to `sigmap-v5.8-main`.
+
+**Tags:** `compare-alternatives` · `walkthrough` · `benchmark-headers` · `demo-strip` · `routing-table` · `retrieval_lift` · `sigmap-v5.8-main`
+
+**Impact:** 33 new integration tests · all 5 benchmark pages machine-verified · homepage demo strip · two new guide pages in "Guides" sidebar section
+
+---
+
 ## Current milestone — v5.x
 
-v5.7 completed the growth & positioning release. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
+v5.8 completed the trust completion & conversion release. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run benchmarks with freshly cloned repos to confirm canonical numbers, unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 
