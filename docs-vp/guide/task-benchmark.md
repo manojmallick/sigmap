@@ -1,13 +1,13 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v5.8. 52.2% correct, 40.8% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
+description: Latest saved task benchmark for SigMap v5.9. 53.3% correct, 41.2% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
       content: "SigMap task benchmark — fewer retries, better context"
   - - meta
     - property: og:description
-      content: "Latest saved run: 52.2% correct, 1.68 prompts per task, 40.8% prompt reduction, 90 tasks, 18 repos."
+      content: "Latest saved run: 53.3% correct, 1.67 prompts per task, 41.2% prompt reduction, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/task-benchmark"
@@ -15,20 +15,20 @@ head:
 
 # Task benchmark
 
-::: info Official v5.8 benchmark snapshot
-**Benchmark ID:** sigmap-v5.8-main &nbsp;·&nbsp; **Date:** 2026-04-17
+::: info Official v5.9 benchmark snapshot
+**Benchmark ID:** sigmap-v5.9-main &nbsp;·&nbsp; **Date:** 2026-04-18
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **80.0%** vs 13.6% baseline |
 | Retrieval lift | **5.9×** |
-| Prompt reduction | **40.8%** (2.84 → 1.68) |
-| Task success proxy | **52.2%** |
+| Prompt reduction | **41.2%** (2.84 → 1.67) |
+| Task success proxy | **53.3%** |
 | Overall token reduction | **98.1%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-17 (v5.8.0)**
+Latest saved run: **2026-04-18 (v5.9.0)**
 
 This page answers the question people care about most:
 
@@ -38,9 +38,9 @@ This page answers the question people care about most:
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Task success proxy | 10% | **52.2%** |
-| Prompts per task | 2.84 | **1.68** |
-| Prompt reduction | — | **40.8%** |
+| Task success proxy | 10% | **53.3%** |
+| Prompts per task | 2.84 | **1.67** |
+| Prompt reduction | — | **41.2%** |
 | Retrieval hit@5 | 13.6% | **80.0%** |
 
 ## Why the task benchmark exists
@@ -61,17 +61,17 @@ The task benchmark models that outcome from the ranked file quality tiers:
 
 | Tier | Meaning | Tasks | Share |
 |---|---|---:|---:|
-| Correct | Right file was ranked first | 47 | **52.2%** |
+| Correct | Right file was ranked first | 48 | **53.3%** |
 | Partial | Right file was present but not first | 24 | **26.7%** |
-| Wrong | Right file never surfaced in top 5 | 19 | **21.1%** |
+| Wrong | Right file never surfaced in top 5 | 18 | **20.0%** |
 
 ## Prompt model summary
 
 | Metric | Value |
 |---|---:|
 | Average prompts without SigMap | 2.84 |
-| Average prompts with SigMap | **1.68** |
-| Reduction | **40.8%** |
+| Average prompts with SigMap | **1.67** |
+| Reduction | **41.2%** |
 | Average hit@5 lift | **55.4x** across repo baselines |
 
 ## What changed in the v5 story

@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, bench, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 31 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
+      content: "All 32 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 31 SigMap commands and flags documented with examples. ask, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
+      content: "All 32 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -48,6 +48,7 @@ If you are new to the product, start with the workflow pages first:
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
+| `bench --submit` | Format local + canonical benchmark results as a shareable community block |
 | `compare` | CLI wrapper for retrieval benchmark vs baseline |
 | `share` | Print shareable one-liner with live benchmark numbers |
 
@@ -288,6 +289,56 @@ https://sigmap.dev
 
 ---
 
+## bench
+
+Community benchmark submission helper. Reads `version.json` for canonical release metrics and `.context/benchmark-history.ndjson` for local run history, then formats a shareable block suitable for pasting into a GitHub Discussion.
+
+```bash
+sigmap bench --submit
+sigmap bench --submit --json
+```
+
+```
+────────────────────────────────────────────────────────
+ SigMap Community Benchmark Submission
+────────────────────────────────────────────────────────
+ SigMap version : 5.9.0
+ Benchmark ID   : sigmap-v5.9-main
+ Submitted      : 2026-04-18
+────────────────────────────────────────────────────────
+ Canonical metrics (official release):
+ hit@5          : 80%
+ token reduction: 98.1%
+────────────────────────────────────────────────────────
+ Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
+────────────────────────────────────────────────────────
+ Paste the block above into a GitHub Discussion to share your results.
+ https://github.com/manojmallick/sigmap/discussions
+────────────────────────────────────────────────────────
+```
+
+When local benchmark history exists (`.context/benchmark-history.ndjson`), the local `hit@5` and token-reduction numbers are appended automatically.
+
+JSON output (`--json`) returns a machine-readable object:
+
+```json
+{
+  "sigmapVersion": "5.9.0",
+  "benchmarkId": "sigmap-v5.9-main",
+  "canonicalHitAt5": 80,
+  "canonicalReduction": 98.1,
+  "local": null,
+  "submittedAt": "2026-04-18"
+}
+```
+
+| Option | Description |
+|--------|-------------|
+| `--submit` | Required flag — formats the submission block |
+| `--json` | Emit machine-readable JSON instead of human-readable text |
+
+---
+
 ## --output
 
 Write the generated context to a custom file path instead of the default adapter location. The path is persisted to `gen-context.config.json` as `customOutput` so subsequent `--query` runs find it automatically.
@@ -375,7 +426,7 @@ sigmap --watch
 
 One-command setup. Auto-wires the SigMap MCP server into all detected AI editor config files, installs a git post-commit hook, and starts the file watcher.
 
-**Supported editors (v5.8.0):**
+**Supported editors (v5.9.0):**
 
 | Editor | Config file written |
 |--------|-------------------|
@@ -529,7 +580,7 @@ sigmap --report
 
 ```
 [sigmap] report:
-  version         : 5.8.0
+  version         : 5.9.0
   files processed : 76
   files dropped   : 0
   input tokens    : ~65,227
@@ -704,7 +755,7 @@ sigmap --impact src/auth/service.ts --json
 
 ```bash
 sigmap --version
-# 5.8.0
+# 5.9.0
 ```
 
 ---

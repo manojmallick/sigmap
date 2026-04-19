@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v5.8. 80.0% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
+description: Latest saved retrieval benchmark for SigMap v5.9. 80.0% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
@@ -15,20 +15,20 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v5.8 benchmark snapshot
-**Benchmark ID:** sigmap-v5.8-main &nbsp;·&nbsp; **Date:** 2026-04-17
+::: info Official v5.9 benchmark snapshot
+**Benchmark ID:** sigmap-v5.9-main &nbsp;·&nbsp; **Date:** 2026-04-18
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **80.0%** vs 13.6% baseline |
 | Retrieval lift | **5.9×** |
-| Prompt reduction | **40.8%** (2.84 → 1.68) |
-| Task success proxy | **52.2%** |
+| Prompt reduction | **41.2%** (2.84 → 1.67) |
+| Task success proxy | **53.3%** |
 | Overall token reduction | **98.1%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-17 (v5.8.0)**
+Latest saved run: **2026-04-18 (v5.9.0)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **80.0% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
@@ -48,17 +48,17 @@ This benchmark isolates that first question: *did the right file appear in conte
 |---|:---:|:---:|
 | Average hit@5 | 13.6% | **80.0%** |
 | Lift | — | **5.9x** |
-| Correct (rank 1) | ~1% | **52.2%** |
+| Correct (rank 1) | ~1% | **53.3%** |
 | Partial (ranks 2–5) | ~13% | **26.7%** |
-| Wrong (not in top 5) | ~86% | **21.1%** |
+| Wrong (not in top 5) | ~86% | **20.0%** |
 
 ## Quality tiers from the saved run
 
 | Tier | Tasks | Share |
 |---|---:|---:|
-| Correct | 47 / 90 | **52.2%** |
+| Correct | 48 / 90 | **53.3%** |
 | Partial | 24 / 90 | **26.7%** |
-| Wrong | 19 / 90 | **21.1%** |
+| Wrong | 18 / 90 | **20.0%** |
 
 ## Per-repo results
 
