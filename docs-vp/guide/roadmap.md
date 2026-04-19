@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.8, with the latest milestone adding trust-building surfaces — canonical benchmark headers, demo strip, compare-alternatives, and walkthrough pages.
+description: SigMap version history and roadmap. From v0.0 to v5.9, with the latest milestone adding binary checksum generation, community benchmark submissions, and extended smoke tests.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 98.1% overall token reduction · 495 tests passing · 29 languages · 0 npm deps
+**Stats:** 98.1% overall token reduction · 517 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -436,9 +436,24 @@ v5.8 closes the gap between accurate internal metrics and what a new user sees w
 
 ---
 
+### v5.9 — Binary polish + community benchmark submissions ✓ (tagged v5.9.0 — 2026-04-18)
+
+v5.9 closes two practical gaps: binary distribution integrity and benchmark visibility. Every binary build now ships a paired SHA-256 checksum file, and a new `sigmap bench --submit` command makes it easy for users to share their own benchmark results with the community.
+
+- **SHA-256 checksum generation** — `scripts/build-binary.mjs` now writes a `dist/<artifact>.sha256` file alongside every binary it produces, so users can verify a download hasn't been tampered with.
+- **`scripts/verify-checksums.mjs`** — new standalone verification script. Pass a binary path (or use auto-detection for the current platform); exits `0` on match, `1` on mismatch. Safe to run in CI or post-download.
+- **`sigmap bench --submit`** — new CLI command. Reads `version.json` for the canonical release metrics (`hit@5`, token reduction) and `.context/benchmark-history.ndjson` for any local run history, then formats a copyable community submission block. `--json` emits machine-readable output for scripting. Designed to feed a GitHub Discussions thread for community benchmarks.
+- **Extended `verify-binary.mjs` smoke tests** — tests 6–10 now cover the full v5.x workflow: `ask`, `weights`, `history`, `bench --submit`, and `bench --submit --json`. Previously only generate, health, and report were covered.
+
+**Tags:** `sha256` · `verify-checksums` · `bench --submit` · `community-benchmarks` · `binary-distribution` · `sigmap-v5.9-main`
+
+**Impact:** 22 new integration tests · 517 total tests · binary artifacts now verifiable via checksum
+
+---
+
 ## Current milestone — v5.x
 
-v5.8 completed the trust completion & conversion release. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run benchmarks with freshly cloned repos to confirm canonical numbers, unify benchmark runners around the shared ranker, and expand IDE coverage further (Emacs, Visual Studio). Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
+v5.9 completed the binary polish & community benchmarks release. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run benchmarks with freshly cloned repos to confirm canonical numbers, expand community benchmark submissions into a structured Discussions thread, and explore binary distribution via GitHub Releases download links in docs. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 

@@ -16,7 +16,8 @@
  */
 
 import { execSync } from 'child_process';
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { copyFileSync, createReadStream, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { createHash } from 'crypto';
 import { join } from 'path';
 import { arch, platform } from 'os';
 import { fileURLToPath } from 'url';
@@ -148,6 +149,21 @@ if (plat !== 'win32') {
   ok('chmod +x applied');
 }
 
+// 11. Generate SHA-256 checksum
+log('Generating SHA-256 checksum…');
+const sha256 = await new Promise((resolve, reject) => {
+  const hash = createHash('sha256');
+  const stream = createReadStream(dest);
+  stream.on('data', (d) => hash.update(d));
+  stream.on('end', () => resolve(hash.digest('hex')));
+  stream.on('error', reject);
+});
+const checksumPath = `${dest}.sha256`;
+writeFileSync(checksumPath, `${sha256}  ${name}\n`);
+ok(`checksum written → dist/${name}.sha256`);
+
 log('──────────────────────────────────────────────────────────────────────────');
 console.log(`\nBinary ready: dist/${name}`);
-console.log('Run  node scripts/verify-binary.mjs  to smoke-test it.\n');
+console.log(`Checksum:     dist/${name}.sha256`);
+console.log('Run  node scripts/verify-binary.mjs       to smoke-test the binary.');
+console.log('Run  node scripts/verify-checksums.mjs    to verify the checksum.\n');
