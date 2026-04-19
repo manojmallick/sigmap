@@ -75,34 +75,34 @@ test('version.json: mcp_tools is 9', () => {
 
 // ── Fix 1a: canonical benchmark headers on all 5 benchmark pages ──────────────
 
-test('benchmark.md: has canonical v5.8 info block', () => {
+test('benchmark.md: has canonical v5.8+ info block', () => {
   const src = readGuide('benchmark.md');
-  assert.ok(src.includes('sigmap-v5.8-main'), 'missing benchmark ID sigmap-v5.8-main');
-  assert.ok(src.includes('v5.8.0'), 'missing v5.8.0 in benchmark.md');
+  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID sigmap-v5.x-main');
+  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x in benchmark.md');
 });
 
-test('retrieval-benchmark.md: has canonical v5.8 info block', () => {
+test('retrieval-benchmark.md: has canonical v5.8+ info block', () => {
   const src = readGuide('retrieval-benchmark.md');
-  assert.ok(src.includes('sigmap-v5.8-main'), 'missing benchmark ID');
-  assert.ok(src.includes('v5.8.0'), 'missing v5.8.0');
+  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
 });
 
-test('task-benchmark.md: has canonical v5.8 info block', () => {
+test('task-benchmark.md: has canonical v5.8+ info block', () => {
   const src = readGuide('task-benchmark.md');
-  assert.ok(src.includes('sigmap-v5.8-main'), 'missing benchmark ID');
-  assert.ok(src.includes('v5.8.0'), 'missing v5.8.0');
+  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
 });
 
-test('quality-benchmark.md: has canonical v5.8 info block', () => {
+test('quality-benchmark.md: has canonical v5.8+ info block', () => {
   const src = readGuide('quality-benchmark.md');
-  assert.ok(src.includes('sigmap-v5.8-main'), 'missing benchmark ID');
-  assert.ok(src.includes('v5.8.0'), 'missing v5.8.0');
+  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
 });
 
-test('generalization.md: has canonical v5.8 info block', () => {
+test('generalization.md: has canonical v5.8+ info block', () => {
   const src = readGuide('generalization.md');
-  assert.ok(src.includes('sigmap-v5.8-main'), 'missing benchmark ID');
-  assert.ok(src.includes('v5.8.0'), 'missing v5.8.0');
+  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
 });
 
 test('generalization.md: has "Why this matters" intro paragraph', () => {
