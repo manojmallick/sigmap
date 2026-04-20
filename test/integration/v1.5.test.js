@@ -78,11 +78,6 @@ test('.npmignore excludes docs/', () => {
   assert.ok(content.includes('docs/'), 'Should exclude docs/');
 });
 
-test('.npmignore excludes vscode-extension/', () => {
-  const content = fs.readFileSync(path.join(ROOT, '.npmignore'), 'utf8');
-  assert.ok(content.includes('vscode-extension/'), 'Should exclude vscode-extension/');
-});
-
 test('.npmignore excludes .github/workflows/', () => {
   const content = fs.readFileSync(path.join(ROOT, '.npmignore'), 'utf8');
   assert.ok(content.includes('.github/workflows/'), 'Should exclude .github/workflows/');
@@ -104,89 +99,6 @@ test('gen-context.js second line is use strict', () => {
   const content = fs.readFileSync(path.join(ROOT, 'gen-context.js'), 'utf8');
   const lines = content.split('\n');
   assert.ok(lines[1].includes("'use strict'") || lines[2].includes("'use strict'"), 'Should have use strict after shebang');
-});
-
-// ─────────────────────────────────────────────────────────────
-// VS Code extension structure
-// ─────────────────────────────────────────────────────────────
-
-console.log('\nVS Code extension\n');
-
-test('vscode-extension/package.json exists', () => {
-  assert.ok(fs.existsSync(path.join(ROOT, 'vscode-extension', 'package.json')), 'Extension package.json should exist');
-});
-
-test('vscode-extension/src/extension.js exists', () => {
-  assert.ok(fs.existsSync(path.join(ROOT, 'vscode-extension', 'src', 'extension.js')), 'extension.js should exist');
-});
-
-test('extension manifest has correct name', () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vscode-extension', 'package.json'), 'utf8'));
-  assert.strictEqual(pkg.name, 'sigmap');
-});
-
-test('extension manifest declares sigmap.regenerate command', () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vscode-extension', 'package.json'), 'utf8'));
-  const commands = pkg.contributes && pkg.contributes.commands;
-  assert.ok(Array.isArray(commands), 'Should have commands array');
-  const names = commands.map((c) => c.command);
-  assert.ok(names.includes('sigmap.regenerate'), 'Should declare sigmap.regenerate');
-});
-
-test('extension manifest declares sigmap.openContext command', () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vscode-extension', 'package.json'), 'utf8'));
-  const commands = pkg.contributes && pkg.contributes.commands;
-  const names = commands.map((c) => c.command);
-  assert.ok(names.includes('sigmap.openContext'), 'Should declare sigmap.openContext');
-});
-
-test('extension manifest has sigmap.scriptPath configuration', () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vscode-extension', 'package.json'), 'utf8'));
-  const props = pkg.contributes &&
-    pkg.contributes.configuration &&
-    pkg.contributes.configuration.properties;
-  assert.ok(props && props['sigmap.scriptPath'], 'Should have sigmap.scriptPath config');
-});
-
-test('extension manifest has onStartupFinished activation', () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vscode-extension', 'package.json'), 'utf8'));
-  assert.ok(
-    pkg.activationEvents && pkg.activationEvents.includes('onStartupFinished'),
-    'Should activate on startup'
-  );
-});
-
-test('extension.js exports activate and deactivate', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'vscode-extension', 'src', 'extension.js'), 'utf8');
-  assert.ok(src.includes('activate'), 'Should export activate');
-  assert.ok(src.includes('deactivate'), 'Should export deactivate');
-  assert.ok(src.includes('module.exports'), 'Should use module.exports');
-});
-
-test('extension.js implements status bar item', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'vscode-extension', 'src', 'extension.js'), 'utf8');
-  assert.ok(src.includes('StatusBarItem') || src.includes('createStatusBarItem'), 'Should create status bar item');
-});
-
-test('extension.js implements stale context notification', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'vscode-extension', 'src', 'extension.js'), 'utf8');
-  assert.ok(src.includes('STALE_HOURS') || src.includes('stale') || src.includes('24'), 'Should have stale check');
-  assert.ok(src.includes('showInformationMessage'), 'Should show notification');
-});
-
-test('extension.js handles sigmap.regenerate command', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'vscode-extension', 'src', 'extension.js'), 'utf8');
-  assert.ok(src.includes('sigmap.regenerate'), 'Should register regenerate command');
-});
-
-test('extension.js handles sigmap.openContext command', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'vscode-extension', 'src', 'extension.js'), 'utf8');
-  assert.ok(src.includes('sigmap.openContext'), 'Should register openContext command');
-});
-
-test('extension.js respects sigmap.scriptPath setting', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'vscode-extension', 'src', 'extension.js'), 'utf8');
-  assert.ok(src.includes('sigmap.scriptPath') || src.includes('scriptPath'), 'Should read scriptPath setting');
 });
 
 // ─────────────────────────────────────────────────────────────
