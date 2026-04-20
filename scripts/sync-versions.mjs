@@ -46,14 +46,6 @@ console.log(`Syncing versions to ${version}`);
 updateJsonVersion('package.json');
 updateJsonVersion('packages/core/package.json');
 updateJsonVersion('packages/cli/package.json');
-updateJsonVersion('vscode-extension/package.json');
-
-// JetBrains plugin
-replaceOne(
-  'jetbrains-plugin/build.gradle.kts',
-  /^version\s*=\s*"\d+\.\d+\.\d+(?:-[^"]+)?"/m,
-  `version = "${version}"`
-);
 
 // Core CLI/runtime constants
 replaceOne(
