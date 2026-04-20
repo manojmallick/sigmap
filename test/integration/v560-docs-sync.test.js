@@ -65,17 +65,17 @@ test('validate: no "v5.2" in section heading', () => {
 
 test('retrieval-benchmark: latest saved run is v5.7.0 or later', () => {
   const src = readGuide('retrieval-benchmark.md');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing version in latest saved run');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version in latest saved run');
 });
 
 test('task-benchmark: latest saved run is v5.7.0 or later', () => {
   const src = readGuide('task-benchmark.md');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing version in latest saved run');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version in latest saved run');
 });
 
 test('quality-benchmark: latest saved run is v5.7.0 or later', () => {
   const src = readGuide('quality-benchmark.md');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing version in latest saved run');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version in latest saved run');
 });
 
 // ── Benchmark metric accuracy ─────────────────────────────────────────────────

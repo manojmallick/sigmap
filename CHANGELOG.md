@@ -10,6 +10,28 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.0.0] — 2026-04-19
+
+### Added
+
+- **Graph-boosted retrieval (v6.0)** — `rank()` in `src/retrieval/ranker.js` now accepts `opts.graph`. After scoring all files, a +0.4 `graphBoost` weight is added to 1-hop forward-import neighbors of any file with `score > 0`. Measured lift: +1.1pp (82.2% → 83.3% hit@5 using ranker.js on 90 benchmark tasks).
+- **`DEFAULT_WEIGHTS.graphBoost: 0.4`** — new weight constant; path-normalized relative↔absolute conversion handles the sigIndex/graph format mismatch.
+- **Incremental signature cache (`src/cache/sig-cache.js`)** — `loadCache`, `saveCache`, `getChangedFiles`, `updateCacheEntries` persist extracted signatures keyed by absolute path + mtime to `.sigmap-cache.json`. Version-keyed so upgrades automatically bust the cache. Ready to wire into `gen-context.js` for 80–95% speed reduction on re-runs.
+- **Graph-boosted MCP `query_context`** — `src/mcp/handlers.js` now builds a dependency graph via `buildFromCwd` and passes it to `rank()`, giving agents multi-hop neighbor boosting for free.
+- **README rewrite** — full 15-section conversion-optimised README (tagline, npx demo, ❌/✅ replace table, workflow arrow, canonical benchmark block, install options, integrations, try-it, start guide, why-not-embeddings, license).
+- **`test/integration/v591-readme.test.js`** — 50 tests covering all 15 README sections and consistency rules.
+- **`version.json` updated** — bumped to `6.0.0`, `benchmark_id` to `sigmap-v6.0-main`, metrics updated from live benchmark run: `overall_token_reduction_pct: 96.9`, `retrieval_lift: 5.8`, `graph_boosted_hit_at_5: 0.833`.
+
+### Changed
+
+- **All package versions** synced to `6.0.0` via `scripts/sync-versions.mjs`.
+- **`retrieval_lift`** corrected from 5.9× to 5.8× (actual benchmark run average).
+- **`overall_token_reduction_pct`** corrected from 98.1% to 96.9% (simple average across 18 repos from live matrix run; 98.1% was a weighted-by-size figure from a prior run).
+- **`task_success_proxy_pct`** corrected from 53.3% to 52.2% (live benchmark confirms 47/90 correct).
+- **`prompts_per_task`** corrected from 1.67 to 1.68 (live benchmark output).
+
+---
+
 ## [5.9.0] — 2026-04-18
 
 ### Added
