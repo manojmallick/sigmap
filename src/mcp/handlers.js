@@ -446,11 +446,15 @@ function queryContext(args, cwd) {
 
   try {
     const { rank, buildSigIndex, formatRankTable } = require('../retrieval/ranker');
+    const { buildFromCwd } = require('../graph/builder');
     const index = buildSigIndex(cwd);
     if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
 
     const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
-    const results = rank(args.query, index, { topK, cwd });
+    // Build dependency graph for neighbor boost — non-fatal if it fails
+    let graph = null;
+    try { graph = buildFromCwd(cwd); } catch (_) {}
+    const results = rank(args.query, index, { topK, cwd, graph });
     return formatRankTable(results, args.query);
   } catch (err) {
     return `_query_context failed: ${err.message}_`;

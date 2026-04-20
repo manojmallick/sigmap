@@ -29,6 +29,7 @@ const DEFAULT_WEIGHTS = {
   prefixMatch: 0.3,      // partial prefix hit (query token ≥ 4 chars)
   pathMatch: 0.8,        // query token appears in the file path
   recencyBoost: 1.5,     // multiplier applied when file is in recencySet
+  graphBoost: 0.4,       // additive bonus for 1-hop import neighbors of matching files
 };
 
 /**
@@ -99,6 +100,7 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
  * @param {Set<string>} [opts.recencySet]         - set of recently-changed file paths
  * @param {object}  [opts.weights]               - override scoring weights
  * @param {string}  [opts.cwd]                   - project root for learned ranking weights
+ * @param {{ forward: Map<string,string[]> }} [opts.graph] - dependency graph for neighbor boost
  * @returns {{ file: string, score: number, sigs: string[], tokens: number }[]}
  */
 function rank(query, sigIndex, opts) {
@@ -110,6 +112,8 @@ function rank(query, sigIndex, opts) {
   const recencySet = (opts && opts.recencySet) || null;
   const weights = (opts && opts.weights) ? Object.assign({}, DEFAULT_WEIGHTS, opts.weights) : DEFAULT_WEIGHTS;
   const learnedWeights = opts && opts.cwd ? loadWeights(opts.cwd) : null;
+  const graph = (opts && opts.graph && opts.graph.forward instanceof Map) ? opts.graph : null;
+  const cwd = (opts && opts.cwd) || null;
 
   const queryTokens = tokenize(query);
   if (queryTokens.length === 0) {
@@ -141,6 +145,30 @@ function rank(query, sigIndex, opts) {
       sigs,
       tokens: Math.ceil(sigs.join('\n').length / 4),
     });
+  }
+
+  // Graph neighbor boost: for each file with score > 0, add graphBoost to 1-hop forward
+  // neighbors that are also in the index. sigIndex uses relative paths; graph uses absolute.
+  if (graph && cwd) {
+    const path = require('path');
+    // Build a map: relative path → index position in scored array for O(1) lookup
+    const relToIdx = new Map();
+    for (let i = 0; i < scored.length; i++) {
+      relToIdx.set(scored[i].file, i);
+    }
+    for (const entry of scored) {
+      if (entry.score <= 0) continue;
+      // Resolve relative path to absolute for graph lookup
+      const abs = path.resolve(cwd, entry.file);
+      const neighbors = graph.forward.get(abs) || [];
+      for (const neighborAbs of neighbors) {
+        const neighborRel = path.relative(cwd, neighborAbs).replace(/\\/g, '/');
+        const idx = relToIdx.get(neighborRel);
+        if (idx !== undefined) {
+          scored[idx].score += weights.graphBoost;
+        }
+      }
+    }
   }
 
   scored.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
