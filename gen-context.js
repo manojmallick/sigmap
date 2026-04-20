@@ -4520,6 +4520,71 @@ __factories["./src/map/route-table"] = function(module, exports) {
   
 };
 
+// ── ./src/cache/sig-cache ──
+__factories["./src/cache/sig-cache"] = function(module, exports) {
+  'use strict';
+
+  const fs   = require('fs');
+  const path = require('path');
+
+  const CACHE_FILE = '.sigmap-cache.json';
+
+  function cachePath(cwd) {
+    return path.join(cwd, CACHE_FILE);
+  }
+
+  function loadCache(cwd, currentVersion) {
+    try {
+      const raw = fs.readFileSync(cachePath(cwd), 'utf8');
+      const data = JSON.parse(raw);
+      if (data.sigmapVersion !== currentVersion) return new Map();
+      return new Map(Object.entries(data.entries || {}));
+    } catch (_) {
+      return new Map();
+    }
+  }
+
+  function saveCache(cwd, currentVersion, cache) {
+    try {
+      const data = {
+        sigmapVersion: currentVersion,
+        entries: Object.fromEntries(cache),
+      };
+      fs.writeFileSync(cachePath(cwd), JSON.stringify(data), 'utf8');
+    } catch (_) {}
+  }
+
+  function getChangedFiles(files, cache) {
+    const changed = [];
+    const unchanged = [];
+    for (const f of files) {
+      try {
+        const mtime = fs.statSync(f).mtimeMs;
+        const cached = cache.get(f);
+        if (!cached || cached.mtime !== mtime) {
+          changed.push(f);
+        } else {
+          unchanged.push(f);
+        }
+      } catch (_) {
+        changed.push(f);
+      }
+    }
+    return { changed, unchanged };
+  }
+
+  function updateCacheEntries(cache, extracted) {
+    for (const { file, sigs } of extracted) {
+      try {
+        const mtime = fs.statSync(file).mtimeMs;
+        cache.set(file, { mtime, sigs });
+      } catch (_) {}
+    }
+  }
+
+  module.exports = { loadCache, saveCache, getChangedFiles, updateCacheEntries };
+};
+
 // ── ./src/graph/builder ──
 __factories["./src/graph/builder"] = function(module, exports) {
   'use strict';
