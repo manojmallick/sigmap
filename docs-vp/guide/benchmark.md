@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v5.9 benchmark snapshot. 96.7% average token reduction, 80.0% retrieval hit@5, 41.2% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
+description: Official v6.0 benchmark snapshot. 96.9% average token reduction, 80.0% retrieval hit@5, 40.8% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v5.9 snapshot"
+      content: "SigMap benchmark overview — v6.0 snapshot"
   - - meta
     - property: og:description
-      content: "One place for token, retrieval, quality, and task metrics from the latest saved v5.9 benchmark run."
+      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.0 benchmark run."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
@@ -15,16 +15,17 @@ head:
 
 # Benchmark overview
 
-::: info Official v5.9 benchmark snapshot
-**Benchmark ID:** sigmap-v5.9-main &nbsp;·&nbsp; **Date:** 2026-04-18
+::: info Official v6.0 benchmark snapshot
+**Benchmark ID:** sigmap-v6.0-main &nbsp;·&nbsp; **Date:** 2026-04-19
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **80.0%** vs 13.6% baseline |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.2%** (2.84 → 1.67) |
-| Task success proxy | **53.3%** |
-| Overall token reduction | **98.1%** |
+| Graph-boosted hit@5 | **83.3%** |
+| Retrieval lift | **5.8×** |
+| Prompt reduction | **40.8%** (2.84 → 1.68) |
+| Task success proxy | **52.2%** |
+| Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
@@ -37,18 +38,19 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v5.9 snapshot
+## Official v6.0 snapshot
 
-Latest saved benchmark run: **2026-04-18 (v5.9.0)**
+Latest saved benchmark run: **2026-04-19 (v6.0.0)**
 
 | Metric | Result |
 |---|---:|
 | Repos | 18 |
 | Tasks | 90 |
-| Average token reduction by repo | **96.7%** |
+| Average token reduction by repo | **96.9%** |
 | Retrieval hit@5 | **80.0%** |
+| Graph-boosted hit@5 | **83.3%** |
 | Random baseline hit@5 | 13.6% |
-| Prompt reduction | **41.2%** (2.84 → 1.67 prompts) |
+| Prompt reduction | **40.8%** (2.84 → 1.68 prompts) |
 | GPT-4o overflow repos without SigMap | **13 / 18** |
 | GPT-4o monthly input savings at 10 calls/day | **$9,390.06** |
 
@@ -63,17 +65,18 @@ Latest saved benchmark run: **2026-04-18 (v5.9.0)**
 ### 2. Retrieval quality
 
 - SigMap hit@5: **80.0%**
+- Graph-boosted hit@5: **83.3%** (+3.3pp with dependency graph)
 - Random baseline: **13.6%**
-- Lift: **5.9x**
+- Lift: **5.8x**
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 
 ### 3. Task outcomes
 
-- Correct: **48 / 90** (53.3%)
-- Partial: **24 / 90** (26.7%)
+- Correct: **47 / 90** (52.2%)
+- Partial: **25 / 90** (27.8%)
 - Wrong: **18 / 90** (20.0%)
-- Average prompts: **2.84 → 1.67**
+- Average prompts: **2.84 → 1.68**
 
 This is the best benchmark when the question is: *"Does the developer need fewer retries to finish the job?"*
 

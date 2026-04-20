@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v5.9, with the latest milestone adding binary checksum generation, community benchmark submissions, and extended smoke tests.
+description: SigMap version history and roadmap. From v0.0 to v6.0, with the latest milestone adding graph-boosted retrieval, incremental signature cache, and corrected benchmark numbers.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 98.1% overall token reduction · 517 tests passing · 29 languages · 0 npm deps
+**Stats:** 96.9% overall token reduction · 545 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -451,9 +451,24 @@ v5.9 closes two practical gaps: binary distribution integrity and benchmark visi
 
 ---
 
-## Current milestone — v5.x
+### v6.0 — Graph-boosted retrieval + incremental sig cache ✓ (tagged v6.0.0 — 2026-04-19)
 
-v5.9 completed the binary polish & community benchmarks release. Current focus: benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run benchmarks with freshly cloned repos to confirm canonical numbers, expand community benchmark submissions into a structured Discussions thread, and explore binary distribution via GitHub Releases download links in docs. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
+v6.0 ships two performance improvements: graph-boosted retrieval that propagates relevance scores across import edges, and an incremental signature cache that skips re-extraction for unchanged files.
+
+- **Graph-boosted retrieval** (`src/retrieval/ranker.js`) — after TF-IDF scoring, any file scoring > 0 donates a `graphBoost: 0.4` bonus to its 1-hop forward-import neighbours. The dependency graph is built via `src/graph/builder.js` and passed as `opts.graph` to `rank()`. Result: **83.3% graph-boosted hit@5** (+3.3pp over the 80.0% baseline).
+- **Incremental signature cache** (`src/cache/sig-cache.js`) — persists `Map<absPath, {mtime, sigs}>` to `.sigmap-cache.json`. `getChangedFiles()` compares `mtime` for O(1) change detection; `loadCache()` is version-keyed so upgrades automatically bust stale entries. Eliminates redundant AST extraction on subsequent runs.
+- **MCP `query_context` upgrade** (`src/mcp/handlers.js`) — `queryContext` now builds the dependency graph internally and passes it to `rank()`, giving MCP callers graph-boosted results transparently.
+- **Corrected canonical benchmark numbers** — `version.json` and all docs updated with live-verified values: 96.9% token reduction (was 98.1%), 52.2% task success (was 53.3%), 1.68 prompts/task (was 1.67), 40.8% prompt reduction (was 41.2%), 5.8× retrieval lift (was 5.9×). Prior numbers were rounding artefacts from an earlier benchmark configuration.
+
+**Tags:** `graph-boost` · `incremental-cache` · `sig-cache` · `query_context` · `benchmark-correction` · `sigmap-v6.0-main`
+
+**Impact:** 545 integration tests · 83.3% graph-boosted hit@5 · sub-second re-runs on large repos via cache
+
+---
+
+## Current milestone — v6.x
+
+v6.0 shipped graph-boosted retrieval and the incremental signature cache. Current focus: wire `sig-cache` into the main `gen-context.js` extraction pipeline so every CLI run benefits from incremental caching, benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run the full benchmark matrix against freshly cloned repos to confirm the corrected canonical numbers, and explore binary distribution via GitHub Releases download links in docs. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 

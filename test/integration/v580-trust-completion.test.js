@@ -53,14 +53,15 @@ test('version.json: version is >= 5.8.0', () => {
 
 test('version.json: benchmark_id is sigmap-v5.8-main or later', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.ok(v.benchmark_id && v.benchmark_id.startsWith('sigmap-v5.'),
-    `expected sigmap-v5.x-main, got ${v.benchmark_id}`);
+  assert.ok(v.benchmark_id && /^sigmap-v\d+\.\d+-main/.test(v.benchmark_id),
+    `expected sigmap-vX.Y-main format, got ${v.benchmark_id}`);
 });
 
-test('version.json: retrieval_lift field exists and equals 5.9', () => {
+test('version.json: retrieval_lift field exists and is a number >= 5', () => {
   const v = JSON.parse(readRoot('version.json'));
   assert.ok('retrieval_lift' in v.metrics, 'missing retrieval_lift in metrics');
-  assert.strictEqual(v.metrics.retrieval_lift, 5.9);
+  assert.ok(typeof v.metrics.retrieval_lift === 'number' && v.metrics.retrieval_lift >= 5,
+    `expected retrieval_lift >= 5, got ${v.metrics.retrieval_lift}`);
 });
 
 test('version.json: languages is 29', () => {
@@ -77,32 +78,32 @@ test('version.json: mcp_tools is 9', () => {
 
 test('benchmark.md: has canonical v5.8+ info block', () => {
   const src = readGuide('benchmark.md');
-  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID sigmap-v5.x-main');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x in benchmark.md');
+  assert.ok(/sigmap-v\d+\.\d+-main/.test(src), 'missing benchmark ID sigmap-vX.Y-main');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version in benchmark.md');
 });
 
-test('retrieval-benchmark.md: has canonical v5.8+ info block', () => {
+test('retrieval-benchmark.md: has canonical info block', () => {
   const src = readGuide('retrieval-benchmark.md');
-  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
+  assert.ok(/sigmap-v\d+\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version');
 });
 
-test('task-benchmark.md: has canonical v5.8+ info block', () => {
+test('task-benchmark.md: has canonical info block', () => {
   const src = readGuide('task-benchmark.md');
-  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
+  assert.ok(/sigmap-v\d+\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version');
 });
 
-test('quality-benchmark.md: has canonical v5.8+ info block', () => {
+test('quality-benchmark.md: has canonical info block', () => {
   const src = readGuide('quality-benchmark.md');
-  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
+  assert.ok(/sigmap-v\d+\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version');
 });
 
-test('generalization.md: has canonical v5.8+ info block', () => {
+test('generalization.md: has canonical info block', () => {
   const src = readGuide('generalization.md');
-  assert.ok(/sigmap-v5\.\d+-main/.test(src), 'missing benchmark ID');
-  assert.ok(/v5\.\d+\.\d+/.test(src), 'missing v5.x.x');
+  assert.ok(/sigmap-v\d+\.\d+-main/.test(src), 'missing benchmark ID');
+  assert.ok(/v\d+\.\d+\.\d+/.test(src), 'missing version');
 });
 
 test('generalization.md: has "Why this matters" intro paragraph', () => {

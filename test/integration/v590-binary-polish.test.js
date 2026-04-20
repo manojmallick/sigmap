@@ -45,14 +45,16 @@ console.log('\nv5.9 binary polish + community benchmark tests\n');
 
 // ── version.json ──────────────────────────────────────────────────────────────
 
-test('version.json: version is 5.9.0', () => {
+test('version.json: version is 5.9.0 or later', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.version, '5.9.0', `expected 5.9.0, got ${v.version}`);
+  const [major, minor] = v.version.split('.').map(Number);
+  assert.ok(major > 5 || (major === 5 && minor >= 9), `expected >= 5.9.0, got ${v.version}`);
 });
 
-test('version.json: benchmark_id is sigmap-v5.9-main', () => {
+test('version.json: benchmark_id is sigmap-v5.9-main or later', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.benchmark_id, 'sigmap-v5.9-main');
+  assert.ok(v.benchmark_id && /^sigmap-v\d+\.\d+-main/.test(v.benchmark_id),
+    `expected sigmap-vX.Y-main format, got ${v.benchmark_id}`);
 });
 
 test('version.json: retains all canonical metrics fields', () => {
@@ -198,7 +200,7 @@ test('gen-context.js: bench --submit text output contains SigMap header', () => 
 
   assert.strictEqual(res.status, 0, `exit ${res.status}: ${res.stderr.slice(0, 200)}`);
   assert.ok(res.stdout.includes('SigMap') || res.stdout.includes('sigmap'), 'missing SigMap in output');
-  assert.ok(res.stdout.includes('5.9.0'), 'missing version 5.9.0 in output');
+  assert.ok(/\d+\.\d+\.\d+/.test(res.stdout), 'missing version number in output');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────
