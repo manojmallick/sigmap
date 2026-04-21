@@ -8,11 +8,17 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '../..');
 const INTEGRATION_DIR = path.join(ROOT, 'test', 'integration');
 
-function listTests() {
-  return fs.readdirSync(INTEGRATION_DIR)
-    .filter((f) => f.endsWith('.test.js'))
-    .sort()
-    .map((f) => path.join(INTEGRATION_DIR, f));
+function listTests(dir) {
+  const results = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...listTests(full));
+    } else if (entry.name.endsWith('.test.js')) {
+      results.push(full);
+    }
+  }
+  return results.sort();
 }
 
 function runOne(filePath) {
@@ -35,7 +41,7 @@ function runOne(filePath) {
 }
 
 function main() {
-  const tests = listTests();
+  const tests = listTests(INTEGRATION_DIR);
   if (tests.length === 0) {
     console.log('[integration] no integration tests found');
     process.exit(0);
