@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.0.2] — 2026-04-21
+
+### Fixed
+
+- **Duplicate adapter headers (#104, #96)** — `writeOutputs()` now strips the `formatOutput()` preamble (`<!-- Generated... -->` + `# Code signatures`) before passing content to adapters, preventing double headers on every run. Introduces `stripFormatHeader()` helper applied to all adapter paths including `writeClaude()`.
+- **Bundled codex factory (#96)** — the inline `__factories["./packages/adapters/codex"]` in `gen-context.js` was still delegating to `openai.format()` after the source-file fix in v6.0.1. Now uses clean `# Code signatures\n\n` + context, matching the source adapter.
+
+---
+
 ## [6.0.1] — 2026-04-21
 
 ### Fixed
