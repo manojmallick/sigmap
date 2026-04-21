@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.0.1] — 2026-04-21
+
+### Fixed
+
+- **TypeScript extractor guard clauses (#97)** — `extractClassMembers` now skips control-flow keywords (`if`, `for`, `while`, `switch`, `do`, `try`, `catch`, `finally`, `else`) that were incorrectly emitted as method signatures when they appeared inside class bodies.
+- **Codex/AGENTS.md adapter preamble (#96)** — `packages/adapters/codex.js` no longer delegates to the OpenAI adapter. Output is now clean `# Code signatures\n\n<context>` markdown with no "You are a coding assistant…" preamble, no HTML comment metadata block, and no duplicate headers.
+
+---
+
 ## [6.0.0] — 2026-04-19
 
 ### Added

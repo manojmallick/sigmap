@@ -5356,7 +5356,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.0.0',
+  version: '6.0.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -7074,7 +7074,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.0.0';
+const VERSION = '6.0.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8909,10 +8909,30 @@ function main() {
   }
 
   const invokedFrom = process.cwd();
-  const cwd = resolveProjectRoot(invokedFrom);
+
+  // --cwd <dir>: restrict scanning to that directory instead of the project root
+  const cwdFlagIdx = args.indexOf('--cwd');
+  const cwdFlag = cwdFlagIdx !== -1 ? (args[cwdFlagIdx + 1] || '').trim() : null;
+  if (cwdFlag !== null && (!cwdFlag || cwdFlag.startsWith('--'))) {
+    console.error('[sigmap] --cwd requires a directory path');
+    process.exit(1);
+  }
+  const cwd = cwdFlag
+    ? path.resolve(invokedFrom, cwdFlag)
+    : resolveProjectRoot(invokedFrom);
   const scriptPath = process.argv[1] || path.join(invokedFrom, 'gen-context.js');
 
-  if (cwd !== invokedFrom) {
+  if (cwdFlag) {
+    if (!fs.existsSync(cwd)) {
+      console.error(`[sigmap] --cwd directory does not exist: ${cwd}`);
+      process.exit(1);
+    }
+    if (!fs.statSync(cwd).isDirectory()) {
+      console.error(`[sigmap] --cwd must be a directory, not a file: ${cwd}`);
+      process.exit(1);
+    }
+    console.warn(`[sigmap] --cwd: restricting scan to ${cwd}`);
+  } else if (cwd !== invokedFrom) {
     console.warn(`[sigmap] using project root: ${cwd}`);
   }
 
@@ -8934,6 +8954,11 @@ function main() {
   }
 
   const config = loadConfig(cwd);
+
+  // --cwd restricts scanning: override srcDirs so only the given directory is scanned
+  if (cwdFlag) {
+    config.srcDirs = ['.'];
+  }
 
   // ── --output <file> — parse early so every subsequent block can use it ─────
   // Resolves the custom output path and merges it into config.customOutput.

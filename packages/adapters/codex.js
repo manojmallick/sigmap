@@ -14,19 +14,19 @@
 
 const path = require('path');
 const fs = require('fs');
-const openai = require('./openai');
 
 const name = 'codex';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 /**
- * Format context using the OpenAI adapter format.
+ * Format context for AGENTS.md — clean markdown, no LLM preamble.
  * @param {string} context - Raw signature context string
  * @param {object} [opts]
  * @returns {string}
  */
 function format(context, opts = {}) {
-  return openai.format(context, opts);
+  if (!context || typeof context !== 'string' || !context.trim()) return '';
+  return `# Code signatures\n\n${context}`;
 }
 
 /**
