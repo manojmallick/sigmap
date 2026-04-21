@@ -146,11 +146,14 @@ function extractInterfaceMembers(block) {
   return members.slice(0, 8);
 }
 
+const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'catch', 'finally', 'else', 'return']);
+
 function extractClassMembers(block) {
   const members = [];
-  // Public methods (skip private/protected/_ prefixed)
+  // Public methods (skip private/protected/_ prefixed and control-flow keywords)
   const methodRe = /^\s+(?:public\s+|static\s+|async\s+|override\s+)*(\w+)\s*(?:<[^(]*>)?\s*\(([^)]*)\)(?:\s*:\s*[^{;]+)?\s*\{/gm;
   for (const m of block.matchAll(methodRe)) {
+    if (_CTRL_KEYWORDS.has(m[1])) continue;
     if (/^(private|protected|_)/.test(m[1])) continue;
     if (m[1] === 'constructor') { members.push(`constructor(${normalizeParams(m[2])})`); continue; }
     const isAsync = m[0].includes('async ') ? 'async ' : '';
