@@ -157,9 +157,11 @@ sigmap --adapter cursor
 
 **IDE extensions:**
 
-- [VS Code extension](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap) — status bar health grade, stale alerts, one-click regen
-- [JetBrains plugin](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) — IntelliJ IDEA, WebStorm, PyCharm, GoLand
-- [Neovim plugin](https://github.com/manojmallick/sigmap.nvim) — `:SigMap`, `:SigMapQuery`, statusline widget
+| IDE | Install | Source | Features |
+|-----|---------|--------|----------|
+| **VS Code** | [Marketplace](https://marketplace.visualstudio.com/items?itemName=manojmallick.sigmap) · [Open VSX](https://open-vsx.org/extension/manojmallick/sigmap) | [github.com/manojmallick/sigmap-vscode](https://github.com/manojmallick/sigmap-vscode) | Status bar health grade, stale context alerts, one-click regen |
+| **JetBrains** | [Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [github.com/manojmallick/sigmap-jetbrains](https://github.com/manojmallick/sigmap-jetbrains) | IntelliJ IDEA, WebStorm, PyCharm, GoLand — tool window + actions |
+| **Neovim** | lazy.nvim / packer / vim-plug | [github.com/manojmallick/sigmap.nvim](https://github.com/manojmallick/sigmap.nvim) | `:SigMap`, `:SigMapQuery` float window, statusline widget |
 
 **MCP server** — 9 on-demand tools for Claude Code and Cursor:
 
