@@ -8,7 +8,8 @@
       "Bash(gh pr create --title 'fix: TS guard clause extraction + codex adapter preamble \\(#97, #96\\)' --body ' *)",
       "Bash(node scripts/sync-versions.mjs 6.0.1)",
       "Bash(gh pr edit 102 --title 'fix\\(v6.0.1\\): TS guard clause extraction + codex adapter preamble \\(#97, #96\\)' --body ' *)",
-      "Bash(node test/integration/features/cwd-flag.test.js)"
+      "Bash(node test/integration/features/cwd-flag.test.js)",
+      "Bash(node test/integration/features/no-duplicate-headers.test.js)"
     ]
   }
 }

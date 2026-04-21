@@ -6866,11 +6866,11 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
 __factories["./packages/adapters/codex"] = function(module, exports) {
   const path = require('path');
   const fs = require('fs');
-  const openai = __require('./packages/adapters/openai');
   const name = 'codex';
   const CODEX_MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
   function format(context, opts = {}) {
-    return openai.format(context, opts);
+    if (!context || typeof context !== 'string' || !context.trim()) return '';
+    return '# Code signatures\n\n' + context;
   }
   function outputPath(cwd) { return path.join(cwd, 'AGENTS.md'); }
   function write(context, cwd, opts = {}) {
@@ -7762,13 +7762,17 @@ function writeOutputs(content, targets, cwd, config) {
     if (ADAPTER_TARGETS.has(target)) {
       try {
         const adapterMod = __require('./packages/adapters/' + target);
+        // Adapters add their own header via format() — strip the formatOutput() header
+        // so the content body (## src, ## deps, etc.) is passed without a pre-existing
+        // header, preventing duplicate "# Code signatures" blocks on every run.
+        const adapterContent = stripFormatHeader(content);
         // copilot: honour config.output custom path (redirects away from default .github/copilot-instructions.md)
         if (target === 'copilot') {
           const outPath = resolveAdapterPath('copilot', cwd, config);
           const defaultPath = path.join(cwd, '.github', 'copilot-instructions.md');
           if (outPath !== defaultPath) {
             // custom path: format and write directly (no append logic)
-            const formatted = adapterMod.format(content, { version: VERSION });
+            const formatted = adapterMod.format(adapterContent, { version: VERSION });
             ensureDir(outPath);
             fs.writeFileSync(outPath, formatted, 'utf8');
             console.warn(`[sigmap] wrote ${path.relative(cwd, outPath)}`);
@@ -7776,11 +7780,11 @@ function writeOutputs(content, targets, cwd, config) {
           }
         }
         if (typeof adapterMod.write === 'function') {
-          adapterMod.write(content, cwd, { version: VERSION });
+          adapterMod.write(adapterContent, cwd, { version: VERSION });
           const outPath = adapterMod.outputPath(cwd);
           console.warn(`[sigmap] wrote ${path.relative(cwd, outPath)} (appended signatures)`);
         } else {
-          const formatted = adapterMod.format(content, { version: VERSION });
+          const formatted = adapterMod.format(adapterContent, { version: VERSION });
           const outPath = adapterMod.outputPath(cwd);
           ensureDir(outPath);
           fs.writeFileSync(outPath, formatted, 'utf8');
@@ -7802,18 +7806,36 @@ function writeOutputs(content, targets, cwd, config) {
   }
 }
 
+// Strip the formatOutput() header block before passing content to adapters.
+// formatOutput() prepends "<!-- Generated... -->\n\n# Code signatures\n\n" which
+// is the raw-file header. Adapters add their own header via format(), so passing
+// pre-headered content produces duplicate headers on every run.
+function stripFormatHeader(content) {
+  if (!content || typeof content !== 'string') return content;
+  // Header ends after "# Code signatures\n\n" (with blank line)
+  const marker = '\n# Code signatures\n';
+  const idx = content.indexOf(marker);
+  if (idx === -1) return content;
+  // Skip past the marker line and one blank line
+  const afterMarker = content.slice(idx + marker.length);
+  return afterMarker.startsWith('\n') ? afterMarker.slice(1) : afterMarker;
+}
+
 function writeClaude(content, cwd) {
   const claudePath = path.join(cwd, 'CLAUDE.md');
   let existing = '';
   if (fs.existsSync(claudePath)) {
     existing = fs.readFileSync(claudePath, 'utf8');
   }
+  // Strip the formatOutput() header — CLAUDE.md gets its own header via the MARKER
+  const body = stripFormatHeader(content);
+  const sigHeader = '# Code signatures\n\n';
   const markerIdx = existing.indexOf('## Auto-generated signatures');
   let newContent;
   if (markerIdx !== -1) {
-    newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + content;
+    newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + sigHeader + body;
   } else {
-    newContent = existing + MARKER + content;
+    newContent = existing + MARKER + sigHeader + body;
   }
   fs.writeFileSync(claudePath, newContent, 'utf8');
   console.warn(`[sigmap] wrote CLAUDE.md (appended signatures)`);
