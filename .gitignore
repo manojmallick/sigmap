@@ -42,3 +42,5 @@ benchmarks/reports/benchmark-report.html
 build_output.log
 test_output.log
 full_test.txt
+
+.personal/
