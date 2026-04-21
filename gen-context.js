@@ -5387,7 +5387,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.0.3',
+  version: '6.1.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -7159,7 +7159,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.0.3';
+const VERSION = '6.1.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
