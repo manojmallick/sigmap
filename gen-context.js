@@ -5327,11 +5327,42 @@ __factories["./src/learning/weights"] = function(module, exports) {
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   }
 
+  function exportWeights(cwd, outputPath) {
+    const weights = loadWeights(cwd);
+    const json = JSON.stringify(weights, null, 2) + '\n';
+    if (outputPath) {
+      fs.mkdirSync(path.dirname(path.resolve(outputPath)), { recursive: true });
+      fs.writeFileSync(outputPath, json, 'utf8');
+    } else {
+      process.stdout.write(json);
+    }
+    return weights;
+  }
+
+  function importWeights(cwd, importPath, replace) {
+    let incoming;
+    try {
+      incoming = JSON.parse(fs.readFileSync(importPath, 'utf8'));
+    } catch (err) {
+      throw new Error('Cannot read weights file: ' + err.message);
+    }
+    const sanitized = sanitizeWeights(cwd, incoming);
+    if (replace) {
+      saveWeights(cwd, sanitized);
+      return sanitized;
+    }
+    const existing = loadWeights(cwd);
+    const merged = Object.assign({}, existing, sanitized);
+    saveWeights(cwd, merged);
+    return merged;
+  }
+
   module.exports = {
     BASELINE, DECAY, MAX_MULT, MIN_MULT,
     weightsPath, clampMultiplier, normalizeFile,
     loadWeights, saveWeights, updateWeights,
     boostFiles, penalizeFiles, resetWeights,
+    exportWeights, importWeights,
   };
 };
 
@@ -8982,6 +9013,11 @@ function main() {
     config.srcDirs = ['.'];
   }
 
+  // --coverage: enable test coverage annotation without editing config
+  if (args.includes('--coverage')) {
+    config.testCoverage = true;
+  }
+
   // ── --output <file> — parse early so every subsequent block can use it ─────
   // Resolves the custom output path and merges it into config.customOutput.
   // Also persists the resolved relative path to gen-context.config.json so
@@ -9304,7 +9340,36 @@ function main() {
 
   // v5.2: `sigmap weights` — explain learned ranking multipliers
   if (args[0] === 'weights') {
-    const { loadWeights } = requireSourceOrBundled('./src/learning/weights');
+    const { loadWeights, exportWeights, importWeights } = requireSourceOrBundled('./src/learning/weights');
+
+    if (args.includes('--export')) {
+      const exportIdx = args.indexOf('--export');
+      const maybeFile = args[exportIdx + 1];
+      const exportFile = (maybeFile && !maybeFile.startsWith('--')) ? maybeFile : null;
+      exportWeights(cwd, exportFile);
+      if (exportFile) console.warn(`[sigmap] weights exported to ${exportFile}`);
+      process.exit(0);
+    }
+
+    if (args.includes('--import')) {
+      const importIdx = args.indexOf('--import');
+      const importFile = args[importIdx + 1];
+      if (!importFile || importFile.startsWith('--')) {
+        console.error('[sigmap] --import requires a file path');
+        process.exit(1);
+      }
+      const replace = args.includes('--replace');
+      try {
+        const result = importWeights(cwd, importFile, replace);
+        const count = Object.keys(result).length;
+        console.warn(`[sigmap] weights ${replace ? 'replaced' : 'merged'} from ${importFile} — ${count} file(s) with non-baseline weights`);
+      } catch (err) {
+        console.error(`[sigmap] weights import failed: ${err.message}`);
+        process.exit(1);
+      }
+      process.exit(0);
+    }
+
     const weights = loadWeights(cwd);
     const entries = Object.entries(weights).sort(([, a], [, b]) => b - a || 0);
 

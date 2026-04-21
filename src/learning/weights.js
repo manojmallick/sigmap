@@ -121,6 +121,36 @@ function resetWeights(cwd) {
   if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
 }
 
+function exportWeights(cwd, outputPath) {
+  const weights = loadWeights(cwd);
+  const json = JSON.stringify(weights, null, 2) + '\n';
+  if (outputPath) {
+    fs.mkdirSync(path.dirname(path.resolve(outputPath)), { recursive: true });
+    fs.writeFileSync(outputPath, json, 'utf8');
+  } else {
+    process.stdout.write(json);
+  }
+  return weights;
+}
+
+function importWeights(cwd, importPath, replace) {
+  let incoming;
+  try {
+    incoming = JSON.parse(fs.readFileSync(importPath, 'utf8'));
+  } catch (err) {
+    throw new Error(`Cannot read weights file: ${err.message}`);
+  }
+  const sanitized = sanitizeWeights(cwd, incoming);
+  if (replace) {
+    saveWeights(cwd, sanitized);
+    return sanitized;
+  }
+  const existing = loadWeights(cwd);
+  const merged = Object.assign({}, existing, sanitized);
+  saveWeights(cwd, merged);
+  return merged;
+}
+
 module.exports = {
   BASELINE,
   DECAY,
@@ -135,4 +165,6 @@ module.exports = {
   boostFiles,
   penalizeFiles,
   resetWeights,
+  exportWeights,
+  importWeights,
 };
