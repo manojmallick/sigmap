@@ -13,5 +13,32 @@ VISION.md
 benchmarks/repos/
 benchmarks/results/
 
-# Strategy-audit process logs — ephemeral stdout/stderr from benchmark runs
-benchmarks/reports/strategy-audit/**/*.log
+# Strategy-audit — generated benchmark output files
+benchmarks/reports/strategy-audit/
+
+# Generated context files (output of sigmap run, not source)
+.github/copilot-instructions.md
+.github/copilot-instructions.cache.json
+.github/gemini-context.md
+
+# Incremental sig cache (generated at runtime)
+.sigmap-cache.json
+
+# Editor / IDE config
+.vscode/
+
+# Local dev workflow commands (Claude Code)
+.claude/commands/
+
+# Internal operational docs (not for public repo)
+PRERELEASE_GUIDE.md
+RELEASE.md
+TEST_RESULTS.md
+
+# Generated reports
+benchmarks/reports/benchmark-report.html
+
+# Runtime logs
+build_output.log
+test_output.log
+full_test.txt
