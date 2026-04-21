@@ -66,7 +66,7 @@ features:
     linkText: Language support →
   - icon: 🔌
     title: MCP-ready and IDE-friendly
-    details: Works with Copilot, Claude Code, Cursor, Windsurf, Codex, and Gemini CLI. Use MCP for dynamic query_context lookups on demand.
+    details: Works with Copilot, Claude Code, Cursor, Windsurf, Codex, OpenCode, and Gemini CLI. Use MCP for dynamic query_context lookups on demand.
     link: /guide/mcp
     linkText: MCP setup →
   - icon: 📈

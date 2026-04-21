@@ -147,7 +147,7 @@ volta install sigmap
 | `windsurf` | `.windsurfrules` | Windsurf |
 | `openai` | `.github/openai-context.md` | OpenAI models |
 | `gemini` | `.github/gemini-context.md` | Google Gemini |
-| `codex` | `AGENTS.md` | OpenAI Codex |
+| `codex` | `AGENTS.md` | OpenAI Codex · OpenCode |
 
 ```bash
 sigmap --adapter copilot   # default
