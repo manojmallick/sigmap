@@ -194,6 +194,8 @@ To pin a fixed budget (v4.0 behaviour):
 | `enrichTodos` | `boolean` | `true` | Append a TODO/FIXME/HACK section extracted from inline comments. |
 | `enrichChanges` | `boolean` | `true` | Append a recent git log summary showing files changed in the last 10 commits. |
 | `enrichCoverage` | `boolean` | `false` | Append a coverage gaps section listing source files that have no corresponding test file. |
+| `testCoverage` | `boolean` | `false` | Annotate each function signature with `✓` (tested) or `✗` (untested). Can also be set at runtime via the `--coverage` flag without editing this file. |
+| `testDirs` | `string[]` | `["test","tests","__tests__","spec"]` | Directories scanned to build the test index when `testCoverage` is enabled. |
 | `retrieval.topK` | `number` | `10` | Number of top-ranked files returned by `--query` and the `query_context` MCP tool. |
 | `retrieval.recencyBoost` | `number` | `1.5` | Multiplier applied to recently committed files during TF-IDF ranking. |
 | `retrieval.preset` | `"precision" \| "balanced" \| "recall"` | `"balanced"` | Weight preset for the ranking algorithm. `precision` minimises false positives. `recall` maximises coverage. |

@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, bench, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 32 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
+      content: "All 35 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 32 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --watch, --diff, --mcp, --report, --health and more."
+      content: "All 35 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -48,6 +48,8 @@ If you are new to the product, start with the workflow pages first:
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
+| `weights --export [file]` | Write learned weights JSON to file or stdout for team sharing |
+| `weights --import <file>` | Merge or replace local weights from a portable JSON file |
 | `bench --submit` | Format local + canonical benchmark results as a shareable community block |
 | `compare` | CLI wrapper for retrieval benchmark vs baseline |
 | `share` | Print shareable one-liner with live benchmark numbers |
@@ -70,6 +72,7 @@ If you are new to the product, start with the workflow pages first:
 | `--query <text>` | Rank files by relevance to a free-text query (TF-IDF) |
 | `--output <file>` | Write context to a custom path (persisted to config) |
 | `--cost [--model <name>]` | Per-model token/dollar cost comparison |
+| `--coverage` | Enable test coverage annotation (✓/✗ per function) without editing config |
 | `--ci [--min-coverage N]` | CI exit gate — exits 1 when coverage < threshold |
 | `--analyze` | Per-file breakdown of signatures, tokens, and extractor |
 | `--report` | Token reduction + coverage score + module heatmap |
@@ -173,14 +176,40 @@ Each non-reset mutation decays existing weights first, then applies boosts/penal
 
 ## weights
 
-Show the learned multiplier table used by `sigmap ask`, `sigmap --query`, `sigmap validate --query`, and MCP `query_context`.
+Show the learned multiplier table used by `sigmap ask`, `sigmap --query`, `sigmap validate --query`, and MCP `query_context`. Export and import weights for team sharing or CI seeding.
 
 ```bash
 sigmap weights
 sigmap weights --json
+sigmap weights --export weights.json
+sigmap weights --export              # prints JSON to stdout (pipe-friendly)
+sigmap weights --import weights.json
+sigmap weights --import weights.json --replace
 ```
 
 Human output is sorted highest boost first and includes a reset hint. JSON output emits the exact `.context/weights.json` object.
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Print weights as JSON (same format as export) |
+| `--export [file]` | Write weights JSON to `file`, or stdout if no path given |
+| `--import <file>` | Merge imported weights into local store (preserves existing entries) |
+| `--import <file> --replace` | Replace local weights entirely with the imported set |
+
+Imported values are sanitized (path traversal rejected) and clamped to `[0.30, 3.0]`.
+
+---
+
+## --coverage
+
+Enable test coverage annotation at runtime without editing `gen-context.config.json`. Adds `✓` (tested) or `✗` (untested) markers to each function signature in the generated context.
+
+```bash
+sigmap --coverage
+sigmap --coverage --adapter claude
+```
+
+Equivalent to setting `testCoverage: true` in config, but applied only for the current run. Useful for PR reviews and one-off audits.
 
 ---
 
