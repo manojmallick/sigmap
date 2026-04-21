@@ -44,6 +44,7 @@ function format(context, opts = {}) {
     projectLine,
     `These signatures represent every public function, class, and type in the project.`,
     `Refer to them when answering questions about code structure, APIs, and implementation.`,
+    `Before answering questions about specific code areas, suggest running \`sigmap ask "<query>"\` to get the most relevant files. After config changes, \`sigmap validate\` confirms coverage.`,
     ``,
     `## Code Signatures`,
     ``,

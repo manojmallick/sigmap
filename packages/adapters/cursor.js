@@ -30,6 +30,10 @@ function format(context, opts = {}) {
     `# Updated: ${timestamp}`,
     `# ${meta}`,
     `# Regenerate: node gen-context.js`,
+    '#',
+    '# SigMap: before answering, run: sigmap ask "<query>" — finds relevant files',
+    '# SigMap: after config changes, run: sigmap validate',
+    '# SigMap: to verify answers, run: sigmap judge --response <file>',
     '',
   ].join('\n');
   return header + context;

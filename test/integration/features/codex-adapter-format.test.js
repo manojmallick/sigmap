@@ -135,9 +135,11 @@ test('11. large context preserved without truncation', () => {
   assert.ok(out.includes('fn199('), 'last entry present');
 });
 
-test('12. output contains no HTML tags', () => {
+test('12. output contains no HTML element tags (div, span, p, etc.)', () => {
   const out = codex.format(CTX);
-  assert.ok(!/<[a-z]+[\s>]/i.test(out), `HTML tags found in output:\n${out.slice(0, 300)}`);
+  // Match known HTML element names; angle-bracket placeholders like <query> are allowed
+  const htmlTagRe = /<\/?(div|span|p|a|ul|ol|li|table|tr|td|th|section|article|header|footer|nav|main|aside|h[1-6]|br|hr|pre|code|em|strong|script|style)[\s/>]/i;
+  assert.ok(!htmlTagRe.test(out), `HTML element tags found in output:\n${out.slice(0, 300)}`);
 });
 
 // ── outputPath() ──────────────────────────────────────────────────────────────

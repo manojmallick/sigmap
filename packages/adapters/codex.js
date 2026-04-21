@@ -26,7 +26,19 @@ const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js
  */
 function format(context, opts = {}) {
   if (!context || typeof context !== 'string' || !context.trim()) return '';
-  return `# Code signatures\n\n${context}`;
+  const toolBlock = [
+    '## SigMap commands',
+    '',
+    '| When | Command |',
+    '|------|---------|',
+    '| Before answering a question | `sigmap ask "<your question>"` |',
+    '| After code changes | `sigmap validate` |',
+    '| To query by topic | `sigmap --query "<topic>"` |',
+    '',
+    'Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.',
+    '',
+  ].join('\n');
+  return `# Code signatures\n\n${toolBlock}${context}`;
 }
 
 /**
