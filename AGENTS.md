@@ -13,10 +13,25 @@ Use this marker block for all appendable context files:
 <!-- Updated by gen-context.js -->
 # Code signatures
 
-## changes (last 5 commits — 3 minutes ago)
+## SigMap commands
+
+| When | Command |
+|------|---------|
+| Before answering a question | `sigmap ask "<your question>"` |
+| After code changes | `sigmap validate` |
+| To query by topic | `sigmap --query "<topic>"` |
+
+Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
+## changes (last 5 commits — 31 minutes ago)
 ```
-src/extractors/typescript.js                  ~extractInterfaceMembers  ~extractClassMembers
+src/learning/weights.js                       +exportWeights  +importWeights  ~resetWeights
 packages/adapters/codex.js                    ~format
+packages/adapters/gemini.js                   ~format
+packages/adapters/copilot.js                  ~format
+packages/adapters/openai.js                   ~format
+packages/adapters/claude.js                   ~format
+packages/adapters/cursor.js                   ~format
+packages/adapters/windsurf.js                 ~format
 ```
 
 ## packages
@@ -42,57 +57,6 @@ module.exports = { name: 'llm-full', format, outputPath, write }
 function outputPath(cwd)
 function format(context, opts)
 function write(context, cwd, opts)
-```
-
-### packages/adapters/claude.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-```
-
-### packages/adapters/copilot.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-```
-
-### packages/adapters/cursor.js
-```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-```
-
-### packages/adapters/gemini.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-function _confidenceMeta(opts)
-```
-
-### packages/adapters/openai.js
-```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function _confidenceMeta(opts)
-```
-
-### packages/adapters/windsurf.js
-```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
 ```
 
 ### packages/core/README.md
@@ -135,13 +99,58 @@ function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
 
-## src
+### packages/adapters/gemini.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+function _confidenceMeta(opts)
+```
 
-### src/routing/hints.js
+### packages/adapters/copilot.js
 ```
-module.exports = { TIERS, formatRoutingSection }
-function formatRoutingSection(groups) → string
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function _confidenceMeta(opts)
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
 ```
+
+### packages/adapters/openai.js
+```
+module.exports = { name, format, outputPath }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function _confidenceMeta(opts)
+```
+
+### packages/adapters/claude.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function _confidenceMeta(opts)
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+```
+
+### packages/adapters/cursor.js
+```
+module.exports = { name, format, outputPath }
+function format(context, opts = {}) → string
+function _confidenceMeta(opts)
+function outputPath(cwd) → string
+```
+
+### packages/adapters/windsurf.js
+```
+module.exports = { name, format, outputPath }
+function format(context, opts = {}) → string
+function _confidenceMeta(opts)
+function outputPath(cwd) → string
+```
+
+## src
 
 ### src/security/patterns.js
 ```
@@ -551,21 +560,6 @@ function extractContextFiles(context, cwd)
 function judge(response, context, opts = {})
 ```
 
-### src/learning/weights.js
-```
-module.exports = { BASELINE, DECAY, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights }
-function weightsPath(cwd)
-function clampMultiplier(value)
-function normalizeFile(cwd, filePath)
-function sanitizeWeights(cwd, weights)
-function loadWeights(cwd)
-function saveWeights(cwd, weights)
-function updateWeights(cwd, opts = {})
-function boostFiles(cwd, files, amount = 0.15)
-function penalizeFiles(cwd, files, amount = 0.10)
-function resetWeights(cwd)
-```
-
 ### src/format/benchmark-report.js
 ```
 module.exports = { loadBenchmarkReports, buildBenchmarkSummary, generateBenchmarkReportHtml, writeBenchmarkReport }
@@ -652,6 +646,23 @@ function extractBlock(src, startIndex)
 function extractInterfaceMembers(block)
 function extractClassMembers(block)
 function normalizeParams(params)
+```
+
+### src/learning/weights.js
+```
+module.exports = { BASELINE, DECAY, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights, exportWeights, importWeights }
+function weightsPath(cwd)
+function clampMultiplier(value)
+function normalizeFile(cwd, filePath)
+function sanitizeWeights(cwd, weights)
+function loadWeights(cwd)
+function saveWeights(cwd, weights)
+function updateWeights(cwd, opts = {})
+function boostFiles(cwd, files, amount = 0.15)
+function penalizeFiles(cwd, files, amount = 0.10)
+function resetWeights(cwd)
+function exportWeights(cwd, outputPath)
+function importWeights(cwd, importPath, replace)
 ```
 
 ### src/mcp/server.js
