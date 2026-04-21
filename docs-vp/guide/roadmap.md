@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 96.9% overall token reduction · 545 tests passing · 29 languages · 0 npm deps
+**Stats:** 96.9% overall token reduction · 683 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -466,9 +466,26 @@ v6.0 ships two performance improvements: graph-boosted retrieval that propagates
 
 ---
 
+### v6.0.1–v6.0.3 — Bug fixes + weights sharing ✓ (tagged v6.0.3 — 2026-04-21)
+
+Three patch releases closing user-reported regressions and adding two team-collaboration features.
+
+- **v6.0.1 — TypeScript extractor guard clauses (#97)** — `extractClassMembers` now filters `if`, `for`, `while`, `switch`, `do`, `try`, `catch`, `finally`, `else` so control-flow keywords are no longer emitted as method signatures inside class bodies.
+- **v6.0.1 — Codex adapter preamble (#96)** — `packages/adapters/codex.js` and its bundled `__factories` copy no longer delegate to the OpenAI adapter; output is clean `# Code signatures\n\n<context>` with no LLM system-prompt preamble.
+- **v6.0.2 — Duplicate adapter headers (#104)** — `writeOutputs()` now strips the `formatOutput()` preamble via a new `stripFormatHeader()` helper before passing content to adapters, preventing double `# Code signatures` headers on every run across copilot, claude, and codex adapters.
+- **v6.0.3 — `--coverage` flag** — enables test coverage annotation (✓/✗ per function) at runtime without editing config. Equivalent to `testCoverage: true` in config, applied only for the current run.
+- **v6.0.3 — `sigmap weights --export [file]`** — writes learned weights JSON to a file path or stdout, making it pipe-friendly for CI seed workflows.
+- **v6.0.3 — `sigmap weights --import <file> [--replace]`** — merges or fully replaces local `.context/weights.json` from a portable JSON file. Incoming values are sanitized and clamped. Enables teams to share accumulated ranking knowledge across machines.
+
+**Tags:** `guard-clauses` · `codex-adapter` · `strip-header` · `--coverage` · `weights-export` · `weights-import` · `team-sharing`
+
+**Impact:** 683 total tests (+138 since v6.0.0) · weights sharing unlocked for multi-developer repos
+
+---
+
 ## Current milestone — v6.x
 
-v6.0 shipped graph-boosted retrieval and the incremental signature cache. Current focus: wire `sig-cache` into the main `gen-context.js` extraction pipeline so every CLI run benefits from incremental caching, benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run the full benchmark matrix against freshly cloned repos to confirm the corrected canonical numbers, and explore binary distribution via GitHub Releases download links in docs. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
+v6.0–v6.0.3 shipped graph-boosted retrieval, incremental signature cache, and weights sharing. Current focus: wire `sig-cache` into the main `gen-context.js` extraction pipeline so every CLI run benefits from incremental caching, benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run the full benchmark matrix against freshly cloned repos to confirm the corrected canonical numbers, and explore binary distribution via GitHub Releases download links in docs. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 

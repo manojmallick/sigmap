@@ -10,6 +10,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.0.3] — 2026-04-21
+
+### Added
+
+- **`--coverage` CLI flag** — enables test coverage annotation (`✓`/`✗` per function) at runtime without editing config; sets `testCoverage: true` on the loaded config before any run path.
+- **`sigmap weights --export [file]`** — writes learned weights JSON to a file path, or prints to stdout if no path given (pipe-friendly for CI and team sharing).
+- **`sigmap weights --import <file> [--replace]`** — merges imported weights into the local `.context/weights.json`; `--replace` discards existing weights and takes the imported set entirely. Incoming values are sanitized and clamped.
+
+---
+
 ## [6.0.2] — 2026-04-21
 
 ### Fixed
