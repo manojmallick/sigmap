@@ -8927,6 +8927,10 @@ function main() {
       console.error(`[sigmap] --cwd directory does not exist: ${cwd}`);
       process.exit(1);
     }
+    if (!fs.statSync(cwd).isDirectory()) {
+      console.error(`[sigmap] --cwd must be a directory, not a file: ${cwd}`);
+      process.exit(1);
+    }
     console.warn(`[sigmap] --cwd: restricting scan to ${cwd}`);
   } else if (cwd !== invokedFrom) {
     console.warn(`[sigmap] using project root: ${cwd}`);

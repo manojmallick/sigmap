@@ -25,7 +25,7 @@ const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js
  * @returns {string}
  */
 function format(context, opts = {}) {
-  if (!context || typeof context !== 'string') return '';
+  if (!context || typeof context !== 'string' || !context.trim()) return '';
   return `# Code signatures\n\n${context}`;
 }
 
