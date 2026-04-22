@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-17T17:07:05.112Z",
+  "generated": "2026-04-22T07:24:39.033Z",
   "repos": [
     {
       "repo": "express",
@@ -430,7 +430,7 @@
     {
       "repo": "rust-analyzer",
       "fileCount": 635,
-      "sigCount": 307,
+      "sigCount": 306,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.85,
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 540,
+      "sigCount": 541,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.58,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 150,
+      "sigCount": 149,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.707,
@@ -988,7 +988,7 @@
             "Sources/Vapor/Cache/Cache.swift",
             "Sources/Vapor/Cache/MemoryCache.swift"
           ],
-          "top1": "Sources/Vapor/Utilities/Extendable.swift",
+          "top1": "Sources/Vapor/Cache/CacheExpirationTime.swift",
           "firstHitRank": null,
           "tier": "wrong"
         }
@@ -1071,7 +1071,7 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 205,
+      "sigCount": 204,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.18,

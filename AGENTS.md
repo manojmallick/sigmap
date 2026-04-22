@@ -22,14 +22,14 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 7 minutes ago)
+## changes (last 5 commits — 21 minutes ago)
 ```
 src/learning/weights.js                       +exportWeights  +importWeights  ~resetWeights
+packages/adapters/claude.js                   ~format
 packages/adapters/codex.js                    ~format
 packages/adapters/gemini.js                   ~format
 packages/adapters/copilot.js                  ~format
 packages/adapters/openai.js                   ~format
-packages/adapters/claude.js                   ~format
 packages/adapters/cursor.js                   ~format
 packages/adapters/windsurf.js                 ~format
 ```
@@ -91,6 +91,15 @@ function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
 ```
 
+### packages/adapters/claude.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function _confidenceMeta(opts)
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+```
+
 ### packages/adapters/codex.js
 ```
 module.exports = { name, format, outputPath, write }
@@ -123,15 +132,6 @@ module.exports = { name, format, outputPath }
 function format(context, opts = {}) → string
 function outputPath(cwd) → string
 function _confidenceMeta(opts)
-```
-
-### packages/adapters/claude.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
 ```
 
 ### packages/adapters/cursor.js

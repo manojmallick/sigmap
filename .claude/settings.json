@@ -17,7 +17,10 @@
       "Bash(grep -E \"passed, [0-9]+ failed$\")",
       "Bash(awk -F'[ ,]+' '{sum += $1} END {print sum \" total test cases\"}')",
       "Bash(awk -F'[ ,]+' '{sum += $1} END {print sum}')",
-      "Bash(node /Users/manojmallick/sigmap/test/integration/features/setup-mcp-targets.test.js)"
+      "Bash(node /Users/manojmallick/sigmap/test/integration/features/setup-mcp-targets.test.js)",
+      "Bash(node /Users/manojmallick/sigmap/scripts/sync-versions.mjs 6.2.0)",
+      "Bash(gh pr create --title 'feat\\(setup\\): MCP auto-wire for 4 new targets — v6.2.0' --body ' *)",
+      "Bash(awk -F' ' '{sum += $1} END {print sum}')"
     ]
   }
 }
