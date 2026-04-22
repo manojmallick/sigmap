@@ -31,6 +31,10 @@ head:
 
 Latest saved run: **2026-04-19 (v6.0.0)**
 
+::: tip v6.3.0 release note
+v6.3.0 ships native tool registration for Claude Code and Codex. Task numbers are unchanged from v6.0-main; the next task run will follow the v6.5 Source Root Resolver milestone.
+:::
+
 This page answers the question people care about most:
 
 > does SigMap help the developer finish the task with fewer retries?

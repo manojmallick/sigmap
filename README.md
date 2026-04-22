@@ -21,8 +21,6 @@
 ```bash
 npx sigmap
 sigmap ask "Where is auth handled?"
-sigmap validate
-sigmap judge
 ```
 
 Zero config. Zero dependencies. Under 10 seconds.
@@ -52,7 +50,7 @@ Works with Copilot, Claude, Cursor, Windsurf, and any LLM.
 
 | Without SigMap | With SigMap |
 |---|---|
-| ❌ Guessing which files are relevant | ✅ Correct file selection every time |
+| ❌ Guessing which files are relevant | ✅ Right file in context — 80% of the time |
 | ❌ Sending the full repo to your AI | ✅ Minimal context — only what matters |
 | ❌ Embeddings / vector DB required | ✅ Grounded answers, no infra needed |
 
