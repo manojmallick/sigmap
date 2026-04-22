@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.3, with the latest milestone adding native tool registration in AGENTS.md and CLAUDE.md for zero-config agent access.
+description: SigMap version history and roadmap. From v0.0 to v6.4, with the latest milestone syncing docs version labels, fixing the README overclaim, and upgrading the generalization benchmark to v6.0-main.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "29 versions shipped. See what changed in each release and what is coming next."
+      content: "45 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Thirty-plus versions shipped. MIT open source from day one.
+Forty-five versions shipped. MIT open source from day one.
 
 **Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 0 npm deps
 
