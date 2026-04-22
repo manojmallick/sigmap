@@ -17,6 +17,44 @@ const fs = require('fs');
 
 const name = 'codex';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
+const TOOLS_MARKER = '<!-- sigmap-tools -->';
+
+const TOOLS_BLOCK = [
+  '## Tools',
+  '',
+  TOOLS_MARKER,
+  '',
+  '```json',
+  JSON.stringify([
+    {
+      name: 'sigmap_ask',
+      description: 'Rank source files by relevance to a natural-language query. Run before exploring the codebase.',
+      command: 'sigmap ask "$QUERY"',
+    },
+    {
+      name: 'sigmap_validate',
+      description: 'Validate SigMap config and measure context coverage. Run after changing config or source dirs.',
+      command: 'sigmap validate',
+    },
+    {
+      name: 'sigmap_judge',
+      description: 'Score an LLM response for groundedness against source context. Use to verify answer quality.',
+      command: 'sigmap judge --response "$RESPONSE" --context "$CONTEXT"',
+    },
+    {
+      name: 'sigmap_query',
+      description: 'Rank all files by relevance using TF-IDF and write a focused mini-context.',
+      command: 'sigmap --query "$QUERY" --context',
+    },
+    {
+      name: 'sigmap_weights',
+      description: 'Show learned file-ranking multipliers accumulated from past sessions.',
+      command: 'sigmap weights',
+    },
+  ], null, 2),
+  '```',
+  '',
+].join('\n');
 
 /**
  * Format context for AGENTS.md — clean markdown, no LLM preamble.
@@ -78,6 +116,16 @@ function write(context, cwd, opts = {}) {
     newContent = isLegacyGenerated
       ? MARKER.trimStart() + formatted
       : existing + MARKER + formatted;
+  }
+
+  // Inject ## Tools block above the sig marker if not already present
+  if (!newContent.includes(TOOLS_MARKER)) {
+    const sigMarkerPos = newContent.indexOf('## Auto-generated signatures');
+    if (sigMarkerPos !== -1) {
+      newContent = newContent.slice(0, sigMarkerPos) + TOOLS_BLOCK + '\n' + newContent.slice(sigMarkerPos);
+    } else {
+      newContent = TOOLS_BLOCK + '\n' + newContent;
+    }
   }
 
   fs.writeFileSync(filePath, newContent, 'utf8');
