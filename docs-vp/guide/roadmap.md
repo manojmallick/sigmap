@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 96.9% overall token reduction · 683 tests passing · 29 languages · 0 npm deps
+**Stats:** 96.9% overall token reduction · 691 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -483,9 +483,19 @@ Three patch releases closing user-reported regressions and adding two team-colla
 
 ---
 
+### v6.1.0 — Native tool instructions in every adapter ✓ (tagged v6.1.0 — 2026-04-22)
+
+Every adapter's `format()` now embeds native-format SigMap command guidance so agents automatically receive tool instructions in each generated context file — no manual configuration required. Instructions are styled to match each host tool: a markdown table (copilot, codex), a bullet list (claude), `#` comment lines (cursor, windsurf), and an instruction sentence (openai, gemini). This is Level 1 of the adapter-tool-wiring roadmap; Level 2 will auto-wire the four missing MCP tools.
+
+**Tags:** `tool-instructions` · `adapter-level-1` · `copilot` · `claude` · `cursor` · `windsurf` · `openai` · `gemini` · `codex`
+
+**Impact:** 691 total tests (+8 since v6.0.3) · all 7 adapters now surface `sigmap ask`, `sigmap validate`, and `sigmap judge` to every AI agent automatically
+
+---
+
 ## Current milestone — v6.x
 
-v6.0–v6.0.3 shipped graph-boosted retrieval, incremental signature cache, and weights sharing. Current focus: wire `sig-cache` into the main `gen-context.js` extraction pipeline so every CLI run benefits from incremental caching, benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), run the full benchmark matrix against freshly cloned repos to confirm the corrected canonical numbers, and explore binary distribution via GitHub Releases download links in docs. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
+v6.0–v6.1.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, and native tool instructions across all 7 adapters. Current focus: Level 2 adapter wiring (auto-wire four missing MCP tools into adapter outputs), wire `sig-cache` into the main `gen-context.js` extraction pipeline so every CLI run benefits from incremental caching, benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), and run the full benchmark matrix against freshly cloned repos to confirm the corrected canonical numbers. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 

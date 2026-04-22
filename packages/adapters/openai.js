@@ -42,6 +42,7 @@ function format(context, opts = {}) {
     projectLine,
     `Use these signatures to answer questions about the code accurately.`,
     `When the user asks about a specific file or function, refer to the signatures below.`,
+    `Before answering questions about specific code areas, prefer running \`sigmap ask "<query>"\` to get the most relevant files. After config changes, \`sigmap validate\` confirms coverage.`,
     ``,
     `## Code Signatures`,
     ``,

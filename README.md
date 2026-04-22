@@ -76,14 +76,14 @@ Ask → Rank → Context → Validate → Judge → Learn
 ## Benchmark
 
 ```
-Benchmark : sigmap-v5.9-main
+Benchmark : sigmap-v6.0-main
 Date      : 2026-04-19
 
-Hit@5          : 80.0%   (baseline 13.6%  — 5.9× lift)
+Hit@5          : 80.0%   (baseline 13.6%  — 5.8× lift)
 Prompt reduction : 40.8%
 Task success   : 52.2%   (baseline 10%)
 Prompts / task : 1.68    (baseline 2.84)
-Token reduction: 40–98%  (avg 97.6% across 18 real repos)
+Token reduction: 40–98%  (avg 96.9% across 18 real repos)
 ```
 
 Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.

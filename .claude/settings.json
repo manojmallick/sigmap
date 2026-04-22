@@ -9,7 +9,14 @@
       "Bash(node scripts/sync-versions.mjs 6.0.1)",
       "Bash(gh pr edit 102 --title 'fix\\(v6.0.1\\): TS guard clause extraction + codex adapter preamble \\(#97, #96\\)' --body ' *)",
       "Bash(node test/integration/features/cwd-flag.test.js)",
-      "Bash(node test/integration/features/no-duplicate-headers.test.js)"
+      "Bash(node test/integration/features/no-duplicate-headers.test.js)",
+      "Bash(node test/integration/features/adapter-tool-instructions.test.js)",
+      "Bash(node -e \"const c = require\\('./packages/adapters/codex'\\); console.log\\(c.format\\('test context'\\)\\);\")",
+      "Bash(node /Users/manojmallick/sigmap/scripts/sync-versions.mjs 6.1.0)",
+      "Bash(gh pr create --title 'feat\\(adapters\\): native tool instructions in all 7 adapters — v6.1.0' --body ' *)",
+      "Bash(grep -E \"passed, [0-9]+ failed$\")",
+      "Bash(awk -F'[ ,]+' '{sum += $1} END {print sum \" total test cases\"}')",
+      "Bash(awk -F'[ ,]+' '{sum += $1} END {print sum}')"
     ]
   }
 }

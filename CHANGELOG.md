@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.1.0] — 2026-04-22
+
+### Added
+
+- **Tool instructions in every adapter (Level 1)** — each adapter's `format()` now embeds native-format SigMap command guidance: markdown table (copilot, codex), bullet list (claude), `#` comments (cursor, windsurf), instruction sentence (openai, gemini). Agents get `sigmap ask`, `sigmap validate`, and `sigmap judge` hints automatically in every generated context file.
+
+---
+
 ## [6.0.3] — 2026-04-21
 
 ### Added
