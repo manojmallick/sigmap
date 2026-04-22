@@ -20,7 +20,10 @@
       "Bash(node /Users/manojmallick/sigmap/test/integration/features/setup-mcp-targets.test.js)",
       "Bash(node /Users/manojmallick/sigmap/scripts/sync-versions.mjs 6.2.0)",
       "Bash(gh pr create --title 'feat\\(setup\\): MCP auto-wire for 4 new targets — v6.2.0' --body ' *)",
-      "Bash(awk -F' ' '{sum += $1} END {print sum}')"
+      "Bash(awk -F' ' '{sum += $1} END {print sum}')",
+      "Bash(node /Users/manojmallick/sigmap/test/integration/features/native-tool-registration.test.js)",
+      "Bash(node /Users/manojmallick/sigmap/scripts/sync-versions.mjs 6.3.0)",
+      "Bash(gh pr create --title 'feat\\(adapters\\): native tool registration for codex + claude — v6.3.0' --body ' *)"
     ]
   }
 }
