@@ -65,7 +65,7 @@ If you are new to the product, start with the workflow pages first:
 | `explain <file>` | Why a file is included or excluded from context |
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
 | `--watch` | Watch for file changes and regenerate incrementally |
-| `--setup` | Auto-wire MCP for Claude, Cursor, Windsurf, and Zed; install git hook; start watcher |
+| `--setup` | Auto-wire MCP for Claude, Cursor, Windsurf, Zed, VS Code, OpenCode, Gemini CLI, Codex CLI; install git hook; start watcher |
 | `--diff` | Generate context only for changed files (shows risk score per file) |
 | `--diff --staged` | Generate context only for staged files |
 | `--mcp` | Start the stdio MCP server |
@@ -455,7 +455,7 @@ sigmap --watch
 
 One-command setup. Auto-wires the SigMap MCP server into all detected AI editor config files, installs a git post-commit hook, and starts the file watcher.
 
-**Supported editors (v5.9.0):**
+**Supported editors (v6.2.0) — 10 targets:**
 
 | Editor | Config file written |
 |--------|-------------------|
@@ -464,6 +464,11 @@ One-command setup. Auto-wires the SigMap MCP server into all detected AI editor 
 | Windsurf (project) | `.windsurf/mcp.json` → `mcpServers.sigmap` |
 | Windsurf (global) | `~/.codeium/windsurf/mcp_config.json` → `mcpServers.sigmap` |
 | Zed | `~/.config/zed/settings.json` → `context_servers.sigmap` |
+| VS Code (GitHub Copilot 1.99+) | `.vscode/mcp.json` → `mcpServers.sigmap` |
+| OpenCode (project) | `opencode.json` → `mcpServers.sigmap` |
+| OpenCode (global) | `~/.config/opencode/config.json` → `mcpServers.sigmap` |
+| Gemini CLI | `~/.gemini/settings.json` → `mcpServers.sigmap` |
+| Codex CLI | `~/.codex/config.yaml` → `mcpServers.sigmap` (YAML) |
 
 > **Neovim users:** `--setup` does not write Neovim config (Neovim uses a Lua plugin instead of a JSON config file). Install the `sigmap.nvim` plugin directly — see [`neovim-plugin/README.md`](https://github.com/manojmallick/sigmap/blob/main/neovim-plugin/README.md).
 
@@ -477,19 +482,30 @@ sigmap --setup
 [sigmap] registered MCP server in .claude/settings.json
 [sigmap] registered MCP server in .cursor/mcp.json
 [sigmap] registered MCP server in .windsurf/mcp.json
+[sigmap] registered MCP server in .vscode/mcp.json
+[sigmap] registered MCP server in opencode.json
+[sigmap] registered MCP server in ~/.gemini/settings.json
+[sigmap] registered MCP server in ~/.codex/config.yaml
 [sigmap] registered context server in ~/.config/zed/settings.json
 [sigmap] installed .git/hooks/post-commit
 [sigmap] watching for changes (Ctrl+C to stop)…
 ```
 
-After registration `--setup` also prints manual snippets for all four tools so you can configure any editor not listed above:
+After registration `--setup` also prints manual snippets for all tools so you can configure any editor not listed above:
 
 ```
 [sigmap] MCP / context server config snippets:
-  Claude / Cursor / Windsurf:
+  Claude / Cursor / Windsurf / VS Code / OpenCode / Gemini CLI:
   { "mcpServers": { "sigmap": { "command": "node", "args": ["./gen-context.js", "--mcp"] } } }
-  Zed:
+  Zed (~/.config/zed/settings.json):
   { "context_servers": { "sigmap": { "command": { "path": "node", "args": ["./gen-context.js", "--mcp"] } } } }
+  Codex CLI (~/.codex/config.yaml):
+  mcpServers:
+    sigmap:
+      command: node
+      args:
+        - ./gen-context.js
+        - --mcp
 ```
 
 ---

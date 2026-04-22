@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-17T17:07:22.753Z",
+  "generated": "2026-04-22T07:24:49.891Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,9 +26,9 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 80,
     "avgImprovement": 55.6,
-    "totalGroundedSymbols": 16122,
-    "totalDarkSymbols": 47679,
-    "hallucinationRiskPct": 74.7
+    "totalGroundedSymbols": 16141,
+    "totalDarkSymbols": 48047,
+    "hallucinationRiskPct": 74.9
   },
   "repos": [
     {
@@ -84,8 +84,8 @@
       "promptsWithout": 2.54,
       "reductionPct": 29.1,
       "groundedSymbols": 114,
-      "darkSymbols": 38,
-      "hallucinationRiskPct": 25
+      "darkSymbols": 425,
+      "hallucinationRiskPct": 78.8
     },
     {
       "repo": "rails",
@@ -153,9 +153,9 @@
       "promptsWith": 2.4,
       "promptsWithout": 2.94,
       "reductionPct": 18.3,
-      "groundedSymbols": 585,
-      "darkSymbols": 393,
-      "hallucinationRiskPct": 40.2
+      "groundedSymbols": 587,
+      "darkSymbols": 391,
+      "hallucinationRiskPct": 40
     },
     {
       "repo": "riverpod",
@@ -195,8 +195,8 @@
       "promptsWith": 1.6,
       "promptsWithout": 3,
       "reductionPct": 46.6,
-      "groundedSymbols": 2509,
-      "darkSymbols": 5889,
+      "groundedSymbols": 2507,
+      "darkSymbols": 5891,
       "hallucinationRiskPct": 70.1
     },
     {
@@ -209,9 +209,9 @@
       "promptsWith": 1.4,
       "promptsWithout": 2.97,
       "reductionPct": 52.9,
-      "groundedSymbols": 1165,
-      "darkSymbols": 2788,
-      "hallucinationRiskPct": 70.5
+      "groundedSymbols": 1159,
+      "darkSymbols": 2794,
+      "hallucinationRiskPct": 70.7
     },
     {
       "repo": "vapor",
@@ -237,9 +237,9 @@
       "promptsWith": 1.8,
       "promptsWithout": 2.97,
       "reductionPct": 39.5,
-      "groundedSymbols": 325,
-      "darkSymbols": 1813,
-      "hallucinationRiskPct": 84.8
+      "groundedSymbols": 344,
+      "darkSymbols": 1794,
+      "hallucinationRiskPct": 83.9
     },
     {
       "repo": "svelte",
@@ -251,9 +251,9 @@
       "promptsWith": 2.4,
       "promptsWithout": 2.98,
       "reductionPct": 19.6,
-      "groundedSymbols": 490,
-      "darkSymbols": 1701,
-      "hallucinationRiskPct": 77.6
+      "groundedSymbols": 496,
+      "darkSymbols": 1695,
+      "hallucinationRiskPct": 77.4
     },
     {
       "repo": "fastify",

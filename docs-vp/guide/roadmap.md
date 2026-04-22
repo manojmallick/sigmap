@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 96.9% overall token reduction · 691 tests passing · 29 languages · 0 npm deps
+**Stats:** 96.9% overall token reduction · 707 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -493,9 +493,19 @@ Every adapter's `format()` now embeds native-format SigMap command guidance so a
 
 ---
 
+### v6.2.0 — MCP auto-wire for 4 new targets ✓ (tagged v6.2.0 — 2026-04-22)
+
+`sigmap --setup` now registers the MCP server in 5 new config targets, bringing total `--setup` coverage from 5 to 10 editors and AI CLI tools. New targets: `.vscode/mcp.json` (GitHub Copilot in VS Code 1.99+), `opencode.json` and `~/.config/opencode/config.json` (OpenCode), `~/.gemini/settings.json` (Gemini CLI), and `~/.codex/config.yaml` (Codex CLI — YAML format with no external parser). All targets are idempotent and only written when the file already exists. This is Level 2 of the adapter tool-wiring roadmap.
+
+**Tags:** `mcp-setup` · `vscode-copilot` · `opencode` · `gemini-cli` · `codex-cli` · `adapter-level-2`
+
+**Impact:** 707 total tests (+16 since v6.1.0) · `--setup` now covers 10 AI tools out of the box
+
+---
+
 ## Current milestone — v6.x
 
-v6.0–v6.1.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, and native tool instructions across all 7 adapters. Current focus: Level 2 adapter wiring (auto-wire four missing MCP tools into adapter outputs), wire `sig-cache` into the main `gen-context.js` extraction pipeline so every CLI run benefits from incremental caching, benchmark the learning engine directly (measure hit@5 improvement from accumulated weights), and run the full benchmark matrix against freshly cloned repos to confirm the corrected canonical numbers. Public metrics are kept synchronised across CLI, docs, and release surfaces via `version.json` + `scripts/sync-versions.mjs`.
+v6.0–v6.2.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, and MCP auto-wire for 10 AI tools. Current focus: Level 3 adapter wiring (AGENTS.md `## Tools` JSON block for Codex/OpenCode tool picker, CLAUDE.md bash allowlist for Claude Code), wire `sig-cache` into the main extraction pipeline, and benchmark the learning engine to measure hit@5 improvement from accumulated weights. Public metrics are synchronised via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 
