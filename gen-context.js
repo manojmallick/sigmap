@@ -8862,34 +8862,67 @@ Output: .github/copilot-instructions.md (default)
 // ---------------------------------------------------------------------------
 // MCP auto-registration
 // ---------------------------------------------------------------------------
+function _displayPath(p, cwd) {
+  return p.startsWith(os.homedir()) ? '~' + p.slice(os.homedir().length) : path.relative(cwd, p);
+}
+
+function _registerMcpJson(filePath, serverEntry, cwd) {
+  if (!fs.existsSync(filePath)) return;
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const settings = JSON.parse(raw);
+    if (!settings.mcpServers) settings.mcpServers = {};
+    if (settings.mcpServers['sigmap']) return;
+    settings.mcpServers['sigmap'] = serverEntry;
+    fs.writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
+    console.warn(`[sigmap] registered MCP server in ${_displayPath(filePath, cwd)}`);
+  } catch (err) {
+    console.warn(`[sigmap] could not update ${_displayPath(filePath, cwd)}: ${err.message}`);
+  }
+}
+
+function _registerCodexYaml(filePath, scriptPath) {
+  if (!fs.existsSync(filePath)) return;
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    if (raw.includes('sigmap')) return; // already registered
+    const yamlBlock = [
+      '',
+      'mcpServers:',
+      '  sigmap:',
+      `    command: node`,
+      `    args:`,
+      `      - ${path.resolve(scriptPath)}`,
+      `      - --mcp`,
+    ].join('\n');
+    fs.writeFileSync(filePath, raw.trimEnd() + yamlBlock + '\n');
+    console.warn('[sigmap] registered MCP server in ~/.codex/config.yaml');
+  } catch (err) {
+    console.warn(`[sigmap] could not update ~/.codex/config.yaml: ${err.message}`);
+  }
+}
+
 function registerMcp(cwd, scriptPath) {
   const serverEntry = {
     command: 'node',
     args: [path.resolve(scriptPath), '--mcp'],
   };
 
-  // mcpServers shape: Claude (.claude/settings.json), Cursor (.cursor/mcp.json),
-  // Windsurf project (.windsurf/mcp.json) and global (~/.codeium/windsurf/mcp_config.json)
-  const targets = [
+  // JSON mcpServers targets: Claude, Cursor, Windsurf project, Windsurf global,
+  // VS Code (GitHub Copilot 1.99+), OpenCode project, OpenCode global, Gemini CLI
+  const jsonTargets = [
     path.join(cwd, '.claude', 'settings.json'),
     path.join(cwd, '.cursor', 'mcp.json'),
     path.join(cwd, '.windsurf', 'mcp.json'),
     path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json'),
+    path.join(cwd, '.vscode', 'mcp.json'),
+    path.join(cwd, 'opencode.json'),
+    path.join(os.homedir(), '.config', 'opencode', 'config.json'),
+    path.join(os.homedir(), '.gemini', 'settings.json'),
   ];
 
-  for (const settingsPath of targets) {
-    if (!fs.existsSync(settingsPath)) continue;
-    try {
-      const raw = fs.readFileSync(settingsPath, 'utf8');
-      const settings = JSON.parse(raw);
-      if (!settings.mcpServers) settings.mcpServers = {};
-      if (settings.mcpServers['sigmap']) continue; // already registered
-      settings.mcpServers['sigmap'] = serverEntry;
-      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
-      console.warn(`[sigmap] registered MCP server in ${settingsPath.startsWith(os.homedir()) ? '~' + settingsPath.slice(os.homedir().length) : path.relative(cwd, settingsPath)}`);
-    } catch (err) {
-      console.warn(`[sigmap] could not update ${path.relative(cwd, settingsPath)}: ${err.message}`);
-    }
+  for (const target of jsonTargets) {
+    _registerMcpJson(target, serverEntry, cwd);
   }
 
   // Zed uses context_servers (different shape from mcpServers)
@@ -8911,12 +8944,24 @@ function registerMcp(cwd, scriptPath) {
     }
   }
 
-  // Print manual snippets for all 4 tools
+  // Codex CLI uses YAML (~/.codex/config.yaml)
+  _registerCodexYaml(path.join(os.homedir(), '.codex', 'config.yaml'), scriptPath);
+
+  // Print manual snippets for all targets
   console.warn('[sigmap] MCP / context server config snippets:');
-  console.warn('  Claude / Cursor / Windsurf (.claude/settings.json | .cursor/mcp.json | .windsurf/mcp.json):');
+  console.warn('  Claude / Cursor / Windsurf / VS Code / OpenCode / Gemini CLI:');
   console.warn(JSON.stringify({ mcpServers: { sigmap: serverEntry } }, null, 2));
   console.warn('  Zed (~/.config/zed/settings.json):');
   console.warn(JSON.stringify({ context_servers: { sigmap: { command: { path: 'node', args: [path.resolve(scriptPath), '--mcp'] } } } }, null, 2));
+  console.warn('  Codex CLI (~/.codex/config.yaml):');
+  console.warn([
+    'mcpServers:',
+    '  sigmap:',
+    `    command: node`,
+    `    args:`,
+    `      - ${path.resolve(scriptPath)}`,
+    `      - --mcp`,
+  ].join('\n'));
 }
 
 // ---------------------------------------------------------------------------
