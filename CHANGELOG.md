@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.3.0] — 2026-04-22
+
+### Added
+
+- **Native tool registration (Level 3)** — `codex.write()` injects a `## Tools` JSON block into AGENTS.md with 5 named sigmap shell tools (`sigmap_ask`, `sigmap_validate`, `sigmap_judge`, `sigmap_query`, `sigmap_weights`); Codex CLI and OpenCode surface these in their tool picker. `claude.write()` injects a `## Bash allowlist` section into CLAUDE.md with `permissions.allow` patterns for all sigmap commands; adding these to `.claude/settings.json` bypasses the Claude Code confirmation prompt. Both sections are idempotent and preserve human content.
+
+---
+
 ## [6.2.0] — 2026-04-22
 
 ### Added
