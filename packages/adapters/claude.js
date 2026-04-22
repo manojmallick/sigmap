@@ -16,6 +16,37 @@ const fs = require('fs');
 const name = 'claude';
 
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
+const ALLOWLIST_MARKER = '<!-- sigmap-bash-allowlist -->';
+
+const ALLOWLIST_BLOCK = [
+  '## Bash allowlist',
+  '',
+  ALLOWLIST_MARKER,
+  '',
+  'The following sigmap commands are pre-approved — Claude Code will not prompt for confirmation:',
+  '',
+  '```json',
+  JSON.stringify({
+    permissions: {
+      allow: [
+        'Bash(sigmap ask*)',
+        'Bash(sigmap validate*)',
+        'Bash(sigmap judge*)',
+        'Bash(sigmap weights*)',
+        'Bash(sigmap history*)',
+        'Bash(sigmap --query*)',
+        'Bash(sigmap --diff*)',
+        'Bash(sigmap --health*)',
+        'Bash(sigmap --coverage*)',
+        'Bash(node gen-context.js*)',
+      ],
+    },
+  }, null, 2),
+  '```',
+  '',
+  'Add the `permissions.allow` array above to `.claude/settings.json` to activate.',
+  '',
+].join('\n');
 
 /**
  * Format context suited for CLAUDE.md.
@@ -82,6 +113,17 @@ function write(context, cwd, opts = {}) {
   } else {
     newContent = existing + MARKER + formatted;
   }
+
+  // Inject ## Bash allowlist above the sig marker if not already present
+  if (!newContent.includes(ALLOWLIST_MARKER)) {
+    const sigMarkerPos = newContent.indexOf('## Auto-generated signatures');
+    if (sigMarkerPos !== -1) {
+      newContent = newContent.slice(0, sigMarkerPos) + ALLOWLIST_BLOCK + '\n' + newContent.slice(sigMarkerPos);
+    } else {
+      newContent = ALLOWLIST_BLOCK + '\n' + newContent;
+    }
+  }
+
   fs.writeFileSync(filePath, newContent, 'utf8');
 }
 

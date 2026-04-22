@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.0, with the latest milestone adding graph-boosted retrieval, incremental signature cache, and corrected benchmark numbers.
+description: SigMap version history and roadmap. From v0.0 to v6.3, with the latest milestone adding native tool registration in AGENTS.md and CLAUDE.md for zero-config agent access.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Thirty-plus versions shipped. MIT open source from day one.
 
-**Stats:** 96.9% overall token reduction · 707 tests passing · 29 languages · 0 npm deps
+**Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 0 npm deps
 
 ## Token reduction by version
 
@@ -503,9 +503,23 @@ Every adapter's `format()` now embeds native-format SigMap command guidance so a
 
 ---
 
+### v6.3.0 — Native tool registration ✓ (tagged v6.3.0 — 2026-04-22)
+
+v6.3.0 closes the adapter-tool-wiring roadmap at Level 3: the two adapters with persistent config files now inject structured tool registrations directly into those files on every write, so agents gain one-click access to SigMap commands without manual configuration.
+
+- **Codex adapter (`packages/adapters/codex.js`)** — `write()` injects a `## Tools` JSON block into `AGENTS.md` above the auto-generated signatures section. The block registers five named tools (`sigmap_ask`, `sigmap_validate`, `sigmap_judge`, `sigmap_weights`, `sigmap_history`) in the format expected by the Codex CLI and OpenCode tool picker. Injection is idempotent via `<!-- sigmap-tools -->` marker.
+- **Claude adapter (`packages/adapters/claude.js`)** — `write()` injects a `## Bash allowlist` section into `CLAUDE.md` containing a `permissions.allow` JSON array with 10 `Bash(sigmap*)` patterns. Claude Code reads this block to skip confirmation prompts for all SigMap commands. Injection is idempotent via `<!-- sigmap-bash-allowlist -->` marker.
+- **Bundled factory sync** — both adapter changes are mirrored into the corresponding `__factories` closures in `gen-context.js` so the zero-dependency single-file distribution stays in sync.
+
+**Tags:** `native-tool-registration` · `agents-md` · `tools-json` · `bash-allowlist` · `claude-md` · `codex-adapter` · `adapter-level-3`
+
+**Impact:** 722 total tests (+15 since v6.2.0) · Codex CLI and Claude Code agents gain full SigMap tool access on first `sigmap --setup`
+
+---
+
 ## Current milestone — v6.x
 
-v6.0–v6.2.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, and MCP auto-wire for 10 AI tools. Current focus: Level 3 adapter wiring (AGENTS.md `## Tools` JSON block for Codex/OpenCode tool picker, CLAUDE.md bash allowlist for Claude Code), wire `sig-cache` into the main extraction pipeline, and benchmark the learning engine to measure hit@5 improvement from accumulated weights. Public metrics are synchronised via `version.json` + `scripts/sync-versions.mjs`.
+v6.0–v6.3.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, and native tool registration in AGENTS.md and CLAUDE.md. Current focus: wire `sig-cache` into the main extraction pipeline as a first-class config toggle, benchmark the learning engine to measure hit@5 improvement from accumulated weights, and add community-submitted benchmark tracking to the dashboard. Public metrics are synchronised via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 

@@ -9,28 +9,53 @@ When writing generated signature content, never overwrite human-written notes ab
 Use this marker block for all appendable context files:
 
 ```
+## Tools
+
+<!-- sigmap-tools -->
+
+```json
+[
+  {
+    "name": "sigmap_ask",
+    "description": "Rank source files by relevance to a natural-language query. Run before exploring the codebase.",
+    "command": "sigmap ask \"$QUERY\""
+  },
+  {
+    "name": "sigmap_validate",
+    "description": "Validate SigMap config and measure context coverage. Run after changing config or source dirs.",
+    "command": "sigmap validate"
+  },
+  {
+    "name": "sigmap_judge",
+    "description": "Score an LLM response for groundedness against source context. Use to verify answer quality.",
+    "command": "sigmap judge --response \"$RESPONSE\" --context \"$CONTEXT\""
+  },
+  {
+    "name": "sigmap_query",
+    "description": "Rank all files by relevance using TF-IDF and write a focused mini-context.",
+    "command": "sigmap --query \"$QUERY\" --context"
+  },
+  {
+    "name": "sigmap_weights",
+    "description": "Show learned file-ranking multipliers accumulated from past sessions.",
+    "command": "sigmap weights"
+  }
+]
+```
+
 ## Auto-generated signatures
 <!-- Updated by gen-context.js -->
 # Code signatures
 
-## SigMap commands
-
-| When | Command |
-|------|---------|
-| Before answering a question | `sigmap ask "<your question>"` |
-| After code changes | `sigmap validate` |
-| To query by topic | `sigmap --query "<topic>"` |
-
-Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 21 minutes ago)
+## changes (last 5 commits — 0 seconds ago)
 ```
 src/learning/weights.js                       +exportWeights  +importWeights  ~resetWeights
-packages/adapters/claude.js                   ~format
-packages/adapters/codex.js                    ~format
+packages/adapters/codex.js                    ~write  ~format
+packages/adapters/claude.js                   ~format  ~write
 packages/adapters/gemini.js                   ~format
 packages/adapters/copilot.js                  ~format
-packages/adapters/openai.js                   ~format
 packages/adapters/cursor.js                   ~format
+packages/adapters/openai.js                   ~format
 packages/adapters/windsurf.js                 ~format
 ```
 
@@ -91,19 +116,19 @@ function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
 ```
 
+### packages/adapters/codex.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+```
+
 ### packages/adapters/claude.js
 ```
 module.exports = { name, format, outputPath, write }
 function format(context, opts = {}) → string
 function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-```
-
-### packages/adapters/codex.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
 function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
@@ -126,20 +151,20 @@ function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
 
-### packages/adapters/openai.js
-```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function _confidenceMeta(opts)
-```
-
 ### packages/adapters/cursor.js
 ```
 module.exports = { name, format, outputPath }
 function format(context, opts = {}) → string
 function _confidenceMeta(opts)
 function outputPath(cwd) → string
+```
+
+### packages/adapters/openai.js
+```
+module.exports = { name, format, outputPath }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function _confidenceMeta(opts)
 ```
 
 ### packages/adapters/windsurf.js
@@ -648,15 +673,6 @@ function extractClassMembers(block)
 function normalizeParams(params)
 ```
 
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
-```
-
 ### src/learning/weights.js
 ```
 module.exports = { BASELINE, DECAY, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights, exportWeights, importWeights }
@@ -672,4 +688,13 @@ function penalizeFiles(cwd, files, amount = 0.10)
 function resetWeights(cwd)
 function exportWeights(cwd, outputPath)
 function importWeights(cwd, importPath, replace)
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
 ```
