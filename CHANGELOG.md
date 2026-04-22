@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.2.0] — 2026-04-22
+
+### Added
+
+- **`--setup` MCP auto-wire for 4 new targets** — `sigmap --setup` now registers the MCP server in `.vscode/mcp.json` (GitHub Copilot in VS Code 1.99+), `opencode.json` and `~/.config/opencode/config.json` (OpenCode), `~/.gemini/settings.json` (Gemini CLI), and `~/.codex/config.yaml` (Codex CLI — YAML format). All 5 new targets are idempotent and only written if the file already exists. Total `--setup` targets: 5 → 10.
+
+---
+
 ## [6.1.0] — 2026-04-22
 
 ### Added

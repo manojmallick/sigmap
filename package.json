@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "Zero-dependency AI context engine — 97% token reduction. No npm install. Runs on Node 18+.",
   "main": "gen-context.js",
   "exports": {

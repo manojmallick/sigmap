@@ -22,7 +22,7 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 31 minutes ago)
+## changes (last 5 commits — 7 minutes ago)
 ```
 src/learning/weights.js                       +exportWeights  +importWeights  ~resetWeights
 packages/adapters/codex.js                    ~format
@@ -648,6 +648,15 @@ function extractClassMembers(block)
 function normalizeParams(params)
 ```
 
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
+```
+
 ### src/learning/weights.js
 ```
 module.exports = { BASELINE, DECAY, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights, exportWeights, importWeights }
@@ -663,13 +672,4 @@ function penalizeFiles(cwd, files, amount = 0.10)
 function resetWeights(cwd)
 function exportWeights(cwd, outputPath)
 function importWeights(cwd, importPath, replace)
-```
-
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
 ```

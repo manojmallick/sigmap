@@ -16,7 +16,8 @@
       "Bash(gh pr create --title 'feat\\(adapters\\): native tool instructions in all 7 adapters — v6.1.0' --body ' *)",
       "Bash(grep -E \"passed, [0-9]+ failed$\")",
       "Bash(awk -F'[ ,]+' '{sum += $1} END {print sum \" total test cases\"}')",
-      "Bash(awk -F'[ ,]+' '{sum += $1} END {print sum}')"
+      "Bash(awk -F'[ ,]+' '{sum += $1} END {print sum}')",
+      "Bash(node /Users/manojmallick/sigmap/test/integration/features/setup-mcp-targets.test.js)"
     ]
   }
 }
