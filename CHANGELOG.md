@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.4.0] — 2026-04-23
+
+### Changed
+
+- **Docs version labels** — homepage hero badge now shows Release (v6.4.0) and Benchmark (sigmap-v6.0-main) as separate labels instead of a single conflated "Latest: v6.0" pill
+- **Generalization benchmark** — upgraded all v5.9-main references in `docs-vp/guide/generalization.md` to v6.0-main snapshot
+- **README overclaim fix** — removed "every time" from the comparison table; trimmed top demo block from 4 commands to 2
+- **v6.3.0 release notes** — added release note callout blocks to benchmark, retrieval-benchmark, and task-benchmark docs
+- **MCP docs** — added v6.3 native tool registration callout to `docs-vp/guide/mcp.md`
+- **Content-consistency test** — new `test/content/v640-trust-sync.sh` bash script with 11 checks catches version/copy regressions
+
+---
+
 ## [6.3.0] — 2026-04-22
 
 ### Added
