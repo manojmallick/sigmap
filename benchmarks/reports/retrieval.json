@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-22T07:24:39.033Z",
+  "generated": "2026-04-23T22:52:18.314Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 388,
+      "sigCount": 389,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.5,
@@ -581,12 +581,12 @@
       "sigCount": 89,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.3,
+      "mrr": 0.4,
       "randomBaseline": 0.051,
       "improvement": 11.9,
       "tiers": {
-        "correct": 0,
-        "partial": 3,
+        "correct": 1,
+        "partial": 2,
         "wrong": 2
       },
       "taskDetails": [
@@ -597,9 +597,9 @@
             "src/Serilog/LoggerConfiguration.cs",
             "src/Serilog/Log.cs"
           ],
-          "top1": "src/Serilog/Configuration/LoggerSinkConfiguration.cs",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "src/Serilog/LoggerConfiguration.cs",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "serilog-t002",
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 149,
+      "sigCount": 147,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.707,
@@ -925,7 +925,7 @@
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 121,
+      "sigCount": 120,
       "tasks": 5,
       "hitAt5": 0.4,
       "mrr": 0.267,
@@ -977,9 +977,9 @@
             "Sources/Vapor/Client/Client.swift",
             "Sources/Vapor/Client/ClientRequest.swift"
           ],
-          "top1": "Sources/Vapor/Client/Client.swift",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "Sources/Vapor/HTTP/Server/HTTPServerHandler.swift",
+          "firstHitRank": null,
+          "tier": "wrong"
         },
         {
           "id": "vapor-t005",
@@ -988,9 +988,9 @@
             "Sources/Vapor/Cache/Cache.swift",
             "Sources/Vapor/Cache/MemoryCache.swift"
           ],
-          "top1": "Sources/Vapor/Cache/CacheExpirationTime.swift",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "Sources/Vapor/Cache/Cache.swift",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
@@ -1071,7 +1071,7 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 204,
+      "sigCount": 205,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.18,

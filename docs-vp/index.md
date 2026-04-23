@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — zero-dependency AI context engine
-description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 80.0% hit@5, 40.8% fewer prompts, 96.9% average token reduction.
+description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 78.9% hit@5, 40.6% fewer prompts, 96.9% average token reduction.
 head:
   - - meta
     - property: og:title
       content: "SigMap — grounded AI coding context"
   - - meta
     - property: og:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 96.9% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 78.9% hit@5, 40.6% fewer prompts, 96.9% overall token reduction."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — grounded AI coding context"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 40.8% fewer prompts, 96.9% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 78.9% hit@5, 40.6% fewer prompts, 96.9% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — zero-dependency AI context engine"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Better context. More grounded answers.
-  tagline: "Zero-dependency AI context engine. 80.0% hit@5 · 96.9% token reduction · Ask → Validate → Judge → Learn."
+  tagline: "Zero-dependency AI context engine. 78.9% hit@5 · 96.9% token reduction · Ask → Validate → Judge → Learn."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,12 +46,12 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.68 with SigMap. That is a 40.8% reduction across 90 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.69 with SigMap. That is a 40.6% reduction across 90 real coding tasks."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80.0% hit@5 across 18 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
+    details: 78.9% hit@5 across 18 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -142,12 +142,12 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success proxy | 10% | **52.2%** |
-| Prompts per task | 2.84 | **1.68** |
-| Retrieval hit@5 | 13.6% | **80.0%** (83.3% graph-boosted) |
+| Prompts per task | 2.84 | **1.69** |
+| Retrieval hit@5 | 13.6% | **78.9%** (80.0% graph-boosted) |
 | Overall token reduction | — | **96.9%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-19 (v6.0.0)**.
+Latest saved benchmark run: **2026-04-23 (v6.4.0)**.
 
 </div>
 

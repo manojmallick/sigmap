@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v6.0 benchmark snapshot. 96.9% average token reduction, 80.0% retrieval hit@5, 40.8% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
+description: Official v6.4 benchmark snapshot. 96.9% average token reduction, 78.9% retrieval hit@5, 40.6% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v6.0 snapshot"
+      content: "SigMap benchmark overview — v6.4 snapshot"
   - - meta
     - property: og:description
-      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.0 benchmark run."
+      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.4 benchmark run."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
@@ -15,15 +15,15 @@ head:
 
 # Benchmark overview
 
-::: info Official v6.0 benchmark snapshot
-**Benchmark ID:** sigmap-v6.0-main &nbsp;·&nbsp; **Date:** 2026-04-19
+::: info Official v6.4 benchmark snapshot
+**Benchmark ID:** sigmap-v6.4-main &nbsp;·&nbsp; **Date:** 2026-04-23
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **80.0%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **83.3%** |
+| Hit@5 | **78.9%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **80.0%** |
 | Retrieval lift | **5.8×** |
-| Prompt reduction | **40.8%** (2.84 → 1.68) |
+| Prompt reduction | **40.6%** (2.84 → 1.69) |
 | Task success proxy | **52.2%** |
 | Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
@@ -38,38 +38,34 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-::: tip v6.3.0 release note
-v6.3.0 ships native tool registration for Claude Code and Codex — the MCP server now declares its tools at startup so the AI sees them without a discovery round-trip. Benchmark numbers are unchanged from v6.0; the next retrieval run will follow the v6.5 Source Root Resolver milestone.
-:::
+## Official v6.4 snapshot
 
-## Official v6.0 snapshot
-
-Latest saved benchmark run: **2026-04-19 (v6.0.0)**
+Latest saved benchmark run: **2026-04-23 (v6.4.0)**
 
 | Metric | Result |
 |---|---:|
 | Repos | 18 |
 | Tasks | 90 |
 | Average token reduction by repo | **96.9%** |
-| Retrieval hit@5 | **80.0%** |
-| Graph-boosted hit@5 | **83.3%** |
+| Retrieval hit@5 | **78.9%** |
+| Graph-boosted hit@5 | **80.0%** |
 | Random baseline hit@5 | 13.6% |
-| Prompt reduction | **40.8%** (2.84 → 1.68 prompts) |
+| Prompt reduction | **40.6%** (2.84 → 1.69 prompts) |
 | GPT-4o overflow repos without SigMap | **13 / 18** |
-| GPT-4o monthly input savings at 10 calls/day | **$9,390.06** |
+| GPT-4o monthly input savings at 10 calls/day | **$9,446.95** |
 
 ## What each benchmark proves
 
 ### 1. Token reduction
 
-- Raw source across the benchmark set: **12,759,859** tokens
-- Final SigMap output: **239,661** tokens
+- Raw source across the benchmark set: **12,837,269** tokens
+- Final SigMap output: **241,328** tokens
 - Best summary for launch messaging: **98.1% overall reduction**
 
 ### 2. Retrieval quality
 
-- SigMap hit@5: **80.0%**
-- Graph-boosted hit@5: **83.3%** (+3.3pp with dependency graph)
+- SigMap hit@5: **78.9%**
+- Graph-boosted hit@5: **80.0%** (+1.1pp with dependency graph)
 - Random baseline: **13.6%**
 - Lift: **5.8x**
 
@@ -78,9 +74,9 @@ This is the best benchmark when the question is: *"Does SigMap actually put the 
 ### 3. Task outcomes
 
 - Correct: **47 / 90** (52.2%)
-- Partial: **25 / 90** (27.8%)
-- Wrong: **18 / 90** (20.0%)
-- Average prompts: **2.84 → 1.68**
+- Partial: **24 / 90** (26.7%)
+- Wrong: **19 / 90** (21.1%)
+- Average prompts: **2.84 → 1.69**
 
 This is the best benchmark when the question is: *"Does the developer need fewer retries to finish the job?"*
 

@@ -1,6 +1,6 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 18 repos, 13 languages, and 9 domains with 80.0% hit@5 in the latest saved v6.0 retrieval run.
+description: SigMap generalizes across 18 repos, 13 languages, and 9 domains with 78.9% hit@5 in the latest saved v6.4 retrieval run.
 head:
   - - meta
     - property: og:title
@@ -19,16 +19,16 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v6.0 benchmark snapshot
-**Benchmark ID:** sigmap-v6.0-main &nbsp;·&nbsp; **Date:** 2026-04-19
+::: info Official v6.4 benchmark snapshot
+**Benchmark ID:** sigmap-v6.4-main &nbsp;·&nbsp; **Date:** 2026-04-23
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **80.0%** vs 13.6% baseline |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.2%** (2.84 → 1.67) |
-| Task success proxy | **53.3%** |
-| Overall token reduction | **98.1%** |
+| Hit@5 | **78.9%** vs 13.6% baseline |
+| Retrieval lift | **5.8×** |
+| Prompt reduction | **40.6%** (2.84 → 1.69) |
+| Task success proxy | **52.2%** |
+| Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
@@ -37,13 +37,13 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 80.0% hit@5 with no per-repo tuning in the latest saved v6.0 run.
+these 90 tasks is yes — 78.9% hit@5 with no per-repo tuning in the latest saved v6.4 run.
 :::
 
 - **18 repos**
 - **13 languages**
 - **9 domains**
-- **80.0%** overall hit@5
+- **78.9%** overall hit@5
 - **no per-repo tuning**
 
 That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
@@ -67,7 +67,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v6.0.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v6.4.0` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|

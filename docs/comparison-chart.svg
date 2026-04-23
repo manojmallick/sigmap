@@ -30,9 +30,9 @@
   <!-- With row -->
   <text x="105" y="126" text-anchor="end" font-size="11" fill="#7c6af7">SigMap</text>
   <rect x="112" y="113" width="462" height="20" fill="#ede9fe" rx="4"/>
-  <!-- 80.0% of 462 = 369.6 -->
-  <rect x="112" y="113" width="370" height="20" fill="#7c6af7" rx="4"/>
-  <text x="476" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">80.0%</text>
+  <!-- 78.9% of 462 = 364.5 -->
+  <rect x="112" y="113" width="365" height="20" fill="#7c6af7" rx="4"/>
+  <text x="471" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">78.9%</text>
 
   <!-- Badge -->
   <rect x="588" y="95" width="94" height="32" fill="#7c6af7" rx="6"/>

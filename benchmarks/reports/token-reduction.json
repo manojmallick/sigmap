@@ -1,6 +1,6 @@
 {
-  "version": "6.2.0",
-  "timestamp": "2026-04-22T07:24:28.099Z",
+  "version": "6.4.0",
+  "timestamp": "2026-04-23T22:47:26.984Z",
   "assumptions": {
     "tokensPerSecUncached": 2000,
     "cacheSpeedup": 10,
@@ -16,7 +16,7 @@
       "reductionPct": 98.7,
       "fileCount": 38,
       "droppedCount": 0,
-      "timestamp": "2026-04-22T07:24:17.342Z",
+      "timestamp": "2026-04-23T22:47:12.607Z",
       "timings": {
         "rawColdSec": 35.29,
         "sigColdSec": 0.46,
@@ -32,19 +32,19 @@
       "language": "Python",
       "description": "Python microframework",
       "rawTokens": 242636,
-      "finalTokens": 8400,
+      "finalTokens": 8573,
       "reductionPct": 96.5,
       "fileCount": 124,
-      "droppedCount": 19,
-      "timestamp": "2026-04-22T07:24:17.871Z",
+      "droppedCount": 17,
+      "timestamp": "2026-04-23T22:47:13.277Z",
       "timings": {
         "rawColdSec": 121.32,
-        "sigColdSec": 4.2,
-        "savedColdSec": 117.12,
+        "sigColdSec": 4.29,
+        "savedColdSec": 117.03,
         "rawCachedSec": 12.13,
-        "sigCachedSec": 0.42,
-        "savedCachedSec": 11.71,
-        "savedPerDaySec": 1171.18
+        "sigCachedSec": 0.43,
+        "savedCachedSec": 11.7,
+        "savedPerDaySec": 1170.32
       }
     },
     {
@@ -56,7 +56,7 @@
       "reductionPct": 96.2,
       "fileCount": 118,
       "droppedCount": 26,
-      "timestamp": "2026-04-22T07:24:18.342Z",
+      "timestamp": "2026-04-23T22:47:13.820Z",
       "timings": {
         "rawColdSec": 109.41,
         "sigColdSec": 4.21,
@@ -76,7 +76,7 @@
       "reductionPct": 96.5,
       "fileCount": 67,
       "droppedCount": 0,
-      "timestamp": "2026-04-22T07:24:18.822Z",
+      "timestamp": "2026-04-23T22:47:14.371Z",
       "timings": {
         "rawColdSec": 53.91,
         "sigColdSec": 1.9,
@@ -92,19 +92,19 @@
       "language": "Ruby",
       "description": "Ruby on Rails (monorepo)",
       "rawTokens": 1499058,
-      "finalTokens": 29496,
+      "finalTokens": 29552,
       "reductionPct": 98,
       "fileCount": 1193,
       "droppedCount": 805,
-      "timestamp": "2026-04-22T07:24:19.662Z",
+      "timestamp": "2026-04-23T22:47:15.429Z",
       "timings": {
         "rawColdSec": 749.53,
-        "sigColdSec": 14.75,
-        "savedColdSec": 734.78,
+        "sigColdSec": 14.78,
+        "savedColdSec": 734.75,
         "rawCachedSec": 74.95,
-        "sigCachedSec": 1.47,
+        "sigCachedSec": 1.48,
         "savedCachedSec": 73.48,
-        "savedPerDaySec": 7347.81
+        "savedPerDaySec": 7347.53
       }
     },
     {
@@ -112,19 +112,19 @@
       "language": "TypeScript",
       "description": "Promise HTTP client",
       "rawTokens": 105734,
-      "finalTokens": 4944,
+      "finalTokens": 4954,
       "reductionPct": 95.3,
       "fileCount": 99,
       "droppedCount": 11,
-      "timestamp": "2026-04-22T07:24:20.197Z",
+      "timestamp": "2026-04-23T22:47:16.146Z",
       "timings": {
         "rawColdSec": 52.87,
-        "sigColdSec": 2.47,
+        "sigColdSec": 2.48,
         "savedColdSec": 50.39,
         "rawCachedSec": 5.29,
         "sigCachedSec": 0.25,
         "savedCachedSec": 5.04,
-        "savedPerDaySec": 503.95
+        "savedPerDaySec": 503.9
       }
     },
     {
@@ -136,7 +136,7 @@
       "reductionPct": 99.2,
       "fileCount": 675,
       "droppedCount": 369,
-      "timestamp": "2026-04-22T07:24:21.218Z",
+      "timestamp": "2026-04-23T22:47:17.445Z",
       "timings": {
         "rawColdSec": 1765.57,
         "sigColdSec": 13.75,
@@ -156,7 +156,7 @@
       "reductionPct": 98.9,
       "fileCount": 703,
       "droppedCount": 527,
-      "timestamp": "2026-04-22T07:24:22.069Z",
+      "timestamp": "2026-04-23T22:47:18.618Z",
       "timings": {
         "rawColdSec": 1173.76,
         "sigColdSec": 12.87,
@@ -172,19 +172,19 @@
       "language": "C#",
       "description": "Structured logging for .NET",
       "rawTokens": 195515,
-      "finalTokens": 9180,
+      "finalTokens": 9227,
       "reductionPct": 95.3,
       "fileCount": 195,
-      "droppedCount": 63,
-      "timestamp": "2026-04-22T07:24:22.567Z",
+      "droppedCount": 62,
+      "timestamp": "2026-04-23T22:47:19.260Z",
       "timings": {
         "rawColdSec": 97.76,
-        "sigColdSec": 4.59,
-        "savedColdSec": 93.17,
+        "sigColdSec": 4.61,
+        "savedColdSec": 93.14,
         "rawCachedSec": 9.78,
         "sigCachedSec": 0.46,
-        "savedCachedSec": 9.32,
-        "savedPerDaySec": 931.67
+        "savedCachedSec": 9.31,
+        "savedPerDaySec": 931.44
       }
     },
     {
@@ -196,7 +196,7 @@
       "reductionPct": 96.3,
       "fileCount": 465,
       "droppedCount": 303,
-      "timestamp": "2026-04-22T07:24:23.204Z",
+      "timestamp": "2026-04-23T22:47:20.183Z",
       "timings": {
         "rawColdSec": 373.61,
         "sigColdSec": 13.81,
@@ -216,7 +216,7 @@
       "reductionPct": 95.5,
       "fileCount": 18,
       "droppedCount": 0,
-      "timestamp": "2026-04-22T07:24:23.624Z",
+      "timestamp": "2026-04-23T22:47:20.907Z",
       "timings": {
         "rawColdSec": 15.64,
         "sigColdSec": 0.71,
@@ -232,19 +232,19 @@
       "language": "PHP",
       "description": "Laravel PHP framework",
       "rawTokens": 1679504,
-      "finalTokens": 31223,
+      "finalTokens": 31196,
       "reductionPct": 98.1,
       "fileCount": 1536,
-      "droppedCount": 997,
-      "timestamp": "2026-04-22T07:24:24.456Z",
+      "droppedCount": 996,
+      "timestamp": "2026-04-23T22:47:21.910Z",
       "timings": {
         "rawColdSec": 839.75,
-        "sigColdSec": 15.61,
-        "savedColdSec": 824.14,
+        "sigColdSec": 15.6,
+        "savedColdSec": 824.15,
         "rawCachedSec": 83.98,
         "sigCachedSec": 1.56,
-        "savedCachedSec": 82.41,
-        "savedPerDaySec": 8241.4
+        "savedCachedSec": 82.42,
+        "savedPerDaySec": 8241.54
       }
     },
     {
@@ -252,19 +252,19 @@
       "language": "Scala",
       "description": "Actor model runtime for JVM",
       "rawTokens": 790548,
-      "finalTokens": 14453,
+      "finalTokens": 14490,
       "reductionPct": 98.2,
       "fileCount": 211,
       "droppedCount": 62,
-      "timestamp": "2026-04-22T07:24:25.035Z",
+      "timestamp": "2026-04-23T22:47:22.692Z",
       "timings": {
         "rawColdSec": 395.27,
-        "sigColdSec": 7.23,
-        "savedColdSec": 388.05,
+        "sigColdSec": 7.25,
+        "savedColdSec": 388.03,
         "rawCachedSec": 39.53,
         "sigCachedSec": 0.72,
         "savedCachedSec": 38.8,
-        "savedPerDaySec": 3880.48
+        "savedPerDaySec": 3880.29
       }
     },
     {
@@ -272,19 +272,19 @@
       "language": "Swift",
       "description": "Swift server-side web framework",
       "rawTokens": 171363,
-      "finalTokens": 5450,
+      "finalTokens": 5489,
       "reductionPct": 96.8,
       "fileCount": 134,
-      "droppedCount": 15,
-      "timestamp": "2026-04-22T07:24:25.508Z",
+      "droppedCount": 13,
+      "timestamp": "2026-04-23T22:47:23.303Z",
       "timings": {
         "rawColdSec": 85.68,
-        "sigColdSec": 2.73,
-        "savedColdSec": 82.96,
+        "sigColdSec": 2.74,
+        "savedColdSec": 82.94,
         "rawCachedSec": 8.57,
         "sigCachedSec": 0.27,
-        "savedCachedSec": 8.3,
-        "savedPerDaySec": 829.57
+        "savedCachedSec": 8.29,
+        "savedPerDaySec": 829.37
       }
     },
     {
@@ -296,7 +296,7 @@
       "reductionPct": 96.8,
       "fileCount": 249,
       "droppedCount": 74,
-      "timestamp": "2026-04-22T07:24:26.100Z",
+      "timestamp": "2026-04-23T22:47:24.147Z",
       "timings": {
         "rawColdSec": 213.77,
         "sigColdSec": 6.75,
@@ -316,7 +316,7 @@
       "reductionPct": 94.9,
       "fileCount": 370,
       "droppedCount": 165,
-      "timestamp": "2026-04-22T07:24:27.157Z",
+      "timestamp": "2026-04-23T22:47:25.695Z",
       "timings": {
         "rawColdSec": 219.09,
         "sigColdSec": 11.14,
@@ -336,7 +336,7 @@
       "reductionPct": 95.3,
       "fileCount": 28,
       "droppedCount": 0,
-      "timestamp": "2026-04-22T07:24:27.608Z",
+      "timestamp": "2026-04-23T22:47:26.287Z",
       "timings": {
         "rawColdSec": 27.21,
         "sigColdSec": 1.29,
@@ -356,7 +356,7 @@
       "reductionPct": 97.7,
       "fileCount": 32,
       "droppedCount": 6,
-      "timestamp": "2026-04-22T07:24:28.080Z",
+      "timestamp": "2026-04-23T22:47:26.948Z",
       "timings": {
         "rawColdSec": 89.19,
         "sigColdSec": 2.03,
@@ -373,9 +373,9 @@
     "avgReductionPct": 96.9,
     "overallReductionPct": 98.1,
     "totalRawTokens": 12837269,
-    "totalFinalTokens": 240993,
-    "totalSavedColdSec": 6298.14,
-    "totalSavedCachedSec": 629.81,
-    "savedPerDaySec": 62981.38
+    "totalFinalTokens": 241328,
+    "totalSavedColdSec": 6297.97,
+    "totalSavedCachedSec": 629.8,
+    "savedPerDaySec": 62979.7
   }
 }

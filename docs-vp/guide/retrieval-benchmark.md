@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v6.0. 80.0% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
+description: Latest saved retrieval benchmark for SigMap v6.4. 78.9% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 80.0% hit@5"
+      content: "SigMap retrieval benchmark — 78.9% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 80.0% hit@5 vs 13.6% random baseline, 5.8x lift, 90 tasks, 18 repos."
+      content: "Latest saved run: 78.9% hit@5 vs 13.6% random baseline, 5.8x lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/retrieval-benchmark"
@@ -15,27 +15,23 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v6.0 benchmark snapshot
-**Benchmark ID:** sigmap-v6.0-main &nbsp;·&nbsp; **Date:** 2026-04-19
+::: info Official v6.4 benchmark snapshot
+**Benchmark ID:** sigmap-v6.4-main &nbsp;·&nbsp; **Date:** 2026-04-23
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **80.0%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **83.3%** |
+| Hit@5 | **78.9%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **80.0%** |
 | Retrieval lift | **5.8×** |
-| Prompt reduction | **40.8%** (2.84 → 1.68) |
+| Prompt reduction | **40.6%** (2.84 → 1.69) |
 | Task success proxy | **52.2%** |
 | Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-19 (v6.0.0)**
+Latest saved run: **2026-04-23 (v6.4.0)**
 
-::: tip v6.3.0 release note
-v6.3.0 ships native tool registration for Claude Code and Codex. Retrieval numbers are unchanged from v6.0-main; the next retrieval run will follow the v6.5 Source Root Resolver milestone.
-:::
-
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **80.0% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **78.9% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
 ## Why this benchmark matters
 
@@ -51,20 +47,20 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 | 13.6% | **80.0%** |
-| Graph-boosted hit@5 | — | **83.3%** |
+| Average hit@5 | 13.6% | **78.9%** |
+| Graph-boosted hit@5 | — | **80.0%** |
 | Lift | — | **5.8x** |
 | Correct (rank 1) | ~1% | **52.2%** |
-| Partial (ranks 2–5) | ~13% | **27.8%** |
-| Wrong (not in top 5) | ~86% | **20.0%** |
+| Partial (ranks 2–5) | ~13% | **26.7%** |
+| Wrong (not in top 5) | ~86% | **21.1%** |
 
 ## Quality tiers from the saved run
 
 | Tier | Tasks | Share |
 |---|---:|---:|
 | Correct | 47 / 90 | **52.2%** |
-| Partial | 25 / 90 | **27.8%** |
-| Wrong | 18 / 90 | **20.0%** |
+| Partial | 24 / 90 | **26.7%** |
+| Wrong | 19 / 90 | **21.1%** |
 
 ## Per-repo results
 
@@ -78,7 +74,7 @@ This benchmark isolates that first question: *did the right file appear in conte
 | axios | 20.0% | 60% | 3.0x | 2 / 1 / 2 |
 | rust-analyzer | 0.8% | 100% | 125.0x | 4 / 1 / 0 |
 | abseil-cpp | 0.7% | 100% | 142.9x | 3 / 2 / 0 |
-| serilog | 5.1% | 40% | 7.8x | 0 / 2 / 3 |
+| serilog | 5.1% | 60% | 11.8x | 1 / 2 / 2 |
 | riverpod | 1.1% | 100% | 90.9x | 4 / 1 / 0 |
 | okhttp | 27.8% | 100% | 3.6x | 5 / 0 / 0 |
 | laravel | 0.3% | 100% | 333.3x | 2 / 3 / 0 |

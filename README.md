@@ -37,10 +37,10 @@ Works with Copilot, Claude, Cursor, Windsurf, and any LLM.
 
 ## Why SigMap?
 
-- **80.0% hit@5** — right file found in top 5 results (vs 13.6% baseline)
+- **78.9% hit@5** — right file found in top 5 results (vs 13.6% baseline)
 - **40–98% token reduction** — 2K–4K tokens instead of 80K+
 - **52.2% task success rate** — up from 10% without context
-- **1.68 prompts per task** — down from 2.84
+- **1.69 prompts per task** — down from 2.84
 - **Works with any LLM** — no API key, no cloud, no accounts
 - **Zero npm dependencies** — `npx sigmap` on any machine
 
@@ -50,7 +50,7 @@ Works with Copilot, Claude, Cursor, Windsurf, and any LLM.
 
 | Without SigMap | With SigMap |
 |---|---|
-| ❌ Guessing which files are relevant | ✅ Right file in context — 80% of the time |
+| ❌ Guessing which files are relevant | ✅ Right file in context — 79% of the time |
 | ❌ Sending the full repo to your AI | ✅ Minimal context — only what matters |
 | ❌ Embeddings / vector DB required | ✅ Grounded answers, no infra needed |
 
@@ -74,13 +74,13 @@ Ask → Rank → Context → Validate → Judge → Learn
 ## Benchmark
 
 ```
-Benchmark : sigmap-v6.0-main
-Date      : 2026-04-19
+Benchmark : sigmap-v6.4-main
+Date      : 2026-04-23
 
-Hit@5          : 80.0%   (baseline 13.6%  — 5.8× lift)
-Prompt reduction : 40.8%
+Hit@5          : 78.9%   (baseline 13.6%  — 5.8× lift)
+Prompt reduction : 40.6%
 Task success   : 52.2%   (baseline 10%)
-Prompts / task : 1.68    (baseline 2.84)
+Prompts / task : 1.69    (baseline 2.84)
 Token reduction: 40–98%  (avg 96.9% across 18 real repos)
 ```
 

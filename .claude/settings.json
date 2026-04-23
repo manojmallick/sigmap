@@ -23,7 +23,16 @@
       "Bash(awk -F' ' '{sum += $1} END {print sum}')",
       "Bash(node /Users/manojmallick/sigmap/test/integration/features/native-tool-registration.test.js)",
       "Bash(node /Users/manojmallick/sigmap/scripts/sync-versions.mjs 6.3.0)",
-      "Bash(gh pr create --title 'feat\\(adapters\\): native tool registration for codex + claude — v6.3.0' --body ' *)"
+      "Bash(gh pr create --title 'feat\\(adapters\\): native tool registration for codex + claude — v6.3.0' --body ' *)",
+      "Bash(node scripts/run-retrieval-benchmark.mjs --save)",
+      "Bash(node scripts/run-retrieval-benchmark.mjs --graph --save)",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\);const j=JSON.parse\\(d\\);console.log\\('hit_at_5:',j.hitAt5,'baseline:',j.baselineHitAt5,'lift:',j.lift\\)\")",
+      "Bash(node -e \"const d=require\\('./benchmarks/reports/retrieval.json'\\);console.log\\(JSON.stringify\\(Object.keys\\(d\\)\\)\\)\")",
+      "Bash(node -e \"const d=require\\('./benchmarks/reports/retrieval.json'\\);const r=d.repos;const hits=r.filter\\(x=>x.hitAt5===1\\).length;const total=r.length*5;let correct=0,partial=0,miss=0;r.forEach\\(x=>{correct+=x.correct;partial+=x.partial;miss+=x.miss}\\);const tasks=correct+partial+miss;console.log\\('repos:',r.length,'tasks:',tasks,'correct:',correct,'partial:',partial,'miss:',miss,'hitAt5 repos:',r.filter\\(x=>x.hitAt5===1\\).length\\)\")",
+      "Bash(node -e \"const d=require\\('./benchmarks/reports/retrieval.json'\\);console.log\\(JSON.stringify\\(d.repos[0],null,2\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \" const d = require\\('./benchmarks/reports/task-benchmark.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(d\\)\\)\\); \")",
+      "Bash(node -e \" const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(JSON.stringify\\(d\\).slice\\(0,500\\)\\); \")"
     ]
   }
 }
