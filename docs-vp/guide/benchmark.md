@@ -38,6 +38,10 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
+::: tip v6.3.0 release note
+v6.3.0 ships native tool registration for Claude Code and Codex — the MCP server now declares its tools at startup so the AI sees them without a discovery round-trip. Benchmark numbers are unchanged from v6.0; the next retrieval run will follow the v6.5 Source Root Resolver milestone.
+:::
+
 ## Official v6.0 snapshot
 
 Latest saved benchmark run: **2026-04-19 (v6.0.0)**

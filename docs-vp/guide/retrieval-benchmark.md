@@ -31,6 +31,10 @@ head:
 
 Latest saved run: **2026-04-19 (v6.0.0)**
 
+::: tip v6.3.0 release note
+v6.3.0 ships native tool registration for Claude Code and Codex. Retrieval numbers are unchanged from v6.0-main; the next retrieval run will follow the v6.5 Source Root Resolver milestone.
+:::
+
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **80.0% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
 ## Why this benchmark matters

@@ -95,7 +95,9 @@ test('replace: embeddings / vector DB (❌) present', () => {
 });
 
 test('replace: correct file selection (✅) present', () => {
-  assert.ok(src.includes('Correct file selection') || src.includes('correct file selection'),
+  assert.ok(
+    src.includes('Correct file selection') || src.includes('correct file selection') ||
+    src.includes('Right file in context'),
     'missing correct file selection item');
 });
 

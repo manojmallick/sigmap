@@ -98,6 +98,10 @@ Stack both MCP servers for the two-layer context strategy — SigMap for always-
 
 ## 9 available tools
 
+::: tip New in v6.3.0 — native tool registration
+Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 9 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
+:::
+
 All tools are available on-demand — your AI agent calls only what it needs.
 
 | Tool | What it does | Arg(s) | Example call |

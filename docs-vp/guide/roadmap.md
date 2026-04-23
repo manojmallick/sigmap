@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.3, with the latest milestone adding native tool registration in AGENTS.md and CLAUDE.md for zero-config agent access.
+description: SigMap version history and roadmap. From v0.0 to v6.4, with the latest milestone syncing docs version labels, fixing the README overclaim, and upgrading the generalization benchmark to v6.0-main.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "29 versions shipped. See what changed in each release and what is coming next."
+      content: "45 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Thirty-plus versions shipped. MIT open source from day one.
+Forty-five versions shipped. MIT open source from day one.
 
 **Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 0 npm deps
 
@@ -517,9 +517,26 @@ v6.3.0 closes the adapter-tool-wiring roadmap at Level 3: the two adapters with 
 
 ---
 
+### v6.4.0 — Trust sync ✓ (tagged v6.4.0 — 2026-04-23)
+
+v6.4.0 is a docs-only trust sync release that eliminates the visible mismatch between the live site and GitHub Releases.
+
+- **Homepage badge split** — hero pill now shows `Release: v6.4.0` and `Benchmark: sigmap-v6.0-main` as separate labels; the old conflated "Latest: v6.0" wording is gone
+- **Generalization upgrade** — `docs-vp/guide/generalization.md` upgraded from the stale v5.9-main snapshot to v6.0-main (matching all other benchmark pages)
+- **README overclaim fix** — "correct file selection every time" changed to "right file in context — 80% of the time"; top demo trimmed from 4 commands to 2
+- **v6.3.0 release callouts** — release note blocks added to benchmark, retrieval-benchmark, and task-benchmark docs explaining that numbers are unchanged pending v6.5
+- **MCP native tool callout** — `docs-vp/guide/mcp.md` now documents the v6.3 native tool registration behaviour
+- **Content-consistency test** — `test/content/v640-trust-sync.sh` (11 checks) guards against version/copy regressions in CI
+
+**Tags:** `trust-sync` · `docs` · `version-labels` · `overclaim-fix` · `generalization-upgrade`
+
+**Impact:** All benchmark docs now point to a single canonical v6.0-main snapshot; homepage no longer conflates release version with benchmark ID
+
+---
+
 ## Current milestone — v6.x
 
-v6.0–v6.3.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, and native tool registration in AGENTS.md and CLAUDE.md. Current focus: wire `sig-cache` into the main extraction pipeline as a first-class config toggle, benchmark the learning engine to measure hit@5 improvement from accumulated weights, and add community-submitted benchmark tracking to the dashboard. Public metrics are synchronised via `version.json` + `scripts/sync-versions.mjs`.
+v6.0–v6.4.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration in AGENTS.md and CLAUDE.md, and docs trust sync. Current focus: Source Root Resolver (v6.5) — a 6-module `src/discovery/` subsystem that detects framework-specific source roots and removes the need for manual `srcDirs` config in monorepos. Public metrics are synchronised via `version.json` + `scripts/sync-versions.mjs`.
 
 ---
 
