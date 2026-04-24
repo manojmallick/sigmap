@@ -32,19 +32,49 @@ const DEFAULT_WEIGHTS = {
   graphBoost: 0.4,       // additive bonus for 1-hop import neighbors of matching files
 };
 
+// Intent-specific weight adjustments
+const INTENT_WEIGHTS = {
+  search:     DEFAULT_WEIGHTS,
+  debug:      { ...DEFAULT_WEIGHTS, exactToken: 1.2, pathMatch: 0.6 },
+  explain:    { ...DEFAULT_WEIGHTS, symbolMatch: 0.8, pathMatch: 0.9 },
+  refactor:   { ...DEFAULT_WEIGHTS, symbolMatch: 0.9, exactToken: 0.8 },
+  review:     { ...DEFAULT_WEIGHTS, pathMatch: 1.0, exactToken: 0.9 },
+  test:       { ...DEFAULT_WEIGHTS, exactToken: 0.7, symbolMatch: 0.4 },
+  integrate:  { ...DEFAULT_WEIGHTS, graphBoost: 0.7, pathMatch: 1.1 },
+  navigate:   { ...DEFAULT_WEIGHTS, pathMatch: 1.2, exactToken: 0.9 },
+};
+
+// Penalty multipliers for negative signals
+const PENALTY_SIGNALS = {
+  testFile:      0.4,    // test/spec/__tests__ in path
+  generatedCode: 0.3,    // dist/build/.next in path
+  docsFile:      0.2,    // docs/doc/README in path
+  nodeModules:   0.0,    // node_modules (zero score)
+};
+
+function _computePenalty(filePath) {
+  const pathLower = filePath.toLowerCase();
+  if (pathLower.includes('node_modules')) return PENALTY_SIGNALS.nodeModules;
+  if (/(^|\/)(test|tests|spec|__tests__|e2e)($|\/)/.test(pathLower)) return PENALTY_SIGNALS.testFile;
+  if (/(^|\/)(dist|build|\.next|\.nuxt|out|\.venv|venv)($|\/)/.test(pathLower)) return PENALTY_SIGNALS.generatedCode;
+  if (/(^|\/)(docs|doc|readme|changelog)($|\/)/.test(pathLower)) return PENALTY_SIGNALS.docsFile;
+  return 1.0;
+}
+
 /**
- * Score a single file against a query.
+ * Score a single file against a query, returning detailed signal breakdown.
  *
  * @param {string}   filePath   - relative file path (e.g. 'src/extractors/python.js')
  * @param {string[]} sigs       - signature strings for this file
  * @param {string[]} queryTokens - pre-tokenized query
  * @param {object}   weights
- * @returns {number}
+ * @returns {{ score: number, signals: { exactToken: number, symbolMatch: number, prefixMatch: number, pathMatch: number, penalty: number } }}
  */
 function scoreFile(filePath, sigs, queryTokens, weights) {
-  if (!sigs || sigs.length === 0) return 0;
+  if (!sigs || sigs.length === 0) return { score: 0, signals: { exactToken: 0, symbolMatch: 0, prefixMatch: 0, pathMatch: 0, penalty: 1.0 } };
 
   const w = weights || DEFAULT_WEIGHTS;
+  const signals = { exactToken: 0, symbolMatch: 0, prefixMatch: 0, pathMatch: 0, penalty: _computePenalty(filePath) };
 
   // Build token set from all signatures
   const sigText = sigs.join(' ');
@@ -60,14 +90,19 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
 
     // Exact token match in sigs
     if (sigTokenSet.has(qt)) {
-      score += w.exactToken;
+      const bonus = w.exactToken;
+      score += bonus;
+      signals.exactToken += bonus;
 
       // Bonus: appears directly in a function/class/method name line
       const nameLineMatch = sigs.some((sig) => {
         const nt = tokenize(sig.replace(/[^a-zA-Z0-9_\s]/g, ' '));
         return nt.includes(qt);
       });
-      if (nameLineMatch) score += w.symbolMatch;
+      if (nameLineMatch) {
+        score += w.symbolMatch;
+        signals.symbolMatch += w.symbolMatch;
+      }
     }
 
     // Prefix match (e.g. query "python" matches "pythonDeps")
@@ -75,6 +110,7 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
       for (const st of sigTokenSet) {
         if (st !== qt && st.startsWith(qt)) {
           score += w.prefixMatch;
+          signals.prefixMatch += w.prefixMatch;
           break; // one bonus per query token
         }
       }
@@ -83,10 +119,14 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
     // Path token match
     if (pathTokenSet.has(qt)) {
       score += w.pathMatch;
+      signals.pathMatch += w.pathMatch;
     }
   }
 
-  return score;
+  // Apply penalty multiplier
+  score *= signals.penalty;
+
+  return { score, signals };
 }
 
 /**
@@ -101,7 +141,7 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
  * @param {object}  [opts.weights]               - override scoring weights
  * @param {string}  [opts.cwd]                   - project root for learned ranking weights
  * @param {{ forward: Map<string,string[]> }} [opts.graph] - dependency graph for neighbor boost
- * @returns {{ file: string, score: number, sigs: string[], tokens: number }[]}
+ * @returns {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]}
  */
 function rank(query, sigIndex, opts) {
   if (!query || typeof query !== 'string') return [];
@@ -110,17 +150,21 @@ function rank(query, sigIndex, opts) {
   const topK = (opts && opts.topK) || 10;
   const recencyMultiplier = (opts && opts.recencyBoost) || DEFAULT_WEIGHTS.recencyBoost;
   const recencySet = (opts && opts.recencySet) || null;
-  const weights = (opts && opts.weights) ? Object.assign({}, DEFAULT_WEIGHTS, opts.weights) : DEFAULT_WEIGHTS;
-  const learnedWeights = opts && opts.cwd ? loadWeights(opts.cwd) : null;
   const graph = (opts && opts.graph && opts.graph.forward instanceof Map) ? opts.graph : null;
   const cwd = (opts && opts.cwd) || null;
+
+  // Detect query intent and get appropriate weights
+  const intent = detectIntent(query);
+  const intentWeights = INTENT_WEIGHTS[intent] || DEFAULT_WEIGHTS;
+  const weights = (opts && opts.weights) ? Object.assign({}, intentWeights, opts.weights) : intentWeights;
+  const learnedWeights = opts && opts.cwd ? loadWeights(opts.cwd) : null;
 
   const queryTokens = tokenize(query);
   if (queryTokens.length === 0) {
     // Empty query: return top-K by file count (most signatures = most useful)
     const all = [];
     for (const [file, sigs] of sigIndex.entries()) {
-      all.push({ file, score: sigs.length, sigs, tokens: Math.ceil(sigs.join('\n').length / 4) });
+      all.push({ file, score: sigs.length, sigs, tokens: Math.ceil(sigs.join('\n').length / 4), intent, signals: {} });
     }
     all.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
     return all.slice(0, topK);
@@ -128,15 +172,20 @@ function rank(query, sigIndex, opts) {
 
   const scored = [];
   for (const [file, sigs] of sigIndex.entries()) {
-    let score = scoreFile(file, sigs, queryTokens, weights);
+    const result = scoreFile(file, sigs, queryTokens, weights);
+    let score = result.score;
+    const signals = result.signals;
 
     // Recency boost
     if (recencySet && recencySet.has(file) && score > 0) {
       score *= recencyMultiplier;
+      signals.recencyBoost = recencyMultiplier;
     }
 
     if (learnedWeights && score > 0) {
-      score *= learnedWeights[file] || 1.0;
+      const multiplier = learnedWeights[file] || 1.0;
+      score *= multiplier;
+      signals.learnedWeights = multiplier;
     }
 
     scored.push({
@@ -144,6 +193,8 @@ function rank(query, sigIndex, opts) {
       score,
       sigs,
       tokens: Math.ceil(sigs.join('\n').length / 4),
+      intent,
+      signals,
     });
   }
 
@@ -166,6 +217,7 @@ function rank(query, sigIndex, opts) {
         const idx = relToIdx.get(neighborRel);
         if (idx !== undefined) {
           scored[idx].score += weights.graphBoost;
+          scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + weights.graphBoost;
         }
       }
     }
@@ -286,7 +338,7 @@ function buildSigIndex(cwd, opts) {
 /**
  * Format ranked results as a markdown table string.
  *
- * @param {{ file: string, score: number, sigs: string[], tokens: number }[]} results
+ * @param {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]} results
  * @param {string} query
  * @returns {string}
  */
@@ -295,14 +347,17 @@ function formatRankTable(results, query) {
     return `No matching files found for query: "${query}"\n`;
   }
 
+  const intent = (results[0] && results[0].intent) || 'search';
   const lines = [
     `## Query: ${query}`,
+    `Intent: ${intent}`,
     '',
-    '| Rank | File | Score | Sigs | Tokens |',
-    '|------|------|-------|------|--------|',
-    ...results.map((r, i) =>
-      `| ${i + 1} | ${r.file} | ${r.score.toFixed(2)} | ${r.sigs.length} | ${r.tokens} |`
-    ),
+    '| Rank | File | Score | Sigs | Penalty |',
+    '|------|------|-------|------|---------|',
+    ...results.map((r, i) => {
+      const penalty = r.signals && r.signals.penalty ? r.signals.penalty.toFixed(2) : '1.00';
+      return `| ${i + 1} | ${r.file} | ${r.score.toFixed(2)} | ${r.sigs.length} | ${penalty} |`;
+    }),
     '',
   ];
 
@@ -310,6 +365,10 @@ function formatRankTable(results, query) {
   for (const r of results.slice(0, 3)) {
     if (r.sigs.length > 0) {
       lines.push(`### ${r.file}`);
+      if (r.signals) {
+        const sig = r.signals;
+        lines.push(`Signals: exactToken=${(sig.exactToken || 0).toFixed(2)} symbolMatch=${(sig.symbolMatch || 0).toFixed(2)} prefixMatch=${(sig.prefixMatch || 0).toFixed(2)} pathMatch=${(sig.pathMatch || 0).toFixed(2)} penalty=${(sig.penalty || 1).toFixed(2)}`);
+      }
       lines.push('```');
       lines.push(...r.sigs.slice(0, 10));
       if (r.sigs.length > 10) lines.push(`... (${r.sigs.length - 10} more)`);
@@ -324,32 +383,38 @@ function formatRankTable(results, query) {
 /**
  * Format ranked results as a structured JSON-serialisable object.
  *
- * @param {{ file: string, score: number, sigs: string[], tokens: number }[]} results
+ * @param {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]} results
  * @param {string} query
  * @returns {object}
  */
 function formatRankJSON(results, query) {
+  const intent = (results && results[0] && results[0].intent) || 'search';
   return {
     query,
+    intent,
     results: (results || []).map((r, i) => ({
       rank: i + 1,
       file: r.file,
       score: r.score,
       sigs: r.sigs,
       tokens: r.tokens,
+      signals: r.signals || {},
     })),
     totalResults: (results || []).length,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Intent detection
+// Intent detection — 7 intents
 // ---------------------------------------------------------------------------
 const INTENT_PATTERNS = {
   debug:    /\b(bug|fix|error|crash|exception|broken|failing|issue|problem|regression)\b/i,
-  explain:  /\b(explain|how does|what is|understand|overview|architecture|describe|walk me)\b/i,
-  refactor: /\b(refactor|restructure|redesign|clean up|extract|move|rename|simplify)\b/i,
-  review:   /\b(review|check|audit|security|pr|pull request|assess)\b/i,
+  explain:  /\b(explain|how does|what is|understand|overview|architecture|describe|walk me|teach)\b/i,
+  refactor: /\b(refactor|restructure|redesign|clean up|extract|move|rename|simplify|optimize)\b/i,
+  review:   /\b(review|check|audit|security|pr|pull request|assess|validate)\b/i,
+  test:     /\b(test|unit test|integration test|testing|spec|assert|mock)\b/i,
+  integrate:/\b(import|integrate|connect|wire|bind|require|export|depend|graph)\b|require[ds]\b/i,
+  navigate: /\b(find|locate|where|search|look for|show me|navigate|browse|list)\b/i,
 };
 
 function detectIntent(query) {

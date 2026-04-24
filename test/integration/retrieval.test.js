@@ -78,7 +78,7 @@ function mcpCall(msg, cwd) {
 // Load modules directly from src/
 // ---------------------------------------------------------------------------
 const { tokenize }                = require(path.join(ROOT, 'src', 'retrieval', 'tokenizer'));
-const { rank, buildSigIndex, formatRankTable, formatRankJSON } =
+const { rank, buildSigIndex, formatRankTable, formatRankJSON, detectIntent } =
   require(path.join(ROOT, 'src', 'retrieval', 'ranker'));
 
 // Build a minimal sig index from SigMap's own context file
@@ -306,6 +306,146 @@ test('MCP query_context: unknown tool still returns error', () => {
     params: { name: 'nonexistent_tool', arguments: {} },
   });
   assert.ok(res.error || (res.result && res.result.content), 'should get error or result');
+});
+
+// ---------------------------------------------------------------------------
+// v6.6.0 — Retrieval explain + 7-intent ranking + negative-signal penalty
+// ---------------------------------------------------------------------------
+test('v6.6 detectIntent: identifies debug intent', () => {
+  const intents = [
+    { query: 'how to fix this bug', expected: 'debug' },
+    { query: 'investigate the crash', expected: 'debug' },
+    { query: 'find the error', expected: 'debug' },
+  ];
+  for (const { query, expected } of intents) {
+    const intent = detectIntent(query);
+    assert.strictEqual(intent, expected, `"${query}" should be ${expected}, got ${intent}`);
+  }
+});
+
+test('v6.6 detectIntent: identifies explain intent', () => {
+  const intents = [
+    { query: 'explain the architecture', expected: 'explain' },
+    { query: 'how does this work', expected: 'explain' },
+    { query: 'what is this module', expected: 'explain' },
+  ];
+  for (const { query, expected } of intents) {
+    const intent = detectIntent(query);
+    assert.strictEqual(intent, expected, `"${query}" should be ${expected}, got ${intent}`);
+  }
+});
+
+test('v6.6 detectIntent: identifies test intent', () => {
+  const intents = [
+    { query: 'unit test for this', expected: 'test' },
+    { query: 'write a test', expected: 'test' },
+    { query: 'integration test', expected: 'test' },
+  ];
+  for (const { query, expected } of intents) {
+    const intent = detectIntent(query);
+    assert.strictEqual(intent, expected, `"${query}" should be ${expected}, got ${intent}`);
+  }
+});
+
+test('v6.6 detectIntent: identifies integrate intent', () => {
+  const intents = [
+    { query: 'what requires this module', expected: 'integrate' },
+    { query: 'wire up the dependency', expected: 'integrate' },
+    { query: 'show the import graph', expected: 'integrate' },
+  ];
+  for (const { query, expected } of intents) {
+    const intent = detectIntent(query);
+    assert.strictEqual(intent, expected, `"${query}" should be ${expected}, got ${intent}`);
+  }
+});
+
+test('v6.6 detectIntent: identifies navigate intent', () => {
+  const intents = [
+    { query: 'find the python extractor', expected: 'navigate' },
+    { query: 'where is the config loader', expected: 'navigate' },
+    { query: 'show me the ranker', expected: 'navigate' },
+  ];
+  for (const { query, expected } of intents) {
+    const intent = detectIntent(query);
+    assert.strictEqual(intent, expected, `"${query}" should be ${expected}, got ${intent}`);
+  }
+});
+
+test('v6.6 detectIntent: defaults to search', () => {
+  const query = 'signature extraction tools';
+  const intent = detectIntent(query);
+  assert.strictEqual(intent, 'search', `ambiguous query should be search, got ${intent}`);
+});
+
+test('v6.6 rank: returns intent field in results', () => {
+  if (sigIndex.size === 0) return;
+  const results = rank('debug this error', sigIndex, { topK: 3 });
+  assert.ok(results.length > 0, 'should return results');
+  for (const r of results) {
+    assert.ok('intent' in r, 'each result should have intent field');
+    assert.strictEqual(r.intent, 'debug', 'debug intent should be detected');
+  }
+});
+
+test('v6.6 rank: returns signals breakdown in results', () => {
+  if (sigIndex.size === 0) return;
+  const results = rank('extract files', sigIndex, { topK: 3 });
+  assert.ok(results.length > 0, 'should return results');
+  for (const r of results) {
+    assert.ok('signals' in r, 'each result should have signals field');
+    const sig = r.signals;
+    assert.ok(typeof sig === 'object', 'signals should be an object');
+    assert.ok('penalty' in sig, 'signals should include penalty');
+    assert.ok(typeof sig.penalty === 'number', 'penalty should be a number');
+    assert.ok(sig.penalty >= 0 && sig.penalty <= 1.0, `penalty should be between 0 and 1, got ${sig.penalty}`);
+  }
+});
+
+test('v6.6 rank: penalty reduces score for test files', () => {
+  // Create a minimal test index with both test and source files
+  const testIndex = new Map([
+    ['src/extractor.js', ['extract(src)', 'parseSignatures()']],
+    ['test/extractor.test.js', ['extract(src)', 'parseSignatures()']],
+  ]);
+  const results = rank('extract', testIndex, { topK: 10 });
+  // The source file should rank higher than the test file
+  const srcIdx = results.findIndex((r) => r.file.includes('src/extractor'));
+  const testIdx = results.findIndex((r) => r.file.includes('test/extractor'));
+  if (srcIdx !== -1 && testIdx !== -1) {
+    assert.ok(srcIdx < testIdx, `source file (idx ${srcIdx}) should rank before test file (idx ${testIdx})`);
+  }
+});
+
+test('v6.6 rank: penalty reduces score for docs files', () => {
+  const testIndex = new Map([
+    ['src/loader.js', ['loadConfig()', 'detectFrameworks()']],
+    ['docs/guide.md', ['loadConfig()', 'detectFrameworks()']],
+  ]);
+  const results = rank('load', testIndex, { topK: 10 });
+  const srcIdx = results.findIndex((r) => r.file.includes('src/loader'));
+  const docsIdx = results.findIndex((r) => r.file.includes('docs'));
+  if (srcIdx !== -1 && docsIdx !== -1) {
+    assert.ok(srcIdx < docsIdx, `source file (idx ${srcIdx}) should rank before docs file (idx ${docsIdx})`);
+  }
+});
+
+test('v6.6 formatRankTable: includes signals in output', () => {
+  if (sigIndex.size === 0) return;
+  const results = rank('extract', sigIndex, { topK: 2 });
+  const table = formatRankTable(results, 'extract');
+  assert.ok(table.includes('Penalty'), 'should include Penalty column');
+  assert.ok(table.includes('Intent:'), 'should include Intent line');
+});
+
+test('v6.6 formatRankJSON: includes intent and signals', () => {
+  if (sigIndex.size === 0) return;
+  const results = rank('refactor', sigIndex, { topK: 3 });
+  const obj = formatRankJSON(results, 'refactor');
+  assert.ok('intent' in obj, 'should have intent at top level');
+  assert.strictEqual(obj.intent, 'refactor', 'intent should be refactor');
+  for (const r of obj.results) {
+    assert.ok('signals' in r, 'each result should include signals');
+  }
 });
 
 // ---------------------------------------------------------------------------
