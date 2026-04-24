@@ -1,13 +1,13 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v5.9. 13/18 repos overflow GPT-4o without SigMap, 5,047 files would be hidden, and GPT-4o input savings reach $9,390.06/month at 10 calls/day.
+description: What token reduction means operationally in v6.4. 13/18 repos overflow GPT-4o without SigMap, 5,047 files would be hidden, and GPT-4o input savings reach $9,446.95/month at 10 calls/day.
 head:
   - - meta
     - property: og:title
       content: "SigMap quality benchmark — overflow, hidden files, and cost"
   - - meta
     - property: og:description
-      content: "13/18 repos overflow GPT-4o without SigMap. 5,047 files would be hidden. $9,390.15/month saved in GPT-4o input cost at 10 calls/day."
+      content: "13/18 repos overflow GPT-4o without SigMap. 5,047 files would be hidden. $9,446.95/month saved in GPT-4o input cost at 10 calls/day."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/quality-benchmark"
@@ -15,16 +15,16 @@ head:
 
 # Quality benchmark
 
-::: info Official v5.9 benchmark snapshot
-**Benchmark ID:** sigmap-v5.9-main &nbsp;·&nbsp; **Date:** 2026-04-18
+::: info Official v6.4 benchmark snapshot
+**Benchmark ID:** sigmap-v6.4-main &nbsp;·&nbsp; **Date:** 2026-04-23
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **80.0%** vs 13.6% baseline |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.2%** (2.84 → 1.67) |
-| Task success proxy | **53.3%** |
-| Overall token reduction | **98.1%** |
+| Hit@5 | **78.9%** vs 13.6% baseline |
+| Retrieval lift | **5.8×** |
+| Prompt reduction | **40.6%** (2.84 → 1.69) |
+| Task success proxy | **52.2%** |
+| Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 

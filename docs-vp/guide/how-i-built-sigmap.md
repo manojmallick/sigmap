@@ -29,10 +29,10 @@ Before the story, the outcome — so you know what you're reading toward:
 
 | | Number |
 |---|---|
-| File retrieval accuracy | **80.0% hit@5** (vs 13.6% baseline — 5.9× lift) |
+| File retrieval accuracy | **78.9% hit@5** (vs 13.6% baseline — 5.8× lift) |
 | Token reduction | **40–98%** across 18 real open-source repos |
 | Task success rate | **52.2%** (vs 10% without context) |
-| Prompts per task | **1.68** (down from 2.84) |
+| Prompts per task | **1.69** (down from 2.84) |
 | Dependencies | **Zero** |
 
 ```bash
@@ -96,7 +96,7 @@ With SigMap:
 → Ranks auth-related files by signature match
 → Surfaces auth/service.ts, auth/token.ts, middleware/auth.ts
 → AI answers using actual implementation, first try
-→ 1.68 prompts on average vs 2.84
+→ 1.69 prompts on average vs 2.84
 ```
 
 This is the difference between **guessing** and **grounding**.
@@ -192,14 +192,14 @@ I was using an LLM to improve a tool designed to make LLMs work better. Better e
 ## Proof block
 
 ```
-Benchmark: sigmap-v5.9-main
-Date: 2026-04-19
+Benchmark: sigmap-v6.4-main
+Date: 2026-04-23
 
-Hit@5:              80.0%  (baseline 13.6%  — 5.9× lift)
-Prompt reduction:   40.8%
+Hit@5:              78.9%  (baseline 13.6%  — 5.8× lift)
+Prompt reduction:   40.6%
 Task success:       52.2%  (baseline 10%)
-Prompts per task:   1.68   (baseline 2.84)
-Token reduction:    40–98% (avg 97% across 18 repos)
+Prompts per task:   1.69   (baseline 2.84)
+Token reduction:    40–98% (avg 96.9% across 18 repos)
 ```
 
 Measured on 90 coding tasks across 18 real public repos. No LLM API. Fully reproducible.
@@ -289,7 +289,7 @@ Not hit@5, not token reduction — *how many prompts until the user got what the
 | Feature | What it does |
 |---|---|
 | **Signature extraction** | 29 languages, zero dependencies, milliseconds |
-| **Deterministic retrieval** | TF-IDF + graph boost, 80.0% hit@5 |
+| **Deterministic retrieval** | TF-IDF + graph boost, 78.9% hit@5 |
 | **Groundedness scoring** | Catch hallucinations before they reach production |
 | **Learned weights** | Files that helped rank higher next time |
 | **MCP server** | 9 on-demand tools for Claude Code, Cursor, Windsurf |

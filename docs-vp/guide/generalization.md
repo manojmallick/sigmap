@@ -4,7 +4,7 @@ description: SigMap generalizes across 18 repos, 13 languages, and 9 domains wit
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 80.0% hit@5 across 13 languages and 9 domains"
+      content: "SigMap Generalization — 78.9% hit@5 across 13 languages and 9 domains"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."

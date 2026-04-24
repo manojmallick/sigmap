@@ -1,13 +1,13 @@
 ---
 title: SigMap vs alternatives
-description: How SigMap compares to embeddings, RAG, RepoMix, and Copilot context. Zero infra, deterministic, 5.9× better retrieval than sending everything.
+description: How SigMap compares to embeddings, RAG, RepoMix, and Copilot context. Zero infra, deterministic, 5.8× better retrieval than sending everything.
 head:
   - - meta
     - property: og:title
       content: "SigMap vs embeddings, RAG, RepoMix, and Copilot context"
   - - meta
     - property: og:description
-      content: "Side-by-side comparison: SigMap vs RAG, embeddings, RepoMix, and Copilot context. Zero infra, deterministic, 5.9× retrieval lift."
+      content: "Side-by-side comparison: SigMap vs RAG, embeddings, RepoMix, and Copilot context. Zero infra, deterministic, 5.8× retrieval lift."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/compare-alternatives"
@@ -53,7 +53,7 @@ RepoMix compresses files. SigMap extracts what matters and ranks by relevance.
 | Judge answer groundedness | **Yes** — `sigmap judge` | No |
 | Works with MCP tools | **Yes** — 9 tools | No |
 
-The key difference: RepoMix's output is the same regardless of what you ask. SigMap's output is ranked to the specific query, which is why retrieval accuracy is 5.9× higher.
+The key difference: RepoMix's output is the same regardless of what you ask. SigMap's output is ranked to the specific query, which is why retrieval accuracy is 5.8× higher.
 
 ## SigMap vs Copilot / IDE context window
 

@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.4, with the latest milestone syncing docs version labels, fixing the README overclaim, and upgrading the generalization benchmark to v6.0-main.
+description: SigMap version history and roadmap. From v0.0 to v6.4, with the latest milestone syncing docs version labels, fixing the README overclaim, and upgrading the generalization benchmark to v6.4-main.
 head:
   - - meta
     - property: og:title
@@ -521,16 +521,15 @@ v6.3.0 closes the adapter-tool-wiring roadmap at Level 3: the two adapters with 
 
 v6.4.0 is a docs-only trust sync release that eliminates the visible mismatch between the live site and GitHub Releases.
 
-- **Homepage badge split** — hero pill now shows `Release: v6.4.0` and `Benchmark: sigmap-v6.0-main` as separate labels; the old conflated "Latest: v6.0" wording is gone
-- **Generalization upgrade** — `docs-vp/guide/generalization.md` upgraded from the stale v5.9-main snapshot to v6.0-main (matching all other benchmark pages)
-- **README overclaim fix** — "correct file selection every time" changed to "right file in context — 80% of the time"; top demo trimmed from 4 commands to 2
-- **v6.3.0 release callouts** — release note blocks added to benchmark, retrieval-benchmark, and task-benchmark docs explaining that numbers are unchanged pending v6.5
+- **Homepage badge split** — hero pill now shows `Release: v6.4.0` and `Benchmark: sigmap-v6.4-main` as separate labels; the old conflated "Latest: v6.0" wording is gone
+- **Benchmark upgrade** — all docs upgraded from v5.9-main / v6.0-main snapshots to the canonical v6.4-main snapshot (2026-04-23): 78.9% hit@5, 80.0% graph-boosted, 5.8× lift, 40.6% prompt reduction, 1.69 prompts/task
+- **README overclaim fix** — "correct file selection every time" changed to "right file in context — 79% of the time"; top demo trimmed from 4 commands to 2
 - **MCP native tool callout** — `docs-vp/guide/mcp.md` now documents the v6.3 native tool registration behaviour
-- **Content-consistency test** — `test/content/v640-trust-sync.sh` (11 checks) guards against version/copy regressions in CI
+- **Content-consistency test** — `test/content/v640-trust-sync.sh` (12 checks) guards against version/copy regressions in CI
 
-**Tags:** `trust-sync` · `docs` · `version-labels` · `overclaim-fix` · `generalization-upgrade`
+**Tags:** `trust-sync` · `docs` · `version-labels` · `overclaim-fix` · `generalization-upgrade` · `benchmark-upgrade`
 
-**Impact:** All benchmark docs now point to a single canonical v6.0-main snapshot; homepage no longer conflates release version with benchmark ID
+**Impact:** All benchmark docs now point to a single canonical v6.4-main snapshot; homepage no longer conflates release version with benchmark ID
 
 ---
 
