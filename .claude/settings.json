@@ -32,7 +32,21 @@
       "Bash(node -e \"const d=require\\('./benchmarks/reports/retrieval.json'\\);console.log\\(JSON.stringify\\(d.repos[0],null,2\\)\\)\")",
       "Bash(node -e ' *)",
       "Bash(node -e \" const d = require\\('./benchmarks/reports/task-benchmark.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(d\\)\\)\\); \")",
-      "Bash(node -e \" const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(JSON.stringify\\(d\\).slice\\(0,500\\)\\); \")"
+      "Bash(node -e \" const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(JSON.stringify\\(d\\).slice\\(0,500\\)\\); \")",
+      "Bash(node -e \"const d=require\\('./benchmarks/reports/token-reduction.json'\\);const s=d.summary;console.log\\('raw:',s.totalRawTokens,'final:',s.totalFinalTokens\\)\")",
+      "Bash(bash test/content/v640-trust-sync.sh)",
+      "Bash(node test/integration/features/docs-sync.test.js)",
+      "Bash(node test/integration/features/readme-structure.test.js)",
+      "Bash(node test/integration/features/version-json.test.js)",
+      "Bash(git -C /Users/manojmallick/sigmap status)",
+      "Bash(git -C /Users/manojmallick/sigmap add docs-vp/guide/cli.md docs-vp/guide/compare-alternatives.md docs-vp/guide/generalization.md docs-vp/guide/how-i-built-sigmap.md docs-vp/guide/quality-benchmark.md docs-vp/guide/roadmap.md docs-vp/index.md)",
+      "Bash(git -C /Users/manojmallick/sigmap commit -m ' *)",
+      "Bash(git -C /Users/manojmallick/sigmap push)",
+      "Bash(grep -E \"\\\\.js$\")",
+      "Bash(grep -v \"^coverage$\\\\|^deps$\\\\|^prdiff$\\\\|^todos$\\\\|^patterns$\")",
+      "Bash(npm test *)",
+      "Read(//Users/manojmallick/**)",
+      "Read(//Users/manojmallick/.claude/**)"
     ]
   }
 }

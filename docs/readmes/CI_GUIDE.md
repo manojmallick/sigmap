@@ -158,7 +158,7 @@ Use `--report --json` to capture token metrics as structured output:
 JSON schema:
 ```json
 {
-  "version": "2.0.0",
+  "version": "6.4.0",
   "timestamp": "2026-04-01T09:00:00.000Z",
   "rawTokens": 42000,
   "finalTokens": 2800,

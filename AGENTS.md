@@ -47,18 +47,6 @@ Use this marker block for all appendable context files:
 <!-- Updated by gen-context.js -->
 # Code signatures
 
-## changes (last 5 commits — 0 seconds ago)
-```
-src/learning/weights.js                       +exportWeights  +importWeights  ~resetWeights
-packages/adapters/codex.js                    ~write  ~format
-packages/adapters/claude.js                   ~format  ~write
-packages/adapters/gemini.js                   ~format
-packages/adapters/copilot.js                  ~format
-packages/adapters/cursor.js                   ~format
-packages/adapters/openai.js                   ~format
-packages/adapters/windsurf.js                 ~format
-```
-
 ## packages
 
 ### packages/cli/index.js
@@ -133,15 +121,6 @@ function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
 
-### packages/adapters/gemini.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-function _confidenceMeta(opts)
-```
-
 ### packages/adapters/copilot.js
 ```
 module.exports = { name, format, outputPath, write }
@@ -149,6 +128,15 @@ function format(context, opts = {}) → string
 function _confidenceMeta(opts)
 function outputPath(cwd) → string
 function write(context, cwd, opts = {})
+```
+
+### packages/adapters/gemini.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+function _confidenceMeta(opts)
 ```
 
 ### packages/adapters/cursor.js
@@ -547,15 +535,6 @@ function formatAnalysisJSON(stats) → object
 module.exports = { DEFAULTS }
 ```
 
-### src/config/loader.js
-```
-module.exports = { loadConfig, loadBaseConfig }
-function loadBaseConfig(extendsVal, cwd)
-function detectAutoSrcDirs(cwd, excludeList) → string[]
-function loadConfig(cwd) → object
-function deepClone(obj)
-```
-
 ### src/format/dashboard.js
 ```
 module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak }
@@ -671,6 +650,15 @@ function extractBlock(src, startIndex)
 function extractInterfaceMembers(block)
 function extractClassMembers(block)
 function normalizeParams(params)
+```
+
+### src/config/loader.js
+```
+module.exports = { loadConfig, loadBaseConfig }
+function loadBaseConfig(extendsVal, cwd)
+function detectAutoSrcDirs(cwd, excludeList) → string[]
+function loadConfig(cwd) → object
+function deepClone(obj)
 ```
 
 ### src/learning/weights.js
