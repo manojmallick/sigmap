@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-23T22:51:47.966Z",
+  "generated": "2026-04-24T23:14:37.697Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -15,20 +15,20 @@
     "totalRepos": 18,
     "totalTasks": 90,
     "correctTotal": 47,
-    "partialTotal": 24,
-    "wrongTotal": 19,
+    "partialTotal": 26,
+    "wrongTotal": 17,
     "correctPct": 52.2,
-    "partialPct": 26.7,
-    "wrongPct": 21.1,
-    "avgPromptsWith": 1.69,
+    "partialPct": 28.9,
+    "wrongPct": 18.9,
+    "avgPromptsWith": 1.67,
     "avgPromptsWithout": 2.84,
-    "avgReductionPct": 40.6,
+    "avgReductionPct": 41.4,
     "hitAt5Without": 13.6,
-    "hitAt5With": 78.9,
-    "avgImprovement": 55.4,
-    "totalGroundedSymbols": 16131,
-    "totalDarkSymbols": 48057,
-    "hallucinationRiskPct": 74.9
+    "hitAt5With": 81.1,
+    "avgImprovement": 55.9,
+    "totalGroundedSymbols": 15740,
+    "totalDarkSymbols": 47632,
+    "hallucinationRiskPct": 75.2
   },
   "repos": [
     {
@@ -55,9 +55,9 @@
       "promptsWith": 1,
       "promptsWithout": 2.68,
       "reductionPct": 62.7,
-      "groundedSymbols": 714,
-      "darkSymbols": 499,
-      "hallucinationRiskPct": 41.1
+      "groundedSymbols": 424,
+      "darkSymbols": 273,
+      "hallucinationRiskPct": 39.2
     },
     {
       "repo": "gin",
@@ -83,9 +83,9 @@
       "promptsWith": 1.8,
       "promptsWithout": 2.54,
       "reductionPct": 29.1,
-      "groundedSymbols": 114,
-      "darkSymbols": 425,
-      "hallucinationRiskPct": 78.8
+      "groundedSymbols": 13,
+      "darkSymbols": 393,
+      "hallucinationRiskPct": 96.8
     },
     {
       "repo": "rails",
@@ -111,9 +111,9 @@
       "promptsWith": 2,
       "promptsWithout": 2.76,
       "reductionPct": 27.5,
-      "groundedSymbols": 90,
-      "darkSymbols": 439,
-      "hallucinationRiskPct": 83
+      "groundedSymbols": 82,
+      "darkSymbols": 280,
+      "hallucinationRiskPct": 77.3
     },
     {
       "repo": "rust-analyzer",
@@ -148,14 +148,14 @@
       "fileCount": 99,
       "tasks": 5,
       "correctPct": 0,
-      "partialPct": 40,
-      "wrongPct": 60,
-      "promptsWith": 2.6,
+      "partialPct": 60,
+      "wrongPct": 40,
+      "promptsWith": 2.4,
       "promptsWithout": 2.94,
-      "reductionPct": 11.5,
-      "groundedSymbols": 587,
-      "darkSymbols": 391,
-      "hallucinationRiskPct": 40
+      "reductionPct": 18.3,
+      "groundedSymbols": 585,
+      "darkSymbols": 393,
+      "hallucinationRiskPct": 40.2
     },
     {
       "repo": "riverpod",
@@ -195,9 +195,9 @@
       "promptsWith": 1.6,
       "promptsWithout": 3,
       "reductionPct": 46.6,
-      "groundedSymbols": 2507,
-      "darkSymbols": 5891,
-      "hallucinationRiskPct": 70.1
+      "groundedSymbols": 2504,
+      "darkSymbols": 5894,
+      "hallucinationRiskPct": 70.2
     },
     {
       "repo": "akka",
@@ -209,23 +209,23 @@
       "promptsWith": 1.4,
       "promptsWithout": 2.97,
       "reductionPct": 52.9,
-      "groundedSymbols": 1159,
-      "darkSymbols": 2794,
-      "hallucinationRiskPct": 70.7
+      "groundedSymbols": 1166,
+      "darkSymbols": 2787,
+      "hallucinationRiskPct": 70.5
     },
     {
       "repo": "vapor",
       "fileCount": 131,
       "tasks": 5,
       "correctPct": 20,
-      "partialPct": 20,
-      "wrongPct": 60,
-      "promptsWith": 2.4,
+      "partialPct": 40,
+      "wrongPct": 40,
+      "promptsWith": 2.2,
       "promptsWithout": 2.95,
-      "reductionPct": 18.8,
-      "groundedSymbols": 316,
-      "darkSymbols": 541,
-      "hallucinationRiskPct": 63.1
+      "reductionPct": 25.5,
+      "groundedSymbols": 317,
+      "darkSymbols": 540,
+      "hallucinationRiskPct": 63
     },
     {
       "repo": "vue-core",
@@ -237,9 +237,9 @@
       "promptsWith": 1.8,
       "promptsWithout": 2.97,
       "reductionPct": 39.5,
-      "groundedSymbols": 337,
-      "darkSymbols": 1801,
-      "hallucinationRiskPct": 84.2
+      "groundedSymbols": 344,
+      "darkSymbols": 1794,
+      "hallucinationRiskPct": 83.9
     },
     {
       "repo": "svelte",
@@ -251,9 +251,9 @@
       "promptsWith": 2.4,
       "promptsWithout": 2.98,
       "reductionPct": 19.6,
-      "groundedSymbols": 490,
-      "darkSymbols": 1701,
-      "hallucinationRiskPct": 77.6
+      "groundedSymbols": 488,
+      "darkSymbols": 1703,
+      "hallucinationRiskPct": 77.7
     },
     {
       "repo": "fastify",
