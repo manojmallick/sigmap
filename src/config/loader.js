@@ -89,14 +89,38 @@ const SUPPORTED_CODE_EXTS = new Set([
 ]);
 
 /**
- * Detect source directories for the given project root by reading manifest
- * files and scanning top-level directories for code files.
+ * Detect source directories for the given project root.
+ * Uses smart resolver (v6.5+) with fallback to legacy heuristics.
  *
  * @param {string} cwd - Project root
  * @param {string[]} excludeList - Folders to skip
  * @returns {string[]}
  */
 function detectAutoSrcDirs(cwd, excludeList) {
+  try {
+    const { resolveSourceRoots } = require('../discovery/source-root-resolver');
+    const result = resolveSourceRoots(cwd, { exclude: excludeList || [] });
+    if (result.roots.length > 0) {
+      if (result.confidence === 'low') {
+        process.stderr.write(
+          '[sigmap] low confidence root detection — run "sigmap roots --explain" to verify\n'
+        );
+      }
+      return result.roots;
+    }
+  } catch (_) {}
+
+  return _legacyDetectAutoSrcDirs(cwd, excludeList);
+}
+
+/**
+ * Legacy source directory detection (fallback).
+ *
+ * @param {string} cwd - Project root
+ * @param {string[]} excludeList - Folders to skip
+ * @returns {string[]}
+ */
+function _legacyDetectAutoSrcDirs(cwd, excludeList) {
   const excludeSet = new Set(excludeList || []);
   const candidates = new Set(DEFAULTS.srcDirs);
 

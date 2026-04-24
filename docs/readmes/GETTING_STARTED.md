@@ -62,7 +62,7 @@ Verify:
 
 ```bash
 sigmap --version
-# → 6.4.0
+# → 6.5.0
 ```
 
 ### Option B — Per-project (no global install)
@@ -73,7 +73,7 @@ curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.j
 
 # Run without installing
 node gen-context.js --version
-# → 6.4.0
+# → 6.5.0
 ```
 
 ### Option C — npx (zero install)
@@ -162,7 +162,7 @@ Real output on the SigMap repo itself (36 source files):
 
 ```
 [sigmap] report:
-  version         : 6.4.0
+  version         : 6.5.0
   files processed : 36
   files dropped   : 0
   input tokens    : ~24,082
@@ -181,7 +181,7 @@ sigmap --report --json
 
 ```json
 {
-  "version": "6.4.0",
+  "version": "6.5.0",
   "rawTokens": 24082,
   "finalTokens": 1374,
   "fileCount": 36,
@@ -513,7 +513,7 @@ Not usually run directly — your AI tool (Claude Code, Cursor) invokes it autom
 ### `sigmap --version`
 ```bash
 sigmap --version
-# → 6.4.0
+# → 6.5.0
 ```
 
 ### Installation

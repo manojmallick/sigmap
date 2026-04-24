@@ -5387,7 +5387,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.4.0',
+  version: '6.5.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -7222,7 +7222,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.4.0';
+const VERSION = '6.5.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8475,6 +8475,15 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     if (recentFiles.has(filePath)) mtime = Date.now();
 
     fileEntries.push({ filePath, sigs, deps: extractFileDeps(filePath, content, config), content, mtime });
+  }
+
+  // v6.5: Coverage feedback loop — warn if symbol density is suspiciously low
+  const symbolsFound = fileEntries.reduce((n, f) => n + (f.sigs?.length || 0), 0);
+  const filesFound   = fileEntries.length;
+  const coverageRatio = filesFound > 0 ? symbolsFound / filesFound : 1;
+  if (coverageRatio < 0.25 && !config.srcDirs?.length) {
+    process.stderr.write('[sigmap] ⚠ low symbol coverage — source roots may be wrong\n');
+    process.stderr.write('[sigmap]   run: sigmap roots --explain\n');
   }
 
   const strategy = config.strategy || 'full';
@@ -9794,6 +9803,54 @@ function main() {
       console.error(`[sigmap] sync error: ${err.message}`);
       process.exit(1);
     }
+    process.exit(0);
+  }
+
+  // v6.5: `sigmap roots` — detect source roots
+  if (args[0] === 'roots') {
+    const { resolveSourceRoots } = requireSourceOrBundled('./src/discovery/source-root-resolver');
+    const result = resolveSourceRoots(cwd);
+
+    if (args.includes('--json')) {
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(0);
+    }
+
+    if (args.includes('--fix')) {
+      console.log('[sigmap] Current detected roots:', result.roots.join(', '));
+      const readline = require('readline');
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      rl.question('Enter correct srcDirs (comma-separated): ', answer => {
+        const dirs = answer.split(',').map(d => d.trim()).filter(Boolean);
+        const cfgPath = path.join(cwd, 'gen-context.config.json');
+        const cfg = fs.existsSync(cfgPath) ? JSON.parse(fs.readFileSync(cfgPath, 'utf8')) : {};
+        cfg.srcDirs = dirs;
+        fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+        console.log(`[sigmap] Saved srcDirs: ${dirs.join(', ')} → gen-context.config.json`);
+        rl.close();
+        process.exit(0);
+      });
+      return;
+    }
+
+    // --explain (default)
+    console.log('\nDetected languages:');
+    for (const l of result.languages.slice(0, 4)) {
+      console.log(`  ${l.name.padEnd(16)} ${l.weight.toFixed(2)}`);
+    }
+    console.log('\nDetected frameworks:');
+    if (result.frameworks.length === 0) console.log('  (none)');
+    for (const f of result.frameworks.slice(0, 3)) {
+      console.log(`  ${f.name.padEnd(16)} ${f.confidence.toFixed(2)}`);
+    }
+    console.log('\nChosen source roots:');
+    if (result.roots.length === 0) console.log('  (none — legacy fallback used)');
+    result.roots.forEach((r, i) => {
+      const exp = result.explanation?.find(e => e.dir === r);
+      console.log(`  ${i + 1}. ${r.padEnd(20)} ${exp ? 'score ' + exp.score : ''}`);
+    });
+    console.log('\nMonorepo:', result.isMonorepo ? 'yes' : 'no');
+    console.log('Confidence:', result.confidence);
     process.exit(0);
   }
 
