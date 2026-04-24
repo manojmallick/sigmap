@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.4, with the latest milestone syncing docs version labels, fixing the README overclaim, and upgrading the generalization benchmark to v6.4-main.
+description: SigMap version history and roadmap. From v0.0 to v6.5, with the latest milestone introducing intelligent source root detection for 17 languages and 50+ frameworks via the new Source Root Resolver subsystem.
 head:
   - - meta
     - property: og:title
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Forty-five versions shipped. MIT open source from day one.
+Forty-six versions shipped. MIT open source from day one.
 
-**Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 0 npm deps
+**Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -519,7 +519,7 @@ v6.3.0 closes the adapter-tool-wiring roadmap at Level 3: the two adapters with 
 
 ### v6.4.0 — Trust sync ✓ (tagged v6.4.0 — 2026-04-23)
 
-v6.4.0 is a docs-only trust sync release that eliminates the visible mismatch between the live site and GitHub Releases.
+v6.4.0 is a docs-only release that eliminates the visible mismatch between the live site and GitHub Releases.
 
 - **Homepage badge split** — hero pill now shows `Release: v6.4.0` and `Benchmark: sigmap-v6.4-main` as separate labels; the old conflated "Latest: v6.0" wording is gone
 - **Benchmark upgrade** — all docs upgraded from v5.9-main / v6.0-main snapshots to the canonical v6.4-main snapshot (2026-04-23): 78.9% hit@5, 80.0% graph-boosted, 5.8× lift, 40.6% prompt reduction, 1.69 prompts/task
@@ -533,9 +533,26 @@ v6.4.0 is a docs-only trust sync release that eliminates the visible mismatch be
 
 ---
 
-## Current milestone — v6.x
+### v6.5.0 — Source Root Resolver ✓ (tagged v6.5.0 — 2026-04-25)
 
-v6.0–v6.4.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration in AGENTS.md and CLAUDE.md, and docs trust sync. Current focus: Source Root Resolver (v6.5) — a 6-module `src/discovery/` subsystem that detects framework-specific source roots and removes the need for manual `srcDirs` config in monorepos. Public metrics are synchronised via `version.json` + `scripts/sync-versions.mjs`.
+Intelligent auto-detection of source directories for 17 languages and 50+ frameworks. A 6-module `src/discovery/` subsystem that combines language/framework detection, file density analysis, git activity, and manifest scanning to find the right root directories without manual config.
+
+- **Source Root Resolver** — multi-signal scoring engine detecting Next.js, Django, Rails, Spring Boot, Flutter, Go, Rust, and 44+ other frameworks
+- **`.sigmapignore` support** — exclude directories with patterns (fallback to `.contextignore`); supports simple globs like `src/**`
+- **`sigmap roots` CLI** — three modes: `--explain` (show detection details), `--json` (programmatic output), `--fix` (interactive correction)
+- **Monorepo detection** — auto-detects npm/yarn/pnpm/lerna/nx/turbo workspaces and enumerates all sub-packages
+- **Confidence levels** — high/medium/low confidence with detailed scoring explanation for each root directory
+- **Graceful fallback** — integrates into `loadConfig()` with fallback to legacy heuristics when needed
+
+**Tags:** `source-root-resolver` · `17 languages` · `50+ frameworks` · `monorepo` · `.sigmapignore` · `confidence scoring`
+
+**Impact:** Removes manual `srcDirs` config for most projects; monorepo setup now fully automatic. New `sigmap roots --fix` enables one-command root detection and correction.
+
+---
+
+## Current milestone — v6.6+
+
+v6.0–v6.5.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, and intelligent source root detection. Next: performance optimizations for large repos and extended language/framework coverage.
 
 ---
 

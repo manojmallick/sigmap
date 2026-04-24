@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 35 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 36 SigMap commands and flags documented with examples. ask, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -58,6 +58,7 @@ If you are new to the product, start with the workflow pages first:
 
 | Command / Flag | Description |
 |----------------|-------------|
+| `roots [--explain | --json | --fix]` | Auto-detect source roots for 17 languages and 50+ frameworks; shows confidence and scoring |
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
@@ -231,6 +232,66 @@ JSON output includes `valid`, `issues`, `warnings`, and `coverage` fields. Exits
 
 ---
 
+## roots
+
+Auto-detect source root directories for your project using intelligent multi-signal analysis: language detection, framework identification, file density, git activity, and manifest files. Returns a ranked list with confidence levels (high/medium/low) and detailed scoring explanation. Supports 17 languages and 50+ frameworks (Next.js, Django, Rails, Spring Boot, Flutter, Go, Rust, etc.). Also detects monorepos and enumerates all sub-packages.
+
+Useful when you're unsure which directories to include in `srcDirs` config, or when setting up SigMap in a new project.
+
+```bash
+sigmap roots --explain
+sigmap roots --json
+sigmap roots --fix
+```
+
+**`--explain` (default)**
+Shows detected languages, frameworks, confidence level, selected root directories, and scoring details:
+
+```
+sigmap roots --explain
+
+Detected languages   : TypeScript (tsconfig.json), JavaScript (.ts/.tsx files)
+Detected frameworks  : Next.js (next.config.js), React (package.json dep)
+Monorepo             : no
+
+Selected roots:
+  1. app/        — confidence: high — score: 8.5 (framework match +3.0, density +2.5, entrypoint +1.5)
+  2. src/        — confidence: high — score: 7.2 (density +2.5, symbols +2.0)
+  3. lib/        — confidence: medium — score: 4.1 (git activity +2.0, density +2.1)
+  4. components/ — confidence: low   — score: 2.0
+
+Explanation: Next.js app detected; app/ and src/ are primary Next.js directories with high confidence. lib/ has recent git activity. Max roots capped at 6.
+```
+
+**`--json`**
+Outputs structured JSON:
+
+```
+{
+  "roots": ["app", "src", "lib"],
+  "languages": [{ "name": "typescript", "weight": 3.5 }, ...],
+  "frameworks": [{ "name": "nextjs", "confidence": 0.95 }, ...],
+  "confidence": "high",
+  "isMonorepo": false,
+  "explanation": [...]
+}
+```
+
+**`--fix`**
+Interactive mode: prompts you to review and correct the detected roots, then writes the corrected list to `gen-context.config.json`:
+
+```
+Detected roots: app, src, lib
+
+✏️  Edit and confirm (or type new dirs). Press Enter to accept:
+> app, src, lib, utils
+
+Writing to gen-context.config.json...
+✓ Updated srcDirs: ["app", "src", "lib", "utils"]
+```
+
+---
+
 ## history
 
 Display the last N usage log entries as a table with Unicode sparklines for token trend, retrieval hit@5, and token-reduction benchmark history. Requires `tracking: true` in `gen-context.config.json` (or `--track` on each run) for usage rows; benchmark rows appear automatically once any benchmark script has run.
@@ -331,7 +392,7 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
- SigMap version : 6.4.0
+ SigMap version : 6.5.0
  Benchmark ID   : sigmap-v6.4-main
  Submitted      : 2026-04-23
 ────────────────────────────────────────────────────────
@@ -352,7 +413,7 @@ JSON output (`--json`) returns a machine-readable object:
 
 ```json
 {
-  "sigmapVersion": "6.4.0",
+  "sigmapVersion": "6.5.0",
   "benchmarkId": "sigmap-v6.4-main",
   "canonicalHitAt5": 78.9,
   "canonicalReduction": 96.9,

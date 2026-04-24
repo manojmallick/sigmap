@@ -67,7 +67,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v6.4.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v6.5.0` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|
