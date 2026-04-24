@@ -210,4 +210,199 @@ test('resolveSourceRoots handles monorepo structure', () => {
   assert(result.roots.length > 0, 'should find roots in monorepo');
 });
 
+test('detectFrameworks identifies express by dependency', () => {
+  const cwd = makeRepo({
+    'package.json': '{"dependencies":{"express":"4.0.0"}}',
+    'src/server.js': 'const express = require("express")',
+  });
+  const fws = detectFrameworks(cwd);
+  const exp = fws.find(f => f.name === 'express');
+  assert(exp && exp.confidence >= 0.90, 'express should be detected from dependency');
+});
+
+test('detectLanguages weights multiple signals correctly', () => {
+  const cwd = makeRepo({
+    'package.json': '{}',
+    'tsconfig.json': '{}',
+    'src/a.ts': '',
+    'src/b.ts': '',
+    'src/c.ts': '',
+    'lib/d.js': '',
+  });
+  const langs = detectLanguages(cwd);
+  const ts = langs.find(l => l.name === 'typescript');
+  const js = langs.find(l => l.name === 'javascript');
+  assert(ts && ts.weight >= js?.weight, 'typescript should rank higher than javascript due to tsconfig');
+});
+
+test('loadIgnorePatterns falls back to .contextignore when .sigmapignore missing', () => {
+  const cwd = makeRepo({ '.contextignore': 'vendor/\ntemp/\n' });
+  const patterns = loadIgnorePatterns(cwd);
+  assert(patterns.includes('vendor/'), 'should read from .contextignore');
+  assert(patterns.includes('temp/'), 'should read from .contextignore');
+});
+
+test('resolveSourceRoots caps roots at MAX_ROOTS (6)', () => {
+  const cwd = makeRepo({
+    'src/a.ts': '',
+    'lib/b.ts': '',
+    'api/c.ts': '',
+    'handlers/d.ts': '',
+    'services/e.ts': '',
+    'middleware/f.ts': '',
+    'routes/g.ts': '',
+    'utils/h.ts': '',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(result.roots.length <= 6, `roots should be capped at 6, got ${result.roots.length}`);
+});
+
+test('scoreCandidate penalizes test directories', () => {
+  const cwd = makeRepo({
+    'src/app.ts': '',
+    'src/app.ts': '',
+    'src/app.ts': '',
+    'test/app.test.ts': '',
+  });
+  const ctx = {
+    frameworks: [],
+    languages: [],
+    recentDirs: new Set(),
+    frameworkSrcDirs: new Set(['src']),
+    entrypoints: [],
+    frameworkPenalties: [],
+  };
+  const srcScore = scoreCandidate('src', path.join(cwd, 'src'), ctx);
+  const testScore = scoreCandidate('test', path.join(cwd, 'test'), ctx);
+  assert(srcScore > testScore, 'src should score higher than test directory');
+});
+
+test('scoreCandidate penalizes documentation directories', () => {
+  const cwd = makeRepo({
+    'src/index.ts': '',
+    'src/service.ts': '',
+    'src/utils.ts': '',
+    'docs/guide.md': '',
+  });
+  const ctx = {
+    frameworks: [],
+    languages: [],
+    recentDirs: new Set(),
+    frameworkSrcDirs: new Set(['src']),
+    entrypoints: [],
+    frameworkPenalties: [],
+  };
+  const srcScore = scoreCandidate('src', path.join(cwd, 'src'), ctx);
+  const docsScore = scoreCandidate('docs', path.join(cwd, 'docs'), ctx);
+  assert(srcScore > docsScore, 'src should score higher than docs directory');
+});
+
+test('resolveSourceRoots returns explanation with scores', () => {
+  const cwd = makeRepo({
+    'src/index.ts': '',
+    'src/app.ts': '',
+    'src/service.ts': '',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(result.explanation && result.explanation.length > 0, 'should provide explanation');
+  assert(result.explanation[0].score !== undefined, 'explanation should include scores');
+});
+
+test('resolveSourceRoots detects low confidence when no strong signals', () => {
+  const cwd = makeRepo({
+    'foo.ts': '',
+    'bar.ts': '',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(result.confidence === 'low', `expected low confidence, got ${result.confidence}`);
+});
+
+test('detectLanguages handles projects with multiple language files', () => {
+  const cwd = makeRepo({
+    'package.json': '{}',
+    'go.mod': 'module example.com',
+    'src/main.ts': '',
+    'main.go': '',
+    'test.py': '',
+  });
+  const langs = detectLanguages(cwd);
+  assert(langs.length >= 3, 'should detect multiple languages');
+  assert(langs.some(l => l.name === 'typescript'), 'should detect typescript');
+  assert(langs.some(l => l.name === 'go'), 'should detect go');
+  assert(langs.some(l => l.name === 'python'), 'should detect python');
+});
+
+test('resolveSourceRoots handles repos with no source files', () => {
+  const cwd = makeRepo({
+    'README.md': '# Project',
+    'LICENSE': 'MIT',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(Array.isArray(result.roots), 'should return array even with no source files');
+});
+
+test('matchesIgnorePattern handles glob patterns', () => {
+  assert(matchesIgnorePattern('src', ['src/**']), 'should match glob with /**');
+  assert(matchesIgnorePattern('src', ['src/*']), 'should match glob with /*');
+  assert(!matchesIgnorePattern('src', ['lib/**']), 'should not match different pattern');
+});
+
+test('resolveSourceRoots detects yarn/pnpm workspaces', () => {
+  const cwd = makeRepo({
+    'pnpm-workspace.yaml': 'packages:\n  - packages/*',
+    'packages/app/package.json': '{}',
+    'packages/app/src/index.js': '',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(result.isMonorepo === true, 'should detect pnpm workspaces as monorepo');
+});
+
+test('scoreCandidate boosts recently changed directories', () => {
+  const cwd = makeRepo({
+    'src/index.ts': '',
+    'lib/old.ts': '',
+  });
+  const recentDirs = new Set(['src']);
+  const ctx = {
+    frameworks: [],
+    languages: [],
+    recentDirs,
+    frameworkSrcDirs: new Set(),
+    entrypoints: [],
+    frameworkPenalties: [],
+  };
+  const srcScore = scoreCandidate('src', path.join(cwd, 'src'), ctx);
+  const libScore = scoreCandidate('lib', path.join(cwd, 'lib'), ctx);
+  assert(srcScore > libScore, 'recently changed dir should score higher');
+});
+
+test('detectLanguages identifies dart from pubspec.yaml', () => {
+  const cwd = makeRepo({
+    'pubspec.yaml': 'name: my_app\ndependencies:\n  flutter:\n    sdk: flutter',
+    'lib/main.dart': 'void main() {}',
+  });
+  const langs = detectLanguages(cwd);
+  const dart = langs.find(l => l.name === 'dart');
+  assert(dart && dart.weight > 0, 'dart should be detected from pubspec.yaml and .dart files');
+});
+
+test('resolveSourceRoots returns different confidence levels', () => {
+  const tsRepo = makeRepo({
+    'tsconfig.json': '{}',
+    'next.config.js': '',
+    'package.json': '{"dependencies":{"next":"latest"}}',
+    'src/index.ts': '',
+  });
+  const tsResult = resolveSourceRoots(tsRepo);
+
+  const emptyRepo = makeRepo({
+    'README.md': '# Repo',
+  });
+  const emptyResult = resolveSourceRoots(emptyRepo);
+
+  assert(tsResult.confidence !== emptyResult.confidence, 'different repos should have different confidence levels');
+  assert(tsResult.confidence !== 'low', 'repo with framework should not be low confidence');
+  assert(emptyResult.confidence === 'low', 'repo with no signals should be low confidence');
+});
+
 console.log('\nAll tests passed!');
