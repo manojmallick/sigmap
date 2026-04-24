@@ -174,8 +174,8 @@ test('compare-alternatives.md: covers SigMap vs Copilot', () => {
 
 test('compare-alternatives.md: contains correct hit@5 figure', () => {
   const src = readGuide('compare-alternatives.md');
-  assert.ok(src.includes('80.0%'), 'missing 80.0% hit@5 in compare-alternatives');
-  assert.ok(!src.includes('78.9'), 'found stale 78.9% in compare-alternatives');
+  assert.ok(src.includes('78.9%'), 'missing 78.9% hit@5 in compare-alternatives');
+  assert.ok(!src.includes('80.0%'), 'found stale 80.0% hit@5 in compare-alternatives');
 });
 
 // ── Fix 6: walkthrough page exists ────────────────────────────────────────────
@@ -210,26 +210,26 @@ test('docs/index.html: stats bar shows 29 languages', () => {
   assert.ok(src.includes('>29<'), 'missing >29< stat in homepage');
 });
 
-test('docs/impact-banner.svg: no stale 78.9% hit@5', () => {
+test('docs/impact-banner.svg: no stale 80.0% hit@5', () => {
   const src = readDocs('impact-banner.svg');
-  assert.ok(!src.includes('78.9%'), 'found stale 78.9% in impact-banner.svg');
+  assert.ok(!src.includes('80.0%'), 'found stale 80.0% in impact-banner.svg');
 });
 
-test('docs/impact-banner.svg: uses 80.0% hit@5', () => {
+test('docs/impact-banner.svg: uses 78.9% hit@5', () => {
   const src = readDocs('impact-banner.svg');
-  assert.ok(src.includes('80.0%'), 'missing 80.0% in impact-banner.svg');
+  assert.ok(src.includes('78.9%'), 'missing 78.9% in impact-banner.svg');
 });
 
-test('docs/impact-banner.svg: uses 1.68 prompts (not 1.69)', () => {
+test('docs/impact-banner.svg: uses 1.69 prompts (not 1.68)', () => {
   const src = readDocs('impact-banner.svg');
-  assert.ok(!src.includes('1.69'), 'found stale 1.69 in impact-banner.svg');
-  assert.ok(src.includes('1.68'), 'missing 1.68 in impact-banner.svg');
+  assert.ok(!src.includes('1.68'), 'found stale 1.68 in impact-banner.svg');
+  assert.ok(src.includes('1.69'), 'missing 1.69 in impact-banner.svg');
 });
 
-test('docs/comparison-chart.svg: uses 80.0% (not 78.9%)', () => {
+test('docs/comparison-chart.svg: uses 78.9% (not 80.0%)', () => {
   const src = readDocs('comparison-chart.svg');
-  assert.ok(!src.includes('78.9%'), 'found stale 78.9% in comparison-chart.svg');
-  assert.ok(src.includes('80.0%'), 'missing 80.0% in comparison-chart.svg');
+  assert.ok(!src.includes('80.0%'), 'found stale 80.0% in comparison-chart.svg');
+  assert.ok(src.includes('78.9%'), 'missing 78.9% in comparison-chart.svg');
 });
 
 test('docs/index.html: softwareVersion is 5.8.0', () => {

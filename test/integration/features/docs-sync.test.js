@@ -80,18 +80,18 @@ test('quality-benchmark: latest saved run is v5.7.0 or later', () => {
 
 // ── Benchmark metric accuracy ─────────────────────────────────────────────────
 
-test('generalization: uses 80.0% hit@5 (not 78.9%)', () => {
+test('generalization: uses 78.9% hit@5 (current v6.4 benchmark)', () => {
   const src = readGuide('generalization.md');
-  assert.ok(!src.includes('78.9'), 'found stale 78.9% in generalization.md');
-  assert.ok(src.includes('80.0'), 'missing 80.0% in generalization.md');
+  assert.ok(!src.includes('80.0% hit@5 in the latest'), 'found stale v6.0 80.0% description in generalization.md');
+  assert.ok(src.includes('78.9'), 'missing 78.9% in generalization.md');
 });
 
-test('cli: uses 80.0% hit@5 in compare example (not 78.9%)', () => {
-  assert.ok(!readGuide('cli.md').includes('78.9'), 'found stale 78.9% in cli.md');
+test('cli: no stale v5.x benchmark numbers in cli.md', () => {
+  assert.ok(!readGuide('cli.md').includes('sigmap-v5.'), 'found stale v5.x benchmark in cli.md');
 });
 
-test('cli: uses 1.68 prompts in compare example (not 1.69)', () => {
-  assert.ok(!readGuide('cli.md').includes('1.69'), 'found stale 1.69 in cli.md');
+test('cli: no stale 1.67 prompts in compare example', () => {
+  assert.ok(!readGuide('cli.md').includes('1.67'), 'found stale 1.67 in cli.md');
 });
 
 // ── Judge vocabulary ──────────────────────────────────────────────────────────

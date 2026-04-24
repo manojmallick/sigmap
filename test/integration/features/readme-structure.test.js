@@ -68,8 +68,8 @@ test('what-it-is: short explanation present', () => {
 
 // ── Section 4: Why SigMap ─────────────────────────────────────────────────────
 
-test('why: 80.0% hit@5 mentioned', () => {
-  assert.ok(src.includes('80.0%'), 'missing 80.0% hit@5');
+test('why: 78.9% hit@5 mentioned', () => {
+  assert.ok(src.includes('78.9%'), 'missing 78.9% hit@5');
 });
 
 test('why: 13.6% baseline mentioned', () => {
@@ -122,24 +122,24 @@ test('workflow: Ask → Rank → Context → Validate → Judge → Learn', () =
 
 // ── Section 7: Benchmark ─────────────────────────────────────────────────────
 
-test('benchmark: sigmap-v6.0-main ID present', () => {
-  assert.ok(src.includes('sigmap-v6.0-main'), 'missing sigmap-v6.0-main benchmark ID');
+test('benchmark: sigmap-v6.4-main ID present', () => {
+  assert.ok(src.includes('sigmap-v6.4-main'), 'missing sigmap-v6.4-main benchmark ID');
 });
 
-test('benchmark: date 2026-04-19 present', () => {
-  assert.ok(src.includes('2026-04-19'), 'missing benchmark date 2026-04-19');
+test('benchmark: date 2026-04-23 present', () => {
+  assert.ok(src.includes('2026-04-23'), 'missing benchmark date 2026-04-23');
 });
 
-test('benchmark: Hit@5 80.0% present', () => {
-  assert.ok(src.includes('80.0%'), 'missing Hit@5 80.0%');
+test('benchmark: Hit@5 78.9% present', () => {
+  assert.ok(src.includes('78.9%'), 'missing Hit@5 78.9%');
 });
 
 test('benchmark: baseline 13.6% present', () => {
   assert.ok(src.includes('13.6%'), 'missing baseline 13.6%');
 });
 
-test('benchmark: prompt reduction 40.8% present', () => {
-  assert.ok(src.includes('40.8%'), 'missing prompt reduction 40.8%');
+test('benchmark: prompt reduction 40.6% present', () => {
+  assert.ok(src.includes('40.6%'), 'missing prompt reduction 40.6%');
 });
 
 test('benchmark: task success 52.2% present', () => {
@@ -271,12 +271,16 @@ test('consistency: no stale v5.8-main benchmark ID', () => {
   assert.ok(!src.includes('sigmap-v5.8-main'), 'found stale sigmap-v5.8-main in README');
 });
 
-test('consistency: no stale 78.9% hit@5', () => {
-  assert.ok(!src.includes('78.9'), 'found stale 78.9% in README');
+test('consistency: no stale v6.0-main benchmark ID', () => {
+  assert.ok(!src.includes('sigmap-v6.0-main'), 'found stale sigmap-v6.0-main in README');
 });
 
-test('consistency: no stale 1.69 prompts per task', () => {
-  assert.ok(!src.includes('1.69'), 'found stale 1.69 in README');
+test('consistency: no stale 80.0% hit@5', () => {
+  assert.ok(!src.includes('80.0%'), 'found stale 80.0% hit@5 in README');
+});
+
+test('consistency: no stale 1.68 prompts per task', () => {
+  assert.ok(!src.includes('1.68'), 'found stale 1.68 in README');
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────
