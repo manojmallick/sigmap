@@ -7,6 +7,7 @@
 **SigMap finds the right files before your AI answers.**
 
 [![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
+[![npm downloads](https://img.shields.io/npm/dt/sigmap?color=22c55e&label=downloads&logo=npm)](https://www.npmjs.com/package/sigmap)
 [![CI](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml/badge.svg)](https://github.com/manojmallick/sigmap/actions/workflows/ci.yml)
 [![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
