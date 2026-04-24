@@ -56,14 +56,15 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 18 minutes ago)
+## changes (last 5 commits — 6 minutes ago)
 ```
 src/config/loader.js                          +_legacyDetectAutoSrcDirs  ~detectAutoSrcDirs
 src/discovery/language-detector.js            +detectLanguages  +_walkDepth
 src/discovery/framework-detector.js           +detectFrameworks  +_readDeps  +_readFile  +_existsAnywhere
-src/discovery/sigmapignore.js                 +loadIgnorePatterns  +matchesIgnorePattern
 src/discovery/source-root-resolver.js         +resolveSourceRoots  +_detectMonorepo  +_enumerateCandidates  +_applySpecialRules
 src/discovery/source-root-scorer.js           +getRecentlyChangedDirs  +scoreCandidate  +_countSourceFiles
+src/discovery/sigmapignore.js                 +loadIgnorePatterns  +matchesIgnorePattern
+src/retrieval/ranker.js                       +_computePenalty  ~scoreFile  ~rank  ~buildSigIndex
 ```
 
 ## packages
@@ -609,19 +610,6 @@ function exportWeights(cwd, outputPath)
 function importWeights(cwd, importPath, replace)
 ```
 
-### src/retrieval/ranker.js
-```
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent }
-function _computePenalty(filePath)
-function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:
-function rank(query, sigIndex, opts) → { file: string, score: nu
-function _parseContextFile(contextPath) → Map<string, string[]>
-function buildSigIndex(cwd, opts) → Map<string, string[]>
-function formatRankTable(results, query) → string
-function formatRankJSON(results, query) → object
-function detectIntent(query)
-```
-
 ### src/config/loader.js
 ```
 module.exports = { loadConfig, loadBaseConfig }
@@ -649,13 +637,6 @@ function _existsAnywhere(cwd, filename, maxDepth)
 function _walkFind(dir, name, depth)
 ```
 
-### src/discovery/sigmapignore.js
-```
-module.exports = { loadIgnorePatterns, matchesIgnorePattern }
-function loadIgnorePatterns(cwd)
-function matchesIgnorePattern(dirName, patterns)
-```
-
 ### src/discovery/source-root-registry.js
 ```
 module.exports = { REGISTRY }
@@ -678,6 +659,26 @@ module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS }
 function getRecentlyChangedDirs(cwd)
 function scoreCandidate(dirName, fullPath, context)
 function _countSourceFiles(dir, depth)
+```
+
+### src/discovery/sigmapignore.js
+```
+module.exports = { loadIgnorePatterns, matchesIgnorePattern }
+function loadIgnorePatterns(cwd)
+function matchesIgnorePattern(dirName, patterns)
+```
+
+### src/retrieval/ranker.js
+```
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent }
+function _computePenalty(filePath)
+function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:
+function rank(query, sigIndex, opts) → { file: string, score: nu
+function _parseContextFile(contextPath) → Map<string, string[]>
+function buildSigIndex(cwd, opts) → Map<string, string[]>
+function formatRankTable(results, query) → string
+function formatRankJSON(results, query) → object
+function detectIntent(query)
 ```
 
 ### src/mcp/server.js
