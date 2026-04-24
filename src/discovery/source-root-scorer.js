@@ -74,8 +74,8 @@ function scoreCandidate(dirName, fullPath, context) {
   // Git activity bonus: +2.0 if recently committed files exist here
   if (recentDirs.has(dirName)) score += 2.0;
 
-  // Noise penalty: -3.0
-  if (PENALTY_DIRS.has(dirName.toLowerCase())) score -= 3.0;
+  // Noise penalty: -3.0 (unless directory is in framework's srcDirs)
+  if (PENALTY_DIRS.has(dirName.toLowerCase()) && !frameworkSrcDirs.has(dirName)) score -= 3.0;
 
   // Framework penalty dirs
   if ((frameworkPenalties || []).includes(dirName)) score -= 3.0;

@@ -4,15 +4,15 @@ const REGISTRY = {
   javascript: {
     manifestFiles: ['package.json'],
     frameworks: {
-      nextjs:    { detectionFiles: ['next.config.js','next.config.ts','next.config.mjs'], detectionDeps: ['next'],               srcDirs: ['app','src/app','pages','src/pages','src','components','lib'], entrypoints: ['app/page.tsx','pages/index.tsx'] },
+      nextjs:    { detectionFiles: ['next.config.js','next.config.ts','next.config.mjs'], detectionDeps: ['next'],               srcDirs: ['app','src/app','pages','src/pages','src','components','lib','hooks','utils'], entrypoints: ['app/page.tsx','pages/index.tsx'] },
       nestjs:    { detectionFiles: ['nest-cli.json'],                                    detectionDeps: ['@nestjs/core'],        srcDirs: ['src'], entrypoints: ['src/main.ts','src/app.module.ts'] },
       express:   { detectionFiles: [],                                                    detectionDeps: ['express'],             srcDirs: ['src','routes','middleware','controllers','services'], entrypoints: ['src/index.js','server.js','app.js'] },
       fastify:   { detectionFiles: [],                                                    detectionDeps: ['fastify'],             srcDirs: ['src','routes','plugins'], entrypoints: ['src/index.js'] },
-      react:     { detectionFiles: [],                                                    detectionDeps: ['react'],               srcDirs: ['src','components','hooks','context','pages'] },
+      react:     { detectionFiles: [],                                                    detectionDeps: ['react'],               srcDirs: ['src','components','hooks','context','pages','app','lib','utils'] },
       vue:       { detectionFiles: ['vue.config.js','vue.config.ts'],                    detectionDeps: ['vue'],                 srcDirs: ['src','components','composables','pages','views'] },
       nuxt:      { detectionFiles: ['nuxt.config.js','nuxt.config.ts'],                  detectionDeps: ['nuxt'],                srcDirs: ['pages','components','composables','server','middleware','plugins'] },
       svelte:    { detectionFiles: ['svelte.config.js'],                                 detectionDeps: ['svelte','@sveltejs/kit'], srcDirs: ['src','src/routes','src/lib'] },
-      angular:   { detectionFiles: ['angular.json'],                                     detectionDeps: ['@angular/core'],       srcDirs: ['src','src/app'] },
+      angular:   { detectionFiles: ['angular.json'],                                     detectionDeps: ['@angular/core'],       srcDirs: ['src','src/app','projects','apps','libs'] },
       gatsby:    { detectionFiles: ['gatsby-config.js','gatsby-config.ts'],              detectionDeps: ['gatsby'],              srcDirs: ['src','gatsby'] },
       vite:      { detectionFiles: ['vite.config.js','vite.config.ts'],                  detectionDeps: ['vite'],                srcDirs: ['src'] },
       remix:     { detectionFiles: ['remix.config.js'],                                  detectionDeps: ['@remix-run/react'],    srcDirs: ['app'] },
@@ -25,9 +25,9 @@ const REGISTRY = {
   typescript: {
     manifestFiles: ['package.json','tsconfig.json'],
     frameworks: {
-      nextjs:  { detectionFiles: ['next.config.ts','next.config.mjs'], detectionDeps: ['next'],            srcDirs: ['app','src/app','pages','src','components','lib'] },
+      nextjs:  { detectionFiles: ['next.config.ts','next.config.mjs'], detectionDeps: ['next'],            srcDirs: ['app','src/app','pages','src','components','lib','hooks','utils'] },
       nestjs:  { detectionFiles: ['nest-cli.json'],                     detectionDeps: ['@nestjs/core'],   srcDirs: ['src'], entrypoints: ['src/main.ts'] },
-      angular: { detectionFiles: ['angular.json'],                      detectionDeps: ['@angular/core'],  srcDirs: ['src','src/app'] },
+      angular: { detectionFiles: ['angular.json'],                      detectionDeps: ['@angular/core'],  srcDirs: ['src','src/app','projects','apps','libs'] },
     },
     srcDirs:  ['src','lib','packages'],
     penalties: ['dist','build','.next'],
@@ -108,7 +108,7 @@ const REGISTRY = {
   php: {
     manifestFiles: ['composer.json'],
     frameworks: {
-      laravel:   { detectionFiles: ['artisan'],           srcDirs: ['app','routes','config','database'], entrypoints: ['artisan'] },
+      laravel:   { detectionFiles: ['artisan'],           srcDirs: ['app','routes','config','database','resources','tests'], entrypoints: ['artisan'] },
       symfony:   { detectionFiles: ['symfony.lock'],      srcDirs: ['src','config','templates'], specialRule: 'symfony-bundle-dirs' },
       wordpress: { detectionFiles: ['wp-config.php'],     srcDirs: ['wp-content/themes','wp-content/plugins','wp-content/mu-plugins'] },
       slim:      { detectionFiles: [],                    detectionDeps: ['slim/slim'], srcDirs: ['src','app','routes'] },
@@ -120,7 +120,7 @@ const REGISTRY = {
   ruby: {
     manifestFiles: ['Gemfile'],
     frameworks: {
-      rails:   { detectionFiles: ['config/routes.rb'],   srcDirs: ['app','lib','config'], entrypoints: ['config/routes.rb'] },
+      rails:   { detectionFiles: ['config/routes.rb'],   srcDirs: ['app','lib','config','db','spec','test'], entrypoints: ['config/routes.rb'] },
       sinatra: { detectionFiles: ['config.ru','app.rb'], srcDirs: ['.','lib'],            entrypoints: ['app.rb','config.ru'] },
       hanami:  { detectionFiles: [],                     detectionDeps: ['hanami'],       srcDirs: ['apps','lib','slices'] },
     },

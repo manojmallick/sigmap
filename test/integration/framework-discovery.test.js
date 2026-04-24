@@ -76,7 +76,7 @@ test('Angular discovery includes src/projects/apps/libs when present', () => {
 
 test('Rails discovery includes conventional app/lib/config/db/spec/test folders', () => {
   withTempDir((dir) => {
-    writeFiles(dir, { 'Gemfile': "source 'https://rubygems.org'\n" });
+    writeFiles(dir, { 'Gemfile': "source 'https://rubygems.org'\n", 'config/routes.rb': 'Rails.application.routes.draw do\nend\n' });
     mkdirs(dir, ['app', 'lib', 'config', 'db', 'spec', 'test']);
 
     const cfg = loadConfig(dir);
@@ -86,7 +86,7 @@ test('Rails discovery includes conventional app/lib/config/db/spec/test folders'
 
 test('Laravel discovery includes app/resources/routes/database/tests folders', () => {
   withTempDir((dir) => {
-    writeFiles(dir, { 'composer.json': JSON.stringify({ name: 'demo/laravel-app' }) });
+    writeFiles(dir, { 'composer.json': JSON.stringify({ name: 'demo/laravel-app' }), 'artisan': '#!/usr/bin/env php\n' });
     mkdirs(dir, ['app', 'resources', 'routes', 'database', 'tests']);
 
     const cfg = loadConfig(dir);
