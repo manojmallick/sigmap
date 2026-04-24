@@ -10,6 +10,23 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.5.0] — 2026-04-25
+
+### Added
+
+- **Source Root Resolver (v6.5)** — intelligent auto-detection of source directories for 17 languages and 50+ frameworks (Next.js, Django, Rails, Spring Boot, Flutter, Go, Rust, etc.). Uses multi-signal scoring: manifest files, language/framework detection, file density, git activity, and framework-specific srcDirs. Returns confidence level (high/medium/low) and detailed explanation. Integrated into `loadConfig()` with graceful fallback to legacy heuristics.
+- **`.sigmapignore` pattern matching** — new `.sigmapignore` file support (fallback to `.contextignore`) for excluding directories. Supports simple patterns like `legacy/` and globs like `src/**`.
+- **`sigmap roots` CLI command** — three modes: `--explain` (default, shows detected languages/frameworks and scores), `--json` (structured output), `--fix` (interactive prompt to correct srcDirs and write to config).
+- **Monorepo detection and enumeration** — auto-detects monorepos via pnpm-workspace.yaml, turbo.json, nx.json, lerna.json, and package.json workspaces. Enumerates all sub-packages and common deep paths.
+
+### Fixed
+
+- **Framework-discovery tests** — updated registry entries to include all framework-specific srcDirs expected by legacy detector (Rails: db/spec/test, Laravel: resources/tests, Angular: projects/apps/libs, Next: hooks/utils).
+- **Scoring penalty for framework srcDirs** — test directories (spec, test, tests) no longer penalized when explicitly in framework's srcDirs list.
+- **CLI command ordering** — `roots` command handler now executes before `explain` to prevent flag conflict.
+
+---
+
 ## [6.4.0] — 2026-04-23
 
 ### Changed
