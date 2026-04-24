@@ -16,7 +16,7 @@ head:
 # Task benchmark
 
 ::: info Official v6.4 benchmark snapshot
-**Benchmark ID:** sigmap-v6.4-main &nbsp;·&nbsp; **Date:** 2026-04-23
+**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-23
 
 | Metric | Value |
 |---|---:|

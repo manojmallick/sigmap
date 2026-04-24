@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Content-consistency test for v6.4.0 trust sync and benchmark update.
+# Content-consistency test for v6.5.0 source root resolver release.
 # Run from the repo root: bash test/content/v640-trust-sync.sh
 
 PASS=0
@@ -39,20 +39,20 @@ DEMO_LINES=$(awk '/^## Try it now/{f=1} f && /^---/{f=0} f' README.md | grep -c 
 if [ "$DEMO_LINES" -le 2 ]; then pass "README.md: top demo has ≤2 commands ($DEMO_LINES)";
 else fail "README.md: top demo has $DEMO_LINES commands (expected ≤2)"; fi
 
-# 7. benchmark.md references a v6.4 snapshot
-check_present "benchmark.md: has v6.4 snapshot" 'sigmap-v6\.4-main' docs-vp/guide/benchmark.md
+# 7. benchmark.md references a v6.5 snapshot
+check_present "benchmark.md: has v6.5 snapshot" 'sigmap-v6\.5-main' docs-vp/guide/benchmark.md
 
-# 8. retrieval-benchmark.md references a v6.4 snapshot
-check_present "retrieval-benchmark.md: has v6.4 snapshot" 'sigmap-v6\.4-main' docs-vp/guide/retrieval-benchmark.md
+# 8. retrieval-benchmark.md references a v6.5 snapshot
+check_present "retrieval-benchmark.md: has v6.5 snapshot" 'sigmap-v6\.5-main' docs-vp/guide/retrieval-benchmark.md
 
-# 9. task-benchmark.md references a v6.4 snapshot
-check_present "task-benchmark.md: has v6.4 snapshot" 'sigmap-v6\.4-main' docs-vp/guide/task-benchmark.md
+# 9. task-benchmark.md references a v6.5 snapshot
+check_present "task-benchmark.md: has v6.5 snapshot" 'sigmap-v6\.5-main' docs-vp/guide/task-benchmark.md
 
 # 10. mcp.md has v6.3.0 native tool callout
 check_present "mcp.md: has v6.3.0 callout" 'v6\.3\.0' docs-vp/guide/mcp.md
 
-# 11. version.json benchmark_id matches v6.4
-check_present "version.json: benchmark_id is v6.4" 'sigmap-v6\.4-main' version.json
+# 11. version.json benchmark_id matches v6.5
+check_present "version.json: benchmark_id is v6.5" 'sigmap-v6\.5-main' version.json
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
