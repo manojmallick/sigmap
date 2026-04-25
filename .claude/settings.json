@@ -46,7 +46,8 @@
       "Bash(grep -v \"^coverage$\\\\|^deps$\\\\|^prdiff$\\\\|^todos$\\\\|^patterns$\")",
       "Bash(npm test *)",
       "Read(//Users/manojmallick/**)",
-      "Read(//Users/manojmallick/.claude/**)"
+      "Read(//Users/manojmallick/.claude/**)",
+      "Bash(node scripts/sync-versions.mjs 6.5.1)"
     ]
   }
 }

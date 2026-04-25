@@ -10,6 +10,21 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.5.1] — 2026-04-25
+
+### Added
+
+- **Retrieval explain** — `rank()` and `scoreFile()` now return detailed signal breakdown (exactToken, symbolMatch, prefixMatch, pathMatch, penalty) for transparency in ranking decisions
+- **7-intent ranking** — expanded intent detection from 4 to 7 patterns (debug, explain, refactor, review, test, integrate, navigate). Each intent applies tuned weights to prioritize relevant signals.
+- **Negative-signal penalty layer** — formalized penalties for test files (0.4x), generated code (0.3x), documentation (0.2x), and node_modules (0.0x) to deprioritize non-source content
+
+### Changed
+
+- `formatRankTable` now shows penalty column and signals breakdown for top 3 results
+- `formatRankJSON` now includes `intent` and `signals` fields in output for API consumers
+
+---
+
 ## [6.5.0] — 2026-04-25
 
 ### Added

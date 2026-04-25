@@ -47,6 +47,26 @@ Use this marker block for all appendable context files:
 <!-- Updated by gen-context.js -->
 # Code signatures
 
+## SigMap commands
+
+| When | Command |
+|------|---------|
+| Before answering a question | `sigmap ask "<your question>"` |
+| After code changes | `sigmap validate` |
+| To query by topic | `sigmap --query "<topic>"` |
+
+Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
+## changes (last 5 commits — 6 minutes ago)
+```
+src/config/loader.js                          +_legacyDetectAutoSrcDirs  ~detectAutoSrcDirs
+src/discovery/language-detector.js            +detectLanguages  +_walkDepth
+src/discovery/framework-detector.js           +detectFrameworks  +_readDeps  +_readFile  +_existsAnywhere
+src/discovery/source-root-resolver.js         +resolveSourceRoots  +_detectMonorepo  +_enumerateCandidates  +_applySpecialRules
+src/discovery/source-root-scorer.js           +getRecentlyChangedDirs  +scoreCandidate  +_countSourceFiles
+src/discovery/sigmapignore.js                 +loadIgnorePatterns  +matchesIgnorePattern
+src/retrieval/ranker.js                       +_computePenalty  ~scoreFile  ~rank  ~buildSigIndex
+```
+
 ## packages
 
 ### packages/cli/index.js
@@ -104,23 +124,6 @@ function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
 ```
 
-### packages/adapters/codex.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-```
-
-### packages/adapters/claude.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-```
-
 ### packages/adapters/copilot.js
 ```
 module.exports = { name, format, outputPath, write }
@@ -130,6 +133,14 @@ function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
 
+### packages/adapters/cursor.js
+```
+module.exports = { name, format, outputPath }
+function format(context, opts = {}) → string
+function _confidenceMeta(opts)
+function outputPath(cwd) → string
+```
+
 ### packages/adapters/gemini.js
 ```
 module.exports = { name, format, outputPath, write }
@@ -137,14 +148,6 @@ function format(context, opts = {}) → string
 function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 function _confidenceMeta(opts)
-```
-
-### packages/adapters/cursor.js
-```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
 ```
 
 ### packages/adapters/openai.js
@@ -163,74 +166,24 @@ function _confidenceMeta(opts)
 function outputPath(cwd) → string
 ```
 
+### packages/adapters/codex.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+```
+
+### packages/adapters/claude.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function _confidenceMeta(opts)
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+```
+
 ## src
-
-### src/security/patterns.js
-```
-module.exports = { PATTERNS }
-```
-
-### src/security/scanner.js
-```
-module.exports = { scan }
-function scan(signatures, filePath) → { safe: string[], redacte
-```
-
-### src/extractors/cpp.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractMembers(block)
-function normalizeParams(params)
-function normalizeType(type)
-```
-
-### src/extractors/csharp.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractMembers(block)
-function normalizeParams(params)
-function normalizeType(type)
-```
-
-### src/extractors/dart.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractMembers(block)
-function normalizeParams(params)
-```
-
-### src/extractors/deps.js
-```
-module.exports = { extractPythonDeps, extractTSDeps, buildReverseDepMap }
-function extractPythonDeps(src) → string[]
-function extractTSDeps(src) → string[]
-function buildReverseDepMap(forwardMap) → Map<string, string[]>
-```
-
-### src/extractors/go.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractInterfaceMethods(block)
-function normalizeParams(params)
-```
-
-### src/extractors/java.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractMembers(block)
-function normalizeParams(params)
-function normalizeType(type)
-```
 
 ### src/extractors/javascript.js
 ```
@@ -622,18 +575,6 @@ function queryContext(args, cwd)
 function getImpact(args, cwd)
 ```
 
-### src/retrieval/ranker.js
-```
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent }
-function scoreFile(filePath, sigs, queryTokens, weights) → number
-function rank(query, sigIndex, opts) → { file: string, score: nu
-function _parseContextFile(contextPath) → Map<string, string[]>
-function buildSigIndex(cwd, opts) → Map<string, string[]>
-function formatRankTable(results, query) → string
-function formatRankJSON(results, query) → object
-function detectIntent(query)
-```
-
 ### src/tracking/logger.js
 ```
 module.exports = { logRun, readLog, summarize }
@@ -652,15 +593,6 @@ function extractClassMembers(block)
 function normalizeParams(params)
 ```
 
-### src/config/loader.js
-```
-module.exports = { loadConfig, loadBaseConfig }
-function loadBaseConfig(extendsVal, cwd)
-function detectAutoSrcDirs(cwd, excludeList) → string[]
-function loadConfig(cwd) → object
-function deepClone(obj)
-```
-
 ### src/learning/weights.js
 ```
 module.exports = { BASELINE, DECAY, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights, exportWeights, importWeights }
@@ -676,6 +608,77 @@ function penalizeFiles(cwd, files, amount = 0.10)
 function resetWeights(cwd)
 function exportWeights(cwd, outputPath)
 function importWeights(cwd, importPath, replace)
+```
+
+### src/config/loader.js
+```
+module.exports = { loadConfig, loadBaseConfig }
+function loadBaseConfig(extendsVal, cwd)
+function detectAutoSrcDirs(cwd, excludeList) → string[]
+function _legacyDetectAutoSrcDirs(cwd, excludeList) → string[]
+function loadConfig(cwd) → object
+function deepClone(obj)
+```
+
+### src/discovery/language-detector.js
+```
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
+```
+
+### src/discovery/framework-detector.js
+```
+module.exports = { detectFrameworks }
+function detectFrameworks(cwd)
+function _readDeps(cwd)
+function _readFile(p)
+function _existsAnywhere(cwd, filename, maxDepth)
+function _walkFind(dir, name, depth)
+```
+
+### src/discovery/source-root-registry.js
+```
+module.exports = { REGISTRY }
+```
+
+### src/discovery/source-root-resolver.js
+```
+module.exports = { resolveSourceRoots }
+function resolveSourceRoots(cwd, opts = {})
+function _detectMonorepo(cwd)
+function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
+function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
+function _dedupeNested(scored)
+function _computeConfidence(frameworks, languages, scoredCount)
+```
+
+### src/discovery/source-root-scorer.js
+```
+module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS }
+function getRecentlyChangedDirs(cwd)
+function scoreCandidate(dirName, fullPath, context)
+function _countSourceFiles(dir, depth)
+```
+
+### src/discovery/sigmapignore.js
+```
+module.exports = { loadIgnorePatterns, matchesIgnorePattern }
+function loadIgnorePatterns(cwd)
+function matchesIgnorePattern(dirName, patterns)
+```
+
+### src/retrieval/ranker.js
+```
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent }
+function _computePenalty(filePath)
+function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:
+function rank(query, sigIndex, opts) → { file: string, score: nu
+function _parseContextFile(contextPath) → Map<string, string[]>
+function buildSigIndex(cwd, opts) → Map<string, string[]>
+function formatRankTable(results, query) → string
+function formatRankJSON(results, query) → object
+function detectIntent(query)
 ```
 
 ### src/mcp/server.js

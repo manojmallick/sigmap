@@ -1,13 +1,13 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v6.4. 52.2% correct, 40.6% fewer prompts, and 78.9% hit@5 across 90 tasks on 18 repos.
+description: Latest saved task benchmark for SigMap v6.5. 52.2% correct, 41.4% fewer prompts, and 81.1% hit@5 across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
       content: "SigMap task benchmark — fewer retries, better context"
   - - meta
     - property: og:description
-      content: "Latest saved run: 52.2% correct, 1.69 prompts per task, 40.6% prompt reduction, 90 tasks, 18 repos."
+      content: "Latest saved run: 52.2% correct, 1.69 prompts per task, 41.4% prompt reduction, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/task-benchmark"
@@ -15,21 +15,21 @@ head:
 
 # Task benchmark
 
-::: info Official v6.4 benchmark snapshot
-**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-23
+::: info Official v6.5 benchmark snapshot
+**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-25
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **78.9%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **80.0%** |
-| Retrieval lift | **5.8×** |
-| Prompt reduction | **40.6%** (2.84 → 1.69) |
+| Hit@5 | **81.1%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **81.1%** |
+| Retrieval lift | **6.0×** |
+| Prompt reduction | **41.4%** (2.84 → 1.69) |
 | Task success proxy | **52.2%** |
 | Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-23 (v6.5.0)**
+Latest saved run: **2026-04-25 (v6.5.1)**
 
 This page answers the question people care about most:
 
@@ -41,8 +41,8 @@ This page answers the question people care about most:
 |---|:---:|:---:|
 | Task success proxy | 10% | **52.2%** |
 | Prompts per task | 2.84 | **1.69** |
-| Prompt reduction | — | **40.6%** |
-| Retrieval hit@5 | 13.6% | **78.9%** |
+| Prompt reduction | — | **41.4%** |
+| Retrieval hit@5 | 13.6% | **81.1%** |
 
 ## Why the task benchmark exists
 

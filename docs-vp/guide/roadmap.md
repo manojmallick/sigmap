@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.5, with the latest milestone introducing intelligent source root detection for 17 languages and 50+ frameworks via the new Source Root Resolver subsystem.
+description: SigMap version history and roadmap. From v0.0 to v6.5.1, with the latest features adding retrieval explain (signal breakdown), 7-intent ranking, and negative-signal penalty for transparent and intent-aware retrieval.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "45 versions shipped. See what changed in each release and what is coming next."
+      content: "46 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Forty-six versions shipped. MIT open source from day one.
+Forty-seven versions shipped. MIT open source from day one.
 
 **Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -550,9 +550,24 @@ Intelligent auto-detection of source directories for 17 languages and 50+ framew
 
 ---
 
+### v6.5.1 — Retrieval explain ✓ (tagged v6.5.1 — 2026-04-25)
+
+Extended retrieval ranking with transparent signal breakdown and intent-aware scoring. All `rank()` results now include a signals object showing which factors (exactToken, symbolMatch, prefixMatch, pathMatch, penalty) contributed to each file's score. Expanded intent detection from 4 to 7 patterns (debug, explain, refactor, review, test, integrate, navigate) with tuned weights per intent. Formalized negative-signal penalties to deprioritize test files (0.4x), generated code (0.3x), and documentation (0.2x).
+
+- **Retrieval explain** — rank() and scoreFile() return detailed signal breakdown for ranking transparency
+- **7-intent ranking** — expanded intent patterns with intent-specific weight adjustments
+- **Negative-signal penalty layer** — formalized penalties for test files, generated code, documentation, and node_modules
+- **Signals in output** — formatRankTable and formatRankJSON now include intent and signals for API consumers
+
+**Tags:** `retrieval explain` · `signal breakdown` · `7-intent ranking` · `negative penalties` · `intent-aware scoring`
+
+**Impact:** Ranking decisions are now fully transparent with signal breakdown. Intent-aware ranking improves relevance for different query types (debugging vs navigation vs exploration). Penalties reduce noise from test/generated code.
+
+---
+
 ## Current milestone — v6.6+
 
-v6.0–v6.5.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, and intelligent source root detection. Next: performance optimizations for large repos and extended language/framework coverage.
+v6.0–v6.5.1 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, and intent-aware retrieval with signal transparency. Next: performance optimizations for large repos and extended language/framework coverage.
 
 ---
 
