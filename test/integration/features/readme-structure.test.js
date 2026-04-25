@@ -68,8 +68,8 @@ test('what-it-is: short explanation present', () => {
 
 // ── Section 4: Why SigMap ─────────────────────────────────────────────────────
 
-test('why: 78.9% hit@5 mentioned', () => {
-  assert.ok(src.includes('78.9%'), 'missing 78.9% hit@5');
+test('why: 81.1% hit@5 mentioned', () => {
+  assert.ok(src.includes('81.1%'), 'missing 81.1% hit@5');
 });
 
 test('why: 13.6% baseline mentioned', () => {
@@ -122,24 +122,24 @@ test('workflow: Ask → Rank → Context → Validate → Judge → Learn', () =
 
 // ── Section 7: Benchmark ─────────────────────────────────────────────────────
 
-test('benchmark: sigmap-v6.4-main ID present', () => {
-  assert.ok(src.includes('sigmap-v6.4-main'), 'missing sigmap-v6.4-main benchmark ID');
+test('benchmark: sigmap-v6.5-main ID present', () => {
+  assert.ok(src.includes('sigmap-v6.5-main'), 'missing sigmap-v6.5-main benchmark ID');
 });
 
-test('benchmark: date 2026-04-23 present', () => {
-  assert.ok(src.includes('2026-04-23'), 'missing benchmark date 2026-04-23');
+test('benchmark: date 2026-04-25 present', () => {
+  assert.ok(src.includes('2026-04-25'), 'missing benchmark date 2026-04-25');
 });
 
-test('benchmark: Hit@5 78.9% present', () => {
-  assert.ok(src.includes('78.9%'), 'missing Hit@5 78.9%');
+test('benchmark: Hit@5 81.1% present', () => {
+  assert.ok(src.includes('81.1%'), 'missing Hit@5 81.1%');
 });
 
 test('benchmark: baseline 13.6% present', () => {
   assert.ok(src.includes('13.6%'), 'missing baseline 13.6%');
 });
 
-test('benchmark: prompt reduction 40.6% present', () => {
-  assert.ok(src.includes('40.6%'), 'missing prompt reduction 40.6%');
+test('benchmark: prompt reduction 41.4% present', () => {
+  assert.ok(src.includes('41.4%'), 'missing prompt reduction 41.4%');
 });
 
 test('benchmark: task success 52.2% present', () => {
