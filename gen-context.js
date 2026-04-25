@@ -7210,6 +7210,521 @@ __factories["./packages/adapters/llm-full"] = function(module, exports) {
   module.exports = { name: 'llm-full', format, outputPath, write };
 };
 
+// ── ./src/discovery/source-root-registry ──
+__factories["./src/discovery/source-root-registry"] = function(module, exports) {
+  'use strict';
+  const REGISTRY = {
+    javascript: {
+      manifestFiles: ['package.json'],
+      frameworks: {
+        nextjs:    { detectionFiles: ['next.config.js','next.config.ts','next.config.mjs'], detectionDeps: ['next'],               srcDirs: ['app','src/app','pages','src/pages','src','components','lib','hooks','utils'], entrypoints: ['app/page.tsx','pages/index.tsx'] },
+        nestjs:    { detectionFiles: ['nest-cli.json'],                                    detectionDeps: ['@nestjs/core'],        srcDirs: ['src'], entrypoints: ['src/main.ts','src/app.module.ts'] },
+        express:   { detectionFiles: [],                                                    detectionDeps: ['express'],             srcDirs: ['src','routes','middleware','controllers','services'], entrypoints: ['src/index.js','server.js','app.js'] },
+        fastify:   { detectionFiles: [],                                                    detectionDeps: ['fastify'],             srcDirs: ['src','routes','plugins'], entrypoints: ['src/index.js'] },
+        react:     { detectionFiles: [],                                                    detectionDeps: ['react'],               srcDirs: ['src','components','hooks','context','pages','app','lib','utils'] },
+        vue:       { detectionFiles: ['vue.config.js','vue.config.ts'],                    detectionDeps: ['vue'],                 srcDirs: ['src','components','composables','pages','views'] },
+        nuxt:      { detectionFiles: ['nuxt.config.js','nuxt.config.ts'],                  detectionDeps: ['nuxt'],                srcDirs: ['pages','components','composables','server','middleware','plugins'] },
+        svelte:    { detectionFiles: ['svelte.config.js'],                                 detectionDeps: ['svelte','@sveltejs/kit'], srcDirs: ['src','src/routes','src/lib'] },
+        angular:   { detectionFiles: ['angular.json'],                                     detectionDeps: ['@angular/core'],       srcDirs: ['src','src/app','projects','apps','libs'] },
+        gatsby:    { detectionFiles: ['gatsby-config.js','gatsby-config.ts'],              detectionDeps: ['gatsby'],              srcDirs: ['src','gatsby'] },
+        vite:      { detectionFiles: ['vite.config.js','vite.config.ts'],                  detectionDeps: ['vite'],                srcDirs: ['src'] },
+        remix:     { detectionFiles: ['remix.config.js'],                                  detectionDeps: ['@remix-run/react'],    srcDirs: ['app'] },
+        trpc:      { detectionFiles: [],                                                    detectionDeps: ['@trpc/server'],        srcDirs: ['src','server','routers'] },
+      },
+      srcDirs:  ['src','lib','index.js','server.js','app.js'],
+      penalties: ['dist','build','.next','.nuxt','coverage','storybook-static'],
+    },
+    typescript: {
+      manifestFiles: ['package.json','tsconfig.json'],
+      frameworks: {
+        nextjs:  { detectionFiles: ['next.config.ts','next.config.mjs'], detectionDeps: ['next'],            srcDirs: ['app','src/app','pages','src','components','lib','hooks','utils'] },
+        nestjs:  { detectionFiles: ['nest-cli.json'],                     detectionDeps: ['@nestjs/core'],   srcDirs: ['src'], entrypoints: ['src/main.ts'] },
+        angular: { detectionFiles: ['angular.json'],                      detectionDeps: ['@angular/core'],  srcDirs: ['src','src/app','projects','apps','libs'] },
+      },
+      srcDirs:  ['src','lib','packages'],
+      penalties: ['dist','build','.next'],
+    },
+    python: {
+      manifestFiles: ['requirements.txt','pyproject.toml','setup.py','Pipfile'],
+      frameworks: {
+        django:  { detectionFiles: ['manage.py'],           detectionDeps: ['Django'],  srcDirs: [],         specialRule: 'django-app-dirs', entrypoints: ['manage.py'] },
+        fastapi: { detectionFiles: [],                       detectionDeps: ['fastapi'], srcDirs: ['app','src','routers','api'], entrypoints: ['main.py','app/main.py'] },
+        flask:   { detectionFiles: ['wsgi.py','app.py'],    detectionDeps: ['Flask'],   srcDirs: ['app','src'], entrypoints: ['app.py','wsgi.py'] },
+        celery:  { detectionFiles: [],                       detectionDeps: ['celery'],  srcDirs: ['tasks','workers','app'] },
+      },
+      srcDirs:  ['.'],
+      penalties: ['venv','.venv','__pycache__','.pytest_cache','htmlcov'],
+    },
+    go: {
+      manifestFiles: ['go.mod'],
+      frameworks: {
+        gin:   { detectionFiles: [], detectionDeps: ['github.com/gin-gonic/gin'],      srcDirs: ['internal','cmd','pkg','api','handler','middleware'] },
+        echo:  { detectionFiles: [], detectionDeps: ['github.com/labstack/echo'],      srcDirs: ['internal','cmd','handler','middleware'] },
+        fiber: { detectionFiles: [], detectionDeps: ['github.com/gofiber/fiber'],      srcDirs: ['internal','cmd','handler','routes'] },
+        grpc:  { detectionFiles: [], detectionDeps: ['google.golang.org/grpc'],        srcDirs: ['internal','proto','server','client'] },
+        chi:   { detectionFiles: [], detectionDeps: ['github.com/go-chi/chi'],         srcDirs: ['internal','cmd','handler'] },
+      },
+      srcDirs:  ['internal','cmd','pkg','api'],
+      penalties: ['vendor'],
+    },
+    rust: {
+      manifestFiles: ['Cargo.toml'],
+      frameworks: {
+        actix: { detectionFiles: [], detectionDeps: ['actix-web'], srcDirs: ['src'] },
+        axum:  { detectionFiles: [], detectionDeps: ['axum'],      srcDirs: ['src'] },
+        tauri: { detectionFiles: ['src-tauri/tauri.conf.json'], detectionDeps: ['tauri'], srcDirs: ['src','src-tauri/src'] },
+      },
+      srcDirs:  ['src'],
+      penalties: ['target'],
+    },
+    java: {
+      manifestFiles: ['pom.xml','build.gradle'],
+      frameworks: {
+        spring:   { detectionFiles: [], detectionDeps: ['spring-boot'], srcDirs: ['src/main/java','src/main/kotlin','src/main/resources'] },
+        quarkus:  { detectionFiles: [], detectionDeps: ['io.quarkus'],  srcDirs: ['src/main/java'] },
+        android:  { detectionFiles: ['AndroidManifest.xml'],            srcDirs: ['app/src/main/java','app/src/main','src'] },
+        micronaut:{ detectionFiles: [], detectionDeps: ['io.micronaut'],srcDirs: ['src/main/java'] },
+      },
+      srcDirs:  ['src/main/java','src'],
+      penalties: ['target','build'],
+    },
+    kotlin: {
+      manifestFiles: ['build.gradle.kts'],
+      frameworks: {
+        spring:  { detectionFiles: [], detectionDeps: ['spring-boot'],    srcDirs: ['src/main/kotlin'] },
+        android: { detectionFiles: ['AndroidManifest.xml'],               srcDirs: ['app/src/main/kotlin','app/src/main/java'] },
+        ktor:    { detectionFiles: [], detectionDeps: ['io.ktor'],         srcDirs: ['src'] },
+        compose: { detectionFiles: [], detectionDeps: ['compose-runtime'], srcDirs: ['app/src/main/kotlin','src'] },
+      },
+      srcDirs:  ['src/main/kotlin','src'],
+      penalties: ['build','.gradle'],
+    },
+    csharp: {
+      manifestFiles: ['.csproj','.sln'],
+      frameworks: {
+        aspnet:  { detectionFiles: ['appsettings.json'], detectionDeps: ['Microsoft.AspNetCore'], srcDirs: ['Controllers','Services','Models','Middleware','Pages'] },
+        blazor:  { detectionFiles: [], detectionDeps: ['Microsoft.AspNetCore.Components'],        srcDirs: ['Components','Pages','Services'] },
+        unity:   { detectionFiles: ['ProjectSettings/ProjectSettings.asset'],                     srcDirs: ['Assets/Scripts','Assets'] },
+        maui:    { detectionFiles: [], detectionDeps: ['Microsoft.Maui'],                          srcDirs: ['src','Pages','ViewModels'] },
+      },
+      srcDirs:  ['src','Controllers','Services','Models'],
+      penalties: ['bin','obj','.vs'],
+    },
+    php: {
+      manifestFiles: ['composer.json'],
+      frameworks: {
+        laravel:   { detectionFiles: ['artisan'],           srcDirs: ['app','routes','config','database','resources','tests'], entrypoints: ['artisan'] },
+        symfony:   { detectionFiles: ['symfony.lock'],      srcDirs: ['src','config','templates'], specialRule: 'symfony-bundle-dirs' },
+        wordpress: { detectionFiles: ['wp-config.php'],     srcDirs: ['wp-content/themes','wp-content/plugins','wp-content/mu-plugins'] },
+        slim:      { detectionFiles: [],                    detectionDeps: ['slim/slim'], srcDirs: ['src','app','routes'] },
+      },
+      srcDirs:  ['src','app'],
+      penalties: ['vendor'],
+    },
+    ruby: {
+      manifestFiles: ['Gemfile'],
+      frameworks: {
+        rails:   { detectionFiles: ['config/routes.rb'],   srcDirs: ['app','lib','config','db','spec','test'], entrypoints: ['config/routes.rb'] },
+        sinatra: { detectionFiles: ['config.ru','app.rb'], srcDirs: ['.','lib'],            entrypoints: ['app.rb','config.ru'] },
+        hanami:  { detectionFiles: [],                     detectionDeps: ['hanami'],       srcDirs: ['apps','lib','slices'] },
+      },
+      srcDirs:  ['app','lib'],
+      penalties: ['vendor','coverage','.bundle'],
+    },
+    swift: {
+      manifestFiles: ['Package.swift'],
+      frameworks: {
+        vapor:   { detectionFiles: [],              detectionDeps: ['vapor/vapor'], srcDirs: ['Sources','App'] },
+        swiftui: { detectionFiles: ['.xcodeproj'],  srcDirs: [],                    specialRule: 'swift-project-dir' },
+        swiftpm: { detectionFiles: ['Package.swift'],srcDirs: ['Sources'] },
+      },
+      srcDirs:  ['Sources','Source'],
+      penalties: ['.build','DerivedData','Pods','Carthage'],
+    },
+    dart: {
+      manifestFiles: ['pubspec.yaml'],
+      frameworks: {
+        flutter:    { detectionFiles: [],                   detectionDeps: ['flutter'],    srcDirs: ['lib','lib/src'], entrypoints: ['lib/main.dart'] },
+        serverpod:  { detectionFiles: [],                   detectionDeps: ['serverpod'],  srcDirs: ['lib','endpoints','models'] },
+        'dart-frog':{ detectionFiles: ['dart_frog.yaml'],   srcDirs: ['routes','lib'] },
+      },
+      srcDirs:  ['lib','lib/src'],
+      penalties: ['.dart_tool','build'],
+    },
+    scala: {
+      manifestFiles: ['build.sbt'],
+      frameworks: {
+        akka:  { detectionFiles: [], detectionDeps: ['akka'], srcDirs: ['src/main/scala','src'] },
+        play:  { detectionFiles: [], detectionDeps: ['play'], srcDirs: ['app','conf'] },
+        spark: { detectionFiles: [], detectionDeps: ['spark'],srcDirs: ['src/main/scala'] },
+        zio:   { detectionFiles: [], detectionDeps: ['zio'],  srcDirs: ['src/main/scala'] },
+      },
+      srcDirs:  ['src/main/scala','src'],
+      penalties: ['target'],
+    },
+  };
+  module.exports = { REGISTRY };
+};
+
+// ── ./src/discovery/sigmapignore ──
+__factories["./src/discovery/sigmapignore"] = function(module, exports) {
+  'use strict';
+  const fs   = require('fs');
+  const path = require('path');
+  function loadIgnorePatterns(cwd) {
+    for (const fname of ['.sigmapignore', '.contextignore']) {
+      const p = path.join(cwd, fname);
+      if (fs.existsSync(p)) {
+        return fs.readFileSync(p, 'utf8')
+          .split('\n')
+          .map(l => l.trim())
+          .filter(l => l && !l.startsWith('#'));
+      }
+    }
+    return [];
+  }
+  function matchesIgnorePattern(dirName, patterns) {
+    for (const pat of patterns) {
+      const clean = pat.replace(/\/$/, '');
+      if (clean === dirName) return true;
+      if (clean.endsWith('/**') && dirName.startsWith(clean.slice(0, -3))) return true;
+      if (clean.endsWith('/*') && dirName.startsWith(clean.slice(0, -2))) return true;
+    }
+    return false;
+  }
+  module.exports = { loadIgnorePatterns, matchesIgnorePattern };
+};
+
+// ── ./src/discovery/language-detector ──
+__factories["./src/discovery/language-detector"] = function(module, exports) {
+  'use strict';
+  const fs   = require('fs');
+  const path = require('path');
+  const { REGISTRY } = __require('./src/discovery/source-root-registry');
+  function detectLanguages(cwd) {
+    const weights = {};
+    for (const [lang, reg] of Object.entries(REGISTRY)) {
+      for (const mf of (reg.manifestFiles || [])) {
+        if (fs.existsSync(path.join(cwd, mf))) {
+          weights[lang] = (weights[lang] || 0) + 3;
+        }
+      }
+    }
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (allDeps.typescript) { weights.typescript = (weights.typescript || 0) + 2; }
+    } catch (_) {}
+    const extCount = {};
+    (function _walkDepth(dir, depth, extCount) {
+      if (depth <= 0) return;
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      for (const e of entries) {
+        const SKIP_DIRS = new Set(['node_modules','dist','build','.git','.next','.nuxt','vendor','DerivedData','Pods','target','coverage','__pycache__','.venv','venv','.build','Carthage','storybook-static']);
+        if (SKIP_DIRS.has(e.name)) continue;
+        if (e.isDirectory()) {
+          _walkDepth(path.join(dir, e.name), depth - 1, extCount);
+        } else if (e.isFile()) {
+          const EXT_TO_LANG = {'.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript', '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript', '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust', '.java': 'java', '.kt': 'kotlin', '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.swift': 'swift', '.dart': 'dart', '.scala': 'scala', '.php': 'php'};
+          const ext = path.extname(e.name).toLowerCase();
+          if (EXT_TO_LANG[ext]) extCount[ext] = (extCount[ext] || 0) + 1;
+        }
+      }
+    })(cwd, 3, extCount);
+    const maxCount = Math.max(1, ...Object.values(extCount));
+    const EXT_TO_LANG = {'.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript', '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript', '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust', '.java': 'java', '.kt': 'kotlin', '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.swift': 'swift', '.dart': 'dart', '.scala': 'scala', '.php': 'php'};
+    for (const [ext, count] of Object.entries(extCount)) {
+      const lang = EXT_TO_LANG[ext];
+      if (lang) {
+        weights[lang] = (weights[lang] || 0) + Math.min(5, (count / maxCount) * 5);
+      }
+    }
+    const maxW = Math.max(1, ...Object.values(weights));
+    return Object.entries(weights)
+      .map(([name, w]) => ({ name, weight: Math.round(w / maxW * 100) / 100 }))
+      .sort((a, b) => b.weight - a.weight);
+  }
+  module.exports = { detectLanguages };
+};
+
+// ── ./src/discovery/source-root-scorer ──
+__factories["./src/discovery/source-root-scorer"] = function(module, exports) {
+  'use strict';
+  const fs   = require('fs');
+  const path = require('path');
+  const { execSync } = require('child_process');
+  const CODE_EXTS = new Set(['.js','.mjs','.cjs','.ts','.tsx','.jsx','.py','.rb','.go','.rs','.java','.kt','.cs','.cpp','.c','.h','.swift','.dart','.scala','.php']);
+  const AUTO_SKIP = new Set(['node_modules','dist','build','.git','.next','.nuxt','vendor','DerivedData','Pods','target','coverage','__pycache__','.venv','venv','.build','Carthage','storybook-static','.gradle','bin','obj','.vs']);
+  const PENALTY_DIRS = new Set(['test','tests','spec','__tests__','e2e','docs','doc','docs-vp','examples','example','fixtures','mocks','__mocks__','demo','samples','migrations','benchmarks','scripts']);
+  const ROOT_ENTRYPOINTS = { go: ['main.go'], python: ['app.py','main.py','wsgi.py','asgi.py'], javascript: ['index.js','server.js','app.js'], typescript: ['index.ts','main.ts'], rust: [], php: ['index.php'] };
+  function getRecentlyChangedDirs(cwd) {
+    try {
+      const out = execSync('git log --name-only --format="" HEAD~10 2>/dev/null', { cwd, timeout: 3000 }).toString();
+      return new Set(out.split('\n').filter(Boolean).map(f => f.split('/')[0]));
+    } catch { return new Set(); }
+  }
+  function scoreCandidate(dirName, fullPath, context) {
+    const { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties } = context;
+    if (AUTO_SKIP.has(dirName)) return -99;
+    if (!fs.existsSync(fullPath)) return -99;
+    let score = 0;
+    if (frameworkSrcDirs.has(dirName)) score += 3.0;
+    const sourceFileCount = (function _countSourceFiles(dir, depth) {
+      if (depth <= 0) return 0;
+      let count = 0;
+      try {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+          if (e.isFile() && CODE_EXTS.has(path.extname(e.name).toLowerCase())) count++;
+          else if (e.isDirectory() && depth > 1) count += _countSourceFiles(path.join(dir, e.name), depth - 1);
+        }
+      } catch (_) {}
+      return count;
+    })(fullPath, 2);
+    const density = Math.min(1.0, sourceFileCount / 10);
+    score += density * 2.5;
+    if (sourceFileCount >= 3) score += 2.0;
+    if ((entrypoints || []).some(ep => ep.startsWith(dirName + '/'))) score += 1.5;
+    if (fs.existsSync(path.join(fullPath, 'package.json')) ||
+        fs.existsSync(path.join(fullPath, 'go.mod')) ||
+        fs.existsSync(path.join(fullPath, 'Cargo.toml')) ||
+        fs.existsSync(path.join(fullPath, 'pom.xml'))) {
+      score += 1.0;
+    }
+    if (recentDirs.has(dirName)) score += 2.0;
+    if (PENALTY_DIRS.has(dirName.toLowerCase()) && !frameworkSrcDirs.has(dirName)) score -= 3.0;
+    if ((frameworkPenalties || []).includes(dirName)) score -= 3.0;
+    return Math.round(score * 100) / 100;
+  }
+  module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS };
+};
+
+// ── ./src/discovery/framework-detector ──
+__factories["./src/discovery/framework-detector"] = function(module, exports) {
+  'use strict';
+  const fs   = require('fs');
+  const path = require('path');
+  const { REGISTRY } = __require('./src/discovery/source-root-registry');
+  function detectFrameworks(cwd) {
+    const detected = [];
+    for (const [lang, reg] of Object.entries(REGISTRY)) {
+      if (!reg.frameworks) continue;
+      for (const [name, fw] of Object.entries(reg.frameworks)) {
+        let confidence = 0;
+        for (const f of (fw.detectionFiles || [])) {
+          if ((function _existsAnywhere(cwd, filename, maxDepth) {
+            const parts = filename.split('/');
+            if (parts.length > 1) return fs.existsSync(path.join(cwd, filename));
+            return (function _walkFind(dir, name, depth) {
+              if (depth <= 0) return false;
+              try {
+                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                for (const e of entries) {
+                  if (e.name === name) return true;
+                  if (e.isDirectory() && depth > 1) {
+                    if (_walkFind(path.join(dir, e.name), name, depth - 1)) return true;
+                  }
+                }
+              } catch (_) {}
+              return false;
+            })(cwd, parts[0], maxDepth);
+          })(cwd, f, 3)) { confidence = Math.max(confidence, 0.93); }
+        }
+        if (fw.detectionDeps?.length) {
+          const deps = (function _readDeps(cwd) {
+            try {
+              const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+              return new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.devDependencies || {})]);
+            } catch { return new Set(); }
+          })(cwd);
+          for (const dep of fw.detectionDeps) {
+            if (deps.has(dep)) { confidence = Math.max(confidence, 0.90); }
+          }
+        }
+        if (lang === 'go' && fw.detectionDeps?.length) {
+          const goMod = (function _readFile(p) {
+            try { return fs.readFileSync(p, 'utf8'); } catch { return ''; }
+          })(path.join(cwd, 'go.mod'));
+          for (const dep of fw.detectionDeps) {
+            if (goMod.includes(dep)) { confidence = Math.max(confidence, 0.90); }
+          }
+        }
+        if (lang === 'rust' && fw.detectionDeps?.length) {
+          const cargoToml = (function _readFile(p) {
+            try { return fs.readFileSync(p, 'utf8'); } catch { return ''; }
+          })(path.join(cwd, 'Cargo.toml'));
+          for (const dep of fw.detectionDeps) {
+            if (cargoToml.includes(dep)) { confidence = Math.max(confidence, 0.88); }
+          }
+        }
+        if (fw.specialRule === 'django-app-dirs' && fs.existsSync(path.join(cwd, 'manage.py'))) {
+          confidence = Math.max(confidence, 0.95);
+        }
+        if (fw.specialRule === 'swift-project-dir' && (function _existsAnywhere(cwd, filename, maxDepth) {
+          const parts = filename.split('/');
+          if (parts.length > 1) return fs.existsSync(path.join(cwd, filename));
+          return (function _walkFind(dir, name, depth) {
+            if (depth <= 0) return false;
+            try {
+              const entries = fs.readdirSync(dir, { withFileTypes: true });
+              for (const e of entries) {
+                if (e.name === name) return true;
+                if (e.isDirectory() && depth > 1) {
+                  if (_walkFind(path.join(dir, e.name), name, depth - 1)) return true;
+                }
+              }
+            } catch (_) {}
+            return false;
+          })(cwd, parts[0], maxDepth);
+        })(cwd, '.xcodeproj', 2)) {
+          confidence = Math.max(confidence, 0.90);
+        }
+        if (confidence > 0) detected.push({ name, language: lang, confidence });
+      }
+    }
+    return detected.sort((a, b) => b.confidence - a.confidence);
+  }
+  module.exports = { detectFrameworks };
+};
+
+// ── ./src/discovery/source-root-resolver ──
+__factories["./src/discovery/source-root-resolver"] = function(module, exports) {
+  'use strict';
+  const fs   = require('fs');
+  const path = require('path');
+  const { REGISTRY }              = __require('./src/discovery/source-root-registry');
+  const { detectLanguages }       = __require('./src/discovery/language-detector');
+  const { detectFrameworks }      = __require('./src/discovery/framework-detector');
+  const { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS } = __require('./src/discovery/source-root-scorer');
+  const { loadIgnorePatterns, matchesIgnorePattern } = __require('./src/discovery/sigmapignore');
+  function resolveSourceRoots(cwd, opts = {}) {
+    const ignorePatterns = loadIgnorePatterns(cwd);
+    const languages      = detectLanguages(cwd);
+    const frameworks     = detectFrameworks(cwd);
+    const recentDirs     = getRecentlyChangedDirs(cwd);
+    const isMonorepo     = (function _detectMonorepo(cwd) {
+      const MONOREPO_MARKERS = ['pnpm-workspace.yaml','turbo.json','nx.json','lerna.json'];
+      for (const m of MONOREPO_MARKERS) {
+        if (fs.existsSync(path.join(cwd, m))) return true;
+      }
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+        if (pkg.workspaces) return true;
+      } catch (_) {}
+      return false;
+    })(cwd);
+    const primaryLang   = languages[0]?.name;
+    const primaryFw     = frameworks[0];
+    const registry      = primaryLang ? REGISTRY[primaryLang] : null;
+    const fwEntry        = primaryFw && registry?.frameworks?.[primaryFw.name];
+    const frameworkSrcDirs   = new Set(fwEntry?.srcDirs || registry?.srcDirs || []);
+    const entrypoints        = fwEntry?.entrypoints || [];
+    const frameworkPenalties = registry?.penalties || [];
+    const context = { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties };
+    const candidates = (function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
+      const candidates = [];
+      const excSet     = new Set(excludeList);
+      try {
+        for (const e of fs.readdirSync(cwd, { withFileTypes: true })) {
+          if (!e.isDirectory()) continue;
+          if (excSet.has(e.name)) continue;
+          if (matchesIgnorePattern(e.name, ignorePatterns)) continue;
+          candidates.push({ name: e.name, full: path.join(cwd, e.name) });
+        }
+      } catch (_) {}
+      if (isMonorepo) {
+        for (const top of ['packages','apps','services','modules']) {
+          const topFull = path.join(cwd, top);
+          if (!fs.existsSync(topFull)) continue;
+          try {
+            for (const pkg of fs.readdirSync(topFull, { withFileTypes: true })) {
+              if (!pkg.isDirectory()) continue;
+              const srcFull = path.join(topFull, pkg.name, 'src');
+              if (fs.existsSync(srcFull)) {
+                candidates.push({ name: `${top}/${pkg.name}/src`, full: srcFull });
+              }
+              candidates.push({ name: `${top}/${pkg.name}`, full: path.join(topFull, pkg.name) });
+            }
+          } catch (_) {}
+        }
+      }
+      const DEEP_PATHS = ['src/main/java','src/main/kotlin','src/main/scala','src-tauri/src','Sources/App','app/src/main/java','app/src/main/kotlin'];
+      for (const dp of DEEP_PATHS) {
+        const full = path.join(cwd, dp);
+        if (fs.existsSync(full)) candidates.push({ name: dp, full });
+      }
+      return candidates;
+    })(cwd, isMonorepo, ignorePatterns, opts.exclude || []);
+    const scored = candidates
+      .map(({ name, full }) => ({
+        dir:   name,
+        full,
+        score: scoreCandidate(name, full, context),
+      }))
+      .filter(c => c.score > 0)
+      .sort((a, b) => b.score - a.score);
+    let roots = (function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks) {
+      let roots = [...scored];
+      if (primaryFw?.name === 'django' || frameworks.some(f => f.name === 'django')) {
+        try {
+          for (const e of fs.readdirSync(cwd, { withFileTypes: true })) {
+            if (!e.isDirectory()) continue;
+            const d = path.join(cwd, e.name);
+            if (fs.existsSync(path.join(d, 'models.py')) || fs.existsSync(path.join(d, 'views.py'))) {
+              if (!roots.find(r => r.dir === e.name)) {
+                roots.push({ dir: e.name, full: d, score: 5.0 });
+              }
+            }
+          }
+        } catch (_) {}
+        roots.sort((a, b) => b.score - a.score);
+      }
+      if (frameworks.some(f => f.name === 'swiftui')) {
+        try {
+          for (const e of fs.readdirSync(cwd, { withFileTypes: true })) {
+            if (!e.isDirectory()) continue;
+            const d = path.join(cwd, e.name);
+            const swiftCount = (fs.readdirSync(d).filter(f => f.endsWith('.swift'))).length;
+            if (swiftCount >= 3 && !roots.find(r => r.dir === e.name)) {
+              roots.push({ dir: e.name, full: d, score: 4.0 });
+            }
+          }
+        } catch (_) {}
+        roots.sort((a, b) => b.score - a.score);
+      }
+      return roots;
+    })(scored, cwd, primaryFw, fwEntry, frameworks);
+    roots = (function _dedupeNested(scored) {
+      const result = [];
+      for (const c of scored) {
+        const isNested = result.some(r => c.dir.startsWith(r.dir + '/'));
+        if (!isNested) result.push(c);
+      }
+      return result;
+    })(roots);
+    const MAX_ROOTS = 6;
+    roots = roots.slice(0, MAX_ROOTS).map(r => r.dir);
+    const confidence = (function _computeConfidence(frameworks, languages, scoredCount) {
+      if (frameworks.length > 0 && frameworks[0].confidence >= 0.90) return 'high';
+      if (languages.length > 0 && scoredCount > 0) return 'medium';
+      return 'low';
+    })(frameworks, languages, scored.length);
+    return {
+      roots,
+      languages,
+      frameworks,
+      confidence,
+      explanation: scored.slice(0, 8).map(c => ({
+        dir:   c.dir,
+        score: c.score,
+        reason: `score: ${c.score}`,
+      })),
+      isMonorepo,
+    };
+  }
+  module.exports = { resolveSourceRoots };
+};
+
 /**
  * SigMap — gen-context.js v1.2.0
  * Zero-dependency AI context engine.
