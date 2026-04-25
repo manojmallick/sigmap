@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v6.4. 78.9% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
+description: Latest saved retrieval benchmark for SigMap v6.5. 81.1% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 78.9% hit@5"
+      content: "SigMap retrieval benchmark — 81.1% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 78.9% hit@5 vs 13.6% random baseline, 5.8x lift, 90 tasks, 18 repos."
+      content: "Latest saved run: 81.1% hit@5 vs 13.6% random baseline, 6.0x lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/retrieval-benchmark"
@@ -15,23 +15,23 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v6.4 benchmark snapshot
-**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-23
+::: info Official v6.5 benchmark snapshot
+**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-25
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **78.9%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **80.0%** |
-| Retrieval lift | **5.8×** |
-| Prompt reduction | **40.6%** (2.84 → 1.69) |
+| Hit@5 | **81.1%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **81.1%** |
+| Retrieval lift | **6.0×** |
+| Prompt reduction | **41.4%** (2.84 → 1.69) |
 | Task success proxy | **52.2%** |
 | Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-23 (v6.5.0)**
+Latest saved run: **2026-04-25 (v6.5.1)**
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **78.9% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **81.1% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
 ## Why this benchmark matters
 
@@ -47,7 +47,7 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 | 13.6% | **78.9%** |
+| Average hit@5 | 13.6% | **81.1%** |
 | Graph-boosted hit@5 | — | **80.0%** |
 | Lift | — | **5.8x** |
 | Correct (rank 1) | ~1% | **52.2%** |
