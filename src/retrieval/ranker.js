@@ -32,6 +32,12 @@ const DEFAULT_WEIGHTS = {
   graphBoost: 0.4,       // additive bonus for 1-hop import neighbors of matching files
 };
 
+// Graph boost amounts for 2-hop traversal with decay (v6.7)
+const GRAPH_BOOST_AMOUNTS = {
+  hop1: 0.40,   // direct import neighbor of a file with score > 0
+  hop2: 0.15,   // 2 hops away (transitive), with decay
+};
+
 // Intent-specific weight adjustments
 const INTENT_WEIGHTS = {
   search:     DEFAULT_WEIGHTS,
@@ -59,6 +65,26 @@ function _computePenalty(filePath) {
   if (/(^|\/)(dist|build|\.next|\.nuxt|out|\.venv|venv)($|\/)/.test(pathLower)) return PENALTY_SIGNALS.generatedCode;
   if (/(^|\/)(docs|doc|readme|changelog)($|\/)/.test(pathLower)) return PENALTY_SIGNALS.docsFile;
   return 1.0;
+}
+
+// Detect hub files: those with fanout > 20% of all files in the graph
+function _computeHubs(graph) {
+  if (!graph || !graph.reverse) return new Set();
+  const fileCount = Math.max(1, graph.reverse.size);
+  const threshold = Math.ceil(fileCount * 0.2);
+  const hubs = new Set();
+  for (const [file, deps] of graph.reverse) {
+    if ((deps && deps.size >= threshold) || (Array.isArray(deps) && deps.length >= threshold)) {
+      hubs.add(file);
+    }
+  }
+  return hubs;
+}
+
+// Common utility paths that should be treated as hubs regardless of fanout
+function _isHub(filePath) {
+  return /\/(utils|helpers|shared|common|constants|types|interfaces|index)\.(ts|tsx|js|jsx)$/.test(filePath)
+      || filePath.endsWith('/index.ts') || filePath.endsWith('/index.js');
 }
 
 /**
@@ -198,26 +224,54 @@ function rank(query, sigIndex, opts) {
     });
   }
 
-  // Graph neighbor boost: for each file with score > 0, add graphBoost to 1-hop forward
-  // neighbors that are also in the index. sigIndex uses relative paths; graph uses absolute.
+  // Graph neighbor boost: 2-hop traversal with decay (v6.7)
+  // Hop 1: add hop1 amount to direct import neighbors (score > 0)
+  // Hop 2: add hop2 amount to neighbors of hop1 files (with decay)
+  // Hub suppression: files with high fanout (>20%) are not boosted
   if (graph && cwd) {
     const path = require('path');
-    // Build a map: relative path → index position in scored array for O(1) lookup
+    // Build maps for relative ↔ absolute path conversion and index lookup
     const relToIdx = new Map();
+    const absToRel = new Map();
     for (let i = 0; i < scored.length; i++) {
       relToIdx.set(scored[i].file, i);
+      const abs = path.resolve(cwd, scored[i].file);
+      absToRel.set(abs, scored[i].file);
     }
+
+    const hubs = _computeHubs(graph);
+    const hop1Files = new Set(); // track which files received hop1 boost
+
+    // Hop 1: direct neighbors of scored files
     for (const entry of scored) {
       if (entry.score <= 0) continue;
-      // Resolve relative path to absolute for graph lookup
       const abs = path.resolve(cwd, entry.file);
       const neighbors = graph.forward.get(abs) || [];
       for (const neighborAbs of neighbors) {
+        if (_isHub(neighborAbs) || hubs.has(neighborAbs)) continue;
         const neighborRel = path.relative(cwd, neighborAbs).replace(/\\/g, '/');
         const idx = relToIdx.get(neighborRel);
         if (idx !== undefined) {
-          scored[idx].score += weights.graphBoost;
-          scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + weights.graphBoost;
+          scored[idx].score += GRAPH_BOOST_AMOUNTS.hop1;
+          scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + GRAPH_BOOST_AMOUNTS.hop1;
+          hop1Files.add(neighborAbs);
+        }
+      }
+    }
+
+    // Hop 2: neighbors of hop1 files (only if they didn't get a direct score)
+    for (const hop1File of hop1Files) {
+      if (!absToRel.has(hop1File)) continue; // skip files not in index
+      const neighbors = graph.forward.get(hop1File) || [];
+      for (const neighborAbs of neighbors) {
+        if (_isHub(neighborAbs) || hubs.has(neighborAbs)) continue;
+        if (hop1Files.has(neighborAbs)) continue; // skip already hop1-boosted
+        const neighborRel = path.relative(cwd, neighborAbs).replace(/\\/g, '/');
+        const idx = relToIdx.get(neighborRel);
+        if (idx !== undefined && scored[idx].score > 0) {
+          // Only boost files that have some baseline score (not noise)
+          scored[idx].score += GRAPH_BOOST_AMOUNTS.hop2;
+          scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + GRAPH_BOOST_AMOUNTS.hop2;
         }
       }
     }
@@ -425,4 +479,4 @@ function detectIntent(query) {
   return 'search';
 }
 
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent };
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent };
