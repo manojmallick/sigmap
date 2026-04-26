@@ -180,6 +180,7 @@ To pin a fixed budget (v4.0 behaviour):
 |-----|------|---------|-------------|
 | `secretScan` | `boolean` | `true` | Scan output for 10 credential patterns before writing. Matching content is replaced with `[REDACTED]`. Patterns: AWS keys, GitHub tokens, JWTs, database URLs, SSH keys, GCP keys, Stripe keys, Twilio keys, generic passwords/api_keys. |
 | `monorepo` | `boolean` | `false` | See Source scanning above. |
+| `sigCache` | `boolean` | `false` | Enable incremental signature cache. When true, caches extracted signatures with mtime-based validation. Cache is automatically busted on version changes. Skips re-extraction of unchanged files for faster subsequent runs. |
 
 ## Watch
 
@@ -199,6 +200,29 @@ To pin a fixed budget (v4.0 behaviour):
 | `retrieval.topK` | `number` | `10` | Number of top-ranked files returned by `--query` and the `query_context` MCP tool. |
 | `retrieval.recencyBoost` | `number` | `1.5` | Multiplier applied to recently committed files during TF-IDF ranking. |
 | `retrieval.preset` | `"precision" \| "balanced" \| "recall"` | `"balanced"` | Weight preset for the ranking algorithm. `precision` minimises false positives. `recall` maximises coverage. |
+
+### sigCache
+
+Enable incremental signature caching with mtime-based validation. When enabled, caches extracted signatures in `.sigmap-cache.json` and skips re-extraction of unchanged files. Cache is automatically busted on version changes.
+
+```json
+{
+  "sigCache": true
+}
+```
+
+Check cache health with:
+
+```bash
+sigmap --health
+```
+
+Output will include cache stats:
+```
+sig-cache       : 142 entries, 1.2 KB
+```
+
+Use `sigCache: true` for large repositories where signature extraction is slow, or when you run generation frequently.
 
 ## .contextignore
 

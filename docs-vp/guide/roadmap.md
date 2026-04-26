@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.5.1, with the latest features adding retrieval explain (signal breakdown), 7-intent ranking, and negative-signal penalty for transparent and intent-aware retrieval.
+description: SigMap version history and roadmap. From v0.0 to v6.5.2, with the latest features adding 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
 head:
   - - meta
     - property: og:title
@@ -565,9 +565,24 @@ Extended retrieval ranking with transparent signal breakdown and intent-aware sc
 
 ---
 
+### v6.5.2 — 2-hop graph boost + hub suppression ✓ (tagged v6.5.2 — 2026-04-27)
+
+Extended dependency-aware retrieval with 2-hop graph traversal and hub suppression. Direct imports now receive +0.40 score boost, with second-order imports receiving +0.15 boost (decay applied) for improved multi-layer dependency context. Shared utility files (detected via >20% fanout threshold or static patterns like `util/`, `helper/`, `common/`) are suppressed from graph boosts to prevent over-prioritizing generic utilities. Added incremental signature cache with mtime-based validation and version-controlled cache busting. Cache health statistics now available in `--health` output (entry count and disk size).
+
+- **2-hop graph boost with decay** — traverses 2 hops in dependency graph (hop1: +0.40, hop2: +0.15) for better multi-layer context
+- **Hub suppression** — shared utilities excluded from boosts based on >20% fanout threshold and static patterns
+- **Incremental signature cache** — opt-in `sigCache` config key caches extracted signatures with mtime validation and version-based busting
+- **Cache health stats** — `--health` output includes cache entry count and disk size when cache exists
+
+**Tags:** `2-hop graph boost` · `hub suppression` · `sigCache` · `incremental cache` · `cache health stats`
+
+**Impact:** Multi-layer dependency context improves ranking for complex dependency trees. Hub suppression reduces noise from generic utilities. Incremental cache accelerates subsequent runs by skipping unchanged files. Cache health stats enable monitoring and debugging of cache effectiveness.
+
+---
+
 ## Current milestone — v6.6+
 
-v6.0–v6.5.1 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, and intent-aware retrieval with signal transparency. Next: performance optimizations for large repos and extended language/framework coverage.
+v6.0–v6.5.2 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, and intent-aware retrieval with signal transparency. Next: performance optimizations for large repos and extended language/framework coverage.
 
 ---
 
