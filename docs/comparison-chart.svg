@@ -30,13 +30,13 @@
   <!-- With row -->
   <text x="105" y="126" text-anchor="end" font-size="11" fill="#7c6af7">SigMap</text>
   <rect x="112" y="113" width="462" height="20" fill="#ede9fe" rx="4"/>
-  <!-- 78.9% of 462 = 364.5 -->
-  <rect x="112" y="113" width="365" height="20" fill="#7c6af7" rx="4"/>
-  <text x="471" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">78.9%</text>
+  <!-- 81.1% of 462 = 375.1 -->
+  <rect x="112" y="113" width="375" height="20" fill="#7c6af7" rx="4"/>
+  <text x="492" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">81.1%</text>
 
   <!-- Badge -->
   <rect x="588" y="95" width="94" height="32" fill="#7c6af7" rx="6"/>
-  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+5.8× lift</text>
+  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+6.0× lift</text>
   <text x="635" y="121" text-anchor="middle" font-size="9" fill="#ded9ff">retrieval</text>
 
   <!-- ═══════════════════════════════════════════ -->

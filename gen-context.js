@@ -5387,7 +5387,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.5.1',
+  version: '6.5.2',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -7737,7 +7737,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.5.1';
+const VERSION = '6.5.2';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8944,6 +8944,13 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
   const hotCommits = config.hotCommits || 10;
   const recentFiles = config.diffPriority ? getRecentlyCommittedFiles(cwd, hotCommits) : new Set();
 
+  // v6.7: Load signature cache if enabled
+  let cache = null;
+  const { loadCache, saveCache, getChangedFiles, updateCacheEntries } = requireSourceOrBundled('./src/cache/sig-cache');
+  if (config.sigCache) {
+    cache = loadCache(cwd, VERSION);
+  }
+
   let inputTokenTotal = 0;
   let fileEntries = [];
   let testIndex = null;
@@ -8964,7 +8971,23 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       continue;
     }
 
-    let sigs = detectAndExtract(filePath, content, config.maxSigsPerFile);
+    // v6.7: Check cache before extracting
+    let sigs = [];
+    if (cache) {
+      const cached = cache.get(filePath);
+      let mtime = 0;
+      try { mtime = fs.statSync(filePath).mtimeMs; } catch (_) {}
+      if (cached && cached.mtime === mtime) {
+        sigs = cached.sigs;
+      } else {
+        sigs = detectAndExtract(filePath, content, config.maxSigsPerFile);
+        if (sigs.length > 0) {
+          cache.set(filePath, { mtime, sigs });
+        }
+      }
+    } else {
+      sigs = detectAndExtract(filePath, content, config.maxSigsPerFile);
+    }
     if (sigs.length === 0) continue;
 
     // Baseline = estimated tokens of original source content for intuitive reduction stats.
@@ -9164,6 +9187,15 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     lines.push(` Try: "explain the architecture" \u00b7 "find the auth module"`);
     lines.push(bar, '');
     process.stderr.write(lines.join('\n'));
+  }
+
+  // v6.7: Save cache if enabled
+  if (config.sigCache && cache) {
+    try {
+      saveCache(cwd, VERSION, cache);
+    } catch (err) {
+      console.warn(`[sigmap] cache save failed: ${err.message}`);
+    }
   }
 
   return result;
@@ -10469,6 +10501,19 @@ function main() {
       const fakeEntries = allFiles.map(f => ({ filePath: f }));
       coverageResult = coverageScore(cwd, fakeEntries, cfg);
     } catch (_) {}
+    // v6.7: Collect cache stats if enabled
+    let cacheStats = null;
+    try {
+      const cachePath = path.join(cwd, '.sigmap-cache.json');
+      if (fs.existsSync(cachePath)) {
+        const raw = fs.readFileSync(cachePath, 'utf8');
+        const data = JSON.parse(raw);
+        const sizeKb = Math.round(Buffer.byteLength(raw) / 1024);
+        const entries = Object.keys(data.entries || {}).length;
+        const mtime = fs.statSync(cachePath).mtimeMs;
+        cacheStats = { sizeKb, entries, mtimeMs: mtime };
+      }
+    } catch (_) {}
     if (args.includes('--json')) {
       // Feature 3 (VS Code) + Feature 5 (JetBrains): emit tokens + reduction for plugins
       const ctxPath = path.join(cwd, '.github', 'copilot-instructions.md');
@@ -10485,6 +10530,9 @@ function main() {
         payload.coverageTotalFiles = coverageResult.total;
         payload.coverageIncludedFiles = coverageResult.included;
       }
+      if (cacheStats) {
+        payload.cacheStats = cacheStats;
+      }
       process.stdout.write(JSON.stringify(payload) + '\n');
     } else {
       console.log('[sigmap] health:');
@@ -10497,6 +10545,9 @@ function main() {
       console.log(`  days since regen: ${result.daysSinceRegen !== null ? result.daysSinceRegen : 'context file not found'}`);
       if (result.strategyFreshnessDays !== null) {
         console.log(`  cold freshness  : ${result.strategyFreshnessDays} day(s)`);
+      }
+      if (cacheStats) {
+        console.log(`  sig-cache       : ${cacheStats.entries} files cached  ${cacheStats.sizeKb}KB on disk`);
       }
       console.log(`  total runs      : ${result.totalRuns}`);
       console.log(`  over-budget runs: ${result.overBudgetRuns}`);

@@ -718,7 +718,7 @@ sigmap --report --paper
 
 ## --health
 
-Run the composite health check. Returns a 0–100 score, letter grade, and coverage score.
+Run the composite health check. Returns a 0–100 score, letter grade, coverage score, and optional cache stats (if `sigCache` is enabled).
 
 ```bash
 sigmap --health
@@ -730,6 +730,7 @@ sigmap --health
   file access     : A (97%)  — 76 of 78 files accessible in srcDirs
   strategy        : full
   token reduction : 93.7%
+  sig-cache       : 142 entries, 1.2 KB
   days since regen: 0
   total runs      : 1
 ```
@@ -750,7 +751,11 @@ sigmap --health --json
   "coverageTotalFiles": 78,
   "coverageIncludedFiles": 76,
   "tokens": 4103,
-  "reduction": 93.7
+  "reduction": 93.7,
+  "cacheStats": {
+    "entries": 142,
+    "sizeKb": 1.2
+  }
 }
 ```
 

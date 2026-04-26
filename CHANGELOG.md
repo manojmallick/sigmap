@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.5.2] — 2026-04-27
+
+### Added
+
+- **2-hop graph boost with decay** — `rank()` now traverses 2 hops in the dependency graph instead of 1. Direct imports (+0.40) and second-order imports (+0.15 with decay) receive score boosts for better context relevance in multi-layer dependency scenarios.
+- **Hub suppression** — shared utility files (detected by >20% fanout threshold or static patterns like `util/`, `helper/`, `common/`) are now excluded from graph boosts to prevent over-boosting generic utilities.
+- **Incremental signature cache (`sigCache`)** — new opt-in `sigCache: true` config key enables mtime-based caching of extracted signatures. Cache is automatically busted on version changes, and unchanged files skip re-extraction for faster subsequent runs.
+- **Cache health statistics** — `--health` output now includes cache stats: entry count and disk size in KB. `--health --json` includes `cacheStats` field with `entries` and `sizeKb` when cache exists.
+
+---
+
 ## [6.5.1] — 2026-04-25
 
 ### Added

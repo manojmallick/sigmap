@@ -47,7 +47,9 @@
       "Bash(npm test *)",
       "Read(//Users/manojmallick/**)",
       "Read(//Users/manojmallick/.claude/**)",
-      "Bash(node scripts/sync-versions.mjs 6.5.1)"
+      "Bash(node scripts/sync-versions.mjs 6.5.1)",
+      "Bash(awk '/^function runGenerate/,/^}/ {print NR\": \"$0}' gen-context.js)",
+      "Bash(node test/integration/features/v670-graph-boost-cache.test.js)"
     ]
   }
 }

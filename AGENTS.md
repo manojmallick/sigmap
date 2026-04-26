@@ -56,13 +56,13 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 6 minutes ago)
+## changes (last 5 commits — 2 days ago)
 ```
 src/config/loader.js                          +_legacyDetectAutoSrcDirs  ~detectAutoSrcDirs
-src/discovery/language-detector.js            +detectLanguages  +_walkDepth
-src/discovery/framework-detector.js           +detectFrameworks  +_readDeps  +_readFile  +_existsAnywhere
 src/discovery/source-root-resolver.js         +resolveSourceRoots  +_detectMonorepo  +_enumerateCandidates  +_applySpecialRules
+src/discovery/language-detector.js            +detectLanguages  +_walkDepth
 src/discovery/source-root-scorer.js           +getRecentlyChangedDirs  +scoreCandidate  +_countSourceFiles
+src/discovery/framework-detector.js           +detectFrameworks  +_readDeps  +_readFile  +_existsAnywhere
 src/discovery/sigmapignore.js                 +loadIgnorePatterns  +matchesIgnorePattern
 src/retrieval/ranker.js                       +_computePenalty  ~scoreFile  ~rank  ~buildSigIndex
 ```
@@ -166,19 +166,19 @@ function _confidenceMeta(opts)
 function outputPath(cwd) → string
 ```
 
-### packages/adapters/codex.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-```
-
 ### packages/adapters/claude.js
 ```
 module.exports = { name, format, outputPath, write }
 function format(context, opts = {}) → string
 function _confidenceMeta(opts)
+function outputPath(cwd) → string
+function write(context, cwd, opts = {})
+```
+
+### packages/adapters/codex.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
 function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
@@ -483,11 +483,6 @@ function formatAnalysisTable(stats, showSlow) → string
 function formatAnalysisJSON(stats) → object
 ```
 
-### src/config/defaults.js
-```
-module.exports = { DEFAULTS }
-```
-
 ### src/format/dashboard.js
 ```
 module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak }
@@ -610,6 +605,11 @@ function exportWeights(cwd, outputPath)
 function importWeights(cwd, importPath, replace)
 ```
 
+### src/config/defaults.js
+```
+module.exports = { DEFAULTS }
+```
+
 ### src/config/loader.js
 ```
 module.exports = { loadConfig, loadBaseConfig }
@@ -618,23 +618,6 @@ function detectAutoSrcDirs(cwd, excludeList) → string[]
 function _legacyDetectAutoSrcDirs(cwd, excludeList) → string[]
 function loadConfig(cwd) → object
 function deepClone(obj)
-```
-
-### src/discovery/language-detector.js
-```
-module.exports = { detectLanguages }
-function detectLanguages(cwd)
-function _walkDepth(dir, depth, extCount)
-```
-
-### src/discovery/framework-detector.js
-```
-module.exports = { detectFrameworks }
-function detectFrameworks(cwd)
-function _readDeps(cwd)
-function _readFile(p)
-function _existsAnywhere(cwd, filename, maxDepth)
-function _walkFind(dir, name, depth)
 ```
 
 ### src/discovery/source-root-registry.js
@@ -653,12 +636,29 @@ function _dedupeNested(scored)
 function _computeConfidence(frameworks, languages, scoredCount)
 ```
 
+### src/discovery/language-detector.js
+```
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
+```
+
 ### src/discovery/source-root-scorer.js
 ```
 module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS }
 function getRecentlyChangedDirs(cwd)
 function scoreCandidate(dirName, fullPath, context)
 function _countSourceFiles(dir, depth)
+```
+
+### src/discovery/framework-detector.js
+```
+module.exports = { detectFrameworks }
+function detectFrameworks(cwd)
+function _readDeps(cwd)
+function _readFile(p)
+function _existsAnywhere(cwd, filename, maxDepth)
+function _walkFind(dir, name, depth)
 ```
 
 ### src/discovery/sigmapignore.js
@@ -670,8 +670,10 @@ function matchesIgnorePattern(dirName, patterns)
 
 ### src/retrieval/ranker.js
 ```
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, detectIntent }
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent }
 function _computePenalty(filePath)
+function _computeHubs(graph)
+function _isHub(filePath)
 function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:
 function rank(query, sigIndex, opts) → { file: string, score: nu
 function _parseContextFile(contextPath) → Map<string, string[]>

@@ -125,6 +125,9 @@ const DEFAULTS = {
   // Directories scanned for tests when testCoverage is enabled
   testDirs: ['tests', 'test', '__tests__', 'spec'],
 
+  // Enable incremental signature cache (v6.7) - only re-extract changed files
+  sigCache: false,
+
   // Add reverse dependency usage hints on file headings (opt-in)
   impactRadius: false,
 
