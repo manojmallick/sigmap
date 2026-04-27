@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.5.2, with the latest features adding 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
+description: SigMap version history and roadmap. From v0.0 to v6.6.0, with the latest features adding session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Forty-seven versions shipped. MIT open source from day one.
+Forty-eight versions shipped. MIT open source from day one.
 
 **Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -580,9 +580,23 @@ Extended dependency-aware retrieval with 2-hop graph traversal and hub suppressi
 
 ---
 
-## Current milestone — v6.6+
+### v6.6.0 — Session memory + plan command ✓ (tagged v6.6.0 — 2026-04-27)
 
-v6.0–v6.5.2 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, and intent-aware retrieval with signal transparency. Next: performance optimizations for large repos and extended language/framework coverage.
+Cross-session context carry-forward with topic-switch guard and change-impact analysis. New `sigmap ask --followup` flag reuses previous session context (up to 4 hours old) with +0.2 boost to top-5 files; boost reduced to +0.1 when intent differs (topic switch). New `sigmap plan "<goal>"` command analyzes change impact and returns files grouped by confidence level (inspect-first vs likely-to-change). Session state saved to `.context/session.json` with automatic 4-hour TTL expiry.
+
+- **Session memory** — 4-hour TTL session persistence with loadSession, saveSession, mergeSessionContext, clearSession
+- **ask --followup flag** — Reuse previous session's context for iterative exploration with topic-switch guard
+- **plan command** — Analyze change impact and plan modifications with confidence-based file grouping and `--json` output for agent integration
+
+**Tags:** `session memory` · `ask --followup` · `plan command` · `4-hour TTL` · `topic-switch guard` · `change impact analysis`
+
+**Impact:** Session memory enables faster iterative exploration without re-ranking the entire codebase. Plan command helps developers understand change scope before editing.
+
+---
+
+## Current milestone — v6.7+
+
+v6.0–v6.6.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, and cross-session context memory with impact planning. Next: performance optimizations for large repos and extended language/framework coverage.
 
 ---
 

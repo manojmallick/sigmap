@@ -56,15 +56,11 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 2 days ago)
+## changes (last 5 commits — 8 minutes ago)
 ```
-src/config/loader.js                          +_legacyDetectAutoSrcDirs  ~detectAutoSrcDirs
-src/discovery/source-root-resolver.js         +resolveSourceRoots  +_detectMonorepo  +_enumerateCandidates  +_applySpecialRules
-src/discovery/language-detector.js            +detectLanguages  +_walkDepth
-src/discovery/source-root-scorer.js           +getRecentlyChangedDirs  +scoreCandidate  +_countSourceFiles
-src/discovery/framework-detector.js           +detectFrameworks  +_readDeps  +_readFile  +_existsAnywhere
-src/discovery/sigmapignore.js                 +loadIgnorePatterns  +matchesIgnorePattern
-src/retrieval/ranker.js                       +_computePenalty  ~scoreFile  ~rank  ~buildSigIndex
+src/plan/planner.js                           +createPlan
+src/retrieval/ranker.js                       +_computePenalty  +_computeHubs  +_isHub  ~scoreFile
+src/session/memory.js                         +sessionPath  +loadSession  +saveSession  +mergeSessionContext
 ```
 
 ## packages
@@ -184,27 +180,6 @@ function write(context, cwd, opts = {})
 ```
 
 ## src
-
-### src/extractors/javascript.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractClassMembers(block, returnHints)
-function buildReturnHints(src)
-function normalizeType(type)
-function formatReturnHint(type)
-function normalizeParams(params)
-```
-
-### src/extractors/kotlin.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractMembers(block)
-function normalizeParams(params)
-```
 
 ### src/extractors/php.js
 ```
@@ -668,6 +643,21 @@ function loadIgnorePatterns(cwd)
 function matchesIgnorePattern(dirName, patterns)
 ```
 
+### src/plan/planner.js
+```
+module.exports = { createPlan }
+function createPlan(goal, cwd, config)
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
+```
+
 ### src/retrieval/ranker.js
 ```
 module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent }
@@ -683,11 +673,12 @@ function formatRankJSON(results, query) → object
 function detectIntent(query)
 ```
 
-### src/mcp/server.js
+### src/session/memory.js
 ```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
+module.exports = { loadSession, saveSession, mergeSessionContext, clearSession }
+function sessionPath(cwd)
+function loadSession(cwd)
+function saveSession(cwd, { intent, topFiles, query })
+function mergeSessionContext(scores, session, currentIntent)
+function clearSession(cwd)
 ```
