@@ -6267,6 +6267,68 @@ __factories["./src/session/memory"] = function(module, exports) {
   module.exports = { loadSession, saveSession, mergeSessionContext, clearSession };
 };
 
+// ── ./src/plan/planner ──
+__factories["./src/plan/planner"] = function(module, exports) {
+  'use strict';
+
+  const { buildFromCwd } = __require('./src/graph/builder');
+  const { getImpact } = __require('./src/graph/impact');
+  const { buildSigIndex, rank, detectIntent } = __require('./src/retrieval/ranker');
+  const { buildTestIndex, isTested } = __require('./src/extractors/coverage');
+
+  function createPlan(goal, cwd, config) {
+    const intent = detectIntent(goal);
+    const sigIndex = buildSigIndex(cwd);
+    if (sigIndex.size === 0) {
+      return { error: 'no context found' };
+    }
+
+    const ranked = rank(goal, sigIndex, { topK: 15, cwd });
+    const highConf = ranked.filter(r => r.confidence === 'high').slice(0, 5);
+    const medConf = ranked.filter(r => r.confidence === 'medium').slice(0, 5);
+
+    let impact = null;
+    if (highConf.length > 0) {
+      const entryFile = highConf[0].file;
+      try {
+        const graph = buildFromCwd(cwd);
+        impact = getImpact(entryFile, graph, { maxDepth: 3, cwd });
+      } catch (_) {
+        // Graph build failed, continue without impact
+      }
+    }
+
+    let testedFiles = [];
+    try {
+      const testIndex = buildTestIndex(cwd, config.testDirs || ['test', 'tests', '__tests__', 'spec']);
+      testedFiles = highConf.filter(r => {
+        const sigs = r.sigs || [];
+        const fnNames = sigs.map(s => {
+          const m = s.match(/(?:function|def|fn)\s+(\w+)/);
+          return m ? m[1] : null;
+        }).filter(Boolean);
+        return fnNames.some(fn => isTested(fn, testIndex));
+      });
+    } catch (_) {
+      // Coverage index failed, continue without test info
+    }
+
+    return {
+      goal,
+      intent,
+      inspectFirst: highConf.map(r => r.file),
+      likelyToChange: medConf.map(r => r.file),
+      impactRadius: impact ? {
+        direct: [...(impact.direct || [])],
+        transitive: [...(impact.transitive || [])],
+      } : null,
+      testsAffected: testedFiles.map(r => r.file),
+    };
+  }
+
+  module.exports = { createPlan };
+};
+
 // ── ./src/retrieval/tokenizer ──
 __factories["./src/retrieval/tokenizer"] = function(module, exports) {
   'use strict';
