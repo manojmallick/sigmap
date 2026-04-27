@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 36 SigMap commands and flags documented with examples. ask, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 37 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 35 SigMap commands and flags documented with examples. ask, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 36 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -44,6 +44,8 @@ If you are new to the product, start with the workflow pages first:
 | Command / Flag | Description |
 |----------------|-------------|
 | `ask "<query>"` | Unified intent→rank→cost→risk pipeline in one command |
+| `ask "<query>" --followup` | Reuse previous session context for follow-up queries (session carry-forward) |
+| `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
@@ -118,6 +120,62 @@ sigmap ask "explain the rank function" --json
 With `--json` the output is a machine-readable object with `intent`, `coverage`, `cost`, `riskLevel`, and `rankedFiles`.
 
 When coverage drops below 70%, a warning is emitted on stderr pointing to `sigmap validate`.
+
+### ask --followup
+
+Carry context across follow-up queries in a session. When you use `--followup`, SigMap loads the previous session's context (saved automatically after each `ask` run) and applies a +0.2 boost to files that were in the top-5 from the previous query. If the intent differs from the previous session (topic switch), the boost is reduced to +0.1 to reflect the new direction.
+
+Sessions automatically expire after 4 hours. Session state is saved to `.context/session.json`.
+
+```bash
+sigmap ask "explain the auth module"
+# ... work with the results
+sigmap ask "how are tokens validated?" --followup
+sigmap ask "add rate limiting to auth" --followup --json
+```
+
+The follow-up query reuses high-scoring files from the previous session without re-ranking the entire codebase, making iterative exploration faster.
+
+| Option | Description |
+|--------|-------------|
+| `--followup` | Load and merge previous session context (4-hour TTL) |
+
+Session intent detection: if the new query's intent (debug/explain/refactor/etc.) matches the previous session, boost is +0.2; if intent changes, boost is +0.1.
+
+---
+
+## plan
+
+Analyze change impact and plan modifications to your codebase. Given a goal or change description, `sigmap plan` returns files grouped by confidence level (inspect-first vs likely-to-change), estimated impact radius, and tests affected by the change.
+
+```bash
+sigmap plan "add rate limiting to the API"
+sigmap plan "refactor the auth middleware" --json
+```
+
+```
+────────────────────────────────────────────
+ Goal: add rate limiting to the API
+ Intent: integrate
+────────────────────────────────────────────
+
+ Inspect first (high confidence):
+   → src/middleware/rate-limiter.js
+   → src/config/limits.json
+   → src/auth/service.js
+
+ Likely to change (medium confidence):
+   → src/routes/api.js
+   → src/utils/cache.js
+   → src/models/request-log.js
+────────────────────────────────────────────
+```
+
+`--json` output includes `goal`, `intent`, `inspectFirst` array, `likelyToChange` array, and `affectedTests` count.
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit structured JSON with goal, intent, file arrays, and test impact |
 
 ---
 
@@ -392,12 +450,12 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
- SigMap version : 6.5.0
- Benchmark ID   : sigmap-v6.4-main
- Submitted      : 2026-04-23
+ SigMap version : 6.6.0
+ Benchmark ID   : sigmap-v6.5-main
+ Submitted      : 2026-04-27
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 78.9%
+ hit@5          : 81.1%
  token reduction: 96.9%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
@@ -413,12 +471,12 @@ JSON output (`--json`) returns a machine-readable object:
 
 ```json
 {
-  "sigmapVersion": "6.5.0",
-  "benchmarkId": "sigmap-v6.4-main",
-  "canonicalHitAt5": 78.9,
+  "sigmapVersion": "6.6.0",
+  "benchmarkId": "sigmap-v6.5-main",
+  "canonicalHitAt5": 81.1,
   "canonicalReduction": 96.9,
   "local": null,
-  "submittedAt": "2026-04-18"
+  "submittedAt": "2026-04-27"
 }
 ```
 
