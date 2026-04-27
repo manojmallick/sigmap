@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-25 (v6.5.2)**
+Latest saved run: **2026-04-25 (v6.6.0)**
 
 This page answers the question people care about most:
 

@@ -56,7 +56,7 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 0 seconds ago)
+## changes (last 5 commits — 8 minutes ago)
 ```
 src/plan/planner.js                           +createPlan
 src/retrieval/ranker.js                       +_computePenalty  +_computeHubs  +_isHub  ~scoreFile
@@ -595,23 +595,6 @@ function loadConfig(cwd) → object
 function deepClone(obj)
 ```
 
-### src/discovery/language-detector.js
-```
-module.exports = { detectLanguages }
-function detectLanguages(cwd)
-function _walkDepth(dir, depth, extCount)
-```
-
-### src/discovery/framework-detector.js
-```
-module.exports = { detectFrameworks }
-function detectFrameworks(cwd)
-function _readDeps(cwd)
-function _readFile(p)
-function _existsAnywhere(cwd, filename, maxDepth)
-function _walkFind(dir, name, depth)
-```
-
 ### src/discovery/source-root-registry.js
 ```
 module.exports = { REGISTRY }
@@ -628,11 +611,11 @@ function _dedupeNested(scored)
 function _computeConfidence(frameworks, languages, scoredCount)
 ```
 
-### src/discovery/sigmapignore.js
+### src/discovery/language-detector.js
 ```
-module.exports = { loadIgnorePatterns, matchesIgnorePattern }
-function loadIgnorePatterns(cwd)
-function matchesIgnorePattern(dirName, patterns)
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
 ```
 
 ### src/discovery/source-root-scorer.js
@@ -641,6 +624,23 @@ module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS }
 function getRecentlyChangedDirs(cwd)
 function scoreCandidate(dirName, fullPath, context)
 function _countSourceFiles(dir, depth)
+```
+
+### src/discovery/framework-detector.js
+```
+module.exports = { detectFrameworks }
+function detectFrameworks(cwd)
+function _readDeps(cwd)
+function _readFile(p)
+function _existsAnywhere(cwd, filename, maxDepth)
+function _walkFind(dir, name, depth)
+```
+
+### src/discovery/sigmapignore.js
+```
+module.exports = { loadIgnorePatterns, matchesIgnorePattern }
+function loadIgnorePatterns(cwd)
+function matchesIgnorePattern(dirName, patterns)
 ```
 
 ### src/plan/planner.js

@@ -10,6 +10,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.6.0] — 2026-04-27
+
+### Added
+
+- **Session memory** — Carry context across follow-up queries within a coding session. New `src/session/memory.js` module manages session state with 4-hour TTL. Previous session's top-5 files get +0.2 score boost in next query; boost reduced to +0.1 if intent differs (topic-switch guard).
+- **`sigmap ask --followup`** — Reuse previous session's context when making follow-up queries. Session automatically saved after each `ask` command for seamless context carry-forward.
+- **`sigmap plan "<goal>"`** — Analyze change impact and plan modifications. Returns files grouped by confidence (inspect-first vs likely-to-change), impact radius, and affected tests. Supports `--json` output for agent integration.
+
+---
+
 ## [6.5.2] — 2026-04-27
 
 ### Added
