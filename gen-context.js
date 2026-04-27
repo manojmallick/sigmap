@@ -6211,6 +6211,62 @@ __factories["./src/tracking/logger"] = function(module, exports) {
   
 };
 
+// ── ./src/session/memory ──
+__factories["./src/session/memory"] = function(module, exports) {
+  'use strict';
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const SESSION_TTL_MS = 4 * 60 * 60 * 1000;   // 4 hours — one coding session
+
+  function sessionPath(cwd) {
+    return path.join(cwd, '.context', 'session.json');
+  }
+
+  function loadSession(cwd) {
+    const p = sessionPath(cwd);
+    if (!fs.existsSync(p)) return null;
+    try {
+      const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
+      if (Date.now() - raw.ts > SESSION_TTL_MS) return null;  // expired
+      return raw;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveSession(cwd, { intent, topFiles, query }) {
+    const p = sessionPath(cwd);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify({
+      ts: Date.now(),
+      intent,
+      topFiles,   // [{ file, score }] — top 5 from last ask
+      lastQuery: query,
+    }));
+  }
+
+  function mergeSessionContext(scores, session, currentIntent) {
+    if (!session) return scores;
+
+    const boostAmount = session.intent === currentIntent ? 0.20 : 0.10;
+    const sessionBoost = new Map(session.topFiles.map(f => [f.file, boostAmount]));
+
+    return scores.map(r => ({
+      ...r,
+      score: r.score + (sessionBoost.get(r.file) || 0),
+    }));
+  }
+
+  function clearSession(cwd) {
+    const p = sessionPath(cwd);
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  }
+
+  module.exports = { loadSession, saveSession, mergeSessionContext, clearSession };
+};
+
 // ── ./src/retrieval/tokenizer ──
 __factories["./src/retrieval/tokenizer"] = function(module, exports) {
   'use strict';
@@ -9791,6 +9847,7 @@ function main() {
 
     const { detectIntent, buildSigIndex, rank } = requireSourceOrBundled('./src/retrieval/ranker');
     const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
+    const { loadSession, saveSession, mergeSessionContext } = requireSourceOrBundled('./src/session/memory');
 
     const intent = detectIntent(query);
     const intentWeights = getIntentWeights(intent);
@@ -9801,7 +9858,21 @@ function main() {
       process.exit(1);
     }
 
-    const ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd });
+    let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd });
+
+    // v6.8: --followup support — carry session context forward
+    const isFollowup = args.includes('--followup');
+    const session = isFollowup ? loadSession(cwd) : null;
+    if (session) {
+      ranked = mergeSessionContext(ranked, session, intent);
+      ranked.sort((a, b) => b.score - a.score);
+      if (!args.includes('--json')) {
+        process.stderr.write(`[sigmap] ♻  followup — carrying context from: "${session.lastQuery.slice(0, 60)}"\n`);
+      }
+    }
+
+    // v6.8: Save session for future --followup calls
+    saveSession(cwd, { intent, topFiles: ranked.slice(0, 5).map(r => ({ file: r.file, score: r.score })), query });
     const miniCtx = buildMiniContext(ranked, cwd);
     const outPath = path.join(cwd, '.context', 'query-context.md');
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
@@ -9944,6 +10015,77 @@ function main() {
       console.log('\n[sigmap] Copied to clipboard.');
     } catch (_) {}
 
+    process.exit(0);
+  }
+
+  // v6.8: `sigmap plan "<goal>"` — analyze what files need changes and impact radius
+  if (args[0] === 'plan') {
+    const goal = args[1];
+    if (!goal || goal.startsWith('--')) {
+      console.error('[sigmap] Usage: sigmap plan "<goal>"');
+      console.error('  Example: sigmap plan "add rate limiting to the API"');
+      process.exit(1);
+    }
+
+    const { detectIntent, buildSigIndex, rank } = requireSourceOrBundled('./src/retrieval/ranker');
+
+    const intent = detectIntent(goal);
+    const intentWeights = getIntentWeights(intent);
+
+    const sigIndex = buildSigIndex(cwd);
+    if (sigIndex.size === 0) {
+      console.error('[sigmap] no context file found. Run: sigmap (to generate first)');
+      process.exit(1);
+    }
+
+    const ranked = rank(goal, sigIndex, { topK: 15, weights: intentWeights, cwd });
+
+    // Separate into confidence levels
+    const highConf = ranked.filter(r => r.confidence === 'high').slice(0, 5);
+    const medConf = ranked.filter(r => r.confidence === 'medium').slice(0, 5);
+
+    // Compute impact radius (simplified — no graph for now)
+    let impact = null;
+
+    // Identify likely-affected tests (simplified — checks for .test. or .spec. in filename)
+    const testedFiles = highConf.filter(r => /\.(test|spec)\.(js|ts|py)$|_test\.(js|ts|py)$/.test(r.file));
+
+    if (args.includes('--json')) {
+      process.stdout.write(JSON.stringify({
+        goal, intent,
+        inspectFirst: highConf.map(r => r.file),
+        likelyToChange: medConf.map(r => r.file),
+        impactRadius: impact,
+        testsAffected: testedFiles.map(r => r.file),
+      }, null, 2) + '\n');
+    } else {
+      const bar = '─'.repeat(50);
+      console.log(bar);
+      console.log(` sigmap plan  "${goal}"`);
+      console.log(` Intent     : ${intent}`);
+      console.log(bar);
+      console.log('');
+      console.log(' Inspect first (highest relevance):');
+      if (highConf.length === 0) {
+        console.log('   (no files found)');
+      } else {
+        highConf.forEach((r, i) => console.log(`   ${i + 1}. ${path.relative(cwd, r.file)}`));
+      }
+      console.log('');
+      console.log(' Likely to change:');
+      if (medConf.length === 0) {
+        console.log('   (no files found)');
+      } else {
+        medConf.forEach((r, i) => console.log(`   ${i + 1}. ${path.relative(cwd, r.file)}`));
+      }
+      if (testedFiles.length > 0) {
+        console.log('');
+        console.log(' Tests to run after change:');
+        testedFiles.forEach(r => console.log(`   • ${path.relative(cwd, r.file)}`));
+      }
+      console.log('');
+      console.log(bar);
+    }
     process.exit(0);
   }
 

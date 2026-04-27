@@ -56,15 +56,11 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 2 days ago)
+## changes (last 5 commits — 0 seconds ago)
 ```
-src/config/loader.js                          +_legacyDetectAutoSrcDirs  ~detectAutoSrcDirs
-src/discovery/source-root-resolver.js         +resolveSourceRoots  +_detectMonorepo  +_enumerateCandidates  +_applySpecialRules
-src/discovery/language-detector.js            +detectLanguages  +_walkDepth
-src/discovery/source-root-scorer.js           +getRecentlyChangedDirs  +scoreCandidate  +_countSourceFiles
-src/discovery/framework-detector.js           +detectFrameworks  +_readDeps  +_readFile  +_existsAnywhere
-src/discovery/sigmapignore.js                 +loadIgnorePatterns  +matchesIgnorePattern
-src/retrieval/ranker.js                       +_computePenalty  ~scoreFile  ~rank  ~buildSigIndex
+src/plan/planner.js                           +createPlan
+src/retrieval/ranker.js                       +_computePenalty  +_computeHubs  +_isHub  ~scoreFile
+src/session/memory.js                         +sessionPath  +loadSession  +saveSession  +mergeSessionContext
 ```
 
 ## packages
@@ -184,27 +180,6 @@ function write(context, cwd, opts = {})
 ```
 
 ## src
-
-### src/extractors/javascript.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractClassMembers(block, returnHints)
-function buildReturnHints(src)
-function normalizeType(type)
-function formatReturnHint(type)
-function normalizeParams(params)
-```
-
-### src/extractors/kotlin.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractMembers(block)
-function normalizeParams(params)
-```
 
 ### src/extractors/php.js
 ```
@@ -620,6 +595,23 @@ function loadConfig(cwd) → object
 function deepClone(obj)
 ```
 
+### src/discovery/language-detector.js
+```
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
+```
+
+### src/discovery/framework-detector.js
+```
+module.exports = { detectFrameworks }
+function detectFrameworks(cwd)
+function _readDeps(cwd)
+function _readFile(p)
+function _existsAnywhere(cwd, filename, maxDepth)
+function _walkFind(dir, name, depth)
+```
+
 ### src/discovery/source-root-registry.js
 ```
 module.exports = { REGISTRY }
@@ -636,11 +628,11 @@ function _dedupeNested(scored)
 function _computeConfidence(frameworks, languages, scoredCount)
 ```
 
-### src/discovery/language-detector.js
+### src/discovery/sigmapignore.js
 ```
-module.exports = { detectLanguages }
-function detectLanguages(cwd)
-function _walkDepth(dir, depth, extCount)
+module.exports = { loadIgnorePatterns, matchesIgnorePattern }
+function loadIgnorePatterns(cwd)
+function matchesIgnorePattern(dirName, patterns)
 ```
 
 ### src/discovery/source-root-scorer.js
@@ -651,21 +643,19 @@ function scoreCandidate(dirName, fullPath, context)
 function _countSourceFiles(dir, depth)
 ```
 
-### src/discovery/framework-detector.js
+### src/plan/planner.js
 ```
-module.exports = { detectFrameworks }
-function detectFrameworks(cwd)
-function _readDeps(cwd)
-function _readFile(p)
-function _existsAnywhere(cwd, filename, maxDepth)
-function _walkFind(dir, name, depth)
+module.exports = { createPlan }
+function createPlan(goal, cwd, config)
 ```
 
-### src/discovery/sigmapignore.js
+### src/mcp/server.js
 ```
-module.exports = { loadIgnorePatterns, matchesIgnorePattern }
-function loadIgnorePatterns(cwd)
-function matchesIgnorePattern(dirName, patterns)
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
 ```
 
 ### src/retrieval/ranker.js
@@ -683,11 +673,12 @@ function formatRankJSON(results, query) → object
 function detectIntent(query)
 ```
 
-### src/mcp/server.js
+### src/session/memory.js
 ```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
+module.exports = { loadSession, saveSession, mergeSessionContext, clearSession }
+function sessionPath(cwd)
+function loadSession(cwd)
+function saveSession(cwd, { intent, topFiles, query })
+function mergeSessionContext(scores, session, currentIntent)
+function clearSession(cwd)
 ```
