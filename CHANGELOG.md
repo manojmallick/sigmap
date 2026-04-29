@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.6.2] — 2026-04-29
+
+### Added
+
+- **srcDirs validation tests** — Comprehensive integration tests for srcDirs configuration validation. Tests verify all common directories, framework conventions, JVM project structures (Java, Kotlin, Scala), and proper path formatting.
+
+---
+
 ## [6.6.1] — 2026-04-27
 
 ### Added
