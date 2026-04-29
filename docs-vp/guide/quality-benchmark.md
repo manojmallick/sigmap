@@ -34,7 +34,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-04-25 (v6.6.0)**
+Latest saved run: **2026-04-25 (v6.6.3)**
 
 ## Headline numbers
 

@@ -40,7 +40,7 @@ This is the landing page for the public benchmark story. It answers four differe
 
 ## Official v6.5 snapshot
 
-Latest saved benchmark run: **2026-04-25 (v6.6.0)**
+Latest saved benchmark run: **2026-04-25 (v6.6.3)**
 
 | Metric | Result |
 |---|---:|
