@@ -8,7 +8,7 @@ const os = require('os');
 const { resolveSourceRoots } = require('../../src/discovery/source-root-resolver');
 const { detectLanguages }     = require('../../src/discovery/language-detector');
 const { detectFrameworks }    = require('../../src/discovery/framework-detector');
-const { scoreCandidate }      = require('../../src/discovery/source-root-scorer');
+const { scoreCandidate, JVM_PATH_PATTERN }      = require('../../src/discovery/source-root-scorer');
 const { loadIgnorePatterns, matchesIgnorePattern } = require('../../src/discovery/sigmapignore');
 
 function makeRepo(files) {
@@ -445,6 +445,29 @@ test('scoreCandidate gives +5.0 bonus to app/src/main/scala', () => {
   const ctx = { frameworks: [], languages: [], recentDirs: new Set(), frameworkSrcDirs: new Set(), entrypoints: [], frameworkPenalties: [] };
   const score = scoreCandidate('app/src/main/scala', path.join(cwd, 'app/src/main/scala'), ctx);
   assert(score >= 5.0, `app/src/main/scala should get +5.0 bonus, got ${score}`);
+});
+
+test('JVM_PATH_PATTERN is exported from source-root-scorer', () => {
+  assert(JVM_PATH_PATTERN instanceof RegExp, 'JVM_PATH_PATTERN should be a RegExp');
+});
+
+test('JVM_PATH_PATTERN matches src/main/ JVM paths', () => {
+  assert(JVM_PATH_PATTERN.test('src/main/java'), 'should match src/main/java');
+  assert(JVM_PATH_PATTERN.test('src/main/kotlin'), 'should match src/main/kotlin');
+  assert(JVM_PATH_PATTERN.test('src/main/scala'), 'should match src/main/scala');
+});
+
+test('JVM_PATH_PATTERN matches app/src/main/ JVM paths', () => {
+  assert(JVM_PATH_PATTERN.test('app/src/main/java'), 'should match app/src/main/java');
+  assert(JVM_PATH_PATTERN.test('app/src/main/kotlin'), 'should match app/src/main/kotlin');
+  assert(JVM_PATH_PATTERN.test('app/src/main/scala'), 'should match app/src/main/scala');
+});
+
+test('JVM_PATH_PATTERN rejects non-JVM paths', () => {
+  assert(!JVM_PATH_PATTERN.test('src/main/python'), 'should not match src/main/python');
+  assert(!JVM_PATH_PATTERN.test('src/test/java'), 'should not match src/test/java');
+  assert(!JVM_PATH_PATTERN.test('app/main/java'), 'should not match app/main/java');
+  assert(!JVM_PATH_PATTERN.test('src'), 'should not match bare src');
 });
 
 console.log('\nAll tests passed!');

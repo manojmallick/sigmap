@@ -22,6 +22,8 @@ const PENALTY_DIRS = new Set([
   'benchmarks','scripts',
 ]);
 
+const JVM_PATH_PATTERN = /^(src\/main\/(java|kotlin|scala)|app\/src\/main\/(java|kotlin|scala))$/;
+
 const ROOT_ENTRYPOINTS = {
   go:         ['main.go'],
   python:     ['app.py','main.py','wsgi.py','asgi.py'],
@@ -48,7 +50,7 @@ function scoreCandidate(dirName, fullPath, context) {
   let score = 0;
 
   // JVM paths (Java, Kotlin, Scala) get highest priority: +5.0
-  if (/^(src\/main\/(java|kotlin|scala)|app\/src\/main\/(java|kotlin|scala))$/.test(dirName)) score += 5.0;
+  if (JVM_PATH_PATTERN.test(dirName)) score += 5.0;
 
   // Framework match: +3.0 if this dir is in the framework's srcDirs
   if (frameworkSrcDirs.has(dirName)) score += 3.0;
@@ -98,4 +100,4 @@ function _countSourceFiles(dir, depth) {
   return count;
 }
 
-module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS };
+module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN };
