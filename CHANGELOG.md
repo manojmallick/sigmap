@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.6.5] — 2026-04-30
+
+### Added
+
+- **Monorepo JVM project detection** — Enhanced source root resolver to detect `src/main/{java,kotlin,scala}` and `app/src/main/{java,kotlin,scala}` in monorepo workspace packages (packages/*, apps/*, services/*, modules/*). Added `src/test/{java,kotlin}` and `app/src/main/scala` to DEEP_PATHS for consistent detection across monorepo and non-monorepo structures.
+
+---
+
 ## [6.6.4] — 2026-04-29
 
 ### Changed
