@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.6.0, with the latest features adding session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
+description: SigMap version history and roadmap. From v0.0 to v6.6.1, with the latest features adding JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Forty-eight versions shipped. MIT open source from day one.
+Forty-nine versions shipped. MIT open source from day one.
 
 **Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -594,9 +594,19 @@ Cross-session context carry-forward with topic-switch guard and change-impact an
 
 ---
 
+### v6.6.1 — JVM project structure detection ✓ (tagged v6.6.1 — 2026-04-27)
+
+Added out-of-the-box support for Java, Kotlin, and Scala projects through intelligent detection of JVM convention directories. `srcDirs` configuration now includes Maven/Gradle standard paths (`src/main/java`, `src/main/kotlin`, `src/main/scala`, `app/src/main/java`, `app/src/main/kotlin`) and common test locations (`src/test/java`, `src/test/kotlin`). Patch release with no benchmark changes.
+
+**Tags:** `JVM support` · `Java detection` · `Kotlin detection` · `Scala detection` · `srcDirs` · `auto-detection`
+
+**Impact:** Eliminates manual configuration for JVM-based projects. Developers can now run `sigmap` immediately on Spring Boot, Micronaut, Quarkus, and Kotlin codebases.
+
+---
+
 ## Current milestone — v6.7+
 
-v6.0–v6.6.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, and cross-session context memory with impact planning. Next: performance optimizations for large repos and extended language/framework coverage.
+v6.0–v6.6.1 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, and JVM project structure auto-detection. Next: performance optimizations for large repos and extended language/framework coverage.
 
 ---
 
