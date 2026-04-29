@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.6.2, with the latest features adding comprehensive srcDirs validation, JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
+description: SigMap version history and roadmap. From v0.0 to v6.6.3, with the latest features adding comprehensive srcDirs validation, JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Forty-nine versions shipped. MIT open source from day one.
+Fifty versions shipped. MIT open source from day one.
 
 **Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -604,7 +604,7 @@ Added out-of-the-box support for Java, Kotlin, and Scala projects through intell
 
 ---
 
-### v6.6.2 — srcDirs validation & test coverage ✓ (tagged v6.6.2 — 2026-04-29)
+### v6.6.2–v6.6.3 — srcDirs validation & test coverage ✓ (latest patch: v6.6.3 — 2026-04-29)
 
 Comprehensive validation of srcDirs configuration with 10 integration tests ensuring all source directory paths (including JVM structures) are correctly defined, bundled, and accessible. Tests verify: array structure, common directories (src, app, lib), framework conventions (Next.js pages, components), JVM paths (src/main/java, Kotlin, Scala, test directories), reasonable count (25–50 entries), load via loadConfig(), no duplicates, valid relative paths, proper JVM formatting, and safe exclusions (no node_modules, .git, dist).
 

@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.6.3] — 2026-04-29
+
+### Fixed
+
+- **JVM path pattern consistency** — Updated source root scorer regex to recognize Scala in both `src/main/scala` and `app/src/main/scala` directory patterns for consistent JVM project detection.
+
+---
+
 ## [6.6.2] — 2026-04-29
 
 ### Added

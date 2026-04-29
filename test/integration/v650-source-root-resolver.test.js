@@ -405,4 +405,46 @@ test('resolveSourceRoots returns different confidence levels', () => {
   assert(emptyResult.confidence === 'low', 'repo with no signals should be low confidence');
 });
 
+test('scoreCandidate gives +5.0 bonus to src/main/java', () => {
+  const cwd = makeRepo({ 'src/main/java/App.java': '' });
+  const ctx = { frameworks: [], languages: [], recentDirs: new Set(), frameworkSrcDirs: new Set(), entrypoints: [], frameworkPenalties: [] };
+  const score = scoreCandidate('src/main/java', path.join(cwd, 'src/main/java'), ctx);
+  assert(score >= 5.0, `src/main/java should get +5.0 bonus, got ${score}`);
+});
+
+test('scoreCandidate gives +5.0 bonus to src/main/kotlin', () => {
+  const cwd = makeRepo({ 'src/main/kotlin/App.kt': '' });
+  const ctx = { frameworks: [], languages: [], recentDirs: new Set(), frameworkSrcDirs: new Set(), entrypoints: [], frameworkPenalties: [] };
+  const score = scoreCandidate('src/main/kotlin', path.join(cwd, 'src/main/kotlin'), ctx);
+  assert(score >= 5.0, `src/main/kotlin should get +5.0 bonus, got ${score}`);
+});
+
+test('scoreCandidate gives +5.0 bonus to src/main/scala', () => {
+  const cwd = makeRepo({ 'src/main/scala/App.scala': '' });
+  const ctx = { frameworks: [], languages: [], recentDirs: new Set(), frameworkSrcDirs: new Set(), entrypoints: [], frameworkPenalties: [] };
+  const score = scoreCandidate('src/main/scala', path.join(cwd, 'src/main/scala'), ctx);
+  assert(score >= 5.0, `src/main/scala should get +5.0 bonus, got ${score}`);
+});
+
+test('scoreCandidate gives +5.0 bonus to app/src/main/java', () => {
+  const cwd = makeRepo({ 'app/src/main/java/App.java': '' });
+  const ctx = { frameworks: [], languages: [], recentDirs: new Set(), frameworkSrcDirs: new Set(), entrypoints: [], frameworkPenalties: [] };
+  const score = scoreCandidate('app/src/main/java', path.join(cwd, 'app/src/main/java'), ctx);
+  assert(score >= 5.0, `app/src/main/java should get +5.0 bonus, got ${score}`);
+});
+
+test('scoreCandidate gives +5.0 bonus to app/src/main/kotlin', () => {
+  const cwd = makeRepo({ 'app/src/main/kotlin/App.kt': '' });
+  const ctx = { frameworks: [], languages: [], recentDirs: new Set(), frameworkSrcDirs: new Set(), entrypoints: [], frameworkPenalties: [] };
+  const score = scoreCandidate('app/src/main/kotlin', path.join(cwd, 'app/src/main/kotlin'), ctx);
+  assert(score >= 5.0, `app/src/main/kotlin should get +5.0 bonus, got ${score}`);
+});
+
+test('scoreCandidate gives +5.0 bonus to app/src/main/scala', () => {
+  const cwd = makeRepo({ 'app/src/main/scala/App.scala': '' });
+  const ctx = { frameworks: [], languages: [], recentDirs: new Set(), frameworkSrcDirs: new Set(), entrypoints: [], frameworkPenalties: [] };
+  const score = scoreCandidate('app/src/main/scala', path.join(cwd, 'app/src/main/scala'), ctx);
+  assert(score >= 5.0, `app/src/main/scala should get +5.0 bonus, got ${score}`);
+});
+
 console.log('\nAll tests passed!');

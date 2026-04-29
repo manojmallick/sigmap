@@ -47,6 +47,9 @@ function scoreCandidate(dirName, fullPath, context) {
 
   let score = 0;
 
+  // JVM paths (Java, Kotlin, Scala) get highest priority: +5.0
+  if (/^(src\/main\/(java|kotlin|scala)|app\/src\/main\/(java|kotlin|scala))$/.test(dirName)) score += 5.0;
+
   // Framework match: +3.0 if this dir is in the framework's srcDirs
   if (frameworkSrcDirs.has(dirName)) score += 3.0;
 
