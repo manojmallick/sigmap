@@ -110,6 +110,18 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
           }
           // Also consider the package root itself
           candidates.push({ name: `${top}/${pkg.name}`, full: path.join(topFull, pkg.name) });
+
+          // JVM project structures in monorepo packages (Java, Kotlin, Scala)
+          for (const jvmLang of ['java', 'kotlin', 'scala']) {
+            const srcMainJvm = path.join(topFull, pkg.name, 'src', 'main', jvmLang);
+            if (fs.existsSync(srcMainJvm)) {
+              candidates.push({ name: `${top}/${pkg.name}/src/main/${jvmLang}`, full: srcMainJvm });
+            }
+            const appSrcMainJvm = path.join(topFull, pkg.name, 'app', 'src', 'main', jvmLang);
+            if (fs.existsSync(appSrcMainJvm)) {
+              candidates.push({ name: `${top}/${pkg.name}/app/src/main/${jvmLang}`, full: appSrcMainJvm });
+            }
+          }
         }
       } catch (_) {}
     }
@@ -118,7 +130,8 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
   // Deep paths known by language/framework (e.g. src/main/java, src-tauri/src)
   const DEEP_PATHS = [
     'src/main/java','src/main/kotlin','src/main/scala',
-    'src-tauri/src','Sources/App','app/src/main/java','app/src/main/kotlin',
+    'src-tauri/src','Sources/App','app/src/main/java','app/src/main/kotlin','app/src/main/scala',
+    'src/test/java','src/test/kotlin',
   ];
   for (const dp of DEEP_PATHS) {
     const full = path.join(cwd, dp);
