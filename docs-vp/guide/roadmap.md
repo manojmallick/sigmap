@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.6.1, with the latest features adding JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
+description: SigMap version history and roadmap. From v0.0 to v6.6.2, with the latest features adding comprehensive srcDirs validation, JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "46 versions shipped. See what changed in each release and what is coming next."
+      content: "49 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -601,6 +601,16 @@ Added out-of-the-box support for Java, Kotlin, and Scala projects through intell
 **Tags:** `JVM support` · `Java detection` · `Kotlin detection` · `Scala detection` · `srcDirs` · `auto-detection`
 
 **Impact:** Eliminates manual configuration for JVM-based projects. Developers can now run `sigmap` immediately on Spring Boot, Micronaut, Quarkus, and Kotlin codebases.
+
+---
+
+### v6.6.2 — srcDirs validation & test coverage ✓ (tagged v6.6.2 — 2026-04-29)
+
+Comprehensive validation of srcDirs configuration with 10 integration tests ensuring all source directory paths (including JVM structures) are correctly defined, bundled, and accessible. Tests verify: array structure, common directories (src, app, lib), framework conventions (Next.js pages, components), JVM paths (src/main/java, Kotlin, Scala, test directories), reasonable count (25–50 entries), load via loadConfig(), no duplicates, valid relative paths, proper JVM formatting, and safe exclusions (no node_modules, .git, dist).
+
+**Tags:** `srcDirs validation` · `integration tests` · `JVM paths` · `configuration consistency` · `test coverage`
+
+**Impact:** All 58 integration tests passing. srcDirs configuration now machine-verified on every CI run. Catch misconfiguration of source directories before runtime.
 
 ---
 
