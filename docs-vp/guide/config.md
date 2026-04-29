@@ -1,10 +1,10 @@
 ---
 title: Config reference
-description: Complete SigMap configuration reference. All 22 keys in gen-context.config.json with types, defaults, and examples. srcDirs, maxTokens, extends, strategy, outputs, secretScan and more.
+description: Complete SigMap configuration reference. All 24 keys in gen-context.config.json with types, defaults, and examples. srcDirs, maxTokens, extends, strategy, outputs, secretScan and more.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Configuration Reference — all 21 keys"
+      content: "SigMap Configuration Reference — all 24 keys"
   - - meta
     - property: og:description
       content: "Every gen-context.config.json key documented with types, defaults, and examples."
@@ -16,7 +16,7 @@ head:
       content: article
   - - meta
     - name: twitter:title
-      content: "SigMap Configuration Reference — all 21 keys"
+      content: "SigMap Configuration Reference — all 24 keys"
   - - meta
     - name: twitter:description
       content: "Every gen-context.config.json key documented with types, defaults, and examples."
