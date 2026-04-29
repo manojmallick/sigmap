@@ -26,6 +26,10 @@ const DEFAULTS = {
     'pages', 'components', 'hooks', 'routes', 'controllers',
     'models', 'views', 'resources', 'config', 'db',
     'projects', 'apps', 'libs', 'instance', 'blueprints',
+    // JVM project structures (Java, Kotlin, Scala)
+    'src/main/java', 'src/main/kotlin', 'src/main/scala',
+    'app/src/main/java', 'app/src/main/kotlin',
+    'src/test/java', 'src/test/kotlin',
   ],
 
   // Directory/file names to exclude entirely

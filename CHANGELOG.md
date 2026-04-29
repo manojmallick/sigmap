@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.6.1] — 2026-04-27
+
+### Added
+
+- **JVM project structure support** — Added auto-detection of Java, Kotlin, and Scala project directories. `srcDirs` now includes `src/main/java`, `src/main/kotlin`, `src/main/scala`, `app/src/main/java`, `app/src/main/kotlin`, `src/test/java`, and `src/test/kotlin` for out-of-the-box support of JVM-based projects.
+
+---
+
 ## [6.6.0] — 2026-04-27
 
 ### Added
