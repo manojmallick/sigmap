@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.6.4] — 2026-04-29
+
+### Changed
+
+- **JVM path pattern refactor** — Extracted JVM path regex pattern into a reusable constant `JVM_PATH_PATTERN` in source-root-scorer.js for improved testability and reusability. No behavior changes.
+
+---
+
 ## [6.6.3] — 2026-04-29
 
 ### Fixed
