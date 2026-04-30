@@ -83,9 +83,9 @@ features:
   <span>native tool registration (Claude Code + Codex)</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v6.4-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v6.5-main</span>
   <span>·</span>
-  <span>81.1% hit@5 · 80.0% graph-boosted · 2026-04-23</span>
+  <span>81.1% hit@5 · 81.1% graph-boosted · 2026-04-25</span>
 </div>
 </div>
 
