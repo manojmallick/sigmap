@@ -470,4 +470,45 @@ test('JVM_PATH_PATTERN rejects non-JVM paths', () => {
   assert(!JVM_PATH_PATTERN.test('src'), 'should not match bare src');
 });
 
+test('resolveSourceRoots detects JVM paths in monorepo packages', () => {
+  const cwd = makeRepo({
+    'pnpm-workspace.yaml': 'packages:\n  - packages/*',
+    'packages/api/package.json': '{"name": "api"}',
+    'packages/api/src/main/java/App.java': 'class App {}',
+    'packages/api/src/main/kotlin/Config.kt': 'object Config',
+    'packages/api/src/main/java/utils/Helper.java': 'class Helper {}',
+    'packages/api/src/main/java/models/Model.java': 'class Model {}',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(result.isMonorepo === true, 'should detect pnpm monorepo');
+  assert(result.roots.length > 0, 'should find at least one root');
+  // JVM paths in monorepo should be in explanation or roots
+  const hasJvmPath = result.explanation.some(e => e.dir.includes('packages/api') && (e.dir.includes('java') || e.dir.includes('kotlin')));
+  assert(hasJvmPath, 'should detect JVM paths in monorepo explanation');
+});
+
+test('resolveSourceRoots detects app/src/main JVM paths in monorepo', () => {
+  const cwd = makeRepo({
+    'pnpm-workspace.yaml': 'packages:\n  - apps/*',
+    'apps/backend/package.json': '{"name": "backend"}',
+    'apps/backend/app/src/main/scala/Main.scala': 'object Main',
+    'apps/backend/app/src/main/scala/core/Engine.scala': 'class Engine',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(result.isMonorepo === true, 'should detect monorepo');
+  // JVM paths should be scored and appear in explanation
+  const hasScalaPath = result.explanation.some(e => e.dir.includes('apps/backend') && e.dir.includes('scala'));
+  assert(hasScalaPath, 'should detect Scala paths in monorepo explanation');
+});
+
+test('resolveSourceRoots includes test JVM paths in DEEP_PATHS', () => {
+  const cwd = makeRepo({
+    'src/test/java/AppTest.java': '',
+    'src/test/kotlin/ConfigTest.kt': '',
+  });
+  const result = resolveSourceRoots(cwd);
+  assert(result.roots.some(r => r === 'src/test/java'), 'should find src/test/java');
+  assert(result.roots.some(r => r === 'src/test/kotlin'), 'should find src/test/kotlin');
+});
+
 console.log('\nAll tests passed!');
