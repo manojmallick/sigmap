@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.6.3, with the latest features adding comprehensive srcDirs validation, JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
+description: SigMap version history and roadmap. From v0.0 to v6.6.5, with the latest features adding monorepo JVM detection, comprehensive srcDirs validation, JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "49 versions shipped. See what changed in each release and what is coming next."
+      content: "51 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/roadmap"
@@ -604,19 +604,19 @@ Added out-of-the-box support for Java, Kotlin, and Scala projects through intell
 
 ---
 
-### v6.6.2–v6.6.3 — srcDirs validation & test coverage ✓ (latest patch: v6.6.3 — 2026-04-29)
+### v6.6.2–v6.6.5 — srcDirs validation, JVM pattern refactor & monorepo support ✓ (latest: v6.6.5 — 2026-04-30)
 
-Comprehensive validation of srcDirs configuration with 10 integration tests ensuring all source directory paths (including JVM structures) are correctly defined, bundled, and accessible. Tests verify: array structure, common directories (src, app, lib), framework conventions (Next.js pages, components), JVM paths (src/main/java, Kotlin, Scala, test directories), reasonable count (25–50 entries), load via loadConfig(), no duplicates, valid relative paths, proper JVM formatting, and safe exclusions (no node_modules, .git, dist).
+Comprehensive validation of srcDirs configuration with comprehensive JVM project support. v6.6.2 added 10 integration tests ensuring all source directory paths (including JVM structures) are correctly defined. v6.6.3 fixed Scala detection in app/src/main/ pattern. v6.6.4 extracted JVM path pattern as a reusable constant for improved testability. v6.6.5 enhanced monorepo support to detect `src/main/{java,kotlin,scala}` and `app/src/main/{java,kotlin,scala}` in workspace packages (packages/*, apps/*, services/*, modules/*), ensuring JVM projects in monorepo structures are properly discovered.
 
-**Tags:** `srcDirs validation` · `integration tests` · `JVM paths` · `configuration consistency` · `test coverage`
+**Tags:** `srcDirs validation` · `JVM path detection` · `monorepo support` · `integration tests` · `configuration consistency`
 
-**Impact:** All 58 integration tests passing. srcDirs configuration now machine-verified on every CI run. Catch misconfiguration of source directories before runtime.
+**Impact:** All 58 integration tests passing. srcDirs configuration machine-verified on every CI run. JVM project detection now works seamlessly across monorepo and non-monorepo structures. Catch misconfiguration of source directories before runtime.
 
 ---
 
 ## Current milestone — v6.7+
 
-v6.0–v6.6.1 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, and JVM project structure auto-detection. Next: performance optimizations for large repos and extended language/framework coverage.
+v6.0–v6.6.5 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, and enhanced monorepo JVM support for workspace packages. Next: performance optimizations for large repos and extended language/framework coverage.
 
 ---
 
