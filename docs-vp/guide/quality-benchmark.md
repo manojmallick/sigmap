@@ -1,13 +1,13 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v6.5. 13/18 repos overflow GPT-4o without SigMap, 5,047 files would be hidden, and GPT-4o input savings reach $9,446.95/month at 10 calls/day.
+description: What token reduction means operationally in v6.6. 13/18 repos overflow GPT-4o without SigMap, 4,993 files would be hidden, and GPT-4o input savings reach $9,337.58/month at 10 calls/day.
 head:
   - - meta
     - property: og:title
       content: "SigMap quality benchmark — overflow, hidden files, and cost"
   - - meta
     - property: og:description
-      content: "13/18 repos overflow GPT-4o without SigMap. 5,047 files would be hidden. $9,446.95/month saved in GPT-4o input cost at 10 calls/day."
+      content: "13/18 repos overflow GPT-4o without SigMap. 4,993 files would be hidden. $9,337.58/month saved in GPT-4o input cost at 10 calls/day."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/quality-benchmark"
@@ -15,16 +15,16 @@ head:
 
 # Quality benchmark
 
-::: info Official v6.5 benchmark snapshot
-**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-25
+::: info Official v6.6 benchmark snapshot
+**Benchmark ID:** sigmap-v6.6-main &nbsp;·&nbsp; **Date:** 2026-04-30
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **81.1%** vs 13.6% baseline |
-| Retrieval lift | **6.0×** |
-| Prompt reduction | **41.4%** (2.84 → 1.69) |
+| Hit@5 | **80.0%** vs 13.6% baseline |
+| Retrieval lift | **5.9×** |
+| Prompt reduction | **41.0%** (2.84 → 1.68) |
 | Task success proxy | **52.2%** |
-| Overall token reduction | **96.9%** |
+| Overall token reduction | **96.8%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
@@ -34,7 +34,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-04-25 (v6.6.5)**
+Latest saved run: **2026-04-30 (v6.6.5)**
 
 ## Headline numbers
 

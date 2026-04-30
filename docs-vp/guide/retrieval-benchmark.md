@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v6.5. 81.1% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
+description: Latest saved retrieval benchmark for SigMap v6.6. 80.0% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 81.1% hit@5"
+      content: "SigMap retrieval benchmark — 80.0% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 81.1% hit@5 vs 13.6% random baseline, 6.0x lift, 90 tasks, 18 repos."
+      content: "Latest saved run: 80.0% hit@5 vs 13.6% random baseline, 5.9x lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/retrieval-benchmark"
@@ -15,21 +15,21 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v6.5 benchmark snapshot
-**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-25
+::: info Official v6.6 benchmark snapshot
+**Benchmark ID:** sigmap-v6.6-main &nbsp;·&nbsp; **Date:** 2026-04-30
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **81.1%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **81.1%** |
-| Retrieval lift | **6.0×** |
-| Prompt reduction | **41.4%** (2.84 → 1.69) |
+| Hit@5 | **80.0%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **80.0%** |
+| Retrieval lift | **5.9×** |
+| Prompt reduction | **41.0%** (2.84 → 1.68) |
 | Task success proxy | **52.2%** |
-| Overall token reduction | **96.9%** |
+| Overall token reduction | **96.8%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-25 (v6.6.5)**
+Latest saved run: **2026-04-30 (v6.6.5)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **81.1% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 

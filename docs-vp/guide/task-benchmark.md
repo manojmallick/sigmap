@@ -1,13 +1,13 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v6.5. 52.2% correct, 41.4% fewer prompts, and 81.1% hit@5 across 90 tasks on 18 repos.
+description: Latest saved task benchmark for SigMap v6.6. 52.2% correct, 41.0% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
       content: "SigMap task benchmark — fewer retries, better context"
   - - meta
     - property: og:description
-      content: "Latest saved run: 52.2% correct, 1.69 prompts per task, 41.4% prompt reduction, 90 tasks, 18 repos."
+      content: "Latest saved run: 52.2% correct, 1.68 prompts per task, 41.0% prompt reduction, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/task-benchmark"
@@ -15,21 +15,21 @@ head:
 
 # Task benchmark
 
-::: info Official v6.5 benchmark snapshot
-**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-25
+::: info Official v6.6 benchmark snapshot
+**Benchmark ID:** sigmap-v6.6-main &nbsp;·&nbsp; **Date:** 2026-04-30
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **81.1%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **81.1%** |
-| Retrieval lift | **6.0×** |
-| Prompt reduction | **41.4%** (2.84 → 1.69) |
+| Hit@5 | **80.0%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **80.0%** |
+| Retrieval lift | **5.9×** |
+| Prompt reduction | **41.0%** (2.84 → 1.68) |
 | Task success proxy | **52.2%** |
-| Overall token reduction | **96.9%** |
+| Overall token reduction | **96.8%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-25 (v6.6.5)**
+Latest saved run: **2026-04-30 (v6.6.5)**
 
 This page answers the question people care about most:
 

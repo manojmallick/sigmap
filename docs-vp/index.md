@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — zero-dependency AI context engine
-description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 81.1% hit@5, 41.4% fewer prompts, 96.9% average token reduction.
+description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 80.0% hit@5, 41.0% fewer prompts, 96.8% average token reduction.
 head:
   - - meta
     - property: og:title
       content: "SigMap — grounded AI coding context"
   - - meta
     - property: og:description
-      content: "Ask, validate, judge, and learn from real code context. 81.1% hit@5, 41.4% fewer prompts, 96.9% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41.0% fewer prompts, 96.8% overall token reduction."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Better context. More grounded answers.
-  tagline: "Zero-dependency AI context engine. 81.1% hit@5 · 96.9% token reduction · Ask → Validate → Judge → Learn."
+  tagline: "Zero-dependency AI context engine. 80.0% hit@5 · 96.8% token reduction · Ask → Validate → Judge → Learn."
   actions:
     - theme: brand
       text: Get Started →
@@ -142,12 +142,12 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success proxy | 10% | **52.2%** |
-| Prompts per task | 2.84 | **1.69** |
-| Retrieval hit@5 | 13.6% | **81.1%** (80.0% graph-boosted) |
-| Overall token reduction | — | **96.9%** |
+| Prompts per task | 2.84 | **1.68** |
+| Retrieval hit@5 | 13.6% | **80.0%** (80.0% graph-boosted) |
+| Overall token reduction | — | **96.8%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-25 (v6.6.5)**.
+Latest saved benchmark run: **2026-04-30 (v6.6.5)**.
 
 </div>
 
