@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 18 repos, 13 languages, and 9 domains with 81.1% hit@5 in the latest saved v6.5 retrieval run.
+description: SigMap generalizes across 18 repos, 13 languages, and 9 domains with 80.0% hit@5 in the latest saved v6.6 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 81.1% hit@5 across 13 languages and 9 domains"
+      content: "SigMap Generalization — 80.0% hit@5 across 13 languages and 9 domains"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
@@ -19,14 +19,14 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v6.5 benchmark snapshot
-**Benchmark ID:** sigmap-v6.5-main &nbsp;·&nbsp; **Date:** 2026-04-25
+::: info Official v6.6 benchmark snapshot
+**Benchmark ID:** sigmap-v6.6-main &nbsp;·&nbsp; **Date:** 2026-04-30
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **81.1%** vs 13.6% baseline |
-| Retrieval lift | **6.0×** |
-| Prompt reduction | **41.4%** (2.84 → 1.69) |
+| Hit@5 | **80.0%** vs 13.6% baseline |
+| Retrieval lift | **5.9×** |
+| Prompt reduction | **41.0%** (2.84 → 1.68) |
 | Task success proxy | **52.2%** |
 | Overall token reduction | **96.9%** |
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |

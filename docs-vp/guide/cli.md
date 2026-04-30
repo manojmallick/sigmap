@@ -451,12 +451,12 @@ sigmap bench --submit --json
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
  SigMap version : 6.6.5
- Benchmark ID   : sigmap-v6.5-main
- Submitted      : 2026-04-27
+ Benchmark ID   : sigmap-v6.6-main
+ Submitted      : 2026-04-30
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 81.1%
- token reduction: 96.9%
+ hit@5          : 80.0%
+ token reduction: 96.8%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
 ────────────────────────────────────────────────────────
@@ -472,11 +472,11 @@ JSON output (`--json`) returns a machine-readable object:
 ```json
 {
   "sigmapVersion": "6.6.5",
-  "benchmarkId": "sigmap-v6.5-main",
-  "canonicalHitAt5": 81.1,
-  "canonicalReduction": 96.9,
+  "benchmarkId": "sigmap-v6.6-main",
+  "canonicalHitAt5": 80.0,
+  "canonicalReduction": 96.8,
   "local": null,
-  "submittedAt": "2026-04-27"
+  "submittedAt": "2026-04-30"
 }
 ```
 
