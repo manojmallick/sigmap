@@ -12,6 +12,7 @@
 [![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
+[![Hacker News](https://img.shields.io/badge/Hacker%20News-Discussion-orange?logo=ycombinator)](https://news.ycombinator.com/item?id=47956790)
 
 </div>
 
@@ -87,7 +88,10 @@ Token reduction: 40–98%  (avg 96.8% across 18 real repos)
 
 Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.
 
-[Full methodology →](https://manojmallick.github.io/sigmap/guide/benchmark.html)
+**Resources:**
+- [Full methodology →](https://manojmallick.github.io/sigmap/guide/benchmark.html)
+- [Benchmark suite (GitHub)](https://github.com/manojmallick/sigmap-benchmark-suite) — scripts, tasks, and raw data
+- [Benchmark data (Zenodo)](https://zenodo.org/records/19898842) — archived results for reproducibility
 
 <div align="center">
 <img src="docs/comparison-chart.svg" alt="SigMap benchmark — before vs after across 3 RAG quality metrics" width="700" />

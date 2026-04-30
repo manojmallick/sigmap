@@ -204,7 +204,10 @@ Token reduction:    40–98% (avg 96.8% across 18 repos)
 
 Measured on 90 coding tasks across 18 real public repos. No LLM API. Fully reproducible.
 
-[Full benchmark methodology →](/guide/benchmark)
+**Benchmark resources:**
+- [Full methodology →](/guide/benchmark)
+- [Benchmark suite (GitHub)](https://github.com/manojmallick/sigmap-benchmark-suite) — scripts and tasks
+- [Archived dataset (Zenodo)](https://zenodo.org/records/19898842) — for independent verification
 
 ---
 

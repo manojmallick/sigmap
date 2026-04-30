@@ -117,3 +117,9 @@ The matrix run writes:
 - `benchmarks/reports/task-benchmark.json`
 - `benchmarks/reports/benchmark-matrix.json`
 - `benchmarks/reports/benchmark-report.html`
+
+## Benchmark resources
+
+- **[Benchmark suite →](https://github.com/manojmallick/sigmap-benchmark-suite)** — Open-source scripts, 90 real-world coding tasks, and per-repo raw results
+- **[Archived data (Zenodo) →](https://zenodo.org/records/19898842)** — Full benchmark dataset for reproducibility and independent analysis
+- **[Hacker News discussion →](https://news.ycombinator.com/item?id=47956790)** — Community feedback and related work
