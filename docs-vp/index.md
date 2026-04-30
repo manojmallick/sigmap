@@ -147,7 +147,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.9%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-23 (v6.4.0)**.
+Latest saved benchmark run: **2026-04-25 (v6.6.5)**.
 
 </div>
 

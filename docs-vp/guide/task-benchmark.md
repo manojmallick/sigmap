@@ -72,7 +72,7 @@ The task benchmark models that outcome from the ranked file quality tiers:
 |---|---:|
 | Average prompts without SigMap | 2.84 |
 | Average prompts with SigMap | **1.69** |
-| Reduction | **40.6%** |
+| Reduction | **41.4%** |
 | Average hit@5 lift | **55.4x** across repo baselines |
 
 ## What changed in the v5 story
