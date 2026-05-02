@@ -5387,7 +5387,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.6.5',
+  version: '6.7.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
