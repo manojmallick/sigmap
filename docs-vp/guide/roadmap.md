@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.6.5, with the latest features adding monorepo JVM detection, comprehensive srcDirs validation, JVM project structure detection, session memory, plan command, 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
+description: SigMap version history and roadmap. From v0.0 to v6.7.0, with the latest features adding 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
 head:
   - - meta
     - property: og:title
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Fifty versions shipped. MIT open source from day one.
+Fifty-one versions shipped. MIT open source from day one.
 
-**Stats:** 96.9% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.8% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -614,9 +614,26 @@ Comprehensive validation of srcDirs configuration with comprehensive JVM project
 
 ---
 
-## Current milestone — v6.7+
+### v6.7.0 — 2-hop graph boost + hub suppression ✓ (tagged v6.7.0 — 2026-05-03)
 
-v6.0–v6.6.5 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, and enhanced monorepo JVM support for workspace packages. Next: performance optimizations for large repos and extended language/framework coverage.
+Formalized retrieval and caching improvements into a stable release milestone. Extended dependency-aware retrieval with 2-hop graph traversal (hop1: +0.40, hop2: +0.15 with decay) for improved multi-layer dependency context. Hub suppression prevents over-boosting shared utility files (detected via >20% fanout threshold or static patterns like `util/`, `helper/`, `common/`). Incremental signature cache with mtime-based validation accelerates subsequent runs by caching extracted signatures. Cache health statistics (entry count, disk size) now visible in `--health` output for visibility into cache efficiency.
+
+- **2-hop graph boost with decay** — traverses 2 hops in dependency graph for improved multi-layer context (vs 1-hop in v6.0)
+- **Hub suppression** — shared utilities excluded from graph boosts to reduce noise from generic files
+- **Incremental signature cache** — opt-in `sigCache: true` config key caches extracted signatures with mtime-based change detection
+- **Cache health statistics** — `--health` output includes cache entry count and disk size for monitoring cache effectiveness
+
+**Tags:** `2-hop graph boost` · `hub suppression` · `sigCache` · `incremental cache` · `cache health stats`
+
+**Benchmark:** 96.8% overall token reduction · 80.0% hit@5 · 52.2% task success · 41.0% prompt reduction
+
+**Impact:** 722 tests passing · multi-layer dependency context improves ranking for complex architectures · incremental cache reduces latency on large repos by skipping unchanged files
+
+---
+
+## Current milestone — v6.8+
+
+v6.0–v6.7.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, and 2-hop graph boost with hub suppression. Next: extended language/framework coverage and performance optimizations for very large monorepos (>50K files).
 
 ---
 
