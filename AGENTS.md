@@ -56,13 +56,6 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 8 minutes ago)
-```
-src/plan/planner.js                           +createPlan
-src/retrieval/ranker.js                       +_computePenalty  +_computeHubs  +_isHub  ~scoreFile
-src/session/memory.js                         +sessionPath  +loadSession  +saveSession  +mergeSessionContext
-```
-
 ## packages
 
 ### packages/cli/index.js
@@ -580,11 +573,6 @@ function exportWeights(cwd, outputPath)
 function importWeights(cwd, importPath, replace)
 ```
 
-### src/config/defaults.js
-```
-module.exports = { DEFAULTS }
-```
-
 ### src/config/loader.js
 ```
 module.exports = { loadConfig, loadBaseConfig }
@@ -593,37 +581,6 @@ function detectAutoSrcDirs(cwd, excludeList) → string[]
 function _legacyDetectAutoSrcDirs(cwd, excludeList) → string[]
 function loadConfig(cwd) → object
 function deepClone(obj)
-```
-
-### src/discovery/source-root-registry.js
-```
-module.exports = { REGISTRY }
-```
-
-### src/discovery/source-root-resolver.js
-```
-module.exports = { resolveSourceRoots }
-function resolveSourceRoots(cwd, opts = {})
-function _detectMonorepo(cwd)
-function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
-function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
-function _dedupeNested(scored)
-function _computeConfidence(frameworks, languages, scoredCount)
-```
-
-### src/discovery/language-detector.js
-```
-module.exports = { detectLanguages }
-function detectLanguages(cwd)
-function _walkDepth(dir, depth, extCount)
-```
-
-### src/discovery/source-root-scorer.js
-```
-module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS }
-function getRecentlyChangedDirs(cwd)
-function scoreCandidate(dirName, fullPath, context)
-function _countSourceFiles(dir, depth)
 ```
 
 ### src/discovery/framework-detector.js
@@ -636,6 +593,13 @@ function _existsAnywhere(cwd, filename, maxDepth)
 function _walkFind(dir, name, depth)
 ```
 
+### src/discovery/language-detector.js
+```
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
+```
+
 ### src/discovery/sigmapignore.js
 ```
 module.exports = { loadIgnorePatterns, matchesIgnorePattern }
@@ -643,19 +607,9 @@ function loadIgnorePatterns(cwd)
 function matchesIgnorePattern(dirName, patterns)
 ```
 
-### src/plan/planner.js
+### src/discovery/source-root-registry.js
 ```
-module.exports = { createPlan }
-function createPlan(goal, cwd, config)
-```
-
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
+module.exports = { REGISTRY }
 ```
 
 ### src/retrieval/ranker.js
@@ -673,6 +627,12 @@ function formatRankJSON(results, query) → object
 function detectIntent(query)
 ```
 
+### src/plan/planner.js
+```
+module.exports = { createPlan }
+function createPlan(goal, cwd, config)
+```
+
 ### src/session/memory.js
 ```
 module.exports = { loadSession, saveSession, mergeSessionContext, clearSession }
@@ -681,4 +641,37 @@ function loadSession(cwd)
 function saveSession(cwd, { intent, topFiles, query })
 function mergeSessionContext(scores, session, currentIntent)
 function clearSession(cwd)
+```
+
+### src/config/defaults.js
+```
+module.exports = { DEFAULTS }
+```
+
+### src/discovery/source-root-scorer.js
+```
+module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN }
+function getRecentlyChangedDirs(cwd)
+function scoreCandidate(dirName, fullPath, context)
+function _countSourceFiles(dir, depth)
+```
+
+### src/discovery/source-root-resolver.js
+```
+module.exports = { resolveSourceRoots }
+function resolveSourceRoots(cwd, opts = {})
+function _detectMonorepo(cwd)
+function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
+function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
+function _dedupeNested(scored)
+function _computeConfidence(frameworks, languages, scoredCount)
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
 ```
