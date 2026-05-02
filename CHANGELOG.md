@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.7.0] — 2026-05-03
+
+### Added
+
+- **2-hop graph traversal with decay** — Extended graph-boosted retrieval from 1-hop (0.40 boost) to 2-hop (0.15 boost for transitive dependencies), improving retrieval accuracy by catching cross-module architecture patterns. Exported `GRAPH_BOOST_AMOUNTS` constants for transparency.
+- **Hub suppression** — Automatically suppress common utility files (`utils/`, `helpers/`, `shared/`, `common/`, `index`) and high-fanout files (>20% of codebase) from graph boosts to reduce false-positive boosts and improve ranking signal quality.
+- **Incremental signature cache** — Introduced `sigCache: true` config key to enable incremental extraction, caching extracted signatures by mtime. Only re-extracts changed files on subsequent runs, dramatically improving performance on large codebases.
+- **Cache health statistics** — Display cache file size, entry count, and freshness in `--health` output (text and JSON formats) for visibility into cache state and efficiency.
+
+---
+
 ## [6.6.5] — 2026-04-30
 
 ### Added

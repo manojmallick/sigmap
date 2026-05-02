@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v6.6.5</span>
+  <span><strong>Release:</strong> v6.7.0</span>
   <span>·</span>
-  <span>monorepo support for JVM projects</span>
+  <span>2-hop graph boost + hub suppression + sigCache</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v6.6-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v6.7-main</span>
   <span>·</span>
   <span>80.0% hit@5 · 80.0% graph-boosted · 2026-04-30</span>
 </div>
@@ -147,7 +147,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.8%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-30 (v6.6.5)**.
+Latest saved benchmark run: **2026-04-30 (v6.7.0)**.
 
 </div>
 
