@@ -31,7 +31,7 @@ head:
 
 Latest saved run: **2026-04-30 (v6.8.0)**
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **81.1% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **80.0% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
 ## Why this benchmark matters
 
@@ -47,9 +47,9 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 | 13.6% | **81.1%** |
+| Average hit@5 | 13.6% | **80.0%** |
 | Graph-boosted hit@5 | — | **80.0%** |
-| Lift | — | **5.8x** |
+| Lift | — | **5.9x** |
 | Correct (rank 1) | ~1% | **52.2%** |
 | Partial (ranks 2–5) | ~13% | **26.7%** |
 | Wrong (not in top 5) | ~86% | **21.1%** |

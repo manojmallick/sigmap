@@ -20,7 +20,7 @@ head:
       content: "SigMap — grounded AI coding context"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 81.1% hit@5, 41.4% fewer prompts, 96.9% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41% fewer prompts, 96.8% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — zero-dependency AI context engine"
@@ -46,12 +46,12 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.69 with SigMap. That is a 41.4% reduction across 90 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.68 with SigMap. That is a 41% reduction across 90 real coding tasks."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 81.1% hit@5 across 18 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
+    details: 80.0% hit@5 across 18 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
