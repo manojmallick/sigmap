@@ -16,7 +16,7 @@ head:
 # Benchmark overview
 
 ::: info Official v6.8 benchmark snapshot
-**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-04-30
+**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-05-03
 
 | Metric | Value |
 |---|---:|
@@ -40,7 +40,7 @@ This is the landing page for the public benchmark story. It answers four differe
 
 ## Official v6.8 snapshot
 
-Latest saved benchmark run: **2026-04-30 (v6.8.0)**
+Latest saved benchmark run: **2026-05-03 (v6.8.0)**
 
 | Metric | Result |
 |---|---:|
