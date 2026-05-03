@@ -450,8 +450,8 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
- SigMap version : 6.7.0
- Benchmark ID   : sigmap-v6.7-main
+ SigMap version : 6.8.0
+ Benchmark ID   : sigmap-v6.8-main
  Submitted      : 2026-04-30
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
@@ -471,8 +471,8 @@ JSON output (`--json`) returns a machine-readable object:
 
 ```json
 {
-  "sigmapVersion": "6.7.0",
-  "benchmarkId": "sigmap-v6.7-main",
+  "sigmapVersion": "6.8.0",
+  "benchmarkId": "sigmap-v6.8-main",
   "canonicalHitAt5": 80.0,
   "canonicalReduction": 96.8,
   "local": null,

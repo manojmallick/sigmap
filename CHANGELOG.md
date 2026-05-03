@@ -10,6 +10,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.8.0] — 2026-05-03
+
+### Added
+
+- **Session memory with 4-hour TTL** — Store intent, top-ranked files, and last query in `.context/session.json` to enable context carry-forward across multiple `sigmap ask` calls. Session expires after 4 hours, preventing stale context fixation.
+- **`sigmap ask --followup` flag** — Carry context from previous session with intent-aware boosting: +0.2 score for same intent, +0.1 for topic switch (different intent). Never reduces scores, only adds contextual signals.
+- **`sigmap plan "<goal>"` command** — Analyze change impact before editing: rank files by confidence level (inspect first vs. likely to change), compute impact radius using dependency graph, identify affected tests. Outputs human-readable table or JSON.
+
+---
+
 ## [6.7.0] — 2026-05-03
 
 ### Added

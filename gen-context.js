@@ -5387,7 +5387,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.7.0',
+  version: '6.8.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -7855,7 +7855,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.7.0';
+const VERSION = '6.8.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -9900,10 +9900,19 @@ function main() {
 
   // v4.2: `sigmap ask "<query>"` — unified pipeline
   if (args[0] === 'ask') {
-    const query = args[1];
+    // v6.8: Handle --followup flag which may appear before or after query
+    let query = args[1];
+    if (query === '--followup' && args[2]) {
+      query = args[2];
+    } else if (query && query.startsWith('--') && query !== '--json' && query !== '--model') {
+      // Allow --json and --model but not other flags as query
+      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--model <name>]');
+      console.error('  Example: sigmap ask "fix the login bug" --followup');
+      process.exit(1);
+    }
     if (!query || query.startsWith('--')) {
-      console.error('[sigmap] Usage: sigmap ask "<query>"');
-      console.error('  Example: sigmap ask "fix the login bug"');
+      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--model <name>]');
+      console.error('  Example: sigmap ask "fix the login bug" --followup');
       process.exit(1);
     }
 

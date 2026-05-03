@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.7.0, with the latest features adding 2-hop graph boost, hub suppression, incremental signature cache, and cache health statistics.
+description: SigMap version history and roadmap. From v0.0 to v6.8.0, with the latest features adding session memory, safe change planning, 2-hop graph boost, hub suppression, and incremental signature cache.
 head:
   - - meta
     - property: og:title
@@ -631,9 +631,26 @@ Formalized retrieval and caching improvements into a stable release milestone. E
 
 ---
 
-## Current milestone — v6.8+
+### v6.8.0 — Session memory + safe change planning ✓ (tagged v6.8.0 — 2026-05-03)
 
-v6.0–v6.7.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, and 2-hop graph boost with hub suppression. Next: extended language/framework coverage and performance optimizations for very large monorepos (>50K files).
+Introduced session-aware context carry-forward and impact analysis tools. Session memory stores intent, top-ranked files, and last query in `.context/session.json` with 4-hour TTL, enabling follow-up queries to boost relevant files (+0.2 same intent, +0.1 topic switch). New `sigmap plan "<goal>"` command analyzes change impact by ranking files by confidence level (inspect first vs. likely to change), computing 2-hop impact radius, and identifying affected tests. Topic-switch guard prevents fixation on outdated context.
+
+- **Session memory (4-hour TTL)** — store intent, top files, and last query for context carry-forward
+- **`sigmap ask --followup` flag** — load previous session and apply intent-aware boosting (+0.2 same, +0.1 topic-switch)
+- **`sigmap plan "<goal>"` command** — analyze change impact: file ranking, impact radius, affected tests
+- **Topic-switch guard** — reduce boost from +0.2 to +0.1 when intent differs, prevent fixation
+
+**Tags:** `session memory` · `followup context` · `safe change planning` · `impact analysis` · `intent-aware retrieval`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (same as v6.7.0, features unchanged retrieval)
+
+**Impact:** Developers carry context across queries and analyze change impact before editing. Reduces need to re-provide context on follow-up questions.
+
+---
+
+## Current milestone — v6.9+
+
+v6.0–v6.8.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, and session-aware context carry-forward with safe change planning. Next: extended language/framework coverage and performance optimizations for very large monorepos (>50K files).
 
 ---
 
