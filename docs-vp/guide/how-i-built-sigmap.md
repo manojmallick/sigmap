@@ -193,7 +193,7 @@ I was using an LLM to improve a tool designed to make LLMs work better. Better e
 
 ```
 Benchmark: sigmap-v6.6-main
-Date: 2026-04-30
+Date: 2026-05-03
 
 Hit@5:              80.0%  (baseline 13.6%  — 5.9× lift)
 Prompt reduction:   41.0%

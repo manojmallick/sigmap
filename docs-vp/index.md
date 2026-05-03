@@ -20,7 +20,7 @@ head:
       content: "SigMap — grounded AI coding context"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 81.1% hit@5, 41.4% fewer prompts, 96.9% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 80.0% hit@5, 41% fewer prompts, 96.8% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — zero-dependency AI context engine"
@@ -46,12 +46,12 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.69 with SigMap. That is a 41.4% reduction across 90 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.68 with SigMap. That is a 41% reduction across 90 real coding tasks."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 81.1% hit@5 across 18 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
+    details: 80.0% hit@5 across 18 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v6.8.0</span>
+  <span><strong>Release:</strong> v6.9.0</span>
   <span>·</span>
-  <span>Session memory + safe change planning</span>
+  <span>Segmented benchmarks + answer usefulness</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v6.8-main</span>
   <span>·</span>
-  <span>80.0% hit@5 · 80.0% graph-boosted · 2026-04-30</span>
+  <span>80.0% hit@5 · 80.0% graph-boosted · 2026-05-03</span>
 </div>
 </div>
 
@@ -147,7 +147,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.8%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-04-30 (v6.8.0)**.
+Latest saved benchmark run: **2026-05-03 (v6.8.0)**.
 
 </div>
 

@@ -1,0 +1,139 @@
+{
+  "metadata": {
+    "languages": {
+      "python": "Python",
+      "javascript": "JavaScript",
+      "java": "Java",
+      "go": "Go",
+      "ruby": "Ruby",
+      "rust": "Rust",
+      "cpp": "C++",
+      "php": "PHP",
+      "csharp": "C#",
+      "dart": "Dart",
+      "swift": "Swift",
+      "typescript": "TypeScript"
+    },
+    "repo_types": {
+      "framework": "Web/App Framework",
+      "library": "Library/Package",
+      "tool": "Developer Tool",
+      "application": "Application"
+    },
+    "size_classes": {
+      "small": "< 5K files",
+      "medium": "5K - 20K files",
+      "large": "> 20K files"
+    }
+  },
+  "tasks": {
+    "flask": {
+      "language": "python",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "Flask web framework"
+    },
+    "fastapi": {
+      "language": "python",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "FastAPI web framework"
+    },
+    "express": {
+      "language": "javascript",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "Express.js web framework"
+    },
+    "axios": {
+      "language": "javascript",
+      "repo_type": "library",
+      "size_class": "small",
+      "description": "Axios HTTP client"
+    },
+    "fastify": {
+      "language": "javascript",
+      "repo_type": "framework",
+      "size_class": "small",
+      "description": "Fastify web framework"
+    },
+    "vue-core": {
+      "language": "typescript",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "Vue 3 core library"
+    },
+    "svelte": {
+      "language": "typescript",
+      "repo_type": "framework",
+      "size_class": "small",
+      "description": "Svelte compiler"
+    },
+    "okhttp": {
+      "language": "java",
+      "repo_type": "library",
+      "size_class": "small",
+      "description": "OkHttp HTTP client"
+    },
+    "spring-petclinic": {
+      "language": "java",
+      "repo_type": "application",
+      "size_class": "small",
+      "description": "Spring PetClinic sample app"
+    },
+    "akka": {
+      "language": "java",
+      "repo_type": "framework",
+      "size_class": "large",
+      "description": "Akka actor framework"
+    },
+    "gin": {
+      "language": "go",
+      "repo_type": "framework",
+      "size_class": "small",
+      "description": "Gin web framework"
+    },
+    "rails": {
+      "language": "ruby",
+      "repo_type": "framework",
+      "size_class": "large",
+      "description": "Rails web framework"
+    },
+    "laravel": {
+      "language": "php",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "Laravel web framework"
+    },
+    "rust-analyzer": {
+      "language": "rust",
+      "repo_type": "tool",
+      "size_class": "medium",
+      "description": "Rust language server"
+    },
+    "abseil-cpp": {
+      "language": "cpp",
+      "repo_type": "library",
+      "size_class": "large",
+      "description": "Abseil C++ library"
+    },
+    "serilog": {
+      "language": "csharp",
+      "repo_type": "library",
+      "size_class": "medium",
+      "description": "Serilog logging library"
+    },
+    "riverpod": {
+      "language": "dart",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "Riverpod state management"
+    },
+    "vapor": {
+      "language": "swift",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "Vapor web framework"
+    }
+  }
+}

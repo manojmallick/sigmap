@@ -452,7 +452,7 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap version : 6.8.0
  Benchmark ID   : sigmap-v6.8-main
- Submitted      : 2026-04-30
+ Submitted      : 2026-05-03
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
  hit@5          : 80.0%
@@ -476,7 +476,7 @@ JSON output (`--json`) returns a machine-readable object:
   "canonicalHitAt5": 80.0,
   "canonicalReduction": 96.8,
   "local": null,
-  "submittedAt": "2026-04-30"
+  "submittedAt": "2026-05-03"
 }
 ```
 

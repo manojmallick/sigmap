@@ -16,7 +16,7 @@ head:
 # Task benchmark
 
 ::: info Official v6.8 benchmark snapshot
-**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-04-30
+**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-05-03
 
 | Metric | Value |
 |---|---:|
@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-04-30 (v6.8.0)**
+Latest saved run: **2026-05-03 (v6.8.0)**
 
 This page answers the question people care about most:
 
@@ -40,9 +40,9 @@ This page answers the question people care about most:
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success proxy | 10% | **52.2%** |
-| Prompts per task | 2.84 | **1.69** |
-| Prompt reduction | — | **41.4%** |
-| Retrieval hit@5 | 13.6% | **81.1%** |
+| Prompts per task | 2.84 | **1.68** |
+| Prompt reduction | — | **41.0%** |
+| Retrieval hit@5 | 13.6% | **80.0%** |
 
 ## Why the task benchmark exists
 
@@ -71,8 +71,8 @@ The task benchmark models that outcome from the ranked file quality tiers:
 | Metric | Value |
 |---|---:|
 | Average prompts without SigMap | 2.84 |
-| Average prompts with SigMap | **1.69** |
-| Reduction | **41.4%** |
+| Average prompts with SigMap | **1.68** |
+| Reduction | **41.0%** |
 | Average hit@5 lift | **55.4x** across repo baselines |
 
 ## What changed in the v5 story

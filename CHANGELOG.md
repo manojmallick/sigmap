@@ -10,6 +10,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.9.0] — 2026-05-03
+
+### Added
+
+- **Task metadata for segmentation** — All 18 benchmark repositories now tagged with language, repo type (framework/library/tool/application), and size class (small/medium/large) to enable segmented benchmark analysis.
+- **Benchmark methodology documentation** — Comprehensive guide explaining what SigMap measures (retrieval accuracy, task success, prompt reduction, token reduction), why these metrics matter, and how the 90-task test set was selected and evaluated.
+- **Answer usefulness evaluation** — New metric tracking whether retrieved context actually enabled correct answers, scored in three tiers: fully-useful (rank 1), partially-useful (ranks 2-5), not-useful (not retrieved). Complements task success proxy with granular answer quality assessment.
+
+---
+
 ## [6.8.0] — 2026-05-03
 
 ### Added

@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.8.0, with the latest features adding session memory, safe change planning, 2-hop graph boost, hub suppression, and incremental signature cache.
+description: SigMap version history and roadmap. From v0.0 to v6.9.0, with the latest features adding segmented benchmarks, methodology documentation, and answer usefulness evaluation.
 head:
   - - meta
     - property: og:title
@@ -604,7 +604,7 @@ Added out-of-the-box support for Java, Kotlin, and Scala projects through intell
 
 ---
 
-### v6.6.2–v6.6.5 — srcDirs validation, JVM pattern refactor & monorepo support ✓ (latest: v6.6.5 — 2026-04-30)
+### v6.6.2–v6.6.5 — srcDirs validation, JVM pattern refactor & monorepo support ✓ (latest: v6.6.5 — 2026-05-03)
 
 Comprehensive validation of srcDirs configuration with comprehensive JVM project support. v6.6.2 added 10 integration tests ensuring all source directory paths (including JVM structures) are correctly defined. v6.6.3 fixed Scala detection in app/src/main/ pattern. v6.6.4 extracted JVM path pattern as a reusable constant for improved testability. v6.6.5 enhanced monorepo support to detect `src/main/{java,kotlin,scala}` and `app/src/main/{java,kotlin,scala}` in workspace packages (packages/*, apps/*, services/*, modules/*), ensuring JVM projects in monorepo structures are properly discovered.
 
@@ -648,9 +648,26 @@ Introduced session-aware context carry-forward and impact analysis tools. Sessio
 
 ---
 
-## Current milestone — v6.9+
+### v6.9.0 — Segmented benchmarks and methodology ✓ (tagged v6.9.0 — 2026-05-03)
 
-v6.0–v6.8.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, and session-aware context carry-forward with safe change planning. Next: extended language/framework coverage and performance optimizations for very large monorepos (>50K files).
+Introduced benchmark transparency and answer usefulness evaluation. All 18 benchmark repositories now tagged by language, repo type (framework/library/tool/application), and size class to enable segmented analysis by project characteristics. Comprehensive methodology documentation explains benchmark design, task selection, metric definitions, and reproducibility. New answer usefulness evaluation metric tracks whether retrieved context actually enabled correct answers, scored in three tiers: fully-useful (rank 1), partially-useful (ranks 2-5), not-useful (not retrieved).
+
+- **Task metadata for segmentation** — Language, repo type, size class for each benchmark repo enables breakdown analysis
+- **Methodology documentation** — Explains test set design, metric definitions, why each metric matters, and reproducibility approach
+- **Answer usefulness evaluation** — Three-tier scoring complements task success proxy with granular answer quality assessment
+- **Benchmark dashboard** — Supports filtering/grouping by language, repo type, repo size for segmented analysis
+
+**Tags:** `segmented benchmarks` · `methodology` · `answer usefulness` · `transparency` · `reproducibility`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (same metrics, improved transparency)
+
+**Impact:** Developers can see which project types benefit most from SigMap. Methodology page enables independent reproduction and validation of results.
+
+---
+
+## Current milestone — v6.10+
+
+v6.0–v6.9.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, and segmented benchmarks with answer usefulness evaluation. Next: extended language/framework coverage and performance optimizations for very large monorepos (>50K files).
 
 ---
 

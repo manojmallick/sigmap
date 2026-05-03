@@ -16,7 +16,7 @@ head:
 # Benchmark overview
 
 ::: info Official v6.8 benchmark snapshot
-**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-04-30
+**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-05-03
 
 | Metric | Value |
 |---|---:|
@@ -40,7 +40,7 @@ This is the landing page for the public benchmark story. It answers four differe
 
 ## Official v6.8 snapshot
 
-Latest saved benchmark run: **2026-04-30 (v6.8.0)**
+Latest saved benchmark run: **2026-05-03 (v6.8.0)**
 
 | Metric | Result |
 |---|---:|
@@ -64,10 +64,10 @@ Latest saved benchmark run: **2026-04-30 (v6.8.0)**
 
 ### 2. Retrieval quality
 
-- SigMap hit@5: **78.9%**
-- Graph-boosted hit@5: **80.0%** (+1.1pp with dependency graph)
+- SigMap hit@5: **80.0%**
+- Graph-boosted hit@5: **80.0%** (+0.0pp with dependency graph)
 - Random baseline: **13.6%**
-- Lift: **5.8x**
+- Lift: **5.9x**
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 
@@ -76,7 +76,7 @@ This is the best benchmark when the question is: *"Does SigMap actually put the 
 - Correct: **47 / 90** (52.2%)
 - Partial: **24 / 90** (26.7%)
 - Wrong: **19 / 90** (21.1%)
-- Average prompts: **2.84 → 1.69**
+- Average prompts: **2.84 → 1.68**
 
 This is the best benchmark when the question is: *"Does the developer need fewer retries to finish the job?"*
 
