@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.0] — 2026-05-05
+
+### Added
+
+- **Workspace-scoped retrieval for monorepos** — New `src/workspace/detector.js` module detects workspace packages from `package.json` workspaces field (npm array and Yarn v2 `packages` format). Automatically infers target package from query tokens (e.g., "rate limiting payments" → `packages/payments/`). Flags `--package <name>` (explicit) and `--global` (disable scoping) control retrieval scope. Files inside inferred package receive +0.30 score boost for tighter context.
+
+---
+
 ## [6.9.0] — 2026-05-03
 
 ### Added
