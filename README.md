@@ -77,7 +77,7 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 ```
 Benchmark : sigmap-v6.8-main
-Date      : 2026-04-30
+Date      : 2026-05-03
 
 Hit@5          : 80.0%   (baseline 13.6%  — 5.9× lift)
 Prompt reduction : 41.0%

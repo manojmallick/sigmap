@@ -1,6 +1,6 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, plan, bench, judge, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
@@ -45,6 +45,8 @@ If you are new to the product, start with the workflow pages first:
 |----------------|-------------|
 | `ask "<query>"` | Unified intent→rank→cost→risk pipeline in one command |
 | `ask "<query>" --followup` | Reuse previous session context for follow-up queries (session carry-forward) |
+| `ask "<query>" --package <name>` | Scope retrieval to a specific monorepo workspace package |
+| `ask "<query>" --global` | Disable package scoping; search entire repo (monorepo override) |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `validate` | Validate config and coverage; optional query symbol check |
@@ -141,6 +143,40 @@ The follow-up query reuses high-scoring files from the previous session without 
 | `--followup` | Load and merge previous session context (4-hour TTL) |
 
 Session intent detection: if the new query's intent (debug/explain/refactor/etc.) matches the previous session, boost is +0.2; if intent changes, boost is +0.1.
+
+### ask --package (monorepo scoping)
+
+Scope retrieval to a specific workspace package in a monorepo. When used, SigMap searches only within the named package directory, applying a +0.30 score boost to matching files inside that package. Useful for large monorepos where unrelated packages create noise.
+
+If the workspace package does not exist, SigMap falls back to global search with a warning.
+
+```bash
+# Explicitly scope to the payments package
+sigmap ask "add payment gateway" --package payments
+
+# Scope to a specific package and use --json for integration
+sigmap ask "fix checkout flow" --package checkout --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `--package <name>` | Scope to workspace package by directory name (e.g., `--package payments` targets `packages/payments/`) |
+
+### ask --global (disable package scoping)
+
+Disable automatic package scoping. By default, SigMap infers the target package from query tokens (e.g., "rate limiting payments" → `packages/payments/`). Use `--global` to search the entire repo without inference.
+
+```bash
+# Disable scoping even if tokens match a package name
+sigmap ask "what packages import this module" --global
+
+# Global search in monorepo
+sigmap ask "find all auth handlers" --global --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `--global` | Disable automatic package inference; search entire repo |
 
 ---
 
