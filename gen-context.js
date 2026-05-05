@@ -5387,7 +5387,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.9.0',
+  version: '6.10.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -7925,7 +7925,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.9.0';
+const VERSION = '6.10.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -9989,6 +9989,7 @@ function main() {
     const { detectIntent, buildSigIndex, rank } = requireSourceOrBundled('./src/retrieval/ranker');
     const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
     const { loadSession, saveSession, mergeSessionContext } = requireSourceOrBundled('./src/session/memory');
+    const { detectWorkspaces, inferPackage, scopeToPackage } = requireSourceOrBundled('./src/workspace/detector');
 
     const intent = detectIntent(query);
     const intentWeights = getIntentWeights(intent);
@@ -10000,6 +10001,34 @@ function main() {
     }
 
     let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd });
+
+    // v6.10: Workspace scoping — infer package from query and apply boost
+    const workspaces = detectWorkspaces(cwd);
+    const packageFlag = args[args.indexOf('--package') + 1];
+    const globalFlag = args.includes('--global');
+
+    let inferredPackage = null;
+    if (!globalFlag && workspaces.length > 0) {
+      if (packageFlag) {
+        inferredPackage = workspaces.find(d => path.basename(d) === packageFlag) || null;
+        if (!packageFlag || !inferredPackage) {
+          process.stderr.write(`[sigmap] ⚠  package "${packageFlag}" not found — searching entire repo\n`);
+        }
+      } else {
+        inferredPackage = inferPackage(query, workspaces, cwd);
+      }
+    }
+
+    if (inferredPackage) {
+      ranked = ranked.map(r => ({
+        ...r,
+        score: r.score + scopeToPackage(r.file, inferredPackage),
+      })).sort((a, b) => b.score - a.score);
+
+      if (!args.includes('--json') && !globalFlag) {
+        process.stderr.write(`[sigmap] 📦 package scope: ${path.relative(cwd, inferredPackage)}\n`);
+      }
+    }
 
     // v6.8: --followup support — carry session context forward
     const isFollowup = args.includes('--followup');

@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.9.0, with the latest features adding segmented benchmarks, methodology documentation, and answer usefulness evaluation.
+description: SigMap version history and roadmap. From v0.0 to v6.10.0, with the latest features adding monorepo workspace-scoped retrieval, segmented benchmarks, and answer usefulness evaluation.
 head:
   - - meta
     - property: og:title
@@ -648,6 +648,23 @@ Introduced session-aware context carry-forward and impact analysis tools. Sessio
 
 ---
 
+### v6.10.0 — Monorepo workspace-scoped retrieval ✓ (tagged v6.10.0 — 2026-05-05)
+
+Added first-class support for monorepo architectures. New workspace detector identifies packages from `package.json` workspaces field (npm array and Yarn v2 `packages` format). Automatically infers target package from query tokens enabling context scoping to specific workspace packages. Flags `--package <name>` (explicit scope) and `--global` (disable scoping) control retrieval boundaries. Files inside inferred package receive +0.30 score boost for tighter, more focused context in large codebases with multiple semi-independent modules.
+
+- **Workspace package detection** — Reads `package.json` workspaces field with support for npm and Yarn v2 formats
+- **Automatic package inference** — Infers target package from query tokens (e.g., "rate limiting payments" → `packages/payments/`)
+- **Scoped retrieval** — `--package <name>` flag for explicit scope, `--global` to disable scoping
+- **In-package score boost** — +0.30 boost for files inside inferred package improves ranking relevance
+
+**Tags:** `workspace detection` · `package inference` · `scoped retrieval` · `monorepo support` · `--package flag` · `--global flag`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction (baseline unchanged, workspace scoping improves signal-to-noise for monorepo queries)
+
+**Impact:** Enterprise developers working in monorepos get more focused context, reducing noise from unrelated workspace packages and improving answer relevance.
+
+---
+
 ### v6.9.0 — Segmented benchmarks and methodology ✓ (tagged v6.9.0 — 2026-05-03)
 
 Introduced benchmark transparency and answer usefulness evaluation. All 18 benchmark repositories now tagged by language, repo type (framework/library/tool/application), and size class to enable segmented analysis by project characteristics. Comprehensive methodology documentation explains benchmark design, task selection, metric definitions, and reproducibility. New answer usefulness evaluation metric tracks whether retrieved context actually enabled correct answers, scored in three tiers: fully-useful (rank 1), partially-useful (ranks 2-5), not-useful (not retrieved).
@@ -665,9 +682,9 @@ Introduced benchmark transparency and answer usefulness evaluation. All 18 bench
 
 ---
 
-## Current milestone — v6.10+
+## Current milestone — v6.11+
 
-v6.0–v6.9.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, and segmented benchmarks with answer usefulness evaluation. Next: extended language/framework coverage and performance optimizations for very large monorepos (>50K files).
+v6.0–v6.10.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, and monorepo workspace-scoped retrieval. Next: extended language/framework coverage, cross-package import walk with decay, and performance optimizations for very large monorepos (>50K files).
 
 ---
 

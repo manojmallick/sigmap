@@ -56,6 +56,12 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
+## changes (last 5 commits — 0 seconds ago)
+```
+src/eval/usefulness-scorer.js                 +scoreUsefulness  +computeUsefulnessStats
+src/workspace/detector.js                     +detectWorkspaces  +inferPackage  +_getMatchLength  +scopeToPackage
+```
+
 ## packages
 
 ### packages/cli/index.js
@@ -173,23 +179,6 @@ function write(context, cwd, opts = {})
 ```
 
 ## src
-
-### src/extractors/php.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractMembers(block)
-function normalizeParams(params)
-function normalizeType(type)
-```
-
-### src/extractors/prdiff.js
-```
-module.exports = { diffSignatures, extractName }
-function diffSignatures(baseSigs, currentSigs) → {added:string[], removed:
-function extractName(sig)
-```
 
 ### src/extractors/python.js
 ```
@@ -667,6 +656,13 @@ function _dedupeNested(scored)
 function _computeConfidence(frameworks, languages, scoredCount)
 ```
 
+### src/eval/usefulness-scorer.js
+```
+module.exports = { scoreUsefulness, computeUsefulnessStats }
+function scoreUsefulness(taskResult, rankingScore)
+function computeUsefulnessStats(taskResults)
+```
+
 ### src/mcp/server.js
 ```
 module.exports = { start }
@@ -674,4 +670,13 @@ function respond(id, result)
 function respondError(id, code, message)
 function dispatch(msg, cwd)
 function start(cwd)
+```
+
+### src/workspace/detector.js
+```
+module.exports = { detectWorkspaces, inferPackage, scopeToPackage }
+function detectWorkspaces(cwd)
+function inferPackage(query, workspaceDirs, cwd)
+function _getMatchLength(name, token)
+function scopeToPackage(filePath, packageDir)
 ```

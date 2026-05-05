@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v6.8 benchmark snapshot. 96.8% average token reduction, 80.0% retrieval hit@5, 41.0% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
+description: Official v6.10 benchmark snapshot. 96.8% average token reduction, 80.0% retrieval hit@5, 41.0% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v6.8 snapshot"
+      content: "SigMap benchmark overview — v6.10 snapshot"
   - - meta
     - property: og:description
-      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.8 benchmark run."
+      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.10 benchmark run."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v6.8 benchmark snapshot
-**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-05-03
+::: info Official v6.10 benchmark snapshot
+**Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-05
 
 | Metric | Value |
 |---|---:|
@@ -38,9 +38,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v6.8 snapshot
+## Official v6.10 snapshot
 
-Latest saved benchmark run: **2026-05-03 (v6.8.0)**
+Latest saved benchmark run: **2026-05-05 (v6.10.0)**
 
 | Metric | Result |
 |---|---:|
