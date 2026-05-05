@@ -1,6 +1,6 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v6.8. 52.2% correct, 41.0% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
+description: Latest saved task benchmark for SigMap v6.10. 52.2% correct, 41.0% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Task benchmark
 
-::: info Official v6.8 benchmark snapshot
-**Benchmark ID:** sigmap-v6.8-main &nbsp;·&nbsp; **Date:** 2026-05-03
+::: info Official v6.10 benchmark snapshot
+**Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-05
 
 | Metric | Value |
 |---|---:|
@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **13/18 → 0/18** |
 :::
 
-Latest saved run: **2026-05-03 (v6.8.0)**
+Latest saved run: **2026-05-05 (v6.8.0)**
 
 This page answers the question people care about most:
 

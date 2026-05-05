@@ -83,9 +83,9 @@ features:
   <span>Monorepo workspace-scoped retrieval</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v6.8-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v6.10-main</span>
   <span>·</span>
-  <span>80.0% hit@5 · 80.0% graph-boosted · 2026-05-03</span>
+  <span>80.0% hit@5 · 80.0% graph-boosted · 2026-05-05</span>
 </div>
 </div>
 
@@ -147,7 +147,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.8%** |
 | GPT-4o overflow repos | 13/18 | **0/18** |
 
-Latest saved benchmark run: **2026-05-03 (v6.8.0)**.
+Latest saved benchmark run: **2026-05-05 (v6.8.0)**.
 
 </div>
 
