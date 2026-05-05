@@ -56,7 +56,7 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
-## changes (last 5 commits — 0 seconds ago)
+## changes (last 5 commits — 47 minutes ago)
 ```
 src/eval/usefulness-scorer.js                 +scoreUsefulness  +computeUsefulnessStats
 src/workspace/detector.js                     +detectWorkspaces  +inferPackage  +_getMatchLength  +scopeToPackage
