@@ -44,6 +44,7 @@ const LANG_EXT = {
   yaml: 'yml',
   shell: 'sh',
   dockerfile: 'Dockerfile',
+  gdscript: 'gd',
 };
 
 let passed = 0;
