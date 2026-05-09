@@ -19,6 +19,7 @@ import json
 import sys
 
 MAX_SIGS = 30
+MAX_DOC_HINT_LEN = 60
 
 
 def annotation_to_str(node):
@@ -132,13 +133,26 @@ def is_basemodel(bases):
     return False
 
 
+def is_optional_annotation(annotation):
+    """Check if an annotation represents an Optional type."""
+    if annotation is None:
+        return False
+    ann_str = annotation_to_str(annotation) or ""
+    return (
+        "Optional[" in ann_str
+        or ("Union[" in ann_str and "None" in ann_str)
+        or "| None" in ann_str
+        or "None |" in ann_str
+    )
+
+
 def get_docstring_hint(node):
     """Extract first sentence of docstring, if present."""
     try:
         doc = ast.get_docstring(node)
         if doc:
             first_line = doc.strip().splitlines()[0]
-            return first_line[:60] if len(first_line) > 60 else first_line
+            return first_line[:MAX_DOC_HINT_LEN] if len(first_line) > MAX_DOC_HINT_LEN else first_line
     except Exception:
         pass
     return None
@@ -149,14 +163,9 @@ def extract_dataclass_fields(class_node):
     fields = []
     for stmt in class_node.body:
         if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-            name = stmt.target.target.id if hasattr(stmt.target, 'target') else stmt.target.id
-            ann_str = annotation_to_str(stmt.annotation) if stmt.annotation else ""
-            # Optional if annotation contains Optional or has a default
-            is_optional = (
-                "Optional" in ann_str
-                or "None" in ann_str
-                or stmt.value is not None
-            )
+            name = stmt.target.id
+            has_default = stmt.value is not None
+            is_optional = is_optional_annotation(stmt.annotation) or has_default
             suffix = "?" if is_optional else ""
             fields.append(f"{name}{suffix}")
     return ", ".join(fields)
@@ -169,9 +178,8 @@ def extract_basemodel_fields(class_node):
     for stmt in class_node.body:
         if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
             name = stmt.target.id
-            ann_str = annotation_to_str(stmt.annotation) if stmt.annotation else ""
             has_default = stmt.value is not None
-            is_optional = "Optional" in ann_str or "None" in ann_str or has_default
+            is_optional = is_optional_annotation(stmt.annotation) or has_default
             if is_optional:
                 opt.append(f"{name}?")
             else:
@@ -228,10 +236,10 @@ def extract_function_sig(func_node, src_lines=None):
 
 
 def extract_fastapi_routes(tree, src_lines):
-    """Extract FastAPI route signatures from decorated functions."""
+    """Extract FastAPI route signatures from top-level decorated functions only."""
     routes = []
     http_methods = {"get", "post", "put", "patch", "delete", "head"}
-    for node in ast.walk(tree):
+    for node in tree.body:
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         for dec in node.decorator_list:
@@ -310,13 +318,15 @@ def extract(filepath):
                 continue
             sigs.append(extract_function_sig(node, src_lines))
 
-    # FastAPI routes (walk full tree for decorated functions)
+    # FastAPI routes (extract top-level decorated functions)
     routes = extract_fastapi_routes(tree, src_lines)
+    seen_sigs = set(sigs)
     for route in routes:
         if len(sigs) >= MAX_SIGS:
             break
-        if route not in sigs:
+        if route not in seen_sigs:
             sigs.append(route)
+            seen_sigs.add(route)
 
     return sigs[:MAX_SIGS]
 
