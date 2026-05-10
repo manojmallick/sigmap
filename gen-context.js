@@ -11182,6 +11182,7 @@ function main() {
       // Priority: --output flag > --adapter flag > buildSigIndex probe order
       //   (customOutput from config is handled inside buildSigIndex itself)
       let queryOpts;
+      const adpIdx = args.indexOf('--adapter');
 
       // 1. --output <file> pins to an explicit path
       if (config.customOutput) {
@@ -11189,17 +11190,14 @@ function main() {
       }
 
       // 2. --adapter <name> pins to that adapter's output path (if --output not given)
-      if (!queryOpts) {
-        const adpIdx = args.indexOf('--adapter');
-        if (adpIdx >= 0) {
-          const adapterName = (args[adpIdx + 1] || '').trim().toLowerCase();
-          const VALID_ADAPTERS = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
-          if (VALID_ADAPTERS.includes(adapterName)) {
-            try {
-              const adapterMod = __require('./packages/adapters/' + adapterName);
-              queryOpts = { contextPath: adapterMod.outputPath(cwd) };
-            } catch (_) {}
-          }
+      if (!queryOpts && adpIdx >= 0) {
+        const adapterName = (args[adpIdx + 1] || '').trim().toLowerCase();
+        const VALID_ADAPTERS = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
+        if (VALID_ADAPTERS.includes(adapterName)) {
+          try {
+            const adapterMod = __require('./packages/adapters/' + adapterName);
+            queryOpts = { contextPath: adapterMod.outputPath(cwd) };
+          } catch (_) {}
         }
       }
 
