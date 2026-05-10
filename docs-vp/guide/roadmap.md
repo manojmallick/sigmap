@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.10.0, with the latest features adding monorepo workspace-scoped retrieval, segmented benchmarks, and answer usefulness evaluation.
+description: SigMap version history and roadmap. From v0.0 to v6.10.1, with the latest features adding R language support, Python AST extraction, monorepo workspace-scoped retrieval, segmented benchmarks, and answer usefulness evaluation.
 head:
   - - meta
     - property: og:title
@@ -665,6 +665,22 @@ Added first-class support for monorepo architectures. New workspace detector ide
 
 ---
 
+### v6.10.1 — R language support + Python AST extractor ✓ (tagged v6.10.1 — 2026-05-10)
+
+Expanded language coverage and improved Python extraction accuracy. Added Phase 1 R language support with function definition extraction, S4 pattern recognition, multi-line argument handling, and Shiny framework detection. Introduced native Python AST fallback using `ast.parse()` for accurate extraction of complex signatures (multiline parameters, stacked decorators, complex generics) while preserving regex fallback for environments without Python 3. Included critical bug fixes for --query ReferenceError, Windows path handling, .contextignore patterns, and Claude adapter output in specialized context strategies.
+
+- **R language extractor** — Extract function signatures from `.r` and `.R` files with S4 patterns (setGeneric, setMethod, setClass), Shiny framework detection via `app.R`/`ui.R`/`server.R` triplet
+- **Python AST fallback** — Native fallback to `python_ast.py` using `ast.parse()` for accurate complex signature extraction, zero breaking changes to output format
+- **Bug fixes** — ReferenceError in `--query`, Windows path normalization, bracket character classes in `.contextignore`, Claude adapter output in per-module and hot-cold strategies
+
+**Tags:** `R extractor` · `S4 patterns` · `Shiny support` · `Python AST` · `bug fixes` · `Windows support` · `pattern fixes`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (metrics unchanged, new language coverage and improved extraction accuracy)
+
+**Impact:** Data scientists and R developers can now use SigMap on R projects. Python developers get more accurate signature extraction for complex code patterns.
+
+---
+
 ### v6.9.0 — Segmented benchmarks and methodology ✓ (tagged v6.9.0 — 2026-05-03)
 
 Introduced benchmark transparency and answer usefulness evaluation. All 18 benchmark repositories now tagged by language, repo type (framework/library/tool/application), and size class to enable segmented analysis by project characteristics. Comprehensive methodology documentation explains benchmark design, task selection, metric definitions, and reproducibility. New answer usefulness evaluation metric tracks whether retrieved context actually enabled correct answers, scored in three tiers: fully-useful (rank 1), partially-useful (ranks 2-5), not-useful (not retrieved).
@@ -682,9 +698,9 @@ Introduced benchmark transparency and answer usefulness evaluation. All 18 bench
 
 ---
 
-## Current milestone — v6.11+
+## Current milestone — v6.11+ (Extended language/framework coverage)
 
-v6.0–v6.10.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, and monorepo workspace-scoped retrieval. Next: extended language/framework coverage, cross-package import walk with decay, and performance optimizations for very large monorepos (>50K files).
+v6.0–v6.10.1 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, and Python AST extraction for complex signatures. Next: extended language/framework coverage (S3 methods in R, Phase 2), cross-package import walk with decay, and performance optimizations for very large monorepos (>50K files).
 
 ---
 
