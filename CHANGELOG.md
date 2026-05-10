@@ -10,6 +10,22 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.1] — 2026-05-10
+
+### Added
+
+- **R language support (Phase 1)** — Extract function signatures from `.r` and `.R` files with support for function definitions (`<-`, `=`, `<<-` forms), multi-line arguments with string-literal protection, S4 patterns (setGeneric, setMethod, setClass), and private function filtering. Shiny framework detection via `app.R`/`ui.R`/`server.R` triplet.
+- **Native Python AST extractor** — Fallback to `python_ast.py` using `ast.parse()` for accurate extraction of complex signatures (multiline args, stacked decorators, complex generics). Preserves regex fallback for Python 2 / no-Python3 environments. Zero breaking changes to output format.
+
+### Fixed
+
+- **ReferenceError in `--query`** — Fixed variable scope issue where `adpIdx` was undefined when no context file present. Moved variable declaration to proper scope before conditional block.
+- **Windows path handling** — Normalized path separators in nested path deduplication. Windows backslashes no longer cause false negatives when matching nested source roots.
+- **.contextignore patterns** — Fixed bracket character classes (`[Bb]in/`) being treated as literals. Fixed trailing slashes on directory patterns not matching nested paths. Added error handling for malformed bracket syntax.
+- **Claude adapter in per-module and hot-cold strategies** — Fixed adapter not being written to output in per-module and hot-cold context strategies.
+
+---
+
 ## [6.10.0] — 2026-05-05
 
 ### Added
