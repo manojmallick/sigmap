@@ -1,0 +1,135 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                    SIGMAP CONTRIBUTOR CHECKLIST                               ║
+║                    Print this or pin it to your desk                           ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ BEFORE OPENING A PR                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ☐ Create a branch: git checkout -b feature/your-feature
+
+  ☐ Make your changes (focused scope)
+
+  ☐ Run tests locally:
+      npm test
+      npm run test:integration
+
+  ☐ If your change affects parsing, ranking, or context:
+      Run the relevant benchmark (see CONTRIBUTING.md)
+
+  ☐ Update CHANGELOG.md with your contribution:
+      - Your description by @yourname in #PR_NUMBER
+
+  ☐ Commit with clear message:
+      feat: short description
+      or: fix: short description
+
+  ☐ Push your branch:
+      git push -u origin feature/your-feature
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OPENING THE PR                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ☐ Target: develop (NOT main)
+
+  ☐ Fill out the PR template:
+      - Summary (1-2 sentences)
+      - Type of change (Feature / Fix / Docs / Tests / etc.)
+      - What changed (bullet list)
+      - Tests (commands you ran)
+      - Docs (did you update them?)
+      - CHANGELOG (did you add a credit line?)
+      - Your GitHub username for credit
+
+  ☐ Wait for CI to pass (you'll see green checkmarks)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ DURING REVIEW                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ☐ Respond to feedback
+
+  ☐ Push updates to the same branch
+      git push origin feature/your-feature
+
+  ☐ Don't force-push (unless asked)
+
+  ☐ If tests fail:
+      - Fix locally
+      - Run tests again
+      - Push fix
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ AFTER MERGE TO DEVELOP                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ☐ Your branch is deleted automatically
+
+  ☐ You'll be thanked in the PR comment
+
+  ☐ Your name appears in:
+      - CHANGELOG.md
+      - Release notes (when released to main)
+      - GitHub release page
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          COMMIT MESSAGE GUIDE                                ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+  Type: feat / fix / docs / test / chore / refactor / perf
+
+  GOOD examples:
+    feat: add Godot GDScript extractor (closes #146)
+    fix: handle Windows path separators in resolver
+    docs: improve MCP setup guide
+    test: add workspace detector tests
+
+  NOT GOOD:
+    updated stuff
+    fix bug
+    changes
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          BRANCH NAMING GUIDE                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+  feature/short-description      (new feature)
+  fix/short-description          (bug fix)
+  docs/short-description         (documentation)
+  test/short-description         (tests)
+  refactor/short-description     (code cleanup)
+
+  Examples:
+    feature/godot-extractor
+    fix/windows-path-issue
+    docs/mcp-guide
+    test/workspace-detector
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          CHANGELOG CREDIT FORMAT                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+  In CHANGELOG.md under [Unreleased], add:
+
+  - Added Godot GDScript extractor by @yourname in #123
+  - Fixed Windows path handling by @yourname in #124
+  - Improved MCP documentation by @yourname in #125
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          LABELS YOU'LL SEE                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+  Type:        bug  •  enhancement  •  documentation
+  Area:        parser  •  adapter  •  mcp  •  benchmark  •  watch-mode
+  Status:      good first issue  •  help wanted  •  needs-tests  •  needs-docs
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Questions? See:
+  • CONTRIBUTING.md — Full contributor guide
+  • .github/PULL_REQUEST_TEMPLATE.md — PR template with examples
+  • docs-vp/guide/release-checklist.md — Release process
+
+═══════════════════════════════════════════════════════════════════════════════

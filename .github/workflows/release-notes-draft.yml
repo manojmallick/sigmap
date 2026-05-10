@@ -1,0 +1,66 @@
+name: Draft Release Notes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "CHANGELOG.md"
+
+jobs:
+  draft-release:
+    name: Draft release notes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from package.json
+        id: version
+        run: |
+          VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if release exists
+        id: check-release
+        run: |
+          if gh release view v${{ steps.version.outputs.version }} > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract changelog section
+        if: steps.check-release.outputs.exists == 'false'
+        id: changelog
+        run: |
+          # Extract the first release section from CHANGELOG.md
+          CHANGELOG=$(sed -n '/^## \[/,/^## \[/p' CHANGELOG.md | head -n -1)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create draft release
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          gh release create ${{ steps.version.outputs.tag }} \
+            --title "SigMap ${{ steps.version.outputs.version }}" \
+            --notes "${{ steps.changelog.outputs.notes }}" \
+            --draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on release PR
+        if: steps.check-release.outputs.exists == 'false'
+        run: |
+          echo "✅ Draft release created: ${{ steps.version.outputs.tag }}"
+          echo ""
+          echo "→ [View draft release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})"
+          echo ""
+          echo "Next: Review and publish the release."
