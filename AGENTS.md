@@ -65,8 +65,8 @@ src/extractors/python_ast.py ← ast
 ```
 src/discovery/language-detector.js            ~detectLanguages
 src/extractors/python.js                      +tryNativeExtract  +extract  ~extract  ~extractDocHint
-src/extractors/r.js                           +extract  +definitions  +readBalancedParens  +normalizeParams
 src/extractors/python_ast.py                  +annotation_to_str  +format_args  +arguments  +get_decorator_names
+src/extractors/r.js                           +extract  +definitions  +readBalancedParens  +normalizeParams
 ```
 
 ## packages
@@ -608,14 +608,6 @@ function normalizeParams(params)
 function extractDocHint(src, fnName, fnSigLine)
 ```
 
-### src/extractors/r.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-function readBalancedParens(src, openIdx, cap = 4096)
-function normalizeParams(raw)
-```
-
 ### src/extractors/python_ast.py
 ```
 def annotation_to_str(node)  # Convert an AST annotation node to a string representation
@@ -633,6 +625,14 @@ def extract_function_sig(func_node, src_lines)  # Format a top-level function si
 def extract_fastapi_routes(tree, src_lines)  # Extract FastAPI route signatures from top-level decorated fu
 def extract(filepath)
 def main()
+```
+
+### src/extractors/r.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function readBalancedParens(src, openIdx, cap = 4096)
+function normalizeParams(raw)
 ```
 
 ### src/mcp/server.js

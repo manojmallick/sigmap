@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v6.10 benchmark snapshot. 96.8% average token reduction, 80.0% retrieval hit@5, 41.0% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
+description: Official v6.10.1 benchmark snapshot. 96.8% average token reduction, 80.0% retrieval hit@5, 41.0% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v6.10 snapshot"
+      content: "SigMap benchmark overview — v6.10.1 snapshot"
   - - meta
     - property: og:description
-      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.10 benchmark run."
+      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.10.1 benchmark run."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
