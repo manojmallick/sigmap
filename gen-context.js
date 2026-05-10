@@ -8104,8 +8104,12 @@ function matchesIgnore(relPath, patterns) {
       .replace(/\*\*/g, '___DOUBLE___')
       .replace(/\*/g, '[^/]*')
       .replace(/___DOUBLE___/g, '.*');
-    const regex = new RegExp(`(^|/)${regexStr}($|/)`);
-    if (regex.test(relPath)) return true;
+    try {
+      const regex = new RegExp(`(^|/)${regexStr}($|/)`);
+      if (regex.test(relPath)) return true;
+    } catch (_) {
+      // Malformed bracket syntax or invalid regex — skip this pattern
+    }
   }
   return false;
 }
