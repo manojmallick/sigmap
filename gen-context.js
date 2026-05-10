@@ -8094,9 +8094,13 @@ function loadIgnorePatterns(cwd) {
 function matchesIgnore(relPath, patterns) {
   for (const pat of patterns) {
     const normalized = pat.replace(/\\/g, '/');
-    // Simple glob: support * and ** and trailing /
-    const regexStr = normalized
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    // Strip trailing slash (gitignore style — directory patterns)
+    const patternToUse = normalized.endsWith('/')
+      ? normalized.slice(0, -1)
+      : normalized;
+    // Escape regex special chars but NOT brackets (keep them for character classes)
+    const regexStr = patternToUse
+      .replace(/[.+^${}()|\\]/g, '\\$&')
       .replace(/\*\*/g, '___DOUBLE___')
       .replace(/\*/g, '[^/]*')
       .replace(/___DOUBLE___/g, '.*');
