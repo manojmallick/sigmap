@@ -21,46 +21,82 @@ jobs:
       - name: Extract version from package.json
         id: version
         run: |
-          VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+          VERSION=$(grep -m 1 '"version"' package.json | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: Could not extract version from package.json"
+            exit 1
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Validate version in CHANGELOG
+        run: |
+          CHANGELOG_VERSION=$(grep -m 1 '## \[' CHANGELOG.md | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "")
+          PACKAGE_VERSION="${{ steps.version.outputs.version }}"
+
+          if [ -z "$CHANGELOG_VERSION" ]; then
+            echo "ERROR: No release section found in CHANGELOG.md"
+            exit 1
+          fi
+
+          if [ "$CHANGELOG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "ERROR: Version mismatch!"
+            echo "  package.json: $PACKAGE_VERSION"
+            echo "  CHANGELOG.md: $CHANGELOG_VERSION"
+            exit 1
+          fi
+          echo "✅ Versions match: $PACKAGE_VERSION"
 
       - name: Check if release exists
         id: check-release
         run: |
-          if gh release view v${{ steps.version.outputs.version }} > /dev/null 2>&1; then
+          if gh release view ${{ steps.version.outputs.tag }} > /dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️  Release ${{ steps.version.outputs.tag }} already exists"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 
       - name: Extract changelog section
         if: steps.check-release.outputs.exists == 'false'
         id: changelog
         run: |
-          # Extract the first release section from CHANGELOG.md
-          CHANGELOG=$(sed -n '/^## \[/,/^## \[/p' CHANGELOG.md | head -n -1)
+          # Extract from first ## [ to next ## [ or end of file
+          awk '/^## \[/{if(++count==2) exit} count==1' CHANGELOG.md > /tmp/changelog.txt
+
+          if [ ! -s /tmp/changelog.txt ]; then
+            echo "ERROR: Could not extract changelog"
+            exit 1
+          fi
+
           echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          cat /tmp/changelog.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create draft release
         if: steps.check-release.outputs.exists == 'false'
+        id: create
         run: |
           gh release create ${{ steps.version.outputs.tag }} \
             --title "SigMap ${{ steps.version.outputs.version }}" \
-            --notes "${{ steps.changelog.outputs.notes }}" \
+            --notes-file /tmp/changelog.txt \
             --draft
+          echo "✅ Draft release created: ${{ steps.version.outputs.tag }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Comment on release PR
-        if: steps.check-release.outputs.exists == 'false'
+      - name: Summary
+        if: always()
         run: |
-          echo "✅ Draft release created: ${{ steps.version.outputs.tag }}"
-          echo ""
-          echo "→ [View draft release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})"
-          echo ""
-          echo "Next: Review and publish the release."
+          if [ "${{ steps.check-release.outputs.exists }}" = "true" ]; then
+            echo "⏭️  Release already exists, skipping creation"
+          elif [ "${{ steps.create.outcome }}" = "success" ]; then
+            echo "✅ Release created successfully"
+            echo "→ https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+          else
+            echo "❌ Failed to create release"
+            exit 1
+          fi
