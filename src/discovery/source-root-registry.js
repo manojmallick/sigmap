@@ -161,6 +161,15 @@ const REGISTRY = {
     srcDirs:  ['src/main/scala','src'],
     penalties: ['target'],
   },
+
+  r: {
+    manifestFiles: ['DESCRIPTION','renv.lock'],
+    frameworks: {
+      shiny: { detectionFiles: ['app.R','ui.R','server.R'], srcDirs: ['R','inst','tests'], entrypoints: ['app.R','server.R'] },
+    },
+    srcDirs:  ['R','src','inst'],
+    penalties: ['renv','packrat','.Rcheck'],
+  },
 };
 
 module.exports = { REGISTRY };
