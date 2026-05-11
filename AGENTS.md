@@ -61,11 +61,6 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 4 minutes ago)
-```
-src/map/import-graph.js                       ~analyze
-```
-
 ## packages
 
 ### packages/cli/index.js
@@ -629,15 +624,6 @@ function _dedupeNested(scored)
 function _computeConfidence(frameworks, languages, scoredCount)
 ```
 
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
-```
-
 ### src/map/import-graph.js
 ```
 module.exports = { analyze, extractImports }
@@ -645,4 +631,13 @@ function extractImports(filePath, content, fileSet)
 function resolveJsPath(dir, importStr, fileSet)
 function detectCycles(graph)
 function analyze(files, cwd)
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
 ```
