@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.10.2, with the latest features adding R language support, Python AST extraction, open-source agents and local LLM documentation, monorepo workspace-scoped retrieval, segmented benchmarks, and answer usefulness evaluation.
+description: SigMap version history and roadmap. From v0.0 to v6.10.5, with the latest releases fixing MCP tools extractImports export, restoring contributor attribution, and establishing develop-first branching strategy.
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Fifty-one versions shipped. MIT open source from day one.
+Fifty-four versions shipped. MIT open source from day one.
 
 **Stats:** 96.8% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -695,6 +695,36 @@ Comprehensive integration guides for open-source AI tools and self-hosted LLM wo
 **Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (unchanged metrics, documentation-only release)
 
 **Impact:** LocalLLM community can now easily use SigMap with self-hosted models. Reduces perceived vendor lock-in and clarifies cost-free inference path.
+
+---
+
+### v6.10.3 — Contributor attribution fixes ✓ (tagged v6.10.3 — 2026-05-11)
+
+Fixed MCP tools import graph analysis and restored contributor attribution in GitHub contributors graph. All 6 core contributors now visible as direct authors of their respective commits via cherry-pick to main.
+
+**Tags:** `contributor attribution` · `github graph fix` · `cherry-pick strategy`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (same metrics)
+
+---
+
+### v6.10.4 — MCP tools extractImports export fix ✓ (tagged v6.10.4 — 2026-05-11)
+
+Fixed critical bug in bundled gen-context.js where `extractImports` function was not exported from the import-graph factory, causing `explain_file` (imports/callers) and `get_impact` MCP tools to fail with "extractImports is not a function" error. Added comprehensive regression tests to prevent future occurrence.
+
+**Tags:** `MCP tools` · `bundled exports` · `regression tests` · `import graph analysis`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (same metrics)
+
+---
+
+### v6.10.5 — Develop-first branching strategy ✓ (tagged v6.10.5 — 2026-05-11)
+
+Established clear branching strategy with develop as integration branch and main as release-only branch. All feature/fix branches now cut from develop, PR to develop, then release via develop → main. Added branching strategy regression tests to enforce workflow.
+
+**Tags:** `branching strategy` · `develop-first` · `workflow enforcement` · `release pipeline`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (same metrics)
 
 ---
 
