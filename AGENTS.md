@@ -61,6 +61,11 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
+## changes (last 5 commits — 0 seconds ago)
+```
+src/map/import-graph.js                       ~analyze
+```
+
 ## packages
 
 ### packages/cli/index.js
@@ -536,13 +541,9 @@ function _getMatchLength(name, token)
 function scopeToPackage(filePath, packageDir)
 ```
 
-### src/map/import-graph.js
+### src/discovery/source-root-registry.js
 ```
-module.exports = { analyze, extractImports }
-function extractImports(filePath, content, fileSet)
-function resolveJsPath(dir, importStr, fileSet)
-function detectCycles(graph)
-function analyze(files, cwd)
+module.exports = { REGISTRY }
 ```
 
 ### src/discovery/language-detector.js
@@ -550,11 +551,6 @@ function analyze(files, cwd)
 module.exports = { detectLanguages }
 function detectLanguages(cwd)
 function _walkDepth(dir, depth, extCount)
-```
-
-### src/discovery/source-root-registry.js
-```
-module.exports = { REGISTRY }
 ```
 
 ### src/discovery/source-root-resolver.js
@@ -620,6 +616,15 @@ module.exports = { extract }
 function extract(src) → string[]
 function readBalancedParens(src, openIdx, cap = 4096)
 function normalizeParams(raw)
+```
+
+### src/map/import-graph.js
+```
+module.exports = { analyze, extractImports }
+function extractImports(filePath, content, fileSet)
+function resolveJsPath(dir, importStr, fileSet)
+function detectCycles(graph)
+function analyze(files, cwd)
 ```
 
 ### src/mcp/server.js
