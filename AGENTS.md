@@ -61,9 +61,8 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 0 seconds ago)
+## changes (last 5 commits — 4 minutes ago)
 ```
-src/discovery/source-root-resolver.js         ~_applySpecialRules  ~_dedupeNested
 src/map/import-graph.js                       ~analyze
 ```
 
@@ -619,15 +618,6 @@ function readBalancedParens(src, openIdx, cap = 4096)
 function normalizeParams(raw)
 ```
 
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
-```
-
 ### src/discovery/source-root-resolver.js
 ```
 module.exports = { resolveSourceRoots }
@@ -637,6 +627,15 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
 function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
 function _dedupeNested(scored)
 function _computeConfidence(frameworks, languages, scoredCount)
+```
+
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
 ```
 
 ### src/map/import-graph.js
