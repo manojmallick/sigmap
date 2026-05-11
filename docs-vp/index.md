@@ -98,6 +98,8 @@ features:
 | New to SigMap | [Quick start](/guide/quick-start) |
 | Using it daily | [ask](/guide/ask) · [validate](/guide/validate) · [judge](/guide/judge) |
 | Setting up a team / CI | [Config](/guide/config) · [Strategies](/guide/strategies) |
+| Using open-source agents (OpenCode, Aider, Cline) | [Open-source agents guide](/guide/agents) |
+| Running local LLMs (Ollama, llama.cpp, vLLM) | [Local LLMs guide](/guide/local-llms) — zero cost, full privacy |
 | Integrating with MCP, Claude, or Cursor | [MCP setup](/guide/mcp) |
 | Evaluating for a monorepo | [Strategies](/guide/strategies) · [Generalization](/guide/generalization) |
 | Comparing against embeddings or RAG | [Compare alternatives](/guide/compare-alternatives) |

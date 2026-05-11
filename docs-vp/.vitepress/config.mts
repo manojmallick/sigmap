@@ -55,14 +55,21 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Integrations',
+        items: [
+          { text: 'Open-source agents', link: '/guide/agents' },
+          { text: 'Local LLMs (Ollama, llama.cpp)', link: '/guide/local-llms' },
+          { text: 'MCP server', link: '/guide/mcp' },
+          { text: 'Repomix integration', link: '/guide/repomix' },
+        ],
+      },
+      {
         text: 'Reference',
         items: [
           { text: 'CLI', link: '/guide/cli' },
           { text: 'Config', link: '/guide/config' },
           { text: 'Strategies', link: '/guide/strategies' },
           { text: 'Languages', link: '/guide/languages' },
-          { text: 'MCP server', link: '/guide/mcp' },
-          { text: 'Repomix integration', link: '/guide/repomix' },
         ],
       },
       {

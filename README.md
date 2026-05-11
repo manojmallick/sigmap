@@ -36,7 +36,12 @@ Zero config. Zero dependencies. Under 10 seconds.
 
 SigMap extracts function and class signatures from your codebase and feeds the right files — not the whole repo — to your AI.
 
-Works with Copilot, Claude, Cursor, Windsurf, and any LLM.
+**Model-agnostic.** Works with:
+- **Cloud LLMs:** Claude, GPT-4, Copilot, Gemini
+- **Open-source agents:** OpenCode, Aider, OpenHands, Cline
+- **Local LLMs:** Ollama, llama.cpp, vLLM (no API keys, full privacy)
+- **Any editor:** VS Code, Cursor, Windsurf, Neovim, JetBrains
+- **Any model:** Use what you want, no vendor lock-in
 
 ---
 
@@ -46,7 +51,9 @@ Works with Copilot, Claude, Cursor, Windsurf, and any LLM.
 - **40–98% token reduction** — 2K–4K tokens instead of 80K+
 - **52.2% task success rate** — up from 10% without context
 - **1.68 prompts per task** — down from 2.84
-- **Works with any LLM** — no API key, no cloud, no accounts
+- **No vendor lock-in** — works with any AI assistant or local LLM
+- **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
+- **Full privacy** — keep your code and context on your machine
 - **Zero npm dependencies** — `npx sigmap` on any machine
 
 ---
@@ -147,19 +154,24 @@ volta install sigmap
 
 | Adapter | Output file | Used by |
 |---|---|---|
-| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot |
+| `copilot` | `.github/copilot-instructions.md` | GitHub Copilot, OpenCode |
 | `claude` | `CLAUDE.md` | Claude / Claude Code |
-| `cursor` | `.cursorrules` | Cursor |
+| `cursor` | `.cursorrules` | Cursor, Cline |
 | `windsurf` | `.windsurfrules` | Windsurf |
-| `openai` | `.github/openai-context.md` | OpenAI models |
+| `openai` | `.github/openai-context.md` | OpenAI API, Aider, local Ollama/llama.cpp |
 | `gemini` | `.github/gemini-context.md` | Google Gemini |
-| `codex` | `AGENTS.md` | OpenAI Codex · OpenCode |
 
 ```bash
-sigmap --adapter copilot   # default
-sigmap --adapter claude
-sigmap --adapter cursor
+sigmap --adapter copilot   # default — works with Copilot, OpenCode
+sigmap --adapter openai    # works with Ollama, llama.cpp, vLLM, Aider
+sigmap --adapter claude    # works with Claude Code
 ```
+
+**Open-source agents & local LLMs:**
+
+Use SigMap with open-source tools and fully self-hosted setups:
+- **[Open-source agents guide →](https://manojmallick.github.io/sigmap/guide/agents)** — OpenCode, Aider, OpenHands, Cline
+- **[Local LLMs guide →](https://manojmallick.github.io/sigmap/guide/local-llms)** — Ollama, llama.cpp, vLLM (no API keys, full privacy)
 
 **IDE extensions:**
 
