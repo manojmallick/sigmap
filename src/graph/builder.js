@@ -93,6 +93,24 @@ function extractFileDeps(filePath, content, fileSet) {
         : null;
       if (candidate && fileSet.has(candidate)) found.push(candidate);
     }
+
+    // Absolute imports: from package.module import ... (infer from project structure)
+    const reAbs = /^[ \t]*from\s+([\w.]+)\s+import/gm;
+    while ((m = reAbs.exec(content)) !== null) {
+      const modulePath = m[1].replace(/\./g, '/');
+      const candidates = [
+        path.join(dir, modulePath + '.py'),
+        path.join(dir, modulePath, '__init__.py'),
+        path.resolve(dir, '..', modulePath + '.py'),
+        path.resolve(dir, '..', modulePath, '__init__.py'),
+      ];
+      for (const c of candidates) {
+        if (fileSet.has(c)) {
+          found.push(c);
+          break;
+        }
+      }
+    }
   }
 
   // ── Go ────────────────────────────────────────────────────────────────────
