@@ -14,6 +14,7 @@ function extract(src) {
 
   let className = null;
   let baseName = null;
+  const addedClasses = new Set();
 
   const cm = stripped.match(/^class_name\s+(\w+)(?:\s+extends\s+([\w.]+))?/m);
   if (cm) {
@@ -27,6 +28,7 @@ function extract(src) {
 
   if (className) {
     sigs.push(baseName ? `class ${className}(${baseName})` : `class ${className}`);
+    addedClasses.add(className);
   } else if (baseName) {
     sigs.push(`extends ${baseName}`);
   }
@@ -48,8 +50,12 @@ function extract(src) {
   let constCount = 0;
   for (const m of stripped.matchAll(/^const\s+(\w+)(?:\s*:\s*[^=\n]+)?\s*:?=\s*([^\n]+)$/gm)) {
     let val = m[2].trim();
-    if (/^preload\s*\(/.test(val)) continue;
-    if (val.length > 40) val = val.slice(0, 37) + '...';
+    const preloadMatch = val.match(/^preload\s*\(([^)]+)\)/);
+    if (preloadMatch) {
+      val = `preload(${preloadMatch[1]})`;
+    } else if (val.length > 40) {
+      val = val.slice(0, 37) + '...';
+    }
     sigs.push(`${indent}const ${m[1]} = ${val}`);
     if (++constCount >= 5) break;
   }
@@ -57,24 +63,28 @@ function extract(src) {
   for (const m of stripped.matchAll(/^((?:@\w+(?:\([^)]*\))?\s+)*)var\s+(\w+)(?:\s*:\s*([^=\n]+?))?(?:\s*:?=\s*[^\n]+)?$/gm)) {
     const decorators = m[1] || '';
     const name = m[2];
-    const isExport = /@export/.test(decorators);
-    const isOnready = /@onready/.test(decorators);
-    if (!isExport && !isOnready && name.startsWith('_')) continue;
+    const hasDecorator = /@\w+/.test(decorators);
+    if (!hasDecorator && name.startsWith('_')) continue;
+    
+    let prefix = decorators.replace(/\([^)]*\)/g, '').trim().split(/\s+/).join(' ');
+    if (prefix) prefix += ' ';
+    
     const type = (m[3] || '').trim();
     const typeStr = type ? `: ${type}` : '';
-    const prefix = isExport ? '@export ' : (isOnready ? '@onready ' : '');
     sigs.push(`${indent}${prefix}var ${name}${typeStr}`);
   }
 
   for (const m of stripped.matchAll(/^(static\s+)?func\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*([^:\n]+))?\s*:/gm)) {
     const params = normalizeParams(m[3]);
     const ret = (m[4] || '').trim();
-    const retStr = ret ? ` → ${ret.slice(0, 25)}` : '';
+    const retStr = ret ? ` → ${ret.slice(0, 30)}` : '';
     const staticKw = m[1] ? 'static ' : '';
     sigs.push(`${indent}${staticKw}func ${m[2]}(${params})${retStr}`);
   }
 
   for (const m of stripped.matchAll(/^class\s+(\w+)(?:\s+extends\s+(\w+))?\s*:/gm)) {
+    if (addedClasses.has(m[1])) continue;
+    addedClasses.add(m[1]);
     sigs.push(m[2] ? `class ${m[1]}(${m[2]})` : `class ${m[1]}`);
     const startIdx = m.index + m[0].length;
     for (const meth of extractInnerMembers(stripped, startIdx)) {
@@ -95,7 +105,7 @@ function extractInnerMembers(stripped, startIndex) {
     if (fm) {
       const params = normalizeParams(fm[3]);
       const ret = (fm[4] || '').trim();
-      const retStr = ret ? ` → ${ret.slice(0, 25)}` : '';
+      const retStr = ret ? ` → ${ret.slice(0, 30)}` : '';
       const staticKw = fm[1] ? 'static ' : '';
       members.push(`${staticKw}func ${fm[2]}(${params})${retStr}`);
     }

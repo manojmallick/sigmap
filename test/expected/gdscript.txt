@@ -4,9 +4,10 @@ class Player(CharacterBody2D)
   enum State { IDLE, RUN, JUMP, FALL }
   const MAX_SPEED = 300.0
   const ACCEL = 50.0
+  const ENEMY_SCENE = preload("res://enemy.tscn")
   @export var speed: float
-  @export var max_health: int
-  @onready var sprite: Sprite2D
+  @export_range var max_health: int
+  @export @onready var sprite: Sprite2D
   var current_health: int
   func _ready() → void
   func _physics_process(delta) → void
@@ -14,6 +15,7 @@ class Player(CharacterBody2D)
   func heal(amount) → void
   static func from_dict(data) → Player
   func _private_helper()
+  func get_very_long_return_type_name_to_test_truncation() → VeryLongReturnTypeNameToTestTr
 class Inventory
   func add(item) → void
   func remove(item) → bool
