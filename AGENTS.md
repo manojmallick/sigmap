@@ -168,6 +168,15 @@ function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
 ```
 
+### packages/adapters/index.js
+```
+module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
+function getAdapter(name) → { name: string, format: F
+function listAdapters() → string[]
+function adapt(context, adapterName, opts = {}) → string
+function outputsToAdapters(outputs) → string[]
+```
+
 ### packages/adapters/willow.js
 ```
 module.exports = { name, format, outputPath, write }
@@ -177,15 +186,6 @@ function generateAtomId(filepath) → string
 async function fetchWithTimeout(url, opts, timeoutMs) → Promise<Response>
 async function postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries) → Promise<boolean>
 async function write(context, cwd, opts = {}) → Promise<void>
-```
-
-### packages/adapters/index.js
-```
-module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
-function getAdapter(name) → { name: string, format: F
-function listAdapters() → string[]
-function adapt(context, adapterName, opts = {}) → string
-function outputsToAdapters(outputs) → string[]
 ```
 
 ## src

@@ -116,18 +116,19 @@ OpenHands runs as a web interface and can be configured to read codebase context
 
 1. **Generate context**
    ```bash
-   sigmap --json > /tmp/sigmap-context.json
+   sigmap
+   # Writes: .github/copilot-instructions.md
    ```
 
-2. **Start OpenHands with context path**
+2. **Start OpenHands**
    ```bash
-   CONTEXT_FILE=/path/to/.github/copilot-instructions.md openhands
+   openhands
    ```
 
 3. **Use SigMap in prompts**  
-   In the OpenHands chat, reference the context:
+   In the OpenHands chat, reference the context file:
    ```
-   Review the files in .github/copilot-instructions.md and explain the auth system.
+   Read .github/copilot-instructions.md and explain the auth system.
    ```
 
 ---
@@ -421,13 +422,15 @@ No. CPU inference works fine for coding tasks (author uses M3 MacBook CPU). GPU 
 
 Use `ollama pull <model>` to download.
 
-### How do I benchmark my local setup?
+### How do I measure my setup's effectiveness?
+
+Evaluate your SigMap context against real coding tasks:
 
 ```bash
-sigmap benchmark --model local-model
+sigmap validate --query "your question"
 ```
 
-This runs the SigMap benchmark suite against your local LLM and reports hit@5, task success, and token reduction.
+This shows whether SigMap ranked the right files in the top 10. For comprehensive evaluation with your local LLM setup, use the benchmark guides at [Local LLMs](/guide/local-llms).
 
 ---
 

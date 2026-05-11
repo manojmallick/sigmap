@@ -157,11 +157,13 @@ ollama pull deepseek-coder
 # See all: ollama pull --help
 ```
 
-#### Benchmark your setup
+#### Validate your context quality
 
 ```bash
-sigmap benchmark --model mistral --api-base http://localhost:11434/v1
+sigmap validate --query "auth login token"
 ```
+
+This checks whether SigMap ranked the right files for your query. For inference performance metrics (tokens/sec), monitor your Ollama server logs directly.
 
 #### Performance expectations
 
@@ -402,21 +404,17 @@ ollama logs
 
 ---
 
-## Benchmarking your setup
+## Measuring context quality
 
-Compare your local LLM against the SigMap benchmarks:
+Test whether SigMap retrieves the right files:
 
 ```bash
-sigmap benchmark \
-  --model mistral \
-  --api-base http://localhost:11434/v1
+sigmap validate --query "rate limiting in payments"
 ```
 
-This runs the full SigMap evaluation suite (90 tasks, 18 repos) against your local model and reports:
-- Hit@5 (file ranking accuracy)
-- Task success rate
-- Token reduction
-- Prompts per task
+This runs validation against your codebase and reports coverage %. For comprehensive evaluation across multiple tasks, see the [Benchmark methodology](/guide/benchmark) guide which explains how SigMap measures file ranking accuracy, token reduction, and other metrics.
+
+To evaluate your local LLM's reasoning quality on tasks, use an LLM-aware evaluation tool (like [SigMap's benchmark suite](https://github.com/manojmallick/sigmap-benchmark-suite)) with your local model endpoint configured in your agent tool (Aider, OpenCode, etc.).
 
 ---
 
@@ -459,10 +457,15 @@ ollama pull mistral  # Downloads latest version
 
 ### Can I run local LLMs on cloud VMs?
 
-Yes. Set up Ollama/vLLM on an EC2, GCP, or DigitalOcean instance, then point SigMap to the remote endpoint:
+Yes. Set up Ollama/vLLM on an EC2, GCP, or DigitalOcean instance. SigMap generates context locally, then your agent tool (Aider, OpenCode, etc.) points to the remote LLM:
 
 ```bash
-sigmap --api-base http://your-vm.example.com:11434/v1
+# SigMap on your local machine
+sigmap
+
+# Agent pointing to remote LLM
+aider --model openai/local \
+  --api-base http://your-vm.example.com:11434/v1
 ```
 
 ### Should I use quantized models?
