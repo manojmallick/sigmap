@@ -61,14 +61,6 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 0 seconds ago)
-```
-src/discovery/language-detector.js            ~detectLanguages
-src/extractors/python.js                      +tryNativeExtract  +extract  ~extract  ~extractDocHint
-src/extractors/python_ast.py                  +annotation_to_str  +format_args  +arguments  +get_decorator_names
-src/extractors/r.js                           +extract  +definitions  +readBalancedParens  +normalizeParams
-```
-
 ## packages
 
 ### packages/cli/index.js
@@ -186,20 +178,6 @@ function adapt(context, adapterName, opts = {}) → string
 ```
 
 ## src
-
-### src/eval/runner.js
-```
-module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize }
-function buildSigIndex(cwd) → Map<string, string[]>
-function tokenize(text) → string[]
-function scoreFile(sigs, queryTokens) → number
-function rank(query, index, topK = 10) → { file: string, score: nu
-function estimateTokens(sigs) → number
-function loadTasks(tasksFile) → Array<{id:string, query:s
-function run(tasksFile, cwd, opts = {}) → { * tasks: Array<{id, que
-function formatTable(taskResults) → string
-function formatMetrics(metrics) → string
-```
 
 ### src/retrieval/tokenizer.js
 ```
@@ -558,6 +536,27 @@ function _getMatchLength(name, token)
 function scopeToPackage(filePath, packageDir)
 ```
 
+### src/map/import-graph.js
+```
+module.exports = { analyze, extractImports }
+function extractImports(filePath, content, fileSet)
+function resolveJsPath(dir, importStr, fileSet)
+function detectCycles(graph)
+function analyze(files, cwd)
+```
+
+### src/discovery/language-detector.js
+```
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
+```
+
+### src/discovery/source-root-registry.js
+```
+module.exports = { REGISTRY }
+```
+
 ### src/discovery/source-root-resolver.js
 ```
 module.exports = { resolveSourceRoots }
@@ -567,18 +566,6 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
 function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
 function _dedupeNested(scored)
 function _computeConfidence(frameworks, languages, scoredCount)
-```
-
-### src/discovery/source-root-registry.js
-```
-module.exports = { REGISTRY }
-```
-
-### src/discovery/language-detector.js
-```
-module.exports = { detectLanguages }
-function detectLanguages(cwd)
-function _walkDepth(dir, depth, extCount)
 ```
 
 ### src/eval/analyzer.js
