@@ -6,6 +6,10 @@ on:
     paths:
       - "package.json"
       - "CHANGELOG.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   draft-release:
@@ -31,7 +35,7 @@ jobs:
 
       - name: Validate version in CHANGELOG
         run: |
-          CHANGELOG_VERSION=$(grep -m 1 '## \[' CHANGELOG.md | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "")
+          CHANGELOG_VERSION=$(grep -m 1 '## \[[0-9]' CHANGELOG.md | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "")
           PACKAGE_VERSION="${{ steps.version.outputs.version }}"
 
           if [ -z "$CHANGELOG_VERSION" ]; then
@@ -64,8 +68,8 @@ jobs:
         if: steps.check-release.outputs.exists == 'false'
         id: changelog
         run: |
-          # Extract from first ## [ to next ## [ or end of file
-          awk '/^## \[/{if(++count==2) exit} count==1' CHANGELOG.md > /tmp/changelog.txt
+          # Extract from second ## [ (v6.10.1) to third ## [ (v6.10.0) or end of file
+          awk 'BEGIN{count=0} /^## \[/{count++; if(count>2) exit; if(count==2) {flag=1; next}} flag' CHANGELOG.md > /tmp/changelog.txt
 
           if [ ! -s /tmp/changelog.txt ]; then
             echo "ERROR: Could not extract changelog"
