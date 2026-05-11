@@ -61,12 +61,10 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 6 minutes ago)
+## changes (last 5 commits — 0 seconds ago)
 ```
 src/discovery/source-root-resolver.js         ~_applySpecialRules  ~_dedupeNested
 src/map/import-graph.js                       ~analyze
-packages/adapters/index.js                    ~getAdapter
-packages/adapters/willow.js                   +format  +outputPath  +generateAtomId  +fetchWithTimeout
 ```
 
 ## packages
@@ -176,15 +174,6 @@ function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
 ```
 
-### packages/adapters/index.js
-```
-module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
-function getAdapter(name) → { name: string, format: F
-function listAdapters() → string[]
-function adapt(context, adapterName, opts = {}) → string
-function outputsToAdapters(outputs) → string[]
-```
-
 ### packages/adapters/willow.js
 ```
 module.exports = { name, format, outputPath, write }
@@ -194,6 +183,15 @@ function generateAtomId(filepath) → string
 async function fetchWithTimeout(url, opts, timeoutMs) → Promise<Response>
 async function postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries) → Promise<boolean>
 async function write(context, cwd, opts = {}) → Promise<void>
+```
+
+### packages/adapters/index.js
+```
+module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
+function getAdapter(name) → { name: string, format: F
+function listAdapters() → string[]
+function adapt(context, adapterName, opts = {}) → string
+function outputsToAdapters(outputs) → string[]
 ```
 
 ## src
