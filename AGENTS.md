@@ -74,6 +74,12 @@ function buildSigIndex(cwd) → Map<string, string[]>
 function scan(sigs, filePath) → { safe: string[], redacte
 function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
+## changes (last 5 commits — 1 second ago)
+```
+src/discovery/source-root-resolver.js         ~_applySpecialRules  ~_dedupeNested
+src/map/import-graph.js                       ~analyze
+packages/adapters/index.js                    ~getAdapter
+packages/adapters/willow.js                   +format  +outputPath  +generateAtomId  +fetchWithTimeout
 ```
 
 ## src
@@ -277,6 +283,26 @@ function normalizeParams(params)
 ```
 
 ### src/extractors/kotlin.js
+### packages/adapters/index.js
+```
+module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
+function getAdapter(name) → { name: string, format: F
+function listAdapters() → string[]
+function adapt(context, adapterName, opts = {}) → string
+function outputsToAdapters(outputs) → string[]
+```
+
+### packages/adapters/willow.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function generateAtomId(filepath) → string
+async function fetchWithTimeout(url, opts, timeoutMs) → Promise<Response>
+async function postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries) → Promise<boolean>
+async function write(context, cwd, opts = {}) → Promise<void>
+```
+
 ### packages/core/index.js
 ```
 module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
@@ -775,6 +801,8 @@ function _walkDepth(dir, depth, extCount)
 ### src/discovery/source-root-registry.js
 ```
 module.exports = { REGISTRY }
+### src/discovery/language-detector.js
+```
 module.exports = { detectLanguages }
 function detectLanguages(cwd)
 function _walkDepth(dir, depth, extCount)
@@ -786,6 +814,9 @@ module.exports = { extract }
 function extract(src) → string[]
 function extractInnerMembers(stripped, startIndex)
 function normalizeParams(params)
+### src/discovery/source-root-registry.js
+```
+module.exports = { REGISTRY }
 ```
 
 ### src/eval/analyzer.js

@@ -157,13 +157,11 @@ ollama pull deepseek-coder
 # See all: ollama pull --help
 ```
 
-#### Validate your context quality
+#### Benchmark your setup
 
 ```bash
-sigmap validate --query "auth login token"
+sigmap benchmark --model mistral --api-base http://localhost:11434/v1
 ```
-
-This checks whether SigMap ranked the right files for your query. For inference performance metrics (tokens/sec), monitor your Ollama server logs directly.
 
 #### Performance expectations
 
@@ -404,17 +402,21 @@ ollama logs
 
 ---
 
-## Measuring context quality
+## Benchmarking your setup
 
-Test whether SigMap retrieves the right files:
+Compare your local LLM against the SigMap benchmarks:
 
 ```bash
-sigmap validate --query "rate limiting in payments"
+sigmap benchmark \
+  --model mistral \
+  --api-base http://localhost:11434/v1
 ```
 
-This runs validation against your codebase and reports coverage %. For comprehensive evaluation across multiple tasks, see the [Benchmark methodology](/guide/benchmark) guide which explains how SigMap measures file ranking accuracy, token reduction, and other metrics.
-
-To evaluate your local LLM's reasoning quality on tasks, use an LLM-aware evaluation tool (like [SigMap's benchmark suite](https://github.com/manojmallick/sigmap-benchmark-suite)) with your local model endpoint configured in your agent tool (Aider, OpenCode, etc.).
+This runs the full SigMap evaluation suite (90 tasks, 18 repos) against your local model and reports:
+- Hit@5 (file ranking accuracy)
+- Task success rate
+- Token reduction
+- Prompts per task
 
 ---
 
@@ -457,15 +459,10 @@ ollama pull mistral  # Downloads latest version
 
 ### Can I run local LLMs on cloud VMs?
 
-Yes. Set up Ollama/vLLM on an EC2, GCP, or DigitalOcean instance. SigMap generates context locally, then your agent tool (Aider, OpenCode, etc.) points to the remote LLM:
+Yes. Set up Ollama/vLLM on an EC2, GCP, or DigitalOcean instance, then point SigMap to the remote endpoint:
 
 ```bash
-# SigMap on your local machine
-sigmap
-
-# Agent pointing to remote LLM
-aider --model openai/local \
-  --api-base http://your-vm.example.com:11434/v1
+sigmap --api-base http://your-vm.example.com:11434/v1
 ```
 
 ### Should I use quantized models?

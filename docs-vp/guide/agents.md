@@ -116,19 +116,18 @@ OpenHands runs as a web interface and can be configured to read codebase context
 
 1. **Generate context**
    ```bash
-   sigmap
-   # Writes: .github/copilot-instructions.md
+   sigmap --json > /tmp/sigmap-context.json
    ```
 
-2. **Start OpenHands**
+2. **Start OpenHands with context path**
    ```bash
-   openhands
+   CONTEXT_FILE=/path/to/.github/copilot-instructions.md openhands
    ```
 
 3. **Use SigMap in prompts**  
-   In the OpenHands chat, reference the context file:
+   In the OpenHands chat, reference the context:
    ```
-   Read .github/copilot-instructions.md and explain the auth system.
+   Review the files in .github/copilot-instructions.md and explain the auth system.
    ```
 
 ---
@@ -431,6 +430,13 @@ sigmap validate --query "your question"
 ```
 
 This shows whether SigMap ranked the right files in the top 10. For comprehensive evaluation with your local LLM setup, use the benchmark guides at [Local LLMs](/guide/local-llms).
+### How do I benchmark my local setup?
+
+```bash
+sigmap benchmark --model local-model
+```
+
+This runs the SigMap benchmark suite against your local LLM and reports hit@5, task success, and token reduction.
 
 ---
 
