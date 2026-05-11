@@ -217,6 +217,42 @@ test('getImpact: circular deps do not infinite-loop', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('builder: Python absolute imports are detected', () => {
+  const fs = require('fs');
+  const tmp  = require('os').tmpdir();
+  const dir = path.join(tmp, 'sigmap-py-abs-test-' + Date.now());
+  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(path.join(dir, 'core'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'services'), { recursive: true });
+
+  // core/base.py — no imports
+  fs.writeFileSync(path.join(dir, 'core', 'base.py'), 'class Base:\n  pass\n');
+
+  // services/calculator.py — imports from core using absolute import
+  fs.writeFileSync(
+    path.join(dir, 'services', 'calculator.py'),
+    'from core.base import Base\n\nclass Calculator(Base):\n  pass\n'
+  );
+
+  const files = [
+    path.join(dir, 'core', 'base.py'),
+    path.join(dir, 'services', 'calculator.py'),
+  ];
+  const g = build(files, dir);
+  const basePath = path.join(dir, 'core', 'base.py');
+  const calcPath = path.join(dir, 'services', 'calculator.py');
+
+  // base.py is imported by calculator.py (via absolute import from core.base)
+  const reverseOfBase = g.reverse.get(basePath) || [];
+  assert.ok(
+    reverseOfBase.includes(calcPath),
+    `expected calculator.py in reverse of base.py (absolute import), got: ${reverseOfBase}`
+  );
+
+  // Cleanup
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 // ---------------------------------------------------------------------------
 // format helpers
 // ---------------------------------------------------------------------------

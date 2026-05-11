@@ -126,8 +126,8 @@ test('benchmark: sigmap-v6.10-main ID present', () => {
   assert.ok(src.includes('sigmap-v6.10-main'), 'missing sigmap-v6.10-main benchmark ID');
 });
 
-test('benchmark: date 2026-05-05 present', () => {
-  assert.ok(src.includes('2026-05-05'), 'missing benchmark date 2026-05-05');
+test('benchmark: date 2026-05-12 present', () => {
+  assert.ok(src.includes('2026-05-12'), 'missing benchmark date 2026-05-12');
 });
 
 test('benchmark: Hit@5 80.0% present', () => {
@@ -138,8 +138,8 @@ test('benchmark: baseline 13.6% present', () => {
   assert.ok(src.includes('13.6%'), 'missing baseline 13.6%');
 });
 
-test('benchmark: prompt reduction 41.0% present', () => {
-  assert.ok(src.includes('41.0%'), 'missing prompt reduction 41.0%');
+test('benchmark: prompt reduction 41.4% present', () => {
+  assert.ok(src.includes('41.4%'), 'missing prompt reduction 41.4%');
 });
 
 test('benchmark: task success 52.2% present', () => {

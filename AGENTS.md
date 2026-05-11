@@ -61,10 +61,9 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 11 minutes ago)
+## changes (last 5 commits — 7 minutes ago)
 ```
-src/analysis/diagnostics.js                   +estimateTokens  +formatFileDecision  +computeFileMetrics  +explainInclusion
-src/map/import-graph.js                       +buildReverseGraph  ~extractImports  ~resolveJsPath  ~detectCycles
+src/graph/builder.js                          ~extractFileDeps
 ```
 
 ## packages
@@ -623,6 +622,15 @@ function resolveJsPath(dir, importStr, fileSet)
 function detectCycles(graph)
 function buildReverseGraph(graph)
 function analyze(files, cwd)
+```
+
+### src/graph/builder.js
+```
+module.exports = { build, buildFromCwd, extractFileDeps }
+function resolveJsPath(dir, importStr, fileSet) → string|null
+function extractFileDeps(filePath, content, fileSet) → string[]
+function build(files, cwd) → { forward: Map<string,str
+function buildFromCwd(cwd, opts) → { forward: Map<string,str
 ```
 
 ### src/mcp/server.js

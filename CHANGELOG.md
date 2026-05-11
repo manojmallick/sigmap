@@ -10,6 +10,22 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.9] — 2026-05-12
+
+### Changed
+
+- **Documentation updates** — Updated roadmap to reflect v6.10.8 completion with Python import detection in builder.js for get_impact MCP tool.
+
+---
+
+## [6.10.8] — 2026-05-12
+
+### Fixed
+
+- **Python absolute imports in builder.js for get_impact** — Added Python absolute import detection to `src/graph/builder.js` used by the `get_impact` MCP tool. Previously only `import-graph.js` had this support, causing `get_impact` to return empty blast radius for Python monorepos. Now both tools correctly detect `from package.module import X` patterns (closes #187).
+
+---
+
 ## [6.10.7] — 2026-05-12
 
 ### Fixed

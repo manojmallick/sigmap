@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.10.7, with the latest releases implementing Python import detection, adding comprehensive diagnostics, and establishing develop-first branching strategy.
+description: SigMap version history and roadmap. From v0.0 to v6.10.8, with the latest releases implementing Python import detection, fixing get_impact for Python monorepos, and establishing develop-first branching strategy.
 head:
   - - meta
     - property: og:title
@@ -730,6 +730,16 @@ Fixed import graph analysis for Python monorepos (issues #181, #182): added dete
 
 ---
 
+### v6.10.8 — Python imports in builder.js for get_impact ✓ (tagged v6.10.8 — 2026-05-12)
+
+Added Python absolute import detection to `src/graph/builder.js`, fixing the `get_impact` MCP tool which returns empty blast radius for Python monorepos. The fix ensures both `import-graph.js` and `builder.js` correctly detect `from package.module import X` patterns.
+
+**Tags:** `MCP tools` · `Python imports` · `builder.js` · `get_impact` · `issue #187`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (same metrics)
+
+---
+
 ### v6.10.7 — Bundled Python import support ✓ (tagged v6.10.7 — 2026-05-12)
 
 Fixed Python absolute import detection in bundled gen-context.js. The source code already had support for `from package.module import X` patterns, but the bundle was missing this code block, causing MCP tools (`explain_file`, `get_impact`) to show empty import graphs for Python monorepos. Now bundled behavior matches source code exactly.
@@ -759,7 +769,7 @@ Introduced benchmark transparency and answer usefulness evaluation. All 18 bench
 
 ## Current milestone — v6.11+ (Extended language/framework coverage)
 
-v6.0–v6.10.2 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, and open-source agent/local LLM integration guides. Next: extended language/framework coverage (S3 methods in R, Phase 2), cross-package import walk with decay, and performance optimizations for very large monorepos (>50K files).
+v6.0–v6.10.8 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, open-source agent/local LLM integration guides, and complete Python import detection in both import-graph and builder modules for accurate blast radius on Python monorepos. Next: extended language/framework coverage (S3 methods in R, Phase 2), cross-package import walk with decay, and performance optimizations for very large monorepos (>50K files).
 
 ---
 
