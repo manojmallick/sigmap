@@ -61,7 +61,7 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 1 second ago)
+## changes (last 5 commits — 6 minutes ago)
 ```
 src/discovery/source-root-resolver.js         ~_applySpecialRules  ~_dedupeNested
 src/map/import-graph.js                       ~analyze
@@ -164,6 +164,18 @@ function outputPath(cwd) → string
 function write(context, cwd, opts = {})
 ```
 
+### packages/core/index.js
+```
+module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
+function _resolveExtractor(language)
+function extract(src, language) → string[]
+function rank(query, sigIndex, opts) → { file: string, score: nu
+function buildSigIndex(cwd) → Map<string, string[]>
+function scan(sigs, filePath) → { safe: string[], redacte
+function score(cwd) → { * score: number, * grad
+function adapt(context, adapterName, opts = {}) → string
+```
+
 ### packages/adapters/index.js
 ```
 module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
@@ -182,18 +194,6 @@ function generateAtomId(filepath) → string
 async function fetchWithTimeout(url, opts, timeoutMs) → Promise<Response>
 async function postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries) → Promise<boolean>
 async function write(context, cwd, opts = {}) → Promise<void>
-```
-
-### packages/core/index.js
-```
-module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
-function _resolveExtractor(language)
-function extract(src, language) → string[]
-function rank(query, sigIndex, opts) → { file: string, score: nu
-function buildSigIndex(cwd) → Map<string, string[]>
-function scan(sigs, filePath) → { safe: string[], redacte
-function score(cwd) → { * score: number, * grad
-function adapt(context, adapterName, opts = {}) → string
 ```
 
 ## src
@@ -555,17 +555,6 @@ function _getMatchLength(name, token)
 function scopeToPackage(filePath, packageDir)
 ```
 
-### src/discovery/source-root-resolver.js
-```
-module.exports = { resolveSourceRoots }
-function resolveSourceRoots(cwd, opts = {})
-function _detectMonorepo(cwd)
-function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
-function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
-function _dedupeNested(scored)
-function _computeConfidence(frameworks, languages, scoredCount)
-```
-
 ### src/discovery/language-detector.js
 ```
 module.exports = { detectLanguages }
@@ -632,15 +621,6 @@ function readBalancedParens(src, openIdx, cap = 4096)
 function normalizeParams(raw)
 ```
 
-### src/map/import-graph.js
-```
-module.exports = { analyze, extractImports }
-function extractImports(filePath, content, fileSet)
-function resolveJsPath(dir, importStr, fileSet)
-function detectCycles(graph)
-function analyze(files, cwd)
-```
-
 ### src/mcp/server.js
 ```
 module.exports = { start }
@@ -648,4 +628,24 @@ function respond(id, result)
 function respondError(id, code, message)
 function dispatch(msg, cwd)
 function start(cwd)
+```
+
+### src/discovery/source-root-resolver.js
+```
+module.exports = { resolveSourceRoots }
+function resolveSourceRoots(cwd, opts = {})
+function _detectMonorepo(cwd)
+function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
+function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
+function _dedupeNested(scored)
+function _computeConfidence(frameworks, languages, scoredCount)
+```
+
+### src/map/import-graph.js
+```
+module.exports = { analyze, extractImports }
+function extractImports(filePath, content, fileSet)
+function resolveJsPath(dir, importStr, fileSet)
+function detectCycles(graph)
+function analyze(files, cwd)
 ```
