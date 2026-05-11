@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.10.1, with the latest features adding R language support, Python AST extraction, monorepo workspace-scoped retrieval, segmented benchmarks, and answer usefulness evaluation.
+description: SigMap version history and roadmap. From v0.0 to v6.10.2, with the latest features adding R language support, Python AST extraction, open-source agents and local LLM documentation, monorepo workspace-scoped retrieval, segmented benchmarks, and answer usefulness evaluation.
 head:
   - - meta
     - property: og:title
@@ -681,6 +681,23 @@ Expanded language coverage and improved Python extraction accuracy. Added Phase 
 
 ---
 
+### v6.10.2 — Open-source agents and local LLM documentation ✓ (tagged v6.10.2 — 2026-05-11)
+
+Comprehensive integration guides for open-source AI tools and self-hosted LLM workflows. Added two new documentation guides highlighting SigMap's model-agnostic nature: detailed integrations for open-source coding agents (OpenCode, Aider, OpenHands, Cline) and complete setup guides for local LLM inference backends (Ollama, llama.cpp, vLLM, LM Studio). Updated README to emphasize no vendor lock-in, cost-free inference with local models, and full privacy for proprietary codebases. Added "Integrations" navigation section in documentation.
+
+- **Open-source agents guide** — Setup and integration patterns for OpenCode, Aider, OpenHands, Cline with local and cloud LLM backends
+- **Local LLMs guide** — Complete self-hosted workflows for Ollama, llama.cpp, vLLM with per-backend instructions, model recommendations, performance tuning
+- **Updated README** — Clarified model-agnostic support for cloud APIs, open-source agents, and fully local setups with zero token costs
+- **Enhanced navigation** — New "Integrations" section in docs linking all agent/backend options
+
+**Tags:** `open-source agents` · `local LLMs` · `Ollama support` · `llama.cpp` · `vLLM` · `documentation` · `model-agnostic`
+
+**Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (unchanged metrics, documentation-only release)
+
+**Impact:** LocalLLM community can now easily use SigMap with self-hosted models. Reduces perceived vendor lock-in and clarifies cost-free inference path.
+
+---
+
 ### v6.9.0 — Segmented benchmarks and methodology ✓ (tagged v6.9.0 — 2026-05-03)
 
 Introduced benchmark transparency and answer usefulness evaluation. All 18 benchmark repositories now tagged by language, repo type (framework/library/tool/application), and size class to enable segmented analysis by project characteristics. Comprehensive methodology documentation explains benchmark design, task selection, metric definitions, and reproducibility. New answer usefulness evaluation metric tracks whether retrieved context actually enabled correct answers, scored in three tiers: fully-useful (rank 1), partially-useful (ranks 2-5), not-useful (not retrieved).
@@ -700,7 +717,7 @@ Introduced benchmark transparency and answer usefulness evaluation. All 18 bench
 
 ## Current milestone — v6.11+ (Extended language/framework coverage)
 
-v6.0–v6.10.1 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, and Python AST extraction for complex signatures. Next: extended language/framework coverage (S3 methods in R, Phase 2), cross-package import walk with decay, and performance optimizations for very large monorepos (>50K files).
+v6.0–v6.10.2 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, and open-source agent/local LLM integration guides. Next: extended language/framework coverage (S3 methods in R, Phase 2), cross-package import walk with decay, and performance optimizations for very large monorepos (>50K files).
 
 ---
 
