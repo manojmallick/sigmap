@@ -83,22 +83,22 @@ test('packages/adapters/index exports getAdapter, listAdapters, adapt, outputsTo
 });
 
 // ---------------------------------------------------------------------------
-// 2. listAdapters returns 7 names
+// 2. listAdapters returns 8 names
 // ---------------------------------------------------------------------------
-test('listAdapters() returns exactly 7 adapter names', () => {
+test('listAdapters() returns exactly 8 adapter names', () => {
   const list = adapters.listAdapters();
   assert.ok(Array.isArray(list), 'must be an array');
-  assert.strictEqual(list.length, 7, `expected 7 adapters, got ${list.length}: ${list.join(', ')}`);
-  const expected = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
+  assert.strictEqual(list.length, 8, `expected 8 adapters, got ${list.length}: ${list.join(', ')}`);
+  const expected = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex', 'willow'];
   for (const name of expected) {
     assert.ok(list.includes(name), `missing adapter: ${name}`);
   }
 });
 
 // ---------------------------------------------------------------------------
-// 3-8. Each adapter has name, format, outputPath
+// 3-9. Each adapter has name, format, outputPath
 // ---------------------------------------------------------------------------
-for (const adapterName of ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini']) {
+for (const adapterName of ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'willow']) {
   test(`getAdapter('${adapterName}') returns {name, format, outputPath}`, () => {
     const a = adapters.getAdapter(adapterName);
     assert.ok(a !== null, `getAdapter('${adapterName}') returned null`);

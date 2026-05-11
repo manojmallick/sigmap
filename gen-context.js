@@ -2980,6 +2980,148 @@ __factories["./src/extractors/prdiff"] = function(module, exports) {
 
 };
 
+// ── ./src/extractors/r ──
+__factories["./src/extractors/r"] = function(module, exports) {
+
+  'use strict';
+
+  /**
+   * Extract signatures from R source code.
+   * @param {string} src - Raw file content
+   * @returns {string[]} Array of signature strings
+   */
+  function extract(src) {
+    if (!src || typeof src !== 'string') return [];
+    const sigs = [];
+
+    // Strip line comments. R uses # comments. Roxygen2 (#') comments are
+    // stripped along with regular ones; Phase 2 may parse them.
+    const stripped = src.replace(/#.*$/gm, '');
+
+    // Function definitions:
+    //   name <- function(args) { ... }
+    //   name = function(args) { ... }
+    //   name <<- function(args) { ... }
+    // Args may span multiple lines and contain default values, so we need to
+    // match a balanced parenthesis group rather than a single line.
+    const funcRe = /^(?:[ \t]*)([\w.]+)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
+    let m;
+    while ((m = funcRe.exec(stripped)) !== null) {
+      const name = m[1];
+      if (name.startsWith('.')) continue; // private convention
+      const argsStart = funcRe.lastIndex;
+      const args = readBalancedParens(stripped, argsStart - 1);
+      if (args === null) continue;
+      sigs.push(`${name} <- function(${normalizeParams(args)})`);
+    }
+
+    // S4 setMethod / setGeneric:
+    //   setGeneric("name", function(args) standardGeneric("name"))
+    //   setMethod("name", "ClassName", function(args) { ... })
+    for (const sm of stripped.matchAll(/^[ \t]*setGeneric\s*\(\s*["']([\w.]+)["']/gm)) {
+      sigs.push(`setGeneric("${sm[1]}")`);
+    }
+    for (const sm of stripped.matchAll(/^[ \t]*setMethod\s*\(\s*["']([\w.]+)["']\s*,\s*["']([\w.]+)["']/gm)) {
+      sigs.push(`setMethod("${sm[1]}", "${sm[2]}")`);
+    }
+
+    // S4 class definitions:
+    //   setClass("Name", representation(...), ...)
+    for (const sm of stripped.matchAll(/^[ \t]*setClass\s*\(\s*["']([\w.]+)["']/gm)) {
+      sigs.push(`setClass("${sm[1]}")`);
+    }
+
+    return sigs.slice(0, 30);
+  }
+
+  /**
+   * Read a parenthesis-balanced substring starting at the position of the
+   * opening '(' character, returning the inner content (without the outer
+   * parens). Returns null if no matching close paren is found within `cap`
+   * characters, which guards against runaway scans on malformed input.
+   */
+  function readBalancedParens(src, openIdx, cap = 4096) {
+    if (src[openIdx] !== '(') return null;
+    let depth = 1;
+    let i = openIdx + 1;
+    const end = Math.min(src.length, openIdx + cap);
+    let inString = null; // null | '"' | "'"
+    while (i < end) {
+      const ch = src[i];
+      if (inString) {
+        if (ch === '\\') { i += 2; continue; }
+        if (ch === inString) inString = null;
+        i++;
+        continue;
+      }
+      if (ch === '"' || ch === "'") { inString = ch; i++; continue; }
+      if (ch === '(') depth++;
+      else if (ch === ')') {
+        depth--;
+        if (depth === 0) return src.slice(openIdx + 1, i);
+      }
+      i++;
+    }
+    return null;
+  }
+
+  /**
+   * Compress whitespace inside a parameter list, collapse multi-line default
+   * expressions onto a single line, and trim. The goal is one-line readable
+   * signatures, not a faithful AST.
+   *
+   * String literals are protected so that commas/equals inside default values
+   * like sep = "," don't get respaced.
+   */
+  function normalizeParams(raw) {
+    const tokens = [];
+    let buf = '';
+    let inString = null;
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      if (inString) {
+        buf += ch;
+        if (ch === '\\' && i + 1 < raw.length) { buf += raw[i + 1]; i++; continue; }
+        if (ch === inString) inString = null;
+        continue;
+      }
+      if (ch === '"' || ch === "'") { inString = ch; buf += ch; continue; }
+      buf += ch;
+    }
+    // Now buf === raw with strings preserved character-for-character.
+    // Walk again: collapse non-string runs of whitespace, normalize ', ' and ' = '.
+    let out = '';
+    inString = null;
+    for (let i = 0; i < buf.length; i++) {
+      const ch = buf[i];
+      if (inString) {
+        out += ch;
+        if (ch === '\\' && i + 1 < buf.length) { out += buf[i + 1]; i++; continue; }
+        if (ch === inString) inString = null;
+        continue;
+      }
+      if (ch === '"' || ch === "'") { inString = ch; out += ch; continue; }
+      if (/\s/.test(ch)) {
+        if (out.length && !/\s$/.test(out)) out += ' ';
+        continue;
+      }
+      if (ch === ',') {
+        out = out.replace(/\s+$/, '') + ', ';
+        continue;
+      }
+      if (ch === '=') {
+        out = out.replace(/\s+$/, '') + ' = ';
+        continue;
+      }
+      out += ch;
+    }
+    return out.trim();
+  }
+
+  module.exports = { extract };
+
+};
+
 // ── ./src/format/cache ──
 __factories["./src/format/cache"] = function(module, exports) {
   
@@ -5387,7 +5529,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.10.0',
+  version: '6.10.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -8014,7 +8156,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.10.0';
+const VERSION = '6.10.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8094,14 +8236,22 @@ function loadIgnorePatterns(cwd) {
 function matchesIgnore(relPath, patterns) {
   for (const pat of patterns) {
     const normalized = pat.replace(/\\/g, '/');
-    // Simple glob: support * and ** and trailing /
-    const regexStr = normalized
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    // Strip trailing slash (gitignore style — directory patterns)
+    const patternToUse = normalized.endsWith('/')
+      ? normalized.slice(0, -1)
+      : normalized;
+    // Escape regex special chars but NOT brackets (keep them for character classes)
+    const regexStr = patternToUse
+      .replace(/[.+^${}()|\\]/g, '\\$&')
       .replace(/\*\*/g, '___DOUBLE___')
       .replace(/\*/g, '[^/]*')
       .replace(/___DOUBLE___/g, '.*');
-    const regex = new RegExp(`(^|/)${regexStr}($|/)`);
-    if (regex.test(relPath)) return true;
+    try {
+      const regex = new RegExp(`(^|/)${regexStr}($|/)`);
+      if (regex.test(relPath)) return true;
+    } catch (_) {
+      // Malformed bracket syntax or invalid regex — skip this pattern
+    }
   }
   return false;
 }
@@ -9029,7 +9179,7 @@ function runPerModuleStrategy(cwd, config, fileEntries, inputTokenTotal) {
   overviewLines.push('> Inject the relevant module file into your IDE context window.');
   overviewLines.push('> For cross-module questions load both files.');
   const overviewContent = overviewLines.join('\n') + '\n';
-  const primaryTargets = (config.outputs || ['copilot']).filter((t) => t !== 'claude');
+  const primaryTargets = config.outputs || ['copilot'];
   writeOutputs(overviewContent, primaryTargets, cwd, config);
 
   const overviewTokens = estimateTokens(overviewContent);
@@ -9048,7 +9198,7 @@ function runHotColdStrategy(cwd, config, fileEntries, recentFiles, inputTokenTot
   const hotContent = hotEntries.length > 0
     ? formatOutput(hotEntries, cwd, false, config, null)
     : '<!-- Generated by SigMap — no recently changed files -->\n';
-  const primaryTargets = (config.outputs || ['copilot']).filter((t) => t !== 'claude');
+  const primaryTargets = config.outputs || ['copilot'];
   writeOutputs(hotContent, primaryTargets, cwd, config);
   const hotTokens = estimateTokens(hotContent);
 
@@ -11182,6 +11332,7 @@ function main() {
       // Priority: --output flag > --adapter flag > buildSigIndex probe order
       //   (customOutput from config is handled inside buildSigIndex itself)
       let queryOpts;
+      const adpIdx = args.indexOf('--adapter');
 
       // 1. --output <file> pins to an explicit path
       if (config.customOutput) {
@@ -11189,17 +11340,14 @@ function main() {
       }
 
       // 2. --adapter <name> pins to that adapter's output path (if --output not given)
-      if (!queryOpts) {
-        const adpIdx = args.indexOf('--adapter');
-        if (adpIdx >= 0) {
-          const adapterName = (args[adpIdx + 1] || '').trim().toLowerCase();
-          const VALID_ADAPTERS = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
-          if (VALID_ADAPTERS.includes(adapterName)) {
-            try {
-              const adapterMod = __require('./packages/adapters/' + adapterName);
-              queryOpts = { contextPath: adapterMod.outputPath(cwd) };
-            } catch (_) {}
-          }
+      if (!queryOpts && adpIdx >= 0) {
+        const adapterName = (args[adpIdx + 1] || '').trim().toLowerCase();
+        const VALID_ADAPTERS = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
+        if (VALID_ADAPTERS.includes(adapterName)) {
+          try {
+            const adapterMod = __require('./packages/adapters/' + adapterName);
+            queryOpts = { contextPath: adapterMod.outputPath(cwd) };
+          } catch (_) {}
         }
       }
 

@@ -145,4 +145,4 @@ function analyze(files, cwd) {
   return lines.join('\n');
 }
 
-module.exports = { analyze };
+module.exports = { analyze, extractImports };

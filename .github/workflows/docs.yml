@@ -1,0 +1,33 @@
+name: Docs
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - "docs-vp/**"
+      - "README.md"
+      - ".github/workflows/docs.yml"
+
+jobs:
+  docs-build:
+    name: Build docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: docs-vp/package-lock.json
+
+      - name: Install docs dependencies
+        working-directory: docs-vp
+        run: npm ci
+
+      - name: Build docs
+        working-directory: docs-vp
+        run: npm run docs:build

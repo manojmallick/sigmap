@@ -12,7 +12,8 @@
 [![Zero deps](https://img.shields.io/badge/dependencies-zero-22c55e)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
-[![Hacker News](https://img.shields.io/badge/Hacker%20News-Discussion-orange?logo=ycombinator)](https://news.ycombinator.com/item?id=47956790)
+[![Star History Chart](https://api.star-history.com/svg?repos=manojmallick/sigmap&type=Date)](https://star-history.com/#manojmallick/sigmap&Date)
+[![Discover on ShyPD](https://img.shields.io/badge/ShyPD-Discover-7c6af7?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48Y2lyY2xlIGN4PSI4IiBjeT0iOCIgcj0iOCIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&logoColor=7c6af7)](https://shypd.ai/tools/sigmap)
 
 </div>
 
@@ -20,9 +21,11 @@
 
 ## Try it now
 
+**No install required.** Run instantly on any machine:
+
 ```bash
 npx sigmap
-sigmap ask "Where is auth handled?"
+npx sigmap ask "Where is auth handled?"
 ```
 
 Zero config. Zero dependencies. Under 10 seconds.
@@ -225,6 +228,20 @@ sigmap --health
 If SigMap saves you context or API spend, a ⭐ on [GitHub](https://github.com/manojmallick/sigmap) helps others find it.
 
 [Report an issue](https://github.com/manojmallick/sigmap/issues) · [Changelog](CHANGELOG.md)
+
+---
+
+## Contributing
+
+SigMap welcomes contributions! 
+
+**Before submitting a PR:**
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+2. Check [Discussions → Announcements](../../discussions) for workflow setup
+3. Target the `develop` branch (not main)
+4. Follow the [contributor checklist](.github/CONTRIBUTOR_CHECKLIST.txt)
+
+See [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the PR checklist. All contributors are credited in the CHANGELOG and release notes.
 
 ---
 

@@ -181,7 +181,11 @@ function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks) {
 function _dedupeNested(scored) {
   const result = [];
   for (const c of scored) {
-    const isNested = result.some(r => c.dir.startsWith(r.dir + '/'));
+    const cNorm = c.dir.replace(/\\/g, '/');
+    const isNested = result.some(r => {
+      const rNorm = r.dir.replace(/\\/g, '/');
+      return cNorm.startsWith(rNorm + '/');
+    });
     if (!isNested) result.push(c);
   }
   return result;

@@ -1,11 +1,42 @@
 'use strict';
 
+const path = require('path');
+
+/**
+ * Try to extract signatures using the native Python AST extractor.
+ * Returns null if Python3 is unavailable or the script returns empty results.
+ * @param {string} filePath - Absolute path to the Python file
+ * @returns {string[]|null}
+ */
+function tryNativeExtract(filePath) {
+  try {
+    const { execFileSync } = require('child_process');
+    const scriptPath = path.join(__dirname, 'python_ast.py');
+    const result = execFileSync('python3', [scriptPath, filePath], {
+      timeout: 5000,
+      encoding: 'utf8',
+    });
+    const sigs = JSON.parse(result.trim());
+    if (Array.isArray(sigs) && sigs.length > 0) return sigs;
+  } catch (_) {}
+  return null;
+}
+
 /**
  * Extract signatures from Python source code.
+ * When a real file path is provided, tries the native Python AST extractor first
+ * (more accurate for multiline signatures, stacked decorators, and type annotations).
+ * Falls back to the regex approach if Python3 is unavailable or returns no results.
  * @param {string} src - Raw file content
+ * @param {string} [filePath] - Optional absolute path to the source file
  * @returns {string[]} Array of signature strings
  */
-function extract(src) {
+function extract(src, filePath) {
+  // Prefer native AST extractor when a real file path is available
+  if (filePath && typeof filePath === 'string') {
+    const native = tryNativeExtract(filePath);
+    if (native) return native;
+  }
   if (!src || typeof src !== 'string') return [];
   const sigs = [];
 
@@ -200,4 +231,4 @@ function extractDocHint(src, fnName, fnSigLine) {
   return sentence.slice(0, 60);
 }
 
-module.exports = { extract };
+module.exports = { extract, tryNativeExtract };

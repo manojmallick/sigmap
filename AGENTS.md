@@ -57,9 +57,14 @@ Use this marker block for all appendable context files:
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
 ## changes (last 5 commits — 3 days ago)
+## deps
 ```
-src/eval/usefulness-scorer.js                 +scoreUsefulness  +computeUsefulnessStats
-src/workspace/detector.js                     +detectWorkspaces  +inferPackage  +_getMatchLength  +scopeToPackage
+src/extractors/python_ast.py ← ast
+```
+
+## changes (last 5 commits — 0 seconds ago)
+```
+src/map/import-graph.js                       ~analyze
 ```
 
 ## packages
@@ -79,6 +84,50 @@ function adapt(context, adapterName, opts = {}) → string
 ## src
 
 ### src/discovery/sigmapignore.js
+### packages/cli/index.js
+```
+module.exports = { CLI_ENTRY, run }
+function run(argv, cwd) → void
+```
+
+### packages/adapters/index.js
+```
+module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
+function getAdapter(name) → { name: string, format: F
+function listAdapters() → string[]
+function adapt(context, adapterName, opts = {}) → string
+function outputsToAdapters(outputs) → string[]
+```
+
+### packages/adapters/llm-full.js
+```
+module.exports = { name: 'llm-full', format, outputPath, write }
+function outputPath(cwd)
+function format(context, opts)
+function write(context, cwd, opts)
+```
+
+### packages/core/README.md
+```
+h1 sigmap-core
+h2 Installation
+h2 Quick start
+h2 API reference
+h3 `extract(src, language)` → `string[]`
+h3 `rank(query, sigIndex, opts?)` → `Result[]`
+h3 `buildSigIndex(cwd)` → `Map<string, string[]>`
+h3 `scan(sigs, filePath)` → `{ safe: string[], redacted: boolean }`
+h3 `score(cwd)` → `HealthResult`
+h2 Migration from v2.3 and earlier
+h2 v3.0 — Multi-Adapter Architecture (released)
+h2 Zero dependencies
+code-fence bash
+code-fence plain
+code-fence js
+code-fence ---
+```
+
+### packages/adapters/copilot.js
 ```
 module.exports = { loadIgnorePatterns, matchesIgnorePattern }
 function loadIgnorePatterns(cwd)
@@ -242,6 +291,21 @@ function normalizeParams(params)
 ```
 
 ### src/extractors/kotlin.js
+### packages/core/index.js
+```
+module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
+function _resolveExtractor(language)
+function extract(src, language) → string[]
+function rank(query, sigIndex, opts) → { file: string, score: nu
+function buildSigIndex(cwd) → Map<string, string[]>
+function scan(sigs, filePath) → { safe: string[], redacte
+function score(cwd) → { * score: number, * grad
+function adapt(context, adapterName, opts = {}) → string
+```
+
+## src
+
+### src/retrieval/tokenizer.js
 ```
 module.exports = { extract }
 function extract(src) → string[]
@@ -419,6 +483,7 @@ function extract(src) → string[]
 ```
 
 ### src/extractors/xml.js
+### src/format/dashboard.js
 ```
 module.exports = { extract }
 function extract(src) → string[]
@@ -576,6 +641,7 @@ function analyze(files, cwd)
 ```
 
 ### src/mcp/handlers.js
+### src/discovery/sigmapignore.js
 ```
 module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact }
 function readContext(args, cwd)
@@ -677,6 +743,35 @@ function formatAnalysisJSON(stats) → object
 ```
 
 ### src/discovery/language-detector.js
+### src/eval/usefulness-scorer.js
+```
+module.exports = { scoreUsefulness, computeUsefulnessStats }
+function scoreUsefulness(taskResult, rankingScore)
+function computeUsefulnessStats(taskResults)
+```
+
+### src/workspace/detector.js
+```
+module.exports = { detectWorkspaces, inferPackage, scopeToPackage }
+function detectWorkspaces(cwd)
+function inferPackage(query, workspaceDirs, cwd)
+function _getMatchLength(name, token)
+function scopeToPackage(filePath, packageDir)
+```
+
+### src/discovery/source-root-registry.js
+```
+module.exports = { REGISTRY }
+```
+
+### src/discovery/language-detector.js
+```
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
+```
+
+### src/discovery/source-root-resolver.js
 ```
 module.exports = { detectLanguages }
 function detectLanguages(cwd)
@@ -691,11 +786,67 @@ function extractInnerMembers(stripped, startIndex)
 function normalizeParams(params)
 ```
 
-### src/eval/usefulness-scorer.js
+### src/eval/analyzer.js
 ```
-module.exports = { scoreUsefulness, computeUsefulnessStats }
-function scoreUsefulness(taskResult, rankingScore)
-function computeUsefulnessStats(taskResults)
+module.exports = { analyzeFiles, formatAnalysisTable, formatAnalysisJSON }
+function isDockerfile(name)
+function getExtractorName(filePath)
+function tokenCount(sigs)
+function hasCoverage(filePath, cwd)
+function loadExtractor(name, cwd)
+function analyzeFiles(files, cwd, opts) → object[]
+function formatAnalysisTable(stats, showSlow) → string
+function formatAnalysisJSON(stats) → object
+```
+
+### src/extractors/python.js
+```
+module.exports = { extract, tryNativeExtract }
+function tryNativeExtract(filePath) → string[]|null
+function extract(src, filePath) → string[]
+function extractClassMethods(stripped, startIndex)
+function tryExtractDataclassFields(stripped, classIndex)
+function tryExtractBaseModelFields(stripped, bodyStart)
+function extractClassConstants(stripped, startIndex)
+function extractReturnType(sigLine)
+function normalizeParams(params)
+function extractDocHint(src, fnName, fnSigLine)
+```
+
+### src/extractors/python_ast.py
+```
+def annotation_to_str(node)  # Convert an AST annotation node to a string representation
+def format_args(args_node)  # Format a function arguments node into a compact signature st
+def get_decorator_names(node)  # Return a list of decorator name strings for a function/class
+def is_dataclass(node)
+def is_basemodel(bases)  # Check if class bases include BaseModel or BaseSettings
+def is_optional_annotation(annotation)  # Check if an annotation represents an Optional type
+def get_docstring_hint(node)  # Extract first sentence of docstring, if present
+def extract_dataclass_fields(class_node)  # Return a collapsed fields string for a @dataclass class
+def extract_basemodel_fields(class_node)  # Return a compact {required*, optional
+def extract_class_constants(class_node)  # Yield ALL_CAPS constant assignments from class body
+def extract_method_sig(func_node)  # Format a method signature string (already indented by caller
+def extract_function_sig(func_node, src_lines)  # Format a top-level function signature string
+def extract_fastapi_routes(tree, src_lines)  # Extract FastAPI route signatures from top-level decorated fu
+def extract(filepath)
+def main()
+```
+
+### src/extractors/r.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function readBalancedParens(src, openIdx, cap = 4096)
+function normalizeParams(raw)
+```
+
+### src/map/import-graph.js
+```
+module.exports = { analyze, extractImports }
+function extractImports(filePath, content, fileSet)
+function resolveJsPath(dir, importStr, fileSet)
+function detectCycles(graph)
+function analyze(files, cwd)
 ```
 
 ### src/mcp/server.js
@@ -705,13 +856,4 @@ function respond(id, result)
 function respondError(id, code, message)
 function dispatch(msg, cwd)
 function start(cwd)
-```
-
-### src/workspace/detector.js
-```
-module.exports = { detectWorkspaces, inferPackage, scopeToPackage }
-function detectWorkspaces(cwd)
-function inferPackage(query, workspaceDirs, cwd)
-function _getMatchLength(name, token)
-function scopeToPackage(filePath, packageDir)
 ```

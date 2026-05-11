@@ -1,5 +1,75 @@
 # Contributing to SigMap
 
+Thanks for contributing to SigMap.
+
+SigMap uses a `develop` branch for active development and `main` for stable releases.
+
+## Branch workflow
+
+Please open pull requests against:
+
+```
+develop
+```
+
+Not directly against:
+
+```
+main
+```
+
+## Recommended branch names
+
+```
+feature/opencode-agents-md
+feature/mcp-docs
+feature/explain-savings
+fix/watch-docs
+docs/ecosystem-page
+test/parser-fixtures
+```
+
+## Pull request checklist
+
+Before opening a PR, please check:
+
+* [ ] The change has a clear purpose
+* [ ] Tests were added or updated when needed
+* [ ] Existing tests pass
+* [ ] Documentation was updated for user-facing changes
+* [ ] README was updated if the public behavior changed
+* [ ] Benchmark numbers were not changed without fresh benchmark data
+* [ ] No new dependency was added unless discussed first
+
+## Local commands
+
+```bash
+npm test
+```
+
+If the change affects parsing, ranking, context generation, or token output, please also run the relevant benchmark command documented in the benchmark guide.
+
+## Contributor credit
+
+Contributors are credited in:
+
+* the original PR
+* `CHANGELOG.md`
+* release PRs
+* GitHub release notes
+
+Each merged PR should include a short line in `CHANGELOG.md` under `Unreleased`. Example:
+
+```md
+- Added OpenCode / AGENTS.md documentation by @username in #24.
+```
+
+When a PR is squashed, we preserve contributor credit in the commit message:
+
+```
+Co-authored-by: Name <email@example.com>
+```
+
 ## Adding a language extractor
 
 1. Create `src/extractors/{language}.js` following the contract below

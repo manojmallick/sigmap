@@ -1,0 +1,7 @@
+moving_average <- function(x, n = 5)
+greet <- function(name = "world", greeting = "hello")
+load_data <- function(path, sep = ",", na.strings = c("NA", "", "n/a"), stringsAsFactors = FALSE)
+server <- function(input, output, session)
+setGeneric("distance_to_origin")
+setMethod("distance_to_origin", "Point")
+setClass("Point")

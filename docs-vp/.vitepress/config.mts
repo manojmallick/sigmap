@@ -78,6 +78,7 @@ export default defineConfig({
         text: 'More',
         items: [
           { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+          { text: 'Release checklist', link: '/guide/release-checklist' },
           { text: 'Roadmap', link: '/guide/roadmap' },
         ],
       },
