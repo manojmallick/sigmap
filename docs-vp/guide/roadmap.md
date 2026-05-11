@@ -718,11 +718,13 @@ Fixed critical bug in bundled gen-context.js where `extractImports` function was
 
 ---
 
-### v6.10.5 — Develop-first branching strategy ✓ (tagged v6.10.5 — 2026-05-11)
+### v6.10.5 — Import graph improvements + branching strategy ✓ (tagged v6.10.5 — 2026-05-11)
 
-Established clear branching strategy with develop as integration branch and main as release-only branch. All feature/fix branches now cut from develop, PR to develop, then release via develop → main. Added branching strategy regression tests to enforce workflow.
+Fixed import graph analysis for Python monorepos (issues #181, #182): added detection of absolute Python imports (`from package.module import X`), improved edge case handling, and added `sigmap-diagnostics.js` for debugging import detection. Also established branching strategy with develop as integration branch and main as release-only. Includes 8 regression tests for MCP tools and comprehensive testing guide.
 
-**Tags:** `branching strategy` · `develop-first` · `workflow enforcement` · `release pipeline`
+**Tags:** `import graph` · `Python absolute imports` · `diagnostics tool` · `issue #181` · `issue #182` · `develop-first branching` · `MCP tools` · `regression tests`
+
+**Impact:** Fixes empty import graph for Python files with cross-package dependencies; enables explain_file and get_impact on large monorepos.
 
 **Benchmark:** 80.0% hit@5 · 96.8% token reduction · 52.2% task success (same metrics)
 
