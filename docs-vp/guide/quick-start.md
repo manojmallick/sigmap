@@ -87,5 +87,9 @@ sigmap weights
 
 - Daily workflow: [ask](/guide/ask), [validate](/guide/validate), [judge](/guide/judge), [learning](/guide/learning)
 - Reference: [CLI](/guide/cli), [Config](/guide/config)
-- Integrations: [MCP server](/guide/mcp), [Repomix integration](/guide/repomix)
+- **Integrations:**
+  - [Open-source agents](/guide/agents) — OpenCode, Aider, OpenHands, Cline
+  - [Local LLMs](/guide/local-llms) — Ollama, llama.cpp, vLLM (no API keys)
+  - [MCP server](/guide/mcp) — Claude Code, Cursor, Windsurf
+  - [Repomix integration](/guide/repomix)
 - Proof: [Benchmark overview](/guide/benchmark)

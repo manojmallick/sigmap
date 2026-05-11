@@ -62,11 +62,6 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 0 seconds ago)
-```
-src/map/import-graph.js                       ~analyze
-```
-
 ## packages
 
 ### packages/core/index.js
@@ -88,15 +83,6 @@ function adapt(context, adapterName, opts = {}) → string
 ```
 module.exports = { CLI_ENTRY, run }
 function run(argv, cwd) → void
-```
-
-### packages/adapters/index.js
-```
-module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
-function getAdapter(name) → { name: string, format: F
-function listAdapters() → string[]
-function adapt(context, adapterName, opts = {}) → string
-function outputsToAdapters(outputs) → string[]
 ```
 
 ### packages/adapters/llm-full.js
@@ -301,6 +287,26 @@ function buildSigIndex(cwd) → Map<string, string[]>
 function scan(sigs, filePath) → { safe: string[], redacte
 function score(cwd) → { * score: number, * grad
 function adapt(context, adapterName, opts = {}) → string
+```
+
+### packages/adapters/willow.js
+```
+module.exports = { name, format, outputPath, write }
+function format(context, opts = {}) → string
+function outputPath(cwd) → string
+function generateAtomId(filepath) → string
+async function fetchWithTimeout(url, opts, timeoutMs) → Promise<Response>
+async function postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries) → Promise<boolean>
+async function write(context, cwd, opts = {}) → Promise<void>
+```
+
+### packages/adapters/index.js
+```
+module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }
+function getAdapter(name) → { name: string, format: F
+function listAdapters() → string[]
+function adapt(context, adapterName, opts = {}) → string
+function outputsToAdapters(outputs) → string[]
 ```
 
 ## src
@@ -759,11 +765,6 @@ function _getMatchLength(name, token)
 function scopeToPackage(filePath, packageDir)
 ```
 
-### src/discovery/source-root-registry.js
-```
-module.exports = { REGISTRY }
-```
-
 ### src/discovery/language-detector.js
 ```
 module.exports = { detectLanguages }
@@ -771,8 +772,9 @@ function detectLanguages(cwd)
 function _walkDepth(dir, depth, extCount)
 ```
 
-### src/discovery/source-root-resolver.js
+### src/discovery/source-root-registry.js
 ```
+module.exports = { REGISTRY }
 module.exports = { detectLanguages }
 function detectLanguages(cwd)
 function _walkDepth(dir, depth, extCount)
@@ -838,6 +840,17 @@ module.exports = { extract }
 function extract(src) → string[]
 function readBalancedParens(src, openIdx, cap = 4096)
 function normalizeParams(raw)
+```
+
+### src/discovery/source-root-resolver.js
+```
+module.exports = { resolveSourceRoots }
+function resolveSourceRoots(cwd, opts = {})
+function _detectMonorepo(cwd)
+function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
+function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
+function _dedupeNested(scored)
+function _computeConfidence(frameworks, languages, scoredCount)
 ```
 
 ### src/map/import-graph.js

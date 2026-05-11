@@ -10,6 +10,21 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.2] — 2026-05-11
+
+### Added
+
+- **Open-source agents documentation** — Comprehensive integration guides for OpenCode, Aider, OpenHands, and Cline with setup examples and context injection patterns. Clear separation of coding agents from inference backends.
+- **Local LLM workflows guide** — Complete setup guide for Ollama, llama.cpp, vLLM with model recommendations, performance tuning, and benchmarking. Emphasizes model-agnostic nature: no API costs, full privacy, offline capability.
+- **Integrations sidebar** — New VitePress navigation section highlighting open-source agents, local LLMs, MCP server, and Repomix integration.
+
+### Changed
+
+- **README model-agnostic messaging** — Updated to clarify support for cloud LLMs, open-source agents, and local models with full privacy. Removed proprietary-focused language.
+- **Quick-start guide** — Added links to new agent and local-LLM guides in "Next steps" section.
+
+---
+
 ## [6.10.1] — 2026-05-10
 
 ### Added

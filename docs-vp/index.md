@@ -78,7 +78,7 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v6.10.1</span>
+  <span><strong>Release:</strong> v6.10.2</span>
   <span>·</span>
   <span>Monorepo workspace-scoped retrieval</span>
 </div>
@@ -98,6 +98,8 @@ features:
 | New to SigMap | [Quick start](/guide/quick-start) |
 | Using it daily | [ask](/guide/ask) · [validate](/guide/validate) · [judge](/guide/judge) |
 | Setting up a team / CI | [Config](/guide/config) · [Strategies](/guide/strategies) |
+| Using open-source agents (OpenCode, Aider, Cline) | [Open-source agents guide](/guide/agents) |
+| Running local LLMs (Ollama, llama.cpp, vLLM) | [Local LLMs guide](/guide/local-llms) — zero cost, full privacy |
 | Integrating with MCP, Claude, or Cursor | [MCP setup](/guide/mcp) |
 | Evaluating for a monorepo | [Strategies](/guide/strategies) · [Generalization](/guide/generalization) |
 | Comparing against embeddings or RAG | [Compare alternatives](/guide/compare-alternatives) |
