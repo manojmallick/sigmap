@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.10.5, with the latest releases fixing MCP tools extractImports export, restoring contributor attribution, and establishing develop-first branching strategy.
+description: SigMap version history and roadmap. From v0.0 to v6.10.6, with the latest releases implementing Python import detection, adding comprehensive diagnostics, and establishing develop-first branching strategy.
 head:
   - - meta
     - property: og:title
@@ -718,7 +718,7 @@ Fixed critical bug in bundled gen-context.js where `extractImports` function was
 
 ---
 
-### v6.10.5 — Import graph improvements + branching strategy ✓ (tagged v6.10.5 — 2026-05-11)
+### v6.10.6 — Import graph improvements + branching strategy ✓ (tagged v6.10.6 — 2026-05-11)
 
 Fixed import graph analysis for Python monorepos (issues #181, #182): added detection of absolute Python imports (`from package.module import X`), improved edge case handling, and added `sigmap-diagnostics.js` for debugging import detection. Also established branching strategy with develop as integration branch and main as release-only. Includes 8 regression tests for MCP tools and comprehensive testing guide.
 

@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.6] — 2026-05-11
+
+### Added
+
+- **Python absolute import detection** — Detects `from package.module import X` patterns in Python files, fixing empty import graphs for monorepos. Handles nested imports like `from services.auth.oauth import get_token` correctly (closes #181).
+- **Comprehensive import graph diagnostics** — New `sigmap-diagnostics.js` tool and `src/analysis/diagnostics.js` module provide per-file metrics and budget decision explanations. Helps debug why files are included/excluded and why import graphs may be empty (closes #182).
+- **Regression tests for MCP tools** — Added 8 comprehensive tests covering simple projects, monorepos, circular imports, and Python absolute imports. All tests passing to prevent regressions in `explain_file`, `get_impact`, and related tools.
+
+### Fixed
+
+- **Import graph edge resolution** — Improved `resolveJsPath` to handle additional extensions (.mjs, .cjs, .tsx) and better fileSet path handling. Import graph now correctly detects cross-file dependencies in complex project structures.
+
+---
+
 ## [6.10.5] — 2026-05-11
 
 ### Added

@@ -61,7 +61,7 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 11 minutes ago)
+## changes (last 5 commits — 9 minutes ago)
 ```
 src/analysis/diagnostics.js                   +estimateTokens  +formatFileDecision  +computeFileMetrics  +explainInclusion
 src/map/import-graph.js                       +buildReverseGraph  ~extractImports  ~resolveJsPath  ~detectCycles
@@ -605,6 +605,15 @@ function formatAnalysisTable(stats, showSlow) → string
 function formatAnalysisJSON(stats) → object
 ```
 
+### src/mcp/server.js
+```
+module.exports = { start }
+function respond(id, result)
+function respondError(id, code, message)
+function dispatch(msg, cwd)
+function start(cwd)
+```
+
 ### src/analysis/diagnostics.js
 ```
 module.exports = { formatFileDecision, computeFileMetrics, explainInclusion, explainExclusion, estimateTokens }
@@ -623,13 +632,4 @@ function resolveJsPath(dir, importStr, fileSet)
 function detectCycles(graph)
 function buildReverseGraph(graph)
 function analyze(files, cwd)
-```
-
-### src/mcp/server.js
-```
-module.exports = { start }
-function respond(id, result)
-function respondError(id, code, message)
-function dispatch(msg, cwd)
-function start(cwd)
 ```
