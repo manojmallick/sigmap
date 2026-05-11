@@ -56,6 +56,7 @@ Use this marker block for all appendable context files:
 | To query by topic | `sigmap --query "<topic>"` |
 
 Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.
+## changes (last 5 commits — 3 days ago)
 ## deps
 ```
 src/extractors/python_ast.py ← ast
@@ -63,6 +64,21 @@ src/extractors/python_ast.py ← ast
 
 ## packages
 
+### packages/core/index.js
+```
+module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
+function _resolveExtractor(language)
+function extract(src, language) → string[]
+function rank(query, sigIndex, opts) → { file: string, score: nu
+function buildSigIndex(cwd) → Map<string, string[]>
+function scan(sigs, filePath) → { safe: string[], redacte
+function score(cwd) → { * score: number, * grad
+function adapt(context, adapterName, opts = {}) → string
+```
+
+## src
+
+### src/discovery/sigmapignore.js
 ### packages/cli/index.js
 ```
 module.exports = { CLI_ENTRY, run }
@@ -99,63 +115,168 @@ code-fence ---
 
 ### packages/adapters/copilot.js
 ```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
+module.exports = { loadIgnorePatterns, matchesIgnorePattern }
+function loadIgnorePatterns(cwd)
+function matchesIgnorePattern(dirName, patterns)
 ```
 
-### packages/adapters/cursor.js
+### src/discovery/source-root-registry.js
 ```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
+module.exports = { REGISTRY }
 ```
 
-### packages/adapters/gemini.js
+### src/discovery/source-root-resolver.js
 ```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
-function _confidenceMeta(opts)
-```
-
-### packages/adapters/openai.js
-```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function _confidenceMeta(opts)
+module.exports = { resolveSourceRoots }
+function resolveSourceRoots(cwd, opts = {})
+function _detectMonorepo(cwd)
+function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)
+function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks)
+function _dedupeNested(scored)
+function _computeConfidence(frameworks, languages, scoredCount)
 ```
 
-### packages/adapters/windsurf.js
+### src/discovery/source-root-scorer.js
 ```
-module.exports = { name, format, outputPath }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-```
-
-### packages/adapters/claude.js
-```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function _confidenceMeta(opts)
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
+module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN }
+function getRecentlyChangedDirs(cwd)
+function scoreCandidate(dirName, fullPath, context)
+function _countSourceFiles(dir, depth)
 ```
 
-### packages/adapters/codex.js
+### src/eval/runner.js
 ```
-module.exports = { name, format, outputPath, write }
-function format(context, opts = {}) → string
-function outputPath(cwd) → string
-function write(context, cwd, opts = {})
+module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize }
+function buildSigIndex(cwd) → Map<string, string[]>
+function tokenize(text) → string[]
+function scoreFile(sigs, queryTokens) → number
+function rank(query, index, topK = 10) → { file: string, score: nu
+function estimateTokens(sigs) → number
+function loadTasks(tasksFile) → Array<{id:string, query:s
+function run(tasksFile, cwd, opts = {}) → { * tasks: Array<{id, que
+function formatTable(taskResults) → string
+function formatMetrics(metrics) → string
 ```
 
+### src/eval/scorer.js
+```
+module.exports = { hitAtK, reciprocalRank, precisionAtK, aggregate, firstRank }
+function firstRank(ranked, expected) → number
+function normalizePath(p) → string
+function hitAtK(ranked, expected, k = 5) → 0|1
+function reciprocalRank(ranked, expected) → number
+function precisionAtK(ranked, expected, k = 5) → number
+function aggregate(results, k = 5) → { * hitAt5: number, // fr
+function round(x)
+```
+
+### src/extractors/coverage.js
+```
+module.exports = { buildTestIndex, isTested }
+function walkFiles(dir)
+function buildTestIndex(cwd, testDirs)
+function isTested(funcName, testIndex)
+```
+
+### src/extractors/cpp.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
+function normalizeType(type)
+```
+
+### src/extractors/csharp.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
+function normalizeType(type)
+```
+
+### src/extractors/css.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+```
+
+### src/extractors/dart.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
+```
+
+### src/extractors/deps.js
+```
+module.exports = { extractPythonDeps, extractTSDeps, buildReverseDepMap }
+function extractPythonDeps(src) → string[]
+function extractTSDeps(src) → string[]
+function buildReverseDepMap(forwardMap) → Map<string, string[]>
+```
+
+### src/extractors/dockerfile.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+```
+
+### src/extractors/generic.js
+```
+module.exports = { extract }
+function extract(src)
+```
+
+### src/extractors/go.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractInterfaceMethods(block)
+function normalizeParams(params)
+```
+
+### src/extractors/graphql.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+```
+
+### src/extractors/html.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+```
+
+### src/extractors/java.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
+function normalizeType(type)
+```
+
+### src/extractors/javascript.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractClassMembers(block, returnHints)
+function buildReturnHints(src)
+function normalizeType(type)
+function formatReturnHint(type)
+function normalizeParams(params)
+```
+
+### src/extractors/kotlin.js
 ### packages/core/index.js
 ```
 module.exports = { extract, rank, buildSigIndex, scan, score, adapt }
@@ -192,51 +313,102 @@ async function write(context, cwd, opts = {}) → Promise<void>
 
 ### src/retrieval/tokenizer.js
 ```
-module.exports = { tokenize, STOP_WORDS }
-function tokenize(text, opts) → string[]
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
 ```
 
-### src/graph/builder.js
+### src/extractors/markdown.js
 ```
-module.exports = { build, buildFromCwd, extractFileDeps }
-function resolveJsPath(dir, importStr, fileSet) → string|null
-function extractFileDeps(filePath, content, fileSet) → string[]
-function build(files, cwd) → { forward: Map<string,str
-function buildFromCwd(cwd, opts) → { forward: Map<string,str
+module.exports = { extract }
+function extract(src) → string[]
 ```
 
-### src/graph/impact.js
+### src/extractors/patterns.js
 ```
-module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON }
-function bfs(startFile, reverseGraph, maxDepth) → { direct: Set<string>, tr
-function isTestFile(f)
-function isRouteFile(f)
-function getImpact(changedFile, graph, opts) → { * changed: string, * di
-function analyzeImpact(changedFiles, cwd, opts) → { file: string, impact: o
-function formatImpact(result) → string
-function formatImpactJSON(result) → object
+module.exports = { extract }
+function extract(src) → string[]
 ```
 
-### src/mcp/tools.js
+### src/extractors/php.js
 ```
-module.exports = { TOOLS }
-```
-
-### src/health/scorer.js
-```
-module.exports = { score }
-function score(cwd) → { * score: number, * grad
-```
-
-### src/extractors/coverage.js
-```
-module.exports = { buildTestIndex, isTested }
-function walkFiles(dir)
-function buildTestIndex(cwd, testDirs)
-function isTested(funcName, testIndex)
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
+function normalizeType(type)
 ```
 
-### src/extractors/css.js
+### src/extractors/prdiff.js
+```
+module.exports = { diffSignatures, extractName }
+function diffSignatures(baseSigs, currentSigs) → {added:string[], removed:
+function extractName(sig)
+```
+
+### src/extractors/properties.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+```
+
+### src/extractors/protobuf.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+```
+
+### src/extractors/python.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractClassMethods(stripped, startIndex)
+function tryExtractDataclassFields(stripped, classIndex)
+function tryExtractBaseModelFields(stripped, bodyStart)
+function extractClassConstants(stripped, startIndex)
+function extractReturnType(sigLine)
+function normalizeParams(params)
+function extractDocHint(src, fnName, fnSigLine)
+```
+
+### src/extractors/python_dataclass.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+```
+
+### src/extractors/ruby.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function normalizeParams(params)
+function extractReturnHint(stripped, index)
+```
+
+### src/extractors/rust.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMethods(block)
+function normalizeParams(params)
+function extractReturnType(afterParen)
+```
+
+### src/extractors/scala.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
+function normalizeType(type)
+```
+
+### src/extractors/shell.js
 ```
 module.exports = { extract }
 function extract(src) → string[]
@@ -250,16 +422,22 @@ function _cleanName(raw)
 function _normalizeParams(raw)
 ```
 
-### src/extractors/graphql.js
+### src/extractors/svelte.js
 ```
 module.exports = { extract }
 function extract(src) → string[]
+function normalizeParams(params)
+function normalizeType(type)
 ```
 
-### src/extractors/protobuf.js
+### src/extractors/swift.js
 ```
 module.exports = { extract }
 function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractMembers(block)
+function normalizeParams(params)
+function extractArrowType(str)
 ```
 
 ### src/extractors/terraform.js
@@ -268,16 +446,10 @@ module.exports = { extract }
 function extract(src) → string[]
 ```
 
-### src/extractors/markdown.js
+### src/extractors/todos.js
 ```
-module.exports = { extract }
-function extract(src) → string[]
-```
-
-### src/extractors/properties.js
-```
-module.exports = { extract }
-function extract(src) → string[]
+module.exports = { extractTodos }
+function extractTodos(src) → {line:number, tag:string,
 ```
 
 ### src/extractors/toml.js
@@ -286,22 +458,14 @@ module.exports = { extract }
 function extract(src) → string[]
 ```
 
-### src/extractors/xml.js
+### src/extractors/typescript.js
 ```
 module.exports = { extract }
 function extract(src) → string[]
-```
-
-### src/extractors/patterns.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-```
-
-### src/extractors/python_dataclass.js
-```
-module.exports = { extract }
-function extract(src) → string[]
+function extractBlock(src, startIndex)
+function extractInterfaceMembers(block)
+function extractClassMembers(block)
+function normalizeParams(params)
 ```
 
 ### src/extractors/typescript_react.js
@@ -310,61 +474,31 @@ module.exports = { extract }
 function extract(src) → string[]
 ```
 
+### src/extractors/vue.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function normalizeParams(params)
+function normalizeType(type)
+```
+
 ### src/extractors/vue_sfc.js
 ```
 module.exports = { extract }
 function extract(src) → string[]
 ```
 
-### src/extractors/generic.js
-```
-module.exports = { extract }
-function extract(src)
-```
-
-### src/format/llm-txt.js
-```
-module.exports = { format, outputPath }
-function outputPath(cwd)
-function format(context, cwd, version)
-```
-
-### src/format/llms-txt.js
-```
-module.exports = { format, outputPath }
-function outputPath(cwd)
-function getShortCommit(cwd)
-function detectVersion(cwd)
-function format(context, cwd, writtenFiles, sigmapVersion)
-```
-
+### src/extractors/xml.js
 ### src/format/dashboard.js
 ```
-module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak }
-function toNumber(v)
-function percentile(values, p)
-function overBudgetStreak(entries)
-function loadConfig(cwd)
-function shouldExclude(rel, excludeSet)
-function detectLanguage(filePath)
-function walkFiles(dir, maxDepth, depth, out, excludeSet)
-function computeExtractorCoverage(cwd)
-function readBenchmarkTrend(cwd)
-function lineChartSvg(values, title, ySuffix)
-function barChartSvg(perLanguage)
-function sparkline(values)
-function buildDashboardData(cwd, health)
-function generateDashboardHtml(cwd, health)
-function renderHistoryCharts(cwd, health)
+module.exports = { extract }
+function extract(src) → string[]
 ```
 
-### src/judge/judge-engine.js
+### src/extractors/yaml.js
 ```
-module.exports = { groundedness, judge }
-function tokenize(text)
-function groundedness(response, context)
-function extractContextFiles(context, cwd)
-function judge(response, context, opts = {})
+module.exports = { extract }
+function extract(src) → string[]
 ```
 
 ### src/format/benchmark-report.js
@@ -394,53 +528,83 @@ function generateBenchmarkReportHtml(reports, opts = {})
 function writeBenchmarkReport(cwd, opts = {})
 ```
 
-### src/analysis/coverage-score.js
+### src/format/cache.js
 ```
-module.exports = { coverageScore, CODE_EXTS }
-function coverageScore(cwd, fileEntries, config)
-function _walk(dir, excludeSet, out)
-```
-
-### src/cache/sig-cache.js
-```
-module.exports = { loadCache, saveCache, getChangedFiles, updateCacheEntries }
-function cachePath(cwd)
-function loadCache(cwd, currentVersion) → Map<string, { mtime: numb
-function saveCache(cwd, currentVersion, cache)
-function getChangedFiles(files, cache) → { changed: string[], unch
-function updateCacheEntries(cache, extracted)
+module.exports = { formatCache, formatCachePayload }
+function formatCache(content) → string
+function formatCachePayload(content, model) → string
 ```
 
-### src/mcp/handlers.js
+### src/format/dashboard.js
 ```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact }
-function readContext(args, cwd)
-function searchSignatures(args, cwd)
-function getMap(args, cwd)
-function createCheckpoint(args, cwd)
-function getRouting(args, cwd)
-function explainFile(args, cwd)
-function listModules(args, cwd)
-function queryContext(args, cwd)
-function getImpact(args, cwd)
-```
-
-### src/tracking/logger.js
-```
-module.exports = { logRun, readLog, summarize }
-function logRun(entry, cwd)
-function readLog(cwd) → object[]
-function summarize(entries) → object
+module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak }
+function toNumber(v)
+function percentile(values, p)
+function overBudgetStreak(entries)
+function loadConfig(cwd)
+function shouldExclude(rel, excludeSet)
+function detectLanguage(filePath)
+function walkFiles(dir, maxDepth, depth, out, excludeSet)
+function computeExtractorCoverage(cwd)
+function readBenchmarkTrend(cwd)
+function lineChartSvg(values, title, ySuffix)
+function barChartSvg(perLanguage)
+function sparkline(values)
+function buildDashboardData(cwd, health)
+function generateDashboardHtml(cwd, health)
+function renderHistoryCharts(cwd, health)
 ```
 
-### src/extractors/typescript.js
+### src/format/llm-txt.js
 ```
-module.exports = { extract }
-function extract(src) → string[]
-function extractBlock(src, startIndex)
-function extractInterfaceMembers(block)
-function extractClassMembers(block)
-function normalizeParams(params)
+module.exports = { format, outputPath }
+function outputPath(cwd)
+function format(context, cwd, version)
+```
+
+### src/format/llms-txt.js
+```
+module.exports = { format, outputPath }
+function outputPath(cwd)
+function getShortCommit(cwd)
+function detectVersion(cwd)
+function format(context, cwd, writtenFiles, sigmapVersion)
+```
+
+### src/graph/builder.js
+```
+module.exports = { build, buildFromCwd, extractFileDeps }
+function resolveJsPath(dir, importStr, fileSet) → string|null
+function extractFileDeps(filePath, content, fileSet) → string[]
+function build(files, cwd) → { forward: Map<string,str
+function buildFromCwd(cwd, opts) → { forward: Map<string,str
+```
+
+### src/graph/impact.js
+```
+module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON }
+function bfs(startFile, reverseGraph, maxDepth) → { direct: Set<string>, tr
+function isTestFile(f)
+function isRouteFile(f)
+function getImpact(changedFile, graph, opts) → { * changed: string, * di
+function analyzeImpact(changedFiles, cwd, opts) → { file: string, impact: o
+function formatImpact(result) → string
+function formatImpactJSON(result) → object
+```
+
+### src/health/scorer.js
+```
+module.exports = { score }
+function score(cwd) → { * score: number, * grad
+```
+
+### src/judge/judge-engine.js
+```
+module.exports = { groundedness, judge }
+function tokenize(text)
+function groundedness(response, context)
+function extractContextFiles(context, cwd)
+function judge(response, context, opts = {})
 ```
 
 ### src/learning/weights.js
@@ -460,31 +624,52 @@ function exportWeights(cwd, outputPath)
 function importWeights(cwd, importPath, replace)
 ```
 
-### src/config/loader.js
+### src/map/class-hierarchy.js
 ```
-module.exports = { loadConfig, loadBaseConfig }
-function loadBaseConfig(extendsVal, cwd)
-function detectAutoSrcDirs(cwd, excludeList) → string[]
-function _legacyDetectAutoSrcDirs(cwd, excludeList) → string[]
-function loadConfig(cwd) → object
-function deepClone(obj)
+module.exports = { analyze }
+function analyze(files, cwd)
 ```
 
-### src/discovery/framework-detector.js
+### src/map/import-graph.js
 ```
-module.exports = { detectFrameworks }
-function detectFrameworks(cwd)
-function _readDeps(cwd)
-function _readFile(p)
-function _existsAnywhere(cwd, filename, maxDepth)
-function _walkFind(dir, name, depth)
+module.exports = { analyze }
+function extractImports(filePath, content, fileSet)
+function resolveJsPath(dir, importStr, fileSet)
+function detectCycles(graph)
+function analyze(files, cwd)
 ```
 
+### src/map/route-table.js
+```
+module.exports = { analyze }
+function shouldSkipFile(rel)
+function analyze(files, cwd)
+```
+
+### src/mcp/handlers.js
 ### src/discovery/sigmapignore.js
 ```
-module.exports = { loadIgnorePatterns, matchesIgnorePattern }
-function loadIgnorePatterns(cwd)
-function matchesIgnorePattern(dirName, patterns)
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact }
+function readContext(args, cwd)
+function searchSignatures(args, cwd)
+function getMap(args, cwd)
+function createCheckpoint(args, cwd)
+function getRouting(args, cwd)
+function explainFile(args, cwd)
+function listModules(args, cwd)
+function queryContext(args, cwd)
+function getImpact(args, cwd)
+```
+
+### src/mcp/tools.js
+```
+module.exports = { TOOLS }
+```
+
+### src/plan/planner.js
+```
+module.exports = { createPlan }
+function createPlan(goal, cwd, config)
 ```
 
 ### src/retrieval/ranker.js
@@ -502,10 +687,34 @@ function formatRankJSON(results, query) → object
 function detectIntent(query)
 ```
 
-### src/plan/planner.js
+### src/retrieval/tokenizer.js
 ```
-module.exports = { createPlan }
-function createPlan(goal, cwd, config)
+module.exports = { tokenize, STOP_WORDS }
+function tokenize(text, opts) → string[]
+```
+
+### src/routing/classifier.js
+```
+module.exports = { classify, classifyAll }
+function classify(filePath, sigs) → 'fast'|'balanced'|'powerf
+function classifyAll(fileEntries, cwd) → { fast: string[], balance
+```
+
+### src/routing/hints.js
+```
+module.exports = { TIERS, formatRoutingSection }
+function formatRoutingSection(groups) → string
+```
+
+### src/security/patterns.js
+```
+module.exports = { PATTERNS }
+```
+
+### src/security/scanner.js
+```
+module.exports = { scan }
+function scan(signatures, filePath) → { safe: string[], redacte
 ```
 
 ### src/session/memory.js
@@ -518,19 +727,28 @@ function mergeSessionContext(scores, session, currentIntent)
 function clearSession(cwd)
 ```
 
-### src/config/defaults.js
+### src/tracking/logger.js
 ```
-module.exports = { DEFAULTS }
-```
-
-### src/discovery/source-root-scorer.js
-```
-module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN }
-function getRecentlyChangedDirs(cwd)
-function scoreCandidate(dirName, fullPath, context)
-function _countSourceFiles(dir, depth)
+module.exports = { logRun, readLog, summarize }
+function logRun(entry, cwd)
+function readLog(cwd) → object[]
+function summarize(entries) → object
 ```
 
+### src/eval/analyzer.js
+```
+module.exports = { analyzeFiles, formatAnalysisTable, formatAnalysisJSON }
+function isDockerfile(name)
+function getExtractorName(filePath)
+function tokenCount(sigs)
+function hasCoverage(filePath, cwd)
+function loadExtractor(name, cwd)
+function analyzeFiles(files, cwd, opts) → object[]
+function formatAnalysisTable(stats, showSlow) → string
+function formatAnalysisJSON(stats) → object
+```
+
+### src/discovery/language-detector.js
 ### src/eval/usefulness-scorer.js
 ```
 module.exports = { scoreUsefulness, computeUsefulnessStats }
@@ -557,6 +775,17 @@ function _walkDepth(dir, depth, extCount)
 ### src/discovery/source-root-registry.js
 ```
 module.exports = { REGISTRY }
+module.exports = { detectLanguages }
+function detectLanguages(cwd)
+function _walkDepth(dir, depth, extCount)
+```
+
+### src/extractors/gdscript.js
+```
+module.exports = { extract }
+function extract(src) → string[]
+function extractInnerMembers(stripped, startIndex)
+function normalizeParams(params)
 ```
 
 ### src/eval/analyzer.js
