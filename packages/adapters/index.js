@@ -11,14 +11,16 @@
 
 const path = require('path');
 
-const ADAPTER_NAMES = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
+// Third-party adapters: 'willow' writes atoms to a Willow MCP knowledge store
+// instead of a flat file (see willow.js for configuration).
+const ADAPTER_NAMES = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex', 'willow'];
 
 // Lazy-load adapters so unused ones don't pay any require() cost
 const _cache = {};
 
 /**
  * Load and return an adapter module by name.
- * @param {string} name - Adapter name (copilot|claude|cursor|windsurf|openai|gemini|codex)
+ * @param {string} name - Adapter name (copilot|claude|cursor|windsurf|openai|gemini|codex|willow)
  * @returns {{ name: string, format: Function, outputPath: Function }|null}
  */
 function getAdapter(name) {
