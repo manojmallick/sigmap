@@ -1,6 +1,13 @@
-moving_average <- function(x, n = 5)
+Stack <- R6Class("Stack")  # Push and pop values onto an internal vector
+  initialize <- function(values = list())
+  push <- function(x)
+  pop <- function()
+  size <- function()
+Range <- new_class("Range")
+  method(format, Range) <- function(x, ...)
+moving_average <- function(x, n = 5)  # Compute a moving average over a numeric vector
 greet <- function(name = "world", greeting = "hello")
-load_data <- function(path, sep = ",", na.strings = c("NA", "", "n/a"), stringsAsFactors = FALSE)
+load_data <- function(path, sep = ",", na.strings = c("NA", "", "n/a"), stringsAsFactors = FALSE)  # Load a CSV with sensible defaults
 server <- function(input, output, session)
 setGeneric("distance_to_origin")
 setMethod("distance_to_origin", "Point")
