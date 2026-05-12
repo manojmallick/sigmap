@@ -28,5 +28,5 @@ jobs:
           git fetch origin main develop
           git checkout develop
           git merge --no-edit origin/main
-          git push origin develop
+          git push origin develop --force-with-lease
         continue-on-error: true
