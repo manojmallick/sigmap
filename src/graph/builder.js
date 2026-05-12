@@ -28,6 +28,7 @@ const GO_EXTS  = new Set(['.go']);
 const RS_EXTS  = new Set(['.rs']);
 const JVM_EXTS = new Set(['.java', '.kt', '.kts', '.scala', '.sc']);
 const RB_EXTS  = new Set(['.rb', '.rake']);
+const R_EXTS   = new Set(['.r', '.R']);
 
 /**
  * Resolve a JS/TS relative import string to an absolute path in fileSet.
@@ -53,13 +54,42 @@ function resolveJsPath(dir, importStr, fileSet) {
 }
 
 /**
+ * Resolve an R `source(...)` argument to an absolute path in fileSet.
+ * Tries the dir-relative path first, then a cwd-relative path so that
+ * `source("R/helpers.R")` resolves from the project root.
+ */
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function resolveRPath(dir, importStr, fileSet, cwd) {
+  const tried = new Set();
+  const bases = [path.resolve(dir, importStr)];
+  if (cwd) bases.push(path.resolve(cwd, importStr));
+  for (const base of bases) {
+    for (const c of [base, base + '.R', base + '.r']) {
+      const normC = normalizePath(c);
+      if (tried.has(normC)) continue;
+      tried.add(normC);
+      if (fileSet.has(normC)) return normC;
+    }
+  }
+  return null;
+}
+
+/**
  * Extract absolute dependency paths from a single file.
  * @param {string} filePath - absolute path to the file
  * @param {string} content  - file source content
  * @param {Set<string>} fileSet - set of all known absolute file paths
+ * @param {string}  [cwd]   - project root, used to resolve R `source("R/...")` calls
+ * @param {{ rPackage?: string, rLocalDefs?: Map<string,string> }} [ctx]
+ *        Optional cross-file context. When present and the file is R, a
+ *        `localPkg::fn` reference (where `localPkg` matches `rPackage`) is
+ *        resolved to the file in `rLocalDefs` that defines `fn`.
  * @returns {string[]} resolved absolute paths this file imports
  */
-function extractFileDeps(filePath, content, fileSet) {
+function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
   const ext = path.extname(filePath).toLowerCase();
   const dir = path.dirname(filePath);
   const found = [];
@@ -195,6 +225,35 @@ function extractFileDeps(filePath, content, fileSet) {
     }
   }
 
+  // ── R ─────────────────────────────────────────────────────────────────────
+  // R doesn't have JS-style relative imports inside packages — files in R/ are
+  // auto-sourced in alphabetical order. We emit edges for:
+  //   1. Explicit `source("path/file.R")` calls (common in Shiny / scripts).
+  //   2. `localPkg::fn` references where `localPkg` matches the project's
+  //      own DESCRIPTION#Package — resolved via the symbol→file map in ctx.
+  // `library(pkg)` / external `pkg::fn` calls are not graph edges.
+  if (R_EXTS.has(ext)) {
+    const stripped = content.replace(/#.*$/gm, '');
+    const reSrc = /(?:^|[^\w.])source\s*\(\s*["']([^"']+)["']/g;
+    let m;
+    while ((m = reSrc.exec(stripped)) !== null) {
+      const r = resolveRPath(dir, m[1], fileSet, cwd);
+      if (r) found.push(r);
+    }
+    if (ctx && ctx.rPackage && ctx.rLocalDefs && ctx.rLocalDefs.size > 0) {
+      const pkg = ctx.rPackage;
+      // Match `pkg::fn` or `pkg:::fn`. The `::` form needs to be the local
+      // package — references to other packages are external.
+      const reNs = new RegExp(`\\b${escapeRegex(pkg)}:::?([A-Za-z][\\w.]*)`, 'g');
+      while ((m = reNs.exec(stripped)) !== null) {
+        const target = ctx.rLocalDefs.get(m[1]);
+        const normTarget = target ? normalizePath(target) : null;
+        const normFilePath = normalizePath(filePath);
+        if (normTarget && normTarget !== normFilePath && fileSet.has(normTarget)) found.push(normTarget);
+      }
+    }
+  }
+
   return [...new Set(found)];
 }
 
@@ -207,9 +266,12 @@ function extractFileDeps(filePath, content, fileSet) {
  *
  * @param {string[]} files - absolute file paths to analyze
  * @param {string}   cwd   - project root (used only for error reporting)
+ * @param {{ rPackage?: string, rLocalDefs?: Map<string,string> }} [ctx]
+ *        Optional cross-file context for namespace-aware resolution. Built
+ *        automatically by `buildFromCwd` when DESCRIPTION + NAMESPACE exist.
  * @returns {{ forward: Map<string,string[]>, reverse: Map<string,string[]> }}
  */
-function build(files, cwd) {
+function build(files, cwd, ctx) {
   const fileSet = new Set(files.map((f) => path.resolve(f)));
   // Create a normalized version for cross-platform case-insensitive lookups
   const fileSetNormalized = new Set([...fileSet].map(normalizePath));
@@ -233,7 +295,7 @@ function build(files, cwd) {
     }
 
     const normFilePath = normalizePath(filePath);
-    const deps = extractFileDeps(filePath, content, fileSetNormalized);
+    const deps = extractFileDeps(filePath, content, fileSetNormalized, cwd, ctx);
     if (deps.length > 0) {
       forward.set(normFilePath, deps);
       for (const dep of deps) {
@@ -257,7 +319,9 @@ function build(files, cwd) {
  * @returns {{ forward: Map<string,string[]>, reverse: Map<string,string[]> }}
  */
 function buildFromCwd(cwd, opts) {
-  const { srcDirs = ['src', 'app', 'lib'], exclude = ['node_modules', '.git', 'dist', 'build'] } = opts || {};
+  // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
+  // The existence check below makes these no-ops in non-R projects.
+  const { srcDirs = ['src', 'app', 'lib', 'R', 'inst'], exclude = ['node_modules', '.git', 'dist', 'build'] } = opts || {};
   const excludeSet = new Set(exclude);
 
   function walkDir(dir, depth) {
@@ -273,7 +337,8 @@ function buildFromCwd(cwd, opts) {
       } else if (e.isFile()) {
         const ext = path.extname(e.name).toLowerCase();
         if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || GO_EXTS.has(ext) ||
-            RS_EXTS.has(ext) || JVM_EXTS.has(ext) || RB_EXTS.has(ext)) {
+            RS_EXTS.has(ext) || JVM_EXTS.has(ext) || RB_EXTS.has(ext) ||
+            R_EXTS.has(ext)) {
           out.push(full);
         }
       }
@@ -286,13 +351,27 @@ function buildFromCwd(cwd, opts) {
     const absDir = path.resolve(cwd, sd);
     if (fs.existsSync(absDir)) files.push(...walkDir(absDir, 0));
   }
-  // Also include root-level entry files
-  for (const rootFile of ['gen-context.js', 'index.js', 'main.js', 'app.js']) {
+  // Also include root-level entry files (R: app.R/server.R/ui.R/global.R for Shiny)
+  for (const rootFile of ['gen-context.js', 'index.js', 'main.js', 'app.js',
+                          'app.R', 'server.R', 'ui.R', 'global.R']) {
     const abs = path.resolve(cwd, rootFile);
     if (fs.existsSync(abs)) files.push(abs);
   }
 
-  return build(files, cwd);
+  // Build R namespace context if this looks like an R package.
+  let ctx;
+  try {
+    const { readDescription, collectLocalDefs } = require('../discovery/r-manifest');
+    const desc = readDescription(cwd);
+    if (desc && desc.package) {
+      const rFiles = files.filter((f) => R_EXTS.has(path.extname(f).toLowerCase()));
+      if (rFiles.length > 0) {
+        ctx = { rPackage: desc.package, rLocalDefs: collectLocalDefs(rFiles) };
+      }
+    }
+  } catch (_) { /* manifest module missing or read failed — proceed without ctx */ }
+
+  return build(files, cwd, ctx);
 }
 
 module.exports = { build, buildFromCwd, extractFileDeps, normalizePath };

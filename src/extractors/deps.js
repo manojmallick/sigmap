@@ -60,6 +60,35 @@ function extractTSDeps(src) {
   return [...deps].slice(0, 5);
 }
 
+// R base packages — present in every install, not informative as deps.
+const R_BASE_PKGS = new Set([
+  'base', 'stats', 'utils', 'graphics', 'grDevices', 'methods', 'datasets',
+  'parallel', 'splines', 'stats4', 'tools', 'tcltk', 'grid', 'compiler',
+]);
+
+/**
+ * Extract project-level import dependencies from R source.
+ * Captures `library(pkg)`, `require(pkg)`, `requireNamespace("pkg")`, and
+ * `pkg::fn` references, skipping base packages.
+ * @param {string} src
+ * @returns {string[]}
+ */
+function extractRDeps(src) {
+  const deps = new Set();
+  // Strip line comments so commented-out library() calls don't match.
+  const stripped = (src || '').replace(/#.*$/gm, '');
+  for (const m of stripped.matchAll(/\b(?:library|require)\s*\(\s*["']?([\w.]+)["']?\s*\)/g)) {
+    if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+  }
+  for (const m of stripped.matchAll(/\brequireNamespace\s*\(\s*["']([\w.]+)["']/g)) {
+    if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+  }
+  for (const m of stripped.matchAll(/\b([A-Za-z][\w.]*)::[A-Za-z]/g)) {
+    if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+  }
+  return [...deps].slice(0, 5);
+}
+
 /**
  * Build reverse dependency map from forward map.
  * @param {Map<string, string[]>} forwardMap
@@ -78,4 +107,4 @@ function buildReverseDepMap(forwardMap) {
   return reverse;
 }
 
-module.exports = { extractPythonDeps, extractTSDeps, buildReverseDepMap };
+module.exports = { extractPythonDeps, extractTSDeps, extractRDeps, buildReverseDepMap };

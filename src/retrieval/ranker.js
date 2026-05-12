@@ -83,8 +83,9 @@ function _computeHubs(graph) {
 
 // Common utility paths that should be treated as hubs regardless of fanout
 function _isHub(filePath) {
-  return /\/(utils|helpers|shared|common|constants|types|interfaces|index)\.(ts|tsx|js|jsx)$/.test(filePath)
-      || filePath.endsWith('/index.ts') || filePath.endsWith('/index.js');
+  return /\/(utils|helpers|shared|common|constants|types|interfaces|index|zzz|globals)\.(ts|tsx|js|jsx|r|R)$/.test(filePath)
+      || filePath.endsWith('/index.ts') || filePath.endsWith('/index.js')
+      || filePath.endsWith('/R/utils.R') || filePath.endsWith('/R/zzz.R') || filePath.endsWith('/R/globals.R');
 }
 
 /**

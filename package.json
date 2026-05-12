@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "6.10.9",
+  "version": "6.10.10",
   "description": "Zero-dependency AI context engine — 97% token reduction. No npm install. Runs on Node 18+.",
   "main": "gen-context.js",
   "exports": {
@@ -14,10 +14,10 @@
     "gen-project-map": "./gen-project-map.js"
   },
   "scripts": {
-    "test": "node test/run.js",
+    "test": "node test/run.js && node test/r-language.test.js",
     "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp-server.test.js",
     "test:integration:all": "node test/integration/all.js",
-    "test:all": "node test/run.js && node test/integration/strategy.test.js && node test/integration/secret-scan.test.js",
+    "test:all": "node test/run.js && node test/r-language.test.js && node test/integration/strategy.test.js && node test/integration/secret-scan.test.js",
     "generate": "node gen-context.js",
     "watch": "node gen-context.js --watch",
     "setup": "node gen-context.js --setup",

@@ -257,6 +257,26 @@ test('builder: Python absolute imports are detected', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('builder: normalizes paths for case-insensitive Windows lookups', () => {
+  const g = build([SCANNER_ABS, PATTERNS_ABS], ROOT);
+  // All keys in forward map should be lowercase for Windows compatibility
+  for (const key of g.forward.keys()) {
+    assert.ok(key === key.toLowerCase(), `path "${key}" should be lowercase`);
+  }
+  for (const key of g.reverse.keys()) {
+    assert.ok(key === key.toLowerCase(), `path "${key}" should be lowercase`);
+  }
+});
+
+test('getImpact: works with normalized paths on case-sensitive systems', () => {
+  const g = build([SCANNER_ABS, PATTERNS_ABS], ROOT);
+  // getImpact should normalize the input path and find the entry in the graph
+  const result = getImpact(PATTERNS_ABS, g, { cwd: ROOT });
+  assert.ok(result.direct.length > 0, 'should find direct importers');
+  const hasScanner = result.direct.some((f) => f.includes('scanner'));
+  assert.ok(hasScanner, `expected scanner.js in direct importers, got: ${result.direct}`);
+});
+
 // ---------------------------------------------------------------------------
 // format helpers
 // ---------------------------------------------------------------------------

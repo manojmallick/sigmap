@@ -2761,7 +2761,27 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     return reverse;
   }
 
-  module.exports = { extractPythonDeps, extractTSDeps, buildReverseDepMap };
+  const R_BASE_PKGS = new Set([
+    'base', 'stats', 'utils', 'graphics', 'grDevices', 'methods', 'datasets',
+    'parallel', 'splines', 'stats4', 'tools', 'tcltk', 'grid', 'compiler',
+  ]);
+
+  function extractRDeps(src) {
+    const deps = new Set();
+    const stripped = (src || '').replace(/#.*$/gm, '');
+    for (const m of stripped.matchAll(/\b(?:library|require)\s*\(\s*["']?([\w.]+)["']?\s*\)/g)) {
+      if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+    }
+    for (const m of stripped.matchAll(/\brequireNamespace\s*\(\s*["']([\w.]+)["']/g)) {
+      if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+    }
+    for (const m of stripped.matchAll(/\b([A-Za-z][\w.]*)::[A-Za-z]/g)) {
+      if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+    }
+    return [...deps].slice(0, 5);
+  }
+
+  module.exports = { extractPythonDeps, extractTSDeps, extractRDeps, buildReverseDepMap };
   
 };
 
@@ -3063,67 +3083,169 @@ __factories["./src/extractors/r"] = function(module, exports) {
 
   'use strict';
 
-  /**
-   * Extract signatures from R source code.
-   * @param {string} src - Raw file content
-   * @returns {string[]} Array of signature strings
-   */
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-
-    // Strip line comments. R uses # comments. Roxygen2 (#') comments are
-    // stripped along with regular ones; Phase 2 may parse them.
+    const docHints = collectRoxygenHints(src);
     const stripped = src.replace(/#.*$/gm, '');
+    const consumedRanges = [];
 
-    // Function definitions:
-    //   name <- function(args) { ... }
-    //   name = function(args) { ... }
-    //   name <<- function(args) { ... }
-    // Args may span multiple lines and contain default values, so we need to
-    // match a balanced parenthesis group rather than a single line.
-    const funcRe = /^(?:[ \t]*)([\w.]+)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
+    const r6Re = /([\w.]+)\s*(?:<<-|<-|=)\s*(?:R6::)?R6Class\s*\(/g;
     let m;
-    while ((m = funcRe.exec(stripped)) !== null) {
+    while ((m = r6Re.exec(stripped)) !== null && sigs.length < 30) {
       const name = m[1];
-      if (name.startsWith('.')) continue; // private convention
-      const argsStart = funcRe.lastIndex;
-      const args = readBalancedParens(stripped, argsStart - 1);
-      if (args === null) continue;
-      sigs.push(`${name} <- function(${normalizeParams(args)})`);
+      if (name.startsWith('.')) continue;
+      const openIdx = r6Re.lastIndex - 1;
+      const body = readBalancedParens(stripped, openIdx);
+      if (body === null) continue;
+      const closeIdx = openIdx + body.length + 1;
+      const classNameLit = readFirstStringArg(body) || name;
+      sigs.push(`${name} <- R6Class("${classNameLit}")` + applyHint(docHints, name));
+      for (const memberSig of extractListMethods(body, 8)) {
+        sigs.push('  ' + memberSig);
+        if (sigs.length >= 30) break;
+      }
+      consumedRanges.push([m.index, closeIdx]);
+      r6Re.lastIndex = closeIdx;
     }
 
-    // S4 setMethod / setGeneric:
-    //   setGeneric("name", function(args) standardGeneric("name"))
-    //   setMethod("name", "ClassName", function(args) { ... })
+    const s7Classes = new Set();
+    const s7Re = /([\w.]+)\s*(?:<<-|<-|=)\s*(?:S7::)?new_class\s*\(/g;
+    while ((m = s7Re.exec(stripped)) !== null && sigs.length < 30) {
+      const name = m[1];
+      if (name.startsWith('.')) continue;
+      const openIdx = s7Re.lastIndex - 1;
+      const body = readBalancedParens(stripped, openIdx);
+      if (body === null) continue;
+      const closeIdx = openIdx + body.length + 1;
+      const classNameLit = readFirstStringArg(body) || name;
+      s7Classes.add(classNameLit);
+      s7Classes.add(name);
+      sigs.push(`${name} <- new_class("${classNameLit}")` + applyHint(docHints, name));
+      consumedRanges.push([m.index, closeIdx]);
+      s7Re.lastIndex = closeIdx;
+    }
+
+    const s7MethodRe = /^[ \t]*method\s*\(\s*([\w.]+)\s*,\s*([\w.]+)\s*\)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
+    while ((m = s7MethodRe.exec(stripped)) !== null && sigs.length < 30) {
+      if (!s7Classes.has(m[2])) continue;
+      const argsStart = s7MethodRe.lastIndex - 1;
+      const args = readBalancedParens(stripped, argsStart);
+      if (args === null) continue;
+      sigs.push(`  method(${m[1]}, ${m[2]}) <- function(${normalizeParams(args)})`);
+    }
+
+    const funcRe = /^(?:[ \t]*)([\w.]+)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
+    while ((m = funcRe.exec(stripped)) !== null && sigs.length < 30) {
+      const name = m[1];
+      if (name.startsWith('.')) continue;
+      if (inAnyRange(m.index, consumedRanges)) continue;
+      const argsStart = funcRe.lastIndex - 1;
+      const args = readBalancedParens(stripped, argsStart);
+      if (args === null) continue;
+      sigs.push(`${name} <- function(${normalizeParams(args)})` + applyHint(docHints, name));
+    }
+
     for (const sm of stripped.matchAll(/^[ \t]*setGeneric\s*\(\s*["']([\w.]+)["']/gm)) {
+      if (sigs.length >= 30) break;
       sigs.push(`setGeneric("${sm[1]}")`);
     }
     for (const sm of stripped.matchAll(/^[ \t]*setMethod\s*\(\s*["']([\w.]+)["']\s*,\s*["']([\w.]+)["']/gm)) {
+      if (sigs.length >= 30) break;
       sigs.push(`setMethod("${sm[1]}", "${sm[2]}")`);
     }
-
-    // S4 class definitions:
-    //   setClass("Name", representation(...), ...)
     for (const sm of stripped.matchAll(/^[ \t]*setClass\s*\(\s*["']([\w.]+)["']/gm)) {
+      if (sigs.length >= 30) break;
       sigs.push(`setClass("${sm[1]}")`);
     }
 
     return sigs.slice(0, 30);
   }
 
-  /**
-   * Read a parenthesis-balanced substring starting at the position of the
-   * opening '(' character, returning the inner content (without the outer
-   * parens). Returns null if no matching close paren is found within `cap`
-   * characters, which guards against runaway scans on malformed input.
-   */
-  function readBalancedParens(src, openIdx, cap = 4096) {
+  function collectRoxygenHints(src) {
+    const hints = new Map();
+    const lines = src.split('\n');
+    let block = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\s*#'/.test(line)) {
+        block.push(line.replace(/^\s*#'\s?/, ''));
+        continue;
+      }
+      if (block.length > 0) {
+        const mm = line.match(/^[ \t]*([\w.]+)\s*(?:<<-|<-|=)\s*(?:R6::)?R6Class\b/)
+                || line.match(/^[ \t]*([\w.]+)\s*(?:<<-|<-|=)\s*(?:S7::)?new_class\b/)
+                || line.match(/^[ \t]*([\w.]+)\s*(?:<<-|<-|=)\s*function\b/);
+        if (mm) {
+          const name = mm[1];
+          let hint = pickRoxygenLine(block, '@title')
+                  || pickRoxygenLine(block, '@description')
+                  || pickRoxygenLine(block, null);
+          if (hint) {
+            hint = hint.replace(/\s+/g, ' ').trim().slice(0, 60).replace(/[.,;:!?]+$/, '').trim();
+            if (hint) hints.set(name, hint);
+          }
+        }
+        block = [];
+      }
+    }
+    return hints;
+  }
+
+  function pickRoxygenLine(block, tag) {
+    for (const raw of block) {
+      const b = raw.trim();
+      if (!b) continue;
+      if (tag) {
+        if (b.startsWith(tag)) {
+          const rest = b.slice(tag.length).trim();
+          if (rest) return rest;
+        }
+      } else if (!b.startsWith('@')) {
+        return b;
+      }
+    }
+    return null;
+  }
+
+  function applyHint(hints, name) {
+    const h = hints.get(name);
+    return h ? `  # ${h}` : '';
+  }
+
+  function extractListMethods(body, cap) {
+    const out = [];
+    const re = /(?:^|[\n,])\s*([\w.]+)\s*=\s*function\s*\(/g;
+    let m;
+    while ((m = re.exec(body)) !== null && out.length < cap) {
+      const name = m[1];
+      if (name.startsWith('.')) continue;
+      const argsStart = re.lastIndex - 1;
+      const args = readBalancedParens(body, argsStart);
+      if (args === null) continue;
+      out.push(`${name} <- function(${normalizeParams(args)})`);
+    }
+    return out;
+  }
+
+  function inAnyRange(pos, ranges) {
+    for (const [s, e] of ranges) {
+      if (pos >= s && pos < e) return true;
+    }
+    return false;
+  }
+
+  function readFirstStringArg(body) {
+    const m = body.match(/^\s*["']([\w.]+)["']/);
+    return m ? m[1] : null;
+  }
+
+  function readBalancedParens(src, openIdx, cap = 16384) {
     if (src[openIdx] !== '(') return null;
     let depth = 1;
     let i = openIdx + 1;
     const end = Math.min(src.length, openIdx + cap);
-    let inString = null; // null | '"' | "'"
+    let inString = null;
     while (i < end) {
       const ch = src[i];
       if (inString) {
@@ -3143,38 +3265,14 @@ __factories["./src/extractors/r"] = function(module, exports) {
     return null;
   }
 
-  /**
-   * Compress whitespace inside a parameter list, collapse multi-line default
-   * expressions onto a single line, and trim. The goal is one-line readable
-   * signatures, not a faithful AST.
-   *
-   * String literals are protected so that commas/equals inside default values
-   * like sep = "," don't get respaced.
-   */
   function normalizeParams(raw) {
-    const tokens = [];
-    let buf = '';
+    let out = '';
     let inString = null;
     for (let i = 0; i < raw.length; i++) {
       const ch = raw[i];
       if (inString) {
-        buf += ch;
-        if (ch === '\\' && i + 1 < raw.length) { buf += raw[i + 1]; i++; continue; }
-        if (ch === inString) inString = null;
-        continue;
-      }
-      if (ch === '"' || ch === "'") { inString = ch; buf += ch; continue; }
-      buf += ch;
-    }
-    // Now buf === raw with strings preserved character-for-character.
-    // Walk again: collapse non-string runs of whitespace, normalize ', ' and ' = '.
-    let out = '';
-    inString = null;
-    for (let i = 0; i < buf.length; i++) {
-      const ch = buf[i];
-      if (inString) {
         out += ch;
-        if (ch === '\\' && i + 1 < buf.length) { out += buf[i + 1]; i++; continue; }
+        if (ch === '\\' && i + 1 < raw.length) { out += raw[i + 1]; i++; continue; }
         if (ch === inString) inString = null;
         continue;
       }
@@ -4916,6 +5014,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
   const RS_EXTS  = new Set(['.rs']);
   const JVM_EXTS = new Set(['.java', '.kt', '.kts', '.scala', '.sc']);
   const RB_EXTS  = new Set(['.rb', '.rake']);
+  const R_EXTS   = new Set(['.r', '.R']);
   function resolveJsPath(dir, importStr, fileSet) {
     const base = path.resolve(dir, importStr);
     const candidates = [base, base+'.ts', base+'.tsx', base+'.js', base+'.jsx', base+'.mjs', base+'.cjs', path.join(base,'index.ts'), path.join(base,'index.js')];
@@ -4926,6 +5025,21 @@ __factories["./src/graph/builder"] = function(module, exports) {
     return path.normalize(p).toLowerCase();
   }
   function extractFileDeps(filePath, content, fileSet) {
+  function resolveRPath(dir, importStr, fileSet, cwd) {
+    const tried = new Set();
+    const bases = [path.resolve(dir, importStr)];
+    if (cwd) bases.push(path.resolve(cwd, importStr));
+    for (const base of bases) {
+      for (const c of [base, base + '.R', base + '.r']) {
+        if (tried.has(c)) continue;
+        tried.add(c);
+        if (fileSet.has(c)) return c;
+      }
+    }
+    return null;
+  }
+  function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
     const ext = path.extname(filePath).toLowerCase();
     const dir = path.dirname(filePath);
     const found = [];
@@ -4989,9 +5103,23 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (fileSet.has(normC)) found.push(normC);
       }
     }
+    if (R_EXTS.has(ext)) {
+      const stripped = content.replace(/#.*$/gm, '');
+      const reSrc = /(?:^|[^\w.])source\s*\(\s*["']([^"']+)["']/g; let m;
+      while ((m = reSrc.exec(stripped)) !== null) {
+        const r = resolveRPath(dir, m[1], fileSet, cwd); if (r) found.push(r);
+      }
+      if (ctx && ctx.rPackage && ctx.rLocalDefs && ctx.rLocalDefs.size > 0) {
+        const reNs = new RegExp('\\b' + escapeRegex(ctx.rPackage) + ':::?([A-Za-z][\\w.]*)', 'g');
+        while ((m = reNs.exec(stripped)) !== null) {
+          const target = ctx.rLocalDefs.get(m[1]);
+          if (target && target !== filePath && fileSet.has(target)) found.push(target);
+        }
+      }
+    }
     return [...new Set(found)];
   }
-  function build(files, cwd) {
+  function build(files, cwd, ctx) {
     const fileSet = new Set(files.map((f) => path.resolve(f)));
     const fileSetNormalized = new Set([...fileSet].map(normalizePath));
     const normToOriginal = new Map(); for (const f of fileSet) { normToOriginal.set(normalizePath(f),f); }
@@ -5000,6 +5128,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     for (const filePath of fileSet) {
       let content; try { content = fs.readFileSync(filePath,'utf8'); } catch(_) { continue; }
       const deps = extractFileDeps(filePath, content, fileSetNormalized);
+      const deps = extractFileDeps(filePath, content, fileSet, cwd, ctx);
       if (deps.length > 0) {
         const origDeps = deps.map((dep) => normToOriginal.get(dep)||dep);
         forward.set(filePath, origDeps);
@@ -5008,8 +5137,37 @@ __factories["./src/graph/builder"] = function(module, exports) {
     }
     return { forward, reverse };
   }
+  function _readDescriptionPackage(cwd) {
+    try {
+      const raw = fs.readFileSync(path.join(cwd, 'DESCRIPTION'), 'utf8');
+      const m = raw.match(/^Package\s*:\s*(\S+)/m);
+      return m ? m[1] : null;
+    } catch (_) { return null; }
+  }
+  function _collectRLocalDefs(rFiles) {
+    const defs = new Map();
+    const reAssign = /^(?:[ \t]*)([\w.]+)\s*(?:<<-|<-|=)\s*(?:(?:R6::)?R6Class|(?:S7::)?new_class|function)\b/gm;
+    const reS4Generic = /^[ \t]*setGeneric\s*\(\s*["']([\w.]+)["']/gm;
+    const reS4Class   = /^[ \t]*setClass\s*\(\s*["']([\w.]+)["']/gm;
+    for (const filePath of rFiles) {
+      let content; try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
+      const stripped = content.replace(/#.*$/gm, '');
+      let m;
+      while ((m = reAssign.exec(stripped)) !== null) {
+        if (m[1].startsWith('.')) continue;
+        if (!defs.has(m[1])) defs.set(m[1], filePath);
+      }
+      while ((m = reS4Generic.exec(stripped)) !== null) {
+        if (!defs.has(m[1])) defs.set(m[1], filePath);
+      }
+      while ((m = reS4Class.exec(stripped)) !== null) {
+        if (!defs.has(m[1])) defs.set(m[1], filePath);
+      }
+    }
+    return defs;
+  }
   function buildFromCwd(cwd, opts) {
-    const { srcDirs=['src','app','lib'], exclude=['node_modules','.git','dist','build'] } = opts||{};
+    const { srcDirs=['src','app','lib','R','inst'], exclude=['node_modules','.git','dist','build'] } = opts||{};
     const excludeSet = new Set(exclude);
     function walkDir(dir,depth) {
       if (depth>8) return [];
@@ -5021,17 +5179,23 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (e.isDirectory()) out.push(...walkDir(full,depth+1));
         else if (e.isFile()) {
           const ext = path.extname(e.name).toLowerCase();
-          if (JS_EXTS.has(ext)||PY_EXTS.has(ext)||GO_EXTS.has(ext)||RS_EXTS.has(ext)||JVM_EXTS.has(ext)||RB_EXTS.has(ext)) out.push(full);
+          if (JS_EXTS.has(ext)||PY_EXTS.has(ext)||GO_EXTS.has(ext)||RS_EXTS.has(ext)||JVM_EXTS.has(ext)||RB_EXTS.has(ext)||R_EXTS.has(ext)) out.push(full);
         }
       }
       return out;
     }
     const files=[];
     for (const sd of srcDirs) { const absDir=path.resolve(cwd,sd); if (fs.existsSync(absDir)) files.push(...walkDir(absDir,0)); }
-    for (const rootFile of ['gen-context.js','index.js','main.js','app.js']) {
+    for (const rootFile of ['gen-context.js','index.js','main.js','app.js','app.R','server.R','ui.R','global.R']) {
       const abs=path.resolve(cwd,rootFile); if (fs.existsSync(abs)) files.push(abs);
     }
-    return build(files, cwd);
+    let ctx;
+    const rPackage = _readDescriptionPackage(cwd);
+    if (rPackage) {
+      const rFiles = files.filter((f) => R_EXTS.has(path.extname(f).toLowerCase()));
+      if (rFiles.length > 0) ctx = { rPackage, rLocalDefs: _collectRLocalDefs(rFiles) };
+    }
+    return build(files, cwd, ctx);
   }
   module.exports = { build, buildFromCwd, extractFileDeps, normalizePath };
 };
@@ -5721,7 +5885,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.10.9',
+  version: '6.10.10',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -6908,6 +7072,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     '.swift': 'swift',
     '.dart': 'dart',
     '.scala': 'scala',   '.sc': 'scala',
+    '.r': 'r',           '.R': 'r',
     '.vue': 'vue_sfc',
     '.svelte': 'svelte',
     '.html': 'html',     '.htm': 'html',
@@ -7948,7 +8113,7 @@ __factories["./src/discovery/language-detector"] = function(module, exports) {
         if (e.isDirectory()) {
           _walkDepth(path.join(dir, e.name), depth - 1, extCount);
         } else if (e.isFile()) {
-          const EXT_TO_LANG = {'.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript', '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript', '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust', '.java': 'java', '.kt': 'kotlin', '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.swift': 'swift', '.dart': 'dart', '.scala': 'scala', '.php': 'php'};
+          const EXT_TO_LANG = {'.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript', '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript', '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust', '.java': 'java', '.kt': 'kotlin', '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.swift': 'swift', '.dart': 'dart', '.scala': 'scala', '.php': 'php', '.r': 'r', '.R': 'r'};
           const ext = path.extname(e.name).toLowerCase();
           if (EXT_TO_LANG[ext]) extCount[ext] = (extCount[ext] || 0) + 1;
         }
@@ -8348,7 +8513,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.10.9';
+const VERSION = '6.10.10';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -8384,6 +8549,7 @@ const EXT_MAP = {
   '.swift': 'swift',
   '.dart': 'dart',
   '.scala': 'scala', '.sc': 'scala',
+  '.r': 'r', '.R': 'r',
   '.vue': 'vue_sfc',
   '.svelte': 'svelte',
   '.html': 'html', '.htm': 'html',
@@ -8523,10 +8689,11 @@ function detectAndExtract(filePath, content, maxSigsPerFile) {
 function extractFileDeps(filePath, content, config) {
   if (config && config.depMap === false) return [];
   try {
-    const { extractPythonDeps, extractTSDeps } = requireSourceOrBundled('./src/extractors/deps');
+    const { extractPythonDeps, extractTSDeps, extractRDeps } = requireSourceOrBundled('./src/extractors/deps');
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.py' || ext === '.pyw') return extractPythonDeps(content);
     if (['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'].includes(ext)) return extractTSDeps(content);
+    if (ext === '.r') return extractRDeps ? extractRDeps(content) : [];
   } catch (_) {}
   return [];
 }
@@ -11439,6 +11606,7 @@ function main() {
         '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust',
         '.cs': 'csharp', '.cpp': 'cpp', '.rb': 'ruby', '.php': 'php',
         '.swift': 'swift', '.dart': 'dart', '.scala': 'scala',
+        '.r': 'r', '.R': 'r',
         '.vue': 'vue', '.svelte': 'svelte', '.html': 'html',
         '.css': 'css', '.yml': 'yaml', '.sh': 'shell',
       };

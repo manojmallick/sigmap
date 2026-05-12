@@ -1,0 +1,17 @@
+Package: siglocal
+Type: Package
+Title: A Fixture Package for SigMap R Tests
+Version: 0.1.0
+Authors@R: person("Test", "User", email = "test@example.com",
+                  role = c("aut", "cre"))
+Description: A tiny R package used as a fixture for sigmap's
+    graph-builder and manifest tests. Not intended for installation.
+License: MIT
+Encoding: UTF-8
+Imports:
+    dplyr (>= 1.0.0),
+    ggplot2
+Suggests:
+    testthat (>= 3.0.0)
+Depends:
+    R (>= 4.0)
