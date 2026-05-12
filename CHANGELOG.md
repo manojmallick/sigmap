@@ -21,6 +21,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.10] — 2026-05-12
+
+### Fixed
+
+- **Windows path normalization in get_impact** — Implement case-insensitive path lookups in dependency graph for Windows compatibility. All paths in forward/reverse maps now normalized to lowercase, enabling `get_impact` to work correctly when file paths have different case (e.g., `src/Ledger/equity_ledger.py` vs `src/ledger/equity_ledger.py`). Applied normalization uniformly across JS, Python, Go, Rust, JVM, Ruby, and R import detection (closes #193).
+
+---
+
 ## [6.10.9] — 2026-05-12
 
 ### Changed
