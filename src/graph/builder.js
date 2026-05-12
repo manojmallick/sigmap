@@ -22,6 +22,7 @@ const GO_EXTS  = new Set(['.go']);
 const RS_EXTS  = new Set(['.rs']);
 const JVM_EXTS = new Set(['.java', '.kt', '.kts', '.scala', '.sc']);
 const RB_EXTS  = new Set(['.rb', '.rake']);
+const R_EXTS   = new Set(['.r', '.R']);
 
 /**
  * Resolve a JS/TS relative import string to an absolute path in fileSet.
@@ -46,13 +47,33 @@ function resolveJsPath(dir, importStr, fileSet) {
 }
 
 /**
+ * Resolve an R `source(...)` argument to an absolute path in fileSet.
+ * Tries the dir-relative path first, then a cwd-relative path so that
+ * `source("R/helpers.R")` resolves from the project root.
+ */
+function resolveRPath(dir, importStr, fileSet, cwd) {
+  const tried = new Set();
+  const bases = [path.resolve(dir, importStr)];
+  if (cwd) bases.push(path.resolve(cwd, importStr));
+  for (const base of bases) {
+    for (const c of [base, base + '.R', base + '.r']) {
+      if (tried.has(c)) continue;
+      tried.add(c);
+      if (fileSet.has(c)) return c;
+    }
+  }
+  return null;
+}
+
+/**
  * Extract absolute dependency paths from a single file.
  * @param {string} filePath - absolute path to the file
  * @param {string} content  - file source content
  * @param {Set<string>} fileSet - set of all known absolute file paths
+ * @param {string}  [cwd]   - project root, used to resolve R `source("R/...")` calls
  * @returns {string[]} resolved absolute paths this file imports
  */
-function extractFileDeps(filePath, content, fileSet) {
+function extractFileDeps(filePath, content, fileSet, cwd) {
   const ext = path.extname(filePath).toLowerCase();
   const dir = path.dirname(filePath);
   const found = [];
@@ -179,6 +200,23 @@ function extractFileDeps(filePath, content, fileSet) {
     }
   }
 
+  // ── R ─────────────────────────────────────────────────────────────────────
+  // R doesn't have JS-style relative imports inside packages — files in R/ are
+  // auto-sourced in alphabetical order. So we emit edges for explicit
+  // `source("path/file.R")` calls (common in Shiny apps and analysis scripts).
+  // `library(pkg)` / `pkg::fn` are external by definition and yield no edge
+  // unless `pkg` is the local project (resolved separately via NAMESPACE).
+  if (R_EXTS.has(ext)) {
+    // Strip line comments before scanning so `# source("x.R")` doesn't match.
+    const stripped = content.replace(/#.*$/gm, '');
+    const reSrc = /(?:^|[^\w.])source\s*\(\s*["']([^"']+)["']/g;
+    let m;
+    while ((m = reSrc.exec(stripped)) !== null) {
+      const r = resolveRPath(dir, m[1], fileSet, cwd);
+      if (r) found.push(r);
+    }
+  }
+
   return [...new Set(found)];
 }
 
@@ -212,7 +250,7 @@ function build(files, cwd) {
       continue;
     }
 
-    const deps = extractFileDeps(filePath, content, fileSet);
+    const deps = extractFileDeps(filePath, content, fileSet, cwd);
     if (deps.length > 0) {
       forward.set(filePath, deps);
       for (const dep of deps) {
@@ -236,7 +274,9 @@ function build(files, cwd) {
  * @returns {{ forward: Map<string,string[]>, reverse: Map<string,string[]> }}
  */
 function buildFromCwd(cwd, opts) {
-  const { srcDirs = ['src', 'app', 'lib'], exclude = ['node_modules', '.git', 'dist', 'build'] } = opts || {};
+  // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
+  // The existence check below makes these no-ops in non-R projects.
+  const { srcDirs = ['src', 'app', 'lib', 'R', 'inst'], exclude = ['node_modules', '.git', 'dist', 'build'] } = opts || {};
   const excludeSet = new Set(exclude);
 
   function walkDir(dir, depth) {
@@ -252,7 +292,8 @@ function buildFromCwd(cwd, opts) {
       } else if (e.isFile()) {
         const ext = path.extname(e.name).toLowerCase();
         if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || GO_EXTS.has(ext) ||
-            RS_EXTS.has(ext) || JVM_EXTS.has(ext) || RB_EXTS.has(ext)) {
+            RS_EXTS.has(ext) || JVM_EXTS.has(ext) || RB_EXTS.has(ext) ||
+            R_EXTS.has(ext)) {
           out.push(full);
         }
       }
@@ -265,8 +306,9 @@ function buildFromCwd(cwd, opts) {
     const absDir = path.resolve(cwd, sd);
     if (fs.existsSync(absDir)) files.push(...walkDir(absDir, 0));
   }
-  // Also include root-level entry files
-  for (const rootFile of ['gen-context.js', 'index.js', 'main.js', 'app.js']) {
+  // Also include root-level entry files (R: app.R/server.R/ui.R/global.R for Shiny)
+  for (const rootFile of ['gen-context.js', 'index.js', 'main.js', 'app.js',
+                          'app.R', 'server.R', 'ui.R', 'global.R']) {
     const abs = path.resolve(cwd, rootFile);
     if (fs.existsSync(abs)) files.push(abs);
   }

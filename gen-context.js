@@ -2761,7 +2761,27 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     return reverse;
   }
 
-  module.exports = { extractPythonDeps, extractTSDeps, buildReverseDepMap };
+  const R_BASE_PKGS = new Set([
+    'base', 'stats', 'utils', 'graphics', 'grDevices', 'methods', 'datasets',
+    'parallel', 'splines', 'stats4', 'tools', 'tcltk', 'grid', 'compiler',
+  ]);
+
+  function extractRDeps(src) {
+    const deps = new Set();
+    const stripped = (src || '').replace(/#.*$/gm, '');
+    for (const m of stripped.matchAll(/\b(?:library|require)\s*\(\s*["']?([\w.]+)["']?\s*\)/g)) {
+      if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+    }
+    for (const m of stripped.matchAll(/\brequireNamespace\s*\(\s*["']([\w.]+)["']/g)) {
+      if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+    }
+    for (const m of stripped.matchAll(/\b([A-Za-z][\w.]*)::[A-Za-z]/g)) {
+      if (m[1] && !R_BASE_PKGS.has(m[1])) deps.add(m[1]);
+    }
+    return [...deps].slice(0, 5);
+  }
+
+  module.exports = { extractPythonDeps, extractTSDeps, extractRDeps, buildReverseDepMap };
   
 };
 
@@ -4916,13 +4936,27 @@ __factories["./src/graph/builder"] = function(module, exports) {
   const RS_EXTS  = new Set(['.rs']);
   const JVM_EXTS = new Set(['.java', '.kt', '.kts', '.scala', '.sc']);
   const RB_EXTS  = new Set(['.rb', '.rake']);
+  const R_EXTS   = new Set(['.r', '.R']);
   function resolveJsPath(dir, importStr, fileSet) {
     const base = path.resolve(dir, importStr);
     const candidates = [base, base+'.ts', base+'.tsx', base+'.js', base+'.jsx', base+'.mjs', base+'.cjs', path.join(base,'index.ts'), path.join(base,'index.js')];
     for (const c of candidates) { if (fileSet.has(c)) return c; }
     return null;
   }
-  function extractFileDeps(filePath, content, fileSet) {
+  function resolveRPath(dir, importStr, fileSet, cwd) {
+    const tried = new Set();
+    const bases = [path.resolve(dir, importStr)];
+    if (cwd) bases.push(path.resolve(cwd, importStr));
+    for (const base of bases) {
+      for (const c of [base, base + '.R', base + '.r']) {
+        if (tried.has(c)) continue;
+        tried.add(c);
+        if (fileSet.has(c)) return c;
+      }
+    }
+    return null;
+  }
+  function extractFileDeps(filePath, content, fileSet, cwd) {
     const ext = path.extname(filePath).toLowerCase();
     const dir = path.dirname(filePath);
     const found = [];
@@ -4979,6 +5013,13 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (fileSet.has(candidate)) found.push(candidate);
       }
     }
+    if (R_EXTS.has(ext)) {
+      const stripped = content.replace(/#.*$/gm, '');
+      const reSrc = /(?:^|[^\w.])source\s*\(\s*["']([^"']+)["']/g; let m;
+      while ((m = reSrc.exec(stripped)) !== null) {
+        const r = resolveRPath(dir, m[1], fileSet, cwd); if (r) found.push(r);
+      }
+    }
     return [...new Set(found)];
   }
   function build(files, cwd) {
@@ -4987,7 +5028,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     for (const f of fileSet) { if (!forward.has(f)) forward.set(f,[]); if (!reverse.has(f)) reverse.set(f,[]); }
     for (const filePath of fileSet) {
       let content; try { content = fs.readFileSync(filePath,'utf8'); } catch(_) { continue; }
-      const deps = extractFileDeps(filePath, content, fileSet);
+      const deps = extractFileDeps(filePath, content, fileSet, cwd);
       if (deps.length > 0) {
         forward.set(filePath, deps);
         for (const dep of deps) { if (!reverse.has(dep)) reverse.set(dep,[]); reverse.get(dep).push(filePath); }
@@ -4996,7 +5037,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     return { forward, reverse };
   }
   function buildFromCwd(cwd, opts) {
-    const { srcDirs=['src','app','lib'], exclude=['node_modules','.git','dist','build'] } = opts||{};
+    const { srcDirs=['src','app','lib','R','inst'], exclude=['node_modules','.git','dist','build'] } = opts||{};
     const excludeSet = new Set(exclude);
     function walkDir(dir,depth) {
       if (depth>8) return [];
@@ -5008,14 +5049,14 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (e.isDirectory()) out.push(...walkDir(full,depth+1));
         else if (e.isFile()) {
           const ext = path.extname(e.name).toLowerCase();
-          if (JS_EXTS.has(ext)||PY_EXTS.has(ext)||GO_EXTS.has(ext)||RS_EXTS.has(ext)||JVM_EXTS.has(ext)||RB_EXTS.has(ext)) out.push(full);
+          if (JS_EXTS.has(ext)||PY_EXTS.has(ext)||GO_EXTS.has(ext)||RS_EXTS.has(ext)||JVM_EXTS.has(ext)||RB_EXTS.has(ext)||R_EXTS.has(ext)) out.push(full);
         }
       }
       return out;
     }
     const files=[];
     for (const sd of srcDirs) { const absDir=path.resolve(cwd,sd); if (fs.existsSync(absDir)) files.push(...walkDir(absDir,0)); }
-    for (const rootFile of ['gen-context.js','index.js','main.js','app.js']) {
+    for (const rootFile of ['gen-context.js','index.js','main.js','app.js','app.R','server.R','ui.R','global.R']) {
       const abs=path.resolve(cwd,rootFile); if (fs.existsSync(abs)) files.push(abs);
     }
     return build(files, cwd);
@@ -6894,6 +6935,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     '.swift': 'swift',
     '.dart': 'dart',
     '.scala': 'scala',   '.sc': 'scala',
+    '.r': 'r',           '.R': 'r',
     '.vue': 'vue_sfc',
     '.svelte': 'svelte',
     '.html': 'html',     '.htm': 'html',
@@ -7934,7 +7976,7 @@ __factories["./src/discovery/language-detector"] = function(module, exports) {
         if (e.isDirectory()) {
           _walkDepth(path.join(dir, e.name), depth - 1, extCount);
         } else if (e.isFile()) {
-          const EXT_TO_LANG = {'.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript', '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript', '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust', '.java': 'java', '.kt': 'kotlin', '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.swift': 'swift', '.dart': 'dart', '.scala': 'scala', '.php': 'php'};
+          const EXT_TO_LANG = {'.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript', '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript', '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust', '.java': 'java', '.kt': 'kotlin', '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.swift': 'swift', '.dart': 'dart', '.scala': 'scala', '.php': 'php', '.r': 'r', '.R': 'r'};
           const ext = path.extname(e.name).toLowerCase();
           if (EXT_TO_LANG[ext]) extCount[ext] = (extCount[ext] || 0) + 1;
         }
@@ -8370,6 +8412,7 @@ const EXT_MAP = {
   '.swift': 'swift',
   '.dart': 'dart',
   '.scala': 'scala', '.sc': 'scala',
+  '.r': 'r', '.R': 'r',
   '.vue': 'vue_sfc',
   '.svelte': 'svelte',
   '.html': 'html', '.htm': 'html',
@@ -8509,10 +8552,11 @@ function detectAndExtract(filePath, content, maxSigsPerFile) {
 function extractFileDeps(filePath, content, config) {
   if (config && config.depMap === false) return [];
   try {
-    const { extractPythonDeps, extractTSDeps } = requireSourceOrBundled('./src/extractors/deps');
+    const { extractPythonDeps, extractTSDeps, extractRDeps } = requireSourceOrBundled('./src/extractors/deps');
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.py' || ext === '.pyw') return extractPythonDeps(content);
     if (['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'].includes(ext)) return extractTSDeps(content);
+    if (ext === '.r') return extractRDeps ? extractRDeps(content) : [];
   } catch (_) {}
   return [];
 }
@@ -11425,6 +11469,7 @@ function main() {
         '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust',
         '.cs': 'csharp', '.cpp': 'cpp', '.rb': 'ruby', '.php': 'php',
         '.swift': 'swift', '.dart': 'dart', '.scala': 'scala',
+        '.r': 'r', '.R': 'r',
         '.vue': 'vue', '.svelte': 'svelte', '.html': 'html',
         '.css': 'css', '.yml': 'yaml', '.sh': 'shell',
       };
