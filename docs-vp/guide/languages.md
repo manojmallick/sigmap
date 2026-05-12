@@ -1,13 +1,13 @@
 ---
 title: Language support
-description: SigMap extracts signatures from 29 programming languages and formats. Pure regex, zero Tree-sitter, no binary dependencies. TypeScript, Python, Go, Rust, Java, GraphQL, SQL, Terraform, and more.
+description: SigMap extracts signatures from 31 programming languages and formats. Pure regex, zero Tree-sitter, no binary dependencies. TypeScript, Python, Go, Rust, Java, R, GraphQL, SQL, Terraform, and more.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Language Support — 29 languages, zero Tree-sitter"
+      content: "SigMap Language Support — 31 languages, zero Tree-sitter"
   - - meta
     - property: og:description
-      content: "Pure regex AST extraction for 29 languages and formats. No compiler required, no binary dependencies."
+      content: "Pure regex AST extraction for 31 languages and formats. No compiler required, no binary dependencies."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/languages"
@@ -20,9 +20,9 @@ head:
 ---
 # Language support
 
-SigMap extracts signatures from 29 programming languages and formats using pure regex — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
+SigMap extracts signatures from 31 programming languages and formats using pure regex — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 29 languages · 25 max signatures per file · 0 npm packages · 400+ passing tests across unit and integration suites
+**Stats:** 31 languages · 25 max signatures per file · 0 npm packages · 400+ passing tests across unit and integration suites
 
 ## How extraction works
 
@@ -116,10 +116,12 @@ export class UserService
 | SQL | `.sql` | CREATE TABLE, VIEW, FUNCTION, PROCEDURE, INDEX, TRIGGER, CREATE TYPE |
 | Terraform | `.tf` `.tfvars` | resource, data, module, variable, output, provider, locals |
 | Protocol Buffers | `.proto` | message, enum, service, rpc, syntax, package |
+| R | `.R` `.r` | function, S4 class / method, R6 class, S7 class, roxygen hints |
 | TOML | `.toml` | top-level tables (`[table]`), arrays of tables (`[[array]]`), key groups |
 | Properties | `.properties` | dotted-key namespaces, prefix groups (spring.*, db.*, server.*) |
 | XML | `.xml` | root element, bean/route/kind, top-level named elements, Spring beans |
 | Markdown | `.md` | h1–h3 headings, code-fence languages, link titles |
+| GDScript | `.gd` | class definition, extends, signal, enum, constant, function definition |
 
 ## Extraction quality tiers
 
@@ -131,7 +133,7 @@ These extractors cover the public shapes most developers care about day to day a
 
 ### Stable
 
-Vue, Svelte, GraphQL, SQL, Terraform, Protobuf, YAML, Shell, Dockerfile, TOML, XML, Properties, Markdown.
+Vue, Svelte, GraphQL, SQL, Terraform, Protobuf, YAML, Shell, Dockerfile, TOML, XML, Properties, Markdown, R, GDScript.
 
 These are reliable for structure-first context, but some ecosystems have more variation in how teams write files.
 

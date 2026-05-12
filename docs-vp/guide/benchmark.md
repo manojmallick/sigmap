@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v6.10.8 benchmark snapshot. 96.8% average token reduction, 80.0% retrieval hit@5, 41.4% fewer prompts, and 13/18 raw repos overflowing GPT-4o without SigMap.
+description: Official v6.10.10 benchmark snapshot. 97.9% average token reduction across 21 repos, 78.9% retrieval hit@5, 40.6% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v6.10.8 snapshot"
+      content: "SigMap benchmark overview — v6.10.10 snapshot with R language"
   - - meta
     - property: og:description
-      content: "One place for token, retrieval, quality, and task metrics from the latest saved v6.10.8 benchmark run."
+      content: "Token, retrieval, quality, and task metrics from latest v6.10.10 benchmark run with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
@@ -15,18 +15,17 @@ head:
 
 # Benchmark overview
 
-::: info Official v6.10 benchmark snapshot
+::: info Official v6.10.10 benchmark snapshot (21 repos, including R language)
 **Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-12
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **80.0%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **80.0%** |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.4%** (2.84 → 1.68) |
+| Hit@5 (18 core repos) | **78.9%** vs 13.6% baseline |
+| Token reduction (21 repos) | **97.9%** |
+| Retrieval lift | **5.8×** |
+| Prompt reduction | **40.6%** (2.84 → 1.66) |
 | Task success proxy | **52.2%** |
-| Overall token reduction | **96.8%** |
-| GPT-4o overflow (without → with) | **13/18 → 0/18** |
+| GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
 This is the landing page for the public benchmark story. It answers four different questions:
@@ -38,29 +37,34 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v6.10 snapshot
+## Official v6.10.10 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-05-12 (v6.10.8)**
+Latest saved benchmark run: **2026-05-12 (v6.10.10)**
 
 | Metric | Result |
 |---|---:|
-| Repos | 18 |
-| Tasks | 90 |
-| Average token reduction by repo | **96.8%** |
-| Retrieval hit@5 | **80.0%** |
-| Graph-boosted hit@5 | **80.0%** |
+| Token reduction repos | 21 (including R: ggplot2, dplyr, shiny) |
+| Retrieval benchmark repos | 18 (core languages) |
+| Total tasks | 90 |
+| Average token reduction (all 21) | **97.9%** (13.5M → 278.1K tokens) |
+| Retrieval hit@5 (18 core) | **78.9%** |
+| Graph-boosted hit@5 | **78.9%** |
 | Random baseline hit@5 | 13.6% |
-| Prompt reduction | **41.0%** (2.84 → 1.68 prompts) |
-| GPT-4o overflow repos without SigMap | **13 / 18** |
-| GPT-4o monthly input savings at 10 calls/day | **$9,337.58** |
+| Prompt reduction | **40.6%** (2.84 → 1.66 prompts) |
+| GPT-4o overflow repos without SigMap | **16 / 21** |
+| GPT-4o monthly input savings at 10 calls/day | **$10,500+** |
 
 ## What each benchmark proves
 
-### 1. Token reduction
+### 1. Token reduction (21 repositories)
 
-- Raw source across the benchmark set: **12,837,269** tokens
-- Final SigMap output: **241,328** tokens
-- Best summary for launch messaging: **98.1% overall reduction**
+- Raw source across benchmark set: **13,499,894** tokens (21 repos)
+- Final SigMap output: **278,065** tokens
+- Overall reduction: **97.9%**
+- **New in v6.10.10:** R language support verified
+  - ggplot2: 94.3% reduction (381.5K → 21.7K tokens)
+  - dplyr: 93.4% reduction (145.1K → 9.5K tokens)
+  - shiny: 96.2% reduction (264.6K → 10.0K tokens)
 
 ### 2. Retrieval quality
 
@@ -82,9 +86,11 @@ This is the best benchmark when the question is: *"Does the developer need fewer
 
 ### 4. Quality and overflow
 
-- **13/18** repos overflow GPT-4o's 128K context window without SigMap
-- **5,047** files would be hidden from the model in the raw-flow scenario
-- **16,131** symbols are surfaced in SigMap output across the benchmark repos
+- **16/21** repos overflow GPT-4o's 128K context window without SigMap
+- R repos add to overflow risk: ggplot2 and shiny both overflow without SigMap
+- **5,200+** files would be hidden from the model in the raw-flow scenario
+- **16,500+** symbols are surfaced in SigMap output across all benchmark repos
+- With SigMap: **0/21 repos overflow** — all repos fit within 128K context
 
 This is the best benchmark when the question is: *"Why does token reduction matter operationally?"*
 

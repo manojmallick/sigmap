@@ -5,7 +5,7 @@
  *
  * Tests:
  *  1. Task metadata file exists and is valid JSON
- *  2. Metadata covers all 18 benchmark repos
+ *  2. Metadata covers all 21 benchmark repos (18 core + 3 R language repos)
  *  3. Each repo has language, repo_type, size_class
  *  4. Methodology.md exists and has required sections
  *  5. Usefulness scorer computes tier correctly (fully/partially/not useful)
@@ -43,7 +43,7 @@ test('task-metadata.json exists and is valid JSON', () => {
   assert(content.tasks, 'tasks object missing');
 });
 
-test('metadata covers all 18 benchmark repos', () => {
+test('metadata covers all 21 benchmark repos', () => {
   const metadataPath = path.join(ROOT, 'benchmarks', 'task-metadata.json');
   const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
   const tasks = metadata.tasks;
@@ -51,14 +51,15 @@ test('metadata covers all 18 benchmark repos', () => {
   const expectedRepos = [
     'flask', 'fastapi', 'express', 'axios', 'fastify', 'vue-core', 'svelte',
     'okhttp', 'spring-petclinic', 'akka', 'gin', 'rails', 'laravel',
-    'rust-analyzer', 'abseil-cpp', 'serilog', 'riverpod', 'vapor'
+    'rust-analyzer', 'abseil-cpp', 'serilog', 'riverpod', 'vapor',
+    'ggplot2', 'dplyr', 'shiny'
   ];
 
   expectedRepos.forEach(repo => {
     assert(tasks[repo], `missing metadata for ${repo}`);
   });
 
-  assert.strictEqual(Object.keys(tasks).length, 18, 'should have exactly 18 repos');
+  assert.strictEqual(Object.keys(tasks).length, 21, 'should have exactly 21 repos (18 core + 3 R)');
 });
 
 test('each repo has language, repo_type, size_class', () => {

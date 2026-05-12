@@ -47,10 +47,11 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 ## Why SigMap?
 
-- **80.0% hit@5** — right file found in top 5 results (vs 13.6% baseline)
-- **40–98% token reduction** — 2K–4K tokens instead of 80K+
+- **78.9% hit@5** — right file found in top 5 results (vs 13.6% baseline)
+- **97.9% token reduction** — 278K instead of 13.5M tokens across 21 repos
 - **52.2% task success rate** — up from 10% without context
-- **1.68 prompts per task** — down from 2.84
+- **1.66 prompts per task** — down from 2.84 (40.6% fewer retries)
+- **31 languages supported** — TypeScript, Python, Go, Rust, Java, R, and 25 others
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
@@ -86,14 +87,14 @@ Ask → Rank → Context → Validate → Judge → Learn
 ## Benchmark
 
 ```
-Benchmark : sigmap-v6.10-main
+Benchmark : sigmap-v6.10-main (21 repositories, including R language)
 Date      : 2026-05-12
 
-Hit@5          : 80.0%   (baseline 13.6%  — 5.9× lift)
-Prompt reduction : 41.4%
+Hit@5          : 78.9%   (baseline 13.6%  — 5.8× lift)
+Token reduction: 97.9%   (13.5M → 278K tokens across 21 repos)
+Prompt reduction : 40.6% (2.84 → 1.66 prompts per task)
 Task success   : 52.2%   (baseline 10%)
-Prompts / task : 1.68    (baseline 2.84)
-Token reduction: 40–98%  (avg 96.8% across 18 real repos)
+Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 
 Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.
