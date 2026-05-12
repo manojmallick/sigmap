@@ -61,16 +61,6 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 23 minutes ago)
-```
-src/discovery/r-manifest.js                   +readDescription  +splitDeps  +readNamespace  +splitArgs
-src/extractors/deps.js                        +extractRDeps  ~extractTSDeps  ~buildReverseDepMap
-src/extractors/r.js                           +members  +regex  +definitions  +body
-src/graph/builder.js                          +normalizePath  +escapeRegex  +resolveRPath  +extractFileDeps
-src/graph/impact.js                           +normalizePath  ~isRouteFile  ~getImpact
-src/retrieval/ranker.js                       ~_computeHubs  ~_isHub
-```
-
 ## packages
 
 ### packages/adapters/llm-full.js

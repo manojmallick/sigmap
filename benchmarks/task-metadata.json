@@ -135,6 +135,24 @@
       "repo_type": "framework",
       "size_class": "medium",
       "description": "Vapor web framework"
+    },
+    "ggplot2": {
+      "language": "r",
+      "repo_type": "library",
+      "size_class": "medium",
+      "description": "ggplot2 visualization library"
+    },
+    "dplyr": {
+      "language": "r",
+      "repo_type": "library",
+      "size_class": "medium",
+      "description": "dplyr data manipulation"
+    },
+    "shiny": {
+      "language": "r",
+      "repo_type": "framework",
+      "size_class": "medium",
+      "description": "Shiny interactive web framework"
     }
   },
   "notes": {

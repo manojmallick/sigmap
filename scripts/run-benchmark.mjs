@@ -189,6 +189,31 @@ const REPOS = [
     description: 'FastAPI Python framework',
     configOverride: { srcDirs: ['fastapi'] },
   },
+  // ── R Language (v6.10.10+) ────────────────────────────────────────────────
+  {
+    name: 'ggplot2',
+    org: 'tidyverse',
+    url: 'https://github.com/tidyverse/ggplot2.git',
+    language: 'R',
+    description: 'ggplot2 visualization library',
+    configOverride: { srcDirs: ['R'] },
+  },
+  {
+    name: 'dplyr',
+    org: 'tidyverse',
+    url: 'https://github.com/tidyverse/dplyr.git',
+    language: 'R',
+    description: 'dplyr data manipulation',
+    configOverride: { srcDirs: ['R'] },
+  },
+  {
+    name: 'shiny',
+    org: 'rstudio',
+    url: 'https://github.com/rstudio/shiny.git',
+    language: 'R',
+    description: 'Shiny interactive web framework',
+    configOverride: { srcDirs: ['R'] },
+  },
 ];
 
 // ---------------------------------------------------------------------------

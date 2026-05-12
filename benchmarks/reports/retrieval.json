@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-02T22:41:17.602Z",
+  "generated": "2026-05-12T16:09:49.299Z",
   "repos": [
     {
       "repo": "express",
@@ -580,14 +580,14 @@
       "fileCount": 99,
       "sigCount": 89,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.3,
+      "hitAt5": 0.4,
+      "mrr": 0.2,
       "randomBaseline": 0.051,
-      "improvement": 11.9,
+      "improvement": 7.9,
       "tiers": {
         "correct": 0,
-        "partial": 3,
-        "wrong": 2
+        "partial": 2,
+        "wrong": 3
       },
       "taskDetails": [
         {
@@ -630,8 +630,8 @@
             "src/Serilog/Configuration/LoggerFilterConfiguration.cs"
           ],
           "top1": "src/Serilog/Core/LevelOverrideMap.cs",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "firstHitRank": null,
+          "tier": "wrong"
         },
         {
           "id": "serilog-t005",
@@ -988,7 +988,7 @@
             "Sources/Vapor/Cache/Cache.swift",
             "Sources/Vapor/Cache/MemoryCache.swift"
           ],
-          "top1": "Sources/Vapor/Cache/CacheExpirationTime.swift",
+          "top1": "Sources/Vapor/Utilities/Extendable.swift",
           "firstHitRank": null,
           "tier": "wrong"
         }
@@ -1071,7 +1071,7 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 204,
+      "sigCount": 203,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.18,

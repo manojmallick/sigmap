@@ -1,13 +1,13 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v6.10. 52.2% correct, 41.0% fewer prompts, and 80.0% hit@5 across 90 tasks on 18 repos.
+description: Latest saved task benchmark for SigMap v6.10.10. 52.2% correct, 40.6% fewer prompts, 78.9% hit@5 across 90 tasks, with R language support.
 head:
   - - meta
     - property: og:title
-      content: "SigMap task benchmark — fewer retries, better context"
+      content: "SigMap task benchmark — fewer retries, better context (with R language)"
   - - meta
     - property: og:description
-      content: "Latest saved run: 52.2% correct, 1.68 prompts per task, 41.0% prompt reduction, 90 tasks, 18 repos."
+      content: "Latest saved run: 52.2% correct, 1.66 prompts per task, 40.6% prompt reduction, 90 tasks, 18+ repos with R support."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/task-benchmark"
@@ -15,21 +15,21 @@ head:
 
 # Task benchmark
 
-::: info Official v6.10 benchmark snapshot
-**Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-05
+::: info Official v6.10.10 benchmark snapshot
+**Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-12 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **80.0%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **80.0%** |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.0%** (2.84 → 1.68) |
+| Hit@5 | **78.9%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **78.9%** |
+| Retrieval lift | **5.8×** |
+| Prompt reduction | **40.6%** (2.84 → 1.66) |
 | Task success proxy | **52.2%** |
-| Overall token reduction | **96.8%** |
-| GPT-4o overflow (without → with) | **13/18 → 0/18** |
+| Token reduction (21 repos) | **97.9%** |
+| GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-05-05 (v6.8.0)**
+Latest saved run: **2026-05-12 (v6.10.10)** — Now includes R language support (ggplot2, dplyr, shiny)
 
 This page answers the question people care about most:
 
@@ -40,9 +40,10 @@ This page answers the question people care about most:
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | Task success proxy | 10% | **52.2%** |
-| Prompts per task | 2.84 | **1.68** |
-| Prompt reduction | — | **41.0%** |
-| Retrieval hit@5 | 13.6% | **80.0%** |
+| Prompts per task | 2.84 | **1.66** |
+| Prompt reduction | — | **40.6%** |
+| Retrieval hit@5 | 13.6% | **78.9%** |
+| Token reduction | — | **97.9%** (13.5M → 278K) |
 
 ## Why the task benchmark exists
 

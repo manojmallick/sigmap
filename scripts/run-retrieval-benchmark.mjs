@@ -56,6 +56,10 @@ const REPOS = [
   { repo: 'svelte',           fileCount: 370  },
   { repo: 'fastify',          fileCount: 31   },
   { repo: 'fastapi',          fileCount: 48   },
+  // R language (v6.10.10+)
+  { repo: 'ggplot2',          fileCount: 201  },
+  { repo: 'dplyr',            fileCount: 106  },
+  { repo: 'shiny',            fileCount: 101  },
 ];
 
 const CONFIG_OVERRIDES = {
@@ -100,6 +104,10 @@ const CONFIG_OVERRIDES = {
   svelte: { srcDirs: ['packages/svelte/src'] },
   fastify: { srcDirs: ['lib'] },
   fastapi: { srcDirs: ['fastapi'] },
+  // R language (v6.10.10+)
+  ggplot2: { srcDirs: ['R'] },
+  dplyr: { srcDirs: ['R'] },
+  shiny: { srcDirs: ['R'] },
 };
 
 // ---------------------------------------------------------------------------
