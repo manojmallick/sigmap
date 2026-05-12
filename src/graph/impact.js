@@ -12,6 +12,11 @@
 const path = require('path');
 const { buildFromCwd } = require('./builder');
 
+// Normalize paths for cross-platform consistency (same as in builder.js)
+function normalizePath(p) {
+  return path.normalize(p).toLowerCase();
+}
+
 // ---------------------------------------------------------------------------
 // Core BFS traversal
 // ---------------------------------------------------------------------------
@@ -111,7 +116,7 @@ function isRouteFile(f) { return ROUTE_PATTERNS.some((re) => re.test(f.replace(/
 function getImpact(changedFile, graph, opts) {
   const { depth = 0, cwd = process.cwd() } = opts || {};
 
-  const absChanged = path.resolve(cwd, changedFile);
+  const absChanged = normalizePath(path.resolve(cwd, changedFile));
 
   // Bail gracefully if file not in graph
   if (!graph || !graph.reverse) {

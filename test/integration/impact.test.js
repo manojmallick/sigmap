@@ -73,7 +73,7 @@ function mcpCall(msg) {
 // ---------------------------------------------------------------------------
 // Load modules directly
 // ---------------------------------------------------------------------------
-const { build, buildFromCwd }                        = require(path.join(ROOT, 'src', 'graph', 'builder'));
+const { build, buildFromCwd, normalizePath }                        = require(path.join(ROOT, 'src', 'graph', 'builder'));
 const { getImpact, analyzeImpact, formatImpact, formatImpactJSON } = require(path.join(ROOT, 'src', 'graph', 'impact'));
 
 console.log('[impact.test.js] v2.5 impact layer');
@@ -82,6 +82,8 @@ console.log('');
 // Known file used throughout: src/security/scanner.js imports src/security/patterns.js
 const SCANNER_ABS  = path.join(ROOT, 'src', 'security', 'scanner.js');
 const PATTERNS_ABS = path.join(ROOT, 'src', 'security', 'patterns.js');
+const SCANNER_NORM = normalizePath(SCANNER_ABS);
+const PATTERNS_NORM = normalizePath(PATTERNS_ABS);
 
 // ---------------------------------------------------------------------------
 // builder tests
@@ -96,15 +98,15 @@ test('builder: build() returns forward and reverse maps', () => {
 test('builder: forward map contains known JS import', () => {
   const g = build([SCANNER_ABS, PATTERNS_ABS], ROOT);
   // scanner.js requires patterns.js — forward[scanner] should include patterns
-  const deps = g.forward.get(SCANNER_ABS) || [];
-  assert.ok(deps.includes(PATTERNS_ABS), `expected patterns.js in forward deps of scanner.js, got: ${deps}`);
+  const deps = g.forward.get(SCANNER_NORM) || [];
+  assert.ok(deps.includes(PATTERNS_NORM), `expected patterns.js in forward deps of scanner.js, got: ${deps}`);
 });
 
 test('builder: reverse map correctly inverts forward map', () => {
   const g = build([SCANNER_ABS, PATTERNS_ABS], ROOT);
   // reverse[patterns] should include scanner
-  const importers = g.reverse.get(PATTERNS_ABS) || [];
-  assert.ok(importers.includes(SCANNER_ABS), `expected scanner.js in reverse of patterns.js, got: ${importers}`);
+  const importers = g.reverse.get(PATTERNS_NORM) || [];
+  assert.ok(importers.includes(SCANNER_NORM), `expected scanner.js in reverse of patterns.js, got: ${importers}`);
 });
 
 test('builder: handles empty file list gracefully', () => {
@@ -243,14 +245,36 @@ test('builder: Python absolute imports are detected', () => {
   const calcPath = path.join(dir, 'services', 'calculator.py');
 
   // base.py is imported by calculator.py (via absolute import from core.base)
-  const reverseOfBase = g.reverse.get(basePath) || [];
+  const basePathNorm = normalizePath(basePath);
+  const calcPathNorm = normalizePath(calcPath);
+  const reverseOfBase = g.reverse.get(basePathNorm) || [];
   assert.ok(
-    reverseOfBase.includes(calcPath),
+    reverseOfBase.includes(calcPathNorm),
     `expected calculator.py in reverse of base.py (absolute import), got: ${reverseOfBase}`
   );
 
   // Cleanup
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('builder: normalizes paths for case-insensitive Windows lookups', () => {
+  const g = build([SCANNER_ABS, PATTERNS_ABS], ROOT);
+  // All keys in forward map should be lowercase for Windows compatibility
+  for (const key of g.forward.keys()) {
+    assert.ok(key === key.toLowerCase(), `path "${key}" should be lowercase`);
+  }
+  for (const key of g.reverse.keys()) {
+    assert.ok(key === key.toLowerCase(), `path "${key}" should be lowercase`);
+  }
+});
+
+test('getImpact: works with normalized paths on case-sensitive systems', () => {
+  const g = build([SCANNER_ABS, PATTERNS_ABS], ROOT);
+  // getImpact should normalize the input path and find the entry in the graph
+  const result = getImpact(PATTERNS_ABS, g, { cwd: ROOT });
+  assert.ok(result.direct.length > 0, 'should find direct importers');
+  const hasScanner = result.direct.some((f) => f.includes('scanner'));
+  assert.ok(hasScanner, `expected scanner.js in direct importers, got: ${result.direct}`);
 });
 
 // ---------------------------------------------------------------------------
