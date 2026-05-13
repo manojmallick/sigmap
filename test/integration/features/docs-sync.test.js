@@ -80,10 +80,11 @@ test('quality-benchmark: latest saved run is v5.7.0 or later', () => {
 
 // ── Benchmark metric accuracy ─────────────────────────────────────────────────
 
-test('generalization: uses 80.0% hit@5 (current v6.6 benchmark)', () => {
+test('generalization: uses 78.9% hit@5 (current v6.10.10 benchmark)', () => {
   const src = readGuide('generalization.md');
-  assert.ok(src.includes('80.0% hit@5'), 'missing 80.0% hit@5 in generalization.md');
-  assert.ok(!src.includes('81.1% hit@5'), 'found stale v6.5 81.1% in generalization.md');
+  assert.ok(src.includes('78.9%'), 'missing 78.9% hit@5 in generalization.md');
+  assert.ok(!src.includes('80.0% hit@5'), 'found stale v6.6 80.0% in generalization.md');
+  assert.ok(!src.includes('81.1%'), 'found stale v6.5 81.1% in generalization.md');
 });
 
 test('cli: no stale v5.x benchmark numbers in cli.md', () => {
