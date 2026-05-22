@@ -54,7 +54,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: |
+          # NPM_TOKEN must be an 'Automation' token from npmjs.org settings
+          # (not requiring 2FA in CI/CD environments)
+          npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
