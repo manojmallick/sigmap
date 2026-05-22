@@ -16,13 +16,6 @@ SigMap is built by a great community of contributors. Thank you to everyone who 
 - [Matt Van Horn](https://github.com/mvanhorn) — Testing, reliability improvements
 - [kumamaki](https://github.com/kumamaki) — Bug fixes, improvements
 
-## Special Acknowledgments
-
-Contributors whose work may not appear in the GitHub graph due to email configuration:
-- **Denis Solonenko** — GDScript language extractor and support (#146)
-
-To fix this: link your commit email to your GitHub account at https://github.com/settings/emails
-
 ## Supporters
 
 - **SigMap Bot** — Release automation, version management
