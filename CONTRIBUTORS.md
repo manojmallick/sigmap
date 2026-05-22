@@ -25,11 +25,13 @@ SigMap is built by a great community of contributors. Thank you to everyone who 
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
-### Recent Contributors (v6.10.10)
-- Windows path normalization for cross-platform compatibility
-- R language support with source() imports and namespace resolution
-- Confidence tier calculation for retrieval ranking
-- Comprehensive test coverage for new features
+### Recent Contributors (v6.10.11)
+- MCP cache improvements for hot/cold context indexing
+- Binary build reliability with r-manifest module bundling
+- npm publish workflow with automation token support
+- Test assertion fixes and integration test reliability
+- Documentation updates for 31 supported languages (R + GDScript)
+- Cross-platform compatibility (macOS, Linux, Windows)
 
 ---
 
