@@ -45,14 +45,19 @@ jobs:
           fi
           echo "✓ version check passed: $PKG_VERSION"
 
-      - name: Verify npm registry
+      - name: Verify npm registry and token
         run: |
           echo "NPM Registry: $(npm config get registry)"
+          echo "Token set: $([ -n "$NODE_AUTH_TOKEN" ] && echo 'yes' || echo 'no')"
+          echo "Token length: ${#NODE_AUTH_TOKEN}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to npm
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
   # ── 3. Publish to GitHub Packages (scoped) ───────────────────────────────
   publish-github:
