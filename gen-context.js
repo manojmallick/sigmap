@@ -8443,6 +8443,117 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   module.exports = { resolveSourceRoots };
 };
 
+// ── ./src/discovery/r-manifest ──
+__factories["./src/discovery/r-manifest"] = function(module, exports) {
+  'use strict';
+  const fs   = require('fs');
+  const path = require('path');
+  module.exports = { readDescription, readNamespace, collectLocalDefs };
+  function readDescription(cwd) {
+    const p = path.join(cwd, 'DESCRIPTION');
+    if (!fs.existsSync(p)) return null;
+    let raw;
+    try { raw = fs.readFileSync(p, 'utf8'); } catch (_) { return null; }
+    const fields = {};
+    let currentKey = null;
+    for (const rawLine of raw.split('\n')) {
+      if (/^\s/.test(rawLine) && currentKey) {
+        fields[currentKey] += ' ' + rawLine.trim();
+        continue;
+      }
+      const m = rawLine.match(/^([A-Za-z][\w.]*)\s*:\s*(.*)$/);
+      if (m) {
+        currentKey = m[1];
+        fields[currentKey] = m[2].trim();
+      } else {
+        currentKey = null;
+      }
+    }
+    return {
+      package:   fields.Package   || null,
+      version:   fields.Version   || null,
+      imports:   splitDeps(fields.Imports),
+      depends:   splitDeps(fields.Depends),
+      suggests:  splitDeps(fields.Suggests),
+      linkingTo: splitDeps(fields.LinkingTo),
+    };
+  }
+  function splitDeps(value) {
+    if (!value) return [];
+    return value.split(',')
+      .map((s) => s.trim().replace(/\s*\([^)]*\)\s*$/, '').trim())
+      .filter((s) => s && s !== 'R');
+  }
+  function readNamespace(cwd) {
+    const p = path.join(cwd, 'NAMESPACE');
+    if (!fs.existsSync(p)) return null;
+    let raw;
+    try { raw = fs.readFileSync(p, 'utf8'); } catch (_) { return null; }
+    const text = raw.replace(/#.*$/gm, '');
+    const exports = new Set();
+    const exportPatterns = [];
+    const s3methods = [];
+    const importFrom = new Map();
+    for (const m of text.matchAll(/\bexport\s*\(\s*([^)]+)\)/g)) {
+      for (const name of splitArgs(m[1])) {
+        const clean = stripQuotes(name);
+        if (clean) exports.add(clean);
+      }
+    }
+    for (const m of text.matchAll(/\bexportMethods\s*\(\s*([^)]+)\)/g)) {
+      for (const name of splitArgs(m[1])) {
+        const clean = stripQuotes(name);
+        if (clean) exports.add(clean);
+      }
+    }
+    for (const m of text.matchAll(/\bexportPattern\s*\(\s*["']([^"']+)["']\s*\)/g)) {
+      try { exportPatterns.push(new RegExp(m[1])); } catch (_) {}
+    }
+    for (const m of text.matchAll(/\bS3method\s*\(\s*([\w.]+)\s*,\s*([\w.]+)\s*\)/g)) {
+      s3methods.push({ generic: m[1], class: m[2] });
+      exports.add(m[1]);
+    }
+    for (const m of text.matchAll(/\bimportFrom\s*\(\s*([\w.]+)\s*,\s*([^)]+)\)/g)) {
+      const pkg = m[1];
+      if (!importFrom.has(pkg)) importFrom.set(pkg, new Set());
+      for (const name of splitArgs(m[2])) {
+        const clean = stripQuotes(name);
+        if (clean) importFrom.get(pkg).add(clean);
+      }
+    }
+    return { exports, exportPatterns, s3methods, importFrom };
+  }
+  function splitArgs(raw) {
+    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  function stripQuotes(s) {
+    return s.replace(/^["']|["']$/g, '').trim();
+  }
+  function collectLocalDefs(rFiles) {
+    const defs = new Map();
+    const reAssign = /^(?:[ \t]*)([\w.]+)\s*(?:<<-|<-|=)\s*(?:(?:R6::)?R6Class|(?:S7::)?new_class|function)\b/gm;
+    const reS4Generic = /^[ \t]*setGeneric\s*\(\s*["']([\w.]+)["']/gm;
+    const reS4Class   = /^[ \t]*setClass\s*\(\s*["']([\w.]+)["']/gm;
+    for (const filePath of rFiles) {
+      let content;
+      try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
+      const stripped = content.replace(/#.*$/gm, '');
+      let m;
+      while ((m = reAssign.exec(stripped)) !== null) {
+        if (m[1].startsWith('.')) continue;
+        if (!defs.has(m[1])) defs.set(m[1], filePath);
+      }
+      while ((m = reS4Generic.exec(stripped)) !== null) {
+        if (!defs.has(m[1])) defs.set(m[1], filePath);
+      }
+      while ((m = reS4Class.exec(stripped)) !== null) {
+        if (!defs.has(m[1])) defs.set(m[1], filePath);
+      }
+    }
+    return defs;
+  }
+};
+
 // ── ./src/workspace/detector ──
 __factories["./src/workspace/detector"] = function(module, exports) {
   'use strict';
