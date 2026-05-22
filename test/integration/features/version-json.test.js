@@ -64,9 +64,9 @@ test('version.json: retrieval_lift field exists and is a number >= 5', () => {
     `expected retrieval_lift >= 5, got ${v.metrics.retrieval_lift}`);
 });
 
-test('version.json: languages is 29', () => {
+test('version.json: languages is 31', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.languages, 29);
+  assert.strictEqual(v.languages, 31);
 });
 
 test('version.json: mcp_tools is 9', () => {

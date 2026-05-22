@@ -126,8 +126,8 @@ test('benchmark: sigmap-v6.10-main ID present', () => {
   assert.ok(src.includes('sigmap-v6.10-main'), 'missing sigmap-v6.10-main benchmark ID');
 });
 
-test('benchmark: date 2026-05-12 present', () => {
-  assert.ok(src.includes('2026-05-12'), 'missing benchmark date 2026-05-12');
+test('benchmark: date 2026-05-22 present', () => {
+  assert.ok(src.includes('2026-05-22'), 'missing benchmark date 2026-05-22');
 });
 
 test('benchmark: Hit@5 78.9% present', () => {

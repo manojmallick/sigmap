@@ -61,6 +61,12 @@ Always run `sigmap ask` or `sigmap --query` before searching for files relevant 
 src/extractors/python_ast.py ← ast
 ```
 
+## changes (last 5 commits — 19 minutes ago)
+```
+src/mcp/handlers.js                           +_readContextFiles  ~flushBlock  ~readContext  ~explainFile
+src/retrieval/ranker.js                       +_mergeSigIndex  +_buildSigIndexFromCache  +_enrichSigIndexFromStrategy  ~_parseContextFile
+```
+
 ## packages
 
 ### packages/adapters/llm-full.js
@@ -184,12 +190,6 @@ function adapt(context, adapterName, opts = {}) → string
 
 ## src
 
-### src/extractors/python_dataclass.js
-```
-module.exports = { extract }
-function extract(src) → string[]
-```
-
 ### src/extractors/typescript_react.js
 ```
 module.exports = { extract }
@@ -295,20 +295,6 @@ function loadCache(cwd, currentVersion) → Map<string, { mtime: numb
 function saveCache(cwd, currentVersion, cache)
 function getChangedFiles(files, cache) → { changed: string[], unch
 function updateCacheEntries(cache, extracted)
-```
-
-### src/mcp/handlers.js
-```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact }
-function readContext(args, cwd)
-function searchSignatures(args, cwd)
-function getMap(args, cwd)
-function createCheckpoint(args, cwd)
-function getRouting(args, cwd)
-function explainFile(args, cwd)
-function listModules(args, cwd)
-function queryContext(args, cwd)
-function getImpact(args, cwd)
 ```
 
 ### src/tracking/logger.js
@@ -583,6 +569,21 @@ function dispatch(msg, cwd)
 function start(cwd)
 ```
 
+### src/mcp/handlers.js
+```
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact }
+function _readContextFiles(cwd)
+function readContext(args, cwd)
+function searchSignatures(args, cwd)
+function getMap(args, cwd)
+function createCheckpoint(args, cwd)
+function getRouting(args, cwd)
+function explainFile(args, cwd)
+function listModules(args, cwd)
+function queryContext(args, cwd)
+function getImpact(args, cwd)
+```
+
 ### src/retrieval/ranker.js
 ```
 module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent }
@@ -592,6 +593,9 @@ function _isHub(filePath)
 function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:
 function rank(query, sigIndex, opts) → { file: string, score: nu
 function _parseContextFile(contextPath) → Map<string, string[]>
+function _mergeSigIndex(target, source)
+function _buildSigIndexFromCache(cwd) → Map<string, string[]>
+function _enrichSigIndexFromStrategy(cwd, index) → Map<string, string[]>
 function buildSigIndex(cwd, opts) → Map<string, string[]>
 function formatRankTable(results, query) → string
 function formatRankJSON(results, query) → object

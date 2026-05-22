@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.11] — 2026-05-22
+
+### Fixed
+
+- **Test assertions** — Updated integration tests to verify correct benchmark date (2026-05-22) and language count (31 with R + GDScript support). Tests now validate version.json metrics consistency across all documentation files.
+
+---
+
 ## [6.10.10] — 2026-05-22
 
 ### Added
