@@ -5901,7 +5901,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.10.11',
+  version: '6.10.12',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -8655,7 +8655,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.10.11';
+const VERSION = '6.10.12';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -10455,9 +10455,11 @@ function registerMcp(cwd, scriptPath) {
     args: [path.resolve(scriptPath), '--mcp'],
   };
 
-  // JSON mcpServers targets: Claude, Cursor, Windsurf project, Windsurf global,
-  // VS Code (GitHub Copilot 1.99+), OpenCode project, OpenCode global, Gemini CLI
+  // JSON mcpServers targets: portable .mcp.json (priority), Claude, Cursor,
+  // Windsurf project, Windsurf global, VS Code (GitHub Copilot 1.99+),
+  // OpenCode project, OpenCode global, Gemini CLI
   const jsonTargets = [
+    path.join(cwd, '.mcp.json'),
     path.join(cwd, '.claude', 'settings.json'),
     path.join(cwd, '.cursor', 'mcp.json'),
     path.join(cwd, '.windsurf', 'mcp.json'),
@@ -10496,6 +10498,8 @@ function registerMcp(cwd, scriptPath) {
 
   // Print manual snippets for all targets
   console.warn('[sigmap] MCP / context server config snippets:');
+  console.warn('  .mcp.json (portable, recommended):');
+  console.warn(JSON.stringify({ mcpServers: { sigmap: serverEntry } }, null, 2));
   console.warn('  Claude / Cursor / Windsurf / VS Code / OpenCode / Gemini CLI:');
   console.warn(JSON.stringify({ mcpServers: { sigmap: serverEntry } }, null, 2));
   console.warn('  Zed (~/.config/zed/settings.json):');

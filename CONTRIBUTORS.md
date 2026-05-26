@@ -35,7 +35,11 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
-### Recent Contributors (v6.10.11)
+### Recent Contributors (v6.10.12)
+- Portable `.mcp.json` support for agentic harnesses (Claude, Cursor, Windsurf, etc.)
+- MCP registration with intelligent fallback to `.claude/settings.json`
+
+### v6.10.11
 - MCP cache improvements for hot/cold context indexing
 - Binary build reliability with r-manifest module bundling
 - npm publish workflow with automation token support

@@ -1,6 +1,6 @@
 {
   "name": "sigmap-core",
-  "version": "6.10.11",
+  "version": "6.10.12",
   "description": "SigMap core library — zero-dependency code signature extraction, retrieval, and security scanning",
   "main": "index.js",
   "keywords": [

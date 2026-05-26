@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.10.12] — 2026-05-27
+
+### Added
+
+- **Portable `.mcp.json` support** — MCP server registration now detects and prioritizes `.mcp.json` at the project root, making MCP configuration portable across multiple agentic harnesses (Claude, Cursor, Windsurf, etc.). Falls back to `.claude/settings.json` if `.mcp.json` doesn't exist (closes #209).
+
+---
+
 ## [6.10.11] — 2026-05-22
 
 ### Fixed
