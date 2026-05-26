@@ -158,6 +158,55 @@ test('skips Zed registration when ~/.config/zed/settings.json does not exist', (
   }
 });
 
+// ── Portable .mcp.json (project root) ────────────────────────────────────────
+test('writes mcpServers.sigmap to .mcp.json when it exists (highest priority)', () => {
+  const dir = makeTmpDir();
+  try {
+    fs.writeFileSync(path.join(dir, '.mcp.json'), JSON.stringify({}));
+
+    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+
+    const result = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8'));
+    assert.ok(result.mcpServers, '.mcp.json should have mcpServers');
+    assert.ok(result.mcpServers.sigmap, 'mcpServers.sigmap should be set');
+    assert.strictEqual(result.mcpServers.sigmap.command, 'node');
+    assert.ok(Array.isArray(result.mcpServers.sigmap.args));
+  } finally {
+    cleanup([dir]);
+  }
+});
+
+test('does not duplicate .mcp.json entry on repeat --setup', () => {
+  const dir = makeTmpDir();
+  try {
+    fs.writeFileSync(path.join(dir, '.mcp.json'), JSON.stringify({ mcpServers: { sigmap: { command: 'node', args: ['existing'] } } }));
+
+    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+
+    const result = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8'));
+    assert.deepStrictEqual(result.mcpServers.sigmap.args, ['existing'], 'existing .mcp.json entry must not be overwritten');
+  } finally {
+    cleanup([dir]);
+  }
+});
+
+test('falls back to .claude/settings.json when .mcp.json does not exist', () => {
+  const dir = makeTmpDir();
+  try {
+    const claudeDir = path.join(dir, '.claude');
+    fs.mkdirSync(claudeDir);
+    fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({}));
+
+    // .mcp.json does not exist, so it should register to .claude/settings.json
+    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+
+    const result = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf8'));
+    assert.ok(result.mcpServers?.sigmap, '.claude/settings.json mcpServers.sigmap must be set when .mcp.json does not exist');
+  } finally {
+    cleanup([dir]);
+  }
+});
+
 // ── Summary ─────────────────────────────────────────────────────────────────
 console.log(`\n${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);
