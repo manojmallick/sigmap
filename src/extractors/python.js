@@ -1,6 +1,27 @@
 'use strict';
 
 const path = require('path');
+const { lineAt } = require('./line-anchor');
+
+/**
+ * 1-based line of the last source line belonging to a top-level (indent 0)
+ * def/class body that starts at `startLine` (1-based). Trailing blank lines
+ * are excluded.
+ * @param {string[]} srcLines
+ * @param {number} startLine
+ * @returns {number}
+ */
+function pyBlockEnd(srcLines, startLine) {
+  let end = startLine;
+  for (let i = startLine; i < srcLines.length; i++) {
+    const line = srcLines[i];
+    if (line.trim() === '') continue;
+    const indent = line.match(/^(\s*)/)[1].length;
+    if (indent === 0) break;
+    end = i + 1;
+  }
+  return end;
+}
 
 /**
  * Try to extract signatures using the native Python AST extractor.
@@ -42,21 +63,26 @@ function extract(src, filePath) {
 
   // noComments: strip only # comments, keep docstrings (needed for @decorator detection)
   const noComments = src.replace(/#.*$/gm, '');
-  // stripped: also strip docstrings (safe for regex matching)
+  // stripped: also strip docstrings (safe for regex matching). Docstrings are
+  // blanked newline-by-newline (non-newline chars → spaces) so character
+  // offsets and line numbers stay exact for line anchors.
   const stripped = noComments
-    .replace(/"""[\s\S]*?"""/g, '')
-    .replace(/'''[\s\S]*?'''/g, '');
+    .replace(/"""[\s\S]*?"""/g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/'''[\s\S]*?'''/g, (m) => m.replace(/[^\n]/g, ' '));
+  const srcLines = src.split('\n');
 
   // Classes
   for (const m of stripped.matchAll(/^class\s+(\w+)(?:\s*\(([^)]*)\))?\s*:/gm)) {
     const className = m[1];
     const baseName = m[2] ? m[2].trim() : '';
     const bodyStart = m.index + m[0].length;
+    const clsStart = lineAt(stripped, m.index);
+    const clsAnchor = `  :${clsStart}-${pyBlockEnd(srcLines, clsStart)}`;
 
     // Try @dataclass collapse
     const dcFields = tryExtractDataclassFields(stripped, m.index);
     if (dcFields !== null) {
-      sigs.push(`@dataclass ${className}(${dcFields})`);
+      sigs.push(`@dataclass ${className}(${dcFields})${clsAnchor}`);
       continue;
     }
 
@@ -64,13 +90,13 @@ function extract(src, filePath) {
     if (/(BaseModel|BaseSettings)/.test(baseName)) {
       const bmFields = tryExtractBaseModelFields(stripped, bodyStart);
       if (bmFields) {
-        sigs.push(`class ${className}(${baseName}) ${bmFields}`);
+        sigs.push(`class ${className}(${baseName}) ${bmFields}${clsAnchor}`);
         continue;
       }
     }
 
     const baseStr = baseName ? `(${baseName})` : '';
-    sigs.push(`class ${className}${baseStr}`);
+    sigs.push(`class ${className}${baseStr}${clsAnchor}`);
 
     // Class-level ALL_CAPS constants
     for (const c of extractClassConstants(stripped, bodyStart)) {
@@ -91,7 +117,9 @@ function extract(src, filePath) {
     const retStr = retType ? ` → ${retType}` : '';
     const hint = extractDocHint(src, m[2], m[0]);
     const hintStr = hint ? `  # ${hint}` : '';
-    sigs.push(`${asyncKw}def ${m[2]}(${params})${retStr}${hintStr}`);
+    const fnStart = lineAt(stripped, m.index);
+    const fnAnchor = `  :${fnStart}-${pyBlockEnd(srcLines, fnStart)}`;
+    sigs.push(`${asyncKw}def ${m[2]}(${params})${retStr}${fnAnchor}${hintStr}`);
   }
 
   // FastAPI router endpoints: @router.METHOD("path") + async def name(...)
@@ -103,7 +131,7 @@ function extract(src, filePath) {
     for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
       const fl = lines[j].trim();
       const fm = fl.match(/^(?:async\s+)?def\s+(\w+)/);
-      if (fm) { sigs.push(`${rm[1].toUpperCase()} ${rm[2]}  →  ${fm[1]}()`); break; }
+      if (fm) { const rs = j + 1; sigs.push(`${rm[1].toUpperCase()} ${rm[2]}  →  ${fm[1]}()  :${rs}-${pyBlockEnd(srcLines, rs)}`); break; }
       if (fl && !fl.startsWith('@') && !fl.startsWith('#')) break;
     }
   }

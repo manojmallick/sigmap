@@ -1,16 +1,16 @@
-export interface UserService
+export interface UserService  :3-7
   readonly version: string
   getUser(id)
   createUser(data)
-export type UserId
-export type UserRole
-export enum Status
-export class UserRepository
+export type UserId  :9-9
+export type UserRole  :10-10
+export enum Status  :12-16
+export class UserRepository  :18-36
   constructor(private db)
   async findById(id) → Promise<User | null>
   async save(user) → Promise<void>
   static create(db) → UserRepository
-class InternalHelper
+class InternalHelper  :54-58
   process(data) → string
-export async function hashPassword(password) → Promise<string>
-export const useAuth = (loginId, password) => → { user, isAuthenticated, login, logout }
+export async function hashPassword(password) → Promise<string>  :38-40
+export const useAuth = (loginId, password) => → { user, isAuthenticated, login, logout }  :46-52

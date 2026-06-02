@@ -264,5 +264,31 @@ def transform(
         self.assertIn('transform', func_sig)
 
 
+    def test_line_anchors(self):
+        """Top-level functions/classes carry :start-end anchors; methods do not."""
+        code = (
+            "class Svc:\n"                  # 1
+            "    def method(self):\n"        # 2  (method — no anchor)
+            "        return 1\n"             # 3
+            "\n"                             # 4
+            "\n"                             # 5
+            "def top(x):\n"                  # 6
+            '    """Hint here."""\n'         # 7
+            "    return x\n"                 # 8
+        )
+        sigs = self.run_extractor(code)
+
+        cls = next(s for s in sigs if s.startswith("class Svc"))
+        self.assertRegex(cls, r":1-3$", "class anchor should span its body")
+
+        method = next(s for s in sigs if "method" in s and s.strip().startswith("def"))
+        self.assertNotRegex(method, r":\d+-\d+", "indented members must not be anchored")
+
+        top = next(s for s in sigs if "top" in s)
+        self.assertIn(":6-8", top, "function anchor should span its body")
+        self.assertLess(top.index(":6-8"), top.index("#"),
+                        "anchor must precede the docstring hint")
+
+
 if __name__ == '__main__':
     unittest.main()

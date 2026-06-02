@@ -213,6 +213,12 @@ def extract_class_constants(class_node):
                 yield f"{name}={val}"
 
 
+def _anchor(node):
+    """Return a `  :start-end` line anchor for a top-level node (1-based)."""
+    end = getattr(node, "end_lineno", None) or node.lineno
+    return f"  :{node.lineno}-{end}"
+
+
 def extract_method_sig(func_node):
     """Format a method signature string (already indented by caller)."""
     is_async = isinstance(func_node, ast.AsyncFunctionDef)
@@ -232,7 +238,7 @@ def extract_function_sig(func_node, src_lines=None):
     ret_str = f" → {ret}" if ret else ""
     hint = get_docstring_hint(func_node)
     hint_str = f"  # {hint}" if hint else ""
-    return f"{prefix}def {func_node.name}({params}){ret_str}{hint_str}"
+    return f"{prefix}def {func_node.name}({params}){ret_str}{_anchor(func_node)}{hint_str}"
 
 
 def extract_fastapi_routes(tree, src_lines):
@@ -255,7 +261,7 @@ def extract_fastapi_routes(tree, src_lines):
                 path_node = dec.args[0]
                 if isinstance(path_node, ast.Constant):
                     path = path_node.value
-                    routes.append(f"{method.upper()} {path}  →  {node.name}()")
+                    routes.append(f"{method.upper()} {path}  →  {node.name}(){_anchor(node)}")
     return routes
 
 
@@ -276,10 +282,11 @@ def extract(filepath):
         if isinstance(node, ast.ClassDef):
             bases_str = ", ".join(annotation_to_str(b) for b in node.bases if b)
             dec_names = get_decorator_names(node)
+            cls_anchor = _anchor(node)
 
             if is_dataclass(node):
                 fields = extract_dataclass_fields(node)
-                sigs.append(f"@dataclass {node.name}({fields})")
+                sigs.append(f"@dataclass {node.name}({fields}){cls_anchor}")
             elif is_basemodel(node.bases):
                 bm_fields = extract_basemodel_fields(node)
                 base_label = next(
@@ -288,12 +295,12 @@ def extract(filepath):
                     "BaseModel"
                 )
                 if bm_fields:
-                    sigs.append(f"class {node.name}({base_label}) {bm_fields}")
+                    sigs.append(f"class {node.name}({base_label}) {bm_fields}{cls_anchor}")
                 else:
-                    sigs.append(f"class {node.name}({base_label})")
+                    sigs.append(f"class {node.name}({base_label}){cls_anchor}")
             else:
                 base_part = f"({bases_str})" if bases_str else ""
-                sigs.append(f"class {node.name}{base_part}")
+                sigs.append(f"class {node.name}{base_part}{cls_anchor}")
 
             # Class constants
             for const in extract_class_constants(node):
