@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.11.0] — 2026-06-03
+
+### Added
+
+- **Line anchors on signatures (Surgical Context Phase 1)** — top-level TypeScript and Python signatures now carry a `:start-end` line anchor (e.g. `export class UserRepository  :18-36`), so agents can read the exact lines instead of re-opening whole files. Rendered automatically by `ask`, `CLAUDE.md`, and every adapter — no consumer changes (closes #212).
+- New shared `src/extractors/line-anchor.js` helper (`lineAt`, `anchor`, `withAnchor`).
+
+### Fixed
+
+- **Block-comment / docstring line-shift bug** — comment stripping that blanked `/* */` and `"""…"""` to `''` destroyed newlines and corrupted line numbers. Replaced with a newline-preserving strip so char-offset → line-number stays exact. The Python AST and regex fallback paths now produce identical anchors.
+
+---
+
 ## [6.10.12] — 2026-05-27
 
 ### Added
