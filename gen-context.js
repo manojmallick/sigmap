@@ -1174,6 +1174,30 @@ __factories["./src/extractors/php"] = function(module, exports) {
   
 };
 
+// ── ./src/extractors/line-anchor ──
+__factories["./src/extractors/line-anchor"] = function(module, exports) {
+
+  function lineAt(src, idx) {
+    let line = 1;
+    const end = Math.min(idx, src.length);
+    for (let i = 0; i < end; i++) {
+      if (src.charCodeAt(i) === 10) line++;
+    }
+    return line;
+  }
+
+  function anchor(start, end) {
+    return `  :${start}-${end}`;
+  }
+
+  function withAnchor(sig, start, end) {
+    return `${sig}${anchor(start, end)}`;
+  }
+
+  module.exports = { lineAt, anchor, withAnchor };
+
+};
+
 // ── ./src/extractors/python ──
 __factories["./src/extractors/python"] = function(module, exports) {
   
