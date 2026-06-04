@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v6.10.10 benchmark snapshot. 96.5% average token reduction across 21 repos, 80% retrieval hit@5, 41.4% fewer prompts, and R language support verified.
+description: Official v6.11.1 benchmark snapshot. 96.5% average token reduction across 21 repos, 81% retrieval hit@5, 41.8% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v6.10.10 snapshot with R language"
+      content: "SigMap benchmark overview — v6.11.1 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v6.10.10 benchmark run (2026-05-22) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v6.11.1 benchmark run (2026-06-04) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
@@ -15,15 +15,15 @@ head:
 
 # Benchmark overview
 
-::: info Official v6.10.10 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-22
+::: info Official v6.11.1 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v6.11-main &nbsp;·&nbsp; **Date:** 2026-06-04
 
 | Metric | Value |
 |---|---:|
-| Hit@5 (18 core repos) | **80%** vs 13.6% baseline |
+| Hit@5 (18 core repos) | **81%** vs 13.6% baseline |
 | Token reduction (21 repos) | **96.5%** |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.4%** (2.84 → 1.67) |
+| Retrieval lift | **6.0×** |
+| Prompt reduction | **41.8%** (2.84 → 1.66) |
 | Task success proxy | **53.3%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
@@ -37,9 +37,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v6.10.10 snapshot (with R language support)
+## Official v6.11.1 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-05-22 (v6.10.10)**
+Latest saved benchmark run: **2026-06-04 (v6.11.1)**
 
 | Metric | Result |
 |---|---:|
@@ -47,10 +47,10 @@ Latest saved benchmark run: **2026-05-22 (v6.10.10)**
 | Retrieval benchmark repos | 18 (core languages) |
 | Total tasks | 90 |
 | Average token reduction (all 21) | **96.5%** |
-| Retrieval hit@5 (18 core) | **80%** |
-| Graph-boosted hit@5 | **80%** |
+| Retrieval hit@5 (18 core) | **81%** |
+| Graph-boosted hit@5 | **81%** |
 | Random baseline hit@5 | 13.6% |
-| Prompt reduction | **41.4%** (2.84 → 1.67 prompts) |
+| Prompt reduction | **41.8%** (2.84 → 1.66 prompts) |
 | GPT-4o overflow repos without SigMap | **16 / 21** |
 | GPT-4o monthly input savings at 10 calls/day | **$9,899.90** |
 
@@ -61,17 +61,17 @@ Latest saved benchmark run: **2026-05-22 (v6.10.10)**
 - Raw source across benchmark set: **13,499,894** tokens (21 repos)
 - Final SigMap output: **~470,000** tokens
 - Overall reduction: **96.5%**
-- **New in v6.10.10:** R language support verified
+- **New in v6.11.1:** R language support verified
   - ggplot2: 94.3% reduction (381.5K → 21.7K tokens)
   - dplyr: 93.4% reduction (145.1K → 9.5K tokens)
   - shiny: 96.2% reduction (264.6K → 10.0K tokens)
 
 ### 2. Retrieval quality
 
-- SigMap hit@5: **80%**
-- Graph-boosted hit@5: **80%** (+0.0pp with dependency graph)
+- SigMap hit@5: **81%**
+- Graph-boosted hit@5: **81%** (+0.0pp with dependency graph)
 - Random baseline: **13.6%**
-- Lift: **5.9x**
+- Lift: **6.0x**
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 
@@ -80,7 +80,7 @@ This is the best benchmark when the question is: *"Does SigMap actually put the 
 - Correct: **48 / 90** (53.3%)
 - Partial: **24 / 90** (26.7%)
 - Wrong: **18 / 90** (20%)
-- Average prompts: **2.84 → 1.67**
+- Average prompts: **2.84 → 1.66**
 
 This is the best benchmark when the question is: *"Does the developer need fewer retries to finish the job?"*
 

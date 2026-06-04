@@ -53,6 +53,17 @@ function runGenContext(dir, extraArgs = '') {
   execSync(`node "${script}" --generate ${extraArgs}`, { cwd: dir, stdio: 'pipe' });
 }
 
+function mcpCall(dir, message) {
+  const script = path.resolve(__dirname, '../../gen-context.js');
+  const stdout = execSync(`node "${script}" --mcp`, {
+    cwd: dir,
+    input: JSON.stringify(message) + '\n',
+    encoding: 'utf8',
+    timeout: 10000,
+  });
+  return stdout.split('\n').filter((line) => line.trim()).map((line) => JSON.parse(line));
+}
+
 function writeConfig(dir, config) {
   writeFile(dir, 'gen-context.config.json', JSON.stringify(config, null, 2));
 }
@@ -237,6 +248,31 @@ test('hot-cold: MCP buildSigIndex includes cold file and cache (issue #201)', ()
 
   const found = searchSignatures({ query: 'coldOnlyFn' }, dir);
   assert.ok(found.includes('coldOnlyFn'), 'search_signatures must find cold symbols');
+});
+
+test('hot-cold: bundled MCP server finds cold signatures (issue #201)', () => {
+  const dir = makeTmpRepo('hot-cold-mcp-bundled');
+
+  writeFile(dir, 'src/cold.js', 'function coldOnlyFn() {}');
+  commit(dir, 'cold');
+
+  writeFile(dir, 'src/hot.js', 'function hotOnlyFn() {}');
+  commit(dir, 'hot');
+
+  writeConfig(dir, { strategy: 'hot-cold', hotCommits: 1, srcDirs: ['src'], sigCache: true });
+  runGenContext(dir);
+
+  const responses = mcpCall(dir, {
+    jsonrpc: '2.0',
+    method: 'tools/call',
+    id: 201,
+    params: { name: 'search_signatures', arguments: { query: 'coldOnlyFn' } },
+  });
+  const text = responses[0].result.content[0].text;
+
+  assert.ok(!text.includes('No signatures found'), 'bundled MCP must not miss cold-only symbols');
+  assert.ok(text.includes('### src/cold.js'), 'bundled MCP must include the cold file path');
+  assert.ok(text.includes('coldOnlyFn'), 'bundled MCP must include cold symbol signatures');
 });
 
 // ---------------------------------------------------------------------------

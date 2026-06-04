@@ -47,10 +47,10 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 ## Why SigMap?
 
-- **78.9% hit@5** — right file found in top 5 results (vs 13.6% baseline)
-- **97.9% token reduction** — 278K instead of 13.5M tokens across 21 repos
-- **52.2% task success rate** — up from 10% without context
-- **1.66 prompts per task** — down from 2.84 (40.6% fewer retries)
+- **81.1% hit@5** — right file found in top 5 results (vs 13.6% baseline)
+- **96.5% token reduction** — average across 21 real repos
+- **53.3% task success rate** — up from 10% without context
+- **1.66 prompts per task** — down from 2.84 (41.8% fewer retries)
 - **31 languages supported** — TypeScript, Python, Go, Rust, Java, R, and 25 others
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
@@ -63,7 +63,7 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 | Without SigMap | With SigMap |
 |---|---|
-| ❌ Guessing which files are relevant | ✅ Right file in context — 80% of the time |
+| ❌ Guessing which files are relevant | ✅ Right file in context — 81% of the time |
 | ❌ Sending the full repo to your AI | ✅ Minimal context — only what matters |
 | ❌ Embeddings / vector DB required | ✅ Grounded answers, no infra needed |
 
@@ -87,12 +87,12 @@ Ask → Rank → Context → Validate → Judge → Learn
 ## Benchmark
 
 ```
-Benchmark : sigmap-v6.10-main (21 repositories, including R language)
-Date      : 2026-05-22
+Benchmark : sigmap-v6.11-main (21 repositories, including R language)
+Date      : 2026-06-04
 
-Hit@5          : 80%   (baseline 13.6%  — 5.9× lift)
+Hit@5          : 81.1%   (baseline 13.6%  — 6.0× lift)
 Token reduction: 96.5%   (across 21 repos)
-Prompt reduction : 41.4% (2.84 → 1.67 prompts per task)
+Prompt reduction : 41.8% (2.84 → 1.66 prompts per task)
 Task success   : 53.3%   (baseline 10%)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```

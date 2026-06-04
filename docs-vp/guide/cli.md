@@ -450,9 +450,9 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         78.9% vs 13.6%   (5.8× lift)
- Avg prompts   1.69 vs 2.84
- Token story   96.9% overall reduction
+ hit@5         81.1% vs 13.6%   (6.0× lift)
+ Avg prompts   1.66 vs 2.84
+ Token story   96.5% overall reduction
 ────────────────────────────────────────────
 ```
 
@@ -468,7 +468,7 @@ sigmap share
 
 ```
 Generated with SigMap — zero-dependency AI context engine
-96.9% fewer tokens · 78.9% retrieval hit@5 · 40.6% fewer prompts
+96.5% fewer tokens · 81.1% retrieval hit@5 · 41.8% fewer prompts
 https://sigmap.dev
 [sigmap] Copied to clipboard.
 ```
@@ -489,11 +489,11 @@ sigmap bench --submit --json
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
  SigMap version : 6.8.0
- Benchmark ID   : sigmap-v6.10-main
+ Benchmark ID   : sigmap-v6.11-main
  Submitted      : 2026-05-03
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 80.0%
+ hit@5          : 81.1%
  token reduction: 96.8%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
@@ -510,7 +510,7 @@ JSON output (`--json`) returns a machine-readable object:
 ```json
 {
   "sigmapVersion": "6.8.0",
-  "benchmarkId": "sigmap-v6.10-main",
+  "benchmarkId": "sigmap-v6.11-main",
   "canonicalHitAt5": 80.0,
   "canonicalReduction": 96.8,
   "local": null,

@@ -5363,42 +5363,29 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function searchSignatures(args, cwd) {
     if (!args || !args.query) return 'Missing required argument: query';
-  
-    const contextPath = path.join(cwd, CONTEXT_FILE);
-    if (!fs.existsSync(contextPath)) {
-      return 'No context file found. Run: node gen-context.js';
-    }
-  
-    const content = fs.readFileSync(contextPath, 'utf8');
     const query = args.query.toLowerCase();
-    const lines = content.split('\n');
-  
-    const result = [];
-    let currentFile = '';
-    let fileHeaderAdded = false;
-  
-    for (const line of lines) {
-      if (line.startsWith('### ')) {
-        currentFile = line.slice(4).trim();
-        fileHeaderAdded = false;
-        continue;
+
+    try {
+      const { buildSigIndex } = __require('./src/retrieval/ranker');
+      const index = buildSigIndex(cwd);
+      if (index.size === 0) {
+        return 'No context file found. Run: node gen-context.js';
       }
-      // Skip markdown fences and top-level headers
-      if (line.startsWith('```') || line.startsWith('## ') || line.startsWith('# ') || line.startsWith('<!--')) {
-        continue;
+
+      const result = [];
+      for (const [file, sigs] of index.entries()) {
+        const hits = sigs.filter((s) => s.toLowerCase().includes(query));
+        if (hits.length === 0) continue;
+        if (result.length > 0) result.push('');
+        result.push(`### ${file}`);
+        result.push(...hits);
       }
-      if (line.toLowerCase().includes(query)) {
-        if (currentFile && !fileHeaderAdded) {
-          if (result.length > 0) result.push('');
-          result.push(`### ${currentFile}`);
-          fileHeaderAdded = true;
-        }
-        result.push(line);
-      }
+
+      if (result.length === 0) return `No signatures found matching: ${args.query}`;
+      return result.join('\n');
+    } catch (err) {
+      return `_search_signatures failed: ${err.message}_`;
     }
-  
-    if (result.length === 0) return `No signatures found matching: ${args.query}`;
-    return result.join('\n');
   }
   
   /**
@@ -5664,56 +5651,44 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   }
   
   function listModules(args, cwd) {
-    const contextPath = path.join(cwd, CONTEXT_FILE);
-    if (!fs.existsSync(contextPath)) {
-      return 'No context file found. Run: node gen-context.js';
-    }
-  
-    const content = fs.readFileSync(contextPath, 'utf8');
-    const ctxLines = content.split('\n');
-    const groups = {};
-    let currentGroup = null;
-    let blockBuf = [];
-  
-    function flushBlock() {
-      if (currentGroup === null || blockBuf.length === 0) return;
-      if (!groups[currentGroup]) groups[currentGroup] = { fileCount: 0, tokenCount: 0 };
-      groups[currentGroup].fileCount++;
-      groups[currentGroup].tokenCount += Math.ceil(blockBuf.join('\n').length / 4);
-      blockBuf = [];
-    }
-  
-    for (const line of ctxLines) {
-      if (line.startsWith('### ')) {
-        flushBlock();
-        const rel = line.slice(4).trim().replace(/\\/g, '/');
-        const parts = rel.split('/');
-        currentGroup = parts.length > 1 ? parts[0] : '.';
-      } else if (currentGroup !== null) {
-        blockBuf.push(line);
+    try {
+      const { buildSigIndex } = __require('./src/retrieval/ranker');
+      const index = buildSigIndex(cwd);
+      if (index.size === 0) {
+        return 'No context file found. Run: node gen-context.js';
       }
+
+      const groups = {};
+      for (const [rel, sigs] of index.entries()) {
+        const parts = rel.split('/');
+        const mod = parts.length > 1 ? parts[0] : '.';
+        if (!groups[mod]) groups[mod] = { fileCount: 0, tokenCount: 0 };
+        groups[mod].fileCount++;
+        groups[mod].tokenCount += Math.ceil(sigs.join('\n').length / 4);
+      }
+
+      const sorted = Object.entries(groups)
+        .map(([mod, data]) => ({ module: mod, fileCount: data.fileCount, tokenCount: data.tokenCount }))
+        .sort((a, b) => b.tokenCount - a.tokenCount);
+
+      if (sorted.length === 0) return 'No modules found in context file.';
+
+      const total = sorted.reduce((s, m) => s + m.tokenCount, 0);
+
+      return [
+        '# Modules',
+        '',
+        '| Module | Files | Tokens |',
+        '|--------|-------|--------|',
+        ...sorted.map((m) => `| ${m.module} | ${m.fileCount} | ~${m.tokenCount} |`),
+        '',
+        `**Total context tokens: ~${total}**`,
+        '',
+        '_Use `read_context({ module: "name" })` to get signatures for a specific module._',
+      ].join('\n');
+    } catch (err) {
+      return `_list_modules failed: ${err.message}_`;
     }
-    flushBlock();
-  
-    const sorted = Object.entries(groups)
-      .map(([mod, data]) => ({ module: mod, fileCount: data.fileCount, tokenCount: data.tokenCount }))
-      .sort((a, b) => b.tokenCount - a.tokenCount);
-  
-    if (sorted.length === 0) return 'No modules found in context file.';
-  
-    const total = sorted.reduce((s, m) => s + m.tokenCount, 0);
-  
-    return [
-      '# Modules',
-      '',
-      '| Module | Files | Tokens |',
-      '|--------|-------|--------|',
-      ...sorted.map((m) => `| ${m.module} | ${m.fileCount} | ~${m.tokenCount} |`),
-      '',
-      `**Total context tokens: ~${total}**`,
-      '',
-      '_Use `read_context({ module: "name" })` to get signatures for a specific module._',
-    ].join('\n');
   }
   
   function queryContext(args, cwd) {
@@ -5925,7 +5900,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
   
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.11.0',
+  version: '6.11.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -6992,9 +6967,50 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     if (currentFile !== null) index.set(currentFile, sigs);
     return index;
   }
+
+  function _mergeSigIndex(target, source) {
+    for (const [file, sigs] of source.entries()) {
+      if (!sigs || sigs.length === 0) continue;
+      if (!target.has(file) || target.get(file).length < sigs.length) {
+        target.set(file, sigs);
+      }
+    }
+    return target;
+  }
+
+  function _buildSigIndexFromCache(cwd) {
+    const fs = require('fs');
+    const path = require('path');
+    const index = new Map();
+    try {
+      const { loadCache } = require('../cache/sig-cache');
+      const pkgPath = path.join(cwd, 'package.json');
+      let version = '0.0.0';
+      if (fs.existsSync(pkgPath)) {
+        version = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || version;
+      }
+      const cache = loadCache(cwd, version);
+      for (const [absPath, entry] of cache.entries()) {
+        if (!entry || !entry.sigs || entry.sigs.length === 0) continue;
+        const rel = path.relative(cwd, absPath).replace(/\\/g, '/');
+        if (!rel || rel.startsWith('..')) continue;
+        index.set(rel, entry.sigs);
+      }
+    } catch (_) {}
+    return index;
+  }
+
+  function _enrichSigIndexFromStrategy(cwd, index) {
+    const path = require('path');
+    const coldPath = path.join(cwd, '.github', 'context-cold.md');
+    _mergeSigIndex(index, _parseContextFile(coldPath));
+    _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
+    return index;
+  }
+
   function buildSigIndex(cwd, opts) {
     const fs = require('fs'); const path = require('path');
-    if (opts && opts.contextPath) return _parseContextFile(opts.contextPath);
+    if (opts && opts.contextPath) return _enrichSigIndexFromStrategy(cwd, _parseContextFile(opts.contextPath));
     // Check gen-context.config.json for a persisted customOutput path.
     try {
       const cfgPath = path.join(cwd, 'gen-context.config.json');
@@ -7002,16 +7018,16 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
         if (cfg.customOutput) {
           const idx = _parseContextFile(path.resolve(cwd, cfg.customOutput));
-          if (idx.size > 0) return idx;
+          if (idx.size > 0) return _enrichSigIndexFromStrategy(cwd, idx);
         }
       }
     } catch (_) {}
     for (const parts of ADAPTER_OUTPUT_PATHS) {
       const contextPath = path.join(cwd, ...parts);
       const index = _parseContextFile(contextPath);
-      if (index.size > 0) return index;
+      if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index);
     }
-    return new Map();
+    return _enrichSigIndexFromStrategy(cwd, new Map());
   }
   function formatRankTable(results, query) {
     if (!results || results.length === 0) return `No matching files found for query: "${query}"\n`;
@@ -8679,7 +8695,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.11.0';
+const VERSION = '6.11.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

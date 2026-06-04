@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.11.1] — 2026-06-04
+
+### Fixed
+
+- **MCP hot-cold cold signatures in bundled server** — the bundled MCP server now includes the hot-cold "cold" signatures, so context lookups return complete results under the hot-cold strategy (closes #201, PR #216). Thanks @rudi193-cmd.
+
+---
+
 ## [6.11.0] — 2026-06-03
 
 ### Added

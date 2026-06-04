@@ -1,6 +1,6 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v6.10.10. 16/21 repos overflow GPT-4o without SigMap, 5,200+ files would be hidden, and GPT-4o input savings reach $10,500+/month at 10 calls/day.
+description: What token reduction means operationally in v6.11.1. 16/21 repos overflow GPT-4o without SigMap, 5,200+ files would be hidden, and GPT-4o input savings reach $10,500+/month at 10 calls/day.
 head:
   - - meta
     - property: og:title
@@ -15,14 +15,14 @@ head:
 
 # Quality benchmark
 
-::: info Official v6.10.10 benchmark snapshot
-**Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-22 (with R language)
+::: info Official v6.11.1 benchmark snapshot
+**Benchmark ID:** sigmap-v6.11-main &nbsp;·&nbsp; **Date:** 2026-06-04 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **80%** vs 13.6% baseline |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.4%** (2.84 → 1.67) |
+| Retrieval lift | **6.0×** |
+| Prompt reduction | **41.8%** (2.84 → 1.66) |
 | Task success proxy | **53.3%** |
 | Overall token reduction | **96.5%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
@@ -34,7 +34,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-05-22 (v6.10.10)**
+Latest saved run: **2026-06-04 (v6.11.1)**
 
 ## Headline numbers
 

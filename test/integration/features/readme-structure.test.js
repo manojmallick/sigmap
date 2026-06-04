@@ -68,16 +68,16 @@ test('what-it-is: short explanation present', () => {
 
 // ── Section 4: Why SigMap ─────────────────────────────────────────────────────
 
-test('why: 78.9% hit@5 mentioned', () => {
-  assert.ok(src.includes('78.9%'), 'missing 78.9% hit@5');
+test('why: 81.1% hit@5 mentioned', () => {
+  assert.ok(src.includes('81.1%'), 'missing 81.1% hit@5');
 });
 
 test('why: 13.6% baseline mentioned', () => {
   assert.ok(src.includes('13.6%'), 'missing 13.6% baseline');
 });
 
-test('why: token reduction 97.9% mentioned', () => {
-  assert.ok(src.includes('97.9%'), 'missing 97.9% token reduction');
+test('why: token reduction 96.5% mentioned', () => {
+  assert.ok(src.includes('96.5%'), 'missing 96.5% token reduction');
 });
 
 // ── Section 5: Replace section ────────────────────────────────────────────────
@@ -122,28 +122,28 @@ test('workflow: Ask → Rank → Context → Validate → Judge → Learn', () =
 
 // ── Section 7: Benchmark ─────────────────────────────────────────────────────
 
-test('benchmark: sigmap-v6.10-main ID present', () => {
-  assert.ok(src.includes('sigmap-v6.10-main'), 'missing sigmap-v6.10-main benchmark ID');
+test('benchmark: sigmap-v6.11-main ID present', () => {
+  assert.ok(src.includes('sigmap-v6.11-main'), 'missing sigmap-v6.11-main benchmark ID');
 });
 
-test('benchmark: date 2026-05-22 present', () => {
-  assert.ok(src.includes('2026-05-22'), 'missing benchmark date 2026-05-22');
+test('benchmark: date 2026-06-04 present', () => {
+  assert.ok(src.includes('2026-06-04'), 'missing benchmark date 2026-06-04');
 });
 
-test('benchmark: Hit@5 78.9% present', () => {
-  assert.ok(src.includes('78.9%'), 'missing Hit@5 78.9%');
+test('benchmark: Hit@5 81.1% present', () => {
+  assert.ok(src.includes('81.1%'), 'missing Hit@5 81.1%');
 });
 
 test('benchmark: baseline 13.6% present', () => {
   assert.ok(src.includes('13.6%'), 'missing baseline 13.6%');
 });
 
-test('benchmark: prompt reduction 40.6% present', () => {
-  assert.ok(src.includes('40.6%'), 'missing prompt reduction 40.6%');
+test('benchmark: prompt reduction 41.8% present', () => {
+  assert.ok(src.includes('41.8%'), 'missing prompt reduction 41.8%');
 });
 
-test('benchmark: task success 52.2% present', () => {
-  assert.ok(src.includes('52.2%'), 'missing task success 52.2%');
+test('benchmark: task success 53.3% present', () => {
+  assert.ok(src.includes('53.3%'), 'missing task success 53.3%');
 });
 
 // ── Section 8: Install ────────────────────────────────────────────────────────
@@ -275,8 +275,8 @@ test('consistency: no stale v6.0-main benchmark ID', () => {
   assert.ok(!src.includes('sigmap-v6.0-main'), 'found stale sigmap-v6.0-main in README');
 });
 
-test('consistency: no stale 81.1% hit@5', () => {
-  assert.ok(!src.includes('81.1%'), 'found stale 81.1% hit@5 in README');
+test('consistency: no stale 80.0% / 78.9% hit@5', () => {
+  assert.ok(!src.includes('80.0%') && !src.includes('78.9%'), 'found stale hit@5 (80.0%/78.9%) in README');
 });
 
 test('consistency: no stale 1.69 prompts per task', () => {

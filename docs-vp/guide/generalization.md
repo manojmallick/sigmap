@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 31 languages, and multiple domains with 78.9% hit@5 in the latest saved v6.10.10 retrieval run.
+description: SigMap generalizes across 21 repos, 31 languages, and multiple domains with 81.1% hit@5 in the latest saved v6.11.1 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 78.9% hit@5 across 31 languages with R support"
+      content: "SigMap Generalization — 81.1% hit@5 across 31 languages with R support"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
@@ -19,14 +19,14 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v6.10.10 benchmark snapshot
-**Benchmark ID:** sigmap-v6.10-main &nbsp;·&nbsp; **Date:** 2026-05-22 (with R language)
+::: info Official v6.11.1 benchmark snapshot
+**Benchmark ID:** sigmap-v6.11-main &nbsp;·&nbsp; **Date:** 2026-06-04 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **80%** vs 13.6% baseline |
-| Retrieval lift | **5.9×** |
-| Prompt reduction | **41.4%** (2.84 → 1.67) |
+| Hit@5 | **81%** vs 13.6% baseline |
+| Retrieval lift | **6.0×** |
+| Prompt reduction | **41.8%** (2.84 → 1.66) |
 | Task success proxy | **53.3%** |
 | Overall token reduction | **96.5%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
@@ -37,13 +37,13 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 80% hit@5 with no per-repo tuning in the latest saved v6.10.10 run.
+these 90 tasks is yes — 81% hit@5 with no per-repo tuning in the latest saved v6.11.1 run.
 :::
 
 - **21 repos** (including 3 R language repos)
 - **31 languages** (added R and GDScript)
 - **multiple domains**
-- **78.9%** overall hit@5
+- **81.1%** overall hit@5
 - **no per-repo tuning**
 
 That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
@@ -76,9 +76,9 @@ If you want one number to carry into launch messaging, use the shared `v6.5.0` s
 | State management | 1 | **100%** | riverpod |
 | Concurrency | 1 | **100%** | akka |
 | Web framework | 8 | **83%** | express, rails, gin, laravel, flask, vapor, fastify, fastapi |
-| HTTP client | 2 | **80%** | axios, okhttp |
-| Logging | 1 | **80%** | serilog |
-| UI framework | 2 | **80%** | vue-core, svelte |
+| HTTP client | 2 | **81%** | axios, okhttp |
+| Logging | 1 | **81%** | serilog |
+| UI framework | 2 | **81%** | vue-core, svelte |
 | Web app | 1 | **60%** | spring-petclinic |
 
 No domain scores below 60%. The variation is explained by repo structure (fragmented vs

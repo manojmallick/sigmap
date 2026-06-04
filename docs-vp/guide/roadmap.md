@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.11.0, with the latest release adding line anchors (Surgical Context Phase 1) to TypeScript and Python signatures so agents read exact lines instead of whole files.
+description: SigMap version history and roadmap. From v0.0 to v6.11.1, with recent releases adding line anchors (Surgical Context Phase 1) to TypeScript and Python signatures and a community MCP hot-cold bundle fix.
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Fifty-five versions shipped. MIT open source from day one.
+Fifty-six versions shipped. MIT open source from day one.
 
 **Stats:** 96.5% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -774,6 +774,14 @@ Top-level TypeScript and Python signatures now carry a `:start-end` line anchor 
 **Tags:** `line anchors` · `surgical context` · `token reduction` · `typescript` · `python` · `issue #212`
 
 **Benchmark:** 80.0% hit@5 · 96.5% token reduction · 53.3% task success (re-run on v6.11.0 — anchors are index suffixes, metrics unchanged)
+
+---
+
+### v6.11.1 — MCP bundled hot-cold cold signatures ✓ (tagged v6.11.1 — 2026-06-04)
+
+Community patch from **@rudi193-cmd**: the bundled MCP server now includes the hot-cold "cold" signatures, so context lookups return complete results under the hot-cold strategy. Adds strategy integration tests.
+
+**Tags:** `mcp` · `hot-cold` · `bundled server` · `issue #201` · `PR #216` · `community`
 
 ---
 

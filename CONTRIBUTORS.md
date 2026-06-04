@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v6.11.1)
+- **@rudi193-cmd** — fix: include hot-cold cold signatures in the bundled MCP server (#201, PR #216)
+
 ### Recent Contributors (v6.11.0)
 - Line anchors (`:start-end`) on TypeScript & Python signatures — Surgical Context Phase 1
 - MCP registration with intelligent fallback to `.claude/settings.json`
