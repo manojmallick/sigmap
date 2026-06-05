@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 37 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 39 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 37 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 39 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -47,6 +47,8 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>" --followup` | Reuse previous session context for follow-up queries (session carry-forward) |
 | `ask "<query>" --package <name>` | Scope retrieval to a specific monorepo workspace package |
 | `ask "<query>" --global` | Disable package scoping; search entire repo (monorepo override) |
+| `ask "<query>" --mode index` | Surgical Context: emit symbol-header pointers (`symbol :start-end`) only — no bodies; fetch on demand via `get_lines` |
+| `ask "<query>" --since <ref>` | Delta context: restrict ranked output to files changed since a git ref |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `validate` | Validate config and coverage; optional query symbol check |
@@ -179,6 +181,42 @@ sigmap ask "find all auth handlers" --global --json
 | Option | Description |
 |--------|-------------|
 | `--global` | Disable automatic package inference; search entire repo |
+
+### ask --mode index (Surgical Context)
+
+Emit a two-tier **symbol index** instead of full signature blocks. Each ranked file is reduced to its declaration heads plus line anchors (`symbol  :start-end`) — parameter lists, return types, and bodies are dropped. The agent reads this minimal map, then fetches the exact lines it needs on demand via the [`get_lines` MCP tool](/guide/mcp). This is the demand-driven half of *Surgical Context* (line anchors are the first half — see above).
+
+```bash
+sigmap ask "where is config loaded" --mode index
+```
+
+```
+# SigMap Query Context (index mode)
+> Symbol index only — fetch exact lines on demand via the `get_lines` MCP tool.
+
+## src/config/loader.js
+function loadConfig  :42-58
+function detectAutoSrcDirs  :12-39
+```
+
+| Option | Description |
+|--------|-------------|
+| `--mode index` | Emit symbol-header pointers only; bodies fetched on demand via `get_lines` |
+
+When over `maxTokens`, the regular (non-index) generate path now degrades the same way automatically: it collapses bodies to anchors before dropping whole files. See the [Surgical Context guide](/guide/surgical-context).
+
+### ask --since (delta context)
+
+Restrict ranked output to files changed since a git ref, so a steady-state turn carries near-zero context. Combine with `--mode index` for the leanest possible turn.
+
+```bash
+sigmap ask "finish the refactor" --since main
+sigmap ask "what did I touch" --since HEAD~3 --mode index
+```
+
+| Option | Description |
+|--------|-------------|
+| `--since <ref>` | Keep only ranked files changed since `<ref>` (any git ref: branch, tag, or SHA) |
 
 ---
 

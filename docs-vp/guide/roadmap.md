@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Fifty-six versions shipped. MIT open source from day one.
+Fifty-seven versions shipped. MIT open source from day one.
 
-**Stats:** 96.5% overall token reduction · 722 tests passing · 29 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.5% overall token reduction · 735 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -37,6 +37,7 @@ Fifty-six versions shipped. MIT open source from day one.
 | v1.0 | 97% total | Full system — 80,000 → under 4,000 |
 | v1.1 | ~200 always-on | hot-cold + MCP: 99.75% reduction from baseline |
 | v1.3 | 50 diff-mode | Active PR work: 95%+ reduction for diffs |
+| v6.12 | symbol-index + delta | Demand-driven `--mode index`: headers only, bodies via `get_lines`; `--since` delta = near-zero per turn |
 
 ## Complete version timeline
 
@@ -785,9 +786,19 @@ Community patch from **@rudi193-cmd**: the bundled MCP server now includes the h
 
 ---
 
-## Current milestone — v6.12+ (Surgical Context Phase 2)
+### v6.12.0 — Surgical Context Phase 2 (demand-driven + delta) ✓ (tagged v6.12.0 — 2026-06-05)
 
-v6.0–v6.11.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, open-source agent/local LLM integration guides, complete Python import detection in both import-graph and builder modules for accurate blast radius on Python monorepos, and line anchors on signatures (Surgical Context Phase 1). Next: Surgical Context Phase 2 — demand-driven `--mode index` plus a `get_lines` MCP tool and delta context for further token reduction — extended language/framework coverage (line anchors for the remaining extractors, S3 methods in R), and performance optimizations for very large monorepos (>50K files).
+The demand-driven half of **Surgical Context**. A new **`get_lines` MCP tool** (the 10th) fetches an exact `{ file, start, end }` line range behind a `:start-end` anchor — clamped, secret-scanned, and sandboxed to the project root — so agents read just the lines they need instead of re-opening whole files. `sigmap ask --mode index` emits a two-tier symbol index (`symbol  :start-end` pointers only, no bodies), and `sigmap ask --since <ref>` restricts output to files changed since a git ref. The token budget now degrades gracefully: it collapses signature bodies to anchors before dropping whole files. The dashboard gains a **Token Reduction** panel (baseline vs ranked vs surgical), sourced from the published benchmark.
+
+**Tags:** `surgical context` · `demand-driven` · `delta` · `get_lines` · `mcp` · `--mode index` · `--since` · `dashboard` · `issue #219` · `PR #220`
+
+**Impact:** 10 MCP tools (was 9) · symbol-index mode cuts upfront `ask` context further on top of ranked retrieval, with no `hit@5` regression.
+
+---
+
+## Current milestone — v6.13+ (Hallucination Guard)
+
+v6.0–v6.12.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, open-source agent/local LLM integration guides, complete Python import detection for accurate Python blast radius, line anchors on signatures (Surgical Context Phase 1), and demand-driven retrieval with the `get_lines` MCP tool, `--mode index`, and `--since` delta context (Surgical Context Phase 2). Next: **`verify-ai-output` (Hallucination Guard)** — a deterministic verifier that flags fake files, imports, and symbols in an AI answer against the live symbol index and file map — extended language/framework coverage (line anchors for the remaining extractors, S3 methods in R), and performance optimizations for very large monorepos (>50K files).
 
 ---
 

@@ -1,13 +1,13 @@
 ---
 title: MCP server setup
-description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 9 tools over stdio. Zero npm install.
+description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 10 tools over stdio. Zero npm install.
 head:
   - - meta
     - property: og:title
       content: "SigMap MCP Server — on-demand codebase context"
   - - meta
     - property: og:description
-      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 9 MCP tools over stdio."
+      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 10 MCP tools over stdio."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/mcp"
@@ -22,7 +22,7 @@ head:
 
 Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.
 
-The SigMap MCP server exposes 9 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
+The SigMap MCP server exposes 10 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
 
 > **Setup time: under 2 minutes.** Use `sigmap --setup` for automatic configuration.
 
@@ -96,10 +96,10 @@ Stack both MCP servers for the two-layer context strategy — SigMap for always-
 }
 ```
 
-## 9 available tools
+## 10 available tools
 
 ::: tip New in v6.3.0 — native tool registration
-Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 9 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
+Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 10 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
 :::
 
 All tools are available on-demand — your AI agent calls only what it needs.
@@ -114,6 +114,8 @@ All tools are available on-demand — your AI agent calls only what it needs.
 | `create_checkpoint` | Records session progress with a git state snapshot. | `summary` (required string) | `create_checkpoint(summary="Added rate limiting")` |
 | `get_routing` | Returns the model tier hints table (fast / balanced / powerful per file) based on complexity scores. | none | `get_routing()` |
 | `query_context` | Ranks all files by relevance to a free-text query using TF-IDF scoring. Returns top-K files. New in v2.3. | `query` (required string), `topK` (optional number, default 10) | `query_context(query="authentication flow")` |
+| `get_impact` | Returns the blast radius of a file — direct importers, transitive importers, affected tests and routes. | `file` (required string), `depth` (optional number, default 3) | `get_impact(file="src/auth/service.ts")` |
+| `get_lines` | **Surgical Context** demand-driven fetch: returns an exact line range from a file behind a `:start-end` anchor. Clamped to file bounds, secret-scanned, sandboxed to the project root. New in v6.12.0. | `file` (required string), `start` (required number), `end` (required number) | `get_lines(file="src/config/loader.js", start=42, end=58)` |
 
 ## Token cost per tool call
 
@@ -165,7 +167,9 @@ Expected output:
       { "name": "list_modules" },
       { "name": "create_checkpoint" },
       { "name": "get_routing" },
-      { "name": "query_context" }
+      { "name": "query_context" },
+      { "name": "get_impact" },
+      { "name": "get_lines" }
     ]
   }
 }

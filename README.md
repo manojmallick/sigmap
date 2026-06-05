@@ -87,8 +87,8 @@ Ask → Rank → Context → Validate → Judge → Learn
 ## Benchmark
 
 ```
-Benchmark : sigmap-v6.11-main (21 repositories, including R language)
-Date      : 2026-06-04
+Benchmark : sigmap-v6.12-main (21 repositories, including R language)
+Date      : 2026-06-05
 
 Hit@5          : 81.1%   (baseline 13.6%  — 6.0× lift)
 Token reduction: 96.5%   (across 21 repos)
@@ -183,7 +183,7 @@ Use SigMap with open-source tools and fully self-hosted setups:
 | **JetBrains** | [Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [github.com/manojmallick/sigmap-jetbrains](https://github.com/manojmallick/sigmap-jetbrains) | IntelliJ IDEA, WebStorm, PyCharm, GoLand — tool window + actions |
 | **Neovim** | lazy.nvim / packer / vim-plug | [github.com/manojmallick/sigmap.nvim](https://github.com/manojmallick/sigmap.nvim) | `:SigMap`, `:SigMapQuery` float window, statusline widget |
 
-**MCP server** — 9 on-demand tools for Claude Code and Cursor:
+**MCP server** — 10 on-demand tools for Claude Code and Cursor:
 
 ```bash
 sigmap --mcp

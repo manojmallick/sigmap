@@ -10,6 +10,24 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.12.0] — 2026-06-05
+
+### Added
+
+- **Surgical Context Phase 2 — demand-driven retrieval (#219, PR #220):**
+  - **`get_lines` MCP tool** (10th tool) — fetch an exact `{ file, start, end }` line range on demand. Lines are clamped to the file bounds, secret-scanned via the existing redactor, and sandboxed to the project root. This is the demand-driven workhorse: agents read the lines behind a `:start-end` anchor instead of re-opening whole files.
+  - **`sigmap ask --mode index`** — two-tier output that emits only symbol-header pointers (`symbol  :start-end`), dropping parameter lists, return types, and bodies. Agents re-fetch bodies via `get_lines`.
+  - **`sigmap ask --since <ref>`** — delta context that restricts ranked output to files changed since a git ref.
+- **Token Reduction dashboard panel (Surface A)** — `sigmap --report` now renders a "Token Reduction" panel (whole-file baseline vs ranked signatures vs surgical, with per-repo rows), sourced from `benchmarks/reports/token-reduction.json` — numbers are never hand-typed.
+- New **Surgical Context** guide (`docs-vp/guide/surgical-context.md`) covering line anchors, `--mode index`, `--since`, and the `get_lines` MCP tool.
+
+### Changed
+
+- **Budget-aware progressive disclosure** — when generated context exceeds `maxTokens`, the token budget now collapses signature bodies to their line anchors (keeping `symbol  :start-end`) *before* dropping whole files, degrading gracefully.
+- **CI** — added `workflow_dispatch` to the develop→main sync workflow so it can be run on demand (PR #218).
+
+---
+
 ## [6.11.1] — 2026-06-04
 
 ### Fixed
