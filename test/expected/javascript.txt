@@ -1,12 +1,12 @@
-class EventEmitter
-  constructor()
-  on(event, handler)
-  emit(event, data)
-  static create()
-export class ApiClient
-  constructor(baseUrl)
-  async get(path)
-  async post(path, body)
-export async function fetchUser(id)
-export const createSession = async (userId) =>
-module.exports = { EventEmitter, ApiClient, fetchUser }
+class EventEmitter  :3-20
+  constructor()  :4-6
+  on(event, handler)  :8-11
+  emit(event, data)  :13-15
+  static create()  :17-19
+export class ApiClient  :22-35
+  constructor(baseUrl)  :23-26
+  async get(path)  :28-30
+  async post(path, body)  :32-34
+export async function fetchUser(id)  :37-39
+export const createSession = async (userId) =>  :41-43
+module.exports = { EventEmitter, ApiClient, fetchUser }  :45-45

@@ -129,5 +129,34 @@ test('--since restricts output to files changed since a git ref', () => {
   });
 });
 
+test('--mode index materially collapses real anchored JavaScript (issue #223)', () => {
+  withTempProject((dir) => {
+    // Real extraction: verbose top-level JS functions now carry anchors, so
+    // index mode can collapse the param lists (was a no-op before #223).
+    fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+    const lines = [];
+    for (let i = 0; i < 6; i++) {
+      lines.push(`export function handleRequest${i}(requestContext, payloadEnvelope, authToken, traceId, retryPolicyConfig, idempotencyKey) {`);
+      lines.push('  return null;');
+      lines.push('}');
+    }
+    fs.writeFileSync(path.join(dir, 'src', 'handlers.js'), lines.join('\n'));
+    fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ secretScan: false }));
+    run(dir, ''); // generate context (runs the JS extractor → anchored verbose sigs)
+
+    const full = JSON.parse(run(dir, 'ask "handle request payload" --json').trim());
+    const idx = JSON.parse(run(dir, 'ask "handle request payload" --mode index --json').trim());
+
+    assert.ok(idx.contextTokens < full.contextTokens * 0.85,
+      `index (${idx.contextTokens}) should cut >15% vs default (${full.contextTokens})`);
+
+    // Default keeps the param list; index drops it but keeps the anchor.
+    run(dir, 'ask "handle request payload" --mode index');
+    const out = fs.readFileSync(path.join(dir, '.context', 'query-context.md'), 'utf8');
+    assert.ok(!out.includes('retryPolicyConfig'), 'index mode must drop the parameter list');
+    assert.ok(/handleRequest0\s+:\d+-\d+/.test(out), 'index mode must keep symbol + anchor');
+  });
+});
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 if (failed > 0) process.exit(1);

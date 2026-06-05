@@ -35,7 +35,10 @@ function extract(src) {
     // Collect members
     const block = extractBlock(stripped, bodyStart);
     const members = extractInterfaceMembers(block);
-    for (const mem of members) { sigs.push(`  ${mem}`); anchors.push(null); }
+    for (const mem of members) {
+      sigs.push(`  ${mem.text}`);
+      anchors.push([lineAt(stripped, bodyStart + mem.start), lineAt(stripped, bodyStart + mem.end)]);
+    }
   }
 
   // Exported type aliases
@@ -61,7 +64,10 @@ function extract(src) {
     anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
     const block = extractBlock(stripped, bodyStart);
     const methods = extractClassMembers(block);
-    for (const meth of methods) { sigs.push(`  ${meth}`); anchors.push(null); }
+    for (const meth of methods) {
+      sigs.push(`  ${meth.text}`);
+      anchors.push([lineAt(stripped, bodyStart + meth.start), lineAt(stripped, bodyStart + meth.end)]);
+    }
   }
 
   // Exported top-level functions (not methods)
@@ -163,22 +169,29 @@ function extractBlock(src, startIndex) {
   return src.slice(startIndex, i - 1);
 }
 
+// Returns members as { text, start, end } where start/end are char offsets
+// WITHIN `block`, so the caller can resolve member line anchors.
 function extractInterfaceMembers(block) {
   const members = [];
   for (const m of block.matchAll(/^\s+(readonly\s+)?(\w+)(\??):\s*([^;]+);/gm)) {
     const readonly = m[1] ? 'readonly ' : '';
     const optional = m[3] ? '?' : '';
     const typeStr = m[4].trim().replace(/\s+/g, ' ').slice(0, 35);
-    members.push(`${readonly}${m[2]}${optional}: ${typeStr}`);
+    const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
+    members.push({ text: `${readonly}${m[2]}${optional}: ${typeStr}`, start, end: m.index + m[0].length });
   }
   for (const m of block.matchAll(/^\s+(\w+)\s*(?:<[^(]*>)?\s*\(([^)]*)\)\s*:/gm)) {
-    members.push(`${m[1]}(${normalizeParams(m[2])})`);
+    const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
+    members.push({ text: `${m[1]}(${normalizeParams(m[2])})`, start, end: m.index + m[0].length });
   }
   return members.slice(0, 8);
 }
 
 const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'catch', 'finally', 'else', 'return']);
 
+// Returns members as { text, start, end } where start/end are char offsets
+// WITHIN `block` (end = the method's closing brace), so the caller can resolve
+// per-method line anchors that span the method body.
 function extractClassMembers(block) {
   const members = [];
   // Public methods (skip private/protected/_ prefixed and control-flow keywords)
@@ -186,13 +199,16 @@ function extractClassMembers(block) {
   for (const m of block.matchAll(methodRe)) {
     if (_CTRL_KEYWORDS.has(m[1])) continue;
     if (/^(private|protected|_)/.test(m[1])) continue;
-    if (m[1] === 'constructor') { members.push(`constructor(${normalizeParams(m[2])})`); continue; }
+    const bodyStart = m.index + m[0].length; // just past the opening brace
+    const end = bodyStart + extractBlock(block, bodyStart).length;
+    const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
+    if (m[1] === 'constructor') { members.push({ text: `constructor(${normalizeParams(m[2])})`, start, end }); continue; }
     const isAsync = m[0].includes('async ') ? 'async ' : '';
     const isStatic = m[0].includes('static ') ? 'static ' : '';
     const retMatch = m[0].match(/\)\s*:\s*([^{;]+)\s*\{/);
     const retType = retMatch ? retMatch[1].trim().replace(/\s+/g, ' ').slice(0, 20) : '';
     const retStr = retType ? ` → ${retType}` : '';
-    members.push(`${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`);
+    members.push({ text: `${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`, start, end });
   }
   return members.slice(0, 8);
 }

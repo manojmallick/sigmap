@@ -122,8 +122,8 @@ test('workflow: Ask → Rank → Context → Validate → Judge → Learn', () =
 
 // ── Section 7: Benchmark ─────────────────────────────────────────────────────
 
-test('benchmark: sigmap-v6.12-main ID present', () => {
-  assert.ok(src.includes('sigmap-v6.12-main'), 'missing sigmap-v6.12-main benchmark ID');
+test('benchmark: sigmap-v6.13-main ID present', () => {
+  assert.ok(src.includes('sigmap-v6.13-main'), 'missing sigmap-v6.13-main benchmark ID');
 });
 
 test('benchmark: date 2026-06-05 present', () => {

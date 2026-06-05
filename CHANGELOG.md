@@ -10,6 +10,25 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.13.0] — 2026-06-05
+
+### Added
+
+- **Line anchors for JavaScript + member-level anchors (Surgical Context Phase 2.1, #223, PR #224):**
+  - The **JavaScript extractor** now emits `:start-end` line anchors on top-level functions, classes, exported arrow functions, and `module.exports` — previously only TypeScript and Python carried anchors. JS block-comment stripping switched to the newline-preserving blank so anchor line numbers stay exact below a `/* … */`.
+  - **Class methods and interface members** (TypeScript **and** JavaScript) now carry their **own** `:start-end` anchor spanning the member body, instead of inheriting nothing — unlocking method-level targeting with the `get_lines` MCP tool.
+  - Measured effect: index-mode token reduction on real repos rises from ~4.6% to **32–42%** (axios 42.1%, fastify 41.1%, svelte 36.8%, vue-core 32.4%), now 100% anchored.
+
+### Changed
+
+- The bundled standalone `gen-context.js` extractor factories are re-synced with `src/` (the bundle had been stale since v6.11.0), so anchors work in the single-file distribution too.
+
+### Fixed
+
+- **Token budget could exceed `maxTokens` with many files.** The budget was signature-only and undercounted per-file section headers plus the fixed ~150-token preamble; with anchored (collapsible) signatures keeping more files alive, output could overflow. `applyTokenBudget` now budgets *rendered* cost (signatures + section overhead) against `maxTokens` minus a `max(200, 10%)` preamble reserve.
+
+---
+
 ## [6.12.0] — 2026-06-05
 
 ### Added

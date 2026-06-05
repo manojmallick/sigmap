@@ -13,6 +13,7 @@ const assert = require('assert');
 
 const ROOT = path.resolve(__dirname, '../../..');
 const ts   = require(path.join(ROOT, 'src', 'extractors', 'typescript'));
+const js   = require(path.join(ROOT, 'src', 'extractors', 'javascript'));
 const py   = require(path.join(ROOT, 'src', 'extractors', 'python'));
 const { lineAt, anchor, withAnchor } = require(path.join(ROOT, 'src', 'extractors', 'line-anchor'));
 
@@ -55,14 +56,14 @@ test('3. TS top-level function carries :start-end', () => {
     `expected foo :1-3, got:\n${sigs.join('\n')}`);
 });
 
-test('4. TS indented members are NOT anchored', () => {
+test('4. TS class members carry their own anchor (v6.12.x member anchors)', () => {
   const src = `export class Svc {
   doThing(x: string): void {}
 }`;
   const sigs = ts.extract(src);
   const member = sigs.find(s => s.includes('doThing('));
   assert.ok(member, 'doThing member must be present');
-  assert.ok(!/:\d+-\d+/.test(member), `member must not carry an anchor, got "${member}"`);
+  assert.ok(/:2-2$/.test(member), `member must carry its own anchor :2-2, got "${member}"`);
   const header = sigs.find(s => s.startsWith('export class Svc'));
   assert.ok(/:1-3$/.test(header), `class header must be anchored :1-3, got "${header}"`);
 });
@@ -135,6 +136,72 @@ test('9. Python class header anchored, methods not', () => {
     `expected class Svc :1-3, got:\n${sigs.join('\n')}`);
   const method = sigs.find(s => s.includes('do_it'));
   assert.ok(method && !/:\d+-\d+/.test(method), `method must not be anchored, got "${method}"`);
+});
+
+// ── TypeScript interface members (v6.12.x) ─────────────────────────────────────
+
+test('10. TS interface members carry their own anchor', () => {
+  const src = `export interface Repo {
+  id: string;
+  fetch(query: string): Promise<Row[]>;
+}`;
+  const sigs = ts.extract(src);
+  assert.ok(sigs.some(s => /^\s+id: string  :2-2$/.test(s)),
+    `expected id member :2-2, got:\n${sigs.join('\n')}`);
+  assert.ok(sigs.some(s => /^\s+fetch\(query\)  :3-3$/.test(s)),
+    `expected fetch member :3-3, got:\n${sigs.join('\n')}`);
+});
+
+// ── JavaScript (v6.12.x — anchors added in this PR) ────────────────────────────
+
+test('11. JS top-level function carries :start-end', () => {
+  const src = `export function foo(a, b) {
+  return a + b;
+}`;
+  const sigs = js.extract(src);
+  assert.ok(sigs.some(s => /export function foo\(a, b\)  :1-3$/.test(s)),
+    `expected foo :1-3, got:\n${sigs.join('\n')}`);
+});
+
+test('12. JS class members carry their own anchor (not the parent class)', () => {
+  const src = `class Gateway {
+  async charge(amount, currency) {
+    return null;
+  }
+  refund(id) {
+    return null;
+  }
+}`;
+  const sigs = js.extract(src);
+  const header = sigs.find(s => s.startsWith('class Gateway'));
+  assert.ok(/:1-8$/.test(header), `class header :1-8, got "${header}"`);
+  const charge = sigs.find(s => s.includes('charge('));
+  const refund = sigs.find(s => s.includes('refund('));
+  assert.ok(/:2-4$/.test(charge), `charge member :2-4, got "${charge}"`);
+  assert.ok(/:5-7$/.test(refund), `refund member :5-7, got "${refund}"`);
+});
+
+test('13. JS block-comment regression — multiline comment does not shift line numbers', () => {
+  // Before the newline-preserving strip, the JS extractor deleted block-comment
+  // newlines, which would shift createCharge up from :5 to ~:2.
+  const src = `/* a
+   multi-line
+   block comment */
+export function createCharge(customerId, amountCents) {
+  return doIt();
+}`;
+  const sigs = js.extract(src);
+  assert.ok(sigs.some(s => s.includes('export function createCharge(') && s.endsWith(':4-6')),
+    `expected createCharge :4-6 (newlines preserved), got:\n${sigs.join('\n')}`);
+});
+
+test('14. JS module.exports carries an anchor', () => {
+  const src = `function a() {}
+function b() {}
+module.exports = { a, b };`;
+  const sigs = js.extract(src);
+  assert.ok(sigs.some(s => /^module\.exports = \{ a, b \}  :3-3$/.test(s)),
+    `expected module.exports :3-3, got:\n${sigs.join('\n')}`);
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────

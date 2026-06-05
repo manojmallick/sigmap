@@ -125,7 +125,7 @@ With `--json` the output is a machine-readable object with `intent`, `coverage`,
 
 When coverage drops below 70%, a warning is emitted on stderr pointing to `sigmap validate`.
 
-**Line anchors (v6.11.0):** top-level TypeScript and Python signatures carry a `:start-end` source range, e.g. `export class UserRepository  :18-36`. This is the first step of *Surgical Context* — an agent can open the exact lines instead of the whole file. Anchors appear automatically in `ask` output, the generated `CLAUDE.md`, and every adapter; no flag is required.
+**Line anchors (v6.11.0+):** signatures carry a `:start-end` source range, e.g. `export class UserRepository  :18-36`, so an agent can open the exact lines instead of the whole file. Top-level TypeScript and Python decls were first (v6.11.0); **v6.13.0 adds JavaScript and per-member anchors** — TypeScript/JavaScript class methods and interface members now carry their own range, not the parent's. Anchors appear automatically in `ask` output, the generated `CLAUDE.md`, and every adapter; no flag is required.
 
 ### ask --followup
 

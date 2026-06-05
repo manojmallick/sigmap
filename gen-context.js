@@ -916,61 +916,92 @@ __factories["./src/extractors/java"] = function(module, exports) {
 
 // ── ./src/extractors/javascript ──
 __factories["./src/extractors/javascript"] = function(module, exports) {
-  
+
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from JavaScript source code.
+   * Top-level declarations and class members carry a `:start-end` line anchor
+   * (see line-anchor.js); kept parallel to `sigs` and applied once at return.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
+    const anchors = [];
     const returnHints = buildReturnHints(src);
-  
+
+    // Block comments are blanked newline-by-newline (non-newline chars → spaces)
+    // so character offsets AND line numbers stay exact for anchors.
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+
+    const blockEndIdx = (bodyStart) => bodyStart + extractBlock(stripped, bodyStart).length;
+    // End line for a function whose match ends at `matchEnd` (before its body brace).
+    const fnEndLine = (matchEnd, startLn) => {
+      const brace = stripped.indexOf('{', matchEnd);
+      return brace !== -1 ? lineAt(stripped, blockEndIdx(brace + 1)) : startLn;
+    };
+
     // Classes
     const classRegex = /^(export\s+(?:default\s+)?)?class\s+(\w+)(?:\s+extends\s+[\w.]+)?\s*\{/gm;
     for (const m of stripped.matchAll(classRegex)) {
       const prefix = m[1] ? m[1].trim() + ' ' : '';
+      const bodyStart = m.index + m[0].length;
       sigs.push(`${prefix}class ${m[2]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const meth of extractClassMembers(block, returnHints)) sigs.push(`  ${meth}`);
+      anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
+      const block = extractBlock(stripped, bodyStart);
+      for (const meth of extractClassMembers(block, returnHints)) {
+        sigs.push(`  ${meth.text}`);
+        anchors.push([lineAt(stripped, bodyStart + meth.start), lineAt(stripped, bodyStart + meth.end)]);
+      }
     }
-  
+
     // Exported named functions
     for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)/gm)) {
       const asyncKw = /export\s+async/.test(m[0]) ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[1]));
+      const startLn = lineAt(stripped, m.index);
       sigs.push(`export ${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
     }
-  
+
     // Exported arrow functions
     for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>/gm)) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[1]));
+      const startLn = lineAt(stripped, m.index);
       sigs.push(`export const ${m[1]} = ${asyncKw}(${normalizeParams(m[2])}) =>${retStr}`);
+      anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
     }
-  
+
     // module.exports = { ... }
     const moduleExports = stripped.match(/^module\.exports\s*=\s*\{([^}]+)\}/m);
     if (moduleExports) {
       const names = moduleExports[1].split(',').map((s) => s.trim()).filter(Boolean);
-      if (names.length > 0) sigs.push(`module.exports = { ${names.join(', ')} }`);
+      if (names.length > 0) {
+        const startLn = lineAt(stripped, moduleExports.index);
+        sigs.push(`module.exports = { ${names.join(', ')} }`);
+        anchors.push([startLn, lineAt(stripped, moduleExports.index + moduleExports[0].length)]);
+      }
     }
-  
+
     // Top-level named functions (non-exported)
     for (const m of stripped.matchAll(/^(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)/gm)) {
       const asyncKw = m[0].startsWith('async') ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[1]));
+      const startLn = lineAt(stripped, m.index);
       sigs.push(`${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
     }
-  
-    return sigs.slice(0, 25);
+
+    return sigs
+      .map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s))
+      .slice(0, 25);
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1;
     let i = startIndex;
@@ -982,16 +1013,22 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
+  // Returns members as { text, start, end } where start/end are char offsets
+  // WITHIN `block` (end = the method's closing brace), so the caller can resolve
+  // per-method line anchors that span the method body.
   function extractClassMembers(block, returnHints) {
     const members = [];
     for (const m of block.matchAll(/^\s+(?:static\s+|async\s+|get\s+|set\s+)*(\w+)\s*\(([^)]*)\)\s*\{/gm)) {
       if (/^_/.test(m[1])) continue;
-      if (m[1] === 'constructor') { members.push(`constructor(${normalizeParams(m[2])})`); continue; }
+      const bodyStart = m.index + m[0].length; // just past the opening brace
+      const end = bodyStart + extractBlock(block, bodyStart).length;
+      const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
+      if (m[1] === 'constructor') { members.push({ text: `constructor(${normalizeParams(m[2])})`, start, end }); continue; }
       const isAsync = m[0].includes('async ') ? 'async ' : '';
       const isStatic = m[0].includes('static ') ? 'static ' : '';
       const retStr = formatReturnHint(returnHints.get(m[1]));
-      members.push(`${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      members.push({ text: `${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`, start, end });
     }
     return members.slice(0, 8);
   }
@@ -1016,18 +1053,17 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
   }
 
   function formatReturnHint(type) {
-    return type ? ` \u2192 ${type}` : '';
+    return type ? ` → ${type}` : '';
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
-  module.exports = { extract };
-  
-};
 
+  module.exports = { extract };
+
+};
 // ── ./src/extractors/kotlin ──
 __factories["./src/extractors/kotlin"] = function(module, exports) {
   
@@ -1799,101 +1835,164 @@ __factories["./src/extractors/swift"] = function(module, exports) {
 
 // ── ./src/extractors/typescript ──
 __factories["./src/extractors/typescript"] = function(module, exports) {
-  
+
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from TypeScript source code.
+   * Top-level declarations carry a `:start-end` line anchor (see line-anchor.js);
+   * indented members do not.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
-    // Strip single-line comments
+    // anchors[i] is [start, end] for a top-level sig, or null for an indented member.
+    // Kept parallel to `sigs` so existing push/mutation logic stays untouched;
+    // anchors are applied once at return.
+    const anchors = [];
+
+    // Strip comments to simplify matching. Block comments are blanked
+    // newline-by-newline (non-newline chars → spaces) so character offsets AND
+    // line numbers stay exact. Line comments preserve their trailing newline.
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+
+    // Index of the closing brace for a block whose body starts at bodyStart.
+    const blockEndIdx = (bodyStart) => bodyStart + extractBlock(stripped, bodyStart).length;
+
     // Exported interfaces
     for (const m of stripped.matchAll(/^export\s+interface\s+(\w+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+      const bodyStart = m.index + m[0].length;
       sigs.push(`export interface ${m[1]}`);
+      anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
       // Collect members
-      const start = m.index + m[0].length;
-      const block = extractBlock(stripped, start);
+      const block = extractBlock(stripped, bodyStart);
       const members = extractInterfaceMembers(block);
-      for (const mem of members) sigs.push(`  ${mem}`);
+      for (const mem of members) {
+        sigs.push(`  ${mem.text}`);
+        anchors.push([lineAt(stripped, bodyStart + mem.start), lineAt(stripped, bodyStart + mem.end)]);
+      }
     }
-  
+
     // Exported type aliases
     for (const m of stripped.matchAll(/^export\s+type\s+(\w+)(?:<[^=]*>)?\s*=/gm)) {
       sigs.push(`export type ${m[1]}`);
+      anchors.push([lineAt(stripped, m.index), lineAt(stripped, m.index + m[0].length)]);
     }
-  
+
     // Exported enums
     for (const m of stripped.matchAll(/^export\s+(?:const\s+)?enum\s+(\w+)\s*\{/gm)) {
+      const bodyStart = m.index + m[0].length;
       sigs.push(`export enum ${m[1]}`);
+      anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
     }
-  
+
     // Classes (exported and internal)
     const classRegex = /^(export\s+)?(abstract\s+)?class\s+(\w+)(?:<[^{]*>)?(?:\s+extends\s+[\w<>, .]+)?(?:\s+implements\s+[\w<> ,]+)?\s*\{/gm;
     for (const m of stripped.matchAll(classRegex)) {
       const prefix = m[1] ? 'export ' : '';
       const abs = m[2] ? 'abstract ' : '';
+      const bodyStart = m.index + m[0].length;
       sigs.push(`${prefix}${abs}class ${m[3]}`);
-      const start = m.index + m[0].length;
-      const block = extractBlock(stripped, start);
+      anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
+      const block = extractBlock(stripped, bodyStart);
       const methods = extractClassMembers(block);
-      for (const meth of methods) sigs.push(`  ${meth}`);
+      for (const meth of methods) {
+        sigs.push(`  ${meth.text}`);
+        anchors.push([lineAt(stripped, bodyStart + meth.start), lineAt(stripped, bodyStart + meth.end)]);
+      }
     }
-  
+
     // Exported top-level functions (not methods)
     for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(([^)]*)\)(?:\s*:\s*[^{]+)?\s*\{/gm)) {
       const asyncKw = /export\s+async/.test(m[0]) ? 'async ' : '';
       const params = normalizeParams(m[2]);
       const retMatch = m[0].match(/\)\s*:\s*([^{]+)\s*\{/);
       const retType = retMatch ? retMatch[1].trim().replace(/\s+/g, ' ').slice(0, 30) : '';
-      const retStr = retType ? ` \u2192 ${retType}` : '';
+      const retStr = retType ? ` → ${retType}` : '';
+      const bodyStart = m.index + m[0].length;
       sigs.push(`export ${asyncKw}function ${m[1]}(${params})${retStr}`);
+      anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
+
+      // Hooks: capture compact return object shape for use* functions.
+      if (m[1].startsWith('use')) {
+        const body = stripped.slice(bodyStart, bodyStart + 800);
+        const ret = body.match(/return\s*\{([^}]{1,260})\}/);
+        if (ret) {
+          const keys = ret[1]
+            .split(',')
+            .map((s) => s.trim().split(':')[0].split('(')[0].trim())
+            .filter(Boolean)
+            .slice(0, 8);
+          if (keys.length) {
+            sigs[sigs.length - 1] += ` → { ${keys.join(', ')} }`;
+          }
+        }
+      }
     }
-  
+
     // Exported arrow functions / const functions
     for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(([^)]*)\)\s*(?::\s*[^=>{]+)?\s*=>/gm)) {
       const asyncKw = /=\s*async\s+/.test(m[0]) ? 'async ' : '';
       const params = normalizeParams(m[2]);
       sigs.push(`export const ${m[1]} = ${asyncKw}(${params}) =>`);
-    }
+      const bodyStart = stripped.indexOf('{', m.index + m[0].length);
+      const endLn = bodyStart !== -1
+        ? lineAt(stripped, blockEndIdx(bodyStart + 1))
+        : lineAt(stripped, m.index + m[0].length);
+      anchors.push([lineAt(stripped, m.index), endLn]);
 
-    // Zustand stores: export const useXxxStore = create<State>()(...)
-    for (const m of stripped.matchAll(/^export\s+const\s+(use\w+Store)\s*=\s*create(?:<[^>]*>)?\s*\(/gm)) {
-      // Extract the State interface name from create<StateName>
-      const stateType = m[0].match(/create<([\w]+)>/)?.[1] || '';
-      sigs.push(`export const ${m[1]} = create<${stateType}>(...)`);
-      // Extract action/state keys from the embedded interface in same file
-      const ifaceRe = new RegExp(`interface\\s+${stateType}\\s*\\{([\\s\\S]*?)\\}`);
-      const ifm = stripped.match(ifaceRe);
-      if (ifm) {
-        for (const fm of ifm[1].matchAll(/^\s+(\w+)\s*(?:\([^)]*\))?\s*:/gm)) {
-          sigs.push(`  ${fm[1]}`);
+      // Hooks: capture compact return object shape for use* functions.
+      if (m[1].startsWith('use')) {
+        if (bodyStart !== -1) {
+          const body = stripped.slice(bodyStart, bodyStart + 800);
+          const ret = body.match(/return\s*\{([^}]{1,260})\}/);
+          if (ret) {
+            const keys = ret[1]
+              .split(',')
+              .map((s) => s.trim().split(':')[0].split('(')[0].trim())
+              .filter(Boolean)
+              .slice(0, 8);
+            if (keys.length) {
+              sigs[sigs.length - 1] += ` → { ${keys.join(', ')} }`;
+            }
+          }
         }
       }
     }
 
-    // API client objects: export default { method: async (...) => ... }
-    // Pattern: const xxxApi = { methodName: async ... }
-    for (const m of stripped.matchAll(/^(?:export\s+default\s+|const\s+)(\w*[Aa]pi\w*)\s*=\s*\{/gm)) {
-      const apiName = m[1];
-      const start = m.index + m[0].length;
-      const block = extractBlock(stripped, start);
-      const methods = [];
-      for (const mm of block.matchAll(/^\s+(\w+)\s*:\s*(?:async\s+)?(?:\([^)]*\)|\w+)\s*=>/gm)) {
-        methods.push(mm[1]);
+    // Zustand stores: export const useXxxStore = create<State>()(...)
+    for (const m of stripped.matchAll(/^export\s+const\s+(use\w+Store)\s*=\s*create(?:<[^>]*>)?\s*\(/gm)) {
+      const stateType = m[0].match(/create<([\w]+)>/)?.[1] || '';
+      const startLn = lineAt(stripped, m.index);
+      sigs.push(`export const ${m[1]} = create<${stateType}>(...)`);
+      anchors.push([startLn, startLn]);
+      const ifaceRe = new RegExp(`interface\\s+${stateType}\\s*\\{([\\s\\S]*?)\\}`);
+      const ifm = stripped.match(ifaceRe);
+      if (ifm) {
+        for (const fm of ifm[1].matchAll(/^\s+(\w+)\s*(?:\([^)]*\))?\s*:/gm)) { sigs.push(`  ${fm[1]}`); anchors.push(null); }
       }
-      if (methods.length) sigs.push(`${apiName}: { ${methods.join(', ')} }`);
     }
-  
-    return sigs.slice(0, 35);
+
+    // API client objects: const xxxApi = { method: async () => {} }
+    for (const m of stripped.matchAll(/^(?:export\s+default\s+|const\s+)(\w*[Aa]pi\w*)\s*=\s*\{/gm)) {
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      const methods = [...block.matchAll(/^\s+(\w+)\s*:\s*(?:async\s+)?(?:\([^)]*\)|\w+)\s*=>/gm)].map(mm => mm[1]);
+      if (methods.length) {
+        sigs.push(`${m[1]}: { ${methods.join(', ')} }`);
+        anchors.push([lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)]);
+      }
+    }
+
+    return sigs
+      .map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s))
+      .slice(0, 35);
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1;
     let i = startIndex;
@@ -1905,47 +2004,59 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
+  // Returns members as { text, start, end } where start/end are char offsets
+  // WITHIN `block`, so the caller can resolve member line anchors.
   function extractInterfaceMembers(block) {
     const members = [];
     for (const m of block.matchAll(/^\s+(readonly\s+)?(\w+)(\??):\s*([^;]+);/gm)) {
       const readonly = m[1] ? 'readonly ' : '';
       const optional = m[3] ? '?' : '';
       const typeStr = m[4].trim().replace(/\s+/g, ' ').slice(0, 35);
-      members.push(`${readonly}${m[2]}${optional}: ${typeStr}`);
+      const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
+      members.push({ text: `${readonly}${m[2]}${optional}: ${typeStr}`, start, end: m.index + m[0].length });
     }
     for (const m of block.matchAll(/^\s+(\w+)\s*(?:<[^(]*>)?\s*\(([^)]*)\)\s*:/gm)) {
-      members.push(`${m[1]}(${normalizeParams(m[2])})`);
+      const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
+      members.push({ text: `${m[1]}(${normalizeParams(m[2])})`, start, end: m.index + m[0].length });
     }
     return members.slice(0, 8);
   }
-  
+
+  const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'catch', 'finally', 'else', 'return']);
+
+  // Returns members as { text, start, end } where start/end are char offsets
+  // WITHIN `block` (end = the method's closing brace), so the caller can resolve
+  // per-method line anchors that span the method body.
   function extractClassMembers(block) {
     const members = [];
-    // Public methods (skip private/protected/_ prefixed)
+    // Public methods (skip private/protected/_ prefixed and control-flow keywords)
     const methodRe = /^\s+(?:public\s+|static\s+|async\s+|override\s+)*(\w+)\s*(?:<[^(]*>)?\s*\(([^)]*)\)(?:\s*:\s*[^{;]+)?\s*\{/gm;
     for (const m of block.matchAll(methodRe)) {
+      if (_CTRL_KEYWORDS.has(m[1])) continue;
       if (/^(private|protected|_)/.test(m[1])) continue;
-      if (m[1] === 'constructor') { members.push(`constructor(${normalizeParams(m[2])})`); continue; }
+      const bodyStart = m.index + m[0].length; // just past the opening brace
+      const end = bodyStart + extractBlock(block, bodyStart).length;
+      const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
+      if (m[1] === 'constructor') { members.push({ text: `constructor(${normalizeParams(m[2])})`, start, end }); continue; }
       const isAsync = m[0].includes('async ') ? 'async ' : '';
       const isStatic = m[0].includes('static ') ? 'static ' : '';
       const retMatch = m[0].match(/\)\s*:\s*([^{;]+)\s*\{/);
       const retType = retMatch ? retMatch[1].trim().replace(/\s+/g, ' ').slice(0, 20) : '';
-      const retStr = retType ? ` \u2192 ${retType}` : '';
-      members.push(`${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      const retStr = retType ? ` → ${retType}` : '';
+      members.push({ text: `${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`, start, end });
     }
     return members.slice(0, 8);
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ').replace(/:[^,)]+/g, '').trim();
   }
-  
-  module.exports = { extract };
-  
-};
 
+  module.exports = { extract };
+
+};
 // ── ./src/extractors/graphql ──
 __factories["./src/extractors/graphql"] = function(module, exports) {
   
@@ -6043,7 +6154,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.12.0',
+  version: '6.13.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -8867,7 +8978,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.12.0';
+const VERSION = '6.13.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -9154,10 +9265,18 @@ function computeEffectiveMaxTokens(fileEntries, config) {
 
 function applyTokenBudget(fileEntries, maxTokens) {
   // fileEntries: [{ filePath, sigs, mtime }]
-  // Reserve ~10% for formatting overhead (section headers, code fences, top-level header)
-  const effectiveBudget = Math.floor(maxTokens * 0.90);
-  let total = fileEntries.reduce((s, e) => s + estimateTokens(e.sigs.join('\n')), 0);
-  if (total <= effectiveBudget) return fileEntries;
+  // Per-file rendered overhead: "### <path>", code fences, trailing blank line.
+  // A signature-only budget undercounts this, so when many files survive the
+  // section headers alone can blow maxTokens.
+  const sectionOverhead = (e) => estimateTokens(String(e.filePath || '')) + 6;
+  const renderedTotal = (entries) =>
+    entries.reduce((s, e) => s + estimateTokens(e.sigs.join('\n')) + sectionOverhead(e), 0);
+  // The generated file also carries a ~150-token fixed preamble (SigMap command
+  // table + headers). Reserve at least that much so small budgets don't overflow;
+  // for large budgets this matches the historical 10% reserve.
+  const budgetForEntries = Math.max(1, maxTokens - Math.max(200, Math.ceil(maxTokens * 0.10)));
+  let total = renderedTotal(fileEntries);
+  if (total <= budgetForEntries) return fileEntries;
 
   // v6.12 Surgical Context — progressive disclosure: before dropping whole files,
   // collapse signature BODIES to their line-anchor pointers (keep `symbol :start-end`).
@@ -9171,12 +9290,13 @@ function applyTokenBudget(fileEntries, maxTokens) {
     });
     return { ...e, sigs: slim };
   });
-  const collapsedTotal = collapsed.reduce((s, e) => s + estimateTokens(e.sigs.join('\n')), 0);
-  if (collapsedTotal < total) {
-    console.warn(`[sigmap] budget: collapsed bodies to anchors, reclaimed ~${total - collapsedTotal} tokens`);
+  const collapsedRendered = renderedTotal(collapsed);
+  if (collapsedRendered < total) {
+    console.warn(`[sigmap] budget: collapsed bodies to anchors, reclaimed ~${total - collapsedRendered} tokens`);
     working = collapsed;
-    total = collapsedTotal;
-    if (total <= effectiveBudget) return working; // anchor collapse alone fit the budget
+    total = collapsedRendered;
+    // Collapsing keeps every file, so the section overhead must fit too — not just sigs.
+    if (total <= budgetForEntries) return working;
   }
 
   // Sort by drop priority (drop first = index 0)
@@ -9203,12 +9323,13 @@ function applyTokenBudget(fileEntries, maxTokens) {
 
   const kept = [];
   const verboseDropped = [];
-  // Iterate forward: highest drop-priority files (generated=10, mock=9, test=8) are at index 0
-  // Drop those first until we're under budget, then keep everything else
+  // Iterate forward: highest drop-priority files (generated=10, mock=9, test=8) are at index 0.
+  // Drop those first until the RENDERED total (sigs + section overhead) fits maxTokens,
+  // then keep everything else.
+  let rendered = renderedTotal(withPriority);
   for (const entry of withPriority) {
-    const entryTokens = estimateTokens(entry.sigs.join('\n'));
-    if (total > effectiveBudget) {
-      total -= entryTokens;
+    if (rendered > budgetForEntries) {
+      rendered -= estimateTokens(entry.sigs.join('\n')) + sectionOverhead(entry);
       verboseDropped.push({ filePath: entry.filePath, reason: entry.dropReason });
     } else {
       kept.push(entry);

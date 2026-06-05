@@ -96,9 +96,11 @@ test('Test files are dropped before source files', () => {
     const testFile = path.join(srcDir, 'bigfile.test.js');
     writeJsFile(testFile, 600);
 
-    // Budget: enough for source files but not for the giant test file
+    // Budget: enough for source files but not for the giant test file.
+    // autoMaxTokens:false pins the 500 budget (otherwise auto-scale floors it at 4000).
     fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({
       maxTokens: 500,
+      autoMaxTokens: false,
       outputs: ['copilot'],
       secretScan: false,
     }));

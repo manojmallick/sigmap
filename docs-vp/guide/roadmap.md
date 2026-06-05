@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.11.1, with recent releases adding line anchors (Surgical Context Phase 1) to TypeScript and Python signatures and a community MCP hot-cold bundle fix.
+description: SigMap version history and roadmap. From v0.0 to v6.13.0, with recent releases adding demand-driven Surgical Context (get_lines MCP tool, --mode index, --since) and line anchors for JavaScript plus per-member anchors.
 head:
   - - meta
     - property: og:title
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Fifty-seven versions shipped. MIT open source from day one.
+Fifty-eight versions shipped. MIT open source from day one.
 
-**Stats:** 96.5% overall token reduction · 735 tests passing · 29 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.5% overall token reduction · 741 tests passing · 29 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -796,9 +796,19 @@ The demand-driven half of **Surgical Context**. A new **`get_lines` MCP tool** (
 
 ---
 
-## Current milestone — v6.13+ (Hallucination Guard)
+### v6.13.0 — Surgical Context Phase 2.1 (JavaScript + member anchors) ✓ (tagged v6.13.0 — 2026-06-05)
 
-v6.0–v6.12.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, open-source agent/local LLM integration guides, complete Python import detection for accurate Python blast radius, line anchors on signatures (Surgical Context Phase 1), and demand-driven retrieval with the `get_lines` MCP tool, `--mode index`, and `--since` delta context (Surgical Context Phase 2). Next: **`verify-ai-output` (Hallucination Guard)** — a deterministic verifier that flags fake files, imports, and symbols in an AI answer against the live symbol index and file map — extended language/framework coverage (line anchors for the remaining extractors, S3 methods in R), and performance optimizations for very large monorepos (>50K files).
+Widens line-anchor coverage so demand-driven retrieval actually pays off. The **JavaScript extractor** now emits `:start-end` anchors on top-level functions, classes, exported arrows, and `module.exports` (with a newline-preserving comment strip so line numbers stay exact below `/* … */`). **Class methods and interface members** (TypeScript and JavaScript) now carry their **own** anchor spanning the member body, unlocking method-level `get_lines` targeting. The standalone bundle's extractor factories were re-synced (stale since v6.11.0), and a latent token-budget bug — signature-only accounting that undercounted section headers + the fixed preamble and could exceed `maxTokens` — was made overhead-aware.
+
+**Tags:** `line anchors` · `surgical context` · `javascript` · `member anchors` · `token budget` · `issue #223` · `PR #224`
+
+**Impact:** index-mode token reduction on real repos rises from ~4.6% to **32–42%** (axios 42.1%, fastify 41.1%, svelte 36.8%, vue-core 32.4%), now 100% anchored — with no `hit@5` regression.
+
+---
+
+## Current milestone — v6.14+ (Hallucination Guard)
+
+v6.0–v6.13.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, open-source agent/local LLM integration guides, complete Python import detection for accurate Python blast radius, line anchors on signatures (Surgical Context Phase 1), demand-driven retrieval with the `get_lines` MCP tool, `--mode index`, and `--since` delta context (Surgical Context Phase 2), and JavaScript + per-member line anchors (Phase 2.1). Next: **`verify-ai-output` (Hallucination Guard)** — a deterministic verifier that flags fake files, imports, and symbols in an AI answer against the live symbol index and file map — line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 
 ---
 

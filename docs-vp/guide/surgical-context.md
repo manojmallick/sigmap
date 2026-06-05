@@ -26,6 +26,12 @@ The `:start-end` suffix is a 1-based, inclusive line range. An agent that sees
 `loadConfig  :42-58` can read those 17 lines instead of re-opening the whole
 file — the core idea behind Surgical Context.
 
+Coverage grows by release: TypeScript and Python top-level declarations first
+(v6.11.0); **v6.13.0 adds JavaScript and per-member anchors** — TypeScript/
+JavaScript class methods and interface members now carry their own range
+(spanning the member body), so `get_lines` can target an individual method.
+Remaining languages are being added in subsequent phases.
+
 ## `--mode index` — two-tier output
 
 `sigmap ask` normally writes ranked signature blocks. With `--mode index` it

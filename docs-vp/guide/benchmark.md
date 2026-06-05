@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v6.12.0 benchmark snapshot. 96.5% average token reduction across 21 repos, 81% retrieval hit@5, 41.8% fewer prompts, and R language support verified.
+description: Official v6.13.0 benchmark snapshot. 96.5% average token reduction across 21 repos, 81% retrieval hit@5, 41.8% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v6.12.0 snapshot with R language"
+      content: "SigMap benchmark overview — v6.13.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v6.12.0 benchmark run (2026-06-05) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v6.13.0 benchmark run (2026-06-05) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/benchmark"
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v6.12.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v6.12-main &nbsp;·&nbsp; **Date:** 2026-06-05
+::: info Official v6.13.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v6.13-main &nbsp;·&nbsp; **Date:** 2026-06-05
 
 | Metric | Value |
 |---|---:|
@@ -37,9 +37,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v6.12.0 snapshot (with R language support)
+## Official v6.13.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-06-05 (v6.12.0)**
+Latest saved benchmark run: **2026-06-05 (v6.13.0)**
 
 | Metric | Result |
 |---|---:|
@@ -66,6 +66,7 @@ Latest saved benchmark run: **2026-06-05 (v6.12.0)**
   - dplyr: 93.4% reduction (145.1K → 9.5K tokens)
   - shiny: 96.2% reduction (264.6K → 10.0K tokens)
 - **New in v6.12.0:** demand-driven *Surgical Context* (`ask --mode index` + the `get_lines` MCP tool) cuts upfront `ask` context further on top of the figures above by emitting symbol pointers instead of bodies — see the [Surgical Context guide](/guide/surgical-context).
+- **New in v6.13.0:** line anchors extended to JavaScript and to class methods / interface members (TS & JS), raising index-mode token reduction on real repos from ~4.6% to 32–42% (axios 42.1%, fastify 41.1%, svelte 36.8%, vue-core 32.4%).
 
 ### 2. Retrieval quality
 
