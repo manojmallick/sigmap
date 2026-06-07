@@ -6154,7 +6154,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-  version: '6.13.0',
+  version: '6.14.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
   
@@ -8978,7 +8978,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.13.0';
+const VERSION = '6.14.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -10737,6 +10737,8 @@ Usage:
   ${cmd} --impact <file>                   Show every file impacted by changing <file>
   ${cmd} --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
   ${cmd} --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
+  ${cmd} verify-ai-output <answer.md>      Flag fake files/imports/symbols in an AI answer
+  ${cmd} verify-ai-output <answer.md> --json  Hallucination report as JSON (exits 1 if issues)
   ${cmd} --init                            Write example config + .contextignore scaffold
   ${cmd} --help                            Show this message
   ${cmd} --version                         Show version
@@ -11856,6 +11858,45 @@ function main() {
     console.log('\nMonorepo:', result.isMonorepo ? 'yes' : 'no');
     console.log('Confidence:', result.confidence);
     process.exit(0);
+  }
+
+  // `sigmap verify-ai-output <answer.md>` — Hallucination Guard (deterministic core)
+  if (args[0] === 'verify-ai-output') {
+    const target = args[1];
+    const jsonOut = args.includes('--json');
+    if (!target || target.startsWith('--')) {
+      console.error('[sigmap] Usage: sigmap verify-ai-output <answer.md> [--json]');
+      process.exit(1);
+    }
+    const absTarget = path.resolve(cwd, target);
+    if (!fs.existsSync(absTarget)) {
+      console.error(`[sigmap] file not found: ${target}`);
+      process.exit(1);
+    }
+
+    const answerText = fs.readFileSync(absTarget, 'utf8');
+    const { verify } = requireSourceOrBundled('./src/verify/hallucination-guard');
+    const { issues, summary } = verify(answerText, cwd);
+
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify({ file: path.relative(cwd, absTarget) || target, issues, summary }) + '\n');
+      process.exit(summary.total > 0 ? 1 : 0);
+    }
+
+    const rel = path.relative(cwd, absTarget) || target;
+    if (summary.total === 0) {
+      console.log(`[sigmap] ✓ ${rel} — no hallucinations detected (${summary.symbolsIndexed} symbols indexed)`);
+      process.exit(0);
+    }
+
+    const labels = { 'fake-file': 'Fake file', 'fake-import': 'Fake import', 'fake-symbol': 'Fake symbol' };
+    console.log(`[sigmap] ✗ ${rel} — ${summary.total} issue${summary.total === 1 ? '' : 's'} found`);
+    console.log(`  fake-file: ${summary.byType['fake-file']}  fake-import: ${summary.byType['fake-import']}  fake-symbol: ${summary.byType['fake-symbol']}`);
+    console.log('');
+    for (const issue of issues) {
+      console.log(`  L${issue.line}  [${labels[issue.type] || issue.type}]  ${issue.message}`);
+    }
+    process.exit(1);
   }
 
   // Feature 1: `sigmap explain <file>` — why a file is included or excluded

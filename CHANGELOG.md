@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [6.14.0] — 2026-06-07
+
+### Added
+
+- **`verify-ai-output` — Hallucination Guard prototype (Phase 1 MVP, #227, PR #228):**
+  - New command `sigmap verify-ai-output <answer.md> [--json]` flags fabricated claims in an AI answer against the real repository. Deterministic core — runs fully offline, no LLM.
+  - Three detectors: **fake-file** (referenced path absent on disk), **fake-import** (relative import does not resolve; bare import absent from `package.json` deps, with Node/Python builtins allow-listed and scoped packages handled), and **fake-symbol** (called function/class absent from the SigMap symbol index via `buildSigIndex`).
+  - Markdown report by default, `--json` for CI (`{ file, issues, summary }`). Exits `1` when any issue is found, `0` when clean.
+  - New modules `src/verify/parsers.js` (file/import/symbol/code-block extraction) and `src/verify/hallucination-guard.js` (`verify(answerText, cwd, opts)`); all external lookups are injectable so the core is unit-testable.
+
+---
+
 ## [6.13.0] — 2026-06-05
 
 ### Added

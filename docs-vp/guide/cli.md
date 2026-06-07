@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 39 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 40 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 39 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 40 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -51,6 +51,7 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>" --since <ref>` | Delta context: restrict ranked output to files changed since a git ref |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
+| `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, imports, and symbols in an AI answer (deterministic, offline) |
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
@@ -291,6 +292,52 @@ With `--learn`, judge becomes an opt-in feedback loop. It reads file headings fr
 | `--json` | Emit JSON instead of human-readable output |
 
 Exit code `0` = pass, `1` = fail. Use in CI to gate on response quality.
+
+---
+
+## verify-ai-output
+
+Hallucination Guard (prototype). Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, unresolvable imports, and function/class symbols that are not in the SigMap index. Fully deterministic — runs offline, no LLM API.
+
+```bash
+sigmap verify-ai-output ai-answer.md
+sigmap verify-ai-output ai-answer.md --json
+```
+
+```
+[sigmap] ✗ ai-answer.md — 3 issues found
+  fake-file: 1  fake-import: 1  fake-symbol: 1
+
+  L6   [Fake file]    File not found on disk: src/extractors/nonexistent.js
+  L10  [Fake import]  Import does not resolve: ./src/totally/madeup
+  L4   [Fake symbol]  Symbol not found in repo index: magicallyFix()
+```
+
+Three deterministic detectors:
+
+| Detector | Flags |
+|----------|-------|
+| `fake-file` | A referenced path that is not present on disk |
+| `fake-import` | A relative import that does not resolve, or a bare package absent from `package.json` dependencies (Node/Python builtins and scoped packages are allow-listed) |
+| `fake-symbol` | A called function/class (`` `name()` ``) absent from the SigMap symbol index (`buildSigIndex`) |
+
+JSON output (`--json`) for CI:
+
+```json
+{
+  "file": "ai-answer.md",
+  "issues": [
+    { "type": "fake-file", "value": "src/ghost.js", "line": 6, "message": "File not found on disk: src/ghost.js" }
+  ],
+  "summary": { "total": 1, "byType": { "fake-file": 1, "fake-import": 0, "fake-symbol": 0 }, "clean": false, "symbolsIndexed": 288 }
+}
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit machine-readable `{ file, issues, summary }` instead of the markdown report |
+
+Exit code `0` = clean (no hallucinations), `1` = at least one issue found. Use in CI to gate AI-generated patches or answers before they are trusted.
 
 ---
 
