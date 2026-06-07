@@ -8973,6 +8973,384 @@ __factories["./src/workspace/detector"] = function(module, exports) {
  * No npm install required. Node 18+ built-ins only.
  */
 
+// ── ./src/verify/parsers ──
+__factories["./src/verify/parsers"] = function(module, exports) {
+'use strict';
+
+/**
+ * Parsers for the Hallucination Guard (verify-ai-output).
+ *
+ * Extract the verifiable claims an AI answer makes about a codebase:
+ *   - file paths it references
+ *   - import / require statements it shows
+ *   - function / class symbols it calls
+ *   - fenced code blocks (so callers can scope checks to code vs prose)
+ *
+ * Everything here is deterministic and offline — pure string analysis.
+ */
+
+// Extensions we are confident name a source/code/config file (no slash required).
+const KNOWN_CODE_EXT = new Set([
+  'js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'py', 'pyw', 'rb', 'go', 'rs',
+  'java', 'kt', 'swift', 'c', 'h', 'cpp', 'hpp', 'cs', 'php', 'r',
+  'vue', 'svelte', 'css', 'scss', 'less', 'html', 'json', 'yml', 'yaml',
+  'toml', 'xml', 'sql', 'graphql', 'gql', 'proto', 'tf', 'md', 'sh',
+  'gd', 'gdscript',
+]);
+
+/**
+ * Extract fenced code blocks.
+ * @param {string} text
+ * @returns {{ lang: string, content: string, line: number }[]}
+ */
+function extractCodeBlocks(text) {
+  const blocks = [];
+  const lines = text.split('\n');
+  let inBlock = false;
+  let lang = '';
+  let buf = [];
+  let startLine = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^```(\w*)/);
+    if (m) {
+      if (!inBlock) {
+        inBlock = true;
+        lang = m[1] || '';
+        buf = [];
+        startLine = i + 2; // first content line (1-based)
+      } else {
+        blocks.push({ lang, content: buf.join('\n'), line: startLine });
+        inBlock = false;
+      }
+      continue;
+    }
+    if (inBlock) buf.push(lines[i]);
+  }
+  return blocks;
+}
+
+/**
+ * Extract file-path references (deduped, first-seen line kept).
+ * A token counts as a path when it has a `.<letter…>` extension AND
+ * either contains a `/` or carries a known code/config extension.
+ * @param {string} text
+ * @returns {{ path: string, line: number }[]}
+ */
+function extractFilePaths(text) {
+  const lines = text.split('\n');
+  const seen = new Map();
+  const re = /(?:^|[\s`"'(\[<])([A-Za-z0-9_][\w./-]*\.[A-Za-z][A-Za-z0-9]*)/g;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(line)) !== null) {
+      const p = m[1];
+      if (/^https?:/i.test(p)) continue;
+      const ext = (p.split('.').pop() || '').toLowerCase();
+      const hasSlash = p.includes('/');
+      if (!hasSlash && !KNOWN_CODE_EXT.has(ext)) continue;
+      if (!seen.has(p)) seen.set(p, i + 1);
+    }
+  }
+  return [...seen.entries()].map(([p, line]) => ({ path: p, line }));
+}
+
+/**
+ * Extract import / require statements.
+ * @param {string} text
+ * @returns {{ module: string, kind: 'js'|'py', relative: boolean, line: number, raw: string }[]}
+ */
+function extractImports(text) {
+  const lines = text.split('\n');
+  const out = [];
+  const push = (module, kind, line, raw) => {
+    if (!module) return;
+    out.push({ module, kind, relative: /^[./]/.test(module), line, raw: raw.trim() });
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+    // JS/TS: import ... from 'x'  |  export ... from 'x'
+    if ((m = line.match(/\b(?:import|export)\b[^'"]*\bfrom\s*['"]([^'"]+)['"]/))) {
+      push(m[1], 'js', i + 1, line);
+    } else if ((m = line.match(/\bimport\s*['"]([^'"]+)['"]/))) {
+      // side-effect import 'x'
+      push(m[1], 'js', i + 1, line);
+    }
+    // require('x') / dynamic import('x') — may co-occur, scan separately
+    const reqRe = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+    let r;
+    while ((r = reqRe.exec(line)) !== null) push(r[1], 'js', i + 1, line);
+
+    // Python: from x import y  |  import x
+    if ((m = line.match(/^\s*from\s+([.\w]+)\s+import\b/))) {
+      push(m[1], 'py', i + 1, line);
+    } else if ((m = line.match(/^\s*import\s+([A-Za-z_][\w.]*)/))) {
+      push(m[1], 'py', i + 1, line);
+    }
+  }
+  return out;
+}
+
+/**
+ * Extract function/class symbol references that look like calls.
+ * Restricted to backtick-wrapped calls (`foo(...)`) for high precision.
+ * @param {string} text
+ * @returns {{ name: string, line: number }[]}
+ */
+function extractSymbols(text) {
+  const lines = text.split('\n');
+  const out = [];
+  const seen = new Set();
+  const re = /`([A-Za-z_$][\w$]*)\s*\([^`]*\)`/g;
+  for (let i = 0; i < lines.length; i++) {
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(lines[i])) !== null) {
+      const name = m[1];
+      const key = name + '@' + (i + 1);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name, line: i + 1 });
+    }
+  }
+  return out;
+}
+
+module.exports = {
+  extractCodeBlocks,
+  extractFilePaths,
+  extractImports,
+  extractSymbols,
+};
+
+};
+
+// ── ./src/verify/hallucination-guard ──
+__factories["./src/verify/hallucination-guard"] = function(module, exports) {
+'use strict';
+
+/**
+ * Hallucination Guard — deterministic core (Phase 1 MVP).
+ *
+ * Given the text of an AI answer, flag claims that do not match the repo:
+ *   - fake-file   : a referenced path is not on disk
+ *   - fake-import : a relative import does not resolve; a bare import is
+ *                   absent from package.json deps (builtins allow-listed)
+ *   - fake-symbol : a called function/class is absent from the symbol index
+ *
+ * No network, no LLM. Reuses SigMap primitives (buildSigIndex) but every
+ * external dependency is injectable via `opts` so the core stays unit-testable.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const parsers = __require('./src/verify/parsers');
+
+const NODE_BUILTINS = new Set([
+  'fs', 'path', 'os', 'util', 'events', 'stream', 'http', 'https', 'crypto',
+  'child_process', 'url', 'querystring', 'assert', 'zlib', 'readline', 'net',
+  'tls', 'dns', 'buffer', 'process', 'vm', 'module', 'console', 'timers',
+  'string_decoder', 'perf_hooks', 'worker_threads', 'cluster', 'dgram', 'v8',
+  'tty', 'repl', 'async_hooks', 'inspector', 'fs/promises', 'path/posix',
+]);
+
+const PY_BUILTINS = new Set([
+  'os', 'sys', 're', 'json', 'math', 'typing', 'collections', 'itertools',
+  'functools', 'datetime', 'pathlib', 'subprocess', 'abc', 'dataclasses',
+  'enum', 'io', 'time', 'random', 'logging', 'argparse', 'unittest', 'asyncio',
+  'copy', 'hashlib', 'threading', 'string', 'csv', 'glob', 'shutil', 'tempfile',
+]);
+
+const LANG_GLOBALS = new Set([
+  // JS
+  'console', 'require', 'module', 'exports', 'process', 'Object', 'Array',
+  'String', 'Number', 'Boolean', 'Math', 'JSON', 'Date', 'Promise', 'Map',
+  'Set', 'WeakMap', 'WeakSet', 'RegExp', 'Error', 'Symbol', 'parseInt',
+  'parseFloat', 'isNaN', 'setTimeout', 'setInterval', 'clearTimeout', 'fetch',
+  'Buffer', 'Function', 'eval', 'encodeURIComponent', 'decodeURIComponent',
+  // Python
+  'print', 'len', 'range', 'str', 'int', 'float', 'dict', 'list', 'tuple',
+  'set', 'bool', 'open', 'enumerate', 'zip', 'map', 'filter', 'sorted',
+  'sum', 'min', 'max', 'abs', 'isinstance', 'super', 'type', 'getattr',
+  'setattr', 'hasattr',
+]);
+
+const REL_EXTS = ['', '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs', '.json', '.py', '.r', '.R', '.vue'];
+const REL_INDEX = ['index.js', 'index.ts', 'index.tsx', 'index.jsx', '__init__.py'];
+
+/** Build the set of known symbol identifiers from the SigMap signature index. */
+function buildSymbolSet(cwd) {
+  const set = new Set();
+  let fileKeys = [];
+  try {
+    const { buildSigIndex } = __require('./src/retrieval/ranker');
+    const idx = buildSigIndex(cwd);
+    fileKeys = [...idx.keys()];
+    for (const sigs of idx.values()) {
+      for (const sig of sigs) {
+        const cleaned = String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '');
+        const ids = cleaned.match(/[A-Za-z_$][\w$]*/g) || [];
+        for (const id of ids) set.add(id);
+      }
+    }
+  } catch (_) {}
+  return { set, fileKeys };
+}
+
+/** Load declared dependency names from package.json. */
+function loadDeps(cwd) {
+  const deps = new Set();
+  let hasPkg = false;
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+    hasPkg = true;
+    for (const k of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+      if (pkg[k] && typeof pkg[k] === 'object') {
+        for (const name of Object.keys(pkg[k])) deps.add(name);
+      }
+    }
+  } catch (_) {}
+  return { deps, hasPkg };
+}
+
+/** Default file-existence check: resolve a referenced path against cwd. */
+function defaultFileExists(cwd, ref) {
+  const clean = ref.replace(/^\.\//, '');
+  for (const c of [path.resolve(cwd, clean), path.resolve(cwd, ref)]) {
+    try {
+      if (fs.existsSync(c)) return true;
+    } catch (_) {}
+  }
+  return false;
+}
+
+/** Default relative-import resolver: fs candidates + basename match in index. */
+function defaultRelativeResolvable(cwd, mod, fileBasenames) {
+  const base = path.resolve(cwd, mod);
+  for (const e of REL_EXTS) {
+    try {
+      if (fs.existsSync(base + e)) return true;
+    } catch (_) {}
+  }
+  for (const idx of REL_INDEX) {
+    try {
+      if (fs.existsSync(path.join(base, idx))) return true;
+    } catch (_) {}
+  }
+  // Fall back to basename match against the indexed file set (the answer's
+  // import is relative to a file we cannot know, so a name match is enough
+  // to avoid false positives).
+  const wantBase = path.basename(mod).replace(/\.[^.]+$/, '').toLowerCase();
+  return fileBasenames.has(wantBase);
+}
+
+/**
+ * Verify an AI answer against the repository.
+ *
+ * @param {string} answerText
+ * @param {string} cwd
+ * @param {object} [opts]
+ * @param {Set<string>} [opts.symbolSet]      override known symbols
+ * @param {Set<string>} [opts.deps]           override package deps
+ * @param {boolean}     [opts.hasPkg]         whether a package.json exists
+ * @param {(ref: string) => boolean} [opts.fileExists]          override file check
+ * @param {(mod: string) => boolean} [opts.relativeResolvable]  override rel-import check
+ * @returns {{ issues: object[], summary: object }}
+ */
+function verify(answerText, cwd, opts = {}) {
+  let symbolSet = opts.symbolSet;
+  let fileBasenames = opts.fileBasenames;
+  if (!symbolSet) {
+    const built = buildSymbolSet(cwd);
+    symbolSet = built.set;
+    fileBasenames = new Set(built.fileKeys.map(
+      (k) => path.basename(k).replace(/\.[^.]+$/, '').toLowerCase()
+    ));
+  }
+  if (!fileBasenames) fileBasenames = new Set();
+
+  let deps = opts.deps;
+  let hasPkg = opts.hasPkg;
+  if (!deps) {
+    const loaded = loadDeps(cwd);
+    deps = loaded.deps;
+    if (hasPkg === undefined) hasPkg = loaded.hasPkg;
+  }
+
+  const fileExists = opts.fileExists || ((ref) => defaultFileExists(cwd, ref));
+  const relativeResolvable = opts.relativeResolvable
+    || ((mod) => defaultRelativeResolvable(cwd, mod, fileBasenames));
+
+  const issues = [];
+  const dedupe = new Set();
+  const add = (issue) => {
+    const key = `${issue.type}::${issue.value}`;
+    if (dedupe.has(key)) return;
+    dedupe.add(key);
+    issues.push(issue);
+  };
+
+  // 1. fake-file
+  for (const { path: p, line } of parsers.extractFilePaths(answerText)) {
+    if (!fileExists(p)) {
+      add({ type: 'fake-file', value: p, line, message: `File not found on disk: ${p}` });
+    }
+  }
+
+  // 2. fake-import
+  for (const imp of parsers.extractImports(answerText)) {
+    if (imp.relative) {
+      if (!relativeResolvable(imp.module)) {
+        add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}` });
+      }
+      continue;
+    }
+    // Bare module — only verifiable for JS when a package.json exists.
+    const top = imp.module.split('/')[0];
+    if (imp.kind === 'js') {
+      if (!hasPkg) continue;
+      if (NODE_BUILTINS.has(imp.module) || NODE_BUILTINS.has(top)) continue;
+      if (top.startsWith('@')) {
+        const scoped = imp.module.split('/').slice(0, 2).join('/');
+        if (deps.has(scoped) || deps.has(imp.module)) continue;
+      } else if (deps.has(top) || deps.has(imp.module)) {
+        continue;
+      }
+      add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Package not in dependencies: ${imp.module}` });
+    }
+    // Python bare imports: stdlib is unbounded offline — skip to keep precision.
+  }
+
+  // 3. fake-symbol
+  if (symbolSet.size > 0) {
+    for (const { name, line } of parsers.extractSymbols(answerText)) {
+      if (symbolSet.has(name)) continue;
+      if (LANG_GLOBALS.has(name) || NODE_BUILTINS.has(name) || PY_BUILTINS.has(name)) continue;
+      add({ type: 'fake-symbol', value: name, line, message: `Symbol not found in repo index: ${name}()` });
+    }
+  }
+
+  issues.sort((a, b) => a.line - b.line);
+
+  const byType = { 'fake-file': 0, 'fake-import': 0, 'fake-symbol': 0 };
+  for (const i of issues) byType[i.type] = (byType[i.type] || 0) + 1;
+
+  const summary = {
+    total: issues.length,
+    byType,
+    clean: issues.length === 0,
+    symbolsIndexed: symbolSet.size,
+  };
+
+  return { issues, summary };
+}
+
+module.exports = { verify, buildSymbolSet, loadDeps };
+
+};
+
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

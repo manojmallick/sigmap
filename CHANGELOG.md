@@ -20,6 +20,10 @@ Format: [Semantic Versioning](https://semver.org/)
   - Markdown report by default, `--json` for CI (`{ file, issues, summary }`). Exits `1` when any issue is found, `0` when clean.
   - New modules `src/verify/parsers.js` (file/import/symbol/code-block extraction) and `src/verify/hallucination-guard.js` (`verify(answerText, cwd, opts)`); all external lookups are injectable so the core is unit-testable.
 
+### Fixed
+
+- **Standalone binary build:** registered the new `src/verify/parsers` and `src/verify/hallucination-guard` modules in the `gen-context.js` `__factories` bundle. Without them the Release Binaries (Node SEA) build failed its pre-flight check (`missing from __factories`); `requireSourceOrBundled` falls back to `__require` in the single-file binary where `src/` is not present.
+
 ---
 
 ## [6.13.0] — 2026-06-05
