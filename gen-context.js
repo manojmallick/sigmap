@@ -9083,11 +9083,61 @@ function extractImports(text) {
     let r;
     while ((r = reqRe.exec(line)) !== null) push(r[1], 'js', i + 1, line);
 
+    // TS: import X = require('mod')
+    if ((m = line.match(/\bimport\s+[A-Za-z_$][\w$]*\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)/))) {
+      push(m[1], 'js', i + 1, line);
+    }
+
     // Python: from x import y  |  import x
     if ((m = line.match(/^\s*from\s+([.\w]+)\s+import\b/))) {
       push(m[1], 'py', i + 1, line);
     } else if ((m = line.match(/^\s*import\s+([A-Za-z_][\w.]*)/))) {
       push(m[1], 'py', i + 1, line);
+    }
+  }
+
+  // Multi-line JS/TS imports, e.g.
+  //   import {
+  //     A as B,
+  //   } from './mod';
+  // The per-line pass above misses these because `from '…'` sits on a later
+  // line. Trigger only when the opening line has no quote and no `from` yet,
+  // then gather forward until the source string appears.
+  for (let i = 0; i < lines.length; i++) {
+    const start = lines[i];
+    if (!/^\s*(?:import|export)\b/.test(start)) continue;
+    if (/['"]/.test(start) || /\bfrom\b/.test(start)) continue; // single-line, already handled
+    let joined = start;
+    for (let j = i + 1; j < Math.min(lines.length, i + 12); j++) {
+      joined += ' ' + lines[j];
+      const fm = joined.match(/\bfrom\s*['"]([^'"]+)['"]/);
+      if (fm) { push(fm[1], 'js', i + 1, start.trim()); break; }
+      if (/['"]/.test(lines[j]) && !/\bfrom\b/.test(joined)) break; // a string that isn't a source — bail
+    }
+  }
+  return out;
+}
+
+/**
+ * Extract npm/pnpm/yarn script invocations (`npm run <name>`).
+ * Only the explicit `run` form is matched, to avoid confusing package-manager
+ * subcommands (`yarn add`, `pnpm install`) with script names.
+ * @param {string} text
+ * @returns {{ name: string, line: number }[]}
+ */
+function extractNpmScripts(text) {
+  const lines = text.split('\n');
+  const out = [];
+  const seen = new Set();
+  const re = /\b(?:npm|pnpm|yarn)\s+run(?:-script)?\s+([A-Za-z0-9:_-]+)/g;
+  for (let i = 0; i < lines.length; i++) {
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(lines[i])) !== null) {
+      const name = m[1];
+      if (seen.has(name)) continue;
+      seen.add(name);
+      out.push({ name, line: i + 1 });
     }
   }
   return out;
@@ -9123,7 +9173,327 @@ module.exports = {
   extractFilePaths,
   extractImports,
   extractSymbols,
+  extractNpmScripts,
 };
+
+};
+
+// ── ./src/verify/closest-match ──
+__factories["./src/verify/closest-match"] = function(module, exports) {
+'use strict';
+
+/**
+ * Closest-match suggestions for the Hallucination Guard (v6.15.0).
+ *
+ * Heuristic layer (plan §5 labels this "Medium" confidence): given a name the
+ * detectors flagged as fake, find the nearest *real* candidate by Levenshtein
+ * distance so the report can say "Did you mean `loadConfig()` in
+ * src/config/loader.js:42?". Pure, deterministic, offline — no network, no LLM.
+ *
+ * All inputs are passed in (symbol/file/script candidate lists) so this module
+ * stays unit-testable without touching the filesystem or the SigMap index.
+ */
+
+/**
+ * Levenshtein edit distance with an early-exit ceiling.
+ * Returns `max + 1` as soon as the best achievable distance exceeds `max`,
+ * so callers can cheaply reject far-apart strings.
+ */
+function levenshtein(a, b, max = Infinity) {
+  if (a === b) return 0;
+  const al = a.length;
+  const bl = b.length;
+  if (al === 0) return bl;
+  if (bl === 0) return al;
+  if (Math.abs(al - bl) > max) return max + 1;
+
+  let prev = new Array(bl + 1);
+  let curr = new Array(bl + 1);
+  for (let j = 0; j <= bl; j++) prev[j] = j;
+
+  for (let i = 1; i <= al; i++) {
+    curr[0] = i;
+    let rowMin = curr[0];
+    const ca = a.charCodeAt(i - 1);
+    for (let j = 1; j <= bl; j++) {
+      const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+      if (curr[j] < rowMin) rowMin = curr[j];
+    }
+    if (rowMin > max) return max + 1;
+    const tmp = prev;
+    prev = curr;
+    curr = tmp;
+  }
+  return prev[bl];
+}
+
+/** Bucket a normalized edit distance into a confidence label (plan §5). */
+function suggestionConfidence(distance, targetLen) {
+  const ratio = distance / Math.max(targetLen, 1);
+  if (distance === 0 || ratio <= 0.2) return 'high';
+  if (ratio <= 0.4) return 'medium';
+  return 'low';
+}
+
+/**
+ * Find the nearest candidate name to `target`.
+ *
+ * @param {string} target
+ * @param {Array<string | { name: string, file?: string, line?: number }>} candidates
+ * @param {object} [opts]
+ * @param {number} [opts.maxRatio=0.5]  reject matches farther than ratio·len edits
+ * @param {number} [opts.minLen=3]      skip very short targets (too noisy)
+ * @returns {{ name, file, line, distance, confidence } | null}
+ */
+function closestMatch(target, candidates, opts = {}) {
+  const maxRatio = opts.maxRatio != null ? opts.maxRatio : 0.5;
+  const minLen = opts.minLen != null ? opts.minLen : 3;
+  if (!target || target.length < minLen) return null;
+  if (!candidates || candidates.length === 0) return null;
+
+  const lower = target.toLowerCase();
+  const cap = Math.max(1, Math.ceil(target.length * maxRatio));
+  let best = null;
+
+  for (const c of candidates) {
+    const name = typeof c === 'string' ? c : c && c.name;
+    if (!name || name === target) continue;
+    if (Math.abs(name.length - target.length) > cap) continue;
+    const d = levenshtein(lower, name.toLowerCase(), cap);
+    if (d > cap) continue;
+    if (!best || d < best.distance ||
+        (d === best.distance && name.length < best.name.length)) {
+      best = {
+        name,
+        file: typeof c === 'object' ? c.file : undefined,
+        line: typeof c === 'object' ? c.line : undefined,
+        distance: d,
+      };
+      if (d === 0) break; // case-only difference — can't beat it
+    }
+  }
+
+  if (!best) return null;
+  best.confidence = suggestionConfidence(best.distance, target.length);
+  return best;
+}
+
+/**
+ * Build `[{ name, file, line }]` symbol candidates from a SigMap signature
+ * index (`Map<file, string[]>` whose entries may carry a `:start-end` anchor).
+ */
+function buildSymbolCandidates(sigIndex) {
+  const out = [];
+  const seen = new Set();
+  if (!sigIndex) return out;
+  for (const [file, sigs] of sigIndex) {
+    for (const sig of sigs) {
+      const s = String(sig);
+      const lineM = s.match(/:(\d+)(?:-\d+)?\s*$/);
+      const line = lineM ? parseInt(lineM[1], 10) : null;
+      const cleaned = s.replace(/\s*:\d+(?:-\d+)?\s*$/, '');
+      const m = cleaned.match(/\b(?:async\s+function|function|class|def|interface|type|enum|const|let|var)\s+([A-Za-z_$][\w$]*)/)
+        || cleaned.match(/([A-Za-z_$][\w$]*)\s*\(/)
+        || cleaned.match(/([A-Za-z_$][\w$]*)/);
+      if (!m) continue;
+      const name = m[1];
+      const key = name + '@' + file;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ name, file, line });
+    }
+  }
+  return out;
+}
+
+/** Format a suggestion object into a human one-liner for reports/CLI. */
+function formatSuggestion(match, asCall) {
+  if (!match) return null;
+  const sym = asCall ? `${match.name}()` : match.name;
+  let where = '';
+  if (match.file) {
+    where = match.line ? ` in ${match.file}:${match.line}` : ` in ${match.file}`;
+  }
+  return `Did you mean \`${sym}\`${where}?`;
+}
+
+module.exports = {
+  levenshtein,
+  closestMatch,
+  buildSymbolCandidates,
+  suggestionConfidence,
+  formatSuggestion,
+};
+
+};
+
+// ── ./src/format/verify-report ──
+__factories["./src/format/verify-report"] = function(module, exports) {
+'use strict';
+
+/**
+ * Hallucination Guard report view (Surface A, v6.15.0).
+ *
+ * Turns the `verify-ai-output --json` result into a standalone, self-contained
+ * HTML report — red/amber/green per issue, with closest-match suggestions
+ * inline. The visual language deliberately mirrors the planned PR-comment
+ * styling so a single screenshot is reusable across docs and CI (plan proof #5).
+ *
+ * Zero dependencies, inline CSS/SVG, no external assets. Also exports a compact
+ * Markdown renderer for CI / PR comments that shares the same structure.
+ */
+
+const TYPE_META = {
+  'fake-file': { label: 'Fake file', tone: 'red', icon: '✕' },
+  'fake-test-file': { label: 'Fake test file', tone: 'red', icon: '✕' },
+  'fake-import': { label: 'Fake import', tone: 'red', icon: '✕' },
+  'fake-npm-script': { label: 'Fake npm script', tone: 'red', icon: '✕' },
+  'fake-symbol': { label: 'Fake symbol', tone: 'amber', icon: '!' },
+};
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function toneFor(issue) {
+  const meta = TYPE_META[issue.type];
+  if (meta) return meta.tone;
+  return issue.confidence === 'high' ? 'red' : 'amber';
+}
+
+function labelFor(issue) {
+  return (TYPE_META[issue.type] && TYPE_META[issue.type].label) || issue.type;
+}
+
+/**
+ * Render the verify result to a full HTML document.
+ * @param {{ file?: string, issues: object[], summary: object }} result
+ * @param {object} [opts]
+ * @param {string} [opts.title]
+ * @returns {string} HTML
+ */
+function renderReportHtml(result, opts = {}) {
+  const issues = Array.isArray(result.issues) ? result.issues : [];
+  const summary = result.summary || { total: issues.length, byType: {}, clean: issues.length === 0 };
+  const file = result.file || opts.file || 'AI answer';
+  const title = opts.title || 'SigMap — Hallucination Guard report';
+  const clean = summary.clean || issues.length === 0;
+  const byType = summary.byType || {};
+
+  const chips = Object.keys(TYPE_META)
+    .filter((t) => byType[t])
+    .map((t) => `<span class="chip chip-${TYPE_META[t].tone}">${escapeHtml(TYPE_META[t].label)}: ${byType[t]}</span>`)
+    .join('');
+
+  const banner = clean
+    ? `<div class="banner banner-green"><span class="dot"></span> No hallucinations detected — ${escapeHtml(String(summary.symbolsIndexed || 0))} symbols indexed</div>`
+    : `<div class="banner banner-red"><span class="dot"></span> ${issues.length} issue${issues.length === 1 ? '' : 's'} found in <code>${escapeHtml(file)}</code></div>`;
+
+  const rows = issues.map((issue) => {
+    const tone = toneFor(issue);
+    const sugg = issue.suggestion
+      ? `<div class="suggestion">↳ ${escapeHtml(issue.suggestion)} <span class="conf">heuristic</span></div>`
+      : '';
+    return [
+      `<li class="issue issue-${tone}">`,
+      `  <div class="issue-head">`,
+      `    <span class="badge badge-${tone}">${escapeHtml(labelFor(issue))}</span>`,
+      `    <span class="loc">${escapeHtml(issue.location || ('L' + issue.line))}</span>`,
+      `    <span class="conf conf-${escapeHtml(issue.confidence || 'high')}">${escapeHtml(issue.confidence || 'high')} confidence</span>`,
+      `  </div>`,
+      `  <div class="msg">${escapeHtml(issue.message || issue.value)}</div>`,
+      `  ${sugg}`,
+      `</li>`,
+    ].join('\n');
+  }).join('\n');
+
+  const list = clean
+    ? '<p class="empty">Nothing to report — every file, import, symbol, and script in the answer resolves against the repository.</p>'
+    : `<ul class="issues">${rows}</ul>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #8b949e; margin: 0 0 20px; font-size: 13px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #161b22; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .banner { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 8px; font-weight: 600; margin-bottom: 16px; }
+  .banner-green { background: rgba(46,160,67,.15); border: 1px solid rgba(46,160,67,.4); color: #3fb950; }
+  .banner-red { background: rgba(248,81,73,.12); border: 1px solid rgba(248,81,73,.4); color: #f85149; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .chip-red { background: rgba(248,81,73,.15); color: #f85149; }
+  .chip-amber { background: rgba(210,153,34,.18); color: #d29922; }
+  ul.issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .issue { border: 1px solid #30363d; border-left-width: 4px; border-radius: 8px; padding: 12px 14px; background: #0f141a; }
+  .issue-red { border-left-color: #f85149; }
+  .issue-amber { border-left-color: #d29922; }
+  .issue-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .badge { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; text-transform: uppercase; letter-spacing: .03em; }
+  .badge-red { background: rgba(248,81,73,.18); color: #f85149; }
+  .badge-amber { background: rgba(210,153,34,.2); color: #d29922; }
+  .loc { font-family: ui-monospace, monospace; color: #8b949e; font-size: 12px; }
+  .conf { font-size: 11px; color: #8b949e; }
+  .conf-high { color: #f85149; }
+  .conf-medium { color: #d29922; }
+  .msg { margin-top: 7px; font-family: ui-monospace, monospace; font-size: 12.5px; color: #e6edf3; }
+  .suggestion { margin-top: 6px; font-size: 12.5px; color: #3fb950; }
+  .suggestion .conf { margin-left: 6px; }
+  .empty { color: #8b949e; }
+  footer { margin-top: 28px; color: #6e7681; font-size: 12px; }
+  a { color: #58a6ff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Hallucination Guard report</h1>
+  <p class="sub">Deterministic verification of an AI answer against the real repository — <code>sigmap verify-ai-output</code></p>
+  ${banner}
+  ${chips ? `<div class="chips">${chips}</div>` : ''}
+  ${list}
+  <footer>Generated by <a href="https://github.com/manojmallick/sigmap">SigMap</a> · offline, no LLM · suggestions are heuristic (closest-match)</footer>
+</div>
+</body>
+</html>
+`;
+}
+
+/** Compact Markdown rendering of the same result (CI / PR comments). */
+function renderReportMarkdown(result) {
+  const issues = Array.isArray(result.issues) ? result.issues : [];
+  const summary = result.summary || {};
+  const file = result.file || 'AI answer';
+  if (summary.clean || issues.length === 0) {
+    return `### ✅ Hallucination Guard — clean\n\nNo fabricated files, imports, symbols, or scripts in \`${file}\`.`;
+  }
+  const lines = [
+    `### ❌ Hallucination Guard — ${issues.length} issue${issues.length === 1 ? '' : 's'} in \`${file}\``,
+    '',
+    '| Type | Location | Detail | Suggestion |',
+    '| --- | --- | --- | --- |',
+  ];
+  for (const i of issues) {
+    const sugg = i.suggestion ? i.suggestion.replace(/\|/g, '\\|') : '—';
+    lines.push(`| ${labelFor(i)} | ${i.location || ('L' + i.line)} | \`${String(i.value).replace(/\|/g, '\\|')}\` | ${sugg} |`);
+  }
+  return lines.join('\n');
+}
+
+module.exports = { renderReportHtml, renderReportMarkdown, escapeHtml };
 
 };
 
@@ -9132,21 +9502,31 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
 'use strict';
 
 /**
- * Hallucination Guard — deterministic core (Phase 1 MVP).
+ * Hallucination Guard — deterministic core (Reliable MVP, v6.15.0).
  *
  * Given the text of an AI answer, flag claims that do not match the repo:
- *   - fake-file   : a referenced path is not on disk
- *   - fake-import : a relative import does not resolve; a bare import is
- *                   absent from package.json deps (builtins allow-listed)
- *   - fake-symbol : a called function/class is absent from the symbol index
+ *   - fake-file      : a referenced path is not on disk
+ *   - fake-test-file : a referenced *test* path is not on disk (sub-type)
+ *   - fake-import    : a relative import does not resolve; a bare import is
+ *                      absent from package.json deps (builtins allow-listed)
+ *   - fake-symbol    : a called function/class is absent from the symbol index
+ *   - fake-npm-script: `npm run X` where X is not a package.json script
  *
- * No network, no LLM. Reuses SigMap primitives (buildSigIndex) but every
- * external dependency is injectable via `opts` so the core stays unit-testable.
+ * Each issue carries a `confidence` (detection certainty) and, where a near
+ * match exists, a heuristic `suggestion` ("Did you mean …?"). No network, no
+ * LLM. Reuses SigMap primitives (buildSigIndex) but every external dependency
+ * is injectable via `opts` so the core stays unit-testable.
  */
 
 const fs = require('fs');
 const path = require('path');
 const parsers = __require('./src/verify/parsers');
+const { closestMatch, buildSymbolCandidates, formatSuggestion } = __require('./src/verify/closest-match');
+
+// A path that looks like a test file (JS/TS spec/test, Python test_/_test, or
+// a tests/__tests__ directory). Used to flag fake-test-file separately.
+const TEST_PATH_RE = /(?:\.(?:test|spec)\.[mc]?[jt]sx?$)|(?:(?:^|\/)__tests__\/)|(?:(?:^|\/)test_[^/]+\.py$)|(?:_test\.py$)|(?:(?:^|\/)tests?\/)/i;
+function isTestPath(p) { return TEST_PATH_RE.test(p); }
 
 const NODE_BUILTINS = new Set([
   'fs', 'path', 'os', 'util', 'events', 'stream', 'http', 'https', 'crypto',
@@ -9180,10 +9560,14 @@ const LANG_GLOBALS = new Set([
 const REL_EXTS = ['', '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs', '.json', '.py', '.r', '.R', '.vue'];
 const REL_INDEX = ['index.js', 'index.ts', 'index.tsx', 'index.jsx', '__init__.py'];
 
-/** Build the set of known symbol identifiers from the SigMap signature index. */
+/**
+ * Build the set of known symbol identifiers from the SigMap signature index,
+ * plus `{ name, file, line }` candidates (for closest-match suggestions).
+ */
 function buildSymbolSet(cwd) {
   const set = new Set();
   let fileKeys = [];
+  let symbolCandidates = [];
   try {
     const { buildSigIndex } = __require('./src/retrieval/ranker');
     const idx = buildSigIndex(cwd);
@@ -9195,8 +9579,9 @@ function buildSymbolSet(cwd) {
         for (const id of ids) set.add(id);
       }
     }
+    symbolCandidates = buildSymbolCandidates(idx);
   } catch (_) {}
-  return { set, fileKeys };
+  return { set, fileKeys, symbolCandidates };
 }
 
 /** Load declared dependency names from package.json. */
@@ -9213,6 +9598,18 @@ function loadDeps(cwd) {
     }
   } catch (_) {}
   return { deps, hasPkg };
+}
+
+/** Load the set of npm script names declared in package.json. */
+function loadScripts(cwd) {
+  const scripts = new Set();
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+    if (pkg.scripts && typeof pkg.scripts === 'object') {
+      for (const name of Object.keys(pkg.scripts)) scripts.add(name);
+    }
+  } catch (_) {}
+  return scripts;
 }
 
 /** Default file-existence check: resolve a referenced path against cwd. */
@@ -9249,11 +9646,20 @@ function defaultRelativeResolvable(cwd, mod, fileBasenames) {
 /**
  * Verify an AI answer against the repository.
  *
+ * Each issue has the shape:
+ *   { type, value, line, location, message, confidence, suggestion }
+ * where `confidence` is the *detection* certainty ('high' for path/dep/script
+ * checks, 'medium' for symbol checks) and `suggestion` is a heuristic
+ * closest-match hint (or null).
+ *
  * @param {string} answerText
  * @param {string} cwd
  * @param {object} [opts]
  * @param {Set<string>} [opts.symbolSet]      override known symbols
+ * @param {Array}       [opts.symbolCandidates] override { name, file, line } list
+ * @param {Array<string>} [opts.fileCandidates]  override repo file paths (suggestions)
  * @param {Set<string>} [opts.deps]           override package deps
+ * @param {Set<string>} [opts.scripts]        override package.json script names
  * @param {boolean}     [opts.hasPkg]         whether a package.json exists
  * @param {(ref: string) => boolean} [opts.fileExists]          override file check
  * @param {(mod: string) => boolean} [opts.relativeResolvable]  override rel-import check
@@ -9262,12 +9668,16 @@ function defaultRelativeResolvable(cwd, mod, fileBasenames) {
 function verify(answerText, cwd, opts = {}) {
   let symbolSet = opts.symbolSet;
   let fileBasenames = opts.fileBasenames;
+  let symbolCandidates = opts.symbolCandidates || [];
+  let fileCandidates = opts.fileCandidates || [];
   if (!symbolSet) {
     const built = buildSymbolSet(cwd);
     symbolSet = built.set;
     fileBasenames = new Set(built.fileKeys.map(
       (k) => path.basename(k).replace(/\.[^.]+$/, '').toLowerCase()
     ));
+    symbolCandidates = built.symbolCandidates;
+    fileCandidates = built.fileKeys;
   }
   if (!fileBasenames) fileBasenames = new Set();
 
@@ -9278,10 +9688,15 @@ function verify(answerText, cwd, opts = {}) {
     deps = loaded.deps;
     if (hasPkg === undefined) hasPkg = loaded.hasPkg;
   }
+  const scripts = opts.scripts || (hasPkg ? loadScripts(cwd) : new Set());
 
   const fileExists = opts.fileExists || ((ref) => defaultFileExists(cwd, ref));
   const relativeResolvable = opts.relativeResolvable
     || ((mod) => defaultRelativeResolvable(cwd, mod, fileBasenames));
+
+  // Pre-derive basename candidates for file suggestions (compare on basename so
+  // a wrong directory still surfaces the right file).
+  const fileBasenameCandidates = fileCandidates.map((f) => ({ name: path.basename(f), file: f }));
 
   const issues = [];
   const dedupe = new Set();
@@ -9289,21 +9704,31 @@ function verify(answerText, cwd, opts = {}) {
     const key = `${issue.type}::${issue.value}`;
     if (dedupe.has(key)) return;
     dedupe.add(key);
+    if (!('suggestion' in issue)) issue.suggestion = null;
+    issue.location = `L${issue.line}`;
     issues.push(issue);
   };
 
-  // 1. fake-file
+  // 1. fake-file / fake-test-file
   for (const { path: p, line } of parsers.extractFilePaths(answerText)) {
-    if (!fileExists(p)) {
-      add({ type: 'fake-file', value: p, line, message: `File not found on disk: ${p}` });
-    }
+    if (fileExists(p)) continue;
+    const isTest = isTestPath(p);
+    const match = closestMatch(path.basename(p), fileBasenameCandidates, { minLen: 4 });
+    add({
+      type: isTest ? 'fake-test-file' : 'fake-file',
+      value: p,
+      line,
+      message: `${isTest ? 'Test file' : 'File'} not found on disk: ${p}`,
+      confidence: 'high',
+      suggestion: match ? formatSuggestion(match, false) : null,
+    });
   }
 
   // 2. fake-import
   for (const imp of parsers.extractImports(answerText)) {
     if (imp.relative) {
       if (!relativeResolvable(imp.module)) {
-        add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}` });
+        add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });
       }
       continue;
     }
@@ -9318,7 +9743,15 @@ function verify(answerText, cwd, opts = {}) {
       } else if (deps.has(top) || deps.has(imp.module)) {
         continue;
       }
-      add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Package not in dependencies: ${imp.module}` });
+      const match = closestMatch(top, [...deps], { minLen: 3 });
+      add({
+        type: 'fake-import',
+        value: imp.module,
+        line: imp.line,
+        message: `Package not in dependencies: ${imp.module}`,
+        confidence: 'high',
+        suggestion: match ? formatSuggestion({ name: match.name }, false) : null,
+      });
     }
     // Python bare imports: stdlib is unbounded offline — skip to keep precision.
   }
@@ -9328,13 +9761,40 @@ function verify(answerText, cwd, opts = {}) {
     for (const { name, line } of parsers.extractSymbols(answerText)) {
       if (symbolSet.has(name)) continue;
       if (LANG_GLOBALS.has(name) || NODE_BUILTINS.has(name) || PY_BUILTINS.has(name)) continue;
-      add({ type: 'fake-symbol', value: name, line, message: `Symbol not found in repo index: ${name}()` });
+      const match = closestMatch(name, symbolCandidates, { minLen: 4 });
+      add({
+        type: 'fake-symbol',
+        value: name,
+        line,
+        message: `Symbol not found in repo index: ${name}()`,
+        confidence: 'medium',
+        suggestion: match ? formatSuggestion(match, true) : null,
+      });
+    }
+  }
+
+  // 4. fake-npm-script
+  if (hasPkg && scripts.size > 0) {
+    for (const { name, line } of parsers.extractNpmScripts(answerText)) {
+      if (scripts.has(name)) continue;
+      const match = closestMatch(name, [...scripts], { minLen: 2 });
+      add({
+        type: 'fake-npm-script',
+        value: name,
+        line,
+        message: `npm script not in package.json: ${name}`,
+        confidence: 'high',
+        suggestion: match ? formatSuggestion({ name: match.name }, false) : null,
+      });
     }
   }
 
   issues.sort((a, b) => a.line - b.line);
 
-  const byType = { 'fake-file': 0, 'fake-import': 0, 'fake-symbol': 0 };
+  const byType = {
+    'fake-file': 0, 'fake-test-file': 0, 'fake-import': 0,
+    'fake-symbol': 0, 'fake-npm-script': 0,
+  };
   for (const i of issues) byType[i.type] = (byType[i.type] || 0) + 1;
 
   const summary = {
@@ -9342,12 +9802,13 @@ function verify(answerText, cwd, opts = {}) {
     byType,
     clean: issues.length === 0,
     symbolsIndexed: symbolSet.size,
+    withSuggestion: issues.filter((i) => i.suggestion).length,
   };
 
   return { issues, summary };
 }
 
-module.exports = { verify, buildSymbolSet, loadDeps };
+module.exports = { verify, buildSymbolSet, loadDeps, loadScripts, isTestPath };
 
 };
 
@@ -11115,8 +11576,9 @@ Usage:
   ${cmd} --impact <file>                   Show every file impacted by changing <file>
   ${cmd} --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
   ${cmd} --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
-  ${cmd} verify-ai-output <answer.md>      Flag fake files/imports/symbols in an AI answer
-  ${cmd} verify-ai-output <answer.md> --json  Hallucination report as JSON (exits 1 if issues)
+  ${cmd} verify-ai-output <answer.md>      Flag fake files/tests/imports/symbols/npm-scripts in an AI answer
+  ${cmd} verify-ai-output <answer.md> --json    Hallucination report as JSON (exits 1 if issues)
+  ${cmd} verify-ai-output <answer.md> --report  Write a standalone HTML report (red/amber/green)
   ${cmd} --init                            Write example config + .contextignore scaffold
   ${cmd} --help                            Show this message
   ${cmd} --version                         Show version
@@ -12242,8 +12704,12 @@ function main() {
   if (args[0] === 'verify-ai-output') {
     const target = args[1];
     const jsonOut = args.includes('--json');
+    const reportIdx = args.indexOf('--report');
+    const reportOut = reportIdx !== -1
+      ? (args[reportIdx + 1] && !args[reportIdx + 1].startsWith('--') ? args[reportIdx + 1] : 'sigmap-verify-report.html')
+      : null;
     if (!target || target.startsWith('--')) {
-      console.error('[sigmap] Usage: sigmap verify-ai-output <answer.md> [--json]');
+      console.error('[sigmap] Usage: sigmap verify-ai-output <answer.md> [--json] [--report [out.html]]');
       process.exit(1);
     }
     const absTarget = path.resolve(cwd, target);
@@ -12255,24 +12721,39 @@ function main() {
     const answerText = fs.readFileSync(absTarget, 'utf8');
     const { verify } = requireSourceOrBundled('./src/verify/hallucination-guard');
     const { issues, summary } = verify(answerText, cwd);
+    const rel = path.relative(cwd, absTarget) || target;
+    const result = { file: rel, issues, summary };
+
+    // Optional HTML report (Surface A) — written alongside any other output.
+    if (reportOut) {
+      const { renderReportHtml } = requireSourceOrBundled('./src/format/verify-report');
+      const outAbs = path.resolve(cwd, reportOut);
+      fs.writeFileSync(outAbs, renderReportHtml(result));
+      if (!jsonOut) console.log(`[sigmap] report written: ${path.relative(cwd, outAbs) || reportOut}`);
+    }
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify({ file: path.relative(cwd, absTarget) || target, issues, summary }) + '\n');
+      process.stdout.write(JSON.stringify(result) + '\n');
       process.exit(summary.total > 0 ? 1 : 0);
     }
 
-    const rel = path.relative(cwd, absTarget) || target;
     if (summary.total === 0) {
       console.log(`[sigmap] ✓ ${rel} — no hallucinations detected (${summary.symbolsIndexed} symbols indexed)`);
       process.exit(0);
     }
 
-    const labels = { 'fake-file': 'Fake file', 'fake-import': 'Fake import', 'fake-symbol': 'Fake symbol' };
+    const labels = {
+      'fake-file': 'Fake file', 'fake-test-file': 'Fake test file',
+      'fake-import': 'Fake import', 'fake-symbol': 'Fake symbol',
+      'fake-npm-script': 'Fake npm script',
+    };
+    const bt = summary.byType;
     console.log(`[sigmap] ✗ ${rel} — ${summary.total} issue${summary.total === 1 ? '' : 's'} found`);
-    console.log(`  fake-file: ${summary.byType['fake-file']}  fake-import: ${summary.byType['fake-import']}  fake-symbol: ${summary.byType['fake-symbol']}`);
+    console.log(`  fake-file: ${bt['fake-file']}  fake-test-file: ${bt['fake-test-file']}  fake-import: ${bt['fake-import']}  fake-symbol: ${bt['fake-symbol']}  fake-npm-script: ${bt['fake-npm-script']}`);
     console.log('');
     for (const issue of issues) {
       console.log(`  L${issue.line}  [${labels[issue.type] || issue.type}]  ${issue.message}`);
+      if (issue.suggestion) console.log(`         ↳ ${issue.suggestion}`);
     }
     process.exit(1);
   }

@@ -106,11 +106,61 @@ function extractImports(text) {
     let r;
     while ((r = reqRe.exec(line)) !== null) push(r[1], 'js', i + 1, line);
 
+    // TS: import X = require('mod')
+    if ((m = line.match(/\bimport\s+[A-Za-z_$][\w$]*\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)/))) {
+      push(m[1], 'js', i + 1, line);
+    }
+
     // Python: from x import y  |  import x
     if ((m = line.match(/^\s*from\s+([.\w]+)\s+import\b/))) {
       push(m[1], 'py', i + 1, line);
     } else if ((m = line.match(/^\s*import\s+([A-Za-z_][\w.]*)/))) {
       push(m[1], 'py', i + 1, line);
+    }
+  }
+
+  // Multi-line JS/TS imports, e.g.
+  //   import {
+  //     A as B,
+  //   } from './mod';
+  // The per-line pass above misses these because `from '…'` sits on a later
+  // line. Trigger only when the opening line has no quote and no `from` yet,
+  // then gather forward until the source string appears.
+  for (let i = 0; i < lines.length; i++) {
+    const start = lines[i];
+    if (!/^\s*(?:import|export)\b/.test(start)) continue;
+    if (/['"]/.test(start) || /\bfrom\b/.test(start)) continue; // single-line, already handled
+    let joined = start;
+    for (let j = i + 1; j < Math.min(lines.length, i + 12); j++) {
+      joined += ' ' + lines[j];
+      const fm = joined.match(/\bfrom\s*['"]([^'"]+)['"]/);
+      if (fm) { push(fm[1], 'js', i + 1, start.trim()); break; }
+      if (/['"]/.test(lines[j]) && !/\bfrom\b/.test(joined)) break; // a string that isn't a source — bail
+    }
+  }
+  return out;
+}
+
+/**
+ * Extract npm/pnpm/yarn script invocations (`npm run <name>`).
+ * Only the explicit `run` form is matched, to avoid confusing package-manager
+ * subcommands (`yarn add`, `pnpm install`) with script names.
+ * @param {string} text
+ * @returns {{ name: string, line: number }[]}
+ */
+function extractNpmScripts(text) {
+  const lines = text.split('\n');
+  const out = [];
+  const seen = new Set();
+  const re = /\b(?:npm|pnpm|yarn)\s+run(?:-script)?\s+([A-Za-z0-9:_-]+)/g;
+  for (let i = 0; i < lines.length; i++) {
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(lines[i])) !== null) {
+      const name = m[1];
+      if (seen.has(name)) continue;
+      seen.add(name);
+      out.push({ name, line: i + 1 });
     }
   }
   return out;
@@ -146,4 +196,5 @@ module.exports = {
   extractFilePaths,
   extractImports,
   extractSymbols,
+  extractNpmScripts,
 };

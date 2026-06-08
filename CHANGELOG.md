@@ -8,6 +8,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Added
+- **`verify-ai-output` — Hallucination Guard Reliable MVP (Phase 1):**
+  - Two new deterministic detectors — **`fake-test-file`** (a referenced `*.test`/`*.spec`/`__tests__`/`test_*.py` path absent on disk, reported separately from `fake-file`) and **`fake-npm-script`** (`npm run X` where `X` is not a `package.json` script).
+  - **Closest-match suggestions** (`src/verify/closest-match.js`) — Levenshtein + file-proximity over the symbol index attaches a heuristic hint to flagged names ("Did you mean `loadConfig()` in `src/config/loader.js:42`?"). Labeled as heuristic, with its own confidence bucketing.
+  - **Finalized JSON schema** — every issue now carries `{ type, value, line, location, message, confidence, suggestion }`; `summary` gains `withSuggestion`. Detection confidence is `high` for path/dep/script checks and `medium` for symbol checks.
+  - **Parser hardening** — multi-line `import { … } from '…'` statements and TypeScript `import X = require('…')` are now detected; `npm`/`pnpm`/`yarn run` script references are extracted.
+  - **HTML report view** (`src/format/verify-report.js`) — `sigmap verify-ai-output <answer> --report [out.html]` writes a standalone, self-contained red/amber/green report (no external assets/scripts); a Markdown renderer shares the same structure for CI/PR comments.
+  - **Proof harness** — `npm run benchmark:verify` scores each detector group against labeled cases and enforces precision targets (file ≥ 95%, import ≥ 85%, symbol ≥ 75%, script ≥ 95%), emitting a precision/recall CSV. Runs offline via a synthetic self-test; point it at real repos with `--manifest`.
+  - New guide: `docs-vp/guide/verify-ai-output.md`.
+- The `verify-ai-output` integration test (29 cases) is now part of `npm run test:integration`.
+
+### Fixed
+- `npm run test:integration` referenced a non-existent `test/integration/mcp-server.test.js`; corrected to `test/integration/mcp/server.test.js`.
+
 ---
 
 ## [6.14.0] — 2026-06-07

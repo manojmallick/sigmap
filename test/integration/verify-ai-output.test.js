@@ -30,7 +30,9 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '../..');
 const SCRIPT = path.join(ROOT, 'gen-context.js');
 const parsers = require(path.join(ROOT, 'src', 'verify', 'parsers'));
-const { verify } = require(path.join(ROOT, 'src', 'verify', 'hallucination-guard'));
+const { verify, isTestPath } = require(path.join(ROOT, 'src', 'verify', 'hallucination-guard'));
+const closest = require(path.join(ROOT, 'src', 'verify', 'closest-match'));
+const report = require(path.join(ROOT, 'src', 'format', 'verify-report'));
 
 let passed = 0;
 let failed = 0;
@@ -139,6 +141,139 @@ test('builtins + scoped/real deps are not flagged', () => {
 });
 
 // --------------------------------------------------------------------------
+// New detectors + schema (Reliable MVP, v6.15.0)
+// --------------------------------------------------------------------------
+test('fake-test-file is a distinct type from fake-file', () => {
+  const opts = { ...baseOpts, fileExists: () => false };
+  const { issues } = verify('See `src/foo.test.js` and `src/foo.js` and `__tests__/x.js`.', '/x', opts);
+  const byType = Object.fromEntries(issues.map((i) => [i.value, i.type]));
+  assert.strictEqual(byType['src/foo.test.js'], 'fake-test-file');
+  assert.strictEqual(byType['__tests__/x.js'], 'fake-test-file');
+  assert.strictEqual(byType['src/foo.js'], 'fake-file');
+});
+
+test('isTestPath recognises spec/test/python conventions', () => {
+  assert.ok(isTestPath('a/b.spec.ts'));
+  assert.ok(isTestPath('test_thing.py'));
+  assert.ok(isTestPath('thing_test.py'));
+  assert.ok(isTestPath('tests/x.js'));
+  assert.ok(!isTestPath('src/loader.js'));
+});
+
+test('fake-npm-script flags unknown script, passes known', () => {
+  const opts = { ...baseOpts, hasPkg: true, scripts: new Set(['build', 'test']) };
+  const text = 'Run `npm run build` then `pnpm run nope` and `yarn run other`.';
+  const { issues } = verify(text, '/x', opts);
+  const scripts = issues.filter((i) => i.type === 'fake-npm-script').map((i) => i.value).sort();
+  assert.deepStrictEqual(scripts, ['nope', 'other']);
+});
+
+test('issues carry confidence + location; symbol detection is medium', () => {
+  const opts = { ...baseOpts };
+  const { issues, summary } = verify('Missing `src/ghost.js` and `phantomFn()`.', '/x', opts);
+  const file = issues.find((i) => i.type === 'fake-file');
+  const sym = issues.find((i) => i.type === 'fake-symbol');
+  assert.strictEqual(file.confidence, 'high');
+  assert.strictEqual(sym.confidence, 'medium');
+  assert.ok(/^L\d+$/.test(file.location));
+  assert.ok('withSuggestion' in summary);
+});
+
+test('closest-match suggestion attached for a near-miss symbol', () => {
+  const opts = {
+    ...baseOpts,
+    symbolCandidates: [{ name: 'loadConfig', file: 'src/config/loader.js', line: 42 }],
+  };
+  const { issues } = verify('Call `loadConfg()`.', '/x', opts);
+  const sym = issues.find((i) => i.type === 'fake-symbol');
+  assert.ok(sym.suggestion && /loadConfig/.test(sym.suggestion), sym.suggestion);
+  assert.ok(/loader\.js:42/.test(sym.suggestion));
+});
+
+// --------------------------------------------------------------------------
+// closest-match module
+// --------------------------------------------------------------------------
+test('levenshtein basic + ceiling early-exit', () => {
+  assert.strictEqual(closest.levenshtein('kitten', 'sitting'), 3);
+  assert.strictEqual(closest.levenshtein('abc', 'abc'), 0);
+  assert.ok(closest.levenshtein('abcdef', 'zzzzzz', 2) > 2); // exceeds cap
+});
+
+test('closestMatch finds nearest and skips far/short targets', () => {
+  const cands = [{ name: 'loadConfig' }, { name: 'saveConfig' }, { name: 'rank' }];
+  assert.strictEqual(closest.closestMatch('loadConfg', cands).name, 'loadConfig');
+  assert.strictEqual(closest.closestMatch('xy', cands), null, 'too short');
+  assert.strictEqual(closest.closestMatch('totallyDifferentNameHere', cands), null, 'too far');
+});
+
+test('buildSymbolCandidates parses name + anchor line from sig index', () => {
+  const idx = new Map([['src/a.js', ['function loadConfig(p)  :42-58', 'class Foo  :3-9']]]);
+  const cands = closest.buildSymbolCandidates(idx);
+  const load = cands.find((c) => c.name === 'loadConfig');
+  assert.ok(load);
+  assert.strictEqual(load.line, 42);
+  assert.strictEqual(load.file, 'src/a.js');
+});
+
+// --------------------------------------------------------------------------
+// Parsers — edge cases (Reliable MVP)
+// --------------------------------------------------------------------------
+test('extractImports handles multi-line import and TS import=require', () => {
+  const text = [
+    'import {',
+    '  A as B,',
+    '  C,',
+    "} from './multi';",
+    "import fs = require('fs-extra');",
+  ].join('\n');
+  const mods = parsers.extractImports(text).map((i) => i.module);
+  assert.ok(mods.includes('./multi'), 'multi-line import found');
+  assert.ok(mods.includes('fs-extra'), 'TS import=require found');
+});
+
+test('extractNpmScripts finds explicit run forms only', () => {
+  const text = 'Run `npm run build`, `pnpm run lint`, `yarn run dev`; ignore `npm install` and `yarn add x`.';
+  const names = parsers.extractNpmScripts(text).map((s) => s.name).sort();
+  assert.deepStrictEqual(names, ['build', 'dev', 'lint']);
+});
+
+// --------------------------------------------------------------------------
+// verify-report renderer
+// --------------------------------------------------------------------------
+test('renderReportHtml produces a self-contained doc with issue rows', () => {
+  const result = {
+    file: 'ans.md',
+    issues: [
+      { type: 'fake-symbol', value: 'phantomFn', line: 3, location: 'L3', confidence: 'medium', message: 'Symbol not found', suggestion: 'Did you mean `realFn()`?' },
+    ],
+    summary: { total: 1, byType: { 'fake-symbol': 1 }, clean: false },
+  };
+  const html = report.renderReportHtml(result);
+  assert.ok(/<!DOCTYPE html>/.test(html));
+  assert.ok(/Fake symbol/.test(html));
+  assert.ok(/Did you mean/.test(html));
+  assert.ok(!/<script/i.test(html), 'no scripts — static report');
+});
+
+test('renderReportMarkdown clean vs dirty', () => {
+  assert.ok(/clean/.test(report.renderReportMarkdown({ issues: [], summary: { clean: true } })));
+  const md = report.renderReportMarkdown({
+    file: 'a.md',
+    issues: [{ type: 'fake-file', value: 'x.js', line: 1, location: 'L1', suggestion: null }],
+    summary: { total: 1, clean: false },
+  });
+  assert.ok(/\| Type \| Location/.test(md));
+  assert.ok(/Fake file/.test(md));
+});
+
+test('renderReportHtml escapes html in values', () => {
+  const html = report.renderReportHtml({
+    file: '<x>&"', issues: [], summary: { clean: true, symbolsIndexed: 0 },
+  });
+  assert.ok(!/<x>/.test(html), 'file name escaped');
+});
+
+// --------------------------------------------------------------------------
 // CLI dispatch against a generated fixture repo
 // --------------------------------------------------------------------------
 function makeFixtureRepo() {
@@ -146,7 +281,7 @@ function makeFixtureRepo() {
   fs.mkdirSync(path.join(dir, 'src'));
   fs.writeFileSync(
     path.join(dir, 'package.json'),
-    JSON.stringify({ name: 'fx', version: '1.0.0', dependencies: { chalk: '^5.0.0' } }, null, 2)
+    JSON.stringify({ name: 'fx', version: '1.0.0', scripts: { build: 'echo b' }, dependencies: { chalk: '^5.0.0' } }, null, 2)
   );
   fs.writeFileSync(
     path.join(dir, 'src', 'index.js'),
@@ -228,6 +363,37 @@ test('CLI: missing arg → exit 1 with usage', () => {
   const res = spawnSync('node', [SCRIPT, 'verify-ai-output', '--cwd', fixtureDir], { cwd: ROOT, encoding: 'utf8' });
   assert.strictEqual(res.status, 1);
   assert.ok(/Usage: sigmap verify-ai-output/.test(res.stderr));
+});
+
+const mvpAnswer = path.join(fixtureDir, 'mvp.md');
+fs.writeFileSync(mvpAnswer, [
+  '# Answer',
+  'Add `src/ghost.test.js` and call `realFun()`. Run `npm run buidl`.',
+].join('\n'));
+
+test('CLI: detects fake-test-file, fake-symbol w/ suggestion, fake-npm-script', () => {
+  const res = runVerify(fixtureDir, mvpAnswer);
+  assert.strictEqual(res.status, 1, res.stdout + res.stderr);
+  assert.ok(/Fake test file/.test(res.stdout), 'test-file detector');
+  assert.ok(/Fake npm script/.test(res.stdout), 'npm-script detector');
+  assert.ok(/Did you mean `build`/.test(res.stdout), 'script suggestion');
+  assert.ok(/Did you mean `realFunc\(\)`/.test(res.stdout), 'symbol suggestion');
+});
+
+test('CLI: --report writes a standalone HTML file', () => {
+  const out = path.join(fixtureDir, 'report.html');
+  const res = runVerify(fixtureDir, mvpAnswer, ['--report', out]);
+  assert.strictEqual(res.status, 1);
+  assert.ok(fs.existsSync(out), 'report file written');
+  const html = fs.readFileSync(out, 'utf8');
+  assert.ok(/<!DOCTYPE html>/.test(html) && /Hallucination Guard report/.test(html));
+});
+
+test('CLI: --json issues include confidence + suggestion fields', () => {
+  const res = runVerify(fixtureDir, mvpAnswer, ['--json']);
+  const obj = JSON.parse(res.stdout.trim());
+  assert.ok(obj.issues.every((i) => i.confidence && 'suggestion' in i && i.location));
+  assert.ok(obj.summary.byType['fake-test-file'] >= 1);
 });
 
 // Cleanup

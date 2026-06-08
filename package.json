@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "node test/run.js && node test/r-language.test.js",
-    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp-server.test.js",
+    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp/server.test.js && node test/integration/verify-ai-output.test.js",
     "test:integration:all": "node test/integration/all.js",
     "test:all": "node test/run.js && node test/r-language.test.js && node test/integration/strategy.test.js && node test/integration/secret-scan.test.js",
     "generate": "node gen-context.js",
@@ -25,6 +25,7 @@
     "report": "node gen-context.js --report",
     "audit:strategies": "node scripts/run-strategy-audit.mjs",
     "benchmark:matrix": "node scripts/run-benchmark-matrix.mjs --save --skip-clone",
+    "benchmark:verify": "node scripts/run-verify-benchmark.mjs",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",
     "mcp": "node gen-context.js --mcp",
