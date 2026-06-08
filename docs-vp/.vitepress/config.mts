@@ -43,6 +43,7 @@ export default defineConfig({
         items: [
           { text: 'ask', link: '/guide/ask' },
           { text: 'Surgical Context', link: '/guide/surgical-context' },
+          { text: 'Hallucination Guard', link: '/guide/verify-ai-output' },
           { text: 'validate', link: '/guide/validate' },
           { text: 'judge', link: '/guide/judge' },
           { text: 'Learning & weights', link: '/guide/learning' },
