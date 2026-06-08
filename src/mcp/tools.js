@@ -1,9 +1,9 @@
 'use strict';
 
 /**
- * MCP tool definitions for SigMap (10 tools).
+ * MCP tool definitions for SigMap (11 tools).
  * read_context, search_signatures, get_map, create_checkpoint, get_routing,
- * explain_file, list_modules, query_context, get_impact, get_lines.
+ * explain_file, list_modules, query_context, get_impact, get_lines, read_memory.
  */
 
 const TOOLS = [
@@ -195,6 +195,24 @@ const TOOLS = [
         },
       },
       required: ['file', 'start', 'end'],
+    },
+  },
+  {
+    name: 'read_memory',
+    description:
+      'Recall the project decision log — recent notes left by humans or agents ' +
+      'across sessions (via `sigmap note`), plus the last ranking-session focus. ' +
+      'Call this at the start of a task to kill cold-start: it answers ' +
+      '"what were we doing and why" without re-reading the whole codebase.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'How many of the most recent notes to return (default: 10, max: 50).',
+        },
+      },
+      required: [],
     },
   },
 ];

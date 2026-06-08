@@ -5506,476 +5506,559 @@ __factories["./src/graph/impact"] = function(module, exports) {
 
 // ── ./src/mcp/handlers ──
 __factories["./src/mcp/handlers"] = function(module, exports) {
-  
-  const fs   = require('fs');
-  const path = require('path');
-  const { execSync } = require('child_process');
-  
-  const CONTEXT_FILE = path.join('.github', 'copilot-instructions.md');
-  
-  // Section header keywords in PROJECT_MAP.md
-  const MAP_SECTIONS = {
-    imports: '### Import graph',
-    classes: '### Class hierarchy',
-    routes: '### Route table',
-  };
-  
-  /**
-   * read_context({ module? }) → string
-   *
-   * Returns the full context file, or just the sections whose file paths
-   * contain the given module substring.
-   */
-  function readContext(args, cwd) {
-    const contextPath = path.join(cwd, CONTEXT_FILE);
-    if (!fs.existsSync(contextPath)) {
-      return 'No context file found. Run: node gen-context.js';
-    }
-  
-    const content = fs.readFileSync(contextPath, 'utf8');
-  
-    if (!args || !args.module) return content;
-  
-    const mod = args.module.replace(/\\/g, '/').replace(/\/$/, '');
-    const lines = content.split('\n');
-    const result = [];
-    let capturing = false;
-  
-    for (const line of lines) {
-      if (line.startsWith('### ')) {
-        const filePath = line.slice(4).trim().replace(/\\/g, '/');
-        // Match if file path starts with mod or contains /mod/ or /mod
-        capturing =
-          filePath === mod ||
-          filePath.startsWith(mod + '/') ||
-          filePath.includes('/' + mod + '/') ||
-          filePath.includes('/' + mod);
-        if (capturing) result.push(line);
-        continue;
-      }
-      if (capturing) result.push(line);
-    }
-  
-    if (result.length === 0) return `No signatures found for module: ${mod}`;
-    return result.join('\n');
+'use strict';
+
+const fs   = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const CONTEXT_FILE = path.join('.github', 'copilot-instructions.md');
+const CONTEXT_COLD_FILE = path.join('.github', 'context-cold.md');
+
+function _readContextFiles(cwd) {
+  const paths = [path.join(cwd, CONTEXT_FILE), path.join(cwd, CONTEXT_COLD_FILE)];
+  const chunks = [];
+  for (const p of paths) {
+    if (fs.existsSync(p)) chunks.push(fs.readFileSync(p, 'utf8'));
   }
-  
-  /**
-   * search_signatures({ query }) → string
-   *
-   * Case-insensitive search through all signature lines.
-   * Returns matching lines grouped by file path.
-   */
-  function searchSignatures(args, cwd) {
-    if (!args || !args.query) return 'Missing required argument: query';
-    const query = args.query.toLowerCase();
+  return chunks.join('\n');
+}
 
-    try {
-      const { buildSigIndex } = __require('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
-      if (index.size === 0) {
-        return 'No context file found. Run: node gen-context.js';
-      }
-
-      const result = [];
-      for (const [file, sigs] of index.entries()) {
-        const hits = sigs.filter((s) => s.toLowerCase().includes(query));
-        if (hits.length === 0) continue;
-        if (result.length > 0) result.push('');
-        result.push(`### ${file}`);
-        result.push(...hits);
-      }
-
-      if (result.length === 0) return `No signatures found matching: ${args.query}`;
-      return result.join('\n');
-    } catch (err) {
-      return `_search_signatures failed: ${err.message}_`;
-    }
-  }
-  
-  /**
-   * get_map({ type }) → string
-   *
-   * Returns a section from PROJECT_MAP.md.
-   * type: 'imports' | 'classes' | 'routes'
-   */
-  function getMap(args, cwd) {
-    if (!args || !args.type) return 'Missing required argument: type';
-  
-    const header = MAP_SECTIONS[args.type];
-    if (!header) {
-      return `Unknown map type: "${args.type}". Use: imports, classes, routes`;
-    }
-  
-    const mapPath = path.join(cwd, 'PROJECT_MAP.md');
-    if (!fs.existsSync(mapPath)) {
-      return 'PROJECT_MAP.md not found. Run: node gen-project-map.js';
-    }
-  
-    const content = fs.readFileSync(mapPath, 'utf8');
-    const idx = content.indexOf(header);
-    if (idx === -1) {
-      return `Section "${header}" not found in PROJECT_MAP.md`;
-    }
-  
-    // Extract from this header to the next ### header
-    const after = content.slice(idx);
-    const nextMatch = after.slice(header.length).search(/\n###\s/);
-    return nextMatch === -1 ? after : after.slice(0, header.length + nextMatch);
-  }
-  
-  /**
-   * create_checkpoint({ note? }) → string
-   *
-   * Returns a markdown checkpoint summarising current project state:
-   * - Timestamp and optional user note
-   * - Active git branch + last 5 commit messages
-   * - Token count of current context file
-   * - List of modules present in the context
-   * - Route count (if PROJECT_MAP.md exists)
-   */
-  function createCheckpoint(args, cwd) {
-    const note = (args && args.note) ? args.note.trim() : '';
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-    const lines = [
-      '# SigMap Checkpoint',
-      `**Created:** ${now}`,
-    ];
-  
-    if (note) lines.push(`**Note:** ${note}`);
-    lines.push('');
-  
-    // ── Git info ────────────────────────────────────────────────────────────
-    lines.push('## Git state');
-    try {
-      const branch = execSync('git rev-parse --abbrev-ref HEAD', {
-        cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-      }).trim();
-      lines.push(`**Branch:** ${branch}`);
-    } catch (_) {
-      lines.push('**Branch:** (not a git repo)');
-    }
-  
-    try {
-      const log = execSync(
-        'git log --oneline -5 --no-decorate 2>/dev/null',
-        { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
-      ).trim();
-      if (log) {
-        lines.push('');
-        lines.push('**Recent commits:**');
-        for (const l of log.split('\n')) lines.push(`- ${l}`);
-      }
-    } catch (_) {} // ignore — not every project uses git
-    lines.push('');
-  
-    // ── Context stats ────────────────────────────────────────────────────────
-    lines.push('## Context snapshot');
-    const contextPath = path.join(cwd, CONTEXT_FILE);
-    if (fs.existsSync(contextPath)) {
-      const content = fs.readFileSync(contextPath, 'utf8');
-      const tokens = Math.ceil(content.length / 4);
-  
-      // Count modules (### headers are file paths)
-      const modules = content.split('\n').filter((l) => l.startsWith('### ')).map((l) => l.slice(4).trim());
-      lines.push(`**Token count:** ~${tokens}`);
-      lines.push(`**Modules in context:** ${modules.length}`);
-  
-      if (modules.length > 0) {
-        lines.push('');
-        lines.push('**Modules:**');
-        for (const m of modules.slice(0, 20)) lines.push(`- ${m}`);
-        if (modules.length > 20) lines.push(`- … and ${modules.length - 20} more`);
-      }
-    } else {
-      lines.push('_No context file found. Run: node gen-context.js_');
-    }
-    lines.push('');
-  
-    // ── Route summary ────────────────────────────────────────────────────────
-    const mapPath = path.join(cwd, 'PROJECT_MAP.md');
-    if (fs.existsSync(mapPath)) {
-      const mapContent = fs.readFileSync(mapPath, 'utf8');
-      const routeLines = mapContent.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| Method') && !l.startsWith('|---'));
-      if (routeLines.length > 0) {
-        lines.push('## Routes');
-        lines.push(`**Total routes detected:** ${routeLines.length}`);
-        lines.push('');
-        for (const r of routeLines.slice(0, 10)) lines.push(r);
-        if (routeLines.length > 10) lines.push(`| … | +${routeLines.length - 10} more | |`);
-        lines.push('');
-      }
-    }
-  
-    lines.push('---');
-    lines.push('_Generated by SigMap `create_checkpoint`_');
-  
-    return lines.join('\n');
-  }
-  
-  /**
-   * get_routing({}) → string
-   *
-   * Reads the current context file, classifies all indexed files by complexity,
-   * and returns a formatted markdown routing guide showing which files belong
-   * to the fast/balanced/powerful model tier.
-   */
-  function getRouting(args, cwd) {
-    const contextPath = path.join(cwd, CONTEXT_FILE);
-    if (!fs.existsSync(contextPath)) {
-      return (
-        '_No context file found. Run `node gen-context.js --routing` first._\n\n' +
-        'This generates routing hints that map each file to a model tier:\n' +
-        '- **fast** (haiku/gpt-4o-mini) — config, markup, trivial utilities\n' +
-        '- **balanced** (sonnet/gpt-4o) — standard application code\n' +
-        '- **powerful** (opus/gpt-4-turbo) — complex, security-critical, or large modules'
-      );
-    }
-  
-    // Parse file list from context (### headings are file paths)
-    const content = fs.readFileSync(contextPath, 'utf8');
-    const fileRels = content.split('\n')
-      .filter((l) => l.startsWith('### '))
-      .map((l) => l.slice(4).trim());
-  
-    // Build synthetic fileEntries for the classifier
-    // We don't have live sig arrays here, so rebuild from the context blocks
-    const entries = [];
-    const blocks = content.split(/^### /m).slice(1); // slice past the header
-    for (const block of blocks) {
-      const firstLine = block.split('\n')[0].trim();
-      const codeBlock = block.match(/```\n([\s\S]*?)```/);
-      const sigs = codeBlock ? codeBlock[1].trim().split('\n').filter(Boolean) : [];
-      entries.push({ filePath: path.join(cwd, firstLine), sigs });
-    }
-  
-    try {
-      const { classifyAll } = __require('./src/routing/classifier');
-      const { formatRoutingSection } = __require('./src/routing/hints');
-      const groups = classifyAll(entries, cwd);
-      return formatRoutingSection(groups);
-    } catch (err) {
-      return `_Routing classification failed: ${err.message}_`;
-    }
-  }
-  
-  function explainFile(args, cwd) {
-    if (!args || !args.path) return 'Missing required argument: path';
-  
-    const targetRel = args.path.replace(/\\/g, '/').replace(/^\//, '');
-    const targetAbs = path.resolve(cwd, targetRel);
-    const contextPath = path.join(cwd, CONTEXT_FILE);
-  
-    const lines = ['# explain_file: ' + targetRel, ''];
-  
-    lines.push('## Signatures');
-    let indexedFiles = [];
-  
-    if (fs.existsSync(contextPath)) {
-      const ctxContent = fs.readFileSync(contextPath, 'utf8');
-      const ctxLines = ctxContent.split('\n');
-      let capturing = false;
-      const sigLines = [];
-  
-      for (const line of ctxLines) {
-        if (line.startsWith('### ')) {
-          if (capturing) break;
-          const rel = line.slice(4).trim().replace(/\\/g, '/');
-          capturing = rel === targetRel || rel.endsWith('/' + targetRel) || targetRel.endsWith('/' + rel);
-          if (capturing) continue;
-        } else if (capturing) {
-          sigLines.push(line);
-        }
-      }
-  
-      const sigs = sigLines.filter((l) => l !== '```' && l.trim() !== '');
-      if (sigs.length > 0) {
-        lines.push(...sigs);
-      } else {
-        lines.push('_No signatures indexed for this file. Run: node gen-context.js_');
-      }
-  
-      indexedFiles = ctxContent
-        .split('\n')
-        .filter((l) => l.startsWith('### '))
-        .map((l) => path.resolve(cwd, l.slice(4).trim()));
-    } else {
-      lines.push('_No context file found. Run: node gen-context.js_');
-    }
-  
-    if (!fs.existsSync(targetAbs)) {
-      lines.push('');
-      lines.push('> File not found on disk: ' + targetRel);
-      return lines.join('\n');
-    }
-  
-    lines.push('');
-  
-    lines.push('## Imports (direct dependencies)');
-    try {
-      const { extractImports } = __require('./src/map/import-graph');
-      const fileContent = fs.readFileSync(targetAbs, 'utf8');
-      const fileSet = new Set(indexedFiles);
-      fileSet.add(targetAbs);
-      const imports = extractImports(targetAbs, fileContent, fileSet);
-      if (imports.length > 0) {
-        for (const imp of imports) lines.push('- ' + path.relative(cwd, imp).replace(/\\/g, '/'));
-      } else {
-        lines.push('_No resolvable relative imports found._');
-      }
-    } catch (err) {
-      lines.push('_Could not analyze imports: ' + err.message + '_');
-    }
-  
-    lines.push('');
-  
-    lines.push('## Callers (files that import this file)');
-    try {
-      const { extractImports } = __require('./src/map/import-graph');
-      const fileSet = new Set(indexedFiles);
-      fileSet.add(targetAbs);
-      const callers = [];
-      for (const f of indexedFiles) {
-        if (f === targetAbs || !fs.existsSync(f)) continue;
-        try {
-          const fc = fs.readFileSync(f, 'utf8');
-          const imps = extractImports(f, fc, fileSet);
-          if (imps.includes(targetAbs)) callers.push(path.relative(cwd, f).replace(/\\/g, '/'));
-        } catch (_) {}
-      }
-      if (callers.length > 0) {
-        for (const c of callers) lines.push('- ' + c);
-      } else {
-        lines.push('_No indexed files import this file._');
-      }
-    } catch (err) {
-      lines.push('_Could not analyze callers: ' + err.message + '_');
-    }
-  
-    return lines.join('\n');
-  }
-  
-  function listModules(args, cwd) {
-    try {
-      const { buildSigIndex } = __require('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
-      if (index.size === 0) {
-        return 'No context file found. Run: node gen-context.js';
-      }
-
-      const groups = {};
-      for (const [rel, sigs] of index.entries()) {
-        const parts = rel.split('/');
-        const mod = parts.length > 1 ? parts[0] : '.';
-        if (!groups[mod]) groups[mod] = { fileCount: 0, tokenCount: 0 };
-        groups[mod].fileCount++;
-        groups[mod].tokenCount += Math.ceil(sigs.join('\n').length / 4);
-      }
-
-      const sorted = Object.entries(groups)
-        .map(([mod, data]) => ({ module: mod, fileCount: data.fileCount, tokenCount: data.tokenCount }))
-        .sort((a, b) => b.tokenCount - a.tokenCount);
-
-      if (sorted.length === 0) return 'No modules found in context file.';
-
-      const total = sorted.reduce((s, m) => s + m.tokenCount, 0);
-
-      return [
-        '# Modules',
-        '',
-        '| Module | Files | Tokens |',
-        '|--------|-------|--------|',
-        ...sorted.map((m) => `| ${m.module} | ${m.fileCount} | ~${m.tokenCount} |`),
-        '',
-        `**Total context tokens: ~${total}**`,
-        '',
-        '_Use `read_context({ module: "name" })` to get signatures for a specific module._',
-      ].join('\n');
-    } catch (err) {
-      return `_list_modules failed: ${err.message}_`;
-    }
-  }
-  
-  function queryContext(args, cwd) {
-    if (!args || !args.query) return 'Missing required argument: query';
-    const contextPath = path.join(cwd, CONTEXT_FILE);
-    if (!fs.existsSync(contextPath)) return 'No context file found. Run: node gen-context.js';
-    try {
-      const { rank, buildSigIndex, formatRankTable } = __require('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
-      if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
-      const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
-      const results = rank(args.query, index, { topK, cwd });
-      return formatRankTable(results, args.query);
-    } catch (err) {
-      return `_query_context failed: ${err.message}_`;
-    }
-  }
-  
-  function getImpact(args, cwd) {
-    if (!args || !args.file) return 'Missing required argument: file';
-    try {
-      const { analyzeImpact, formatImpact } = __require('./src/graph/impact');
-      const depth = Math.max(0, parseInt(args.depth, 10) || 3);
-      const results = analyzeImpact(args.file, cwd, { depth });
-      return results.map((r) => formatImpact(r.impact)).join('\n\n---\n\n');
-    } catch (err) {
-      return `_get_impact failed: ${err.message}_`;
-    }
-  }
-
-  function getLines(args, cwd) {
-    if (!args || !args.file) return 'Missing required argument: file';
-
-    const rel = String(args.file).replace(/\\/g, '/').replace(/^\//, '');
-    const abs = path.resolve(cwd, rel);
-
-    // Sandbox: refuse paths that resolve outside the project root.
-    const root = path.resolve(cwd);
-    if (abs !== root && !abs.startsWith(root + path.sep)) {
-      return `Refused: ${rel} resolves outside the project root`;
-    }
-    if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
-      return `File not found: ${rel}`;
-    }
-
-    const start = parseInt(args.start, 10);
-    const end = parseInt(args.end, 10);
-    if (!Number.isFinite(start) || !Number.isFinite(end)) {
-      return 'Arguments "start" and "end" must be numbers (1-based line numbers).';
-    }
-
-    let lines;
-    try {
-      lines = fs.readFileSync(abs, 'utf8').split('\n');
-    } catch (err) {
-      return `Could not read ${rel}: ${err.message}`;
-    }
-
-    const total = lines.length;
-    const from = Math.max(1, Math.min(start, end));
-    const to = Math.min(total, Math.max(start, end));
-    if (from > total) return `${rel} has only ${total} lines; requested ${start}-${end}`;
-
-    const slice = lines.slice(from - 1, to);
-
-    let safeLines = slice;
-    try {
-      const { scan } = __require('./src/security/scanner');
-      safeLines = scan(slice, rel).safe;
-    } catch (_) {}
-
-    return [
-      `# ${rel}:${from}-${to}`,
-      '```',
-      ...safeLines,
-      '```',
-    ].join('\n');
-  }
-
-  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines };
+// Section header keywords in PROJECT_MAP.md
+const MAP_SECTIONS = {
+  imports: '### Import graph',
+  classes: '### Class hierarchy',
+  routes: '### Route table',
 };
 
+/**
+ * read_context({ module? }) → string
+ *
+ * Returns the full context file, or just the sections whose file paths
+ * contain the given module substring.
+ */
+function readContext(args, cwd) {
+  const content = _readContextFiles(cwd);
+  if (!content) {
+    return 'No context file found. Run: node gen-context.js';
+  }
+
+  if (!args || !args.module) return content;
+
+  const mod = args.module.replace(/\\/g, '/').replace(/\/$/, '');
+  const lines = content.split('\n');
+  const result = [];
+  let capturing = false;
+
+  for (const line of lines) {
+    if (line.startsWith('### ')) {
+      const filePath = line.slice(4).trim().replace(/\\/g, '/');
+      // Match if file path starts with mod or contains /mod/ or /mod
+      capturing =
+        filePath === mod ||
+        filePath.startsWith(mod + '/') ||
+        filePath.includes('/' + mod + '/') ||
+        filePath.includes('/' + mod);
+      if (capturing) result.push(line);
+      continue;
+    }
+    if (capturing) result.push(line);
+  }
+
+  if (result.length === 0) return `No signatures found for module: ${mod}`;
+  return result.join('\n');
+}
+
+/**
+ * search_signatures({ query }) → string
+ *
+ * Case-insensitive search through all signature lines.
+ * Returns matching lines grouped by file path.
+ */
+function searchSignatures(args, cwd) {
+  if (!args || !args.query) return 'Missing required argument: query';
+
+  const query = args.query.toLowerCase();
+  try {
+    const { buildSigIndex } = __require('./src/retrieval/ranker');
+    const index = buildSigIndex(cwd);
+    if (index.size === 0) {
+      return 'No context file found. Run: node gen-context.js';
+    }
+
+    const result = [];
+    for (const [file, sigs] of index.entries()) {
+      const hits = sigs.filter((s) => s.toLowerCase().includes(query));
+      if (hits.length === 0) continue;
+      if (result.length > 0) result.push('');
+      result.push(`### ${file}`);
+      result.push(...hits);
+    }
+
+    if (result.length === 0) return `No signatures found matching: ${args.query}`;
+    return result.join('\n');
+  } catch (err) {
+    return `_search_signatures failed: ${err.message}_`;
+  }
+}
+
+/**
+ * get_map({ type }) → string
+ *
+ * Returns a section from PROJECT_MAP.md.
+ * type: 'imports' | 'classes' | 'routes'
+ */
+function getMap(args, cwd) {
+  if (!args || !args.type) return 'Missing required argument: type';
+
+  const header = MAP_SECTIONS[args.type];
+  if (!header) {
+    return `Unknown map type: "${args.type}". Use: imports, classes, routes`;
+  }
+
+  const mapPath = path.join(cwd, 'PROJECT_MAP.md');
+  if (!fs.existsSync(mapPath)) {
+    return 'PROJECT_MAP.md not found. Run: node gen-project-map.js';
+  }
+
+  const content = fs.readFileSync(mapPath, 'utf8');
+  const idx = content.indexOf(header);
+  if (idx === -1) {
+    return `Section "${header}" not found in PROJECT_MAP.md`;
+  }
+
+  // Extract from this header to the next ### header
+  const after = content.slice(idx);
+  const nextMatch = after.slice(header.length).search(/\n###\s/);
+  return nextMatch === -1 ? after : after.slice(0, header.length + nextMatch);
+}
+
+/**
+ * create_checkpoint({ note? }) → string
+ *
+ * Returns a markdown checkpoint summarising current project state:
+ * - Timestamp and optional user note
+ * - Active git branch + last 5 commit messages
+ * - Token count of current context file
+ * - List of modules present in the context
+ * - Route count (if PROJECT_MAP.md exists)
+ */
+function createCheckpoint(args, cwd) {
+  const note = (args && args.note) ? args.note.trim() : '';
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  const lines = [
+    '# SigMap Checkpoint',
+    `**Created:** ${now}`,
+  ];
+
+  if (note) lines.push(`**Note:** ${note}`);
+  lines.push('');
+
+  // ── Git info ────────────────────────────────────────────────────────────
+  lines.push('## Git state');
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', {
+      cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    lines.push(`**Branch:** ${branch}`);
+  } catch (_) {
+    lines.push('**Branch:** (not a git repo)');
+  }
+
+  try {
+    const log = execSync(
+      'git log --oneline -5 --no-decorate 2>/dev/null',
+      { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim();
+    if (log) {
+      lines.push('');
+      lines.push('**Recent commits:**');
+      for (const l of log.split('\n')) lines.push(`- ${l}`);
+    }
+  } catch (_) {} // ignore — not every project uses git
+  lines.push('');
+
+  // ── Context stats ────────────────────────────────────────────────────────
+  lines.push('## Context snapshot');
+  const contextPath = path.join(cwd, CONTEXT_FILE);
+  if (fs.existsSync(contextPath)) {
+    const content = fs.readFileSync(contextPath, 'utf8');
+    const tokens = Math.ceil(content.length / 4);
+
+    // Count modules (### headers are file paths)
+    const modules = content.split('\n').filter((l) => l.startsWith('### ')).map((l) => l.slice(4).trim());
+    lines.push(`**Token count:** ~${tokens}`);
+    lines.push(`**Modules in context:** ${modules.length}`);
+
+    if (modules.length > 0) {
+      lines.push('');
+      lines.push('**Modules:**');
+      for (const m of modules.slice(0, 20)) lines.push(`- ${m}`);
+      if (modules.length > 20) lines.push(`- … and ${modules.length - 20} more`);
+    }
+  } else {
+    lines.push('_No context file found. Run: node gen-context.js_');
+  }
+  lines.push('');
+
+  // ── Route summary ────────────────────────────────────────────────────────
+  const mapPath = path.join(cwd, 'PROJECT_MAP.md');
+  if (fs.existsSync(mapPath)) {
+    const mapContent = fs.readFileSync(mapPath, 'utf8');
+    const routeLines = mapContent.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| Method') && !l.startsWith('|---'));
+    if (routeLines.length > 0) {
+      lines.push('## Routes');
+      lines.push(`**Total routes detected:** ${routeLines.length}`);
+      lines.push('');
+      for (const r of routeLines.slice(0, 10)) lines.push(r);
+      if (routeLines.length > 10) lines.push(`| … | +${routeLines.length - 10} more | |`);
+      lines.push('');
+    }
+  }
+
+  lines.push('---');
+  lines.push('_Generated by SigMap `create_checkpoint`_');
+
+  return lines.join('\n');
+}
+
+/**
+ * get_routing({}) → string
+ *
+ * Reads the current context file, classifies all indexed files by complexity,
+ * and returns a formatted markdown routing guide showing which files belong
+ * to the fast/balanced/powerful model tier.
+ */
+function getRouting(args, cwd) {
+  const contextPath = path.join(cwd, CONTEXT_FILE);
+  if (!fs.existsSync(contextPath)) {
+    return (
+      '_No context file found. Run `node gen-context.js --routing` first._\n\n' +
+      'This generates routing hints that map each file to a model tier:\n' +
+      '- **fast** (haiku/gpt-4o-mini) — config, markup, trivial utilities\n' +
+      '- **balanced** (sonnet/gpt-4o) — standard application code\n' +
+      '- **powerful** (opus/gpt-4-turbo) — complex, security-critical, or large modules'
+    );
+  }
+
+  // Parse file list from context (### headings are file paths)
+  const content = fs.readFileSync(contextPath, 'utf8');
+  const fileRels = content.split('\n')
+    .filter((l) => l.startsWith('### '))
+    .map((l) => l.slice(4).trim());
+
+  // Build synthetic fileEntries for the classifier
+  // We don't have live sig arrays here, so rebuild from the context blocks
+  const entries = [];
+  const blocks = content.split(/^### /m).slice(1); // slice past the header
+  for (const block of blocks) {
+    const firstLine = block.split('\n')[0].trim();
+    const codeBlock = block.match(/```\n([\s\S]*?)```/);
+    const sigs = codeBlock ? codeBlock[1].trim().split('\n').filter(Boolean) : [];
+    entries.push({ filePath: path.join(cwd, firstLine), sigs });
+  }
+
+  try {
+    const { classifyAll } = __require('./src/routing/classifier');
+    const { formatRoutingSection } = __require('./src/routing/hints');
+    const groups = classifyAll(entries, cwd);
+    return formatRoutingSection(groups);
+  } catch (err) {
+    return `_Routing classification failed: ${err.message}_`;
+  }
+}
+
+/**
+ * explain_file({ path }) → string
+ *
+ * Returns a file's signatures, its direct imports, and files that import it.
+ * path: relative path from project root (e.g. 'src/services/auth.ts')
+ */
+function explainFile(args, cwd) {
+  if (!args || !args.path) return 'Missing required argument: path';
+
+  const targetRel = args.path.replace(/\\/g, '/').replace(/^\//, '');
+  const targetAbs = path.resolve(cwd, targetRel);
+  const contextPath = path.join(cwd, CONTEXT_FILE);
+
+  const lines = ['# explain_file: ' + targetRel, ''];
+
+  // ── Signatures (hot + cold + cache via buildSigIndex) ───────────────────
+  lines.push('## Signatures');
+  let indexedFiles = [];
+
+  try {
+    const { buildSigIndex } = __require('./src/retrieval/ranker');
+    const index = buildSigIndex(cwd);
+    let sigs = index.get(targetRel);
+    if (!sigs) {
+      for (const [file, fileSigs] of index.entries()) {
+        if (file === targetRel || file.endsWith('/' + targetRel) || targetRel.endsWith('/' + file)) {
+          sigs = fileSigs;
+          break;
+        }
+      }
+    }
+    if (sigs && sigs.length > 0) {
+      lines.push(...sigs);
+    } else {
+      lines.push('_No signatures indexed for this file. Run: node gen-context.js_');
+    }
+    indexedFiles = [...index.keys()].map((rel) => path.resolve(cwd, rel));
+  } catch (_) {
+    lines.push('_No context file found. Run: node gen-context.js_');
+  }
+
+  if (!fs.existsSync(targetAbs)) {
+    lines.push('');
+    lines.push('> File not found on disk: ' + targetRel);
+    return lines.join('\n');
+  }
+
+  lines.push('');
+
+  // ── Direct imports ────────────────────────────────────────────────────────
+  lines.push('## Imports (direct dependencies)');
+  try {
+    const { extractImports } = __require('./src/map/import-graph');
+    const fileContent = fs.readFileSync(targetAbs, 'utf8');
+    const fileSet = new Set(indexedFiles);
+    fileSet.add(targetAbs);
+    const imports = extractImports(targetAbs, fileContent, fileSet);
+    if (imports.length > 0) {
+      for (const imp of imports) lines.push('- ' + path.relative(cwd, imp).replace(/\\/g, '/'));
+    } else {
+      lines.push('_No resolvable relative imports found._');
+    }
+  } catch (err) {
+    lines.push('_Could not analyze imports: ' + err.message + '_');
+  }
+
+  lines.push('');
+
+  // ── Callers (reverse-import lookup) ──────────────────────────────────────
+  lines.push('## Callers (files that import this file)');
+  try {
+    const { extractImports } = __require('./src/map/import-graph');
+    const fileSet = new Set(indexedFiles);
+    fileSet.add(targetAbs);
+    const callers = [];
+    for (const f of indexedFiles) {
+      if (f === targetAbs || !fs.existsSync(f)) continue;
+      try {
+        const fc = fs.readFileSync(f, 'utf8');
+        const imps = extractImports(f, fc, fileSet);
+        if (imps.includes(targetAbs)) callers.push(path.relative(cwd, f).replace(/\\/g, '/'));
+      } catch (_) {}
+    }
+    if (callers.length > 0) {
+      for (const c of callers) lines.push('- ' + c);
+    } else {
+      lines.push('_No indexed files import this file._');
+    }
+  } catch (err) {
+    lines.push('_Could not analyze callers: ' + err.message + '_');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * list_modules({}) → string
+ *
+ * Lists all srcDir modules present in the context file, sorted by token count
+ * descending. Helps agents decide which module to query with read_context.
+ */
+function listModules(args, cwd) {
+  try {
+    const { buildSigIndex } = __require('./src/retrieval/ranker');
+    const index = buildSigIndex(cwd);
+    if (index.size === 0) {
+      return 'No context file found. Run: node gen-context.js';
+    }
+
+    const groups = {};
+    for (const [rel, sigs] of index.entries()) {
+      const parts = rel.replace(/\\/g, '/').split('/');
+      const mod = parts.length > 1 ? parts[0] : '.';
+      if (!groups[mod]) groups[mod] = { fileCount: 0, tokenCount: 0 };
+      groups[mod].fileCount++;
+      groups[mod].tokenCount += Math.ceil(sigs.join('\n').length / 4);
+    }
+
+  const sorted = Object.entries(groups)
+    .map(([mod, data]) => ({ module: mod, fileCount: data.fileCount, tokenCount: data.tokenCount }))
+    .sort((a, b) => b.tokenCount - a.tokenCount);
+
+  if (sorted.length === 0) return 'No modules found in context file.';
+
+  const total = sorted.reduce((s, m) => s + m.tokenCount, 0);
+
+  return [
+    '# Modules',
+    '',
+    '| Module | Files | Tokens |',
+    '|--------|-------|--------|',
+    ...sorted.map((m) => `| ${m.module} | ${m.fileCount} | ~${m.tokenCount} |`),
+    '',
+    `**Total context tokens: ~${total}**`,
+    '',
+    '_Use `read_context({ module: "name" })` to get signatures for a specific module._',
+  ].join('\n');
+  } catch (err) {
+    return `_list_modules failed: ${err.message}_`;
+  }
+}
+
+/**
+ * query_context({ query, topK? }) → string
+ *
+ * Ranks context-file entries by relevance to the query and returns the
+ * top-K most relevant files with their signatures and scores.
+ */
+function queryContext(args, cwd) {
+  if (!args || !args.query) return 'Missing required argument: query';
+
+  try {
+    const { rank, buildSigIndex, formatRankTable } = __require('./src/retrieval/ranker');
+    const { buildFromCwd } = __require('./src/graph/builder');
+    const index = buildSigIndex(cwd);
+    if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
+
+    const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
+    // Build dependency graph for neighbor boost — non-fatal if it fails
+    let graph = null;
+    try { graph = buildFromCwd(cwd); } catch (_) {}
+    const results = rank(args.query, index, { topK, cwd, graph });
+    return formatRankTable(results, args.query);
+  } catch (err) {
+    return `_query_context failed: ${err.message}_`;
+  }
+}
+
+/**
+ * get_impact({ file, depth? }) → string
+ *
+ * Returns a formatted markdown impact report for the given file:
+ * direct importers, transitive importers, affected tests, affected routes.
+ */
+function getImpact(args, cwd) {
+  if (!args || !args.file) return 'Missing required argument: file';
+
+  try {
+    const { analyzeImpact, formatImpact } = __require('./src/graph/impact');
+    const depth = Math.max(0, parseInt(args.depth, 10) || 3);
+    const results = analyzeImpact(args.file, cwd, { depth });
+    if (results.length === 0) return `No impact data for: ${args.file}`;
+    return results.map((r) => formatImpact(r.impact)).join('\n\n---\n\n');
+  } catch (err) {
+    return `_get_impact failed: ${err.message}_`;
+  }
+}
+
+/**
+ * get_lines({ file, start, end }) → string
+ *
+ * Surgical Context demand-driven fetch: returns an exact, clamped line range from a
+ * source file. The path is resolved inside the project root (no traversal escape) and
+ * the returned lines are secret-scanned via the same redactor used for signatures.
+ */
+function getLines(args, cwd) {
+  if (!args || !args.file) return 'Missing required argument: file';
+
+  const rel = String(args.file).replace(/\\/g, '/').replace(/^\//, '');
+  const abs = path.resolve(cwd, rel);
+
+  // Sandbox: refuse paths that resolve outside the project root.
+  const root = path.resolve(cwd);
+  if (abs !== root && !abs.startsWith(root + path.sep)) {
+    return `Refused: ${rel} resolves outside the project root`;
+  }
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
+    return `File not found: ${rel}`;
+  }
+
+  const start = parseInt(args.start, 10);
+  const end = parseInt(args.end, 10);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return 'Arguments "start" and "end" must be numbers (1-based line numbers).';
+  }
+
+  let lines;
+  try {
+    lines = fs.readFileSync(abs, 'utf8').split('\n');
+  } catch (err) {
+    return `Could not read ${rel}: ${err.message}`;
+  }
+
+  const total = lines.length;
+  const from = Math.max(1, Math.min(start, end));
+  const to = Math.min(total, Math.max(start, end));
+  if (from > total) return `${rel} has only ${total} lines; requested ${start}-${end}`;
+
+  const slice = lines.slice(from - 1, to);
+
+  // Redaction scan: reuse the signature secret scanner line-by-line.
+  let safeLines = slice;
+  try {
+    const { scan } = __require('./src/security/scanner');
+    safeLines = scan(slice, rel).safe;
+  } catch (_) {} // non-fatal: fall back to raw slice
+
+  return [
+    `# ${rel}:${from}-${to}`,
+    '```',
+    ...safeLines,
+    '```',
+  ].join('\n');
+}
+
+/**
+ * read_memory({ limit? }) → string
+ *
+ * Recall the cross-session decision log (notes) plus the last ranking-session
+ * focus, formatted for an agent to consume at the start of a task.
+ */
+function readMemory(args, cwd) {
+  let limit = parseInt(args && args.limit, 10);
+  if (!Number.isFinite(limit) || limit <= 0) limit = 10;
+  limit = Math.min(limit, 50);
+
+  const out = ['# SigMap memory'];
+
+  let notes = [];
+  try {
+    const { readNotes, formatNotes } = __require('./src/session/notes');
+    notes = readNotes(cwd, limit);
+    out.push('');
+    out.push(`## Recent notes (${notes.length})`);
+    // Most recent first for quick scanning.
+    out.push(formatNotes(notes.slice().reverse()));
+  } catch (_) {
+    out.push('');
+    out.push('_No notes available._');
+  }
+
+  // Last ranking-session focus (if any) — extends src/session/memory.js.
+  try {
+    const { loadSession } = __require('./src/session/memory');
+    const s = loadSession(cwd);
+    if (s && (s.lastQuery || (s.topFiles && s.topFiles.length))) {
+      out.push('');
+      out.push('## Last session');
+      if (s.lastQuery) out.push(`**Last query:** ${s.lastQuery}`);
+      if (s.topFiles && s.topFiles.length) {
+        out.push(`**Focus files:** ${s.topFiles.map((f) => f.file).slice(0, 5).join(', ')}`);
+      }
+    }
+  } catch (_) { /* session optional */ }
+
+  return out.join('\n');
+}
+
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory };
+
+};
 // ── ./src/learning/weights ──
 __factories["./src/learning/weights"] = function(module, exports) {
   'use strict';
@@ -6135,344 +6218,364 @@ __factories["./src/learning/weights"] = function(module, exports) {
 
 // ── ./src/mcp/server ──
 __factories["./src/mcp/server"] = function(module, exports) {
-  
-  /**
-   * SigMap MCP server — zero npm dependencies.
-   *
-   * Wire protocol: JSON-RPC 2.0 over stdio.
-   * One JSON object per line on both stdin and stdout.
-   *
-   * Supported methods:
-   *   initialize        → serverInfo + capabilities
-   *   tools/list        → 10 tool definitions
-   *   tools/call        → dispatch to handler, return result
-   */
+'use strict';
 
-  const readline = require('readline');
-  const { TOOLS } = __require('./src/mcp/tools');
-  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines } = __require('./src/mcp/handlers');
+/**
+ * SigMap MCP server — zero npm dependencies.
+ *
+ * Wire protocol: JSON-RPC 2.0 over stdio.
+ * One JSON object per line on both stdin and stdout.
+ *
+ * Supported methods:
+ *   initialize        → serverInfo + capabilities
+ *   tools/list        → 11 tool definitions
+ *   tools/call        → dispatch to handler, return result
+ */
 
-  const SERVER_INFO = {
-    name: 'sigmap',
+const readline = require('readline');
+const { TOOLS } = __require('./src/mcp/tools');
+const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory } = __require('./src/mcp/handlers');
+
+const SERVER_INFO = {
+  name: 'sigmap',
   version: '6.14.0',
-    description: 'SigMap MCP server — code signatures on demand',
-  };
-  
-  // ---------------------------------------------------------------------------
-  // JSON-RPC helpers
-  // ---------------------------------------------------------------------------
-  function respond(id, result) {
-    process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
-  }
-  
-  function respondError(id, code, message) {
-    process.stdout.write(
-      JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n'
-    );
-  }
-  
-  // ---------------------------------------------------------------------------
-  // Method dispatcher
-  // ---------------------------------------------------------------------------
-  function dispatch(msg, cwd) {
-    const { method, id, params } = msg;
-  
-    // Notifications (no id) need no response
-    if (method === 'notifications/initialized' || method === 'notifications/cancelled') {
-      return;
-    }
-  
-    if (method === 'initialize') {
-      respond(id, {
-        protocolVersion: (params && params.protocolVersion) || '2024-11-05',
-        serverInfo: SERVER_INFO,
-        capabilities: { tools: {} },
-      });
-      return;
-    }
-  
-    if (method === 'tools/list') {
-      respond(id, { tools: TOOLS });
-      return;
-    }
-  
-    if (method === 'tools/call') {
-      const name = params && params.name;
-      const args = (params && params.arguments) || {};
-  
-      let text;
-      try {
-        if (name === 'read_context') text = readContext(args, cwd);
-        else if (name === 'search_signatures') text = searchSignatures(args, cwd);
-        else if (name === 'get_map') text = getMap(args, cwd);
-        else if (name === 'create_checkpoint') text = createCheckpoint(args, cwd);
-        else if (name === 'get_routing') text = getRouting(args, cwd);
-        else if (name === 'explain_file') text = explainFile(args, cwd);
-        else if (name === 'list_modules') text = listModules(args, cwd);
-        else if (name === 'query_context') text = queryContext(args, cwd);
-        else if (name === 'get_impact') text = getImpact(args, cwd);
-        else if (name === 'get_lines') text = getLines(args, cwd);
-        else {
-          respondError(id, -32601, `Unknown tool: ${name}`);
-          return;
-        }
-      } catch (err) {
-        respondError(id, -32603, `Tool error: ${err.message}`);
-        return;
-      }
-  
-      respond(id, {
-        content: [{ type: 'text', text: String(text) }],
-      });
-      return;
-    }
-  
-    // Unknown method
-    if (id !== undefined && id !== null) {
-      respondError(id, -32601, `Method not found: ${method}`);
-    }
-  }
-  
-  // ---------------------------------------------------------------------------
-  // Server entry point
-  // ---------------------------------------------------------------------------
-  function start(cwd) {
-    const rl = readline.createInterface({ input: process.stdin, terminal: false });
-  
-    rl.on('line', (line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
-  
-      let msg;
-      try {
-        msg = JSON.parse(trimmed);
-      } catch (_) {
-        // Cannot respond without a valid id — ignore malformed input
-        return;
-      }
-  
-      try {
-        dispatch(msg, cwd);
-      } catch (err) {
-        const id = (msg && msg.id) != null ? msg.id : null;
-        respondError(id, -32603, `Internal error: ${err.message}`);
-      }
-    });
-  
-    rl.on('close', () => {
-      process.exit(0);
-    });
-  }
-  
-  module.exports = { start };
-  
+  description: 'SigMap MCP server — code signatures on demand',
 };
 
+// ---------------------------------------------------------------------------
+// JSON-RPC helpers
+// ---------------------------------------------------------------------------
+function respond(id, result) {
+  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
+}
+
+function respondError(id, code, message) {
+  process.stdout.write(
+    JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n'
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Method dispatcher
+// ---------------------------------------------------------------------------
+function dispatch(msg, cwd) {
+  const { method, id, params } = msg;
+
+  // Notifications (no id) need no response
+  if (method === 'notifications/initialized' || method === 'notifications/cancelled') {
+    return;
+  }
+
+  if (method === 'initialize') {
+    respond(id, {
+      protocolVersion: (params && params.protocolVersion) || '2024-11-05',
+      serverInfo: SERVER_INFO,
+      capabilities: { tools: {} },
+    });
+    return;
+  }
+
+  if (method === 'tools/list') {
+    respond(id, { tools: TOOLS });
+    return;
+  }
+
+  if (method === 'tools/call') {
+    const name = params && params.name;
+    const args = (params && params.arguments) || {};
+
+    let text;
+    try {
+      if (name === 'read_context') text = readContext(args, cwd);
+      else if (name === 'search_signatures') text = searchSignatures(args, cwd);
+      else if (name === 'get_map') text = getMap(args, cwd);
+      else if (name === 'create_checkpoint') text = createCheckpoint(args, cwd);
+      else if (name === 'get_routing') text = getRouting(args, cwd);
+      else if (name === 'explain_file') text = explainFile(args, cwd);
+      else if (name === 'list_modules') text = listModules(args, cwd);
+      else if (name === 'query_context') text = queryContext(args, cwd);
+      else if (name === 'get_impact') text = getImpact(args, cwd);
+      else if (name === 'get_lines') text = getLines(args, cwd);
+      else if (name === 'read_memory') text = readMemory(args, cwd);
+      else {
+        respondError(id, -32601, `Unknown tool: ${name}`);
+        return;
+      }
+    } catch (err) {
+      respondError(id, -32603, `Tool error: ${err.message}`);
+      return;
+    }
+
+    respond(id, {
+      content: [{ type: 'text', text: String(text) }],
+    });
+    return;
+  }
+
+  // Unknown method
+  if (id !== undefined && id !== null) {
+    respondError(id, -32601, `Method not found: ${method}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Server entry point
+// ---------------------------------------------------------------------------
+function start(cwd) {
+  const rl = readline.createInterface({ input: process.stdin, terminal: false });
+
+  rl.on('line', (line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    let msg;
+    try {
+      msg = JSON.parse(trimmed);
+    } catch (_) {
+      // Cannot respond without a valid id — ignore malformed input
+      return;
+    }
+
+    try {
+      dispatch(msg, cwd);
+    } catch (err) {
+      const id = (msg && msg.id) != null ? msg.id : null;
+      respondError(id, -32603, `Internal error: ${err.message}`);
+    }
+  });
+
+  rl.on('close', () => {
+    process.exit(0);
+  });
+}
+
+module.exports = { start };
+
+};
 // ── ./src/mcp/tools ──
 __factories["./src/mcp/tools"] = function(module, exports) {
-  
-  /**
-   * MCP tool definitions for SigMap.
-   * Three tools: read_context, search_signatures, get_map.
-   */
-  
-  const TOOLS = [
-    {
-      name: 'read_context',
-      description:
-        'Read extracted code signatures for the project or a specific module path. ' +
-        'Returns the full copilot-instructions.md content (~500–4K tokens) or a ' +
-        'filtered subset when a module path is provided (~50–500 tokens).',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          module: {
-            type: 'string',
-            description:
-              'Optional subdirectory path to scope results (e.g. "src/services"). ' +
-              'Omit to get the full codebase context.',
-          },
-        },
-        required: [],
-      },
-    },
-    {
-      name: 'search_signatures',
-      description:
-        'Search extracted code signatures for a keyword, function name, or class name. ' +
-        'Returns matching signature lines with their file paths.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            description: 'Keyword to search for in signatures (case-insensitive).',
-          },
-        },
-        required: ['query'],
-      },
-    },
-    {
-      name: 'get_map',
-      description:
-        'Read a section from PROJECT_MAP.md — import graph, class hierarchy, or route table. ' +
-        'Requires gen-project-map.js to have been run first.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          type: {
-            type: 'string',
-            enum: ['imports', 'classes', 'routes'],
-            description: 'Which section to retrieve: imports, classes, or routes.',
-          },
-        },
-        required: ['type'],
-      },
-    },
-    {
-      name: 'create_checkpoint',
-      description:
-        'Create a session checkpoint summarising current project state. ' +
-        'Returns recent git commits, active branch, token count, and a ' +
-        'compact snapshot of the codebase context — ideal for session handoffs ' +
-        'or periodic saves during long coding sessions.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          note: {
-            type: 'string',
-            description: 'Optional free-text note to include in the checkpoint (e.g. what you were working on).',
-          },
-        },
-        required: [],
-      },
-    },
-    {
-      name: 'get_routing',
-      description:
-        'Get model routing hints for this project — which files belong to which complexity ' +
-        'tier (fast/balanced/powerful) and which AI model to use for each type of task. ' +
-        'Helps reduce API costs by 40–80% by routing simple tasks to cheaper models.',
-      inputSchema: {
-        type: 'object',
-        properties: {},
-        required: [],
-      },
-    },
-    {
-      name: 'explain_file',
-      description:
-        'Explain a specific file: returns its extracted signatures, direct imports ' +
-        '(files it depends on), and callers (files that import it). ' +
-        'Ideal for understanding a file in isolation without reading raw source. ' +
-        'Requires the context file to have been generated first.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description:
-              'Relative path from the project root (e.g. "src/services/auth.ts"). ' +
-              'Use the paths shown in read_context output.',
-          },
-        },
-        required: ['path'],
-      },
-    },
-    {
-      name: 'list_modules',
-      description:
-        'List all top-level modules (srcDirs) present in the context file, ' +
-        'sorted by token count descending. Use this to decide which module to ' +
-        'pass to read_context before querying a specific area of the codebase.',
-      inputSchema: {
-        type: 'object',
-        properties: {},
-        required: [],
-      },
-    },
-    {
-      name: 'query_context',
-      description:
-        'Rank and return the most relevant files for a specific task or question. ' +
-        'Uses keyword + symbol + path scoring to surface only the top-K files relevant ' +
-        'to the query — much cheaper than reading all context. ' +
-        'Returns ranked file list with signatures and relevance scores.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            description:
-              'Natural language task description or keyword(s) to rank files against. ' +
-              'E.g. "add a new language extractor", "fix secret scanning", "auth module".',
-          },
-          topK: {
-            type: 'number',
-            description: 'Maximum number of files to return (default: 10, max: 25).',
-          },
-        },
-        required: ['query'],
-      },
-    },
-    {
-      name: 'get_impact',
-      description:
-        'Show every file that is impacted when a given file changes — direct importers, ' +
-        'transitive importers, affected tests, and affected routes/controllers. ' +
-        'Gives agents instant blast-radius awareness before making a change. ' +
-        'Handles circular dependencies safely (no infinite loops).',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          file: {
-            type: 'string',
-            description:
-              'Relative path from the project root of the file that changed ' +
-              '(e.g. "src/extractors/python.js"). Use forward slashes.',
-          },
-          depth: {
-            type: 'number',
-            description: 'BFS traversal depth limit (default: 3). Use 0 for unlimited.',
-          },
-        },
-        required: ['file'],
-      },
-    },
-    {
-      name: 'get_lines',
-      description:
-        'Fetch an exact line range from a source file on demand — the Surgical Context ' +
-        'workhorse. Signatures carry `path:start-end` anchors; call this to read just those ' +
-        'lines instead of re-opening the whole file. Lines are clamped to the file bounds and ' +
-        'secret-scanned (redacted) before return. Path is sandboxed to the project root.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          file: {
-            type: 'string',
-            description:
-              'Relative path from the project root (e.g. "src/config/loader.js"). ' +
-              'Use the path shown in a signature anchor. Use forward slashes.',
-          },
-          start: {
-            type: 'number',
-            description: '1-based start line (inclusive). Clamped to the file bounds.',
-          },
-          end: {
-            type: 'number',
-            description: '1-based end line (inclusive). Clamped to the file bounds.',
-          },
-        },
-        required: ['file', 'start', 'end'],
-      },
-    },
-  ];
+'use strict';
 
-  module.exports = { TOOLS };
-  
+/**
+ * MCP tool definitions for SigMap (11 tools).
+ * read_context, search_signatures, get_map, create_checkpoint, get_routing,
+ * explain_file, list_modules, query_context, get_impact, get_lines, read_memory.
+ */
+
+const TOOLS = [
+  {
+    name: 'read_context',
+    description:
+      'Read extracted code signatures for the project or a specific module path. ' +
+      'Returns the full copilot-instructions.md content (~500–4K tokens) or a ' +
+      'filtered subset when a module path is provided (~50–500 tokens).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        module: {
+          type: 'string',
+          description:
+            'Optional subdirectory path to scope results (e.g. "src/services"). ' +
+            'Omit to get the full codebase context.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'search_signatures',
+    description:
+      'Search extracted code signatures for a keyword, function name, or class name. ' +
+      'Returns matching signature lines with their file paths.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Keyword to search for in signatures (case-insensitive).',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_map',
+    description:
+      'Read a section from PROJECT_MAP.md — import graph, class hierarchy, or route table. ' +
+      'Requires gen-project-map.js to have been run first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['imports', 'classes', 'routes'],
+          description: 'Which section to retrieve: imports, classes, or routes.',
+        },
+      },
+      required: ['type'],
+    },
+  },
+  {
+    name: 'create_checkpoint',
+    description:
+      'Create a session checkpoint summarising current project state. ' +
+      'Returns recent git commits, active branch, token count, and a ' +
+      'compact snapshot of the codebase context — ideal for session handoffs ' +
+      'or periodic saves during long coding sessions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        note: {
+          type: 'string',
+          description: 'Optional free-text note to include in the checkpoint (e.g. what you were working on).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_routing',
+    description:
+      'Get model routing hints for this project — which files belong to which complexity ' +
+      'tier (fast/balanced/powerful) and which AI model to use for each type of task. ' +
+      'Helps reduce API costs by 40–80% by routing simple tasks to cheaper models.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'explain_file',
+    description:
+      'Explain a specific file: returns its extracted signatures, direct imports ' +
+      '(files it depends on), and callers (files that import it). ' +
+      'Ideal for understanding a file in isolation without reading raw source. ' +
+      'Requires the context file to have been generated first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description:
+            'Relative path from the project root (e.g. "src/services/auth.ts"). ' +
+            'Use the paths shown in read_context output.',
+        },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'list_modules',
+    description:
+      'List all top-level modules (srcDirs) present in the context file, ' +
+      'sorted by token count descending. Use this to decide which module to ' +
+      'pass to read_context before querying a specific area of the codebase.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'query_context',
+    description:
+      'Rank and return the most relevant files for a specific task or question. ' +
+      'Uses keyword + symbol + path scoring to surface only the top-K files relevant ' +
+      'to the query — much cheaper than reading all context. ' +
+      'Returns ranked file list with signatures and relevance scores.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'Natural language task description or keyword(s) to rank files against. ' +
+            'E.g. "add a new language extractor", "fix secret scanning", "auth module".',
+        },
+        topK: {
+          type: 'number',
+          description: 'Maximum number of files to return (default: 10, max: 25).',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_impact',
+    description:
+      'Show every file that is impacted when a given file changes — direct importers, ' +
+      'transitive importers, affected tests, and affected routes/controllers. ' +
+      'Gives agents instant blast-radius awareness before making a change. ' +
+      'Handles circular dependencies safely (no infinite loops).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          description:
+            'Relative path from the project root of the file that changed ' +
+            '(e.g. "src/extractors/python.js"). Use forward slashes.',
+        },
+        depth: {
+          type: 'number',
+          description: 'BFS traversal depth limit (default: 3). Use 0 for unlimited.',
+        },
+      },
+      required: ['file'],
+    },
+  },
+  {
+    name: 'get_lines',
+    description:
+      'Fetch an exact line range from a source file on demand — the Surgical Context ' +
+      'workhorse. Signatures carry `path:start-end` anchors; call this to read just those ' +
+      'lines instead of re-opening the whole file. Lines are clamped to the file bounds and ' +
+      'secret-scanned (redacted) before return. Path is sandboxed to the project root.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          description:
+            'Relative path from the project root (e.g. "src/config/loader.js"). ' +
+            'Use the path shown in a signature anchor. Use forward slashes.',
+        },
+        start: {
+          type: 'number',
+          description: '1-based start line (inclusive). Clamped to the file bounds.',
+        },
+        end: {
+          type: 'number',
+          description: '1-based end line (inclusive). Clamped to the file bounds.',
+        },
+      },
+      required: ['file', 'start', 'end'],
+    },
+  },
+  {
+    name: 'read_memory',
+    description:
+      'Recall the project decision log — recent notes left by humans or agents ' +
+      'across sessions (via `sigmap note`), plus the last ranking-session focus. ' +
+      'Call this at the start of a task to kill cold-start: it answers ' +
+      '"what were we doing and why" without re-reading the whole codebase.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'How many of the most recent notes to return (default: 10, max: 50).',
+        },
+      },
+      required: [],
+    },
+  },
+];
+
+module.exports = { TOOLS };
+
 };
-
 // ── ./src/routing/classifier ──
 __factories["./src/routing/classifier"] = function(module, exports) {
   
@@ -7005,6 +7108,110 @@ __factories["./src/tracking/logger"] = function(module, exports) {
   
   module.exports = { logRun, readLog, summarize };
   
+};
+
+// ── ./src/session/notes ──
+__factories["./src/session/notes"] = function(module, exports) {
+'use strict';
+
+/**
+ * Decision-log notes (Memory, v6.16.0).
+ *
+ * A tiny append-only log of human/agent notes that survives across sessions,
+ * so an agent starting cold can recall "what were we doing / why". Stored as
+ * NDJSON under `.context/` to match the project's other state logs
+ * (usage.ndjson, benchmark-history.ndjson). Zero dependencies.
+ *
+ * Consumed by the `read_memory` MCP tool and the `sigmap note` / `sigmap status`
+ * commands. Complements `src/session/memory.js` (ranking session) rather than
+ * duplicating it.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const NOTES_FILE = path.join('.context', 'notes.ndjson');
+const MAX_TEXT = 2000;
+
+function notesPath(cwd) {
+  return path.join(cwd, NOTES_FILE);
+}
+
+function _currentBranch(cwd) {
+  try {
+    return execSync('git rev-parse --abbrev-ref HEAD', {
+      cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim() || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Append a note. Returns the stored entry.
+ * @param {string} cwd
+ * @param {string} text
+ * @param {object} [opts]
+ * @param {string|null} [opts.branch]  override branch (default: current git branch)
+ * @param {string} [opts.tag]          optional category tag
+ */
+function addNote(cwd, text, opts = {}) {
+  const clean = String(text == null ? '' : text).trim().slice(0, MAX_TEXT);
+  if (!clean) throw new Error('note text is empty');
+  const entry = {
+    ts: new Date().toISOString(),
+    text: clean,
+    branch: opts.branch !== undefined ? opts.branch : _currentBranch(cwd),
+  };
+  if (opts.tag) entry.tag = String(opts.tag).trim().slice(0, 40);
+  const p = notesPath(cwd);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.appendFileSync(p, JSON.stringify(entry) + '\n');
+  return entry;
+}
+
+/**
+ * Read notes in chronological order (oldest first).
+ * @param {string} cwd
+ * @param {number} [limit=0]  keep only the most recent N (0 = all)
+ * @returns {object[]}
+ */
+function readNotes(cwd, limit = 0) {
+  let raw;
+  try { raw = fs.readFileSync(notesPath(cwd), 'utf8'); }
+  catch (_) { return []; }
+  const out = [];
+  for (const line of raw.split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    try { out.push(JSON.parse(t)); } catch (_) { /* skip corrupt line */ }
+  }
+  if (limit > 0 && out.length > limit) return out.slice(out.length - limit);
+  return out;
+}
+
+/** Format notes as a Markdown list (pass already-ordered notes). */
+function formatNotes(notes) {
+  if (!notes || !notes.length) {
+    return 'No notes recorded yet. Add one with: sigmap note "<text>"';
+  }
+  return notes.map((n) => {
+    const when = String(n.ts || '').replace('T', ' ').slice(0, 16);
+    const br = n.branch ? ` (${n.branch})` : '';
+    const tag = n.tag ? ` #${n.tag}` : '';
+    return `- [${when}${br}]${tag} ${n.text}`;
+  }).join('\n');
+}
+
+/** Delete the notes log. Returns true if a file was removed. */
+function clearNotes(cwd) {
+  try { fs.unlinkSync(notesPath(cwd)); return true; }
+  catch (_) { return false; }
+}
+
+module.exports = { notesPath, addNote, readNotes, formatNotes, clearNotes };
+
 };
 
 // ── ./src/session/memory ──
@@ -11579,6 +11786,9 @@ Usage:
   ${cmd} verify-ai-output <answer.md>      Flag fake files/tests/imports/symbols/npm-scripts in an AI answer
   ${cmd} verify-ai-output <answer.md> --json    Hallucination report as JSON (exits 1 if issues)
   ${cmd} verify-ai-output <answer.md> --report  Write a standalone HTML report (red/amber/green)
+  ${cmd} note "<text>"                     Append a note to the cross-session decision log
+  ${cmd} note                              List recent notes (also: note --list <N>)
+  ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
   ${cmd} --init                            Write example config + .contextignore scaffold
   ${cmd} --help                            Show this message
   ${cmd} --version                         Show version
@@ -12697,6 +12907,133 @@ function main() {
     });
     console.log('\nMonorepo:', result.isMonorepo ? 'yes' : 'no');
     console.log('Confidence:', result.confidence);
+    process.exit(0);
+  }
+
+  // `sigmap note "<text>"` — append to the cross-session decision log.
+  // With no text, lists recent notes (also `note --list [N]`).
+  if (args[0] === 'note') {
+    const jsonOut = args.includes('--json');
+    const { addNote, readNotes, formatNotes } = requireSourceOrBundled('./src/session/notes');
+    const listIdx = args.indexOf('--list');
+    // Build positionals, skipping value-taking flags and their values
+    // (e.g. `--cwd <dir>`, `--list <N>`) so they never leak into the note text.
+    const VALUE_FLAGS = new Set(['--cwd', '--list']);
+    const positional = [];
+    for (let i = 1; i < args.length; i++) {
+      const a = args[i];
+      if (a.startsWith('--')) { if (VALUE_FLAGS.has(a)) i++; continue; }
+      positional.push(a);
+    }
+    const wantsList = listIdx !== -1 || positional.length === 0;
+
+    if (wantsList) {
+      const limArg = listIdx !== -1 ? parseInt(args[listIdx + 1], 10) : parseInt(positional[0], 10);
+      const limit = Number.isFinite(limArg) && limArg > 0 ? limArg : 10;
+      const notes = readNotes(cwd, limit);
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify({ notes }) + '\n');
+      } else {
+        console.log(`[sigmap] ${notes.length} recent note${notes.length === 1 ? '' : 's'}`);
+        console.log(formatNotes(notes.slice().reverse()));
+      }
+      process.exit(0);
+    }
+
+    const text = positional.join(' ');
+    let entry;
+    try {
+      entry = addNote(cwd, text);
+    } catch (err) {
+      console.error(`[sigmap] ${err.message}`);
+      process.exit(1);
+    }
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify({ added: entry }) + '\n');
+    } else {
+      console.log(`[sigmap] noted${entry.branch ? ` (${entry.branch})` : ''}: ${entry.text}`);
+    }
+    process.exit(0);
+  }
+
+  // `sigmap status` — environment / repo state at a glance.
+  if (args[0] === 'status') {
+    const jsonOut = args.includes('--json');
+    const gitOpts = { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] };
+    const st = { branch: null, dirty: 0, lastIndex: null, indexVersion: null, indexFiles: null, changedSinceIndex: null, notes: 0, lastNote: null };
+
+    try { st.branch = execSync('git rev-parse --abbrev-ref HEAD', gitOpts).trim() || null; } catch (_) {}
+    // Fallback for an unborn branch (fresh repo, no commits yet).
+    if (!st.branch || st.branch === 'HEAD') {
+      try { st.branch = execSync('git symbolic-ref --short HEAD', gitOpts).trim() || st.branch; } catch (_) {}
+    }
+    try {
+      const porcelain = execSync('git status --porcelain', gitOpts).trim();
+      st.dirty = porcelain ? porcelain.split('\n').filter(Boolean).length : 0;
+    } catch (_) {}
+
+    try {
+      const { readLog } = requireSourceOrBundled('./src/tracking/logger');
+      const log = readLog(cwd);
+      if (log.length) {
+        const last = log[log.length - 1];
+        st.lastIndex = last.ts || null;
+        st.indexVersion = last.version || null;
+        st.indexFiles = last.fileCount != null ? last.fileCount : null;
+      }
+    } catch (_) {}
+
+    // Index freshness: count tracked files modified after the last index run.
+    if (st.lastIndex) {
+      try {
+        const since = Date.parse(st.lastIndex);
+        const tracked = execSync('git ls-files', gitOpts).split('\n').filter(Boolean);
+        let changed = 0;
+        for (const f of tracked.slice(0, 5000)) {
+          try { if (fs.statSync(path.join(cwd, f)).mtimeMs > since) changed++; } catch (_) {}
+        }
+        st.changedSinceIndex = changed;
+      } catch (_) {}
+    }
+
+    try {
+      const { readNotes } = requireSourceOrBundled('./src/session/notes');
+      const notes = readNotes(cwd);
+      st.notes = notes.length;
+      if (notes.length) st.lastNote = notes[notes.length - 1];
+    } catch (_) {}
+
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify(st) + '\n');
+      process.exit(0);
+    }
+
+    const fmtAgo = (iso) => {
+      if (!iso) return 'never';
+      const ms = Date.now() - Date.parse(iso);
+      if (!Number.isFinite(ms)) return iso;
+      const m = Math.floor(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+      if (d > 0) return `${d}d ago`;
+      if (h > 0) return `${h}h ago`;
+      if (m > 0) return `${m}m ago`;
+      return 'just now';
+    };
+
+    console.log('[sigmap] status');
+    console.log(`  Branch:        ${st.branch || '(not a git repo)'}`);
+    console.log(`  Working tree:  ${st.dirty === 0 ? 'clean' : `${st.dirty} file${st.dirty === 1 ? '' : 's'} changed`}`);
+    if (st.lastIndex) {
+      let fresh = `${fmtAgo(st.lastIndex)} (v${st.indexVersion || '?'}, ${st.indexFiles != null ? st.indexFiles + ' files' : 'n/a'})`;
+      if (st.changedSinceIndex != null && st.changedSinceIndex > 0) fresh += ` — STALE: ${st.changedSinceIndex} file${st.changedSinceIndex === 1 ? '' : 's'} changed since`;
+      console.log(`  Last index:    ${fresh}`);
+    } else {
+      console.log('  Last index:    never — run: sigmap');
+    }
+    if (st.notes > 0) {
+      console.log(`  Notes:         ${st.notes} (latest: ${st.lastNote.text.slice(0, 60)}${st.lastNote.text.length > 60 ? '…' : ''})`);
+    } else {
+      console.log('  Notes:         none — add with: sigmap note "<text>"');
+    }
     process.exit(0);
   }
 

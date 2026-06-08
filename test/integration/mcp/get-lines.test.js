@@ -56,11 +56,11 @@ function callTool(dir, name, args) {
 
 console.log('\nmcp get_lines: Surgical Context demand-driven fetch\n');
 
-test('get_lines is registered (10 tools total)', () => {
+test('get_lines is registered (11 tools total)', () => {
   withTempProject((dir) => {
     const responses = mcpCall({ jsonrpc: '2.0', id: 9, method: 'tools/list' }, dir);
     const list = responses.find((r) => r.id === 9).result.tools;
-    assert.strictEqual(list.length, 10, `expected 10 tools, got ${list.length}`);
+    assert.strictEqual(list.length, 11, `expected 11 tools, got ${list.length}`);
     assert.ok(list.some((t) => t.name === 'get_lines'), 'get_lines must be in tools/list');
     const tool = list.find((t) => t.name === 'get_lines');
     assert.deepStrictEqual(tool.inputSchema.required, ['file', 'start', 'end']);

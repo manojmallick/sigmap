@@ -505,4 +505,47 @@ function getLines(args, cwd) {
   ].join('\n');
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines };
+/**
+ * read_memory({ limit? }) → string
+ *
+ * Recall the cross-session decision log (notes) plus the last ranking-session
+ * focus, formatted for an agent to consume at the start of a task.
+ */
+function readMemory(args, cwd) {
+  let limit = parseInt(args && args.limit, 10);
+  if (!Number.isFinite(limit) || limit <= 0) limit = 10;
+  limit = Math.min(limit, 50);
+
+  const out = ['# SigMap memory'];
+
+  let notes = [];
+  try {
+    const { readNotes, formatNotes } = require('../session/notes');
+    notes = readNotes(cwd, limit);
+    out.push('');
+    out.push(`## Recent notes (${notes.length})`);
+    // Most recent first for quick scanning.
+    out.push(formatNotes(notes.slice().reverse()));
+  } catch (_) {
+    out.push('');
+    out.push('_No notes available._');
+  }
+
+  // Last ranking-session focus (if any) — extends src/session/memory.js.
+  try {
+    const { loadSession } = require('../session/memory');
+    const s = loadSession(cwd);
+    if (s && (s.lastQuery || (s.topFiles && s.topFiles.length))) {
+      out.push('');
+      out.push('## Last session');
+      if (s.lastQuery) out.push(`**Last query:** ${s.lastQuery}`);
+      if (s.topFiles && s.topFiles.length) {
+        out.push(`**Focus files:** ${s.topFiles.map((f) => f.file).slice(0, 5).join(', ')}`);
+      }
+    }
+  } catch (_) { /* session optional */ }
+
+  return out.join('\n');
+}
+
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory };

@@ -99,14 +99,14 @@ test('initialize returns serverInfo', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Gate 2: tools/list returns 10 tools (v6.12+)
+// Gate 2: tools/list returns 11 tools (v6.16+)
 // ─────────────────────────────────────────────────────────────
-test('tools/list returns exactly 10 tools', () => {
+test('tools/list returns exactly 11 tools', () => {
   withTempProject((dir) => {
     const [res] = mcpCall({ jsonrpc: '2.0', method: 'tools/list', id: 2 }, dir);
     assert.ok(res.result, 'Should have result');
     assert.ok(Array.isArray(res.result.tools), 'tools should be array');
-    assert.strictEqual(res.result.tools.length, 10);
+    assert.strictEqual(res.result.tools.length, 11);
     const names = res.result.tools.map((t) => t.name);
     assert.ok(names.includes('read_context'), 'Should have read_context');
     assert.ok(names.includes('search_signatures'), 'Should have search_signatures');

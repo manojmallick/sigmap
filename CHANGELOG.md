@@ -18,6 +18,12 @@ Format: [Semantic Versioning](https://semver.org/)
   - **Proof harness** — `npm run benchmark:verify` scores each detector group against labeled cases and enforces precision targets (file ≥ 95%, import ≥ 85%, symbol ≥ 75%, script ≥ 95%), emitting a precision/recall CSV. Runs offline via a synthetic self-test; point it at real repos with `--manifest`.
   - New guide: `docs-vp/guide/verify-ai-output.md`.
 - The `verify-ai-output` integration test (29 cases) is now part of `npm run test:integration`.
+- **Memory tools — `note`, `status`, and the `read_memory` MCP tool (Phase 1.5):** closes the cold-start gap so an agent can recall *what we were doing and why* without re-scanning the repo.
+  - **`sigmap note "<text>"`** — append to a cross-session decision log stored as append-only NDJSON at `.context/notes.ndjson` (each entry records text, ISO timestamp, and git branch). `sigmap note` with no text lists recent notes (`--list <N>`, `--json`). New module `src/session/notes.js`.
+  - **`sigmap status`** — repo state at a glance: branch (with an unborn-branch fallback), dirty-file count, last index run (time, version, file count) with a **staleness** signal (tracked files modified since the last index), and notes summary. `--json` supported.
+  - **`read_memory` MCP tool (11th tool)** — returns recent notes (most recent first) plus the last ranking-session focus from `ask`, formatted for agent consumption. Registered in `src/mcp/tools.js`, `handlers.js`, and `server.js`; bundled into the standalone binary.
+  - New guide: `docs-vp/guide/memory.md`.
+- New integration suite `test/integration/memory-tools.test.js` (13 cases) covering the notes store, `note`/`status` CLI, and `read_memory` over the MCP wire; wired into `npm run test:integration`.
 
 ### Fixed
 - `npm run test:integration` referenced a non-existent `test/integration/mcp-server.test.js`; corrected to `test/integration/mcp/server.test.js`.
