@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Decision-log notes (Memory, v6.16.0).
+ * Decision-log notes (Memory, v6.15.0).
  *
  * A tiny append-only log of human/agent notes that survives across sessions,
  * so an agent starting cold can recall "what were we doing / why". Stored as

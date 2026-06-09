@@ -38,7 +38,7 @@ $ sigmap status
 [sigmap] status
   Branch:        feat/auth-refresh
   Working tree:  3 files changed
-  Last index:    2h ago (v6.16.0, 412 files) — STALE: 5 files changed since
+  Last index:    2h ago (v6.15.0, 412 files) — STALE: 5 files changed since
   Notes:         7 (latest: switched auth to JWT; refresh-token flow still TODO)
 ```
 

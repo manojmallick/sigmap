@@ -1,19 +1,19 @@
 {
-  "version": "6.14.0",
-  "benchmark_date": "2026-06-05",
-  "benchmark_id": "sigmap-v6.13-main",
+  "version": "6.15.0",
+  "benchmark_date": "2026-06-09",
+  "benchmark_id": "sigmap-v6.15-main",
   "languages": 31,
   "mcp_tools": 11,
   "tests": 60,
   "metrics": {
-    "hit_at_5": 0.811,
+    "hit_at_5": 0.756,
     "baseline_hit_at_5": 0.136,
-    "prompt_reduction_pct": 41.8,
-    "task_success_proxy_pct": 53.3,
-    "prompts_per_task": 1.66,
+    "prompt_reduction_pct": 39.0,
+    "task_success_proxy_pct": 51.1,
+    "prompts_per_task": 1.73,
     "baseline_prompts_per_task": 2.84,
-    "overall_token_reduction_pct": 96.5,
-    "retrieval_lift": 6.0,
-    "graph_boosted_hit_at_5": 0.811
+    "overall_token_reduction_pct": 97.1,
+    "retrieval_lift": 5.6,
+    "graph_boosted_hit_at_5": 0.756
   }
 }

@@ -116,7 +116,7 @@ All tools are available on-demand — your AI agent calls only what it needs.
 | `query_context` | Ranks all files by relevance to a free-text query using TF-IDF scoring. Returns top-K files. New in v2.3. | `query` (required string), `topK` (optional number, default 10) | `query_context(query="authentication flow")` |
 | `get_impact` | Returns the blast radius of a file — direct importers, transitive importers, affected tests and routes. | `file` (required string), `depth` (optional number, default 3) | `get_impact(file="src/auth/service.ts")` |
 | `get_lines` | **Surgical Context** demand-driven fetch: returns an exact line range from a file behind a `:start-end` anchor. Clamped to file bounds, secret-scanned, sandboxed to the project root. New in v6.12.0. | `file` (required string), `start` (required number), `end` (required number) | `get_lines(file="src/config/loader.js", start=42, end=58)` |
-| `read_memory` | **Memory** — recall the cross-session decision log (notes left via `sigmap note`) plus the last `ask` session focus. Kills agent cold-start. New in v6.16.0. | `limit` (optional number, default 10) | `read_memory(limit=10)` |
+| `read_memory` | **Memory** — recall the cross-session decision log (notes left via `sigmap note`) plus the last `ask` session focus. Kills agent cold-start. New in v6.15.0. | `limit` (optional number, default 10) | `read_memory(limit=10)` |
 
 ## Token cost per tool call
 
