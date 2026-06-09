@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.14.0, with recent releases adding the verify-ai-output Hallucination Guard prototype, demand-driven Surgical Context (get_lines MCP tool, --mode index, --since), and line anchors for JavaScript plus per-member anchors.
+description: SigMap version history and roadmap. From v0.0 to v6.15.0, with recent releases adding the verify-ai-output Hallucination Guard Reliable MVP (5 detectors, closest-match, HTML report), Memory tools (note, status, read_memory MCP tool), and demand-driven Surgical Context.
 head:
   - - meta
     - property: og:title
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Fifty-eight versions shipped. MIT open source from day one.
+Fifty-nine versions shipped. MIT open source from day one.
 
-**Stats:** 96.5% overall token reduction · 914 tests passing · 29 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.1% overall token reduction · 949 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -816,9 +816,21 @@ The first headline verification command. `sigmap verify-ai-output <answer.md>` s
 
 ---
 
-## Current milestone — v6.15+ (Hallucination Guard — Reliable MVP)
+### v6.15.0 — Hallucination Guard Reliable MVP + Memory tools ✓ (2026-06-09)
 
-v6.0–v6.13.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire for 10 AI tools, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, JVM project structure auto-detection, enhanced monorepo JVM support, 2-hop graph boost with hub suppression, session-aware context carry-forward with safe change planning, segmented benchmarks with answer usefulness evaluation, monorepo workspace-scoped retrieval, R language support with S4 patterns, Python AST extraction for complex signatures, open-source agent/local LLM integration guides, complete Python import detection for accurate Python blast radius, line anchors on signatures (Surgical Context Phase 1), demand-driven retrieval with the `get_lines` MCP tool, `--mode index`, and `--since` delta context (Surgical Context Phase 2), JavaScript + per-member line anchors (Phase 2.1), and the **`verify-ai-output` (Hallucination Guard) prototype** — a deterministic verifier that flags fake files, imports, and symbols in an AI answer against the live symbol index and file map. Next: the **Hallucination Guard reliable MVP** — closest-match "did you mean?" suggestions, `fake-test-file` and `fake-npm-script` detectors, and a 5-repo precision proof — plus line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
+Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows the Hallucination Guard from three detectors to **five** — adding **fake-test-file** (a referenced `*.test`/`*.spec`/`__tests__`/`test_*.py` path absent on disk) and **fake-npm-script** (`npm run X` not in `package.json` scripts) — and adds **closest-match suggestions** (Levenshtein + file/symbol/script proximity → "Did you mean `loadConfig()` in `src/config/loader.js:42`?", labeled heuristic). The JSON schema is finalized (`{ type, value, line, location, message, confidence, suggestion }`), a standalone **HTML report** (`--report`, red/amber/green, no external assets) renders the findings, and a **proof harness** (`npm run benchmark:verify`) enforces per-detector precision targets (file ≥ 95%, import ≥ 85%, symbol ≥ 75%, script ≥ 95%).
+
+**Memory tools** (#233) close the agent cold-start gap. `sigmap note "<text>"` appends to a cross-session decision log (`.context/notes.ndjson`); `sigmap status` shows branch, dirty files, and index freshness/staleness; and the **`read_memory` MCP tool — the 11th** — recalls recent notes plus the last `ask` session focus so a fresh agent session starts already knowing where work left off.
+
+**Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
+
+**Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+## Current milestone — v6.16+ (PR verification + Interactive Context Explorer)
+
+v6.0–v6.15.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, monorepo workspace-scoped retrieval, R language support, Python AST extraction, line anchors on signatures (Surgical Context Phase 1), demand-driven retrieval with the `get_lines` MCP tool, `--mode index`, and `--since` delta context (Surgical Context Phase 2), JavaScript + per-member line anchors (Phase 2.1), the **`verify-ai-output` Hallucination Guard** — grown to a five-detector reliable MVP with closest-match suggestions, a standalone HTML report, and a precision proof harness — and **Memory tools** (`note`, `status`, and the `read_memory` MCP tool, now 11 tools total) that kill agent cold-start. Next: **PR verification** — `verify-plan` and `review-pr` with a GitHub Action that posts a scope-drift + blast-radius comment on real PRs — plus the **Interactive Context Explorer** (a static, offline "what exactly gets sent for this query" demo), line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 
 ---
 

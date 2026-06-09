@@ -47,10 +47,10 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 ## Why SigMap?
 
-- **81.1% hit@5** — right file found in top 5 results (vs 13.6% baseline)
-- **96.5% token reduction** — average across 21 real repos
-- **53.3% task success rate** — up from 10% without context
-- **1.66 prompts per task** — down from 2.84 (41.8% fewer retries)
+- **75.6% hit@5** — right file found in top 5 results (vs 13.6% baseline)
+- **97.1% token reduction** — average across 21 real repos
+- **51.1% task success rate** — up from 10% without context
+- **1.73 prompts per task** — down from 2.84 (39.0% fewer retries)
 - **31 languages supported** — TypeScript, Python, Go, Rust, Java, R, and 25 others
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
@@ -63,7 +63,7 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 | Without SigMap | With SigMap |
 |---|---|
-| ❌ Guessing which files are relevant | ✅ Right file in context — 81% of the time |
+| ❌ Guessing which files are relevant | ✅ Right file in context — 76% of the time |
 | ❌ Sending the full repo to your AI | ✅ Minimal context — only what matters |
 | ❌ Embeddings / vector DB required | ✅ Grounded answers, no infra needed |
 
@@ -87,13 +87,13 @@ Ask → Rank → Context → Validate → Judge → Learn
 ## Benchmark
 
 ```
-Benchmark : sigmap-v6.13-main (21 repositories, including R language)
-Date      : 2026-06-05
+Benchmark : sigmap-v6.15-main (21 repositories, including R language)
+Date      : 2026-06-09
 
-Hit@5          : 81.1%   (baseline 13.6%  — 6.0× lift)
-Token reduction: 96.5%   (across 21 repos)
-Prompt reduction : 41.8% (2.84 → 1.66 prompts per task)
-Task success   : 53.3%   (baseline 10%)
+Hit@5          : 75.6%   (baseline 13.6%  — 5.6× lift)
+Token reduction: 97.1%   (across 21 repos)
+Prompt reduction : 39.0% (2.84 → 1.73 prompts per task)
+Task success   : 51.1%   (baseline 10%)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 

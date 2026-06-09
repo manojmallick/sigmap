@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, plan, bench, judge, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 40 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 42 SigMap commands and flags documented with examples. ask, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 40 SigMap commands and flags documented with examples. ask, plan, bench, judge, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 42 SigMap commands and flags documented with examples. ask, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -51,7 +51,8 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>" --since <ref>` | Delta context: restrict ranked output to files changed since a git ref |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
-| `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, imports, and symbols in an AI answer (deterministic, offline) |
+| `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
+| `verify-ai-output <answer.md> --report [out.html]` | Write a standalone red/amber/green HTML report of the findings |
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
@@ -67,6 +68,8 @@ If you are new to the product, start with the workflow pages first:
 |----------------|-------------|
 | `roots [--explain | --json | --fix]` | Auto-detect source roots for 17 languages and 50+ frameworks; shows confidence and scoring |
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
+| `note "<text>"` | Append a note to the cross-session decision log (`note` alone lists recent) |
+| `status` | Repo state — branch, dirty files, index freshness, notes |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
 | `suggest-profile` | Auto-detect context profile from git state |
@@ -297,29 +300,33 @@ Exit code `0` = pass, `1` = fail. Use in CI to gate on response quality.
 
 ## verify-ai-output
 
-Hallucination Guard (prototype). Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, unresolvable imports, and function/class symbols that are not in the SigMap index. Fully deterministic — runs offline, no LLM API.
+Hallucination Guard. Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, fake test files, unresolvable imports, symbols not in the SigMap index, and `npm run` scripts that don't exist. Fully deterministic — runs offline, no LLM API. Where a flagged name is a near miss for something real, a heuristic closest-match suggestion is attached.
 
 ```bash
 sigmap verify-ai-output ai-answer.md
 sigmap verify-ai-output ai-answer.md --json
+sigmap verify-ai-output ai-answer.md --report report.html
 ```
 
 ```
 [sigmap] ✗ ai-answer.md — 3 issues found
-  fake-file: 1  fake-import: 1  fake-symbol: 1
+  fake-file: 0  fake-test-file: 1  fake-import: 1  fake-symbol: 1  fake-npm-script: 0
 
-  L6   [Fake file]    File not found on disk: src/extractors/nonexistent.js
-  L10  [Fake import]  Import does not resolve: ./src/totally/madeup
-  L4   [Fake symbol]  Symbol not found in repo index: magicallyFix()
+  L4   [Fake symbol]     Symbol not found in repo index: loadConfg()
+         ↳ Did you mean `loadConfig()` in src/config/loader.js:42?
+  L6   [Fake test file]  Test file not found on disk: src/extractors/nonexistent.test.js
+  L10  [Fake import]     Import does not resolve: ./src/totally/madeup
 ```
 
-Three deterministic detectors:
+Five deterministic detectors:
 
-| Detector | Flags |
-|----------|-------|
-| `fake-file` | A referenced path that is not present on disk |
-| `fake-import` | A relative import that does not resolve, or a bare package absent from `package.json` dependencies (Node/Python builtins and scoped packages are allow-listed) |
-| `fake-symbol` | A called function/class (`` `name()` ``) absent from the SigMap symbol index (`buildSigIndex`) |
+| Detector | Flags | Confidence |
+|----------|-------|------------|
+| `fake-file` | A referenced path that is not present on disk | High |
+| `fake-test-file` | A referenced **test** path (`*.test`/`*.spec`/`__tests__`/`test_*.py`) absent on disk | High |
+| `fake-import` | A relative import that does not resolve, or a bare package absent from `package.json` dependencies (Node/Python builtins and scoped packages are allow-listed) | High |
+| `fake-symbol` | A called function/class (`` `name()` ``) absent from the SigMap symbol index (`buildSigIndex`) | Medium |
+| `fake-npm-script` | An `npm run X` (or `pnpm`/`yarn run X`) where `X` is not a `package.json` script | High |
 
 JSON output (`--json`) for CI:
 
@@ -327,17 +334,67 @@ JSON output (`--json`) for CI:
 {
   "file": "ai-answer.md",
   "issues": [
-    { "type": "fake-file", "value": "src/ghost.js", "line": 6, "message": "File not found on disk: src/ghost.js" }
+    { "type": "fake-symbol", "value": "loadConfg", "line": 4, "location": "L4", "message": "Symbol not found in repo index: loadConfg()", "confidence": "medium", "suggestion": "Did you mean `loadConfig()` in src/config/loader.js:42?" }
   ],
-  "summary": { "total": 1, "byType": { "fake-file": 1, "fake-import": 0, "fake-symbol": 0 }, "clean": false, "symbolsIndexed": 288 }
+  "summary": { "total": 1, "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-symbol": 1, "fake-npm-script": 0 }, "clean": false, "symbolsIndexed": 288, "withSuggestion": 1 }
 }
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--json` | Emit machine-readable `{ file, issues, summary }` instead of the markdown report |
+| `--report [out.html]` | Write a standalone, self-contained HTML report (red/amber/green per issue, suggestions inline); defaults to `sigmap-verify-report.html`. Combinable with `--json`. |
 
-Exit code `0` = clean (no hallucinations), `1` = at least one issue found. Use in CI to gate AI-generated patches or answers before they are trusted.
+Exit code `0` = clean (no hallucinations), `1` = at least one issue found. Use in CI to gate AI-generated patches or answers before they are trusted. See the [Hallucination Guard guide](/guide/verify-ai-output) for the full workflow.
+
+---
+
+## note
+
+Append a note to a cross-session decision log so an agent (or you) can recall *what we were doing and why* later. Notes are stored as append-only NDJSON at `.context/notes.ndjson` (text + ISO timestamp + git branch). Running `note` with no text lists recent notes.
+
+```bash
+sigmap note "switched auth to JWT; refresh-token flow still TODO"
+sigmap note               # list the last 10
+sigmap note --list 25     # list the last 25
+sigmap note --json        # machine-readable
+```
+
+```
+[sigmap] noted (feat/auth): switched auth to JWT; refresh-token flow still TODO
+```
+
+| Option | Description |
+|--------|-------------|
+| `--list <N>` | List the most recent N notes instead of appending |
+| `--json` | Emit `{ added }` (on append) or `{ notes }` (on list) |
+
+The same log is surfaced to agents through the [`read_memory` MCP tool](/guide/mcp). See the [Memory & notes guide](/guide/memory).
+
+---
+
+## status
+
+Repo state at a glance — useful before kicking off a task or in a pre-commit check.
+
+```bash
+sigmap status
+sigmap status --json
+```
+
+```
+[sigmap] status
+  Branch:        feat/auth-refresh
+  Working tree:  3 files changed
+  Last index:    2h ago (v6.15.0, 412 files) — STALE: 5 files changed since
+  Notes:         7 (latest: switched auth to JWT; refresh-token flow still TODO)
+```
+
+`Last index` reads the usage log and compares the index time against your tracked files' mtimes, so you can see whether the context an agent is using is stale.
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit `{ branch, dirty, lastIndex, indexVersion, indexFiles, changedSinceIndex, notes, lastNote }` |
 
 ---
 
@@ -535,9 +592,9 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         81.1% vs 13.6%   (6.0× lift)
- Avg prompts   1.66 vs 2.84
- Token story   96.5% overall reduction
+ hit@5         75.6% vs 13.6%   (5.6× lift)
+ Avg prompts   1.73 vs 2.84
+ Token story   97.1% overall reduction
 ────────────────────────────────────────────
 ```
 
@@ -553,7 +610,7 @@ sigmap share
 
 ```
 Generated with SigMap — zero-dependency AI context engine
-96.5% fewer tokens · 81.1% retrieval hit@5 · 41.8% fewer prompts
+97.1% fewer tokens · 75.6% retrieval hit@5 · 39.0% fewer prompts
 https://sigmap.dev
 [sigmap] Copied to clipboard.
 ```
@@ -578,7 +635,7 @@ sigmap bench --submit --json
  Submitted      : 2026-05-03
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 81.1%
+ hit@5          : 75.6%
  token reduction: 96.8%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs

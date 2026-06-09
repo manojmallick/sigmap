@@ -174,7 +174,7 @@ test('compare-alternatives.md: covers SigMap vs Copilot', () => {
 
 test('compare-alternatives.md: contains correct hit@5 figure', () => {
   const src = readGuide('compare-alternatives.md');
-  assert.ok(src.includes('81.1%'), 'missing 81.1% hit@5 in compare-alternatives');
+  assert.ok(src.includes('75.6%'), 'missing 75.6% hit@5 in compare-alternatives');
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% hit@5 in compare-alternatives');
 });
 
@@ -215,21 +215,21 @@ test('docs/impact-banner.svg: no stale 80.0% hit@5', () => {
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% in impact-banner.svg');
 });
 
-test('docs/impact-banner.svg: uses 81.1% hit@5', () => {
+test('docs/impact-banner.svg: uses 75.6% hit@5', () => {
   const src = readDocs('impact-banner.svg');
-  assert.ok(src.includes('81.1%'), 'missing 81.1% in impact-banner.svg');
+  assert.ok(src.includes('75.6%'), 'missing 75.6% in impact-banner.svg');
 });
 
-test('docs/impact-banner.svg: uses 1.66 prompts (not 1.68)', () => {
+test('docs/impact-banner.svg: uses 1.73 prompts (not 1.68)', () => {
   const src = readDocs('impact-banner.svg');
   assert.ok(!src.includes('1.68'), 'found stale 1.68 in impact-banner.svg');
-  assert.ok(src.includes('1.66'), 'missing 1.66 in impact-banner.svg');
+  assert.ok(src.includes('1.73'), 'missing 1.73 in impact-banner.svg');
 });
 
-test('docs/comparison-chart.svg: uses 81.1% (not 80.0%)', () => {
+test('docs/comparison-chart.svg: uses 75.6% (not 80.0%)', () => {
   const src = readDocs('comparison-chart.svg');
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% in comparison-chart.svg');
-  assert.ok(src.includes('81.1%'), 'missing 81.1% in comparison-chart.svg');
+  assert.ok(src.includes('75.6%'), 'missing 75.6% in comparison-chart.svg');
 });
 
 test('docs/index.html: softwareVersion is 5.8.0', () => {
