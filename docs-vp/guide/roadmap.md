@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v6.15.0, with recent releases adding the verify-ai-output Hallucination Guard Reliable MVP (5 detectors, closest-match, HTML report), Memory tools (note, status, read_memory MCP tool), and demand-driven Surgical Context.
+description: SigMap version history and roadmap. From v0.0 to v7.0.0, with recent releases adding Squeeze input minimization with symbol enrichment, full-signatures-under-budget, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Fifty-nine versions shipped. MIT open source from day one.
+Sixty versions shipped. MIT open source from day one.
 
-**Stats:** 97.1% overall token reduction · 949 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 984 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,9 +828,21 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
-## Current milestone — v6.16+ (PR verification + Interactive Context Explorer)
+### v7.0.0 — Squeeze + Star Nudge; signatures-under-budget fixed ✓ (2026-06-14)
 
-v6.0–v6.15.0 shipped graph-boosted retrieval with dependency-aware scoring, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, native tool registration, docs trust sync, intelligent source root detection, intent-aware retrieval with signal transparency, cross-session context memory with impact planning, monorepo workspace-scoped retrieval, R language support, Python AST extraction, line anchors on signatures (Surgical Context Phase 1), demand-driven retrieval with the `get_lines` MCP tool, `--mode index`, and `--since` delta context (Surgical Context Phase 2), JavaScript + per-member line anchors (Phase 2.1), the **`verify-ai-output` Hallucination Guard** — grown to a five-detector reliable MVP with closest-match suggestions, a standalone HTML report, and a precision proof harness — and **Memory tools** (`note`, `status`, and the `read_memory` MCP tool, now 11 tools total) that kill agent cold-start. Next: **PR verification** — `verify-plan` and `review-pr` with a GitHub Action that posts a scope-drift + blast-radius comment on real PRs — plus the **Interactive Context Explorer** (a static, offline "what exactly gets sent for this query" demo), line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
+**Major release.** **Squeeze** (#238) makes `sigmap ask` minimize pasted input before ranking — it classifies a stack trace, CI log, or JSON payload and dedupes frames, strips vendor/timestamp noise, and collapses repeated array items, while **enriching the top stack frame** with its real signature from the symbol index (the differentiator over generic log summarizers). New `sigmap squeeze <file|->` command and `--squeeze` / `--no-squeeze` / `--squeeze-threshold` flags; interactive-only prompt, never blocks pipes/CI. A one-time, race-safe **Star Nudge** appears after ≥10 runs / ≥8 successes. This default behavioral change to `ask` is why it's a major bump.
+
+Alongside it: the **token budget now keeps full signatures** (#240) — when context exceeds `maxTokens`, low-priority files are dropped (only marginal overflow collapses to anchors) instead of every signature being gutted to a bare line pointer — and every generated context file carries **one canonical `## SigMap commands` block** (the redundant AGENTS.md `## Tools` JSON was removed). SigMap's own **`llms.txt` + `llms-full.txt`** are now generated from source of truth and CI-validated (#243); the benchmark corpus is **pinned to fixed commits** for reproducible metrics (#236); and `prdiff` symbol naming no longer emits phantom `+is`/`~is` fragments (#247).
+
+**Tags:** `squeeze` · `star-nudge` · `symbol-enrichment` · `--squeeze` · `full-signatures-under-budget` · `llms.txt` · `pinned-benchmarks` · `BREAKING` · `PR #236` · `#238` · `#240` · `#243` · `#247`
+
+**Impact:** flagship input-minimization (stacktrace ~85% / cilog ~89% / json ~73% reduction with 100% ground-truth preservation); context files keep real signatures; reproducible benchmarks; 984 tests passing.
+
+---
+
+## Current milestone — v7.1+ (PR verification + Interactive Context Explorer)
+
+v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), and **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks. Next: **PR verification** — `verify-plan` and `review-pr` with a GitHub Action that posts a scope-drift + blast-radius comment on real PRs — plus the **Interactive Context Explorer** (a static, offline "what exactly gets sent for this query" demo), line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 
 ---
 

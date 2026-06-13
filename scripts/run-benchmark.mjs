@@ -36,6 +36,7 @@ const REPOS = [
     name: 'express',
     org: 'expressjs',
     url: 'https://github.com/expressjs/express.git',
+    commit: '8e022edc9185f540a3fcecaf5e56b850d919cdac', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'JavaScript',
     description: 'Node.js web framework',
     // default srcDirs work (lib/)
@@ -44,6 +45,7 @@ const REPOS = [
     name: 'flask',
     org: 'pallets',
     url: 'https://github.com/pallets/flask.git',
+    commit: '2ac89889f4cc330eabd50f295dcef02828522c69', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Python',
     description: 'Python microframework',
     // default srcDirs work (src/)
@@ -52,6 +54,7 @@ const REPOS = [
     name: 'gin',
     org: 'gin-gonic',
     url: 'https://github.com/gin-gonic/gin.git',
+    commit: 'd3ffc9985281dcf4d3bef604cce4e662b1a327a6', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Go',
     description: 'Go HTTP web framework',
     // Go packages live at root + subdirs — override srcDirs
@@ -61,6 +64,7 @@ const REPOS = [
     name: 'spring-petclinic',
     org: 'spring-projects',
     url: 'https://github.com/spring-projects/spring-petclinic.git',
+    commit: 'edf4db28affcc4741c79850a3d95bc3f177b5ff9', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Java',
     description: 'Spring Boot sample app',
     // Maven layout: src/main/java — default srcDirs work (src/)
@@ -69,6 +73,7 @@ const REPOS = [
     name: 'rails',
     org: 'rails',
     url: 'https://github.com/rails/rails.git',
+    commit: 'f9243afd51d2b964618970139952de9f0abc2c0a', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Ruby',
     description: 'Ruby on Rails (monorepo)',
     // Rails is a monorepo; primary gem code lives in <gem>/lib/
@@ -88,6 +93,7 @@ const REPOS = [
     name: 'axios',
     org: 'axios',
     url: 'https://github.com/axios/axios.git',
+    commit: 'c7a76ddbf277db864ee6cfb4ef17b8a08ffbe3f5', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'TypeScript',
     description: 'Promise HTTP client',
     // default srcDirs work (lib/)
@@ -96,6 +102,7 @@ const REPOS = [
     name: 'rust-analyzer',
     org: 'rust-lang',
     url: 'https://github.com/rust-lang/rust-analyzer.git',
+    commit: '9eb97ea96d8400e8957ddd56702e962614296583', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Rust',
     description: 'Rust language server',
     configOverride: { srcDirs: ['crates'] },
@@ -105,6 +112,7 @@ const REPOS = [
     name: 'abseil-cpp',
     org: 'abseil',
     url: 'https://github.com/abseil/abseil-cpp.git',
+    commit: 'ea64b6e7e63ffd917b20609eca768e8e6eacceda', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'C++',
     description: 'Google Abseil C++ library',
     configOverride: { srcDirs: ['absl'] },
@@ -113,6 +121,7 @@ const REPOS = [
     name: 'serilog',
     org: 'serilog',
     url: 'https://github.com/serilog/serilog.git',
+    commit: '6c3fbcf636b0671bbd6f5032b61a2254937d8408', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'C#',
     description: 'Structured logging for .NET',
     // default srcDirs works (src/)
@@ -121,6 +130,7 @@ const REPOS = [
     name: 'riverpod',
     org: 'rrousselGit',
     url: 'https://github.com/rrousselGit/riverpod.git',
+    commit: '7c6f94d7271bd0b02c3090175c75fb5c2a244034', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Dart',
     description: 'Flutter/Dart state management',
     configOverride: { srcDirs: ['packages'] },
@@ -129,6 +139,7 @@ const REPOS = [
     name: 'okhttp',
     org: 'square',
     url: 'https://github.com/square/okhttp.git',
+    commit: '8a276b9dda950a52f6c0d88b15ed4a653623ae3e', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Kotlin',
     description: 'HTTP client for Android/JVM',
     configOverride: { srcDirs: ['okhttp/src/main/kotlin', 'okhttp-tls/src/main/kotlin', 'okhttp-logging-interceptor/src/main/kotlin'] },
@@ -137,6 +148,7 @@ const REPOS = [
     name: 'laravel',
     org: 'laravel',
     url: 'https://github.com/laravel/framework.git',
+    commit: '635129b24d0d6c5664e4b77f41b1297a2f74c91a', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'PHP',
     description: 'Laravel PHP framework',
     configOverride: { srcDirs: ['src'] },
@@ -145,6 +157,7 @@ const REPOS = [
     name: 'akka',
     org: 'akka',
     url: 'https://github.com/akka/akka.git',
+    commit: '2b2032215d05e13d6cad47f66ac387015e23a57d', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Scala',
     description: 'Actor model runtime for JVM',
     configOverride: { srcDirs: ['akka-actor/src/main/scala', 'akka-stream/src/main/scala', 'akka-cluster/src/main/scala'] },
@@ -153,6 +166,7 @@ const REPOS = [
     name: 'vapor',
     org: 'vapor',
     url: 'https://github.com/vapor/vapor.git',
+    commit: 'cfd8f434843ac7850e2d97f46c1aa5ddb906cf1c', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Swift',
     description: 'Swift server-side web framework',
     configOverride: { srcDirs: ['Sources'] },
@@ -161,6 +175,7 @@ const REPOS = [
     name: 'vue-core',
     org: 'vuejs',
     url: 'https://github.com/vuejs/core.git',
+    commit: '7df0edd46c1636751750588d8db2fafd2ef68443', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Vue',
     description: 'Vue.js 3 core monorepo',
     configOverride: { srcDirs: ['packages'] },
@@ -169,6 +184,7 @@ const REPOS = [
     name: 'svelte',
     org: 'sveltejs',
     url: 'https://github.com/sveltejs/svelte.git',
+    commit: '4a50e8ea3b7db1d8cd752b825032e4ce2878524b', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Svelte',
     description: 'Cybernetically enhanced web apps',
     configOverride: { srcDirs: ['packages/svelte/src'] },
@@ -177,6 +193,7 @@ const REPOS = [
     name: 'fastify',
     org: 'fastify',
     url: 'https://github.com/fastify/fastify.git',
+    commit: '890ab7578f14730b2fed6de43acfeee19da1a3e4', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'JavaScript',
     description: 'Fast and low-overhead Node.js web framework',
     configOverride: { srcDirs: ['lib'] },
@@ -185,6 +202,7 @@ const REPOS = [
     name: 'fastapi',
     org: 'fastapi',
     url: 'https://github.com/fastapi/fastapi.git',
+    commit: '9653034b8d459607a4b7f761e6c23a6f287fa5fa', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'Python',
     description: 'FastAPI Python framework',
     configOverride: { srcDirs: ['fastapi'] },
@@ -194,6 +212,7 @@ const REPOS = [
     name: 'ggplot2',
     org: 'tidyverse',
     url: 'https://github.com/tidyverse/ggplot2.git',
+    commit: '6870419aa6e106c3580c45c81d5b688cb31758bd', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'R',
     description: 'ggplot2 visualization library',
     configOverride: { srcDirs: ['R'] },
@@ -202,6 +221,7 @@ const REPOS = [
     name: 'dplyr',
     org: 'tidyverse',
     url: 'https://github.com/tidyverse/dplyr.git',
+    commit: '770ad50f884ebb78a479d78b79d0ba2ec0fb0c53', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'R',
     description: 'dplyr data manipulation',
     configOverride: { srcDirs: ['R'] },
@@ -210,6 +230,7 @@ const REPOS = [
     name: 'shiny',
     org: 'rstudio',
     url: 'https://github.com/rstudio/shiny.git',
+    commit: 'ab0273969666aedc5b6968739aafe91e14a9ded0', // pinned 2026-06-09 (sigmap-v6.15-main) for reproducibility
     language: 'R',
     description: 'Shiny interactive web framework',
     configOverride: { srcDirs: ['R'] },
@@ -222,6 +243,30 @@ const REPOS = [
 function run(cmd, cwd) {
   const result = spawnSync('sh', ['-c', cmd], { cwd, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 });
   return { stdout: result.stdout || '', stderr: result.stderr || '', status: result.status };
+}
+
+/**
+ * Shallow-fetch a repo at an exact commit so the benchmark corpus is frozen and
+ * reproducible release-to-release (GitHub allows fetching by SHA). Without a
+ * pin, or if the SHA fetch is rejected, falls back to a depth-1 default-branch
+ * clone — in which case results may drift; the caller logs that case.
+ * @returns {boolean} true if the repo is checked out at the requested commit.
+ */
+function fetchPinned(url, dir, commit, existing = false) {
+  if (!existing) {
+    if (run(`git init -q "${dir}"`, REPOS_DIR).status !== 0) return false;
+    run(`git -C "${dir}" remote add origin "${url}"`, REPOS_DIR);
+  }
+  if (commit) {
+    const r = run(`git -C "${dir}" fetch --depth 1 --quiet origin ${commit}`, REPOS_DIR);
+    if (r.status === 0 && run(`git -C "${dir}" checkout -q ${commit}`, REPOS_DIR).status === 0) {
+      return true;
+    }
+    // SHA fetch/checkout failed — degrade to default branch (corpus not frozen).
+  }
+  if (run(`git -C "${dir}" fetch --depth 1 --quiet origin HEAD`, REPOS_DIR).status !== 0) return false;
+  run(`git -C "${dir}" checkout -q FETCH_HEAD`, REPOS_DIR);
+  return false; // not at the pinned commit
 }
 
 function formatNum(n) {
@@ -248,20 +293,33 @@ for (const repo of REPOS) {
   const repoDir = path.join(REPOS_DIR, repo.name);
   process.stdout.write(`\n[${repo.language}] ${repo.name}  — ${repo.description}\n`);
 
-  // ── Clone (or skip) ──────────────────────────────────────────────────────
+  // ── Clone at the pinned commit, or pin an existing cache ─────────────────
+  // The corpus is frozen to `repo.commit` so hit@5 / token numbers only move
+  // when SigMap changes — not when upstream repos do. (Unpinned depth-1 clones
+  // silently drifted the corpus, making metrics non-reproducible across releases.)
   if (!fs.existsSync(repoDir)) {
     if (SKIP_CLONE) {
       console.warn(`  SKIP (--skip-clone): ${repoDir} not found`);
       continue;
     }
-    process.stdout.write(`  cloning ${repo.url} ...\n`);
-    const cloneResult = run(
-      `git clone --depth 1 --single-branch --quiet "${repo.url}" "${repoDir}"`,
-      REPOS_DIR
-    );
-    if (cloneResult.status !== 0) {
-      console.error(`  ERROR cloning: ${cloneResult.stderr.trim()}`);
+    process.stdout.write(`  cloning ${repo.url} @ ${repo.commit ? repo.commit.slice(0, 10) : 'HEAD'} ...\n`);
+    const pinned = fetchPinned(repo.url, repoDir, repo.commit);
+    if (!fs.existsSync(path.join(repoDir, '.git'))) {
+      console.error(`  ERROR cloning ${repo.name}`);
       continue;
+    }
+    if (repo.commit && !pinned) {
+      console.warn(`  WARN: could not pin ${repo.name} to ${repo.commit.slice(0, 10)} — using default branch (results may drift)`);
+    }
+  } else if (repo.commit) {
+    const cur = run(`git -C "${repoDir}" rev-parse HEAD 2>/dev/null`, REPOS_DIR).stdout.trim();
+    if (cur === repo.commit) {
+      process.stdout.write(`  repo present at pinned commit ${repo.commit.slice(0, 10)}\n`);
+    } else {
+      process.stdout.write(`  re-pinning ${repo.name}: ${cur.slice(0, 10) || '?'} → ${repo.commit.slice(0, 10)} ...\n`);
+      let ok = run(`git -C "${repoDir}" checkout -q ${repo.commit}`, REPOS_DIR).status === 0;
+      if (!ok && !SKIP_CLONE) ok = fetchPinned(repo.url, repoDir, repo.commit, true);
+      if (!ok) console.warn(`  WARN: ${repo.name} not at pinned commit (results may drift)`);
     }
   } else {
     process.stdout.write(`  repo already present, skipping clone\n`);

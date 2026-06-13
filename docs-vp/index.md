@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — zero-dependency AI context engine
-description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 75.6% hit@5, 39.0% fewer prompts, 97.1% average token reduction, 31 languages with R support.
+description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 75.6% hit@5, 39.4% fewer prompts, 97.0% average token reduction, 31 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — grounded AI coding context"
   - - meta
     - property: og:description
-      content: "Ask, validate, judge, and learn from real code context. 75.6% hit@5, 39.0% fewer prompts, 97.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 75.6% hit@5, 39.4% fewer prompts, 97.0% overall token reduction."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — grounded AI coding context"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 75.6% hit@5, 39.0% fewer prompts, 97.1% overall token reduction."
+      content: "Ask, validate, judge, and learn from real code context. 75.6% hit@5, 39.4% fewer prompts, 97.0% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — zero-dependency AI context engine"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Better context. More grounded answers.
-  tagline: "Zero-dependency AI context engine. 75.6% hit@5 · 97.1% token reduction · Ask → Validate → Judge → Learn."
+  tagline: "Zero-dependency AI context engine. 75.6% hit@5 · 97.0% token reduction · Ask → Validate → Judge → Learn."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,7 +46,7 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.73 with SigMap. That is a 39.0% reduction across 90 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.72 with SigMap. That is a 39.4% reduction across 90 real coding tasks."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v6.15.0</span>
+  <span><strong>Release:</strong> v7.0.0</span>
   <span>·</span>
-  <span>verify-ai-output Reliable MVP + Memory tools (note · status · read_memory)</span>
+  <span>Squeeze — minimize pasted stacktraces/logs/JSON with symbol enrichment, before they hit the model</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v6.15-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>
   <span>·</span>
-  <span>76% hit@5 · 97.1% token reduction · 2026-06-09</span>
+  <span>76% hit@5 · 97.0% token reduction · 2026-06-14</span>
 </div>
 </div>
 
@@ -170,13 +170,13 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Task success proxy | 10% | **51.1%** |
-| Prompts per task | 2.84 | **1.73** |
+| Task success proxy | 10% | **52.2%** |
+| Prompts per task | 2.84 | **1.72** |
 | Retrieval hit@5 | 13.6% | **76%** (76% graph-boosted) |
-| Overall token reduction | — | **97.1%** |
+| Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-06-09 (v6.15.0)**.
+Latest saved benchmark run: **2026-06-14 (v7.0.0)**.
 
 </div>
 

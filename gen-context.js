@@ -3164,55 +3164,78 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
 
 // ── ./src/extractors/prdiff ──
 __factories["./src/extractors/prdiff"] = function(module, exports) {
+'use strict';
 
-  'use strict';
+/**
+ * Compare signature arrays and produce compact diff markers.
+ * @param {string[]} baseSigs
+ * @param {string[]} currentSigs
+ * @returns {{added:string[], removed:string[], modified:string[]}}
+ */
+function diffSignatures(baseSigs, currentSigs) {
+  const base = new Set(baseSigs || []);
+  const curr = new Set(currentSigs || []);
 
-  /**
-   * Compare signature arrays and produce compact diff markers.
-   * @param {string[]} baseSigs
-   * @param {string[]} currentSigs
-   * @returns {{added:string[], removed:string[], modified:string[]}}
-   */
-  function diffSignatures(baseSigs, currentSigs) {
-    const base = new Set(baseSigs || []);
-    const curr = new Set(currentSigs || []);
+  const added = [...curr].filter((s) => !base.has(s));
+  const removed = [...base].filter((s) => !curr.has(s));
 
-    const added = [...curr].filter((s) => !base.has(s));
-    const removed = [...base].filter((s) => !curr.has(s));
-
-    const byName = (arr) => {
-      const m = new Map();
-      for (const s of arr) {
-        const n = extractName(s);
-        if (!n) continue;
-        if (!m.has(n)) m.set(n, []);
-        m.get(n).push(s);
-      }
-      return m;
-    };
-
-    const aBy = byName(added);
-    const rBy = byName(removed);
-    const modified = [];
-
-    for (const [name] of aBy) {
-      if (rBy.has(name)) modified.push(name);
+  const byName = (arr) => {
+    const m = new Map();
+    for (const s of arr) {
+      const n = extractName(s);
+      if (!n) continue;
+      if (!m.has(n)) m.set(n, []);
+      m.get(n).push(s);
     }
+    return m;
+  };
 
-    return { added, removed, modified };
+  const aBy = byName(added);
+  const rBy = byName(removed);
+  const modified = [];
+
+  for (const [name] of aBy) {
+    if (rBy.has(name)) modified.push(name);
   }
 
-  function extractName(sig) {
-    if (!sig) return '';
-    const t = sig.trim();
-    const m = t.match(/(?:def|function|func|class|interface|trait|struct|enum|record)?\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)/);
-    return m ? m[1] : '';
-  }
+  return { added, removed, modified };
+}
 
-  module.exports = { diffSignatures, extractName };
+/**
+ * Extract the declared symbol name from a signature line.
+ *
+ * Robust to the real forms SigMap emits — `export class X`, `const x = () =>`,
+ * `async function x`, members, a trailing `:start-end` anchor, and `→ return`
+ * suffixes. Anchored so it never returns a mid-string fragment (the old regex
+ * could turn a signature into a 2-char name like `is`), and returns '' for
+ * non-symbol lines (`module.exports = {…}`, markdown headers) instead of guessing.
+ */
+function extractName(sig) {
+  if (!sig) return '';
+  // Drop a trailing `:start-end` (or `:line`) line anchor.
+  let t = String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim();
+  // Re-export / barrel lines carry no single declared name.
+  if (/^(?:module\.)?exports\b/.test(t) || /^export\s*\{/.test(t) || /^export\s+\*/.test(t)) return '';
+  // Strip leading modifiers so the keyword/name is at the start.
+  t = t.replace(/^export\s+/, '')
+       .replace(/^default\s+/, '')
+       .replace(/^(?:public|private|protected|static|abstract|final|override|readonly)\s+/g, '')
+       .replace(/^async\s+/, '');
+  let m;
+  // Declared forms: function/def/func/fn/class/interface/trait/struct/enum/record/type <name>
+  if ((m = t.match(/^(?:def|function|func|fn|class|interface|trait|struct|enum|record|type)\s+([A-Za-z_$][\w$]*)/))) return m[1];
+  // const/let/var/val <name> = …  (arrow functions, assigned values)
+  if ((m = t.match(/^(?:const|let|var|val)\s+([A-Za-z_$][\w$]*)/))) return m[1];
+  // Call / method form: <name>(…)
+  if ((m = t.match(/^([A-Za-z_$][\w$]*)\s*\(/))) return m[1];
+  // Lone identifier (e.g. a collapsed `symbol` after the anchor was stripped).
+  if ((m = t.match(/^([A-Za-z_$][\w$]*)$/))) return m[1];
+  return '';
+}
+
+module.exports = { diffSignatures, extractName };
 
 };
-
 // ── ./src/extractors/r ──
 __factories["./src/extractors/r"] = function(module, exports) {
 
@@ -6238,7 +6261,7 @@ const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, exp
 
 const SERVER_INFO = {
   name: 'sigmap',
-  version: '6.15.0',
+  version: '7.0.0',
   description: 'SigMap MCP server — code signatures on demand',
 };
 
@@ -7988,302 +8011,609 @@ __factories["./src/eval/usefulness-scorer"] = function(module, exports) {
 
 // ── ./packages/adapters/copilot (bundled) ──
 __factories["./packages/adapters/copilot"] = function(module, exports) {
-  const path = require('path');
-  const fs = require('fs');
-  const name = 'copilot';
-  const COPILOT_MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
-  function format(context, opts = {}) {
-    if (!context || typeof context !== 'string') return '';
-    const version = (opts && opts.version) || 'unknown';
-    const timestamp = new Date().toISOString();
-    return [
-      `<!-- Generated by SigMap gen-context.js v${version} -->`,
-      `<!-- Updated: ${timestamp} -->`,
-      `<!-- Do not edit below — regenerate with: node gen-context.js -->`,
-      '',
-      '## SigMap commands',
-      '',
-      '| When | Command |',
-      '|------|---------|',
-      '| Before answering a question about code | `sigmap ask "<your question>"` |',
-      '| After changing config or source dirs | `sigmap validate` |',
-      '| To verify an AI answer is grounded | `sigmap judge --response <file>` |',
-      '',
-      '# Code signatures',
-      '',
-      context,
-    ].join('\n');
-  }
-  function outputPath(cwd) { return path.join(cwd, '.github', 'copilot-instructions.md'); }
-  function write(context, cwd, opts = {}) {
-    const filePath = outputPath(cwd);
-    let existing = '';
-    if (fs.existsSync(filePath)) existing = fs.readFileSync(filePath, 'utf8');
-    const formatted = format(context, opts);
-    const markerIdx = existing.indexOf('## Auto-generated signatures');
-    const isLegacyGenerated = existing.includes('<!-- Generated by SigMap gen-context.js') || existing.includes('# Code signatures');
-    const newContent = markerIdx !== -1
-      ? existing.slice(0, markerIdx) + COPILOT_MARKER.trimStart() + formatted
-      : (isLegacyGenerated ? COPILOT_MARKER.trimStart() + formatted : existing + COPILOT_MARKER + formatted);
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, newContent, 'utf8');
-  }
-  module.exports = { name, format, outputPath, write };
-};
+'use strict';
 
+/**
+ * Copilot adapter — writes to .github/copilot-instructions.md
+ * GitHub Copilot reads this file automatically in every workspace.
+ *
+ * Contract:
+ *   format(context, opts?) → string
+ *   outputPath(cwd) → string
+ */
+
+const path = require('path');
+const fs = require('fs');
+
+const name = 'copilot';
+const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
+
+/**
+ * Format context for GitHub Copilot instructions.
+ * @param {string} context - Raw signature context string
+ * @param {object} [opts]
+ * @param {string} [opts.version] - SigMap version string
+ * @returns {string}
+ */
+function format(context, opts = {}) {
+  if (!context || typeof context !== 'string') return '';
+  const version   = opts.version   || 'unknown';
+  const timestamp = new Date().toISOString();
+  const meta = _confidenceMeta(opts);
+  const header = [
+    `<!-- Generated by SigMap gen-context.js v${version} -->`,
+    `<!-- Updated: ${timestamp} -->`,
+    meta,
+    `<!-- Do not edit below — regenerate with: node gen-context.js -->`,
+    '',
+    '# Code signatures',
+    '',
+  ].join('\n');
+  return header + context;
+}
+
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `<!-- sigmap: ${parts.join(' ')} -->`;
+}
+
+/**
+ * Return the output file path for this adapter.
+ * @param {string} cwd - Project root
+ * @returns {string}
+ */
+function outputPath(cwd) {
+  return path.join(cwd, '.github', 'copilot-instructions.md');
+}
+
+/**
+ * Write signatures into copilot-instructions.md using append-under-marker.
+ * If marker exists, content above marker is preserved.
+ * If legacy generated content exists without marker, replace it cleanly.
+ * @param {string} context - Raw signature context string
+ * @param {string} cwd - Project root
+ * @param {object} [opts]
+ */
+function write(context, cwd, opts = {}) {
+  const filePath = outputPath(cwd);
+  let existing = '';
+  if (fs.existsSync(filePath)) {
+    existing = fs.readFileSync(filePath, 'utf8');
+  }
+
+  const formatted = format(context, opts);
+  const markerIdx = existing.indexOf('## Auto-generated signatures');
+
+  let newContent;
+  if (markerIdx !== -1) {
+    newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
+  } else {
+    const isLegacyGenerated = existing.includes('<!-- Generated by SigMap gen-context.js')
+      || existing.includes('# Code signatures');
+    newContent = isLegacyGenerated
+      ? MARKER.trimStart() + formatted
+      : existing + MARKER + formatted;
+  }
+
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, newContent, 'utf8');
+}
+
+module.exports = { name, format, outputPath, write };
+
+};
 // ── ./packages/adapters/claude (bundled) ──
 __factories["./packages/adapters/claude"] = function(module, exports) {
-  const path = require('path');
-  const fs = require('fs');
-  const name = 'claude';
-  const CLAUDE_MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
-  const CLAUDE_ALLOWLIST_MARKER = '<!-- sigmap-bash-allowlist -->';
-  const CLAUDE_ALLOWLIST_BLOCK = [
-    '## Bash allowlist',
-    '',
-    CLAUDE_ALLOWLIST_MARKER,
-    '',
-    'The following sigmap commands are pre-approved — Claude Code will not prompt for confirmation:',
-    '',
-    '```json',
-    JSON.stringify({
-      permissions: {
-        allow: [
-          'Bash(sigmap ask*)',
-          'Bash(sigmap validate*)',
-          'Bash(sigmap judge*)',
-          'Bash(sigmap weights*)',
-          'Bash(sigmap history*)',
-          'Bash(sigmap --query*)',
-          'Bash(sigmap --diff*)',
-          'Bash(sigmap --health*)',
-          'Bash(sigmap --coverage*)',
-          'Bash(node gen-context.js*)',
-        ],
-      },
-    }, null, 2),
-    '```',
-    '',
-    'Add the `permissions.allow` array above to `.claude/settings.json` to activate.',
-    '',
-  ].join('\n');
-  function format(context, opts = {}) {
-    if (!context || typeof context !== 'string') return '';
-    const version = (opts && opts.version) || 'unknown';
-    const timestamp = new Date().toISOString();
-    return [
-      '## SigMap',
-      '- Before searching for files, run `sigmap ask "<query>"` — ranks by TF-IDF relevance',
-      '- After config changes, run `sigmap validate` to confirm coverage',
-      '- To verify answer groundedness, run `sigmap judge --response <file> --context CLAUDE.md`',
-      '- For PR-scoped context, run `sigmap --diff`',
-      '',
-      `<!-- Generated by SigMap v${version} — ${timestamp} -->`,
-      '',
-      context,
-    ].join('\n');
-  }
-  function outputPath(cwd) { return path.join(cwd, 'CLAUDE.md'); }
-  function write(context, cwd, opts = {}) {
-    const filePath = outputPath(cwd);
-    let existing = '';
-    if (fs.existsSync(filePath)) existing = fs.readFileSync(filePath, 'utf8');
-    const formatted = format(context, opts);
-    const markerIdx = existing.indexOf('## Auto-generated signatures');
-    let newContent = markerIdx !== -1
-      ? existing.slice(0, markerIdx) + CLAUDE_MARKER.trimStart() + formatted
-      : existing + CLAUDE_MARKER + formatted;
-    if (!newContent.includes(CLAUDE_ALLOWLIST_MARKER)) {
-      const sigPos = newContent.indexOf('## Auto-generated signatures');
-      if (sigPos !== -1) {
-        newContent = newContent.slice(0, sigPos) + CLAUDE_ALLOWLIST_BLOCK + '\n' + newContent.slice(sigPos);
-      } else {
-        newContent = CLAUDE_ALLOWLIST_BLOCK + '\n' + newContent;
-      }
-    }
-    fs.writeFileSync(filePath, newContent, 'utf8');
-  }
-  module.exports = { name, format, outputPath, write };
-};
+'use strict';
 
+/**
+ * Claude adapter — appends to CLAUDE.md under a marker line.
+ * Never overwrites human-written content above the marker.
+ *
+ * Contract:
+ *   format(context, opts?) → string
+ *   outputPath(cwd) → string
+ *   write(context, cwd, opts?) → void   (handles append logic)
+ */
+
+const path = require('path');
+const fs = require('fs');
+
+const name = 'claude';
+
+const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
+const ALLOWLIST_MARKER = '<!-- sigmap-bash-allowlist -->';
+
+const ALLOWLIST_BLOCK = [
+  '## Bash allowlist',
+  '',
+  ALLOWLIST_MARKER,
+  '',
+  'The following sigmap commands are pre-approved — Claude Code will not prompt for confirmation:',
+  '',
+  '```json',
+  JSON.stringify({
+    permissions: {
+      allow: [
+        'Bash(sigmap ask*)',
+        'Bash(sigmap validate*)',
+        'Bash(sigmap judge*)',
+        'Bash(sigmap weights*)',
+        'Bash(sigmap history*)',
+        'Bash(sigmap --query*)',
+        'Bash(sigmap --diff*)',
+        'Bash(sigmap --health*)',
+        'Bash(sigmap --coverage*)',
+        'Bash(node gen-context.js*)',
+      ],
+    },
+  }, null, 2),
+  '```',
+  '',
+  'Add the `permissions.allow` array above to `.claude/settings.json` to activate.',
+  '',
+].join('\n');
+
+/**
+ * Format context suited for CLAUDE.md.
+ * @param {string} context - Raw signature context string
+ * @param {object} [opts]
+ * @param {string} [opts.version] - SigMap version string
+ * @returns {string}
+ */
+function format(context, opts = {}) {
+  if (!context || typeof context !== 'string') return '';
+  const version   = opts.version || 'unknown';
+  const timestamp = new Date().toISOString();
+  const meta      = _confidenceMeta(opts);
+  return [
+    `<!-- Generated by SigMap v${version} — ${timestamp} -->`,
+    meta,
+    '',
+    context,
+  ].join('\n');
+}
+
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `<!-- sigmap: ${parts.join(' ')} -->`;
+}
+
+/**
+ * Return the output file path for this adapter.
+ * @param {string} cwd - Project root
+ * @returns {string}
+ */
+function outputPath(cwd) {
+  return path.join(cwd, 'CLAUDE.md');
+}
+
+/**
+ * Write signatures into CLAUDE.md using the append-under-marker strategy.
+ * Human content above the marker is never touched.
+ * @param {string} context - Raw signature context string
+ * @param {string} cwd - Project root
+ * @param {object} [opts]
+ */
+function write(context, cwd, opts = {}) {
+  const filePath = outputPath(cwd);
+  let existing = '';
+  if (fs.existsSync(filePath)) {
+    existing = fs.readFileSync(filePath, 'utf8');
+  }
+  const formatted = format(context, opts);
+  const markerIdx = existing.indexOf('## Auto-generated signatures');
+  let newContent;
+  if (markerIdx !== -1) {
+    newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
+  } else {
+    newContent = existing + MARKER + formatted;
+  }
+
+  // Inject ## Bash allowlist above the sig marker if not already present
+  if (!newContent.includes(ALLOWLIST_MARKER)) {
+    const sigMarkerPos = newContent.indexOf('## Auto-generated signatures');
+    if (sigMarkerPos !== -1) {
+      newContent = newContent.slice(0, sigMarkerPos) + ALLOWLIST_BLOCK + '\n' + newContent.slice(sigMarkerPos);
+    } else {
+      newContent = ALLOWLIST_BLOCK + '\n' + newContent;
+    }
+  }
+
+  fs.writeFileSync(filePath, newContent, 'utf8');
+}
+
+module.exports = { name, format, outputPath, write };
+
+};
 // ── ./packages/adapters/cursor (bundled) ──
 __factories["./packages/adapters/cursor"] = function(module, exports) {
-  const path = require('path');
-  const name = 'cursor';
-  function format(context, opts = {}) {
-    if (!context || typeof context !== 'string') return '';
-    const version = (opts && opts.version) || 'unknown';
-    const timestamp = new Date().toISOString();
-    return [
-      `# Code signatures — generated by SigMap v${version}`,
-      `# Updated: ${timestamp}`,
-      `# Regenerate: node gen-context.js`,
-      '#',
-      '# SigMap: before answering, run: sigmap ask "<query>" — finds relevant files',
-      '# SigMap: after config changes, run: sigmap validate',
-      '# SigMap: to verify answers, run: sigmap judge --response <file>',
-      '',
-      context,
-    ].join('\n');
-  }
-  function outputPath(cwd) { return path.join(cwd, '.cursorrules'); }
-  module.exports = { name, format, outputPath };
-};
+'use strict';
 
-// ── ./packages/adapters/windsurf (bundled) ──
-__factories["./packages/adapters/windsurf"] = function(module, exports) {
-  const path = require('path');
-  const name = 'windsurf';
-  function format(context, opts = {}) {
-    if (!context || typeof context !== 'string') return '';
-    const version = (opts && opts.version) || 'unknown';
-    const timestamp = new Date().toISOString();
-    return [
-      `# Code signatures — generated by SigMap v${version}`,
-      `# Updated: ${timestamp}`,
-      `# Regenerate: node gen-context.js`,
-      '#',
-      '# SigMap: before answering, run: sigmap ask "<query>" — finds relevant files',
-      '# SigMap: after config changes, run: sigmap validate',
-      '# SigMap: to verify answers, run: sigmap judge --response <file>',
-      '',
-      context,
-    ].join('\n');
-  }
-  function outputPath(cwd) { return path.join(cwd, '.windsurfrules'); }
-  module.exports = { name, format, outputPath };
-};
+/**
+ * Cursor adapter — writes to .cursorrules
+ * Cursor reads .cursorrules automatically in every workspace.
+ *
+ * Contract:
+ *   format(context, opts?) → string
+ *   outputPath(cwd) → string
+ */
 
-// ── ./packages/adapters/openai (bundled) ──
-__factories["./packages/adapters/openai"] = function(module, exports) {
-  const path = require('path');
-  const name = 'openai';
-  function format(context, opts = {}) {
-    if (!context || typeof context !== 'string') return '';
-    const version = (opts && opts.version) || 'unknown';
-    const timestamp = new Date().toISOString();
-    const projectLine = (opts && opts.projectName) ? `Project: ${opts.projectName}\n` : '';
-    return [
-      `You are a coding assistant with full knowledge of this codebase.`,
-      `Below are the code signatures extracted by SigMap v${version} on ${timestamp}.`,
-      projectLine,
-      `Use these signatures to answer questions about the code accurately.`,
-      `When the user asks about a specific file or function, refer to the signatures below.`,
-      `Before answering questions about specific code areas, prefer running \`sigmap ask "<query>"\` to get the most relevant files. After config changes, \`sigmap validate\` confirms coverage.`,
-      ``,
-      `## Code Signatures`,
-      ``,
-      context,
-    ].join('\n');
-  }
-  function outputPath(cwd) { return path.join(cwd, '.github', 'openai-context.md'); }
-  module.exports = { name, format, outputPath };
-};
+const path = require('path');
 
-// ── ./packages/adapters/gemini (bundled) ──
-__factories["./packages/adapters/gemini"] = function(module, exports) {
-  const path = require('path');
-  const fs = require('fs');
-  const name = 'gemini';
-  const GEMINI_MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
-  function format(context, opts = {}) {
-    if (!context || typeof context !== 'string') return '';
-    const version = (opts && opts.version) || 'unknown';
-    const timestamp = new Date().toISOString();
-    const projectLine = (opts && opts.projectName) ? `Project: ${opts.projectName}\n` : '';
-    return [
-      `You are a coding assistant with complete knowledge of this codebase.`,
-      `The following code signatures were extracted by SigMap v${version} on ${timestamp}.`,
-      projectLine,
-      `These signatures represent every public function, class, and type in the project.`,
-      `Refer to them when answering questions about code structure, APIs, and implementation.`,
-      `Before answering questions about specific code areas, suggest running \`sigmap ask "<query>"\` to get the most relevant files. After config changes, \`sigmap validate\` confirms coverage.`,
-      ``,
-      `## Code Signatures`,
-      ``,
-      context,
-    ].join('\n');
-  }
-  function outputPath(cwd) { return path.join(cwd, '.github', 'gemini-context.md'); }
-  function write(context, cwd, opts = {}) {
-    const filePath = outputPath(cwd);
-    let existing = '';
-    if (fs.existsSync(filePath)) existing = fs.readFileSync(filePath, 'utf8');
-    const formatted = format(context, opts);
-    const markerIdx = existing.indexOf('## Auto-generated signatures');
-    const isLegacyGenerated = existing.includes('<!-- Generated by SigMap gen-context.js') || existing.includes('## Code Signatures');
-    const newContent = markerIdx !== -1
-      ? existing.slice(0, markerIdx) + GEMINI_MARKER.trimStart() + formatted
-      : (isLegacyGenerated ? GEMINI_MARKER.trimStart() + formatted : existing + GEMINI_MARKER + formatted);
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, newContent, 'utf8');
-  }
-  module.exports = { name, format, outputPath, write };
-};
+const name = 'cursor';
 
-// ── ./packages/adapters/codex (bundled) ──
-__factories["./packages/adapters/codex"] = function(module, exports) {
-  const path = require('path');
-  const fs = require('fs');
-  const name = 'codex';
-  const CODEX_MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
-  const CODEX_TOOLS_MARKER = '<!-- sigmap-tools -->';
-  const CODEX_TOOLS_BLOCK = [
-    '## Tools',
-    '',
-    CODEX_TOOLS_MARKER,
-    '',
-    '```json',
-    JSON.stringify([
-      { name: 'sigmap_ask', description: 'Rank source files by relevance to a natural-language query. Run before exploring the codebase.', command: 'sigmap ask "$QUERY"' },
-      { name: 'sigmap_validate', description: 'Validate SigMap config and measure context coverage. Run after changing config or source dirs.', command: 'sigmap validate' },
-      { name: 'sigmap_judge', description: 'Score an LLM response for groundedness against source context. Use to verify answer quality.', command: 'sigmap judge --response "$RESPONSE" --context "$CONTEXT"' },
-      { name: 'sigmap_query', description: 'Rank all files by relevance using TF-IDF and write a focused mini-context.', command: 'sigmap --query "$QUERY" --context' },
-      { name: 'sigmap_weights', description: 'Show learned file-ranking multipliers accumulated from past sessions.', command: 'sigmap weights' },
-    ], null, 2),
-    '```',
+/**
+ * Format context for Cursor rules file.
+ * @param {string} context - Raw signature context string
+ * @param {object} [opts]
+ * @param {string} [opts.version] - SigMap version string
+ * @returns {string}
+ */
+function format(context, opts = {}) {
+  if (!context || typeof context !== 'string') return '';
+  const version   = opts.version || 'unknown';
+  const timestamp = new Date().toISOString();
+  const meta      = _confidenceMeta(opts);
+  const header = [
+    `# Code signatures — generated by SigMap v${version}`,
+    `# Updated: ${timestamp}`,
+    `# ${meta}`,
+    `# Regenerate: node gen-context.js`,
     '',
   ].join('\n');
-  function format(context, opts = {}) {
-    if (!context || typeof context !== 'string' || !context.trim()) return '';
-    const toolBlock = [
-      '## SigMap commands',
-      '',
-      '| When | Command |',
-      '|------|---------|',
-      '| Before answering a question | `sigmap ask "<your question>"` |',
-      '| After code changes | `sigmap validate` |',
-      '| To query by topic | `sigmap --query "<topic>"` |',
-      '',
-      'Always run `sigmap ask` or `sigmap --query` before searching for files relevant to a task.',
-      '',
-    ].join('\n');
-    return '# Code signatures\n\n' + toolBlock + context;
-  }
-  function outputPath(cwd) { return path.join(cwd, 'AGENTS.md'); }
-  function write(context, cwd, opts = {}) {
-    const filePath = outputPath(cwd);
-    let existing = '';
-    if (fs.existsSync(filePath)) existing = fs.readFileSync(filePath, 'utf8');
-    const formatted = format(context, opts);
-    const markerIdx = existing.indexOf('## Auto-generated signatures');
-    const isLegacyGenerated = existing.includes('<!-- Generated by SigMap gen-context.js') || existing.includes('## Code Signatures') || existing.includes('# Code signatures');
-    let newContent = markerIdx !== -1
-      ? existing.slice(0, markerIdx) + CODEX_MARKER.trimStart() + formatted
-      : (isLegacyGenerated ? CODEX_MARKER.trimStart() + formatted : existing + CODEX_MARKER + formatted);
-    if (!newContent.includes(CODEX_TOOLS_MARKER)) {
-      const sigPos = newContent.indexOf('## Auto-generated signatures');
-      if (sigPos !== -1) {
-        newContent = newContent.slice(0, sigPos) + CODEX_TOOLS_BLOCK + '\n' + newContent.slice(sigPos);
-      } else {
-        newContent = CODEX_TOOLS_BLOCK + '\n' + newContent;
-      }
-    }
-    fs.writeFileSync(filePath, newContent, 'utf8');
-  }
-  module.exports = { name, format, outputPath, write };
-};
+  return header + context;
+}
 
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `sigmap: ${parts.join(' ')}`;
+}
+
+/**
+ * Return the output file path for this adapter.
+ * @param {string} cwd - Project root
+ * @returns {string}
+ */
+function outputPath(cwd) {
+  return path.join(cwd, '.cursorrules');
+}
+
+module.exports = { name, format, outputPath };
+
+};
+// ── ./packages/adapters/windsurf (bundled) ──
+__factories["./packages/adapters/windsurf"] = function(module, exports) {
+'use strict';
+
+/**
+ * Windsurf adapter — writes to .windsurfrules
+ * Windsurf reads .windsurfrules automatically in every workspace.
+ *
+ * Contract:
+ *   format(context, opts?) → string
+ *   outputPath(cwd) → string
+ */
+
+const path = require('path');
+
+const name = 'windsurf';
+
+/**
+ * Format context for Windsurf rules file.
+ * @param {string} context - Raw signature context string
+ * @param {object} [opts]
+ * @param {string} [opts.version] - SigMap version string
+ * @returns {string}
+ */
+function format(context, opts = {}) {
+  if (!context || typeof context !== 'string') return '';
+  const version   = opts.version || 'unknown';
+  const timestamp = new Date().toISOString();
+  const meta      = _confidenceMeta(opts);
+  const header = [
+    `# Code signatures — generated by SigMap v${version}`,
+    `# Updated: ${timestamp}`,
+    `# ${meta}`,
+    `# Regenerate: node gen-context.js`,
+    '',
+  ].join('\n');
+  return header + context;
+}
+
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `sigmap: ${parts.join(' ')}`;
+}
+
+/**
+ * Return the output file path for this adapter.
+ * @param {string} cwd - Project root
+ * @returns {string}
+ */
+function outputPath(cwd) {
+  return path.join(cwd, '.windsurfrules');
+}
+
+module.exports = { name, format, outputPath };
+
+};
+// ── ./packages/adapters/openai (bundled) ──
+__factories["./packages/adapters/openai"] = function(module, exports) {
+'use strict';
+
+/**
+ * OpenAI adapter — formats context as an OpenAI system message.
+ * Use the output as the `content` field of a system role message.
+ *
+ * Example usage in code:
+ *   const { format } = require('sigmap/adapters/openai');
+ *   const systemPrompt = format(context);
+ *   // Pass to: openai.chat.completions.create({ messages: [{ role: 'system', content: systemPrompt }] })
+ *
+ * Contract:
+ *   format(context, opts?) → string
+ *   outputPath(cwd) → string
+ */
+
+const path = require('path');
+
+const name = 'openai';
+
+/**
+ * Format context as an OpenAI system prompt.
+ * @param {string} context - Raw signature context string
+ * @param {object} [opts]
+ * @param {string} [opts.version] - SigMap version string
+ * @param {string} [opts.projectName] - Optional project name
+ * @returns {string}
+ */
+function format(context, opts = {}) {
+  if (!context || typeof context !== 'string') return '';
+  const version = opts.version || 'unknown';
+  const timestamp = new Date().toISOString();
+  const projectLine = opts.projectName
+    ? `Project: ${opts.projectName}\n`
+    : '';
+
+  const meta = _confidenceMeta(opts);
+  return [
+    `You are a coding assistant with full knowledge of this codebase.`,
+    `Below are the code signatures extracted by SigMap v${version} on ${timestamp}.`,
+    `<!-- ${meta} -->`,
+    projectLine,
+    `Use these signatures to answer questions about the code accurately.`,
+    `When the user asks about a specific file or function, refer to the signatures below.`,
+    `## Code Signatures`,
+    ``,
+    context,
+  ].join('\n');
+}
+
+/**
+ * Return the output file path for this adapter.
+ * Writes a .openai-context.md file that can be loaded at runtime.
+ * @param {string} cwd - Project root
+ * @returns {string}
+ */
+function outputPath(cwd) {
+  return path.join(cwd, '.github', 'openai-context.md');
+}
+
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `sigmap: ${parts.join(' ')}`;
+}
+
+module.exports = { name, format, outputPath };
+
+};
+// ── ./packages/adapters/gemini (bundled) ──
+__factories["./packages/adapters/gemini"] = function(module, exports) {
+'use strict';
+
+/**
+ * Gemini adapter — formats context as a Gemini system instruction.
+ * Use the output as the `system_instruction` field in a Gemini API request.
+ *
+ * Example usage:
+ *   const { format } = require('sigmap/adapters/gemini');
+ *   const instruction = format(context);
+ *   // Pass to: genAI.getGenerativeModel({ model: 'gemini-pro', systemInstruction: instruction })
+ *
+ * Contract:
+ *   format(context, opts?) → string
+ *   outputPath(cwd) → string
+ */
+
+const path = require('path');
+const fs = require('fs');
+
+const name = 'gemini';
+const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
+
+/**
+ * Format context as a Gemini system instruction.
+ * @param {string} context - Raw signature context string
+ * @param {object} [opts]
+ * @param {string} [opts.version] - SigMap version string
+ * @param {string} [opts.projectName] - Optional project name
+ * @returns {string}
+ */
+function format(context, opts = {}) {
+  if (!context || typeof context !== 'string') return '';
+  const version = opts.version || 'unknown';
+  const timestamp = new Date().toISOString();
+  const projectLine = opts.projectName
+    ? `Project: ${opts.projectName}\n`
+    : '';
+
+  const meta = _confidenceMeta(opts);
+  return [
+    `You are a coding assistant with complete knowledge of this codebase.`,
+    `The following code signatures were extracted by SigMap v${version} on ${timestamp}.`,
+    `<!-- ${meta} -->`,
+    projectLine,
+    `These signatures represent every public function, class, and type in the project.`,
+    `Refer to them when answering questions about code structure, APIs, and implementation.`,
+    `## Code Signatures`,
+    ``,
+    context,
+  ].join('\n');
+}
+
+/**
+ * Return the output file path for this adapter.
+ * @param {string} cwd - Project root
+ * @returns {string}
+ */
+function outputPath(cwd) {
+  return path.join(cwd, '.github', 'gemini-context.md');
+}
+
+/**
+ * Write signatures into gemini-context.md using append-under-marker.
+ * If marker exists, content above marker is preserved.
+ * If legacy generated content exists without marker, replace it cleanly.
+ * @param {string} context - Raw signature context string
+ * @param {string} cwd - Project root
+ * @param {object} [opts]
+ */
+function write(context, cwd, opts = {}) {
+  const filePath = outputPath(cwd);
+  let existing = '';
+  if (fs.existsSync(filePath)) {
+    existing = fs.readFileSync(filePath, 'utf8');
+  }
+
+  const formatted = format(context, opts);
+  const markerIdx = existing.indexOf('## Auto-generated signatures');
+
+  let newContent;
+  if (markerIdx !== -1) {
+    newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
+  } else {
+    const isLegacyGenerated = existing.includes('<!-- Generated by SigMap gen-context.js')
+      || existing.includes('## Code Signatures');
+    newContent = isLegacyGenerated
+      ? MARKER.trimStart() + formatted
+      : existing + MARKER + formatted;
+  }
+
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, newContent, 'utf8');
+}
+
+function _confidenceMeta(opts) {
+  const parts = [`version=${opts.version || 'unknown'}`];
+  if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
+  if (opts.coverage != null) parts.push(`coverage=${opts.coverage}%`);
+  if (opts.dropped  != null) parts.push(`dropped=${opts.dropped}`);
+  if (opts.commit)        parts.push(`commit=${opts.commit}`);
+  return `sigmap: ${parts.join(' ')}`;
+}
+
+module.exports = { name, format, outputPath, write };
+
+};
+// ── ./packages/adapters/codex (bundled) ──
+__factories["./packages/adapters/codex"] = function(module, exports) {
+'use strict';
+
+/**
+ * Codex adapter — writes OpenAI-style context to AGENTS.md.
+ *
+ * This adapter reuses the same prompt format as the OpenAI adapter,
+ * but targets AGENTS.md so Codex-style agents can read repository guidance.
+ *
+ * Contract:
+ *   format(context, opts?) → string
+ *   outputPath(cwd) → string
+ *   write(context, cwd, opts?) → void
+ */
+
+const path = require('path');
+const fs = require('fs');
+
+const name = 'codex';
+const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
+
+/**
+ * Format context for AGENTS.md — clean markdown, no LLM preamble.
+ * @param {string} context - Raw signature context string
+ * @param {object} [opts]
+ * @returns {string}
+ */
+function format(context, opts = {}) {
+  if (!context || typeof context !== 'string' || !context.trim()) return '';
+  return `# Code signatures\n\n${context}`;
+}
+
+/**
+ * Return the output file path for this adapter.
+ * @param {string} cwd - Project root
+ * @returns {string}
+ */
+function outputPath(cwd) {
+  return path.join(cwd, 'AGENTS.md');
+}
+
+/**
+ * Write signatures into AGENTS.md using append-under-marker.
+ * If marker exists, content above marker is preserved.
+ * If legacy generated content exists without marker, replace it cleanly.
+ * @param {string} context - Raw signature context string
+ * @param {string} cwd - Project root
+ * @param {object} [opts]
+ */
+function write(context, cwd, opts = {}) {
+  const filePath = outputPath(cwd);
+  let existing = '';
+  if (fs.existsSync(filePath)) {
+    existing = fs.readFileSync(filePath, 'utf8');
+  }
+
+  const formatted = format(context, opts);
+  const markerIdx = existing.indexOf('## Auto-generated signatures');
+
+  let newContent;
+  if (markerIdx !== -1) {
+    newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
+  } else {
+    const isLegacyGenerated = existing.includes('<!-- Generated by SigMap gen-context.js')
+      || existing.includes('## Code Signatures')
+      || existing.includes('# Code signatures');
+    newContent = isLegacyGenerated
+      ? MARKER.trimStart() + formatted
+      : existing + MARKER + formatted;
+  }
+
+  fs.writeFileSync(filePath, newContent, 'utf8');
+}
+
+module.exports = { name, format, outputPath, write };
+
+};
 // ── ./packages/adapters/index (bundled) ──
 __factories["./packages/adapters/index"] = function(module, exports) {
   const ADAPTER_NAMES = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex'];
@@ -9180,6 +9510,610 @@ __factories["./src/workspace/detector"] = function(module, exports) {
  * No npm install required. Node 18+ built-ins only.
  */
 
+// ── ./src/format/usage-guidance ──
+__factories["./src/format/usage-guidance"] = function(module, exports) {
+'use strict';
+
+/**
+ * Canonical "how to use SigMap" guidance block (v6.16/v7.0).
+ *
+ * Every adapter emits this one identical block so all generated context files
+ * (CLAUDE.md, AGENTS.md, .github/copilot-instructions.md, GEMINI.md, .cursorrules,
+ * …) carry the same, single usage section — instead of each adapter inventing
+ * its own wording (and codex emitting a redundant second JSON block).
+ */
+
+function usageBlock() {
+  return [
+    '## SigMap commands',
+    '',
+    '| When | Command |',
+    '|------|---------|',
+    '| Before answering a question about code | `sigmap ask "<your question>"` |',
+    '| To rank files by topic | `sigmap --query "<topic>"` |',
+    '| After changing config or source dirs | `sigmap validate` |',
+    '| To verify an AI answer is grounded | `sigmap judge --response <file>` |',
+    '',
+    'Always run `sigmap ask` (or `sigmap --query`) before searching for files relevant to a task.',
+    '',
+  ].join('\n');
+}
+
+module.exports = { usageBlock };
+
+};
+
+// ── ./src/squeeze/classify ──
+__factories["./src/squeeze/classify"] = function(module, exports) {
+'use strict';
+
+/**
+ * Squeeze input classifier (v7.0.0).
+ *
+ * Deterministic, zero-dep detector that labels a pasted blob as a
+ * `stacktrace`, `cilog`, or `json` payload — or `null` (pass through). Pure
+ * regex/heuristics; runs in well under 10ms even on large input.
+ *
+ * Order matters: stack traces are highest value and a CI log often *contains*
+ * a trace, so stacktrace is checked first, then cilog, then json.
+ */
+
+const FRAME_RE = [
+  /^\s*at\s+.+\(.+:\d+:\d+\)\s*$/,          // JS: at fn (file:line:col)
+  /^\s*at\s+.+:\d+:\d+\s*$/,                 // JS: at file:line:col
+  /^\s*at\s+[\w$.<>]+\(.+\.\w+:\d+\)/,       // Java/Kotlin: at pkg.Cls.m(File.java:42)
+  /^\s*File\s+".+",\s+line\s+\d+/,           // Python frame
+  /^\s+\w+.*\([^)]*\.(go|rs):\d+\)/,         // Go/Rust frame with file:line
+  /^\s*#\d+\s+0x[0-9a-f]+/,                  // native/gdb frame
+];
+
+const STACK_HEADER_RE = [
+  /Traceback \(most recent call last\)/,
+  /Exception in thread/,
+  /\bat Object\.<anonymous>\b/,
+  /thread '.*' panicked at/,
+  /^panic:/m,
+  /goroutine \d+ \[/,
+];
+
+function countFrames(lines) {
+  let n = 0;
+  for (const line of lines) {
+    if (FRAME_RE.some((re) => re.test(line))) n++;
+  }
+  return n;
+}
+
+function matchesStackTrace(input, lines) {
+  const frames = countFrames(lines);
+  const header = STACK_HEADER_RE.some((re) => re.test(input));
+  // A single explicit header (Traceback/panic) counts as strong evidence even
+  // with few parsed frames; otherwise require 2+ frame-like lines.
+  if (!header && frames < 2) return { match: false, confidence: 0, frames };
+  // Confidence scales with frame count; a header alone floors it at 0.6.
+  let confidence = Math.min(0.97, 0.15 * frames);
+  if (header) confidence = Math.max(confidence, 0.6 + Math.min(0.3, 0.05 * frames));
+  return { match: true, confidence: Number(confidence.toFixed(2)), frames };
+}
+
+const TS_RE = /(\b\d{1,2}:\d{2}:\d{2}\b)|(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
+const PROGRESS_RE = /(\d{1,3}%)|(\bDownloading\b)|(\bnpm (WARN|notice|http)\b)|(##\[(group|endgroup|command)\])|(\[\d+\/\d+\])|(▕|█|━|⠿)|(\bETA\b)|(\r$)/;
+
+function matchesCiLog(input, lines) {
+  if (lines.length < 8) return { match: false, confidence: 0 };
+  let logish = 0;
+  const seen = new Map();
+  let repeats = 0;
+  for (const line of lines) {
+    if (TS_RE.test(line) || PROGRESS_RE.test(line)) logish++;
+    const norm = line.replace(/\d+/g, '#').trim();
+    if (norm) {
+      const c = (seen.get(norm) || 0) + 1;
+      seen.set(norm, c);
+      if (c > 1) repeats++;
+    }
+  }
+  const density = logish / lines.length;
+  const repeatRatio = repeats / lines.length;
+  if (density < 0.4 && repeatRatio < 0.4) return { match: false, confidence: 0 };
+  const confidence = Math.min(0.95, Math.max(density, repeatRatio) + 0.15);
+  return { match: true, confidence: Number(confidence.toFixed(2)) };
+}
+
+function matchesJsonPayload(input) {
+  const trimmed = input.trim();
+  if (/^[[{]/.test(trimmed)) {
+    try {
+      JSON.parse(trimmed);
+      return { match: true, confidence: 0.95 };
+    } catch (_) { /* not strict JSON — fall through to heuristic */ }
+  }
+  const lines = trimmed.split('\n');
+  if (lines.length < 4) return { match: false, confidence: 0 };
+  let kv = 0;
+  for (const line of lines) {
+    if (/^\s*"[^"]+"\s*:\s*.+/.test(line) || /^\s*[}\]],?\s*$/.test(line)) kv++;
+  }
+  const ratio = kv / lines.length;
+  if (ratio < 0.6) return { match: false, confidence: 0 };
+  return { match: true, confidence: Number(Math.min(0.9, ratio).toFixed(2)) };
+}
+
+/**
+ * @param {string} input
+ * @returns {{ category: 'stacktrace'|'cilog'|'json'|null, confidence: number }}
+ */
+function classify(input) {
+  if (typeof input !== 'string' || !input.trim()) return { category: null, confidence: 0 };
+  const lines = input.split('\n');
+
+  const st = matchesStackTrace(input, lines);
+  if (st.match) return { category: 'stacktrace', confidence: st.confidence };
+
+  const ci = matchesCiLog(input, lines);
+  if (ci.match) return { category: 'cilog', confidence: ci.confidence };
+
+  const js = matchesJsonPayload(input);
+  if (js.match) return { category: 'json', confidence: js.confidence };
+
+  return { category: null, confidence: 0 };
+}
+
+module.exports = { classify, countFrames };
+
+};
+
+// ── ./src/squeeze/cilog ──
+__factories["./src/squeeze/cilog"] = function(module, exports) {
+'use strict';
+
+/**
+ * CI / build-log squeeze (v7.0.0).
+ *
+ * Strips timestamps, progress bars, and repeated noise; keeps every error line
+ * plus a small context window around it. Never returns empty — when there are
+ * no errors it falls back to a head/tail summary. Also reused by the stacktrace
+ * squeezer to clean noise surrounding a trace.
+ */
+
+const TS_PREFIX_RE = /^\s*(?:\[?\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?Z?\]?\s*|\[?\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?\]?\s*)+/;
+const PROGRESS_LINE_RE = /(?:^|\s)(?:\d{1,3}%|Downloading|Receiving objects|Resolving deltas|Compressing objects|npm (?:WARN|notice|http|sill|verb)|##\[(?:group|endgroup|command|section)\]|\[\d+\/\d+\]|ETA[: ]|█|━|▕|⣿)/;
+const ERROR_RE = /\b(?:error|err!|fail(?:ed|ure)?|exception|panic|fatal|traceback|ERR_|E[A-Z]{3,})\b|✗|❌/i;
+
+/** Remove a leading timestamp prefix from a single line. */
+function stripTimestamp(line) {
+  return line.replace(TS_PREFIX_RE, '');
+}
+
+/**
+ * @param {string} input
+ * @param {object} [opts]
+ * @param {number} [opts.context=2]  context lines kept around each error
+ * @returns {{ squeezed: string, kept: string[], stripped: string[] }}
+ */
+function squeezeCiLog(input, opts = {}) {
+  const ctx = opts.context != null ? opts.context : 2;
+  const lines = input.split('\n');
+  const keep = new Set();
+  const errorIdx = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    if (ERROR_RE.test(lines[i])) {
+      errorIdx.push(i);
+      for (let j = Math.max(0, i - ctx); j <= Math.min(lines.length - 1, i + ctx); j++) keep.add(j);
+    }
+  }
+
+  let body;
+  let keptDesc;
+  if (errorIdx.length === 0) {
+    const head = lines.slice(0, 10).map(stripTimestamp);
+    const tail = lines.length > 20 ? lines.slice(-10).map(stripTimestamp) : [];
+    body = head.slice();
+    if (tail.length) body.push(`… (${lines.length - 20} lines omitted) …`, ...tail);
+    keptDesc = ['head/tail summary (no error lines found)'];
+  } else {
+    const sorted = [...keep].sort((a, b) => a - b);
+    body = [];
+    let prev = -2;
+    for (const idx of sorted) {
+      // Drop pure progress/noise lines unless they are themselves errors.
+      const line = stripTimestamp(lines[idx]);
+      if (PROGRESS_LINE_RE.test(line) && !ERROR_RE.test(line)) continue;
+      if (idx > prev + 1) body.push(`… (${idx - prev - 1} lines) …`);
+      body.push(line);
+      prev = idx;
+    }
+    if (body.length === 0) body = errorIdx.map((i) => stripTimestamp(lines[i])); // safety net
+    keptDesc = [`${errorIdx.length} error line(s) + ${ctx}-line context`];
+  }
+
+  return {
+    squeezed: body.join('\n'),
+    kept: keptDesc,
+    stripped: [`${Math.max(0, lines.length - body.length)} timestamp/progress/noise line(s)`],
+  };
+}
+
+module.exports = { squeezeCiLog, stripTimestamp, ERROR_RE };
+
+};
+
+// ── ./src/squeeze/jsonpayload ──
+__factories["./src/squeeze/jsonpayload"] = function(module, exports) {
+'use strict';
+
+/**
+ * JSON-payload squeeze (v7.0.0).
+ *
+ * Collapses repeated array elements, truncates long string values, and
+ * preserves the schema shape at every depth — so an LLM still sees the
+ * structure of an API/GraphQL/validation error without the bulk.
+ */
+
+const MAX_STR = 500;
+const ARRAY_KEEP = 2;
+
+function squeezeValue(v, opts) {
+  const maxStr = opts.maxStr;
+  const keep = opts.arrayKeep;
+  if (Array.isArray(v)) {
+    if (v.length <= keep + 1) return v.map((x) => squeezeValue(x, opts));
+    const head = v.slice(0, keep).map((x) => squeezeValue(x, opts));
+    head.push(`…${v.length - keep} more similar items`);
+    return head;
+  }
+  if (v && typeof v === 'object') {
+    const o = {};
+    for (const k of Object.keys(v)) o[k] = squeezeValue(v[k], opts);
+    return o;
+  }
+  if (typeof v === 'string' && v.length > maxStr) {
+    return v.slice(0, maxStr) + `…(${v.length} chars)`;
+  }
+  return v;
+}
+
+/**
+ * @param {string} input
+ * @param {object} [opts]
+ * @param {number} [opts.maxStr=500]    truncate strings longer than this
+ * @param {number} [opts.arrayKeep=2]   array items kept before collapsing
+ * @returns {{ squeezed, kept, stripped }}
+ */
+function squeezeJsonPayload(input, opts = {}) {
+  let parsed;
+  try { parsed = JSON.parse(input); }
+  catch (_) { return { squeezed: input, kept: ['(not valid JSON — unchanged)'], stripped: [] }; }
+  const cfg = { maxStr: opts.maxStr != null ? opts.maxStr : MAX_STR, arrayKeep: opts.arrayKeep != null ? opts.arrayKeep : ARRAY_KEEP };
+  const squeezed = JSON.stringify(squeezeValue(parsed, cfg), null, 2);
+  return {
+    squeezed,
+    kept: ['schema shape preserved at all depths'],
+    stripped: ['collapsed repeated array items; truncated long string values'],
+  };
+}
+
+module.exports = { squeezeJsonPayload, squeezeValue };
+
+};
+
+// ── ./src/squeeze/stacktrace ──
+__factories["./src/squeeze/stacktrace"] = function(module, exports) {
+'use strict';
+
+/**
+ * Stack-trace squeeze (v7.0.0) — the highest-value squeeze module.
+ *
+ * Dedupes repeated exceptions, strips vendor frames, keeps frames in the user's
+ * own source dirs, and — the differentiator — **enriches the top kept frame**
+ * with its real signature from the SigMap symbol index (`buildSigIndex`).
+ * Generic log summarizers can't do this; SigMap has the repo's symbol map.
+ *
+ * Pure/deterministic. The symbol index is injected via `opts.symbolIndex` so
+ * the module is unit-testable without touching the filesystem.
+ */
+
+const path = require('path');
+
+const VENDOR_RE = /(?:^|[\\/])(?:node_modules|vendor|site-packages|dist|build|\.venv|venv|third_party|external|\.cargo|go\/pkg\/mod)[\\/]/;
+
+/** Parse a frame line across JS/TS, Python, Java/Kotlin, Go, Rust, native. */
+function parseFrame(line) {
+  let m;
+  if ((m = line.match(/^\s*at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/))) return { fn: m[1], file: m[2], line: +m[3], raw: line };
+  if ((m = line.match(/^\s*at\s+(.+?):(\d+):(\d+)\s*$/))) return { fn: '', file: m[1], line: +m[2], raw: line };
+  if ((m = line.match(/^\s*at\s+([\w$.<>]+)\((.+?):(\d+)\)/))) return { fn: m[1], file: m[2], line: +m[3], raw: line };
+  if ((m = line.match(/^\s*File\s+"(.+?)",\s+line\s+(\d+)(?:,\s+in\s+(.+))?/))) return { fn: (m[3] || '').trim(), file: m[1], line: +m[2], raw: line };
+  if ((m = line.match(/^\s*(.+\.(?:go|rs)):(\d+)/))) return { fn: '', file: m[1], line: +m[2], raw: line };
+  return null;
+}
+
+function isVendor(file) { return VENDOR_RE.test(String(file).replace(/\\/g, '/')); }
+
+function inSrcDirs(file, srcDirs) {
+  const f = String(file).replace(/\\/g, '/');
+  return srcDirs.some((d) => {
+    const dd = String(d).replace(/^\.\//, '').replace(/\/$/, '');
+    return dd && (f === dd || f.startsWith(dd + '/') || f.includes('/' + dd + '/'));
+  });
+}
+
+/** Look up the real signature for a frame in the SigMap symbol index. */
+function enrichFrame(frame, symbolIndex) {
+  if (!symbolIndex || !frame) return null;
+  const want = String(frame.file).replace(/\\/g, '/');
+  const base = path.basename(want);
+  let key = null;
+  for (const k0 of symbolIndex.keys()) {
+    const k = String(k0).replace(/\\/g, '/');
+    if (k === want || want.endsWith('/' + k) || k.endsWith('/' + want)) { key = k0; break; }
+    if (!key && path.basename(k) === base) key = k0;
+  }
+  if (!key) return null;
+  const sigs = symbolIndex.get(key) || [];
+  const wantFn = frame.fn ? frame.fn.split('.').pop() : '';
+  let byLine = null, byName = null;
+  for (const sig of sigs) {
+    const s = String(sig);
+    const mm = s.match(/:(\d+)(?:-(\d+))?\s*$/);
+    if (mm) {
+      const a = +mm[1], b = mm[2] ? +mm[2] : a;
+      if (frame.line >= a && frame.line <= b) byLine = s;
+    }
+    if (wantFn && new RegExp('\\b' + wantFn.replace(/[^\w$]/g, '') + '\\b').test(s)) byName = byName || s;
+  }
+  const sig = byLine || byName;
+  return sig ? { file: key, sig: sig.replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim() } : null;
+}
+
+/**
+ * @param {string} input
+ * @param {object} [opts]
+ * @param {string[]} [opts.srcDirs]      user source dirs (default ['src'])
+ * @param {Map}      [opts.symbolIndex]  SigMap signature index for enrichment
+ * @param {number}   [opts.maxFrames=8]  cap on kept source frames
+ * @returns {{ squeezed, kept, stripped, enriched }}
+ */
+function squeezeStackTrace(input, opts = {}) {
+  const srcDirs = (opts.srcDirs && opts.srcDirs.length) ? opts.srcDirs : ['src'];
+  const maxFrames = opts.maxFrames != null ? opts.maxFrames : 8;
+  const lines = input.split('\n');
+
+  const headerCount = new Map();
+  const headerOrder = [];
+  const frames = [];
+  for (const line of lines) {
+    const f = parseFrame(line);
+    if (f) { frames.push(f); continue; }
+    const t = line.trim();
+    if (!t) continue;
+    if (!headerCount.has(t)) headerOrder.push(t);
+    headerCount.set(t, (headerCount.get(t) || 0) + 1);
+  }
+
+  const seen = new Set();
+  let dupFrames = 0;
+  const nonVendor = [];
+  const sourceFrames = [];
+  let vendorCount = 0;
+  for (const f of frames) {
+    const k = f.file + ':' + f.line;
+    if (seen.has(k)) { dupFrames++; continue; }
+    seen.add(k);
+    if (isVendor(f.file)) { vendorCount++; continue; }
+    nonVendor.push(f);
+    if (inSrcDirs(f.file, srcDirs)) sourceFrames.push(f);
+  }
+
+  // Prefer source frames; never return empty (fall back to top non-vendor, then raw).
+  const shown = sourceFrames.length ? sourceFrames.slice(0, maxFrames)
+    : (nonVendor.length ? nonVendor.slice(0, 3) : frames.slice(0, 3));
+
+  const enrichment = shown.length ? enrichFrame(shown[0], opts.symbolIndex) : null;
+
+  const out = [];
+  for (const h of headerOrder) {
+    const n = headerCount.get(h);
+    out.push(n > 1 ? `${h}   (occurred ×${n})` : h);
+  }
+  for (let i = 0; i < shown.length; i++) {
+    out.push('    ' + shown[i].raw.trim());
+    if (i === 0 && enrichment) out.push(`      ↳ ${enrichment.sig}   [${enrichment.file}]`);
+  }
+
+  return {
+    squeezed: out.join('\n'),
+    kept: [
+      `${headerOrder.length} unique exception(s)`,
+      `top ${shown.length} ${sourceFrames.length ? 'source ' : ''}frame(s)`,
+      ...(enrichment ? [`enriched ${path.basename(shown[0].file)}:${shown[0].line}`] : []),
+    ],
+    stripped: [`${vendorCount} vendor frame(s)`, `${dupFrames} duplicate frame(s)`],
+    enriched: !!enrichment,
+  };
+}
+
+module.exports = { squeezeStackTrace, parseFrame, isVendor, inSrcDirs, enrichFrame };
+
+};
+
+// ── ./src/squeeze/index ──
+__factories["./src/squeeze/index"] = function(module, exports) {
+'use strict';
+
+/**
+ * Squeeze orchestrator (v7.0.0): classify → squeeze → reduction → decision.
+ *
+ * Always-on and silent: callers run `squeeze()` on pasted input, then use
+ * `shouldPrompt()` to decide whether the reduction is worth interrupting for.
+ * Everything is deterministic and offline; the symbol index for stack-trace
+ * enrichment is passed through via `opts.symbolIndex`.
+ */
+
+const { classify } = __require('./src/squeeze/classify');
+const { squeezeStackTrace } = __require('./src/squeeze/stacktrace');
+const { squeezeCiLog } = __require('./src/squeeze/cilog');
+const { squeezeJsonPayload } = __require('./src/squeeze/jsonpayload');
+
+function estimateTokens(s) { return Math.ceil(String(s || '').length / 4); }
+
+/**
+ * @param {string} input
+ * @param {object} [opts]  forwarded to the category squeezer (srcDirs, symbolIndex, …)
+ * @returns {{ category, confidence, original, squeezed, rawTokens, squeezedTokens, reduction, kept, stripped, enriched, applies }}
+ */
+function squeeze(input, opts = {}) {
+  const { category, confidence } = classify(input);
+  const rawTokens = estimateTokens(input);
+  const base = {
+    category, confidence, original: input, squeezed: input,
+    rawTokens, squeezedTokens: rawTokens, reduction: 0,
+    kept: [], stripped: [], enriched: false, applies: false,
+  };
+  if (!category) return base;
+
+  let r;
+  if (category === 'stacktrace') r = squeezeStackTrace(input, opts);
+  else if (category === 'cilog') r = squeezeCiLog(input, opts);
+  else r = squeezeJsonPayload(input, opts);
+
+  const squeezedTokens = estimateTokens(r.squeezed);
+  const reduction = rawTokens > 0 ? (rawTokens - squeezedTokens) / rawTokens : 0;
+  return {
+    category, confidence,
+    original: input, squeezed: r.squeezed,
+    rawTokens, squeezedTokens,
+    reduction: Math.max(0, Number(reduction.toFixed(4))),
+    kept: r.kept || [], stripped: r.stripped || [], enriched: !!r.enriched,
+    applies: squeezedTokens < rawTokens,
+  };
+}
+
+/** True when the reduction clears the threshold (accepts 0–1 or 0–100). */
+function shouldPrompt(reduction, threshold) {
+  const t = threshold > 1 ? threshold / 100 : threshold;
+  return reduction >= t;
+}
+
+/** A compact human summary of what squeeze would do (for the prompt). */
+function formatSummary(result) {
+  const pct = Math.round(result.reduction * 100);
+  const lines = [
+    `Input: ${result.rawTokens.toLocaleString()} tokens`,
+    `Can reduce to ${result.squeezedTokens.toLocaleString()} tokens (${pct}% smaller):`,
+  ];
+  for (const k of result.kept) lines.push(`  ✓ Kept: ${k}`);
+  for (const s of result.stripped) lines.push(`  ✗ Stripped: ${s}`);
+  return lines.join('\n');
+}
+
+module.exports = { squeeze, shouldPrompt, formatSummary, estimateTokens };
+
+};
+
+// ── ./src/nudge ──
+__factories["./src/nudge"] = function(module, exports) {
+'use strict';
+
+/**
+ * Star nudge + usage tracking (v7.0.0).
+ *
+ * Records run counts in `.context/usage.json` and shows a one-time GitHub-star
+ * message after the tool has been genuinely useful (≥10 runs, ≥8 successes).
+ * Shown exactly once per machine — even under concurrent runs (an `wx` lock
+ * file makes the show race-safe). Wired into `ask` (and the `squeeze` path).
+ */
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
+
+const RUN_THRESHOLD = 10;
+const SUCCESS_THRESHOLD = 8;
+
+function usagePath(cwd) { return path.join(cwd, '.context', 'usage.json'); }
+
+function defaultUsage() {
+  return {
+    totalRuns: 0, successfulRuns: 0, squeezeOffered: 0, squeezeAccepted: 0,
+    starNudgeShown: false, machineId: '', firstRunDate: null, lastRunDate: null,
+  };
+}
+
+function readUsage(cwd) {
+  try { return { ...defaultUsage(), ...JSON.parse(fs.readFileSync(usagePath(cwd), 'utf8')) }; }
+  catch (_) { return defaultUsage(); }
+}
+
+function writeUsageAtomic(cwd, usage) {
+  const p = usagePath(cwd);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  const tmp = `${p}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(usage, null, 2));
+  fs.renameSync(tmp, p); // atomic on POSIX
+}
+
+const STAR_MESSAGE = [
+  '─────────────────────────────────────────────────────────',
+  '  SigMap has helped you 10 times now.',
+  '',
+  "  If it's been useful, a GitHub star takes 5 seconds and",
+  '  helps other developers find it:',
+  '  → github.com/manojmallick/sigmap',
+  '',
+  "  (Won't ask again. Press Enter to continue.)",
+  '─────────────────────────────────────────────────────────',
+].join('\n');
+
+function showStarNudge(write) {
+  (write || ((s) => process.stderr.write(s)))('\n' + STAR_MESSAGE + '\n');
+}
+
+/**
+ * Record one run and, when the thresholds are first met, show the star nudge.
+ * @param {string} cwd
+ * @param {boolean} runSuccess
+ * @param {object} [opts]
+ * @param {boolean} [opts.silent]   record only — never print
+ * @param {function} [opts.write]   sink for the message (default stderr)
+ * @param {string} [opts.today]     override date (testing)
+ * @param {object} [opts.bump]      counter deltas to merge (e.g. { squeezeAccepted: 1 })
+ * @returns {{ usage, nudged }}
+ */
+function checkStarNudge(cwd, runSuccess, opts = {}) {
+  const usage = readUsage(cwd);
+  usage.totalRuns += 1;
+  if (runSuccess) usage.successfulRuns += 1;
+  if (opts.bump) for (const k of Object.keys(opts.bump)) usage[k] = (usage[k] || 0) + opts.bump[k];
+
+  const today = opts.today || new Date().toISOString().slice(0, 10);
+  if (!usage.firstRunDate) usage.firstRunDate = today;
+  usage.lastRunDate = today;
+  if (!usage.machineId) {
+    try { usage.machineId = 'sha256-' + crypto.createHash('sha256').update(os.hostname()).digest('hex').slice(0, 16); } catch (_) {}
+  }
+
+  let nudged = false;
+  if (!usage.starNudgeShown && usage.totalRuns >= RUN_THRESHOLD && usage.successfulRuns >= SUCCESS_THRESHOLD) {
+    // Race-safe single-show: only the process that creates the lock prints.
+    let won = false;
+    try { fs.closeSync(fs.openSync(usagePath(cwd) + '.nudge.lock', 'wx')); won = true; }
+    catch (_) { won = false; }
+    if (won && !opts.silent) showStarNudge(opts.write);
+    nudged = won;
+    usage.starNudgeShown = true;
+  }
+
+  writeUsageAtomic(cwd, usage);
+  return { usage, nudged };
+}
+
+module.exports = { checkStarNudge, readUsage, usagePath, showStarNudge, RUN_THRESHOLD, SUCCESS_THRESHOLD };
+
+};
+
 // ── ./src/verify/parsers ──
 __factories["./src/verify/parsers"] = function(module, exports) {
 'use strict';
@@ -10024,7 +10958,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.15.0';
+const VERSION = '7.0.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -10324,29 +11258,17 @@ function applyTokenBudget(fileEntries, maxTokens) {
   let total = renderedTotal(fileEntries);
   if (total <= budgetForEntries) return fileEntries;
 
-  // v6.12 Surgical Context — progressive disclosure: before dropping whole files,
-  // collapse signature BODIES to their line-anchor pointers (keep `symbol :start-end`).
-  // Only sigs that actually carry an anchor shrink; the agent can re-fetch bodies via
-  // the get_lines MCP tool. This degrades gracefully instead of losing files outright.
-  let working = fileEntries;
-  const collapsed = fileEntries.map((e) => {
-    const slim = (e.sigs || []).map((s) => {
-      const line = toIndexLine(s);
-      return line && /:\d+-\d+/.test(line) ? line : s; // replace only when it yields an anchor
-    });
-    return { ...e, sigs: slim };
-  });
-  const collapsedRendered = renderedTotal(collapsed);
-  if (collapsedRendered < total) {
-    console.warn(`[sigmap] budget: collapsed bodies to anchors, reclaimed ~${total - collapsedRendered} tokens`);
-    working = collapsed;
-    total = collapsedRendered;
-    // Collapsing keeps every file, so the section overhead must fit too — not just sigs.
-    if (total <= budgetForEntries) return working;
-  }
-
-  // Sort by drop priority (drop first = index 0)
-  const withPriority = working.map((e) => {
+  // Over budget — degrade gracefully, best file first:
+  //   1. keep FULL signatures (params + return type) while they fit;
+  //   2. when a file no longer fits with full sigs, collapse just THAT file to
+  //      its line-anchor pointers (still discoverable via buildSigIndex / the
+  //      ranker — it parses the context file, so an anchored file stays findable);
+  //   3. drop a file only when even the anchor form won't fit.
+  // The important, high-priority files therefore keep their real signatures —
+  // the user-visible value — while only low-priority overflow degrades to
+  // anchors instead of vanishing. (Earlier versions collapsed EVERY file to an
+  // anchor the moment you went 1 token over budget, gutting all signatures.)
+  const withPriority = fileEntries.map((e) => {
     let priority = 0;
     let dropReason = 'budget: low recency';
     if (isGeneratedFile(e.filePath)) { priority = 10; dropReason = 'budget: generated file'; }
@@ -10354,41 +11276,59 @@ function applyTokenBudget(fileEntries, maxTokens) {
     else if (isTestFile(e.filePath)) { priority = 8;  dropReason = 'budget: test file'; }
     else if (isConfigFile(e.filePath)) { priority = 6; dropReason = 'budget: config file'; }
     else priority = 4;
-    // v4.0: signal quality = sigs per line-of-code (higher = more informative)
     const loc = e.content ? e.content.split('\n').length : 1;
     const signalQuality = loc > 0 ? (e.sigs ? e.sigs.length : 0) / loc : 0;
     return { ...e, priority, dropReason, signalQuality };
   });
 
-  // Within same priority: sort by mtime ascending (oldest first), then signalQuality ascending (least informative first)
-  withPriority.sort((a, b) => {
-    if (b.priority !== a.priority) return b.priority - a.priority;
-    if ((a.mtime || 0) !== (b.mtime || 0)) return (a.mtime || 0) - (b.mtime || 0);
-    return (a.signalQuality || 0) - (b.signalQuality || 0);
+  // Best-first order: lowest drop-priority, then most-recent, then most-informative.
+  const bestFirst = withPriority.slice().sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    if ((b.mtime || 0) !== (a.mtime || 0)) return (b.mtime || 0) - (a.mtime || 0);
+    return (b.signalQuality || 0) - (a.signalQuality || 0);
   });
 
-  const kept = [];
+  const entryCost = (e) => estimateTokens(e.sigs.join('\n')) + sectionOverhead(e);
+  const collapseEntry = (e) => ({
+    ...e,
+    sigs: (e.sigs || []).map((s) => {
+      const line = toIndexLine(s);
+      return line && /:\d+-\d+/.test(line) ? line : s;
+    }),
+  });
+  // Keep FULL signatures for the best files while they fit (signatures are the
+  // value the user reads). When a file's full form no longer fits, fall back to
+  // its anchor form (still discoverable via the ranker, which parses this file);
+  // drop only when even the anchor won't fit. So the important files keep real
+  // signatures and only the lowest-priority overflow degrades — instead of every
+  // signature being gutted to an anchor the moment you go over budget.
+  const finalByPath = new Map();
   const verboseDropped = [];
-  // Iterate forward: highest drop-priority files (generated=10, mock=9, test=8) are at index 0.
-  // Drop those first until the RENDERED total (sigs + section overhead) fits maxTokens,
-  // then keep everything else.
-  let rendered = renderedTotal(withPriority);
-  for (const entry of withPriority) {
-    if (rendered > budgetForEntries) {
-      rendered -= estimateTokens(entry.sigs.join('\n')) + sectionOverhead(entry);
-      verboseDropped.push({ filePath: entry.filePath, reason: entry.dropReason });
-    } else {
-      kept.push(entry);
+  let collapsedCount = 0;
+  let used = 0;
+  for (const entry of bestFirst) { // best first
+    if (used + entryCost(entry) <= budgetForEntries) {
+      finalByPath.set(entry.filePath, entry); used += entryCost(entry); continue;
     }
+    const slim = collapseEntry(entry);
+    if (used + entryCost(slim) <= budgetForEntries) {
+      finalByPath.set(entry.filePath, slim); used += entryCost(slim); collapsedCount++; continue;
+    }
+    verboseDropped.push({ filePath: entry.filePath, reason: entry.dropReason });
   }
-  if (verboseDropped.length > 0) {
-    console.warn(`[sigmap] budget: dropped ${verboseDropped.length} files to stay under ${maxTokens} tokens`);
-    // Feature 7: --verbose — print per-file drop reason
+  // Restore the original file order for stable output.
+  const kept = withPriority.filter((e) => finalByPath.has(e.filePath)).map((e) => finalByPath.get(e.filePath));
+
+  if (verboseDropped.length > 0 || collapsedCount > 0) {
+    const parts = [];
+    if (verboseDropped.length) parts.push(`dropped ${verboseDropped.length} file(s)`);
+    if (collapsedCount) parts.push(`collapsed ${collapsedCount} low-priority file(s) to anchors`);
+    console.warn(`[sigmap] budget: ${parts.join(', ')} to stay under ${maxTokens} tokens`);
     if (process.argv.includes('--verbose')) {
       for (const { filePath, reason } of verboseDropped) {
         console.warn(`[sigmap] dropped: ${path.relative(process.cwd(), filePath)} — ${reason}`);
       }
-      console.warn(`[sigmap] included: ${kept.length} files, dropped: ${verboseDropped.length}`);
+      console.warn(`[sigmap] included: ${kept.length} files (${collapsedCount} collapsed), dropped: ${verboseDropped.length}`);
     }
   }
   return kept;
@@ -10610,12 +11550,17 @@ function resolveImpactRadius(fileEntries, cwd, config) {
 }
 
 function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
+  // One canonical usage block for every context file (CLAUDE.md, AGENTS.md,
+  // copilot-instructions.md, …). Lives here — the single source all writers
+  // consume — so adapters don't each invent their own (now-removed) variant.
+  const { usageBlock } = requireSourceOrBundled('./src/format/usage-guidance');
   const lines = [
     '<!-- Generated by SigMap gen-context.js v' + VERSION + ' -->',
     '<!-- DO NOT EDIT below the marker line — run gen-context.js to regenerate -->',
     '',
     '# Code signatures',
     '',
+    usageBlock(),
   ];
 
   // Compact dependency map section (shows import relationships, ~50-100 tokens)
@@ -11786,6 +12731,10 @@ Usage:
   ${cmd} verify-ai-output <answer.md>      Flag fake files/tests/imports/symbols/npm-scripts in an AI answer
   ${cmd} verify-ai-output <answer.md> --json    Hallucination report as JSON (exits 1 if issues)
   ${cmd} verify-ai-output <answer.md> --report  Write a standalone HTML report (red/amber/green)
+  ${cmd} squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)
+  ${cmd} ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
+  ${cmd} ask "<query>" --no-squeeze        Disable input minimization entirely
+  ${cmd} ask "<query>" --squeeze-threshold N  Min reduction %% to prompt (default 30)
   ${cmd} note "<text>"                     Append a note to the cross-session decision log
   ${cmd} note                              List recent notes (also: note --list <N>)
   ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
@@ -12174,13 +13123,51 @@ function main() {
     const { loadSession, saveSession, mergeSessionContext } = requireSourceOrBundled('./src/session/memory');
     const { detectWorkspaces, inferPackage, scopeToPackage } = requireSourceOrBundled('./src/workspace/detector');
 
-    const intent = detectIntent(query);
-    const intentWeights = getIntentWeights(intent);
+    let intent = detectIntent(query);
+    let intentWeights = getIntentWeights(intent);
 
     const sigIndex = buildSigIndex(cwd);
     if (sigIndex.size === 0) {
       console.error('[sigmap] no context file found. Run: sigmap  (to generate first)');
       process.exit(1);
+    }
+
+    // v7.0.0: Squeeze — classify and minimize pasted stacktrace/CI-log/JSON
+    // input before ranking. Always runs silently; only prompts (interactive
+    // TTY) when the reduction clears the threshold. Never blocks pipes/CI.
+    let squeezeOffered = false;
+    let squeezeAccepted = false;
+    if (!args.includes('--no-squeeze')) {
+      try {
+        const { squeeze: runSqueeze, shouldPrompt, formatSummary } = requireSourceOrBundled('./src/squeeze/index');
+        const sq = runSqueeze(query, { srcDirs: config.srcDirs, symbolIndex: sigIndex });
+        if (sq.applies && sq.reduction > 0) {
+          squeezeOffered = true;
+          const thrIdx = args.indexOf('--squeeze-threshold');
+          const threshold = thrIdx !== -1 ? parseFloat(args[thrIdx + 1]) : 30;
+          const auto = args.includes('--squeeze');
+          const interactive = !!(process.stdin.isTTY && process.stderr.isTTY) && !args.includes('--json');
+          let accept = false;
+          if (auto) {
+            accept = true;
+          } else if (interactive && shouldPrompt(sq.reduction, threshold)) {
+            process.stderr.write('\n' + formatSummary(sq) + '\n\n');
+            process.stderr.write('Proceed with minimized input? [Y/n] ');
+            const buf = Buffer.alloc(8);
+            try {
+              const n = fs.readSync(0, buf, 0, 8, null);
+              const ans = buf.toString('utf8', 0, n).trim().toLowerCase();
+              accept = ans === '' || ans === 'y' || ans === 'yes';
+            } catch (_) { accept = false; }
+          }
+          if (accept) {
+            query = sq.squeezed;
+            intent = detectIntent(query);
+            intentWeights = getIntentWeights(intent);
+            squeezeAccepted = true;
+          }
+        }
+      } catch (_) { /* squeeze is best-effort — never break ask */ }
     }
 
     let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd });
@@ -12282,6 +13269,15 @@ function main() {
         bar,
       ].join('\n'));
     }
+    // v7.0.0: record the run and show the one-time star nudge (interactive only).
+    try {
+      const { checkStarNudge } = requireSourceOrBundled('./src/nudge');
+      const showNudge = !!process.stderr.isTTY && !args.includes('--json');
+      checkStarNudge(cwd, true, {
+        silent: !showNudge,
+        bump: { squeezeOffered: squeezeOffered ? 1 : 0, squeezeAccepted: squeezeAccepted ? 1 : 0 },
+      });
+    } catch (_) {}
     process.exit(0);
   }
 
@@ -13034,6 +14030,49 @@ function main() {
     } else {
       console.log('  Notes:         none — add with: sigmap note "<text>"');
     }
+    process.exit(0);
+  }
+
+  // v7.0.0: `sigmap squeeze <file|->` — minimize a pasted stacktrace / CI-log / JSON blob
+  if (args[0] === 'squeeze') {
+    const jsonOut = args.includes('--json');
+    const target = args[1] && !args[1].startsWith('--') ? args[1] : '-';
+    let input = '';
+    try {
+      input = fs.readFileSync(target === '-' ? 0 : path.resolve(cwd, target), 'utf8');
+    } catch (e) {
+      console.error(`[sigmap] cannot read input: ${e.message}`);
+      process.exit(1);
+    }
+
+    const { squeeze: runSqueeze, formatSummary } = requireSourceOrBundled('./src/squeeze/index');
+    let symbolIndex = null;
+    try {
+      const { buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
+      symbolIndex = buildSigIndex(cwd);
+    } catch (_) {}
+    const sq = runSqueeze(input, { srcDirs: config.srcDirs, symbolIndex });
+
+    try {
+      const { checkStarNudge } = requireSourceOrBundled('./src/nudge');
+      checkStarNudge(cwd, true, { silent: !process.stderr.isTTY || jsonOut, bump: { squeezeOffered: sq.applies ? 1 : 0 } });
+    } catch (_) {}
+
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify({
+        category: sq.category, confidence: sq.confidence,
+        rawTokens: sq.rawTokens, squeezedTokens: sq.squeezedTokens,
+        reduction: sq.reduction, enriched: sq.enriched, squeezed: sq.squeezed,
+      }) + '\n');
+      process.exit(0);
+    }
+    if (!sq.category) {
+      process.stderr.write('[sigmap] no squeezable structure detected — input unchanged\n');
+      process.stdout.write(input);
+      process.exit(0);
+    }
+    process.stderr.write(formatSummary(sq) + '\n\n');
+    process.stdout.write(sq.squeezed + '\n');
     process.exit(0);
   }
 

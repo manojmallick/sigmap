@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 42 SigMap commands and flags documented with examples. ask, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 46 SigMap commands and flags documented with examples. ask, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://manojmallick.github.io/sigmap/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 42 SigMap commands and flags documented with examples. ask, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 46 SigMap commands and flags documented with examples. ask, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -49,6 +49,10 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>" --global` | Disable package scoping; search entire repo (monorepo override) |
 | `ask "<query>" --mode index` | Surgical Context: emit symbol-header pointers (`symbol :start-end`) only — no bodies; fetch on demand via `get_lines` |
 | `ask "<query>" --since <ref>` | Delta context: restrict ranked output to files changed since a git ref |
+| `ask "<query>" --squeeze` | Auto-accept input minimization (no prompt) — for scripts/CI |
+| `ask "<query>" --no-squeeze` | Disable input minimization entirely |
+| `ask "<query>" --squeeze-threshold <n>` | Minimum reduction %% to prompt for minimization (default 30) |
+| `squeeze <file\|->` | Minimize a pasted stacktrace / CI-log / JSON blob (`--json` for stats) |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
@@ -126,6 +130,8 @@ sigmap ask "explain the rank function" --json
 ```
 
 With `--json` the output is a machine-readable object with `intent`, `coverage`, `cost`, `riskLevel`, and `rankedFiles`.
+
+**Input minimization (v7.0.0).** When the query is a pasted blob — a stack trace, CI log, or JSON payload — `ask` classifies it and, on an interactive terminal, offers to minimize it before ranking (dedupe frames, strip vendor noise, collapse repeated array items, and enrich the top stack frame with its real signature). It only prompts when the reduction clears `--squeeze-threshold` (default 30%). Non-interactive (piped/CI) usage is never blocked: `--squeeze` auto-accepts, `--no-squeeze` disables it entirely. See [`squeeze`](#squeeze) below.
 
 When coverage drops below 70%, a warning is emitted on stderr pointing to `sigmap validate`.
 
@@ -346,6 +352,40 @@ JSON output (`--json`) for CI:
 | `--report [out.html]` | Write a standalone, self-contained HTML report (red/amber/green per issue, suggestions inline); defaults to `sigmap-verify-report.html`. Combinable with `--json`. |
 
 Exit code `0` = clean (no hallucinations), `1` = at least one issue found. Use in CI to gate AI-generated patches or answers before they are trusted. See the [Hallucination Guard guide](/guide/verify-ai-output) for the full workflow.
+
+---
+
+## squeeze
+
+Minimize a pasted stack trace, CI/build log, or JSON payload — deterministic, offline. Reads a file or stdin and writes the squeezed result to stdout (stats to stderr). The same engine runs inside [`ask`](#ask).
+
+```bash
+sigmap squeeze error.log              # squeeze a file → stdout
+cat error.log | sigmap squeeze -      # or from stdin
+sigmap squeeze error.log --json       # category + reduction + squeezed text as JSON
+```
+
+```
+Input: 14,200 tokens
+Can reduce to 1,280 tokens (91% smaller):
+  ✓ Kept: 1 unique exception + top source frames
+  ✓ Kept: enriched signature for validateToken() at session.js:142
+  ✗ Stripped: 47 duplicate frames, 312 lines of build noise
+```
+
+Three deterministic detectors, each with its own minimizer:
+
+| Category | What it keeps |
+|----------|---------------|
+| `stacktrace` | Unique exceptions (`occurred ×N`), top frames in your source dirs, **the top frame enriched** with its real signature from the symbol index; vendor (`node_modules`/`vendor`/`site-packages`) frames stripped |
+| `cilog` | Every error line + a context window; timestamps, progress bars, and repeated noise stripped (never empty) |
+| `json` | Schema shape at every depth; repeated array items collapsed, long strings truncated |
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit `{ category, confidence, rawTokens, squeezedTokens, reduction, enriched, squeezed }` |
+
+Prose (no recognizable structure) passes through unchanged. The differentiator over generic log summarizers is **symbol enrichment** — SigMap attaches a real function signature to the top stack frame because it has the repo's symbol index.
 
 ---
 
@@ -593,8 +633,8 @@ sigmap compare --json
  SigMap vs Baseline
 ────────────────────────────────────────────
  hit@5         75.6% vs 13.6%   (5.6× lift)
- Avg prompts   1.73 vs 2.84
- Token story   97.1% overall reduction
+ Avg prompts   1.72 vs 2.84
+ Token story   97.0% overall reduction
 ────────────────────────────────────────────
 ```
 
@@ -610,7 +650,7 @@ sigmap share
 
 ```
 Generated with SigMap — zero-dependency AI context engine
-97.1% fewer tokens · 75.6% retrieval hit@5 · 39.0% fewer prompts
+97.0% fewer tokens · 75.6% retrieval hit@5 · 39.4% fewer prompts
 https://sigmap.dev
 [sigmap] Copied to clipboard.
 ```

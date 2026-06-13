@@ -10,6 +10,28 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.0.0] — 2026-06-14
+
+Major release — **Squeeze** makes `ask` minimize pasted input by default, a behavioral change to the core command.
+
+### Added
+- **Squeeze — input minimization (#238):** `sigmap ask` now classifies a pasted blob (stack trace / CI log / JSON) and minimizes it before ranking — deduping frames, stripping vendor noise, collapsing repeated array items — and **enriches the top stack frame** with its real signature from the symbol index. New `sigmap squeeze <file|->` command and `--squeeze` (auto-accept), `--no-squeeze`, `--squeeze-threshold N` flags. New `src/squeeze/{classify,cilog,stacktrace,jsonpayload,index}.js`; zero-dep, deterministic, offline.
+- **Star Nudge (#238):** a one-time, race-safe GitHub-star prompt after ≥10 runs / ≥8 successes (`.context/usage.json`).
+- **`llms.txt` + `llms-full.txt` generator (#243):** SigMap's own LLM reference is generated from source of truth (MCP tools, config keys, languages, `version.json` metrics, CLI help), validated in CI so it can never go stale, and published to the docs site + repo root. `npm run generate:llms` / `validate:llms`; `prepublishOnly` regenerates before publish.
+- **npm discoverability + GitHub Sponsors (#241):** benefit-driven description, 20 keywords, `funding` field + `.github/FUNDING.yml`.
+
+### Changed
+- **BREAKING: `sigmap ask` now classifies its input and may prompt** to minimize large pasted stack traces / logs / JSON before ranking. Interactive only — piped/CI usage is unaffected (no prompt), and `--no-squeeze` fully disables it.
+- **Token budget keeps full signatures (#240):** when context exceeds `maxTokens`, low-priority files are dropped (and only marginal overflow collapses to anchors) — signatures keep their parameters/return types instead of being gutted to bare line anchors. The repo's own context config raises `maxTokens` (auto-scaling off) so it fits all files with full signatures.
+- **One consistent usage block (#240):** every generated context file (CLAUDE.md / AGENTS.md / copilot-instructions.md / …) now carries a single canonical `## SigMap commands` block emitted from `formatOutput`; the redundant `## Tools` JSON in AGENTS.md was removed.
+- **Benchmark repos pinned to fixed commits (#236):** retrieval/token benchmarks now clone pinned SHAs, so metrics move only when SigMap changes — not when upstream repos do.
+
+### Fixed
+- **Signatures no longer gutted under budget (#240):** the headline regression in the generated context files is resolved (see Changed).
+- **prdiff symbol-name extraction (#247):** the changes block no longer emits phantom 2-char fragments (e.g. `+is`/`~is`); `extractName` now handles `export class`, `const x = () =>`, async/visibility modifiers, and returns nothing for re-export lines.
+
+---
+
 ## [6.15.0] — 2026-06-09
 
 ### Added

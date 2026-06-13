@@ -1,7 +1,7 @@
 {
   "name": "sigmap",
-  "version": "6.15.0",
-  "description": "Zero-dependency AI context engine — 97% token reduction. No npm install. Runs on Node 18+.",
+  "version": "7.0.0",
+  "description": "97% token reduction for AI coding. Extracts function & class signatures with TF-IDF ranking to feed only the right files to Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP. Zero dependencies, runs offline via npx.",
   "main": "gen-context.js",
   "exports": {
     ".": "./packages/core/index.js",
@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "node test/run.js && node test/r-language.test.js",
-    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp/server.test.js && node test/integration/verify-ai-output.test.js && node test/integration/memory-tools.test.js",
+    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp/server.test.js && node test/integration/verify-ai-output.test.js && node test/integration/memory-tools.test.js && node test/integration/squeeze.test.js && node test/integration/context-consistency.test.js && node test/integration/features/llms-current.test.js",
     "test:integration:all": "node test/integration/all.js",
     "test:all": "node test/run.js && node test/r-language.test.js && node test/integration/strategy.test.js && node test/integration/secret-scan.test.js",
     "generate": "node gen-context.js",
@@ -26,12 +26,17 @@
     "audit:strategies": "node scripts/run-strategy-audit.mjs",
     "benchmark:matrix": "node scripts/run-benchmark-matrix.mjs --save --skip-clone",
     "benchmark:verify": "node scripts/run-verify-benchmark.mjs",
+    "benchmark:squeeze": "node scripts/run-squeeze-benchmark.mjs --save",
+    "validate:squeeze": "node scripts/run-squeeze-benchmark.mjs --gate",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",
     "mcp": "node gen-context.js --mcp",
     "build:binary": "node scripts/build-binary.mjs",
     "verify:binary": "node scripts/verify-binary.mjs",
-    "version:sync": "node scripts/sync-versions.mjs"
+    "version:sync": "node scripts/sync-versions.mjs",
+    "generate:llms": "node scripts/generate-llms.mjs",
+    "validate:llms": "node scripts/validate-llms.mjs",
+    "prepublishOnly": "node scripts/generate-llms.mjs"
   },
   "files": [
     "gen-context.js",
@@ -42,24 +47,32 @@
     "AGENTS.md",
     "LICENSE",
     "CHANGELOG.md",
+    "llms.txt",
+    "llms-full.txt",
     ".contextignore.example",
     "gen-context.config.json.example"
   ],
   "keywords": [
     "ai",
-    "context",
-    "copilot",
-    "claude",
-    "cursor",
-    "windsurf",
     "llm",
-    "tokens",
+    "context",
     "token-reduction",
-    "code-signatures",
-    "ai-context",
-    "zero-dependency",
+    "codebase",
+    "retrieval",
+    "tf-idf",
+    "cursor",
+    "claude",
+    "github-copilot",
+    "aider",
+    "windsurf",
+    "developer-tools",
     "mcp",
-    "github-copilot"
+    "function-signatures",
+    "code-intelligence",
+    "context-compression",
+    "local-llm",
+    "ollama",
+    "ai-coding"
   ],
   "author": {
     "name": "Manoj Mallick",
@@ -72,6 +85,10 @@
   "homepage": "https://manojmallick.github.io/sigmap/",
   "bugs": {
     "url": "https://github.com/manojmallick/sigmap/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/manojmallick"
   },
   "license": "MIT",
   "engines": {

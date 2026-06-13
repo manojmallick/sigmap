@@ -1,51 +1,54 @@
 {
   "_comment": "SigMap configuration for the SigMap repo itself.",
-
   "output": ".github/copilot-instructions.md",
-
-  "outputs": ["copilot", "codex", "claude", "gemini"],
-
-  "_srcDirs_comment": "Explicitly scoped to sigmap's own source dirs. Auto-detection would also pick up docs/, scripts/, test/, etc.",
-  "srcDirs": ["src", "packages"],
-
-  "exclude": [
-    "node_modules", ".git", "dist", "build", "out",
-    "__pycache__", ".next", "coverage", "target", "vendor",
-    ".context", "benchmarks"
+  "outputs": [
+    "copilot",
+    "codex",
+    "claude",
+    "gemini"
   ],
-
-  "maxDepth": 6,
-
-  "maxSigsPerFile": 25,
-
-  "maxTokens": 6000,
-
+  "_srcDirs_comment": "Explicitly scoped to sigmap's own source dirs. Auto-detection would also pick up docs/, scripts/, test/, etc.",
+  "srcDirs": [
+    "src",
+    "packages"
+  ],
+  "exclude": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "out",
+    "__pycache__",
+    ".next",
+    "coverage",
+    "target",
+    "vendor",
+    ".context",
+    "benchmarks"
+  ],
+  "maxDepth": 8,
+  "maxSigsPerFile": 30,
+  "maxTokens": 16000,
   "secretScan": true,
-
   "monorepo": false,
-
   "diffPriority": true,
-
   "mcp": {
     "autoRegister": true
   },
-
   "_strategy_comment": "Context output strategy. Options: 'full' | 'per-module' | 'hot-cold'",
   "strategy": "full",
-
   "hotCommits": 10,
-
   "depMap": true,
-
   "todos": true,
-
   "changes": true,
-
   "changesCommits": 5,
-
   "testCoverage": false,
-
-  "testDirs": ["tests", "test", "__tests__", "spec"],
-
-  "impactRadius": false
+  "testDirs": [
+    "tests",
+    "test",
+    "__tests__",
+    "spec"
+  ],
+  "impactRadius": false,
+  "autoMaxTokens": false
 }
