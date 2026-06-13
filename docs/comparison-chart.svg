@@ -54,13 +54,13 @@
   <!-- With row -->
   <text x="105" y="196" text-anchor="end" font-size="11" fill="#22c55e">SigMap</text>
   <rect x="112" y="183" width="462" height="20" fill="#dcfce7" rx="4"/>
-  <!-- 51.1% of 462 = 236.1 -->
-  <rect x="112" y="183" width="236" height="20" fill="#22c55e" rx="4"/>
-  <text x="342" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">51.1%</text>
+  <!-- 52.2% of 462 = 241.2 -->
+  <rect x="112" y="183" width="241" height="20" fill="#22c55e" rx="4"/>
+  <text x="347" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">52.2%</text>
 
   <!-- Badge -->
   <rect x="588" y="165" width="94" height="32" fill="#22c55e" rx="6"/>
-  <text x="635" y="178" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">×5.1 better</text>
+  <text x="635" y="178" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">×5.2 better</text>
   <text x="635" y="191" text-anchor="middle" font-size="9" fill="#bbf7d0">correctness</text>
 
   <!-- ═══════════════════════════════════════════ -->

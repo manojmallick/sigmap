@@ -198,7 +198,7 @@ Date: 2026-05-12
 Hit@5:              78.9%  (baseline 13.6%  — 5.8× lift)
 Prompt reduction:   40.6%
 Task success:       52.2%  (baseline 10%)
-Prompts per task:   1.73   (baseline 2.84)
+Prompts per task:   1.72   (baseline 2.84)
 Token reduction:    40–98% (avg 97.9% across 21 repos, including R language)
 ```
 

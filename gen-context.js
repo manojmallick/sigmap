@@ -6261,7 +6261,7 @@ const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, exp
 
 const SERVER_INFO = {
   name: 'sigmap',
-  version: '6.15.0',
+  version: '7.0.0',
   description: 'SigMap MCP server — code signatures on demand',
 };
 
@@ -10958,7 +10958,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const VERSION = '6.15.0';
+const VERSION = '7.0.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

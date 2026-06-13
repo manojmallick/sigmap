@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v6.15.0. 76% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v7.0.0. 76% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,21 +15,21 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v6.15.0 benchmark snapshot
-**Benchmark ID:** sigmap-v6.15-main &nbsp;·&nbsp; **Date:** 2026-06-09 (with R language)
+::: info Official v7.0.0 benchmark snapshot
+**Benchmark ID:** sigmap-v7.0-main &nbsp;·&nbsp; **Date:** 2026-06-14 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **76%** vs 13.6% baseline |
 | Graph-boosted hit@5 | **76%** |
 | Retrieval lift | **5.6×** |
-| Prompt reduction | **39.0%** (2.84 → 1.73) |
-| Task success proxy | **51.1%** |
-| Overall token reduction | **97.1%** |
+| Prompt reduction | **39.4%** (2.84 → 1.72) |
+| Task success proxy | **52.2%** |
+| Overall token reduction | **97.0%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-06-09 (v6.15.0)**
+Latest saved run: **2026-06-14 (v7.0.0)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **76% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
@@ -50,7 +50,7 @@ This benchmark isolates that first question: *did the right file appear in conte
 | Average hit@5 | 13.6% | **75.6%** |
 | Graph-boosted hit@5 | — | **75.6%** |
 | Lift | — | **6.0x** |
-| Correct (rank 1) | ~1% | **51.1%** |
+| Correct (rank 1) | ~1% | **52.2%** |
 | Partial (ranks 2–5) | ~13% | **26.7%** |
 | Wrong (not in top 5) | ~86% | **21.1%** |
 
@@ -58,7 +58,7 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Tier | Tasks | Share |
 |---|---:|---:|
-| Correct | 46 / 90 | **51.1%** |
+| Correct | 46 / 90 | **52.2%** |
 | Partial | 24 / 90 | **26.7%** |
 | Wrong | 19 / 90 | **21.1%** |
 
