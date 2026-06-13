@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
 
 Sitemap: https://manojmallick.github.io/sigmap/sitemap.xml

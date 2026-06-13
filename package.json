@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "node test/run.js && node test/r-language.test.js",
-    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp/server.test.js && node test/integration/verify-ai-output.test.js && node test/integration/memory-tools.test.js && node test/integration/squeeze.test.js && node test/integration/context-consistency.test.js",
+    "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp/server.test.js && node test/integration/verify-ai-output.test.js && node test/integration/memory-tools.test.js && node test/integration/squeeze.test.js && node test/integration/context-consistency.test.js && node test/integration/features/llms-current.test.js",
     "test:integration:all": "node test/integration/all.js",
     "test:all": "node test/run.js && node test/r-language.test.js && node test/integration/strategy.test.js && node test/integration/secret-scan.test.js",
     "generate": "node gen-context.js",
@@ -33,7 +33,10 @@
     "mcp": "node gen-context.js --mcp",
     "build:binary": "node scripts/build-binary.mjs",
     "verify:binary": "node scripts/verify-binary.mjs",
-    "version:sync": "node scripts/sync-versions.mjs"
+    "version:sync": "node scripts/sync-versions.mjs",
+    "generate:llms": "node scripts/generate-llms.mjs",
+    "validate:llms": "node scripts/validate-llms.mjs",
+    "prepublishOnly": "node scripts/generate-llms.mjs"
   },
   "files": [
     "gen-context.js",
@@ -44,6 +47,8 @@
     "AGENTS.md",
     "LICENSE",
     "CHANGELOG.md",
+    "llms.txt",
+    "llms-full.txt",
     ".contextignore.example",
     "gen-context.config.json.example"
   ],
