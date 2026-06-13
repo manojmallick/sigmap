@@ -9180,6 +9180,577 @@ __factories["./src/workspace/detector"] = function(module, exports) {
  * No npm install required. Node 18+ built-ins only.
  */
 
+// ── ./src/squeeze/classify ──
+__factories["./src/squeeze/classify"] = function(module, exports) {
+'use strict';
+
+/**
+ * Squeeze input classifier (v7.0.0).
+ *
+ * Deterministic, zero-dep detector that labels a pasted blob as a
+ * `stacktrace`, `cilog`, or `json` payload — or `null` (pass through). Pure
+ * regex/heuristics; runs in well under 10ms even on large input.
+ *
+ * Order matters: stack traces are highest value and a CI log often *contains*
+ * a trace, so stacktrace is checked first, then cilog, then json.
+ */
+
+const FRAME_RE = [
+  /^\s*at\s+.+\(.+:\d+:\d+\)\s*$/,          // JS: at fn (file:line:col)
+  /^\s*at\s+.+:\d+:\d+\s*$/,                 // JS: at file:line:col
+  /^\s*at\s+[\w$.<>]+\(.+\.\w+:\d+\)/,       // Java/Kotlin: at pkg.Cls.m(File.java:42)
+  /^\s*File\s+".+",\s+line\s+\d+/,           // Python frame
+  /^\s+\w+.*\([^)]*\.(go|rs):\d+\)/,         // Go/Rust frame with file:line
+  /^\s*#\d+\s+0x[0-9a-f]+/,                  // native/gdb frame
+];
+
+const STACK_HEADER_RE = [
+  /Traceback \(most recent call last\)/,
+  /Exception in thread/,
+  /\bat Object\.<anonymous>\b/,
+  /thread '.*' panicked at/,
+  /^panic:/m,
+  /goroutine \d+ \[/,
+];
+
+function countFrames(lines) {
+  let n = 0;
+  for (const line of lines) {
+    if (FRAME_RE.some((re) => re.test(line))) n++;
+  }
+  return n;
+}
+
+function matchesStackTrace(input, lines) {
+  const frames = countFrames(lines);
+  const header = STACK_HEADER_RE.some((re) => re.test(input));
+  // A single explicit header (Traceback/panic) counts as strong evidence even
+  // with few parsed frames; otherwise require 2+ frame-like lines.
+  if (!header && frames < 2) return { match: false, confidence: 0, frames };
+  // Confidence scales with frame count; a header alone floors it at 0.6.
+  let confidence = Math.min(0.97, 0.15 * frames);
+  if (header) confidence = Math.max(confidence, 0.6 + Math.min(0.3, 0.05 * frames));
+  return { match: true, confidence: Number(confidence.toFixed(2)), frames };
+}
+
+const TS_RE = /(\b\d{1,2}:\d{2}:\d{2}\b)|(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
+const PROGRESS_RE = /(\d{1,3}%)|(\bDownloading\b)|(\bnpm (WARN|notice|http)\b)|(##\[(group|endgroup|command)\])|(\[\d+\/\d+\])|(▕|█|━|⠿)|(\bETA\b)|(\r$)/;
+
+function matchesCiLog(input, lines) {
+  if (lines.length < 8) return { match: false, confidence: 0 };
+  let logish = 0;
+  const seen = new Map();
+  let repeats = 0;
+  for (const line of lines) {
+    if (TS_RE.test(line) || PROGRESS_RE.test(line)) logish++;
+    const norm = line.replace(/\d+/g, '#').trim();
+    if (norm) {
+      const c = (seen.get(norm) || 0) + 1;
+      seen.set(norm, c);
+      if (c > 1) repeats++;
+    }
+  }
+  const density = logish / lines.length;
+  const repeatRatio = repeats / lines.length;
+  if (density < 0.4 && repeatRatio < 0.4) return { match: false, confidence: 0 };
+  const confidence = Math.min(0.95, Math.max(density, repeatRatio) + 0.15);
+  return { match: true, confidence: Number(confidence.toFixed(2)) };
+}
+
+function matchesJsonPayload(input) {
+  const trimmed = input.trim();
+  if (/^[[{]/.test(trimmed)) {
+    try {
+      JSON.parse(trimmed);
+      return { match: true, confidence: 0.95 };
+    } catch (_) { /* not strict JSON — fall through to heuristic */ }
+  }
+  const lines = trimmed.split('\n');
+  if (lines.length < 4) return { match: false, confidence: 0 };
+  let kv = 0;
+  for (const line of lines) {
+    if (/^\s*"[^"]+"\s*:\s*.+/.test(line) || /^\s*[}\]],?\s*$/.test(line)) kv++;
+  }
+  const ratio = kv / lines.length;
+  if (ratio < 0.6) return { match: false, confidence: 0 };
+  return { match: true, confidence: Number(Math.min(0.9, ratio).toFixed(2)) };
+}
+
+/**
+ * @param {string} input
+ * @returns {{ category: 'stacktrace'|'cilog'|'json'|null, confidence: number }}
+ */
+function classify(input) {
+  if (typeof input !== 'string' || !input.trim()) return { category: null, confidence: 0 };
+  const lines = input.split('\n');
+
+  const st = matchesStackTrace(input, lines);
+  if (st.match) return { category: 'stacktrace', confidence: st.confidence };
+
+  const ci = matchesCiLog(input, lines);
+  if (ci.match) return { category: 'cilog', confidence: ci.confidence };
+
+  const js = matchesJsonPayload(input);
+  if (js.match) return { category: 'json', confidence: js.confidence };
+
+  return { category: null, confidence: 0 };
+}
+
+module.exports = { classify, countFrames };
+
+};
+
+// ── ./src/squeeze/cilog ──
+__factories["./src/squeeze/cilog"] = function(module, exports) {
+'use strict';
+
+/**
+ * CI / build-log squeeze (v7.0.0).
+ *
+ * Strips timestamps, progress bars, and repeated noise; keeps every error line
+ * plus a small context window around it. Never returns empty — when there are
+ * no errors it falls back to a head/tail summary. Also reused by the stacktrace
+ * squeezer to clean noise surrounding a trace.
+ */
+
+const TS_PREFIX_RE = /^\s*(?:\[?\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?Z?\]?\s*|\[?\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?\]?\s*)+/;
+const PROGRESS_LINE_RE = /(?:^|\s)(?:\d{1,3}%|Downloading|Receiving objects|Resolving deltas|Compressing objects|npm (?:WARN|notice|http|sill|verb)|##\[(?:group|endgroup|command|section)\]|\[\d+\/\d+\]|ETA[: ]|█|━|▕|⣿)/;
+const ERROR_RE = /\b(?:error|err!|fail(?:ed|ure)?|exception|panic|fatal|traceback|ERR_|E[A-Z]{3,})\b|✗|❌/i;
+
+/** Remove a leading timestamp prefix from a single line. */
+function stripTimestamp(line) {
+  return line.replace(TS_PREFIX_RE, '');
+}
+
+/**
+ * @param {string} input
+ * @param {object} [opts]
+ * @param {number} [opts.context=2]  context lines kept around each error
+ * @returns {{ squeezed: string, kept: string[], stripped: string[] }}
+ */
+function squeezeCiLog(input, opts = {}) {
+  const ctx = opts.context != null ? opts.context : 2;
+  const lines = input.split('\n');
+  const keep = new Set();
+  const errorIdx = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    if (ERROR_RE.test(lines[i])) {
+      errorIdx.push(i);
+      for (let j = Math.max(0, i - ctx); j <= Math.min(lines.length - 1, i + ctx); j++) keep.add(j);
+    }
+  }
+
+  let body;
+  let keptDesc;
+  if (errorIdx.length === 0) {
+    const head = lines.slice(0, 10).map(stripTimestamp);
+    const tail = lines.length > 20 ? lines.slice(-10).map(stripTimestamp) : [];
+    body = head.slice();
+    if (tail.length) body.push(`… (${lines.length - 20} lines omitted) …`, ...tail);
+    keptDesc = ['head/tail summary (no error lines found)'];
+  } else {
+    const sorted = [...keep].sort((a, b) => a - b);
+    body = [];
+    let prev = -2;
+    for (const idx of sorted) {
+      // Drop pure progress/noise lines unless they are themselves errors.
+      const line = stripTimestamp(lines[idx]);
+      if (PROGRESS_LINE_RE.test(line) && !ERROR_RE.test(line)) continue;
+      if (idx > prev + 1) body.push(`… (${idx - prev - 1} lines) …`);
+      body.push(line);
+      prev = idx;
+    }
+    if (body.length === 0) body = errorIdx.map((i) => stripTimestamp(lines[i])); // safety net
+    keptDesc = [`${errorIdx.length} error line(s) + ${ctx}-line context`];
+  }
+
+  return {
+    squeezed: body.join('\n'),
+    kept: keptDesc,
+    stripped: [`${Math.max(0, lines.length - body.length)} timestamp/progress/noise line(s)`],
+  };
+}
+
+module.exports = { squeezeCiLog, stripTimestamp, ERROR_RE };
+
+};
+
+// ── ./src/squeeze/jsonpayload ──
+__factories["./src/squeeze/jsonpayload"] = function(module, exports) {
+'use strict';
+
+/**
+ * JSON-payload squeeze (v7.0.0).
+ *
+ * Collapses repeated array elements, truncates long string values, and
+ * preserves the schema shape at every depth — so an LLM still sees the
+ * structure of an API/GraphQL/validation error without the bulk.
+ */
+
+const MAX_STR = 500;
+const ARRAY_KEEP = 2;
+
+function squeezeValue(v, opts) {
+  const maxStr = opts.maxStr;
+  const keep = opts.arrayKeep;
+  if (Array.isArray(v)) {
+    if (v.length <= keep + 1) return v.map((x) => squeezeValue(x, opts));
+    const head = v.slice(0, keep).map((x) => squeezeValue(x, opts));
+    head.push(`…${v.length - keep} more similar items`);
+    return head;
+  }
+  if (v && typeof v === 'object') {
+    const o = {};
+    for (const k of Object.keys(v)) o[k] = squeezeValue(v[k], opts);
+    return o;
+  }
+  if (typeof v === 'string' && v.length > maxStr) {
+    return v.slice(0, maxStr) + `…(${v.length} chars)`;
+  }
+  return v;
+}
+
+/**
+ * @param {string} input
+ * @param {object} [opts]
+ * @param {number} [opts.maxStr=500]    truncate strings longer than this
+ * @param {number} [opts.arrayKeep=2]   array items kept before collapsing
+ * @returns {{ squeezed, kept, stripped }}
+ */
+function squeezeJsonPayload(input, opts = {}) {
+  let parsed;
+  try { parsed = JSON.parse(input); }
+  catch (_) { return { squeezed: input, kept: ['(not valid JSON — unchanged)'], stripped: [] }; }
+  const cfg = { maxStr: opts.maxStr != null ? opts.maxStr : MAX_STR, arrayKeep: opts.arrayKeep != null ? opts.arrayKeep : ARRAY_KEEP };
+  const squeezed = JSON.stringify(squeezeValue(parsed, cfg), null, 2);
+  return {
+    squeezed,
+    kept: ['schema shape preserved at all depths'],
+    stripped: ['collapsed repeated array items; truncated long string values'],
+  };
+}
+
+module.exports = { squeezeJsonPayload, squeezeValue };
+
+};
+
+// ── ./src/squeeze/stacktrace ──
+__factories["./src/squeeze/stacktrace"] = function(module, exports) {
+'use strict';
+
+/**
+ * Stack-trace squeeze (v7.0.0) — the highest-value squeeze module.
+ *
+ * Dedupes repeated exceptions, strips vendor frames, keeps frames in the user's
+ * own source dirs, and — the differentiator — **enriches the top kept frame**
+ * with its real signature from the SigMap symbol index (`buildSigIndex`).
+ * Generic log summarizers can't do this; SigMap has the repo's symbol map.
+ *
+ * Pure/deterministic. The symbol index is injected via `opts.symbolIndex` so
+ * the module is unit-testable without touching the filesystem.
+ */
+
+const path = require('path');
+
+const VENDOR_RE = /(?:^|[\\/])(?:node_modules|vendor|site-packages|dist|build|\.venv|venv|third_party|external|\.cargo|go\/pkg\/mod)[\\/]/;
+
+/** Parse a frame line across JS/TS, Python, Java/Kotlin, Go, Rust, native. */
+function parseFrame(line) {
+  let m;
+  if ((m = line.match(/^\s*at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/))) return { fn: m[1], file: m[2], line: +m[3], raw: line };
+  if ((m = line.match(/^\s*at\s+(.+?):(\d+):(\d+)\s*$/))) return { fn: '', file: m[1], line: +m[2], raw: line };
+  if ((m = line.match(/^\s*at\s+([\w$.<>]+)\((.+?):(\d+)\)/))) return { fn: m[1], file: m[2], line: +m[3], raw: line };
+  if ((m = line.match(/^\s*File\s+"(.+?)",\s+line\s+(\d+)(?:,\s+in\s+(.+))?/))) return { fn: (m[3] || '').trim(), file: m[1], line: +m[2], raw: line };
+  if ((m = line.match(/^\s*(.+\.(?:go|rs)):(\d+)/))) return { fn: '', file: m[1], line: +m[2], raw: line };
+  return null;
+}
+
+function isVendor(file) { return VENDOR_RE.test(String(file).replace(/\\/g, '/')); }
+
+function inSrcDirs(file, srcDirs) {
+  const f = String(file).replace(/\\/g, '/');
+  return srcDirs.some((d) => {
+    const dd = String(d).replace(/^\.\//, '').replace(/\/$/, '');
+    return dd && (f === dd || f.startsWith(dd + '/') || f.includes('/' + dd + '/'));
+  });
+}
+
+/** Look up the real signature for a frame in the SigMap symbol index. */
+function enrichFrame(frame, symbolIndex) {
+  if (!symbolIndex || !frame) return null;
+  const want = String(frame.file).replace(/\\/g, '/');
+  const base = path.basename(want);
+  let key = null;
+  for (const k0 of symbolIndex.keys()) {
+    const k = String(k0).replace(/\\/g, '/');
+    if (k === want || want.endsWith('/' + k) || k.endsWith('/' + want)) { key = k0; break; }
+    if (!key && path.basename(k) === base) key = k0;
+  }
+  if (!key) return null;
+  const sigs = symbolIndex.get(key) || [];
+  const wantFn = frame.fn ? frame.fn.split('.').pop() : '';
+  let byLine = null, byName = null;
+  for (const sig of sigs) {
+    const s = String(sig);
+    const mm = s.match(/:(\d+)(?:-(\d+))?\s*$/);
+    if (mm) {
+      const a = +mm[1], b = mm[2] ? +mm[2] : a;
+      if (frame.line >= a && frame.line <= b) byLine = s;
+    }
+    if (wantFn && new RegExp('\\b' + wantFn.replace(/[^\w$]/g, '') + '\\b').test(s)) byName = byName || s;
+  }
+  const sig = byLine || byName;
+  return sig ? { file: key, sig: sig.replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim() } : null;
+}
+
+/**
+ * @param {string} input
+ * @param {object} [opts]
+ * @param {string[]} [opts.srcDirs]      user source dirs (default ['src'])
+ * @param {Map}      [opts.symbolIndex]  SigMap signature index for enrichment
+ * @param {number}   [opts.maxFrames=8]  cap on kept source frames
+ * @returns {{ squeezed, kept, stripped, enriched }}
+ */
+function squeezeStackTrace(input, opts = {}) {
+  const srcDirs = (opts.srcDirs && opts.srcDirs.length) ? opts.srcDirs : ['src'];
+  const maxFrames = opts.maxFrames != null ? opts.maxFrames : 8;
+  const lines = input.split('\n');
+
+  const headerCount = new Map();
+  const headerOrder = [];
+  const frames = [];
+  for (const line of lines) {
+    const f = parseFrame(line);
+    if (f) { frames.push(f); continue; }
+    const t = line.trim();
+    if (!t) continue;
+    if (!headerCount.has(t)) headerOrder.push(t);
+    headerCount.set(t, (headerCount.get(t) || 0) + 1);
+  }
+
+  const seen = new Set();
+  let dupFrames = 0;
+  const nonVendor = [];
+  const sourceFrames = [];
+  let vendorCount = 0;
+  for (const f of frames) {
+    const k = f.file + ':' + f.line;
+    if (seen.has(k)) { dupFrames++; continue; }
+    seen.add(k);
+    if (isVendor(f.file)) { vendorCount++; continue; }
+    nonVendor.push(f);
+    if (inSrcDirs(f.file, srcDirs)) sourceFrames.push(f);
+  }
+
+  // Prefer source frames; never return empty (fall back to top non-vendor, then raw).
+  const shown = sourceFrames.length ? sourceFrames.slice(0, maxFrames)
+    : (nonVendor.length ? nonVendor.slice(0, 3) : frames.slice(0, 3));
+
+  const enrichment = shown.length ? enrichFrame(shown[0], opts.symbolIndex) : null;
+
+  const out = [];
+  for (const h of headerOrder) {
+    const n = headerCount.get(h);
+    out.push(n > 1 ? `${h}   (occurred ×${n})` : h);
+  }
+  for (let i = 0; i < shown.length; i++) {
+    out.push('    ' + shown[i].raw.trim());
+    if (i === 0 && enrichment) out.push(`      ↳ ${enrichment.sig}   [${enrichment.file}]`);
+  }
+
+  return {
+    squeezed: out.join('\n'),
+    kept: [
+      `${headerOrder.length} unique exception(s)`,
+      `top ${shown.length} ${sourceFrames.length ? 'source ' : ''}frame(s)`,
+      ...(enrichment ? [`enriched ${path.basename(shown[0].file)}:${shown[0].line}`] : []),
+    ],
+    stripped: [`${vendorCount} vendor frame(s)`, `${dupFrames} duplicate frame(s)`],
+    enriched: !!enrichment,
+  };
+}
+
+module.exports = { squeezeStackTrace, parseFrame, isVendor, inSrcDirs, enrichFrame };
+
+};
+
+// ── ./src/squeeze/index ──
+__factories["./src/squeeze/index"] = function(module, exports) {
+'use strict';
+
+/**
+ * Squeeze orchestrator (v7.0.0): classify → squeeze → reduction → decision.
+ *
+ * Always-on and silent: callers run `squeeze()` on pasted input, then use
+ * `shouldPrompt()` to decide whether the reduction is worth interrupting for.
+ * Everything is deterministic and offline; the symbol index for stack-trace
+ * enrichment is passed through via `opts.symbolIndex`.
+ */
+
+const { classify } = __require('./src/squeeze/classify');
+const { squeezeStackTrace } = __require('./src/squeeze/stacktrace');
+const { squeezeCiLog } = __require('./src/squeeze/cilog');
+const { squeezeJsonPayload } = __require('./src/squeeze/jsonpayload');
+
+function estimateTokens(s) { return Math.ceil(String(s || '').length / 4); }
+
+/**
+ * @param {string} input
+ * @param {object} [opts]  forwarded to the category squeezer (srcDirs, symbolIndex, …)
+ * @returns {{ category, confidence, original, squeezed, rawTokens, squeezedTokens, reduction, kept, stripped, enriched, applies }}
+ */
+function squeeze(input, opts = {}) {
+  const { category, confidence } = classify(input);
+  const rawTokens = estimateTokens(input);
+  const base = {
+    category, confidence, original: input, squeezed: input,
+    rawTokens, squeezedTokens: rawTokens, reduction: 0,
+    kept: [], stripped: [], enriched: false, applies: false,
+  };
+  if (!category) return base;
+
+  let r;
+  if (category === 'stacktrace') r = squeezeStackTrace(input, opts);
+  else if (category === 'cilog') r = squeezeCiLog(input, opts);
+  else r = squeezeJsonPayload(input, opts);
+
+  const squeezedTokens = estimateTokens(r.squeezed);
+  const reduction = rawTokens > 0 ? (rawTokens - squeezedTokens) / rawTokens : 0;
+  return {
+    category, confidence,
+    original: input, squeezed: r.squeezed,
+    rawTokens, squeezedTokens,
+    reduction: Math.max(0, Number(reduction.toFixed(4))),
+    kept: r.kept || [], stripped: r.stripped || [], enriched: !!r.enriched,
+    applies: squeezedTokens < rawTokens,
+  };
+}
+
+/** True when the reduction clears the threshold (accepts 0–1 or 0–100). */
+function shouldPrompt(reduction, threshold) {
+  const t = threshold > 1 ? threshold / 100 : threshold;
+  return reduction >= t;
+}
+
+/** A compact human summary of what squeeze would do (for the prompt). */
+function formatSummary(result) {
+  const pct = Math.round(result.reduction * 100);
+  const lines = [
+    `Input: ${result.rawTokens.toLocaleString()} tokens`,
+    `Can reduce to ${result.squeezedTokens.toLocaleString()} tokens (${pct}% smaller):`,
+  ];
+  for (const k of result.kept) lines.push(`  ✓ Kept: ${k}`);
+  for (const s of result.stripped) lines.push(`  ✗ Stripped: ${s}`);
+  return lines.join('\n');
+}
+
+module.exports = { squeeze, shouldPrompt, formatSummary, estimateTokens };
+
+};
+
+// ── ./src/nudge ──
+__factories["./src/nudge"] = function(module, exports) {
+'use strict';
+
+/**
+ * Star nudge + usage tracking (v7.0.0).
+ *
+ * Records run counts in `.context/usage.json` and shows a one-time GitHub-star
+ * message after the tool has been genuinely useful (≥10 runs, ≥8 successes).
+ * Shown exactly once per machine — even under concurrent runs (an `wx` lock
+ * file makes the show race-safe). Wired into `ask` (and the `squeeze` path).
+ */
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
+
+const RUN_THRESHOLD = 10;
+const SUCCESS_THRESHOLD = 8;
+
+function usagePath(cwd) { return path.join(cwd, '.context', 'usage.json'); }
+
+function defaultUsage() {
+  return {
+    totalRuns: 0, successfulRuns: 0, squeezeOffered: 0, squeezeAccepted: 0,
+    starNudgeShown: false, machineId: '', firstRunDate: null, lastRunDate: null,
+  };
+}
+
+function readUsage(cwd) {
+  try { return { ...defaultUsage(), ...JSON.parse(fs.readFileSync(usagePath(cwd), 'utf8')) }; }
+  catch (_) { return defaultUsage(); }
+}
+
+function writeUsageAtomic(cwd, usage) {
+  const p = usagePath(cwd);
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  const tmp = `${p}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(usage, null, 2));
+  fs.renameSync(tmp, p); // atomic on POSIX
+}
+
+const STAR_MESSAGE = [
+  '─────────────────────────────────────────────────────────',
+  '  SigMap has helped you 10 times now.',
+  '',
+  "  If it's been useful, a GitHub star takes 5 seconds and",
+  '  helps other developers find it:',
+  '  → github.com/manojmallick/sigmap',
+  '',
+  "  (Won't ask again. Press Enter to continue.)",
+  '─────────────────────────────────────────────────────────',
+].join('\n');
+
+function showStarNudge(write) {
+  (write || ((s) => process.stderr.write(s)))('\n' + STAR_MESSAGE + '\n');
+}
+
+/**
+ * Record one run and, when the thresholds are first met, show the star nudge.
+ * @param {string} cwd
+ * @param {boolean} runSuccess
+ * @param {object} [opts]
+ * @param {boolean} [opts.silent]   record only — never print
+ * @param {function} [opts.write]   sink for the message (default stderr)
+ * @param {string} [opts.today]     override date (testing)
+ * @param {object} [opts.bump]      counter deltas to merge (e.g. { squeezeAccepted: 1 })
+ * @returns {{ usage, nudged }}
+ */
+function checkStarNudge(cwd, runSuccess, opts = {}) {
+  const usage = readUsage(cwd);
+  usage.totalRuns += 1;
+  if (runSuccess) usage.successfulRuns += 1;
+  if (opts.bump) for (const k of Object.keys(opts.bump)) usage[k] = (usage[k] || 0) + opts.bump[k];
+
+  const today = opts.today || new Date().toISOString().slice(0, 10);
+  if (!usage.firstRunDate) usage.firstRunDate = today;
+  usage.lastRunDate = today;
+  if (!usage.machineId) {
+    try { usage.machineId = 'sha256-' + crypto.createHash('sha256').update(os.hostname()).digest('hex').slice(0, 16); } catch (_) {}
+  }
+
+  let nudged = false;
+  if (!usage.starNudgeShown && usage.totalRuns >= RUN_THRESHOLD && usage.successfulRuns >= SUCCESS_THRESHOLD) {
+    // Race-safe single-show: only the process that creates the lock prints.
+    let won = false;
+    try { fs.closeSync(fs.openSync(usagePath(cwd) + '.nudge.lock', 'wx')); won = true; }
+    catch (_) { won = false; }
+    if (won && !opts.silent) showStarNudge(opts.write);
+    nudged = won;
+    usage.starNudgeShown = true;
+  }
+
+  writeUsageAtomic(cwd, usage);
+  return { usage, nudged };
+}
+
+module.exports = { checkStarNudge, readUsage, usagePath, showStarNudge, RUN_THRESHOLD, SUCCESS_THRESHOLD };
+
+};
+
 // ── ./src/verify/parsers ──
 __factories["./src/verify/parsers"] = function(module, exports) {
 'use strict';
@@ -11786,6 +12357,10 @@ Usage:
   ${cmd} verify-ai-output <answer.md>      Flag fake files/tests/imports/symbols/npm-scripts in an AI answer
   ${cmd} verify-ai-output <answer.md> --json    Hallucination report as JSON (exits 1 if issues)
   ${cmd} verify-ai-output <answer.md> --report  Write a standalone HTML report (red/amber/green)
+  ${cmd} squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)
+  ${cmd} ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
+  ${cmd} ask "<query>" --no-squeeze        Disable input minimization entirely
+  ${cmd} ask "<query>" --squeeze-threshold N  Min reduction %% to prompt (default 30)
   ${cmd} note "<text>"                     Append a note to the cross-session decision log
   ${cmd} note                              List recent notes (also: note --list <N>)
   ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
@@ -12174,13 +12749,51 @@ function main() {
     const { loadSession, saveSession, mergeSessionContext } = requireSourceOrBundled('./src/session/memory');
     const { detectWorkspaces, inferPackage, scopeToPackage } = requireSourceOrBundled('./src/workspace/detector');
 
-    const intent = detectIntent(query);
-    const intentWeights = getIntentWeights(intent);
+    let intent = detectIntent(query);
+    let intentWeights = getIntentWeights(intent);
 
     const sigIndex = buildSigIndex(cwd);
     if (sigIndex.size === 0) {
       console.error('[sigmap] no context file found. Run: sigmap  (to generate first)');
       process.exit(1);
+    }
+
+    // v7.0.0: Squeeze — classify and minimize pasted stacktrace/CI-log/JSON
+    // input before ranking. Always runs silently; only prompts (interactive
+    // TTY) when the reduction clears the threshold. Never blocks pipes/CI.
+    let squeezeOffered = false;
+    let squeezeAccepted = false;
+    if (!args.includes('--no-squeeze')) {
+      try {
+        const { squeeze: runSqueeze, shouldPrompt, formatSummary } = requireSourceOrBundled('./src/squeeze/index');
+        const sq = runSqueeze(query, { srcDirs: config.srcDirs, symbolIndex: sigIndex });
+        if (sq.applies && sq.reduction > 0) {
+          squeezeOffered = true;
+          const thrIdx = args.indexOf('--squeeze-threshold');
+          const threshold = thrIdx !== -1 ? parseFloat(args[thrIdx + 1]) : 30;
+          const auto = args.includes('--squeeze');
+          const interactive = !!(process.stdin.isTTY && process.stderr.isTTY) && !args.includes('--json');
+          let accept = false;
+          if (auto) {
+            accept = true;
+          } else if (interactive && shouldPrompt(sq.reduction, threshold)) {
+            process.stderr.write('\n' + formatSummary(sq) + '\n\n');
+            process.stderr.write('Proceed with minimized input? [Y/n] ');
+            const buf = Buffer.alloc(8);
+            try {
+              const n = fs.readSync(0, buf, 0, 8, null);
+              const ans = buf.toString('utf8', 0, n).trim().toLowerCase();
+              accept = ans === '' || ans === 'y' || ans === 'yes';
+            } catch (_) { accept = false; }
+          }
+          if (accept) {
+            query = sq.squeezed;
+            intent = detectIntent(query);
+            intentWeights = getIntentWeights(intent);
+            squeezeAccepted = true;
+          }
+        }
+      } catch (_) { /* squeeze is best-effort — never break ask */ }
     }
 
     let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd });
@@ -12282,6 +12895,15 @@ function main() {
         bar,
       ].join('\n'));
     }
+    // v7.0.0: record the run and show the one-time star nudge (interactive only).
+    try {
+      const { checkStarNudge } = requireSourceOrBundled('./src/nudge');
+      const showNudge = !!process.stderr.isTTY && !args.includes('--json');
+      checkStarNudge(cwd, true, {
+        silent: !showNudge,
+        bump: { squeezeOffered: squeezeOffered ? 1 : 0, squeezeAccepted: squeezeAccepted ? 1 : 0 },
+      });
+    } catch (_) {}
     process.exit(0);
   }
 
@@ -13034,6 +13656,49 @@ function main() {
     } else {
       console.log('  Notes:         none — add with: sigmap note "<text>"');
     }
+    process.exit(0);
+  }
+
+  // v7.0.0: `sigmap squeeze <file|->` — minimize a pasted stacktrace / CI-log / JSON blob
+  if (args[0] === 'squeeze') {
+    const jsonOut = args.includes('--json');
+    const target = args[1] && !args[1].startsWith('--') ? args[1] : '-';
+    let input = '';
+    try {
+      input = fs.readFileSync(target === '-' ? 0 : path.resolve(cwd, target), 'utf8');
+    } catch (e) {
+      console.error(`[sigmap] cannot read input: ${e.message}`);
+      process.exit(1);
+    }
+
+    const { squeeze: runSqueeze, formatSummary } = requireSourceOrBundled('./src/squeeze/index');
+    let symbolIndex = null;
+    try {
+      const { buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
+      symbolIndex = buildSigIndex(cwd);
+    } catch (_) {}
+    const sq = runSqueeze(input, { srcDirs: config.srcDirs, symbolIndex });
+
+    try {
+      const { checkStarNudge } = requireSourceOrBundled('./src/nudge');
+      checkStarNudge(cwd, true, { silent: !process.stderr.isTTY || jsonOut, bump: { squeezeOffered: sq.applies ? 1 : 0 } });
+    } catch (_) {}
+
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify({
+        category: sq.category, confidence: sq.confidence,
+        rawTokens: sq.rawTokens, squeezedTokens: sq.squeezedTokens,
+        reduction: sq.reduction, enriched: sq.enriched, squeezed: sq.squeezed,
+      }) + '\n');
+      process.exit(0);
+    }
+    if (!sq.category) {
+      process.stderr.write('[sigmap] no squeezable structure detected — input unchanged\n');
+      process.stdout.write(input);
+      process.exit(0);
+    }
+    process.stderr.write(formatSummary(sq) + '\n\n');
+    process.stdout.write(sq.squeezed + '\n');
     process.exit(0);
   }
 
