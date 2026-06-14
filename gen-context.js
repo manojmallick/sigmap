@@ -13373,7 +13373,7 @@ function main() {
     const shareText = [
       'Generated with SigMap — zero-dependency AI context engine',
       `${reduction}% fewer tokens · ${hitAt5}% retrieval accuracy · 6× better results`,
-      'https://sigmap.dev',
+      'https://sigmap.io',
     ].join('\n');
 
     console.log(shareText);

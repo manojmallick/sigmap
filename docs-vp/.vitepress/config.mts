@@ -1,19 +1,19 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  base: '/sigmap/',
+  base: '/',
   title: 'SigMap',
   description: 'Zero-dependency AI context engine. 97% token reduction.',
 
   appearance: 'dark',
 
   head: [
-    ['link', { rel: 'icon', href: '/sigmap/favicon.png' }],
+    ['link', { rel: 'icon', href: '/favicon.png' }],
     // Global defaults — overridden per-page via frontmatter head
     ['meta', { property: 'og:site_name', content: 'SigMap' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { property: 'og:image', content: 'https://manojmallick.github.io/sigmap/sigmap-banner.png' }],
-    ['meta', { name: 'twitter:image', content: 'https://manojmallick.github.io/sigmap/sigmap-banner.png' }],
+    ['meta', { property: 'og:image', content: 'https://sigmap.io/sigmap-banner.png' }],
+    ['meta', { name: 'twitter:image', content: 'https://sigmap.io/sigmap-banner.png' }],
   ],
 
   themeConfig: {
@@ -118,6 +118,6 @@ export default defineConfig({
   },
 
   sitemap: {
-    hostname: 'https://manojmallick.github.io/sigmap/',
+    hostname: 'https://sigmap.io/',
   },
 })

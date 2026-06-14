@@ -10,7 +10,7 @@ head:
       content: "Pure regex AST extraction for 31 languages and formats. No compiler required, no binary dependencies."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/languages"
+      content: "https://sigmap.io/guide/languages"
   - - meta
     - property: og:type
       content: article

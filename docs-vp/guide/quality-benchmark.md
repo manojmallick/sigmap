@@ -10,7 +10,7 @@ head:
       content: "16/21 repos overflow GPT-4o without SigMap. 5,200+ files would be hidden. $10,500+/month saved in GPT-4o input cost at 10 calls/day."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/quality-benchmark"
+      content: "https://sigmap.io/guide/quality-benchmark"
 ---
 
 # Quality benchmark

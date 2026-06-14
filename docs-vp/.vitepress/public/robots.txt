@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://manojmallick.github.io/sigmap/sitemap.xml
+Sitemap: https://sigmap.io/sitemap.xml

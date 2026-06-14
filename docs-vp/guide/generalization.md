@@ -10,7 +10,7 @@ head:
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/generalization"
+      content: "https://sigmap.io/guide/generalization"
 ---
 
 # Generalization

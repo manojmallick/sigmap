@@ -10,7 +10,7 @@ head:
       content: "Know exactly which SigMap command to run for your situation. Full context vs focused ask, with real token numbers across 18 repos."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/when-to-use"
+      content: "https://sigmap.io/guide/when-to-use"
 ---
 
 # When to use what

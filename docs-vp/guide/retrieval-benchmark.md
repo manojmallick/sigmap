@@ -10,7 +10,7 @@ head:
       content: "Latest saved run: 76% hit@5 vs 13.6% random baseline, 6.0x lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/retrieval-benchmark"
+      content: "https://sigmap.io/guide/retrieval-benchmark"
 ---
 
 # Retrieval benchmark

@@ -10,7 +10,7 @@ head:
       content: "Design and methodology behind SigMap's retrieval, quality, and task benchmarks."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/methodology"
+      content: "https://sigmap.io/guide/methodology"
 ---
 
 # Benchmark methodology

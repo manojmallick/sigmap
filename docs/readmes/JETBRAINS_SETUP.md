@@ -140,7 +140,7 @@ Opens the SigMap roadmap in your default browser.
 
 **Access:** **Tools** → **SigMap** → **View Roadmap**
 
-**URL:** https://manojmallick.github.io/sigmap/roadmap.html
+**URL:** https://sigmap.io/roadmap.html
 
 ---
 
@@ -160,7 +160,7 @@ Create `gen-context.config.json` in your project root:
 }
 ```
 
-See [Configuration Reference](https://manojmallick.github.io/sigmap/config.html) for all options.
+See [Configuration Reference](https://sigmap.io/config.html) for all options.
 
 ---
 
@@ -366,9 +366,9 @@ git push origin v2.9.0
 
 ## Support
 
-- **Documentation:** https://manojmallick.github.io/sigmap/
+- **Documentation:** https://sigmap.io/
 - **GitHub Issues:** https://github.com/manojmallick/sigmap/issues
-- **Roadmap:** https://manojmallick.github.io/sigmap/roadmap.html
+- **Roadmap:** https://sigmap.io/roadmap.html
 
 ---
 

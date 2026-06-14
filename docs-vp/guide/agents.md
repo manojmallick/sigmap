@@ -10,7 +10,7 @@ head:
       content: "Use SigMap with open-source coding agents and local LLM inference. Works with OpenCode, OpenHands, Cline, Aider, Ollama, llama.cpp, vLLM."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/agents"
+      content: "https://sigmap.io/guide/agents"
   - - meta
     - property: og:type
       content: article

@@ -123,7 +123,7 @@ const bannerSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="
   <line x1="610" y1="470" x2="1140" y2="470" stroke="#818cf8" stroke-width="1.5" opacity="0.25"/>
   <text x="613" y="510"
         font-family="'SF Mono','JetBrains Mono',monospace"
-        font-size="22" fill="#6366f1" opacity="0.6">sigmap.dev</text>
+        font-size="22" fill="#6366f1" opacity="0.6">sigmap.io</text>
 </svg>`;
 
 // ─── Output targets ───────────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ head:
       content: "Most AI coding tools fail because they read the wrong files. Here's how I fixed that with deterministic retrieval, zero dependencies, and a continuous LLM feedback loop."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/how-i-built-sigmap"
+      content: "https://sigmap.io/guide/how-i-built-sigmap"
 ---
 
 # How I built SigMap

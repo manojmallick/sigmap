@@ -225,7 +225,7 @@ test('start-guide: Teams routing present (🏢)', () => {
 // ── Section 12: Docs link ─────────────────────────────────────────────────────
 
 test('docs: main docs link present', () => {
-  assert.ok(src.includes('manojmallick.github.io/sigmap'), 'missing docs link');
+  assert.ok(src.includes('sigmap.io'), 'missing docs link');
 });
 
 // ── Section 13: Support CTA ───────────────────────────────────────────────────

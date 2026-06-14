@@ -3,4 +3,4 @@ Allow: /
 Allow: /llms.txt
 Allow: /llms-full.txt
 
-Sitemap: https://manojmallick.github.io/sigmap/sitemap.xml
+Sitemap: https://sigmap.io/sitemap.xml

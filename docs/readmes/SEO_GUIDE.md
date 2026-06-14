@@ -1,6 +1,6 @@
 # SEO Guide for SigMap Docs
 
-Every HTML file in `docs/` is served at `https://manojmallick.github.io/sigmap/`.
+Every HTML file in `docs/` is served at `https://sigmap.io/`.
 Follow this guide whenever you add or edit a page so it stays indexable and search-friendly.
 
 ---
@@ -14,22 +14,22 @@ Every page must have **all** of these tags, in this order, before `<link rel="ca
 <meta name="description" content="{150–160 char description. Include the main keyword naturally.}">
 <meta property="og:title" content="{Short title for social sharing}">
 <meta property="og:description" content="{1–2 sentence social preview. Concrete, benefit-led.}">
-<meta property="og:url" content="https://manojmallick.github.io/sigmap/{filename}.html">
+<meta property="og:url" content="https://sigmap.io/{filename}.html">
 <meta property="og:type" content="article">           <!-- use "website" only on index.html -->
 <meta property="og:site_name" content="SigMap">
-<meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta property="og:image" content="https://sigmap.io/sigmap-banner.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{Same as og:title}">
 <meta name="twitter:description" content="{Same as og:description}">
-<meta name="twitter:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta name="twitter:image" content="https://sigmap.io/sigmap-banner.png">
 <meta name="twitter:image:alt" content="{What the banner image shows}">
 <meta name="keywords" content="{8–12 comma-separated terms, most specific first}">
-<link rel="canonical" href="https://manojmallick.github.io/sigmap/{filename}.html">
+<link rel="canonical" href="https://sigmap.io/{filename}.html">
 ```
 
 **index.html only** also needs:
 ```html
-<link rel="sitemap" type="application/xml" href="https://manojmallick.github.io/sigmap/sitemap.xml">
+<link rel="sitemap" type="application/xml" href="https://sigmap.io/sitemap.xml">
 ```
 
 ---
@@ -92,7 +92,7 @@ Use one `<script type="application/ld+json">` block per page. Choose the schema 
   "name": "SigMap",
   "applicationCategory": "DeveloperApplication",
   "description": "...",
-  "url": "https://manojmallick.github.io/sigmap/",
+  "url": "https://sigmap.io/",
   "downloadUrl": "https://www.npmjs.com/package/sigmap",
   "softwareVersion": "3.x.x",
   "operatingSystem": "Any (Node.js 18+)",
@@ -108,7 +108,7 @@ Use one `<script type="application/ld+json">` block per page. Choose the schema 
   "@type": "HowTo",
   "name": "Get SigMap running in 60 seconds",
   "description": "...",
-  "url": "https://manojmallick.github.io/sigmap/quick-start.html",
+  "url": "https://sigmap.io/quick-start.html",
   "step": [
     { "@type": "HowToStep", "name": "Step name", "text": "Step detail" }
   ]
@@ -137,9 +137,9 @@ Use one `<script type="application/ld+json">` block per page. Choose the schema 
   "@type": "TechArticle",
   "headline": "...",
   "description": "...",
-  "url": "https://manojmallick.github.io/sigmap/{filename}.html",
+  "url": "https://sigmap.io/{filename}.html",
   "author": { "@type": "Person", "name": "Manoj Mallick", "url": "https://github.com/manojmallick" },
-  "isPartOf": { "@type": "WebSite", "name": "SigMap", "url": "https://manojmallick.github.io/sigmap/" }
+  "isPartOf": { "@type": "WebSite", "name": "SigMap", "url": "https://sigmap.io/" }
 }
 ```
 

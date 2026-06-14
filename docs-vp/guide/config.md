@@ -10,7 +10,7 @@ head:
       content: "Every gen-context.config.json key documented with types, defaults, and examples."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/config"
+      content: "https://sigmap.io/guide/config"
   - - meta
     - property: og:type
       content: article

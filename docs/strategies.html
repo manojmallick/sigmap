@@ -7,18 +7,18 @@
 <meta name="description" content="Choose the right SigMap strategy: full, per-module, or hot-cold. Detailed examples, decision tree, token trade-offs, and MCP vs non-MCP workflows.">
 <meta property="og:title" content="SigMap strategies: full vs per-module vs hot-cold">
 <meta property="og:description" content="Detailed case-by-case guide to reduce tokens without losing context. Learn when to use each strategy and how to configure it.">
-<meta property="og:url" content="https://manojmallick.github.io/sigmap/strategies.html">
+<meta property="og:url" content="https://sigmap.io/strategies.html">
 <meta name="twitter:card" content="summary_large_image">
-<meta property="og:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
-<meta name="twitter:image" content="https://manojmallick.github.io/sigmap/sigmap-banner.png">
+<meta property="og:image" content="https://sigmap.io/sigmap-banner.png">
+<meta name="twitter:image" content="https://sigmap.io/sigmap-banner.png">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="SigMap">
 <meta name="twitter:title" content="SigMap strategies: full vs per-module vs hot-cold">
 <meta name="twitter:description" content="Detailed guide to reduce tokens without losing context. Learn when to use each strategy.">
 <meta name="twitter:image:alt" content="SigMap Context Strategies Guide">
 <meta name="keywords" content="sigmap strategies, full strategy, per-module strategy, hot-cold strategy, ai context strategy, token reduction strategy, copilot context strategy">
-<link rel="canonical" href="https://manojmallick.github.io/sigmap/strategies.html">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap context strategies: full vs per-module vs hot-cold","description":"Choose the right SigMap strategy. Full: single file all sigs. Per-module: one file per directory. Hot-cold: recent files injected, stable files via MCP.","url":"https://manojmallick.github.io/sigmap/strategies.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://manojmallick.github.io/sigmap/"}}</script>
+<link rel="canonical" href="https://sigmap.io/strategies.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"SigMap context strategies: full vs per-module vs hot-cold","description":"Choose the right SigMap strategy. Full: single file all sigs. Per-module: one file per directory. Hot-cold: recent files injected, stable files via MCP.","url":"https://sigmap.io/strategies.html","author":{"@type":"Person","name":"Manoj Mallick","url":"https://github.com/manojmallick"},"isPartOf":{"@type":"WebSite","name":"SigMap","url":"https://sigmap.io/"}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script>(function(){var r=document.documentElement;if(localStorage.getItem('cf-theme')==='light')r.classList.add('light');document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){r.classList.toggle('light');localStorage.setItem('cf-theme',r.classList.contains('light')?'light':'dark');});});});})();</script>
 <style>
@@ -292,9 +292,9 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
   <p class="section-sub">For complete migration steps, compatibility matrix, and advanced examples, use the full Markdown guide.</p>
   <div class="list">
     <ol>
-      <li>Detailed guide in repository: <a href="https://github.com/manojmallick/sigmap/blob/main/docs/CONTEXT_STRATEGIES.md" style="color:var(--pd)">docs/CONTEXT_STRATEGIES.md</a></li>
+      <li>Detailed guide in repository: <a href="https://github.com/manojmallick/blob/main/docs/CONTEXT_STRATEGIES.md" style="color:var(--pd)">docs/CONTEXT_STRATEGIES.md</a></li>
       <li>CLI reference and setup: <a href="quick-start.html" style="color:var(--pd)">Quick Start</a></li>
-      <li>MCP setup: <a href="https://github.com/manojmallick/sigmap/blob/main/docs/MCP_SETUP.md" style="color:var(--pd)">docs/MCP_SETUP.md</a></li>
+      <li>MCP setup: <a href="https://github.com/manojmallick/blob/main/docs/MCP_SETUP.md" style="color:var(--pd)">docs/MCP_SETUP.md</a></li>
     </ol>
   </div>
 </section>
@@ -313,8 +313,8 @@ footer{background:var(--s1);border-top:1px solid var(--line);padding:32px 24px}
       <a href="roadmap.html">Roadmap</a>
       <a href="repomix.html">Repomix</a>
       <a href="https://github.com/manojmallick/sigmap">GitHub</a>
-      <a href="https://github.com/manojmallick/sigmap/blob/main/CONTRIBUTING.md">Contributing</a>
-      <a href="https://github.com/manojmallick/sigmap/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/manojmallick/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/manojmallick/blob/main/CHANGELOG.md">Changelog</a>
     </div>
     <span class="footer-mit">MIT © 2026 Manoj Mallick · Made in Amsterdam 🇳🇱</span>
   </div>

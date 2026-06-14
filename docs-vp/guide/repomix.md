@@ -10,7 +10,7 @@ head:
       content: "SigMap for always-on signatures, Repomix for full-depth sessions. Use both for complete AI context coverage."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/repomix"
+      content: "https://sigmap.io/guide/repomix"
   - - meta
     - property: og:type
       content: article

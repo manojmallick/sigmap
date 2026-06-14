@@ -273,7 +273,7 @@ the relevant regulation before publication; SigMap makes no legal claims.
 - Author: Manoj Mallick
 - License: MIT
 - Repository: https://github.com/manojmallick/sigmap
-- Documentation: https://manojmallick.github.io/sigmap/
+- Documentation: https://sigmap.io/
 - npm: https://www.npmjs.com/package/sigmap
 - Benchmark dataset: https://doi.org/10.5281/zenodo.19898842
 - Issues: https://github.com/manojmallick/sigmap/issues

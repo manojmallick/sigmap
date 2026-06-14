@@ -43,6 +43,6 @@ SigMap adds a health indicator to the IDE status bar. Click it to view the curre
 
 ## More Information
 
-- [SigMap CLI Documentation](https://manojmallick.github.io/sigmap/)
+- [SigMap CLI Documentation](https://sigmap.io/)
 - [GitHub Repository](https://github.com/manojmallick/sigmap)
 - [Changelog](../CHANGELOG.md)

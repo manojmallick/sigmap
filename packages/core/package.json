@@ -20,7 +20,7 @@
     "url": "https://github.com/manojmallick/sigmap.git",
     "directory": "packages/core"
   },
-  "homepage": "https://manojmallick.github.io/sigmap/",
+  "homepage": "https://sigmap.io/",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

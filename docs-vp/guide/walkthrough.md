@@ -10,7 +10,7 @@ head:
       content: "Watch the full SigMap workflow on a real repo: ask ranks files, validate checks coverage, judge scores groundedness, learn reinforces what helped."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/walkthrough"
+      content: "https://sigmap.io/guide/walkthrough"
 ---
 
 # End-to-end walkthrough

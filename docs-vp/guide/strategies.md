@@ -10,7 +10,7 @@ head:
       content: "Choose the right SigMap strategy for your workflow. Token cost comparison, MCP integration, and decision guide."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/strategies"
+      content: "https://sigmap.io/guide/strategies"
   - - meta
     - property: og:type
       content: article

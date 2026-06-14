@@ -78,7 +78,7 @@ Place `gen-context.config.json` in your project root to customize:
 }
 ```
 
-See [Configuration Guide](https://manojmallick.github.io/sigmap/config.html) for all options.
+See [Configuration Guide](https://sigmap.io/config.html) for all options.
 
 ## CLI Quick Reference
 
@@ -120,9 +120,9 @@ Ensure at least one exists.
 
 ## Support
 
-- [Documentation](https://manojmallick.github.io/sigmap/)
+- [Documentation](https://sigmap.io/)
 - [GitHub Issues](https://github.com/manojmallick/sigmap/issues)
-- [Roadmap](https://manojmallick.github.io/sigmap/roadmap.html)
+- [Roadmap](https://sigmap.io/roadmap.html)
 
 ## License
 

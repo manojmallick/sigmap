@@ -10,7 +10,7 @@ head:
       content: "Use SigMap with self-hosted LLMs for code understanding. No subscription, no telemetry, full privacy. Works with Ollama, llama.cpp, vLLM."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/local-llms"
+      content: "https://sigmap.io/guide/local-llms"
   - - meta
     - property: og:type
       content: article

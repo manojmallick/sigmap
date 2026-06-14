@@ -10,7 +10,7 @@ head:
       content: "All 46 SigMap commands and flags documented with examples. ask, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/cli"
+      content: "https://sigmap.io/guide/cli"
   - - meta
     - property: og:type
       content: article
@@ -651,7 +651,7 @@ sigmap share
 ```
 Generated with SigMap — zero-dependency AI context engine
 97.0% fewer tokens · 75.6% retrieval hit@5 · 39.4% fewer prompts
-https://sigmap.dev
+https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
 

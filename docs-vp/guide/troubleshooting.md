@@ -10,7 +10,7 @@ head:
       content: "Fix common SigMap issues. No context file found, zero signatures, watch mode not triggering, and more."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/troubleshooting"
+      content: "https://sigmap.io/guide/troubleshooting"
   - - meta
     - property: og:type
       content: article

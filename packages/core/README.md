@@ -1,6 +1,6 @@
 # sigmap-core
 
-Programmatic API for [SigMap](https://manojmallick.github.io/sigmap/) — zero-dependency code signature extraction, ranked retrieval, secret scanning, project health scoring, and multi-adapter output formatting (v3.0+).
+Programmatic API for [SigMap](https://sigmap.io/) — zero-dependency code signature extraction, ranked retrieval, secret scanning, project health scoring, and multi-adapter output formatting (v3.0+).
 
 ## Installation
 
@@ -145,7 +145,7 @@ const geminiInstruction = adapt(context, 'gemini');
 // All 6 adapters: copilot | claude | cursor | windsurf | openai | gemini
 ```
 
-See the full [roadmap](https://manojmallick.github.io/sigmap/roadmap.html).
+See the full [roadmap](https://sigmap.io/roadmap.html).
 
 ## Zero dependencies
 

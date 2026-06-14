@@ -330,7 +330,7 @@ dist/
 
 | Resource | Link |
 |---|---|
-| 📖 Documentation | [manojmallick.github.io/sigmap](https://manojmallick.github.io/sigmap/) |
+| 📖 Documentation | [sigmap.io](https://sigmap.io/) |
 | 📦 npm package | [npmjs.com/package/sigmap](https://www.npmjs.com/package/sigmap) |
 | 🟣 Open VSX | [open-vsx.org/extension/manojmallick/sigmap](https://open-vsx.org/extension/manojmallick/sigmap) |
 | 💻 GitHub | [github.com/manojmallick/sigmap](https://github.com/manojmallick/sigmap) |

@@ -39,18 +39,18 @@ npx sigmap --mcp                    # start the MCP server over stdio
 ```
 
 ## Docs
-- [Full documentation](https://manojmallick.github.io/sigmap/)
-- [CLI reference](https://manojmallick.github.io/sigmap/guide/cli)
-- [MCP tools](https://manojmallick.github.io/sigmap/guide/mcp)
-- [Benchmark methodology](https://manojmallick.github.io/sigmap/guide/benchmark)
-- [Configuration guide](https://manojmallick.github.io/sigmap/guide/config)
+- [Full documentation](https://sigmap.io/)
+- [CLI reference](https://sigmap.io/guide/cli)
+- [MCP tools](https://sigmap.io/guide/mcp)
+- [Benchmark methodology](https://sigmap.io/guide/benchmark)
+- [Configuration guide](https://sigmap.io/guide/config)
 - [Changelog](https://github.com/manojmallick/sigmap/blob/main/CHANGELOG.md)
 
 ## Optional
 - [GitHub repository](https://github.com/manojmallick/sigmap)
 - [npm package](https://www.npmjs.com/package/sigmap)
 - [Benchmark dataset (Zenodo)](https://doi.org/10.5281/zenodo.19898842)
-- [Full LLM reference](https://manojmallick.github.io/sigmap/llms-full.txt)
+- [Full LLM reference](https://sigmap.io/llms-full.txt)
 
 SigMap — grounded AI coding context. The lightweight, deterministic alternative
 to embeddings for feeding the right code to AI assistants.

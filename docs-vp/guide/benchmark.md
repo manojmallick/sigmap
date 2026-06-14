@@ -10,7 +10,7 @@ head:
       content: "Token, retrieval, quality, and task metrics from latest v7.0.0 benchmark run (2026-06-14) with 21 repositories including R language support."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/benchmark"
+      content: "https://sigmap.io/guide/benchmark"
 ---
 
 # Benchmark overview

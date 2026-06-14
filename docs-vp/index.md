@@ -11,7 +11,7 @@ head:
       content: "Ask, validate, judge, and learn from real code context. 75.6% hit@5, 39.4% fewer prompts, 97.0% overall token reduction."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/"
+      content: "https://sigmap.io/"
   - - meta
     - property: og:type
       content: website

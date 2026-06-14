@@ -102,7 +102,7 @@ jobs:
       - name: Commit version updates
         run: |
           git config user.name "SigMap Bot"
-          git config user.email "bot@sigmap.dev"
+          git config user.email "bot@sigmap.io"
           git add package.json vscode-extension/package.json jetbrains-plugin/build.gradle.kts
           git commit -m "prerelease: npm ${{ steps.version.outputs.npm_version }}, vscode ${{ steps.version.outputs.vscode_version }}"
           git push origin HEAD:${GITHUB_REF#refs/heads/}

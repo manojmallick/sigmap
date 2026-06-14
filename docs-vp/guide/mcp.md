@@ -10,7 +10,7 @@ head:
       content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 11 MCP tools over stdio."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/mcp"
+      content: "https://sigmap.io/guide/mcp"
   - - meta
     - property: og:type
       content: article

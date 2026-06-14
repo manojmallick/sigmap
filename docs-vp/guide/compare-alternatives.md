@@ -10,7 +10,7 @@ head:
       content: "Side-by-side comparison: SigMap vs RAG, embeddings, RepoMix, and Copilot context. Zero infra, deterministic, 5.6× retrieval lift."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/compare-alternatives"
+      content: "https://sigmap.io/guide/compare-alternatives"
 ---
 
 # SigMap vs alternatives

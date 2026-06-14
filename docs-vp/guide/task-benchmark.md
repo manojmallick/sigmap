@@ -10,7 +10,7 @@ head:
       content: "Latest saved run: 52.2% correct, 1.72 prompts per task, 39.4% prompt reduction, 90 tasks, 18+ repos with R support."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/task-benchmark"
+      content: "https://sigmap.io/guide/task-benchmark"
 ---
 
 # Task benchmark

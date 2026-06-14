@@ -10,7 +10,7 @@ head:
       content: "Install once, generate signatures, ask a real question, validate coverage, and judge the answer."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/quick-start"
+      content: "https://sigmap.io/guide/quick-start"
 ---
 # Quick start
 

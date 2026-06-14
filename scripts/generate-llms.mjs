@@ -55,7 +55,7 @@ function gather() {
 
   const repo = String((pkg.repository && pkg.repository.url) || 'https://github.com/manojmallick/sigmap')
     .replace(/^git\+/, '').replace(/\.git$/, '');
-  const home = pkg.homepage || 'https://manojmallick.github.io/sigmap/';
+  const home = pkg.homepage || 'https://sigmap.io/';
   return { pkg, version, TOOLS, DEFAULTS, languages, adapters, helpLines, repo, home };
 }
 

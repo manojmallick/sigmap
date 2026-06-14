@@ -10,7 +10,7 @@ head:
       content: "51 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
-      content: "https://manojmallick.github.io/sigmap/guide/roadmap"
+      content: "https://sigmap.io/guide/roadmap"
   - - meta
     - property: og:type
       content: article
