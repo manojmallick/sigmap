@@ -245,6 +245,25 @@ If SigMap saves you context or API spend, a ⭐ on [GitHub](https://github.com/m
 
 ---
 
+## Sponsor
+
+SigMap is built and maintained by one developer, kept **zero-dependency**, offline, and free. If it saves your team context or API spend, sponsoring keeps it that way — and funds the benchmark CI and ongoing supply-chain hardening.
+
+💜 **[Become a sponsor →](https://github.com/sponsors/manojmallick)**
+
+| Tier | | Reward |
+|---|:--:|---|
+| **Supporter** | $5/mo | Sponsor badge on your profile + my gratitude |
+| **Backer** | $25/mo | Your name or handle in this README |
+| **Team** | $100/mo | Your logo on the site + **priority on bug reports** you file |
+| **Company** | $500/mo | Commercial-use acknowledgement, prominent logo, and a direct line for issues |
+
+One-time: **$10** — a thank-you shoutout on X · **$50** — credited in the next release notes.
+
+**Goal:** $200/mo covers benchmark CI compute and keeps SigMap zero-dependency, supply-chain-hardened, and free for everyone.
+
+---
+
 ## Contributing
 
 SigMap welcomes contributions! 
