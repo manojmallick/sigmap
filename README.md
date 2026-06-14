@@ -262,6 +262,10 @@ One-time: **$10** — a thank-you shoutout on X · **$50** — credited in the n
 
 **Goal:** $200/mo covers benchmark CI compute and keeps SigMap zero-dependency, supply-chain-hardened, and free for everyone.
 
+### About the maintainer
+
+SigMap is built and maintained by **[Manoj Mallick](https://github.com/manojmallick)** — solo, in the open, and kept free for everyone. The goal is simple: make AI coding assistants answer from the *right* files instead of guessing, with **zero dependencies**, fully offline, and no telemetry. Sponsorship funds the reproducible benchmark CI, ongoing supply-chain hardening, and new language/IDE support — and keeps the project independent. 💜
+
 ---
 
 ## Contributing
