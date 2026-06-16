@@ -10,6 +10,24 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.2.0] — 2026-06-17
+
+Minor release — release-pipeline robustness. Hardens the bundle/release machinery that produced the v7.1.0 binary failure, with no user-facing CLI changes.
+
+### Added
+- **Bundle integrity check (#266):** `scripts/check-bundle.mjs` verifies every `src/` module is registered in `gen-context.js` `__factories` (the standalone/SEA-binary code path). Runs in CI on every PR (Node 18/20/22) and in `prepublishOnly`; `--fix` inserts missing factories from source. `build-binary.mjs` reuses the same check. Catches — before merge — the gap that broke the v7.1.0 binaries.
+- **version.json metadata gate (#268):** `scripts/check-version-meta.mjs` derives `mcp_tools` (from `src/mcp/tools.js`) and `tests` (test-file count) and fails on drift; wired into `prepublishOnly`. `languages` stays editorial. Corrected stale `tests` count.
+- **Standalone-bundle smoke test (#274):** runs `gen-context.js` from a temp dir with no `src/` present (the binary path) — `generate` + `--health` + `gain` — in the Node 18/20/22 matrix. Functional complement to the presence check.
+- **`docs/RELEASING.md` (#274):** documents the release flow, branch model, tag triggers, and the prepublish/CI gates.
+
+### Fixed
+- **`--health` clarity (#270):** the per-repo "extractor coverage" line (languages present in this repo ÷ supported) read as contradictory beside a 100/100 score. Relabeled as informational ("repo languages … not scored") with a "score basis" line. The `--health --json` `extractorCoverage` field is unchanged.
+
+### Changed
+- **Repo declutter (#272):** removed the committed, unreferenced `TESTING_IMPORT_GRAPH.md` (gitignored); stale planning docs archived out of the repo. `PROJECT_MAP.md` kept (live generated artifact).
+
+---
+
 ## [7.1.0] — 2026-06-16
 
 Minor release — a token-savings dashboard in the terminal, plus domain and sponsorship docs.

@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.1.0</span>
+  <span><strong>Release:</strong> v7.2.0</span>
   <span>·</span>
-  <span>New <code>sigmap gain</code> — terminal token-savings dashboard (tokens saved, %, est. $, daily/weekly/monthly trends), privacy-safe and local-only</span>
+  <span>Release-pipeline robustness — bundle integrity check + version.json gate + standalone-bundle smoke test guard every release; <code>sigmap gain</code> dashboard (v7.1.0) still shipping</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>

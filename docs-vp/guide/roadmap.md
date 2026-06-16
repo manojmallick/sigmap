@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v7.1.0, with recent releases adding the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, full-signatures-under-budget, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v7.2.0, with recent releases adding release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Sixty-two versions shipped. MIT open source from day one.
+Sixty-three versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 1,006 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v7.2.0 — Release-pipeline robustness ✓ (2026-06-17)
+
+**Minor release — build/release hardening, no user-facing CLI changes.** Closes the gap that broke the v7.1.0 standalone binaries (a `src/` module missing from the bundle `__factories`). New **bundle integrity check** (`scripts/check-bundle.mjs`, #266) verifies every `src/` module is registered, runs on every PR (Node 18/20/22) + `prepublishOnly` + the binary preflight, and `--fix` inserts missing factories from source. A **version.json metadata gate** (`scripts/check-version-meta.mjs`, #268) derives `mcp_tools`/`tests` and fails on drift. A **standalone-bundle smoke test** (#274) runs `gen-context.js` with no `src/` present (the binary code path) across the matrix, and **`docs/RELEASING.md`** documents the whole flow. Also: `--health` relabels its informational "extractor coverage" line so it no longer reads as contradictory beside a 100/100 score (#270), and the root was decluttered (#272).
+
+**Tags:** `check-bundle` · `check-version-meta` · `bundle-smoke` · `__factories` · `prepublishOnly-gates` · `RELEASING.md` · `--health-clarity` · `#266` · `#268` · `#270` · `#272` · `#274`
+
+**Impact:** the bundle-drift class of release failures is now caught pre-merge and pre-publish (presence + functional smoke); release flow documented; version.json metadata self-checks.
+
+---
+
 ### v7.1.0 — Token-savings dashboard (sigmap gain) ✓ (2026-06-16)
 
 **Minor release.** New **`sigmap gain`** (#260) surfaces cumulative token savings right in the terminal — total tokens saved, % efficiency, estimated dollars, average latency, and a per-operation breakdown — with `gain --all` for daily / weekly / monthly trends. Savings are captured automatically: every `ask` and `generate` run appends a counts-only record to a dedicated local log `.context/gain.ndjson` (no file paths, source, or query text). Capture is **default-on** and privacy-safe; opt out with `--no-track`, `SIGMAP_NO_TRACK=1`, or `config.gainTracking:false`, and the legacy `usage.ndjson` / `--track` health log is untouched. New zero-dep `src/tracking/{aggregate,pricing}.js` and `src/format/gain-terminal.js` (ANSI renderer, `NO_COLOR`/non-TTY safe). "Saved" is labeled everywhere as an estimate vs the whole-file baseline. Also in this release: docs served at the sigmap.io root (#258) and a transparent Sponsor section (#257).
@@ -860,7 +870,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — v7.2+ (PR verification + Interactive Context Explorer)
+## Current milestone — v7.3+ (PR verification + Interactive Context Explorer)
 
 v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks; and **v7.1.0**: the **`sigmap gain`** token-savings dashboard (cumulative tokens saved, %, est. $, daily/weekly/monthly trends; privacy-safe, local-only, default-on). Next: **PR verification** — `verify-plan` and `review-pr` with a GitHub Action that posts a scope-drift + blast-radius comment on real PRs — plus the **Interactive Context Explorer** (a static, offline "what exactly gets sent for this query" demo), line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 
