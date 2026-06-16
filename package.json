@@ -32,12 +32,13 @@
     "map": "node gen-project-map.js",
     "mcp": "node gen-context.js --mcp",
     "check:bundle": "node scripts/check-bundle.mjs",
+    "check:version-meta": "node scripts/check-version-meta.mjs",
     "build:binary": "node scripts/build-binary.mjs",
     "verify:binary": "node scripts/verify-binary.mjs",
     "version:sync": "node scripts/sync-versions.mjs",
     "generate:llms": "node scripts/generate-llms.mjs",
     "validate:llms": "node scripts/validate-llms.mjs",
-    "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/generate-llms.mjs"
+    "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/check-version-meta.mjs && node scripts/generate-llms.mjs"
   },
   "files": [
     "gen-context.js",

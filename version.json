@@ -4,7 +4,7 @@
   "benchmark_id": "sigmap-v7.0-main",
   "languages": 31,
   "mcp_tools": 11,
-  "tests": 60,
+  "tests": 80,
   "metrics": {
     "hit_at_5": 0.756,
     "baseline_hit_at_5": 0.136,
