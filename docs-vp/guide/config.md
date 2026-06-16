@@ -181,6 +181,7 @@ To pin a fixed budget (v4.0 behaviour):
 | `secretScan` | `boolean` | `true` | Scan output for 10 credential patterns before writing. Matching content is replaced with `[REDACTED]`. Patterns: AWS keys, GitHub tokens, JWTs, database URLs, SSH keys, GCP keys, Stripe keys, Twilio keys, generic passwords/api_keys. |
 | `monorepo` | `boolean` | `false` | See Source scanning above. |
 | `sigCache` | `boolean` | `false` | Enable incremental signature cache. When true, caches extracted signatures with mtime-based validation. Cache is automatically busted on version changes. Skips re-extraction of unchanged files for faster subsequent runs. |
+| `gainTracking` | `boolean` | `true` | Capture per-operation token savings to `.context/gain.ndjson` for the [`sigmap gain`](/guide/cli#gain) dashboard. Counts only — no file paths, source, or query text — and never leaves the machine. Set `false` to disable (equivalent to passing `--no-track` or `SIGMAP_NO_TRACK=1`). Independent of the legacy `tracking` / `--track` health log. |
 
 ## Watch
 

@@ -6254,7 +6254,7 @@ const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, exp
 
 const SERVER_INFO = {
   name: 'sigmap',
-  version: '7.0.1',
+  version: '7.1.0',
   description: 'SigMap MCP server — code signatures on demand',
 };
 
@@ -10961,7 +10961,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '7.0.1';
+const VERSION = '7.1.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -12194,6 +12194,7 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
 // Core generate pipeline
 // ---------------------------------------------------------------------------
 function runGenerate(cwd, config, reportMode, reportJson = false) {
+  const __genT0 = Date.now();
   const ignorePatterns = loadIgnorePatterns(cwd);
   let allFiles = buildFileList(cwd, config);
 
@@ -12393,7 +12394,7 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     printReport(result.inputTokenTotal, result.finalTokens, result.fileCount, result.droppedCount, reportJson, effectiveMaxTokens, result.coverageResult, config.autoMaxTokens !== false && effectiveMaxTokens !== config.maxTokens, config.maxTokens);
   }
 
-  // Usage tracking (v0.9) — optional append-only NDJSON log
+  // Usage tracking (v0.9) — legacy health log, opt-in via config.tracking / --track.
   const trackingEnabled = !!(config.tracking || process.argv.includes('--track'));
   if (trackingEnabled && !reportMode) {
     try {
@@ -12411,6 +12412,22 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     } catch (err) {
       console.warn(`[sigmap] tracking: ${err.message}`);
     }
+  }
+
+  // gain: capture generate savings (separate gain.ndjson; default ON, opt-out).
+  if (!reportMode) {
+    try {
+      const { recordUsage, isTrackingEnabled } = requireSourceOrBundled('./src/tracking/logger');
+      if (isTrackingEnabled(config, process.argv)) {
+        recordUsage({
+          version: VERSION,
+          op: 'generate',
+          baselineTokens: result.inputTokenTotal,
+          actualTokens: result.finalTokens,
+          durationMs: Date.now() - __genT0,
+        }, cwd);
+      }
+    } catch (_) { /* gain capture is best-effort */ }
   }
 
   // Feature 8: post-run summary — 6-line stdout after every normal run
@@ -12709,6 +12726,13 @@ Usage:
   ${cmd} --suggest-tool "<task>" --json    Machine-readable tier recommendation
   ${cmd} --health                          Print composite health score
   ${cmd} --health --json                   Machine-readable health score
+  ${cmd} gain                              Token-savings dashboard (totals + by-operation)
+  ${cmd} gain --all                        Add daily / weekly / monthly trend tables
+  ${cmd} gain --json                       Aggregate savings as JSON
+  ${cmd} gain --since 7d                    Window filter (7d, 30d, 12h, or ISO date)
+  ${cmd} gain --top <n> | --model <name>   Limit rows / set $ pricing model
+  ${cmd} gain --reset                      Clear the local savings log (.context/gain.ndjson)
+  ${cmd} ... --no-track                    Disable gain savings capture for this run
   ${cmd} --diff                            Generate context for git-changed files only
   ${cmd} --diff <base-ref>                 Generate context + structural diff vs base ref (e.g. main)
   ${cmd} --diff --staged                   Generate context for staged files only
@@ -13108,6 +13132,7 @@ function main() {
 
   // v4.2: `sigmap ask "<query>"` — unified pipeline
   if (args[0] === 'ask') {
+    const __askT0 = Date.now();
     // v6.8: Handle --followup flag which may appear before or after query
     let query = args[1];
     if (query === '--followup' && args[2]) {
@@ -13275,6 +13300,21 @@ function main() {
         bar,
       ].join('\n'));
     }
+    // gain: capture this query's savings for the `sigmap gain` dashboard.
+    try {
+      const { recordUsage, isTrackingEnabled } = requireSourceOrBundled('./src/tracking/logger');
+      if (isTrackingEnabled(config, args)) {
+        recordUsage({
+          version: VERSION,
+          op: 'ask',
+          baselineTokens: rawTok,
+          actualTokens: ctxTok,
+          durationMs: Date.now() - __askT0,
+          model,
+        }, cwd);
+      }
+    } catch (_) { /* gain capture is best-effort */ }
+
     // v7.0.0: record the run and show the one-time star nudge (interactive only).
     try {
       const { checkStarNudge } = requireSourceOrBundled('./src/nudge');
@@ -13284,6 +13324,44 @@ function main() {
         bump: { squeezeOffered: squeezeOffered ? 1 : 0, squeezeAccepted: squeezeAccepted ? 1 : 0 },
       });
     } catch (_) {}
+    process.exit(0);
+  }
+
+  // `sigmap gain` — token-savings dashboard (totals, by-operation, trends).
+  if (args[0] === 'gain') {
+    const valOf = (f, d) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
+    if (args.includes('--reset')) {
+      try {
+        const { GAIN_FILE } = requireSourceOrBundled('./src/tracking/logger');
+        const p = path.join(cwd, GAIN_FILE);
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+        console.log('[sigmap] gain: usage log cleared.');
+      } catch (e) { console.error(`[sigmap] gain: ${e.message}`); }
+      process.exit(0);
+    }
+    try {
+      const { readGainLog } = requireSourceOrBundled('./src/tracking/logger');
+      const { aggregate } = requireSourceOrBundled('./src/tracking/aggregate');
+      const { renderSummary, renderBreakdown } = requireSourceOrBundled('./src/format/gain-terminal');
+      const records = readGainLog(cwd);
+      const agg = aggregate(records, {
+        model: valOf('--model', 'claude-sonnet'),
+        since: valOf('--since', null),
+        top: parseInt(valOf('--top', args.includes('--all') ? '0' : '10'), 10),
+      });
+      if (args.includes('--json')) {
+        process.stdout.write(JSON.stringify(agg, null, 2) + '\n');
+      } else {
+        const out = args.includes('--all')
+          ? renderSummary(agg, { version: VERSION }) + '\n' + renderBreakdown(agg)
+          : renderSummary(agg, { version: VERSION });
+        process.stdout.write(out + '\n');
+      }
+    } catch (e) {
+      console.error(`[sigmap] gain: ${e.message}`);
+      console.error('  (gain modules require src/ — for single-file installs, regenerate the bundle)');
+      process.exit(1);
+    }
     process.exit(0);
   }
 

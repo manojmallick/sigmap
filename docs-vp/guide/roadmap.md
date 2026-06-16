@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v7.0.1, with recent releases adding supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, full-signatures-under-budget, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v7.1.0, with recent releases adding the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, full-signatures-under-budget, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Sixty-one versions shipped. MIT open source from day one.
+Sixty-two versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 988 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 1,006 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v7.1.0 — Token-savings dashboard (sigmap gain) ✓ (2026-06-16)
+
+**Minor release.** New **`sigmap gain`** (#260) surfaces cumulative token savings right in the terminal — total tokens saved, % efficiency, estimated dollars, average latency, and a per-operation breakdown — with `gain --all` for daily / weekly / monthly trends. Savings are captured automatically: every `ask` and `generate` run appends a counts-only record to a dedicated local log `.context/gain.ndjson` (no file paths, source, or query text). Capture is **default-on** and privacy-safe; opt out with `--no-track`, `SIGMAP_NO_TRACK=1`, or `config.gainTracking:false`, and the legacy `usage.ndjson` / `--track` health log is untouched. New zero-dep `src/tracking/{aggregate,pricing}.js` and `src/format/gain-terminal.js` (ANSI renderer, `NO_COLOR`/non-TTY safe). "Saved" is labeled everywhere as an estimate vs the whole-file baseline. Also in this release: docs served at the sigmap.io root (#258) and a transparent Sponsor section (#257).
+
+**Tags:** `sigmap gain` · `gain --all` · `gain --json` · `--no-track` · `gainTracking` · `.context/gain.ndjson` · `token-savings` · `privacy-safe` · `#257` · `#258` · `PR #261` · `#260`
+
+**Impact:** users can finally quantify what SigMap saves them (tokens, %, $); zero new dependencies; default-on local-only capture; 18 new tests for the gain data layer + real CLI capture.
+
+---
+
 ### v7.0.1 — Supply-chain hardening; importable core; wider star nudge ✓ (2026-06-14)
 
 **Patch release — security & package hygiene.** Every `child_process.execSync` call (which runs through `/bin/sh -c`) was converted to shell-free `execFileSync` with an arguments array — several had previously interpolated values into the command string (`git diff ${range}`, `HEAD~${n}`, `printf '%s' … | ${clipCmd}`, `node -e "…http.get…"`), a real shell-injection surface. A new `src/util/git.js` (`git()`/`tryGit()`) centralizes shell-free git; the `extends` config fetch passes the URL as an argv, `compare` spawns node by argv, and clipboard copy writes via stdin. Net: **zero `execSync`/`exec`/`shell:true` in the published surface**, clearing Socket's "Shell access" capability alert (#252). Also: `package.json` `main` now points at the importable core API (`require('sigmap')` no longer runs the CLI; Bundlephobia sees the real zero-dep library), the star nudge counts plain `sigmap` runs (not just `ask`/`squeeze`) so context-only users reach it (#251), and the unused `machineId = sha256(os.hostname())` fingerprint was removed from `usage.json` (#252).
@@ -850,9 +860,9 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — v7.1+ (PR verification + Interactive Context Explorer)
+## Current milestone — v7.2+ (PR verification + Interactive Context Explorer)
 
-v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), and **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks. Next: **PR verification** — `verify-plan` and `review-pr` with a GitHub Action that posts a scope-drift + blast-radius comment on real PRs — plus the **Interactive Context Explorer** (a static, offline "what exactly gets sent for this query" demo), line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
+v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks; and **v7.1.0**: the **`sigmap gain`** token-savings dashboard (cumulative tokens saved, %, est. $, daily/weekly/monthly trends; privacy-safe, local-only, default-on). Next: **PR verification** — `verify-plan` and `review-pr` with a GitHub Action that posts a scope-drift + blast-radius comment on real PRs — plus the **Interactive Context Explorer** (a static, offline "what exactly gets sent for this query" demo), line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 
 ---
 

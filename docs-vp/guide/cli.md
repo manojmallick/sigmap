@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 46 SigMap commands and flags documented with examples. ask, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 53 SigMap commands and flags documented with examples. ask, gain, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 46 SigMap commands and flags documented with examples. ask, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 53 SigMap commands and flags documented with examples. ask, gain, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -100,6 +100,13 @@ If you are new to the product, start with the workflow pages first:
 | `--routing` | Print the model routing table |
 | `--format cache` | Wrap output in Anthropic cache_control breakpoints |
 | `--track` | Log each run to `.context/usage.ndjson` |
+| `gain` | Token-savings dashboard — tokens saved, %, est. $, latency, by-operation |
+| `gain --all` | Add daily / weekly / monthly trend tables |
+| `gain --json` | Aggregate savings as JSON |
+| `gain --since <7d\|ISO>` | Window filter (`7d`, `30d`, `12h`, or ISO date) |
+| `gain --top <n> \| --model <name>` | Limit rows / set the $ pricing model |
+| `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
+| `--no-track` | Disable gain savings capture for a run |
 | `--init` | Scaffold `gen-context.config.json` and `.contextignore` |
 | `--benchmark` | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
@@ -1104,6 +1111,55 @@ Log each run to `.context/usage.ndjson` for monitoring and audit. View history w
 
 ```bash
 sigmap --track
+```
+
+---
+
+## gain
+
+Token-savings dashboard. Shows how much SigMap has saved you — total tokens saved, % efficiency, estimated dollars, average latency, and a per-operation breakdown — built from a local, privacy-safe usage log.
+
+Savings are captured automatically: every `ask` and `generate` run appends a counts-only record to `.context/gain.ndjson` (no file paths, source, or query text). Capture is **default-on**; opt out per run with `--no-track`, globally with `SIGMAP_NO_TRACK=1`, or in config with `gainTracking: false`. This is separate from the legacy `--track` health log.
+
+```bash
+sigmap gain
+```
+
+```
+  ⚡ SigMap — Token Savings (this repo)                          ✓ v7.1.0
+  ──────────────────────────────────────────────────────────────────────
+  Total operations    : 2,402
+  Whole-file baseline : 48.7M tok   ← est. cost of feeding full files
+  SigMap context      :  2.9M tok
+  Tokens saved        : 45.8M  (94.0%)
+  Est. money saved    : $137.40   (claude-sonnet input @ $3/M · --model to change)
+  Avg latency         : 22 ms / op   (local, no API round-trip)
+
+  Efficiency   ▕███████████████████████████░░▏  94.0%
+
+  By operation
+   #  Operation             Count    Saved    Avg%    Time   Impact
+   1. ask                   1,164   22.8M    94.2%    41ms   ████████████
+   2. mcp:search_signatures   980    9.1M    88.0%     3ms   █████
+```
+
+"Saved" is a counterfactual estimate (whole-file baseline − actual context), not a measured delta — every view labels it as such and shows the pricing assumption inline.
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--all` | Add daily / weekly / monthly trend tables (with TOTAL rows) |
+| `--json` | Emit the aggregate as JSON (for badges, CI, dashboards) |
+| `--since <window>` | Filter to a window: `7d`, `30d`, `12h`, or an ISO date |
+| `--top <n>` | Limit the by-operation table to N rows (default 10) |
+| `--model <name>` | Pricing model for the `$` estimate (e.g. `gpt-4o`, `claude-opus`) |
+| `--reset` | Delete the local savings log (`.context/gain.ndjson`) |
+
+```bash
+sigmap gain --all                 # daily / weekly / monthly trends
+sigmap gain --since 7d --model gpt-4o
+sigmap gain --json | jq '.totals'
 ```
 
 ---

@@ -18,6 +18,9 @@ const fs = require('fs');
 const path = require('path');
 
 const LOG_FILE = path.join('.context', 'usage.ndjson');
+// Dedicated log for the `gain` dashboard (extended schema). Kept separate from
+// usage.ndjson so the legacy health/nudge history never collides with it.
+const GAIN_FILE = path.join('.context', 'gain.ndjson');
 
 /**
  * Append one run entry to the usage log.
@@ -74,6 +77,25 @@ function readLog(cwd) {
 }
 
 /**
+ * Read and parse all `gain` dashboard records (oldest first).
+ * @param {string} cwd
+ * @returns {object[]}
+ */
+function readGainLog(cwd) {
+  try {
+    const logPath = path.join(cwd, GAIN_FILE);
+    if (!fs.existsSync(logPath)) return [];
+    return fs.readFileSync(logPath, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => { try { return JSON.parse(line); } catch (_) { return null; } })
+      .filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
  * Compute summary statistics from an array of log records.
  * @param {object[]} entries
  * @returns {object} Summary stats
@@ -112,4 +134,64 @@ function summarize(entries) {
   };
 }
 
-module.exports = { logRun, readLog, summarize };
+/**
+ * Whether `gain` savings capture is enabled. Default: ON (privacy-safe,
+ * local-only, counts only — no paths, source, or query text). This is
+ * intentionally decoupled from the legacy `config.tracking` flag (which gates
+ * the usage.ndjson health log and defaults OFF). Opt out of gain capture via:
+ *   config.gainTracking === false   ·   --no-track   ·   SIGMAP_NO_TRACK=1
+ * @param {object} [config]
+ * @param {string[]} [argv]
+ * @returns {boolean}
+ */
+function isTrackingEnabled(config, argv) {
+  const a = argv || (typeof process !== 'undefined' ? process.argv : []);
+  if (process.env && process.env.SIGMAP_NO_TRACK) return false;
+  if (a && a.includes('--no-track')) return false;
+  if (config && config.gainTracking === false) return false;
+  return true;
+}
+
+/**
+ * Append one operation to the usage log using the extended `gain` schema.
+ * Reuses the same NDJSON file as logRun and is tolerant of partial input.
+ * Never throws — tracking must never break the main process.
+ *
+ * @param {object} entry
+ * @param {string} entry.op             e.g. 'ask' | 'generate' | 'query' | 'mcp:get_map'
+ * @param {number} entry.baselineTokens whole-file / candidate baseline (counterfactual)
+ * @param {number} entry.actualTokens   tokens SigMap actually emitted
+ * @param {number} [entry.durationMs]
+ * @param {string} [entry.model]
+ * @param {string} [entry.version]
+ * @param {string} cwd
+ */
+function recordUsage(entry, cwd) {
+  try {
+    const logPath = path.join(cwd, GAIN_FILE);
+    const dir = path.dirname(logPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    const baseline = Math.max(0, Number(entry.baselineTokens) || 0);
+    const actual = Math.max(0, Number(entry.actualTokens) || 0);
+    const saved = Math.max(0, baseline - actual);
+    const record = {
+      ts: new Date().toISOString(),
+      v: entry.version || '0.9.0',
+      op: entry.op || 'generate',
+      baselineTokens: baseline,
+      actualTokens: actual,
+      savedTokens: saved,
+      savedPct: baseline > 0 ? parseFloat(((saved / baseline) * 100).toFixed(1)) : 0,
+      durationMs: Math.max(0, Math.round(Number(entry.durationMs) || 0)),
+      model: entry.model || null,
+      ok: entry.ok !== false,
+    };
+    fs.appendFileSync(logPath, JSON.stringify(record) + '\n', 'utf8');
+  } catch (err) {
+    // Never crash the main process — tracking is optional.
+    if (process.stderr) process.stderr.write(`[sigmap] tracking: could not write log: ${err.message}\n`);
+  }
+}
+
+module.exports = { logRun, recordUsage, readLog, readGainLog, summarize, isTrackingEnabled, GAIN_FILE };

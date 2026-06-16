@@ -10,6 +10,21 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.1.0] — 2026-06-16
+
+Minor release — a token-savings dashboard in the terminal, plus domain and sponsorship docs.
+
+### Added
+- **Token-savings dashboard — `sigmap gain` (#260):** surfaces cumulative savings right in the terminal — total tokens saved, % efficiency, estimated $ saved, latency, and a by-operation breakdown, plus `gain --all` for daily / weekly / monthly trends. Savings are captured per operation (`ask`, `generate`) into a dedicated local log `.context/gain.ndjson` (counts only — no paths, source, or query text). Capture is **default-on** and privacy-safe; opt out via `--no-track`, `SIGMAP_NO_TRACK=1`, or `config.gainTracking:false`. The legacy `usage.ndjson` / `--track` health log is unchanged. New `src/tracking/{aggregate,pricing}.js` (zero-dep aggregation + model→$/Mtok pricing) and `src/format/gain-terminal.js` (ANSI renderer, `NO_COLOR`/non-TTY safe). Flags: `gain --all | --json | --since <7d|ISO> | --top <n> | --model <name> | --reset`. "Saved" is labeled everywhere as an estimate vs the whole-file baseline.
+
+### Fixed
+- **Docs served at the sigmap.io root (#258):** the docs site now builds with base `/` (dropped the `/sigmap/` path prefix) and the project domain points to sigmap.io.
+
+### Changed
+- **Sponsorship transparency (#257):** README gained a Sponsor section with a tier ladder and funding goal; detail moved into `SPONSOR.md`, with an "About the maintainer" note and a low-barrier welcome.
+
+---
+
 ## [7.0.1] — 2026-06-14
 
 Patch release — supply-chain hardening and package hygiene, plus a wider star nudge.
