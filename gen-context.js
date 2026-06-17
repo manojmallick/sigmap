@@ -29,6 +29,85 @@ function __require(key) {
 // ── ./src/cache/freshen ──
 // ── ./src/review/review-pr ──
 // ── ./src/create/orchestrate ──
+// ── ./src/conventions/report ──
+__factories["./src/conventions/report"] = function(module, exports) {
+  
+  /**
+   * Convention audit + trend (IMPL.md §4 — `conventions --report`).
+   *
+   * Turns an `extractConventions` result into an audit: a consistency score per
+   * convention plus a single file-count-weighted overall score, each with a delta
+   * vs the previous run (the trend). Pure, zero-dependency, bundle-safe.
+   */
+
+  const NAMES = { fileNaming: 'file naming', exportStyle: 'export style' };
+
+  /** File-count-weighted mean of the scored conventions' dominant shares (0–1). */
+  function overallScore(result) {
+    let num = 0;
+    let den = 0;
+    for (const key of ['fileNaming', 'exportStyle']) {
+      const c = result && result[key];
+      if (c && c.total > 0) { num += c.dominantPct * c.total; den += c.total; }
+    }
+    return den > 0 ? num / den : 0;
+  }
+
+  /**
+   * Build a consistency report with trend vs a prior snapshot.
+   * @param {object} result an `extractConventions` result
+   * @param {object|null} [prior] a previous snapshot (this module's `snapshot` shape)
+   * @returns {{ conventions: object[], testFramework: string|null,
+   *   score: number, prevScore: number|null, scoreDelta: number|null }}
+   */
+  function scoreReport(result, prior) {
+    const conventions = [];
+    for (const key of ['fileNaming', 'exportStyle']) {
+      const c = (result && result[key]) || { dominant: null, dominantPct: 0, total: 0, tier: 'unknown' };
+      const priorPct = prior && prior[key] && typeof prior[key].dominantPct === 'number' ? prior[key].dominantPct : null;
+      conventions.push({
+        key,
+        name: NAMES[key] || key,
+        dominant: c.dominant,
+        dominantPct: c.dominantPct,
+        tier: c.tier,
+        total: c.total,
+        delta: priorPct == null ? null : c.dominantPct - priorPct,
+      });
+    }
+    const score = overallScore(result);
+    const prevScore = prior && typeof prior.score === 'number' ? prior.score : null;
+    return {
+      conventions,
+      testFramework: (result && result.testFramework) || null,
+      score,
+      prevScore,
+      scoreDelta: prevScore == null ? null : score - prevScore,
+    };
+  }
+
+  /**
+   * A compact, persistable snapshot of a run (one line in the history log).
+   * @param {object} result an `extractConventions` result
+   * @param {string} [ts] ISO timestamp (caller supplies — keeps this pure)
+   */
+  function snapshot(result, ts) {
+    const pick = (c) => (c && c.total > 0
+      ? { dominant: c.dominant, dominantPct: c.dominantPct, tier: c.tier, total: c.total }
+      : { dominant: null, dominantPct: 0, tier: 'unknown', total: 0 });
+    return {
+      ts: ts || null,
+      fileNaming: pick(result && result.fileNaming),
+      exportStyle: pick(result && result.exportStyle),
+      testFramework: (result && result.testFramework) || null,
+      score: overallScore(result),
+    };
+  }
+
+  module.exports = { scoreReport, snapshot, overallScore };
+  
+};
+
 __factories["./src/create/orchestrate"] = function(module, exports) {
   
   /**
@@ -16329,6 +16408,38 @@ function main() {
         process.exit(1);
       }
       console.log(`[sigmap] conventions → injected block into ${path.relative(cwd, claudePath) || 'CLAUDE.md'}`);
+      process.exit(0);
+    }
+
+    // `--report`: consistency audit + score + trend vs the last run.
+    if (args.includes('--report')) {
+      const { scoreReport, snapshot } = requireSourceOrBundled('./src/conventions/report');
+      const histPath = path.join(cwd, '.context', 'conventions-history.ndjson');
+      let prior = null;
+      try {
+        const lines = fs.readFileSync(histPath, 'utf8').split('\n').filter(Boolean);
+        if (lines.length) prior = JSON.parse(lines[lines.length - 1]);
+      } catch (_) {}
+      const report = scoreReport(result, prior);
+      // Append the new snapshot to the history log.
+      try {
+        fs.mkdirSync(path.join(cwd, '.context'), { recursive: true });
+        fs.appendFileSync(histPath, JSON.stringify(snapshot(result, new Date().toISOString())) + '\n');
+      } catch (_) {}
+
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify(report) + '\n');
+        process.exit(0);
+      }
+      const pctR = (n) => `${(n * 100).toFixed(0)}%`;
+      const arrow = (d) => (d == null ? '' : d > 0.0005 ? ` ▲${(d * 100).toFixed(0)}pp` : d < -0.0005 ? ` ▼${(Math.abs(d) * 100).toFixed(0)}pp` : ' =');
+      console.log('[sigmap] conventions --report  (TS/JS/Python)');
+      console.log(`  overall consistency: ${pctR(report.score)}${arrow(report.scoreDelta)}${report.prevScore == null ? '  (first run)' : ''}`);
+      for (const c of report.conventions) {
+        if (c.total === 0) { console.log(`  ${c.name.padEnd(14)} n/a (no samples)`); continue; }
+        console.log(`  ${c.name.padEnd(14)} ${c.dominant} ${pctR(c.dominantPct)} [${c.tier}]${arrow(c.delta)}`);
+      }
+      console.log(`  ${'test framework'.padEnd(14)} ${report.testFramework || 'none detected'}`);
       process.exit(0);
     }
 
