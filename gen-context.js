@@ -27,6 +27,116 @@ function __require(key) {
 // ── ./src/scaffold/propose ──
 // ── ./src/plan/verify-plan ──
 // ── ./src/cache/freshen ──
+// ── ./src/review/review-pr ──
+__factories["./src/review/review-pr"] = function(module, exports) {
+  
+  /**
+   * review-pr (IMPL.md §6 step 4 — last guard stage of the `create` pipeline).
+   *
+   * Audits a diff for drift and side effects after a PR is opened: scope drift,
+   * edits to high-fan-in "god-node" files, source changes without matching tests,
+   * and changes to security-sensitive files. Pure (takes a changed-file list),
+   * zero-dependency, bundle-safe; reuses the impact graph for blast radius.
+   */
+
+  const path = require('path');
+  const { analyzeImpact } = __require('./src/graph/impact');
+
+  const SECURITY_PATTERNS = [
+    /(^|\/)\.env(\.|$)/i,
+    /(^|\/)(secrets?|credentials?)(\/|\.|$)/i,
+    /(^|\/)auth(\/|\.|-)/i,
+    /(^|\/)package(-lock)?\.json$/,
+    /(^|\/)(yarn\.lock|pnpm-lock\.yaml)$/,
+    /(^|\/)\.github\/workflows\//,
+    /(^|\/)Dockerfile/i,
+    /\.(pem|key|crt|p12)$/i,
+  ];
+
+  const SRC_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.go', '.rs', '.java', '.rb', '.php']);
+  const GOD_NODE_THRESHOLD = 15; // transitive dependents → high-fan-in "god node"
+  const SCOPE_DIR_THRESHOLD = 5; // distinct top-level dirs → scope drift
+
+  function isTestFile(p) {
+    return /\.(test|spec)\.[jt]sx?$|(^|\/)test_|_test\.(py|go)$|(^|\/)(tests?|__tests__|spec)\//.test(p);
+  }
+  function isSource(p) {
+    return SRC_EXTS.has(path.extname(p).toLowerCase()) && !isTestFile(p);
+  }
+
+  /**
+   * Audit a changed-file list.
+   * @param {Array<{path:string,status:string}>|string[]} changedFiles
+   * @param {string} cwd
+   * @param {object} [opts]
+   * @param {number} [opts.godNodeThreshold=15]
+   * @param {number} [opts.scopeThreshold=5]
+   * @returns {{ findings: object[], blast: object[], summary: object }}
+   */
+  function reviewPr(changedFiles, cwd, opts = {}) {
+    const godThreshold = opts.godNodeThreshold != null ? opts.godNodeThreshold : GOD_NODE_THRESHOLD;
+    const scopeThreshold = opts.scopeThreshold != null ? opts.scopeThreshold : SCOPE_DIR_THRESHOLD;
+    const files = (changedFiles || []).map((f) => (typeof f === 'string' ? { path: f, status: 'M' } : f));
+
+    const findings = [];
+    const paths = files.map((f) => f.path);
+    const live = files.filter((f) => f.status !== 'D');
+    const srcChanged = live.filter((f) => isSource(f.path)).map((f) => f.path);
+    const testChanged = paths.filter(isTestFile);
+
+    // 1. Missing tests: a changed source file with no matching changed test file.
+    for (const s of srcChanged) {
+      const stem = path.basename(s).replace(/\.[^.]+$/, '');
+      const covered = testChanged.some((t) => path.basename(t).includes(stem));
+      if (!covered) findings.push({ type: 'missing-tests', file: s, severity: 'warn' });
+    }
+
+    // 2. Security-sensitive files.
+    for (const f of live) {
+      if (SECURITY_PATTERNS.some((re) => re.test(f.path))) {
+        findings.push({ type: 'security-file', file: f.path, severity: 'warn' });
+      }
+    }
+
+    // 3. God-node edits (high blast radius).
+    const blast = [];
+    if (srcChanged.length) {
+      let impacts = [];
+      try { impacts = analyzeImpact(srcChanged, cwd, {}); } catch (_) { impacts = []; }
+      for (const { file, impact } of impacts) {
+        blast.push({ file, totalImpact: impact.totalImpact });
+        if (impact.totalImpact > godThreshold) {
+          findings.push({ type: 'god-node', file, count: impact.totalImpact, severity: 'warn' });
+        }
+      }
+      blast.sort((a, b) => b.totalImpact - a.totalImpact);
+    }
+
+    // 4. Scope drift: distinct top-level directories touched.
+    const dirs = [...new Set(paths.map((p) => (p.includes('/') ? p.split('/')[0] : '.')))];
+    if (dirs.length > scopeThreshold) {
+      findings.push({ type: 'scope-drift', dirs, count: dirs.length, threshold: scopeThreshold, severity: 'warn' });
+    }
+
+    const byType = findings.reduce((a, f) => { a[f.type] = (a[f.type] || 0) + 1; return a; }, {});
+    return {
+      findings,
+      blast,
+      summary: {
+        filesChanged: files.length,
+        sourceChanged: srcChanged.length,
+        testsChanged: testChanged.length,
+        findings: findings.length,
+        byType,
+        ok: findings.length === 0,
+      },
+    };
+  }
+
+  module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD };
+  
+};
+
 __factories["./src/cache/freshen"] = function(module, exports) {
   
   /**
@@ -7259,7 +7369,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '7.11.0',
+    version: '7.12.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -12937,7 +13047,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '7.11.0';
+const VERSION = '7.12.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -16386,6 +16496,60 @@ function main() {
       console.log(`  L${issue.line}  [${labels[issue.type] || issue.type}]  ${issue.message}`);
       if (issue.suggestion) console.log(`         ↳ ${issue.suggestion}`);
     }
+    process.exit(1);
+  }
+
+  // Gap 2 (step 4): `sigmap review-pr` — diff audit (scope drift, god-nodes,
+  // missing tests, security-sensitive files). Last guard stage of `create`.
+  if (args[0] === 'review-pr') {
+    const jsonOut = args.includes('--json');
+    const staged = args.includes('--staged');
+    const baseIdx = args.indexOf('--base');
+    const baseArg = baseIdx !== -1 && args[baseIdx + 1] && !args[baseIdx + 1].startsWith('--') ? args[baseIdx + 1] : null;
+
+    let nameStatus = '';
+    if (staged) {
+      nameStatus = __tryGit(['diff', '--cached', '--name-status'], { cwd });
+    } else {
+      let base = baseArg;
+      if (!base) {
+        for (const ref of ['main', 'develop']) {
+          if (__tryGit(['rev-parse', '--verify', '--quiet', ref], { cwd })) { base = ref; break; }
+        }
+      }
+      const mb = base ? (__tryGit(['merge-base', 'HEAD', base], { cwd }) || base) : 'HEAD~1';
+      nameStatus = __tryGit(['diff', '--name-status', `${mb}..HEAD`], { cwd });
+    }
+
+    const changedFiles = nameStatus.split('\n').filter(Boolean).map((line) => {
+      const parts = line.split('\t');
+      const status = parts[0][0]; // M/A/D/R…
+      const file = parts[parts.length - 1]; // rename → new path
+      return { path: file, status };
+    });
+
+    const { reviewPr } = requireSourceOrBundled('./src/review/review-pr');
+    const result = reviewPr(changedFiles, cwd, {});
+
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify(result) + '\n');
+      process.exit(result.summary.ok ? 0 : 1);
+    }
+
+    const s = result.summary;
+    console.log(`[sigmap] review-pr — ${s.filesChanged} file(s) changed (${s.sourceChanged} source, ${s.testsChanged} test)`);
+    if (s.findings === 0) {
+      console.log('  ✓ no findings — scope, tests, blast radius, and sensitive files all clear');
+      process.exit(0);
+    }
+    const label = { 'missing-tests': 'missing tests', 'security-file': 'security file', 'god-node': 'god node', 'scope-drift': 'scope drift' };
+    for (const f of result.findings) {
+      if (f.type === 'missing-tests') console.log(`  ⚠ ${label[f.type]}: ${f.file} changed with no matching test`);
+      else if (f.type === 'security-file') console.log(`  ⚠ ${label[f.type]}: ${f.file}`);
+      else if (f.type === 'god-node') console.log(`  ⚠ ${label[f.type]}: ${f.file} → ${f.count} dependents`);
+      else if (f.type === 'scope-drift') console.log(`  ⚠ ${label[f.type]}: ${f.count} top-level dirs (${f.dirs.join(', ')})`);
+    }
+    console.log(`\n  ${s.findings} finding(s)`);
     process.exit(1);
   }
 

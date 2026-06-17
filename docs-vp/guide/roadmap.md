@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v7.11.0, with recent releases adding the sigmap verify-plan and scaffold commands, the conventions command with --conflicts breakdown and --inject CLAUDE.md injection (grounded codegen, Layers 3–4 + the create pipeline), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v7.12.0, with recent releases adding the sigmap review-pr, verify-plan, and scaffold commands, the conventions command with --conflicts breakdown and --inject CLAUDE.md injection (grounded codegen, Layers 3–4 + the create pipeline), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Sixty-eight versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 1,080 tests passing · 15 MCP tools · 31 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 1,091 tests passing · 15 MCP tools · 31 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v7.12.0 — `sigmap review-pr` (the create pipeline, Gap 2) ✓ (2026-06-17)
+
+**Minor release — the last guard stage of the `create` pipeline.** `sigmap review-pr` audits a diff for drift + side effects after a PR is opened: **scope drift** (too many distinct top-level dirs), **god-node edits** (changed files with transitive dependents above a threshold, via the impact graph), **missing tests** (a changed source file with no matching changed test), and **security-sensitive files** (`.env*`, auth, secrets, `package.json`/lockfiles, `.github/workflows/**`, Dockerfiles, keys). New zero-dependency, bundle-safe `src/review/review-pr.js` (`reviewPr`); deletions are excluded from the source/security checks. CLI `review-pr [--base <ref>] [--staged] [--json]` collects the diff via shell-free git and exits non-zero on any finding (CI-gate). With this, **all four create-pipeline guard stages exist** (`scaffold` → `verify-plan` → `verify-ai-output` → `review-pr`).
+
+**Tags:** `review-pr` · `create-pipeline` · `god-node` · `scope-drift` · `security-files` · `grounded-codegen` · `gap-2` · `#313`
+
+**Impact:** the grounded-creation loop's four guard stages are complete — only the `sigmap create` orchestrator (which sequences them) remains.
+
+---
+
 ### v7.11.0 — `sigmap verify-plan` (the create pipeline, Gap 2) ✓ (2026-06-17)
 
 **Minor release — first piece of the `sigmap create` pipeline.** `sigmap verify-plan <plan.md>` checks a plan against the **live index** before the agent executes it: referenced files and symbols exist, blast radius is acceptable, scope is in bounds — catching Cause 1+2 at plan time, cheaper than after the code is written. New zero-dependency, bundle-safe `src/plan/verify-plan.js` (`verifyPlan`): flags missing files + unknown symbols (with closest-match suggestions), computes per-file blast radius via the impact graph, and flags broad scope. Plan input is markdown (resolves the open §10 schema decision, consistent with `verify-ai-output`); CLI reads a file or stdin, supports `--json`, and exits non-zero on blocking errors. This is step 2 of the four-stage pipeline (`scaffold` → **verify-plan** → `verify-ai-output` → `review-pr`).
@@ -970,9 +980,9 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — v7.11+ (grounded codegen: the `sigmap create` pipeline)
+## Current milestone — v7.13+ (grounded codegen: the `sigmap create` orchestrator)
 
-v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks; **v7.1.0**: the **`sigmap gain`** token-savings dashboard (cumulative tokens saved, %, est. $, daily/weekly/monthly trends; privacy-safe, local-only, default-on); and the **grounded-codegen** track — **v7.4–7.5** live-index write hooks + read-time self-heal (Layer 1), **v7.6.0** the offline grounding benchmark (the GATE), **v7.7.0** **`sigmap conventions`** (Layer 3: extract a repo's file-naming / export / test-framework conventions); **v7.8.0** **`conventions --conflicts`** (per-convention breakdown + rename suggestions); **v7.9.0** **`conventions --inject`** (CLAUDE.md convention injection — the agent now sees the house style); **v7.10.0** **`sigmap scaffold`** (Layer 4: convention-matched proposal gated by a confidence floor — closing the last root cause); and **v7.11.0** **`sigmap verify-plan`** (Gap 2: plan vs live index — step 2 of the create pipeline). Next: finish the **`sigmap create` pipeline** — the `create` orchestrator (runs `scaffold` → `verify-plan` → `verify-ai-output` → `review-pr` with `1/4`…`4/4` numbering) and `review-pr` — plus scaffold persistence and the remaining `conventions --report/--fix/--update/--ci` flags. Also planned: **PR verification** (`verify-plan` / `review-pr` GitHub Action), the **Interactive Context Explorer**, line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
+v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks; **v7.1.0**: the **`sigmap gain`** token-savings dashboard (cumulative tokens saved, %, est. $, daily/weekly/monthly trends; privacy-safe, local-only, default-on); and the **grounded-codegen** track — **v7.4–7.5** live-index write hooks + read-time self-heal (Layer 1), **v7.6.0** the offline grounding benchmark (the GATE), **v7.7.0** **`sigmap conventions`** (Layer 3: extract a repo's file-naming / export / test-framework conventions); **v7.8.0** **`conventions --conflicts`** (per-convention breakdown + rename suggestions); **v7.9.0** **`conventions --inject`** (CLAUDE.md convention injection — the agent now sees the house style); **v7.10.0** **`sigmap scaffold`** (Layer 4: convention-matched proposal gated by a confidence floor — closing the last root cause); **v7.11.0** **`sigmap verify-plan`** (Gap 2: plan vs live index); and **v7.12.0** **`sigmap review-pr`** (Gap 2: diff audit — the last of the four guard stages). Next: the **`sigmap create` orchestrator** — one command that sequences `scaffold` → `verify-plan` → `verify-ai-output` → `review-pr` with `1/4`…`4/4` numbering, completing the grounded-creation loop — plus scaffold persistence and the remaining `conventions --report/--fix/--update/--ci` flags. Also planned: **PR verification** (`verify-plan` / `review-pr` GitHub Action), the **Interactive Context Explorer**, line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 
 ---
 
