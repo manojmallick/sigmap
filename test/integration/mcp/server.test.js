@@ -99,14 +99,14 @@ test('initialize returns serverInfo', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Gate 2: tools/list returns 11 tools (v6.16+)
+// Gate 2: tools/list returns 12 tools
 // ─────────────────────────────────────────────────────────────
-test('tools/list returns exactly 11 tools', () => {
+test('tools/list returns exactly 12 tools', () => {
   withTempProject((dir) => {
     const [res] = mcpCall({ jsonrpc: '2.0', method: 'tools/list', id: 2 }, dir);
     assert.ok(res.result, 'Should have result');
     assert.ok(Array.isArray(res.result.tools), 'tools should be array');
-    assert.strictEqual(res.result.tools.length, 11);
+    assert.strictEqual(res.result.tools.length, 12);
     const names = res.result.tools.map((t) => t.name);
     assert.ok(names.includes('read_context'), 'Should have read_context');
     assert.ok(names.includes('search_signatures'), 'Should have search_signatures');
@@ -118,6 +118,51 @@ test('tools/list returns exactly 11 tools', () => {
     assert.ok(names.includes('query_context'), 'Should have query_context');
     assert.ok(names.includes('get_impact'), 'Should have get_impact');
     assert.ok(names.includes('get_lines'), 'Should have get_lines');
+    assert.ok(names.includes('read_memory'), 'Should have read_memory');
+    assert.ok(names.includes('get_callee_signatures'), 'Should have get_callee_signatures');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Gate 2b: get_callee_signatures resolves known + unknown symbols (bundle path)
+// ─────────────────────────────────────────────────────────────
+test('get_callee_signatures returns exact signature for a known symbol', () => {
+  withTempProject((dir) => {
+    seedContextFile(dir);
+    const [res] = mcpCall(
+      { jsonrpc: '2.0', method: 'tools/call', id: 22,
+        params: { name: 'get_callee_signatures', arguments: { symbols: ['login', 'nope_xyz'] } } },
+      dir
+    );
+    assert.ok(res.result, 'Should have result');
+    const text = res.result.content[0].text;
+    assert.ok(text.includes('login(user, pass)'), 'exact signature for login');
+    assert.ok(/nope_xyz[\s\S]*not found/.test(text), 'unknown symbol marked not found');
+  });
+});
+
+test('get_callee_signatures suggests a closest match for a near-miss', () => {
+  withTempProject((dir) => {
+    seedContextFile(dir);
+    const [res] = mcpCall(
+      { jsonrpc: '2.0', method: 'tools/call', id: 23,
+        params: { name: 'get_callee_signatures', arguments: { symbols: ['getUsr'] } } },
+      dir
+    );
+    const text = res.result.content[0].text;
+    assert.ok(/Did you mean .*getUser/.test(text), `expected getUser suggestion, got: ${text}`);
+  });
+});
+
+test('get_callee_signatures errors on missing symbols arg', () => {
+  withTempProject((dir) => {
+    seedContextFile(dir);
+    const [res] = mcpCall(
+      { jsonrpc: '2.0', method: 'tools/call', id: 24,
+        params: { name: 'get_callee_signatures', arguments: {} } },
+      dir
+    );
+    assert.ok(/Missing required argument: symbols/.test(res.result.content[0].text), 'should report missing arg');
   });
 });
 

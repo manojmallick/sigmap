@@ -543,4 +543,57 @@ function readMemory(args, cwd) {
   return out.join('\n');
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory };
+/**
+ * get_callee_signatures — return the exact defining signature(s) of named
+ * symbols from the index, so an agent never guesses a callee's parameter types.
+ * Unknown names get a closest-match suggestion.
+ * @param {{symbols:string[]}} args
+ * @param {string} cwd
+ */
+function getCalleeSignatures(args, cwd) {
+  const symbols = args && Array.isArray(args.symbols)
+    ? args.symbols.map((s) => String(s).trim()).filter(Boolean)
+    : null;
+  if (!symbols || symbols.length === 0) {
+    return 'Missing required argument: symbols (non-empty string[])';
+  }
+
+  try {
+    const { buildSigIndex } = require('../retrieval/ranker');
+    const { buildSymbolCandidates, closestMatch, formatSuggestion } = require('../verify/closest-match');
+    const index = buildSigIndex(cwd);
+    if (index.size === 0) return 'No context file found. Run: node gen-context.js';
+
+    // Extract the defining symbol name from a signature line (same rules as
+    // buildSymbolCandidates) so we match definitions, not param occurrences.
+    const defName = (sig) => {
+      const cleaned = String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '');
+      const m = cleaned.match(/\b(?:async\s+function|function|class|def|interface|type|enum|const|let|var)\s+([A-Za-z_$][\w$]*)/)
+        || cleaned.match(/([A-Za-z_$][\w$]*)\s*\(/);
+      return m ? m[1] : null;
+    };
+
+    const candidates = buildSymbolCandidates(index);
+    const blocks = [];
+    for (const symbol of symbols) {
+      const matches = [];
+      for (const [file, sigs] of index.entries()) {
+        for (const sig of sigs) {
+          if (defName(sig) === symbol) matches.push(`${sig}    (${file})`);
+        }
+      }
+      if (matches.length === 0) {
+        const cm = closestMatch(symbol, candidates);
+        const hint = cm ? ' — ' + formatSuggestion(cm) : '';
+        blocks.push(`### ${symbol}\n_not found in index${hint}_`);
+      } else {
+        blocks.push(`### ${symbol}\n${matches.join('\n')}`);
+      }
+    }
+    return blocks.join('\n\n');
+  } catch (err) {
+    return `_get_callee_signatures failed: ${err.message}_`;
+  }
+}
+
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures };
