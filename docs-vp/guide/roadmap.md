@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v7.3.0, with recent releases adding the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v7.4.0, with recent releases adding live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Sixty-five versions shipped. MIT open source from day one.
+Sixty-six versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 1,006 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v7.4.0 — Live-index MCP write hooks ✓ (2026-06-17)
+
+**Minor release — grounded codegen, Layer 1.** Three new MCP tools — `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, `sigmap_notify_file_deleted` — keep the index fresh while an agent creates/modifies/deletes files mid-session, so a freshly-written symbol is immediately resolvable by `search_signatures` / `get_callee_signatures` instead of being re-hallucinated. They update the persisted sig-cache (which `buildSigIndex` already merges), so changes are live on the next read. New bundle-safe `src/extractors/dispatch.js` (static extractor dispatch). Also fixes a pre-existing standalone-bundle bug: the `ranker` factory had a raw `require('../cache/sig-cache')` never rewritten to `__require`, so the cache merge silently failed in the SEA binary — regenerated, and the full create→resolve→delete cycle now works from the bundle with no `src/`.
+
+**Tags:** `mcp-write-hooks` · `live-index` · `notify_file_created` · `grounded-codegen` · `dispatch.js` · `bundle-fix` · `15-tools` · `#286`
+
+**Impact:** MCP server 12 → 15 tools; agent-created code is indexed live within the session (Cause 2 — stale references).
+
+---
+
 ### v7.3.0 — `get_callee_signatures` MCP tool ✓ (2026-06-17)
 
 **Minor release.** A 12th MCP tool, `get_callee_signatures`, returns the **exact current signature(s)** of named symbols (functions, classes, methods) from the index — so an agent never guesses a callee's parameter types from training memory. This is the highest-ROI step toward grounded code generation (Layer 2 of the zero-hallucination plan): call it before writing code that uses a symbol. Input `{ symbols: string[] }`; unknown names get a closest-match suggestion. Works against the current index today (Layer 1 live-freshness makes it live later). Wired into the standalone bundle (regenerated `mcp/*` factories) and validated end-to-end via the bundle-driven MCP test.
@@ -890,7 +900,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — v7.4+ (PR verification + Interactive Context Explorer)
+## Current milestone — v7.5+ (PR verification + Interactive Context Explorer)
 
 v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks; and **v7.1.0**: the **`sigmap gain`** token-savings dashboard (cumulative tokens saved, %, est. $, daily/weekly/monthly trends; privacy-safe, local-only, default-on). Next: **PR verification** — `verify-plan` and `review-pr` with a GitHub Action that posts a scope-drift + blast-radius comment on real PRs — plus the **Interactive Context Explorer** (a static, offline "what exactly gets sent for this query" demo), line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 

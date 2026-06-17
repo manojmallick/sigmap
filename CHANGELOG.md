@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.4.0] — 2026-06-17
+
+Minor release — live-index write hooks (grounded codegen, Layer 1).
+
+### Added
+- **MCP write hooks — live index for agent-created code (#286):** three new tools — `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, `sigmap_notify_file_deleted` — keep the index fresh while an agent creates/modifies/deletes files mid-session, so newly-written symbols are immediately resolvable by `search_signatures` / `get_callee_signatures` instead of being re-hallucinated. They update the persisted sig-cache, which `buildSigIndex` already merges, so changes are live on the next read. New bundle-safe `src/extractors/dispatch.js` (static extractor dispatch for the standalone bundle). Brings the MCP server to **15 tools**.
+
+### Fixed
+- **Standalone-bundle cache merge (#286):** the bundled `ranker` factory carried a raw `require('../cache/sig-cache')` that was never rewritten to `__require`, so the cache merge — and `get_callee_signatures`' cache path — silently failed in the SEA binary. Regenerated the factory; the full create→resolve→delete cycle now works from the bundle with no `src/` present.
+
+---
+
 ## [7.3.0] — 2026-06-17
 
 Minor release — a 12th MCP tool that gives agents exact callee signatures before they write.
