@@ -596,4 +596,80 @@ function getCalleeSignatures(args, cwd) {
   }
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures };
+// ── Layer 1: live-index write hooks ────────────────────────────────────────
+// Keep the sig-cache fresh while an agent creates/modifies/deletes files, so
+// new code is discoverable in the same session. buildSigIndex already merges
+// the cache (_buildSigIndexFromCache), so updates are live on the next read.
+
+function _pkgVersion(cwd) {
+  try { return JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8')).version || '0.0.0'; }
+  catch (_) { return '0.0.0'; }
+}
+
+
+/** notify_file_created — extract a file's signatures and index it live. */
+function notifyFileCreated(args, cwd) {
+  const rel = args && args.path;
+  if (!rel) return 'Missing required argument: path';
+  try {
+    const { extractFile } = require('../extractors/dispatch');
+    const { loadCache, saveCache } = require('../cache/sig-cache');
+    const abs = path.resolve(cwd, rel);
+    let content = args.content;
+    if (typeof content !== 'string') {
+      try { content = fs.readFileSync(abs, 'utf8'); } catch (_) { content = ''; }
+    }
+    const sigs = extractFile(abs, content);
+    const version = _pkgVersion(cwd);
+    const cache = loadCache(cwd, version);
+    if (sigs.length > 0) {
+      cache.set(abs, { mtime: Date.now(), sigs });
+    }
+    saveCache(cwd, version, cache);
+    return `Indexed ${rel}: ${sigs.length} signature(s) now live.`;
+  } catch (err) {
+    return `_notify_file_created failed: ${err.message}_`;
+  }
+}
+
+/** notify_symbol_added — append one signature to a file's live cache entry. */
+function notifySymbolAdded(args, cwd) {
+  if (!args || !args.signature || !args.file) {
+    return 'Missing required arguments: signature, file';
+  }
+  try {
+    const { loadCache, saveCache } = require('../cache/sig-cache');
+    const abs = path.resolve(cwd, args.file);
+    const version = _pkgVersion(cwd);
+    const cache = loadCache(cwd, version);
+    const entry = cache.get(abs) || { mtime: Date.now(), sigs: [] };
+    const line = Number.isFinite(Number(args.line)) ? `  :${args.line}` : '';
+    const sig = String(args.signature) + line;
+    if (!entry.sigs.includes(sig)) entry.sigs.push(sig);
+    entry.mtime = Date.now();
+    cache.set(abs, entry);
+    saveCache(cwd, version, cache);
+    return `Added signature to ${args.file} (${entry.sigs.length} total).`;
+  } catch (err) {
+    return `_notify_symbol_added failed: ${err.message}_`;
+  }
+}
+
+/** notify_file_deleted — drop a file's cache-overlay entry. */
+function notifyFileDeleted(args, cwd) {
+  const rel = args && args.path;
+  if (!rel) return 'Missing required argument: path';
+  try {
+    const { loadCache, saveCache } = require('../cache/sig-cache');
+    const abs = path.resolve(cwd, rel);
+    const version = _pkgVersion(cwd);
+    const cache = loadCache(cwd, version);
+    const had = cache.delete(abs);
+    saveCache(cwd, version, cache);
+    return had ? `Removed ${rel} from the live index.` : `${rel} was not in the live cache.`;
+  } catch (err) {
+    return `_notify_file_deleted failed: ${err.message}_`;
+  }
+}
+
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted };

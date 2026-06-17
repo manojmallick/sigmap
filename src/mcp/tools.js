@@ -1,10 +1,11 @@
 'use strict';
 
 /**
- * MCP tool definitions for SigMap (12 tools).
+ * MCP tool definitions for SigMap (15 tools).
  * read_context, search_signatures, get_map, create_checkpoint, get_routing,
  * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
- * get_callee_signatures.
+ * get_callee_signatures, sigmap_notify_file_created, sigmap_notify_symbol_added,
+ * sigmap_notify_file_deleted.
  */
 
 const TOOLS = [
@@ -233,6 +234,48 @@ const TOOLS = [
         },
       },
       required: ['symbols'],
+    },
+  },
+  {
+    name: 'sigmap_notify_file_created',
+    description:
+      'Tell SigMap a file was created or modified so its signatures are indexed ' +
+      'live for the rest of the session. Call this after writing a file — the new ' +
+      'symbols become resolvable by search_signatures / get_callee_signatures.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'File path relative to the project root.' },
+        content: { type: 'string', description: 'Optional file content; read from disk if omitted.' },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'sigmap_notify_symbol_added',
+    description:
+      'Fast path: register a single new symbol signature directly in the live ' +
+      'index without re-reading the whole file.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        signature: { type: 'string', description: 'The signature line (e.g. "function check(key)").' },
+        file: { type: 'string', description: 'File path the symbol belongs to (relative to root).' },
+        line: { type: 'number', description: 'Optional 1-based line number.' },
+      },
+      required: ['signature', 'file'],
+    },
+  },
+  {
+    name: 'sigmap_notify_file_deleted',
+    description:
+      'Tell SigMap a file was deleted so its symbols are dropped from the live index.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Deleted file path relative to the project root.' },
+      },
+      required: ['path'],
     },
   },
 ];

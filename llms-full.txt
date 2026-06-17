@@ -24,7 +24,7 @@ Claude, Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 | Task success proxy | 10% | 52.2% |
 | Prompts per task | 2.84 | 1.72 (39.4% fewer) |
 | Supported languages | — | 31 |
-| MCP tools | — | 12 |
+| MCP tools | — | 15 |
 | npm runtime dependencies | — | 0 |
 
 ---
@@ -114,7 +114,7 @@ sigmap --version                         Show version
 
 ---
 
-## MCP server — 12 tools
+## MCP server — 15 tools
 
 Start with `sigmap --mcp` (stdio JSON-RPC). Configure once:
 
@@ -218,6 +218,30 @@ Return the EXACT current signature(s) of named symbols (functions, classes, meth
 Input:  { symbols: array }
 ```
 
+### sigmap_notify_file_created
+
+Tell SigMap a file was created or modified so its signatures are indexed live for the rest of the session. Call this after writing a file — the new symbols become resolvable by search_signatures / get_callee_signatures.
+
+```
+Input:  { path: string, content?: string }
+```
+
+### sigmap_notify_symbol_added
+
+Fast path: register a single new symbol signature directly in the live index without re-reading the whole file.
+
+```
+Input:  { signature: string, file: string, line?: number }
+```
+
+### sigmap_notify_file_deleted
+
+Tell SigMap a file was deleted so its symbols are dropped from the live index.
+
+```
+Input:  { path: string }
+```
+
 ---
 
 ## Configuration (gen-context.config.json)
@@ -261,9 +285,9 @@ impact = {"depth":3,"includeSigs":true}
 
 ---
 
-## Supported languages (34 extractors)
+## Supported languages (35 extractors)
 
-cpp, csharp, css, dart, dockerfile, gdscript, generic, go, graphql, html, java, javascript, kotlin, markdown, php, properties, protobuf, python, r, ruby, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue, vue_sfc, xml, yaml
+cpp, csharp, css, dart, dispatch, dockerfile, gdscript, generic, go, graphql, html, java, javascript, kotlin, markdown, php, properties, protobuf, python, r, ruby, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue, vue_sfc, xml, yaml
 
 ---
 

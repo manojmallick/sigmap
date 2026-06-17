@@ -1,13 +1,13 @@
 ---
 title: MCP server setup
-description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 12 tools over stdio. Zero npm install.
+description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 15 tools over stdio. Zero npm install.
 head:
   - - meta
     - property: og:title
       content: "SigMap MCP Server — on-demand codebase context"
   - - meta
     - property: og:description
-      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 12 MCP tools over stdio."
+      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 15 MCP tools over stdio."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/mcp"
@@ -22,7 +22,7 @@ head:
 
 Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.
 
-The SigMap MCP server exposes 12 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
+The SigMap MCP server exposes 15 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
 
 > **Setup time: under 2 minutes.** Use `sigmap --setup` for automatic configuration.
 
@@ -99,7 +99,7 @@ Stack both MCP servers for the two-layer context strategy — SigMap for always-
 ## 11 available tools
 
 ::: tip New in v6.3.0 — native tool registration
-Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 12 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
+Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 15 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
 :::
 
 All tools are available on-demand — your AI agent calls only what it needs.

@@ -101,12 +101,12 @@ test('initialize returns serverInfo', () => {
 // ─────────────────────────────────────────────────────────────
 // Gate 2: tools/list returns 12 tools
 // ─────────────────────────────────────────────────────────────
-test('tools/list returns exactly 12 tools', () => {
+test('tools/list returns exactly 15 tools', () => {
   withTempProject((dir) => {
     const [res] = mcpCall({ jsonrpc: '2.0', method: 'tools/list', id: 2 }, dir);
     assert.ok(res.result, 'Should have result');
     assert.ok(Array.isArray(res.result.tools), 'tools should be array');
-    assert.strictEqual(res.result.tools.length, 12);
+    assert.strictEqual(res.result.tools.length, 15);
     const names = res.result.tools.map((t) => t.name);
     assert.ok(names.includes('read_context'), 'Should have read_context');
     assert.ok(names.includes('search_signatures'), 'Should have search_signatures');
@@ -120,6 +120,9 @@ test('tools/list returns exactly 12 tools', () => {
     assert.ok(names.includes('get_lines'), 'Should have get_lines');
     assert.ok(names.includes('read_memory'), 'Should have read_memory');
     assert.ok(names.includes('get_callee_signatures'), 'Should have get_callee_signatures');
+    assert.ok(names.includes('sigmap_notify_file_created'), 'Should have notify_file_created');
+    assert.ok(names.includes('sigmap_notify_symbol_added'), 'Should have notify_symbol_added');
+    assert.ok(names.includes('sigmap_notify_file_deleted'), 'Should have notify_file_deleted');
   });
 });
 
@@ -163,6 +166,55 @@ test('get_callee_signatures errors on missing symbols arg', () => {
       dir
     );
     assert.ok(/Missing required argument: symbols/.test(res.result.content[0].text), 'should report missing arg');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Gate 2c: Layer 1 write hooks — live index for agent-created code
+// ─────────────────────────────────────────────────────────────
+test('notify_file_created makes a new symbol live (same session)', () => {
+  withTempProject((dir) => {
+    const res = mcpCall([
+      { jsonrpc: '2.0', method: 'tools/call', id: 1,
+        params: { name: 'sigmap_notify_file_created',
+          arguments: { path: 'src/rate.js', content: 'function rateLimit(key, max){ return max; }\nmodule.exports = { rateLimit };\n' } } },
+      { jsonrpc: '2.0', method: 'tools/call', id: 2,
+        params: { name: 'get_callee_signatures', arguments: { symbols: ['rateLimit'] } } },
+    ], dir);
+    const created = res.find((r) => r.id === 1).result.content[0].text;
+    const callee = res.find((r) => r.id === 2).result.content[0].text;
+    assert.ok(/Indexed/.test(created), `created: ${created}`);
+    assert.ok(/rateLimit\(key, max\)/.test(callee), `callee should resolve: ${callee}`);
+  });
+});
+
+test('notify_symbol_added registers a single signature', () => {
+  withTempProject((dir) => {
+    const res = mcpCall([
+      { jsonrpc: '2.0', method: 'tools/call', id: 1,
+        params: { name: 'sigmap_notify_symbol_added',
+          arguments: { signature: 'function quickHash(s)', file: 'src/util.js', line: 7 } } },
+      { jsonrpc: '2.0', method: 'tools/call', id: 2,
+        params: { name: 'search_signatures', arguments: { query: 'quickHash' } } },
+    ], dir);
+    assert.ok(/quickHash/.test(res.find((r) => r.id === 2).result.content[0].text), 'symbol should be searchable');
+  });
+});
+
+test('notify_file_deleted removes a previously-created file', () => {
+  withTempProject((dir) => {
+    const res = mcpCall([
+      { jsonrpc: '2.0', method: 'tools/call', id: 1,
+        params: { name: 'sigmap_notify_file_created',
+          arguments: { path: 'src/gone.js', content: 'function willVanish(){ return 1; }\n' } } },
+      { jsonrpc: '2.0', method: 'tools/call', id: 2,
+        params: { name: 'sigmap_notify_file_deleted', arguments: { path: 'src/gone.js' } } },
+      { jsonrpc: '2.0', method: 'tools/call', id: 3,
+        params: { name: 'get_callee_signatures', arguments: { symbols: ['willVanish'] } } },
+    ], dir);
+    assert.ok(/Removed/.test(res.find((r) => r.id === 2).result.content[0].text), 'should report removal');
+    const after = res.find((r) => r.id === 3).result.content[0].text;
+    assert.ok(!/willVanish\(/.test(after), `symbol should be gone: ${after}`);
   });
 });
 

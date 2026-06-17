@@ -269,10 +269,10 @@ test('CLI --version: returns current package version', () => {
 // ---------------------------------------------------------------------------
 // MCP tests — query_context  (8th tool) + get_impact (9th tool)
 // ---------------------------------------------------------------------------
-test('MCP tools/list: returns 12 tools including query_context', () => {
+test('MCP tools/list: returns 15 tools including query_context', () => {
   const [res] = mcpCall({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
   assert.ok(res.result, 'should have result');
-  assert.strictEqual(res.result.tools.length, 12, `expected 12 tools, got ${res.result.tools.length}`);
+  assert.strictEqual(res.result.tools.length, 15, `expected 15 tools, got ${res.result.tools.length}`);
   const names = res.result.tools.map((t) => t.name);
   assert.ok(names.includes('query_context'), 'should include query_context');
   assert.ok(names.includes('get_impact'), 'should include get_impact');
