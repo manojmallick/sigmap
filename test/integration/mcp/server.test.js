@@ -170,6 +170,27 @@ test('get_callee_signatures errors on missing symbols arg', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// Gate 2bb: read-time self-heal — disk edits reflected without a hook
+// ─────────────────────────────────────────────────────────────
+test('self-heal: a file written on disk (no hook) is resolvable on read', () => {
+  withTempProject((dir) => {
+    seedContextFile(dir); // gives a context-file mtime baseline
+    const f = path.join(dir, 'src', 'healed.js');
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, 'function selfHealed(a, b){ return a + b; }\nmodule.exports = { selfHealed };\n');
+    const future = Date.now() / 1000 + 30;
+    fs.utimesSync(f, future, future); // ensure mtime > context, defeat ms granularity
+    const [res] = mcpCall(
+      { jsonrpc: '2.0', method: 'tools/call', id: 30,
+        params: { name: 'get_callee_signatures', arguments: { symbols: ['selfHealed'] } } },
+      dir
+    );
+    assert.ok(/selfHealed\(a, b\)/.test(res.result.content[0].text),
+      `disk edit should self-heal into the index: ${res.result.content[0].text}`);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
 // Gate 2c: Layer 1 write hooks — live index for agent-created code
 // ─────────────────────────────────────────────────────────────
 test('notify_file_created makes a new symbol live (same session)', () => {

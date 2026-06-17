@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.5.0] — 2026-06-17
+
+Minor release — read-time self-heal completes Layer 1 freshness.
+
+### Added
+- **Read-time self-heal — live index without agent hooks (#290):** the v7.4.0 write hooks kept the index fresh only if the agent called them; now `search_signatures` / `get_callee_signatures` reconcile the index with the source tree *on read*, so on-disk edits show up even when no hook fired — closing that single point of failure. New `src/cache/freshen.js` re-extracts files modified since the last `generate` (bounded to actual session edits, not the whole tree), persists to the sig-cache (which `buildSigIndex` merges), and is throttled per repo. Deletions stay the job of `sigmap_notify_file_deleted` (a cache entry may be a notify overlay for a not-yet-on-disk file). Verified end-to-end in the standalone bundle.
+
+---
+
 ## [7.4.0] — 2026-06-17
 
 Minor release — live-index write hooks (grounded codegen, Layer 1).

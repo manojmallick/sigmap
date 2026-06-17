@@ -72,6 +72,7 @@ function searchSignatures(args, cwd) {
 
   const query = args.query.toLowerCase();
   try {
+    try { require('../cache/freshen').freshen(cwd); } catch (_) {}
     const { buildSigIndex } = require('../retrieval/ranker');
     const index = buildSigIndex(cwd);
     if (index.size === 0) {
@@ -559,6 +560,7 @@ function getCalleeSignatures(args, cwd) {
   }
 
   try {
+    try { require('../cache/freshen').freshen(cwd); } catch (_) {}
     const { buildSigIndex } = require('../retrieval/ranker');
     const { buildSymbolCandidates, closestMatch, formatSuggestion } = require('../verify/closest-match');
     const index = buildSigIndex(cwd);
