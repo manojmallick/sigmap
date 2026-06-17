@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.12.0] — 2026-06-17
+
+Minor release — `sigmap review-pr` (grounded codegen, Gap 2 — last guard stage).
+
+### Added
+- **`sigmap review-pr` — diff audit for drift + side effects (#313):** the last guard stage of the `sigmap create` pipeline (IMPL.md §6 step 4). After a PR is opened, it audits the diff for **scope drift** (too many distinct top-level dirs), **god-node edits** (changed files with transitive dependents above a threshold, via the impact graph), **missing tests** (a changed source file with no matching changed test), and **security-sensitive files** (`.env*`, auth, secrets, `package.json`/lockfiles, `.github/workflows/**`, Dockerfiles, keys). New zero-dependency, bundle-safe `src/review/review-pr.js` (`reviewPr`); deletions are excluded from the source/security checks. CLI `review-pr [--base <ref>] [--staged] [--json]` collects the diff via shell-free git and exits non-zero when any finding is present (CI-gate). With this, all four create-pipeline guard stages exist (`scaffold` → `verify-plan` → `verify-ai-output` → `review-pr`); the `sigmap create` orchestrator remains the final follow-up.
+
+---
+
 ## [7.11.0] — 2026-06-17
 
 Minor release — `sigmap verify-plan` (grounded codegen, Gap 2).

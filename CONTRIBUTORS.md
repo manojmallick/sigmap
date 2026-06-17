@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.12.0)
+- **@manojmallick** — feat: `sigmap review-pr` — diff audit (scope drift, god-node edits, missing tests, security-sensitive files); `reviewPr`; last guard stage of the create pipeline (Gap 2) (#313, PR #314)
+
 ### Recent Contributors (v7.11.0)
 - **@manojmallick** — feat: `sigmap verify-plan` — check a plan against the live index (files/symbols exist, blast radius, scope) before execution; `verifyPlan`; Gap 2 grounded codegen (#310, PR #311)
 

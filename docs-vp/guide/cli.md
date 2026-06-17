@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, conventions, plan, bench, judge, verify-ai-output, verify-plan, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, conventions, plan, bench, judge, verify-ai-output, verify-plan, review-pr, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 58 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 59 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 58 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 59 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -62,6 +62,7 @@ If you are new to the product, start with the workflow pages first:
 | `verify-plan <plan.md>` | Check a plan against the live index before execution — referenced files/symbols exist, blast radius, scope (`--json`; stdin via `-`) |
 | `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
 | `verify-ai-output <answer.md> --report [out.html]` | Write a standalone red/amber/green HTML report of the findings |
+| `review-pr [--base <ref>\|--staged]` | Audit a diff — scope drift, god-node edits, missing tests, security-sensitive files (`--json`; exits 1 on findings) |
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
@@ -399,6 +400,44 @@ JSON output (`--json`) for CI:
 | `--report [out.html]` | Write a standalone, self-contained HTML report (red/amber/green per issue, suggestions inline); defaults to `sigmap-verify-report.html`. Combinable with `--json`. |
 
 Exit code `0` = clean (no hallucinations), `1` = at least one issue found. Use in CI to gate AI-generated patches or answers before they are trusted. See the [Hallucination Guard guide](/guide/verify-ai-output) for the full workflow.
+
+---
+
+## review-pr
+
+Audit a diff for drift and side effects after a PR is opened — the final guard stage of the grounded-creation pipeline (`scaffold` → `verify-plan` → `verify-ai-output` → **review-pr**). It collects the changed files via git and flags four classes of risk.
+
+```bash
+sigmap review-pr                 # vs the merge-base with main (or develop)
+sigmap review-pr --base main     # explicit base ref
+sigmap review-pr --staged        # audit staged changes (pre-commit)
+sigmap review-pr --json          # machine-readable findings
+```
+
+```
+[sigmap] review-pr — 7 file(s) changed (4 source, 1 test)
+  ⚠ missing tests: src/auth/login.js changed with no matching test
+  ⚠ security file: .github/workflows/deploy.yml
+  ⚠ god node: src/core/index.js → 34 dependents
+  ⚠ scope drift: 6 top-level dirs (src, test, docs, scripts, .github, packages)
+
+  4 finding(s)
+```
+
+| Finding | Flags |
+|---------|-------|
+| `missing-tests` | a changed source file with no matching changed test |
+| `security-file` | `.env*`, auth, secrets, `package.json` / lockfiles, `.github/workflows/**`, Dockerfiles, key files |
+| `god-node` | a changed file with transitive dependents above the threshold (via the impact graph) |
+| `scope-drift` | the diff touches more distinct top-level directories than the threshold |
+
+| Option | Description |
+|--------|-------------|
+| `--base <ref>` | Compare against this ref's merge-base (default: `main`, then `develop`) |
+| `--staged` | Audit staged changes instead of a commit range |
+| `--json` | Emit `{ findings, blast, summary }` |
+
+Deletions are excluded from the source/security checks. Any finding exits non-zero, so `review-pr` works as a CI gate. The `sigmap create` orchestrator (which runs all four stages in sequence) is a planned follow-up.
 
 ---
 
