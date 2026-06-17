@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.14.0] — 2026-06-17
+
+Minor release — `sigmap conventions --report` (grounded codegen, Layer 3 polish).
+
+### Added
+- **`sigmap conventions --report` — consistency audit + trend vs last run (#319):** the next `conventions` flag (IMPL.md §4). Reports a per-convention consistency score (file naming, export style) and a single file-count-weighted **overall consistency score**, each with a delta vs the previous run — a trackable "how consistent is our style, and is it improving?" number. New zero-dependency, bundle-safe `src/conventions/report.js` (`scoreReport`, `snapshot`, `overallScore`); the command compares against the last snapshot in `.context/conventions-history.ndjson`, prints the audit with ▲/▼ trend arrows, and appends a fresh snapshot. `--json` for machine output. The remaining `conventions` flags (`--fix`, `--update`, `--ci`) and the §9 LLM A/B benchmark are follow-ups.
+
+---
+
 ## [7.13.0] — 2026-06-17
 
 Minor release — `sigmap create` (grounded codegen, Gap 2 — the pipeline capstone).

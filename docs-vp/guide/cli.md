@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 60 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 61 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 60 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 61 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -56,6 +56,7 @@ If you are new to the product, start with the workflow pages first:
 | `conventions` | Extract & report a repo's coding conventions — file naming, export style, test framework (TS/JS/Python); writes `.context/conventions.json` (`--json` for machine output) |
 | `conventions --conflicts` | Breakdown of every mixed convention (counts, bars, example files) + rename suggestions toward the dominant style |
 | `conventions --inject` | Write/update the auto-detected conventions block in `CLAUDE.md` (idempotent, marker-scoped) so agents see the house style |
+| `conventions --report` | Consistency audit — per-convention + overall score with a trend vs the last run (`--json`) |
 | `scaffold <name>` | Propose a convention-matched structure (filename, export style, test file) for a new module — refuses below the confidence floor |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
@@ -591,7 +592,30 @@ Match these when writing or editing code (TS/JS/Python):
 <!-- sigmap-conventions:end -->
 ```
 
-These are the conventions slices of grounded code generation; `--report`, `--fix`, `--update`, and `--ci` are planned follow-ups.
+### `--report`
+
+A consistency audit you can track over time. `--report` scores each convention plus a single **overall consistency score** (a file-count-weighted mean of the dominant shares), and shows the **trend** vs the previous run — so "are we drifting or tightening up?" is one number. Each run appends a snapshot to `.context/conventions-history.ndjson` and compares against the prior one.
+
+```bash
+sigmap conventions --report
+sigmap conventions --report --json
+```
+
+```
+[sigmap] conventions --report  (TS/JS/Python)
+  overall consistency: 83% ▼17pp
+  file naming    camelCase 67% [inconsistent] ▼33pp
+  export style   named 100% [consistent] =
+  test framework none detected
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit `{ conventions, testFramework, score, prevScore, scoreDelta }` |
+
+The first run reports `(first run)` with no deltas; subsequent runs show ▲/▼ trend arrows in percentage points.
+
+These are the conventions slices of grounded code generation; `--fix`, `--update`, and `--ci` are planned follow-ups.
 
 ---
 
