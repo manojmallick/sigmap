@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.3.0] — 2026-06-17
+
+Minor release — a 12th MCP tool that gives agents exact callee signatures before they write.
+
+### Added
+- **`get_callee_signatures` MCP tool (#282):** returns the exact current signature(s) of named symbols (functions, classes, methods) from the index, so an agent never guesses a callee's parameter types from training memory — the highest-ROI step toward grounded code generation. Input `{ symbols: string[] }`; unknown names get a closest-match suggestion (reuses `verify/closest-match`). Brings the MCP server to **12 tools**. Wired into the standalone bundle (regenerated `mcp/*` factories) and validated end-to-end via the bundle-driven MCP test.
+
+---
+
 ## [7.2.1] — 2026-06-17
 
 Patch release — realistic per-query savings.

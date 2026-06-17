@@ -69,9 +69,9 @@ test('version.json: languages is 31', () => {
   assert.strictEqual(v.languages, 31);
 });
 
-test('version.json: mcp_tools is 11', () => {
+test('version.json: mcp_tools is 12', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.mcp_tools, 11);
+  assert.strictEqual(v.mcp_tools, 12);
 });
 
 // ── Fix 1a: canonical benchmark headers on all 5 benchmark pages ──────────────

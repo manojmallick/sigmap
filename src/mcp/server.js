@@ -14,11 +14,11 @@
 
 const readline = require('readline');
 const { TOOLS } = require('./tools');
-const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory } = require('./handlers');
+const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures } = require('./handlers');
 
 const SERVER_INFO = {
   name: 'sigmap',
-  version: '7.2.1',
+  version: '7.3.0',
   description: 'SigMap MCP server — code signatures on demand',
 };
 
@@ -77,6 +77,7 @@ function dispatch(msg, cwd) {
       else if (name === 'get_impact') text = getImpact(args, cwd);
       else if (name === 'get_lines') text = getLines(args, cwd);
       else if (name === 'read_memory') text = readMemory(args, cwd);
+      else if (name === 'get_callee_signatures') text = getCalleeSignatures(args, cwd);
       else {
         respondError(id, -32601, `Unknown tool: ${name}`);
         return;
