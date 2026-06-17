@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.13.0] — 2026-06-17
+
+Minor release — `sigmap create` (grounded codegen, Gap 2 — the pipeline capstone).
+
+### Added
+- **`sigmap create "<task>"` — orchestrate the 4-stage grounded-creation pipeline (#316):** the capstone of the grounded-codegen work. One command sequences the four guard stages — `scaffold` → `verify-plan` → `verify-ai-output` → `review-pr` — with `1/4`…`4/4` numbering and a single pass/fail summary. Each stage runs only when its input is present (`--name` → scaffold, `--plan` → verify-plan, `--answer` → verify-ai-output, the git diff → review-pr); a stage with no input is skipped and does not fail the run. New zero-dependency, bundle-safe `src/create/orchestrate.js` (`orchestrate`) delegates to the real stage modules — no logic duplication. CLI supports `--name`, `--plan`, `--answer`, `--staged`/`--base`, and `--json`, and exits non-zero when a ran stage fails. This completes the grounded-creation loop: every root cause (1–4) is closed and all four guard stages are now sequenced by one command.
+
+---
+
 ## [7.12.0] — 2026-06-17
 
 Minor release — `sigmap review-pr` (grounded codegen, Gap 2 — last guard stage).

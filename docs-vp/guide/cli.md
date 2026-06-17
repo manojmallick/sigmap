@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, conventions, plan, bench, judge, verify-ai-output, verify-plan, review-pr, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, conventions, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 59 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 60 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 59 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 60 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -63,6 +63,7 @@ If you are new to the product, start with the workflow pages first:
 | `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
 | `verify-ai-output <answer.md> --report [out.html]` | Write a standalone red/amber/green HTML report of the findings |
 | `review-pr [--base <ref>\|--staged]` | Audit a diff — scope drift, god-node edits, missing tests, security-sensitive files (`--json`; exits 1 on findings) |
+| `create "<task>"` | Orchestrate the 4-stage grounded-creation pipeline (scaffold → verify-plan → verify-ai-output → review-pr) with `n/4` numbering |
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
@@ -437,7 +438,49 @@ sigmap review-pr --json          # machine-readable findings
 | `--staged` | Audit staged changes instead of a commit range |
 | `--json` | Emit `{ findings, blast, summary }` |
 
-Deletions are excluded from the source/security checks. Any finding exits non-zero, so `review-pr` works as a CI gate. The `sigmap create` orchestrator (which runs all four stages in sequence) is a planned follow-up.
+Deletions are excluded from the source/security checks. Any finding exits non-zero, so `review-pr` works as a CI gate. To run this together with the other stages, see [`create`](#create).
+
+---
+
+## create
+
+Orchestrate the full **grounded-creation pipeline** in one command: `scaffold` → `verify-plan` → `verify-ai-output` → `review-pr`, with `1/4`…`4/4` numbering and a single pass/fail summary. You do the LLM writing between stages; `create` runs the deterministic guards it owns. Each stage runs **only when its input is present** — a stage with no input is *skipped* and never fails the run.
+
+```bash
+sigmap create "add login rate-limiting" \
+  --name "rate limiter" \      # 1/4 scaffold
+  --plan plan.md \             # 2/4 verify-plan
+  --answer answer.md \         # 3/4 verify-ai-output
+  --base main                  # 4/4 review-pr (the diff)
+sigmap create "demo" --name thing --json
+```
+
+```
+[sigmap] create "add login rate-limiting" — grounded-creation pipeline
+  1/4 ✓ scaffold         ok
+  2/4 ✓ verify-plan      ok
+  3/4 ✗ verify-ai-output FAILED
+  4/4 – review-pr        skipped (no changes)
+
+  3/4 ran · 2 passed · 1 failed · 1 skipped
+```
+
+| Stage | Enabled by | Runs |
+|-------|-----------|------|
+| `1/4 scaffold` | `--name <n>` | [scaffold](#scaffold) — convention-matched proposal |
+| `2/4 verify-plan` | `--plan <f>` | [verify-plan](#verify-plan) — plan vs live index |
+| `3/4 verify-ai-output` | `--answer <f>` | [verify-ai-output](#verify-ai-output) — hallucination guard |
+| `4/4 review-pr` | the git diff | [review-pr](#review-pr) — diff audit |
+
+| Option | Description |
+|--------|-------------|
+| `--name <n>` | Module name → enables the scaffold stage |
+| `--plan <f>` | Plan markdown file → enables verify-plan |
+| `--answer <f>` | AI answer markdown file → enables verify-ai-output |
+| `--base <ref>` / `--staged` | Diff source for review-pr (default: merge-base with `main`/`develop`) |
+| `--json` | Emit `{ task, steps, summary }` |
+
+`create` exits non-zero when any *ran* stage fails (skipped stages don't count), so it works as a single CI gate for the whole pipeline.
 
 ---
 
