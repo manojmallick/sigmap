@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 55 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 56 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 55 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 56 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -55,6 +55,7 @@ If you are new to the product, start with the workflow pages first:
 | `squeeze <file\|->` | Minimize a pasted stacktrace / CI-log / JSON blob (`--json` for stats) |
 | `conventions` | Extract & report a repo's coding conventions — file naming, export style, test framework (TS/JS/Python); writes `.context/conventions.json` (`--json` for machine output) |
 | `conventions --conflicts` | Breakdown of every mixed convention (counts, bars, example files) + rename suggestions toward the dominant style |
+| `conventions --inject` | Write/update the auto-detected conventions block in `CLAUDE.md` (idempotent, marker-scoped) so agents see the house style |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
@@ -430,6 +431,7 @@ Each convention is scored into a **consistency tier** so you know whether it is 
 |--------|-------------|
 | `--json` | Emit `{ fileNaming, exportStyle, testFramework, scope, scannedFiles }` (each convention as `{ dominant, dominantPct, variants, tier }`) |
 | `--conflicts` | Show *why* a convention is mixed — every variant with file count, share, bar, and example files, plus rename suggestions toward the dominant style (`--json` emits the structured report) |
+| `--inject` | Write/update the conventions block in `CLAUDE.md` (creates the file if absent) so agents read the house style |
 
 ### `--conflicts`
 
@@ -451,7 +453,26 @@ sigmap conventions --conflicts
       sig-cache.js  →  sigCache.js
 ```
 
-This is the second slice of grounded code generation; `--report`, `--fix`, `--update`, `--ci`, and CLAUDE.md injection are planned follow-ups.
+### `--inject`
+
+Surface the detected conventions to any agent that reads `CLAUDE.md`. `--inject` renders the conventions (file naming, export style, test framework — each with its dominant pattern and consistency tier) into a marker-delimited block and writes it into `CLAUDE.md`, creating the file if it doesn't exist. The injection is **idempotent** and **marker-scoped** (`<!-- sigmap-conventions:start -->` … `:end -->`) — re-running replaces the block in place, never touches your hand-written content, and coexists with the `## Auto-generated signatures` block.
+
+```bash
+sigmap conventions --inject
+```
+
+```markdown
+<!-- sigmap-conventions:start -->
+## Conventions (auto-detected by SigMap)
+
+Match these when writing or editing code (TS/JS/Python):
+
+- **File naming:** camelCase (77% — dominant, with some drift). Variants: kebab-case 20%, snake_case 3%.
+- **Export style:** named (99% — consistent — match it).
+<!-- sigmap-conventions:end -->
+```
+
+These are the conventions slices of grounded code generation; `--report`, `--fix`, `--update`, `--ci`, and the Layer 4 scaffold are planned follow-ups.
 
 ---
 
