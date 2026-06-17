@@ -1,9 +1,10 @@
 'use strict';
 
 /**
- * MCP tool definitions for SigMap (11 tools).
+ * MCP tool definitions for SigMap (12 tools).
  * read_context, search_signatures, get_map, create_checkpoint, get_routing,
- * explain_file, list_modules, query_context, get_impact, get_lines, read_memory.
+ * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
+ * get_callee_signatures.
  */
 
 const TOOLS = [
@@ -213,6 +214,25 @@ const TOOLS = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: 'get_callee_signatures',
+    description:
+      'Return the EXACT current signature(s) of named symbols (functions, classes, ' +
+      "methods) from the index — so an agent never guesses a callee's parameter types " +
+      'from training memory. Call this before writing code that uses a symbol. ' +
+      'Unknown names get a closest-match suggestion.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbols: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Symbol names to resolve (e.g. ["validateToken", "UserService"]).',
+        },
+      },
+      required: ['symbols'],
     },
   },
 ];

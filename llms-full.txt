@@ -24,7 +24,7 @@ Claude, Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 | Task success proxy | 10% | 52.2% |
 | Prompts per task | 2.84 | 1.72 (39.4% fewer) |
 | Supported languages | — | 31 |
-| MCP tools | — | 11 |
+| MCP tools | — | 12 |
 | npm runtime dependencies | — | 0 |
 
 ---
@@ -114,7 +114,7 @@ sigmap --version                         Show version
 
 ---
 
-## MCP server — 11 tools
+## MCP server — 12 tools
 
 Start with `sigmap --mcp` (stdio JSON-RPC). Configure once:
 
@@ -208,6 +208,14 @@ Recall the project decision log — recent notes left by humans or agents across
 
 ```
 Input:  { limit?: number }
+```
+
+### get_callee_signatures
+
+Return the EXACT current signature(s) of named symbols (functions, classes, methods) from the index — so an agent never guesses a callee's parameter types from training memory. Call this before writing code that uses a symbol. Unknown names get a closest-match suggestion.
+
+```
+Input:  { symbols: array }
 ```
 
 ---
