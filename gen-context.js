@@ -30,6 +30,58 @@ function __require(key) {
 // ── ./src/review/review-pr ──
 // ── ./src/create/orchestrate ──
 // ── ./src/conventions/report ──
+// ── ./src/conventions/ci ──
+__factories["./src/conventions/ci"] = function(module, exports) {
+  
+  /**
+   * Convention CI gate (IMPL.md §4 — `conventions --ci`).
+   *
+   * Fails CI when a repo's overall convention consistency is below a threshold,
+   * and optionally when it regresses vs the last recorded run. Builds on the
+   * `--report` score. Pure, zero-dependency, bundle-safe.
+   */
+
+  const { overallScore } = __require('./src/conventions/report');
+
+  const DEFAULT_MIN = 0.7;
+  const EPS = 1e-9;
+
+  /**
+   * Evaluate the consistency gate.
+   * @param {object} result an `extractConventions` result
+   * @param {object} [opts]
+   * @param {number} [opts.min=0.7] minimum overall consistency (0–1)
+   * @param {boolean} [opts.noRegress=false] also fail if the score dropped vs prior
+   * @param {object|null} [prior] the previous snapshot (from `report.snapshot`)
+   * @returns {{ score:number, min:number, ok:boolean, regressed:boolean, reasons:string[] }}
+   */
+  function ciGate(result, opts = {}, prior = null) {
+    const min = opts.min != null ? opts.min : DEFAULT_MIN;
+    const score = overallScore(result);
+    const reasons = [];
+    let ok = true;
+
+    if (score < min) {
+      ok = false;
+      reasons.push(`consistency ${(score * 100).toFixed(0)}% below min ${(min * 100).toFixed(0)}%`);
+    }
+
+    let regressed = false;
+    if (opts.noRegress && prior && typeof prior.score === 'number') {
+      if (score < prior.score - EPS) {
+        regressed = true;
+        ok = false;
+        reasons.push(`consistency dropped ${(prior.score * 100).toFixed(0)}% → ${(score * 100).toFixed(0)}%`);
+      }
+    }
+
+    return { score, min, ok, regressed, reasons };
+  }
+
+  module.exports = { ciGate, DEFAULT_MIN };
+  
+};
+
 __factories["./src/conventions/report"] = function(module, exports) {
   
   /**
@@ -16409,6 +16461,34 @@ function main() {
       }
       console.log(`[sigmap] conventions → injected block into ${path.relative(cwd, claudePath) || 'CLAUDE.md'}`);
       process.exit(0);
+    }
+
+    // `--ci`: gate — fail when overall consistency is below a threshold (or regresses).
+    if (args.includes('--ci')) {
+      const { ciGate } = requireSourceOrBundled('./src/conventions/ci');
+      const minIdx = args.indexOf('--min');
+      const min = minIdx !== -1 && args[minIdx + 1] ? parseFloat(args[minIdx + 1]) : undefined;
+      const noRegress = args.includes('--no-regress');
+      let prior = null;
+      if (noRegress) {
+        try {
+          const lines = fs.readFileSync(path.join(cwd, '.context', 'conventions-history.ndjson'), 'utf8').split('\n').filter(Boolean);
+          if (lines.length) prior = JSON.parse(lines[lines.length - 1]);
+        } catch (_) {}
+      }
+      const gate = ciGate(result, { min, noRegress }, prior);
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify(gate) + '\n');
+        process.exit(gate.ok ? 0 : 1);
+      }
+      const pctC = (n) => `${(n * 100).toFixed(0)}%`;
+      if (gate.ok) {
+        console.log(`[sigmap] conventions --ci  ✓ PASS — consistency ${pctC(gate.score)} (min ${pctC(gate.min)})`);
+        process.exit(0);
+      }
+      console.log(`[sigmap] conventions --ci  ✗ FAIL — consistency ${pctC(gate.score)} (min ${pctC(gate.min)})`);
+      for (const r of gate.reasons) console.log(`  • ${r}`);
+      process.exit(1);
     }
 
     // `--report`: consistency audit + score + trend vs the last run.
