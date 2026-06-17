@@ -1,0 +1,21 @@
+{
+  "_comment": "LLM A/B hallucination ablation corpus (IMPL §9). Each task is a code-gen prompt about THIS repo. Run with: npm run benchmark:llm-ablation (needs ANTHROPIC_API_KEY).",
+  "tasks": [
+    {
+      "id": "rank-call",
+      "prompt": "Write a Node snippet that ranks files for the query \"auth flow\" using SigMap's core API. Reference the exact exported function and its signature. Use real file paths and symbol names from this repository."
+    },
+    {
+      "id": "extract-conventions",
+      "prompt": "Show how to extract a repo's coding conventions programmatically with SigMap's internal modules. Name the exact module path and the function that returns the conventions, with correct arguments."
+    },
+    {
+      "id": "verify-output",
+      "prompt": "Write a script that runs SigMap's hallucination guard over an answer file and exits non-zero on any finding. Reference the real CLI command and the real exported verify function."
+    },
+    {
+      "id": "scaffold-call",
+      "prompt": "Call SigMap's scaffold proposal function directly to propose a filename for a new module, passing a conventions result. Use the exact module path, function name, and return-shape fields."
+    }
+  ]
+}

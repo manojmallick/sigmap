@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "7.15.0",
+  "version": "7.16.0",
   "description": "97% token reduction for AI coding. Extracts function & class signatures with TF-IDF ranking to feed only the right files to Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP. Zero dependencies, runs offline via npx.",
   "main": "packages/core/index.js",
   "exports": {
@@ -39,7 +39,8 @@
     "generate:llms": "node scripts/generate-llms.mjs",
     "validate:llms": "node scripts/validate-llms.mjs",
     "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/check-version-meta.mjs && node scripts/generate-llms.mjs",
-    "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs"
+    "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs",
+    "benchmark:llm-ablation": "node scripts/run-llm-ablation.mjs"
   },
   "files": [
     "gen-context.js",
