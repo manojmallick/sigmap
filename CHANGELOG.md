@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.15.0] — 2026-06-18
+
+Minor release — `sigmap conventions --ci` (grounded codegen, Layer 3 polish).
+
+### Added
+- **`sigmap conventions --ci` — gate CI on convention consistency (#322):** completes the consistency-tracking story started by `--report` (v7.14.0). A CI gate that fails when a repo's overall convention consistency falls below a threshold (`--min`, default 0.70), and — with `--no-regress` — also fails when the score dropped vs the last recorded snapshot (best-effort). New zero-dependency, bundle-safe `src/conventions/ci.js` (`ciGate`) reuses `overallScore`; the command is read-only (reads the last `.context/conventions-history.ndjson` snapshot for `--no-regress`, never appends) and exits non-zero on failure, so it drops straight into CI. `--json` for machine output. The remaining `conventions` flags (`--fix`, `--update`) and the §9 LLM A/B benchmark are follow-ups.
+
+---
+
 ## [7.14.0] — 2026-06-17
 
 Minor release — `sigmap conventions --report` (grounded codegen, Layer 3 polish).

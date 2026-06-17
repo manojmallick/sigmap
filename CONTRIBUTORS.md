@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.15.0)
+- **@manojmallick** — feat: `sigmap conventions --ci` — CI gate on overall convention consistency (`--min`, `--no-regress`); `ciGate`; Layer 3 (#322, PR #323)
+
 ### Recent Contributors (v7.14.0)
 - **@manojmallick** — feat: `sigmap conventions --report` — consistency audit + overall score + trend vs last run; `scoreReport` / `snapshot`; Layer 3 (#319, PR #320)
 

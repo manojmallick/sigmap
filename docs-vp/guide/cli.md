@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 61 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 62 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 61 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 62 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -57,6 +57,7 @@ If you are new to the product, start with the workflow pages first:
 | `conventions --conflicts` | Breakdown of every mixed convention (counts, bars, example files) + rename suggestions toward the dominant style |
 | `conventions --inject` | Write/update the auto-detected conventions block in `CLAUDE.md` (idempotent, marker-scoped) so agents see the house style |
 | `conventions --report` | Consistency audit — per-convention + overall score with a trend vs the last run (`--json`) |
+| `conventions --ci` | CI gate — fail when overall consistency < `--min` (default 0.70); `--no-regress` blocks drops vs the last run |
 | `scaffold <name>` | Propose a convention-matched structure (filename, export style, test file) for a new module — refuses below the confidence floor |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
@@ -615,7 +616,30 @@ sigmap conventions --report --json
 
 The first run reports `(first run)` with no deltas; subsequent runs show ▲/▼ trend arrows in percentage points.
 
-These are the conventions slices of grounded code generation; `--fix`, `--update`, and `--ci` are planned follow-ups.
+### `--ci`
+
+Enforce convention consistency in CI. `--ci` computes the same overall consistency score as `--report` and **exits non-zero** when it falls below a threshold — so a PR that scatters new naming styles fails the build. With `--no-regress` it also fails when the score dropped vs the last recorded snapshot. It's read-only (it never writes to the history log — `--report` owns that).
+
+```bash
+sigmap conventions --ci                 # fail if consistency < 70%
+sigmap conventions --ci --min 0.85      # stricter threshold
+sigmap conventions --ci --no-regress    # also fail on any drop vs the last run
+```
+
+```
+[sigmap] conventions --ci  ✗ FAIL — consistency 67% (min 70%)
+  • consistency 67% below min 70%
+```
+
+| Option | Description |
+|--------|-------------|
+| `--min <n>` | Minimum overall consistency 0–1 (default 0.70) |
+| `--no-regress` | Also fail if the score dropped vs the last `--report` snapshot (best-effort; skipped if there is no prior) |
+| `--json` | Emit `{ score, min, ok, regressed, reasons }` |
+
+Exit `0` = pass, `1` = below threshold or regressed. Pair with `--report` (which records the history) in a scheduled job, and `--ci` in the PR check.
+
+These are the conventions slices of grounded code generation; `--fix` and `--update` are planned follow-ups.
 
 ---
 
