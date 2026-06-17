@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.6.0] — 2026-06-17
+
+Minor release — the grounding benchmark (the offline GATE for grounded codegen).
+
+### Added
+- **Grounding benchmark — `npm run benchmark:grounding` (#294):** a deterministic, offline callee-grounding ablation that measures how much ground truth SigMap actually gives an agent. For each corpus repo: `coverage = grounded / universe`, where universe is every symbol defined in the source and grounded is the subset SigMap surfaces in its index (resolvable by `get_callee_signatures`); baseline is 0 (no SigMap → guess every reference). `scripts/run-hallucination-benchmark.mjs` prints per-repo + aggregate coverage; `--save` writes `benchmarks/reports/hallucination.json`; `--gate <pct>` exits non-zero below a threshold. It's an honest *ground-truth-availability proxy*, not a measured LLM hallucination rate (the LLM A/B ablation is a documented follow-up needing an API key). No LLM, no network — runs in CI.
+
+---
+
 ## [7.5.0] — 2026-06-17
 
 Minor release — read-time self-heal completes Layer 1 freshness.
