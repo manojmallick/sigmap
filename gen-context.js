@@ -6254,7 +6254,7 @@ const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, exp
 
 const SERVER_INFO = {
   name: 'sigmap',
-  version: '7.2.0',
+  version: '7.2.1',
   description: 'SigMap MCP server — code signatures on demand',
 };
 
@@ -11499,7 +11499,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '7.2.0';
+const VERSION = '7.2.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

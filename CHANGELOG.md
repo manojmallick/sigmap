@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.2.1] — 2026-06-17
+
+Patch release — realistic per-query savings.
+
+### Fixed
+- **`ask` / `gain` baseline reflects real usage (#278):** `sigmap ask` measured savings against the *whole repo* (every query assumed feeding the entire source tree), which inflated the `gain` dashboard (cumulative baselines in the millions) and showed ~99% per query. The baseline is now the full content of the files SigMap actually surfaced for the query (the ranked top-K) — the true counterfactual: without SigMap you'd read those files in full; SigMap gives you their signatures. Drives the `ask` cost line, `--json savingsPct`, and the `gain` record. `generate` keeps the whole-repo baseline (it genuinely indexes every file → signatures).
+
+---
+
 ## [7.2.0] — 2026-06-17
 
 Minor release — release-pipeline robustness. Hardens the bundle/release machinery that produced the v7.1.0 binary failure, with no user-facing CLI changes.

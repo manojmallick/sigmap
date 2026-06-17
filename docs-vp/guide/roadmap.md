@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v7.2.0, with recent releases adding release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v7.2.1, with recent releases adding realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Sixty-three versions shipped. MIT open source from day one.
+Sixty-four versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 1,006 tests passing · 11 MCP tools · 29 languages · 17-language source resolver · 0 npm deps
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v7.2.1 — Realistic per-query savings ✓ (2026-06-17)
+
+**Patch release.** `sigmap ask` (and the `gain` dashboard) measured savings against the *whole repo* — every query assumed feeding the entire source tree — which inflated `gain` (cumulative baselines in the millions) and showed ~99% per query. The baseline is now the full content of the files SigMap actually surfaced for the query (the ranked top-K): without SigMap you'd read those files in full; SigMap gives you their signatures. Drives the `ask` cost line, `--json savingsPct`, and the `gain` record. `generate` keeps the whole-repo baseline (it genuinely indexes every file → signatures).
+
+**Tags:** `realistic-baseline` · `gain` · `ask` · `surfaced-files` · `#278`
+
+**Impact:** `gain` reports honest savings (e.g. per-`ask` baseline ~127K → ~8K on this repo); per-query reduction now ~90–95% (signatures vs full relevant files) instead of ~99% vs the whole repo.
 
 ---
 
