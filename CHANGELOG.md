@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.16.0] — 2026-06-18
+
+Minor release — LLM A/B hallucination ablation harness (grounded codegen, IMPL §9).
+
+### Added
+- **LLM A/B hallucination ablation harness (#325):** the honest measurement behind the grounded-codegen plan (IMPL §9). Runs a model twice per task — (A) no SigMap context, (B) with SigMap grounding — pipes both outputs through the hallucination guard, and reports the measured delta in flagged codebase-fact errors. New zero-dependency, bundle-safe `src/eval/llm-ablation.js` (`buildGrounding`, `scoreAnswer`, `runAblation`) keeps the model call **injected**, so the harness is fully offline-testable; the live runner `scripts/run-llm-ablation.mjs` wires Anthropic via `ANTHROPIC_API_KEY` and prints the A/B table + delta (`npm run benchmark:llm-ablation`), degrading to a graceful skip (exit 0) when no key is set. The network fetch is confined to `scripts/`, never the published library surface. Starter corpus in `benchmarks/llm-ablation-tasks.json`. This turns §9 from an offline coverage proxy into a ready-to-run real A/B — the moment a key is present, it produces the measured hallucination delta.
+
+---
+
 ## [7.15.0] — 2026-06-18
 
 Minor release — `sigmap conventions --ci` (grounded codegen, Layer 3 polish).
