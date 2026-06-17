@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.9.0] — 2026-06-17
+
+Minor release — `sigmap conventions --inject` (grounded codegen, Layer 3).
+
+### Added
+- **`sigmap conventions --inject` — write the conventions block into CLAUDE.md (#304):** the next slice of Layer 3, completing the "agent sees the house style" link in the grounded-creation loop. Renders the detected conventions (file naming, export style, test framework — each with its dominant pattern and consistency tier) into a marker-delimited block and injects it into `CLAUDE.md`, creating the file if absent. New zero-dependency, bundle-safe `src/conventions/inject.js` (`renderConventionsBlock`, `injectConventions`): the injection is idempotent and marker-scoped (`<!-- sigmap-conventions:start -->` … `:end -->`), preserving all human content and coexisting with the existing `## Auto-generated signatures` block. `--report`, `--fix`, `--update`, `--ci`, and Layer 4 scaffold remain follow-ups.
+
+---
+
 ## [7.8.0] — 2026-06-17
 
 Minor release — `sigmap conventions --conflicts` (grounded codegen, Layer 3).
