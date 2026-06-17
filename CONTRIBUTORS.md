@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.18.0)
+- **@manojmallick** — feat: `sigmap conventions --update` — incremental rescan (refresh snapshot only when source changed); `changedSince` / `planUpdate`; completes the §4 flag set (#331, PR #332)
+
 ### Recent Contributors (v7.17.0)
 - **@manojmallick** — feat: `sigmap conventions --fix` — exhaustive rename/move checklist (every offending file, full from→to paths); `buildFixList`; Layer 3 (#328, PR #329)
 

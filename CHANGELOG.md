@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.18.0] — 2026-06-18
+
+Minor release — `sigmap conventions --update` (grounded codegen, Layer 3 — completes the §4 flag set).
+
+### Added
+- **`sigmap conventions --update` — incremental rescan (#331):** refreshes `.context/conventions.json` only when source files have changed since the last scan; otherwise reports "up to date" and exits without recomputing. New zero-dependency, bundle-safe `src/conventions/update.js` (`changedSince`, `planUpdate`) compares source-file mtimes to the stored snapshot — `stale` when the snapshot is missing or any file is newer. The command re-extracts + rewrites when stale (reporting the changed count / "initial scan"), else skips the work. `--json` for machine output. This completes the IMPL §4 `conventions` flag set: `--conflicts`, `--inject`, `--report`, `--ci`, `--fix`, `--update`.
+
+---
+
 ## [7.17.0] — 2026-06-18
 
 Minor release — `sigmap conventions --fix` (grounded codegen, Layer 3 — completes the conventions flags).

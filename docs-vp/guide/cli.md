@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 63 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 64 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 63 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 64 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -59,6 +59,7 @@ If you are new to the product, start with the workflow pages first:
 | `conventions --report` | Consistency audit — per-convention + overall score with a trend vs the last run (`--json`) |
 | `conventions --ci` | CI gate — fail when overall consistency < `--min` (default 0.70); `--no-regress` blocks drops vs the last run |
 | `conventions --fix` | Exhaustive rename checklist — every file not matching the dominant naming style, full from→to paths (`--json`) |
+| `conventions --update` | Incremental rescan — refresh `.context/conventions.json` only when source files changed (else "up to date") |
 | `scaffold <name>` | Propose a convention-matched structure (filename, export style, test file) for a new module — refuses below the confidence floor |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
@@ -663,7 +664,24 @@ sigmap conventions --fix --json
 
 A repo where every file already matches prints `no fixes needed`. Test files are skipped.
 
-These are the conventions slices of grounded code generation; `--update` (incremental rescan) is a planned follow-up.
+### `--update`
+
+An incremental rescan. `--update` refreshes `.context/conventions.json` only when source files have changed since the last scan (by mtime vs the stored snapshot) — otherwise it reports "up to date" and skips the work. Useful in a pre-commit hook or watch loop where you want the snapshot current without paying for a full re-extraction every time.
+
+```bash
+sigmap conventions --update
+sigmap conventions --update --json
+```
+
+```
+[sigmap] conventions --update  ✓ up to date — 115 files, no changes since last scan
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit `{ stale, wrote, snapshotExists, changed, scanned }` |
+
+The first run (no snapshot) does the initial scan; later runs rescan only when something is newer. This completes the `conventions` flag set.
 
 ---
 
