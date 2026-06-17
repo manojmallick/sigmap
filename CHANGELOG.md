@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.10.0] — 2026-06-17
+
+Minor release — `sigmap scaffold` with a confidence floor (grounded codegen, Layer 4).
+
+### Added
+- **`sigmap scaffold <name>` — convention-matched proposal with a confidence floor (#307):** the first slice of Layer 4 (Cause 3 — guessing structure for new code). Proposes a convention-matched structure for a new module — filename in the repo's dominant naming style, the export style to use, and a matching test file — but **only when the conventions are consistent enough**. New zero-dependency, bundle-safe `src/scaffold/propose.js` (`proposeScaffold`): the governing confidence is file-naming consistency, with a soft threshold (default 0.70, overridable via `--threshold`) and a **non-overridable hard floor of 0.50**. Below the threshold it refuses and surfaces the conflict (reusing `analyzeConflicts`); `--force` allows a proposal between the floor and the threshold (flagged with a warning), but never below the floor — a wrong proposal systematizes bad code. CLI supports `--ext`, `--threshold`, `--force`, and `--json` (refusal exits 1). Scaffold persistence (`.sigmap/scaffold/latest.md`), `--naming-pattern` override, and the `verify-plan` → `create` → `review-pr` pipeline remain follow-ups.
+
+---
+
 ## [7.9.0] — 2026-06-17
 
 Minor release — `sigmap conventions --inject` (grounded codegen, Layer 3).

@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 56 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 57 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 56 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 57 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -56,6 +56,7 @@ If you are new to the product, start with the workflow pages first:
 | `conventions` | Extract & report a repo's coding conventions — file naming, export style, test framework (TS/JS/Python); writes `.context/conventions.json` (`--json` for machine output) |
 | `conventions --conflicts` | Breakdown of every mixed convention (counts, bars, example files) + rename suggestions toward the dominant style |
 | `conventions --inject` | Write/update the auto-detected conventions block in `CLAUDE.md` (idempotent, marker-scoped) so agents see the house style |
+| `scaffold <name>` | Propose a convention-matched structure (filename, export style, test file) for a new module — refuses below the confidence floor |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
@@ -472,7 +473,46 @@ Match these when writing or editing code (TS/JS/Python):
 <!-- sigmap-conventions:end -->
 ```
 
-These are the conventions slices of grounded code generation; `--report`, `--fix`, `--update`, `--ci`, and the Layer 4 scaffold are planned follow-ups.
+These are the conventions slices of grounded code generation; `--report`, `--fix`, `--update`, and `--ci` are planned follow-ups.
+
+---
+
+## scaffold
+
+Propose a **convention-matched structure** for a new module — but only when the repo's conventions are consistent enough. `scaffold <name>` reports a filename in the dominant naming style, the export style to use, and a matching test file. Below a confidence floor it **refuses** and surfaces the conflict, because a wrong proposal systematizes bad code.
+
+```bash
+sigmap scaffold "user profile loader"      # propose
+sigmap scaffold "userProfile" --json       # machine-readable decision
+sigmap scaffold "widget" --force           # propose below the soft threshold (not below the hard floor)
+sigmap scaffold "widget" --ext ts          # set the file extension
+```
+
+```
+[sigmap] scaffold "user profile loader"  — conventions mostly (77%)
+  file:           userProfileLoader.js  (camelCase)
+  export style:   named
+  test file:      userProfileLoader.test.js
+```
+
+The proposal is gated by the **file-naming consistency** (the confidence):
+
+| Confidence | Behavior |
+|------------|----------|
+| ≥ threshold (default 0.70) | propose |
+| hard floor (0.50) ≤ c < threshold | refuse — unless `--force` (proposes with a warning) |
+| < 0.50 (hard floor) | **always refuse** — not overridable, even with `--force` |
+
+When it refuses, it prints the conflicting patterns (counts + example files) so you can fix the convention first. A refusal exits non-zero (useful in CI/scripts).
+
+| Option | Description |
+|--------|-------------|
+| `--ext <e>` | File extension for the proposed files (default `js`) |
+| `--threshold <n>` | Soft consistency threshold 0–1 (default 0.70; clamped to the 0.50 hard floor) |
+| `--force` | Propose between the hard floor and the soft threshold (flagged with a warning); never below the floor |
+| `--json` | Emit the full decision `{ ok, refused, tier, confidence, threshold, proposal, conflicts }` |
+
+This is the first slice of Layer 4 (grounded code generation); scaffold persistence, a `--naming-pattern` override, and the `verify-plan` → `create` → `review-pr` pipeline are planned follow-ups.
 
 ---
 
