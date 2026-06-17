@@ -42,24 +42,42 @@ function classifyNaming(basename) {
   return 'other';
 }
 
+const MAX_EXAMPLES = 3;
+
 /**
  * Score a set of categorical observations into a dominant convention plus its
  * consistency tier. The reusable primitive (IMPL.md §5.2).
  * @param {string[]} labels observed category for each sample (e.g. naming styles)
+ * @param {string[]} [refs] optional identifier (e.g. file name) parallel to
+ *   `labels`; when given, each variant carries up to 3 `examples`.
  * @returns {{ dominant: string|null, dominantPct: number, total: number,
- *             variants: Array<{label:string, count:number, pct:number}>,
+ *             variants: Array<{label:string, count:number, pct:number, examples?:string[]}>,
  *             tier: 'consistent'|'mostly'|'inconsistent'|'unknown' }}
  */
-function scoreConvention(labels) {
-  const list = (labels || []).filter((l) => l != null && l !== 'other');
-  const total = list.length;
+function scoreConvention(labels, refs) {
+  const all = labels || [];
+  const counts = new Map();
+  const examples = new Map();
+  let total = 0;
+  for (let i = 0; i < all.length; i++) {
+    const l = all[i];
+    if (l == null || l === 'other') continue;
+    total++;
+    counts.set(l, (counts.get(l) || 0) + 1);
+    if (refs && refs[i] != null) {
+      const ex = examples.get(l) || [];
+      if (ex.length < MAX_EXAMPLES) { ex.push(refs[i]); examples.set(l, ex); }
+    }
+  }
   if (total === 0) {
     return { dominant: null, dominantPct: 0, total: 0, variants: [], tier: 'unknown' };
   }
-  const counts = new Map();
-  for (const l of list) counts.set(l, (counts.get(l) || 0) + 1);
   const variants = [...counts.entries()]
-    .map(([label, count]) => ({ label, count, pct: count / total }))
+    .map(([label, count]) => {
+      const v = { label, count, pct: count / total };
+      if (refs) v.examples = examples.get(label) || [];
+      return v;
+    })
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   const top = variants[0];
   let tier = 'inconsistent';
@@ -131,22 +149,26 @@ function _detectTestFramework(cwd, files) {
 function extractConventions(cwd, files) {
   const scoped = (files || []).filter((f) => SCOPED_EXTS.has(path.extname(f).toLowerCase()));
   const namingLabels = [];
+  const namingRefs = [];
   const exportLabels = [];
+  const exportRefs = [];
   for (const f of scoped) {
     const base = path.basename(f);
     // Skip test files for the naming convention (they have their own naming).
     if (!/\.(test|spec)\.[jt]sx?$|(^|\/)test_|_test\.py$/.test(f)) {
       namingLabels.push(classifyNaming(base));
+      namingRefs.push(base);
     }
     if (JS_TS_EXTS.has(path.extname(f).toLowerCase())) {
       let src = '';
       try { src = fs.readFileSync(f, 'utf8'); } catch (_) {}
       exportLabels.push(_jsExportStyle(src));
+      exportRefs.push(base);
     }
   }
   return {
-    fileNaming: scoreConvention(namingLabels),
-    exportStyle: scoreConvention(exportLabels),
+    fileNaming: scoreConvention(namingLabels, namingRefs),
+    exportStyle: scoreConvention(exportLabels, exportRefs),
     testFramework: _detectTestFramework(cwd, scoped),
     scope: ['typescript', 'javascript', 'python'],
     scannedFiles: scoped.length,
