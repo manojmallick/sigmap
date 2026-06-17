@@ -39,7 +39,8 @@
     "generate:llms": "node scripts/generate-llms.mjs",
     "validate:llms": "node scripts/validate-llms.mjs",
     "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/check-version-meta.mjs && node scripts/generate-llms.mjs",
-    "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs"
+    "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs",
+    "benchmark:llm-ablation": "node scripts/run-llm-ablation.mjs"
   },
   "files": [
     "gen-context.js",
