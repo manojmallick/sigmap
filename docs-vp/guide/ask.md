@@ -27,7 +27,7 @@ Intent      : debug
 Context     : .context/query-context.md
 Coverage    : 96%
 Risk        : LOW
-Cost        : saved 98%
+Cost        : saved 92%
 Top files   : src/auth/service.js, src/auth/token.js, src/http/middleware.js
 ```
 

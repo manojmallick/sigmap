@@ -13807,7 +13807,15 @@ function main() {
     let coveragePct = 0;
     try { coveragePct = coverageScore(cwd, fakeEntries, config).score; } catch (_) {}
 
-    const rawTok = getRawTokenCount(cwd, config);
+    // Realistic baseline: the full content of the files SigMap actually surfaced
+    // for this query. Without SigMap you'd read these files in full; SigMap gives
+    // you their signatures instead — so this is the true per-query saving. Falls
+    // back to the whole-repo count only if nothing ranked.
+    let rawTok = 0;
+    for (const r of ranked) {
+      try { rawTok += estimateTokens(fs.readFileSync(path.join(cwd, r.file), 'utf8')); } catch (_) {}
+    }
+    if (rawTok === 0) rawTok = getRawTokenCount(cwd, config);
     const savings = rawTok > 0 ? Math.round((1 - ctxTok / rawTok) * 100) : 0;
     const model = args[args.indexOf('--model') + 1] || 'gpt-4o';
     const rateK = MODEL_COSTS[model] || MODEL_COSTS['gpt-4o'];
