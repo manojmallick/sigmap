@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.7.0] — 2026-06-17
+
+Minor release — `sigmap conventions` (grounded codegen, Layer 3).
+
+### Added
+- **`sigmap conventions` — extract & report a repo's coding conventions (#298):** the first slice of Layer 3 (grounded code generation). Detects the dominant **file naming** style, **export style**, and **test framework** for TS/JS/Python so generated code matches the house style instead of drifting (Cause 4: naming/convention drift). New zero-dependency, bundle-safe `src/conventions/extract.js` exposes `classifyNaming` (PascalCase / camelCase / kebab-case / snake_case), `scoreConvention` (a reusable consistency scorer returning `{ dominant, dominantPct, variants, tier }` with tiers at 90% / 70% — Gap 1's scaffold-confidence floor will reuse it), and `extractConventions`. The command writes `.context/conventions.json` and prints a readable report; `--json` emits machine output. `--conflicts`, `--fix`, `--ci`, and CLAUDE.md injection are deferred to follow-ups.
+
+---
+
 ## [7.6.0] — 2026-06-17
 
 Minor release — the grounding benchmark (the offline GATE for grounded codegen).

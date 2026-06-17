@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 53 SigMap commands and flags documented with examples. ask, gain, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 54 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 53 SigMap commands and flags documented with examples. ask, gain, squeeze, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 54 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, plan, bench, judge, verify-ai-output, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -53,6 +53,7 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>" --no-squeeze` | Disable input minimization entirely |
 | `ask "<query>" --squeeze-threshold <n>` | Minimum reduction %% to prompt for minimization (default 30) |
 | `squeeze <file\|->` | Minimize a pasted stacktrace / CI-log / JSON blob (`--json` for stats) |
+| `conventions` | Extract & report a repo's coding conventions — file naming, export style, test framework (TS/JS/Python); writes `.context/conventions.json` (`--json` for machine output) |
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
@@ -393,6 +394,41 @@ Three deterministic detectors, each with its own minimizer:
 | `--json` | Emit `{ category, confidence, rawTokens, squeezedTokens, reduction, enriched, squeezed }` |
 
 Prose (no recognizable structure) passes through unchanged. The differentiator over generic log summarizers is **symbol enrichment** — SigMap attaches a real function signature to the top stack frame because it has the repo's symbol index.
+
+---
+
+## conventions
+
+Extract and report a repo's coding conventions so generated code matches the house style instead of drifting. Scans the source tree (TS/JS/Python) and reports the dominant **file naming** style, **export style**, and **test framework**, each with a consistency tier. Writes `.context/conventions.json` for tools to consume.
+
+```bash
+sigmap conventions          # report + write .context/conventions.json
+sigmap conventions --json   # machine-readable output
+```
+
+```
+[sigmap] conventions  (TS/JS/Python)
+  scanned        115 files
+  file naming    camelCase 77% [mostly]  ·  also: kebab-case 20%, snake_case 3%
+  export style   named 99% [consistent]  ·  also: default 1%
+  test framework none detected
+
+  → wrote .context/conventions.json
+```
+
+Each convention is scored into a **consistency tier** so you know whether it is safe to enforce:
+
+| Tier | Dominant share | Meaning |
+|------|----------------|---------|
+| `consistent` | ≥ 90% | One clear convention — safe to enforce |
+| `mostly` | 70–89% | A dominant convention with some drift |
+| `inconsistent` | < 70% | No clear convention |
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit `{ fileNaming, exportStyle, testFramework, scope, scannedFiles }` (each convention as `{ dominant, dominantPct, variants, tier }`) |
+
+This is the first slice of grounded code generation; `--conflicts`, `--fix`, `--ci`, and CLAUDE.md injection are planned follow-ups.
 
 ---
 
