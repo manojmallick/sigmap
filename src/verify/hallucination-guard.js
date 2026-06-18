@@ -59,6 +59,15 @@ const LANG_GLOBALS = new Set([
 const REL_EXTS = ['', '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs', '.json', '.py', '.r', '.R', '.vue'];
 const REL_INDEX = ['index.js', 'index.ts', 'index.tsx', 'index.jsx', '__init__.py'];
 
+// Obvious documentation-placeholder imports the model writes in illustrative
+// snippets — not real dependency claims. e.g. @scope/utils, some-module, ./local-file.
+const PLACEHOLDER_IMPORT_RE = new RegExp([
+  '^@(?:scope|org|your-org|my-org|company|example)(?:/|$)', // @scope/utils
+  '(?:^|/)(?:some|your|my)-(?:module|package|lib|component|file|dep)(?:$|/)', // some-module
+  '(?:^|/)(?:local-file|your-file|my-file|module-name|package-name|your-package|example-package)(?:$|/)',
+  '(?:^|/)path/to/', // ./path/to/x
+].join('|'), 'i');
+
 /**
  * Build the set of known symbol identifiers from the SigMap signature index,
  * plus `{ name, file, line }` candidates (for closest-match suggestions).
@@ -225,6 +234,7 @@ function verify(answerText, cwd, opts = {}) {
 
   // 2. fake-import
   for (const imp of parsers.extractImports(answerText)) {
+    if (PLACEHOLDER_IMPORT_RE.test(imp.module)) continue;
     if (imp.relative) {
       if (!relativeResolvable(imp.module)) {
         add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });

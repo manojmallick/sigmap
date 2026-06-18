@@ -80,6 +80,16 @@ test('extractFilePaths skips illustrative placeholder filenames', () => {
   }
 });
 
+test('extractFilePaths skips camelCase/Pascal placeholders, keeps ordinary words', () => {
+  const text = 'Save `myExample.js` and `exampleConfig.ts` and `fooSample.js`; but `resample.js` and `src/foo/bar.js` are real.';
+  const paths = parsers.extractFilePaths(text).map((p) => p.path);
+  for (const ph of ['myExample.js', 'exampleConfig.ts', 'fooSample.js']) {
+    assert.ok(!paths.includes(ph), `should not flag camelCase placeholder ${ph}`);
+  }
+  assert.ok(paths.includes('resample.js'), 'resample.js is an ordinary word — must still extract');
+  assert.ok(paths.includes('src/foo/bar.js'), 'genuine path must still extract');
+});
+
 test('extractFilePaths still extracts genuine repo-shaped paths (no over-suppression)', () => {
   const text = 'Edit `src/foo/bar.js`, `src/config/loader.js`, `main.js`, and `index.ts`.';
   const paths = parsers.extractFilePaths(text).map((p) => p.path);
@@ -148,6 +158,20 @@ test('fake-import flagged for unresolved relative + missing bare package', () =>
   const { issues } = verify(text, '/x', baseOpts);
   const imps = issues.filter((i) => i.type === 'fake-import').map((i) => i.value).sort();
   assert.deepStrictEqual(imps, ['./nope', 'ghost-pkg']);
+});
+
+test('fake-import skips doc-placeholder imports, still flags genuine ones', () => {
+  const text = [
+    "import a from '@scope/utils';",   // placeholder scope → skip
+    "import b from 'some-module';",    // placeholder bare → skip
+    "import c from './local-file';",   // placeholder relative → skip
+    "import d from './path/to/thing';",// placeholder path → skip
+    "import e from 'ghost-pkg';",      // genuine missing dep → flag
+    "import f from './nope';",         // genuine unresolved relative → flag
+  ].join('\n');
+  const { issues } = verify(text, '/x', baseOpts);
+  const imps = issues.filter((i) => i.type === 'fake-import').map((i) => i.value).sort();
+  assert.deepStrictEqual(imps, ['./nope', 'ghost-pkg'], 'only genuine imports flagged');
 });
 
 test('fake-symbol flagged for unknown symbol; real symbol passes', () => {
