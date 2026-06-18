@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.20.0)
+- **@manojmallick** — feat: `sigmap --init` writes a Creation workflow block into CLAUDE.md (`renderCreationWorkflowBlock` / `injectCreationWorkflow`); final IMPL item — grounded-codegen plan complete (#337, PR #338)
+
 ### Recent Contributors (v7.19.0)
 - **@manojmallick** — feat: scaffold persistence — write an accepted proposal to `.context/scaffold/latest.md`; `renderScaffoldMarkdown` / `scaffoldPath`; Gap 2 §6.2 (#334, PR #335)
 

@@ -118,7 +118,7 @@ If you are new to the product, start with the workflow pages first:
 | `gain --top <n> \| --model <name>` | Limit rows / set the $ pricing model |
 | `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
 | `--no-track` | Disable gain savings capture for a run |
-| `--init` | Scaffold `gen-context.config.json` and `.contextignore` |
+| `--init` | Scaffold `gen-context.config.json` and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier |

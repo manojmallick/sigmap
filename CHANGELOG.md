@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.20.0] — 2026-06-18
+
+Minor release — `init` writes a Creation workflow block into CLAUDE.md (grounded codegen, Gap 2 §6.2 — completes the plan).
+
+### Added
+- **`sigmap --init` documents the grounded-creation workflow in CLAUDE.md (#337):** the final IMPL item. `--init` now injects a marker-delimited "Creation workflow" block describing the four-stage pipeline (`scaffold` → `verify-plan` → `verify-ai-output` → `review-pr`, orchestrated by `sigmap create`) so an agent reading CLAUDE.md knows the guard-rail workflow exists. New zero-dependency, bundle-safe `src/init/creation-workflow.js` (`renderCreationWorkflowBlock`, `injectCreationWorkflow`); idempotent and marker-scoped (`<!-- sigmap-creation-workflow:start -->` … `:end -->`), it creates CLAUDE.md if absent, preserves human content, and coexists with the conventions + auto-generated-signatures blocks. **With this, every item in the grounded-codegen implementation plan is shipped** (the §9 LLM A/B ablation is built and offline-tested; a live run needs only an API key).
+
+---
+
 ## [7.19.0] — 2026-06-18
 
 Minor release — scaffold persistence (grounded codegen, Gap 2 §6.2).
