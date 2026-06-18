@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "7.22.0",
+  "version": "7.22.1",
   "description": "97% token reduction for AI coding. Extracts function & class signatures with TF-IDF ranking to feed only the right files to Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP. Zero dependencies, runs offline via npx.",
   "main": "packages/core/index.js",
   "exports": {

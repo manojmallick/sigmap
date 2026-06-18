@@ -88,7 +88,7 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 ```
 Benchmark : sigmap-v7.0-main (21 repositories, including R language)
-Date      : 2026-06-14
+Date      : 2026-06-18
 
 Hit@5          : 75.6%   (baseline 13.6%  — 5.6× lift)
 Token reduction: 97.0%   (across 21 repos)

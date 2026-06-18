@@ -26,6 +26,7 @@ function test(name, fn) {
 }
 
 const src = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+const versionMeta = JSON.parse(fs.readFileSync(path.join(ROOT, 'version.json'), 'utf8'));
 
 console.log('\nv5.9.1 README conversion tests\n');
 
@@ -126,8 +127,8 @@ test('benchmark: sigmap-v7.0-main ID present', () => {
   assert.ok(src.includes('sigmap-v7.0-main'), 'missing sigmap-v7.0-main benchmark ID');
 });
 
-test('benchmark: date 2026-06-14 present', () => {
-  assert.ok(src.includes('2026-06-14'), 'missing benchmark date 2026-06-14');
+test('benchmark: version.json benchmark_date present', () => {
+  assert.ok(src.includes(versionMeta.benchmark_date), `missing benchmark date ${versionMeta.benchmark_date}`);
 });
 
 test('benchmark: Hit@5 75.6% present', () => {

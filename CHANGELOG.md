@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.22.1] — 2026-06-18
+
+Patch release — hardens the `verify-ai-output` file-path extractor against the dominant false-positive class.
+
+### Fixed
+- **`verify-ai-output` no longer flags runtime/library names or placeholder filenames (#347):** `extractFilePaths` now skips well-known `X.js` product names (`node.js`, `next.js`, `vue.js`, `express.js`, `three.js`, `d3.js`, …) and illustrative placeholder basenames (`example`/`sample`/`demo`/`placeholder`, including `minimal-example.js`). Genuine repo-shaped paths (`src/foo/bar.js`, `main.js`, `index.ts`) are still extracted, so real hallucinations are unaffected. This removes the dominant Hallucination Guard false-positive class — in the §9 ablation, 22 of ~34 flags were literally "Node.js" — turning the directional grounding delta into a clean signal. The bundled `src/verify/parsers` factory was regenerated for standalone-binary parity.
+
+---
+
 ## [7.22.0] — 2026-06-18
 
 Minor release — realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose) + Gemini model fix.

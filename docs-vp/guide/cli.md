@@ -387,6 +387,8 @@ Five deterministic detectors:
 | `fake-symbol` | A called function/class (`` `name()` ``) absent from the SigMap symbol index (`buildSigIndex`) | Medium |
 | `fake-npm-script` | An `npm run X` (or `pnpm`/`yarn run X`) where `X` is not a `package.json` script | High |
 
+To avoid false positives, the file detector ignores tokens that aren't real repo-path claims: well-known runtime/library product names (`Node.js`, `Next.js`, `Vue.js`, `Express.js`, `D3.js`, …) and illustrative placeholder filenames the model writes in prose (`example.js`, `minimal-example.js`, `sample.ts`, `demo.py`, `placeholder.js`). Genuine repo-shaped paths (`src/foo/bar.js`, `main.js`, `index.ts`) are still flagged when absent, so real hallucinations are unaffected.
+
 JSON output (`--json`) for CI:
 
 ```json

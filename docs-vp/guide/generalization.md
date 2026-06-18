@@ -20,7 +20,7 @@ SigMap was not tuned for one repo. This benchmark matters because it shows the s
 :::
 
 ::: info Official v7.0.0 benchmark snapshot
-**Benchmark ID:** sigmap-v7.0-main &nbsp;·&nbsp; **Date:** 2026-06-14 (with R language)
+**Benchmark ID:** sigmap-v7.0-main &nbsp;·&nbsp; **Date:** 2026-06-18 (with R language)
 
 | Metric | Value |
 |---|---:|

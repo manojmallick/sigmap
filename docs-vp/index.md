@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.22.0</span>
+  <span><strong>Release:</strong> v7.22.1</span>
   <span>·</span>
-  <span>Realistic §9 ablation — 40-task real-symbol corpus + exact-signature grounding + <code>--verbose</code>; a first Gemini run measured 62.5 → 22.5 flagged errors per 100 with grounding</span>
+  <span>Hardened <code>verify-ai-output</code> — stops flagging runtime/library names (<code>Node.js</code>) and placeholder filenames (<code>example.js</code>) as fake files, clearing the dominant §9 ablation false-positive class</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>
   <span>·</span>
-  <span>76% hit@5 · 97.0% token reduction · 2026-06-14</span>
+  <span>76% hit@5 · 97.0% token reduction · 2026-06-18</span>
 </div>
 </div>
 
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-06-14 (v7.0.1)**.
+Latest saved benchmark run: **2026-06-18 (v7.22.1)**.
 
 </div>
 
