@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.21.0] — 2026-06-18
+
+Minor release — LLM ablation runner gains a Gemini (AI Studio) provider.
+
+### Added
+- **Gemini provider for the §9 LLM A/B ablation runner (#340):** `scripts/run-llm-ablation.mjs` now supports Google Gemini via the AI Studio / Generative Language API (`generateContent`) alongside Anthropic. The provider is auto-detected from whichever key is present (`GEMINI_API_KEY` / `GOOGLE_API_KEY` → gemini; `ANTHROPIC_API_KEY` → anthropic); `--provider` and `--model` override, with a sensible default model per provider (`gemini-2.0-flash` / `claude-sonnet-4-6`). The no-key path lists both providers and exits 0. Run with `GEMINI_API_KEY=… npm run benchmark:llm-ablation`. The network fetch stays confined to `scripts/` — never the published library surface; the offline harness (`src/eval/llm-ablation.js`) is unchanged.
+
+---
+
 ## [7.20.0] — 2026-06-18
 
 Minor release — `init` writes a Creation workflow block into CLAUDE.md (grounded codegen, Gap 2 §6.2 — completes the plan).
