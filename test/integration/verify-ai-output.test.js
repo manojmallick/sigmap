@@ -60,6 +60,34 @@ test('extractFilePaths finds paths, skips URLs and version numbers', () => {
   assert.ok(!paths.includes('6.13.0'), 'should skip version numbers');
 });
 
+test('extractFilePaths skips runtime/library product names (Node.js, Next.js, …)', () => {
+  const text = 'Write a minimal Node.js example. It uses Next.js, Vue.js, Express.js and D3.js.';
+  const paths = parsers.extractFilePaths(text).map((p) => p.path.toLowerCase());
+  for (const lib of ['node.js', 'next.js', 'vue.js', 'express.js', 'd3.js']) {
+    assert.ok(!paths.includes(lib), `should not flag library token ${lib}`);
+  }
+});
+
+test('extractFilePaths skips illustrative placeholder filenames', () => {
+  const text = [
+    'Save this as `example.js`.',
+    'See `minimal-example.js` and `example-coverage-walk.js`.',
+    'Try `sample.ts`, `demo.py`, and `placeholder.js`.',
+  ].join('\n');
+  const paths = parsers.extractFilePaths(text).map((p) => p.path);
+  for (const ph of ['example.js', 'minimal-example.js', 'example-coverage-walk.js', 'sample.ts', 'demo.py', 'placeholder.js']) {
+    assert.ok(!paths.includes(ph), `should not flag placeholder ${ph}`);
+  }
+});
+
+test('extractFilePaths still extracts genuine repo-shaped paths (no over-suppression)', () => {
+  const text = 'Edit `src/foo/bar.js`, `src/config/loader.js`, `main.js`, and `index.ts`.';
+  const paths = parsers.extractFilePaths(text).map((p) => p.path);
+  for (const real of ['src/foo/bar.js', 'src/config/loader.js', 'main.js', 'index.ts']) {
+    assert.ok(paths.includes(real), `should still extract ${real}`);
+  }
+});
+
 test('extractImports finds js + py imports and flags relative vs bare', () => {
   const text = [
     "import { rank } from './ranker';",
@@ -101,6 +129,13 @@ test('fake-file flagged when path absent', () => {
   const { issues } = verify('See `src/ghost.js` and `src/index.js`.', '/x', baseOpts);
   const files = issues.filter((i) => i.type === 'fake-file').map((i) => i.value);
   assert.deepStrictEqual(files, ['src/ghost.js']);
+});
+
+test('verify(): Node.js + example.js prose yields no fake-file; real fake path still flags', () => {
+  const text = 'Here is a minimal Node.js example saved as `example.js` that also touches `src/ghost.js`.';
+  const { issues } = verify(text, '/x', baseOpts);
+  const files = issues.filter((i) => i.type === 'fake-file').map((i) => i.value);
+  assert.deepStrictEqual(files, ['src/ghost.js'], 'only the genuine fake path is flagged');
 });
 
 test('fake-import flagged for unresolved relative + missing bare package', () => {

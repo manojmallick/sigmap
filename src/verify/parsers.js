@@ -21,6 +21,17 @@ const KNOWN_CODE_EXT = new Set([
   'gd', 'gdscript',
 ]);
 
+// Well-known "X.js" runtime/library product names — never repo files.
+const LIBRARY_TOKENS = new Set([
+  'node.js', 'next.js', 'nuxt.js', 'vue.js', 'react.js', 'express.js', 'koa.js',
+  'nest.js', 'three.js', 'd3.js', 'chart.js', 'ember.js', 'backbone.js',
+  'angular.js', 'meteor.js', 'moment.js', 'anime.js', 'p5.js', 'next.config.js',
+]);
+
+// Illustrative placeholder names the model writes in prose, not repo claims:
+// e.g. example.js, minimal-example.js, sample.ts, demo.js, placeholder.js.
+const PLACEHOLDER_RE = /(?:^|[-_.])(?:example|sample|demo|placeholder)(?:[-_.]|$)/i;
+
 /**
  * Extract fenced code blocks.
  * @param {string} text
@@ -73,6 +84,9 @@ function extractFilePaths(text) {
       const ext = (p.split('.').pop() || '').toLowerCase();
       const hasSlash = p.includes('/');
       if (!hasSlash && !KNOWN_CODE_EXT.has(ext)) continue;
+      if (LIBRARY_TOKENS.has(p.toLowerCase())) continue;
+      const base = p.split('/').pop();
+      if (PLACEHOLDER_RE.test(base)) continue;
       if (!seen.has(p)) seen.set(p, i + 1);
     }
   }
