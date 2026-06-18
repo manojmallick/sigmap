@@ -12,7 +12,7 @@
  *
  * Providers (auto-detected from the present key; --provider overrides):
  *   anthropic — ANTHROPIC_API_KEY            (default model claude-sonnet-4-6)
- *   gemini    — GEMINI_API_KEY / GOOGLE_API_KEY  (default model gemini-2.0-flash)
+ *   gemini    — GEMINI_API_KEY / GOOGLE_API_KEY  (default model gemini-2.5-flash)
  *
  * Usage:
  *   ANTHROPIC_API_KEY=sk-...  node scripts/run-llm-ablation.mjs
@@ -40,7 +40,7 @@ const modelArg = flag('--model');
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-const DEFAULT_MODEL = { anthropic: 'claude-sonnet-4-6', gemini: 'gemini-2.0-flash' };
+const DEFAULT_MODEL = { anthropic: 'claude-sonnet-4-6', gemini: 'gemini-2.5-flash' };
 
 // Resolve the provider: explicit flag, else whichever key is present (Gemini first).
 let provider = flag('--provider');
