@@ -13,7 +13,7 @@ const { spawnSync, execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const SCRIPT = path.join(ROOT, 'scripts', 'run-llm-ablation.mjs');
-const { buildGrounding, scoreAnswer, runAblation } = require(path.join(ROOT, 'src/eval/llm-ablation'));
+const { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation } = require(path.join(ROOT, 'src/eval/llm-ablation'));
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -36,22 +36,40 @@ function withRepo(fn) {
 }
 
 // ── buildGrounding ──────────────────────────────────────────────────────────
-test('buildGrounding: non-empty, includes conventions + known symbols', () => {
+test('buildGrounding: non-empty, includes conventions + exact signatures', () => {
   withRepo((dir) => {
     const g = buildGrounding(dir);
     assert.ok(g.length > 0, 'grounding is non-empty');
     assert.ok(/Conventions/.test(g), 'has conventions block');
-    assert.ok(/realCoreFn/.test(g), 'lists the real symbol');
+    assert.ok(/Exact signatures/.test(g), 'has the exact-signatures section');
+    assert.ok(/realCoreFn/.test(g), 'includes the real symbol signature');
+  });
+});
+test('buildGrounding: maxSignatures bounds the signature lines', () => {
+  withRepo((dir) => {
+    const g = buildGrounding(dir, { maxSignatures: 1 });
+    // only one signature line beyond the section header
+    const sigLines = g.split('\n').filter((l) => /^(module\.exports|function|class|def|const|async)/.test(l.trim()));
+    assert.ok(sigLines.length <= 1, `expected ≤1 sig line, got ${sigLines.length}`);
   });
 });
 
-// ── scoreAnswer ─────────────────────────────────────────────────────────────
+// ── scoreAnswer / scoreAnswerDetail ─────────────────────────────────────────
 test('scoreAnswer: flags a fake symbol, clears a real one', () => {
   withRepo((dir) => {
     const fake = scoreAnswer('Call `totallyFakeSymbol(...)` in `src/ghost.js`.', dir);
     const real = scoreAnswer('Use `realCoreFn(...)`.', dir);
     assert.ok(fake > 0, `fake answer should flag, got ${fake}`);
     assert.ok(fake > real, `fake (${fake}) should flag more than real (${real})`);
+  });
+});
+test('scoreAnswerDetail: returns total + issue objects', () => {
+  withRepo((dir) => {
+    const d = scoreAnswerDetail('Call `totallyFakeSymbol(...)` in `src/ghost.js`.', dir);
+    assert.strictEqual(typeof d.total, 'number');
+    assert.ok(Array.isArray(d.issues), 'issues is an array');
+    assert.strictEqual(d.issues.length, d.total, 'issue count matches total');
+    assert.ok(d.issues.some((i) => i.type && i.message), 'issues have type + message');
   });
 });
 
@@ -67,6 +85,16 @@ test('runAblation: injected completer; aggregate has the A/B shape', () => {
       assert.ok(k in r.aggregate, `aggregate has ${k}`);
     }
     assert.strictEqual(r.aggregate.n, 1);
+    assert.ok(!('aIssues' in r.tasks[0]), 'no issues attached without collectIssues');
+  });
+});
+test('runAblation: collectIssues attaches per-arm issue lists', () => {
+  withRepo((dir) => {
+    const complete = (prompt) => (/realCoreFn/.test(prompt) ? 'Use `realCoreFn(...)`.' : 'Call `madeUpSym(...)` in `src/none.js`.');
+    const r = runAblation([{ id: 't1', prompt: 'P' }], dir, complete, { collectIssues: true });
+    const row = r.tasks[0];
+    assert.ok(Array.isArray(row.aIssues) && Array.isArray(row.bIssues), 'both arms have issue arrays');
+    assert.ok(row.aIssues.length >= 1, 'ungrounded arm has flagged issues');
   });
 });
 test('runAblation: grounding reduces flagged errors (delta > 0)', () => {

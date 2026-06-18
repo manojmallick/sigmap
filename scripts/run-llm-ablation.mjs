@@ -18,6 +18,7 @@
  *   ANTHROPIC_API_KEY=sk-...  node scripts/run-llm-ablation.mjs
  *   GEMINI_API_KEY=...        node scripts/run-llm-ablation.mjs            # AI Studio key
  *   GEMINI_API_KEY=...        node scripts/run-llm-ablation.mjs --save --model gemini-2.5-pro
+ *   GEMINI_API_KEY=...        node scripts/run-llm-ablation.mjs --verbose   # print flagged items per arm
  *
  * Without any API key it prints guidance and exits 0 (skip — never fails CI).
  */
@@ -35,6 +36,7 @@ const { runAblation, buildGrounding } = require(path.join(ROOT, 'src/eval/llm-ab
 const argv = process.argv;
 const flag = (name) => { const i = argv.indexOf(name); return i !== -1 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : null; };
 const save = argv.includes('--save');
+const verbose = argv.includes('--verbose');
 const modelArg = flag('--model');
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
@@ -115,17 +117,33 @@ async function main() {
     }
   }
 
-  const result = runAblation(tasks, ROOT, complete, { grounding });
+  const result = runAblation(tasks, ROOT, complete, { grounding, collectIssues: verbose });
   const a = result.aggregate;
 
-  console.log('\n  Task                  without  with');
-  console.log('  ' + '─'.repeat(40));
+  console.log(`\n  ${'Task'.padEnd(30)} without  with`);
+  console.log('  ' + '─'.repeat(46));
   for (const r of result.tasks) {
-    console.log(`  ${String(r.id).padEnd(20)} ${String(r.aFlagged).padStart(6)} ${String(r.bFlagged).padStart(5)}`);
+    console.log(`  ${String(r.id).padEnd(30)} ${String(r.aFlagged).padStart(6)} ${String(r.bFlagged).padStart(5)}`);
   }
-  console.log('  ' + '─'.repeat(40));
+  console.log('  ' + '─'.repeat(46));
+  const dir = a.delta > 0 ? `${a.delta} fewer` : a.delta < 0 ? `${-a.delta} MORE` : 'no change';
   console.log(`  flagged errors per 100 outputs:  without ${a.withoutPer100.toFixed(0)}  →  with ${a.withPer100.toFixed(0)}`);
-  console.log(`  measured delta: ${a.delta} fewer flagged across ${a.n} tasks`);
+  console.log(`  measured delta: ${dir} flagged with grounding (across ${a.n} tasks)`);
+
+  if (verbose) {
+    const fmt = (issues) => (issues || []).map((i) => `      [${i.type}] ${i.value || ''} — ${i.message}`).join('\n');
+    const flagged = result.tasks.filter((r) => (r.aIssues || []).length || (r.bIssues || []).length);
+    if (flagged.length) {
+      console.log('\n  Flagged items per arm:');
+      for (const r of flagged) {
+        console.log(`\n  • ${r.id}`);
+        if ((r.aIssues || []).length) console.log(`    without (${r.aIssues.length}):\n${fmt(r.aIssues)}`);
+        if ((r.bIssues || []).length) console.log(`    with    (${r.bIssues.length}):\n${fmt(r.bIssues)}`);
+      }
+    } else {
+      console.log('\n  (verbose) no flagged items in either arm.');
+    }
+  }
 
   if (save) {
     const out = path.join(ROOT, 'benchmarks', 'reports', 'llm-ablation.json');

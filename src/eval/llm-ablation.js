@@ -13,57 +13,80 @@
 
 const { verify } = require('../verify/hallucination-guard');
 
+const path = require('path');
+
+/** Strip a signature's trailing line anchor (` :12-20`) for prompt cleanliness. */
+function _cleanSig(sig) {
+  return String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim();
+}
+
 /**
  * Build the SigMap grounding block for a repo — what we prepend to a task
- * prompt in arm B. Conventions (the house style) + the known-symbol list
- * (so the model can reference real names instead of guessing).
+ * prompt in arm B. Conventions (the house style) + **exact signatures** grouped
+ * by file (what `get_callee_signatures` returns), so the model references the
+ * real surface instead of guessing — the actual product behavior, not a flat
+ * name dump.
  * @param {string} cwd
  * @param {object} [opts]
- * @param {number} [opts.maxSymbols=80]
+ * @param {number} [opts.maxSignatures=150] cap on signature lines (bounds prompt size)
  * @returns {string}
  */
 function buildGrounding(cwd, opts = {}) {
-  const maxSymbols = opts.maxSymbols != null ? opts.maxSymbols : 80;
+  const maxSignatures = opts.maxSignatures != null ? opts.maxSignatures : 150;
   const parts = [];
+
+  let index = null;
+  try {
+    const { buildSigIndex } = require('../retrieval/ranker');
+    index = buildSigIndex(cwd);
+  } catch (_) {}
 
   try {
     const { extractConventions } = require('../conventions/extract');
     const { renderConventionsBlock } = require('../conventions/inject');
-    const { loadConfig } = require('../config/loader');
-    let files = [];
-    try {
-      const cfg = loadConfig(cwd);
-      const { buildSigIndex } = require('../retrieval/ranker');
-      files = [...buildSigIndex(cwd).keys()];
-      void cfg;
-    } catch (_) {}
-    const conv = extractConventions(cwd, files);
-    parts.push(renderConventionsBlock(conv));
+    const files = index ? [...index.keys()] : [];
+    parts.push(renderConventionsBlock(extractConventions(cwd, files)));
   } catch (_) {}
 
-  try {
-    const { buildSymbolSet } = require('../verify/hallucination-guard');
-    const { set } = buildSymbolSet(cwd);
-    const names = [...set].slice(0, maxSymbols);
-    if (names.length) parts.push(`## Known symbols (reference these exactly)\n${names.join(', ')}`);
-  } catch (_) {}
+  if (index) {
+    const lines = ['## Exact signatures (use these — do not invent symbols or paths)'];
+    let count = 0;
+    for (const [file, sigs] of index) {
+      if (count >= maxSignatures) break;
+      const rel = path.relative(cwd, file).replace(/\\/g, '/');
+      const clean = (sigs || []).map(_cleanSig).filter(Boolean);
+      if (!clean.length) continue;
+      lines.push(`### ${rel}`);
+      for (const s of clean) {
+        if (count >= maxSignatures) break;
+        lines.push(s);
+        count++;
+      }
+    }
+    if (count > 0) parts.push(lines.join('\n'));
+  }
 
   return parts.join('\n\n');
 }
 
 /**
- * Count flagged codebase-fact errors in an answer (the §9 metric).
+ * Score an answer: flagged codebase-fact errors + the issue list (the §9 metric).
  * @param {string} answerText
  * @param {string} cwd
- * @returns {number}
+ * @returns {{ total: number, issues: object[] }}
  */
-function scoreAnswer(answerText, cwd) {
+function scoreAnswerDetail(answerText, cwd) {
   try {
-    const { summary } = verify(String(answerText || ''), cwd);
-    return summary.total || 0;
+    const { issues, summary } = verify(String(answerText || ''), cwd);
+    return { total: summary.total || 0, issues: issues || [] };
   } catch (_) {
-    return 0;
+    return { total: 0, issues: [] };
   }
+}
+
+/** Count flagged codebase-fact errors in an answer (the §9 metric). */
+function scoreAnswer(answerText, cwd) {
+  return scoreAnswerDetail(answerText, cwd).total;
 }
 
 /**
@@ -73,6 +96,7 @@ function scoreAnswer(answerText, cwd) {
  * @param {(prompt:string, meta:object)=>string} complete injected model call
  * @param {object} [opts]
  * @param {string} [opts.grounding] precomputed grounding (else built from cwd)
+ * @param {boolean} [opts.collectIssues] attach `aIssues`/`bIssues` per task
  * @returns {{ tasks: object[], aggregate: object }}
  */
 function runAblation(tasks, cwd, complete, opts = {}) {
@@ -88,11 +112,13 @@ function runAblation(tasks, cwd, complete, opts = {}) {
     const outA = String(complete(basePrompt, { id: task.id, grounded: false }) || '');
     const outB = String(complete(groundedPrompt, { id: task.id, grounded: true }) || '');
 
-    const aFlagged = scoreAnswer(outA, cwd);
-    const bFlagged = scoreAnswer(outB, cwd);
-    sumA += aFlagged;
-    sumB += bFlagged;
-    rows.push({ id: task.id, aFlagged, bFlagged });
+    const a = scoreAnswerDetail(outA, cwd);
+    const b = scoreAnswerDetail(outB, cwd);
+    sumA += a.total;
+    sumB += b.total;
+    const row = { id: task.id, aFlagged: a.total, bFlagged: b.total };
+    if (opts.collectIssues) { row.aIssues = a.issues; row.bIssues = b.issues; }
+    rows.push(row);
   }
 
   const n = rows.length;
@@ -110,4 +136,4 @@ function runAblation(tasks, cwd, complete, opts = {}) {
   };
 }
 
-module.exports = { buildGrounding, scoreAnswer, runAblation };
+module.exports = { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation };
