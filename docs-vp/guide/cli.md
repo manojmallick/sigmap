@@ -713,14 +713,16 @@ The proposal is gated by the **file-naming consistency** (the confidence):
 
 When it refuses, it prints the conflicting patterns (counts + example files) so you can fix the convention first. A refusal exits non-zero (useful in CI/scripts).
 
+An **accepted** proposal is also persisted to `.context/scaffold/latest.md`, so [`create`](#create) and agents can read back the convention-matched proposal (the `--json` output gains a `persistedTo` field). A refusal writes nothing.
+
 | Option | Description |
 |--------|-------------|
 | `--ext <e>` | File extension for the proposed files (default `js`) |
 | `--threshold <n>` | Soft consistency threshold 0–1 (default 0.70; clamped to the 0.50 hard floor) |
 | `--force` | Propose between the hard floor and the soft threshold (flagged with a warning); never below the floor |
-| `--json` | Emit the full decision `{ ok, refused, tier, confidence, threshold, proposal, conflicts }` |
+| `--json` | Emit the full decision `{ ok, refused, tier, confidence, threshold, proposal, conflicts, persistedTo }` |
 
-This is the first slice of Layer 4 (grounded code generation); scaffold persistence, a `--naming-pattern` override, and the `verify-plan` → `create` → `review-pr` pipeline are planned follow-ups.
+This is part of Layer 4 (grounded code generation); a `--naming-pattern` override is a planned follow-up.
 
 ---
 

@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.19.0] — 2026-06-18
+
+Minor release — scaffold persistence (grounded codegen, Gap 2 §6.2).
+
+### Added
+- **Scaffold persistence — `.context/scaffold/latest.md` (#334):** `sigmap scaffold` now writes an accepted proposal to `.context/scaffold/latest.md` so the `create` pipeline and agents can read back the convention-matched proposal instead of re-deriving it. New zero-dependency, bundle-safe `src/scaffold/persist.js` (`renderScaffoldMarkdown`, `scaffoldPath`); the record captures the filename + naming style, export style, test file + framework, and any force-warning. Persisted in both human and `--json` modes (the JSON output gains a `persistedTo` field); a refused scaffold writes nothing.
+
+---
+
 ## [7.18.0] — 2026-06-18
 
 Minor release — `sigmap conventions --update` (grounded codegen, Layer 3 — completes the §4 flag set).
