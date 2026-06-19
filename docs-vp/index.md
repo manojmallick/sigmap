@@ -201,5 +201,6 @@ Latest saved benchmark run: **2026-06-19 (v7.24.0)**.
 - Want the core daily flow: [ask](/guide/ask), [validate](/guide/validate), [judge](/guide/judge), [learning](/guide/learning)
 - Using Claude Code or Cursor: [MCP setup](/guide/mcp)
 - Evaluating the launch claims: [Benchmark overview](/guide/benchmark)
+- 🌍 See the community: [where SigMap's stargazers are around the world](https://starmapper.bruniaux.com/manojmallick/sigmap)
 
 </div>

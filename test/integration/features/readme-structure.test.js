@@ -121,6 +121,13 @@ test('workflow: Ask → Rank → Context → Validate → Judge → Learn', () =
   assert.ok(src.includes('Ask → Rank') || src.includes('Ask →'), 'workflow not in arrow format');
 });
 
+// ── Community ────────────────────────────────────────────────────────────────
+
+test('community: StarMapper stargazer-map link present', () => {
+  assert.ok(src.includes('https://starmapper.bruniaux.com/manojmallick/sigmap'),
+    'missing StarMapper star-map link');
+});
+
 // ── Section 7: Benchmark ─────────────────────────────────────────────────────
 
 test('benchmark: sigmap-v7.0-main ID present', () => {
