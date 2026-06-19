@@ -30,7 +30,10 @@ const LIBRARY_TOKENS = new Set([
 
 // Illustrative placeholder names the model writes in prose, not repo claims:
 // e.g. example.js, minimal-example.js, sample.ts, demo.js, placeholder.js.
-const PLACEHOLDER_RE = /(?:^|[-_.])(?:example|sample|demo|placeholder)(?:[-_.]|$)/i;
+const PLACEHOLDER_RE = /(?:^|[-_.])(?:example|sample|demo|placeholder)(?:[-_.]|s?$)/i;
+// camelCase / Pascal placeholders: myExample.js, exampleConfig.js, fooSample.ts.
+// Requires a case boundary so ordinary words (resample.js) are NOT suppressed.
+const PLACEHOLDER_CAMEL_RE = /(?:^|[a-z])(?:Example|Sample|Demo|Placeholder)|(?:^|[-_.])(?:example|sample|demo|placeholder)(?=[A-Z])/;
 
 /**
  * Extract fenced code blocks.
@@ -86,7 +89,7 @@ function extractFilePaths(text) {
       if (!hasSlash && !KNOWN_CODE_EXT.has(ext)) continue;
       if (LIBRARY_TOKENS.has(p.toLowerCase())) continue;
       const base = p.split('/').pop();
-      if (PLACEHOLDER_RE.test(base)) continue;
+      if (PLACEHOLDER_RE.test(base) || PLACEHOLDER_CAMEL_RE.test(base)) continue;
       if (!seen.has(p)) seen.set(p, i + 1);
     }
   }
