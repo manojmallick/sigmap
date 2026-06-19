@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.24.0)
+- **@manojmallick** — feat: redesign the §9 ablation corpus as checkable repo-fact questions (which file defines `<name>`, what params) — a wrong path is a checkable hallucination and example code is forbidden, so the metric isolates grounding instead of guard precision; ids `call-`→`fact-` (#356, PR #357)
+
 ### Recent Contributors (v7.23.0)
 - **@manojmallick** — feat: robust §9 ablation — `--runs N` averaging (mean ± range) via pure `aggregateRuns`, 100-task real-symbol corpus (was 40); makes one invocation yield a statistically stable grounding number (#353, PR #354)
 

@@ -39,7 +39,7 @@ This is the landing page for the public benchmark story. It answers four differe
 
 ## Official v7.0.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-06-19 (v7.23.0)**
+Latest saved benchmark run: **2026-06-19 (v7.24.0)**
 
 | Metric | Result |
 |---|---:|

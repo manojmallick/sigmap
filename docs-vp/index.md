@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.23.0</span>
+  <span><strong>Release:</strong> v7.24.0</span>
   <span>·</span>
-  <span>Robust §9 ablation — <code>--runs N</code> averages repeated passes (mean ± range) and the corpus grows to 100 real-symbol tasks, so one command yields a statistically stable grounding number (cleaned-guard run: ~13 → 3 flagged errors per 100)</span>
+  <span>§9 ablation corpus redesigned as checkable repo-fact questions ("which file defines <code>X</code>?") — a wrong path is an unambiguous hallucination and example code is forbidden, so the metric isolates grounding instead of guard precision</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-06-19 (v7.23.0)**.
+Latest saved benchmark run: **2026-06-19 (v7.24.0)**.
 
 </div>
 

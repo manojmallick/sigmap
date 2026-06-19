@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.24.0] — 2026-06-19
+
+Minor release — redesign the §9 ablation corpus so it measures grounding, not guard precision.
+
+### Changed
+- **§9 ablation corpus → checkable repo-fact questions (#356):** the previous "write a minimal example that requires X" tasks inherently elicited placeholder scaffolding (`src/main.js`, `minimal.js`, real modules referenced by basename), which a string-based guard cannot distinguish from claimed repo files — so the metric measured guard precision, not grounding. A 100-task run confirmed grounding drives *genuine* invented-file hallucinations to ~0 while with-arm scaffolding noise masked it (9 → 7). `scripts/gen-ablation-corpus.mjs` now generates fact questions — *"which file defines `<name>`, and what are its parameters?"* — where a wrong file path is an unambiguous, checkable hallucination and the prompt forbids example code. The grounded arm (given exact signatures grouped by file) answers correctly; the ungrounded arm must guess. Task ids `call-` → `fact-`; 100 real-symbol tasks; a regression test pins the methodology. Run: `npm run benchmark:llm-ablation -- --runs 5 --save`.
+
+---
+
 ## [7.23.0] — 2026-06-19
 
 Minor release — make the §9 LLM ablation produce a statistically stable number.
