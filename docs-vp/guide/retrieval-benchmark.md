@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-06-19 (v7.24.0)**
+Latest saved run: **2026-06-19 (v7.24.2)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **76% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 

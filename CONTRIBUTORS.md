@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.24.2)
+- **@manojmallick** — docs: surface the StarMapper stargazer map (517 stars · 37 countries) — README badge + Support link, docs community link, README-structure test (#360, PR #361)
+
 ### Recent Contributors (v7.24.1)
 - **@manojmallick** — docs: publish the first measured §9 grounding result (`version.json` `ablation`) — 5×100 repo-fact tasks on Gemini: grounding cut flagged codebase-fact errors from 99.8 [99–100] to 0.2 [0–1] per 100 (factual-recall grounding)
 

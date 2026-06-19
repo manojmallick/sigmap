@@ -22,7 +22,7 @@ head:
 
 Sixty-eight versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 1,174 tests passing · 15 MCP tools · 31 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 1,175 tests passing · 15 MCP tools · 31 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v7.24.2 — StarMapper stargazer map in the docs ✓ (2026-06-19)
+
+**Patch release — surface the community.** SigMap has 517 stars across 37 countries; the [StarMapper map](https://starmapper.bruniaux.com/manojmallick/sigmap) visualizes where. This release adds a StarMapper badge to the README badge row, a "stargazers around the world" link in Support, and a community link on the docs site. StarMapper is a client-rendered SPA with no verifiable badge endpoint, so a reliable shields.io static badge links to the map rather than embedding an unverifiable image; a README-structure test pins the URL.
+
+**Tags:** `docs` · `starmapper` · `community` · `badge`
+
+**Impact:** docs-only; +1 test (1,175 passing).
 
 ---
 

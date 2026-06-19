@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-06-19 (v7.24.0)** — Now includes R language support (ggplot2, dplyr, shiny)
+Latest saved run: **2026-06-19 (v7.24.2)** — Now includes R language support (ggplot2, dplyr, shiny)
 
 This page answers the question people care about most:
 

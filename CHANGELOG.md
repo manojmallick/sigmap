@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.24.2] — 2026-06-19
+
+Patch release — surface the StarMapper stargazer map in the docs.
+
+### Added
+- **StarMapper stargazer-map badge + link (#360):** the README badge row gains a StarMapper badge and the Support section a "stargazers around the world" link; the docs site adds a community link — all pointing to the [StarMapper map](https://starmapper.bruniaux.com/manojmallick/sigmap) (517 stars across 37 countries). StarMapper is a client-rendered SPA with no verifiable badge endpoint, so a reliable shields.io static badge links to the map rather than embedding an unverifiable image. A README-structure test pins the StarMapper URL.
+
+---
+
 ## [7.24.1] — 2026-06-19
 
 Patch release — publish the first measured §9 grounding result.

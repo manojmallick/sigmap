@@ -1,5 +1,5 @@
 {
-  "version": "7.24.1",
+  "version": "7.24.2",
   "benchmark_date": "2026-06-19",
   "benchmark_id": "sigmap-v7.0-main",
   "languages": 31,
@@ -26,9 +26,15 @@
     "tasks": 100,
     "runs": 5,
     "without_grounding_per_100_mean": 99.8,
-    "without_grounding_per_100_range": [99, 100],
+    "without_grounding_per_100_range": [
+      99,
+      100
+    ],
     "with_grounding_per_100_mean": 0.2,
-    "with_grounding_per_100_range": [0, 1],
+    "with_grounding_per_100_range": [
+      0,
+      1
+    ],
     "reduction_per_100_mean": 99.6,
     "note": "Factual-recall grounding: 'which file defines <name>?' The grounded arm is given exact signatures grouped by file; the ungrounded arm has no repo knowledge and fabricates a plausible-but-wrong path. Measures faithful use of provided context, not generative code correctness."
   }
