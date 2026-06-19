@@ -154,6 +154,17 @@ test('aggregateRuns: single run mean equals that run', () => {
   assert.strictEqual(a.deltaPer100.mean, 10);
 });
 
+// ── corpus shape (fact questions, not code-writing) ─────────────────────────
+test('corpus: checkable repo-fact questions — no example-code tasks', () => {
+  const corpus = JSON.parse(fs.readFileSync(path.join(ROOT, 'benchmarks', 'llm-ablation-tasks.json'), 'utf8'));
+  const tasks = corpus.tasks || [];
+  assert.ok(tasks.length >= 40, `expected a sizeable corpus, got ${tasks.length}`);
+  assert.ok(tasks.every((t) => /^fact-/.test(t.id)), 'all ids use the fact- prefix');
+  assert.ok(tasks.every((t) => /full repository path/.test(t.prompt)), 'every prompt asks for the file path (a checkable claim)');
+  assert.ok(tasks.every((t) => /do not write illustrative or example code/.test(t.prompt)), 'every prompt forbids example scaffolding');
+  assert.ok(!tasks.some((t) => /requires .* and calls its/.test(t.prompt)), 'no legacy "write an example" tasks remain');
+});
+
 // ── script (skip path) ──────────────────────────────────────────────────────
 test('script: exits 0 with guidance when no API key is set', () => {
   const env = { ...process.env };
