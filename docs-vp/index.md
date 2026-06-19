@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.24.0</span>
+  <span><strong>Release:</strong> v7.24.1</span>
   <span>·</span>
-  <span>§9 ablation corpus redesigned as checkable repo-fact questions ("which file defines <code>X</code>?") — a wrong path is an unambiguous hallucination and example code is forbidden, so the metric isolates grounding instead of guard precision</span>
+  <span>First measured §9 grounding result — with exact-signature grounding, fabricated file-location claims fell from <strong>99.8 → 0.2 per 100</strong> (5×100 repo-fact tasks, Gemini); factual-recall grounding</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>

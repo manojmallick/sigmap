@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.24.1] — 2026-06-19
+
+Patch release — publish the first measured §9 grounding result.
+
+### Added
+- **§9 grounding result published (`version.json` `ablation`):** the first averaged §9 LLM A/B ablation on the fact-question corpus (v7.24.0) — 5 runs × 100 repo-fact tasks, Gemini `gemini-2.5-flash`. With SigMap's exact-signature grounding, flagged codebase-fact errors fell from **99.8 [99–100]** to **0.2 [0–1]** per 100 outputs (mean delta **99.6**). The ungrounded model, with no repo knowledge, fabricates a plausible-but-wrong file path on essentially every task (`src/sigmap/utils.py`, `src/sigmap/extract.py`, …); the grounded model — given exact signatures grouped by file — states the correct path. This measures **factual-recall grounding** (faithful use of provided context), not generative code correctness. Recorded under a new `ablation` block in `version.json`, separate from the retrieval/token/task metrics.
+
+---
+
 ## [7.24.0] — 2026-06-19
 
 Minor release — redesign the §9 ablation corpus so it measures grounding, not guard precision.
