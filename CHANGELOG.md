@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.23.0] — 2026-06-19
+
+Minor release — make the §9 LLM ablation produce a statistically stable number.
+
+### Added
+- **§9 ablation: `--runs N` averaging + 100-task corpus (#353):** the cleaned-guard §9 result is directionally clear (grounding cuts flagged codebase-fact errors ~13 → 3 per 100) but at N=40 with single-digit raw counts a single pass is noisy. `scripts/run-llm-ablation.mjs` gains `--runs N` (default 1) that runs the full task set N times with **fresh model calls per pass** and prints a mean ± [min–max] summary; `src/eval/llm-ablation.js` adds a pure, unit-tested `aggregateRuns(aggregates[])` (mean/min/max of without/with per-100 and delta). The committed corpus (`benchmarks/llm-ablation-tasks.json`) expands from 40 to **100** real-symbol tasks (`gen-ablation-corpus.mjs` default 40 → 100) for a tighter single-run estimate. The network touch stays confined to `scripts/`; the offline harness is unchanged. Run the robust headline with `npm run benchmark:llm-ablation -- --runs 5 --save`.
+
+---
+
 ## [7.22.2] — 2026-06-19
 
 Patch release — clears the two remaining `verify-ai-output` false-positive classes surfaced by the §9 ablation.

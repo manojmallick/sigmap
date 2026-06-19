@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.22.2</span>
+  <span><strong>Release:</strong> v7.23.0</span>
   <span>·</span>
-  <span>Cleared the last <code>verify-ai-output</code> false-positive classes — camelCase placeholders (<code>myExample.js</code>) and doc-placeholder imports (<code>@scope/utils</code>, <code>some-module</code>); on the §9 outputs this lifts the grounding delta from +2 to +9</span>
+  <span>Robust §9 ablation — <code>--runs N</code> averages repeated passes (mean ± range) and the corpus grows to 100 real-symbol tasks, so one command yields a statistically stable grounding number (cleaned-guard run: ~13 → 3 flagged errors per 100)</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-06-19 (v7.22.2)**.
+Latest saved benchmark run: **2026-06-19 (v7.23.0)**.
 
 </div>
 

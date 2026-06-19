@@ -32,6 +32,177 @@ function __require(key) {
 // ── ./src/conventions/report ──
 // ── ./src/conventions/ci ──
 // ── ./src/eval/llm-ablation ──
+__factories["./src/eval/llm-ablation"] = function(module, exports) {
+  
+  /**
+   * LLM A/B hallucination ablation (IMPL.md §9) — the honest measurement.
+   *
+   * Runs a model twice per task — (A) no SigMap context, (B) with SigMap
+   * grounding — pipes both outputs through the hallucination guard, and reports
+   * the measured delta in flagged codebase-fact errors. The model call is
+   * INJECTED (`complete(prompt) → text`), so the harness itself is pure and
+   * offline-testable; the live model adapter lives in `scripts/run-llm-ablation.mjs`.
+   * Zero-dependency, bundle-safe (no network here).
+   */
+
+  const { verify } = __require('./src/verify/hallucination-guard');
+
+  const path = require('path');
+
+  /** Strip a signature's trailing line anchor (` :12-20`) for prompt cleanliness. */
+  function _cleanSig(sig) {
+    return String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim();
+  }
+
+  /**
+   * Build the SigMap grounding block for a repo — what we prepend to a task
+   * prompt in arm B. Conventions (the house style) + **exact signatures** grouped
+   * by file (what `get_callee_signatures` returns), so the model references the
+   * real surface instead of guessing — the actual product behavior, not a flat
+   * name dump.
+   * @param {string} cwd
+   * @param {object} [opts]
+   * @param {number} [opts.maxSignatures=150] cap on signature lines (bounds prompt size)
+   * @returns {string}
+   */
+  function buildGrounding(cwd, opts = {}) {
+    const maxSignatures = opts.maxSignatures != null ? opts.maxSignatures : 150;
+    const parts = [];
+
+    let index = null;
+    try {
+      const { buildSigIndex } = __require('./src/retrieval/ranker');
+      index = buildSigIndex(cwd);
+    } catch (_) {}
+
+    try {
+      const { extractConventions } = __require('./src/conventions/extract');
+      const { renderConventionsBlock } = __require('./src/conventions/inject');
+      const files = index ? [...index.keys()] : [];
+      parts.push(renderConventionsBlock(extractConventions(cwd, files)));
+    } catch (_) {}
+
+    if (index) {
+      const lines = ['## Exact signatures (use these — do not invent symbols or paths)'];
+      let count = 0;
+      for (const [file, sigs] of index) {
+        if (count >= maxSignatures) break;
+        const rel = path.relative(cwd, file).replace(/\\/g, '/');
+        const clean = (sigs || []).map(_cleanSig).filter(Boolean);
+        if (!clean.length) continue;
+        lines.push(`### ${rel}`);
+        for (const s of clean) {
+          if (count >= maxSignatures) break;
+          lines.push(s);
+          count++;
+        }
+      }
+      if (count > 0) parts.push(lines.join('\n'));
+    }
+
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Score an answer: flagged codebase-fact errors + the issue list (the §9 metric).
+   * @param {string} answerText
+   * @param {string} cwd
+   * @returns {{ total: number, issues: object[] }}
+   */
+  function scoreAnswerDetail(answerText, cwd) {
+    try {
+      const { issues, summary } = verify(String(answerText || ''), cwd);
+      return { total: summary.total || 0, issues: issues || [] };
+    } catch (_) {
+      return { total: 0, issues: [] };
+    }
+  }
+
+  /** Count flagged codebase-fact errors in an answer (the §9 metric). */
+  function scoreAnswer(answerText, cwd) {
+    return scoreAnswerDetail(answerText, cwd).total;
+  }
+
+  /**
+   * Run the A/B ablation over a task corpus.
+   * @param {Array<{id:string, prompt:string}>} tasks
+   * @param {string} cwd
+   * @param {(prompt:string, meta:object)=>string} complete injected model call
+   * @param {object} [opts]
+   * @param {string} [opts.grounding] precomputed grounding (else built from cwd)
+   * @param {boolean} [opts.collectIssues] attach `aIssues`/`bIssues` per task
+   * @returns {{ tasks: object[], aggregate: object }}
+   */
+  function runAblation(tasks, cwd, complete, opts = {}) {
+    const grounding = opts.grounding != null ? opts.grounding : buildGrounding(cwd);
+    const rows = [];
+    let sumA = 0;
+    let sumB = 0;
+
+    for (const task of tasks || []) {
+      const basePrompt = task.prompt || '';
+      const groundedPrompt = grounding ? `${grounding}\n\n---\n\n${basePrompt}` : basePrompt;
+
+      const outA = String(complete(basePrompt, { id: task.id, grounded: false }) || '');
+      const outB = String(complete(groundedPrompt, { id: task.id, grounded: true }) || '');
+
+      const a = scoreAnswerDetail(outA, cwd);
+      const b = scoreAnswerDetail(outB, cwd);
+      sumA += a.total;
+      sumB += b.total;
+      const row = { id: task.id, aFlagged: a.total, bFlagged: b.total };
+      if (opts.collectIssues) { row.aIssues = a.issues; row.bIssues = b.issues; }
+      rows.push(row);
+    }
+
+    const n = rows.length;
+    const per100 = (sum) => (n > 0 ? (sum / n) * 100 : 0);
+    return {
+      tasks: rows,
+      aggregate: {
+        n,
+        withoutFlagged: sumA,
+        withFlagged: sumB,
+        delta: sumA - sumB,
+        withoutPer100: per100(sumA),
+        withPer100: per100(sumB),
+      },
+    };
+  }
+
+  /** mean/min/max of a number list (0s for an empty list). */
+  function _stats(nums) {
+    if (!nums.length) return { mean: 0, min: 0, max: 0 };
+    const sum = nums.reduce((a, b) => a + b, 0);
+    return { mean: sum / nums.length, min: Math.min(...nums), max: Math.max(...nums) };
+  }
+
+  /**
+   * Aggregate several `runAblation` passes into a stable estimate — mean ± range
+   * of the without/with per-100 flag rates and their delta. At N=40 with tiny raw
+   * counts a single pass is noisy; averaging repeated passes gives a publishable
+   * number with an honest spread.
+   * @param {object[]} aggregates the `.aggregate` object from each runAblation pass
+   * @returns {{ runs:number, n:number, withoutPer100:object, withPer100:object, deltaPer100:object }}
+   */
+  function aggregateRuns(aggregates) {
+    const runs = (aggregates || []).filter(Boolean);
+    const without = runs.map((a) => a.withoutPer100);
+    const withG = runs.map((a) => a.withPer100);
+    const delta = runs.map((a) => a.withoutPer100 - a.withPer100);
+    return {
+      runs: runs.length,
+      n: runs.length ? runs[0].n : 0,
+      withoutPer100: _stats(without),
+      withPer100: _stats(withG),
+      deltaPer100: _stats(delta),
+    };
+  }
+
+  module.exports = { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation, aggregateRuns };
+  
+};
+
 // ── ./src/conventions/fix ──
 // ── ./src/conventions/update ──
 // ── ./src/scaffold/persist ──
@@ -7931,7 +8102,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '7.22.2',
+    version: '7.23.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -13634,7 +13805,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '7.22.2';
+const VERSION = '7.23.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

@@ -7,7 +7,7 @@
  * Deterministic (index order + a fixed stride), so re-running is reproducible.
  *
  *   node scripts/gen-ablation-corpus.mjs            # write benchmarks/llm-ablation-tasks.json
- *   node scripts/gen-ablation-corpus.mjs --count 40
+ *   node scripts/gen-ablation-corpus.mjs --count 100
  */
 
 import fs from 'fs';
@@ -21,7 +21,7 @@ const ROOT = path.resolve(__dirname, '..');
 const { buildSigIndex } = require(path.join(ROOT, 'src/retrieval/ranker.js'));
 
 const countIdx = process.argv.indexOf('--count');
-const COUNT = countIdx !== -1 && process.argv[countIdx + 1] ? parseInt(process.argv[countIdx + 1], 10) : 40;
+const COUNT = countIdx !== -1 && process.argv[countIdx + 1] ? parseInt(process.argv[countIdx + 1], 10) : 100;
 
 /** Pull the function/def name out of a signature string. */
 function fnName(sig) {

@@ -19,6 +19,7 @@
  *   GEMINI_API_KEY=...        node scripts/run-llm-ablation.mjs            # AI Studio key
  *   GEMINI_API_KEY=...        node scripts/run-llm-ablation.mjs --save --model gemini-2.5-pro
  *   GEMINI_API_KEY=...        node scripts/run-llm-ablation.mjs --verbose   # print flagged items per arm
+ *   GEMINI_API_KEY=...        node scripts/run-llm-ablation.mjs --runs 5    # average 5 passes (mean ± range)
  *
  * Without any API key it prints guidance and exits 0 (skip — never fails CI).
  */
@@ -31,13 +32,14 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const { runAblation, buildGrounding } = require(path.join(ROOT, 'src/eval/llm-ablation.js'));
+const { runAblation, buildGrounding, aggregateRuns } = require(path.join(ROOT, 'src/eval/llm-ablation.js'));
 
 const argv = process.argv;
 const flag = (name) => { const i = argv.indexOf(name); return i !== -1 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : null; };
 const save = argv.includes('--save');
 const verbose = argv.includes('--verbose');
 const modelArg = flag('--model');
+const RUNS = Math.max(1, parseInt(flag('--runs') || '1', 10));
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -104,22 +106,51 @@ async function main() {
   const liveComplete = COMPLETERS[provider];
   if (!liveComplete) { console.error(`[llm-ablation] unknown provider: ${provider}`); process.exit(1); }
 
-  console.log(`SigMap LLM A/B ablation — ${provider}/${MODEL}, ${tasks.length} tasks (2 calls each)\n`);
+  const callsPerRun = tasks.length * 2;
+  console.log(`SigMap LLM A/B ablation — ${provider}/${MODEL}, ${tasks.length} tasks × ${RUNS} run${RUNS > 1 ? 's' : ''} (${callsPerRun * RUNS} model calls)\n`);
 
-  // Pre-fill a cache so the injected (sync) completer can serve both arms.
-  const cache = new Map();
-  const complete = (prompt) => cache.get(prompt);
   const grounding = buildGrounding(ROOT);
-  for (const t of tasks) {
-    const grounded = grounding ? `${grounding}\n\n---\n\n${t.prompt}` : t.prompt;
-    for (const p of [t.prompt, grounded]) {
-      if (!cache.has(p)) { process.stdout.write(`  · calling model (${t.id})…\n`); cache.set(p, await liveComplete(p)); }
+  const results = [];
+  for (let run = 1; run <= RUNS; run++) {
+    if (RUNS > 1) console.log(`\n=== run ${run}/${RUNS} ===`);
+    // Fresh model calls per run — model nondeterminism is the whole point of averaging.
+    const cache = new Map();
+    for (const t of tasks) {
+      const grounded = grounding ? `${grounding}\n\n---\n\n${t.prompt}` : t.prompt;
+      for (const p of [t.prompt, grounded]) {
+        if (!cache.has(p)) { process.stdout.write(`  · run ${run} calling model (${t.id})…\n`); cache.set(p, await liveComplete(p)); }
+      }
     }
+    const complete = (prompt) => cache.get(prompt);
+    const result = runAblation(tasks, ROOT, complete, { grounding, collectIssues: verbose });
+    results.push(result);
+    printRun(result);
   }
 
-  const result = runAblation(tasks, ROOT, complete, { grounding, collectIssues: verbose });
-  const a = result.aggregate;
+  if (RUNS > 1) {
+    const agg = aggregateRuns(results.map((r) => r.aggregate));
+    const band = (s) => `${s.mean.toFixed(1)} [${s.min.toFixed(0)}–${s.max.toFixed(0)}]`;
+    console.log(`\n  ${'═'.repeat(46)}`);
+    console.log(`  AVERAGE over ${agg.runs} runs (${agg.n} tasks each), flagged errors per 100 outputs:`);
+    console.log(`    without grounding: ${band(agg.withoutPer100)}`);
+    console.log(`    with    grounding: ${band(agg.withPer100)}`);
+    console.log(`    delta (fewer with grounding): ${band(agg.deltaPer100)}`);
+  }
 
+  if (save) {
+    const out = path.join(ROOT, 'benchmarks', 'reports', 'llm-ablation.json');
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    const payload = RUNS > 1
+      ? { benchmark: 'llm-ablation', provider, model: MODEL, runs: results, summary: aggregateRuns(results.map((r) => r.aggregate)) }
+      : { benchmark: 'llm-ablation', provider, model: MODEL, ...results[0] };
+    fs.writeFileSync(out, JSON.stringify(payload, null, 2));
+    console.log(`\n  saved → benchmarks/reports/llm-ablation.json`);
+  }
+}
+
+/** Print one run's per-task table, headline delta, and (verbose) flagged items. */
+function printRun(result) {
+  const a = result.aggregate;
   console.log(`\n  ${'Task'.padEnd(30)} without  with`);
   console.log('  ' + '─'.repeat(46));
   for (const r of result.tasks) {
@@ -143,13 +174,6 @@ async function main() {
     } else {
       console.log('\n  (verbose) no flagged items in either arm.');
     }
-  }
-
-  if (save) {
-    const out = path.join(ROOT, 'benchmarks', 'reports', 'llm-ablation.json');
-    fs.mkdirSync(path.dirname(out), { recursive: true });
-    fs.writeFileSync(out, JSON.stringify({ benchmark: 'llm-ablation', provider, model: MODEL, ...result }, null, 2));
-    console.log(`\n  saved → benchmarks/reports/llm-ablation.json`);
   }
 }
 

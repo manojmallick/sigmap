@@ -13,7 +13,7 @@ const { spawnSync, execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const SCRIPT = path.join(ROOT, 'scripts', 'run-llm-ablation.mjs');
-const { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation } = require(path.join(ROOT, 'src/eval/llm-ablation'));
+const { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation, aggregateRuns } = require(path.join(ROOT, 'src/eval/llm-ablation'));
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -117,6 +117,41 @@ test('runAblation: calls completer twice per task (ungrounded + grounded)', () =
     runAblation([{ id: 'a', prompt: 'x' }, { id: 'b', prompt: 'y' }], dir, complete, { grounding: 'G' });
     assert.strictEqual(calls, 4, 'two tasks × two arms = 4 calls');
   });
+});
+
+// ── aggregateRuns ───────────────────────────────────────────────────────────
+test('aggregateRuns: mean/min/max across runs for without, with, and delta', () => {
+  const runs = [
+    { n: 40, withoutPer100: 13, withPer100: 3 },  // delta 10
+    { n: 40, withoutPer100: 15, withPer100: 5 },  // delta 10
+    { n: 40, withoutPer100: 11, withPer100: 2 },  // delta 9
+  ];
+  const a = aggregateRuns(runs);
+  assert.strictEqual(a.runs, 3);
+  assert.strictEqual(a.n, 40);
+  assert.strictEqual(a.withoutPer100.mean, 13);
+  assert.strictEqual(a.withoutPer100.min, 11);
+  assert.strictEqual(a.withoutPer100.max, 15);
+  assert.strictEqual(a.withPer100.mean, (3 + 5 + 2) / 3);
+  assert.strictEqual(a.deltaPer100.min, 9);
+  assert.strictEqual(a.deltaPer100.max, 10);
+});
+test('aggregateRuns: empty input is zeroed, not NaN', () => {
+  const a = aggregateRuns([]);
+  assert.strictEqual(a.runs, 0);
+  assert.strictEqual(a.n, 0);
+  for (const k of ['withoutPer100', 'withPer100', 'deltaPer100']) {
+    assert.strictEqual(a[k].mean, 0);
+    assert.strictEqual(a[k].min, 0);
+    assert.strictEqual(a[k].max, 0);
+  }
+});
+test('aggregateRuns: single run mean equals that run', () => {
+  const a = aggregateRuns([{ n: 100, withoutPer100: 13, withPer100: 3 }]);
+  assert.strictEqual(a.runs, 1);
+  assert.strictEqual(a.withoutPer100.mean, 13);
+  assert.strictEqual(a.withPer100.mean, 3);
+  assert.strictEqual(a.deltaPer100.mean, 10);
 });
 
 // ── script (skip path) ──────────────────────────────────────────────────────

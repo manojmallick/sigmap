@@ -136,4 +136,33 @@ function runAblation(tasks, cwd, complete, opts = {}) {
   };
 }
 
-module.exports = { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation };
+/** mean/min/max of a number list (0s for an empty list). */
+function _stats(nums) {
+  if (!nums.length) return { mean: 0, min: 0, max: 0 };
+  const sum = nums.reduce((a, b) => a + b, 0);
+  return { mean: sum / nums.length, min: Math.min(...nums), max: Math.max(...nums) };
+}
+
+/**
+ * Aggregate several `runAblation` passes into a stable estimate — mean ± range
+ * of the without/with per-100 flag rates and their delta. At N=40 with tiny raw
+ * counts a single pass is noisy; averaging repeated passes gives a publishable
+ * number with an honest spread.
+ * @param {object[]} aggregates the `.aggregate` object from each runAblation pass
+ * @returns {{ runs:number, n:number, withoutPer100:object, withPer100:object, deltaPer100:object }}
+ */
+function aggregateRuns(aggregates) {
+  const runs = (aggregates || []).filter(Boolean);
+  const without = runs.map((a) => a.withoutPer100);
+  const withG = runs.map((a) => a.withPer100);
+  const delta = runs.map((a) => a.withoutPer100 - a.withPer100);
+  return {
+    runs: runs.length,
+    n: runs.length ? runs[0].n : 0,
+    withoutPer100: _stats(without),
+    withPer100: _stats(withG),
+    deltaPer100: _stats(delta),
+  };
+}
+
+module.exports = { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation, aggregateRuns };
