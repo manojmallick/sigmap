@@ -64,9 +64,17 @@ test('version.json: retrieval_lift field exists and is a number >= 5', () => {
     `expected retrieval_lift >= 5, got ${v.metrics.retrieval_lift}`);
 });
 
-test('version.json: languages is 31', () => {
+test('version.json: languages is a derived positive integer (>= 31)', () => {
+  // Derived from src/extractors (Trust Hygiene H3) — not a hand-pinned literal.
+  // The version-meta gate (test/integration/version-meta.test.js) enforces the
+  // exact value; here we only assert it stays a sane positive count.
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.languages, 31);
+  assert.ok(Number.isInteger(v.languages) && v.languages >= 31, `languages=${v.languages}`);
+});
+
+test('version.json: extractors field is derived (>= languages)', () => {
+  const v = JSON.parse(readRoot('version.json'));
+  assert.ok(Number.isInteger(v.extractors) && v.extractors >= v.languages, `extractors=${v.extractors}`);
 });
 
 test('version.json: mcp_tools is 15', () => {

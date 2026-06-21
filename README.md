@@ -48,11 +48,13 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 ## Why SigMap?
 
+<!--SM:whyMetrics-->
 - **75.6% hit@5** — right file found in top 5 results (vs 13.6% baseline)
 - **97.0% token reduction** — average across 21 real repos
 - **52.2% task success rate** — up from 10% without context
 - **1.72 prompts per task** — down from 2.84 (39.4% fewer retries)
-- **31 languages supported** — TypeScript, Python, Go, Rust, Java, R, and 25 others
+<!--/SM:whyMetrics-->
+- **<!--SM:languages-->33<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
@@ -64,7 +66,7 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 | Without SigMap | With SigMap |
 |---|---|
-| ❌ Guessing which files are relevant | ✅ Right file in context — 76% of the time |
+| ❌ Guessing which files are relevant | ✅ Right file in context — <!--SM:hitWhole-->76%<!--/SM:hitWhole--> of the time |
 | ❌ Sending the full repo to your AI | ✅ Minimal context — only what matters |
 | ❌ Embeddings / vector DB required | ✅ Grounded answers, no infra needed |
 
@@ -87,9 +89,10 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 ## Benchmark
 
+<!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v7.0-main (21 repositories, including R language)
-Date      : 2026-06-19
+Benchmark : sigmap-v7.25-main (21 repositories, including R language)
+Date      : 2026-06-21
 
 Hit@5          : 75.6%   (baseline 13.6%  — 5.6× lift)
 Token reduction: 97.0%   (across 21 repos)
@@ -97,6 +100,9 @@ Prompt reduction : 39.4% (2.84 → 1.72 prompts per task)
 Task success   : 52.2%   (baseline 10%)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
+<!--/SM:benchmarkBlock-->
+
+<sub>All numbers above are generated from `benchmarks/latest.json` (`npm run metrics:sync`) — never hand-typed.</sub>
 
 Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.
 
@@ -234,7 +240,7 @@ sigmap --health
 | Benchmark methodology | [benchmark.html](https://sigmap.io/guide/benchmark.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
-| 31 languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
+| <!--SM:languages-->33<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
 
 ---
 
@@ -289,7 +295,7 @@ See [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the
 
 ---
 
-## 31 languages
+## <!--SM:languages-->33<!--/SM:languages--> languages
 
 TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
 

@@ -22,6 +22,7 @@ import { spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { tagline, solves, projectDescription, doesNotDo, compliance, positioning } from './llms-manual.mjs';
+import { deriveLanguages } from './lib/source-meta.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -32,13 +33,12 @@ const pct = (n, d = 1) => `${Number(n).toFixed(d)}%`;
 function gather() {
   const pkg = require(path.join(ROOT, 'package.json'));
   const version = require(path.join(ROOT, 'version.json'));
+  const latest = require(path.join(ROOT, 'benchmarks/latest.json'));
   const { TOOLS } = require(path.join(ROOT, 'src/mcp/tools.js'));
   const { DEFAULTS } = require(path.join(ROOT, 'src/config/defaults.js'));
 
-  const HELPERS = new Set(['line-anchor', 'deps', 'coverage', 'patterns', 'python_ast', 'python_dataclass', 'todos', 'prdiff']);
-  const languages = fs.readdirSync(path.join(ROOT, 'src/extractors'))
-    .filter((f) => f.endsWith('.js')).map((f) => f.replace(/\.js$/, ''))
-    .filter((n) => !HELPERS.has(n)).sort();
+  // Single derivation shared with the version.json gate so the count never diverges.
+  const languages = deriveLanguages(ROOT);
 
   const ADAPTER_HELPERS = new Set(['index', 'llm-full']);
   const adapters = fs.readdirSync(path.join(ROOT, 'packages/adapters'))
@@ -56,23 +56,23 @@ function gather() {
   const repo = String((pkg.repository && pkg.repository.url) || 'https://github.com/manojmallick/sigmap')
     .replace(/^git\+/, '').replace(/\.git$/, '');
   const home = pkg.homepage || 'https://sigmap.io/';
-  return { pkg, version, TOOLS, DEFAULTS, languages, adapters, helpLines, repo, home };
+  return { pkg, version, latest, TOOLS, DEFAULTS, languages, adapters, helpLines, repo, home };
 }
 
 function stamp(d) {
   return [
-    `# Version: ${d.pkg.version} | Benchmark: ${d.version.benchmark_id} (${d.version.benchmark_date})`,
-    '# Source: auto-generated from package.json, version.json, src/mcp/tools.js, src/config/defaults.js',
+    `# Version: ${d.pkg.version} | Benchmark: ${d.latest.benchmark_id} (${d.latest.benchmark_date})`,
+    '# Source: auto-generated from package.json, version.json, benchmarks/latest.json, src/mcp/tools.js, src/config/defaults.js',
     '# Regenerate: npm run generate:llms   |   Validate: npm run validate:llms',
   ].join('\n');
 }
 
 function metricsBullets(d) {
-  const m = d.version.metrics;
+  const m = d.latest.metrics;
   return [
-    `## Core metrics (benchmark: ${d.version.benchmark_id}, ${d.version.benchmark_date})`,
+    `## Core metrics (benchmark: ${d.latest.benchmark_id}, ${d.latest.benchmark_date})`,
     '',
-    `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)} vs ${pct(m.baseline_hit_at_5 * 100)} random baseline (${m.retrieval_lift}× lift)`,
+    `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)} vs ${pct(m.baseline_hit_at_5 * 100)} random baseline (${Number(m.retrieval_lift).toFixed(1)}× lift)`,
     `- Token reduction: ${pct(m.overall_token_reduction_pct)} average across benchmark repos`,
     `- Task success: ${pct(m.task_success_proxy_pct)} vs 10% without SigMap`,
     `- Prompts per task: ${m.prompts_per_task} vs ${m.baseline_prompts_per_task} baseline (${pct(m.prompt_reduction_pct)} fewer)`,
@@ -82,13 +82,13 @@ function metricsBullets(d) {
 }
 
 function metricsTable(d) {
-  const m = d.version.metrics;
+  const m = d.latest.metrics;
   return [
-    `## Core metrics (benchmark: ${d.version.benchmark_id}, ${d.version.benchmark_date})`,
+    `## Core metrics (benchmark: ${d.latest.benchmark_id}, ${d.latest.benchmark_date})`,
     '',
     '| Metric | Without SigMap | With SigMap |',
     '|--------|----------------|-------------|',
-    `| Retrieval hit@5 | ${pct(m.baseline_hit_at_5 * 100)} (random) | ${pct(m.hit_at_5 * 100)} (${m.retrieval_lift}× lift) |`,
+    `| Retrieval hit@5 | ${pct(m.baseline_hit_at_5 * 100)} (random) | ${pct(m.hit_at_5 * 100)} (${Number(m.retrieval_lift).toFixed(1)}× lift) |`,
     `| Token reduction | — | ${pct(m.overall_token_reduction_pct)} average |`,
     `| Task success proxy | 10% | ${pct(m.task_success_proxy_pct)} |`,
     `| Prompts per task | ${m.prompts_per_task < m.baseline_prompts_per_task ? m.baseline_prompts_per_task : '—'} | ${m.prompts_per_task} (${pct(m.prompt_reduction_pct)} fewer) |`,

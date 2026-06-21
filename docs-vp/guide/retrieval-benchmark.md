@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v7.0.0. 76% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v7.25.0. 76% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v7.0.0 benchmark snapshot
-**Benchmark ID:** sigmap-v7.0-main &nbsp;·&nbsp; **Date:** 2026-06-19 (with R language)
+::: info Official v7.25.0 benchmark snapshot
+**Benchmark ID:** sigmap-v7.25-main &nbsp;·&nbsp; **Date:** 2026-06-21 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-06-19 (v7.24.2)**
+Latest saved run: **2026-06-21 (v7.25.0)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **76% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 

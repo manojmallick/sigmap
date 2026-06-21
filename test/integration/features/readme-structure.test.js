@@ -27,6 +27,10 @@ function test(name, fn) {
 
 const src = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
 const versionMeta = JSON.parse(fs.readFileSync(path.join(ROOT, 'version.json'), 'utf8'));
+const M = versionMeta.metrics;
+// Metrics are derived from benchmarks/latest.json (Trust Hygiene H1) — assert
+// against the single source of truth, never against hand-typed literals.
+const pct1 = (n) => `${Number(n).toFixed(1)}%`;
 
 console.log('\nv5.9.1 README conversion tests\n');
 
@@ -69,16 +73,16 @@ test('what-it-is: short explanation present', () => {
 
 // ── Section 4: Why SigMap ─────────────────────────────────────────────────────
 
-test('why: 75.6% hit@5 mentioned', () => {
-  assert.ok(src.includes('75.6%'), 'missing 75.6% hit@5');
+test('why: hit@5 (from version.json) mentioned', () => {
+  assert.ok(src.includes(pct1(M.hit_at_5 * 100)), `missing ${pct1(M.hit_at_5 * 100)} hit@5`);
 });
 
-test('why: 13.6% baseline mentioned', () => {
-  assert.ok(src.includes('13.6%'), 'missing 13.6% baseline');
+test('why: baseline (from version.json) mentioned', () => {
+  assert.ok(src.includes(pct1(M.baseline_hit_at_5 * 100)), `missing ${pct1(M.baseline_hit_at_5 * 100)} baseline`);
 });
 
-test('why: token reduction 97.0% mentioned', () => {
-  assert.ok(src.includes('97.0%'), 'missing 97.0% token reduction');
+test('why: token reduction (from version.json) mentioned', () => {
+  assert.ok(src.includes(pct1(M.overall_token_reduction_pct)), `missing ${pct1(M.overall_token_reduction_pct)} token reduction`);
 });
 
 // ── Section 5: Replace section ────────────────────────────────────────────────
@@ -130,28 +134,28 @@ test('community: StarMapper stargazer-map link present', () => {
 
 // ── Section 7: Benchmark ─────────────────────────────────────────────────────
 
-test('benchmark: sigmap-v7.0-main ID present', () => {
-  assert.ok(src.includes('sigmap-v7.0-main'), 'missing sigmap-v7.0-main benchmark ID');
+test('benchmark: benchmark_id (from version.json) present', () => {
+  assert.ok(src.includes(versionMeta.benchmark_id), `missing ${versionMeta.benchmark_id} benchmark ID`);
 });
 
 test('benchmark: version.json benchmark_date present', () => {
   assert.ok(src.includes(versionMeta.benchmark_date), `missing benchmark date ${versionMeta.benchmark_date}`);
 });
 
-test('benchmark: Hit@5 75.6% present', () => {
-  assert.ok(src.includes('75.6%'), 'missing Hit@5 75.6%');
+test('benchmark: Hit@5 (from version.json) present', () => {
+  assert.ok(src.includes(pct1(M.hit_at_5 * 100)), `missing Hit@5 ${pct1(M.hit_at_5 * 100)}`);
 });
 
-test('benchmark: baseline 13.6% present', () => {
-  assert.ok(src.includes('13.6%'), 'missing baseline 13.6%');
+test('benchmark: baseline (from version.json) present', () => {
+  assert.ok(src.includes(pct1(M.baseline_hit_at_5 * 100)), `missing baseline ${pct1(M.baseline_hit_at_5 * 100)}`);
 });
 
-test('benchmark: prompt reduction 39.4% present', () => {
-  assert.ok(src.includes('39.4%'), 'missing prompt reduction 39.4%');
+test('benchmark: prompt reduction (from version.json) present', () => {
+  assert.ok(src.includes(pct1(M.prompt_reduction_pct)), `missing prompt reduction ${pct1(M.prompt_reduction_pct)}`);
 });
 
-test('benchmark: task success 52.2% present', () => {
-  assert.ok(src.includes('52.2%'), 'missing task success 52.2%');
+test('benchmark: task success (from version.json) present', () => {
+  assert.ok(src.includes(pct1(M.task_success_proxy_pct)), `missing task success ${pct1(M.task_success_proxy_pct)}`);
 });
 
 // ── Section 8: Install ────────────────────────────────────────────────────────

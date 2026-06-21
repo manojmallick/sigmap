@@ -3,12 +3,15 @@
  * check-version-meta.mjs — keep version.json's derived counts honest.
  *
  * `version.json` carries metadata that must match the source of truth:
- *   - mcp_tools : number of MCP tools (src/mcp/tools.js `TOOLS`)
- *   - tests     : number of test files (test/**\/*.test.js + tests/**\/*.py)
+ *   - languages  : user-facing language extractors (src/extractors, helpers removed)
+ *   - extractors : total extractor modules (languages + helpers)
+ *   - mcp_tools  : number of MCP tools (src/mcp/tools.js `TOOLS`)
+ *   - tests      : number of test files (test/**\/*.test.js + tests/**\/*.py)
  *
- * `languages` is intentionally NOT derived — the extractor files include
- * non-language helpers (line-anchor, prdiff, todos, deps…) and dupes, so the
- * curated language count is editorial and stays hand-maintained.
+ * All four are derived from source via scripts/lib/source-meta.mjs — the same
+ * derivation the llms.txt generator uses, so the language list can never
+ * diverge (Trust Hygiene H3). Benchmark metrics live in benchmarks/latest.json
+ * and are synced separately by scripts/sync-metrics.mjs.
  *
  * Usage:
  *   node scripts/check-version-meta.mjs        # check; exit 1 on drift
@@ -17,42 +20,24 @@
  * Zero dependencies. Wired into prepublishOnly so a stale value blocks publish.
  */
 
-import { readdirSync, readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
+import { deriveCounts } from './lib/source-meta.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const require = createRequire(import.meta.url);
-
-/** Count files under `dir` (recursive) whose name matches `re`. */
-function countFiles(dir, re) {
-  let n = 0;
-  let entries;
-  try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return 0; }
-  for (const e of entries) {
-    const full = join(dir, e.name);
-    if (e.isDirectory()) n += countFiles(full, re);
-    else if (e.isFile() && re.test(e.name)) n += 1;
-  }
-  return n;
-}
 
 /**
  * Compute the derived metadata from source.
  * @param {string} [root]
- * @returns {{ mcp_tools: number, tests: number }}
+ * @returns {{ languages: number, extractors: number, mcp_tools: number, tests: number }}
  */
 export function computeMeta(root = ROOT) {
-  const { TOOLS } = require(join(root, 'src/mcp/tools.js'));
-  const tests =
-    countFiles(join(root, 'test'), /\.test\.js$/) +
-    countFiles(join(root, 'tests'), /\.py$/);
-  return { mcp_tools: TOOLS.length, tests };
+  return deriveCounts(root);
 }
 
-/** Fields that are derived and gated. */
-const DERIVED = ['mcp_tools', 'tests'];
+/** Fields that are derived and gated, in version.json key order. */
+const DERIVED = ['languages', 'extractors', 'mcp_tools', 'tests'];
 
 function readVersionJson(root) {
   return JSON.parse(readFileSync(join(root, 'version.json'), 'utf8'));
@@ -80,15 +65,19 @@ function main() {
 
   if (drift.length === 0) {
     const m = computeMeta();
-    console.log(`✓ version.json metadata current (mcp_tools=${m.mcp_tools}, tests=${m.tests})`);
+    console.log(`✓ version.json metadata current (languages=${m.languages}, extractors=${m.extractors}, mcp_tools=${m.mcp_tools}, tests=${m.tests})`);
     return 0;
   }
 
   if (fix) {
-    // Preserve formatting/order: only rewrite the drifted numeric fields in place.
+    // Preserve formatting/order: rewrite the drifted numeric fields in place.
     let raw = readFileSync(join(ROOT, 'version.json'), 'utf8');
     for (const d of drift) {
       const re = new RegExp(`("${d.field}"\\s*:\\s*)\\d+`);
+      if (!re.test(raw)) {
+        console.error(`ERROR: version.json has no "${d.field}" field to update — add it first.`);
+        return 1;
+      }
       raw = raw.replace(re, `$1${d.expected}`);
     }
     writeFileSync(join(ROOT, 'version.json'), raw);
