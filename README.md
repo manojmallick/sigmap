@@ -169,6 +169,7 @@ volta install sigmap
 | `openai` | `.github/openai-context.md` | OpenAI API, Aider, local Ollama/llama.cpp |
 | `gemini` | `.github/gemini-context.md` | Google Gemini |
 | `codex` | `AGENTS.md` | OpenAI Codex (legacy) |
+| `willow` | _Willow MCP store (HTTP POST — no file)_ | [Willow](https://github.com/rudi193-cmd/willow-1.9) knowledge store |
 
 ```bash
 sigmap --adapter copilot   # default — works with Copilot, OpenCode
@@ -190,10 +191,27 @@ Use SigMap with open-source tools and fully self-hosted setups:
 | **JetBrains** | [Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [github.com/manojmallick/sigmap-jetbrains](https://github.com/manojmallick/sigmap-jetbrains) | IntelliJ IDEA, WebStorm, PyCharm, GoLand — tool window + actions |
 | **Neovim** | lazy.nvim / packer / vim-plug | [github.com/manojmallick/sigmap.nvim](https://github.com/manojmallick/sigmap.nvim) | `:SigMap`, `:SigMapQuery` float window, statusline widget |
 
-**MCP server** — 10 on-demand tools for Claude Code and Cursor:
+**MCP server** — 15 on-demand tools for Claude Code and Cursor:
 
 ```bash
 sigmap --mcp
+```
+
+Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+
+---
+
+## Grounded creation & guardrails
+
+Verify AI work against the live index instead of trusting it blind:
+
+```bash
+sigmap conventions                  # extract the repo's file-naming / export / test conventions
+sigmap scaffold "<name>"            # propose a convention-matched file/dir (refuses if conventions conflict)
+sigmap verify-plan <plan.md>        # check a plan: do the files/symbols exist? blast radius? scope?
+sigmap verify-ai-output <answer.md> # flag fabricated files/imports/symbols/tests in an AI answer
+sigmap review-pr                    # audit a diff: scope drift, god-node edits, missing tests, security files
+sigmap create "<task>"             # run the whole pipeline: scaffold → verify-plan → verify-ai-output → review-pr
 ```
 
 ---

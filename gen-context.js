@@ -15603,6 +15603,11 @@ Usage:
   ${cmd} verify-ai-output <answer.md>      Flag fake files/tests/imports/symbols/npm-scripts in an AI answer
   ${cmd} verify-ai-output <answer.md> --json    Hallucination report as JSON (exits 1 if issues)
   ${cmd} verify-ai-output <answer.md> --report  Write a standalone HTML report (red/amber/green)
+  ${cmd} conventions                       Extract repo file-naming/export/test conventions (--conflicts, --inject, --report, --fix)
+  ${cmd} scaffold "<name>"                 Propose a convention-matched file/dir scaffold (--ext, --threshold, --force, --json)
+  ${cmd} verify-plan <plan.md|->           Check a plan vs the live index — files/symbols exist, blast radius, scope (--json)
+  ${cmd} review-pr                         Audit a diff — scope drift, god-node edits, missing tests, security files (--staged, --json)
+  ${cmd} create "<task>"                   Grounded-creation pipeline: scaffold → verify-plan → verify-ai-output → review-pr (--staged)
   ${cmd} squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)
   ${cmd} ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
   ${cmd} ask "<query>" --no-squeeze        Disable input minimization entirely
