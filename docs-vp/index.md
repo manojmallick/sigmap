@@ -1,7 +1,7 @@
 ---
 layout: home
 title: SigMap — zero-dependency AI context engine
-description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 75.6% hit@5, 39.4% fewer prompts, 97.0% average token reduction, 31 languages with R support.
+description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 75.6% hit@5, 39.4% fewer prompts, 97.0% average token reduction, 33 languages with R support.
 head:
   - - meta
     - property: og:title
@@ -60,7 +60,7 @@ features:
     link: /guide/judge
     linkText: Workflow docs →
   - icon: 🌐
-    title: 31 languages, zero native deps
+    title: 33 languages, zero native deps
     details: TypeScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, R, GDScript, and more.
     link: /guide/languages
     linkText: Language support →
@@ -85,7 +85,7 @@ features:
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>
   <span>·</span>
-  <span>76% hit@5 · 97.0% token reduction · 2026-06-19</span>
+  <span>76% hit@5 · 97.0% token reduction · 2026-06-21</span>
 </div>
 </div>
 

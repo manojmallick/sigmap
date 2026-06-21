@@ -61,10 +61,12 @@ function test(name, fn) {
     assert.throws(() => applyTokens('no markers here', { hitWhole: '81%' }), /marker missing/);
   });
 
-  test('no stale pre-Trust-Hygiene metric survives in README', () => {
-    for (const stale of ['75.6%', '97.0%', '52.2%', '1.72 prompts', '5.6× lift', '31 languages']) {
-      assert.ok(!readme.includes(stale), `stale metric still present: ${stale}`);
-    }
+  test('the stale v7.0 benchmark id never reappears in README', () => {
+    // benchmark_id is derived from the package version now, so a hard-coded
+    // legacy id would be a real regression. (Specific metric *values* recur
+    // legitimately across runs, so they are validated by the drift gate, not
+    // by a forbidden-literal list.)
+    assert.ok(!readme.includes('sigmap-v7.0-main'), 'stale benchmark id sigmap-v7.0-main present');
   });
 
   console.log(`\nreadme-metrics: ${pass} passed, ${fail} failed`);

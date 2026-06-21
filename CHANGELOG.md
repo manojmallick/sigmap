@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.25.0] — 2026-06-21
+
+Minor release — **Trust Hygiene (H1 + H3):** one generated source of benchmark truth, gated in CI. First installment of the v7.25.x milestone.
+
+### Added
+- **Single source of benchmark truth (#363):** `benchmarks/latest.json` is now generated from the benchmark reports (`scripts/gen-benchmark-latest.mjs`), and `version.json` metrics, `README.md` (via `<!--SM:KEY-->` markers), and `llms.txt`/`llms-full.txt` all read from it (`scripts/sync-metrics.mjs`). Every hand-typed metric is removed — published numbers can no longer silently drift from the measured reports. New `npm run metrics:sync` regenerates the whole chain; `npm run check:metrics` gates it in `prepublishOnly` **and** CI.
+- **Truthful `version.json` (#363):** `languages`, `extractors`, `mcp_tools`, and `tests` are auto-derived from source via a shared `scripts/lib/source-meta.mjs` (the same derivation the llms generator uses, so the language count can never diverge). Added the `extractors` field.
+
+### Changed
+- **Every published number traces to one fresh, gated benchmark run (#363):** the long-standing drift (committed reports vs hand-typed README/`version.json`/`llms.txt`) is eliminated — all surfaces now derive from `benchmarks/latest.json`. This release regenerates that file from a **live** benchmark run (2026-06-21, `sigmap-v7.25-main`, 21 repos): hit@5 **75.6%** (13.6% baseline, 5.6× lift), token reduction **97%**, task success **52.2%**, prompts/task **1.72 → 2.84**, prompt reduction **39.4%**. `languages` corrected `31 → 33`; `extractors` (42) now reported.
+
+---
+
 ## [7.24.2] — 2026-06-19
 
 Patch release — surface the StarMapper stargazer map in the docs.
