@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T00:16:38.953Z",
+  "generated": "2026-06-21T21:28:17.440Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 275,
+      "sigCount": 274,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.5,
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 296,
+      "sigCount": 297,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.59,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 100,
+      "sigCount": 99,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.707,
@@ -928,7 +928,7 @@
       "sigCount": 62,
       "tasks": 5,
       "hitAt5": 0,
-      "mrr": 0.025,
+      "mrr": 0,
       "randomBaseline": 0.038,
       "improvement": 0,
       "tiers": {
@@ -956,7 +956,7 @@
             "Sources/Vapor/Application.swift"
           ],
           "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
-          "firstHitRank": 8,
+          "firstHitRank": null,
           "tier": "wrong"
         },
         {
@@ -977,7 +977,7 @@
             "Sources/Vapor/Client/Client.swift",
             "Sources/Vapor/Client/ClientRequest.swift"
           ],
-          "top1": "Sources/Vapor/Sessions/SessionsMiddleware.swift",
+          "top1": "Sources/Vapor/Response/ResponseCodable.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -1210,10 +1210,10 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 25,
+      "sigCount": 20,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.629,
+      "mrr": 0.633,
       "randomBaseline": 0.104,
       "improvement": 5.8,
       "tiers": {
@@ -1239,7 +1239,7 @@
             "fastapi/routing.py"
           ],
           "top1": "fastapi/openapi/utils.py",
-          "firstHitRank": 7,
+          "firstHitRank": 6,
           "tier": "wrong"
         },
         {

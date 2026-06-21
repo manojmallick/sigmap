@@ -83,7 +83,7 @@ features:
   <span>Docs: added the <a href="https://starmapper.bruniaux.com/manojmallick/sigmap">StarMapper</a> stargazer map (517 stars across 37 countries). Latest result still stands — §9 grounding cut fabricated file-location claims <strong>99.8 → 0.2 per 100</strong></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v7.0-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v7.25-main</span>
   <span>·</span>
   <span>76% hit@5 · 97.0% token reduction · 2026-06-21</span>
 </div>

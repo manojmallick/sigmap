@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.25.1] — 2026-06-21
+
+Patch release — **Trust Hygiene (H4):** document the real CLI / MCP / adapter surface. Completes the v7.25.x milestone's documentation goals (only H2, the reproducible bundle build, remains).
+
+### Added
+- **Document the shipped surface (#366):** `sigmap --help` now lists the five wired-but-undocumented commands — `conventions`, `scaffold`, `verify-plan`, `review-pr`, and `create` (the grounded-creation pipeline). The README gains a "Grounded creation & guardrails" section, lists all 15 MCP tools, and adds the `willow` adapter to the integrations table. A new `surface-docs` test pins the documented surface to source (`--help` must list the commands, README's MCP count must equal `TOOLS.length`, every `listAdapters()` entry must appear in the README table), so the docs can never silently undersell the product again.
+
+### Fixed
+- **MCP tool undercount (#366):** the README advertised "10 on-demand tools" while the server ships **15** — corrected and now gated by the `surface-docs` test.
+
+---
+
 ## [7.25.0] — 2026-06-21
 
 Minor release — **Trust Hygiene (H1 + H3):** one generated source of benchmark truth, gated in CI. First installment of the v7.25.x milestone.
