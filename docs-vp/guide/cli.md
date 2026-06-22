@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, squeeze, conventions, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 64 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 69 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,13 +19,13 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 64 SigMap commands and flags documented with examples. ask, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 69 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
   - - meta
     - name: keywords
-      content: "sigmap cli, sigmap ask, sigmap judge, sigmap validate, sigmap history, sigmap --ci, sigmap --cost, sigmap flags, command line reference"
+      content: "sigmap cli, sigmap ask, sigmap evidence, sigmap judge, sigmap validate, sigmap history, sigmap --ci, sigmap --cost, sigmap flags, command line reference"
 ---
 # CLI reference
 
@@ -52,6 +52,9 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>" --squeeze` | Auto-accept input minimization (no prompt) — for scripts/CI |
 | `ask "<query>" --no-squeeze` | Disable input minimization entirely |
 | `ask "<query>" --squeeze-threshold <n>` | Minimum reduction %% to prompt for minimization (default 30) |
+| `evidence "<query>"` | Build a deterministic **Evidence Pack** (JSON v1) — a machine-consumable signature+evidence map; writes `.context/evidence-pack.json` |
+| `evidence "<query>" --markdown` | Emit the Markdown handoff rendering to stdout (alias `--md`) |
+| `evidence "<query>" --top <n> --budget <n> --out <path>` | Tune ranked files / token budget / write the rendered output to a path |
 | `squeeze <file\|->` | Minimize a pasted stacktrace / CI-log / JSON blob (`--json` for stats) |
 | `conventions` | Extract & report a repo's coding conventions — file naming, export style, test framework (TS/JS/Python); writes `.context/conventions.json` (`--json` for machine output) |
 | `conventions --conflicts` | Breakdown of every mixed convention (counts, bars, example files) + rename suggestions toward the dominant style |
@@ -245,6 +248,61 @@ sigmap ask "what did I touch" --since HEAD~3 --mode index
 | Option | Description |
 |--------|-------------|
 | `--since <ref>` | Keep only ranked files changed since `<ref>` (any git ref: branch, tag, or SHA) |
+
+---
+
+## evidence
+
+Build an **Evidence Pack** — a deterministic, machine-consumable signature-and-evidence map for a query. Where [`ask`](#ask) is tuned for a human reading a terminal, `evidence` emits a byte-stable JSON artifact (schema v1) that an agent or CI can ingest directly: every file entry is anchored to real symbols and line ranges, carries a relevance reason and confidence, a risk label, and the pack is signed with a sha256 `contextHash`. It always writes the artifact to `.context/evidence-pack.json`; stdout carries the requested mode (JSON by default, or Markdown with `--markdown`).
+
+The pack carries **no wall-clock timestamp** — running it twice on an unchanged repository produces byte-identical output and an identical `contextHash`. That is the point: the artifact is auditable, exactly what an agentic grep loop cannot produce.
+
+```bash
+sigmap evidence "how does the ranker score files"
+sigmap evidence "how does auth work" --markdown
+sigmap evidence "fix the login bug" --top 8 --budget 4000 --out pack.json
+```
+
+```json
+{
+  "schemaVersion": "1.0",
+  "query": "how does the ranker score files",
+  "intent": "explain",
+  "files": [
+    {
+      "path": "src/conventions/extract.js",
+      "symbols": ["module.exports = { classifyNaming, scoreConvention, extractConventions }"],
+      "reason": "symbol-name match; exact token match",
+      "confidence": 1,
+      "sourceLines": [{ "symbol": "module.exports = { ... }", "start": 178, "end": 178 }],
+      "relatedTests": [],
+      "riskLabel": "source"
+    }
+  ],
+  "tokenBudget": { "limit": 16000, "used": 164, "remaining": 15836 },
+  "droppedFiles": [],
+  "grounding": {
+    "symbolCount": 10,
+    "anchoredSymbols": 10,
+    "anchorCoverage": 1,
+    "contextHash": "sha256:565ef0…",
+    "deterministic": true
+  }
+}
+```
+
+Each `files[]` entry: `path`, the matched `symbols`, a human-readable `reason` (derived from the ranker's signals), a `confidence` in `0–1` (normalized to the top-ranked file), `sourceLines` with exact `{start,end}` anchors, best-effort `relatedTests`, and a `riskLabel` ∈ `generated · test · config · security · source`. Files that rank but don't fit the token budget appear in `droppedFiles` with a reason. The `grounding` block attests how many symbols are anchored and signs the canonical pack.
+
+| Option | Description |
+|--------|-------------|
+| `--markdown`, `--md` | Emit the Markdown handoff rendering to stdout instead of JSON |
+| `--top <n>` | Maximum ranked files to consider (default 12) |
+| `--budget <n>` | Token budget for included files (defaults to config `maxTokens`) |
+| `--out <path>` | Also write the rendered output (JSON or Markdown) to `<path>` |
+
+::: tip Best-effort fields in v1
+`relatedTests` (stem-matched) and `riskLabel` (path heuristic) are intentionally lightweight in v1. Measured test discovery and richer risk labels land in v8.5.
+:::
 
 ---
 

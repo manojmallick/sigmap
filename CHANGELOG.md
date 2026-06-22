@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.26.0] — 2026-06-22
+
+Minor release — **v8.0 "The Evidence Pack & the Pivot" (E1):** the keystone artifact that makes SigMap consumable by machines instead of copy-paste.
+
+### Added
+- **Evidence Pack JSON v1 (#372):** new `sigmap evidence "<query>"` command emits a deterministic, machine-consumable signature-and-evidence map — a byte-stable JSON artifact (plus a `--markdown`/`--md` handoff rendering) that an agent or CI can ingest directly, every entry anchored to a real file, symbol, and line range. Schema v1: `{ schemaVersion, query, intent, files:[{ path, symbols, reason, confidence, sourceLines, relatedTests, riskLabel }], tokenBudget, droppedFiles, grounding:{ symbolCount, anchoredSymbols, anchorCoverage, contextHash, deterministic } }`. Composed entirely from shipped zero-dep modules (ranker, line-anchor parsing, security scanner, sha256 grounding hash). The pack carries **no wall-clock timestamp** — an unchanged repo yields byte-identical output and a stable `grounding.contextHash`, so the artifact is auditable. CLI flags: `--top`, `--budget`, `--out`; always writes `.context/evidence-pack.json`. `riskLabel` ∈ {generated, test, config, security, source} and `relatedTests` are best-effort v1 (measured test-discovery and richer labels land in v8.5).
+
+---
+
 ## [7.25.2] — 2026-06-22
 
 Patch release — **Trust Hygiene (H2):** reproducible bundle build. Completes the v7.25.x "Trust Hygiene" milestone (H1+H2+H3+H4 all shipped).
