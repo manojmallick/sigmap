@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Seventy versions shipped. MIT open source from day one.
+Seventy-one versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 1,199 tests passing · 15 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 1,205 tests passing · 15 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v7.25.2 — Trust Hygiene: reproducible bundle build ✓ (2026-06-22)
+
+**Patch release — H2, the last piece of Trust Hygiene.** The shipped `gen-context.js` is now provably reproducible from source. `scripts/build-bundle.mjs` (`npm run build:bundle`) deterministically regenerates the embedded `__factories` from `src/` + `packages/adapters/` — sorted, de-duplicated — between two markers, leaving the preamble and the hand-written CLI core byte-identical. `build:bundle --check` asserts the committed bundle equals a fresh build and gates `prepublishOnly` + CI (alongside the standalone `bundle-smoke` test on Node 18/20/22). This fixed a duplicate `llm-ablation` factory and embedded the previously-missing `willow` adapter — the canonical bundle is now **125 modules, one factory each**. `check-bundle --fix` delegates to the builder so duplicates can't recur.
+
+**Tags:** `trust-hygiene` · `build:bundle` · `reproducible` · `bundle-repro` · `#369`
+
+**Impact:** deterministic, reproducible distributable; +6 tests (1,205 passing); zero new runtime dependencies. **Completes the v7.25.x Trust Hygiene milestone (H1+H2+H3+H4).**
+
+---
+
 ### v7.25.1 — Trust Hygiene: document the real surface ✓ (2026-06-21)
 
 **Patch release — H4, the documentation half of Trust Hygiene.** SigMap shipped more than it advertised. `sigmap --help` now lists the five wired-but-undocumented commands — `conventions`, `scaffold`, `verify-plan`, `review-pr`, and `create` (the grounded-creation pipeline). The README corrects its MCP count (10 → **15**, with the full tool list), adds a "Grounded creation & guardrails" section, and lists the `willow` adapter (all 8 adapters). A new `surface-docs` test pins the documented surface to source — `--help` must list the commands, the README MCP count must equal `TOOLS.length`, and every registered adapter must appear in the README table — so the docs can never silently undersell the product again.
@@ -1160,7 +1170,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — v7.25.x "Trust Hygiene" (H1+H3+H4 shipped; only H2 reproducible build remains)
+## Current milestone — v7.25.x "Trust Hygiene" ✓ COMPLETE (H1+H2+H3+H4 shipped); next: v8.0 "Evidence Pack & the Pivot"
 
 v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks; **v7.1.0**: the **`sigmap gain`** token-savings dashboard (cumulative tokens saved, %, est. $, daily/weekly/monthly trends; privacy-safe, local-only, default-on); and the **grounded-codegen** track — **v7.4–7.5** live-index write hooks + read-time self-heal (Layer 1), **v7.6.0** the offline grounding benchmark (the GATE), **v7.7.0** **`sigmap conventions`** (Layer 3: extract a repo's file-naming / export / test-framework conventions); **v7.8.0** **`conventions --conflicts`** (per-convention breakdown + rename suggestions); **v7.9.0** **`conventions --inject`** (CLAUDE.md convention injection — the agent now sees the house style); **v7.10.0** **`sigmap scaffold`** (Layer 4: convention-matched proposal gated by a confidence floor — closing the last root cause); **v7.11.0** **`sigmap verify-plan`** (Gap 2: plan vs live index); **v7.12.0** **`sigmap review-pr`** (Gap 2: diff audit); and **v7.13.0** **`sigmap create`** (the orchestrator that sequences all four guard stages — the grounded-creation capstone). and **v7.16.0** the **LLM A/B hallucination ablation harness** (§9 — `npm run benchmark:llm-ablation`). The grounded-codegen plan is now functionally complete: every root cause is closed, the full `create` pipeline ships, and the §9 measurement harness is built and offline-tested. and **v7.20.0** the `init` Creation-workflow CLAUDE.md block — **every item in the grounded-codegen implementation plan is now shipped** (4 root causes, the full create pipeline, the conventions flag set, scaffold persistence, and the §9 measurement harness). The §9 A/B now runs live on a real 40-task corpus (Anthropic or Gemini/AI-Studio keys); a first run measured **62.5 → 22.5 flagged errors per 100 with grounding** (v7.22.0), and **v7.22.1** hardened `verify-ai-output`'s file-path extractor so runtime/library names ("Node.js") and placeholder filenames no longer count as fake files — clearing the dominant false-positive class so the §9 delta is clean, and **v7.22.2** cleared the last two false-positive classes (camelCase placeholders + documentation-placeholder imports) — lifting the measured grounding delta from +2 to +9 per 100, and **v7.23.0** made the §9 harness statistically robust (`--runs N` mean ± range over a 100-task corpus); a 100-task run then revealed the "write an example" corpus elicited placeholder scaffolding that masked grounding's effect, so **v7.24.0** redesigned the corpus as checkable repo-fact questions (which file defines `X`?) that isolate grounding, and **v7.24.1** published the first averaged result: grounding cut fabricated file-location claims from **99.8 to 0.2 per 100** (5×100 tasks, Gemini). Next: a generative-correctness §9 variant (does grounding help the model *write* correct code, not just recall paths?), and broader provider/model coverage. Also planned: **PR verification** (`verify-plan` / `review-pr` GitHub Action), the **Interactive Context Explorer**, line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T21:28:17.440Z",
+  "generated": "2026-06-22T19:00:44.923Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 274,
+      "sigCount": 275,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.5,
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 48,
+      "sigCount": 47,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.2,
@@ -640,7 +640,7 @@
             "src/Serilog/Capturing/MessageTemplateProcessor.cs",
             "src/Serilog/Capturing/PropertyBinder.cs"
           ],
-          "top1": "src/Serilog/Events/MessageTemplate.cs",
+          "top1": "src/Serilog/Formatting/Display/PropertiesOutputFormat.cs",
           "firstHitRank": null,
           "tier": "wrong"
         }
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 297,
+      "sigCount": 295,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.59,
@@ -977,7 +977,7 @@
             "Sources/Vapor/Client/Client.swift",
             "Sources/Vapor/Client/ClientRequest.swift"
           ],
-          "top1": "Sources/Vapor/Response/ResponseCodable.swift",
+          "top1": "Sources/Vapor/Sessions/SessionsMiddleware.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },

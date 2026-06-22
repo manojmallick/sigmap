@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.24.2</span>
+  <span><strong>Release:</strong> v7.25.2</span>
   <span>·</span>
-  <span>Docs: added the <a href="https://starmapper.bruniaux.com/manojmallick/sigmap">StarMapper</a> stargazer map (517 stars across 37 countries). Latest result still stands — §9 grounding cut fabricated file-location claims <strong>99.8 → 0.2 per 100</strong></span>
+  <span>The <strong>Trust Hygiene</strong> milestone is complete: every published number now derives from one gated benchmark file, <code>version.json</code> counts are source-derived, the full CLI/MCP surface is documented, and <code>gen-context.js</code> is reproducibly built from <code>src/</code></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v7.25-main</span>
   <span>·</span>
-  <span>76% hit@5 · 97.0% token reduction · 2026-06-21</span>
+  <span>76% hit@5 · 97.0% token reduction · 2026-06-22</span>
 </div>
 </div>
 
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-06-19 (v7.24.2)**.
+Latest saved benchmark run: **2026-06-22 (v7.25.2)**.
 
 </div>
 

@@ -76,49 +76,38 @@ export function generateFactory(key) {
   return `// ── ${key} ──\n__factories["${key}"] = function(module, exports) {\n  \n${indented}\n  \n};`;
 }
 
-/** Insert factory blocks for the given missing keys into gen-context.js. */
-function insertFactories(missing) {
-  let content = readFileSync(BUNDLE, 'utf8');
-  // Anchor: insert right before the last factory's closing so new blocks land
-  // inside the factory section. Use the first factory header as the anchor and
-  // prepend new blocks just after it.
-  const anchor = content.indexOf('\n__factories[');
-  if (anchor === -1) throw new Error('no __factories section found in gen-context.js');
-  const blocks = missing.map(generateFactory).join('\n\n');
-  content = content.slice(0, anchor + 1) + blocks + '\n\n' + content.slice(anchor + 1);
-  writeFileSync(BUNDLE, content);
-}
-
 // ── CLI ──────────────────────────────────────────────────────────────────────
-function main() {
+async function main() {
   const fix = process.argv.includes('--fix');
-  const missing = findMissingFactories();
 
+  if (fix) {
+    // Delegate to the reproducible builder, which regenerates the *entire*
+    // bundled-modules section (sorted, de-duplicated) from src/. This replaces
+    // the old prepend-on-fix path, which could insert a duplicate factory.
+    const { buildBundle } = await import('./build-bundle.mjs');
+    writeFileSync(BUNDLE, buildBundle());
+    const still = findMissingFactories();
+    if (still.length) {
+      console.error('ERROR: still missing after rebuild:', still.join(', '));
+      return 1;
+    }
+    console.log('✓ bundle: regenerated gen-context.js from src/ (scripts/build-bundle.mjs)');
+    return 0;
+  }
+
+  const missing = findMissingFactories();
   if (missing.length === 0) {
     console.log('✓ bundle integrity: all src/ modules present in gen-context.js __factories');
     return 0;
   }
 
-  if (fix) {
-    insertFactories(missing);
-    console.log(`✓ bundle: inserted ${missing.length} missing factor${missing.length === 1 ? 'y' : 'ies'}:`);
-    for (const k of missing) console.log(`    + ${k}`);
-    // re-check
-    const still = findMissingFactories();
-    if (still.length) {
-      console.error('ERROR: still missing after --fix:', still.join(', '));
-      return 1;
-    }
-    return 0;
-  }
-
   console.error('ERROR: the following src/ modules are missing from gen-context.js __factories:');
   for (const k of missing) console.error(`  ${k}`);
-  console.error('\nRun `node scripts/check-bundle.mjs --fix` to add them, then commit gen-context.js.');
+  console.error('\nRun `npm run build:bundle` to regenerate the bundle, then commit gen-context.js.');
   return 1;
 }
 
 // Run as CLI only when invoked directly (not when imported).
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  process.exit(main());
+  main().then((code) => process.exit(code));
 }

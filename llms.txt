@@ -9,7 +9,7 @@ the files relevant to the task — cutting tokens ~97% while keeping answers
 grounded. Deterministic, offline, no embeddings or vector database. Works with
 Claude, Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 
-# Version: 7.25.1 | Benchmark: sigmap-v7.25-main (2026-06-21)
+# Version: 7.25.2 | Benchmark: sigmap-v7.25-main (2026-06-22)
 # Source: auto-generated from package.json, version.json, benchmarks/latest.json, src/mcp/tools.js, src/config/defaults.js
 # Regenerate: npm run generate:llms   |   Validate: npm run validate:llms
 
@@ -21,7 +21,7 @@ Claude, Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 - No blast-radius awareness before editing a hub file — `--impact` shows every file a change touches.
 - Pasted stack traces, CI logs, and JSON bloat the prompt — `squeeze` minimizes them and enriches the top frame from the symbol index.
 
-## Core metrics (benchmark: sigmap-v7.25-main, 2026-06-21)
+## Core metrics (benchmark: sigmap-v7.25-main, 2026-06-22)
 
 - hit@5 retrieval: 75.6% vs 13.6% random baseline (5.6× lift)
 - Token reduction: 97.0% average across benchmark repos

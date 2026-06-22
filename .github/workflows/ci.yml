@@ -20,6 +20,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Bundle integrity (src/ modules present in gen-context.js __factories)
         run: node scripts/check-bundle.mjs
+      - name: Bundle reproducibility (committed gen-context.js == fresh build from src/)
+        run: node scripts/build-bundle.mjs --check
       - name: Metrics single-source-of-truth (latest.json → version.json + README)
         run: npm run check:metrics
       - name: Run unit tests

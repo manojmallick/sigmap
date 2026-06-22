@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.25.2] — 2026-06-22
+
+Patch release — **Trust Hygiene (H2):** reproducible bundle build. Completes the v7.25.x "Trust Hygiene" milestone (H1+H2+H3+H4 all shipped).
+
+### Added
+- **Reproducible bundle build (#369):** `scripts/build-bundle.mjs` (`npm run build:bundle`) deterministically regenerates the embedded `__factories` of `gen-context.js` from `src/` + `packages/adapters/` — sorted and de-duplicated — between two markers, leaving the preamble and the hand-written CLI core byte-identical. `build:bundle --check` asserts the committed bundle equals a fresh build and is wired into `prepublishOnly` and CI (next to the existing standalone `bundle-smoke` test on Node 18/20/22). A new `bundle-repro` test pins byte-for-byte reproducibility.
+
+### Fixed
+- **Duplicate / missing bundled modules (#369):** the bundle carried a duplicate `./src/eval/llm-ablation` factory (124 blocks for 115 `src/` modules) because `check-bundle --fix` prepended on each run; it now regenerates the whole section via `build-bundle`, so duplicates can't recur. The `willow` adapter — silently never embedded (the integrity check only verified `src/`) — is now bundled. The canonical bundle is **125 modules, one factory each**.
+
+---
+
 ## [7.25.1] — 2026-06-21
 
 Patch release — **Trust Hygiene (H4):** document the real CLI / MCP / adapter surface. Completes the v7.25.x milestone's documentation goals (only H2, the reproducible bundle build, remains).

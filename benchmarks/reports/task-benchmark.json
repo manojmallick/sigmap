@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-21T21:28:26.126Z",
+  "generated": "2026-06-22T19:00:52.972Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,8 +26,8 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 75.6,
     "avgImprovement": 54.7,
-    "totalGroundedSymbols": 11036,
-    "totalDarkSymbols": 56346,
+    "totalGroundedSymbols": 11044,
+    "totalDarkSymbols": 56338,
     "hallucinationRiskPct": 83.6
   },
   "repos": [
@@ -97,9 +97,9 @@
       "promptsWith": 2,
       "promptsWithout": 3,
       "reductionPct": 33.2,
-      "groundedSymbols": 1621,
-      "darkSymbols": 5874,
-      "hallucinationRiskPct": 78.4
+      "groundedSymbols": 1626,
+      "darkSymbols": 5869,
+      "hallucinationRiskPct": 78.3
     },
     {
       "repo": "axios",
@@ -153,9 +153,9 @@
       "promptsWith": 2.6,
       "promptsWithout": 2.94,
       "reductionPct": 11.5,
-      "groundedSymbols": 371,
-      "darkSymbols": 607,
-      "hallucinationRiskPct": 62.1
+      "groundedSymbols": 370,
+      "darkSymbols": 608,
+      "hallucinationRiskPct": 62.2
     },
     {
       "repo": "riverpod",
@@ -195,8 +195,8 @@
       "promptsWith": 1.6,
       "promptsWithout": 3,
       "reductionPct": 46.6,
-      "groundedSymbols": 1442,
-      "darkSymbols": 6956,
+      "groundedSymbols": 1448,
+      "darkSymbols": 6950,
       "hallucinationRiskPct": 82.8
     },
     {
@@ -209,9 +209,9 @@
       "promptsWith": 1.4,
       "promptsWithout": 2.97,
       "reductionPct": 52.9,
-      "groundedSymbols": 773,
-      "darkSymbols": 3180,
-      "hallucinationRiskPct": 80.4
+      "groundedSymbols": 771,
+      "darkSymbols": 3182,
+      "hallucinationRiskPct": 80.5
     },
     {
       "repo": "vapor",
@@ -223,9 +223,9 @@
       "promptsWith": 3,
       "promptsWithout": 2.95,
       "reductionPct": -1.5,
-      "groundedSymbols": 161,
-      "darkSymbols": 696,
-      "hallucinationRiskPct": 81.2
+      "groundedSymbols": 162,
+      "darkSymbols": 695,
+      "hallucinationRiskPct": 81.1
     },
     {
       "repo": "vue-core",

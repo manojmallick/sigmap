@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "7.25.1",
+  "version": "7.25.2",
   "description": "97% token reduction for AI coding. Extracts function & class signatures with TF-IDF ranking to feed only the right files to Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP. Zero dependencies, runs offline via npx.",
   "main": "packages/core/index.js",
   "exports": {
@@ -33,6 +33,8 @@
     "mcp": "node gen-context.js --mcp",
     "check:bundle": "node scripts/check-bundle.mjs",
     "check:version-meta": "node scripts/check-version-meta.mjs",
+    "build:bundle": "node scripts/build-bundle.mjs",
+    "check:bundle:repro": "node scripts/build-bundle.mjs --check",
     "build:binary": "node scripts/build-binary.mjs",
     "verify:binary": "node scripts/verify-binary.mjs",
     "version:sync": "node scripts/sync-versions.mjs",
@@ -41,7 +43,7 @@
     "metrics:latest": "node scripts/gen-benchmark-latest.mjs",
     "metrics:sync": "node scripts/gen-benchmark-latest.mjs && node scripts/check-version-meta.mjs --fix && node scripts/sync-metrics.mjs && node scripts/generate-llms.mjs",
     "check:metrics": "node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check",
-    "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check && node scripts/generate-llms.mjs",
+    "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/build-bundle.mjs --check && node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check && node scripts/generate-llms.mjs",
     "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs",
     "benchmark:llm-ablation": "node scripts/run-llm-ablation.mjs"
   },
