@@ -115,6 +115,7 @@ sigmap evidence "<query>" --top <n> --budget <n> --out <path>   Tune ranked file
 sigmap note "<text>"                     Append a note to the cross-session decision log
 sigmap note                              List recent notes (also: note --list <N>)
 sigmap status                            Show repo state — branch, dirty files, index freshness, notes
+sigmap doctor                            Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)
 sigmap --init                            Write example config + .contextignore scaffold
 sigmap --help                            Show this message
 sigmap --version                         Show version
