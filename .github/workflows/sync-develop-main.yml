@@ -35,15 +35,23 @@ jobs:
 
       - name: Sync develop with main
         run: |
-          git fetch origin main develop
-          git checkout develop
-          git merge --no-edit origin/main
+          set -euo pipefail
+          git fetch origin main
 
-          # Check if there are changes to push
-          if ! git diff --exit-code origin/develop HEAD > /dev/null 2>&1; then
-            echo "Changes detected. Pushing develop..."
-            git push origin develop --force-with-lease
-            echo "✅ Successfully synced develop with main"
+          # `develop` may have been auto-deleted: it is the head branch of the
+          # develop→main release PR, and the repo has "delete branch on merge"
+          # enabled. The old `git fetch origin main develop` died here with
+          # "couldn't find remote ref develop". Recreate it from main when it is
+          # missing; otherwise merge main into it (preserving any divergence).
+          if git ls-remote --exit-code --heads origin develop >/dev/null 2>&1; then
+            git fetch origin develop
+            git checkout -B develop origin/develop
+            git merge --no-edit origin/main
           else
-            echo "✓ develop is already up to date with main"
+            echo "develop is missing (auto-deleted as the release PR head) — recreating from main."
+            git checkout -B develop origin/main
           fi
+
+          # Idempotent: a no-op push prints "Everything up-to-date" and exits 0.
+          git push origin develop
+          echo "✅ develop synced with main"
