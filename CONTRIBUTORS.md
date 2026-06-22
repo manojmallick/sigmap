@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.27.0)
+- **@manojmallick** — feat(mcp): add `get_diff_context` & `get_architecture_overview` MCP tools (v8.0 D3) — changed-file signatures + blast radius, and a one-call architecture map; MCP surface 15→17 (#376, PR #377)
+
 ### Recent Contributors (v7.26.0)
 - **@manojmallick** — feat(evidence): Evidence Pack JSON v1 — deterministic, machine-consumable signature+evidence map (`sigmap evidence`) with JSON + Markdown handoff modes, byte-stable output, and a sha256 grounding hash (#372, PR #373)
 

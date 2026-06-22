@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.27.0] — 2026-06-22
+
+Minor release — **v8.0 D3:** two new MCP tools, taking the server from 15 to 17 tools. Both are composed from data SigMap already computes — zero new runtime dependencies, no system-shell spawns.
+
+### Added
+- **`get_diff_context` MCP tool (#376):** for every changed file (working tree, staged via `staged`, or vs a base ref via `base`) returns its current **signatures** + **blast radius** (direct importers, transitive count, affected tests/routes) + a risk label — one call gives an agent everything a review or a safe edit needs. Lists changed files **shell-free** through `src/util/git.js` (no `/bin/sh`). Optional `depth` controls the blast-radius BFS.
+- **`get_architecture_overview` MCP tool (#376):** a one-call codebase map — module breakdown (files/tokens), the most depended-on **hub files**, the dependency-**cycle** count, and route totals. Extends `get_map` for orienting in an unfamiliar repo. Composed from `buildSigIndex`, `buildFromCwd`, and `detectCycles`.
+
+### Changed
+- MCP surface count is now **17 tools** across `--help`, README, `docs-vp/guide/mcp.md`, `version.json` (`mcp_tools`), and the generated `llms.txt`/`llms-full.txt`.
+
 ## [7.26.0] — 2026-06-22
 
 Minor release — **v8.0 "The Evidence Pack & the Pivot" (E1):** the keystone artifact that makes SigMap consumable by machines instead of copy-paste.

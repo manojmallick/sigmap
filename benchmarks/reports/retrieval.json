@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22T20:50:08.518Z",
+  "generated": "2026-06-22T21:53:03.886Z",
   "repos": [
     {
       "repo": "express",
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 295,
+      "sigCount": 297,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.59,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 98,
+      "sigCount": 99,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.707,
@@ -977,7 +977,7 @@
             "Sources/Vapor/Client/Client.swift",
             "Sources/Vapor/Client/ClientRequest.swift"
           ],
-          "top1": "Sources/Vapor/Sessions/SessionsMiddleware.swift",
+          "top1": "Sources/Vapor/Response/ResponseCodable.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -997,7 +997,7 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 122,
+      "sigCount": 121,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.633,
@@ -1210,10 +1210,10 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 25,
+      "sigCount": 20,
       "tasks": 5,
       "hitAt5": 0.6,
-      "mrr": 0.629,
+      "mrr": 0.633,
       "randomBaseline": 0.104,
       "improvement": 5.8,
       "tiers": {
@@ -1239,7 +1239,7 @@
             "fastapi/routing.py"
           ],
           "top1": "fastapi/openapi/utils.py",
-          "firstHitRank": 7,
+          "firstHitRank": 6,
           "tier": "wrong"
         },
         {

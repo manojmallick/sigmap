@@ -12309,7 +12309,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '7.26.0',
+    version: '7.27.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -16138,7 +16138,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '7.26.0';
+const VERSION = '7.27.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
