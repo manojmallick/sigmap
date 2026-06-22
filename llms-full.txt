@@ -109,6 +109,9 @@ sigmap squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSO
 sigmap ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
 sigmap ask "<query>" --no-squeeze        Disable input minimization entirely
 sigmap ask "<query>" --squeeze-threshold N  Min reduction %% to prompt (default 30)
+sigmap evidence "<query>"                Build a deterministic Evidence Pack (JSON) → .context/evidence-pack.json
+sigmap evidence "<query>" --markdown     Emit the Markdown handoff rendering to stdout
+sigmap evidence "<query>" --top <n> --budget <n> --out <path>   Tune ranked files / token budget / write rendered output
 sigmap note "<text>"                     Append a note to the cross-session decision log
 sigmap note                              List recent notes (also: note --list <N>)
 sigmap status                            Show repo state — branch, dirty files, index freshness, notes
