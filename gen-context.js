@@ -12109,7 +12109,182 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     }
   }
 
-  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted };
+  /**
+   * List the files changed in the working tree, staged area, or vs a base ref.
+   * Shell-free (routes through src/util/git.js). Returns relative paths.
+   */
+  function _changedFiles(cwd, args) {
+    const { tryGit } = __require('./src/util/git');
+    let out = '';
+    if (args.base) {
+      if (!/^[A-Za-z0-9._/\-~^]+$/.test(args.base)) return [];
+      out = tryGit(['diff', `${args.base}..HEAD`, '--name-only'], { cwd });
+    } else if (args.staged) {
+      out = tryGit(['diff', '--cached', '--name-only'], { cwd });
+    } else {
+      out = tryGit(['diff', 'HEAD', '--name-only'], { cwd });
+    }
+    return out.split('\n').map((s) => s.trim()).filter(Boolean);
+  }
+
+  /**
+   * get_diff_context({ base?, staged?, depth? }) → string
+   *
+   * For each changed file: its extracted signatures + blast radius (direct
+   * importers, transitive count, affected tests/routes) + a risk label.
+   * Hands an agent everything a review or a safe edit needs in one call.
+   */
+  function getDiffContext(args, cwd) {
+    try {
+      const a = args || {};
+      const files = _changedFiles(cwd, a);
+      if (files.length === 0) {
+        return '_No changed files detected._ (Outside a git repo, or the working tree / selected range is clean.)';
+      }
+
+      const { extractFile, langFor } = __require('./src/extractors/dispatch');
+      const { analyzeImpact } = __require('./src/graph/impact');
+      let riskLabelFor;
+      try { ({ riskLabelFor } = __require('./src/evidence/pack')); } catch (_) { riskLabelFor = () => 'source'; }
+
+      const depth = Math.max(0, parseInt(a.depth, 10) || 2);
+      const srcFiles = files.filter((f) => langFor(f));
+      let impactByFile = new Map();
+      try {
+        const impacts = analyzeImpact(srcFiles, cwd, { depth });
+        impactByFile = new Map(impacts.map((r) => [r.file, r.impact]));
+      } catch (_) { /* graph optional */ }
+
+      const scope = a.base ? `vs ${a.base}` : (a.staged ? 'staged' : 'working tree');
+      const out = [
+        `# Diff context (${scope})`,
+        '',
+        `**${files.length} changed file${files.length === 1 ? '' : 's'}** · ${srcFiles.length} with extractable signatures`,
+        '',
+      ];
+
+      for (const rel of files) {
+        out.push(`## \`${rel}\``);
+        if (!langFor(rel)) { out.push('_non-source file (no signatures)_', ''); continue; }
+
+        out.push(`_risk: ${riskLabelFor(rel)}_`);
+        const impact = impactByFile.get(rel);
+        if (impact) {
+          out.push(
+            `**Blast radius:** ${impact.totalImpact} file(s) impacted — ` +
+            `${impact.direct.length} direct importer(s), ${impact.transitive.length} transitive` +
+            (impact.tests.length ? `, ${impact.tests.length} test(s)` : '') +
+            (impact.routes.length ? `, ${impact.routes.length} route(s)` : '')
+          );
+          if (impact.direct.length) {
+            out.push(`Direct importers: ${impact.direct.slice(0, 8).map((f) => '`' + f + '`').join(', ')}` + (impact.direct.length > 8 ? ' …' : ''));
+          }
+          if (impact.tests.length) {
+            out.push(`Tests to run: ${impact.tests.slice(0, 8).map((f) => '`' + f + '`').join(', ')}`);
+          }
+        } else {
+          out.push('**Blast radius:** (not in dependency graph — new or leaf file)');
+        }
+        out.push('');
+
+        let src = '';
+        try { src = fs.readFileSync(path.resolve(cwd, rel), 'utf8'); } catch (_) {}
+        const sigs = src ? extractFile(rel, src) : [];
+        if (sigs.length) {
+          out.push('```');
+          for (const s of sigs.slice(0, 40)) out.push(s);
+          if (sigs.length > 40) out.push(`… +${sigs.length - 40} more`);
+          out.push('```');
+        } else {
+          out.push('_(no signatures extracted — file may be deleted or empty)_');
+        }
+        out.push('');
+      }
+
+      return out.join('\n');
+    } catch (err) {
+      return `_get_diff_context failed: ${err.message}_`;
+    }
+  }
+
+  /**
+   * get_architecture_overview({}) → string
+   *
+   * A high-level map of the codebase: module breakdown (files/tokens), the most
+   * depended-on "hub" files, dependency-cycle count, and route totals. Extends
+   * get_map — one call to orient in an unfamiliar repo.
+   */
+  function getArchitectureOverview(args, cwd) {
+    try {
+      const { buildSigIndex } = __require('./src/retrieval/ranker');
+      const index = buildSigIndex(cwd);
+      const out = ['# Architecture overview', ''];
+
+      if (index.size === 0) {
+        out.push('_No context file found. Run: node gen-context.js_', '');
+      } else {
+        const groups = {};
+        let totalTokens = 0;
+        let totalFiles = 0;
+        for (const [rel, sigs] of index.entries()) {
+          const parts = rel.replace(/\\/g, '/').split('/');
+          const mod = parts.length > 1 ? parts[0] : '.';
+          const tok = Math.ceil(sigs.join('\n').length / 4);
+          if (!groups[mod]) groups[mod] = { files: 0, tokens: 0 };
+          groups[mod].files++;
+          groups[mod].tokens += tok;
+          totalTokens += tok;
+          totalFiles++;
+        }
+        const sorted = Object.entries(groups)
+          .map(([mod, d]) => ({ mod, files: d.files, tokens: d.tokens }))
+          .sort((a, b) => b.tokens - a.tokens);
+
+        out.push(`**${totalFiles} indexed files · ${sorted.length} modules · ~${totalTokens} tokens**`, '');
+        out.push('## Modules', '| Module | Files | Tokens |', '|--------|-------|--------|');
+        for (const m of sorted.slice(0, 20)) out.push(`| ${m.mod} | ${m.files} | ~${m.tokens} |`);
+        out.push('');
+      }
+
+      // Hub files + cycle count from the dependency graph (optional).
+      try {
+        const { buildFromCwd } = __require('./src/graph/builder');
+        const { detectCycles } = __require('./src/map/import-graph');
+        const graph = buildFromCwd(cwd);
+        if (graph && graph.reverse && graph.reverse.size) {
+          const hubs = [...graph.reverse.entries()]
+            .map(([f, importers]) => ({ file: path.relative(cwd, f).replace(/\\/g, '/'), in: importers.length }))
+            .filter((h) => h.in > 0)
+            .sort((a, b) => b.in - a.in)
+            .slice(0, 10);
+          if (hubs.length) {
+            out.push('## Hub files (most depended-on)', '| File | Importers |', '|------|-----------|');
+            for (const h of hubs) out.push(`| \`${h.file}\` | ${h.in} |`);
+            out.push('');
+          }
+          let cycleCount = 0;
+          try { cycleCount = detectCycles(graph.forward).length; } catch (_) {}
+          out.push(`**Dependency cycles:** ${cycleCount}` + (cycleCount ? ' _(see import graph)_' : ' — none detected'), '');
+        }
+      } catch (_) { /* graph optional */ }
+
+      // Routes from PROJECT_MAP.md if present.
+      const mapPath = path.join(cwd, 'PROJECT_MAP.md');
+      if (fs.existsSync(mapPath)) {
+        const mc = fs.readFileSync(mapPath, 'utf8');
+        const routeCount = mc.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| Method') && !l.startsWith('|---')).length;
+        out.push('## Project map', `Routes detected: ${routeCount} _(use get_map for imports/classes/routes detail)_`, '');
+      } else {
+        out.push('_Run `node gen-project-map.js` for routes / class-hierarchy detail (get_map)._');
+      }
+
+      return out.join('\n');
+    } catch (err) {
+      return `_get_architecture_overview failed: ${err.message}_`;
+    }
+  }
+
+  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview };
   
 };
 
@@ -12124,13 +12299,13 @@ __factories["./src/mcp/server"] = function(module, exports) {
    *
    * Supported methods:
    *   initialize        → serverInfo + capabilities
-   *   tools/list        → 11 tool definitions
+   *   tools/list        → 17 tool definitions
    *   tools/call        → dispatch to handler, return result
    */
 
   const readline = require('readline');
   const { TOOLS } = __require('./src/mcp/tools');
-  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted } = __require('./src/mcp/handlers');
+  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview } = __require('./src/mcp/handlers');
 
   const SERVER_INFO = {
     name: 'sigmap',
@@ -12197,6 +12372,8 @@ __factories["./src/mcp/server"] = function(module, exports) {
         else if (name === 'sigmap_notify_file_created') text = notifyFileCreated(args, cwd);
         else if (name === 'sigmap_notify_symbol_added') text = notifySymbolAdded(args, cwd);
         else if (name === 'sigmap_notify_file_deleted') text = notifyFileDeleted(args, cwd);
+        else if (name === 'get_diff_context') text = getDiffContext(args, cwd);
+        else if (name === 'get_architecture_overview') text = getArchitectureOverview(args, cwd);
         else {
           respondError(id, -32601, `Unknown tool: ${name}`);
           return;
@@ -12257,11 +12434,11 @@ __factories["./src/mcp/server"] = function(module, exports) {
 __factories["./src/mcp/tools"] = function(module, exports) {
   
   /**
-   * MCP tool definitions for SigMap (15 tools).
+   * MCP tool definitions for SigMap (17 tools).
    * read_context, search_signatures, get_map, create_checkpoint, get_routing,
    * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
    * get_callee_signatures, sigmap_notify_file_created, sigmap_notify_symbol_added,
-   * sigmap_notify_file_deleted.
+   * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview.
    */
 
   const TOOLS = [
@@ -12532,6 +12709,44 @@ __factories["./src/mcp/tools"] = function(module, exports) {
           path: { type: 'string', description: 'Deleted file path relative to the project root.' },
         },
         required: ['path'],
+      },
+    },
+    {
+      name: 'get_diff_context',
+      description:
+        'For every changed file in the working tree (or staged, or vs a base ref), return its ' +
+        'current signatures plus blast radius — direct importers, transitive count, and affected ' +
+        'tests/routes — with a risk label. One call gives an agent everything a code review or a ' +
+        'safe edit needs. Lists changed files shell-free (git binary, never a shell).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          base: {
+            type: 'string',
+            description: 'Optional git ref to diff against (e.g. "main"). Returns files changed in `base..HEAD`. Omit for working-tree changes.',
+          },
+          staged: {
+            type: 'boolean',
+            description: 'When true (and no base), report only staged changes (`git diff --cached`).',
+          },
+          depth: {
+            type: 'number',
+            description: 'Blast-radius BFS depth limit (default: 2). Use 0 for unlimited.',
+          },
+        },
+        required: [],
+      },
+    },
+    {
+      name: 'get_architecture_overview',
+      description:
+        'A high-level map of the codebase in one call: module breakdown (files/tokens), the most ' +
+        'depended-on "hub" files, the dependency-cycle count, and route totals. Extends get_map — ' +
+        'use it to orient in an unfamiliar repo before drilling in with read_context / query_context.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        required: [],
       },
     },
   ];

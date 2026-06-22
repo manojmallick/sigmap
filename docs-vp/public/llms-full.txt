@@ -24,7 +24,7 @@ Claude, Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 | Task success proxy | 10% | 52.2% |
 | Prompts per task | 2.84 | 1.72 (39.4% fewer) |
 | Supported languages | — | 33 |
-| MCP tools | — | 15 |
+| MCP tools | — | 17 |
 | npm runtime dependencies | — | 0 |
 
 ---
@@ -122,7 +122,7 @@ sigmap --version                         Show version
 
 ---
 
-## MCP server — 15 tools
+## MCP server — 17 tools
 
 Start with `sigmap --mcp` (stdio JSON-RPC). Configure once:
 
@@ -248,6 +248,22 @@ Tell SigMap a file was deleted so its symbols are dropped from the live index.
 
 ```
 Input:  { path: string }
+```
+
+### get_diff_context
+
+For every changed file in the working tree (or staged, or vs a base ref), return its current signatures plus blast radius — direct importers, transitive count, and affected tests/routes — with a risk label. One call gives an agent everything a code review or a safe edit needs. Lists changed files shell-free (git binary, never a shell).
+
+```
+Input:  { base?: string, staged?: boolean, depth?: number }
+```
+
+### get_architecture_overview
+
+A high-level map of the codebase in one call: module breakdown (files/tokens), the most depended-on "hub" files, the dependency-cycle count, and route totals. Extends get_map — use it to orient in an unfamiliar repo before drilling in with read_context / query_context.
+
+```
+Input:  { } (no arguments)
 ```
 
 ---
