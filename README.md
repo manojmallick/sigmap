@@ -91,7 +91,7 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v7.26-main (21 repositories, including R language)
+Benchmark : sigmap-v7.27-main (21 repositories, including R language)
 Date      : 2026-06-22
 
 Hit@5          : 75.6%   (baseline 13.6%  — 5.6× lift)
@@ -191,13 +191,13 @@ Use SigMap with open-source tools and fully self-hosted setups:
 | **JetBrains** | [Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [github.com/manojmallick/sigmap-jetbrains](https://github.com/manojmallick/sigmap-jetbrains) | IntelliJ IDEA, WebStorm, PyCharm, GoLand — tool window + actions |
 | **Neovim** | lazy.nvim / packer / vim-plug | [github.com/manojmallick/sigmap.nvim](https://github.com/manojmallick/sigmap.nvim) | `:SigMap`, `:SigMapQuery` float window, statusline widget |
 
-**MCP server** — 15 on-demand tools for Claude Code and Cursor:
+**MCP server** — 17 on-demand tools for Claude Code and Cursor:
 
 ```bash
 sigmap --mcp
 ```
 
-Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
 
 ---
 

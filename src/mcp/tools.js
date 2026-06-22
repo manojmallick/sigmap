@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * MCP tool definitions for SigMap (15 tools).
+ * MCP tool definitions for SigMap (17 tools).
  * read_context, search_signatures, get_map, create_checkpoint, get_routing,
  * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
  * get_callee_signatures, sigmap_notify_file_created, sigmap_notify_symbol_added,
- * sigmap_notify_file_deleted.
+ * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview.
  */
 
 const TOOLS = [
@@ -276,6 +276,44 @@ const TOOLS = [
         path: { type: 'string', description: 'Deleted file path relative to the project root.' },
       },
       required: ['path'],
+    },
+  },
+  {
+    name: 'get_diff_context',
+    description:
+      'For every changed file in the working tree (or staged, or vs a base ref), return its ' +
+      'current signatures plus blast radius — direct importers, transitive count, and affected ' +
+      'tests/routes — with a risk label. One call gives an agent everything a code review or a ' +
+      'safe edit needs. Lists changed files shell-free (git binary, never a shell).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        base: {
+          type: 'string',
+          description: 'Optional git ref to diff against (e.g. "main"). Returns files changed in `base..HEAD`. Omit for working-tree changes.',
+        },
+        staged: {
+          type: 'boolean',
+          description: 'When true (and no base), report only staged changes (`git diff --cached`).',
+        },
+        depth: {
+          type: 'number',
+          description: 'Blast-radius BFS depth limit (default: 2). Use 0 for unlimited.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_architecture_overview',
+    description:
+      'A high-level map of the codebase in one call: module breakdown (files/tokens), the most ' +
+      'depended-on "hub" files, the dependency-cycle count, and route totals. Extends get_map — ' +
+      'use it to orient in an unfamiliar repo before drilling in with read_context / query_context.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
     },
   },
 ];

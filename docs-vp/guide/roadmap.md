@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Seventy-two versions shipped. MIT open source from day one.
+Seventy-three versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 1,219 tests passing · 15 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 1,225 tests passing · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v7.27.0 — Diff context & architecture overview MCP tools (v8.0 D3) ✓ (2026-06-22)
+
+**Minor release — v8.0 D3.** Two new MCP tools take the server from 15 to 17, both composed from data SigMap already computes (zero new runtime deps, no system-shell spawns). **`get_diff_context`** `{ base?, staged?, depth? }` returns, for every changed file (working tree, staged, or vs a base ref), its current **signatures** plus **blast radius** — direct importers, transitive count, affected tests/routes — and a risk label, so an agent gets everything a review or a safe edit needs in one call. Changed files are listed **shell-free** through `src/util/git.js`. **`get_architecture_overview`** `{}` returns a one-call codebase map — module breakdown (files/tokens), the most depended-on **hub files**, the dependency-**cycle** count, and route totals — extending `get_map` for orienting in an unfamiliar repo. Both reuse the existing graph (`buildFromCwd`, `analyzeImpact`, `detectCycles`) and extractor pipeline.
+
+**Tags:** `mcp` · `get_diff_context` · `get_architecture_overview` · `blast-radius` · `hub-files` · `17 MCP tools` · `#376` · `PR #377`
+
+**Impact:** MCP surface 15 → 17 tools (synced across `--help`, README, `mcp.md`, `version.json`, llms); +6 tests (1,225 passing); zero new runtime dependencies. Continues the v8.0 milestone (E1 shipped in v7.26.0).
+
+---
+
 ### v7.26.0 — The Evidence Pack (v8.0 E1) ✓ (2026-06-22)
 
 **Minor release — the first installment of the v8.0 "Evidence Pack & the Pivot" milestone.** SigMap gets its keystone artifact: a deterministic, machine-consumable signature-and-evidence map that replaces the copy-paste workflow. `sigmap evidence "<query>"` emits a byte-stable JSON (schema v1) — plus a `--markdown` handoff rendering — that an agent or CI can ingest directly. Every `files[]` entry is anchored to real symbols and `{start,end}` line ranges, with a relevance `reason`, a `0–1` `confidence`, best-effort `relatedTests`, and a `riskLabel` ∈ `generated · test · config · security · source`; `tokenBudget`/`droppedFiles` make the budget honest, and a `grounding` block signs the canonical pack with a sha256 `contextHash`. The pack carries **no wall-clock timestamp** — an unchanged repo yields byte-identical output and an identical hash, exactly the auditable, reproducible context an agentic grep loop cannot produce. Built entirely from shipped zero-dep modules (ranker, line-anchor parsing, security scanner); always writes `.context/evidence-pack.json`; flags `--top`, `--budget`, `--out`.
@@ -1180,7 +1190,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — v8.0 "Evidence Pack & the Pivot" 🚧 IN PROGRESS (E1 shipped in v7.26.0; next: E2 repositioning · E3 `doctor` · E4 agent recipes + `mcp install` · D3 +2 MCP tools)
+## Current milestone — v8.0 "Evidence Pack & the Pivot" 🚧 IN PROGRESS (E1 shipped in v7.26.0, D3 +2 MCP tools in v7.27.0; next: E2 repositioning · E3 `doctor` · E4 agent recipes + `mcp install`)
 
 v6.0–v7.0.0 shipped graph-boosted retrieval, incremental signature cache, weights sharing, native tool instructions across all 7 adapters, MCP auto-wire, intelligent source root detection, intent-aware retrieval, cross-session context memory with impact planning, R language support, Python AST extraction, line anchors (Surgical Context), demand-driven retrieval with the `get_lines` MCP tool, the **`verify-ai-output` Hallucination Guard** (five-detector reliable MVP with closest-match suggestions + HTML report), **Memory tools** (`note`, `status`, `read_memory` — 11 MCP tools total), **v7.0.0**: **Squeeze** input minimization with symbol enrichment, full-signatures-under-budget, one canonical usage block, source-of-truth `llms.txt`, and pinned reproducible benchmarks; **v7.1.0**: the **`sigmap gain`** token-savings dashboard (cumulative tokens saved, %, est. $, daily/weekly/monthly trends; privacy-safe, local-only, default-on); and the **grounded-codegen** track — **v7.4–7.5** live-index write hooks + read-time self-heal (Layer 1), **v7.6.0** the offline grounding benchmark (the GATE), **v7.7.0** **`sigmap conventions`** (Layer 3: extract a repo's file-naming / export / test-framework conventions); **v7.8.0** **`conventions --conflicts`** (per-convention breakdown + rename suggestions); **v7.9.0** **`conventions --inject`** (CLAUDE.md convention injection — the agent now sees the house style); **v7.10.0** **`sigmap scaffold`** (Layer 4: convention-matched proposal gated by a confidence floor — closing the last root cause); **v7.11.0** **`sigmap verify-plan`** (Gap 2: plan vs live index); **v7.12.0** **`sigmap review-pr`** (Gap 2: diff audit); and **v7.13.0** **`sigmap create`** (the orchestrator that sequences all four guard stages — the grounded-creation capstone). and **v7.16.0** the **LLM A/B hallucination ablation harness** (§9 — `npm run benchmark:llm-ablation`). The grounded-codegen plan is now functionally complete: every root cause is closed, the full `create` pipeline ships, and the §9 measurement harness is built and offline-tested. and **v7.20.0** the `init` Creation-workflow CLAUDE.md block — **every item in the grounded-codegen implementation plan is now shipped** (4 root causes, the full create pipeline, the conventions flag set, scaffold persistence, and the §9 measurement harness). The §9 A/B now runs live on a real 40-task corpus (Anthropic or Gemini/AI-Studio keys); a first run measured **62.5 → 22.5 flagged errors per 100 with grounding** (v7.22.0), and **v7.22.1** hardened `verify-ai-output`'s file-path extractor so runtime/library names ("Node.js") and placeholder filenames no longer count as fake files — clearing the dominant false-positive class so the §9 delta is clean, and **v7.22.2** cleared the last two false-positive classes (camelCase placeholders + documentation-placeholder imports) — lifting the measured grounding delta from +2 to +9 per 100, and **v7.23.0** made the §9 harness statistically robust (`--runs N` mean ± range over a 100-task corpus); a 100-task run then revealed the "write an example" corpus elicited placeholder scaffolding that masked grounding's effect, so **v7.24.0** redesigned the corpus as checkable repo-fact questions (which file defines `X`?) that isolate grounding, and **v7.24.1** published the first averaged result: grounding cut fabricated file-location claims from **99.8 to 0.2 per 100** (5×100 tasks, Gemini). Next: a generative-correctness §9 variant (does grounding help the model *write* correct code, not just recall paths?), and broader provider/model coverage. Also planned: **PR verification** (`verify-plan` / `review-pr` GitHub Action), the **Interactive Context Explorer**, line anchors for the remaining extractors (Java, Go, Rust, C#, …), and performance optimizations for very large monorepos (>50K files).
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22T20:50:15.915Z",
+  "generated": "2026-06-22T21:53:10.931Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,8 +26,8 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 75.6,
     "avgImprovement": 54.7,
-    "totalGroundedSymbols": 11031,
-    "totalDarkSymbols": 56351,
+    "totalGroundedSymbols": 11027,
+    "totalDarkSymbols": 56355,
     "hallucinationRiskPct": 83.6
   },
   "repos": [
@@ -125,8 +125,8 @@
       "promptsWith": 1.2,
       "promptsWithout": 2.99,
       "reductionPct": 59.9,
-      "groundedSymbols": 1124,
-      "darkSymbols": 16532,
+      "groundedSymbols": 1125,
+      "darkSymbols": 16531,
       "hallucinationRiskPct": 93.6
     },
     {
@@ -167,8 +167,8 @@
       "promptsWith": 1.2,
       "promptsWithout": 2.99,
       "reductionPct": 59.8,
-      "groundedSymbols": 2185,
-      "darkSymbols": 1551,
+      "groundedSymbols": 2186,
+      "darkSymbols": 1550,
       "hallucinationRiskPct": 41.5
     },
     {
@@ -195,8 +195,8 @@
       "promptsWith": 1.6,
       "promptsWithout": 3,
       "reductionPct": 46.6,
-      "groundedSymbols": 1442,
-      "darkSymbols": 6956,
+      "groundedSymbols": 1444,
+      "darkSymbols": 6954,
       "hallucinationRiskPct": 82.8
     },
     {
@@ -209,9 +209,9 @@
       "promptsWith": 1.4,
       "promptsWithout": 2.97,
       "reductionPct": 52.9,
-      "groundedSymbols": 778,
-      "darkSymbols": 3175,
-      "hallucinationRiskPct": 80.3
+      "groundedSymbols": 773,
+      "darkSymbols": 3180,
+      "hallucinationRiskPct": 80.4
     },
     {
       "repo": "vapor",

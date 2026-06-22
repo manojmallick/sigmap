@@ -674,4 +674,179 @@ function notifyFileDeleted(args, cwd) {
   }
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted };
+/**
+ * List the files changed in the working tree, staged area, or vs a base ref.
+ * Shell-free (routes through src/util/git.js). Returns relative paths.
+ */
+function _changedFiles(cwd, args) {
+  const { tryGit } = require('../util/git');
+  let out = '';
+  if (args.base) {
+    if (!/^[A-Za-z0-9._/\-~^]+$/.test(args.base)) return [];
+    out = tryGit(['diff', `${args.base}..HEAD`, '--name-only'], { cwd });
+  } else if (args.staged) {
+    out = tryGit(['diff', '--cached', '--name-only'], { cwd });
+  } else {
+    out = tryGit(['diff', 'HEAD', '--name-only'], { cwd });
+  }
+  return out.split('\n').map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * get_diff_context({ base?, staged?, depth? }) → string
+ *
+ * For each changed file: its extracted signatures + blast radius (direct
+ * importers, transitive count, affected tests/routes) + a risk label.
+ * Hands an agent everything a review or a safe edit needs in one call.
+ */
+function getDiffContext(args, cwd) {
+  try {
+    const a = args || {};
+    const files = _changedFiles(cwd, a);
+    if (files.length === 0) {
+      return '_No changed files detected._ (Outside a git repo, or the working tree / selected range is clean.)';
+    }
+
+    const { extractFile, langFor } = require('../extractors/dispatch');
+    const { analyzeImpact } = require('../graph/impact');
+    let riskLabelFor;
+    try { ({ riskLabelFor } = require('../evidence/pack')); } catch (_) { riskLabelFor = () => 'source'; }
+
+    const depth = Math.max(0, parseInt(a.depth, 10) || 2);
+    const srcFiles = files.filter((f) => langFor(f));
+    let impactByFile = new Map();
+    try {
+      const impacts = analyzeImpact(srcFiles, cwd, { depth });
+      impactByFile = new Map(impacts.map((r) => [r.file, r.impact]));
+    } catch (_) { /* graph optional */ }
+
+    const scope = a.base ? `vs ${a.base}` : (a.staged ? 'staged' : 'working tree');
+    const out = [
+      `# Diff context (${scope})`,
+      '',
+      `**${files.length} changed file${files.length === 1 ? '' : 's'}** · ${srcFiles.length} with extractable signatures`,
+      '',
+    ];
+
+    for (const rel of files) {
+      out.push(`## \`${rel}\``);
+      if (!langFor(rel)) { out.push('_non-source file (no signatures)_', ''); continue; }
+
+      out.push(`_risk: ${riskLabelFor(rel)}_`);
+      const impact = impactByFile.get(rel);
+      if (impact) {
+        out.push(
+          `**Blast radius:** ${impact.totalImpact} file(s) impacted — ` +
+          `${impact.direct.length} direct importer(s), ${impact.transitive.length} transitive` +
+          (impact.tests.length ? `, ${impact.tests.length} test(s)` : '') +
+          (impact.routes.length ? `, ${impact.routes.length} route(s)` : '')
+        );
+        if (impact.direct.length) {
+          out.push(`Direct importers: ${impact.direct.slice(0, 8).map((f) => '`' + f + '`').join(', ')}` + (impact.direct.length > 8 ? ' …' : ''));
+        }
+        if (impact.tests.length) {
+          out.push(`Tests to run: ${impact.tests.slice(0, 8).map((f) => '`' + f + '`').join(', ')}`);
+        }
+      } else {
+        out.push('**Blast radius:** (not in dependency graph — new or leaf file)');
+      }
+      out.push('');
+
+      let src = '';
+      try { src = fs.readFileSync(path.resolve(cwd, rel), 'utf8'); } catch (_) {}
+      const sigs = src ? extractFile(rel, src) : [];
+      if (sigs.length) {
+        out.push('```');
+        for (const s of sigs.slice(0, 40)) out.push(s);
+        if (sigs.length > 40) out.push(`… +${sigs.length - 40} more`);
+        out.push('```');
+      } else {
+        out.push('_(no signatures extracted — file may be deleted or empty)_');
+      }
+      out.push('');
+    }
+
+    return out.join('\n');
+  } catch (err) {
+    return `_get_diff_context failed: ${err.message}_`;
+  }
+}
+
+/**
+ * get_architecture_overview({}) → string
+ *
+ * A high-level map of the codebase: module breakdown (files/tokens), the most
+ * depended-on "hub" files, dependency-cycle count, and route totals. Extends
+ * get_map — one call to orient in an unfamiliar repo.
+ */
+function getArchitectureOverview(args, cwd) {
+  try {
+    const { buildSigIndex } = require('../retrieval/ranker');
+    const index = buildSigIndex(cwd);
+    const out = ['# Architecture overview', ''];
+
+    if (index.size === 0) {
+      out.push('_No context file found. Run: node gen-context.js_', '');
+    } else {
+      const groups = {};
+      let totalTokens = 0;
+      let totalFiles = 0;
+      for (const [rel, sigs] of index.entries()) {
+        const parts = rel.replace(/\\/g, '/').split('/');
+        const mod = parts.length > 1 ? parts[0] : '.';
+        const tok = Math.ceil(sigs.join('\n').length / 4);
+        if (!groups[mod]) groups[mod] = { files: 0, tokens: 0 };
+        groups[mod].files++;
+        groups[mod].tokens += tok;
+        totalTokens += tok;
+        totalFiles++;
+      }
+      const sorted = Object.entries(groups)
+        .map(([mod, d]) => ({ mod, files: d.files, tokens: d.tokens }))
+        .sort((a, b) => b.tokens - a.tokens);
+
+      out.push(`**${totalFiles} indexed files · ${sorted.length} modules · ~${totalTokens} tokens**`, '');
+      out.push('## Modules', '| Module | Files | Tokens |', '|--------|-------|--------|');
+      for (const m of sorted.slice(0, 20)) out.push(`| ${m.mod} | ${m.files} | ~${m.tokens} |`);
+      out.push('');
+    }
+
+    // Hub files + cycle count from the dependency graph (optional).
+    try {
+      const { buildFromCwd } = require('../graph/builder');
+      const { detectCycles } = require('../map/import-graph');
+      const graph = buildFromCwd(cwd);
+      if (graph && graph.reverse && graph.reverse.size) {
+        const hubs = [...graph.reverse.entries()]
+          .map(([f, importers]) => ({ file: path.relative(cwd, f).replace(/\\/g, '/'), in: importers.length }))
+          .filter((h) => h.in > 0)
+          .sort((a, b) => b.in - a.in)
+          .slice(0, 10);
+        if (hubs.length) {
+          out.push('## Hub files (most depended-on)', '| File | Importers |', '|------|-----------|');
+          for (const h of hubs) out.push(`| \`${h.file}\` | ${h.in} |`);
+          out.push('');
+        }
+        let cycleCount = 0;
+        try { cycleCount = detectCycles(graph.forward).length; } catch (_) {}
+        out.push(`**Dependency cycles:** ${cycleCount}` + (cycleCount ? ' _(see import graph)_' : ' — none detected'), '');
+      }
+    } catch (_) { /* graph optional */ }
+
+    // Routes from PROJECT_MAP.md if present.
+    const mapPath = path.join(cwd, 'PROJECT_MAP.md');
+    if (fs.existsSync(mapPath)) {
+      const mc = fs.readFileSync(mapPath, 'utf8');
+      const routeCount = mc.split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| Method') && !l.startsWith('|---')).length;
+      out.push('## Project map', `Routes detected: ${routeCount} _(use get_map for imports/classes/routes detail)_`, '');
+    } else {
+      out.push('_Run `node gen-project-map.js` for routes / class-hierarchy detail (get_map)._');
+    }
+
+    return out.join('\n');
+  } catch (err) {
+    return `_get_architecture_overview failed: ${err.message}_`;
+  }
+}
+
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview };

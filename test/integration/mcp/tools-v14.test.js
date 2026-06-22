@@ -83,12 +83,12 @@ function seedContextFile(dir) {
 
 console.log('\nMCP v1.4 — tools/list\n');
 
-test('tools/list returns exactly 15 tools', () => {
+test('tools/list returns exactly 17 tools', () => {
   withTempProject((dir) => {
     const [res] = mcpCall({ jsonrpc: '2.0', method: 'tools/list', id: 1 }, dir);
     assert.ok(res.result, 'Should have result');
     assert.ok(Array.isArray(res.result.tools), 'tools should be array');
-    assert.strictEqual(res.result.tools.length, 15, `Expected 15 tools, got ${res.result.tools.length}`);
+    assert.strictEqual(res.result.tools.length, 17, `Expected 17 tools, got ${res.result.tools.length}`);
     const names = res.result.tools.map((t) => t.name);
     assert.ok(names.includes('explain_file'), 'Should have explain_file');
     assert.ok(names.includes('list_modules'), 'Should have list_modules');
