@@ -12528,6 +12528,152 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   
 };
 
+// ── ./src/mcp/install ──
+__factories["./src/mcp/install"] = function(module, exports) {
+  
+  /**
+   * Per-client MCP install (v8.0 E4).
+   *
+   * `sigmap --setup` wires *every* known editor at once and only touches config
+   * files that already exist (to avoid creating clutter for editors the user does
+   * not use). This module is the targeted counterpart: `sigmap mcp install <client>`
+   * picks one client, and — because the user explicitly asked for it — CREATES the
+   * config dir/file if it is missing. Idempotent: re-running never duplicates the
+   * entry. Zero dependencies; only `fs`/`path`/`os`.
+   */
+
+  const fs   = require('fs');
+  const path = require('path');
+  const os   = require('os');
+
+  // Config shapes the supported clients use.
+  //  - 'json'  → { mcpServers: { sigmap: { command, args } } }
+  //  - 'zed'   → { context_servers: { sigmap: { command: { path, args } } } }
+  //  - 'yaml'  → Codex CLI ~/.codex/config.yaml (mcpServers block, appended)
+  const CLIENTS = {
+    claude:   { label: 'Claude Code',  format: 'json', scope: 'project', project: ['.claude', 'settings.json'] },
+    cursor:   { label: 'Cursor',       format: 'json', scope: 'project', project: ['.cursor', 'mcp.json'] },
+    windsurf: { label: 'Windsurf',     format: 'json', scope: 'both',
+                project: ['.windsurf', 'mcp.json'],
+                global:  ['.codeium', 'windsurf', 'mcp_config.json'] },
+    vscode:   { label: 'VS Code',      format: 'json', scope: 'project', project: ['.vscode', 'mcp.json'] },
+    opencode: { label: 'OpenCode',     format: 'json', scope: 'both',
+                project: ['opencode.json'],
+                global:  ['.config', 'opencode', 'config.json'] },
+    gemini:   { label: 'Gemini CLI',   format: 'json', scope: 'global', global: ['.gemini', 'settings.json'] },
+    zed:      { label: 'Zed',          format: 'zed',  scope: 'global', global: ['.config', 'zed', 'settings.json'] },
+    codex:    { label: 'Codex CLI',    format: 'yaml', scope: 'global', global: ['.codex', 'config.yaml'] },
+    mcp:      { label: 'Portable (.mcp.json)', format: 'json', scope: 'project', project: ['.mcp.json'] },
+  };
+
+  /** Resolve the absolute config path for a client, honoring `global`. */
+  function resolveTarget(spec, cwd, home, useGlobal) {
+    const wantGlobal = useGlobal || spec.scope === 'global';
+    if (wantGlobal && spec.global) return path.join(home, ...spec.global);
+    if (spec.project) return path.join(cwd, ...spec.project);
+    if (spec.global)  return path.join(home, ...spec.global);
+    return null;
+  }
+
+  /** List supported clients with their resolved target paths. */
+  function listClients(opts = {}) {
+    const cwd  = opts.cwd  || process.cwd();
+    const home = opts.home || os.homedir();
+    return Object.keys(CLIENTS).map((key) => {
+      const spec = CLIENTS[key];
+      return {
+        client: key,
+        label:  spec.label,
+        scope:  spec.scope,
+        format: spec.format,
+        target: resolveTarget(spec, cwd, home, false),
+        globalTarget: spec.scope === 'both' ? resolveTarget(spec, cwd, home, true) : null,
+      };
+    });
+  }
+
+  function serverArgs(scriptPath) {
+    return [path.resolve(scriptPath), '--mcp'];
+  }
+
+  /** Install into a JSON `mcpServers` config (create file/dir if absent). */
+  function _installJson(filePath, scriptPath) {
+    let settings = {};
+    if (fs.existsSync(filePath)) {
+      try { settings = JSON.parse(fs.readFileSync(filePath, 'utf8')) || {}; }
+      catch (_) { settings = {}; }
+    }
+    if (!settings.mcpServers) settings.mcpServers = {};
+    if (settings.mcpServers.sigmap) return 'already';
+    settings.mcpServers.sigmap = { command: 'node', args: serverArgs(scriptPath) };
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
+    return 'installed';
+  }
+
+  /** Install into Zed's `context_servers` config (create file/dir if absent). */
+  function _installZed(filePath, scriptPath) {
+    let settings = {};
+    if (fs.existsSync(filePath)) {
+      try { settings = JSON.parse(fs.readFileSync(filePath, 'utf8')) || {}; }
+      catch (_) { settings = {}; }
+    }
+    if (!settings.context_servers) settings.context_servers = {};
+    if (settings.context_servers.sigmap) return 'already';
+    settings.context_servers.sigmap = { command: { path: 'node', args: serverArgs(scriptPath) } };
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
+    return 'installed';
+  }
+
+  /** Install into Codex CLI YAML (append block; create file if absent). */
+  function _installYaml(filePath, scriptPath) {
+    let raw = '';
+    if (fs.existsSync(filePath)) {
+      raw = fs.readFileSync(filePath, 'utf8');
+      if (raw.includes('sigmap')) return 'already';
+    }
+    const block = [
+      'mcpServers:',
+      '  sigmap:',
+      '    command: node',
+      '    args:',
+      `      - ${path.resolve(scriptPath)}`,
+      '      - --mcp',
+    ].join('\n');
+    const next = raw ? raw.trimEnd() + '\n\n' + block + '\n' : block + '\n';
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, next);
+    return 'installed';
+  }
+
+  /**
+   * Install the sigmap MCP server for a single client.
+   * @returns { client, label, path, status } where status is
+   *   'installed' | 'already' | 'unknown'.
+   */
+  function installClient(client, opts = {}) {
+    const spec = CLIENTS[client];
+    if (!spec) {
+      return { client, status: 'unknown', valid: Object.keys(CLIENTS) };
+    }
+    const cwd        = opts.cwd  || process.cwd();
+    const home       = opts.home || os.homedir();
+    const scriptPath = opts.scriptPath || path.join(cwd, 'gen-context.js');
+    const filePath   = resolveTarget(spec, cwd, home, opts.global);
+
+    let status;
+    if (spec.format === 'zed')       status = _installZed(filePath, scriptPath);
+    else if (spec.format === 'yaml') status = _installYaml(filePath, scriptPath);
+    else                             status = _installJson(filePath, scriptPath);
+
+    return { client, label: spec.label, path: filePath, status };
+  }
+
+  module.exports = { CLIENTS, listClients, installClient, resolveTarget };
+  
+};
+
 // ── ./src/mcp/server ──
 __factories["./src/mcp/server"] = function(module, exports) {
   
@@ -18192,6 +18338,8 @@ Usage:
   ${cmd} note                              List recent notes (also: note --list <N>)
   ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
   ${cmd} doctor                            Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)
+  ${cmd} mcp list                          List MCP clients and their config paths (--json)
+  ${cmd} mcp install <client>              Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level
   ${cmd} --init                            Write example config + .contextignore scaffold
   ${cmd} --help                            Show this message
   ${cmd} --version                         Show version
@@ -19614,6 +19762,56 @@ function main() {
       console.log('  Notes:         none — add with: sigmap note "<text>"');
     }
     process.exit(0);
+  }
+
+  // `sigmap mcp install <client>` / `sigmap mcp list` — one-command per-client
+  // MCP wiring (v8.0 E4). Unlike `--setup` (wires every editor, only touches
+  // existing configs), this targets one client and creates the config if absent.
+  if (args[0] === 'mcp') {
+    const { listClients, installClient } = requireSourceOrBundled('./src/mcp/install');
+    const sub = args[1];
+
+    if (sub === 'list') {
+      const clients = listClients({ cwd });
+      if (args.includes('--json')) {
+        process.stdout.write(JSON.stringify(clients, null, 2) + '\n');
+        process.exit(0);
+      }
+      console.log('Supported MCP clients:\n');
+      for (const c of clients) {
+        const scope = c.scope === 'both' ? 'project (or --global)' : c.scope;
+        console.log(`  ${c.client.padEnd(10)} ${c.label}`);
+        console.log(`             ${_displayPath(c.target, cwd)}  [${scope}]`);
+      }
+      console.log('\nInstall with: sigmap mcp install <client>');
+      process.exit(0);
+    }
+
+    if (sub === 'install') {
+      const client = args[2];
+      if (!client || client.startsWith('--')) {
+        console.error('[sigmap] usage: sigmap mcp install <client>   (see: sigmap mcp list)');
+        process.exit(1);
+      }
+      const result = installClient(client, {
+        cwd,
+        scriptPath,
+        global: args.includes('--global'),
+      });
+      if (result.status === 'unknown') {
+        console.error(`[sigmap] unknown client "${client}". Valid: ${result.valid.join(', ')}`);
+        process.exit(1);
+      }
+      if (result.status === 'already') {
+        console.log(`[sigmap] ${result.label}: sigmap already registered in ${_displayPath(result.path, cwd)}`);
+      } else {
+        console.log(`[sigmap] ${result.label}: registered MCP server in ${_displayPath(result.path, cwd)}`);
+      }
+      process.exit(0);
+    }
+
+    console.error('[sigmap] usage: sigmap mcp install <client> | sigmap mcp list');
+    process.exit(1);
   }
 
   // `sigmap doctor` — diagnose config, index, freshness, coverage, and MCP
