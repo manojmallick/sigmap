@@ -5,8 +5,8 @@
 // verbatim and never overwrites them. Review quarterly (Q3 2026, Q4 2026, …) and
 // when EU compliance guidance or major positioning changes.
 
-export const tagline = `Zero-dependency context engine that stops AI coding agents from guessing in your codebase.
-Grounded context. Verified answers. No embeddings, no vector DB, fully offline.`;
+export const tagline = `The deterministic, verifiable grounding layer for AI code work.
+A reproducible signature-and-evidence map that agents, CI, and reviewers can trust and audit. No embeddings, no vector DB, fully offline.`;
 
 export const solves = `## What SigMap solves
 
@@ -16,11 +16,13 @@ export const solves = `## What SigMap solves
 - No blast-radius awareness before editing a hub file — \`--impact\` shows every file a change touches.
 - Pasted stack traces, CI logs, and JSON bloat the prompt — \`squeeze\` minimizes them and enriches the top frame from the symbol index.`;
 
-export const projectDescription = `SigMap is a zero-dependency AI context engine. It extracts function and class
-signatures from a codebase and uses TF-IDF ranking to feed an AI assistant only
-the files relevant to the task — cutting tokens ~97% while keeping answers
-grounded. Deterministic, offline, no embeddings or vector database. Works with
-Claude, Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.`;
+export const projectDescription = `SigMap is the deterministic, verifiable grounding layer for AI code work. It
+extracts function and class signatures from a codebase and builds a byte-stable
+signature-and-evidence map that agents, CI, and reviewers can trust and audit —
+proving which files and symbols are real before acting. Deterministic TF-IDF
+ranking keeps the relevant context in scope (cutting tokens ~97% as a side
+effect), with no LLM calls, embeddings, or vector database. Works with Claude,
+Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.`;
 
 export const doesNotDo = `## What SigMap does not do
 
@@ -44,5 +46,6 @@ pack**, never a certification or a "compliance report". Signed evidence packs ar
 planned for a later release. Any compliance-adjacent wording is reviewed against
 the relevant regulation before publication; SigMap makes no legal claims.`;
 
-export const positioning = `SigMap — grounded AI coding context. The lightweight, deterministic alternative
-to embeddings for feeding the right code to AI assistants.`;
+export const positioning = `SigMap — the deterministic, verifiable grounding layer for AI code work. The
+reproducible signature-and-evidence map agents, CI, and reviewers can audit,
+which agentic grep cannot produce.`;

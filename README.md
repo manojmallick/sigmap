@@ -4,7 +4,7 @@
 
 # ⚡ SigMap
 
-**SigMap finds the right files before your AI answers.**
+**SigMap is the deterministic, verifiable grounding layer for AI code work.**
 
 [![npm version](https://img.shields.io/npm/v/sigmap?color=7c6af7&label=latest&logo=npm)](https://www.npmjs.com/package/sigmap)
 [![npm downloads](https://img.shields.io/npm/dt/sigmap?color=22c55e&label=downloads&logo=npm)](https://www.npmjs.com/package/sigmap)
@@ -35,7 +35,9 @@ Zero config. Zero dependencies. Under 10 seconds.
 
 ## What is SigMap?
 
-SigMap extracts function and class signatures from your codebase and feeds the right files — not the whole repo — to your AI.
+SigMap builds a **deterministic, auditable signature-and-evidence map** of your codebase — no LLM calls, no embeddings, byte-stable output — so AI agents, CI, and reviewers can *trust and verify* which files and symbols are real before acting. Same repo in, same map out, every time.
+
+That map is exactly what agentic grep is worst at: reproducible, auditable context an agent can consume without a copy-paste, and a grounding check that proves an AI answer is anchored to real signatures and line numbers. Token reduction comes for free — but trust is the point.
 
 **Model-agnostic.** Works with:
 - **Cloud LLMs:** Claude, GPT-4, Copilot, Gemini
@@ -48,6 +50,12 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 ## Why SigMap?
 
+**Deterministic and verifiable — the two things an agentic-grep loop can't give you:**
+- **Deterministic** — no LLM calls, no agent loop; the same repo always produces a byte-identical map you can diff, cache, and gate in CI.
+- **Auditable & grounded** — every file and symbol traces to a real line anchor; `sigmap verify-ai-output` flags any AI claim that isn't.
+- **Zero dependencies** — `npx sigmap` on any machine; no embeddings, no vector DB, no hosted service, fully offline.
+
+**Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **75.6% hit@5** — right file found in top 5 results (vs 13.6% baseline)
 - **97.0% token reduction** — average across 21 real repos
@@ -58,7 +66,6 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
-- **Zero npm dependencies** — `npx sigmap` on any machine
 
 ---
 
@@ -66,9 +73,9 @@ SigMap extracts function and class signatures from your codebase and feeds the r
 
 | Without SigMap | With SigMap |
 |---|---|
-| ❌ Guessing which files are relevant | ✅ Right file in context — <!--SM:hitWhole-->76%<!--/SM:hitWhole--> of the time |
-| ❌ Sending the full repo to your AI | ✅ Minimal context — only what matters |
-| ❌ Embeddings / vector DB required | ✅ Grounded answers, no infra needed |
+| ❌ Non-reproducible agent guesses | ✅ Deterministic map — same input, same output, every time |
+| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->76%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
+| ❌ Embeddings / vector DB required | ✅ Zero deps, no infra, fully offline |
 
 ---
 
@@ -213,6 +220,47 @@ sigmap verify-ai-output <answer.md> # flag fabricated files/imports/symbols/test
 sigmap review-pr                    # audit a diff: scope drift, god-node edits, missing tests, security files
 sigmap create "<task>"             # run the whole pipeline: scaffold → verify-plan → verify-ai-output → review-pr
 ```
+
+---
+
+## Evidence Pack & diagnostics
+
+The **Evidence Pack** is the consumable, machine-readable replacement for "paste this into your prompt" — a deterministic JSON artifact (with a Markdown handoff mode) that an agent or CI step reads directly, with zero copy-paste:
+
+```bash
+sigmap evidence "how does auth work"            # → .context/evidence-pack.json (deterministic, byte-stable)
+sigmap evidence "how does auth work" --markdown # Markdown handoff to stdout
+sigmap doctor                                   # diagnose config, index, freshness, coverage, MCP wiring — with fixes
+```
+
+Each pack carries the ranked files, the symbols and line anchors that justify them, the token budget, the dropped files (and why), and the grounding summary — so a consumer can trust and audit the context instead of guessing.
+
+---
+
+## Agent recipes
+
+SigMap treats coding agents as **consumers, not competitors**: it hands them a deterministic, auditable map the agent can read on demand. Wire any of them up once, then let the agent pull context or consume an Evidence Pack.
+
+| Agent | One-time setup | How it consumes SigMap |
+|---|---|---|
+| **Claude Code** | `sigmap mcp install claude` | 17 MCP tools (`search_signatures`, `get_lines`, `get_diff_context`…) |
+| **Cursor** | `sigmap mcp install cursor` | MCP tools, plus the `cursor` adapter writes `.cursorrules` |
+| **Cline** | `sigmap mcp install cursor` | Reads `.cursorrules`; same MCP server |
+| **Continue** | `sigmap mcp install vscode` | MCP tools inside the Continue extension |
+| **Aider** | `sigmap --adapter openai` | Reads `.github/openai-context.md` before a session |
+| **OpenHands** | `sigmap evidence "<task>"` | Consumes `.context/evidence-pack.json` directly |
+| **Codex CLI** | `sigmap mcp install codex` | MCP tools, plus the `codex` adapter writes `AGENTS.md` |
+
+```bash
+# Pattern 1 — give the agent live, on-demand access (MCP)
+sigmap mcp install claude        # one of: claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp
+                                 # add --global for a user-level install
+
+# Pattern 2 — hand the agent a deterministic Evidence Pack (no MCP, no copy-paste)
+sigmap evidence "implement rate limiting" --markdown   # or read .context/evidence-pack.json
+```
+
+See [`sigmap mcp list`](https://sigmap.io/guide/cli.html) for every supported client.
 
 ---
 

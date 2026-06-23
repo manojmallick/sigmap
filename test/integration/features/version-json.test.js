@@ -240,9 +240,11 @@ test('docs/comparison-chart.svg: uses 75.6% (not 80.0%)', () => {
   assert.ok(src.includes('75.6%'), 'missing 75.6% in comparison-chart.svg');
 });
 
-test('docs/index.html: softwareVersion is 5.8.0', () => {
+test('docs/index.html: softwareVersion matches version.json', () => {
   const src = readDocs('index.html');
-  assert.ok(src.includes('"softwareVersion":"5.8.0"'), 'missing softwareVersion 5.8.0 in structured data');
+  const v = JSON.parse(readRoot('version.json')).version;
+  assert.ok(src.includes(`"softwareVersion":"${v}"`),
+    `structured data softwareVersion should be "${v}" (from version.json)`);
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────
