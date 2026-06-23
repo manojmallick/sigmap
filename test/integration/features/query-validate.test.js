@@ -149,22 +149,39 @@ test('sigmap --ci --json → valid JSON with pass/coverage/threshold', () => {
   assert.strictEqual(typeof parsed.coverage, 'number', 'coverage not a number');
 });
 
-// 11. sigmap --ci --min-coverage 99 → exits 1
-test('sigmap --ci --min-coverage 99 → exits 1', () => {
-  const r = spawnSync(process.execPath, [SCRIPT, '--ci', '--min-coverage', '99'], {
+// Measure the repo's actual coverage once — the absolute value is
+// environment-dependent (it shifts with auto-detected srcDirs, the auto-budget,
+// and whatever context other tests have generated in ROOT), so tests 11/12 pin
+// their threshold relative to it rather than to a hard-coded "impossible" number.
+function measuredCoverage() {
+  const r = spawnSync(process.execPath, [SCRIPT, '--ci', '--json'], {
     encoding: 'utf8', cwd: ROOT, timeout: 20000,
   });
-  assert.strictEqual(r.status, 1, `expected exit 1, got ${r.status}`);
+  return JSON.parse(r.stdout.trim()).coverage;
+}
+
+// 11. --ci gate fails when the threshold exceeds achievable coverage → exits 1
+test('sigmap --ci with a threshold above measured coverage → exits 1', () => {
+  const cov = measuredCoverage();
+  if (cov >= 100) { console.log('  SKIP  coverage is 100% — no higher threshold to test'); return; }
+  const threshold = Math.min(100, cov + 1);
+  const r = spawnSync(process.execPath, [SCRIPT, '--ci', '--min-coverage', String(threshold)], {
+    encoding: 'utf8', cwd: ROOT, timeout: 20000,
+  });
+  assert.strictEqual(r.status, 1, `expected exit 1 at threshold ${threshold} (coverage ${cov}), got ${r.status}`);
 });
 
-// 12. sigmap --ci --min-coverage 99 --json → pass:false
-test('sigmap --ci --min-coverage 99 --json → pass:false', () => {
-  const r = spawnSync(process.execPath, [SCRIPT, '--ci', '--min-coverage', '99', '--json'], {
+// 12. same, --json → pass:false with the requested threshold echoed back
+test('sigmap --ci --json with a threshold above measured coverage → pass:false', () => {
+  const cov = measuredCoverage();
+  if (cov >= 100) { console.log('  SKIP  coverage is 100% — no higher threshold to test'); return; }
+  const threshold = Math.min(100, cov + 1);
+  const r = spawnSync(process.execPath, [SCRIPT, '--ci', '--min-coverage', String(threshold), '--json'], {
     encoding: 'utf8', cwd: ROOT, timeout: 20000,
   });
   const parsed = JSON.parse(r.stdout.trim());
-  assert.strictEqual(parsed.pass,      false, `expected pass:false, got ${parsed.pass}`);
-  assert.strictEqual(parsed.threshold, 99,    `expected threshold 99, got ${parsed.threshold}`);
+  assert.strictEqual(parsed.pass,      false,     `expected pass:false at threshold ${threshold} (coverage ${cov})`);
+  assert.strictEqual(parsed.threshold, threshold, `expected threshold ${threshold}, got ${parsed.threshold}`);
 });
 
 // 13. sigmap ask --json → JSON does not crash regardless of coverage
