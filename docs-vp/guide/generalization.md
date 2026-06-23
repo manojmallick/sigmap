@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 31 languages, and multiple domains with 75.6% hit@5 in the latest saved v7.28.0 retrieval run.
+description: SigMap generalizes across 21 repos, 33 languages, and multiple domains with 75.6% hit@5 in the latest saved v7.29.0 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 75.6% hit@5 across 31 languages with R support"
+      content: "SigMap Generalization — 75.6% hit@5 across 33 languages with R support"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
@@ -19,8 +19,8 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v7.28.0 benchmark snapshot
-**Benchmark ID:** sigmap-v7.28-main &nbsp;·&nbsp; **Date:** 2026-06-22 (with R language)
+::: info Official v7.29.0 benchmark snapshot
+**Benchmark ID:** sigmap-v7.29-main &nbsp;·&nbsp; **Date:** 2026-06-23 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -37,11 +37,11 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 76% hit@5 with no per-repo tuning in the latest saved v7.28.0 run.
+these 90 tasks is yes — 76% hit@5 with no per-repo tuning in the latest saved v7.29.0 run.
 :::
 
 - **21 repos** (including 3 R language repos)
-- **31 languages** (added R and GDScript)
+- **33 languages** (added R and GDScript)
 - **multiple domains**
 - **75.6%** overall hit@5
 - **no per-repo tuning**

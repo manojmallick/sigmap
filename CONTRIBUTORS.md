@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.29.0)
+- **@manojmallick** — feat(mcp): one-command per-client MCP install — `sigmap mcp install <client>` + `sigmap mcp list` (v8.0 E4); creates the config when absent, idempotent, handles mcpServers / Zed / Codex shapes; `--global` scope (#385, PR #386)
+
 ### Recent Contributors (v7.28.0)
 - **@manojmallick** — feat(doctor): add `sigmap doctor` (v8.0 E3) — one-shot setup diagnostic (config · context · index · freshness · coverage · MCP wiring) with actionable fixes; `--json`; CI-usable exit codes (#381, PR #382)
 - **@manojmallick** — ci(sync): self-heal `develop` when the release PR merge auto-deletes it (#380)

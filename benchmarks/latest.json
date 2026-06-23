@@ -1,6 +1,6 @@
 {
-  "benchmark_id": "sigmap-v7.28-main",
-  "benchmark_date": "2026-06-22",
+  "benchmark_id": "sigmap-v7.29-main",
+  "benchmark_date": "2026-06-23",
   "source": "benchmarks/reports/{benchmark-matrix,task-benchmark,token-reduction}.json",
   "repos_token": 21,
   "repos_retrieval": 18,

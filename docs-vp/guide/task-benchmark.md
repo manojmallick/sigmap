@@ -1,6 +1,6 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v7.28.0. 52.2% correct, 39.4% fewer prompts, 76% hit@5 across 90 tasks, with R language support.
+description: Latest saved task benchmark for SigMap v7.29.0. 52.2% correct, 39.4% fewer prompts, 76% hit@5 across 90 tasks, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Task benchmark
 
-::: info Official v7.28.0 benchmark snapshot
-**Benchmark ID:** sigmap-v7.28-main &nbsp;·&nbsp; **Date:** 2026-06-22 (with R language)
+::: info Official v7.29.0 benchmark snapshot
+**Benchmark ID:** sigmap-v7.29-main &nbsp;·&nbsp; **Date:** 2026-06-23 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-06-22 (v7.28.0)** — Now includes R language support (ggplot2, dplyr, shiny)
+Latest saved run: **2026-06-23 (v7.29.0)** — Now includes R language support (ggplot2, dplyr, shiny)
 
 This page answers the question people care about most:
 

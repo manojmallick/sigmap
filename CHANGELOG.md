@@ -10,6 +10,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.29.0] — 2026-06-23
+
+Minor release — **v8.0 E4:** one-command, per-client MCP install so a cold user reaches a working MCP setup fast (the v8.0 <5-minute-quickstart exit gate).
+
+### Added
+- **`sigmap mcp install <client>` (#385):** targeted MCP wiring for a single client — `claude`, `cursor`, `windsurf`, `vscode`, `zed`, `codex`, `gemini`, `opencode`, or portable `mcp` (`.mcp.json`). Unlike `sigmap --setup` (which wires *every* editor at once and only updates configs that already exist), this **creates** the config dir/file when absent, is idempotent (re-running reports already-registered, never duplicates), and emits the correct shape per client — `mcpServers` JSON, Zed `context_servers`, or Codex YAML. `--global` selects the user-level config for clients that have both a project and a global scope (Windsurf, OpenCode). Composed in the zero-dep `src/mcp/install.js` — no system-shell spawns, no install scripts.
+- **`sigmap mcp list` (#385):** lists every supported MCP client and its resolved config path (`--json` for a machine-readable array).
+
+### Changed
+- Regenerated `llms-full.txt` so the published surface lists the new `mcp install`/`mcp list` commands.
+
+### Fixed
+- Hardened two `--ci --min-coverage` integration tests (#385) that were order- and environment-dependent — they hard-coded an "unreachable" 99% threshold, but once the suite generates a full `src/` context the repo's measured coverage reaches 99–100%. They now pin the threshold relative to the actual measured coverage, so the gate-fails-above-achievable property holds deterministically everywhere.
+
 ## [7.28.0] — 2026-06-23
 
 Minor release — **v8.0 E3:** a one-shot setup doctor so a cold user reaches a useful answer fast.

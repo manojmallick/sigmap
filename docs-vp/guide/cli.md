@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 70 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 72 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 70 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 72 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -89,6 +89,8 @@ If you are new to the product, start with the workflow pages first:
 | `note "<text>"` | Append a note to the cross-session decision log (`note` alone lists recent) |
 | `status` | Repo state — branch, dirty files, index freshness, notes |
 | `doctor` | Diagnose config, index, freshness, coverage, and MCP wiring — with a fix per issue (`--json`; exits 1 on hard failure) |
+| `mcp list` | List supported MCP clients and their config paths (`--json`) |
+| `mcp install <client>` | Wire MCP for one client — `claude`/`cursor`/`windsurf`/`vscode`/`zed`/`codex`/`gemini`/`opencode`/`mcp`; creates the config if absent; `--global` for user-level |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
 | `weights` | Show learned file multipliers or emit them as JSON |
 | `suggest-profile` | Auto-detect context profile from git state |
@@ -918,6 +920,45 @@ Each line is `✓` (ok), `⚠` (warning), or `✗` (hard failure); every non-ok 
 | Option | Description |
 |--------|-------------|
 | `--json` | Emit the machine-readable result (`{ checks:[{id,label,status,detail,fix}], ok, errors, warnings }`) |
+
+---
+
+## mcp install · mcp list
+
+Targeted, one-command MCP wiring for a **single** client. Where `--setup` wires every editor at once (and only touches configs that already exist), `mcp install` picks one client and **creates** its config dir/file when absent — the fast path to a working MCP setup.
+
+```bash
+sigmap mcp list                  # see clients + their config paths
+sigmap mcp install claude        # wire one client
+sigmap mcp install windsurf --global   # user-level config instead of project
+```
+
+```text
+$ sigmap mcp list
+Supported MCP clients:
+
+  claude     Claude Code
+             .claude/settings.json  [project]
+  cursor     Cursor
+             .cursor/mcp.json  [project]
+  windsurf   Windsurf
+             .windsurf/mcp.json  [project (or --global)]
+  ...
+  zed        Zed
+             ~/.config/zed/settings.json  [global]
+  codex      Codex CLI
+             ~/.codex/config.yaml  [global]
+
+$ sigmap mcp install claude
+[sigmap] Claude Code: registered MCP server in .claude/settings.json
+```
+
+Supported clients: `claude`, `cursor`, `windsurf`, `vscode`, `zed`, `codex`, `gemini`, `opencode`, and `mcp` (portable `.mcp.json`). The command emits the correct shape per client — `mcpServers` JSON, Zed `context_servers`, or Codex YAML — and is **idempotent**: a second run reports that sigmap is already registered and never duplicates the entry. An unknown client name exits non-zero and lists the valid clients.
+
+| Option | Description |
+|--------|-------------|
+| `--global` | Write the user-level config for clients that have both a project and a global scope (Windsurf, OpenCode) |
+| `--json` | (`mcp list`) Emit the client array with resolved target paths |
 
 ---
 

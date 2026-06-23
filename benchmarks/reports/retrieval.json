@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22T23:15:24.585Z",
+  "generated": "2026-06-23T19:39:01.991Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 275,
+      "sigCount": 274,
       "tasks": 5,
       "hitAt5": 0.6,
       "mrr": 0.5,
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 47,
+      "sigCount": 48,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.2,
@@ -640,7 +640,7 @@
             "src/Serilog/Capturing/MessageTemplateProcessor.cs",
             "src/Serilog/Capturing/PropertyBinder.cs"
           ],
-          "top1": "src/Serilog/Formatting/Display/PropertiesOutputFormat.cs",
+          "top1": "src/Serilog/Events/MessageTemplate.cs",
           "firstHitRank": null,
           "tier": "wrong"
         }
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 297,
+      "sigCount": 295,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.59,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 100,
+      "sigCount": 99,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.707,
@@ -928,7 +928,7 @@
       "sigCount": 62,
       "tasks": 5,
       "hitAt5": 0,
-      "mrr": 0,
+      "mrr": 0.025,
       "randomBaseline": 0.038,
       "improvement": 0,
       "tiers": {
@@ -956,7 +956,7 @@
             "Sources/Vapor/Application.swift"
           ],
           "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
-          "firstHitRank": null,
+          "firstHitRank": 8,
           "tier": "wrong"
         },
         {
@@ -997,7 +997,7 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 122,
+      "sigCount": 121,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.633,
