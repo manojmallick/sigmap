@@ -2,7 +2,7 @@
 # Jekyll is disabled via .nojekyll — this file provides explicit metadata only.
 
 title: SigMap
-description: Zero-dependency AI context engine. 97% token reduction. 21 languages. node gen-context.js.
+description: The deterministic, verifiable grounding layer for AI code work. Zero dependencies, no embeddings, fully offline.
 url: https://manojmallick.github.io
 baseurl: /sigmap
 

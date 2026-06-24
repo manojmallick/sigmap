@@ -16,7 +16,7 @@ head:
 # Quality benchmark
 
 ::: info Official v7.29.0 benchmark snapshot
-**Benchmark ID:** sigmap-v7.29-main &nbsp;·&nbsp; **Date:** 2026-06-23 (with R language)
+**Benchmark ID:** sigmap-v7.30-main &nbsp;·&nbsp; **Date:** 2026-06-23 (with R language)
 
 | Metric | Value |
 |---|---:|

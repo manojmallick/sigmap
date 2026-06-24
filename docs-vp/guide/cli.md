@@ -1119,7 +1119,7 @@ sigmap share
 ```
 
 ```
-Generated with SigMap — zero-dependency AI context engine
+Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
 97.0% fewer tokens · 75.6% retrieval hit@5 · 39.4% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.

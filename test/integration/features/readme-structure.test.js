@@ -41,7 +41,7 @@ test('title: SigMap heading present', () => {
 });
 
 test('tagline: exact wording present', () => {
-  assert.ok(src.includes('SigMap finds the right files before your AI answers'),
+  assert.ok(src.includes('SigMap is the deterministic, verifiable grounding layer for AI code work'),
     'missing exact tagline');
 });
 
@@ -87,33 +87,32 @@ test('why: token reduction (from version.json) mentioned', () => {
 
 // ── Section 5: Replace section ────────────────────────────────────────────────
 
-test('replace: guessing files (❌) present', () => {
-  assert.ok(src.includes('Guessing') || src.includes('guessing'), 'missing guessing files item');
+test('replace: non-reproducible guesses (❌) present', () => {
+  assert.ok(src.includes('Non-reproducible') || src.includes('agent guesses'), 'missing non-reproducible guesses item');
 });
 
-test('replace: sending full repo (❌) present', () => {
-  assert.ok(src.includes('full repo') || src.includes('sending the full'), 'missing full repo item');
+test('replace: "trust me" AI answers (❌) present', () => {
+  assert.ok(src.includes('Trust me') || src.includes('trust me'), 'missing "trust me" answers item');
 });
 
 test('replace: embeddings / vector DB (❌) present', () => {
   assert.ok(src.includes('embeddings') || src.includes('vector'), 'missing embeddings/vector item');
 });
 
-test('replace: correct file selection (✅) present', () => {
+test('replace: deterministic map (✅) present', () => {
   assert.ok(
-    src.includes('Correct file selection') || src.includes('correct file selection') ||
-    src.includes('Right file in context'),
-    'missing correct file selection item');
+    src.includes('Deterministic map') || src.includes('same input, same output'),
+    'missing deterministic map item');
 });
 
-test('replace: minimal context (✅) present', () => {
-  assert.ok(src.includes('Minimal context') || src.includes('minimal context'),
-    'missing minimal context item');
+test('replace: grounded / line anchor (✅) present', () => {
+  assert.ok(src.includes('line anchor') || src.includes('Grounded'),
+    'missing grounded / line-anchor item');
 });
 
-test('replace: grounded answers (✅) present', () => {
-  assert.ok(src.includes('Grounded answers') || src.includes('grounded answers'),
-    'missing grounded answers item');
+test('replace: zero deps / offline (✅) present', () => {
+  assert.ok(src.includes('Zero deps') || src.includes('fully offline'),
+    'missing zero-deps / offline item');
 });
 
 // ── Section 6: Workflow ───────────────────────────────────────────────────────

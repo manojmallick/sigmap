@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v7.30.0)
+- **@manojmallick** — feat(positioning): reposition every public surface to "the deterministic, verifiable grounding layer for AI code work" + agent recipes (v8.0 E2/E4); documents the shipped `evidence`/`doctor` commands; adds a repositioning gate (#389, PR #390)
+
 ### Recent Contributors (v7.29.0)
 - **@manojmallick** — feat(mcp): one-command per-client MCP install — `sigmap mcp install <client>` + `sigmap mcp list` (v8.0 E4); creates the config when absent, idempotent, handles mcpServers / Zed / Codex shapes; `--global` scope (#385, PR #386)
 

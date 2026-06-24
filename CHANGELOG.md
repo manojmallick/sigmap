@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.30.0] — 2026-06-23
+
+Minor release — **v8.0 E2 + E4 (the "Pivot"):** completes v8.0 by repositioning every public surface to the chosen framing — *"the deterministic, verifiable grounding layer for AI code work"* — and framing coding agents as **consumers, not competitors**. The Evidence Pack code (E1/E3/D3 + `mcp install`) already shipped in 7.27–7.29; this is the positioning half. Docs/strings only — no runtime behaviour change, zero new dependencies.
+
+### Added
+- **Agent recipes (#389):** new README "Agent recipes" section with copy-paste setup for Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI — each via `sigmap mcp install <client>` or a deterministic Evidence Pack, positioning agents as consumers of SigMap's map.
+- **Surface docs for shipped commands (#389):** README now documents `sigmap evidence` (deterministic Evidence Pack JSON/Markdown) and `sigmap doctor` (setup diagnostics), which shipped in code but were undocumented.
+- **Repositioning gate (#389):** `test/integration/repositioning.test.js` makes the pivot non-regressable — asserts the grounding-layer framing on README/`llms.txt`/docs `<title>`, recipes for every named agent, and the documented commands.
+
+### Changed
+- **E2 repositioning (#389):** README tagline, "What is SigMap?", "Why SigMap?" (token reduction demoted to proof) and the compare table; `docs/index.html` title/meta/keywords/JSON-LD + hero (and the stale `softwareVersion` 5.8.0 → current); `llms.txt`/`llms-full.txt` regenerated from `scripts/llms-manual.mjs`; the per-project adapter tagline in `src/format/llms-txt.js` (bundle rebuilt, reproducible); `docs/_config.yml`. The literal `context-engine` remains only inside the published JetBrains plugin URL slug.
+- **Structure guards updated (#389):** `readme-structure.test.js` tagline/compare-table assertions moved to the new copy; `version-json.test.js` now derives the docs `softwareVersion` from `version.json` instead of a hardcoded stale value.
+
 ## [7.29.0] — 2026-06-23
 
 Minor release — **v8.0 E4:** one-command, per-client MCP install so a cold user reaches a working MCP setup fast (the v8.0 <5-minute-quickstart exit gate).

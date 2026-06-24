@@ -1,14 +1,14 @@
 ---
 layout: home
-title: SigMap — zero-dependency AI context engine
-description: SigMap makes AI coding answers more grounded with compact signatures, validation, judge scoring, and local learning. 75.6% hit@5, 39.4% fewer prompts, 97.0% average token reduction, 33 languages with R support.
+title: SigMap — the deterministic, verifiable grounding layer for AI code work
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 75.6% hit@5, 39.4% fewer prompts, 97.0% average token reduction, 33 languages with R support.
 head:
   - - meta
     - property: og:title
-      content: "SigMap — grounded AI coding context"
+      content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "Ask, validate, judge, and learn from real code context. 75.6% hit@5, 39.4% fewer prompts, 97.0% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 75.6% hit@5, 39.4% fewer prompts, 97.0% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -17,21 +17,21 @@ head:
       content: website
   - - meta
     - name: twitter:title
-      content: "SigMap — grounded AI coding context"
+      content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "Ask, validate, judge, and learn from real code context. 75.6% hit@5, 39.4% fewer prompts, 97.0% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 75.6% hit@5, 39.4% fewer prompts, 97.0% overall token reduction."
   - - meta
     - name: twitter:image:alt
-      content: "SigMap — zero-dependency AI context engine"
+      content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: keywords
-      content: "sigmap, ai context engine, grounded ai answers, code retrieval, mcp, sigmap ask, sigmap judge, sigmap validate, sigmap learn"
+      content: "sigmap, ai grounding layer, ai code grounding, deterministic context, evidence pack, grounded ai answers, code retrieval, mcp, sigmap ask, sigmap judge"
 
 hero:
   name: SigMap
-  text: Better context. More grounded answers.
-  tagline: "Zero-dependency AI context engine. 75.6% hit@5 · 97.0% token reduction · Ask → Validate → Judge → Learn."
+  text: Grounded context AI can trust. Deterministic. Verifiable.
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 75.6% hit@5 · 97.0% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →

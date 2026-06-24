@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   base: '/',
   title: 'SigMap',
-  description: 'Zero-dependency AI context engine. 97% token reduction.',
+  description: 'The deterministic, verifiable grounding layer for AI code work. Zero dependencies, no embeddings, fully offline.',
 
   appearance: 'dark',
 
