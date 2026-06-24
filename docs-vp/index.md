@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.29.0</span>
+  <span><strong>Release:</strong> v7.30.0</span>
   <span>·</span>
-  <span>New <code>sigmap doctor</code> (v8.0 E3): a one-shot setup diagnostic — config, context, index freshness, coverage, and MCP wiring — that prints an actionable fix for anything wrong, so a cold user reaches a useful answer fast (<code>--json</code>; CI-usable exit codes)</span>
+  <span><strong>v8.0 complete — the Pivot:</strong> SigMap is now positioned as the deterministic, verifiable grounding layer for AI code work (token reduction demoted to proof), with copy-paste <strong>agent recipes</strong> framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers — plus documented <code>evidence</code> and <code>doctor</code> commands</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v7.29-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v7.30-main</span>
   <span>·</span>
   <span>76% hit@5 · 97.0% token reduction · 2026-06-23</span>
 </div>
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-06-23 (v7.29.0)**.
+Latest saved benchmark run: **2026-06-23 (v7.30.0)**.
 
 </div>
 
