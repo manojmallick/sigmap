@@ -22,7 +22,9 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
+const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const REPOS_DIR = path.join(ROOT, 'benchmarks', 'repos');
@@ -111,23 +113,9 @@ const CONFIG_OVERRIDES = {
 };
 
 // ---------------------------------------------------------------------------
-// Tokenizer — mirrors src/eval/runner.js
+// Ranking — identifier-aware BM25, shared with src/eval/runner.js (#395)
 // ---------------------------------------------------------------------------
-function tokenize(text) {
-  if (!text) return [];
-  return text
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_\-]/g, ' ')
-    .replace(/[^\w\s]/g, ' ')
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(t => t.length > 1);
-}
-
-const STOP_WORDS = new Set([
-  'the','a','an','in','of','to','for','and','or','is','are',
-  'that','this','it','with','from','by','be','as','on','at',
-]);
+const { bm25rank } = require('../src/retrieval/bm25.js');
 
 // ---------------------------------------------------------------------------
 // Sig index parser — reads copilot-instructions.md
@@ -160,28 +148,12 @@ function buildSigIndex(contextPath) {
 // ---------------------------------------------------------------------------
 // Scoring
 // ---------------------------------------------------------------------------
-function scoreFile(sigs, queryTokens) {
-  if (!sigs || sigs.length === 0) return 0;
-  const sigTokens = new Set(tokenize(sigs.join(' ')));
-  let score = 0;
-  for (const qt of queryTokens) {
-    if (STOP_WORDS.has(qt)) continue;
-    if (sigTokens.has(qt)) score += 1;
-    for (const st of sigTokens) {
-      if (st !== qt && st.startsWith(qt) && qt.length >= 4) score += 0.3;
-    }
-  }
-  return score;
-}
-
 function rank(query, index, topK = 10) {
-  const queryTokens = tokenize(query);
-  const scored = [];
+  const candidates = [];
   for (const [file, sigs] of index.entries()) {
-    scored.push({ file, score: scoreFile(sigs, queryTokens) });
+    candidates.push({ file, sigs });
   }
-  scored.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
-  return scored.slice(0, topK).map(r => r.file);
+  return bm25rank(query, candidates).slice(0, topK).map(r => r.file);
 }
 
 function normalizePath(p) {
