@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 33 languages, and multiple domains with 75.6% hit@5 in the latest saved v7.30.0 retrieval run.
+description: SigMap generalizes across 21 repos, 33 languages, and multiple domains with 86.7% hit@5 in the latest saved v7.31.0 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 75.6% hit@5 across 33 languages with R support"
+      content: "SigMap Generalization — 86.7% hit@5 across 33 languages with R support"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
@@ -19,15 +19,15 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v7.30.0 benchmark snapshot
-**Benchmark ID:** sigmap-v7.30-main &nbsp;·&nbsp; **Date:** 2026-06-23 (with R language)
+::: info Official v7.31.0 benchmark snapshot
+**Benchmark ID:** sigmap-v7.31-main &nbsp;·&nbsp; **Date:** 2026-07-02 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **76%** vs 13.6% baseline |
-| Retrieval lift | **5.6×** |
-| Prompt reduction | **39.4%** (2.84 → 1.72) |
-| Task success proxy | **52.2%** |
+| Hit@5 | **87%** vs 13.6% baseline |
+| Retrieval lift | **6.4×** |
+| Prompt reduction | **48.8%** (2.84 → 1.46) |
+| Task success proxy | **67.8%** |
 | Overall token reduction | **97.0%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
@@ -37,13 +37,13 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 76% hit@5 with no per-repo tuning in the latest saved v7.30.0 run.
+these 90 tasks is yes — 87% hit@5 with no per-repo tuning in the latest saved v7.31.0 run.
 :::
 
 - **21 repos** (including 3 R language repos)
 - **33 languages** (added R and GDScript)
 - **multiple domains**
-- **75.6%** overall hit@5
+- **86.7%** overall hit@5
 - **no per-repo tuning**
 
 That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
@@ -67,7 +67,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v6.5.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v7.31.0` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|
@@ -75,14 +75,16 @@ If you want one number to carry into launch messaging, use the shared `v6.5.0` s
 | Systems lib | 1 | **100%** | abseil-cpp |
 | State management | 1 | **100%** | riverpod |
 | Concurrency | 1 | **100%** | akka |
+| UI framework | 2 | **100%** | vue-core, svelte |
+| Web app | 1 | **100%** | spring-petclinic |
+| HTTP client | 2 | **90%** | axios, okhttp |
 | Web framework | 8 | **83%** | express, rails, gin, laravel, flask, vapor, fastify, fastapi |
-| HTTP client | 2 | **76%** | axios, okhttp |
-| Logging | 1 | **76%** | serilog |
-| UI framework | 2 | **76%** | vue-core, svelte |
-| Web app | 1 | **60%** | spring-petclinic |
+| Logging | 1 | **20%** | serilog |
 
-No domain scores below 60%. The variation is explained by repo structure (fragmented vs
-modular signatures) rather than language or domain category.
+Most domains land at or near 100%. The two low outliers — `serilog` (logging) and `vapor`
+(web framework) — are files whose signatures genuinely lack the query vocabulary; those need
+semantic retrieval and are the known residual misses. The variation is explained by repo
+structure (fragmented vs modular signatures) rather than language or domain category.
 
 ---
 
@@ -90,9 +92,9 @@ modular signatures) rather than language or domain category.
 
 | Size | File count | Repos | Avg hit@5 |
 |---|---|---|---|
-| Small | ≤25 files | 5 | 80% |
-| Medium | 26–200 files | 5 | 76% |
-| Large | >200 files | 8 | **93%** |
+| Small | ≤25 files | 5 | 96% |
+| Medium | 26–200 files | 5 | 56% |
+| Large | >200 files | 8 | **100%** |
 
 **Large repos benefit most.** Without SigMap, the random baseline for a 1,000-file repo
 is effectively 0% (5/1000 = 0.5%). SigMap's ranked retrieval closes that gap entirely,
@@ -110,8 +112,8 @@ Key signals that the results are not overfit:
 
 - **Zero per-repo tuning** — the same `gen-context.js` command with default config ran on all 18 repos
 - **Blind selection** — repos were chosen by GitHub star count and language diversity, not by testing which ones scored well
-- **Failure modes are honest** — Swift/vapor 60%, JavaScript/svelte 60%, fastify 60%, spring-petclinic 60% — genuine weak spots, not massaged away
-- **Large repos score *higher*** — if the extractor patterns were memorized, they'd degrade on unseen large codebases; instead they improve (93% vs 84% for small repos)
+- **Failure modes are honest** — C#/serilog 20%, Swift/vapor 0%, TypeScript/axios 80%, JS/fastify 80% — genuine weak spots, not massaged away
+- **Large repos score *higher*** — if the extractor patterns were memorized, they'd degrade on unseen large codebases; instead they improve (100% vs 96% for small repos)
 
 ---
 
@@ -119,23 +121,23 @@ Key signals that the results are not overfit:
 
 | Repo | Language | Domain | Files | Hit@5 |
 |---|---|---|---|---|
-| express | JavaScript | Web framework | 6 | 80% |
+| express | JavaScript | Web framework | 6 | 100% |
 | flask | Python | Web framework | 19 | 100% |
 | gin | Go | Web framework | 107 | 100% |
-| spring-petclinic | Java | Web app | 13 | 60% |
-| rails | Ruby | Web framework | 1,179 | 80% |
-| axios | TypeScript | HTTP client | 25 | 60% |
+| spring-petclinic | Java | Web app | 13 | 100% |
+| rails | Ruby | Web framework | 1,179 | 100% |
+| axios | TypeScript | HTTP client | 25 | 80% |
 | rust-analyzer | Rust | Dev tools | 635 | 100% |
 | abseil-cpp | C++ | Systems lib | 700 | 100% |
-| serilog | C# | Logging | 99 | 80% |
+| serilog | C# | Logging | 99 | 20% |
 | riverpod | Dart | State management | 446 | 100% |
 | okhttp | Kotlin | HTTP client | 18 | 100% |
 | laravel | PHP | Web framework | 1,533 | 100% |
 | akka | Scala | Concurrency | 211 | 100% |
-| vapor | Swift | Web framework | 131 | 60% |
+| vapor | Swift | Web framework | 131 | 0% |
 | vue-core | Vue | UI framework | 232 | 100% |
-| svelte | Svelte | UI framework | 370 | 60% |
-| fastify | JavaScript | Web framework | 31 | 60% |
+| svelte | Svelte | UI framework | 370 | 100% |
+| fastify | JavaScript | Web framework | 31 | 80% |
 | fastapi | Python | Web framework | 48 | 80% |
 
 

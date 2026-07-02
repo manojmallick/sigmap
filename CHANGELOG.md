@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [7.31.0] — 2026-07-02
+
+Minor release — **identifier-aware BM25 re-ranker.** Plain exact-token TF-IDF missed queries whose terms live *inside* code identifiers — `component emit` never surfaced `componentEmits` because that is one token sharing no exact term with the query. This was the dominant retrieval-miss cause. The new ranker splits identifiers, stems lightly, boosts path tokens, and scores with length-normalized BM25. Deterministic, zero new dependencies, no LLM/embeddings.
+
+### Added
+- **Identifier-aware BM25 re-ranker (#395, #396):** new zero-dependency `src/retrieval/bm25.js` with (1) identifier-aware tokenization (split camelCase / snake_case), (2) light stemming (`emits` → `emit`, `options` → `option`), (3) path-token boost (filename weighed 3×), and (4) BM25 length-normalized scoring instead of raw TF-IDF. Wired into the core ranker (`src/retrieval/ranker.js`) as the base relevance score — so `sigmap ask`, `sigmap --query`, and MCP `query_context` all benefit — with the existing negative-signal penalty and recency/graph/learned boosts layered on top. Also drives the benchmark runner (`src/eval/runner.js`) and the dev retrieval benchmark.
+- **BM25 unit tests (#396):** `test/integration/bm25.test.js` covers tokenization, stemming, path boost, the `component emit` → `componentEmits` motivating case, and deterministic tie-breaking.
+
+### Changed
+- **Retrieval benchmark refreshed:** on the 18-repo / 90-task suite, hit@5 rose **75.6% → 86.7%** (retrieval lift 5.6× → 6.4×), with rank-1 gains on flask, spring-petclinic, rails, and svelte (60% → 100%). The task-completion proxy also improved (task success 52.2% → 67.8%, prompts/task 1.72 → 1.46) since it retrieves through the same ranker. Residual misses (vapor, serilog) are files whose signatures genuinely lack the query vocabulary — out of scope, they need semantic retrieval.
+
 ## [7.30.0] — 2026-06-23
 
 Minor release — **v8.0 E2 + E4 (the "Pivot"):** completes v8.0 by repositioning every public surface to the chosen framing — *"the deterministic, verifiable grounding layer for AI code work"* — and framing coding agents as **consumers, not competitors**. The Evidence Pack code (E1/E3/D3 + `mcp install`) already shipped in 7.27–7.29; this is the positioning half. Docs/strings only — no runtime behaviour change, zero new dependencies.

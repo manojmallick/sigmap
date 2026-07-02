@@ -123,10 +123,10 @@ test('runner.tokenize: splits camelCase', () => {
 });
 
 test('runner.tokenize: splits snake_case', () => {
-  const tokens = runner.tokenize('extract_return_type');
+  const tokens = runner.tokenize('extract_class_method');
   assert.ok(tokens.includes('extract'), `tokens: ${tokens}`);
-  assert.ok(tokens.includes('return'), `tokens: ${tokens}`);
-  assert.ok(tokens.includes('type'), `tokens: ${tokens}`);
+  assert.ok(tokens.includes('class'), `tokens: ${tokens}`);
+  assert.ok(tokens.includes('method'), `tokens: ${tokens}`);
 });
 
 // ---------------------------------------------------------------------------

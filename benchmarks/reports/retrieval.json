@@ -1,19 +1,19 @@
 {
-  "generated": "2026-06-23T21:22:46.396Z",
+  "generated": "2026-07-02T20:37:31.518Z",
   "repos": [
     {
       "repo": "express",
       "fileCount": 6,
       "sigCount": 6,
       "tasks": 5,
-      "hitAt5": 0.8,
-      "mrr": 0.633,
+      "hitAt5": 1,
+      "mrr": 0.8,
       "randomBaseline": 0.833,
-      "improvement": 1,
+      "improvement": 1.2,
       "tiers": {
-        "correct": 2,
+        "correct": 3,
         "partial": 2,
-        "wrong": 1
+        "wrong": 0
       },
       "taskDetails": [
         {
@@ -22,9 +22,9 @@
           "expected": [
             "lib/application.js"
           ],
-          "top1": "lib/express.js",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "lib/application.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "express-t002",
@@ -43,8 +43,8 @@
             "lib/request.js"
           ],
           "top1": "lib/utils.js",
-          "firstHitRank": 6,
-          "tier": "wrong"
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "express-t004",
@@ -147,12 +147,12 @@
       "sigCount": 80,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.707,
+      "mrr": 0.867,
       "randomBaseline": 0.047,
       "improvement": 21.4,
       "tiers": {
-        "correct": 3,
-        "partial": 2,
+        "correct": 4,
+        "partial": 1,
         "wrong": 0
       },
       "taskDetails": [
@@ -163,7 +163,7 @@
             "routergroup.go",
             "gin.go"
           ],
-          "top1": "gin.go",
+          "top1": "routergroup.go",
           "firstHitRank": 1,
           "tier": "correct"
         },
@@ -208,9 +208,9 @@
             "recovery.go",
             "logger.go"
           ],
-          "top1": "gin.go",
-          "firstHitRank": 5,
-          "tier": "partial"
+          "top1": "logger.go",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
@@ -219,14 +219,14 @@
       "fileCount": 13,
       "sigCount": 29,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.622,
+      "hitAt5": 1,
+      "mrr": 1,
       "randomBaseline": 0.385,
-      "improvement": 1.6,
+      "improvement": 2.6,
       "tiers": {
-        "correct": 3,
+        "correct": 5,
         "partial": 0,
-        "wrong": 2
+        "wrong": 0
       },
       "taskDetails": [
         {
@@ -256,9 +256,9 @@
             "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
             "src/main/resources/templates/owners/findOwners.html"
           ],
-          "top1": "src/main/resources/messages/messages_de.properties",
-          "firstHitRank": 9,
-          "tier": "wrong"
+          "top1": "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "spring-t004",
@@ -266,9 +266,9 @@
           "expected": [
             "src/main/resources/templates/vets/vetList.html"
           ],
-          "top1": "src/main/resources/application.properties",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "src/main/resources/templates/vets/vetList.html",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "spring-t005",
@@ -288,14 +288,14 @@
       "fileCount": 1179,
       "sigCount": 274,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.5,
+      "hitAt5": 1,
+      "mrr": 0.767,
       "randomBaseline": 0.004,
-      "improvement": 141.5,
+      "improvement": 235.8,
       "tiers": {
-        "correct": 2,
-        "partial": 1,
-        "wrong": 2
+        "correct": 3,
+        "partial": 2,
+        "wrong": 0
       },
       "taskDetails": [
         {
@@ -316,9 +316,9 @@
             "actionmailer/lib/action_mailer/delivery_methods.rb",
             "actionmailer/lib/action_mailer/mail_delivery_job.rb"
           ],
-          "top1": "actionmailer/lib/action_mailer/test_helper.rb",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "actionmailer/lib/action_mailer/mail_delivery_job.rb",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "rails-t003",
@@ -327,7 +327,7 @@
             "actionmailer/lib/action_mailer/parameterized.rb",
             "actionmailer/lib/action_mailer/preview.rb"
           ],
-          "top1": "actionmailer/lib/action_mailer/preview.rb",
+          "top1": "actionmailer/lib/action_mailer/parameterized.rb",
           "firstHitRank": 1,
           "tier": "correct"
         },
@@ -338,9 +338,9 @@
             "actionview/lib/action_view/renderer/partial_renderer.rb",
             "actionview/lib/action_view/renderer/streaming_template_renderer.rb"
           ],
-          "top1": "actionview/lib/action_view/renderer/abstract_renderer.rb",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "actionview/lib/action_view/renderer/partial_renderer/collection_caching.rb",
+          "firstHitRank": 3,
+          "tier": "partial"
         },
         {
           "id": "rails-t005",
@@ -349,9 +349,9 @@
             "actionview/lib/action_view/renderer/template_renderer.rb",
             "actionview/lib/action_view/template/handlers/erb.rb"
           ],
-          "top1": "actionview/lib/action_view/helpers/tags/collection_helpers.rb",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "actionview/lib/action_view/template/handlers/erb/erubi.rb",
+          "firstHitRank": 2,
+          "tier": "partial"
         }
       ]
     },
@@ -360,14 +360,14 @@
       "fileCount": 25,
       "sigCount": 29,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.469,
+      "hitAt5": 0.8,
+      "mrr": 0.492,
       "randomBaseline": 0.2,
-      "improvement": 3,
+      "improvement": 4,
       "tiers": {
-        "correct": 2,
-        "partial": 1,
-        "wrong": 2
+        "correct": 1,
+        "partial": 3,
+        "wrong": 1
       },
       "taskDetails": [
         {
@@ -388,9 +388,9 @@
             "lib/core/InterceptorManager.js",
             "lib/core/Axios.js"
           ],
-          "top1": "lib/adapters/http.js",
-          "firstHitRank": 5,
-          "tier": "partial"
+          "top1": "lib/core/AxiosError.js",
+          "firstHitRank": 8,
+          "tier": "wrong"
         },
         {
           "id": "axios-t003",
@@ -399,9 +399,9 @@
             "lib/core/mergeConfig.js",
             "lib/defaults/index.js"
           ],
-          "top1": "lib/core/Axios.js",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "lib/core/AxiosHeaders.js",
+          "firstHitRank": 3,
+          "tier": "partial"
         },
         {
           "id": "axios-t004",
@@ -410,9 +410,9 @@
             "lib/adapters/http.js",
             "lib/adapters/xhr.js"
           ],
-          "top1": "lib/adapters/http.js",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "lib/adapters/fetch.js",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "axios-t005",
@@ -421,9 +421,9 @@
             "lib/helpers/buildURL.js",
             "lib/core/buildFullPath.js"
           ],
-          "top1": "lib/core/Axios.js",
-          "firstHitRank": 7,
-          "tier": "wrong"
+          "top1": "lib/helpers/AxiosURLSearchParams.js",
+          "firstHitRank": 2,
+          "tier": "partial"
         }
       ]
     },
@@ -433,7 +433,7 @@
       "sigCount": 227,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.867,
+      "mrr": 0.9,
       "randomBaseline": 0.008,
       "improvement": 127,
       "tiers": {
@@ -449,9 +449,9 @@
             "crates/syntax/src/ast.rs",
             "crates/syntax/src/lib.rs"
           ],
-          "top1": "crates/syntax-bridge/src/lib.rs",
-          "firstHitRank": 3,
-          "tier": "partial"
+          "top1": "crates/syntax/src/lib.rs",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "rust-t002",
@@ -461,9 +461,9 @@
             "crates/syntax/src/syntax_error.rs",
             "crates/syntax/src/token_text.rs"
           ],
-          "top1": "crates/syntax/src/syntax_node.rs",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "crates/syntax/src/ptr.rs",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "rust-t003",
@@ -473,7 +473,7 @@
             "crates/vfs/src/file_set.rs",
             "crates/vfs/src/loader.rs"
           ],
-          "top1": "crates/vfs/src/file_set.rs",
+          "top1": "crates/vfs/src/loader.rs",
           "firstHitRank": 1,
           "tier": "correct"
         },
@@ -485,7 +485,7 @@
             "crates/tt/src/buffer.rs",
             "crates/tt/src/storage.rs"
           ],
-          "top1": "crates/tt/src/storage.rs",
+          "top1": "crates/tt/src/buffer.rs",
           "firstHitRank": 1,
           "tier": "correct"
         },
@@ -496,7 +496,7 @@
             "crates/syntax/src/syntax_editor.rs",
             "crates/syntax/src/syntax_editor/edit_algo.rs"
           ],
-          "top1": "crates/syntax/src/syntax_editor.rs",
+          "top1": "crates/syntax/src/syntax_editor/edit_algo.rs",
           "firstHitRank": 1,
           "tier": "correct"
         }
@@ -508,12 +508,12 @@
       "sigCount": 148,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.767,
+      "mrr": 1,
       "randomBaseline": 0.007,
       "improvement": 140,
       "tiers": {
-        "correct": 3,
-        "partial": 2,
+        "correct": 5,
+        "partial": 0,
         "wrong": 0
       },
       "taskDetails": [
@@ -546,9 +546,9 @@
             "absl/time/internal/cctz/include/cctz/time_zone.h",
             "absl/time/internal/cctz/src/time_zone_impl.h"
           ],
-          "top1": "absl/time/internal/cctz/src/time_zone_format.cc",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "absl/time/internal/cctz/include/cctz/time_zone.h",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "absl-t004",
@@ -569,24 +569,24 @@
             "absl/types/source_location.h",
             "absl/types/compare.h"
           ],
-          "top1": "absl/strings/internal/generic_printer_internal.h",
-          "firstHitRank": 3,
-          "tier": "partial"
+          "top1": "absl/types/optional_ref.h",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 48,
+      "sigCount": 47,
       "tasks": 5,
       "hitAt5": 0.2,
-      "mrr": 0.2,
+      "mrr": 0.1,
       "randomBaseline": 0.051,
       "improvement": 4,
       "tiers": {
-        "correct": 1,
-        "partial": 0,
+        "correct": 0,
+        "partial": 1,
         "wrong": 4
       },
       "taskDetails": [
@@ -597,9 +597,9 @@
             "src/Serilog/LoggerConfiguration.cs",
             "src/Serilog/Log.cs"
           ],
-          "top1": "src/Serilog/LoggerConfiguration.cs",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "src/Serilog/Settings/KeyValuePairs/SurrogateConfigurationMethods.cs",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "serilog-t002",
@@ -607,7 +607,7 @@
           "expected": [
             "src/Serilog/Configuration/LoggerSinkConfiguration.cs"
           ],
-          "top1": "src/Serilog/Debugging/SelfLog.cs",
+          "top1": "src/Serilog/Settings/KeyValuePairs/SurrogateConfigurationMethods.cs",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -640,7 +640,7 @@
             "src/Serilog/Capturing/MessageTemplateProcessor.cs",
             "src/Serilog/Capturing/PropertyBinder.cs"
           ],
-          "top1": "src/Serilog/Events/MessageTemplate.cs",
+          "top1": "src/Serilog/Rendering/MessageTemplateRenderer.cs",
           "firstHitRank": null,
           "tier": "wrong"
         }
@@ -652,12 +652,12 @@
       "sigCount": 132,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.9,
+      "mrr": 1,
       "randomBaseline": 0.011,
       "improvement": 89.2,
       "tiers": {
-        "correct": 4,
-        "partial": 1,
+        "correct": 5,
+        "partial": 0,
         "wrong": 0
       },
       "taskDetails": [
@@ -697,9 +697,9 @@
           "expected": [
             "packages/riverpod_sqflite/example/lib/generated.freezed.dart"
           ],
-          "top1": "packages/riverpod_lint_flutter_test/test/lints/provider_parameters.freezed.dart",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "packages/riverpod_sqflite/example/lib/generated.freezed.dart",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "riverpod-t005",
@@ -784,15 +784,15 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 295,
+      "sigCount": 298,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.59,
+      "mrr": 0.9,
       "randomBaseline": 0.003,
       "improvement": 306.6,
       "tiers": {
-        "correct": 2,
-        "partial": 3,
+        "correct": 4,
+        "partial": 1,
         "wrong": 0
       },
       "taskDetails": [
@@ -814,9 +814,9 @@
             "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
             "src/Illuminate/Validation/Concerns/FormatsMessages.php"
           ],
-          "top1": "src/Illuminate/Validation/Factory.php",
-          "firstHitRank": 5,
-          "tier": "partial"
+          "top1": "src/Illuminate/Validation/Concerns/FormatsMessages.php",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "laravel-t003",
@@ -846,19 +846,19 @@
             "src/Illuminate/Validation/ConditionalRules.php",
             "src/Illuminate/Validation/NestedRules.php"
           ],
-          "top1": "src/Illuminate/Validation/ClosureValidationRule.php",
-          "firstHitRank": 4,
-          "tier": "partial"
+          "top1": "src/Illuminate/Validation/NestedRules.php",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 99,
+      "sigCount": 98,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.707,
+      "mrr": 0.717,
       "randomBaseline": 0.024,
       "improvement": 42.2,
       "tiers": {
@@ -874,9 +874,9 @@
             "akka-cluster/src/main/scala/akka/cluster/Cluster.scala",
             "akka-cluster/src/main/scala/akka/cluster/Gossip.scala"
           ],
-          "top1": "akka-cluster/src/main/scala/akka/cluster/ClusterJmx.scala",
-          "firstHitRank": 5,
-          "tier": "partial"
+          "top1": "akka-cluster/src/main/scala/akka/cluster/Gossip.scala",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "akka-t002",
@@ -896,7 +896,7 @@
             "akka-cluster/src/main/scala/akka/cluster/ClusterSettings.scala"
           ],
           "top1": "akka-cluster/src/main/scala/akka/cluster/routing/ClusterRouterConfig.scala",
-          "firstHitRank": 3,
+          "firstHitRank": 4,
           "tier": "partial"
         },
         {
@@ -916,19 +916,19 @@
           "expected": [
             "akka-stream/src/main/scala/akka/stream/javadsl/RestartFlow.scala"
           ],
-          "top1": "akka-stream/src/main/scala/akka/stream/javadsl/RestartFlow.scala",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "akka-stream/src/main/scala/akka/stream/scaladsl/RestartFlow.scala",
+          "firstHitRank": 3,
+          "tier": "partial"
         }
       ]
     },
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 62,
+      "sigCount": 61,
       "tasks": 5,
       "hitAt5": 0,
-      "mrr": 0.025,
+      "mrr": 0,
       "randomBaseline": 0.038,
       "improvement": 0,
       "tiers": {
@@ -944,7 +944,7 @@
             "Sources/Vapor/Authentication/Authenticator.swift",
             "Sources/Vapor/Authentication/GuardMiddleware.swift"
           ],
-          "top1": "Sources/Vapor/Sessions/MemorySessions.swift",
+          "top1": "Sources/Vapor/Sessions/SessionsMiddleware.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -956,7 +956,7 @@
             "Sources/Vapor/Application.swift"
           ],
           "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
-          "firstHitRank": 8,
+          "firstHitRank": null,
           "tier": "wrong"
         },
         {
@@ -977,7 +977,7 @@
             "Sources/Vapor/Client/Client.swift",
             "Sources/Vapor/Client/ClientRequest.swift"
           ],
-          "top1": "Sources/Vapor/Sessions/SessionsMiddleware.swift",
+          "top1": "Sources/XCTVapor/XCTApplicationTester.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -988,7 +988,7 @@
             "Sources/Vapor/Cache/Cache.swift",
             "Sources/Vapor/Cache/MemoryCache.swift"
           ],
-          "top1": "Sources/Vapor/Utilities/Extendable.swift",
+          "top1": "Sources/Vapor/Sessions/SessionCache.swift",
           "firstHitRank": null,
           "tier": "wrong"
         }
@@ -997,15 +997,15 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 121,
+      "sigCount": 122,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.633,
+      "mrr": 0.9,
       "randomBaseline": 0.022,
       "improvement": 46.4,
       "tiers": {
-        "correct": 2,
-        "partial": 3,
+        "correct": 4,
+        "partial": 1,
         "wrong": 0
       },
       "taskDetails": [
@@ -1040,9 +1040,9 @@
             "packages/runtime-core/src/components/Suspense.ts",
             "packages/runtime-core/src/components/Teleport.ts"
           ],
-          "top1": "packages/runtime-core/src/component.ts",
-          "firstHitRank": 3,
-          "tier": "partial"
+          "top1": "packages/runtime-core/src/components/KeepAlive.ts",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "vue-t004",
@@ -1050,7 +1050,7 @@
           "expected": [
             "packages/runtime-core/src/directives.ts"
           ],
-          "top1": "packages/runtime-core/src/component.ts",
+          "top1": "packages/runtime-core/src/compat/customDirective.ts",
           "firstHitRank": 2,
           "tier": "partial"
         },
@@ -1062,9 +1062,9 @@
             "packages/runtime-core/src/compat/global.ts",
             "packages/runtime-core/src/compat/globalConfig.ts"
           ],
-          "top1": "packages/vue-compat/README.md",
-          "firstHitRank": 3,
-          "tier": "partial"
+          "top1": "packages/runtime-core/src/compat/globalConfig.ts",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
@@ -1073,14 +1073,14 @@
       "fileCount": 370,
       "sigCount": 141,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.202,
+      "hitAt5": 1,
+      "mrr": 0.68,
       "randomBaseline": 0.014,
-      "improvement": 44.4,
+      "improvement": 74,
       "tiers": {
-        "correct": 0,
-        "partial": 3,
-        "wrong": 2
+        "correct": 3,
+        "partial": 2,
+        "wrong": 0
       },
       "taskDetails": [
         {
@@ -1090,9 +1090,9 @@
             "packages/svelte/src/internal/client/reactivity/sources.js",
             "packages/svelte/src/internal/client/reactivity/deriveds.js"
           ],
-          "top1": "packages/svelte/src/internal/client/dev/tracing.js",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "packages/svelte/src/internal/client/reactivity/sources.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "svelte-t002",
@@ -1101,8 +1101,8 @@
             "packages/svelte/src/internal/client/reactivity/effects.js"
           ],
           "top1": "packages/svelte/src/internal/client/reactivity/batch.js",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "firstHitRank": 5,
+          "tier": "partial"
         },
         {
           "id": "svelte-t003",
@@ -1111,9 +1111,9 @@
             "packages/svelte/src/internal/client/runtime.js",
             "packages/svelte/src/internal/client/render.js"
           ],
-          "top1": "packages/svelte/src/internal/server/index.js",
-          "firstHitRank": 5,
-          "tier": "partial"
+          "top1": "packages/svelte/src/internal/client/render.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "svelte-t004",
@@ -1122,9 +1122,9 @@
             "packages/svelte/src/internal/server/renderer.js",
             "packages/svelte/src/internal/server/blocks/snippet.js"
           ],
-          "top1": "packages/svelte/src/internal/client/warnings.js",
-          "firstHitRank": 9,
-          "tier": "wrong"
+          "top1": "packages/svelte/src/internal/server/blocks/snippet.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "svelte-t005",
@@ -1134,7 +1134,7 @@
             "packages/svelte/src/internal/client/reactivity/store.js",
             "packages/svelte/src/internal/client/reactivity/batch.js"
           ],
-          "top1": "packages/svelte/src/internal/server/index.js",
+          "top1": "packages/svelte/src/store/utils.js",
           "firstHitRank": 5,
           "tier": "partial"
         }
@@ -1145,14 +1145,14 @@
       "fileCount": 31,
       "sigCount": 28,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.6,
+      "hitAt5": 0.8,
+      "mrr": 0.825,
       "randomBaseline": 0.161,
-      "improvement": 3.7,
+      "improvement": 5,
       "tiers": {
-        "correct": 3,
+        "correct": 4,
         "partial": 0,
-        "wrong": 2
+        "wrong": 1
       },
       "taskDetails": [
         {
@@ -1161,9 +1161,9 @@
           "expected": [
             "lib/route.js"
           ],
-          "top1": "lib/server.js",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "lib/route.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "fastify-t002",
@@ -1171,8 +1171,8 @@
           "expected": [
             "lib/request.js"
           ],
-          "top1": "lib/hooks.js",
-          "firstHitRank": null,
+          "top1": "lib/content-type-parser.js",
+          "firstHitRank": 8,
           "tier": "wrong"
         },
         {
@@ -1210,16 +1210,16 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 25,
+      "sigCount": 20,
       "tasks": 5,
-      "hitAt5": 0.6,
-      "mrr": 0.629,
+      "hitAt5": 0.8,
+      "mrr": 0.7,
       "randomBaseline": 0.104,
-      "improvement": 5.8,
+      "improvement": 7.7,
       "tiers": {
         "correct": 3,
-        "partial": 0,
-        "wrong": 2
+        "partial": 1,
+        "wrong": 1
       },
       "taskDetails": [
         {
@@ -1228,7 +1228,7 @@
           "expected": [
             "fastapi/applications.py"
           ],
-          "top1": "fastapi/routing.py",
+          "top1": "fastapi/exceptions.py",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -1238,9 +1238,9 @@
           "expected": [
             "fastapi/routing.py"
           ],
-          "top1": "fastapi/openapi/utils.py",
-          "firstHitRank": 7,
-          "tier": "wrong"
+          "top1": "fastapi/routing.py",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "fastapi-t003",
@@ -1248,9 +1248,9 @@
           "expected": [
             "fastapi/dependencies/utils.py"
           ],
-          "top1": "fastapi/dependencies/utils.py",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "fastapi/dependencies/models.py",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "fastapi-t004",
