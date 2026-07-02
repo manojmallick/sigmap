@@ -22,7 +22,7 @@ head:
 
 Seventy-five versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 75.6% retrieval hit@5 · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v7.31.0 — Identifier-aware BM25 re-ranker ✓ (2026-07-02)
+
+**Minor release.** Plain exact-token TF-IDF missed queries whose terms live *inside* code identifiers — `component emit` never surfaced `componentEmits`, the dominant retrieval-miss cause. The new zero-dependency `src/retrieval/bm25.js` adds four things: identifier-aware tokenization (split camelCase / snake_case), light stemming (`emits` → `emit`), a path-token boost (filename weighed 3×), and length-normalized **BM25** scoring in place of raw TF-IDF. It is wired into the core ranker (`src/retrieval/ranker.js`) as the base relevance score — so `sigmap ask`, `sigmap --query`, and MCP `query_context` all benefit — with the existing negative-signal penalty and recency/graph/learned boosts layered on top; it also drives the benchmark runner. Deterministic, no LLM/embeddings, zero new dependencies.
+
+**Tags:** `bm25` · `identifier-aware tokenization` · `stemming` · `path-token boost` · `src/retrieval/bm25.js` · `#395` · `PR #396`
+
+**Impact:** retrieval hit@5 **75.6% → 86.7%** (lift 5.6× → 6.4×); task-success proxy 52.2% → 67.8%, prompts/task 1.72 → 1.46; rank-1 gains on flask, spring-petclinic, rails, and svelte (60% → 100%).
 
 ---
 

@@ -64,7 +64,7 @@ Example tasks:
 
 **Baseline:** Random selection = ~13.6% (1 correct file out of ~90 files in typical repo)
 
-**SigMap score:** 75.6% — 5.6× better than random
+**SigMap score:** 86.7% — 6.4× better than random
 
 ### 2. Task success proxy (correct rank)
 
@@ -78,7 +78,7 @@ Example tasks:
 - **Wrong** (not in top 5) — likely multiple retries
 
 **SigMap breakdown:**
-- Correct: 52.2% of tasks
+- Correct: 67.8% of tasks
 - Partial: 26.7% of tasks
 - Wrong: 21.1% of tasks
 
@@ -90,7 +90,7 @@ Example tasks:
 
 **Metric:** Average prompts per task
 - **Without SigMap:** 2.84 prompts/task (cold start, no context)
-- **With SigMap:** 1.72 prompts/task
+- **With SigMap:** 1.46 prompts/task
 - **Reduction:** 41.0%
 
 ### 4. Token reduction
