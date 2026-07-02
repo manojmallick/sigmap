@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { aggregate } = require('./scorer');
+const { bm25rank } = require('../retrieval/bm25');
 
 // ---------------------------------------------------------------------------
 // Context file reader
@@ -81,79 +82,26 @@ function buildSigIndex(cwd) {
 }
 
 // ---------------------------------------------------------------------------
-// Simple keyword-based ranking (pre-retrieval layer; v2.3 adds proper ranker)
+// Identifier-aware BM25 ranking (v7.31; see src/retrieval/bm25.js and #395)
 // ---------------------------------------------------------------------------
 
-/**
- * Tokenize a query or signature into lower-case word tokens.
- * Splits on whitespace, punctuation, camelCase, and snake_case.
- * @param {string} text
- * @returns {string[]}
- */
-function tokenize(text) {
-  if (!text) return [];
-  return text
-    // split camelCase
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    // split snake/kebab
-    .replace(/[_\-]/g, ' ')
-    // drop non-word chars
-    .replace(/[^\w\s]/g, ' ')
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((t) => t.length > 1);
-}
-
-const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'in', 'of', 'to', 'for', 'and', 'or', 'is', 'are',
-  'that', 'this', 'it', 'with', 'from', 'by', 'be', 'as', 'on', 'at',
-]);
+const { tokenize } = require('../retrieval/bm25');
 
 /**
- * Score a single file's signatures against a query.
- * Returns a non-negative number; higher = more relevant.
- * @param {string[]} sigs  - array of signature strings for this file
- * @param {string[]} queryTokens
- * @returns {number}
- */
-function scoreFile(sigs, queryTokens) {
-  if (!sigs || sigs.length === 0) return 0;
-
-  const sigText = sigs.join(' ');
-  const sigTokens = new Set(tokenize(sigText));
-
-  let score = 0;
-  for (const qt of queryTokens) {
-    if (STOP_WORDS.has(qt)) continue;
-    if (sigTokens.has(qt)) score += 1;
-    // Partial match (prefix)
-    for (const st of sigTokens) {
-      if (st !== qt && st.startsWith(qt) && qt.length >= 4) score += 0.3;
-    }
-  }
-
-  return score;
-}
-
-/**
- * Rank all files in the index against a query. Returns file paths sorted
- * by relevance score descending. Ties are broken by file path alphabetically.
+ * Rank all files in the index against a query with the identifier-aware BM25
+ * re-ranker. Returns file entries sorted by relevance score descending; ties
+ * are broken by file path alphabetically (deterministic).
  * @param {string} query
  * @param {Map<string, string[]>} index
  * @param {number} topK
  * @returns {{ file: string, score: number, sigs: string[] }[]}
  */
 function rank(query, index, topK = 10) {
-  const queryTokens = tokenize(query);
-  const scored = [];
-
+  const candidates = [];
   for (const [file, sigs] of index.entries()) {
-    const score = scoreFile(sigs, queryTokens);
-    scored.push({ file, score, sigs });
+    candidates.push({ file, sigs });
   }
-
-  scored.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
-  return scored.slice(0, topK);
+  return bm25rank(query, candidates).slice(0, topK);
 }
 
 // ---------------------------------------------------------------------------

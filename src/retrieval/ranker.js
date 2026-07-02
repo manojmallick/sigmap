@@ -19,6 +19,7 @@
 
 const { loadWeights } = require('../learning/weights');
 const { tokenize, STOP_WORDS } = require('./tokenizer');
+const { bm25rank } = require('./bm25');
 
 // ---------------------------------------------------------------------------
 // Default weights
@@ -197,11 +198,24 @@ function rank(query, sigIndex, opts) {
     return all.slice(0, topK);
   }
 
+  // Identifier-aware BM25 base relevance over the whole index (#395). BM25
+  // splits camelCase/snake_case, stems, and boosts path tokens, so queries
+  // whose terms live inside identifiers (e.g. "component emit" → componentEmits)
+  // are matched. The existing negative-signal penalty and recency/graph/learned
+  // boosts are layered on top; the per-token signals stay for the explain table.
+  const bm25Scores = new Map();
+  for (const c of bm25rank(query, [...sigIndex.entries()].map(([file, sigs]) => ({ file, sigs })))) {
+    bm25Scores.set(c.file, c.score);
+  }
+
   const scored = [];
   for (const [file, sigs] of sigIndex.entries()) {
     const result = scoreFile(file, sigs, queryTokens, weights);
-    let score = result.score;
+    const penalty = result.signals.penalty;
+    const base = bm25Scores.get(file) || 0;
+    let score = base * penalty;
     const signals = result.signals;
+    signals.bm25 = base;
 
     // Recency boost
     if (recencySet && recencySet.has(file) && score > 0) {
