@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Seventy-seven versions shipped. MIT open source from day one.
+Seventy-eight versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.2.0 — `verify_suggestion` MCP tool (the moat, for agents) ✓ (2026-07-04)
+
+**Minor release — the grounding moat, made consumable by agents.** v8.1.0 built local-library grounding inside the `verify-ai-output` CLI; this exposes it as the **18th MCP tool** so a coding agent can verify its own generated code against the repo **and the libraries actually installed** in `node_modules` — *before it writes*. `verify_suggestion({ code })` runs the Hallucination Guard against the repo signature index and the installed-library symbol index (G5/D5), returning a clean/✗ verdict, one line per issue (fake file / import / symbol / npm-script + closest-match suggestions), and a **D8** line listing the installed libraries verified against with pinned versions (`name@version`). Reuses the shipped `verify()` core; deterministic, offline, zero-dependency; graceful on missing/empty `code`.
+
+**Tags:** `mcp` · `verify_suggestion` · `18-mcp-tools` · `G5` · `D5` · `private-api-grounding` · `D8` · `#409` · `PR #410`
+
+**Impact:** MCP surface **17 → 18 tools**; the moat is now callable by the agents that consume SigMap's grounding. Retrieval/token metrics unchanged (86.7% hit@5, 97% token reduction); +5 tests.
 
 ---
 

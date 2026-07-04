@@ -1,13 +1,13 @@
 ---
 title: MCP server setup
-description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 17 tools over stdio. Zero npm install.
+description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 18 tools over stdio. Zero npm install.
 head:
   - - meta
     - property: og:title
       content: "SigMap MCP Server — on-demand codebase context"
   - - meta
     - property: og:description
-      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 17 MCP tools over stdio."
+      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 18 MCP tools over stdio."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/mcp"
@@ -22,7 +22,7 @@ head:
 
 Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.
 
-The SigMap MCP server exposes 17 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
+The SigMap MCP server exposes 18 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
 
 > **Setup time: under 2 minutes.** Use `sigmap --setup` for automatic configuration.
 
@@ -99,7 +99,7 @@ Stack both MCP servers for the two-layer context strategy — SigMap for always-
 ## 11 available tools
 
 ::: tip New in v6.3.0 — native tool registration
-Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 17 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
+Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 18 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
 :::
 
 All tools are available on-demand — your AI agent calls only what it needs.
@@ -119,6 +119,7 @@ All tools are available on-demand — your AI agent calls only what it needs.
 | `read_memory` | **Memory** — recall the cross-session decision log (notes left via `sigmap note`) plus the last `ask` session focus. Kills agent cold-start. New in v6.15.0. | `limit` (optional number, default 10) | `read_memory(limit=10)` |
 | `get_diff_context` | Returns every changed file (working tree, staged, or vs a base ref) with its current signatures + blast radius (importers, tests, routes) + risk label. Lists files shell-free. New in v8.0. | `base` (optional string), `staged` (optional bool), `depth` (optional number, default 2) | `get_diff_context(base="main")` |
 | `get_architecture_overview` | One-call codebase map: module breakdown (files/tokens), most-depended-on hub files, dependency-cycle count, route totals. Extends `get_map`. New in v8.0. | none | `get_architecture_overview()` |
+| `verify_suggestion` | Ground an AI code suggestion before writing it — verify a snippet against the repo **and the libraries actually installed** in `node_modules` (the grounding moat); flags fake files/imports/symbols/scripts and reports the installed libraries verified against with pinned versions. New in v8.2. | `code` (required string) | `verify_suggestion(code="const r = Router()")` |
 
 ## Token cost per tool call
 
@@ -149,7 +150,7 @@ Use `ask` to create `.context/query-context.md`, let the model answer, then run 
 
 ## Test the server
 
-Send a raw JSON-RPC request to confirm the server starts and returns all 17 tool definitions.
+Send a raw JSON-RPC request to confirm the server starts and returns all 18 tool definitions.
 
 ```bash
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp

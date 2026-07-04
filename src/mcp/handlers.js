@@ -853,4 +853,49 @@ function getArchitectureOverview(args, cwd) {
   }
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview };
+/**
+ * verify_suggestion({ code }) → string
+ *
+ * Ground an AI code suggestion before it is written: run the Hallucination
+ * Guard against the repo AND the installed-library symbol index (the moat), and
+ * render a verdict + issues + the installed libraries verified against (pinned
+ * versions, D8). Deterministic, offline.
+ */
+function verifySuggestion(args, cwd) {
+  const code = args && typeof args.code === 'string' ? args.code : '';
+  if (!code.trim()) {
+    return 'Usage: verify_suggestion({ code: "<AI-suggested code or answer>" }) — provide the snippet to verify against the repo + installed libraries.';
+  }
+
+  let result;
+  try {
+    const { verify } = require('../verify/hallucination-guard');
+    result = verify(code, cwd);
+  } catch (err) {
+    return `_verify_suggestion failed: ${err.message}_`;
+  }
+
+  const { issues, summary } = result;
+  const out = [];
+  if (summary.clean) {
+    out.push('✓ Grounded — no fake files, imports, symbols, or scripts detected.');
+  } else {
+    out.push(`✗ ${summary.total} issue(s) found:`);
+    for (const i of issues) {
+      out.push(`  L${i.line}  [${i.type}]  ${i.message}`);
+      if (i.suggestion) out.push(`         ↳ ${i.suggestion}`);
+    }
+  }
+
+  // D8: report the installed libraries the suggestion was verified against.
+  const pins = (summary.libraries || []).filter((l) => l.version).map((l) => `${l.name}@${l.version}`);
+  const n = summary.librariesIndexed || 0;
+  out.push('');
+  out.push(
+    `Grounded against ${summary.symbolsIndexed} repo + library symbol(s)` +
+    (n ? ` · ${n} installed librar${n === 1 ? 'y' : 'ies'}${pins.length ? ': ' + pins.join(', ') : ''}` : '')
+  );
+  return out.join('\n');
+}
+
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion };
