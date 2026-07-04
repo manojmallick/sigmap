@@ -108,7 +108,7 @@ All tools are available on-demand — your AI agent calls only what it needs.
 |------|-------------|--------|-------------|
 | `read_context` | Returns signatures for the full codebase or a specific module path. Outputs ~50–500 tokens depending on scope. | `module` (optional string) | `read_context(module="src/auth")` |
 | `search_signatures` | Case-insensitive keyword search across all extracted signatures. Returns matching lines grouped by file. | `query` (required string) | `search_signatures(query="handleRequest")` |
-| `get_map` | Returns import graph, class hierarchy, or route table from PROJECT_MAP.md. | `type` ("imports"\|"classes"\|"routes") | `get_map(type="routes")` |
+| `get_map` | Returns a section from PROJECT_MAP.md: import graph, class hierarchy, route table, or (v8.5) environment variables, build & CI, config & manifests, or database migrations. | `type` ("imports"\|"classes"\|"routes"\|"env"\|"buildci"\|"manifests"\|"migrations") | `get_map(type="migrations")` |
 | `explain_file` | Returns signatures, imports, and reverse callers for a single file. | `path` (required string) | `explain_file(path="src/auth/service.ts")` |
 | `list_modules` | Returns a token-count table of top-level source directories. Use this first to decide which module to load. | none | `list_modules()` |
 | `create_checkpoint` | Records session progress with a git state snapshot. | `summary` (required string) | `create_checkpoint(summary="Added rate limiting")` |

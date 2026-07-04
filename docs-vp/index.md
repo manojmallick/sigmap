@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v7.31.0</span>
+  <span><strong>Release:</strong> v8.0.0</span>
   <span>·</span>
-  <span><strong>New — identifier-aware BM25 re-ranker:</strong> ranking now splits code identifiers (camelCase / snake_case), stems lightly, and boosts path tokens, so queries like <code>component emit</code> surface <code>componentEmits</code> that exact-token TF-IDF missed. Retrieval hit@5 rose <strong>75.6% → 86.7%</strong> (task success 52.2% → 67.8%). Deterministic, zero new dependencies, no embeddings.</span>
+  <span><strong>New — v8.5 repo-context coverage &amp; measured test discovery:</strong> four new map sections (environment variables, build &amp; CI, config &amp; manifests, database migrations) extend the map beyond functions/classes/routes; impl→test discovery is now cross-language and <strong>measured at F1 98.0% / hit@1 97.4%</strong> across 28 repos; and Evidence Pack risk labels gain a richer, precedence-ordered set (migration · payment · auth · public-api). Deterministic, zero new dependencies.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v7.31-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.0-main</span>
   <span>·</span>
-  <span>87% hit@5 · 97.0% token reduction · 2026-07-02</span>
+  <span>87% hit@5 · 97.0% token reduction · 2026-07-04</span>
 </div>
 </div>
 
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-07-02 (v7.31.0)**.
+Latest saved benchmark run: **2026-07-04 (v8.0.0)**.
 
 </div>
 

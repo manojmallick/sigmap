@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "7.31.0",
+  "version": "8.0.0",
   "description": "97% token reduction for AI coding. Extracts function & class signatures with TF-IDF ranking to feed only the right files to Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP. Zero dependencies, runs offline via npx.",
   "main": "packages/core/index.js",
   "exports": {
@@ -27,6 +27,7 @@
     "benchmark:matrix": "node scripts/run-benchmark-matrix.mjs --save --skip-clone",
     "benchmark:verify": "node scripts/run-verify-benchmark.mjs",
     "benchmark:squeeze": "node scripts/run-squeeze-benchmark.mjs --save",
+    "benchmark:test-discovery": "node scripts/run-test-discovery-benchmark.mjs --save",
     "validate:squeeze": "node scripts/run-squeeze-benchmark.mjs --gate",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",

@@ -1,0 +1,267 @@
+{
+  "generated": "2026-07-04T13:39:46.346Z",
+  "source": "benchmarks/repos/* (canonical impl↔test name oracle)",
+  "repos": 28,
+  "impls": 2377,
+  "pairs": 3701,
+  "metrics": {
+    "precision": 0.971,
+    "recall": 0.988,
+    "f1": 0.98,
+    "hitAt1": 0.974
+  },
+  "perRepo": [
+    {
+      "repo": "akka",
+      "impls": 335,
+      "pairs": 429,
+      "precision": 0.996,
+      "recall": 1,
+      "f1": 0.998,
+      "hitAt1": 1
+    },
+    {
+      "repo": "axios",
+      "impls": 27,
+      "pairs": 27,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "click",
+      "impls": 8,
+      "pairs": 8,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "cobra",
+      "impls": 15,
+      "pairs": 15,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "echo",
+      "impls": 42,
+      "pairs": 44,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "fastapi",
+      "impls": 14,
+      "pairs": 103,
+      "precision": 0.857,
+      "recall": 1,
+      "f1": 0.923,
+      "hitAt1": 1
+    },
+    {
+      "repo": "fastify",
+      "impls": 21,
+      "pairs": 26,
+      "precision": 0.976,
+      "recall": 1,
+      "f1": 0.988,
+      "hitAt1": 0.952
+    },
+    {
+      "repo": "flask",
+      "impls": 15,
+      "pairs": 15,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "gin",
+      "impls": 35,
+      "pairs": 37,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "gorm",
+      "impls": 46,
+      "pairs": 59,
+      "precision": 0.986,
+      "recall": 1,
+      "f1": 0.993,
+      "hitAt1": 1
+    },
+    {
+      "repo": "gson",
+      "impls": 39,
+      "pairs": 40,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "guzzle",
+      "impls": 33,
+      "pairs": 34,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "httpx",
+      "impls": 2,
+      "pairs": 2,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "kotlinx-coroutines",
+      "impls": 90,
+      "pairs": 109,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "laravel",
+      "impls": 312,
+      "pairs": 342,
+      "precision": 0.986,
+      "recall": 1,
+      "f1": 0.993,
+      "hitAt1": 0.984
+    },
+    {
+      "repo": "okhttp",
+      "impls": 26,
+      "pairs": 28,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "rails",
+      "impls": 871,
+      "pairs": 1702,
+      "precision": 0.937,
+      "recall": 0.968,
+      "f1": 0.952,
+      "hitAt1": 0.939
+    },
+    {
+      "repo": "redux",
+      "impls": 76,
+      "pairs": 192,
+      "precision": 0.987,
+      "recall": 1,
+      "f1": 0.993,
+      "hitAt1": 0.987
+    },
+    {
+      "repo": "retrofit",
+      "impls": 42,
+      "pairs": 50,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "rich",
+      "impls": 56,
+      "pairs": 56,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "rust-analyzer",
+      "impls": 2,
+      "pairs": 2,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "shiny",
+      "impls": 2,
+      "pairs": 2,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "sidekiq",
+      "impls": 38,
+      "pairs": 38,
+      "precision": 0.974,
+      "recall": 1,
+      "f1": 0.987,
+      "hitAt1": 0.947
+    },
+    {
+      "repo": "spdlog",
+      "impls": 11,
+      "pairs": 11,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "svelte",
+      "impls": 9,
+      "pairs": 9,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "vue-core",
+      "impls": 150,
+      "pairs": 204,
+      "precision": 0.985,
+      "recall": 1,
+      "f1": 0.992,
+      "hitAt1": 1
+    },
+    {
+      "repo": "zod",
+      "impls": 55,
+      "pairs": 109,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    },
+    {
+      "repo": "zustand",
+      "impls": 5,
+      "pairs": 8,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "hitAt1": 1
+    }
+  ]
+}

@@ -33,7 +33,14 @@ const DEFAULT_TOP = 12;
 const GENERATED_RE = /(^|\/)(dist|build|out|vendor|node_modules)\/|\.(generated|min|bundle)\.|\.(pb|_pb)\.|\.pb\.go$|_pb2\.py$/;
 const TEST_RE = /(^|\/)(tests?|__tests__|spec|specs)\/|\.(test|spec)\.[a-z]+$|(^|\/)test_[^/]+\.py$|_test\.(go|py|rb)$/;
 const CONFIG_RE = /\.(json|ya?ml|toml|ini|conf|config|properties|env)$|(^|\/)(\.?[a-z]+rc)$|\.config\.[a-z]+$/i;
-const SECURITY_RE = /(^|\/|[._-])(auth|authn|authz|login|password|passwd|secret|credential|token|session|crypto|cipher|payment|billing|checkout|oauth|jwt|permission|acl|rbac)([._-]|\/|$)/i;
+// DB migrations: framework dirs (Rails/Alembic/Prisma), Flyway `V1__x.sql`,
+// timestamped migration files, and `*_migration.*` naming.
+const MIGRATION_RE = /(^|\/)(migrations?|alembic\/versions|prisma\/migrations)(\/|$)|(^|\/)db\/migrate\/|(^|\/)V\d+(_\d+)*__[^/]+\.(sql|java)$|(^|\/)\d{8,}[_-][^/]+\.(sql|rb|py|js|ts)$|[._-]migration[s]?[._-]/i;
+const PAYMENT_RE = /(^|\/|[._-])(payment|payments|billing|checkout|invoice|invoicing|subscription|stripe|paypal|braintree|charge|refund|payout)([._-]|\/|$)/i;
+const AUTH_RE = /(^|\/|[._-])(auth|authn|authz|login|logout|signin|signup|password|passwd|session|oauth|jwt|permission|permissions|acl|rbac|credential|credentials)([._-]|\/|$)/i;
+const SECURITY_RE = /(^|\/|[._-])(secret|secrets|crypto|cipher|encrypt|decrypt|token|signing|keystore|vault)([._-]|\/|$)/i;
+// Public API surface: `api/` dirs, `public-api`, and module barrel entrypoints.
+const PUBLIC_API_RE = /(^|\/)api(\/|$)|(^|\/)public[-_]?api(\/|$)|(^|\/)index\.(js|ts|mjs|cjs)$/i;
 
 /**
  * Split a signature's `  :start-end` line anchor from its symbol text.
@@ -51,17 +58,25 @@ function parseAnchor(sig) {
 }
 
 /**
- * Classify a file into a coarse risk label. Path-based heuristic (v1) — the
- * richer label set (C3) lands in v8.5.
+ * Classify a file into a risk label (C3, v8.5). Path-based, deterministic.
+ * Precedence is strict, most-specific-risk first: a migration touching payments
+ * is labeled `migration` (a schema change is the dominant risk), payment/auth
+ * outrank the generic `security` bucket, and `config`/`public-api` resolve
+ * before the `source` fallback. `test`/`generated` semantics are preserved so
+ * existing consumers (findRelatedTests, verifier) keep working.
  * @param {string} relPath
- * @returns {'generated'|'test'|'config'|'security'|'source'}
+ * @returns {'generated'|'test'|'migration'|'payment'|'auth'|'security'|'config'|'public-api'|'source'}
  */
 function riskLabelFor(relPath) {
   const p = relPath.replace(/\\/g, '/');
   if (GENERATED_RE.test(p)) return 'generated';
   if (TEST_RE.test(p)) return 'test';
+  if (MIGRATION_RE.test(p)) return 'migration';
+  if (PAYMENT_RE.test(p)) return 'payment';
+  if (AUTH_RE.test(p)) return 'auth';
   if (SECURITY_RE.test(p)) return 'security';
   if (CONFIG_RE.test(p)) return 'config';
+  if (PUBLIC_API_RE.test(p)) return 'public-api';
   return 'source';
 }
 
@@ -72,9 +87,28 @@ function stemOf(relPath) {
 }
 
 /**
- * Best-effort impl→test discovery (v1). Matches test files whose stem equals
- * the implementation file's stem, by common convention. Deterministic. The
- * accuracy-measured discovery (C2) lands in v8.5.
+ * Infer the implementation stem a test file targets, by stripping the
+ * conventional test affixes across languages (measured in the C2 benchmark):
+ *   foo.test.js / foo.spec.ts    → foo   (JS/TS)
+ *   test_foo.py                  → foo   (Python / pytest)
+ *   foo_test.go / foo_test.py    → foo   (Go, unittest)
+ *   FooTest.java / BarSpec.scala → Foo   (JVM, PascalCase)
+ * @param {string} relPath
+ * @returns {string}
+ */
+function testTargetStem(relPath) {
+  let s = stemOf(relPath);               // strips ext + trailing .test/.spec
+  s = s.replace(/^test[_-]/i, '');       // Python: test_foo
+  s = s.replace(/[_-]test$/i, '');       // Go / unittest: foo_test
+  s = s.replace(/(Tests?|Specs?)$/, ''); // JVM PascalCase: FooTest, BarSpec
+  return s;
+}
+
+/**
+ * Impl→test discovery (C2, v8.5). Matches test files back to their
+ * implementation by normalizing conventional test affixes, so JS/TS, Python,
+ * Go, and JVM naming conventions all resolve. Deterministic; accuracy is
+ * measured by `scripts/run-test-discovery-benchmark.mjs`.
  * @param {string} relPath
  * @param {string[]} allFiles  - universe of indexed files (relative paths)
  * @returns {string[]}
@@ -87,7 +121,7 @@ function findRelatedTests(relPath, allFiles) {
   for (const f of allFiles) {
     if (f === relPath) continue;
     if (riskLabelFor(f) !== 'test') continue;
-    if (stemOf(f).toLowerCase() === stem) out.push(f);
+    if (testTargetStem(f).toLowerCase() === stem) out.push(f);
   }
   return out.sort();
 }

@@ -294,7 +294,7 @@ sigmap evidence "fix the login bug" --top 8 --budget 4000 --out pack.json
 }
 ```
 
-Each `files[]` entry: `path`, the matched `symbols`, a human-readable `reason` (derived from the ranker's signals), a `confidence` in `0–1` (normalized to the top-ranked file), `sourceLines` with exact `{start,end}` anchors, best-effort `relatedTests`, and a `riskLabel` ∈ `generated · test · config · security · source`. Files that rank but don't fit the token budget appear in `droppedFiles` with a reason. The `grounding` block attests how many symbols are anchored and signs the canonical pack.
+Each `files[]` entry: `path`, the matched `symbols`, a human-readable `reason` (derived from the ranker's signals), a `confidence` in `0–1` (normalized to the top-ranked file), `sourceLines` with exact `{start,end}` anchors, cross-language `relatedTests`, and a `riskLabel` ∈ `generated · test · migration · payment · auth · security · public-api · config · source` (strict most-specific-risk precedence — a migration touching auth is still `migration`). Files that rank but don't fit the token budget appear in `droppedFiles` with a reason. The `grounding` block attests how many symbols are anchored and signs the canonical pack.
 
 | Option | Description |
 |--------|-------------|
@@ -303,8 +303,8 @@ Each `files[]` entry: `path`, the matched `symbols`, a human-readable `reason` (
 | `--budget <n>` | Token budget for included files (defaults to config `maxTokens`) |
 | `--out <path>` | Also write the rendered output (JSON or Markdown) to `<path>` |
 
-::: tip Best-effort fields in v1
-`relatedTests` (stem-matched) and `riskLabel` (path heuristic) are intentionally lightweight in v1. Measured test discovery and richer risk labels land in v8.5.
+::: tip v8.5 — measured & richer
+`relatedTests` now normalizes cross-language test conventions (`test_x.py`↔`x.py`, `x_test.go`↔`x.go`, `XTest.java`↔`X.java`, `x.spec.ts`↔`x.ts`) and is measured at **F1 98.0% / hit@1 97.4%** across 28 repos (`npm run benchmark:test-discovery`). `riskLabel` uses the richer, precedence-ordered set above.
 :::
 
 ---

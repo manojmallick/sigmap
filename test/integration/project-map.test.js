@@ -92,8 +92,8 @@ test('creates PROJECT_MAP.md', () => {
   }
 });
 
-// ── 2. All three sections are present ────────────────────────────────────
-test('writes all three ### sections', () => {
+// ── 2. All sections are present (3 core + 4 v8.5 C1 coverage) ─────────────
+test('writes all ### sections including v8.5 coverage', () => {
   const tmp = mkTmp();
   try {
     writeFixtures(tmp, {
@@ -104,9 +104,46 @@ test('writes all three ### sections', () => {
     runMap(tmp);
     const content = fs.readFileSync(path.join(tmp, 'PROJECT_MAP.md'), 'utf8');
 
-    assert.ok(content.includes('### Import graph'),    'Missing ### Import graph');
-    assert.ok(content.includes('### Class hierarchy'), 'Missing ### Class hierarchy');
-    assert.ok(content.includes('### Route table'),     'Missing ### Route table');
+    assert.ok(content.includes('### Import graph'),          'Missing ### Import graph');
+    assert.ok(content.includes('### Class hierarchy'),       'Missing ### Class hierarchy');
+    assert.ok(content.includes('### Route table'),           'Missing ### Route table');
+    assert.ok(content.includes('### Environment variables'), 'Missing ### Environment variables');
+    assert.ok(content.includes('### Build & CI'),            'Missing ### Build & CI');
+    assert.ok(content.includes('### Config & manifests'),    'Missing ### Config & manifests');
+    assert.ok(content.includes('### Database migrations'),   'Missing ### Database migrations');
+  } finally {
+    rmdir(tmp);
+  }
+});
+
+// ── 2b. v8.5 C1: coverage analyzers populate their sections ───────────────
+test('C1 coverage: env / build-ci / manifest / migration content', () => {
+  const tmp = mkTmp();
+  try {
+    writeFixtures(tmp, {
+      'src/config.js': 'const url = process.env.DATABASE_URL;\nconst key = process.env["API_KEY"];\n',
+      '.env.example': '# sample\nDATABASE_URL=\nLOG_LEVEL=info\n',
+      'package.json': JSON.stringify({ name: 'demo', version: '1.2.3', scripts: { test: 'node t.js', build: 'tsc' } }),
+      '.github/workflows/ci.yml': 'name: CI\non:\n  push:\n  pull_request:\njobs:\n  build:\n    runs-on: ubuntu-latest\n',
+      'db/migrate/20240101000000_create_users.rb': 'class CreateUsers; end',
+      'gen-context.config.json': JSON.stringify({ srcDirs: ['src'] }),
+    });
+
+    runMap(tmp);
+    const content = fs.readFileSync(path.join(tmp, 'PROJECT_MAP.md'), 'utf8');
+
+    // env-schema: from code and from .env.example
+    assert.ok(content.includes('DATABASE_URL'), 'env var DATABASE_URL missing');
+    assert.ok(content.includes('API_KEY'), 'env var API_KEY missing');
+    assert.ok(content.includes('LOG_LEVEL'), 'env var LOG_LEVEL (.env.example) missing');
+    // build-ci: npm scripts + CI workflow
+    assert.ok(content.includes('npm run build'), 'npm script missing');
+    assert.ok(/\bCI\b/.test(content), 'CI workflow name missing');
+    // config-manifest
+    assert.ok(content.includes('demo@1.2.3'), 'manifest name@version missing');
+    // migrations
+    assert.ok(content.includes('20240101000000'), 'migration version missing');
+    assert.ok(content.includes('create users'), 'migration name missing');
   } finally {
     rmdir(tmp);
   }

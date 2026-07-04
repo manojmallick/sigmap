@@ -27,6 +27,11 @@ function readReport(root, name) {
   return JSON.parse(readFileSync(join(root, 'benchmarks', 'reports', name), 'utf8'));
 }
 
+/** Read a report that may not exist yet (returns null instead of throwing). */
+function readReportOptional(root, name) {
+  try { return readReport(root, name); } catch { return null; }
+}
+
 /** Round to `d` decimal places (deterministic). */
 function round(n, d = 1) {
   const f = 10 ** d;
@@ -50,7 +55,7 @@ export function computeLatest(root = ROOT) {
   const generated = matrixReport.generated || tokenReport.timestamp || '';
   const benchmark_date = String(generated).slice(0, 10);
 
-  return {
+  const out = {
     benchmark_id: `sigmap-v${maj}.${min}-main`,
     benchmark_date,
     source: 'benchmarks/reports/{benchmark-matrix,task-benchmark,token-reduction}.json',
@@ -68,6 +73,21 @@ export function computeLatest(root = ROOT) {
       graph_boosted_hit_at_5: round(matrix.avgHitAt5Pct / 100, 3),
     },
   };
+
+  // Test-discovery (v8.5 C2) — optional, present once the benchmark has run.
+  // Kept top-level (not under `metrics`) so version.json's metrics mirror is
+  // unaffected and the hermetic gen-benchmark-latest fixture still resolves.
+  const td = readReportOptional(root, 'test-discovery.json');
+  if (td && td.metrics) {
+    out.test_discovery = {
+      repos: td.repos,
+      pairs: td.pairs,
+      f1: round(td.metrics.f1, 3),
+      hit_at_1: round(td.metrics.hitAt1, 3),
+    };
+  }
+
+  return out;
 }
 
 const LATEST = join(ROOT, 'benchmarks', 'latest.json');

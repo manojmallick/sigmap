@@ -81,9 +81,28 @@ function test(name, fn) {
       assert.strictEqual(out.metrics.baseline_hit_at_5, 0.1);
       assert.strictEqual(out.metrics.retrieval_lift, 8); // 80 / 10
       assert.strictEqual(out.repos_token, 7);
+      // Optional test-discovery report absent → key must be omitted (not throw).
+      assert.strictEqual('test_discovery' in out, false);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  // ── Test discovery (v8.5 C2) ──────────────────────────────────────────────
+  test('test-discovery report is committed and well-formed', () => {
+    const rep = require(path.join(ROOT, 'benchmarks/reports/test-discovery.json'));
+    assert.ok(rep.repos >= 1 && rep.pairs >= 1, 'expected measured repos/pairs');
+    for (const k of ['precision', 'recall', 'f1', 'hitAt1']) {
+      assert.ok(rep.metrics[k] >= 0 && rep.metrics[k] <= 1, `${k} out of [0,1]`);
+    }
+  });
+
+  test('latest.json surfaces the measured test-discovery number', () => {
+    const td = computeLatest(ROOT).test_discovery;
+    assert.ok(td, 'test_discovery block missing from latest.json');
+    assert.ok(td.f1 > 0 && td.f1 <= 1, 'f1 out of range');
+    assert.ok(td.hit_at_1 > 0 && td.hit_at_1 <= 1, 'hit_at_1 out of range');
+    assert.strictEqual(td.repos, require(path.join(ROOT, 'benchmarks/reports/test-discovery.json')).repos);
   });
 
   console.log(`\nbenchmark-latest: ${pass} passed, ${fail} failed`);

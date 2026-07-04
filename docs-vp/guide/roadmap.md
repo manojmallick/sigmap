@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "51 versions shipped. See what changed in each release and what is coming next."
+      content: "76 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Seventy-five versions shipped. MIT open source from day one.
+Seventy-six versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.0.0 — v8.5 repo-context coverage, measured test discovery, richer risk labels ✓ (2026-07-04)
+
+**Major release (v8 milestone) — v8.5 "Repo-Context Coverage & Test Discovery" (C1 + C2 + C3).** Closes the map-completeness gaps so the signature map can be trusted as *complete*. **C1 (coverage):** four dedicated zero-dependency `src/map/` analyzers — environment variables (`env-schema.js`), Build & CI (`build-ci.js`), Config & manifests (`config-manifest.js`), and Database migrations (`migrations.js`) — extend `PROJECT_MAP.md` and the MCP `get_map` sections beyond functions/classes/routes into the repo's operational surface. **C2 (test discovery):** `findRelatedTests` now normalizes cross-language conventions (`test_x.py`↔`x.py`, `x_test.go`↔`x.go`, `XTest.java`↔`X.java`, `x.spec.ts`↔`x.ts`), and a new reproducible benchmark (`scripts/run-test-discovery-benchmark.mjs`) measures it against an independent canonical-name gold oracle — no LLM, pure string math. **C3 (risk labels):** `riskLabelFor` returns a richer, precedence-ordered set — `migration | payment | auth | security | public-api | config | test | generated | source` — feeding every Evidence Pack file. Deterministic, zero new dependencies.
+
+**Tags:** `v8.5` · `coverage-expansion` · `env-schema` · `build-ci` · `config-manifest` · `migrations` · `test-discovery` · `risk-labels` · `#401` · `PR #402`
+
+**Impact:** measured test-discovery **F1 98.0% · hit@1 97.4%** across 28 repos / 3,701 canonical impl↔test pairs; four new PROJECT_MAP / `get_map` coverage sections; richer risk labels on every Evidence Pack file. Retrieval/token metrics unchanged (86.7% hit@5, 97% token reduction).
 
 ---
 

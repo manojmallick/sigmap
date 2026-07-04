@@ -21,6 +21,10 @@ const MAP_SECTIONS = {
   imports: '### Import graph',
   classes: '### Class hierarchy',
   routes: '### Route table',
+  env: '### Environment variables',
+  buildci: '### Build & CI',
+  manifests: '### Config & manifests',
+  migrations: '### Database migrations',
 };
 
 /**
@@ -106,7 +110,7 @@ function getMap(args, cwd) {
 
   const header = MAP_SECTIONS[args.type];
   if (!header) {
-    return `Unknown map type: "${args.type}". Use: imports, classes, routes`;
+    return `Unknown map type: "${args.type}". Use: ${Object.keys(MAP_SECTIONS).join(', ')}`;
   }
 
   const mapPath = path.join(cwd, 'PROJECT_MAP.md');

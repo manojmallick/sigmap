@@ -4609,7 +4609,14 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   const GENERATED_RE = /(^|\/)(dist|build|out|vendor|node_modules)\/|\.(generated|min|bundle)\.|\.(pb|_pb)\.|\.pb\.go$|_pb2\.py$/;
   const TEST_RE = /(^|\/)(tests?|__tests__|spec|specs)\/|\.(test|spec)\.[a-z]+$|(^|\/)test_[^/]+\.py$|_test\.(go|py|rb)$/;
   const CONFIG_RE = /\.(json|ya?ml|toml|ini|conf|config|properties|env)$|(^|\/)(\.?[a-z]+rc)$|\.config\.[a-z]+$/i;
-  const SECURITY_RE = /(^|\/|[._-])(auth|authn|authz|login|password|passwd|secret|credential|token|session|crypto|cipher|payment|billing|checkout|oauth|jwt|permission|acl|rbac)([._-]|\/|$)/i;
+  // DB migrations: framework dirs (Rails/Alembic/Prisma), Flyway `V1__x.sql`,
+  // timestamped migration files, and `*_migration.*` naming.
+  const MIGRATION_RE = /(^|\/)(migrations?|alembic\/versions|prisma\/migrations)(\/|$)|(^|\/)db\/migrate\/|(^|\/)V\d+(_\d+)*__[^/]+\.(sql|java)$|(^|\/)\d{8,}[_-][^/]+\.(sql|rb|py|js|ts)$|[._-]migration[s]?[._-]/i;
+  const PAYMENT_RE = /(^|\/|[._-])(payment|payments|billing|checkout|invoice|invoicing|subscription|stripe|paypal|braintree|charge|refund|payout)([._-]|\/|$)/i;
+  const AUTH_RE = /(^|\/|[._-])(auth|authn|authz|login|logout|signin|signup|password|passwd|session|oauth|jwt|permission|permissions|acl|rbac|credential|credentials)([._-]|\/|$)/i;
+  const SECURITY_RE = /(^|\/|[._-])(secret|secrets|crypto|cipher|encrypt|decrypt|token|signing|keystore|vault)([._-]|\/|$)/i;
+  // Public API surface: `api/` dirs, `public-api`, and module barrel entrypoints.
+  const PUBLIC_API_RE = /(^|\/)api(\/|$)|(^|\/)public[-_]?api(\/|$)|(^|\/)index\.(js|ts|mjs|cjs)$/i;
 
   /**
    * Split a signature's `  :start-end` line anchor from its symbol text.
@@ -4627,17 +4634,25 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   }
 
   /**
-   * Classify a file into a coarse risk label. Path-based heuristic (v1) — the
-   * richer label set (C3) lands in v8.5.
+   * Classify a file into a risk label (C3, v8.5). Path-based, deterministic.
+   * Precedence is strict, most-specific-risk first: a migration touching payments
+   * is labeled `migration` (a schema change is the dominant risk), payment/auth
+   * outrank the generic `security` bucket, and `config`/`public-api` resolve
+   * before the `source` fallback. `test`/`generated` semantics are preserved so
+   * existing consumers (findRelatedTests, verifier) keep working.
    * @param {string} relPath
-   * @returns {'generated'|'test'|'config'|'security'|'source'}
+   * @returns {'generated'|'test'|'migration'|'payment'|'auth'|'security'|'config'|'public-api'|'source'}
    */
   function riskLabelFor(relPath) {
     const p = relPath.replace(/\\/g, '/');
     if (GENERATED_RE.test(p)) return 'generated';
     if (TEST_RE.test(p)) return 'test';
+    if (MIGRATION_RE.test(p)) return 'migration';
+    if (PAYMENT_RE.test(p)) return 'payment';
+    if (AUTH_RE.test(p)) return 'auth';
     if (SECURITY_RE.test(p)) return 'security';
     if (CONFIG_RE.test(p)) return 'config';
+    if (PUBLIC_API_RE.test(p)) return 'public-api';
     return 'source';
   }
 
@@ -4648,9 +4663,28 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   }
 
   /**
-   * Best-effort impl→test discovery (v1). Matches test files whose stem equals
-   * the implementation file's stem, by common convention. Deterministic. The
-   * accuracy-measured discovery (C2) lands in v8.5.
+   * Infer the implementation stem a test file targets, by stripping the
+   * conventional test affixes across languages (measured in the C2 benchmark):
+   *   foo.test.js / foo.spec.ts    → foo   (JS/TS)
+   *   test_foo.py                  → foo   (Python / pytest)
+   *   foo_test.go / foo_test.py    → foo   (Go, unittest)
+   *   FooTest.java / BarSpec.scala → Foo   (JVM, PascalCase)
+   * @param {string} relPath
+   * @returns {string}
+   */
+  function testTargetStem(relPath) {
+    let s = stemOf(relPath);               // strips ext + trailing .test/.spec
+    s = s.replace(/^test[_-]/i, '');       // Python: test_foo
+    s = s.replace(/[_-]test$/i, '');       // Go / unittest: foo_test
+    s = s.replace(/(Tests?|Specs?)$/, ''); // JVM PascalCase: FooTest, BarSpec
+    return s;
+  }
+
+  /**
+   * Impl→test discovery (C2, v8.5). Matches test files back to their
+   * implementation by normalizing conventional test affixes, so JS/TS, Python,
+   * Go, and JVM naming conventions all resolve. Deterministic; accuracy is
+   * measured by `scripts/run-test-discovery-benchmark.mjs`.
    * @param {string} relPath
    * @param {string[]} allFiles  - universe of indexed files (relative paths)
    * @returns {string[]}
@@ -4663,7 +4697,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     for (const f of allFiles) {
       if (f === relPath) continue;
       if (riskLabelFor(f) !== 'test') continue;
-      if (stemOf(f).toLowerCase() === stem) out.push(f);
+      if (testTargetStem(f).toLowerCase() === stem) out.push(f);
     }
     return out.sort();
   }
@@ -11179,6 +11213,101 @@ __factories["./src/learning/weights"] = function(module, exports) {
   
 };
 
+// ── ./src/map/build-ci ──
+__factories["./src/map/build-ci"] = function(module, exports) {
+  
+  /**
+   * Build & CI extractor (v8.5 C1).
+   *
+   * Surfaces how the project is built and validated: npm/pnpm/yarn scripts
+   * (package.json), GitHub Actions workflows (.github/workflows/*.yml), and
+   * Makefile targets. Pure, zero-dependency, deterministic.
+   *
+   * @param {string[]} files — absolute file paths (unused; roots are read directly)
+   * @param {string}   cwd   — project root
+   * @returns {string} formatted markdown table (empty string if none found)
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const MAX_ROWS = 120;
+
+  function readJson(p) {
+    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; }
+  }
+
+  function npmScripts(cwd, rows) {
+    const pkg = readJson(path.join(cwd, 'package.json'));
+    if (!pkg || !pkg.scripts || typeof pkg.scripts !== 'object') return;
+    for (const name of Object.keys(pkg.scripts).sort()) {
+      rows.push({ kind: 'script', name, detail: 'npm run ' + name });
+    }
+  }
+
+  function ciWorkflows(cwd, rows) {
+    const dir = path.join(cwd, '.github', 'workflows');
+    let entries;
+    try { entries = fs.readdirSync(dir); } catch (_) { return; }
+    for (const file of entries.sort()) {
+      if (!/\.ya?ml$/i.test(file)) continue;
+      let content;
+      try { content = fs.readFileSync(path.join(dir, file), 'utf8'); } catch (_) { continue; }
+      const nameMatch = content.match(/^name:\s*(.+)$/m);
+      const name = nameMatch ? nameMatch[1].trim().replace(/^['"]|['"]$/g, '') : file;
+      // Trigger events from an `on:` mapping or inline form.
+      const onMatch = content.match(/^on:\s*(.*)$/m);
+      let triggers = '';
+      if (onMatch) {
+        if (onMatch[1].trim()) {
+          triggers = onMatch[1].replace(/[[\]{}'"]/g, '').trim();
+        } else {
+          const block = content.slice(onMatch.index);
+          const events = [...block.matchAll(/^\s{2,}([a-z_]+):/gm)].map((m) => m[1]);
+          triggers = [...new Set(events)].slice(0, 6).join(', ');
+        }
+      }
+      rows.push({ kind: 'ci', name, detail: `${file}${triggers ? ' — ' + triggers : ''}` });
+    }
+  }
+
+  function makeTargets(cwd, rows) {
+    let content;
+    try { content = fs.readFileSync(path.join(cwd, 'Makefile'), 'utf8'); } catch (_) { return; }
+    const targets = [];
+    for (const line of content.split('\n')) {
+      const m = line.match(/^([a-zA-Z0-9_][a-zA-Z0-9_.-]*)\s*:(?!=)/);
+      if (m && m[1] !== '.PHONY') targets.push(m[1]);
+    }
+    for (const t of [...new Set(targets)].sort()) {
+      rows.push({ kind: 'make', name: t, detail: 'make ' + t });
+    }
+  }
+
+  function analyze(files, cwd) {
+    const rows = [];
+    npmScripts(cwd, rows);
+    ciWorkflows(cwd, rows);
+    makeTargets(cwd, rows);
+    if (rows.length === 0) return '';
+
+    const lines = [
+      '| Kind | Name | Detail |',
+      '|------|------|--------|',
+    ];
+    for (const r of rows.slice(0, MAX_ROWS)) {
+      lines.push(`| ${r.kind} | ${r.name} | ${r.detail} |`);
+    }
+    if (rows.length > MAX_ROWS) {
+      lines.push(`| … | | +${rows.length - MAX_ROWS} more |`);
+    }
+    return lines.join('\n');
+  }
+
+  module.exports = { analyze };
+  
+};
+
 // ── ./src/map/class-hierarchy ──
 __factories["./src/map/class-hierarchy"] = function(module, exports) {
   
@@ -11294,6 +11423,205 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
         return line;
       })
       .join('\n');
+  }
+
+  module.exports = { analyze };
+  
+};
+
+// ── ./src/map/config-manifest ──
+__factories["./src/map/config-manifest"] = function(module, exports) {
+  
+  /**
+   * Config & package-manifest extractor (v8.5 C1).
+   *
+   * Surfaces the project's package manifests (name / version / dependency counts)
+   * across ecosystems and the notable root config files present. Pure,
+   * zero-dependency, deterministic.
+   *
+   * @param {string[]} files — absolute file paths (unused; roots are read directly)
+   * @param {string}   cwd   — project root
+   * @returns {string} formatted markdown table (empty string if none found)
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const CONFIG_FILES = [
+    'tsconfig.json', 'jsconfig.json', '.eslintrc', '.eslintrc.json', '.eslintrc.js',
+    '.prettierrc', 'babel.config.js', 'jest.config.js', 'vitest.config.ts',
+    'webpack.config.js', 'vite.config.ts', 'rollup.config.js', 'tailwind.config.js',
+    'docker-compose.yml', 'docker-compose.yaml', 'Dockerfile', '.editorconfig',
+  ];
+
+  function readText(p) { try { return fs.readFileSync(p, 'utf8'); } catch (_) { return null; } }
+  function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; } }
+  function count(obj) { return obj && typeof obj === 'object' ? Object.keys(obj).length : 0; }
+
+  function manifests(cwd, rows) {
+    const pkg = readJson(path.join(cwd, 'package.json'));
+    if (pkg) {
+      const deps = count(pkg.dependencies);
+      const dev = count(pkg.devDependencies);
+      const id = [pkg.name, pkg.version].filter(Boolean).join('@') || 'package.json';
+      rows.push({ manifest: 'package.json (npm)', detail: `${id} · ${deps} deps, ${dev} devDeps` });
+    }
+
+    const pyproject = readText(path.join(cwd, 'pyproject.toml'));
+    if (pyproject) {
+      const name = (pyproject.match(/^\s*name\s*=\s*["']([^"']+)["']/m) || [])[1];
+      const ver = (pyproject.match(/^\s*version\s*=\s*["']([^"']+)["']/m) || [])[1];
+      rows.push({ manifest: 'pyproject.toml (python)', detail: [name, ver].filter(Boolean).join('@') || 'present' });
+    } else if (readText(path.join(cwd, 'setup.py'))) {
+      rows.push({ manifest: 'setup.py (python)', detail: 'present' });
+    }
+    if (readText(path.join(cwd, 'requirements.txt'))) {
+      rows.push({ manifest: 'requirements.txt (python)', detail: 'present' });
+    }
+
+    const cargo = readText(path.join(cwd, 'Cargo.toml'));
+    if (cargo) {
+      const name = (cargo.match(/^\s*name\s*=\s*["']([^"']+)["']/m) || [])[1];
+      const ver = (cargo.match(/^\s*version\s*=\s*["']([^"']+)["']/m) || [])[1];
+      rows.push({ manifest: 'Cargo.toml (rust)', detail: [name, ver].filter(Boolean).join('@') || 'present' });
+    }
+
+    const gomod = readText(path.join(cwd, 'go.mod'));
+    if (gomod) {
+      const mod = (gomod.match(/^module\s+(\S+)/m) || [])[1];
+      const go = (gomod.match(/^go\s+(\S+)/m) || [])[1];
+      rows.push({ manifest: 'go.mod (go)', detail: [mod, go && 'go ' + go].filter(Boolean).join(' · ') || 'present' });
+    }
+
+    if (readText(path.join(cwd, 'pom.xml'))) rows.push({ manifest: 'pom.xml (maven)', detail: 'present' });
+    if (readText(path.join(cwd, 'build.gradle')) || readText(path.join(cwd, 'build.gradle.kts'))) {
+      rows.push({ manifest: 'build.gradle (gradle)', detail: 'present' });
+    }
+    if (readText(path.join(cwd, 'Gemfile'))) rows.push({ manifest: 'Gemfile (ruby)', detail: 'present' });
+    const composer = readJson(path.join(cwd, 'composer.json'));
+    if (composer) {
+      rows.push({ manifest: 'composer.json (php)', detail: `${composer.name || 'present'} · ${count(composer.require)} deps` });
+    }
+  }
+
+  function configFiles(cwd) {
+    const present = [];
+    for (const f of CONFIG_FILES) {
+      if (fs.existsSync(path.join(cwd, f))) present.push(f);
+    }
+    return present;
+  }
+
+  function analyze(files, cwd) {
+    const rows = [];
+    manifests(cwd, rows);
+    const configs = configFiles(cwd);
+    if (rows.length === 0 && configs.length === 0) return '';
+
+    const lines = [];
+    if (rows.length) {
+      lines.push('| Manifest | Detail |', '|----------|--------|');
+      for (const r of rows) lines.push(`| ${r.manifest} | ${r.detail} |`);
+    }
+    if (configs.length) {
+      if (lines.length) lines.push('');
+      lines.push(`**Config files:** ${configs.map((c) => '`' + c + '`').join(', ')}`);
+    }
+    return lines.join('\n');
+  }
+
+  module.exports = { analyze };
+  
+};
+
+// ── ./src/map/env-schema ──
+__factories["./src/map/env-schema"] = function(module, exports) {
+  
+  /**
+   * Environment-variable schema extractor (v8.5 C1).
+   *
+   * Surfaces the environment the project actually reads — from source across
+   * JS/TS, Python, Ruby, and Go, plus keys declared in a committed `.env.example`
+   * / `.env.sample` / `.env.template`. Pure, zero-dependency, deterministic.
+   *
+   * @param {string[]} files — absolute file paths to analyze (srcDirs-scoped)
+   * @param {string}   cwd   — project root
+   * @returns {string} formatted markdown table (empty string if none found)
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const SCAN_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.rb', '.go']);
+  const EXAMPLE_FILES = ['.env.example', '.env.sample', '.env.template', '.env.dist'];
+
+  // process.env.X / process.env['X'] / import.meta.env.X / Deno.env.get('X')
+  const JS_RE = /(?:process\.env|import\.meta\.env)(?:\.([A-Z_][A-Z0-9_]*)|\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\])|Deno\.env\.get\(\s*['"]([A-Z_][A-Z0-9_]*)['"]/g;
+  // os.environ['X'] / os.environ.get('X') / os.getenv('X') / getenv('X')
+  const PY_RE = /(?:os\.)?(?:environ(?:\.get)?\[?\s*['"]([A-Z_][A-Z0-9_]*)['"]|getenv\(\s*['"]([A-Z_][A-Z0-9_]*)['"])/g;
+  const RB_RE = /ENV\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\]/g;
+  const GO_RE = /os\.(?:Getenv|LookupEnv)\(\s*["`']([A-Z_][A-Z0-9_]*)["`']/g;
+
+  const MAX_ROWS = 200;
+
+  function collectMatches(re, content, into) {
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(content)) !== null) {
+      const name = m[1] || m[2] || m[3];
+      if (name) into.add(name);
+    }
+  }
+
+  function readExampleKeys(cwd) {
+    const keys = new Set();
+    for (const name of EXAMPLE_FILES) {
+      let content;
+      try { content = fs.readFileSync(path.join(cwd, name), 'utf8'); } catch (_) { continue; }
+      for (const line of content.split('\n')) {
+        const t = line.trim();
+        if (!t || t.startsWith('#')) continue;
+        const eq = t.match(/^(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=/);
+        if (eq) keys.add(eq[1]);
+      }
+    }
+    return keys;
+  }
+
+  function analyze(files, cwd) {
+    const fromCode = new Set();
+
+    for (const filePath of files) {
+      const ext = path.extname(filePath).toLowerCase();
+      if (!SCAN_EXTS.has(ext)) continue;
+      let content;
+      try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
+
+      if (ext === '.py') collectMatches(PY_RE, content, fromCode);
+      else if (ext === '.rb') collectMatches(RB_RE, content, fromCode);
+      else if (ext === '.go') collectMatches(GO_RE, content, fromCode);
+      else collectMatches(JS_RE, content, fromCode);
+    }
+
+    const fromExample = readExampleKeys(cwd);
+    const all = new Set([...fromCode, ...fromExample]);
+    if (all.size === 0) return '';
+
+    const names = [...all].sort();
+    const lines = [
+      '| Variable | Source |',
+      '|----------|--------|',
+    ];
+    for (const name of names.slice(0, MAX_ROWS)) {
+      const src = [];
+      if (fromCode.has(name)) src.push('code');
+      if (fromExample.has(name)) src.push('.env.example');
+      lines.push(`| ${name} | ${src.join(', ')} |`);
+    }
+    if (names.length > MAX_ROWS) {
+      lines.push(`| … | +${names.length - MAX_ROWS} more |`);
+    }
+    return lines.join('\n');
   }
 
   module.exports = { analyze };
@@ -11489,6 +11817,94 @@ __factories["./src/map/import-graph"] = function(module, exports) {
   
 };
 
+// ── ./src/map/migrations ──
+__factories["./src/map/migrations"] = function(module, exports) {
+  
+  /**
+   * Database-migration extractor (v8.5 C1).
+   *
+   * Detects schema-migration files across the common frameworks — Rails
+   * (db/migrate), Django/Alembic, Prisma, Flyway (`V1__name.sql`), knex/Sequelize,
+   * and timestamped SQL — and surfaces them with a parsed version + name. Pure,
+   * zero-dependency, deterministic.
+   *
+   * @param {string[]} files — absolute file paths (unused; the tree is walked)
+   * @param {string}   cwd   — project root
+   * @returns {string} formatted markdown table (empty string if none found)
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const MAX_DEPTH = 6;
+  const MAX_ROWS = 200;
+  const SKIP_DIR = new Set(['.git', 'node_modules', 'vendor', 'dist', 'build', 'target', '.venv', 'venv', '__pycache__']);
+  const MIG_EXT = new Set(['.sql', '.rb', '.py', '.js', '.ts']);
+
+  // A directory whose path marks its children as migrations.
+  const MIG_DIR_RE = /(^|\/)(db\/migrate|migrations?|alembic\/versions|prisma\/migrations)$/i;
+  // A filename that is itself a migration regardless of directory.
+  const FLYWAY_RE = /^V\d+(?:[._]\d+)*__(.+)\.(sql|java)$/;
+  const TIMESTAMP_RE = /^(\d{8,})[_-](.+)\.(sql|rb|py|js|ts)$/;
+  const NAMED_RE = /[._-]migrations?[._-]/i;
+
+  function walk(dir, cwd, depth, out) {
+    if (depth > MAX_DEPTH) return;
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+
+    const relDir = path.relative(cwd, dir).replace(/\\/g, '/');
+    const dirIsMigration = MIG_DIR_RE.test(relDir);
+
+    for (const e of entries) {
+      if (e.isDirectory()) {
+        if (SKIP_DIR.has(e.name)) continue;
+        walk(path.join(dir, e.name), cwd, depth + 1, out);
+        continue;
+      }
+      const ext = path.extname(e.name).toLowerCase();
+      if (!MIG_EXT.has(ext)) continue;
+
+      const rel = path.relative(cwd, path.join(dir, e.name)).replace(/\\/g, '/');
+      let version = null;
+      let name = null;
+
+      let m;
+      if ((m = e.name.match(FLYWAY_RE))) { version = e.name.split('__')[0]; name = m[1].replace(/_/g, ' '); }
+      else if ((m = e.name.match(TIMESTAMP_RE))) { version = m[1]; name = m[2].replace(/[_-]/g, ' '); }
+      else if (dirIsMigration) { version = '—'; name = e.name.replace(ext, ''); }
+      else if (NAMED_RE.test(e.name)) { version = '—'; name = e.name.replace(ext, ''); }
+      else continue;
+
+      out.push({ version, name, file: rel });
+    }
+  }
+
+  function analyze(files, cwd) {
+    const found = [];
+    walk(cwd, cwd, 0, found);
+    if (found.length === 0) return '';
+
+    found.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+
+    const lines = [
+      '| Version | Migration | File |',
+      '|---------|-----------|------|',
+    ];
+    for (const r of found.slice(0, MAX_ROWS)) {
+      lines.push(`| ${r.version} | ${r.name} | ${r.file} |`);
+    }
+    if (found.length > MAX_ROWS) {
+      lines.push(`| … | +${found.length - MAX_ROWS} more | |`);
+    }
+    return lines.join('\n');
+  }
+
+  module.exports = { analyze };
+  
+};
+
 // ── ./src/map/route-table ──
 __factories["./src/map/route-table"] = function(module, exports) {
   
@@ -11644,6 +12060,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     imports: '### Import graph',
     classes: '### Class hierarchy',
     routes: '### Route table',
+    env: '### Environment variables',
+    buildci: '### Build & CI',
+    manifests: '### Config & manifests',
+    migrations: '### Database migrations',
   };
 
   /**
@@ -11729,7 +12149,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
 
     const header = MAP_SECTIONS[args.type];
     if (!header) {
-      return `Unknown map type: "${args.type}". Use: imports, classes, routes`;
+      return `Unknown map type: "${args.type}". Use: ${Object.keys(MAP_SECTIONS).join(', ')}`;
     }
 
     const mapPath = path.join(cwd, 'PROJECT_MAP.md');
@@ -12643,7 +13063,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '7.31.0',
+    version: '8.0.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -16612,7 +17032,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '7.31.0';
+const VERSION = '8.0.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v7.31.0 benchmark snapshot. 97.0% average token reduction across 21 repos, 87% retrieval hit@5, 48.8% fewer prompts, and R language support verified.
+description: Official v8.0.0 benchmark snapshot. 97.0% average token reduction across 21 repos, 87% retrieval hit@5, 48.8% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v7.31.0 snapshot with R language"
+      content: "SigMap benchmark overview — v8.0.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v7.31.0 benchmark run (2026-07-02) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.0.0 benchmark run (2026-07-04) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v7.31.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v7.31-main &nbsp;·&nbsp; **Date:** 2026-07-02
+::: info Official v8.0.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.0-main &nbsp;·&nbsp; **Date:** 2026-07-04
 
 | Metric | Value |
 |---|---:|
@@ -25,6 +25,7 @@ head:
 | Retrieval lift | **6.4×** |
 | Prompt reduction | **48.8%** (2.84 → 1.46) |
 | Task success proxy | **67.8%** |
+| Test discovery (impl→test) | **F1 98.0%** · hit@1 97.4% (28 repos) |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
@@ -37,9 +38,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v7.31.0 snapshot (with R language support)
+## Official v8.0.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-07-02 (v7.31.0)**
+Latest saved benchmark run: **2026-07-04 (v8.0.0)**
 
 | Metric | Result |
 |---|---:|
@@ -95,6 +96,16 @@ This is the best benchmark when the question is: *"Does the developer need fewer
 - With SigMap: **0/21 repos overflow** — all repos fit within 128K context
 
 This is the best benchmark when the question is: *"Why does token reduction matter operationally?"*
+
+### 5. Test discovery (v8.5)
+
+- Impl→test discovery scored against an **independent canonical-name gold oracle** (no LLM, pure string math)
+- **F1 98.0%** · precision 97.1% · recall 98.8% · **hit@1 97.4%**
+- Measured across **28 repos / 3,701** canonical impl↔test pairs
+- Cross-language: `test_x.py`↔`x.py`, `x_test.go`↔`x.go`, `XTest.java`↔`X.java`, `x.spec.ts`↔`x.ts`
+- Reproduce: `npm run benchmark:test-discovery`
+
+This is the best benchmark when the question is: *"When SigMap points at a file, does it also find the tests that cover it?"*
 
 ## Open the HTML dashboard
 
