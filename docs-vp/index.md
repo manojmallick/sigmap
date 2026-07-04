@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.2.0</span>
+  <span><strong>Release:</strong> v8.3.0</span>
   <span>·</span>
-  <span><strong>New — <code>verify_suggestion</code> MCP tool (the moat, for agents):</strong> a coding agent can now verify its own generated code against the repo <strong>and the libraries actually installed</strong> in <code>node_modules</code> — <em>before it writes</em> — getting back the flagged fake files/imports/symbols plus the pinned versions it was verified against. The 18th MCP tool exposes SigMap's local-library grounding (v9.0 G5/D5) to the agents that consume it. Deterministic, zero-dependency, offline.</span>
+  <span><strong>New — Python site-packages grounding (the moat, both ecosystems):</strong> installed-library grounding now covers <strong>Python</strong> as well as JS/TS. <code>verify-ai-output</code> and the <code>verify_suggestion</code> MCP tool check AI-suggested Python code against the packages <strong>actually installed</strong> in the project's venv — reading each dependency's <code>__init__.py</code>/<code>.pyi</code> exports + pinned version — so real library calls stop false-flagging. No Python runtime, zero-dependency, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.2-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.3-main</span>
   <span>·</span>
   <span>87% hit@5 · 97.0% token reduction · 2026-07-04</span>
 </div>
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-07-04 (v8.2.0)**.
+Latest saved benchmark run: **2026-07-04 (v8.3.0)**.
 
 </div>
 

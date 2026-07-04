@@ -39,8 +39,16 @@ false-flagged**, while a call to a symbol that exists in neither the repo nor an
 installed library still surfaces. This is grounding no public-doc tool can do —
 it verifies against the *real installed tree*, with each library's version
 pinned in the summary (`name@version`). It's deterministic (byte-stable given a
-fixed installed tree), zero-dependency, cached, and runs automatically from the
-project's `node_modules`. Scope v1 covers JS/TS `.d.ts`.
+fixed installed tree), zero-dependency, cached, and runs automatically.
+
+**Ecosystems:** JS/TS from `node_modules` (`.d.ts` exports). **Since v8.3.0,
+Python** too — SigMap reads direct deps from `requirements.txt`/`pyproject.toml`,
+locates the project's venv `site-packages` (`.venv|venv|env` → `lib/python*/
+site-packages`, or `Lib/site-packages` on Windows) **without spawning Python**,
+and extracts each installed package's exports from its `__init__.py`/`.pyi`
+(`__all__`, top-level `def`/`class`, public assignments, and `from … import`
+re-exports). A genuine call into an installed Python library (e.g.
+`` `Session()` `` from `requests`) is no longer false-flagged.
 
 ## Closest-match suggestions
 

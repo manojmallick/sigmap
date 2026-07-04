@@ -13108,7 +13108,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.2.0',
+    version: '8.3.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -16805,12 +16805,17 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
    * in `node_modules` and verify AI suggestions against repo + private +
    * installed-lib symbols. This module builds the installed-lib half.
    *
-   * For each **direct** dependency declared in `package.json`, it locates the
-   * package under `node_modules/<dep>`, reads its version (D8 version pinning),
-   * and extracts the exported symbol names from its TypeScript declaration entry
-   * (`types`/`typings`, else `index.d.ts`). Pure, zero-dependency, deterministic:
-   * byte-stable given a fixed installed tree. Bounded (per-file read cap + dep
-   * cap) and cached via `src/cache/sig-cache.js` so repeat builds are near-free.
+   * Two ecosystems, one index:
+   *   - **JS/TS** — each **direct** dependency in `package.json` resolved under
+   *     `node_modules/<dep>`; exports read from its TypeScript declaration entry
+   *     (`types`/`typings`, else `index.d.ts`).
+   *   - **Python** — each direct dependency in `requirements.txt`/`pyproject.toml`
+   *     resolved in the project's venv `site-packages`; exports read from the
+   *     package's `__init__.py`/`.pyi`. No Python runtime is spawned (North-Star #1).
+   *
+   * Pure, zero-dependency, deterministic: byte-stable given a fixed installed
+   * tree. Bounded (per-file read cap + dep cap) and cached via
+   * `src/cache/sig-cache.js` so repeat builds are near-free.
    */
 
   const fs = require('fs');
@@ -16820,6 +16825,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
   const MAX_DTS_BYTES = 512 * 1024; // per-file read cap
   const MAX_DEPS = 1000;            // dep count cap
   const DEP_KEYS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
+  const VENV_DIRS = ['.venv', 'venv', 'env', '.env'];
 
   /**
    * Extract exported symbol names from a `.d.ts` declaration file. Deterministic,
@@ -16895,6 +16901,130 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     return { version, dtsPath: null }; // installed but untyped
   }
 
+  // ── Python ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Extract exported symbol names from a Python module's `__init__.py`/`.pyi`.
+   * Deterministic, regex-based, top-level only: `__all__`, `def`/`class`, public
+   * module-level assignments, and `from … import …` re-exports (a package's
+   * public API is largely re-exports). Private names (leading `_`) are skipped
+   * unless listed in `__all__`.
+   * @param {string} src
+   * @returns {string[]} sorted unique exported names
+   */
+  function extractPyExports(src) {
+    const names = new Set();
+    if (!src) return [];
+
+    // __all__ = [ 'a', 'b', ... ]  (authoritative when present; keeps privates)
+    const allMatch = src.match(/^__all__\s*[:+]?=\s*[\[(]([\s\S]*?)[\])]/m);
+    if (allMatch) {
+      for (const m of allMatch[1].matchAll(/['"]([A-Za-z_]\w*)['"]/g)) names.add(m[1]);
+    }
+
+    // top-level def / class (column 0)
+    for (const m of src.matchAll(/^(?:async\s+)?def\s+([A-Za-z_]\w*)/gm)) if (!m[1].startsWith('_')) names.add(m[1]);
+    for (const m of src.matchAll(/^class\s+([A-Za-z_]\w*)/gm)) if (!m[1].startsWith('_')) names.add(m[1]);
+
+    // top-level public assignments: NAME = …  /  NAME: type = …  (not ==, +=, etc.)
+    for (const m of src.matchAll(/^([A-Za-z_]\w*)\s*(?::[^=\n]+)?=(?!=)/gm)) {
+      if (!m[1].startsWith('_')) names.add(m[1]);
+    }
+
+    // re-exports: from .mod import Name, Other as Alias
+    for (const m of src.matchAll(/^from\s+[^\n]+?\s+import\s+([^\n#]+)/gm)) {
+      for (const part of m[1].split(',')) {
+        const name = part.trim().replace(/[()]/g, '').split(/\s+as\s+/).pop().trim();
+        if (/^[A-Za-z_]\w*$/.test(name) && !name.startsWith('_')) names.add(name);
+      }
+    }
+
+    return [...names].sort();
+  }
+
+  /** Read direct Python dependency names from requirements.txt + pyproject.toml. */
+  function pythonDirectDeps(cwd) {
+    const names = new Set();
+    try {
+      const req = fs.readFileSync(path.join(cwd, 'requirements.txt'), 'utf8');
+      for (const line of req.split('\n')) {
+        const t = line.trim();
+        if (!t || t.startsWith('#') || t.startsWith('-')) continue;
+        const m = t.match(/^([A-Za-z0-9][A-Za-z0-9._-]*)/);
+        if (m) names.add(m[1]);
+      }
+    } catch (_) { /* none */ }
+    try {
+      const py = fs.readFileSync(path.join(cwd, 'pyproject.toml'), 'utf8');
+      // PEP 621: [project] dependencies = ["foo>=1", "bar"]
+      const projDeps = py.match(/^\s*dependencies\s*=\s*\[([\s\S]*?)\]/m);
+      if (projDeps) for (const m of projDeps[1].matchAll(/['"]([A-Za-z0-9][A-Za-z0-9._-]*)/g)) names.add(m[1]);
+      // Poetry: [tool.poetry.dependencies]\n foo = "^1"
+      const poetry = py.match(/\[tool\.poetry\.dependencies\]([\s\S]*?)(?:\n\[|$)/);
+      if (poetry) for (const m of poetry[1].matchAll(/^([A-Za-z0-9][A-Za-z0-9._-]*)\s*=/gm)) {
+        if (m[1] !== 'python') names.add(m[1]);
+      }
+    } catch (_) { /* none */ }
+    return [...names].sort();
+  }
+
+  /** Locate the project's venv `site-packages` directories (no Python runtime). */
+  function findSitePackages(cwd) {
+    const out = [];
+    for (const v of VENV_DIRS) {
+      const base = path.join(cwd, v);
+      const libDir = path.join(base, 'lib'); // POSIX: <venv>/lib/pythonX.Y/site-packages
+      let pyDirs = [];
+      try { pyDirs = fs.readdirSync(libDir).filter((d) => /^python\d/.test(d)).sort(); } catch (_) { /* none */ }
+      for (const py of pyDirs) {
+        const sp = path.join(libDir, py, 'site-packages');
+        try { if (fs.statSync(sp).isDirectory()) out.push(sp); } catch (_) { /* next */ }
+      }
+      const winSp = path.join(base, 'Lib', 'site-packages'); // Windows
+      try { if (fs.statSync(winSp).isDirectory()) out.push(winSp); } catch (_) { /* next */ }
+    }
+    return out;
+  }
+
+  /** PEP 503 name normalization (case-insensitive, `-`/`_`/`.` collapsed). */
+  function normalizePy(name) {
+    return String(name).toLowerCase().replace(/[-_.]+/g, '-');
+  }
+
+  /** Find an installed distribution's version from its `*.dist-info`/`*.egg-info`. */
+  function findPyVersion(sitePkgsDir, dep) {
+    const norm = normalizePy(dep);
+    let entries;
+    try { entries = fs.readdirSync(sitePkgsDir); } catch (_) { return null; }
+    for (const e of entries.sort()) {
+      const m = e.match(/^(.+?)-(\d[^-]*)\.(?:dist-info|egg-info)$/);
+      if (m && normalizePy(m[1]) === norm) return m[2];
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a Python dependency to its installed module entry file + version.
+   * @returns {{ version: string|null, sourcePath: string|null }|null} null if not installed
+   */
+  function resolvePyEntry(sitePkgsDirs, dep) {
+    const candidates = [...new Set([dep, dep.replace(/-/g, '_'), dep.toLowerCase(), dep.toLowerCase().replace(/-/g, '_')])];
+    for (const sp of sitePkgsDirs) {
+      const version = findPyVersion(sp, dep);
+      for (const cand of candidates) {
+        for (const entry of ['__init__.pyi', '__init__.py']) { // package
+          const p = path.join(sp, cand, entry);
+          try { if (fs.statSync(p).isFile()) return { version, sourcePath: p }; } catch (_) { /* next */ }
+        }
+        for (const ext of ['.pyi', '.py']) { // single-module
+          const p = path.join(sp, cand + ext);
+          try { if (fs.statSync(p).isFile()) return { version, sourcePath: p }; } catch (_) { /* next */ }
+        }
+      }
+    }
+    return null;
+  }
+
   /**
    * Build the installed-library signature index for `cwd`.
    *
@@ -16907,17 +17037,24 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
   function buildLibraryIndex(cwd, opts = {}) {
     const version = opts.version || '0';
     const useCache = opts.cache !== false;
-    const deps = directDeps(cwd).slice(0, MAX_DEPS);
 
-    const entries = [];
-    for (const dep of deps) {
+    // Collect entries from both ecosystems; each carries its extractor kind.
+    const entries = []; // { name, version, sourcePath, kind: 'dts'|'py' }
+    for (const dep of directDeps(cwd).slice(0, MAX_DEPS)) {
       const r = resolveEntry(cwd, dep);
-      if (r) entries.push({ dep, version: r.version, dtsPath: r.dtsPath });
+      if (r) entries.push({ name: dep, version: r.version, sourcePath: r.dtsPath, kind: 'dts' });
+    }
+    const sitePkgs = findSitePackages(cwd);
+    if (sitePkgs.length) {
+      for (const dep of pythonDirectDeps(cwd).slice(0, MAX_DEPS)) {
+        const r = resolvePyEntry(sitePkgs, dep);
+        if (r) entries.push({ name: dep, version: r.version, sourcePath: r.sourcePath, kind: 'py' });
+      }
     }
 
     const cache = useCache ? loadCache(cwd, version) : new Map();
-    const dtsFiles = entries.filter((e) => e.dtsPath).map((e) => e.dtsPath);
-    const { unchanged } = getChangedFiles(dtsFiles, cache);
+    const files = entries.filter((e) => e.sourcePath).map((e) => e.sourcePath);
+    const { unchanged } = getChangedFiles(files, cache);
     const unchangedSet = new Set(unchanged);
 
     const symbols = new Set();
@@ -16926,20 +17063,20 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
 
     for (const e of entries) {
       let names;
-      if (!e.dtsPath) {
+      if (!e.sourcePath) {
         names = [];
-      } else if (unchangedSet.has(e.dtsPath) && cache.get(e.dtsPath)) {
-        names = cache.get(e.dtsPath).sigs || [];
+      } else if (unchangedSet.has(e.sourcePath) && cache.get(e.sourcePath)) {
+        names = cache.get(e.sourcePath).sigs || [];
       } else {
         let src = '';
         try {
-          if (fs.statSync(e.dtsPath).size <= MAX_DTS_BYTES) src = fs.readFileSync(e.dtsPath, 'utf8');
+          if (fs.statSync(e.sourcePath).size <= MAX_DTS_BYTES) src = fs.readFileSync(e.sourcePath, 'utf8');
         } catch (_) { /* unreadable → empty */ }
-        names = extractDtsExports(src);
-        fresh.push({ file: e.dtsPath, sigs: names });
+        names = e.kind === 'py' ? extractPyExports(src) : extractDtsExports(src);
+        fresh.push({ file: e.sourcePath, sigs: names });
       }
       for (const n of names) symbols.add(n);
-      libraries.push({ name: e.dep, version: e.version, symbols: names.length, typed: !!e.dtsPath });
+      libraries.push({ name: e.name, version: e.version, symbols: names.length, typed: !!e.sourcePath });
     }
 
     if (useCache && fresh.length) {
@@ -16958,7 +17095,10 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
       .map((l) => `${l.name}@${l.version}`);
   }
 
-  module.exports = { buildLibraryIndex, extractDtsExports, directDeps, resolveEntry, formatVersionPins };
+  module.exports = {
+    buildLibraryIndex, extractDtsExports, directDeps, resolveEntry, formatVersionPins,
+    extractPyExports, pythonDirectDeps, findSitePackages, resolvePyEntry,
+  };
   
 };
 
@@ -17291,7 +17431,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.2.0';
+const VERSION = '8.3.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
