@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.3.0] — 2026-07-05
+
+Minor release — **Python site-packages grounding: the moat now spans both major ecosystems.** v8.1/v8.2 built local-library grounding for JS/TS (`node_modules` `.d.ts`); this extends it to **Python**, so `verify-ai-output` and the `verify_suggestion` MCP tool ground AI-suggested Python code against the libraries actually installed in the project's venv — with pinned versions (D8). Zero-dependency, no Python runtime, deterministic.
+
+### Added
+- **Python site-packages grounding (#413, PR #414):** `buildLibraryIndex` (`src/verify/lib-index.js`) gains a Python pass alongside the JS/TS one. It reads direct deps from `requirements.txt` / `pyproject.toml` (PEP 621 `[project].dependencies` + Poetry), discovers the venv `site-packages` (`.venv|venv|env` → `lib/python*/site-packages`, or `Lib/site-packages` on Windows) **without spawning Python**, resolves each dep's installed module + version (`*.dist-info`, D8) with PEP 503 import-name normalization, and extracts exported names from the package's `__init__.py`/`.pyi` (`__all__`, top-level `def`/`class`, public assignments, and `from … import` re-exports). Both ecosystems merge into one symbol index — genuine installed-Python-library calls stop being false-flagged as `fake-symbol`. Byte-stable given a fixed installed tree; cached via `src/cache/sig-cache.js`; graceful on missing venv / unresolved deps.
+
 ## [8.2.0] — 2026-07-04
 
 Minor release — **`verify_suggestion` MCP tool: the grounding moat, made consumable by agents.** v8.1.0 built local-library grounding inside the `verify-ai-output` CLI; this exposes it as the **18th MCP tool**, so a coding agent can verify its own generated code against the repo **and the libraries actually installed** in `node_modules` — *before it writes* — and get back the flagged issues plus the pinned versions it verified against (D8).
