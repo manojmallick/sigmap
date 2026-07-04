@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.2.0)
+- **@manojmallick** — feat(mcp): `verify_suggestion` tool (18th) — expose the local-library grounding moat to agents; verify an AI code suggestion against repo + installed-library symbols before writing, with pinned versions (D8) (#409, PR #410)
+
 ### Recent Contributors (v8.1.0)
 - **@manojmallick** — feat(verify): local-library signature index (v9.0 G5/D5) — verify AI suggestions against the libraries actually installed in `node_modules` (direct-dep `.d.ts` exports + D8 version pinning), the private-API grounding moat; genuine library calls stop false-flagging as fake-symbol (#405, PR #406)
 
