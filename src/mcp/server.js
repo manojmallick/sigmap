@@ -8,13 +8,13 @@
  *
  * Supported methods:
  *   initialize        → serverInfo + capabilities
- *   tools/list        → 17 tool definitions
+ *   tools/list        → 18 tool definitions
  *   tools/call        → dispatch to handler, return result
  */
 
 const readline = require('readline');
 const { TOOLS } = require('./tools');
-const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview } = require('./handlers');
+const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion } = require('./handlers');
 
 const SERVER_INFO = {
   name: 'sigmap',
@@ -83,6 +83,7 @@ function dispatch(msg, cwd) {
       else if (name === 'sigmap_notify_file_deleted') text = notifyFileDeleted(args, cwd);
       else if (name === 'get_diff_context') text = getDiffContext(args, cwd);
       else if (name === 'get_architecture_overview') text = getArchitectureOverview(args, cwd);
+      else if (name === 'verify_suggestion') text = verifySuggestion(args, cwd);
       else {
         respondError(id, -32601, `Unknown tool: ${name}`);
         return;

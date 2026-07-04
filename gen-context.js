@@ -12892,7 +12892,52 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     }
   }
 
-  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview };
+  /**
+   * verify_suggestion({ code }) → string
+   *
+   * Ground an AI code suggestion before it is written: run the Hallucination
+   * Guard against the repo AND the installed-library symbol index (the moat), and
+   * render a verdict + issues + the installed libraries verified against (pinned
+   * versions, D8). Deterministic, offline.
+   */
+  function verifySuggestion(args, cwd) {
+    const code = args && typeof args.code === 'string' ? args.code : '';
+    if (!code.trim()) {
+      return 'Usage: verify_suggestion({ code: "<AI-suggested code or answer>" }) — provide the snippet to verify against the repo + installed libraries.';
+    }
+
+    let result;
+    try {
+      const { verify } = __require('./src/verify/hallucination-guard');
+      result = verify(code, cwd);
+    } catch (err) {
+      return `_verify_suggestion failed: ${err.message}_`;
+    }
+
+    const { issues, summary } = result;
+    const out = [];
+    if (summary.clean) {
+      out.push('✓ Grounded — no fake files, imports, symbols, or scripts detected.');
+    } else {
+      out.push(`✗ ${summary.total} issue(s) found:`);
+      for (const i of issues) {
+        out.push(`  L${i.line}  [${i.type}]  ${i.message}`);
+        if (i.suggestion) out.push(`         ↳ ${i.suggestion}`);
+      }
+    }
+
+    // D8: report the installed libraries the suggestion was verified against.
+    const pins = (summary.libraries || []).filter((l) => l.version).map((l) => `${l.name}@${l.version}`);
+    const n = summary.librariesIndexed || 0;
+    out.push('');
+    out.push(
+      `Grounded against ${summary.symbolsIndexed} repo + library symbol(s)` +
+      (n ? ` · ${n} installed librar${n === 1 ? 'y' : 'ies'}${pins.length ? ': ' + pins.join(', ') : ''}` : '')
+    );
+    return out.join('\n');
+  }
+
+  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion };
   
 };
 
@@ -13053,13 +13098,13 @@ __factories["./src/mcp/server"] = function(module, exports) {
    *
    * Supported methods:
    *   initialize        → serverInfo + capabilities
-   *   tools/list        → 17 tool definitions
+   *   tools/list        → 18 tool definitions
    *   tools/call        → dispatch to handler, return result
    */
 
   const readline = require('readline');
   const { TOOLS } = __require('./src/mcp/tools');
-  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview } = __require('./src/mcp/handlers');
+  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion } = __require('./src/mcp/handlers');
 
   const SERVER_INFO = {
     name: 'sigmap',
@@ -13128,6 +13173,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
         else if (name === 'sigmap_notify_file_deleted') text = notifyFileDeleted(args, cwd);
         else if (name === 'get_diff_context') text = getDiffContext(args, cwd);
         else if (name === 'get_architecture_overview') text = getArchitectureOverview(args, cwd);
+        else if (name === 'verify_suggestion') text = verifySuggestion(args, cwd);
         else {
           respondError(id, -32601, `Unknown tool: ${name}`);
           return;
@@ -13501,6 +13547,26 @@ __factories["./src/mcp/tools"] = function(module, exports) {
         type: 'object',
         properties: {},
         required: [],
+      },
+    },
+    {
+      name: 'verify_suggestion',
+      description:
+        'Ground an AI code suggestion before writing it: verify a snippet or answer against the ' +
+        'repository AND the libraries actually installed in node_modules (the grounding moat). ' +
+        'Flags fake file paths, unresolvable imports, symbols absent from both the repo index and ' +
+        'the installed libraries, and non-existent npm scripts — deterministic, offline, no LLM. ' +
+        'Reports the installed libraries it verified against with pinned versions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          code: {
+            type: 'string',
+            description:
+              'The AI-suggested code snippet or answer text to verify against the repo + installed libraries.',
+          },
+        },
+        required: ['code'],
       },
     },
   ];
