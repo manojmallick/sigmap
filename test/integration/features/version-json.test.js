@@ -77,9 +77,9 @@ test('version.json: extractors field is derived (>= languages)', () => {
   assert.ok(Number.isInteger(v.extractors) && v.extractors >= v.languages, `extractors=${v.extractors}`);
 });
 
-test('version.json: mcp_tools is 17', () => {
+test('version.json: mcp_tools is 18', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.mcp_tools, 17);
+  assert.strictEqual(v.mcp_tools, 18);
 });
 
 // ── Fix 1a: canonical benchmark headers on all 5 benchmark pages ──────────────

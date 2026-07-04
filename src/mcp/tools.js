@@ -316,6 +316,26 @@ const TOOLS = [
       required: [],
     },
   },
+  {
+    name: 'verify_suggestion',
+    description:
+      'Ground an AI code suggestion before writing it: verify a snippet or answer against the ' +
+      'repository AND the libraries actually installed in node_modules (the grounding moat). ' +
+      'Flags fake file paths, unresolvable imports, symbols absent from both the repo index and ' +
+      'the installed libraries, and non-existent npm scripts — deterministic, offline, no LLM. ' +
+      'Reports the installed libraries it verified against with pinned versions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description:
+            'The AI-suggested code snippet or answer text to verify against the repo + installed libraries.',
+        },
+      },
+      required: ['code'],
+    },
+  },
 ];
 
 module.exports = { TOOLS };

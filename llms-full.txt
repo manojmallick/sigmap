@@ -26,7 +26,7 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 | Task success proxy | 10% | 67.8% |
 | Prompts per task | 2.84 | 1.46 (48.8% fewer) |
 | Supported languages | — | 33 |
-| MCP tools | — | 17 |
+| MCP tools | — | 18 |
 | npm runtime dependencies | — | 0 |
 
 ---
@@ -127,7 +127,7 @@ sigmap --version                         Show version
 
 ---
 
-## MCP server — 17 tools
+## MCP server — 18 tools
 
 Start with `sigmap --mcp` (stdio JSON-RPC). Configure once:
 
@@ -269,6 +269,14 @@ A high-level map of the codebase in one call: module breakdown (files/tokens), t
 
 ```
 Input:  { } (no arguments)
+```
+
+### verify_suggestion
+
+Ground an AI code suggestion before writing it: verify a snippet or answer against the repository AND the libraries actually installed in node_modules (the grounding moat). Flags fake file paths, unresolvable imports, symbols absent from both the repo index and the installed libraries, and non-existent npm scripts — deterministic, offline, no LLM. Reports the installed libraries it verified against with pinned versions.
+
+```
+Input:  { code: string }
 ```
 
 ---
