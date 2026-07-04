@@ -172,5 +172,94 @@ test('verify() auto-builds the lib index from cwd node_modules', () => {
     });
 });
 
+// ── Python site-packages grounding ──────────────────────────────────────────
+
+/** Temp project with a venv site-packages containing installed Python packages. */
+function withPyProject(requirements, packages, fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-py-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'requirements.txt'), requirements);
+    const sp = path.join(dir, '.venv', 'lib', 'python3.11', 'site-packages');
+    fs.mkdirSync(sp, { recursive: true });
+    for (const [name, spec] of Object.entries(packages)) {
+      if (spec.init != null) {
+        const pkgDir = path.join(sp, spec.dir || name);
+        fs.mkdirSync(pkgDir, { recursive: true });
+        fs.writeFileSync(path.join(pkgDir, spec.stub ? '__init__.pyi' : '__init__.py'), spec.init);
+      }
+      if (spec.version) fs.mkdirSync(path.join(sp, `${spec.distName || name}-${spec.version}.dist-info`), { recursive: true });
+    }
+    fn(dir);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test('extractPyExports parses __all__, def/class, assignments, and re-exports', () => {
+  const src = [
+    'import os',
+    '_private = 1',
+    'MAX = 5',
+    'def connect(url):',
+    '    pass',
+    'class Client:',
+    '    pass',
+    'from .session import Session, _hidden, helper as h',
+    "__all__ = ['connect', 'Client', 'Session', 'MAX']",
+  ].join('\n');
+  const names = lib.extractPyExports(src);
+  for (const want of ['connect', 'Client', 'Session', 'MAX', 'h']) assert.ok(names.includes(want), `missing ${want}`);
+  assert.ok(!names.includes('_private'), 'private assignment leaked');
+  assert.ok(!names.includes('_hidden'), 'private re-export leaked');
+  assert.ok(!names.includes('os'), 'plain import should not be an export');
+  assert.deepStrictEqual(names, [...names].sort(), 'not sorted');
+});
+
+test('buildLibraryIndex indexes Python venv site-packages with versions (D8)', () => {
+  withPyProject(
+    'acme==1.0.0\n# comment\nrequests>=2\n',
+    {
+      acme: { init: 'def connect(u):\n    pass\nclass Client:\n    pass\n__all__ = ["connect","Client"]\n', version: '1.0.0' },
+      requests: { init: 'def get(u): pass\ndef post(u): pass\n', version: '2.31.0' },
+    },
+    (dir) => {
+      const idx = lib.buildLibraryIndex(dir, { version: '8.0.0' });
+      for (const want of ['connect', 'Client', 'get', 'post']) assert.ok(idx.symbols.has(want), `missing ${want}`);
+      const byName = Object.fromEntries(idx.libraries.map((l) => [l.name, l]));
+      assert.strictEqual(byName.acme.version, '1.0.0');
+      assert.strictEqual(byName.requests.version, '2.31.0');
+      assert.ok(byName.acme.typed && byName.requests.typed);
+    });
+});
+
+test('verify() grounds Python calls against installed venv libs', () => {
+  withPyProject(
+    'acme==1.0.0\n',
+    { acme: { init: 'def connect(u):\n    pass\nclass Client:\n    pass\n', version: '1.0.0' } },
+    (dir) => {
+      const res = verify('Call `connect(url)` and `Client()` and `notReal()`.', dir, { version: '8.0.0' });
+      assert.strictEqual(res.summary.librariesIndexed, 1);
+      assert.deepStrictEqual(res.summary.libraries, [{ name: 'acme', version: '1.0.0', symbols: 2, typed: true }]);
+      const fakes = res.issues.filter((i) => i.type === 'fake-symbol').map((i) => i.value);
+      assert.ok(fakes.includes('notReal'), 'the fake symbol should flag');
+      assert.ok(!fakes.includes('connect') && !fakes.includes('Client'), 'real venv-lib calls must not flag');
+    });
+});
+
+test('Python grounding degrades gracefully (no venv / unresolved dep)', () => {
+  // requirements but no venv
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-py-none-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'requirements.txt'), 'ghost\n');
+    const idx = lib.buildLibraryIndex(dir, { version: '8.0.0' });
+    assert.strictEqual(idx.libraries.length, 0);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  // venv present but dep not installed
+  withPyProject('ghost==1\n', {}, (dir) => {
+    const idx = lib.buildLibraryIndex(dir, { version: '8.0.0' });
+    assert.strictEqual(idx.libraries.length, 0);
+  });
+});
+
 console.log(`\nlib-index: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
