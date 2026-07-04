@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.2.0] — 2026-07-04
+
+Minor release — **`verify_suggestion` MCP tool: the grounding moat, made consumable by agents.** v8.1.0 built local-library grounding inside the `verify-ai-output` CLI; this exposes it as the **18th MCP tool**, so a coding agent can verify its own generated code against the repo **and the libraries actually installed** in `node_modules` — *before it writes* — and get back the flagged issues plus the pinned versions it verified against (D8).
+
+### Added
+- **`verify_suggestion` MCP tool (#409, PR #410):** ground an AI code suggestion before writing it. `verify_suggestion({ code })` runs the Hallucination Guard against the repo signature index **and** the installed-library symbol index (the G5/D5 moat), returning a clean/✗ verdict, one line per issue (fake file / import / symbol / npm-script, with closest-match suggestions), and a **D8** line listing the installed libraries it verified against with pinned versions (`name@version`). Deterministic, offline, zero-dependency. Reuses the shipped `verify()` core; graceful on missing/empty `code`. MCP surface **17 → 18 tools**.
+
 ## [8.1.0] — 2026-07-04
 
 Minor release — **v9.0 G5/D5: the local-library signature index (the private-API grounding moat, v1).** SigMap's hallucination guard can now verify AI suggestions against the libraries **actually installed** in `node_modules`, not just declared dependency *names*. This is a capability no competitor offers — Context7 knows only *public* library docs; SigMap grounds against the real installed tree. Local, zero-dependency, deterministic (byte-stable given a fixed installed tree).
