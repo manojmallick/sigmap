@@ -20,12 +20,27 @@ straight into CI.
 | `fake-file` | A referenced path is not on disk | High |
 | `fake-test-file` | A referenced **test** path is not on disk | High |
 | `fake-import` | A relative import doesn't resolve, or a bare package isn't in `package.json` | High |
-| `fake-symbol` | A called function/class isn't in the SigMap symbol index | Medium |
+| `fake-symbol` | A called function/class isn't in the repo index **or the installed libraries** | Medium |
 | `fake-npm-script` | `npm run X` where `X` isn't a `package.json` script | High |
 
 Node/Python builtins, scoped packages, and language globals are allow-listed to
 keep precision high. Python bare imports are intentionally **not** flagged
 (stdlib is unbounded offline).
+
+### Installed-library grounding (v8.1.0, v9.0 G5/D5 — the moat)
+
+The `fake-symbol` check no longer knows only your repo's own symbols. It also
+grounds against the **libraries actually installed** in `node_modules`: for each
+**direct** dependency in `package.json`, SigMap reads that package's TypeScript
+declaration entry (`types`/`typings`, else `index.d.ts`) and unions its exported
+symbols into the known-symbol universe. So a genuine call like `` `Router()` ``
+or `` `debounce(fn)` `` from a real installed library is **no longer
+false-flagged**, while a call to a symbol that exists in neither the repo nor an
+installed library still surfaces. This is grounding no public-doc tool can do —
+it verifies against the *real installed tree*, with each library's version
+pinned in the summary (`name@version`). It's deterministic (byte-stable given a
+fixed installed tree), zero-dependency, cached, and runs automatically from the
+project's `node_modules`. Scope v1 covers JS/TS `.d.ts`.
 
 ## Closest-match suggestions
 
@@ -70,7 +85,9 @@ sigmap verify-ai-output answer.md --json
     "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-symbol": 1, "fake-npm-script": 0 },
     "clean": false,
     "symbolsIndexed": 1842,
-    "withSuggestion": 1
+    "withSuggestion": 1,
+    "librariesIndexed": 12,
+    "libraries": [{ "name": "express", "version": "4.19.2", "symbols": 41, "typed": true }]
   }
 }
 ```

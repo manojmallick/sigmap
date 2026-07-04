@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Seventy-six versions shipped. MIT open source from day one.
+Seventy-seven versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding · 17 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.1.0 — Local-library signature index (v9.0 G5/D5, the moat) ✓ (2026-07-04)
+
+**Minor release — the private-API grounding moat, v1.** SigMap's hallucination guard can now verify AI suggestions against the libraries **actually installed** in `node_modules`, not just declared dependency *names* — a capability no competitor offers (Context7 knows only *public* library docs; SigMap grounds against the real installed tree). New `src/verify/lib-index.js` resolves each **direct** dependency, reads its version (**D8 version pinning**) and TypeScript declaration entry (`types`/`typings`, else `index.d.ts`), and deterministically extracts the exported symbol names — bounded, cached via `src/cache/sig-cache.js`, graceful on missing/untyped/malformed packages. `verify-ai-output` unions those symbols into its known-symbol universe, so genuine library calls (`Router()`, `debounce()`) stop being false-flagged as `fake-symbol`; the summary gains `librariesIndexed` + `libraries` (`name@version`). Auto-runs from the project's `node_modules`; scope v1 is JS/TS `.d.ts` (Python site-packages + a standalone `verify_suggestion` MCP tool follow). Zero-dependency, deterministic — byte-stable given a fixed installed tree.
+
+**Tags:** `v9.0` · `G5` · `D5` · `local-library-index` · `verify-ai-output` · `private-api-grounding` · `D8-version-pinning` · `#405` · `PR #406`
+
+**Impact:** verify-ai-output no longer false-flags real installed-library calls; suggestions are grounded against repo + private + installed-lib symbols with pinned versions. Retrieval/token metrics unchanged (86.7% hit@5, 97% token reduction); +8 tests.
 
 ---
 

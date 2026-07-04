@@ -420,7 +420,7 @@ A plan with any **error** exits non-zero (useful as a gate before execution); wa
 
 ## verify-ai-output
 
-Hallucination Guard. Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, fake test files, unresolvable imports, symbols not in the SigMap index, and `npm run` scripts that don't exist. Fully deterministic — runs offline, no LLM API. Where a flagged name is a near miss for something real, a heuristic closest-match suggestion is attached.
+Hallucination Guard. Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, fake test files, unresolvable imports, symbols not in the SigMap index, and `npm run` scripts that don't exist. Fully deterministic — runs offline, no LLM API. Where a flagged name is a near miss for something real, a heuristic closest-match suggestion is attached. **v8.1.0:** symbol checks also ground against the libraries **actually installed** in `node_modules` (each direct dependency's `.d.ts` exports + pinned version), so genuine library calls stop false-flagging — see [Installed-library grounding](/guide/verify-ai-output#installed-library-grounding-v8-1-0-v9-0-g5-d5-the-moat).
 
 ```bash
 sigmap verify-ai-output ai-answer.md
