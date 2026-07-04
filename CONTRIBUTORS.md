@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.3.0)
+- **@manojmallick** — feat(verify): Python site-packages grounding — extend the local-library moat (G5/D5) to venv libraries; verify AI-suggested Python code against installed packages' `__init__.py`/`.pyi` exports + versions (D8), no Python runtime (#413, PR #414)
+
 ### Recent Contributors (v8.2.0)
 - **@manojmallick** — feat(mcp): `verify_suggestion` tool (18th) — expose the local-library grounding moat to agents; verify an AI code suggestion against repo + installed-library symbols before writing, with pinned versions (D8) (#409, PR #410)
 

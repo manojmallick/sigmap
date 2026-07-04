@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Seventy-eight versions shipped. MIT open source from day one.
+Seventy-nine versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.3.0 — Python site-packages grounding (the moat, both ecosystems) ✓ (2026-07-05)
+
+**Minor release — the grounding moat now spans JS/TS *and* Python.** v8.1/v8.2 grounded AI suggestions against installed `node_modules` libraries; this extends `buildLibraryIndex` (`src/verify/lib-index.js`) with a Python pass: it reads direct deps from `requirements.txt`/`pyproject.toml` (PEP 621 + Poetry), discovers the project's venv `site-packages` (`.venv|venv|env` → `lib/python*/site-packages`, or `Lib/site-packages` on Windows) **without spawning Python**, resolves each dep's installed module + version (`*.dist-info`, D8) with PEP 503 name normalization, and extracts exported names from its `__init__.py`/`.pyi` (`__all__`, top-level `def`/`class`, public assignments, and `from … import` re-exports). Both ecosystems merge into one symbol index, so `verify-ai-output` and the `verify_suggestion` MCP tool stop false-flagging genuine installed-Python-library calls. Zero-dependency, deterministic (byte-stable given a fixed installed tree), cached via `sig-cache`.
+
+**Tags:** `verify` · `python` · `site-packages` · `venv` · `G5` · `D5` · `private-api-grounding` · `D8` · `#413` · `PR #414`
+
+**Impact:** installed-library grounding now covers the two biggest ecosystems (JS/TS + Python); Phase-1 of the grounding moat is feature-complete. Retrieval/token metrics unchanged (86.7% hit@5, 97% token reduction); +4 tests.
 
 ---
 
