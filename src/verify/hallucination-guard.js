@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const parsers = require('./parsers');
 const { closestMatch, buildSymbolCandidates, formatSuggestion } = require('./closest-match');
+const { buildLibraryIndex } = require('./lib-index');
 
 // A path that looks like a test file (JS/TS spec/test, Python test_/_test, or
 // a tests/__tests__ directory). Used to flag fake-test-file separately.
@@ -189,6 +190,28 @@ function verify(answerText, cwd, opts = {}) {
   }
   if (!fileBasenames) fileBasenames = new Set();
 
+  // Installed-library grounding (G5/D5, the moat): union the exported symbols of
+  // the libraries actually installed in node_modules, so genuine library calls
+  // stop false-flagging as fake-symbol and the summary can pin the versions the
+  // answer was verified against. Auto-runs only when the caller did not override
+  // the symbol set (keeps hermetic callers unchanged); disable with libIndex:false.
+  let libraries = opts.libraries || [];
+  {
+    let libSyms = opts.libSymbols;
+    if (!libSyms && opts.libIndex !== false && !opts.symbolSet) {
+      try {
+        const li = buildLibraryIndex(cwd, { version: opts.version });
+        libSyms = li.symbols;
+        if (!opts.libraries) libraries = li.libraries;
+      } catch (_) { libSyms = null; }
+    }
+    if (libSyms && libSyms.size) {
+      const merged = new Set(symbolSet);
+      for (const s of libSyms) merged.add(s);
+      symbolSet = merged;
+    }
+  }
+
   let deps = opts.deps;
   let hasPkg = opts.hasPkg;
   if (!deps) {
@@ -312,6 +335,8 @@ function verify(answerText, cwd, opts = {}) {
     clean: issues.length === 0,
     symbolsIndexed: symbolSet.size,
     withSuggestion: issues.filter((i) => i.suggestion).length,
+    librariesIndexed: libraries.length,
+    libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed })),
   };
 
   return { issues, summary };
