@@ -127,9 +127,13 @@ function formatOutput(sections) {
   ];
 
   const parts = [
-    { key: 'imports',   header: '### Import graph',      content: sections.imports },
-    { key: 'classes',   header: '### Class hierarchy',   content: sections.classes },
-    { key: 'routes',    header: '### Route table',       content: sections.routes  },
+    { key: 'imports',    header: '### Import graph',         content: sections.imports },
+    { key: 'classes',    header: '### Class hierarchy',      content: sections.classes },
+    { key: 'routes',     header: '### Route table',          content: sections.routes  },
+    { key: 'env',        header: '### Environment variables', content: sections.env },
+    { key: 'buildci',    header: '### Build & CI',           content: sections.buildci },
+    { key: 'manifests',  header: '### Config & manifests',   content: sections.manifests },
+    { key: 'migrations', header: '### Database migrations',  content: sections.migrations },
   ];
 
   for (const { header, content } of parts) {
@@ -165,9 +169,13 @@ function main() {
   }
 
   const sections = {
-    imports: runAnalyzer('import-graph',     files, cwd),
-    classes: runAnalyzer('class-hierarchy',  files, cwd),
-    routes:  runAnalyzer('route-table',      files, cwd),
+    imports:    runAnalyzer('import-graph',    files, cwd),
+    classes:    runAnalyzer('class-hierarchy', files, cwd),
+    routes:     runAnalyzer('route-table',     files, cwd),
+    env:        runAnalyzer('env-schema',      files, cwd),
+    buildci:    runAnalyzer('build-ci',        files, cwd),
+    manifests:  runAnalyzer('config-manifest', files, cwd),
+    migrations: runAnalyzer('migrations',      files, cwd),
   };
 
   const output = formatOutput(sections);

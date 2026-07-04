@@ -96,15 +96,26 @@ test('parseAnchor returns null lines when no anchor present', () => {
   assert.strictEqual(r.end, null);
 });
 
-test('riskLabelFor classifies generated/test/config/security/source', () => {
+test('riskLabelFor classifies the v8.5 richer label set (C3)', () => {
+  // preserved semantics
   assert.strictEqual(pack.riskLabelFor('dist/bundle.js'), 'generated');
   assert.strictEqual(pack.riskLabelFor('api.generated.ts'), 'generated');
-  assert.strictEqual(pack.riskLabelFor('test/auth.test.js'), 'test');
+  assert.strictEqual(pack.riskLabelFor('test/widget.test.js'), 'test');
   assert.strictEqual(pack.riskLabelFor('src/test_helpers.py'), 'test');
-  assert.strictEqual(pack.riskLabelFor('settings.json'), 'config');
-  assert.strictEqual(pack.riskLabelFor('src/auth.js'), 'security');
-  assert.strictEqual(pack.riskLabelFor('src/payment.js'), 'security');
+  assert.strictEqual(pack.riskLabelFor('settings.yaml'), 'config');
   assert.strictEqual(pack.riskLabelFor('src/widget.js'), 'source');
+  // richer labels (C3)
+  assert.strictEqual(pack.riskLabelFor('db/migrate/20180917_create_users.rb'), 'migration');
+  assert.strictEqual(pack.riskLabelFor('sql/V2__add_index.sql'), 'migration');
+  assert.strictEqual(pack.riskLabelFor('src/payment.js'), 'payment');
+  assert.strictEqual(pack.riskLabelFor('src/billing/checkout.ts'), 'payment');
+  assert.strictEqual(pack.riskLabelFor('src/auth.js'), 'auth');
+  assert.strictEqual(pack.riskLabelFor('src/oauth/session.py'), 'auth');
+  assert.strictEqual(pack.riskLabelFor('src/crypto/secret.js'), 'security');
+  assert.strictEqual(pack.riskLabelFor('src/api/handler.js'), 'public-api');
+  assert.strictEqual(pack.riskLabelFor('packages/core/index.ts'), 'public-api');
+  // precedence: a migration touching auth is still a migration
+  assert.strictEqual(pack.riskLabelFor('db/migrate/20200101_add_auth_tokens.rb'), 'migration');
 });
 
 test('findRelatedTests matches a test file by stem', () => {
@@ -112,6 +123,25 @@ test('findRelatedTests matches a test file by stem', () => {
   assert.deepStrictEqual(pack.findRelatedTests('src/widget.js', universe), ['test/widget.test.js']);
   // a test file maps to nothing
   assert.deepStrictEqual(pack.findRelatedTests('test/widget.test.js', universe), []);
+});
+
+test('findRelatedTests resolves cross-language test conventions (C2)', () => {
+  // Python: test_foo.py ↔ foo.py
+  assert.deepStrictEqual(
+    pack.findRelatedTests('src/parser.py', ['src/parser.py', 'tests/test_parser.py']),
+    ['tests/test_parser.py']);
+  // Go: foo_test.go ↔ foo.go
+  assert.deepStrictEqual(
+    pack.findRelatedTests('pkg/router.go', ['pkg/router.go', 'pkg/router_test.go']),
+    ['pkg/router_test.go']);
+  // JVM PascalCase: FooTest.java ↔ Foo.java
+  assert.deepStrictEqual(
+    pack.findRelatedTests('src/Widget.java', ['src/Widget.java', 'test/WidgetTest.java']),
+    ['test/WidgetTest.java']);
+  // .spec.ts ↔ .ts
+  assert.deepStrictEqual(
+    pack.findRelatedTests('src/store.ts', ['src/store.ts', 'src/store.spec.ts']),
+    ['src/store.spec.ts']);
 });
 
 test('buildEvidencePack produces a stable contextHash given the same index', () => {
