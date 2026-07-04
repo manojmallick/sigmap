@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.1.0] — 2026-07-04
+
+Minor release — **v9.0 G5/D5: the local-library signature index (the private-API grounding moat, v1).** SigMap's hallucination guard can now verify AI suggestions against the libraries **actually installed** in `node_modules`, not just declared dependency *names*. This is a capability no competitor offers — Context7 knows only *public* library docs; SigMap grounds against the real installed tree. Local, zero-dependency, deterministic (byte-stable given a fixed installed tree).
+
+### Added
+- **Local-library signature index (#405, PR #406):** new `src/verify/lib-index.js` — `buildLibraryIndex(cwd)` resolves the **direct** dependencies declared in `package.json`, locates each under `node_modules/<dep>`, reads its version (**D8 version pinning**) and TypeScript declaration entry (`types`/`typings`, else `index.d.ts`), and deterministically extracts the exported symbol names. Bounded (per-file + dep caps), cached via `src/cache/sig-cache.js`, and graceful on missing/untyped/malformed packages.
+- **Installed-library grounding in `verify-ai-output`:** `verify()` now unions installed-library symbols into its known-symbol universe, so genuine library calls (e.g. `Router()`, `debounce()`) stop being false-flagged as `fake-symbol`. The result summary gains `librariesIndexed` and `libraries` (`name@version`, D8). Auto-runs from the project's `node_modules`; opt-out via `libIndex:false`. Scope v1 is JS/TS `.d.ts`; Python site-packages and a standalone `verify_suggestion` MCP tool are deferred to a follow-up.
+
 ## [8.0.0] — 2026-07-04
 
 Major release — **v8.5 "Repo-Context Coverage & Test Discovery" (C1 + C2 + C3).** Marks the v8 milestone: the signature map now reaches beyond functions/classes/routes into the repo's operational surface, impl→test discovery is measured rather than best-effort, and every Evidence Pack file carries a risk label from a richer, precedence-ordered set. All zero-dependency, deterministic, and in-boundary with the North-Star constraints. **No breaking API changes** — the `8.0.0` bump aligns the published version with the roadmap's v8 framing; existing `riskLabel`/`relatedTests` consumers keep working.
