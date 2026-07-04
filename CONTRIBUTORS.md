@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.1.0)
+- **@manojmallick** — feat(verify): local-library signature index (v9.0 G5/D5) — verify AI suggestions against the libraries actually installed in `node_modules` (direct-dep `.d.ts` exports + D8 version pinning), the private-API grounding moat; genuine library calls stop false-flagging as fake-symbol (#405, PR #406)
+
 ### Recent Contributors (v8.0.0)
 - **@manojmallick** — feat(v8.5): repo-context coverage — env-schema / build-CI / config-manifest / DB-migration map analyzers (C1); measured cross-language test discovery + reproducible benchmark, F1 98.0% / hit@1 97.4% (C2); richer precedence-ordered risk labels — migration/payment/auth/public-api (C3) (#401, PR #402)
 - **@manojmallick** — docs: correct the answer-correctness multiplier badge in the comparison chart (×5.2 → ×6.8) (PR #399)
