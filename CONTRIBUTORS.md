@@ -35,6 +35,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.0.0)
+- **@manojmallick** — feat(v8.5): repo-context coverage — env-schema / build-CI / config-manifest / DB-migration map analyzers (C1); measured cross-language test discovery + reproducible benchmark, F1 98.0% / hit@1 97.4% (C2); richer precedence-ordered risk labels — migration/payment/auth/public-api (C3) (#401, PR #402)
+- **@manojmallick** — docs: correct the answer-correctness multiplier badge in the comparison chart (×5.2 → ×6.8) (PR #399)
+
 ### Recent Contributors (v7.30.0)
 - **@manojmallick** — feat(positioning): reposition every public surface to "the deterministic, verifiable grounding layer for AI code work" + agent recipes (v8.0 E2/E4); documents the shipped `evidence`/`doctor` commands; adds a repositioning gate (#389, PR #390)
 
