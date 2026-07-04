@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.0.0] — 2026-07-04
+
+Major release — **v8.5 "Repo-Context Coverage & Test Discovery" (C1 + C2 + C3).** Marks the v8 milestone: the signature map now reaches beyond functions/classes/routes into the repo's operational surface, impl→test discovery is measured rather than best-effort, and every Evidence Pack file carries a risk label from a richer, precedence-ordered set. All zero-dependency, deterministic, and in-boundary with the North-Star constraints. **No breaking API changes** — the `8.0.0` bump aligns the published version with the roadmap's v8 framing; existing `riskLabel`/`relatedTests` consumers keep working.
+
+### Added
+- **C1 — Repo-context coverage expansion (#402):** four dedicated zero-dep map analyzers under `src/map/` (mirroring `route-table.js`), wired into `gen-project-map.js` and the MCP `get_map` `MAP_SECTIONS` — `env-schema.js` (**Environment variables** — env reads across JS/TS/Python/Ruby/Go + `.env.example` keys), `build-ci.js` (**Build & CI** — npm/pnpm scripts, GitHub Actions workflows, Makefile targets), `config-manifest.js` (**Config & manifests** — package manifests across npm/Python/Rust/Go/Maven/Gradle/Ruby/PHP + notable config files), and `migrations.js` (**Database migrations** — Rails/Alembic/Prisma/Flyway/timestamped-SQL detection). `PROJECT_MAP.md` and `get_map` now surface all four sections.
+- **C2 — Measured test discovery (#402):** `findRelatedTests` now normalizes cross-language test conventions (`test_x.py`↔`x.py`, `x_test.go`↔`x.go`, `XTest.java`↔`X.java`, `x.spec.ts`↔`x.ts`). New reproducible benchmark `scripts/run-test-discovery-benchmark.mjs` (`npm run benchmark:test-discovery`) scores it against an independent canonical-name gold oracle over `benchmarks/repos` — no LLM, pure string math — measuring **F1 98.0%, hit@1 97.4% across 28 repos / 3,701 gold pairs**. The headline number is surfaced in `benchmarks/latest.json` under `test_discovery`.
+- **C3 — Richer risk labels (#402):** `riskLabelFor` now returns the v8.5 set — `migration | payment | auth | security | public-api | config | test | generated | source` — with strict most-specific-risk precedence (a migration touching auth is still `migration`; payment/auth outrank the generic `security` bucket). `test`/`generated`/`config`/`source` semantics are preserved so `findRelatedTests` and the verifier keep working. Extended coverage in `test/integration/evidence-pack.test.js`, `project-map.test.js`, and `benchmark-latest.test.js`.
+
+### Fixed
+- **Comparison-chart correctness multiplier (#399):** corrected the stale answer-correctness multiplier badge in `docs/comparison-chart.svg` (×5.2 → ×6.8) to match the current task-success benchmark.
+
 ## [7.31.0] — 2026-07-02
 
 Minor release — **identifier-aware BM25 re-ranker.** Plain exact-token TF-IDF missed queries whose terms live *inside* code identifiers — `component emit` never surfaced `componentEmits` because that is one token sharing no exact term with the query. This was the dominant retrieval-miss cause. The new ranker splits identifiers, stems lightly, boosts path tokens, and scores with length-normalized BM25. Deterministic, zero new dependencies, no LLM/embeddings.
