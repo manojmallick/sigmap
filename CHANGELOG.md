@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.5.0] — 2026-07-05
+
+Minor release — **deterministic query expansion (a vocabulary-mismatch recall aid).** The BM25 ranker now bridges common code-domain synonyms/abbreviations so a query for `authentication` can still surface a file whose signatures only say `auth`. Zero-dependency, deterministic. **Honest framing:** measured on the retrieval benchmark, this is **benchmark-neutral** (hit@5 unchanged within the harness's 86.7–87.8% noise band at the shipped weight) — not a hit@5 improvement. The benefit is for real users whose query vocabulary differs from the code, a case the curated benchmark doesn't exercise.
+
+### Added
+- **Query expansion (#421, PR #422):** `src/retrieval/bm25.js` gains a curated, high-precision synonym/abbreviation table (`auth`↔`authentication`/`login`, `db`↔`database`, `ctx`↔`context`, `config`↔`configuration`, `req`/`res`, `init`, `impl`, …). `expandQuery()` adds synonyms to the query tokens at a **discount weight (0.15)** so an exact-term match always outranks a synonym-only match; documents are unchanged. Wired through the ranker, so `sigmap ask`, `--query`, and MCP `query_context` all benefit. A weight sweep confirmed higher weights regress retrieval, so 0.15 (benchmark-neutral) is the shipped setting.
+
 ## [8.4.0] — 2026-07-05
 
 Minor release — **PR Evidence Report (v9.0 G3): a branded, deterministic review artifact.** SigMap already had the pieces — `review-pr` findings and `get_diff_context` — but no single Markdown comment an agent or CI could post on a PR. This adds it: one report that answers *"what changed, what it touches, and what to test"*, with no LLM.

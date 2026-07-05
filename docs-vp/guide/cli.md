@@ -136,7 +136,7 @@ If you are new to the product, start with the workflow pages first:
 
 ## ask
 
-Unified pipeline: intent detection → ranked mini-context → coverage check → cost estimate → risk level, all in one command.
+Unified pipeline: intent detection → ranked mini-context → coverage check → cost estimate → risk level, all in one command. The identifier-aware BM25 ranker also **expands common code-domain synonyms/abbreviations** in your query (v8.5.0) — so `authentication` can surface a file whose signatures only say `auth` (and `database`↔`db`, `context`↔`ctx`, …); exact matches still rank first. Deterministic, applies to `--query` and MCP `query_context` too.
 
 ```bash
 sigmap ask "fix the login bug"

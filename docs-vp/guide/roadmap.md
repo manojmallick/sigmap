@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Eighty versions shipped. MIT open source from day one.
+Eighty-one versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.5.0 — Deterministic query expansion ✓ (2026-07-05)
+
+**Minor release — a vocabulary-mismatch recall aid.** The identifier-aware BM25 ranker (`src/retrieval/bm25.js`) now bridges common code-domain synonyms and abbreviations via a curated table (`auth`↔`authentication`/`login`, `db`↔`database`, `ctx`↔`context`, `config`↔`configuration`, `req`/`res`, `init`, `impl`, …). `expandQuery()` adds synonyms to the query tokens at a **discount weight (0.15)** so an exact-term match always outranks a synonym-only match; documents are unchanged. It's wired through the ranker, so `sigmap ask`, `--query`, and MCP `query_context` all benefit. **Honest result:** a weight sweep on the retrieval benchmark showed higher weights *regress* hit@5, so the shipped setting (0.15) is **benchmark-neutral** — this is a recall aid for real users whose query vocabulary differs from the code (a case the curated benchmark doesn't exercise), *not* a hit@5 improvement. Zero-dependency, deterministic.
+
+**Tags:** `retrieval` · `bm25` · `query-expansion` · `synonyms` · `recall` · `measured` · `#421` · `PR #422`
+
+**Impact:** closes a lexical-recall gap for vocabulary-mismatch queries with no retrieval regression. Benchmark metrics unchanged (86.7% hit@5, 97% token reduction); +5 tests.
 
 ---
 
