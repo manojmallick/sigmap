@@ -39,10 +39,13 @@ const MODELS = [
   { name: 'Gemini 2.0 Flash',limit: 1_000_000,icon: '🔵' },
 ];
 
-// ─── Pricing ($/1M input tokens, as of 2026-Q1) ──────────────────────────────
+// ─── Pricing ($/1M input tokens, verified 2026-07) ───────────────────────────
+// GPT-4o $2.50 (OpenAI, stable through 2026); Claude Sonnet 5/4.6 $3.00 and
+// Haiku 4.5 $1.00 (platform.claude.com). Cached = prompt-cache read rate.
 const PRICING = [
   { model: 'GPT-4o',        regularPer1M: 2.50, cachedPer1M: 1.25 },
   { model: 'Claude Sonnet', regularPer1M: 3.00, cachedPer1M: 0.30 },
+  { model: 'Claude Haiku',  regularPer1M: 1.00, cachedPer1M: 0.10 },
 ];
 
 const CALLS_PER_DAY = 10;
@@ -310,8 +313,8 @@ console.log(`  SigMap reduces hidden files to 0 for all repos.`);
 // ─── Table 4: API Cost Savings ────────────────────────────────────────────────
 console.log('\n\n' + sep);
 console.log('BENCHMARK 4 — API Cost Savings');
-console.log(`At ${CALLS_PER_DAY} calls/day per repo. Pricing: GPT-4o $2.50/1M (regular) $1.25/1M (cached).`);
-console.log('Claude Sonnet $3.00/1M (regular) $0.30/1M (cached). Source: published API pricing.');
+console.log(`At ${CALLS_PER_DAY} calls/day per repo. Pricing ($/1M input, verified 2026-07):`);
+console.log('GPT-4o $2.50 · Claude Sonnet $3.00 · Claude Haiku $1.00 (regular). Source: published API pricing.');
 console.log(sep);
 
 // Per-model cost table (GPT-4o only for readability; also print Claude summary)
@@ -362,10 +365,14 @@ const totalDark = results.reduce((s, r) => s + r.darkSymbols, 0);
 const totalGrounded = results.reduce((s, r) => s + r.groundedSymbols, 0);
 const totalHiddenFiles = results.reduce((s, r) => s + r.filesHiddenRaw, 0);
 const overflowsGPT4o = results.filter(r => r.rawTokens > 128_000).length;
-const gpt4oCostAll = results.reduce((s, r) => {
-  const c = r.costRows.find(x => x.model === 'GPT-4o');
-  return s + c.savedMonthRegular;
-}, 0);
+// Per-model aggregate monthly / daily input-cost savings across all repos.
+const costByModel = PRICING.map(p => ({
+  model: p.model,
+  perMtok: p.regularPer1M,
+  savedDay:   results.reduce((s, r) => s + r.costRows.find(x => x.model === p.model).savedDayRegular, 0),
+  savedMonth: results.reduce((s, r) => s + r.costRows.find(x => x.model === p.model).savedMonthRegular, 0),
+}));
+const gpt4oCostAll = costByModel.find(m => m.model === 'GPT-4o').savedMonth;
 
 console.log(`
   Context overflow (GPT-4o)  : ${overflowsGPT4o}/${results.length} repos overflow without SigMap → 0/${results.length} with SigMap
@@ -427,6 +434,17 @@ for (const r of results) {
 }
 mdLines.push('');
 mdLines.push(`*Total GPT-4o savings: ~${fmtDollars(gpt4oCostAll)}/month across ${results.length} repos at ${CALLS_PER_DAY} calls/day*`);
+
+mdLines.push('');
+mdLines.push('### 5. API cost savings by model (10 calls/day)');
+mdLines.push('');
+mdLines.push('| Model | Input $/1M | Saved / day | Saved / month |');
+mdLines.push('|------|:----------:|:-----------:|:-------------:|');
+for (const m of costByModel) {
+  mdLines.push(`| ${m.model} | $${m.perMtok.toFixed(2)} | ${fmtDollars(m.savedDay)} | **${fmtDollars(m.savedMonth)}** |`);
+}
+mdLines.push('');
+mdLines.push(`*Savings scale with each model's input rate — token reduction is model-agnostic; the dollar figure is not. Verified 2026-07 pricing: GPT-4o $2.50, Claude Sonnet $3.00, Claude Haiku $1.00 per 1M input tokens.*`);
 
 console.log('\n\nMarkdown (copy into docs):\n');
 console.log(mdLines.join('\n'));
