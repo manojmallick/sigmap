@@ -228,10 +228,10 @@ test('docs/impact-banner.svg: uses 75.6% hit@5', () => {
   assert.ok(src.includes('86.7%'), 'missing 86.7% in impact-banner.svg');
 });
 
-test('docs/impact-banner.svg: uses 1.46 prompts (not 1.68)', () => {
+test('docs/impact-banner.svg: uses 1.47 prompts (not 1.68)', () => {
   const src = readDocs('impact-banner.svg');
   assert.ok(!src.includes('1.68'), 'found stale 1.68 in impact-banner.svg');
-  assert.ok(src.includes('1.46'), 'missing 1.46 in impact-banner.svg');
+  assert.ok(src.includes('1.47'), 'missing 1.47 in impact-banner.svg');
 });
 
 test('docs/comparison-chart.svg: uses 75.6% (not 80.0%)', () => {

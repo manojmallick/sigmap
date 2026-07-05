@@ -52,20 +52,42 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Deterministic and verifiable — the two things an agentic-grep loop can't give you:**
 - **Deterministic** — no LLM calls, no agent loop; the same repo always produces a byte-identical map you can diff, cache, and gate in CI.
-- **Auditable & grounded** — every file and symbol traces to a real line anchor; `sigmap verify-ai-output` flags any AI claim that isn't.
+- **Auditable & grounded** — every file and symbol traces to a real line anchor; `sigmap verify` flags any AI claim that isn't.
 - **Zero dependencies** — `npx sigmap` on any machine; no embeddings, no vector DB, no hosted service, fully offline.
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **86.7% hit@5** — right file found in top 5 results (vs 13.6% baseline)
 - **97.0% token reduction** — average across 21 real repos
-- **67.8% task success rate** — up from 10% without context
-- **1.46 prompts per task** — down from 2.84 (48.8% fewer retries)
+- **66.7% task success rate** — up from 10% without context
+- **1.47 prompts per task** — down from 2.84 (48.4% fewer retries)
 <!--/SM:whyMetrics-->
 - **<!--SM:languages-->33<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
+
+---
+
+## 🔒 `sigmap verify` — the grounding flagship
+
+The one thing no agentic-grep loop, and no competitor, gives you: **prove an AI answer is anchored to real signatures and line numbers before you trust it.** Deterministic, offline, no LLM — SigMap indexes your repo *plus the libraries actually installed here* and flags every fabricated file, import, symbol, test, or npm script.
+
+```bash
+sigmap verify answer.md                 # ✓ grounded, or a line-by-line list of fabrications
+sigmap verify answer.md --json          # machine-readable report; exits 1 if any issue (CI gate)
+sigmap verify answer.md --report        # standalone red/amber/green HTML report
+```
+
+```text
+[sigmap] ✗ answer.md — 2 issues found
+  fake-file: 1  fake-test-file: 0  fake-import: 0  fake-symbol: 1  fake-npm-script: 0
+
+  L12  [Fake file]    src/auth/session-store.js does not exist
+  L27  [Fake symbol]  authorize() — did you mean authenticate()?
+```
+
+`verify` is the flagship; `verify-ai-output` remains as the full command name. Pair it with `sigmap verify-plan` (check a plan before execution) and the `verify_suggestion` MCP tool (verify AI code against repo + private + installed-library symbols mid-session).
 
 ---
 
@@ -98,13 +120,13 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.5-main (21 repositories, including R language)
-Date      : 2026-07-04
+Benchmark : sigmap-v8.6-main (21 repositories, including R language)
+Date      : 2026-07-05
 
 Hit@5          : 86.7%   (baseline 13.6%  — 6.4× lift)
 Token reduction: 97.0%   (across 21 repos)
-Prompt reduction : 48.8% (2.84 → 1.46 prompts per task)
-Task success   : 67.8%   (baseline 10%)
+Prompt reduction : 48.4% (2.84 → 1.47 prompts per task)
+Task success   : 66.7%   (baseline 10%)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 <!--/SM:benchmarkBlock-->

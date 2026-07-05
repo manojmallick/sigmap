@@ -1498,6 +1498,9 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // Include a compact import dependency map at top of output
     depMap: true,
 
+    // Include a compact `name@version` list of installed direct deps (D8)
+    versionPins: true,
+
     // Include TODO/FIXME/HACK/XXX comments as compact section
     todos: true,
 
@@ -13108,7 +13111,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.5.0',
+    version: '8.6.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -17311,8 +17314,37 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
       .map((l) => `${l.name}@${l.version}`);
   }
 
+  /**
+   * D8: collect `name@version` pins for direct dependencies — versions only, no
+   * symbol extraction, no cache. Cheap enough to run on every context build so
+   * the generated header can ground against what is actually installed (JS +
+   * Python). Deterministic: sorted, then capped.
+   * @param {string} cwd
+   * @param {object} [opts]
+   * @param {number} [opts.limit=40] max pins returned (after sort)
+   * @returns {{ pins: string[], total: number }} pins capped to limit; total = all resolved
+   */
+  function collectVersionPins(cwd, opts = {}) {
+    const limit = Number.isInteger(opts.limit) && opts.limit >= 0 ? opts.limit : 40;
+    const pins = [];
+    for (const dep of directDeps(cwd).slice(0, MAX_DEPS)) {
+      const r = resolveEntry(cwd, dep);
+      if (r && r.version) pins.push(`${dep}@${r.version}`);
+    }
+    const sitePkgs = findSitePackages(cwd);
+    if (sitePkgs.length) {
+      for (const dep of pythonDirectDeps(cwd).slice(0, MAX_DEPS)) {
+        const r = resolvePyEntry(sitePkgs, dep);
+        if (r && r.version) pins.push(`${dep}@${r.version}`);
+      }
+    }
+    pins.sort();
+    return { pins: limit ? pins.slice(0, limit) : pins, total: pins.length };
+  }
+
   module.exports = {
     buildLibraryIndex, extractDtsExports, directDeps, resolveEntry, formatVersionPins,
+    collectVersionPins,
     extractPyExports, pythonDirectDeps, findSitePackages, resolvePyEntry,
   };
   
@@ -17647,7 +17679,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.5.0';
+const VERSION = '8.6.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -18248,6 +18280,23 @@ function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
     lines.push(...depLines);
     lines.push('```');
     lines.push('');
+  }
+
+  // D8: installed direct-dependency version pins — grounds agents against what
+  // is actually installed here (byte-stable given a fixed installed tree).
+  if (!config || config.versionPins !== false) {
+    try {
+      const { collectVersionPins } = requireSourceOrBundled('./src/verify/lib-index');
+      const { pins, total } = collectVersionPins(cwd);
+      if (pins.length) {
+        lines.push('## versions (installed direct deps)');
+        lines.push('```');
+        lines.push(...pins);
+        if (total > pins.length) lines.push(`… +${total - pins.length} more`);
+        lines.push('```');
+        lines.push('');
+      }
+    } catch (_) { /* no/uninstalled deps → skip */ }
   }
 
   const todoLines = buildTodoSection(fileEntries, cwd, config || {});
@@ -19442,9 +19491,10 @@ Usage:
   ${cmd} --impact <file>                   Show every file impacted by changing <file>
   ${cmd} --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
   ${cmd} --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
-  ${cmd} verify-ai-output <answer.md>      Flag fake files/tests/imports/symbols/npm-scripts in an AI answer
-  ${cmd} verify-ai-output <answer.md> --json    Hallucination report as JSON (exits 1 if issues)
-  ${cmd} verify-ai-output <answer.md> --report  Write a standalone HTML report (red/amber/green)
+  ${cmd} verify <answer.md>                Flagship grounding guard — flag fake files/tests/imports/symbols/npm-scripts in an AI answer (alias of verify-ai-output)
+  ${cmd} verify <answer.md> --json         Grounding report as JSON (exits 1 if issues)
+  ${cmd} verify <answer.md> --report       Write a standalone HTML report (red/amber/green)
+  ${cmd} verify-ai-output <answer.md>      Full command name for ${cmd} verify
   ${cmd} conventions                       Extract repo file-naming/export/test conventions (--conflicts, --inject, --report, --fix)
   ${cmd} scaffold "<name>"                 Propose a convention-matched file/dir scaffold (--ext, --threshold, --force, --json)
   ${cmd} verify-plan <plan.md|->           Check a plan vs the live index — files/symbols exist, blast radius, scope (--json)
@@ -21304,7 +21354,10 @@ function main() {
     process.exit(s.ok ? 0 : 1);
   }
 
-  if (args[0] === 'verify-ai-output') {
+  // `sigmap verify` is the flagship alias for `verify-ai-output` — the grounding
+  // guard that proves an AI answer is anchored to real signatures + line anchors.
+  if (args[0] === 'verify-ai-output' || args[0] === 'verify') {
+    const cmdName = args[0];
     const target = args[1];
     const jsonOut = args.includes('--json');
     const reportIdx = args.indexOf('--report');
@@ -21312,7 +21365,7 @@ function main() {
       ? (args[reportIdx + 1] && !args[reportIdx + 1].startsWith('--') ? args[reportIdx + 1] : 'sigmap-verify-report.html')
       : null;
     if (!target || target.startsWith('--')) {
-      console.error('[sigmap] Usage: sigmap verify-ai-output <answer.md> [--json] [--report [out.html]]');
+      console.error(`[sigmap] Usage: sigmap ${cmdName} <answer.md> [--json] [--report [out.html]]`);
       process.exit(1);
     }
     const absTarget = path.resolve(cwd, target);

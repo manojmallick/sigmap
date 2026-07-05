@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.6.0 — Phase 1 "bank the A": harness, header pins, verify flagship ✓ (2026-07-05)
+
+**Minor release — the grounding moat's supporting surface.** Three master-plan Phase 1 items land together, all zero-dependency and deterministic. **G1 — public reproducible benchmark harness:** new `public-benchmarks/` (`repos.csv`, `queries.json`, `run.sh`, `score.mjs`, `README.md`) is a self-contained, third-party-runnable retrieval harness — it shallow-clones 18 pinned repos, maps each with `gen-context.js`, ranks 90 queries with the **shipped** BM25 ranker (`src/retrieval/bm25.js`), and reports hit@1/hit@5/MRR. Turns the published retrieval numbers into a third-party-verifiable fact; dev-only (excluded from the npm package). **D8 — version pins in the context header:** the generated header now carries a `## versions (installed direct deps)` block of sorted `name@version` pins (JS + Python), via new `collectVersionPins()` in `src/verify/lib-index.js`, gated by the `versionPins` config key — agents ground against what is actually installed. **G2 — `verify` flagship:** `sigmap verify` is now a first-class alias of `verify-ai-output` with a dedicated README/CLI-reference section, positioning deterministic grounding as the headline.
+
+**Tags:** `grounding` · `public-benchmarks` · `G1` · `D8` · `version-pins` · `G2` · `verify` · `flagship` · `#425` · `PR #426`
+
+**Impact:** grounding surface completed toward the v9.0 "A" tier; benchmark reproducibility now third-party-runnable. Benchmark metrics unchanged; +12 tests (109 total).
+
+---
+
 ### v8.5.0 — Deterministic query expansion ✓ (2026-07-05)
 
 **Minor release — a vocabulary-mismatch recall aid.** The identifier-aware BM25 ranker (`src/retrieval/bm25.js`) now bridges common code-domain synonyms and abbreviations via a curated table (`auth`↔`authentication`/`login`, `db`↔`database`, `ctx`↔`context`, `config`↔`configuration`, `req`/`res`, `init`, `impl`, …). `expandQuery()` adds synonyms to the query tokens at a **discount weight (0.15)** so an exact-term match always outranks a synonym-only match; documents are unchanged. It's wired through the ranker, so `sigmap ask`, `--query`, and MCP `query_context` all benefit. **Honest result:** a weight sweep on the retrieval benchmark showed higher weights *regress* hit@5, so the shipped setting (0.15) is **benchmark-neutral** — this is a recall aid for real users whose query vocabulary differs from the code (a case the curated benchmark doesn't exercise), *not* a hit@5 improvement. Zero-dependency, deterministic.
@@ -1280,7 +1290,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — v8.5 "Repo-Context Coverage & Test Discovery" 🚧 NEXT — coverage expansion (routes, configs, build/CI, migrations), test discovery (impl → tests), and safe/danger/generated risk labels
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — with Phase 1 grounding banked (G1/D8/G2 shipped), push the non-grounding ceilings: method/caller-level call-graph + blast-radius scoring (D4/GR1/GR2), retrieval coverage expansion (routes, configs, build/CI, migrations), and Evidence Pack schema v2 (richer risk labels + measured related-tests)
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 

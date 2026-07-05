@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 72 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 73 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 72 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 73 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -67,8 +67,9 @@ If you are new to the product, start with the workflow pages first:
 | `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
 | `judge --response <f> --context <f>` | Rule-based groundedness scoring for LLM responses |
 | `verify-plan <plan.md>` | Check a plan against the live index before execution — referenced files/symbols exist, blast radius, scope (`--json`; stdin via `-`) |
-| `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
-| `verify-ai-output <answer.md> --report [out.html]` | Write a standalone red/amber/green HTML report of the findings |
+| `verify <answer.md>` | **Flagship** grounding guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline). Short alias of `verify-ai-output` |
+| `verify-ai-output <answer.md>` | Full command name for `verify` — identical behaviour, flags, and exit codes |
+| `verify <answer.md> --report [out.html]` | Write a standalone red/amber/green HTML report of the findings |
 | `review-pr [--base <ref>\|--staged]` | Audit a diff — scope drift, god-node edits, missing tests, security-sensitive files (`--json`; exits 1 on findings) |
 | `review-pr --markdown` | **PR Evidence Report** — branded Markdown (signatures + blast radius + tests to run + risk labels) to post as a PR comment; CI-gateable |
 | `create "<task>"` | Orchestrate the 4-stage grounded-creation pipeline (scaffold → verify-plan → verify-ai-output → review-pr) with `n/4` numbering |
@@ -419,12 +420,24 @@ A plan with any **error** exits non-zero (useful as a gate before execution); wa
 
 ---
 
-## verify-ai-output
+## verify
 
-Hallucination Guard. Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, fake test files, unresolvable imports, symbols not in the SigMap index, and `npm run` scripts that don't exist. Fully deterministic — runs offline, no LLM API. Where a flagged name is a near miss for something real, a heuristic closest-match suggestion is attached. **v8.1.0+:** symbol checks also ground against the libraries **actually installed** — JS/TS from `node_modules` (`.d.ts` exports) and, since **v8.3.0**, Python from the project's venv `site-packages` (`__init__.py`/`.pyi` exports) — each with its pinned version, so genuine library calls stop false-flagging — see [Installed-library grounding](/guide/verify-ai-output#installed-library-grounding-v8-1-0-v9-0-g5-d5-the-moat).
+**The grounding flagship (v8.6.0+).** `sigmap verify` is the first-class short alias of [`verify-ai-output`](#verify-ai-output) — identical behaviour, flags, and exit codes. It is the headline command because deterministic, offline grounding is the one capability no agentic-grep loop or competitor offers: prove an AI answer is anchored to real signatures and line numbers before you trust it.
 
 ```bash
-sigmap verify-ai-output ai-answer.md
+sigmap verify answer.md               # ✓ grounded, or a line-by-line list of fabrications
+sigmap verify answer.md --json        # machine-readable report; exits 1 if any issue (CI gate)
+sigmap verify answer.md --report      # standalone red/amber/green HTML report
+```
+
+Full behaviour, options, and installed-library grounding are documented under [`verify-ai-output`](#verify-ai-output) below.
+
+## verify-ai-output
+
+Hallucination Guard — the full command name for [`verify`](#verify). Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, fake test files, unresolvable imports, symbols not in the SigMap index, and `npm run` scripts that don't exist. Fully deterministic — runs offline, no LLM API. Where a flagged name is a near miss for something real, a heuristic closest-match suggestion is attached. **v8.1.0+:** symbol checks also ground against the libraries **actually installed** — JS/TS from `node_modules` (`.d.ts` exports) and, since **v8.3.0**, Python from the project's venv `site-packages` (`__init__.py`/`.pyi` exports) — each with its pinned version, so genuine library calls stop false-flagging — see [Installed-library grounding](/guide/verify-ai-output#installed-library-grounding-v8-1-0-v9-0-g5-d5-the-moat).
+
+```bash
+sigmap verify ai-answer.md                    # `verify` and `verify-ai-output` are interchangeable
 sigmap verify-ai-output ai-answer.md --json
 sigmap verify-ai-output ai-answer.md --report report.html
 ```
@@ -1132,7 +1145,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-97.0% fewer tokens · 86.7% retrieval hit@5 · 48.8% fewer prompts
+97.0% fewer tokens · 86.7% retrieval hit@5 · 48.4% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
