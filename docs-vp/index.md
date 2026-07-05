@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.3.0</span>
+  <span><strong>Release:</strong> v8.4.0</span>
   <span>·</span>
-  <span><strong>New — Python site-packages grounding (the moat, both ecosystems):</strong> installed-library grounding now covers <strong>Python</strong> as well as JS/TS. <code>verify-ai-output</code> and the <code>verify_suggestion</code> MCP tool check AI-suggested Python code against the packages <strong>actually installed</strong> in the project's venv — reading each dependency's <code>__init__.py</code>/<code>.pyi</code> exports + pinned version — so real library calls stop false-flagging. No Python runtime, zero-dependency, deterministic.</span>
+  <span><strong>New — PR Evidence Report:</strong> <code>sigmap review-pr --markdown</code> emits one branded, deterministic Markdown comment for a pull request — per changed file: signatures, <strong>blast radius</strong> (what it touches), tests to run, a risk label, and review findings (scope drift, god-node edits, missing tests, security files). No LLM, no timestamp (byte-stable), CI-gateable. Answers <em>"what changed, what it touches, and what to test."</em></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.3-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.4-main</span>
   <span>·</span>
   <span>87% hit@5 · 97.0% token reduction · 2026-07-04</span>
 </div>
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-07-04 (v8.3.0)**.
+Latest saved benchmark run: **2026-07-04 (v8.4.0)**.
 
 </div>
 
