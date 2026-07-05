@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-05T14:25:15.609Z",
+  "generated": "2026-07-05T15:17:46.549Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 274,
+      "sigCount": 275,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.767,
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 47,
+      "sigCount": 44,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 296,
+      "sigCount": 297,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -927,14 +927,14 @@
       "fileCount": 131,
       "sigCount": 62,
       "tasks": 5,
-      "hitAt5": 0,
-      "mrr": 0,
+      "hitAt5": 0.2,
+      "mrr": 0.1,
       "randomBaseline": 0.038,
-      "improvement": 0,
+      "improvement": 5.2,
       "tiers": {
         "correct": 0,
-        "partial": 0,
-        "wrong": 5
+        "partial": 1,
+        "wrong": 4
       },
       "taskDetails": [
         {
@@ -956,8 +956,8 @@
             "Sources/Vapor/Application.swift"
           ],
           "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "vapor-t003",
@@ -966,7 +966,7 @@
             "Sources/Vapor/Content/ContentContainer.swift",
             "Sources/Vapor/Content/Request+Content.swift"
           ],
-          "top1": "Sources/Vapor/URLEncodedForm/URLEncodedFormDecoder.swift",
+          "top1": "Sources/VaporTestUtils/TestingHTTPRequest.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -997,7 +997,7 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 122,
+      "sigCount": 121,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 1,

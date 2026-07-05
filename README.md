@@ -57,10 +57,10 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
-- **86.7% hit@5** — right file found in top 5 results (vs 13.6% baseline)
+- **87.8% hit@5** — right file found in top 5 results (vs 13.6% baseline)
 - **97.0% token reduction** — average across 21 real repos
 - **67.8% task success rate** — up from 10% without context
-- **1.46 prompts per task** — down from 2.84 (48.8% fewer retries)
+- **1.44 prompts per task** — down from 2.84 (49.2% fewer retries)
 <!--/SM:whyMetrics-->
 - **<!--SM:languages-->33<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
@@ -96,7 +96,7 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
 | Without SigMap | With SigMap |
 |---|---|
 | ❌ Non-reproducible agent guesses | ✅ Deterministic map — same input, same output, every time |
-| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->87%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
+| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->88%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
 | ❌ Embeddings / vector DB required | ✅ Zero deps, no infra, fully offline |
 
 ---
@@ -120,12 +120,12 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.7-main (21 repositories, including R language)
+Benchmark : sigmap-v8.8-main (21 repositories, including R language)
 Date      : 2026-07-05
 
-Hit@5          : 86.7%   (baseline 13.6%  — 6.4× lift)
+Hit@5          : 87.8%   (baseline 13.6%  — 6.5× lift)
 Token reduction: 97.0%   (across 21 repos)
-Prompt reduction : 48.8% (2.84 → 1.46 prompts per task)
+Prompt reduction : 49.2% (2.84 → 1.44 prompts per task)
 Task success   : 67.8%   (baseline 10%)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```

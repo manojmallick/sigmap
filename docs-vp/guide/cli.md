@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 75 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 76 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 75 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 76 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -56,6 +56,7 @@ If you are new to the product, start with the workflow pages first:
 | `evidence "<query>" --markdown` | Emit the Markdown handoff rendering to stdout (alias `--md`) |
 | `evidence "<query>" --top <n> --budget <n> --out <path>` | Tune ranked files / token budget / write the rendered output to a path |
 | `squeeze <file\|->` | Minimize a pasted stacktrace / CI-log / JSON blob (`--json` for stats) |
+| `squeeze --response <file\|->` | Minimize an agent/tool response explicitly (same engine; also the `squeeze_output` MCP tool) |
 | `conventions` | Extract & report a repo's coding conventions — file naming, export style, test framework (TS/JS/Python); writes `.context/conventions.json` (`--json` for machine output) |
 | `conventions --conflicts` | Breakdown of every mixed convention (counts, bars, example files) + rename suggestions toward the dominant style |
 | `conventions --inject` | Write/update the auto-detected conventions block in `CLAUDE.md` (idempotent, marker-scoped) so agents see the house style |
@@ -586,6 +587,7 @@ Minimize a pasted stack trace, CI/build log, or JSON payload — deterministic, 
 sigmap squeeze error.log              # squeeze a file → stdout
 cat error.log | sigmap squeeze -      # or from stdin
 sigmap squeeze error.log --json       # category + reduction + squeezed text as JSON
+sigmap squeeze --response out.txt     # name an agent/tool response explicitly
 ```
 
 ```
@@ -606,7 +608,10 @@ Three deterministic detectors, each with its own minimizer:
 
 | Option | Description |
 |--------|-------------|
+| `--response <file\|->` | Name the agent/tool response input explicitly (mirrors `judge --response`); routes through the same engine |
 | `--json` | Emit `{ category, confidence, rawTokens, squeezedTokens, reduction, enriched, squeezed }` |
+
+The same engine is available to agents mid-session as the [`squeeze_output` MCP tool](/guide/mcp) — compress a stack trace, CI/build log, or JSON payload before it enters context.
 
 Prose (no recognizable structure) passes through unchanged. The differentiator over generic log summarizers is **symbol enrichment** — SigMap attaches a real function signature to the top stack frame because it has the repo's symbol index.
 
@@ -1129,8 +1134,8 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         86.7% vs 13.6%   (6.4× lift)
- Avg prompts   1.46 vs 2.84
+ hit@5         87.8% vs 13.6%   (6.5× lift)
+ Avg prompts   1.44 vs 2.84
  Token story   97.0% overall reduction
 ────────────────────────────────────────────
 ```
@@ -1147,7 +1152,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-97.0% fewer tokens · 86.7% retrieval hit@5 · 48.8% fewer prompts
+97.0% fewer tokens · 87.8% retrieval hit@5 · 49.2% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -1172,7 +1177,7 @@ sigmap bench --submit --json
  Submitted      : 2026-05-03
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 86.7%
+ hit@5          : 87.8%
  token reduction: 96.8%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
