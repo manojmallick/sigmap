@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Seventy-nine versions shipped. MIT open source from day one.
+Eighty versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.4.0 — PR Evidence Report (v9.0 G3) ✓ (2026-07-05)
+
+**Minor release — a branded, deterministic review artifact.** SigMap already had `review-pr` findings and `get_diff_context`, but no single Markdown comment an agent or CI could post on a PR. New `src/review/pr-evidence.js` folds together, per changed file, its extracted **signatures**, **blast radius** (direct/transitive importers, impacted tests + routes), cross-language **related tests**, a **risk label**, and the `review-pr` findings (scope drift, god-node edits, missing tests, security-sensitive files). `sigmap review-pr --markdown` (alias `--evidence`) renders the branded **"🔍 PR Evidence Report"** — with **no wall-clock timestamp**, so it's byte-stable given a fixed tree — and the exit code reflects the review pass/fail, so the same command can both post the comment and gate the PR in CI. Reuses shipped zero-dep modules; git stays behind the shell-free `git()` util.
+
+**Tags:** `review` · `pr-evidence` · `blast-radius` · `G3` · `--markdown` · `ci-gate` · `deterministic` · `#417` · `PR #418`
+
+**Impact:** the machine-consumable review artifact the plan named (G3) — *"what changed, what it touches, and what to test"* in one deterministic comment, no LLM. Retrieval/token metrics unchanged (86.7% hit@5, 97% token reduction); +3 tests.
 
 ---
 
