@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.4.0</span>
+  <span><strong>Release:</strong> v8.5.0</span>
   <span>·</span>
-  <span><strong>New — PR Evidence Report:</strong> <code>sigmap review-pr --markdown</code> emits one branded, deterministic Markdown comment for a pull request — per changed file: signatures, <strong>blast radius</strong> (what it touches), tests to run, a risk label, and review findings (scope drift, god-node edits, missing tests, security files). No LLM, no timestamp (byte-stable), CI-gateable. Answers <em>"what changed, what it touches, and what to test."</em></span>
+  <span><strong>New — deterministic query expansion:</strong> the retrieval ranker now bridges common code-domain synonyms and abbreviations, so a query for <code>authentication</code> can surface a file whose signatures only say <code>auth</code> (and <code>database</code>↔<code>db</code>, <code>context</code>↔<code>ctx</code>, …). A curated, zero-dependency recall aid for when your query vocabulary differs from the code — exact matches still rank first.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.4-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.5-main</span>
   <span>·</span>
   <span>87% hit@5 · 97.0% token reduction · 2026-07-04</span>
 </div>
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-07-04 (v8.4.0)**.
+Latest saved benchmark run: **2026-07-04 (v8.5.0)**.
 
 </div>
 
