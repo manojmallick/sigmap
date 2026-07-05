@@ -14,7 +14,7 @@ const assert = require('assert');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../..');
-const { tokenize, stem, bm25rank, PATH_BOOST } =
+const { tokenize, stem, bm25rank, PATH_BOOST, expandQuery, EXPANSIONS, EXPANSION_WEIGHT } =
   require(path.join(ROOT, 'src', 'retrieval', 'bm25'));
 
 let passed = 0;
@@ -131,6 +131,54 @@ test('bm25rank: deterministic tie-break by file path', () => {
 
 test('bm25rank: empty candidate list returns empty array', () => {
   assert.deepStrictEqual(bm25rank('anything', []), []);
+});
+
+// ---------------------------------------------------------------------------
+// Query expansion (#421) — benchmark-neutral recall aid, deterministic
+// ---------------------------------------------------------------------------
+test('EXPANSIONS maps bidirectional code-domain synonyms (stemmed)', () => {
+  // `auth` and `database` resolve to their group members.
+  const authSyns = EXPANSIONS.get(stem('auth')) || new Set();
+  assert.ok(authSyns.has(stem('login')), 'auth should expand to login');
+  const dbSyns = EXPANSIONS.get(stem('db')) || new Set();
+  assert.ok(dbSyns.has(stem('database')), 'db should expand to database');
+  const dbBack = EXPANSIONS.get(stem('database')) || new Set();
+  assert.ok(dbBack.has('db'), 'database should expand back to db');
+});
+
+test('expandQuery: original tokens weight 1, synonyms weight < 1', () => {
+  const q = [...new Set(tokenize('database'))];
+  const w = expandQuery(q);
+  for (const t of q) assert.strictEqual(w.get(t), 1, `original ${t} must keep full weight`);
+  assert.strictEqual(w.get('db'), EXPANSION_WEIGHT, 'db (synonym) should carry the discount weight');
+  assert.ok(EXPANSION_WEIGHT > 0 && EXPANSION_WEIGHT < 1, 'discount weight in (0,1)');
+});
+
+test('a synonym query surfaces a file that only uses the abbreviation', () => {
+  const cands = [
+    { file: 'src/auth.js', sigs: ['function authGuard(token)', 'function login(user)'] },
+    { file: 'src/widget.js', sigs: ['function renderWidget(props)'] },
+  ];
+  const r = bm25rank('authentication', cands); // doc has no literal "authentication"
+  assert.strictEqual(r[0].file, 'src/auth.js', 'expansion should surface the auth file');
+  assert.ok(r[0].score > 0, 'expanded synonym should produce a non-zero score');
+});
+
+test('an exact-term match still outranks a synonym-only match', () => {
+  const cands = [
+    { file: 'src/exact.js', sigs: ['function authentication()'] }, // literal query term
+    { file: 'src/syn.js', sigs: ['function auth()'] },             // synonym only
+  ];
+  const r = bm25rank('authentication', cands);
+  assert.strictEqual(r[0].file, 'src/exact.js', 'exact term must win over synonym');
+  assert.ok(r[0].score > r[1].score, 'exact score strictly greater');
+});
+
+test('expansion is deterministic (identical scores across runs)', () => {
+  const cands = [{ file: 'src/config.js', sigs: ['function loadConfig()'] }];
+  const a = bm25rank('configuration', cands)[0].score;
+  const b = bm25rank('configuration', cands)[0].score;
+  assert.strictEqual(a, b);
 });
 
 // ---------------------------------------------------------------------------
