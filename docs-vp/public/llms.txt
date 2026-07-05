@@ -29,7 +29,7 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 - Token reduction: 97.0% average across benchmark repos
 - Task success: 67.8% vs 10% without SigMap
 - Prompts per task: 1.46 vs 2.84 baseline (48.8% fewer)
-- Languages: 33 supported · MCP tools: 18
+- Languages: 33 supported · MCP tools: 19
 - Dependencies: zero npm runtime dependencies · fully offline
 
 ## Quick start

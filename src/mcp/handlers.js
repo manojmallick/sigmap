@@ -898,4 +898,47 @@ function verifySuggestion(args, cwd) {
   return out.join('\n');
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion };
+/**
+ * squeeze_output({ content }) → string
+ *
+ * Compress noisy tool/command/agent output (stack trace, CI/build log, or JSON
+ * payload) through the deterministic squeeze engine. Enriches the top stack
+ * frame with its signature when the symbol index is available. Passes the input
+ * through unchanged when no squeezable structure is detected.
+ */
+function squeezeOutput(args, cwd) {
+  const content = args && typeof args.content === 'string' ? args.content : '';
+  if (!content.trim()) {
+    return 'Usage: squeeze_output({ content: "<raw tool/log/JSON output>" }) — provide the output to compress.';
+  }
+
+  let sq;
+  try {
+    const { squeeze } = require('../squeeze/index');
+    let srcDirs;
+    let symbolIndex = null;
+    try {
+      const { loadConfig } = require('../config/loader');
+      srcDirs = loadConfig(cwd).srcDirs;
+    } catch (_) {}
+    try {
+      const { buildSigIndex } = require('../retrieval/ranker');
+      symbolIndex = buildSigIndex(cwd);
+    } catch (_) {}
+    sq = squeeze(content, { srcDirs, symbolIndex });
+  } catch (err) {
+    return `_squeeze_output failed: ${err.message}_`;
+  }
+
+  if (!sq.category || !sq.applies) {
+    return `No squeezable structure detected — content unchanged (${sq.rawTokens} tokens).\n\n${content}`;
+  }
+
+  const pct = Math.round(sq.reduction * 100);
+  const header =
+    `Squeezed ${sq.category} — ${sq.rawTokens} → ${sq.squeezedTokens} tokens ` +
+    `(${pct}% smaller)${sq.enriched ? ' · signature-enriched' : ''}\n\n`;
+  return header + sq.squeezed;
+}
+
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput };

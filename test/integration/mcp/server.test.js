@@ -101,12 +101,12 @@ test('initialize returns serverInfo', () => {
 // ─────────────────────────────────────────────────────────────
 // Gate 2: tools/list returns 12 tools
 // ─────────────────────────────────────────────────────────────
-test('tools/list returns exactly 18 tools', () => {
+test('tools/list returns exactly 19 tools', () => {
   withTempProject((dir) => {
     const [res] = mcpCall({ jsonrpc: '2.0', method: 'tools/list', id: 2 }, dir);
     assert.ok(res.result, 'Should have result');
     assert.ok(Array.isArray(res.result.tools), 'tools should be array');
-    assert.strictEqual(res.result.tools.length, 18);
+    assert.strictEqual(res.result.tools.length, 19);
     const names = res.result.tools.map((t) => t.name);
     assert.ok(names.includes('read_context'), 'Should have read_context');
     assert.ok(names.includes('search_signatures'), 'Should have search_signatures');
@@ -123,6 +123,48 @@ test('tools/list returns exactly 18 tools', () => {
     assert.ok(names.includes('sigmap_notify_file_created'), 'Should have notify_file_created');
     assert.ok(names.includes('sigmap_notify_symbol_added'), 'Should have notify_symbol_added');
     assert.ok(names.includes('sigmap_notify_file_deleted'), 'Should have notify_file_deleted');
+    assert.ok(names.includes('verify_suggestion'), 'Should have verify_suggestion');
+    assert.ok(names.includes('squeeze_output'), 'Should have squeeze_output');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// D6: squeeze_output compresses noisy output; passes prose through
+// ─────────────────────────────────────────────────────────────
+test('squeeze_output compresses a stack trace and reports reduction', () => {
+  withTempProject((dir) => {
+    const trace = 'Traceback (most recent call last):\n  File "/app/x.py", line 10, in <module>\n    foo()\n  File "/app/y.py", line 3, in foo\n    raise ValueError("boom")\nValueError: boom\n';
+    const [res] = mcpCall(
+      { jsonrpc: '2.0', method: 'tools/call', id: 30,
+        params: { name: 'squeeze_output', arguments: { content: trace } } },
+      dir
+    );
+    assert.ok(res.result, 'Should have result');
+    const text = res.result.content[0].text;
+    assert.ok(/Squeezed stacktrace/.test(text), 'reports squeezed stacktrace');
+    assert.ok(/tokens/.test(text), 'reports token stats');
+  });
+});
+test('squeeze_output passes non-squeezable prose through unchanged', () => {
+  withTempProject((dir) => {
+    const [res] = mcpCall(
+      { jsonrpc: '2.0', method: 'tools/call', id: 31,
+        params: { name: 'squeeze_output', arguments: { content: 'just prose, nothing structured here' } } },
+      dir
+    );
+    const text = res.result.content[0].text;
+    assert.ok(/No squeezable structure/.test(text), 'notes nothing to squeeze');
+    assert.ok(/just prose/.test(text), 'includes original content');
+  });
+});
+test('squeeze_output with empty content returns usage', () => {
+  withTempProject((dir) => {
+    const [res] = mcpCall(
+      { jsonrpc: '2.0', method: 'tools/call', id: 32,
+        params: { name: 'squeeze_output', arguments: { content: '' } } },
+      dir
+    );
+    assert.ok(/Usage: squeeze_output/.test(res.result.content[0].text), 'returns usage on empty input');
   });
 });
 
