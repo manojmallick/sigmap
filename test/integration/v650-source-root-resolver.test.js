@@ -511,4 +511,25 @@ test('resolveSourceRoots includes test JVM paths in DEEP_PATHS', () => {
   assert(result.roots.some(r => r === 'src/test/kotlin'), 'should find src/test/kotlin');
 });
 
+// Determinism guard (#440): tied-score dirs must resolve to the SAME set/order
+// on every call. Before the tie-break fix, candidate order came from filesystem
+// readdir and the score sort had no final key, so the MAX_ROOTS cutoff could
+// admit different dirs run to run — making the generated context non-reproducible.
+test('resolveSourceRoots is deterministic across repeated calls (tied scores)', () => {
+  const files = {};
+  for (const name of ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel']) {
+    files[`${name}/index.js`] = 'export function f() {}';
+    files[`${name}/util.js`] = 'export function g() {}';
+  }
+  const cwd = makeRepo(files);
+  const first = resolveSourceRoots(cwd).roots;
+  for (let i = 0; i < 10; i++) {
+    assert.deepStrictEqual(resolveSourceRoots(cwd).roots, first,
+      'roots must be identical on every call');
+  }
+  const tied = first.filter(r => /^[a-z]+$/.test(r));
+  assert.deepStrictEqual(tied, tied.slice().sort((x, y) => x.localeCompare(y)),
+    'tied-score dirs must be in a stable alphabetical order');
+});
+
 console.log('\nAll tests passed!');

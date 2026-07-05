@@ -3202,7 +3202,11 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         score: scoreCandidate(name, full, context),
       }))
       .filter(c => c.score > 0)
-      .sort((a, b) => b.score - a.score);
+      // Final tie-break on dir keeps selection deterministic when scores tie — the
+      // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
+      // (candidate order comes from filesystem readdir), changing which files are
+      // collected and making the generated context non-reproducible.
+      .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
 
     // Handle special rules
     let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks);
@@ -3245,9 +3249,12 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     const candidates = [];
     const excSet     = new Set(excludeList);
 
-    // Root-level dirs
+    // Root-level dirs (sorted so candidate order — and downstream dedupe/selection
+    // — is deterministic regardless of filesystem readdir order)
     try {
-      for (const e of fs.readdirSync(cwd, { withFileTypes: true })) {
+      const rootEntries = fs.readdirSync(cwd, { withFileTypes: true })
+        .sort((a, b) => a.name.localeCompare(b.name));
+      for (const e of rootEntries) {
         if (!e.isDirectory()) continue;
         if (excSet.has(e.name)) continue;
         if (matchesIgnorePattern(e.name, ignorePatterns)) continue;
@@ -3316,7 +3323,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
           }
         }
       } catch (_) {}
-      roots.sort((a, b) => b.score - a.score);
+      roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
     }
 
     // Swift project dir: dirs with ≥3 .swift files
@@ -3331,7 +3338,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
           }
         }
       } catch (_) {}
-      roots.sort((a, b) => b.score - a.score);
+      roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
     }
 
     return roots;
@@ -18264,6 +18271,10 @@ function walkDir(dir, exclude, maxDepth, depth = 0) {
   } catch (_) {
     return [];
   }
+  // Sort by name so the collected file list — and therefore the output section
+  // order — is deterministic. Raw readdir order is filesystem-dependent and can
+  // vary run to run, making the generated context non-byte-stable.
+  entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     if (exclude.includes(entry.name)) continue;
     const full = path.join(dir, entry.name);
@@ -18475,10 +18486,15 @@ function applyTokenBudget(fileEntries, maxTokens) {
   });
 
   // Best-first order: lowest drop-priority, then most-recent, then most-informative.
+  // Final tie-break on filePath keeps the selection deterministic when priority,
+  // mtime, and signalQuality all tie (common for test files sharing a git-checkout
+  // mtime) — otherwise the choice fell through to filesystem readdir order, making
+  // which files are kept vs dropped non-reproducible run to run.
   const bestFirst = withPriority.slice().sort((a, b) => {
     if (a.priority !== b.priority) return a.priority - b.priority;
     if ((b.mtime || 0) !== (a.mtime || 0)) return (b.mtime || 0) - (a.mtime || 0);
-    return (b.signalQuality || 0) - (a.signalQuality || 0);
+    if ((b.signalQuality || 0) !== (a.signalQuality || 0)) return (b.signalQuality || 0) - (a.signalQuality || 0);
+    return a.filePath.localeCompare(b.filePath);
   });
 
   const entryCost = (e) => estimateTokens(e.sigs.join('\n')) + sectionOverhead(e);
