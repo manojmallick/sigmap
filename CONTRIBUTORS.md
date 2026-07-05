@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.4.0)
+- **@manojmallick** — feat(review): PR Evidence Report (v9.0 G3) — branded, deterministic Markdown review artifact (signatures + blast radius + related tests + risk labels + review-pr findings); `sigmap review-pr --markdown`, CI-gateable, no LLM (#417, PR #418)
+
 ### Recent Contributors (v8.3.0)
 - **@manojmallick** — feat(verify): Python site-packages grounding — extend the local-library moat (G5/D5) to venv libraries; verify AI-suggested Python code against installed packages' `__init__.py`/`.pyi` exports + versions (D8), no Python runtime (#413, PR #414)
 

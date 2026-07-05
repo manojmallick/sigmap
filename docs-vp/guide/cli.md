@@ -70,6 +70,7 @@ If you are new to the product, start with the workflow pages first:
 | `verify-ai-output <answer.md>` | Hallucination Guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline) |
 | `verify-ai-output <answer.md> --report [out.html]` | Write a standalone red/amber/green HTML report of the findings |
 | `review-pr [--base <ref>\|--staged]` | Audit a diff — scope drift, god-node edits, missing tests, security-sensitive files (`--json`; exits 1 on findings) |
+| `review-pr --markdown` | **PR Evidence Report** — branded Markdown (signatures + blast radius + tests to run + risk labels) to post as a PR comment; CI-gateable |
 | `create "<task>"` | Orchestrate the 4-stage grounded-creation pipeline (scaffold → verify-plan → verify-ai-output → review-pr) with `n/4` numbering |
 | `validate` | Validate config and coverage; optional query symbol check |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
@@ -504,8 +505,19 @@ sigmap review-pr --json          # machine-readable findings
 | `--base <ref>` | Compare against this ref's merge-base (default: `main`, then `develop`) |
 | `--staged` | Audit staged changes instead of a commit range |
 | `--json` | Emit `{ findings, blast, summary }` |
+| `--markdown` | Emit the **PR Evidence Report** (alias `--evidence`) |
 
 Deletions are excluded from the source/security checks. Any finding exits non-zero, so `review-pr` works as a CI gate. To run this together with the other stages, see [`create`](#create).
+
+### PR Evidence Report (`--markdown`)
+
+`sigmap review-pr --markdown` renders one **branded, deterministic Markdown comment** you can post on a pull request. For each changed file it folds together the extracted **signatures**, **blast radius** (direct/transitive importers, impacted tests + routes), cross-language **related tests**, a **risk label**, and the review findings above — answering *"what changed, what it touches, and what to test"* with no LLM.
+
+```bash
+sigmap review-pr --markdown --base main > pr-evidence.md   # post this as a PR comment
+```
+
+The report carries **no wall-clock timestamp**, so it is byte-stable given a fixed tree (a re-run produces an identical comment). The exit code still reflects the review (0 = clean, 1 = findings), so the same command can both **post** the comment and **gate** the PR in CI.
 
 ---
 

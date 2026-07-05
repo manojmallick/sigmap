@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.4.0] — 2026-07-05
+
+Minor release — **PR Evidence Report (v9.0 G3): a branded, deterministic review artifact.** SigMap already had the pieces — `review-pr` findings and `get_diff_context` — but no single Markdown comment an agent or CI could post on a PR. This adds it: one report that answers *"what changed, what it touches, and what to test"*, with no LLM.
+
+### Added
+- **PR Evidence Report (#417, PR #418):** new `src/review/pr-evidence.js` — `buildPrEvidence(changedFiles, cwd)` folds together, per changed file, its extracted **signatures**, **blast radius** (direct/transitive importers, impacted tests + routes), cross-language **related tests**, a **risk label**, and the **`review-pr` findings** (scope drift, god-node edits, missing tests, security-sensitive files). `formatPrEvidenceMarkdown` renders the branded **"🔍 PR Evidence Report"** — with **no wall-clock timestamp**, so it's byte-stable given a fixed tree (diff-friendly as a comment). Exposed via `sigmap review-pr --markdown` (alias `--evidence`); honors `--staged`/`--base`; the exit code reflects the review pass/fail so CI can both post the comment and gate on it. Reuses shipped zero-dep modules only; git stays behind the shell-free `git()` util.
+
 ## [8.3.0] — 2026-07-05
 
 Minor release — **Python site-packages grounding: the moat now spans both major ecosystems.** v8.1/v8.2 built local-library grounding for JS/TS (`node_modules` `.d.ts`); this extends it to **Python**, so `verify-ai-output` and the `verify_suggestion` MCP tool ground AI-suggested Python code against the libraries actually installed in the project's venv — with pinned versions (D8). Zero-dependency, no Python runtime, deterministic.
