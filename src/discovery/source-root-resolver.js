@@ -43,7 +43,11 @@ function resolveSourceRoots(cwd, opts = {}) {
       score: scoreCandidate(name, full, context),
     }))
     .filter(c => c.score > 0)
-    .sort((a, b) => b.score - a.score);
+    // Final tie-break on dir keeps selection deterministic when scores tie — the
+    // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
+    // (candidate order comes from filesystem readdir), changing which files are
+    // collected and making the generated context non-reproducible.
+    .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
 
   // Handle special rules
   let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks);
@@ -86,9 +90,12 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
   const candidates = [];
   const excSet     = new Set(excludeList);
 
-  // Root-level dirs
+  // Root-level dirs (sorted so candidate order — and downstream dedupe/selection
+  // — is deterministic regardless of filesystem readdir order)
   try {
-    for (const e of fs.readdirSync(cwd, { withFileTypes: true })) {
+    const rootEntries = fs.readdirSync(cwd, { withFileTypes: true })
+      .sort((a, b) => a.name.localeCompare(b.name));
+    for (const e of rootEntries) {
       if (!e.isDirectory()) continue;
       if (excSet.has(e.name)) continue;
       if (matchesIgnorePattern(e.name, ignorePatterns)) continue;
@@ -157,7 +164,7 @@ function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks) {
         }
       }
     } catch (_) {}
-    roots.sort((a, b) => b.score - a.score);
+    roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
   }
 
   // Swift project dir: dirs with ≥3 .swift files
@@ -172,7 +179,7 @@ function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks) {
         }
       }
     } catch (_) {}
-    roots.sort((a, b) => b.score - a.score);
+    roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
   }
 
   return roots;
