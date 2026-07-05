@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.6.0)
+- **@manojmallick** — feat(grounding): Phase 1 "bank the A" — public reproducible benchmark harness (`public-benchmarks/`), installed dependency version pins in the context header (D8), and `sigmap verify` promoted to the documented grounding flagship (#425, PR #426)
+
 ### Recent Contributors (v8.5.0)
 - **@manojmallick** — feat(retrieval): deterministic query expansion — curated synonym/abbreviation bridge for the BM25 ranker (auth↔authentication, db↔database, …) at a discount weight; a vocabulary-mismatch recall aid, benchmark-neutral (no hit@5 regression) (#421, PR #422)
 

@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.6.0] — 2026-07-05
+
+Minor release — **Phase 1 "bank the A": the grounding moat's supporting surface.** Three master-plan items land together: a self-contained, third-party-runnable benchmark harness (G1), installed dependency version pins in the generated context header (D8), and `verify` promoted to a documented flagship command (G2). All zero-dependency, deterministic, and in-boundary.
+
+### Added
+- **Public benchmark harness (#425, PR #426):** new `public-benchmarks/` — a self-contained, third-party-runnable retrieval harness. `repos.csv` (18 real repos pinned to exact commits), `queries.json` (90 natural-language query → expected-file tasks), `run.sh` (shallow-clones the pinned repos, then scores), `score.mjs` (maps each repo with `gen-context.js`, ranks with the **shipped** identifier-aware BM25 ranker `src/retrieval/bm25.js`, reports hit@1/hit@5/MRR), and a methodology `README.md`. Deterministic — pinned commits + a byte-stable map + rank-only math → the same numbers on any machine; no LLM, no API keys, no external deps. Dev-only (excluded from the npm package). Turns the published retrieval numbers from a claim into a third-party-verifiable fact (v9.0 G1).
+- **Version pins in the context header (#425, PR #426):** the generated header now carries a `## versions (installed direct deps)` block of sorted `name@version` pins for installed JS + Python direct dependencies, so agents reading `CLAUDE.md`/`AGENTS.md` ground against what is **actually installed here** (compounds with the G5/D5 verify moat). New `collectVersionPins(cwd)` in `src/verify/lib-index.js` (versions only — no symbol parsing, cheap enough to run per-build); gated by a new `versionPins` config key (default on). Byte-stable given a fixed installed tree (D8).
+
+### Changed
+- **`sigmap verify` — the grounding flagship (#425, PR #426):** `verify` is now a first-class alias of `verify-ai-output` (identical flags, output, and exit codes), with a dedicated flagship section near the top of the README and a `--help` entry. Positions the deterministic grounding guard — the one capability no agentic-grep loop or competitor offers — as the headline (v9.0 G2).
+
 ## [8.5.0] — 2026-07-05
 
 Minor release — **deterministic query expansion (a vocabulary-mismatch recall aid).** The BM25 ranker now bridges common code-domain synonyms/abbreviations so a query for `authentication` can still surface a file whose signatures only say `auth`. Zero-dependency, deterministic. **Honest framing:** measured on the retrieval benchmark, this is **benchmark-neutral** (hit@5 unchanged within the harness's 86.7–87.8% noise band at the shipped weight) — not a hit@5 improvement. The benefit is for real users whose query vocabulary differs from the code, a case the curated benchmark doesn't exercise.
