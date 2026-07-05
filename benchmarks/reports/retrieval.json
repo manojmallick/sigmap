@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-05T12:33:26.539Z",
+  "generated": "2026-07-05T14:25:15.609Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 275,
+      "sigCount": 274,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.767,
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 48,
+      "sigCount": 47,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -607,7 +607,7 @@
           "expected": [
             "src/Serilog/Configuration/LoggerSinkConfiguration.cs"
           ],
-          "top1": "src/Serilog/Core/Sinks/SafeAggregateSink.cs",
+          "top1": "src/Serilog/Settings/KeyValuePairs/SurrogateConfigurationMethods.cs",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 295,
+      "sigCount": 296,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 100,
+      "sigCount": 99,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.717,
@@ -927,14 +927,14 @@
       "fileCount": 131,
       "sigCount": 62,
       "tasks": 5,
-      "hitAt5": 0.2,
-      "mrr": 0.1,
+      "hitAt5": 0,
+      "mrr": 0,
       "randomBaseline": 0.038,
-      "improvement": 5.2,
+      "improvement": 0,
       "tiers": {
         "correct": 0,
-        "partial": 1,
-        "wrong": 4
+        "partial": 0,
+        "wrong": 5
       },
       "taskDetails": [
         {
@@ -956,8 +956,8 @@
             "Sources/Vapor/Application.swift"
           ],
           "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "firstHitRank": null,
+          "tier": "wrong"
         },
         {
           "id": "vapor-t003",
@@ -966,7 +966,7 @@
             "Sources/Vapor/Content/ContentContainer.swift",
             "Sources/Vapor/Content/Request+Content.swift"
           ],
-          "top1": "Sources/VaporTestUtils/TestingHTTPRequest.swift",
+          "top1": "Sources/Vapor/URLEncodedForm/URLEncodedFormDecoder.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -997,7 +997,7 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 121,
+      "sigCount": 122,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 1,
@@ -1071,7 +1071,7 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 141,
+      "sigCount": 140,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.68,
@@ -1210,15 +1210,15 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 20,
+      "sigCount": 25,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.7,
+      "mrr": 0.6,
       "randomBaseline": 0.104,
       "improvement": 7.7,
       "tiers": {
-        "correct": 3,
-        "partial": 1,
+        "correct": 2,
+        "partial": 2,
         "wrong": 1
       },
       "taskDetails": [
@@ -1238,9 +1238,9 @@
           "expected": [
             "fastapi/routing.py"
           ],
-          "top1": "fastapi/routing.py",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "fastapi/exception_handlers.py",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "fastapi-t003",

@@ -22,7 +22,7 @@ head:
 
 Eighty-one versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.7.1 — Multi-model cost savings + verified pricing ✓ (2026-07-05)
+
+**Patch release.** The quality benchmark reported API input-cost savings for GPT-4o only; it now reports **GPT-4o, Claude Sonnet, and Claude Haiku** side by side (`scripts/run-quality-benchmark.mjs` gains a per-model "cost savings by model" table), and `docs-vp/guide/quality-benchmark.md` shows all three. Hardcoded Claude rates in `src/tracking/pricing.js` (the `sigmap gain` dashboard's cost assumptions) were corrected to current published pricing — Haiku $0.80→$1.00, Opus $15→$5.00 — verified 2026-07 (per 1M input tokens: GPT-4o $2.50, Sonnet 5/4.6 $3.00, Haiku 4.5 $1.00). Makes the point explicit: **token reduction is model-agnostic, but the dollar figure scales with each model's input rate.**
+
+**Tags:** `benchmark` · `cost` · `pricing` · `multi-model` · `haiku` · `sonnet` · `#433` · `PR #434`
+
+**Impact:** cost story now covers three model tiers; stale pricing corrected. No retrieval/token code changed — the saved run reflects corpus run-to-run drift (86.7% hit@5, within the noise band); the token-based cost figures are unaffected.
 
 ---
 

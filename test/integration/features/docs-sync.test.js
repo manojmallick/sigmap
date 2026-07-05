@@ -82,7 +82,7 @@ test('quality-benchmark: latest saved run is v5.7.0 or later', () => {
 
 test('generalization: uses 75.6% hit@5 (current v6.11.1 benchmark)', () => {
   const src = readGuide('generalization.md');
-  assert.ok(src.includes('87.8%'), 'missing 87.8% hit@5 in generalization.md');
+  assert.ok(src.includes('86.7%'), 'missing 86.7% hit@5 in generalization.md');
   assert.ok(!src.includes('80.0% hit@5'), 'found stale 80.0% in generalization.md');
   assert.ok(!src.includes('78.9%'), 'found stale 78.9% in generalization.md');
 });
