@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-05T09:54:28.460Z",
+  "generated": "2026-07-05T12:33:26.539Z",
   "repos": [
     {
       "repo": "express",
@@ -286,7 +286,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 274,
+      "sigCount": 275,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.767,
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 46,
+      "sigCount": 48,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -607,7 +607,7 @@
           "expected": [
             "src/Serilog/Configuration/LoggerSinkConfiguration.cs"
           ],
-          "top1": "src/Serilog/Settings/KeyValuePairs/SurrogateConfigurationMethods.cs",
+          "top1": "src/Serilog/Core/Sinks/SafeAggregateSink.cs",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 99,
+      "sigCount": 100,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.717,
@@ -997,16 +997,16 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 122,
+      "sigCount": 121,
       "tasks": 5,
-      "hitAt5": 0.8,
-      "mrr": 0.8,
+      "hitAt5": 1,
+      "mrr": 1,
       "randomBaseline": 0.022,
-      "improvement": 37.1,
+      "improvement": 46.4,
       "tiers": {
-        "correct": 4,
+        "correct": 5,
         "partial": 0,
-        "wrong": 1
+        "wrong": 0
       },
       "taskDetails": [
         {
@@ -1062,9 +1062,9 @@
             "packages/runtime-core/src/compat/global.ts",
             "packages/runtime-core/src/compat/globalConfig.ts"
           ],
-          "top1": "packages/vue-compat/README.md",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "packages/runtime-core/src/compat/globalConfig.ts",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
@@ -1210,15 +1210,15 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 25,
+      "sigCount": 20,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.6,
+      "mrr": 0.7,
       "randomBaseline": 0.104,
       "improvement": 7.7,
       "tiers": {
-        "correct": 2,
-        "partial": 2,
+        "correct": 3,
+        "partial": 1,
         "wrong": 1
       },
       "taskDetails": [
@@ -1238,9 +1238,9 @@
           "expected": [
             "fastapi/routing.py"
           ],
-          "top1": "fastapi/exception_handlers.py",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "fastapi/routing.py",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "fastapi-t003",
