@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "8.8.0",
+  "version": "8.8.1",
   "description": "97% token reduction for AI coding. Extracts function & class signatures with TF-IDF ranking to feed only the right files to Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP. Zero dependencies, runs offline via npx.",
   "main": "packages/core/index.js",
   "exports": {
@@ -17,6 +17,7 @@
     "test": "node test/run.js && node test/r-language.test.js",
     "test:integration": "node test/integration/strategy.test.js && node test/integration/secret-scan.test.js && node test/integration/token-budget.test.js && node test/integration/auto-budget.test.js && node test/integration/mcp/server.test.js && node test/integration/verify-ai-output.test.js && node test/integration/memory-tools.test.js && node test/integration/squeeze.test.js && node test/integration/context-consistency.test.js && node test/integration/features/llms-current.test.js",
     "test:integration:all": "node test/integration/all.js",
+    "test:python": "python3 test/test_python_ast_extractor.py",
     "test:all": "node test/run.js && node test/r-language.test.js && node test/integration/strategy.test.js && node test/integration/secret-scan.test.js",
     "generate": "node gen-context.js",
     "watch": "node gen-context.js --watch",

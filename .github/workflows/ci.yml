@@ -18,6 +18,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
       - name: Bundle integrity (src/ modules present in gen-context.js __factories)
         run: node scripts/check-bundle.mjs
       - name: Bundle reproducibility (committed gen-context.js == fresh build from src/)
@@ -26,5 +29,7 @@ jobs:
         run: npm run check:metrics
       - name: Run unit tests
         run: node test/run.js
+      - name: Run Python AST extractor tests
+        run: npm run test:python
       - name: Run integration tests
         run: node test/integration/all.js

@@ -13566,7 +13566,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.8.0',
+    version: '8.8.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -18158,7 +18158,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.8.0';
+const VERSION = '8.8.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -18368,6 +18368,26 @@ function annotateCoverage(sigs, testIndex, enabled) {
 // ---------------------------------------------------------------------------
 // Token budget enforcement
 // ---------------------------------------------------------------------------
+// Deterministic recency boost for recently-committed files so the token budget
+// doesn't drop them first. Previously this used `Date.now()`, which encoded the
+// (alphabetical) processing order as a monotonically increasing mtime — but on
+// repos where nearly every file is "recently changed", consecutive files often
+// landed on the *same* millisecond. Which files shared a millisecond (and so
+// fell through to the filePath tie-break instead of sorting by a distinct
+// mtime) shifted run to run, swapping which files survived at the budget cutoff
+// and making the output non-byte-stable. A monotonic integer counter preserves
+// the exact processing-order ranking Date.now() produced — recent files stay
+// ahead of non-recent ones, ordered among themselves by walk order — but is
+// collision-free and reproducible. RECENT_MTIME_BASE sits far above any real
+// filesystem mtime (ms since epoch ≈ 1.7e12) so boosted files always out-rank
+// non-boosted ones, and far below MAX_SAFE_INTEGER so the counter never
+// overflows. Call nextRecentMtime() once per boosted file, in walk order. (#440)
+const RECENT_MTIME_BASE = 1e15;
+let _recentMtimeSeq = 0;
+function nextRecentMtime() {
+  return RECENT_MTIME_BASE + (_recentMtimeSeq++);
+}
+
 function estimateTokens(str) {
   return Math.ceil(str.length / 4);
 }
@@ -19348,7 +19368,7 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
 
     sigs = annotateCoverage(sigs, testIndex, !!config.testCoverage);
 
-    fileEntries.push({ filePath, sigs, deps: extractFileDeps(filePath, content, config), content, mtime: Date.now() });
+    fileEntries.push({ filePath, sigs, deps: extractFileDeps(filePath, content, config), content, mtime: nextRecentMtime() });
   }
 
   if (fileEntries.length === 0) {
@@ -19496,8 +19516,11 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       mtime = fs.statSync(filePath).mtimeMs;
     } catch (_) {}
 
-    // Boost recently committed files (give them max mtime so they aren't dropped first)
-    if (recentFiles.has(filePath)) mtime = Date.now();
+    // Boost recently committed files (give them a max mtime so they aren't
+    // dropped first). A deterministic monotonic counter — not Date.now() — keeps
+    // the budget selection byte-stable when many files are recent, while
+    // preserving the original processing-order ranking (see nextRecentMtime, #440).
+    if (recentFiles.has(filePath)) mtime = nextRecentMtime();
 
     fileEntries.push({ filePath, sigs, deps: extractFileDeps(filePath, content, config), content, mtime });
   }

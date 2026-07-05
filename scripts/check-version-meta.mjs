@@ -6,7 +6,7 @@
  *   - languages  : user-facing language extractors (src/extractors, helpers removed)
  *   - extractors : total extractor modules (languages + helpers)
  *   - mcp_tools  : number of MCP tools (src/mcp/tools.js `TOOLS`)
- *   - tests      : number of test files (test/**\/*.test.js + tests/**\/*.py)
+ *   - tests      : number of test files (test/**\/*.test.js + test/**\/test_*.py)
  *
  * All four are derived from source via scripts/lib/source-meta.mjs — the same
  * derivation the llms.txt generator uses, so the language list can never

@@ -55,10 +55,10 @@ function countFiles(dir, re) {
   return n;
 }
 
-/** Number of test files: test/**\/*.test.js + tests/**\/*.py */
+/** Number of test files: test/**\/*.test.js + test/**\/test_*.py (unittest-named, not fixtures) */
 export function countTests(root) {
   return countFiles(join(root, 'test'), /\.test\.js$/) +
-         countFiles(join(root, 'tests'), /\.py$/);
+         countFiles(join(root, 'test'), /^test_.*\.py$/);
 }
 
 /** Number of MCP tools registered in src/mcp/tools.js. */
