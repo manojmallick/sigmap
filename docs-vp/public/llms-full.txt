@@ -99,6 +99,9 @@ sigmap weights --json                    Learned weights as JSON
 sigmap --impact <file>                   Show every file impacted by changing <file>
 sigmap --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
 sigmap --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
+sigmap --callers <symbol>                Method-level blast radius — every function that (transitively) calls <symbol> (JS/TS + Python)
+sigmap --callees <symbol>                Every repo function that <symbol> (transitively) calls
+sigmap --callers <symbol> --json --depth <n>   Call-graph edges as JSON (depth 0 = unlimited)
 sigmap verify <answer.md>                Flagship grounding guard — flag fake files/tests/imports/symbols/npm-scripts in an AI answer (alias of verify-ai-output)
 sigmap verify <answer.md> --json         Grounding report as JSON (exits 1 if issues)
 sigmap verify <answer.md> --report       Write a standalone HTML report (red/amber/green)
