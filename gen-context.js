@@ -13108,7 +13108,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.4.0',
+    version: '8.5.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -13923,6 +13923,78 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
   // are counted PATH_BOOST times when building the document term-frequency map.
   const PATH_BOOST = 3;
 
+  // Curated, high-precision code-domain synonym / abbreviation expansions. A query
+  // for `authentication` should still surface a file whose signatures only say
+  // `auth`. Kept deliberately tight — over-broad synonyms hurt precision. Groups
+  // are expanded bidirectionally (every member maps to the others). Values are
+  // tokenized+stemmed at load, so entries are written in natural form.
+  const EXPANSION_GROUPS = [
+    ['auth', 'authenticate', 'authentication', 'login', 'signin', 'credential'],
+    ['authorize', 'authorization', 'permission', 'access'],
+    ['config', 'configuration', 'settings', 'options'],
+    ['db', 'database'],
+    ['ctx', 'context'],
+    ['req', 'request'],
+    ['res', 'response'],
+    ['err', 'error'],
+    ['msg', 'message'],
+    ['init', 'initialize', 'initialization', 'setup'],
+    ['async', 'asynchronous'],
+    ['sync', 'synchronize', 'synchronous'],
+    ['repo', 'repository'],
+    ['impl', 'implementation'],
+    ['util', 'utility', 'helper'],
+    ['param', 'parameter', 'argument'],
+    ['fn', 'func', 'function'],
+    ['btn', 'button'],
+    ['calc', 'calculate', 'calculation'],
+    ['gen', 'generate', 'generator'],
+    ['val', 'validate', 'validation'],
+    ['del', 'delete', 'remove'],
+    ['dir', 'directory', 'folder'],
+    ['env', 'environment'],
+    ['doc', 'document', 'documentation'],
+    ['id', 'identifier'],
+    ['num', 'number'],
+    ['str', 'string'],
+  ];
+
+  // The weight applied to an expanded (synonym) query term, so an exact match on
+  // the literal query token always outranks a synonym-only match.
+  const EXPANSION_WEIGHT = 0.15;
+
+  // Build a stemmed lookup: stem(member) → Set of the group's other stemmed members.
+  const EXPANSIONS = (() => {
+    const map = new Map();
+    for (const group of EXPANSION_GROUPS) {
+      const stemmed = [...new Set(group.map((w) => tokenize(w).join('')).filter(Boolean))];
+      for (const s of stemmed) {
+        if (!map.has(s)) map.set(s, new Set());
+        for (const other of stemmed) if (other !== s) map.get(s).add(other);
+      }
+    }
+    return map;
+  })();
+
+  /**
+   * Expand stemmed query tokens with curated synonyms. Returns a Map of
+   * token → weight (1 for the original query tokens, EXPANSION_WEIGHT for
+   * synonyms). Original tokens always keep full weight even if also a synonym.
+   *
+   * @param {string[]} qToks  stemmed, de-duplicated query tokens
+   * @returns {Map<string, number>}
+   */
+  function expandQuery(qToks) {
+    const weights = new Map();
+    for (const t of qToks) weights.set(t, 1);
+    for (const t of qToks) {
+      const syns = EXPANSIONS.get(t);
+      if (!syns) continue;
+      for (const s of syns) if (!weights.has(s)) weights.set(s, EXPANSION_WEIGHT);
+    }
+    return weights;
+  }
+
   /**
    * BM25 re-rank of candidates against a query. Each candidate is
    * `{ file, sigs }`; the returned objects preserve all original candidate
@@ -13958,23 +14030,24 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
     }
 
     const qToks = [...new Set(tokenize(query))];
+    const qWeights = expandQuery(qToks); // token → weight (1 exact, <1 synonym)
 
     return docs
       .map((d) => {
         let score = 0;
-        for (const t of qToks) {
+        for (const [t, w] of qWeights) {
           const f = d.tf.get(t);
           if (!f) continue;
           const dfT = df.get(t);
           const idf = Math.log(1 + (N - dfT + 0.5) / (dfT + 0.5));
-          score += (idf * (f * (k1 + 1))) / (f + k1 * (1 - b + (b * d.len) / avgdl));
+          score += w * ((idf * (f * (k1 + 1))) / (f + k1 * (1 - b + (b * d.len) / avgdl)));
         }
         return Object.assign({}, d.cand, { score });
       })
       .sort((a, c) => c.score - a.score || String(a.file).localeCompare(String(c.file)));
   }
 
-  module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP };
+  module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT };
   
 };
 
@@ -17574,7 +17647,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.4.0';
+const VERSION = '8.5.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
