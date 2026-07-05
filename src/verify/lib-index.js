@@ -298,7 +298,36 @@ function formatVersionPins(libraries) {
     .map((l) => `${l.name}@${l.version}`);
 }
 
+/**
+ * D8: collect `name@version` pins for direct dependencies — versions only, no
+ * symbol extraction, no cache. Cheap enough to run on every context build so
+ * the generated header can ground against what is actually installed (JS +
+ * Python). Deterministic: sorted, then capped.
+ * @param {string} cwd
+ * @param {object} [opts]
+ * @param {number} [opts.limit=40] max pins returned (after sort)
+ * @returns {{ pins: string[], total: number }} pins capped to limit; total = all resolved
+ */
+function collectVersionPins(cwd, opts = {}) {
+  const limit = Number.isInteger(opts.limit) && opts.limit >= 0 ? opts.limit : 40;
+  const pins = [];
+  for (const dep of directDeps(cwd).slice(0, MAX_DEPS)) {
+    const r = resolveEntry(cwd, dep);
+    if (r && r.version) pins.push(`${dep}@${r.version}`);
+  }
+  const sitePkgs = findSitePackages(cwd);
+  if (sitePkgs.length) {
+    for (const dep of pythonDirectDeps(cwd).slice(0, MAX_DEPS)) {
+      const r = resolvePyEntry(sitePkgs, dep);
+      if (r && r.version) pins.push(`${dep}@${r.version}`);
+    }
+  }
+  pins.sort();
+  return { pins: limit ? pins.slice(0, limit) : pins, total: pins.length };
+}
+
 module.exports = {
   buildLibraryIndex, extractDtsExports, directDeps, resolveEntry, formatVersionPins,
+  collectVersionPins,
   extractPyExports, pythonDirectDeps, findSitePackages, resolvePyEntry,
 };

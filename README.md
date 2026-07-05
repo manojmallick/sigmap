@@ -52,7 +52,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Deterministic and verifiable — the two things an agentic-grep loop can't give you:**
 - **Deterministic** — no LLM calls, no agent loop; the same repo always produces a byte-identical map you can diff, cache, and gate in CI.
-- **Auditable & grounded** — every file and symbol traces to a real line anchor; `sigmap verify-ai-output` flags any AI claim that isn't.
+- **Auditable & grounded** — every file and symbol traces to a real line anchor; `sigmap verify` flags any AI claim that isn't.
 - **Zero dependencies** — `npx sigmap` on any machine; no embeddings, no vector DB, no hosted service, fully offline.
 
 **Proof it pays off** (full benchmark below):
@@ -66,6 +66,28 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
+
+---
+
+## 🔒 `sigmap verify` — the grounding flagship
+
+The one thing no agentic-grep loop, and no competitor, gives you: **prove an AI answer is anchored to real signatures and line numbers before you trust it.** Deterministic, offline, no LLM — SigMap indexes your repo *plus the libraries actually installed here* and flags every fabricated file, import, symbol, test, or npm script.
+
+```bash
+sigmap verify answer.md                 # ✓ grounded, or a line-by-line list of fabrications
+sigmap verify answer.md --json          # machine-readable report; exits 1 if any issue (CI gate)
+sigmap verify answer.md --report        # standalone red/amber/green HTML report
+```
+
+```text
+[sigmap] ✗ answer.md — 2 issues found
+  fake-file: 1  fake-test-file: 0  fake-import: 0  fake-symbol: 1  fake-npm-script: 0
+
+  L12  [Fake file]    src/auth/session-store.js does not exist
+  L27  [Fake symbol]  authorize() — did you mean authenticate()?
+```
+
+`verify` is the flagship; `verify-ai-output` remains as the full command name. Pair it with `sigmap verify-plan` (check a plan before execution) and the `verify_suggestion` MCP tool (verify AI code against repo + private + installed-library symbols mid-session).
 
 ---
 

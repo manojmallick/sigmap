@@ -1,0 +1,735 @@
+{
+  "express": [
+    {
+      "id": "express-t001",
+      "query": "register middleware and route handlers on application",
+      "expected_files": [
+        "lib/application.js"
+      ]
+    },
+    {
+      "id": "express-t002",
+      "query": "build HTTP response set header send json",
+      "expected_files": [
+        "lib/response.js"
+      ]
+    },
+    {
+      "id": "express-t003",
+      "query": "parse incoming request path params query string",
+      "expected_files": [
+        "lib/request.js"
+      ]
+    },
+    {
+      "id": "express-t004",
+      "query": "define router group nested routes use method",
+      "expected_files": [
+        "lib/application.js",
+        "lib/express.js"
+      ]
+    },
+    {
+      "id": "express-t005",
+      "query": "render template view engine lookup",
+      "expected_files": [
+        "lib/view.js",
+        "lib/application.js"
+      ]
+    }
+  ],
+  "flask": [
+    {
+      "id": "flask-t001",
+      "query": "register route with url rules and HTTP methods",
+      "expected_files": [
+        "src/flask/app.py",
+        "src/flask/sansio/scaffold.py"
+      ]
+    },
+    {
+      "id": "flask-t002",
+      "query": "request context push teardown g object",
+      "expected_files": [
+        "src/flask/ctx.py",
+        "src/flask/globals.py"
+      ]
+    },
+    {
+      "id": "flask-t003",
+      "query": "blueprint register endpoints url prefix",
+      "expected_files": [
+        "src/flask/blueprints.py",
+        "src/flask/sansio/blueprints.py"
+      ]
+    },
+    {
+      "id": "flask-t004",
+      "query": "session interface cookie signing open save",
+      "expected_files": [
+        "src/flask/sessions.py"
+      ]
+    },
+    {
+      "id": "flask-t005",
+      "query": "render template Jinja2 template_rendered signal",
+      "expected_files": [
+        "src/flask/templating.py",
+        "src/flask/signals.py"
+      ]
+    }
+  ],
+  "gin": [
+    {
+      "id": "gin-t001",
+      "query": "define route group middleware chain Use method",
+      "expected_files": [
+        "routergroup.go",
+        "gin.go"
+      ]
+    },
+    {
+      "id": "gin-t002",
+      "query": "bind JSON form request validation",
+      "expected_files": [
+        "binding/json.go",
+        "binding/form.go",
+        "binding/binding.go"
+      ]
+    },
+    {
+      "id": "gin-t003",
+      "query": "request context abort next handler",
+      "expected_files": [
+        "context.go"
+      ]
+    },
+    {
+      "id": "gin-t004",
+      "query": "render response JSON XML HTML template",
+      "expected_files": [
+        "render/json.go",
+        "render/html.go",
+        "context.go"
+      ]
+    },
+    {
+      "id": "gin-t005",
+      "query": "recovery middleware panic handler logger",
+      "expected_files": [
+        "recovery.go",
+        "logger.go"
+      ]
+    }
+  ],
+  "spring-petclinic": [
+    {
+      "id": "spring-t001",
+      "query": "main application startup entry point",
+      "expected_files": [
+        "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java"
+      ]
+    },
+    {
+      "id": "spring-t002",
+      "query": "runtime hints register reflection proxies",
+      "expected_files": [
+        "src/main/java/org/springframework/samples/petclinic/PetClinicRuntimeHints.java"
+      ]
+    },
+    {
+      "id": "spring-t003",
+      "query": "owner form create update template HTML",
+      "expected_files": [
+        "src/main/resources/templates/owners/createOrUpdateOwnerForm.html",
+        "src/main/resources/templates/owners/findOwners.html"
+      ]
+    },
+    {
+      "id": "spring-t004",
+      "query": "vet list template view specialists",
+      "expected_files": [
+        "src/main/resources/templates/vets/vetList.html"
+      ]
+    },
+    {
+      "id": "spring-t005",
+      "query": "integration tests MySQL Postgres datasource",
+      "expected_files": [
+        "src/test/java/org/springframework/samples/petclinic/MySqlIntegrationTests.java",
+        "src/test/java/org/springframework/samples/petclinic/PostgresIntegrationTests.java"
+      ]
+    }
+  ],
+  "rails": [
+    {
+      "id": "rails-t001",
+      "query": "mailer callbacks before_action observer register",
+      "expected_files": [
+        "actionmailer/lib/action_mailer/callbacks.rb",
+        "actionmailer/lib/action_mailer/base.rb"
+      ]
+    },
+    {
+      "id": "rails-t002",
+      "query": "mail delivery methods SMTP send queue job",
+      "expected_files": [
+        "actionmailer/lib/action_mailer/delivery_methods.rb",
+        "actionmailer/lib/action_mailer/mail_delivery_job.rb"
+      ]
+    },
+    {
+      "id": "rails-t003",
+      "query": "parameterized mailer with params preview",
+      "expected_files": [
+        "actionmailer/lib/action_mailer/parameterized.rb",
+        "actionmailer/lib/action_mailer/preview.rb"
+      ]
+    },
+    {
+      "id": "rails-t004",
+      "query": "render partial template collection streaming",
+      "expected_files": [
+        "actionview/lib/action_view/renderer/partial_renderer.rb",
+        "actionview/lib/action_view/renderer/streaming_template_renderer.rb"
+      ]
+    },
+    {
+      "id": "rails-t005",
+      "query": "template handler ERB builder HTML renderer",
+      "expected_files": [
+        "actionview/lib/action_view/renderer/template_renderer.rb",
+        "actionview/lib/action_view/template/handlers/erb.rb"
+      ]
+    }
+  ],
+  "axios": [
+    {
+      "id": "axios-t001",
+      "query": "cancel request CancelToken abort signal",
+      "expected_files": [
+        "lib/cancel/CancelToken.js",
+        "lib/cancel/CanceledError.js"
+      ]
+    },
+    {
+      "id": "axios-t002",
+      "query": "intercept request response transform chain",
+      "expected_files": [
+        "lib/core/InterceptorManager.js",
+        "lib/core/Axios.js"
+      ]
+    },
+    {
+      "id": "axios-t003",
+      "query": "merge config defaults baseURL headers",
+      "expected_files": [
+        "lib/core/mergeConfig.js",
+        "lib/defaults/index.js"
+      ]
+    },
+    {
+      "id": "axios-t004",
+      "query": "HTTP adapter fetch XHR send request",
+      "expected_files": [
+        "lib/adapters/http.js",
+        "lib/adapters/xhr.js"
+      ]
+    },
+    {
+      "id": "axios-t005",
+      "query": "build URL params serialization query string",
+      "expected_files": [
+        "lib/helpers/buildURL.js",
+        "lib/core/buildFullPath.js"
+      ]
+    }
+  ],
+  "rust-analyzer": [
+    {
+      "id": "rust-t001",
+      "query": "parse syntax tree AST node expression",
+      "expected_files": [
+        "crates/syntax/src/ast.rs",
+        "crates/syntax/src/lib.rs"
+      ]
+    },
+    {
+      "id": "rust-t002",
+      "query": "syntax node token text ptr error",
+      "expected_files": [
+        "crates/syntax/src/syntax_node.rs",
+        "crates/syntax/src/syntax_error.rs",
+        "crates/syntax/src/token_text.rs"
+      ]
+    },
+    {
+      "id": "rust-t003",
+      "query": "virtual filesystem file set path loader watcher",
+      "expected_files": [
+        "crates/vfs/src/lib.rs",
+        "crates/vfs/src/file_set.rs",
+        "crates/vfs/src/loader.rs"
+      ]
+    },
+    {
+      "id": "rust-t004",
+      "query": "token tree buffer storage iter",
+      "expected_files": [
+        "crates/tt/src/lib.rs",
+        "crates/tt/src/buffer.rs",
+        "crates/tt/src/storage.rs"
+      ]
+    },
+    {
+      "id": "rust-t005",
+      "query": "syntax editor edit algorithm mapping rewrite",
+      "expected_files": [
+        "crates/syntax/src/syntax_editor.rs",
+        "crates/syntax/src/syntax_editor/edit_algo.rs"
+      ]
+    }
+  ],
+  "abseil-cpp": [
+    {
+      "id": "absl-t001",
+      "query": "absl Time Duration TimeZone civil breakdown",
+      "expected_files": [
+        "absl/time/time.h",
+        "absl/time/time.cc"
+      ]
+    },
+    {
+      "id": "absl-t002",
+      "query": "SimulatedClock Sleep AdvanceTime wakeup SetTime",
+      "expected_files": [
+        "absl/time/simulated_clock.h",
+        "absl/time/simulated_clock.cc"
+      ]
+    },
+    {
+      "id": "absl-t003",
+      "query": "time zone format parse civil time zone lookup",
+      "expected_files": [
+        "absl/time/internal/cctz/include/cctz/time_zone.h",
+        "absl/time/internal/cctz/src/time_zone_impl.h"
+      ]
+    },
+    {
+      "id": "absl-t004",
+      "query": "Span at subspan first last AbslHashValue",
+      "expected_files": [
+        "absl/types/span.h",
+        "absl/types/internal/span.h"
+      ]
+    },
+    {
+      "id": "absl-t005",
+      "query": "optional ref source location compare variant",
+      "expected_files": [
+        "absl/types/optional_ref.h",
+        "absl/types/source_location.h",
+        "absl/types/compare.h"
+      ]
+    }
+  ],
+  "serilog": [
+    {
+      "id": "serilog-t001",
+      "query": "create logger configuration write to sink",
+      "expected_files": [
+        "src/Serilog/LoggerConfiguration.cs",
+        "src/Serilog/Log.cs"
+      ]
+    },
+    {
+      "id": "serilog-t002",
+      "query": "add sink event output write logs",
+      "expected_files": [
+        "src/Serilog/Configuration/LoggerSinkConfiguration.cs"
+      ]
+    },
+    {
+      "id": "serilog-t003",
+      "query": "enrich log events properties context",
+      "expected_files": [
+        "src/Serilog/Configuration/LoggerEnrichmentConfiguration.cs",
+        "src/Serilog/Context/LogContext.cs"
+      ]
+    },
+    {
+      "id": "serilog-t004",
+      "query": "minimum level filter override log level",
+      "expected_files": [
+        "src/Serilog/Configuration/LoggerMinimumLevelConfiguration.cs",
+        "src/Serilog/Configuration/LoggerFilterConfiguration.cs"
+      ]
+    },
+    {
+      "id": "serilog-t005",
+      "query": "message template capture property binding",
+      "expected_files": [
+        "src/Serilog/Capturing/MessageTemplateProcessor.cs",
+        "src/Serilog/Capturing/PropertyBinder.cs"
+      ]
+    }
+  ],
+  "riverpod": [
+    {
+      "id": "riverpod-t001",
+      "query": "persisted data destroy key expire toPersistedData row",
+      "expected_files": [
+        "packages/riverpod_sqflite/lib/src/riverpod_sqflite.dart"
+      ]
+    },
+    {
+      "id": "riverpod-t002",
+      "query": "storage Ref Future JsonSqFliteStorage provider",
+      "expected_files": [
+        "packages/riverpod_sqflite/example/lib/generated.dart"
+      ]
+    },
+    {
+      "id": "riverpod-t003",
+      "query": "Todo Notifier build FutureOr list notifier",
+      "expected_files": [
+        "packages/riverpod_sqflite/example/lib/manual.dart"
+      ]
+    },
+    {
+      "id": "riverpod-t004",
+      "query": "Todo freezed identical toString class",
+      "expected_files": [
+        "packages/riverpod_sqflite/example/lib/generated.freezed.dart"
+      ]
+    },
+    {
+      "id": "riverpod-t005",
+      "query": "linter include analysis options rules",
+      "expected_files": [
+        "packages/riverpod_sqflite/example/analysis_options.yaml"
+      ]
+    }
+  ],
+  "okhttp": [
+    {
+      "id": "okhttp-t001",
+      "query": "log HTTP request response body headers interceptor",
+      "expected_files": [
+        "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt"
+      ]
+    },
+    {
+      "id": "okhttp-t002",
+      "query": "redact sensitive header query param level logging",
+      "expected_files": [
+        "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/HttpLoggingInterceptor.kt"
+      ]
+    },
+    {
+      "id": "okhttp-t003",
+      "query": "call event listener DNS proxy connection timing",
+      "expected_files": [
+        "okhttp-logging-interceptor/src/main/kotlin/okhttp3/logging/LoggingEventListener.kt"
+      ]
+    },
+    {
+      "id": "okhttp-t004",
+      "query": "TLS handshake certificate SSL socket trust manager key",
+      "expected_files": [
+        "okhttp-tls/src/main/kotlin/okhttp3/tls/HandshakeCertificates.kt",
+        "okhttp-tls/src/main/kotlin/okhttp3/tls/HeldCertificate.kt"
+      ]
+    },
+    {
+      "id": "okhttp-t005",
+      "query": "held certificate PEM key pair X509 generate",
+      "expected_files": [
+        "okhttp-tls/src/main/kotlin/okhttp3/tls/HeldCertificate.kt"
+      ]
+    }
+  ],
+  "laravel": [
+    {
+      "id": "laravel-t001",
+      "query": "translate message locale loader file array",
+      "expected_files": [
+        "src/Illuminate/Translation/Translator.php",
+        "src/Illuminate/Translation/FileLoader.php"
+      ]
+    },
+    {
+      "id": "laravel-t002",
+      "query": "validation rule validate attributes message format",
+      "expected_files": [
+        "src/Illuminate/Validation/Concerns/ValidatesAttributes.php",
+        "src/Illuminate/Validation/Concerns/FormatsMessages.php"
+      ]
+    },
+    {
+      "id": "laravel-t003",
+      "query": "validation factory make validator rules",
+      "expected_files": [
+        "src/Illuminate/Validation/Factory.php"
+      ]
+    },
+    {
+      "id": "laravel-t004",
+      "query": "potentially translated string selector plural",
+      "expected_files": [
+        "src/Illuminate/Translation/PotentiallyTranslatedString.php",
+        "src/Illuminate/Translation/MessageSelector.php"
+      ]
+    },
+    {
+      "id": "laravel-t005",
+      "query": "conditional nested closure validation rule",
+      "expected_files": [
+        "src/Illuminate/Validation/ConditionalRules.php",
+        "src/Illuminate/Validation/NestedRules.php"
+      ]
+    }
+  ],
+  "akka": [
+    {
+      "id": "akka-t001",
+      "query": "cluster join leave member gossip distributed",
+      "expected_files": [
+        "akka-cluster/src/main/scala/akka/cluster/Cluster.scala",
+        "akka-cluster/src/main/scala/akka/cluster/Gossip.scala"
+      ]
+    },
+    {
+      "id": "akka-t002",
+      "query": "cluster events member up down reachable unreachable",
+      "expected_files": [
+        "akka-cluster/src/main/scala/akka/cluster/ClusterEvent.scala",
+        "akka-cluster/src/main/scala/akka/cluster/Member.scala"
+      ]
+    },
+    {
+      "id": "akka-t003",
+      "query": "cluster settings configuration quorum roles",
+      "expected_files": [
+        "akka-cluster/src/main/scala/akka/cluster/ClusterSettings.scala"
+      ]
+    },
+    {
+      "id": "akka-t004",
+      "query": "stream flow graph hub framing JSON processing",
+      "expected_files": [
+        "akka-stream/src/main/scala/akka/stream/javadsl/Framing.scala",
+        "akka-stream/src/main/scala/akka/stream/javadsl/JsonFraming.scala"
+      ]
+    },
+    {
+      "id": "akka-t005",
+      "query": "stream restart backoff restart flow source",
+      "expected_files": [
+        "akka-stream/src/main/scala/akka/stream/javadsl/RestartFlow.scala"
+      ]
+    }
+  ],
+  "vapor": [
+    {
+      "id": "vapor-t001",
+      "query": "bearer session authentication middleware guard",
+      "expected_files": [
+        "Sources/Vapor/Authentication/Authenticator.swift",
+        "Sources/Vapor/Authentication/GuardMiddleware.swift"
+      ]
+    },
+    {
+      "id": "vapor-t002",
+      "query": "route builder GET POST group middleware",
+      "expected_files": [
+        "Sources/Vapor/Routing/RoutesBuilder+Method.swift",
+        "Sources/Vapor/Application.swift"
+      ]
+    },
+    {
+      "id": "vapor-t003",
+      "query": "request content decode body JSON",
+      "expected_files": [
+        "Sources/Vapor/Content/ContentContainer.swift",
+        "Sources/Vapor/Content/Request+Content.swift"
+      ]
+    },
+    {
+      "id": "vapor-t004",
+      "query": "HTTP client send request response",
+      "expected_files": [
+        "Sources/Vapor/Client/Client.swift",
+        "Sources/Vapor/Client/ClientRequest.swift"
+      ]
+    },
+    {
+      "id": "vapor-t005",
+      "query": "cache get set memory store expiration",
+      "expected_files": [
+        "Sources/Vapor/Cache/Cache.swift",
+        "Sources/Vapor/Cache/MemoryCache.swift"
+      ]
+    }
+  ],
+  "vue-core": [
+    {
+      "id": "vue-t001",
+      "query": "component emit props slots options runtime",
+      "expected_files": [
+        "packages/runtime-core/src/componentEmits.ts",
+        "packages/runtime-core/src/componentProps.ts",
+        "packages/runtime-core/src/componentOptions.ts"
+      ]
+    },
+    {
+      "id": "vue-t002",
+      "query": "component render context public instance",
+      "expected_files": [
+        "packages/runtime-core/src/componentRenderContext.ts",
+        "packages/runtime-core/src/componentPublicInstance.ts"
+      ]
+    },
+    {
+      "id": "vue-t003",
+      "query": "KeepAlive Suspense Teleport built-in component",
+      "expected_files": [
+        "packages/runtime-core/src/components/KeepAlive.ts",
+        "packages/runtime-core/src/components/Suspense.ts",
+        "packages/runtime-core/src/components/Teleport.ts"
+      ]
+    },
+    {
+      "id": "vue-t004",
+      "query": "directives custom directive bind update component",
+      "expected_files": [
+        "packages/runtime-core/src/directives.ts"
+      ]
+    },
+    {
+      "id": "vue-t005",
+      "query": "compat Vue 2 vModel global config migration",
+      "expected_files": [
+        "packages/runtime-core/src/compat/componentVModel.ts",
+        "packages/runtime-core/src/compat/global.ts",
+        "packages/runtime-core/src/compat/globalConfig.ts"
+      ]
+    }
+  ],
+  "svelte": [
+    {
+      "id": "svelte-t001",
+      "query": "reactivity source signal derived computed state",
+      "expected_files": [
+        "packages/svelte/src/internal/client/reactivity/sources.js",
+        "packages/svelte/src/internal/client/reactivity/deriveds.js"
+      ]
+    },
+    {
+      "id": "svelte-t002",
+      "query": "effects side effect reactive run schedule",
+      "expected_files": [
+        "packages/svelte/src/internal/client/reactivity/effects.js"
+      ]
+    },
+    {
+      "id": "svelte-t003",
+      "query": "runtime component mount render client",
+      "expected_files": [
+        "packages/svelte/src/internal/client/runtime.js",
+        "packages/svelte/src/internal/client/render.js"
+      ]
+    },
+    {
+      "id": "svelte-t004",
+      "query": "server render HTML snippet block hydrate",
+      "expected_files": [
+        "packages/svelte/src/internal/server/renderer.js",
+        "packages/svelte/src/internal/server/blocks/snippet.js"
+      ]
+    },
+    {
+      "id": "svelte-t005",
+      "query": "reactive props store subscribe batch",
+      "expected_files": [
+        "packages/svelte/src/internal/client/reactivity/props.js",
+        "packages/svelte/src/internal/client/reactivity/store.js",
+        "packages/svelte/src/internal/client/reactivity/batch.js"
+      ]
+    }
+  ],
+  "fastify": [
+    {
+      "id": "fastify-t001",
+      "query": "define and register routes for HTTP methods",
+      "expected_files": [
+        "lib/route.js"
+      ]
+    },
+    {
+      "id": "fastify-t002",
+      "query": "request object parsing and helpers",
+      "expected_files": [
+        "lib/request.js"
+      ]
+    },
+    {
+      "id": "fastify-t003",
+      "query": "reply send status headers serialization",
+      "expected_files": [
+        "lib/reply.js"
+      ]
+    },
+    {
+      "id": "fastify-t004",
+      "query": "hook lifecycle onRequest preHandler onResponse",
+      "expected_files": [
+        "lib/hooks.js"
+      ]
+    },
+    {
+      "id": "fastify-t005",
+      "query": "custom content type parser and body parsing",
+      "expected_files": [
+        "lib/content-type-parser.js"
+      ]
+    }
+  ],
+  "fastapi": [
+    {
+      "id": "fastapi-t001",
+      "query": "create FastAPI application and app level configuration",
+      "expected_files": [
+        "fastapi/applications.py"
+      ]
+    },
+    {
+      "id": "fastapi-t002",
+      "query": "register API routes and request handling",
+      "expected_files": [
+        "fastapi/routing.py"
+      ]
+    },
+    {
+      "id": "fastapi-t003",
+      "query": "dependency injection resolution and dependency graph",
+      "expected_files": [
+        "fastapi/dependencies/utils.py"
+      ]
+    },
+    {
+      "id": "fastapi-t004",
+      "query": "generate OpenAPI schema and docs metadata",
+      "expected_files": [
+        "fastapi/openapi/utils.py"
+      ]
+    },
+    {
+      "id": "fastapi-t005",
+      "query": "oauth2 security scheme implementation",
+      "expected_files": [
+        "fastapi/security/oauth2.py"
+      ]
+    }
+  ]
+}
