@@ -14,6 +14,7 @@ const { spawnSync, execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '../..');
 const SCRIPT = path.join(ROOT, 'gen-context.js');
 const { reviewPr } = require(path.join(ROOT, 'src/review/review-pr'));
+const { buildPrEvidence, formatPrEvidenceMarkdown } = require(path.join(ROOT, 'src/review/pr-evidence'));
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -112,6 +113,56 @@ test('CLI: review-pr --json emits the result', () => {
     const data = JSON.parse(res.stdout.trim().split('\n').pop());
     assert.ok(data.summary);
     assert.ok(Array.isArray(data.findings));
+  });
+});
+
+// ── PR Evidence Report (G3) ─────────────────────────────────────────────────
+
+/** Temp project with source files for signatures + blast radius. */
+function withSrcProject(fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'prev-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ srcDirs: ['src'] }));
+    fs.writeFileSync(path.join(dir, 'src', 'auth.js'), 'function login(u, p) { return true; }\nmodule.exports = { login };\n');
+    fs.writeFileSync(path.join(dir, 'src', 'consumer.js'), 'const { login } = require("./auth");\nmodule.exports = () => login("a", "b");\n');
+    fn(dir);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
+test('buildPrEvidence returns per-file structure + review', () => {
+  withSrcProject((dir) => {
+    const ev = buildPrEvidence([{ path: 'src/auth.js', status: 'M' }], dir, { scope: 'vs main' });
+    const a = ev.files.find((f) => f.path === 'src/auth.js');
+    assert.ok(a, 'auth.js entry missing');
+    assert.strictEqual(a.riskLabel, 'auth');
+    assert.ok(a.signatures.length >= 1, 'expected extracted signatures');
+    assert.ok(a.blast && a.blast.total >= 1, 'expected blast radius (consumer imports auth)');
+    assert.ok(ev.review && ev.review.summary, 'expected review summary');
+    assert.strictEqual(ev.scope, 'vs main');
+  });
+});
+
+test('formatPrEvidenceMarkdown is branded, deterministic, timestamp-free', () => {
+  withSrcProject((dir) => {
+    const md1 = formatPrEvidenceMarkdown(buildPrEvidence([{ path: 'src/auth.js', status: 'M' }], dir, { scope: 'vs main' }));
+    const md2 = formatPrEvidenceMarkdown(buildPrEvidence([{ path: 'src/auth.js', status: 'M' }], dir, { scope: 'vs main' }));
+    assert.strictEqual(md1, md2, 'report is not byte-stable');
+    assert.ok(/^## 🔍 PR Evidence Report/.test(md1), 'missing branded header');
+    assert.ok(/Blast radius:/.test(md1), 'missing blast radius');
+    assert.ok(!/\d{4}-\d\d-\d\dT/.test(md1), 'report contains a wall-clock timestamp');
+  });
+});
+
+test('CLI: review-pr --markdown emits the PR Evidence Report', () => {
+  withGitRepo((dir, g) => {
+    fs.mkdirSync(path.join(dir, 'src'));
+    fs.writeFileSync(path.join(dir, 'src', 'auth.js'), 'function login(u, p) { return true; }\nmodule.exports = { login };\n');
+    g(['add', '-A']);
+    const res = spawnSync('node', [SCRIPT, 'review-pr', '--markdown', '--staged'], { cwd: dir, encoding: 'utf8' });
+    assert.ok(/## 🔍 PR Evidence Report/.test(res.stdout), res.stdout + res.stderr);
+    assert.ok(/`src\/auth\.js`/.test(res.stdout), 'changed file not in report');
+    assert.strictEqual(res.status, 1, 'auth.js with no test → finding → exit 1');
   });
 });
 
