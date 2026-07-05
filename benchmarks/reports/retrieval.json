@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-05T15:17:46.549Z",
+  "generated": "2026-07-05T21:16:21.886Z",
   "repos": [
     {
       "repo": "express",
@@ -505,7 +505,7 @@
     {
       "repo": "abseil-cpp",
       "fileCount": 700,
-      "sigCount": 148,
+      "sigCount": 147,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 1,
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 44,
+      "sigCount": 48,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 297,
+      "sigCount": 296,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 99,
+      "sigCount": 100,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.717,
@@ -1071,7 +1071,7 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 140,
+      "sigCount": 141,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.68,

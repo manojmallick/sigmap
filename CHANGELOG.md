@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.8.1] — 2026-07-05
+
+Patch release — **byte-stable context, reproducible benchmark.** Closes the determinism residual tracked in #440: `gen-context` output is now byte-identical run-to-run across all 43 benchmark repos, and the retrieval benchmark reproduces a single hit@5 (87.8%) instead of flapping 85.6–87.8%. Plus a test-count derivation fix, docs/CI serving fixes, and repo hygiene.
+
+### Fixed
+- **gen-context determinism residual — token-budget recency boost (#440, PR #444):** the recency boost stamped `mtime = Date.now()` on every recently-committed file. On repos where nearly every file is "recently changed", consecutive files often landed on the *same millisecond* — so which equal-priority files shared a millisecond (and thus fell through to the `filePath` tie-break instead of sorting by a distinct mtime) shifted run to run, swapping which files survived at the budget cutoff and making the output non-byte-stable. The `Date.now()` value wasn't just a boost: it encoded the alphabetical walk order that the budget's best-first sort relied on; the nondeterminism was only the millisecond *collisions*. Replaced it with a deterministic monotonic counter (`nextRecentMtime`) that reproduces the exact same processing-order ranking without collisions. Result: all 43 benchmark repos are byte-identical across two clean runs (excluding the `Updated:` timestamp), and retrieval hit@5 reproduces at **87.8%** with identical per-repo results. Adds an integration regression guard (`test/integration/gen-context-determinism.test.js`) that runs gen-context twice on a committed fixture and asserts byte-equality — verified to fail on the old `Date.now()` behaviour.
+- **Derived test count after test relocation (503a6e5):** the test-count derivation globbed `tests/**/*.py`; after relocating `test_python_ast_extractor.py` into `test/` it matched neither pattern and dropped the count, failing `check:metrics` in CI. Now counts `test/**/test_*.py` (unittest-named), which matches the relocated test and excludes the fixture.
+- **Docs / CI serving (b236e08):** serve the OG banner image and the Google Search Console verification file; run the Python extractor tests in CI.
+
+### Changed
+- **Repo hygiene (a49e9c5):** dropped orphaned demo GIFs and a dead script; relocated a stray test from `tests/` into `test/`.
+
 ## [8.8.0] — 2026-07-05
 
 Minor release — **the squeeze engine, exposed mid-session (D6).** The always-on squeeze engine (`src/squeeze/`) that powers `sigmap squeeze` was reachable only from the CLI on pasted input. This release exposes it as an MCP tool an agent can call *mid-session*, and adds a named CLI entry point for compressing an agent/tool *response*. Zero-dependency, offline, deterministic — the last A+ ceiling item (Machine 9→10): the engine already shipped, this just exposes it.
