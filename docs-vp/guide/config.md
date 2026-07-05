@@ -195,6 +195,7 @@ To pin a fixed budget (v4.0 behaviour):
 |-----|------|---------|-------------|
 | `enrichTodos` | `boolean` | `true` | Append a TODO/FIXME/HACK section extracted from inline comments. |
 | `enrichChanges` | `boolean` | `true` | Append a recent git log summary showing files changed in the last 10 commits. |
+| `versionPins` | `boolean` | `true` | Append a `## versions (installed direct deps)` section listing `name@version` for the installed direct dependencies (JS from `node_modules`, Python from the venv `site-packages`). Grounds agents against what is actually installed. See [versionPins](#versionpins). |
 | `enrichCoverage` | `boolean` | `false` | Append a coverage gaps section listing source files that have no corresponding test file. |
 | `testCoverage` | `boolean` | `false` | Annotate each function signature with `✓` (tested) or `✗` (untested). Can also be set at runtime via the `--coverage` flag without editing this file. |
 | `testDirs` | `string[]` | `["test","tests","__tests__","spec"]` | Directories scanned to build the test index when `testCoverage` is enabled. |
@@ -209,6 +210,16 @@ Enable incremental signature caching with mtime-based validation. When enabled, 
 ```json
 {
   "sigCache": true
+}
+```
+
+### versionPins
+
+**v8.6.0+ (D8).** Emit a compact `## versions (installed direct deps)` block in the generated context header, listing the installed version of each **direct** dependency as `name@version` — resolved from `node_modules` (JS/TS) and the venv `site-packages` (Python), versions only, no symbol parsing. This lets an agent reading `CLAUDE.md`/`AGENTS.md` ground its suggestions against the libraries **actually installed here** (it compounds with the [installed-library grounding](/guide/verify-ai-output) moat — e.g. "`foo()` doesn't exist in `lodash@4.17` installed here"). Byte-stable given a fixed installed tree; the list is sorted and capped. Set `false` to omit the section.
+
+```json
+{
+  "versionPins": true
 }
 ```
 

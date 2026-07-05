@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.5.0. 87% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v8.6.0. 87% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,21 +15,21 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.5.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.5-main &nbsp;·&nbsp; **Date:** 2026-07-04 (with R language)
+::: info Official v8.6.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.6-main &nbsp;·&nbsp; **Date:** 2026-07-05 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **87%** vs 13.6% baseline |
 | Graph-boosted hit@5 | **87%** |
 | Retrieval lift | **6.4×** |
-| Prompt reduction | **48.8%** (2.84 → 1.46) |
-| Task success proxy | **67.8%** |
+| Prompt reduction | **48.4%** (2.84 → 1.47) |
+| Task success proxy | **66.7%** |
 | Overall token reduction | **97.0%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-07-04 (v8.5.0)**
+Latest saved run: **2026-07-05 (v8.6.0)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **87% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
@@ -50,7 +50,7 @@ This benchmark isolates that first question: *did the right file appear in conte
 | Average hit@5 | 13.6% | **86.7%** |
 | Graph-boosted hit@5 | — | **86.7%** |
 | Lift | — | **6.4x** |
-| Correct (rank 1) | ~1% | **67.8%** |
+| Correct (rank 1) | ~1% | **66.7%** |
 | Partial (ranks 2–5) | ~13% | **18.9%** |
 | Wrong (not in top 5) | ~86% | **13.3%** |
 
@@ -58,7 +58,7 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Tier | Tasks | Share |
 |---|---:|---:|
-| Correct | 61 / 90 | **67.8%** |
+| Correct | 60 / 90 | **66.7%** |
 | Partial | 17 / 90 | **18.9%** |
 | Wrong | 12 / 90 | **13.3%** |
 
@@ -105,3 +105,15 @@ For the full multi-benchmark dashboard:
 ```bash
 node scripts/run-benchmark-matrix.mjs --save --skip-clone
 ```
+
+### Third-party reproducible harness (v8.6.0+)
+
+For a **self-contained** run that anyone can reproduce from a clean checkout — no dev tooling required, only `git` and Node 18+ — use the [`public-benchmarks/`](https://github.com/manojmallick/sigmap/tree/main/public-benchmarks) harness. It pins 18 repos to exact commits (`repos.csv`), ships the 90 queries (`queries.json`), clones + maps + scores in one command, and ranks with the **shipped** BM25 ranker:
+
+```bash
+cd public-benchmarks
+./run.sh            # clone pinned repos (shallow) + score → hit@1/hit@5/MRR
+./run.sh --json     # also write results.json
+```
+
+Because the repos are pinned and the map is byte-stable, the harness returns the **same numbers on any machine** — turning the headline hit@5 from a claim into a third-party-verifiable fact (v9.0 G1). Zero deps, no LLM, no API keys.

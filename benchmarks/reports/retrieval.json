@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-02T20:37:31.518Z",
+  "generated": "2026-07-05T09:54:28.460Z",
   "repos": [
     {
       "repo": "express",
@@ -147,7 +147,7 @@
       "sigCount": 80,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.867,
+      "mrr": 0.85,
       "randomBaseline": 0.047,
       "improvement": 21.4,
       "tiers": {
@@ -176,7 +176,7 @@
             "binding/binding.go"
           ],
           "top1": "mode.go",
-          "firstHitRank": 3,
+          "firstHitRank": 4,
           "tier": "partial"
         },
         {
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 47,
+      "sigCount": 46,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 298,
+      "sigCount": 295,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -855,7 +855,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 98,
+      "sigCount": 99,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.717,
@@ -925,16 +925,16 @@
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 61,
+      "sigCount": 62,
       "tasks": 5,
-      "hitAt5": 0,
-      "mrr": 0,
+      "hitAt5": 0.2,
+      "mrr": 0.1,
       "randomBaseline": 0.038,
-      "improvement": 0,
+      "improvement": 5.2,
       "tiers": {
         "correct": 0,
-        "partial": 0,
-        "wrong": 5
+        "partial": 1,
+        "wrong": 4
       },
       "taskDetails": [
         {
@@ -956,8 +956,8 @@
             "Sources/Vapor/Application.swift"
           ],
           "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "vapor-t003",
@@ -966,7 +966,7 @@
             "Sources/Vapor/Content/ContentContainer.swift",
             "Sources/Vapor/Content/Request+Content.swift"
           ],
-          "top1": "Sources/Vapor/URLEncodedForm/URLEncodedFormDecoder.swift",
+          "top1": "Sources/VaporTestUtils/TestingHTTPRequest.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -999,14 +999,14 @@
       "fileCount": 232,
       "sigCount": 122,
       "tasks": 5,
-      "hitAt5": 1,
-      "mrr": 0.9,
+      "hitAt5": 0.8,
+      "mrr": 0.8,
       "randomBaseline": 0.022,
-      "improvement": 46.4,
+      "improvement": 37.1,
       "tiers": {
         "correct": 4,
-        "partial": 1,
-        "wrong": 0
+        "partial": 0,
+        "wrong": 1
       },
       "taskDetails": [
         {
@@ -1050,9 +1050,9 @@
           "expected": [
             "packages/runtime-core/src/directives.ts"
           ],
-          "top1": "packages/runtime-core/src/compat/customDirective.ts",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "packages/runtime-core/src/directives.ts",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "vue-t005",
@@ -1062,9 +1062,9 @@
             "packages/runtime-core/src/compat/global.ts",
             "packages/runtime-core/src/compat/globalConfig.ts"
           ],
-          "top1": "packages/runtime-core/src/compat/globalConfig.ts",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "packages/vue-compat/README.md",
+          "firstHitRank": null,
+          "tier": "wrong"
         }
       ]
     },
@@ -1146,7 +1146,7 @@
       "sigCount": 28,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.825,
+      "mrr": 0.833,
       "randomBaseline": 0.161,
       "improvement": 5,
       "tiers": {
@@ -1172,7 +1172,7 @@
             "lib/request.js"
           ],
           "top1": "lib/content-type-parser.js",
-          "firstHitRank": 8,
+          "firstHitRank": 6,
           "tier": "wrong"
         },
         {
@@ -1210,15 +1210,15 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 20,
+      "sigCount": 25,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.7,
+      "mrr": 0.6,
       "randomBaseline": 0.104,
       "improvement": 7.7,
       "tiers": {
-        "correct": 3,
-        "partial": 1,
+        "correct": 2,
+        "partial": 2,
         "wrong": 1
       },
       "taskDetails": [
@@ -1238,9 +1238,9 @@
           "expected": [
             "fastapi/routing.py"
           ],
-          "top1": "fastapi/routing.py",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "fastapi/exception_handlers.py",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "fastapi-t003",
