@@ -13516,7 +13516,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.7.0',
+    version: '8.7.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -16851,11 +16851,12 @@ __factories["./src/tracking/pricing"] = function(module, exports) {
    * presented as exact. Zero npm dependencies.
    */
 
-  // USD per 1,000,000 input tokens.
+  // USD per 1,000,000 input tokens. Claude rates verified 2026-07 against
+  // platform.claude.com (Opus 4.8 $5, Sonnet 5/4.6 $3, Haiku 4.5 $1); GPT-4o $2.50.
   const PRICES = {
     'claude-sonnet': 3.0,
-    'claude-opus': 15.0,
-    'claude-haiku': 0.8,
+    'claude-opus': 5.0,
+    'claude-haiku': 1.0,
     'gpt-4o': 2.5,
     'gpt-4o-mini': 0.15,
     'gemini-1.5-pro': 1.25,
@@ -18084,7 +18085,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.7.0';
+const VERSION = '8.7.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

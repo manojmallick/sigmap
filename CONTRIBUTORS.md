@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.7.1)
+- **@manojmallick** — docs(benchmark): multi-model cost savings — quality benchmark now reports GPT-4o + Claude Sonnet + Claude Haiku input-cost savings; corrected stale Claude pricing (Haiku $0.80→$1.00, Opus $15→$5) to verified 2026-07 rates (#433, PR #434)
+
 ### Recent Contributors (v8.7.0)
 - **@manojmallick** — feat(graph): method/caller-level call-graph (D4 v1) — symbol-level edges (`buildCallGraph`) + method blast radius (`methodImpact`) for JS/TS + Python, with `--callers`/`--callees` CLI (#429, PR #430)
 
