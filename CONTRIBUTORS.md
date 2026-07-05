@@ -37,6 +37,7 @@ We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guideli
 
 ### Recent Contributors (v8.8.0)
 - **@manojmallick** — feat(mcp): expose the squeeze engine — `squeeze_output` MCP tool (18 → 19 tools) for mid-session output compression + `sigmap squeeze --response <file|->` CLI flag (D6) (#437, PR #438)
+- **@manojmallick** — fix: harden `gen-context` output determinism — filePath tie-break in the token-budget drop-order, sorted source walk, and tie-broken source-root detection so the generated context is byte-stable (#440, PR #441)
 
 ### Recent Contributors (v8.7.1)
 - **@manojmallick** — docs(benchmark): multi-model cost savings — quality benchmark now reports GPT-4o + Claude Sonnet + Claude Haiku input-cost savings; corrected stale Claude pricing (Haiku $0.80→$1.00, Opus $15→$5) to verified 2026-07 rates (#433, PR #434)
