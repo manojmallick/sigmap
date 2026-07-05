@@ -3202,7 +3202,11 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         score: scoreCandidate(name, full, context),
       }))
       .filter(c => c.score > 0)
-      .sort((a, b) => b.score - a.score);
+      // Final tie-break on dir keeps selection deterministic when scores tie — the
+      // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
+      // (candidate order comes from filesystem readdir), changing which files are
+      // collected and making the generated context non-reproducible.
+      .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
 
     // Handle special rules
     let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks);
@@ -3245,9 +3249,12 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     const candidates = [];
     const excSet     = new Set(excludeList);
 
-    // Root-level dirs
+    // Root-level dirs (sorted so candidate order — and downstream dedupe/selection
+    // — is deterministic regardless of filesystem readdir order)
     try {
-      for (const e of fs.readdirSync(cwd, { withFileTypes: true })) {
+      const rootEntries = fs.readdirSync(cwd, { withFileTypes: true })
+        .sort((a, b) => a.name.localeCompare(b.name));
+      for (const e of rootEntries) {
         if (!e.isDirectory()) continue;
         if (excSet.has(e.name)) continue;
         if (matchesIgnorePattern(e.name, ignorePatterns)) continue;
@@ -3316,7 +3323,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
           }
         }
       } catch (_) {}
-      roots.sort((a, b) => b.score - a.score);
+      roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
     }
 
     // Swift project dir: dirs with ≥3 .swift files
@@ -3331,7 +3338,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
           }
         }
       } catch (_) {}
-      roots.sort((a, b) => b.score - a.score);
+      roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
     }
 
     return roots;
@@ -13345,7 +13352,50 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     return out.join('\n');
   }
 
-  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion };
+  /**
+   * squeeze_output({ content }) → string
+   *
+   * Compress noisy tool/command/agent output (stack trace, CI/build log, or JSON
+   * payload) through the deterministic squeeze engine. Enriches the top stack
+   * frame with its signature when the symbol index is available. Passes the input
+   * through unchanged when no squeezable structure is detected.
+   */
+  function squeezeOutput(args, cwd) {
+    const content = args && typeof args.content === 'string' ? args.content : '';
+    if (!content.trim()) {
+      return 'Usage: squeeze_output({ content: "<raw tool/log/JSON output>" }) — provide the output to compress.';
+    }
+
+    let sq;
+    try {
+      const { squeeze } = __require('./src/squeeze/index');
+      let srcDirs;
+      let symbolIndex = null;
+      try {
+        const { loadConfig } = __require('./src/config/loader');
+        srcDirs = loadConfig(cwd).srcDirs;
+      } catch (_) {}
+      try {
+        const { buildSigIndex } = __require('./src/retrieval/ranker');
+        symbolIndex = buildSigIndex(cwd);
+      } catch (_) {}
+      sq = squeeze(content, { srcDirs, symbolIndex });
+    } catch (err) {
+      return `_squeeze_output failed: ${err.message}_`;
+    }
+
+    if (!sq.category || !sq.applies) {
+      return `No squeezable structure detected — content unchanged (${sq.rawTokens} tokens).\n\n${content}`;
+    }
+
+    const pct = Math.round(sq.reduction * 100);
+    const header =
+      `Squeezed ${sq.category} — ${sq.rawTokens} → ${sq.squeezedTokens} tokens ` +
+      `(${pct}% smaller)${sq.enriched ? ' · signature-enriched' : ''}\n\n`;
+    return header + sq.squeezed;
+  }
+
+  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput };
   
 };
 
@@ -13506,17 +13556,17 @@ __factories["./src/mcp/server"] = function(module, exports) {
    *
    * Supported methods:
    *   initialize        → serverInfo + capabilities
-   *   tools/list        → 18 tool definitions
+   *   tools/list        → 19 tool definitions
    *   tools/call        → dispatch to handler, return result
    */
 
   const readline = require('readline');
   const { TOOLS } = __require('./src/mcp/tools');
-  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion } = __require('./src/mcp/handlers');
+  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput } = __require('./src/mcp/handlers');
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.7.1',
+    version: '8.8.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -13582,6 +13632,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
         else if (name === 'get_diff_context') text = getDiffContext(args, cwd);
         else if (name === 'get_architecture_overview') text = getArchitectureOverview(args, cwd);
         else if (name === 'verify_suggestion') text = verifySuggestion(args, cwd);
+        else if (name === 'squeeze_output') text = squeezeOutput(args, cwd);
         else {
           respondError(id, -32601, `Unknown tool: ${name}`);
           return;
@@ -13642,11 +13693,12 @@ __factories["./src/mcp/server"] = function(module, exports) {
 __factories["./src/mcp/tools"] = function(module, exports) {
   
   /**
-   * MCP tool definitions for SigMap (17 tools).
+   * MCP tool definitions for SigMap (19 tools).
    * read_context, search_signatures, get_map, create_checkpoint, get_routing,
    * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
    * get_callee_signatures, sigmap_notify_file_created, sigmap_notify_symbol_added,
-   * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview.
+   * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview,
+   * verify_suggestion, squeeze_output.
    */
 
   const TOOLS = [
@@ -13975,6 +14027,27 @@ __factories["./src/mcp/tools"] = function(module, exports) {
           },
         },
         required: ['code'],
+      },
+    },
+    {
+      name: 'squeeze_output',
+      description:
+        'Compress noisy tool, command, or agent output before it enters context — a stack ' +
+        'trace, CI/build log, or JSON payload. Same deterministic, offline engine as ' +
+        '`sigmap squeeze`: keeps the signal (error frames, failing steps, JSON shape), strips ' +
+        'the noise, and enriches the top stack frame with its signature. Returns the squeezed ' +
+        'text plus token-reduction stats; passes the input through unchanged when no squeezable ' +
+        'structure is detected. No LLM, no network.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          content: {
+            type: 'string',
+            description:
+              'The raw output to compress (a stack trace, CI/build log, or JSON payload).',
+          },
+        },
+        required: ['content'],
       },
     },
   ];
@@ -18085,7 +18158,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.7.1';
+const VERSION = '8.8.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -18198,6 +18271,10 @@ function walkDir(dir, exclude, maxDepth, depth = 0) {
   } catch (_) {
     return [];
   }
+  // Sort by name so the collected file list — and therefore the output section
+  // order — is deterministic. Raw readdir order is filesystem-dependent and can
+  // vary run to run, making the generated context non-byte-stable.
+  entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
     if (exclude.includes(entry.name)) continue;
     const full = path.join(dir, entry.name);
@@ -18409,10 +18486,15 @@ function applyTokenBudget(fileEntries, maxTokens) {
   });
 
   // Best-first order: lowest drop-priority, then most-recent, then most-informative.
+  // Final tie-break on filePath keeps the selection deterministic when priority,
+  // mtime, and signalQuality all tie (common for test files sharing a git-checkout
+  // mtime) — otherwise the choice fell through to filesystem readdir order, making
+  // which files are kept vs dropped non-reproducible run to run.
   const bestFirst = withPriority.slice().sort((a, b) => {
     if (a.priority !== b.priority) return a.priority - b.priority;
     if ((b.mtime || 0) !== (a.mtime || 0)) return (b.mtime || 0) - (a.mtime || 0);
-    return (b.signalQuality || 0) - (a.signalQuality || 0);
+    if ((b.signalQuality || 0) !== (a.signalQuality || 0)) return (b.signalQuality || 0) - (a.signalQuality || 0);
+    return a.filePath.localeCompare(b.filePath);
   });
 
   const entryCost = (e) => estimateTokens(e.sigs.join('\n')) + sectionOverhead(e);
@@ -19911,6 +19993,7 @@ Usage:
   ${cmd} review-pr --markdown              PR Evidence Report — branded Markdown (signatures + blast radius + tests) to post as a PR comment
   ${cmd} create "<task>"                   Grounded-creation pipeline: scaffold → verify-plan → verify-ai-output → review-pr (--staged)
   ${cmd} squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)
+  ${cmd} squeeze --response <file|->       Minimize an agent/tool response (same engine; also exposed as the squeeze_output MCP tool)
   ${cmd} ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
   ${cmd} ask "<query>" --no-squeeze        Disable input minimization entirely
   ${cmd} ask "<query>" --squeeze-threshold N  Min reduction %% to prompt (default 30)
@@ -21681,7 +21764,20 @@ function main() {
   // v7.0.0: `sigmap squeeze <file|->` — minimize a pasted stacktrace / CI-log / JSON blob
   if (args[0] === 'squeeze') {
     const jsonOut = args.includes('--json');
-    const target = args[1] && !args[1].startsWith('--') ? args[1] : '-';
+    // `--response <file|->` names the agent/tool response to squeeze explicitly
+    // (mirrors `sigmap judge --response`); otherwise fall back to the positional arg.
+    const respIdx = args.indexOf('--response');
+    let target;
+    if (respIdx !== -1) {
+      const val = args[respIdx + 1];
+      if (!val || val.startsWith('--')) {
+        console.error('[sigmap] Usage: sigmap squeeze --response <file|-> [--json]');
+        process.exit(1);
+      }
+      target = val;
+    } else {
+      target = args[1] && !args[1].startsWith('--') ? args[1] : '-';
+    }
     let input = '';
     try {
       input = fs.readFileSync(target === '-' ? 0 : path.resolve(cwd, target), 'utf8');

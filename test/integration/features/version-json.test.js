@@ -77,9 +77,9 @@ test('version.json: extractors field is derived (>= languages)', () => {
   assert.ok(Number.isInteger(v.extractors) && v.extractors >= v.languages, `extractors=${v.extractors}`);
 });
 
-test('version.json: mcp_tools is 18', () => {
+test('version.json: mcp_tools is 19', () => {
   const v = JSON.parse(readRoot('version.json'));
-  assert.strictEqual(v.mcp_tools, 18);
+  assert.strictEqual(v.mcp_tools, 19);
 });
 
 // ── Fix 1a: canonical benchmark headers on all 5 benchmark pages ──────────────
@@ -182,7 +182,7 @@ test('compare-alternatives.md: covers SigMap vs Copilot', () => {
 
 test('compare-alternatives.md: contains correct hit@5 figure', () => {
   const src = readGuide('compare-alternatives.md');
-  assert.ok(src.includes('86.7%'), 'missing 86.7% hit@5 in compare-alternatives');
+  assert.ok(src.includes('87.8%'), 'missing 86.7% hit@5 in compare-alternatives');
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% hit@5 in compare-alternatives');
 });
 
@@ -225,19 +225,19 @@ test('docs/impact-banner.svg: no stale 80.0% hit@5', () => {
 
 test('docs/impact-banner.svg: uses 75.6% hit@5', () => {
   const src = readDocs('impact-banner.svg');
-  assert.ok(src.includes('86.7%'), 'missing 86.7% in impact-banner.svg');
+  assert.ok(src.includes('87.8%'), 'missing 86.7% in impact-banner.svg');
 });
 
 test('docs/impact-banner.svg: uses 1.46 prompts (not 1.68)', () => {
   const src = readDocs('impact-banner.svg');
   assert.ok(!src.includes('1.68'), 'found stale 1.68 in impact-banner.svg');
-  assert.ok(src.includes('1.46'), 'missing 1.47 in impact-banner.svg');
+  assert.ok(src.includes('1.44'), 'missing 1.47 in impact-banner.svg');
 });
 
 test('docs/comparison-chart.svg: uses 75.6% (not 80.0%)', () => {
   const src = readDocs('comparison-chart.svg');
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% in comparison-chart.svg');
-  assert.ok(src.includes('86.7%'), 'missing 86.7% in comparison-chart.svg');
+  assert.ok(src.includes('87.8%'), 'missing 86.7% in comparison-chart.svg');
 });
 
 test('docs/index.html: softwareVersion matches version.json', () => {

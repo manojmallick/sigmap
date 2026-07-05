@@ -82,7 +82,7 @@ test('quality-benchmark: latest saved run is v5.7.0 or later', () => {
 
 test('generalization: uses 75.6% hit@5 (current v6.11.1 benchmark)', () => {
   const src = readGuide('generalization.md');
-  assert.ok(src.includes('86.7%'), 'missing 86.7% hit@5 in generalization.md');
+  assert.ok(src.includes('87.8%'), 'missing 86.7% hit@5 in generalization.md');
   assert.ok(!src.includes('80.0% hit@5'), 'found stale 80.0% in generalization.md');
   assert.ok(!src.includes('78.9%'), 'found stale 78.9% in generalization.md');
 });
@@ -120,10 +120,10 @@ test('docs/index.html: structured-data description uses 29 languages', () => {
 
 // ── MCP tool count ────────────────────────────────────────────────────────────
 
-test('mcp.md: description mentions 18 tools (not 12)', () => {
+test('mcp.md: description mentions 19 tools (not 12)', () => {
   const src = readGuide('mcp.md');
   assert.ok(!src.includes('with 9 tools'), 'found "9 tools" in mcp.md description');
-  assert.ok(src.includes('18 tools'), 'missing "18 tools" in mcp.md');
+  assert.ok(src.includes('19 tools'), 'missing "19 tools" in mcp.md');
 });
 
 // ── Troubleshooting v5.5 coverage entry ───────────────────────────────────────

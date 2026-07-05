@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.7.1. 87% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v8.8.0. 88% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 87% hit@5"
+      content: "SigMap retrieval benchmark — 88% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 87% hit@5 vs 13.6% random baseline, 6.4x lift, 90 tasks, 18 repos."
+      content: "Latest saved run: 88% hit@5 vs 13.6% random baseline, 6.5x lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,23 +15,23 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.7.1 benchmark snapshot
-**Benchmark ID:** sigmap-v8.7-main &nbsp;·&nbsp; **Date:** 2026-07-05 (with R language)
+::: info Official v8.8.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.8-main &nbsp;·&nbsp; **Date:** 2026-07-05 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **87%** vs 13.6% baseline |
-| Graph-boosted hit@5 | **87%** |
-| Retrieval lift | **6.4×** |
-| Prompt reduction | **48.8%** (2.84 → 1.46) |
+| Hit@5 | **88%** vs 13.6% baseline |
+| Graph-boosted hit@5 | **88%** |
+| Retrieval lift | **6.5×** |
+| Prompt reduction | **49.2%** (2.84 → 1.44) |
 | Task success proxy | **67.8%** |
 | Overall token reduction | **97.0%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-07-05 (v8.7.1)**
+Latest saved run: **2026-07-05 (v8.8.0)**
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **87% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **88% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
 ## Why this benchmark matters
 
@@ -47,9 +47,9 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 | 13.6% | **86.7%** |
-| Graph-boosted hit@5 | — | **86.7%** |
-| Lift | — | **6.4x** |
+| Average hit@5 | 13.6% | **87.8%** |
+| Graph-boosted hit@5 | — | **87.8%** |
+| Lift | — | **6.5x** |
 | Correct (rank 1) | ~1% | **67.8%** |
 | Partial (ranks 2–5) | ~13% | **18.9%** |
 | Wrong (not in top 5) | ~86% | **13.3%** |
@@ -106,7 +106,7 @@ For the full multi-benchmark dashboard:
 node scripts/run-benchmark-matrix.mjs --save --skip-clone
 ```
 
-### Third-party reproducible harness (v8.7.1+)
+### Third-party reproducible harness (v8.8.0+)
 
 For a **self-contained** run that anyone can reproduce from a clean checkout — no dev tooling required, only `git` and Node 18+ — use the [`public-benchmarks/`](https://github.com/manojmallick/sigmap/tree/main/public-benchmarks) harness. It pins 18 repos to exact commits (`repos.csv`), ships the 90 queries (`queries.json`), clones + maps + scores in one command, and ranks with the **shipped** BM25 ranker:
 

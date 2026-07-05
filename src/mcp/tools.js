@@ -1,11 +1,12 @@
 'use strict';
 
 /**
- * MCP tool definitions for SigMap (17 tools).
+ * MCP tool definitions for SigMap (19 tools).
  * read_context, search_signatures, get_map, create_checkpoint, get_routing,
  * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
  * get_callee_signatures, sigmap_notify_file_created, sigmap_notify_symbol_added,
- * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview.
+ * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview,
+ * verify_suggestion, squeeze_output.
  */
 
 const TOOLS = [
@@ -334,6 +335,27 @@ const TOOLS = [
         },
       },
       required: ['code'],
+    },
+  },
+  {
+    name: 'squeeze_output',
+    description:
+      'Compress noisy tool, command, or agent output before it enters context — a stack ' +
+      'trace, CI/build log, or JSON payload. Same deterministic, offline engine as ' +
+      '`sigmap squeeze`: keeps the signal (error frames, failing steps, JSON shape), strips ' +
+      'the noise, and enriches the top stack frame with its signature. Returns the squeezed ' +
+      'text plus token-reduction stats; passes the input through unchanged when no squeezable ' +
+      'structure is detected. No LLM, no network.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description:
+            'The raw output to compress (a stack trace, CI/build log, or JSON payload).',
+        },
+      },
+      required: ['content'],
     },
   },
 ];

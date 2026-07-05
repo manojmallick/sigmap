@@ -22,7 +22,7 @@ head:
 
 Eighty-one versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 19 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.8.0 — `squeeze_output` MCP tool + `squeeze --response` (D6) ✓ (2026-07-05)
+
+**Minor release — the squeeze engine, exposed mid-session.** The always-on squeeze engine (`src/squeeze/`) that powers `sigmap squeeze` was reachable only from the CLI on pasted input. This exposes it as the **19th MCP tool** (18 → 19) — `squeeze_output({ content })` — so an agent can compress noisy tool/command output (a stack trace, CI/build log, or JSON payload) *before it enters context*: it keeps the signal, strips the noise, enriches the top stack frame, and reports token-reduction stats, passing input through unchanged when nothing is squeezable. Also adds `sigmap squeeze --response <file|->`, naming the agent/tool response input explicitly (mirroring `judge --response`). Zero-dependency, offline, deterministic — the last A+ ceiling item (Machine 9→10): the engine already shipped, this just exposes it.
+
+**Tags:** `squeeze_output` · `squeeze --response` · `19 MCP tools` · `mid-session compression` · `D6` · `#437` · `PR #438`
+
+**Impact:** 19 MCP tools (was 18); the deterministic squeeze engine reachable by agents mid-session and named on the CLI; 6 new tests; no retrieval/token code changed.
 
 ---
 

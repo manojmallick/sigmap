@@ -10,6 +10,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.8.0] — 2026-07-05
+
+Minor release — **the squeeze engine, exposed mid-session (D6).** The always-on squeeze engine (`src/squeeze/`) that powers `sigmap squeeze` was reachable only from the CLI on pasted input. This release exposes it as an MCP tool an agent can call *mid-session*, and adds a named CLI entry point for compressing an agent/tool *response*. Zero-dependency, offline, deterministic — the last A+ ceiling item (Machine 9→10): the engine already shipped, this just exposes it.
+
+### Added
+- **`squeeze_output` MCP tool (#437, PR #438):** the 19th MCP tool (18 → 19) wraps the existing `squeeze()` engine so an agent can compress noisy tool/command output — a stack trace, CI/build log, or JSON payload — before it enters context. Keeps the signal (error frames, failing steps, JSON shape), strips the noise, and enriches the top stack frame with its signature; returns the squeezed text plus token-reduction stats. Passes the input through unchanged when no squeezable structure is detected, and returns usage on empty input. No LLM, no network. New handler `squeezeOutput` in `src/mcp/handlers.js`, wired through `src/mcp/tools.js` and `src/mcp/server.js`.
+- **`sigmap squeeze --response <file|->` (#437, PR #438):** names the agent/tool response input explicitly (mirroring the existing `sigmap judge --response` convention), routing it through the same squeeze engine. Supports `--json`. Documented in `--help`.
+
+### Fixed
+- **Deterministic context output — three nondeterminism sources (#440, PR #441):** `gen-context`'s signature output was not byte-stable across runs on some repos, making the retrieval benchmark's hit@5 non-reproducible. Fixes: (1) the token-budget drop-order now has a final `filePath` tie-break, so which files survive the budget no longer falls through to filesystem `readdir` order (test files sharing a git-checkout mtime tied on every prior key); (2) the source-file walk sorts `readdir` entries by name for stable section order; (3) auto source-root detection sorts its candidate enumeration and adds tie-breaks to the score sorts, so the `MAX_ROOTS` cutoff admits a deterministic directory set. Adds a resolver determinism regression guard. A residual affecting a few large repos remains tracked in #440.
+
 ## [8.7.1] — 2026-07-05
 
 Patch release — **multi-model cost savings + verified pricing.** The quality benchmark reported API input-cost savings for GPT-4o only; it now reports GPT-4o, Claude Sonnet, and Claude Haiku, and the hardcoded Claude rates were corrected to current published pricing.
