@@ -49,3 +49,6 @@ full_test.txt
 
 .personal/
 TESTING_IMPORT_GRAPH.md
+
+# Generated verify-precision report
+benchmarks/reports/verify-precision.csv
