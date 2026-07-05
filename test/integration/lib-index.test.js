@@ -261,5 +261,45 @@ test('Python grounding degrades gracefully (no venv / unresolved dep)', () => {
   });
 });
 
+// ── collectVersionPins (D8 — version pins for the context header) ────────────
+test('collectVersionPins returns sorted name@version for installed direct deps', () => {
+  withProject(
+    { zeta: '^1', alpha: '^2', ghost: '^3' },
+    {
+      zeta: { pkg: { name: 'zeta', version: '1.2.3' } },
+      alpha: { pkg: { name: 'alpha', version: '2.0.0' } },
+      // ghost declared but not installed → no pin
+    },
+    (dir) => {
+      const { pins, total } = lib.collectVersionPins(dir);
+      assert.deepStrictEqual(pins, ['alpha@2.0.0', 'zeta@1.2.3'], 'pins must be sorted, installed-only');
+      assert.strictEqual(total, 2);
+    },
+  );
+});
+
+test('collectVersionPins caps at opts.limit and reports total', () => {
+  const installed = {};
+  const deps = {};
+  for (let i = 0; i < 5; i++) {
+    const n = `p${i}`;
+    deps[n] = '^1';
+    installed[n] = { pkg: { name: n, version: `1.0.${i}` } };
+  }
+  withProject(deps, installed, (dir) => {
+    const { pins, total } = lib.collectVersionPins(dir, { limit: 2 });
+    assert.strictEqual(pins.length, 2);
+    assert.strictEqual(total, 5);
+  });
+});
+
+test('collectVersionPins is empty when nothing is installed', () => {
+  withProject({ ghost: '^1' }, {}, (dir) => {
+    const { pins, total } = lib.collectVersionPins(dir);
+    assert.deepStrictEqual(pins, []);
+    assert.strictEqual(total, 0);
+  });
+});
+
 console.log(`\nlib-index: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

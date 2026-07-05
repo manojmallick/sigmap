@@ -99,9 +99,10 @@ sigmap weights --json                    Learned weights as JSON
 sigmap --impact <file>                   Show every file impacted by changing <file>
 sigmap --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
 sigmap --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
-sigmap verify-ai-output <answer.md>      Flag fake files/tests/imports/symbols/npm-scripts in an AI answer
-sigmap verify-ai-output <answer.md> --json    Hallucination report as JSON (exits 1 if issues)
-sigmap verify-ai-output <answer.md> --report  Write a standalone HTML report (red/amber/green)
+sigmap verify <answer.md>                Flagship grounding guard — flag fake files/tests/imports/symbols/npm-scripts in an AI answer (alias of verify-ai-output)
+sigmap verify <answer.md> --json         Grounding report as JSON (exits 1 if issues)
+sigmap verify <answer.md> --report       Write a standalone HTML report (red/amber/green)
+sigmap verify-ai-output <answer.md>      Full command name for gen-context verify
 sigmap conventions                       Extract repo file-naming/export/test conventions (--conflicts, --inject, --report, --fix)
 sigmap scaffold "<name>"                 Propose a convention-matched file/dir scaffold (--ext, --threshold, --force, --json)
 sigmap verify-plan <plan.md|->           Check a plan vs the live index — files/symbols exist, blast radius, scope (--json)
@@ -310,6 +311,7 @@ format = default
 tracking = false
 mcp = {"autoRegister":true}
 depMap = true
+versionPins = true
 todos = true
 changes = true
 changesCommits = 10

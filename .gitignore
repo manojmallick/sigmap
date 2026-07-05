@@ -13,6 +13,10 @@ VISION.md
 benchmarks/repos/
 benchmarks/results/
 
+# Public benchmark harness — cloned repos + generated results
+public-benchmarks/.repos/
+public-benchmarks/results.json
+
 # Strategy-audit — generated benchmark output files
 benchmarks/reports/strategy-audit/
 

@@ -114,6 +114,9 @@ const DEFAULTS = {
   // Include a compact import dependency map at top of output
   depMap: true,
 
+  // Include a compact `name@version` list of installed direct deps (D8)
+  versionPins: true,
+
   // Include TODO/FIXME/HACK/XXX comments as compact section
   todos: true,
 
