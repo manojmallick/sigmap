@@ -10,11 +10,12 @@
  * presented as exact. Zero npm dependencies.
  */
 
-// USD per 1,000,000 input tokens.
+// USD per 1,000,000 input tokens. Claude rates verified 2026-07 against
+// platform.claude.com (Opus 4.8 $5, Sonnet 5/4.6 $3, Haiku 4.5 $1); GPT-4o $2.50.
 const PRICES = {
   'claude-sonnet': 3.0,
-  'claude-opus': 15.0,
-  'claude-haiku': 0.8,
+  'claude-opus': 5.0,
+  'claude-haiku': 1.0,
   'gpt-4o': 2.5,
   'gpt-4o-mini': 0.15,
   'gemini-1.5-pro': 1.25,
