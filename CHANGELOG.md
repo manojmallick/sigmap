@@ -10,6 +10,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.7.1] — 2026-07-05
+
+Patch release — **multi-model cost savings + verified pricing.** The quality benchmark reported API input-cost savings for GPT-4o only; it now reports GPT-4o, Claude Sonnet, and Claude Haiku, and the hardcoded Claude rates were corrected to current published pricing.
+
+### Changed
+- **Multi-model cost savings (#433, PR #434):** `scripts/run-quality-benchmark.mjs` adds Claude Haiku to the pricing model and emits a per-model "cost savings by model" table (GPT-4o · Claude Sonnet · Claude Haiku). `docs-vp/guide/quality-benchmark.md` now shows all three models in the cost table, headline, and frontmatter. Pricing verified 2026-07 (per 1M input tokens): GPT-4o $2.50, Claude Sonnet 5/4.6 $3.00, Claude Haiku 4.5 $1.00.
+
+### Fixed
+- **Stale Claude pricing (#433, PR #434):** `src/tracking/pricing.js` (the `sigmap gain` dashboard's cost assumptions) corrected to current published rates — Claude Haiku $0.80→$1.00 and Claude Opus $15.00→$5.00 (Opus 4.8). GPT-4o ($2.50) and Sonnet ($3.00) were already correct.
+
 ## [8.7.0] — 2026-07-05
 
 Minor release — **method/caller-level call-graph (D4 v1): the graph goes from files to functions.** SigMap's dependency graph was file-level only (imports → `--impact`/`get_impact`). This adds **symbol-level** edges — *which function calls which function* — and the **method-level blast radius** of changing a single symbol. Deterministic, zero-dependency, JS/TS + Python. This is the plan's single hardest unbuilt gap and the biggest remaining lever on graph intelligence (v9.5 GR1).
