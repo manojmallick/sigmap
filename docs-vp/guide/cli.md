@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 73 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 75 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 73 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 75 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -129,6 +129,8 @@ If you are new to the product, start with the workflow pages first:
 | `--init` | Scaffold `gen-context.config.json` and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
+| `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>` (JS/TS + Python) |
+| `--callees <symbol>` | Every repo function that `<symbol>` transitively calls |
 | `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier |
 | `--version` | Print version and exit |
 | `--help` | Print help and exit |
@@ -1127,7 +1129,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         86.7% vs 13.6%   (6.4× lift)
+ hit@5         87.8% vs 13.6%   (6.5× lift)
  Avg prompts   1.46 vs 2.84
  Token story   97.0% overall reduction
 ────────────────────────────────────────────
@@ -1145,7 +1147,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-97.0% fewer tokens · 86.7% retrieval hit@5 · 48.4% fewer prompts
+97.0% fewer tokens · 87.8% retrieval hit@5 · 49.6% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -1170,7 +1172,7 @@ sigmap bench --submit --json
  Submitted      : 2026-05-03
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 86.7%
+ hit@5          : 87.8%
  token reduction: 96.8%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
@@ -1681,6 +1683,38 @@ Trace every file that transitively imports the given file. Shows blast-radius aw
 sigmap --impact src/auth/service.ts
 sigmap --impact src/auth/service.ts --json
 ```
+
+---
+
+## --callers / --callees
+
+**Method-level call-graph (v8.7.0+).** Where `--impact` works at the *file* level, `--callers` and `--callees` work at the *function* level. `--callers <symbol>` is the **method-level blast radius** — every function that transitively calls `<symbol>`; `--callees <symbol>` is what that symbol transitively calls. Deterministic, zero-dependency, for **JS/TS + Python**.
+
+Call sites are resolved with high precision: a call binds to a definition of that name in the **same file** first, then in a **directly-imported file**; names with no repo definition produce no edge (no global name-collision noise). Symbols are reported as `relPath#symbol`; pass either a bare name or a full `file#symbol` id.
+
+```bash
+sigmap --callers validateToken            # who (transitively) calls validateToken?
+sigmap --callees handleRequest --depth 1  # what does handleRequest call directly?
+sigmap --callers src/auth.ts#login --json # machine-readable edges
+```
+
+```
+## Callers: `validateToken`
+
+**Total callers of:** 3
+
+### Direct
+- `src/auth/middleware.ts#requireAuth`
+
+### Transitive
+- `src/routes/api.ts#handler`
+- `src/server.ts#start`
+```
+
+| Option | Description |
+|---|---|
+| `--depth <n>` | BFS depth limit (0 = unlimited; default 0) |
+| `--json` | Emit `{ symbol, kind, resolved, direct, transitive, total, unresolved }` |
 
 ---
 
