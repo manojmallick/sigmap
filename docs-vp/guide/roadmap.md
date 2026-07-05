@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.8.1 — Byte-stable context, reproducible benchmark ✓ (2026-07-05)
+
+**Patch release — closing the determinism residual (#440).** v8.8.0 hardened three nondeterminism sources but left a residual: `gen-context` output still varied run-to-run on a few large repos. The cause was the token-budget recency boost stamping `mtime = Date.now()` on every recently-committed file — on repos where nearly every file is "recently changed", consecutive files landed on the *same millisecond*, so which equal-priority files shared a millisecond (and fell through to the `filePath` tie-break) shifted run to run, swapping which files survived the budget cutoff. The `Date.now()` value silently encoded the alphabetical walk order the budget relied on; the nondeterminism was only the collisions. Replaced with a deterministic monotonic counter (`nextRecentMtime`) that reproduces the same processing-order ranking without collisions. All 43 benchmark repos are now byte-identical across two clean runs, and the retrieval benchmark reproduces a single hit@5 (**87.8%**) instead of flapping 85.6–87.8%. A byte-equality regression guard runs gen-context twice on a committed fixture and asserts equality.
+
+**Tags:** `determinism` · `byte-stable` · `nextRecentMtime` · `token-budget` · `reproducible-benchmark` · `#440` · `PR #444`
+
+**Impact:** reproducible headline (hit@5 87.8%, unchanged in value, now byte-stable); 43/43 repos byte-identical; 1 new regression guard (111 derived tests).
+
+---
+
 ### v8.8.0 — `squeeze_output` MCP tool + `squeeze --response` (D6) ✓ (2026-07-05)
 
 **Minor release — the squeeze engine, exposed mid-session.** The always-on squeeze engine (`src/squeeze/`) that powers `sigmap squeeze` was reachable only from the CLI on pasted input. This exposes it as the **19th MCP tool** (18 → 19) — `squeeze_output({ content })` — so an agent can compress noisy tool/command output (a stack trace, CI/build log, or JSON payload) *before it enters context*: it keeps the signal, strips the noise, enriches the top stack frame, and reports token-reduction stats, passing input through unchanged when nothing is squeezable. Also adds `sigmap squeeze --response <file|->`, naming the agent/tool response input explicitly (mirroring `judge --response`). Zero-dependency, offline, deterministic — the last A+ ceiling item (Machine 9→10): the engine already shipped, this just exposes it.

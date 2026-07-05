@@ -35,6 +35,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.8.1)
+- **@manojmallick** — fix: close the `gen-context` determinism residual — replaced the `Date.now()` recency boost with a deterministic monotonic counter, so output is byte-stable across all 43 benchmark repos and retrieval hit@5 reproduces at 87.8%; adds a byte-equality regression guard (#440, PR #444)
+- **@manojmallick** — fix(meta): count the relocated Python test in its new `test/` location; docs/CI: serve OG banner + Search Console file, run Python tests in CI; chore: repo hygiene (drop orphaned GIFs, relocate stray test)
+
 ### Recent Contributors (v8.8.0)
 - **@manojmallick** — feat(mcp): expose the squeeze engine — `squeeze_output` MCP tool (18 → 19 tools) for mid-session output compression + `sigmap squeeze --response <file|->` CLI flag (D6) (#437, PR #438)
 - **@manojmallick** — fix: harden `gen-context` output determinism — filePath tie-break in the token-budget drop-order, sorted source walk, and tie-broken source-root detection so the generated context is byte-stable (#440, PR #441)
