@@ -184,5 +184,31 @@ test('CLI squeeze: prose passes through unchanged', () => {
   assert.ok(/no squeezable structure/.test(res.stderr));
 });
 
+// ── D6: `squeeze --response <file>` names the response input explicitly ──────
+test('CLI squeeze --response <file>: reads and squeezes the named file', () => {
+  const t = 'TypeError: x\n    at f (/app/node_modules/orm/q.js:5:1)\n    at g (/app/src/a.js:10:2)';
+  const tmp = path.join(os.tmpdir(), `sigmap-resp-${process.pid}.txt`);
+  fs.writeFileSync(tmp, t);
+  try {
+    const res = spawnSync('node', [SCRIPT, 'squeeze', '--response', tmp, '--json'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const obj = JSON.parse(res.stdout.trim());
+    assert.strictEqual(obj.category, 'stacktrace');
+    assert.ok(obj.reduction > 0);
+    assert.ok(!/node_modules/.test(obj.squeezed));
+  } finally { fs.unlinkSync(tmp); }
+});
+test('CLI squeeze --response -: reads the response from stdin', () => {
+  const t = 'TypeError: x\n    at f (/app/node_modules/orm/q.js:5:1)\n    at g (/app/src/a.js:10:2)';
+  const res = spawnSync('node', [SCRIPT, 'squeeze', '--response', '-', '--json'],
+    { input: t, cwd: ROOT, encoding: 'utf8' });
+  assert.strictEqual(JSON.parse(res.stdout.trim()).category, 'stacktrace');
+});
+test('CLI squeeze --response (no value): errors with usage', () => {
+  const res = spawnSync('node', [SCRIPT, 'squeeze', '--response'], { cwd: ROOT, encoding: 'utf8' });
+  assert.strictEqual(res.status, 1);
+  assert.ok(/Usage: sigmap squeeze --response/.test(res.stderr));
+});
+
 console.log(`\nsqueeze: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

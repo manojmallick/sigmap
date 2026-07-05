@@ -26,7 +26,7 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 | Task success proxy | 10% | 67.8% |
 | Prompts per task | 2.84 | 1.46 (48.8% fewer) |
 | Supported languages | — | 33 |
-| MCP tools | — | 18 |
+| MCP tools | — | 19 |
 | npm runtime dependencies | — | 0 |
 
 ---
@@ -113,6 +113,7 @@ sigmap review-pr                         Audit a diff — scope drift, god-node 
 sigmap review-pr --markdown              PR Evidence Report — branded Markdown (signatures + blast radius + tests) to post as a PR comment
 sigmap create "<task>"                   Grounded-creation pipeline: scaffold → verify-plan → verify-ai-output → review-pr (--staged)
 sigmap squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)
+sigmap squeeze --response <file|->       Minimize an agent/tool response (same engine; also exposed as the squeeze_output MCP tool)
 sigmap ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
 sigmap ask "<query>" --no-squeeze        Disable input minimization entirely
 sigmap ask "<query>" --squeeze-threshold N  Min reduction %% to prompt (default 30)
@@ -132,7 +133,7 @@ sigmap --version                         Show version
 
 ---
 
-## MCP server — 18 tools
+## MCP server — 19 tools
 
 Start with `sigmap --mcp` (stdio JSON-RPC). Configure once:
 
@@ -282,6 +283,14 @@ Ground an AI code suggestion before writing it: verify a snippet or answer again
 
 ```
 Input:  { code: string }
+```
+
+### squeeze_output
+
+Compress noisy tool, command, or agent output before it enters context — a stack trace, CI/build log, or JSON payload. Same deterministic, offline engine as `sigmap squeeze`: keeps the signal (error frames, failing steps, JSON shape), strips the noise, and enriches the top stack frame with its signature. Returns the squeezed text plus token-reduction stats; passes the input through unchanged when no squeezable structure is detected. No LLM, no network.
+
+```
+Input:  { content: string }
 ```
 
 ---
