@@ -10,6 +10,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.7.0] — 2026-07-05
+
+Minor release — **method/caller-level call-graph (D4 v1): the graph goes from files to functions.** SigMap's dependency graph was file-level only (imports → `--impact`/`get_impact`). This adds **symbol-level** edges — *which function calls which function* — and the **method-level blast radius** of changing a single symbol. Deterministic, zero-dependency, JS/TS + Python. This is the plan's single hardest unbuilt gap and the biggest remaining lever on graph intelligence (v9.5 GR1).
+
+### Added
+- **Method/caller-level call-graph (#429, PR #430):** new `src/graph/call-graph.js` builds symbol edges keyed by `relPath#symbol` for **JS/TS + Python**. Definitions are extracted with real body ranges (brace-matching for JS, indentation for Python) over **comment- and string-masked** source, so braces/calls inside literals never create phantom edges. Each call site is resolved with **high precision** — a call binds to a definition of that name in the **same file** first, then in a **directly-imported file** (reusing the existing file-level import graph); names with no repo definition produce **no edge**, avoiding global name-collision noise. Public API: `buildCallGraph(cwd)` → `{ forward, reverse, defs }`, `methodImpact(symbol)` (transitive callers = method blast radius), `methodCallees(symbol)` (what it transitively calls), plus formatters mirroring `src/graph/impact.js`.
+- **`--callers` / `--callees` CLI (#429, PR #430):** `sigmap --callers <symbol>` prints the method-level blast radius (every function that transitively calls `<symbol>`); `sigmap --callees <symbol>` prints what it calls. Both accept a bare name or a `file#symbol` id, support `--json` and `--depth <n>` (0 = unlimited), and mirror the `--impact` command. Documented in `--help`.
+
 ## [8.6.0] — 2026-07-05
 
 Minor release — **Phase 1 "bank the A": the grounding moat's supporting surface.** Three master-plan items land together: a self-contained, third-party-runnable benchmark harness (G1), installed dependency version pins in the generated context header (D8), and `verify` promoted to a documented flagship command (G2). All zero-dependency, deterministic, and in-boundary.

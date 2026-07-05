@@ -22,7 +22,7 @@ head:
 
 Eighty-one versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 86.7% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 18 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.7.0 — Method/caller-level call-graph (D4 v1) ✓ (2026-07-05)
+
+**Minor release — the graph goes from files to functions.** SigMap's dependency graph was file-level only (imports → `--impact`). New `src/graph/call-graph.js` adds **symbol-level** edges — *which function calls which function* — and the **method-level blast radius** of changing one symbol, for **JS/TS + Python**. Definitions are extracted with real body ranges (brace-matching for JS, indentation for Python) over comment/string-masked source, so literals never create phantom edges; each call site resolves with high precision — same-file def first, then a directly-imported file — and unresolved names produce no edge. Exposed as `buildCallGraph`/`methodImpact`/`methodCallees` and the `--callers`/`--callees` CLI (with `--json`/`--depth`), mirroring `--impact`. This is the plan's single hardest unbuilt gap and the biggest remaining lever on graph intelligence (v9.5 GR1).
+
+**Tags:** `graph` · `call-graph` · `method-level` · `blast-radius` · `D4` · `--callers` · `--callees` · `#429` · `PR #430`
+
+**Impact:** moves graph intelligence from file-level to function-level; +10 tests (110 total). The call-graph does not touch ranking, so retrieval is unaffected by design — the latest saved run measures 87.8% hit@5 / 97% token reduction (within the corpus's run-to-run noise band).
+
+---
+
 ### v8.6.0 — Phase 1 "bank the A": harness, header pins, verify flagship ✓ (2026-07-05)
 
 **Minor release — the grounding moat's supporting surface.** Three master-plan Phase 1 items land together, all zero-dependency and deterministic. **G1 — public reproducible benchmark harness:** new `public-benchmarks/` (`repos.csv`, `queries.json`, `run.sh`, `score.mjs`, `README.md`) is a self-contained, third-party-runnable retrieval harness — it shallow-clones 18 pinned repos, maps each with `gen-context.js`, ranks 90 queries with the **shipped** BM25 ranker (`src/retrieval/bm25.js`), and reports hit@1/hit@5/MRR. Turns the published retrieval numbers into a third-party-verifiable fact; dev-only (excluded from the npm package). **D8 — version pins in the context header:** the generated header now carries a `## versions (installed direct deps)` block of sorted `name@version` pins (JS + Python), via new `collectVersionPins()` in `src/verify/lib-index.js`, gated by the `versionPins` config key — agents ground against what is actually installed. **G2 — `verify` flagship:** `sigmap verify` is now a first-class alias of `verify-ai-output` with a dedicated README/CLI-reference section, positioning deterministic grounding as the headline.
@@ -1290,7 +1300,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — with Phase 1 grounding banked (G1/D8/G2 shipped), push the non-grounding ceilings: method/caller-level call-graph + blast-radius scoring (D4/GR1/GR2), retrieval coverage expansion (routes, configs, build/CI, migrations), and Evidence Pack schema v2 (richer risk labels + measured related-tests)
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2) and method-level call-graph v1 shipped (D4). Next: method-level **blast-radius scoring** + wiring call-graph edges into ranking, PR Evidence, and an MCP tool (GR2); call-graph for more languages (Java/Go/Rust); retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 

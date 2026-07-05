@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 86.7% hit@5, 48.4% fewer prompts, 97.0% average token reduction, 33 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 87.8% hit@5, 49.6% fewer prompts, 97.0% average token reduction, 33 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 86.7% hit@5, 48.4% fewer prompts, 97.0% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 87.8% hit@5, 49.6% fewer prompts, 97.0% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 86.7% hit@5, 48.4% fewer prompts, 97.0% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 87.8% hit@5, 49.6% fewer prompts, 97.0% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Grounded context AI can trust. Deterministic. Verifiable.
-  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 86.7% hit@5 · 97.0% token reduction · zero deps, fully offline."
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 87.8% hit@5 · 97.0% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,12 +46,12 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.47 with SigMap. That is a 48.4% reduction across 90 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.43 with SigMap. That is a 49.6% reduction across 90 real coding tasks."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 86.7% hit@5 across 21 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
+    details: 87.8% hit@5 across 21 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.6.0</span>
+  <span><strong>Release:</strong> v8.7.0</span>
   <span>·</span>
   <span><strong>New — deterministic query expansion:</strong> the retrieval ranker now bridges common code-domain synonyms and abbreviations, so a query for <code>authentication</code> can surface a file whose signatures only say <code>auth</code> (and <code>database</code>↔<code>db</code>, <code>context</code>↔<code>ctx</code>, …). A curated, zero-dependency recall aid for when your query vocabulary differs from the code — exact matches still rank first.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.6-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.7-main</span>
   <span>·</span>
-  <span>87% hit@5 · 97.0% token reduction · 2026-07-05</span>
+  <span>88% hit@5 · 97.0% token reduction · 2026-07-05</span>
 </div>
 </div>
 
@@ -170,13 +170,13 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Task success proxy | 10% | **66.7%** |
-| Prompts per task | 2.84 | **1.47** |
-| Retrieval hit@5 | 13.6% | **87%** (87% graph-boosted) |
+| Task success proxy | 10% | **68.9%** |
+| Prompts per task | 2.84 | **1.43** |
+| Retrieval hit@5 | 13.6% | **88%** (88% graph-boosted) |
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-07-05 (v8.6.0)**.
+Latest saved benchmark run: **2026-07-05 (v8.7.0)**.
 
 </div>
 
