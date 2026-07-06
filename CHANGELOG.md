@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.9.0] — 2026-07-06
+
+Minor release — **the watcher, detached (D1).** `sigmap --watch` keeps the signature index fresh but held a terminal in the foreground. This adds a managed background daemon so you can start it once and forget it — the roadmap's #1 friction win. Zero-dependency, shell-free, deterministic.
+
+### Added
+- **Detached watch daemon — `sigmap daemon start|stop|status` (#447, PR #448):** runs the existing `--watch` mode as a background process, launched with `spawn(process.execPath, ['gen-context.js', '--watch'], { detached: true })` — an arguments array, never a shell command string — and tracked by a PID file under `.context/` (`daemon.pid`; output → `.context/daemon.log`). `start` does an initial generate then detaches, is idempotent (a second start reports "already running", spawns no second process), and clears a stale PID file first; `stop` sends SIGTERM and removes the PID file (a no-op when nothing is running); `status` reports the running PID and log path, exits 0 when running / 1 when not, and self-cleans a stale PID file. Every subcommand supports `--json`. New module `src/daemon/daemon.js`; CLI dispatch mirrors `sigmap mcp <sub>` and is listed in `--help`.
+
 ## [8.8.1] — 2026-07-05
 
 Patch release — **byte-stable context, reproducible benchmark.** Closes the determinism residual tracked in #440: `gen-context` output is now byte-identical run-to-run across all 43 benchmark repos, and the retrieval benchmark reproduces a single hit@5 (87.8%) instead of flapping 85.6–87.8%. Plus a test-count derivation fix, docs/CI serving fixes, and repo hygiene.
