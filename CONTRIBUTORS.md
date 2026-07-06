@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.9.1)
+- **@manojmallick** — ci(pages): retry the GitHub Pages deploy once on GitHub's transient "try again later", so releases stop going red on a backend timing flake (CI only; package unchanged) (#451)
+
 ### Recent Contributors (v8.9.0)
 - **@manojmallick** — feat(daemon): detached watch daemon — `sigmap daemon start|stop|status` runs `--watch` as a managed background process (PID + log under `.context/`), zero-dependency and shell-free (D1) (#447, PR #448)
 
