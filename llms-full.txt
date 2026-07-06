@@ -59,6 +59,7 @@ sigmap --format cache                    Also write Anthropic prompt-cache JSON
 sigmap --track                           Append run metrics to .context/usage.ndjson
 sigmap --watch                           Generate + watch for file changes
 sigmap --setup                           Generate + install git hook + watch
+sigmap daemon start|stop|status          Run --watch as a detached background daemon
 sigmap --mcp                             Start MCP server on stdio
 sigmap --report                          Token reduction stats to stdout
 sigmap --report --json                   Token report as JSON (for CI; exits 1 if over budget)
