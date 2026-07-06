@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.9.0)
+- **@manojmallick** — feat(daemon): detached watch daemon — `sigmap daemon start|stop|status` runs `--watch` as a managed background process (PID + log under `.context/`), zero-dependency and shell-free (D1) (#447, PR #448)
+
 ### Recent Contributors (v8.8.1)
 - **@manojmallick** — fix: close the `gen-context` determinism residual — replaced the `Date.now()` recency boost with a deterministic monotonic counter, so output is byte-stable across all 43 benchmark repos and retrieval hit@5 reproduces at 87.8%; adds a byte-equality regression guard (#440, PR #444)
 - **@manojmallick** — fix(meta): count the relocated Python test in its new `test/` location; docs/CI: serve OG banner + Search Console file, run Python tests in CI; chore: repo hygiene (drop orphaned GIFs, relocate stray test)

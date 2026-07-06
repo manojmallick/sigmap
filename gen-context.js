@@ -2592,6 +2592,134 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
   
 };
 
+// ── ./src/daemon/daemon ──
+__factories["./src/daemon/daemon"] = function(module, exports) {
+  
+  /**
+   * Detached watch daemon (D1).
+   *
+   * Runs the existing `--watch` mode as a background process so the index stays
+   * fresh without holding a terminal. State lives under `.context/` (consistent
+   * with session/usage): `daemon.pid` records the watcher's PID, `daemon.log`
+   * captures its output.
+   *
+   * Zero-dependency and shell-free: the watcher is launched with
+   * `spawn(process.execPath, [gen-context.js, '--watch'], { detached: true })` —
+   * an arguments array, never a shell command string.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { spawn } = require('child_process');
+
+  module.exports = { start, stop, status, pidFile, logFile, isAlive, readPid };
+
+  function daemonDir(cwd) {
+    return path.join(cwd, '.context');
+  }
+
+  function pidFile(cwd) {
+    return path.join(daemonDir(cwd), 'daemon.pid');
+  }
+
+  function logFile(cwd) {
+    return path.join(daemonDir(cwd), 'daemon.log');
+  }
+
+  /** True if a process with this PID exists (signal 0 probes without killing). */
+  function isAlive(pid) {
+    if (!Number.isInteger(pid) || pid <= 0) return false;
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (err) {
+      // EPERM = the process exists but is owned by another user — treat as alive.
+      return err.code === 'EPERM';
+    }
+  }
+
+  /** Read the recorded PID, or null if the file is missing/unparseable. */
+  function readPid(cwd) {
+    try {
+      const raw = fs.readFileSync(pidFile(cwd), 'utf8').trim();
+      const pid = parseInt(raw, 10);
+      return Number.isInteger(pid) && pid > 0 ? pid : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function removePidFile(cwd) {
+    try {
+      fs.unlinkSync(pidFile(cwd));
+    } catch (_) {}
+  }
+
+  /**
+   * @returns {{ running: boolean, pid: number|null, pidFile: string, logFile: string }}
+   */
+  function status(cwd) {
+    const pid = readPid(cwd);
+    const running = pid != null && isAlive(pid);
+    // A recorded-but-dead PID is stale — clean it up so the state stays truthful.
+    if (pid != null && !running) removePidFile(cwd);
+    return { running, pid: running ? pid : null, pidFile: pidFile(cwd), logFile: logFile(cwd) };
+  }
+
+  /**
+   * Launch a detached `--watch` process. Idempotent: if one is already running
+   * this is a no-op that reports the existing PID.
+   *
+   * @param {string} cwd
+   * @param {{ scriptPath: string }} opts - path to gen-context.js (the CLI entry)
+   * @returns {{ status: 'started'|'already', pid: number, logFile: string }}
+   */
+  function start(cwd, opts = {}) {
+    const scriptPath = opts.scriptPath;
+    if (!scriptPath) throw new Error('daemon.start requires opts.scriptPath');
+
+    const current = status(cwd);
+    if (current.running) {
+      return { status: 'already', pid: current.pid, logFile: logFile(cwd) };
+    }
+
+    fs.mkdirSync(daemonDir(cwd), { recursive: true });
+    const out = fs.openSync(logFile(cwd), 'a');
+    try {
+      const child = spawn(process.execPath, [scriptPath, '--watch'], {
+        cwd,
+        detached: true,
+        stdio: ['ignore', out, out],
+      });
+      child.unref();
+      fs.writeFileSync(pidFile(cwd), String(child.pid) + '\n');
+      return { status: 'started', pid: child.pid, logFile: logFile(cwd) };
+    } finally {
+      try { fs.closeSync(out); } catch (_) {}
+    }
+  }
+
+  /**
+   * Stop the running watcher (SIGTERM) and clear its PID file.
+   *
+   * @returns {{ status: 'stopped'|'not-running'|'stale', pid?: number }}
+   */
+  function stop(cwd) {
+    const pid = readPid(cwd);
+    if (pid == null) return { status: 'not-running' };
+    if (!isAlive(pid)) {
+      removePidFile(cwd);
+      return { status: 'stale', pid };
+    }
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch (_) {}
+    removePidFile(cwd);
+    return { status: 'stopped', pid };
+  }
+  
+};
+
 // ── ./src/discovery/framework-detector ──
 __factories["./src/discovery/framework-detector"] = function(module, exports) {
   
@@ -13566,7 +13694,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.8.1',
+    version: '8.9.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -18158,7 +18286,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.8.1';
+const VERSION = '8.9.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -19962,6 +20090,7 @@ Usage:
   ${cmd} --track                           Append run metrics to .context/usage.ndjson
   ${cmd} --watch                           Generate + watch for file changes
   ${cmd} --setup                           Generate + install git hook + watch
+  ${cmd} daemon start|stop|status          Run --watch as a detached background daemon
   ${cmd} --mcp                             Start MCP server on stdio
   ${cmd} --report                          Token reduction stats to stdout
   ${cmd} --report --json                   Token report as JSON (for CI; exits 1 if over budget)
@@ -21500,6 +21629,46 @@ function main() {
     }
 
     console.error('[sigmap] usage: sigmap mcp install <client> | sigmap mcp list');
+    process.exit(1);
+  }
+
+  // `sigmap daemon start|stop|status` — run `--watch` as a detached background
+  // process (D1). PID + log live under .context/. Mirrors the `mcp` sub-dispatch.
+  if (args[0] === 'daemon') {
+    const daemon = requireSourceOrBundled('./src/daemon/daemon');
+    const sub = args[1];
+    const jsonOut = args.includes('--json');
+
+    if (sub === 'start') {
+      const r = daemon.start(cwd, { scriptPath });
+      if (jsonOut) { process.stdout.write(JSON.stringify(r) + '\n'); process.exit(0); }
+      if (r.status === 'already') {
+        console.log(`[sigmap] daemon already running (pid ${r.pid})`);
+      } else {
+        console.log(`[sigmap] daemon started (pid ${r.pid}) — watching for changes`);
+        console.log(`[sigmap] logs: ${_displayPath(r.logFile, cwd)}   stop with: sigmap daemon stop`);
+      }
+      process.exit(0);
+    }
+
+    if (sub === 'stop') {
+      const r = daemon.stop(cwd);
+      if (jsonOut) { process.stdout.write(JSON.stringify(r) + '\n'); process.exit(0); }
+      if (r.status === 'not-running') console.log('[sigmap] daemon not running');
+      else if (r.status === 'stale') console.log(`[sigmap] removed stale pid file (pid ${r.pid} no longer alive)`);
+      else console.log(`[sigmap] daemon stopped (pid ${r.pid})`);
+      process.exit(0);
+    }
+
+    if (sub === 'status') {
+      const r = daemon.status(cwd);
+      if (jsonOut) { process.stdout.write(JSON.stringify(r) + '\n'); process.exit(r.running ? 0 : 1); }
+      if (r.running) console.log(`[sigmap] daemon running (pid ${r.pid}) — logs: ${_displayPath(r.logFile, cwd)}`);
+      else console.log('[sigmap] daemon not running');
+      process.exit(r.running ? 0 : 1);
+    }
+
+    console.error('[sigmap] usage: sigmap daemon start | stop | status');
     process.exit(1);
   }
 

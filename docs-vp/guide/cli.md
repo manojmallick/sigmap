@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 76 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 77 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 76 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 77 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -100,6 +100,7 @@ If you are new to the product, start with the workflow pages first:
 | `explain <file>` | Why a file is included or excluded from context |
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
 | `--watch` | Watch for file changes and regenerate incrementally |
+| `daemon start\|stop\|status` | Run `--watch` as a detached background daemon (PID + log in `.context/`) |
 | `--setup` | Auto-wire MCP for Claude, Cursor, Windsurf, Zed, VS Code, OpenCode, Gemini CLI, Codex CLI; install git hook; start watcher |
 | `--diff` | Generate context only for changed files (shows risk score per file) |
 | `--diff --staged` | Generate context only for staged files |
@@ -1289,6 +1290,32 @@ sigmap --watch
 [sigmap] watching src/ app/ lib/ ...
 [sigmap] ✓ regenerated in 43ms  (src/api/users.ts changed)
 ```
+
+---
+
+## daemon start · daemon stop · daemon status
+
+Run `--watch` as a detached **background daemon** so the index stays fresh without holding a terminal (v8.9.0). The watcher is launched as a child process (no shell) and tracked by a PID file under `.context/`; its output goes to `.context/daemon.log`.
+
+```bash
+sigmap daemon start     # initial generate, then watch in the background
+sigmap daemon status    # is it running? (exit 0 running, 1 not)
+sigmap daemon stop      # terminate the watcher
+```
+
+```
+$ sigmap daemon start
+[sigmap] daemon started (pid 41234) — watching for changes
+[sigmap] logs: .context/daemon.log   stop with: sigmap daemon stop
+```
+
+`start` is idempotent — a second `start` reports `already running` and spawns no second process; a stale PID file (from a crashed watcher) is cleaned up automatically on `start`/`status`. `stop` is a no-op when nothing is running. Add `--json` to any subcommand for machine-readable output (`{ running, pid, pidFile, logFile }`).
+
+| Subcommand | Exit code | Behaviour |
+|-----------|-----------|-----------|
+| `daemon start` | 0 | starts (or reports already-running); detaches and returns |
+| `daemon stop` | 0 | SIGTERM the watcher, remove the PID file |
+| `daemon status` | 0 running · 1 not | report PID + log path; self-cleans a stale PID file |
 
 ---
 

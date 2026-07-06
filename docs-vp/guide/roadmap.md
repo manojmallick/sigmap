@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.9.0 — Detached watch daemon (D1) ✓ (2026-07-06)
+
+**Minor release — the watcher, detached.** `sigmap --watch` kept the signature index fresh but held a terminal in the foreground. This adds `sigmap daemon start|stop|status`, running `--watch` as a managed background process so you start it once and forget it — the roadmap's #1 friction win. The watcher is launched as a detached child (an arguments array, never a shell string) and tracked by a PID file under `.context/`, with output to `.context/daemon.log`. `start` is idempotent and cleans a stale PID file; `stop` SIGTERMs and clears the file; `status` reports the PID and exits 0/1. Every subcommand supports `--json`. Zero-dependency, shell-free, deterministic — no change to retrieval, so the benchmark headline is unchanged (hit@5 87.8%).
+
+**Tags:** `daemon` · `daemon start/stop/status` · `--watch` · `detached` · `.context/daemon.pid` · `D1` · `#447` · `PR #448`
+
+**Impact:** background index freshness with one command; new `src/daemon/daemon.js`; 8 new integration tests (112 derived tests).
+
+---
+
 ### v8.8.1 — Byte-stable context, reproducible benchmark ✓ (2026-07-05)
 
 **Patch release — closing the determinism residual (#440).** v8.8.0 hardened three nondeterminism sources but left a residual: `gen-context` output still varied run-to-run on a few large repos. The cause was the token-budget recency boost stamping `mtime = Date.now()` on every recently-committed file — on repos where nearly every file is "recently changed", consecutive files landed on the *same millisecond*, so which equal-priority files shared a millisecond (and fell through to the `filePath` tie-break) shifted run to run, swapping which files survived the budget cutoff. The `Date.now()` value silently encoded the alphabetical walk order the budget relied on; the nondeterminism was only the collisions. Replaced with a deterministic monotonic counter (`nextRecentMtime`) that reproduces the same processing-order ranking without collisions. All 43 benchmark repos are now byte-identical across two clean runs, and the retrieval benchmark reproduces a single hit@5 (**87.8%**) instead of flapping 85.6–87.8%. A byte-equality regression guard runs gen-context twice on a committed fixture and asserts equality.
