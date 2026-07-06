@@ -38,7 +38,7 @@ Every page must have **all** of these tags, in this order, before `<link rel="ca
 
 | Page | Title pattern |
 |---|---|
-| index.html | `SigMap — Zero-dependency AI context engine` |
+| index.html | `SigMap — the deterministic grounding layer for AI code` |
 | quick-start.html | `Quick Start — SigMap` |
 | cli.html | `CLI Reference — SigMap` |
 | config.html | `Configuration — SigMap` |
@@ -61,7 +61,7 @@ Keep titles under 60 characters. Put the topic first, brand last.
 - Include the primary keyword in the first 10 words.
 - Do not duplicate the title word-for-word.
 
-Good: `"Set up SigMap MCP server with Claude Code, Cursor, and Windsurf. 8 on-demand tools. Zero-dependency stdio server."`  
+Good: `"Set up SigMap MCP server with Claude Code, Cursor, and Windsurf. 19 on-demand tools. Zero-dependency stdio server."`  
 Bad: `"This page is about the MCP server feature of SigMap."`
 
 ---
@@ -94,7 +94,7 @@ Use one `<script type="application/ld+json">` block per page. Choose the schema 
   "description": "...",
   "url": "https://sigmap.io/",
   "downloadUrl": "https://www.npmjs.com/package/sigmap",
-  "softwareVersion": "3.x.x",
+  "softwareVersion": "8.x.x",
   "operatingSystem": "Any (Node.js 18+)",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "author": { "@type": "Person", "name": "Manoj Mallick", "url": "https://github.com/manojmallick" }
