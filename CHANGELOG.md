@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.9.1] — 2026-07-06
+
+Patch release — **CI only; the published package is unchanged from 8.9.0.** Makes the GitHub Pages docs deploy self-healing so releases stop going red on a GitHub-side transient.
+
+### Fixed
+- **Pages deploy retries GitHub's transient "try again later" (#451):** GitHub's Pages backend intermittently returns `Deployment failed, try again later` within seconds of a push-triggered deploy, and `actions/deploy-pages` treats that status as terminal — so every release's first Pages deploy went red and needed a manual re-run (the identical artifact re-deployed ~1 min later always succeeded). `.github/workflows/pages.yml` now lets the first attempt fail softly (`continue-on-error`), waits 60s for the backend to settle, and retries once with the same official action. The job is green if either attempt deploys, and only red if both fail (the rare stuck-sha case, which still needs a fresh sha). No new dependencies; no change to the npm package.
+
 ## [8.9.0] — 2026-07-06
 
 Minor release — **the watcher, detached (D1).** `sigmap --watch` keeps the signature index fresh but held a terminal in the foreground. This adds a managed background daemon so you can start it once and forget it — the roadmap's #1 friction win. Zero-dependency, shell-free, deterministic.

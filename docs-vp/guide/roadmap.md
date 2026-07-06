@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.9.1 — Self-healing Pages deploy (CI) ✓ (2026-07-06)
+
+**Patch — CI only; the published package is unchanged from 8.9.0.** Every release's first GitHub Pages deploy went red on a GitHub-side transient (`Deployment failed, try again later` within seconds of the push-triggered deploy; the identical artifact re-deployed a minute later always succeeded, but `actions/deploy-pages` treats that status as terminal). `pages.yml` now lets the first attempt fail softly, waits 60s for the backend to settle, and retries once — green if either attempt deploys, red only if both fail (the rare stuck-sha case). Zero new dependencies.
+
+**Tags:** `ci` · `pages.yml` · `deploy-pages` · `continue-on-error` · `retry` · `#451`
+
+**Impact:** releases no longer need a manual Pages re-run; no change to the npm package or metrics.
+
+---
+
 ### v8.9.0 — Detached watch daemon (D1) ✓ (2026-07-06)
 
 **Minor release — the watcher, detached.** `sigmap --watch` kept the signature index fresh but held a terminal in the foreground. This adds `sigmap daemon start|stop|status`, running `--watch` as a managed background process so you start it once and forget it — the roadmap's #1 friction win. The watcher is launched as a detached child (an arguments array, never a shell string) and tracked by a PID file under `.context/`, with output to `.context/daemon.log`. `start` is idempotent and cleans a stale PID file; `stop` SIGTERMs and clears the file; `status` reports the PID and exits 0/1. Every subcommand supports `--json`. Zero-dependency, shell-free, deterministic — no change to retrieval, so the benchmark headline is unchanged (hit@5 87.8%).

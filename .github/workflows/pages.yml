@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,6 +45,22 @@ jobs:
         with:
           path: docs-vp/.vitepress/dist
 
+      # GitHub's Pages backend intermittently returns "Deployment failed, try
+      # again later" within seconds of a push-triggered deploy (the same artifact
+      # re-deployed a minute later succeeds). deploy-pages treats that status as
+      # terminal and does not retry, so every release's first deploy went red and
+      # needed a manual re-run. Let the first attempt fail softly, wait for the
+      # backend to settle, then retry once — the job is green if either succeeds.
       - name: Deploy to GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retry (Pages backend transient)
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+
+      - name: Deploy to GitHub Pages (retry)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
