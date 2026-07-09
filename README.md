@@ -340,9 +340,7 @@ If SigMap saves you context or API spend, a ⭐ on [GitHub](https://github.com/m
 
 🌍 See where SigMap's stargazers are around the world on the **[StarMapper star map →](https://starmapper.bruniaux.com/manojmallick/sigmap)**.
 
-<a href="https://star-history.com/#manojmallick/sigmap&Date">
-  <img src="https://api.star-history.com/svg?repos=manojmallick/sigmap&type=Date" alt="SigMap Star History Chart" width="600" />
-</a>
+📈 Watch SigMap's growth on the **[Star History chart →](https://star-history.com/#manojmallick/sigmap&Date)**.
 
 [Report an issue](https://github.com/manojmallick/sigmap/issues) · [Changelog](CHANGELOG.md)
 
