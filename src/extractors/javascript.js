@@ -1,6 +1,7 @@
 'use strict';
 
 const { lineAt, withAnchor } = require('./line-anchor');
+const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
 
 /**
  * Extract signatures from JavaScript source code.
@@ -80,9 +81,8 @@ function extract(src) {
     anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
   }
 
-  return sigs
-    .map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s))
-    .slice(0, 25);
+  const withAnchors = sigs.map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s));
+  return capWithNotice(withAnchors, 25, 'signatures');
 }
 
 function extractBlock(src, startIndex) {
@@ -113,7 +113,7 @@ function extractClassMembers(block, returnHints) {
     const retStr = formatReturnHint(returnHints.get(m[1]));
     members.push({ text: `${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`, start, end });
   }
-  return members.slice(0, 8);
+  return capMembersWithNotice(members, 8, 'methods');
 }
 
 function buildReturnHints(src) {

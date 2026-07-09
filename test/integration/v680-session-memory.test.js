@@ -196,6 +196,46 @@ test('sigmap plan detects intent from goal', () => {
   assert.strictEqual(output.intent, 'debug', 'should detect "debug" intent from "fix" keyword');
 });
 
+// Honest-fix regressions (the CLI now uses the real createPlan, not the old
+// orphaned "simplified — no graph" copy that hardcoded impactRadius=null and
+// reported ranked test files as "tests to run").
+
+// impactRadius is now a real graph result: null or {direct:[], transitive:[]}
+test('sigmap plan --json: impactRadius is a real graph shape, not always null', () => {
+  const result = spawnSync('node', [SCRIPT, 'plan', 'rank files by relevance score', '--json'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 30000,
+  });
+  assert.strictEqual(result.status, 0, `exit ${result.status}\n${result.stderr}`);
+  const out = JSON.parse(result.stdout);
+  const ir = out.impactRadius;
+  assert.ok(ir === null || (Array.isArray(ir.direct) && Array.isArray(ir.transitive)),
+    `impactRadius must be null or {direct:[],transitive:[]}, got ${JSON.stringify(ir)}`);
+  // ranker.js is a well-imported hub in this repo — impact should be populated.
+  assert.ok(ir && ir.direct.length > 0,
+    `expected a populated impact radius for a hub-targeting goal, got ${JSON.stringify(ir)}`);
+});
+
+// coveredFiles is honest (source files with coverage); testsAffected aliases it
+test('sigmap plan --json: coveredFiles array present and testsAffected aliases it', () => {
+  const result = spawnSync('node', [SCRIPT, 'plan', 'fix authentication issue', '--json'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 30000,
+  });
+  const out = JSON.parse(result.stdout);
+  assert.ok(Array.isArray(out.coveredFiles), 'coveredFiles should be an array');
+  assert.deepStrictEqual(out.testsAffected, out.coveredFiles,
+    'testsAffected should alias coveredFiles for backward compatibility');
+});
+
+// the misleading "Tests to run after change" label is gone from human output
+test('sigmap plan: human output no longer claims to list "Tests to run"', () => {
+  const result = spawnSync('node', [SCRIPT, 'plan', 'add rate limiting'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 30000,
+  });
+  assert.strictEqual(result.status, 0);
+  assert.ok(!/Tests to run after change/.test(result.stdout),
+    'stale misleading label should be removed');
+});
+
 test('sigmap ask (without --followup) saves session for future use', () => {
   const testCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-ask-save-'));
   const result = spawnSync('node', [SCRIPT, 'ask', 'find authentication code', '--json'], {

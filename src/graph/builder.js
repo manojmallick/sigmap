@@ -31,6 +31,28 @@ const RB_EXTS  = new Set(['.rb', '.rake']);
 const R_EXTS   = new Set(['.r', '.R']);
 
 /**
+ * Probe an absolute base path for a JS/TS module file in fileSet, trying the
+ * usual extension and index-file candidates.
+ * @param {string} base - absolute path (no extension) to probe
+ * @param {Set<string>} fileSet
+ * @returns {string|null}
+ */
+function probeJs(base, fileSet) {
+  const candidates = [
+    base,
+    base + '.ts', base + '.tsx',
+    base + '.js', base + '.jsx', base + '.mjs', base + '.cjs',
+    path.join(base, 'index.ts'), path.join(base, 'index.tsx'),
+    path.join(base, 'index.js'), path.join(base, 'index.jsx'),
+  ];
+  for (const c of candidates) {
+    const normC = normalizePath(c);
+    if (fileSet.has(normC)) return normC;
+  }
+  return null;
+}
+
+/**
  * Resolve a JS/TS relative import string to an absolute path in fileSet.
  * @param {string} dir - directory of the importing file
  * @param {string} importStr - raw import string (e.g. './utils', '../store')
@@ -38,17 +60,91 @@ const R_EXTS   = new Set(['.r', '.R']);
  * @returns {string|null}
  */
 function resolveJsPath(dir, importStr, fileSet) {
-  const base = path.resolve(dir, importStr);
-  const candidates = [
-    base,
-    base + '.ts', base + '.tsx',
-    base + '.js', base + '.jsx', base + '.mjs', base + '.cjs',
-    path.join(base, 'index.ts'),
-    path.join(base, 'index.js'),
-  ];
-  for (const c of candidates) {
-    const normC = normalizePath(c);
-    if (fileSet.has(normC)) return normC;
+  return probeJs(path.resolve(dir, importStr), fileSet);
+}
+
+/**
+ * Strip comments and trailing commas so a tsconfig/jsconfig (JSONC) parses.
+ * Deliberately conservative — leaves string contents alone.
+ */
+function stripJsonc(src) {
+  let out = '';
+  let inStr = false, quote = '', inLine = false, inBlock = false;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i], n = src[i + 1];
+    if (inLine) { if (c === '\n') { inLine = false; out += c; } continue; }
+    if (inBlock) { if (c === '*' && n === '/') { inBlock = false; i++; } continue; }
+    if (inStr) { out += c; if (c === '\\') { out += (n || ''); i++; } else if (c === quote) inStr = false; continue; }
+    if (c === '"' || c === "'") { inStr = true; quote = c; out += c; continue; }
+    if (c === '/' && n === '/') { inLine = true; i++; continue; }
+    if (c === '/' && n === '*') { inBlock = true; i++; continue; }
+    out += c;
+  }
+  // remove trailing commas before } or ]
+  return out.replace(/,(\s*[}\]])/g, '$1');
+}
+
+/**
+ * Load the JS/TS path-alias map from tsconfig.json / jsconfig.json.
+ * Resolves `compilerOptions.paths` and `baseUrl` into absolute target bases so
+ * bare/aliased imports (e.g. `@/utils`, `components/Button`) can be resolved to
+ * on-disk files. Returns null when no config or no aliasing is configured.
+ *
+ * @param {string} cwd
+ * @returns {{ baseUrl: string|null, entries: Array<{prefix:string,wildcard:boolean,targets:string[]}> }|null}
+ */
+function loadAliasMap(cwd) {
+  if (!cwd) return null;
+  for (const name of ['tsconfig.json', 'jsconfig.json']) {
+    let json;
+    try { json = JSON.parse(stripJsonc(fs.readFileSync(path.join(cwd, name), 'utf8'))); }
+    catch (_) { continue; }
+    const co = (json && json.compilerOptions) || {};
+    const baseUrl = co.baseUrl ? path.resolve(cwd, co.baseUrl) : null;
+    const base = baseUrl || cwd;
+    const entries = [];
+    for (const [pattern, targets] of Object.entries(co.paths || {})) {
+      const wildcard = pattern.includes('*');
+      const prefix = pattern.replace(/\*.*$/, '');
+      const tgs = (Array.isArray(targets) ? targets : [])
+        .map((t) => path.resolve(base, String(t).replace(/\*.*$/, '')));
+      if (tgs.length) entries.push({ prefix, wildcard, targets: tgs });
+    }
+    if (baseUrl || entries.length) return { baseUrl, entries };
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Resolve a non-relative JS/TS import specifier through the alias map.
+ * @param {string} spec - e.g. '@/utils', '@app/Button', 'components/Nav'
+ * @param {object|null} aliasMap - from loadAliasMap
+ * @param {Set<string>} fileSet
+ * @returns {string|null}
+ */
+function resolveAlias(spec, aliasMap, fileSet) {
+  if (!aliasMap) return null;
+  for (const e of aliasMap.entries) {
+    if (e.wildcard) {
+      if (spec.startsWith(e.prefix)) {
+        const rest = spec.slice(e.prefix.length);
+        for (const t of e.targets) {
+          const r = probeJs(rest ? path.join(t, rest) : t, fileSet);
+          if (r) return r;
+        }
+      }
+    } else if (spec === e.prefix) {
+      for (const t of e.targets) {
+        const r = probeJs(t, fileSet);
+        if (r) return r;
+      }
+    }
+  }
+  // Bare import resolved from baseUrl (tsconfig baseUrl without an explicit alias).
+  if (aliasMap.baseUrl) {
+    const r = probeJs(path.join(aliasMap.baseUrl, spec), fileSet);
+    if (r) return r;
   }
   return null;
 }
@@ -98,21 +194,29 @@ function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
 
   // ── JS / TS ───────────────────────────────────────────────────────────────
   if (JS_EXTS.has(ext)) {
+    const aliasMap = ctx && ctx.aliasMap;
+    // Resolve any specifier: relative → dir-relative; otherwise via tsconfig/
+    // jsconfig path aliases + baseUrl. Bare npm packages (react, lodash) fall
+    // through to null because they are not in fileSet, so no false edges.
+    const resolveSpec = (spec) => spec.startsWith('.')
+      ? resolveJsPath(dir, spec, fileSet)
+      : resolveAlias(spec, aliasMap, fileSet);
+
     const stripped = content
       .replace(/\/\/.*$/gm, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
 
-    // ES imports:   import ... from './foo'  or  import './side-effect'
-    const reEs = /(?:^|[\r\n])\s*import\s+(?:[^'";\r\n]*?\s+from\s+)?['"](\.[^'"]+)['"]/g;
     let m;
+    // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
+    const reEs = /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
     while ((m = reEs.exec(stripped)) !== null) {
-      const r = resolveJsPath(dir, m[1], fileSet);
+      const r = resolveSpec(m[1]);
       if (r) found.push(r);
     }
-    // CommonJS: require('./foo')
-    const reCjs = /\brequire\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g;
-    while ((m = reCjs.exec(stripped)) !== null) {
-      const r = resolveJsPath(dir, m[1], fileSet);
+    // CommonJS require('x') and dynamic import('x').
+    const reCall = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+    while ((m = reCall.exec(stripped)) !== null) {
+      const r = resolveSpec(m[1]);
       if (r) found.push(r);
     }
   }
@@ -284,6 +388,10 @@ function build(files, cwd, ctx) {
   const fileSet = new Set(files.map((f) => path.resolve(f)));
   // Create a normalized version for cross-platform case-insensitive lookups
   const fileSetNormalized = new Set([...fileSet].map(normalizePath));
+  // Resolve the JS/TS path-alias map once (tsconfig/jsconfig paths + baseUrl),
+  // unless a caller supplied one explicitly via ctx.
+  const aliasMap = (ctx && 'aliasMap' in ctx) ? ctx.aliasMap : loadAliasMap(cwd);
+  const effectiveCtx = Object.assign({}, ctx, { aliasMap });
   const forward = new Map();
   const reverse = new Map();
 
@@ -304,7 +412,7 @@ function build(files, cwd, ctx) {
     }
 
     const normFilePath = normalizePath(filePath);
-    const deps = extractFileDeps(filePath, content, fileSetNormalized, cwd, ctx);
+    const deps = extractFileDeps(filePath, content, fileSetNormalized, cwd, effectiveCtx);
     if (deps.length > 0) {
       forward.set(normFilePath, deps);
       for (const dep of deps) {
@@ -383,4 +491,4 @@ function buildFromCwd(cwd, opts) {
   return build(files, cwd, ctx);
 }
 
-module.exports = { build, buildFromCwd, extractFileDeps, normalizePath };
+module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias };

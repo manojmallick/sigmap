@@ -44,7 +44,7 @@ console.log('');
 
 // ── Unit tests for judge engine ──────────────────────────────────────────────
 
-const { groundedness, judge } = require('../../../src/judge/judge-engine');
+const { groundedness, claimGrounding, judge } = require('../../../src/judge/judge-engine');
 
 // 1. grounded response scores ≥ 0.25
 test('judge: grounded response scores ≥ 0.25', () => {
@@ -76,6 +76,46 @@ test('judge: verdict:fail on unrelated response', () => {
   const context  = 'function rank(query, sigIndex) { return sorted; } function buildSigIndex(cwd)';
   const { verdict } = judge(response, context, { threshold: 0.25 });
   assert.strictEqual(verdict, 'fail', `expected fail, got ${verdict}`);
+});
+
+// ── Claim-level grounding (v8.10) ────────────────────────────────────────────
+
+// A1. ungrounded backtick symbol claim is detected
+test('claimGrounding: hallucinated `foo()` symbol flagged ungrounded', () => {
+  const response = 'The rank function calls `computeQuantumScore()` to rank results.';
+  const context  = 'function rank(query, sigIndex) sorts results by relevance score';
+  const c = claimGrounding(response, context);
+  assert.strictEqual(c.total, 1, `expected 1 claim, got ${c.total}`);
+  assert.strictEqual(c.ungrounded.length, 1, `expected 1 ungrounded, got ${JSON.stringify(c.ungrounded)}`);
+  assert.strictEqual(c.ungrounded[0].value, 'computeQuantumScore');
+});
+
+// A2. a symbol the context DOES mention is grounded
+test('claimGrounding: `rank()` present in context is grounded', () => {
+  const response = 'Call `rank()` to sort results.';
+  const context  = 'function rank(query, sigIndex) sorts results by relevance score';
+  const c = claimGrounding(response, context);
+  assert.strictEqual(c.total, 1);
+  assert.strictEqual(c.grounded, 1, `expected grounded, got ${JSON.stringify(c)}`);
+  assert.strictEqual(c.ungrounded.length, 0);
+});
+
+// A3. plain prose (no concrete claims) yields no claims — verdict unaffected
+test('claimGrounding: plain prose produces zero claims', () => {
+  const c = claimGrounding('The rank function sorts files by relevance.', 'function rank sorts results');
+  assert.strictEqual(c.total, 0, `expected 0 claims, got ${JSON.stringify(c)}`);
+});
+
+// A4. a hallucinated symbol flips the verdict to fail EVEN WHEN lexical score
+//     would pass — the core weakness the old token-overlap judge could not catch
+test('judge: hallucinated symbol fails a lexically-passing answer', () => {
+  const response = 'The rank function sorts results by relevance score using `computeQuantumScore()`.';
+  const context  = 'function rank(query, sigIndex) sorts results by relevance score using tokens';
+  const result   = judge(response, context, { threshold: 0.25 });
+  assert.ok(result.score >= 0.25, `precondition: lexical score should pass, got ${result.score}`);
+  assert.strictEqual(result.verdict, 'fail', `expected fail on hallucinated symbol, got ${result.verdict}`);
+  assert.ok(result.reasons.some((r) => r.includes('computeQuantumScore')), `expected reason to name the symbol: ${JSON.stringify(result.reasons)}`);
+  assert.ok(result.claims && result.claims.ungrounded.length === 1, 'expected claims.ungrounded to be populated');
 });
 
 // ── CLI tests ─────────────────────────────────────────────────────────────────

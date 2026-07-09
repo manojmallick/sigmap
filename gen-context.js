@@ -2056,8 +2056,16 @@ __factories["./src/conventions/extract"] = function(module, exports) {
 
   /**
    * Classify a file's base name (without extension) into a naming style.
+   *
+   * A single lowercase word (`user`, `index`, `loader`) is classified
+   * `single-word`, NOT `camelCase`: it has no case boundary or separator, so it is
+   * compatible with camelCase, kebab-case AND snake_case at once and expresses no
+   * distinguishable convention. `scoreConvention` treats it as style-neutral
+   * (excluded), so a repo of single-word files reports "unknown" rather than a
+   * spurious "100% camelCase".
+   *
    * @param {string} basename a file basename, e.g. "user-service.ts"
-   * @returns {'PascalCase'|'camelCase'|'kebab-case'|'snake_case'|'other'}
+   * @returns {'PascalCase'|'camelCase'|'kebab-case'|'snake_case'|'single-word'|'other'}
    */
   function classifyNaming(basename) {
     let stem = String(basename || '');
@@ -2068,7 +2076,7 @@ __factories["./src/conventions/extract"] = function(module, exports) {
     if (/[_]/.test(stem) && /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(stem)) return 'snake_case';
     if (/^[A-Z][A-Za-z0-9]*$/.test(stem) && /[a-z]/.test(stem)) return 'PascalCase';
     if (/^[a-z][A-Za-z0-9]*$/.test(stem) && /[A-Z]/.test(stem)) return 'camelCase';
-    if (/^[a-z][a-z0-9]*$/.test(stem)) return 'camelCase'; // single lowercase word
+    if (/^[a-z][a-z0-9]*$/.test(stem)) return 'single-word'; // style-neutral (no case boundary)
     return 'other';
   }
 
@@ -2091,7 +2099,9 @@ __factories["./src/conventions/extract"] = function(module, exports) {
     let total = 0;
     for (let i = 0; i < all.length; i++) {
       const l = all[i];
-      if (l == null || l === 'other') continue;
+      // 'other' = unclassifiable; 'single-word' = style-neutral. Both express no
+      // distinguishable convention and are excluded from the score.
+      if (l == null || l === 'other' || l === 'single-word') continue;
       total++;
       counts.set(l, (counts.get(l) || 0) + 1);
       if (refs && refs[i] != null) {
@@ -2259,7 +2269,10 @@ __factories["./src/conventions/fix"] = function(module, exports) {
       if (TEST_RE.test(f)) continue;
       const base = path.basename(f);
       const style = classifyNaming(base);
-      if (style === 'other' || style === dominant) continue;
+      // Skip unclassifiable ('other') and style-neutral single-word names — a
+      // single lowercase word already satisfies any convention, so renaming it
+      // (e.g. user.js → user.js) is a no-op at best and noise at worst.
+      if (style === 'other' || style === 'single-word' || style === dominant) continue;
       const rel = path.relative(cwd, f).replace(/\\/g, '/');
       renames.push({ from: rel, to: _renamePath(rel, dominant), fromStyle: style });
     }
@@ -6071,6 +6084,7 @@ __factories["./src/extractors/java"] = function(module, exports) {
 __factories["./src/extractors/javascript"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
 
   /**
    * Extract signatures from JavaScript source code.
@@ -6150,9 +6164,8 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
     }
 
-    return sigs
-      .map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s))
-      .slice(0, 25);
+    const withAnchors = sigs.map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s));
+    return capWithNotice(withAnchors, 25, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -6183,7 +6196,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       const retStr = formatReturnHint(returnHints.get(m[1]));
       members.push({ text: `${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`, start, end });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, 8, 'methods');
   }
 
   function buildReturnHints(src) {
@@ -8063,6 +8076,7 @@ __factories["./src/extractors/toml"] = function(module, exports) {
 __factories["./src/extractors/typescript"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
 
   /**
    * Extract signatures from TypeScript source code.
@@ -8214,9 +8228,8 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     }
 
-    return sigs
-      .map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s))
-      .slice(0, 35);
+    const withAnchors = sigs.map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s));
+    return capWithNotice(withAnchors, 35, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -8246,7 +8259,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
       members.push({ text: `${m[1]}(${normalizeParams(m[2])})`, start, end: m.index + m[0].length });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, 8, 'members');
   }
 
   const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'catch', 'finally', 'else', 'return']);
@@ -8272,7 +8285,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       const retStr = retType ? ` → ${retType}` : '';
       members.push({ text: `${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`, start, end });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, 8, 'methods');
   }
 
   function normalizeParams(params) {
@@ -10232,6 +10245,28 @@ __factories["./src/graph/builder"] = function(module, exports) {
   const R_EXTS   = new Set(['.r', '.R']);
 
   /**
+   * Probe an absolute base path for a JS/TS module file in fileSet, trying the
+   * usual extension and index-file candidates.
+   * @param {string} base - absolute path (no extension) to probe
+   * @param {Set<string>} fileSet
+   * @returns {string|null}
+   */
+  function probeJs(base, fileSet) {
+    const candidates = [
+      base,
+      base + '.ts', base + '.tsx',
+      base + '.js', base + '.jsx', base + '.mjs', base + '.cjs',
+      path.join(base, 'index.ts'), path.join(base, 'index.tsx'),
+      path.join(base, 'index.js'), path.join(base, 'index.jsx'),
+    ];
+    for (const c of candidates) {
+      const normC = normalizePath(c);
+      if (fileSet.has(normC)) return normC;
+    }
+    return null;
+  }
+
+  /**
    * Resolve a JS/TS relative import string to an absolute path in fileSet.
    * @param {string} dir - directory of the importing file
    * @param {string} importStr - raw import string (e.g. './utils', '../store')
@@ -10239,17 +10274,91 @@ __factories["./src/graph/builder"] = function(module, exports) {
    * @returns {string|null}
    */
   function resolveJsPath(dir, importStr, fileSet) {
-    const base = path.resolve(dir, importStr);
-    const candidates = [
-      base,
-      base + '.ts', base + '.tsx',
-      base + '.js', base + '.jsx', base + '.mjs', base + '.cjs',
-      path.join(base, 'index.ts'),
-      path.join(base, 'index.js'),
-    ];
-    for (const c of candidates) {
-      const normC = normalizePath(c);
-      if (fileSet.has(normC)) return normC;
+    return probeJs(path.resolve(dir, importStr), fileSet);
+  }
+
+  /**
+   * Strip comments and trailing commas so a tsconfig/jsconfig (JSONC) parses.
+   * Deliberately conservative — leaves string contents alone.
+   */
+  function stripJsonc(src) {
+    let out = '';
+    let inStr = false, quote = '', inLine = false, inBlock = false;
+    for (let i = 0; i < src.length; i++) {
+      const c = src[i], n = src[i + 1];
+      if (inLine) { if (c === '\n') { inLine = false; out += c; } continue; }
+      if (inBlock) { if (c === '*' && n === '/') { inBlock = false; i++; } continue; }
+      if (inStr) { out += c; if (c === '\\') { out += (n || ''); i++; } else if (c === quote) inStr = false; continue; }
+      if (c === '"' || c === "'") { inStr = true; quote = c; out += c; continue; }
+      if (c === '/' && n === '/') { inLine = true; i++; continue; }
+      if (c === '/' && n === '*') { inBlock = true; i++; continue; }
+      out += c;
+    }
+    // remove trailing commas before } or ]
+    return out.replace(/,(\s*[}\]])/g, '$1');
+  }
+
+  /**
+   * Load the JS/TS path-alias map from tsconfig.json / jsconfig.json.
+   * Resolves `compilerOptions.paths` and `baseUrl` into absolute target bases so
+   * bare/aliased imports (e.g. `@/utils`, `components/Button`) can be resolved to
+   * on-disk files. Returns null when no config or no aliasing is configured.
+   *
+   * @param {string} cwd
+   * @returns {{ baseUrl: string|null, entries: Array<{prefix:string,wildcard:boolean,targets:string[]}> }|null}
+   */
+  function loadAliasMap(cwd) {
+    if (!cwd) return null;
+    for (const name of ['tsconfig.json', 'jsconfig.json']) {
+      let json;
+      try { json = JSON.parse(stripJsonc(fs.readFileSync(path.join(cwd, name), 'utf8'))); }
+      catch (_) { continue; }
+      const co = (json && json.compilerOptions) || {};
+      const baseUrl = co.baseUrl ? path.resolve(cwd, co.baseUrl) : null;
+      const base = baseUrl || cwd;
+      const entries = [];
+      for (const [pattern, targets] of Object.entries(co.paths || {})) {
+        const wildcard = pattern.includes('*');
+        const prefix = pattern.replace(/\*.*$/, '');
+        const tgs = (Array.isArray(targets) ? targets : [])
+          .map((t) => path.resolve(base, String(t).replace(/\*.*$/, '')));
+        if (tgs.length) entries.push({ prefix, wildcard, targets: tgs });
+      }
+      if (baseUrl || entries.length) return { baseUrl, entries };
+      return null;
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a non-relative JS/TS import specifier through the alias map.
+   * @param {string} spec - e.g. '@/utils', '@app/Button', 'components/Nav'
+   * @param {object|null} aliasMap - from loadAliasMap
+   * @param {Set<string>} fileSet
+   * @returns {string|null}
+   */
+  function resolveAlias(spec, aliasMap, fileSet) {
+    if (!aliasMap) return null;
+    for (const e of aliasMap.entries) {
+      if (e.wildcard) {
+        if (spec.startsWith(e.prefix)) {
+          const rest = spec.slice(e.prefix.length);
+          for (const t of e.targets) {
+            const r = probeJs(rest ? path.join(t, rest) : t, fileSet);
+            if (r) return r;
+          }
+        }
+      } else if (spec === e.prefix) {
+        for (const t of e.targets) {
+          const r = probeJs(t, fileSet);
+          if (r) return r;
+        }
+      }
+    }
+    // Bare import resolved from baseUrl (tsconfig baseUrl without an explicit alias).
+    if (aliasMap.baseUrl) {
+      const r = probeJs(path.join(aliasMap.baseUrl, spec), fileSet);
+      if (r) return r;
     }
     return null;
   }
@@ -10299,21 +10408,29 @@ __factories["./src/graph/builder"] = function(module, exports) {
 
     // ── JS / TS ───────────────────────────────────────────────────────────────
     if (JS_EXTS.has(ext)) {
+      const aliasMap = ctx && ctx.aliasMap;
+      // Resolve any specifier: relative → dir-relative; otherwise via tsconfig/
+      // jsconfig path aliases + baseUrl. Bare npm packages (react, lodash) fall
+      // through to null because they are not in fileSet, so no false edges.
+      const resolveSpec = (spec) => spec.startsWith('.')
+        ? resolveJsPath(dir, spec, fileSet)
+        : resolveAlias(spec, aliasMap, fileSet);
+
       const stripped = content
         .replace(/\/\/.*$/gm, '')
         .replace(/\/\*[\s\S]*?\*\//g, '');
 
-      // ES imports:   import ... from './foo'  or  import './side-effect'
-      const reEs = /(?:^|[\r\n])\s*import\s+(?:[^'";\r\n]*?\s+from\s+)?['"](\.[^'"]+)['"]/g;
       let m;
+      // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
+      const reEs = /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
       while ((m = reEs.exec(stripped)) !== null) {
-        const r = resolveJsPath(dir, m[1], fileSet);
+        const r = resolveSpec(m[1]);
         if (r) found.push(r);
       }
-      // CommonJS: __require('./src/graph/foo')
-      const reCjs = /\brequire\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g;
-      while ((m = reCjs.exec(stripped)) !== null) {
-        const r = resolveJsPath(dir, m[1], fileSet);
+      // CommonJS require('x') and dynamic import('x').
+      const reCall = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+      while ((m = reCall.exec(stripped)) !== null) {
+        const r = resolveSpec(m[1]);
         if (r) found.push(r);
       }
     }
@@ -10485,6 +10602,10 @@ __factories["./src/graph/builder"] = function(module, exports) {
     const fileSet = new Set(files.map((f) => path.resolve(f)));
     // Create a normalized version for cross-platform case-insensitive lookups
     const fileSetNormalized = new Set([...fileSet].map(normalizePath));
+    // Resolve the JS/TS path-alias map once (tsconfig/jsconfig paths + baseUrl),
+    // unless a caller supplied one explicitly via ctx.
+    const aliasMap = (ctx && 'aliasMap' in ctx) ? ctx.aliasMap : loadAliasMap(cwd);
+    const effectiveCtx = Object.assign({}, ctx, { aliasMap });
     const forward = new Map();
     const reverse = new Map();
 
@@ -10505,7 +10626,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
       }
 
       const normFilePath = normalizePath(filePath);
-      const deps = extractFileDeps(filePath, content, fileSetNormalized, cwd, ctx);
+      const deps = extractFileDeps(filePath, content, fileSetNormalized, cwd, effectiveCtx);
       if (deps.length > 0) {
         forward.set(normFilePath, deps);
         for (const dep of deps) {
@@ -10584,7 +10705,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     return build(files, cwd, ctx);
   }
 
-  module.exports = { build, buildFromCwd, extractFileDeps, normalizePath };
+  module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias };
   
 };
 
@@ -11182,11 +11303,11 @@ __factories["./src/graph/impact"] = function(module, exports) {
     lines.push('');
 
     if (result.direct.length === 0 && result.transitive.length === 0) {
-      lines.push('_No files import this file — zero blast radius._');
+      lines.push('_No importers found via relative + aliased imports (lower bound — dynamic/computed imports are not tracked)._');
       return lines.join('\n');
     }
 
-    lines.push(`**Total impacted files:** ${result.totalImpact}`);
+    lines.push(`**Total impacted files:** ${result.totalImpact} _(lower bound — resolves relative + tsconfig/jsconfig-aliased imports)_`);
     lines.push('');
 
     if (result.direct.length > 0) {
@@ -11241,155 +11362,230 @@ __factories["./src/graph/impact"] = function(module, exports) {
 __factories["./src/health/scorer"] = function(module, exports) {
   
   /**
-   * SigMap health scorer.
+   * SigMap health scorer (v8.11 — auditable composite).
    *
-   * Computes a composite 0-100 health score for the current project by combining:
-   *   1. Days since context file was last regenerated  (staleness penalty ≤ 30 pts)
-   *   2. Average token reduction percentage             (low-reduction penalty 20 pts)
-   *   3. Over-budget run rate                           (budget penalty 20 pts)
+   * Computes a 0-100 health score for a project. Every deduction is recorded in a
+   * `components[]` breakdown so the number is auditable (which signal cost what),
+   * and purely-informational metrics live under `diagnostics` rather than being
+   * dressed up as if they affect the grade.
    *
-   * Strategy-aware: thresholds adjust based on the active strategy so that
-   * hot-cold (90% reduction intentional) is not penalized as 'low reduction'.
+   * Scored signals (each appears in `components` only when it fires):
+   *   1. context never generated  — no adapter output exists though source does  (45 pts)
+   *   2. staleness                — freshest adapter output older than 7 days     (≤30 pts)
+   *   3. low token reduction      — avg reduction under threshold (full strategy) (20 pts)
+   *   4. cold-context staleness   — hot-cold context-cold.md older than 1 day     (≤10 pts)
+   *   5. over-budget rate         — >20% of runs exceeded the token budget        (20 pts)
+   *   6. sustained over-budget    — ≥3 consecutive over-budget runs               (5 pts)
    *
-   * Grade scale:  A ≥ 90  |  B ≥ 75  |  C ≥ 60  |  D < 60
+   * Diagnostics (informational, NOT scored): p50/p95 token count, and
+   * languageCoverage (share of SigMap's supported languages present in the repo —
+   * this is language diversity, not extractor quality, and was previously
+   * mislabeled "extractorCoverage").
    *
-   * Never throws — returns graceful result with nulls for unavailable metrics.
+   * Freshness looks at the freshest of ANY adapter output (not just Copilot), so a
+   * Claude/Codex/Cursor user is not falsely flagged as "never generated".
    *
-   * @param {string} cwd - Working directory (root of the project)
-   * @returns {{
-   *   score: number,
-   *   grade: 'A'|'B'|'C'|'D',
-   *   strategy: string,
-   *   tokenReductionPct: number|null,
-   *   daysSinceRegen: number|null,
-   *   strategyFreshnessDays: number|null,
-   *   totalRuns: number,
-   *   overBudgetRuns: number,
-   * }}
+   * Grade scale:  A ≥ 90 | B ≥ 75 | C ≥ 60 | D < 60. Never throws.
+   *
+   * @param {string} cwd
+   * @returns {object} { score, grade, components, strategy, tokenReductionPct,
+   *   daysSinceRegen, strategyFreshnessDays, totalRuns, overBudgetRuns,
+   *   overBudgetStreak, languageCoverage, extractorCoverage, diagnostics }
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  // Every path a SigMap adapter may write context to (freshness looks at the
+  // freshest existing one). Mirrors the ranker's adapter-output probe order.
+  const CONTEXT_FILES = [
+    ['.github', 'copilot-instructions.md'],
+    ['CLAUDE.md'],
+    ['AGENTS.md'],
+    ['.cursorrules'],
+    ['.windsurfrules'],
+    ['.github', 'openai-context.md'],
+    ['.github', 'gemini-context.md'],
+    ['llm-full.txt'],
+    ['llm.txt'],
+  ];
+
+  function gradeFor(points) {
+    if (points >= 90) return 'A';
+    if (points >= 75) return 'B';
+    if (points >= 60) return 'C';
+    return 'D';
+  }
+
+  /**
+   * Pure scoring core. Given gathered signals, return the score, grade, and the
+   * labeled list of deductions. No IO — unit-testable in isolation.
+   *
+   * @param {object} s gathered signals
+   * @returns {{ score:number, grade:'A'|'B'|'C'|'D', components:Array }}
+   */
+  function composeHealth(s) {
+    const components = [];
+    const add = (id, label, penalty, detail) => {
+      const p = Math.round(penalty);
+      if (p > 0) components.push({ id, label, penalty: p, detail });
+    };
+
+    // 1. Context never generated — a project with source files but no context of
+    //    any kind is not "healthy"; it hasn't been set up. Gated on hasSource so
+    //    an empty/new directory is not penalised for having nothing to index.
+    if (s.daysSinceRegen === null && s.hasSource) {
+      add('not-generated', 'context never generated', 45,
+        'no adapter output found — run `sigmap` to generate context');
+    }
+
+    // 2. Staleness — freshest adapter output older than the 7-day window.
+    if (s.daysSinceRegen !== null && s.daysSinceRegen > 7) {
+      add('staleness', 'context stale', Math.min(30, Math.floor((s.daysSinceRegen - 7) * 4)),
+        `${s.daysSinceRegen}d since last regen (>7d)`);
+    }
+
+    // 3. Low token reduction — only meaningful for the 'full' strategy; hot-cold
+    //    and per-module intentionally produce small/partial outputs.
+    const reductionThreshold = s.strategy === 'full' ? 60 : 0;
+    if (s.tokenReductionPct !== null && s.tokenReductionPct < reductionThreshold) {
+      add('low-reduction', 'low token reduction', 20,
+        `${s.tokenReductionPct}% avg reduction (<${reductionThreshold}%)`);
+    }
+
+    // 4. Cold-context staleness (hot-cold only).
+    if (s.strategy === 'hot-cold' && s.strategyFreshnessDays !== null && s.strategyFreshnessDays > 1) {
+      add('cold-freshness', 'cold context stale', Math.min(10, Math.floor(s.strategyFreshnessDays - 1) * 3),
+        `context-cold.md ${s.strategyFreshnessDays}d old`);
+    }
+
+    // 5. Over-budget rate.
+    if (s.overBudgetRuns > 0 && s.totalRuns > 0) {
+      const rate = (s.overBudgetRuns / s.totalRuns) * 100;
+      if (rate > 20) add('over-budget', 'runs over budget', 20,
+        `${Math.round(rate)}% of runs exceeded budget (>20%)`);
+    }
+
+    // 6. Sustained over-budget streak — previously computed but never scored.
+    if (s.overBudgetStreak >= 3) {
+      add('over-budget-streak', 'sustained over-budget', 5,
+        `${s.overBudgetStreak} consecutive over-budget runs`);
+    }
+
+    const penalty = components.reduce((sum, c) => sum + c.penalty, 0);
+    const score = Math.max(0, Math.min(100, 100 - penalty));
+    return { score, grade: gradeFor(score), components };
+  }
+
+  /**
+   * Gather health signals from disk and score them. Never throws.
+   * @param {string} cwd
    */
   function score(cwd) {
-    const fs = require('fs');
-    const path = require('path');
+    let strategy = 'full';
+    try {
+      const cfgPath = path.join(cwd, 'gen-context.config.json');
+      if (fs.existsSync(cfgPath)) {
+        strategy = JSON.parse(fs.readFileSync(cfgPath, 'utf8')).strategy || 'full';
+      }
+    } catch (_) {}
 
+    // ── Usage-log signals (only present when tracking has recorded runs) ────────
     let tokenReductionPct = null;
-    let daysSinceRegen = null;
-    let strategyFreshnessDays = null;
     let overBudgetRuns = 0;
     let totalRuns = 0;
     let p50TokenCount = 0;
     let p95TokenCount = 0;
     let overBudgetStreak = 0;
-    let extractorCoverage = 0;
-
-    // ── Detect active strategy ────────────────────────────────────────────────
-    let strategy = 'full';
-    try {
-      const cfgPath = path.join(cwd, 'gen-context.config.json');
-      if (fs.existsSync(cfgPath)) {
-        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-        strategy = cfg.strategy || 'full';
-      }
-    } catch (_) {}
-
-    // ── Read usage log via tracking logger ──────────────────────────────────
     try {
       const { readLog, summarize } = __require('./src/tracking/logger');
-      const { percentile, overBudgetStreak: calcOverBudgetStreak } = __require('./src/format/dashboard');
+      const { percentile, overBudgetStreak: calcStreak } = __require('./src/format/dashboard');
       const entries = readLog(cwd);
-      const s = summarize(entries);
-      // Only set tokenReductionPct when there is actual history; a brand-new/
-      // untracked project should not be penalised for "0% reduction".
-      if (s.totalRuns > 0) tokenReductionPct = s.avgReductionPct;
-      overBudgetRuns = s.overBudgetRuns;
-      totalRuns = s.totalRuns;
+      const sum = summarize(entries);
+      if (sum.totalRuns > 0) tokenReductionPct = sum.avgReductionPct;
+      overBudgetRuns = sum.overBudgetRuns;
+      totalRuns = sum.totalRuns;
       const finals = entries.map((e) => Number(e.finalTokens)).filter(Number.isFinite);
       p50TokenCount = Math.round(percentile(finals, 50));
       p95TokenCount = Math.round(percentile(finals, 95));
-      overBudgetStreak = calcOverBudgetStreak(entries);
-    } catch (_) {
-      // No usage log yet — proceed with nulls
-    }
+      overBudgetStreak = calcStreak(entries);
+    } catch (_) {}
 
+    // ── Language coverage (DIAGNOSTIC — share of supported languages present,
+    //    i.e. diversity, not extractor quality). Also yields hasSource. ──────────
+    let languageCoverage = null;
+    let hasSource = false;
     try {
       const { computeExtractorCoverage } = __require('./src/format/dashboard');
-      extractorCoverage = computeExtractorCoverage(cwd).pct;
-    } catch (_) {
-      extractorCoverage = 0;
-    }
+      const cov = computeExtractorCoverage(cwd);
+      languageCoverage = { covered: cov.covered, supported: cov.supported, pct: cov.pct };
+      hasSource = Object.values(cov.perLanguage || {}).some((n) => n > 0);
+    } catch (_) {}
 
-    // ── Days since primary context file was last regenerated ─────────────────
+    // ── Freshness across ALL adapter outputs (freshest wins) ───────────────────
+    let daysSinceRegen = null;
     try {
-      const ctxFile = path.join(cwd, '.github', 'copilot-instructions.md');
-      if (fs.existsSync(ctxFile)) {
-        const mtime = fs.statSync(ctxFile).mtimeMs;
-        daysSinceRegen = parseFloat(((Date.now() - mtime) / (1000 * 60 * 60 * 24)).toFixed(1));
+      let newest = null;
+      for (const parts of CONTEXT_FILES) {
+        const p = path.join(cwd, ...parts);
+        try {
+          if (fs.existsSync(p)) {
+            const m = fs.statSync(p).mtimeMs;
+            if (newest === null || m > newest) newest = m;
+          }
+        } catch (_) {}
+      }
+      if (newest !== null) {
+        daysSinceRegen = parseFloat(((Date.now() - newest) / (1000 * 60 * 60 * 24)).toFixed(1));
       }
     } catch (_) {}
 
-    // ── Strategy freshness: context-cold.md age (hot-cold only) ─────────────
+    // ── Cold-context freshness (hot-cold strategy only) ────────────────────────
+    let strategyFreshnessDays = null;
     if (strategy === 'hot-cold') {
       try {
         const coldFile = path.join(cwd, '.github', 'context-cold.md');
         if (fs.existsSync(coldFile)) {
-          const mtime = fs.statSync(coldFile).mtimeMs;
-          strategyFreshnessDays = parseFloat(((Date.now() - mtime) / (1000 * 60 * 60 * 24)).toFixed(1));
+          const m = fs.statSync(coldFile).mtimeMs;
+          strategyFreshnessDays = parseFloat(((Date.now() - m) / (1000 * 60 * 60 * 24)).toFixed(1));
         }
       } catch (_) {}
     }
 
-    // ── Compute composite score ───────────────────────────────────────────────
-    let points = 100;
-
-    // Staleness penalty: -4 pts per day over the 7-day freshness window (max -30)
-    if (daysSinceRegen !== null && daysSinceRegen > 7) {
-      points -= Math.min(30, Math.floor((daysSinceRegen - 7) * 4));
-    }
-
-    // Low-reduction penalty — threshold depends on strategy:
-    // - hot-cold: primary output is intentionally tiny; measure cold freshness instead
-    // - per-module: per-file budgets; global reduction < 60% expected, no penalty
-    // - full: standard 60% threshold
-    const reductionThreshold = (strategy === 'full') ? 60 : 0; // disable for hot-cold/per-module
-    if (tokenReductionPct !== null && tokenReductionPct < reductionThreshold) {
-      points -= 20;
-    }
-
-    // hot-cold strategy freshness penalty: context-cold.md older than 1 day (-10 pts)
-    if (strategy === 'hot-cold' && strategyFreshnessDays !== null && strategyFreshnessDays > 1) {
-      points -= Math.min(10, Math.floor(strategyFreshnessDays - 1) * 3);
-    }
-
-    // Over-budget penalty: more than 20% of runs exceeded the token budget (-20)
-    if (overBudgetRuns > 0 && totalRuns > 0) {
-      const overBudgetRate = (overBudgetRuns / totalRuns) * 100;
-      if (overBudgetRate > 20) points -= 20;
-    }
-
-    points = Math.max(0, Math.min(100, Math.round(points)));
-
-    let grade;
-    if (points >= 90) grade = 'A';
-    else if (points >= 75) grade = 'B';
-    else if (points >= 60) grade = 'C';
-    else grade = 'D';
+    const { score: points, grade, components } = composeHealth({
+      strategy,
+      daysSinceRegen,
+      strategyFreshnessDays,
+      tokenReductionPct,
+      overBudgetRuns,
+      totalRuns,
+      overBudgetStreak,
+      hasSource,
+    });
 
     return {
       score: points,
       grade,
+      components,
       strategy,
       tokenReductionPct,
       daysSinceRegen,
       strategyFreshnessDays,
       totalRuns,
       overBudgetRuns,
+      overBudgetStreak,
+      languageCoverage,
+      // Back-compat top-level fields (also surfaced, honestly grouped, under
+      // `diagnostics`). `extractorCoverage` keeps its old name but its value is
+      // language-diversity pct (never extractor quality) — prefer `languageCoverage`.
       p50TokenCount,
       p95TokenCount,
-      overBudgetStreak,
-      extractorCoverage,
+      extractorCoverage: languageCoverage ? languageCoverage.pct : 0,
+      diagnostics: { p50TokenCount, p95TokenCount, languageCoverage },
     };
   }
 
-  module.exports = { score };
+  module.exports = { score, composeHealth };
   
 };
 
@@ -11462,6 +11658,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { boostFiles, normalizeFile, penalizeFiles } = __require('./src/learning/weights');
+  const parsers = __require('./src/verify/parsers');
 
   const STOP = new Set([
     'the','a','an','in','on','at','to','of','for','and','or','but',
@@ -11482,6 +11679,57 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     if (respTokens.length === 0) return 0;
     const matched = respTokens.filter((t) => ctxTokens.has(t));
     return parseFloat((matched.length / respTokens.length).toFixed(3));
+  }
+
+  /**
+   * Claim-level grounding (v8.10) — the structural half of the judge.
+   *
+   * `groundedness` above measures lexical *word* overlap: "does the answer reuse
+   * context vocabulary?" That is a weak proxy — an answer can echo context words
+   * while asserting a symbol, file, or import the context never mentions (a
+   * hallucination), and still score high. This function extracts the answer's
+   * *concrete, checkable claims* — the same high-precision claims the hallucination
+   * guard checks (backtick-wrapped `foo()` calls, `path/to/file.ext` references,
+   * and `import … from 'mod'` statements) — and verifies each one appears in the
+   * provided context. A claim the context never grounds is a hallucination signal
+   * that pure word-overlap cannot see.
+   *
+   * Deterministic, offline, zero-dependency. Reuses `src/verify/parsers`.
+   *
+   * @param {string} response
+   * @param {string} context
+   * @returns {{ total: number, grounded: number, ungrounded: Array<{kind:string, value:string}> }}
+   */
+  function claimGrounding(response, context) {
+    if (!response || !context) return { total: 0, grounded: 0, ungrounded: [] };
+    const ctxLower = context.toLowerCase();
+
+    const raw = [];
+    for (const s of parsers.extractSymbols(response)) raw.push({ kind: 'symbol', value: s.name });
+    for (const f of parsers.extractFilePaths(response)) raw.push({ kind: 'file', value: f.path });
+    for (const i of parsers.extractImports(response)) raw.push({ kind: 'import', value: i.module });
+
+    const seen = new Set();
+    const claims = raw.filter((c) => {
+      const key = `${c.kind}::${c.value}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const ungrounded = [];
+    let grounded = 0;
+    for (const c of claims) {
+      // A file claim is grounded if its basename appears in context (the answer
+      // may cite a different directory than the map records). Symbols and modules
+      // are matched on the token itself.
+      const needle = c.value.toLowerCase();
+      const base = c.kind === 'file' ? (c.value.split('/').pop() || c.value).toLowerCase() : needle;
+      if (ctxLower.includes(base) || ctxLower.includes(needle)) grounded++;
+      else ungrounded.push({ kind: c.kind, value: c.value });
+    }
+
+    return { total: claims.length, grounded, ungrounded };
   }
 
   const GENERIC_MARKERS = [
@@ -11535,8 +11783,16 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       }
     }
 
+    // Structural claim grounding: any concrete symbol/file/import the answer
+    // states that the context never mentions is a hallucination the lexical
+    // score above cannot detect. Each ungrounded claim fails the verdict.
+    const claims = claimGrounding(response, context);
+    for (const c of claims.ungrounded) {
+      reasons.push(`${c.kind} claim not grounded in context: ${c.value}${c.kind === 'symbol' ? '()' : ''}`);
+    }
+
     const verdict = score >= threshold && reasons.length === 0 ? 'pass' : 'fail';
-    const result = { score, verdict, reasons };
+    const result = { score, verdict, reasons, claims };
 
     if (opts.learn) {
       const learning = {
@@ -11578,7 +11834,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     return result;
   }
 
-  module.exports = { groundedness, judge };
+  module.exports = { groundedness, claimGrounding, judge };
   
 };
 
@@ -13694,7 +13950,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.9.1',
+    version: '8.10.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -14292,7 +14548,7 @@ __factories["./src/plan/planner"] = function(module, exports) {
 
   module.exports = { createPlan };
 
-  function createPlan(goal, cwd, config) {
+  function createPlan(goal, cwd, config = {}) {
     // Step 1: Detect intent and rank files for the goal
     const intent = detectIntent(goal);
     const sigIndex = buildSigIndex(cwd);
@@ -14306,30 +14562,59 @@ __factories["./src/plan/planner"] = function(module, exports) {
     const highConf = ranked.filter(r => r.confidence === 'high').slice(0, 5);
     const medConf = ranked.filter(r => r.confidence === 'medium').slice(0, 5);
 
-    // Step 3: Compute impact radius for highest-confidence file
+    // Step 3: Impact radius — union the reverse-dependency blast radius of EVERY
+    // high-confidence file (not just the top one), bounded to 3 hops. Note the
+    // dependency graph resolves relative imports only, so this is a *lower bound*
+    // on real coupling (aliased/bare/dynamic imports are invisible). Previously
+    // this passed `{ maxDepth: 3 }`, which getImpact ignores — it reads `depth`,
+    // so the traversal silently ran unbounded (depth 0). Fixed to `depth: 3`.
     let impact = null;
     if (highConf.length > 0) {
-      const entryFile = highConf[0].file;
       try {
         const graph = buildFromCwd(cwd);
-        impact = getImpact(entryFile, graph, { maxDepth: 3, cwd });
+        // getImpact normalizes graph paths to lowercase, so on a case-varying
+        // filesystem (e.g. macOS `/Users`) its returned paths climb out of cwd.
+        // Re-anchor every impacted path to a clean, case-insensitive repo-relative
+        // form so dedup against the entry set works and output is readable.
+        const clean = (f) => {
+          const abs = path.resolve(cwd, f);
+          return abs.toLowerCase().startsWith(cwd.toLowerCase())
+            ? abs.slice(cwd.length).replace(/^[/\\]/, '')
+            : path.relative(cwd, abs);
+        };
+        const entrySet = new Set(highConf.map(r => r.file));
+        const direct = new Set();
+        const transitive = new Set();
+        for (const r of highConf) {
+          const imp = getImpact(r.file, graph, { depth: 3, cwd });
+          for (const f of (imp.direct || [])) direct.add(clean(f));
+          for (const f of (imp.transitive || [])) transitive.add(clean(f));
+        }
+        // The files we plan to change are not their own blast radius; and a file
+        // reached directly from one entry outranks a transitive reach from another.
+        for (const e of entrySet) { direct.delete(e); transitive.delete(e); }
+        for (const f of direct) transitive.delete(f);
+        impact = { direct: [...direct], transitive: [...transitive] };
       } catch (_) {
         // Graph build failed, continue without impact
       }
     }
 
-    // Step 4: Identify likely-affected tests
-    let testedFiles = [];
+    // Step 4: Flag which files-to-inspect have detectable test coverage. The test
+    // index maps test-*name tokens*, not test files, so `isTested` can only tell
+    // us a source file is covered — it cannot name the test file. We therefore
+    // report the covered SOURCE files honestly rather than pretending to list the
+    // tests to run.
+    let coveredFiles = [];
     try {
       const testIndex = buildTestIndex(cwd, config.testDirs || ['test', 'tests', '__tests__', 'spec']);
-      testedFiles = highConf.filter(r => {
-        const sigs = r.sigs || [];
-        const fnNames = sigs.map(s => {
+      coveredFiles = highConf.filter(r => {
+        const fnNames = (r.sigs || []).map(s => {
           const m = s.match(/(?:function|def|fn)\s+(\w+)/);
           return m ? m[1] : null;
         }).filter(Boolean);
         return fnNames.some(fn => isTested(fn, testIndex));
-      });
+      }).map(r => r.file);
     } catch (_) {
       // Coverage index failed, continue without test info
     }
@@ -14339,11 +14624,11 @@ __factories["./src/plan/planner"] = function(module, exports) {
       intent,
       inspectFirst: highConf.map(r => r.file),
       likelyToChange: medConf.map(r => r.file),
-      impactRadius: impact ? {
-        direct: [...(impact.direct || [])],
-        transitive: [...(impact.transitive || [])],
-      } : null,
-      testsAffected: testedFiles.map(r => r.file),
+      impactRadius: impact,
+      coveredFiles,
+      // `testsAffected` retained for backward compatibility; it is the set of
+      // covered source files, NOT the test files (which the index cannot name).
+      testsAffected: coveredFiles,
     };
   }
   
@@ -15392,7 +15677,8 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       L.push('### Review findings');
       for (const f of evidence.review.findings) {
         if (f.type === 'missing-tests') L.push(`- ⚠️ **missing tests** — \`${f.file}\` changed with no matching test`);
-        else if (f.type === 'security-file') L.push(`- ⚠️ **security-sensitive file** — \`${f.file}\``);
+        else if (f.type === 'security-file') L.push(`- ⚠️ **sensitive path touched** (path heuristic, not a content scan) — \`${f.file}\``);
+        else if (f.type === 'secret-detected') L.push(`- 🔑 **secret detected** (${f.secret}) — \`${f.file}\``);
         else if (f.type === 'god-node') L.push(`- ⚠️ **god node** — \`${f.file}\` → ${f.count} dependents (high blast radius)`);
         else if (f.type === 'scope-drift') L.push(`- ⚠️ **scope drift** — ${f.count} top-level dirs touched (${f.dirs.join(', ')})`);
       }
@@ -15447,8 +15733,10 @@ __factories["./src/review/review-pr"] = function(module, exports) {
    * zero-dependency, bundle-safe; reuses the impact graph for blast radius.
    */
 
+  const fs = require('fs');
   const path = require('path');
   const { analyzeImpact } = __require('./src/graph/impact');
+  const { PATTERNS } = __require('./src/security/patterns');
 
   const SECURITY_PATTERNS = [
     /(^|\/)\.env(\.|$)/i,
@@ -15499,10 +15787,30 @@ __factories["./src/review/review-pr"] = function(module, exports) {
       if (!covered) findings.push({ type: 'missing-tests', file: s, severity: 'warn' });
     }
 
-    // 2. Security-sensitive files.
+    // 2a. Sensitive-path heuristic — flags files whose PATH looks security-relevant
+    // (.env, auth/, lockfiles, workflows, key material). This is a path heuristic,
+    // NOT a content scan: it flags touching the path regardless of what changed,
+    // and cannot see a secret hidden in an innocently-named file. `basis` records
+    // that honestly so consumers don't mistake it for a content check.
     for (const f of live) {
       if (SECURITY_PATTERNS.some((re) => re.test(f.path))) {
-        findings.push({ type: 'security-file', file: f.path, severity: 'warn' });
+        findings.push({ type: 'security-file', file: f.path, severity: 'warn', basis: 'path-heuristic' });
+      }
+    }
+
+    // 2b. Real secret scan — read each changed file's CONTENT and match known
+    // secret patterns. This is the actual security check (content, not filename):
+    // it catches a hardcoded key in a file the path heuristic would never flag.
+    const readFile = opts.readFile || ((p) => fs.readFileSync(path.resolve(cwd, p), 'utf8'));
+    for (const f of live) {
+      let content;
+      try { content = readFile(f.path); } catch (_) { continue; } // absent/unreadable → skip
+      if (typeof content !== 'string' || content.length > 2_000_000) continue; // skip huge/binary
+      for (const pat of PATTERNS) {
+        if (pat.regex.test(content)) {
+          findings.push({ type: 'secret-detected', file: f.path, secret: pat.name, severity: 'high', basis: 'content-scan' });
+          break; // one hit is enough to flag the file
+        }
       }
     }
 
@@ -17122,6 +17430,52 @@ __factories["./src/util/git"] = function(module, exports) {
   
 };
 
+// ── ./src/util/truncate ──
+__factories["./src/util/truncate"] = function(module, exports) {
+  
+  /**
+   * Visible truncation for extractor caps (v8.11).
+   *
+   * Extractors cap per-file signatures and per-class members to protect the token
+   * budget. Historically that truncation was SILENT — the tail of a large file
+   * simply vanished with no trace, so "5 of 40 methods extracted" looked identical
+   * to "fully extracted". These helpers keep the cap but append a visible marker
+   * so the loss is always disclosed.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  /**
+   * Cap a string array, appending a `… +N more <label>` marker when items drop.
+   * @param {string[]} items
+   * @param {number} limit
+   * @param {string} label e.g. 'signatures'
+   * @returns {string[]}
+   */
+  function capWithNotice(items, limit, label) {
+    if (!Array.isArray(items) || items.length <= limit) return items;
+    const dropped = items.length - limit;
+    return items.slice(0, limit).concat(`… +${dropped} more ${label}`);
+  }
+
+  /**
+   * Cap an array of member objects ({ text, ... }), appending a marker member
+   * when items drop so the class block discloses the omission.
+   * @param {Array<{text:string}>} members
+   * @param {number} limit
+   * @param {string} [label='methods']
+   * @returns {Array<{text:string}>}
+   */
+  function capMembersWithNotice(members, limit, label = 'methods') {
+    if (!Array.isArray(members) || members.length <= limit) return members;
+    const dropped = members.length - limit;
+    return members.slice(0, limit).concat({ text: `… +${dropped} more ${label}`, start: 0, end: 0 });
+  }
+
+  module.exports = { capWithNotice, capMembersWithNotice };
+  
+};
+
 // ── ./src/verify/closest-match ──
 __factories["./src/verify/closest-match"] = function(module, exports) {
   
@@ -18286,7 +18640,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.9.1';
+const VERSION = '8.10.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -20292,15 +20646,9 @@ function registerMcp(cwd, scriptPath) {
 // ---------------------------------------------------------------------------
 // v4.2 helpers
 // ---------------------------------------------------------------------------
-const MODEL_COSTS = {
-  'gpt-4':             0.030,
-  'gpt-4o':            0.005,
-  'gpt-4o-mini':       0.000150,
-  'claude-3-5-sonnet': 0.003,
-  'claude-3-haiku':    0.00025,
-  'claude-opus-4':     0.015,
-  'gemini-1.5-pro':    0.00125,
-};
+// Pricing lives in src/tracking/pricing.js (the verified, single-source table
+// shared with the `gain` dashboard). The old inline MODEL_COSTS table was
+// removed — it disagreed with pricing.js (e.g. gpt-4o at $5 vs $2.50 /Mtok).
 
 function buildMiniContext(ranked, cwd) {
   const lines = ['# SigMap Query Context', `Generated: ${new Date().toISOString()}`, ''];
@@ -20671,8 +21019,14 @@ function main() {
     }
     if (rawTok === 0) rawTok = getRawTokenCount(cwd, config);
     const savings = rawTok > 0 ? Math.round((1 - ctxTok / rawTok) * 100) : 0;
-    const model = args[args.indexOf('--model') + 1] || 'gpt-4o';
-    const rateK = MODEL_COSTS[model] || MODEL_COSTS['gpt-4o'];
+    const __mIdx = args.indexOf('--model');
+    const model = (__mIdx !== -1 && args[__mIdx + 1] && !args[__mIdx + 1].startsWith('--')) ? args[__mIdx + 1] : 'gpt-4o';
+    // Single source of truth for pricing — the verified pricing.js table, shared
+    // with the `gain` dashboard (previously an inline MODEL_COSTS table disagreed
+    // with it, e.g. gpt-4o priced at $5/Mtok here vs $2.50/Mtok there).
+    const { resolvePrice: __resolvePrice } = requireSourceOrBundled('./src/tracking/pricing');
+    const __price = __resolvePrice(model);
+    const rateK = __price.perMtok / 1000; // USD per 1K tokens
     const costRaw = ((rawTok / 1000) * rateK).toFixed(4);
     const costCtx = ((ctxTok / 1000) * rateK).toFixed(4);
 
@@ -20682,6 +21036,8 @@ function main() {
       process.stdout.write(JSON.stringify({
         intent, coverage: coveragePct, contextTokens: ctxTok,
         costBefore: costRaw, costAfter: costCtx, savingsPct: savings,
+        pricedModel: __price.model,
+        costBasis: 'estimate — counterfactual = full content of ranked files; input tokens only',
         riskLevel, contextPath: path.relative(cwd, outPath),
       }) + '\n');
     } else {
@@ -20697,6 +21053,7 @@ function main() {
         ` Coverage  : ${coveragePct}%`,
         ` Risk      : ${riskLevel}`,
         ` Cost      : $${costCtx}/query  (was $${costRaw} · saved ${savings}%)`,
+        ` ${' '.repeat(9)} est. @ ${__price.model} $${__price.perMtok}/Mtok input; "was" = full ranked files`,
         bar,
       ].join('\n'));
     }
@@ -20825,21 +21182,57 @@ function main() {
     process.exit(0);
   }
 
-  // v4.2: `sigmap suggest-profile` — auto-detect task type from git state
+  // v4.2: `sigmap suggest-profile` — infer the task profile from the actual
+  // staged CHANGES (test ratio, breadth, doc/config mix), not just one
+  // commit-message keyword. The commit message is only a secondary disambiguator
+  // for source-focused edits, and the sole (weak) signal when nothing is staged.
   if (args[0] === 'suggest-profile') {
     const short = args.includes('--short');
-    let msg = '', diff = '';
+    let msg = '', diffRaw = '';
     try {
-      msg  = __git(['log', '-1', '--format=%s'],        { cwd, timeout: 3000 }).trim();
-      diff = __git(['diff', '--cached', '--name-only'], { cwd, timeout: 3000 });
+      msg     = __git(['log', '-1', '--format=%s'],        { cwd, timeout: 3000 }).trim();
+      diffRaw = __git(['diff', '--cached', '--name-only'], { cwd, timeout: 3000 });
     } catch (_) {}
 
+    const files = diffRaw.split('\n').map((s) => s.trim()).filter(Boolean);
+    const isTest = (f) => /\.(test|spec)\.[jt]sx?$|(^|\/)test_|_test\.(py|go)$|(^|\/)(tests?|__tests__|spec)\//i.test(f);
+    const isSrc  = (f) => /\.(js|jsx|ts|tsx|mjs|cjs|py|go|rs|java|rb|php)$/i.test(f) && !isTest(f);
+    const isDocCfg = (f) => /\.(md|json|ya?ml|toml|cfg|ini)$/i.test(f) || /(^|\/)\.github\//i.test(f);
+    const fixMsg = /fix|bug|error|crash|exception/i.test(msg);
+    const archMsg = /refactor|architect|redesign|module/i.test(msg);
+
+    const testN = files.filter(isTest).length;
+    const srcN  = files.filter(isSrc).length;
+    const docCfgN = files.filter(isDocCfg).length;
+    const dirs = new Set(files.map((f) => (f.includes('/') ? f.split('/')[0] : '.')));
+
     let profile = 'default';
-    let reason  = 'no strong signal in git state';
-    if      (/fix|bug|error|crash|exception/i.test(msg))         { profile = 'debug';        reason = `commit: "${msg.slice(0, 60)}"`;  }
-    else if (/refactor|architect|redesign|module/i.test(msg))    { profile = 'architecture'; reason = `commit: "${msg.slice(0, 60)}"`;  }
-    else if (/review|pr|pull.request|check/i.test(msg))          { profile = 'review';       reason = `commit: "${msg.slice(0, 60)}"`;  }
-    else if (diff.includes('.spec.') || diff.includes('.test.')) { profile = 'debug';        reason = 'staged test files detected'; }
+    let reason;
+    if (files.length === 0) {
+      if      (fixMsg)  { profile = 'debug';        reason = `no staged files; commit hint: "${msg.slice(0, 50)}"`; }
+      else if (archMsg) { profile = 'architecture'; reason = `no staged files; commit hint: "${msg.slice(0, 50)}"`; }
+      else if (/review|pr|pull.request|check/i.test(msg)) { profile = 'review'; reason = `no staged files; commit hint: "${msg.slice(0, 50)}"`; }
+      else              { reason = 'no staged files and no strong commit-message signal'; }
+    } else if (dirs.size >= 4) {
+      profile = 'architecture';
+      reason  = `changes span ${dirs.size} top-level dirs (${[...dirs].slice(0, 4).join(', ')}…)`;
+    } else if (testN > 0 && testN >= srcN) {
+      profile = 'debug';
+      reason  = `${testN} test file(s) staged (≥ ${srcN} source) — test-driven change`;
+    } else if (srcN === 0 && docCfgN > 0) {
+      profile = 'review';
+      reason  = `only docs/config staged (${docCfgN} file(s)) — meta change`;
+    } else if (srcN > 0 && archMsg) {
+      profile = 'architecture';
+      reason  = `${srcN} source file(s) + refactor-style commit`;
+    } else if (srcN > 0 && fixMsg) {
+      profile = 'debug';
+      reason  = `${srcN} source file(s) + fix-style commit`;
+    } else if (srcN > 0) {
+      reason  = `${srcN} source file(s) staged, no strong task signal`;
+    } else {
+      reason  = 'staged changes do not match a known task profile';
+    }
 
     if (short) {
       console.log(profile);
@@ -20939,61 +21332,57 @@ function main() {
       process.exit(1);
     }
 
-    const { detectIntent, buildSigIndex, rank } = requireSourceOrBundled('./src/retrieval/ranker');
+    const { createPlan } = requireSourceOrBundled('./src/plan/planner');
+    const plan = createPlan(goal, cwd, config);
 
-    const intent = detectIntent(goal);
-    const intentWeights = getIntentWeights(intent);
-
-    const sigIndex = buildSigIndex(cwd);
-    if (sigIndex.size === 0) {
+    if (plan.error) {
       console.error('[sigmap] no context file found. Run: sigmap (to generate first)');
       process.exit(1);
     }
 
-    const ranked = rank(goal, sigIndex, { topK: 15, weights: intentWeights, cwd });
-
-    // Separate into confidence levels
-    const highConf = ranked.filter(r => r.confidence === 'high').slice(0, 5);
-    const medConf = ranked.filter(r => r.confidence === 'medium').slice(0, 5);
-
-    // Compute impact radius (simplified — no graph for now)
-    let impact = null;
-
-    // Identify likely-affected tests (simplified — checks for .test. or .spec. in filename)
-    const testedFiles = highConf.filter(r => /\.(test|spec)\.(js|ts|py)$|_test\.(js|ts|py)$/.test(r.file));
+    const relOf = (f) => path.relative(cwd, path.isAbsolute(f) ? f : path.join(cwd, f));
+    const impact = plan.impactRadius;
 
     if (args.includes('--json')) {
       process.stdout.write(JSON.stringify({
-        goal, intent,
-        inspectFirst: highConf.map(r => r.file),
-        likelyToChange: medConf.map(r => r.file),
+        goal: plan.goal,
+        intent: plan.intent,
+        inspectFirst: plan.inspectFirst,
+        likelyToChange: plan.likelyToChange,
         impactRadius: impact,
-        testsAffected: testedFiles.map(r => r.file),
+        coveredFiles: plan.coveredFiles,
+        testsAffected: plan.testsAffected,
       }, null, 2) + '\n');
     } else {
       const bar = '─'.repeat(50);
       console.log(bar);
       console.log(` sigmap plan  "${goal}"`);
-      console.log(` Intent     : ${intent}`);
+      console.log(` Intent     : ${plan.intent}`);
       console.log(bar);
       console.log('');
       console.log(' Inspect first (highest relevance):');
-      if (highConf.length === 0) {
+      if (plan.inspectFirst.length === 0) {
         console.log('   (no files found)');
       } else {
-        highConf.forEach((r, i) => console.log(`   ${i + 1}. ${path.relative(cwd, r.file)}`));
+        plan.inspectFirst.forEach((f, i) => console.log(`   ${i + 1}. ${relOf(f)}`));
       }
       console.log('');
       console.log(' Likely to change:');
-      if (medConf.length === 0) {
+      if (plan.likelyToChange.length === 0) {
         console.log('   (no files found)');
       } else {
-        medConf.forEach((r, i) => console.log(`   ${i + 1}. ${path.relative(cwd, r.file)}`));
+        plan.likelyToChange.forEach((f, i) => console.log(`   ${i + 1}. ${relOf(f)}`));
       }
-      if (testedFiles.length > 0) {
+      if (impact && (impact.direct.length || impact.transitive.length)) {
         console.log('');
-        console.log(' Tests to run after change:');
-        testedFiles.forEach(r => console.log(`   • ${path.relative(cwd, r.file)}`));
+        console.log(' Impact radius (relative-import dependents, ≤3 hops — lower bound):');
+        impact.direct.forEach(f => console.log(`   • ${relOf(f)}  (direct)`));
+        impact.transitive.forEach(f => console.log(`   • ${relOf(f)}  (transitive)`));
+      }
+      if (plan.coveredFiles.length > 0) {
+        console.log('');
+        console.log(' Files with test coverage (re-run their suites after changing):');
+        plan.coveredFiles.forEach(f => console.log(`   • ${relOf(f)}`));
       }
       console.log('');
       console.log(bar);
@@ -21151,18 +21540,18 @@ function main() {
     }
 
     if (entries.length === 0) {
-      console.log('[sigmap] No learned weights yet. Run: sigmap learn --good <file>');
+      console.log('[sigmap] No manual weights set. Run: sigmap learn --good <file> to boost a file.');
       process.exit(0);
     }
 
-    console.log('[sigmap] Learned file weights (xmultiplier vs baseline):');
+    console.log('[sigmap] Manual file weights — boost/penalty multipliers vs baseline:');
     for (const [file, mult] of entries) {
       const bar = mult >= 1
         ? `+${'█'.repeat(Math.max(1, Math.round((mult - 1) * 10)))}`
         : `-${'░'.repeat(Math.max(1, Math.round((1 - mult) * 10)))}`;
       console.log(`  ${file.padEnd(50)} x${mult.toFixed(2)}  ${bar}`);
     }
-    console.log(`\n  Total files with learned weights: ${entries.length}`);
+    console.log(`\n  ${entries.length} file(s) manually boosted/penalized (set via \`sigmap learn\`; decays toward 1.0 over time — not automatic learning).`);
     console.log('  To reset: sigmap learn --reset');
     process.exit(0);
   }
@@ -21192,7 +21581,17 @@ function main() {
     if (coveragePct < 70)
       warnings.push(`coverage ${coveragePct}% is below recommended 70% — increase maxTokens or expand srcDirs`);
 
-    // Optional query symbol check
+    // Optional query check. Two complementary signals:
+    //  (a) cased-symbol coverage — if the query literally names a camelCase /
+    //      PascalCase symbol (loginUser, AuthMiddleware), confirm it lands in
+    //      the top-5. This is a no-op for lowercase natural-language queries.
+    //  (b) retrieval-confidence report — works for ANY query, including plain
+    //      NL like "login rate limit". Built from the ranker's own score
+    //      distribution: a zero top score means the current context has no
+    //      lexical match at all; a near-tie between rank-1 and rank-2 means the
+    //      ranking is flat and coverage is ambiguous. This replaces the old
+    //      behaviour where an NL query silently produced no output whatsoever.
+    let queryReport = null;
     const valQueryIdx = args.indexOf('--query');
     if (valQueryIdx !== -1) {
       const q = (args[valQueryIdx + 1] || '').trim();
@@ -21200,6 +21599,8 @@ function main() {
         try {
           const { rank, buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
           const ranked = rank(q, buildSigIndex(cwd), { topK: 5, cwd });
+
+          // (a) cased-symbol coverage
           const symbols = extractQuerySymbols(q);
           const missing = symbols.filter((sym) =>
             !ranked.some((r) => r.sigs && r.sigs.some((s) => s.toLowerCase().includes(sym.toLowerCase())))
@@ -21208,12 +21609,38 @@ function main() {
             warnings.push(`query "${q}" references symbols not in top-5 context: ${missing.join(', ')}`);
           else if (symbols.length > 0)
             console.log(`[sigmap] ✓ query coverage OK — all ${symbols.length} symbols found`);
+
+          // (b) retrieval-confidence report
+          const top = ranked[0] || null;
+          const topScore = top ? (top.score || 0) : 0;
+          const secondScore = ranked[1] ? (ranked[1].score || 0) : 0;
+          const gapRatio = topScore > 0 ? (topScore - secondScore) / topScore : 0;
+          let queryConfidence;
+          if (topScore <= 0) queryConfidence = 'none';
+          else if (ranked.length > 1 && gapRatio < 0.1) queryConfidence = 'low';
+          else queryConfidence = (top && top.confidence) || 'medium';
+
+          queryReport = {
+            text: q,
+            topFile: top ? top.file : null,
+            topScore: parseFloat(topScore.toFixed(3)),
+            confidence: queryConfidence,
+          };
+
+          if (queryConfidence === 'none')
+            warnings.push(`query "${q}" has no lexical match in the current context — expand srcDirs or raise maxTokens`);
+          else if (queryConfidence === 'low')
+            warnings.push(`query "${q}" ranks flat (top ${top.file} score ${queryReport.topScore}, no dominant match) — context may not cover it well`);
+          else if (!args.includes('--json'))
+            console.log(`[sigmap] ✓ query "${q}" → ${top.file} (score ${queryReport.topScore}, confidence ${queryConfidence})`);
         } catch (_) {}
       }
     }
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify({ valid: issues.length === 0, issues, warnings, coverage: coveragePct }) + '\n');
+      const payload = { valid: issues.length === 0, issues, warnings, coverage: coveragePct };
+      if (queryReport) payload.query = queryReport;
+      process.stdout.write(JSON.stringify(payload) + '\n');
     } else {
       for (const w of warnings) console.warn(`[sigmap] ⚠  ${w}`);
       if (issues.length === 0) {
@@ -22163,10 +22590,11 @@ function main() {
       console.log('  ✓ no findings — scope, tests, blast radius, and sensitive files all clear');
       process.exit(0);
     }
-    const label = { 'missing-tests': 'missing tests', 'security-file': 'security file', 'god-node': 'god node', 'scope-drift': 'scope drift' };
+    const label = { 'missing-tests': 'missing tests', 'security-file': 'sensitive path (path heuristic)', 'secret-detected': 'secret detected', 'god-node': 'god node', 'scope-drift': 'scope drift' };
     for (const f of result.findings) {
       if (f.type === 'missing-tests') console.log(`  ⚠ ${label[f.type]}: ${f.file} changed with no matching test`);
       else if (f.type === 'security-file') console.log(`  ⚠ ${label[f.type]}: ${f.file}`);
+      else if (f.type === 'secret-detected') console.log(`  ✗ ${label[f.type]}: ${f.secret} in ${f.file}`);
       else if (f.type === 'god-node') console.log(`  ⚠ ${label[f.type]}: ${f.file} → ${f.count} dependents`);
       else if (f.type === 'scope-drift') console.log(`  ⚠ ${label[f.type]}: ${f.count} top-level dirs (${f.dirs.join(', ')})`);
     }
@@ -22228,7 +22656,7 @@ function main() {
       process.exit(result.summary.ok ? 0 : 1);
     }
 
-    console.log(`[sigmap] create${result.task ? ` "${result.task}"` : ''} — grounded-creation pipeline`);
+    console.log(`[sigmap] create${result.task ? ` "${result.task}"` : ''} — running deterministic guards (scaffold · verify-plan · verify-ai-output · review-pr); the LLM does the authoring`);
     for (const st of result.steps) {
       const mark = st.skipped ? '–' : (st.ok ? '✓' : '✗');
       const status = st.skipped ? `skipped (${st.reason})` : (st.ok ? 'ok' : 'FAILED');
@@ -22874,8 +23302,12 @@ function main() {
     const rawTok = getRawTokenCount(cwd, config);
     runGenerate(cwd, config, false);
 
-    const model = args[args.indexOf('--model') + 1] || 'gpt-4o';
-    const rateK = MODEL_COSTS[model] || MODEL_COSTS['gpt-4o'];
+    const __mIdxCost = args.indexOf('--model');
+    const model = (__mIdxCost !== -1 && args[__mIdxCost + 1] && !args[__mIdxCost + 1].startsWith('--')) ? args[__mIdxCost + 1] : 'gpt-4o';
+    // Single source of truth for pricing — shared with `gain` (pricing.js).
+    const { resolvePrice: __resolvePriceCost } = requireSourceOrBundled('./src/tracking/pricing');
+    const __priceCost = __resolvePriceCost(model);
+    const rateK = __priceCost.perMtok / 1000; // USD per 1K tokens
 
     const ctxPath = config.customOutput
       ? path.resolve(cwd, config.customOutput)
@@ -22888,19 +23320,20 @@ function main() {
     const costCtx = (outTok / 1000) * rateK;
 
     const out = {
-      model,
+      model:         __priceCost.model,
       rawTokens:     rawTok,
       contextTokens: outTok,
       costRaw:       costRaw.toFixed(4),
       costContext:   costCtx.toFixed(4),
       savingsPct:    savings,
+      costBasis:     'estimate — counterfactual = whole-repo tokens; input tokens only',
     };
 
     if (args.includes('--json')) {
       process.stdout.write(JSON.stringify(out) + '\n');
     } else {
-      console.log(`\n Cost estimate (${model}):`);
-      console.log(` Without SigMap : ${rawTok.toLocaleString()} tok  $${out.costRaw}/query`);
+      console.log(`\n Cost estimate (${__priceCost.model} @ $${__priceCost.perMtok}/Mtok input, est.):`);
+      console.log(` Without SigMap : ${rawTok.toLocaleString()} tok  $${out.costRaw}/query  (counterfactual: whole repo)`);
       console.log(` With SigMap    : ${outTok.toLocaleString()} tok  $${out.costContext}/query`);
       console.log(` Savings        : ${savings}%  ($${(costRaw - costCtx).toFixed(4)} saved per query)\n`);
     }

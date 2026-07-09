@@ -13,8 +13,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c6af7.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/manojmallick/sigmap?style=flat&color=f59e0b&logo=github)](https://github.com/manojmallick/sigmap/stargazers)
 [![Stargazer map](https://img.shields.io/badge/StarMapper-view%20star%20map-7c6af7?logo=googlemaps&logoColor=white)](https://starmapper.bruniaux.com/manojmallick/sigmap)
-[![Star History Chart](https://api.star-history.com/svg?repos=manojmallick/sigmap&type=Date)](https://star-history.com/#manojmallick/sigmap&Date)
 [![Discover on ShyPD](https://img.shields.io/badge/ShyPD-Discover-7c6af7?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48Y2lyY2xlIGN4PSI4IiBjeT0iOCIgcj0iOCIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&logoColor=7c6af7)](https://shypd.ai/tools/sigmap)
+
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/manojmallick-sigmap-badge.png)](https://mseep.ai/app/manojmallick-sigmap)
 
 </div>
 
@@ -120,8 +121,8 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.9-main (21 repositories, including R language)
-Date      : 2026-07-06
+Benchmark : sigmap-v8.10-main (21 repositories, including R language)
+Date      : 2026-07-09
 
 Hit@5          : 87.8%   (baseline 13.6%  — 6.5× lift)
 Token reduction: 97.0%   (across 21 repos)
@@ -337,6 +338,10 @@ sigmap --health
 If SigMap saves you context or API spend, a ⭐ on [GitHub](https://github.com/manojmallick/sigmap) helps others find it.
 
 🌍 See where SigMap's stargazers are around the world on the **[StarMapper star map →](https://starmapper.bruniaux.com/manojmallick/sigmap)**.
+
+<a href="https://star-history.com/#manojmallick/sigmap&Date">
+  <img src="https://api.star-history.com/svg?repos=manojmallick/sigmap&type=Date" alt="SigMap Star History Chart" width="600" />
+</a>
 
 [Report an issue](https://github.com/manojmallick/sigmap/issues) · [Changelog](CHANGELOG.md)
 

@@ -9,8 +9,10 @@
  * zero-dependency, bundle-safe; reuses the impact graph for blast radius.
  */
 
+const fs = require('fs');
 const path = require('path');
 const { analyzeImpact } = require('../graph/impact');
+const { PATTERNS } = require('../security/patterns');
 
 const SECURITY_PATTERNS = [
   /(^|\/)\.env(\.|$)/i,
@@ -61,10 +63,30 @@ function reviewPr(changedFiles, cwd, opts = {}) {
     if (!covered) findings.push({ type: 'missing-tests', file: s, severity: 'warn' });
   }
 
-  // 2. Security-sensitive files.
+  // 2a. Sensitive-path heuristic — flags files whose PATH looks security-relevant
+  // (.env, auth/, lockfiles, workflows, key material). This is a path heuristic,
+  // NOT a content scan: it flags touching the path regardless of what changed,
+  // and cannot see a secret hidden in an innocently-named file. `basis` records
+  // that honestly so consumers don't mistake it for a content check.
   for (const f of live) {
     if (SECURITY_PATTERNS.some((re) => re.test(f.path))) {
-      findings.push({ type: 'security-file', file: f.path, severity: 'warn' });
+      findings.push({ type: 'security-file', file: f.path, severity: 'warn', basis: 'path-heuristic' });
+    }
+  }
+
+  // 2b. Real secret scan — read each changed file's CONTENT and match known
+  // secret patterns. This is the actual security check (content, not filename):
+  // it catches a hardcoded key in a file the path heuristic would never flag.
+  const readFile = opts.readFile || ((p) => fs.readFileSync(path.resolve(cwd, p), 'utf8'));
+  for (const f of live) {
+    let content;
+    try { content = readFile(f.path); } catch (_) { continue; } // absent/unreadable → skip
+    if (typeof content !== 'string' || content.length > 2_000_000) continue; // skip huge/binary
+    for (const pat of PATTERNS) {
+      if (pat.regex.test(content)) {
+        findings.push({ type: 'secret-detected', file: f.path, secret: pat.name, severity: 'high', basis: 'content-scan' });
+        break; // one hit is enough to flag the file
+      }
     }
   }
 

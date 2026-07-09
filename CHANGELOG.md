@@ -10,6 +10,32 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.10.0] — 2026-07-09
+
+Minor release — **honesty fixes** from a brutal code-review audit of the CLI surface: closing the gap between what each command *claims* and what it *does*. All changes are zero-dependency, deterministic, and the bundle stays reproducible from `src/`. ~40 new regression tests.
+
+### Added
+- **`judge` — claim-level grounding (#458):** beyond token overlap, `judge` now extracts an answer's concrete symbol/file/import claims and fails any the context does not contain — catching a hallucinated symbol that pure word-overlap would pass.
+- **`review-pr` — real content-based secret scan (#458):** reads changed-file contents and matches known secret patterns, flagging a hardcoded key in an innocently-named file (not just files on a sensitive path).
+- **`--health` — auditable composite (#458):** the score now returns a `components[]` breakdown (every deduction, labeled), revives the previously-unused over-budget-streak signal, and adds a "context never generated" penalty.
+- **Import graph — alias resolution (#458):** the dependency graph resolves `tsconfig`/`jsconfig` `paths` + `baseUrl` aliases, re-exports (`export … from`), and dynamic `import()`, lifting `--impact`, `--map`, `--callers`, `plan`, and `review-pr` at once.
+
+### Fixed
+- **`validate --query` — real signal for natural-language queries (#458):** a lowercase query like `"login rate limit"` now produces a retrieval-confidence report (top file, score, tier) instead of the previous silent no-op.
+- **`plan` — wired to the real planner (#458):** the CLI now uses `createPlan()`, fixing a bug where the impact traversal ignored its depth cap and ran unbounded, plus a path-casing bug; impact is unioned across high-confidence files and test coverage is labeled honestly.
+- **`gain`/`--cost` — one pricing source (#458):** removed a duplicate inline price table that disagreed with `pricing.js` (gpt-4o priced at $5 vs $2.50 /Mtok), added an explicit `costBasis`, and fixed a `--model` argument-parsing bug.
+- **`conventions` — no false consistency (#458):** single lowercase-word filenames are style-neutral, so a repo of `user.ts`/`order.ts` reports "unknown" instead of a spurious "100% camelCase".
+- **`--health` — never-generated repos (#458):** a project with source but no generated context is no longer scored 100/A.
+
+### Changed
+- **`suggest-profile` (#458):** infers the task profile from the staged-diff composition (test ratio, breadth, doc/config mix) instead of one commit-message keyword.
+- **Extractors (JS/TS) (#458):** per-file and per-class caps now append a visible `… +N more` marker instead of silently dropping the tail of large files.
+- **`--health` metric relabel (#458):** `extractorCoverage` → `languageCoverage` (it measures language diversity, not extractor quality) and is grouped under `diagnostics`.
+- **`learn` / `create` labels (#458):** honest output — a manual boost/penalty ledger, and a deterministic guard runner, respectively.
+- **README (#456, #454, #455):** added the MseeP.ai security assessment badge — thanks @mseep-ai; moved the Star History chart into its own section; refreshed SEO/GEO positioning content.
+
+---
+
 ## [8.9.1] — 2026-07-06
 
 Patch release — **CI only; the published package is unchanged from 8.9.0.** Makes the GitHub Pages docs deploy self-healing so releases stop going red on a GitHub-side transient.
