@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/manojmallick-sigmap-badge.png)](https://mseep.ai/app/manojmallick-sigmap)
+
 <div align="center">
 
 <img src="assets/logo.png" alt="SigMap logo" width="80" height="80" />
