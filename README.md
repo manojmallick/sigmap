@@ -16,6 +16,7 @@
 [![Discover on ShyPD](https://img.shields.io/badge/ShyPD-Discover-7c6af7?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2Ij48Y2lyY2xlIGN4PSI4IiBjeT0iOCIgcj0iOCIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&logoColor=7c6af7)](https://shypd.ai/tools/sigmap)
 
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/manojmallick-sigmap-badge.png)](https://mseep.ai/app/manojmallick-sigmap)
+[![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/193cd37f-1ef3-43c3-80bc-86e23fd12924)
 
 </div>
 
