@@ -47,7 +47,10 @@ function buildFixList(cwd, files, conventions) {
     if (TEST_RE.test(f)) continue;
     const base = path.basename(f);
     const style = classifyNaming(base);
-    if (style === 'other' || style === dominant) continue;
+    // Skip unclassifiable ('other') and style-neutral single-word names — a
+    // single lowercase word already satisfies any convention, so renaming it
+    // (e.g. user.js → user.js) is a no-op at best and noise at worst.
+    if (style === 'other' || style === 'single-word' || style === dominant) continue;
     const rel = path.relative(cwd, f).replace(/\\/g, '/');
     renames.push({ from: rel, to: _renamePath(rel, dominant), fromStyle: style });
   }

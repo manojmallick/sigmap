@@ -1,6 +1,7 @@
 'use strict';
 
 const { lineAt, withAnchor } = require('./line-anchor');
+const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
 
 /**
  * Extract signatures from TypeScript source code.
@@ -152,9 +153,8 @@ function extract(src) {
     }
   }
 
-  return sigs
-    .map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s))
-    .slice(0, 35);
+  const withAnchors = sigs.map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s));
+  return capWithNotice(withAnchors, 35, 'signatures');
 }
 
 function extractBlock(src, startIndex) {
@@ -184,7 +184,7 @@ function extractInterfaceMembers(block) {
     const start = m.index + (m[0].length - m[0].replace(/^\s+/, '').length);
     members.push({ text: `${m[1]}(${normalizeParams(m[2])})`, start, end: m.index + m[0].length });
   }
-  return members.slice(0, 8);
+  return capMembersWithNotice(members, 8, 'members');
 }
 
 const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'catch', 'finally', 'else', 'return']);
@@ -210,7 +210,7 @@ function extractClassMembers(block) {
     const retStr = retType ? ` → ${retType}` : '';
     members.push({ text: `${isStatic}${isAsync}${m[1]}(${normalizeParams(m[2])})${retStr}`, start, end });
   }
-  return members.slice(0, 8);
+  return capMembersWithNotice(members, 8, 'methods');
 }
 
 function normalizeParams(params) {

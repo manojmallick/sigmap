@@ -97,7 +97,8 @@ function formatPrEvidenceMarkdown(evidence, opts = {}) {
     L.push('### Review findings');
     for (const f of evidence.review.findings) {
       if (f.type === 'missing-tests') L.push(`- ⚠️ **missing tests** — \`${f.file}\` changed with no matching test`);
-      else if (f.type === 'security-file') L.push(`- ⚠️ **security-sensitive file** — \`${f.file}\``);
+      else if (f.type === 'security-file') L.push(`- ⚠️ **sensitive path touched** (path heuristic, not a content scan) — \`${f.file}\``);
+      else if (f.type === 'secret-detected') L.push(`- 🔑 **secret detected** (${f.secret}) — \`${f.file}\``);
       else if (f.type === 'god-node') L.push(`- ⚠️ **god node** — \`${f.file}\` → ${f.count} dependents (high blast radius)`);
       else if (f.type === 'scope-drift') L.push(`- ⚠️ **scope drift** — ${f.count} top-level dirs touched (${f.dirs.join(', ')})`);
     }

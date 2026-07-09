@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { boostFiles, normalizeFile, penalizeFiles } = require('../learning/weights');
+const parsers = require('../verify/parsers');
 
 const STOP = new Set([
   'the','a','an','in','on','at','to','of','for','and','or','but',
@@ -23,6 +24,57 @@ function groundedness(response, context) {
   if (respTokens.length === 0) return 0;
   const matched = respTokens.filter((t) => ctxTokens.has(t));
   return parseFloat((matched.length / respTokens.length).toFixed(3));
+}
+
+/**
+ * Claim-level grounding (v8.10) — the structural half of the judge.
+ *
+ * `groundedness` above measures lexical *word* overlap: "does the answer reuse
+ * context vocabulary?" That is a weak proxy — an answer can echo context words
+ * while asserting a symbol, file, or import the context never mentions (a
+ * hallucination), and still score high. This function extracts the answer's
+ * *concrete, checkable claims* — the same high-precision claims the hallucination
+ * guard checks (backtick-wrapped `foo()` calls, `path/to/file.ext` references,
+ * and `import … from 'mod'` statements) — and verifies each one appears in the
+ * provided context. A claim the context never grounds is a hallucination signal
+ * that pure word-overlap cannot see.
+ *
+ * Deterministic, offline, zero-dependency. Reuses `src/verify/parsers`.
+ *
+ * @param {string} response
+ * @param {string} context
+ * @returns {{ total: number, grounded: number, ungrounded: Array<{kind:string, value:string}> }}
+ */
+function claimGrounding(response, context) {
+  if (!response || !context) return { total: 0, grounded: 0, ungrounded: [] };
+  const ctxLower = context.toLowerCase();
+
+  const raw = [];
+  for (const s of parsers.extractSymbols(response)) raw.push({ kind: 'symbol', value: s.name });
+  for (const f of parsers.extractFilePaths(response)) raw.push({ kind: 'file', value: f.path });
+  for (const i of parsers.extractImports(response)) raw.push({ kind: 'import', value: i.module });
+
+  const seen = new Set();
+  const claims = raw.filter((c) => {
+    const key = `${c.kind}::${c.value}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const ungrounded = [];
+  let grounded = 0;
+  for (const c of claims) {
+    // A file claim is grounded if its basename appears in context (the answer
+    // may cite a different directory than the map records). Symbols and modules
+    // are matched on the token itself.
+    const needle = c.value.toLowerCase();
+    const base = c.kind === 'file' ? (c.value.split('/').pop() || c.value).toLowerCase() : needle;
+    if (ctxLower.includes(base) || ctxLower.includes(needle)) grounded++;
+    else ungrounded.push({ kind: c.kind, value: c.value });
+  }
+
+  return { total: claims.length, grounded, ungrounded };
 }
 
 const GENERIC_MARKERS = [
@@ -76,8 +128,16 @@ function judge(response, context, opts = {}) {
     }
   }
 
+  // Structural claim grounding: any concrete symbol/file/import the answer
+  // states that the context never mentions is a hallucination the lexical
+  // score above cannot detect. Each ungrounded claim fails the verdict.
+  const claims = claimGrounding(response, context);
+  for (const c of claims.ungrounded) {
+    reasons.push(`${c.kind} claim not grounded in context: ${c.value}${c.kind === 'symbol' ? '()' : ''}`);
+  }
+
   const verdict = score >= threshold && reasons.length === 0 ? 'pass' : 'fail';
-  const result = { score, verdict, reasons };
+  const result = { score, verdict, reasons, claims };
 
   if (opts.learn) {
     const learning = {
@@ -119,4 +179,4 @@ function judge(response, context, opts = {}) {
   return result;
 }
 
-module.exports = { groundedness, judge };
+module.exports = { groundedness, claimGrounding, judge };

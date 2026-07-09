@@ -26,8 +26,16 @@ const TIER_MOSTLY = 0.7;
 
 /**
  * Classify a file's base name (without extension) into a naming style.
+ *
+ * A single lowercase word (`user`, `index`, `loader`) is classified
+ * `single-word`, NOT `camelCase`: it has no case boundary or separator, so it is
+ * compatible with camelCase, kebab-case AND snake_case at once and expresses no
+ * distinguishable convention. `scoreConvention` treats it as style-neutral
+ * (excluded), so a repo of single-word files reports "unknown" rather than a
+ * spurious "100% camelCase".
+ *
  * @param {string} basename a file basename, e.g. "user-service.ts"
- * @returns {'PascalCase'|'camelCase'|'kebab-case'|'snake_case'|'other'}
+ * @returns {'PascalCase'|'camelCase'|'kebab-case'|'snake_case'|'single-word'|'other'}
  */
 function classifyNaming(basename) {
   let stem = String(basename || '');
@@ -38,7 +46,7 @@ function classifyNaming(basename) {
   if (/[_]/.test(stem) && /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(stem)) return 'snake_case';
   if (/^[A-Z][A-Za-z0-9]*$/.test(stem) && /[a-z]/.test(stem)) return 'PascalCase';
   if (/^[a-z][A-Za-z0-9]*$/.test(stem) && /[A-Z]/.test(stem)) return 'camelCase';
-  if (/^[a-z][a-z0-9]*$/.test(stem)) return 'camelCase'; // single lowercase word
+  if (/^[a-z][a-z0-9]*$/.test(stem)) return 'single-word'; // style-neutral (no case boundary)
   return 'other';
 }
 
@@ -61,7 +69,9 @@ function scoreConvention(labels, refs) {
   let total = 0;
   for (let i = 0; i < all.length; i++) {
     const l = all[i];
-    if (l == null || l === 'other') continue;
+    // 'other' = unclassifiable; 'single-word' = style-neutral. Both express no
+    // distinguishable convention and are excluded from the score.
+    if (l == null || l === 'other' || l === 'single-word') continue;
     total++;
     counts.set(l, (counts.get(l) || 0) + 1);
     if (refs && refs[i] != null) {
