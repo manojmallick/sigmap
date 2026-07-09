@@ -122,6 +122,31 @@ test('sigmap validate --query "loginUser validateToken" → exits 0', () => {
   assert.strictEqual(r.status, 0, `exit ${r.status}\nstderr: ${r.stderr}`);
 });
 
+// 8b. sigmap validate --query <lowercase NL> → emits a retrieval-confidence
+//     report (the old cased-symbol check was a silent no-op for NL queries)
+test('sigmap validate --query "login rate limit" --json → query confidence report', () => {
+  const r = spawnSync(process.execPath, [SCRIPT, 'validate', '--query', 'login rate limit', '--json'], {
+    encoding: 'utf8', cwd: ROOT, timeout: 20000,
+  });
+  assert.strictEqual(r.status, 0, `exit ${r.status}\nstderr: ${r.stderr}`);
+  const parsed = JSON.parse(r.stdout.trim());
+  assert.ok(parsed.query, `expected a query report, got: ${JSON.stringify(parsed)}`);
+  assert.strictEqual(parsed.query.text, 'login rate limit');
+  assert.ok(['none', 'low', 'medium', 'high'].includes(parsed.query.confidence),
+    `unexpected confidence: ${parsed.query.confidence}`);
+  assert.strictEqual(typeof parsed.query.topScore, 'number', 'topScore not a number');
+});
+
+// 8c. a well-covered query resolves to high confidence and a concrete top file
+test('sigmap validate --query "rank files by relevance score" → high confidence', () => {
+  const r = spawnSync(process.execPath, [SCRIPT, 'validate', '--query', 'rank files by relevance score', '--json'], {
+    encoding: 'utf8', cwd: ROOT, timeout: 20000,
+  });
+  const parsed = JSON.parse(r.stdout.trim());
+  assert.ok(parsed.query && parsed.query.topFile, `expected topFile, got: ${JSON.stringify(parsed.query)}`);
+  assert.ok(parsed.query.topScore > 0, `expected positive topScore, got ${parsed.query.topScore}`);
+});
+
 // 9. sigmap --ci — exits 0 on real repo (coverage ≥ default 80%)
 test('sigmap --ci → exits 0 on real repo (coverage ≥ 80%)', () => {
   const r = spawnSync(process.execPath, [SCRIPT, '--ci'], {
