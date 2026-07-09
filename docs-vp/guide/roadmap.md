@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Eighty-one versions shipped. MIT open source from day one.
+Eighty-two versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 19 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -827,6 +827,14 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
 
 ---
+
+### v8.10.0 — Honesty fixes across the CLI surface ✓ (2026-07-09)
+
+**Minor — a brutal code-review audit turned into ~40 regression tests, closing the gap between what each command claims and what it does.** `judge` gained claim-level grounding — it fails an answer that cites a symbol/file/import the context never contains, catching a hallucination that pure word-overlap would pass. `validate --query` emits a retrieval-confidence report for natural-language queries (e.g. `"login rate limit"`) instead of the previous silent no-op. `plan` now uses the real planner, fixing a bug where the impact traversal ignored its depth cap and ran unbounded, and surfaces a true blast radius. `review-pr` adds a content-based secret scan (a hardcoded key in an innocently-named file is now flagged). The dependency graph resolves `tsconfig`/`jsconfig` path aliases, re-exports, and dynamic `import()` — lifting `--impact`, `--map`, `--callers`, `plan`, and `review-pr` at once. `--health` returns an auditable `components[]` breakdown and no longer scores a never-generated repo as 100/A. `gain`/`--cost` unify on a single pricing table; `conventions` stops misreporting single-word repos as "100% camelCase"; `suggest-profile` infers from the staged diff; `learn`/`create` get honest labels; and the JS/TS extractors disclose truncation with a visible `… +N more` marker instead of silently dropping the tail. Zero new dependencies; bundle reproducible from `src/`.
+
+**Tags:** claim-grounding, retrieval-confidence, alias-resolution, secret-scan, auditable-health, honest-labels
+
+**Impact:** ~40 new regression assertions (guard test count 112 → 115). Retrieval hit@5 stable at 87.8% and token reduction 97.0% — these were correctness and labeling fixes, not compression changes.
 
 ### v8.9.1 — Self-healing Pages deploy (CI) ✓ (2026-07-06)
 

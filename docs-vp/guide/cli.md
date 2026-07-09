@@ -352,7 +352,7 @@ sigmap plan "refactor the auth middleware" --json
 
 ## judge
 
-Rule-based groundedness scoring for LLM responses. Measures token overlap between the response and the source context to detect off-context answers. Zero dependencies, no LLM API required.
+Rule-based groundedness scoring for LLM responses. Combines token overlap with **claim-level grounding** (v8.10.0): it extracts the answer's concrete symbol/file/import claims and fails any the context never contains — catching a hallucinated symbol that pure word-overlap would pass. Zero dependencies, no LLM API required.
 
 ```bash
 sigmap judge --response response.txt --context .context/copilot-instructions.md
@@ -491,7 +491,7 @@ Exit code `0` = clean (no hallucinations), `1` = at least one issue found. Use i
 
 ## review-pr
 
-Audit a diff for drift and side effects after a PR is opened — the final guard stage of the grounded-creation pipeline (`scaffold` → `verify-plan` → `verify-ai-output` → **review-pr**). It collects the changed files via git and flags four classes of risk.
+Audit a diff for drift and side effects after a PR is opened — the final guard stage of the grounded-creation pipeline (`scaffold` → `verify-plan` → `verify-ai-output` → **review-pr**). It collects the changed files via git and flags risk classes: missing tests, sensitive-path touches (a path heuristic), god-node edits, scope drift, and — since v8.10.0 — a **content-based secret scan** that reads changed files and flags a hardcoded key even in an innocently-named file.
 
 ```bash
 sigmap review-pr                 # vs the merge-base with main (or develop)
@@ -997,19 +997,21 @@ Supported clients: `claude`, `cursor`, `windsurf`, `vscode`, `zed`, `codex`, `ge
 
 ## validate
 
-Validates your SigMap configuration and measures context coverage. Checks that every `srcDir` exists, exclude patterns are safe, `maxTokens` is in a sensible range, and that ≥ 70% of your source files are in context. Optionally checks that PascalCase and camelCase symbols in a query appear in the top-5 ranked results.
+Validates your SigMap configuration and measures context coverage. Checks that every `srcDir` exists, exclude patterns are safe, `maxTokens` is in a sensible range, and that ≥ 70% of your source files are in context. With `--query`, it also reports a **retrieval-confidence signal** (v8.10.0): for a natural-language query like `"login rate limit"` it ranks the context and reports the top file, its score, and a confidence tier (none/low/medium/high) — where earlier it silently did nothing for lowercase queries. If the query literally names a PascalCase/camelCase symbol, it additionally confirms that symbol lands in the top-5.
 
 ```bash
 sigmap validate
 sigmap validate --json
+sigmap validate --query "login rate limit"
 sigmap validate --query "loginUser validateToken"
 ```
 
 ```
 [sigmap] ✓ config valid  coverage: 97%
+[sigmap] ✓ query "login rate limit" → src/rate/limiter.js (score 8.42, confidence high)
 ```
 
-JSON output includes `valid`, `issues`, `warnings`, and `coverage` fields. Exits `1` when hard issues are found.
+JSON output includes `valid`, `issues`, `warnings`, `coverage`, and — when `--query` is given — a `query` report (`{ text, topFile, topScore, confidence }`). Exits `1` when hard issues are found.
 
 ---
 
@@ -1525,7 +1527,7 @@ sigmap --report --paper
 
 ## --health
 
-Run the composite health check. Returns a 0–100 score, letter grade, coverage score, and optional cache stats (if `sigCache` is enabled).
+Run the composite health check. Returns a 0–100 score, letter grade, coverage score, and optional cache stats (if `sigCache` is enabled). Since v8.10.0 the score is **auditable**: the JSON output includes a `components[]` breakdown listing every deduction (id, label, penalty, detail), a project with source but no generated context is penalized (not scored 100/A), and freshness is measured across any adapter output — not just the Copilot file.
 
 ```bash
 sigmap --health
