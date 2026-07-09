@@ -33,7 +33,26 @@ test('classifyNaming: PascalCase', () => {
 });
 test('classifyNaming: camelCase', () => {
   assert.strictEqual(classifyNaming('userService.ts'), 'camelCase');
-  assert.strictEqual(classifyNaming('loader.js'), 'camelCase'); // single lowercase word
+});
+test('classifyNaming: single lowercase word is style-neutral, NOT camelCase', () => {
+  assert.strictEqual(classifyNaming('loader.js'), 'single-word');
+  assert.strictEqual(classifyNaming('user.ts'), 'single-word');
+  assert.strictEqual(classifyNaming('index.ts'), 'single-word');
+});
+test('scoreConvention: a repo of single-word files reports unknown, not "100% camelCase"', () => {
+  const labels = ['user', 'order', 'index'].map(classifyNaming);
+  const r = scoreConvention(labels);
+  assert.strictEqual(r.tier, 'unknown', `expected unknown, got ${r.tier} (${r.dominant})`);
+  assert.strictEqual(r.dominant, null);
+  assert.strictEqual(r.total, 0);
+});
+test('scoreConvention: single-word files do not dilute a real camelCase convention', () => {
+  // userService + orderService are camelCase; index/app are single-word (neutral)
+  const labels = ['userService', 'orderService', 'index', 'app'].map(classifyNaming);
+  const r = scoreConvention(labels);
+  assert.strictEqual(r.dominant, 'camelCase');
+  assert.strictEqual(r.total, 2, 'single-word files excluded from the denominator');
+  assert.strictEqual(r.tier, 'consistent');
 });
 test('classifyNaming: kebab-case', () => {
   assert.strictEqual(classifyNaming('user-service.ts'), 'kebab-case');

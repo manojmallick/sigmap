@@ -186,11 +186,11 @@ function formatImpact(result) {
   lines.push('');
 
   if (result.direct.length === 0 && result.transitive.length === 0) {
-    lines.push('_No files import this file — zero blast radius._');
+    lines.push('_No importers found via relative + aliased imports (lower bound — dynamic/computed imports are not tracked)._');
     return lines.join('\n');
   }
 
-  lines.push(`**Total impacted files:** ${result.totalImpact}`);
+  lines.push(`**Total impacted files:** ${result.totalImpact} _(lower bound — resolves relative + tsconfig/jsconfig-aliased imports)_`);
   lines.push('');
 
   if (result.direct.length > 0) {

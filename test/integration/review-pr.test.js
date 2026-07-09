@@ -34,17 +34,38 @@ test('no missing-tests when a matching test changed', () => {
   ], process.cwd());
   assert.ok(!r.findings.some((f) => f.type === 'missing-tests'));
 });
-test('security-file: flags sensitive paths', () => {
+test('security-file: flags sensitive paths (path heuristic, basis recorded)', () => {
   const r = reviewPr([
     { path: '.env', status: 'M' },
     { path: '.github/workflows/ci.yml', status: 'M' },
     { path: 'package.json', status: 'M' },
     { path: 'src/auth/login.js', status: 'M' },
-  ], process.cwd());
-  const sec = r.findings.filter((f) => f.type === 'security-file').map((f) => f.file);
+  ], process.cwd(), { readFile: () => '' });
+  const secFindings = r.findings.filter((f) => f.type === 'security-file');
+  const sec = secFindings.map((f) => f.file);
   assert.ok(sec.includes('.env'));
   assert.ok(sec.includes('.github/workflows/ci.yml'));
   assert.ok(sec.includes('package.json'));
+  // honest labeling: the finding declares it is a path heuristic, not a scan
+  assert.ok(secFindings.every((f) => f.basis === 'path-heuristic'), 'security-file must record basis: path-heuristic');
+});
+
+test('secret-detected: content scan flags a hardcoded key in an innocent file', () => {
+  const r = reviewPr([{ path: 'src/utils.js', status: 'M' }], process.cwd(), {
+    readFile: () => 'const k = "AKIAABCDEFGHIJKLMNOP";\n', // AWS-access-key shaped
+  });
+  const hits = r.findings.filter((f) => f.type === 'secret-detected');
+  assert.strictEqual(hits.length, 1, `expected one secret finding, got ${JSON.stringify(r.findings)}`);
+  assert.strictEqual(hits[0].secret, 'AWS Access Key');
+  assert.strictEqual(hits[0].basis, 'content-scan');
+  assert.strictEqual(r.summary.ok, false, 'a detected secret must fail the review');
+});
+
+test('secret-detected: clean content produces no secret finding', () => {
+  const r = reviewPr([{ path: 'src/utils.js', status: 'M' }], process.cwd(), {
+    readFile: () => 'function add(a, b) { return a + b; }\n',
+  });
+  assert.ok(!r.findings.some((f) => f.type === 'secret-detected'));
 });
 test('deletions are ignored for security + source checks', () => {
   const r = reviewPr([{ path: '.env', status: 'D' }, { path: 'src/foo.js', status: 'D' }], process.cwd());
@@ -91,7 +112,20 @@ test('CLI: review-pr --staged flags a sensitive file (exit 1)', () => {
     g(['add', '.env']);
     const res = spawnSync('node', [SCRIPT, 'review-pr', '--staged'], { cwd: dir, encoding: 'utf8' });
     assert.strictEqual(res.status, 1, res.stdout + res.stderr);
-    assert.ok(/security file/.test(res.stdout), res.stdout);
+    assert.ok(/sensitive path/.test(res.stdout), res.stdout);
+  });
+});
+
+test('CLI: review-pr --staged flags a hardcoded secret via content scan (exit 1)', () => {
+  withGitRepo((dir, g) => {
+    fs.mkdirSync(path.join(dir, 'src'));
+    // innocently-named file, no test needed — the secret is the finding
+    fs.writeFileSync(path.join(dir, 'src', 'config.js'), 'module.exports = { key: "AKIAABCDEFGHIJKLMNOP" };\n');
+    fs.writeFileSync(path.join(dir, 'src', 'config.test.js'), 'require("./config");\n');
+    g(['add', '-A']);
+    const res = spawnSync('node', [SCRIPT, 'review-pr', '--staged'], { cwd: dir, encoding: 'utf8' });
+    assert.strictEqual(res.status, 1, res.stdout + res.stderr);
+    assert.ok(/secret detected/.test(res.stdout), res.stdout);
   });
 });
 test('CLI: review-pr --staged clean (source + test) exits 0', () => {

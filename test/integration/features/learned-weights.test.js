@@ -170,7 +170,7 @@ test('sigmap weights prints friendly empty state and JSON returns {}', () => {
     cwd: dir, encoding: 'utf8', timeout: 15000,
   });
   assert.strictEqual(r.status, 0, `exit ${r.status}\nstderr: ${r.stderr}`);
-  assert.ok(r.stdout.includes('No learned weights yet'));
+  assert.ok(r.stdout.includes('No manual weights set'));
 
   r = spawnSync(process.execPath, [SCRIPT, 'weights', '--json'], {
     cwd: dir, encoding: 'utf8', timeout: 15000,
