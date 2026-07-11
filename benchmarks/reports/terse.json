@@ -1,0 +1,1012 @@
+{
+  "benchmark": "terse-encoding",
+  "date": "2026-07-11",
+  "corpus": "143 files (src, packages) — sigmap repo",
+  "sigLines": 780,
+  "beforeTokens": 10232,
+  "afterTokens": 8580,
+  "reductionPct": 16.1,
+  "perFile": [
+    {
+      "file": "src/analysis/coverage-score.js",
+      "lines": 3,
+      "beforeTokens": 40,
+      "afterTokens": 33,
+      "reductionPct": 17.5
+    },
+    {
+      "file": "src/analysis/diagnostics.js",
+      "lines": 6,
+      "beforeTokens": 97,
+      "afterTokens": 84,
+      "reductionPct": 13.4
+    },
+    {
+      "file": "src/cache/freshen.js",
+      "lines": 6,
+      "beforeTokens": 63,
+      "afterTokens": 51,
+      "reductionPct": 19
+    },
+    {
+      "file": "src/cache/sig-cache.js",
+      "lines": 6,
+      "beforeTokens": 96,
+      "afterTokens": 81,
+      "reductionPct": 15.6
+    },
+    {
+      "file": "src/config/defaults.js",
+      "lines": 1,
+      "beforeTokens": 10,
+      "afterTokens": 7,
+      "reductionPct": 30
+    },
+    {
+      "file": "src/config/loader.js",
+      "lines": 6,
+      "beforeTokens": 81,
+      "afterTokens": 68,
+      "reductionPct": 16
+    },
+    {
+      "file": "src/conventions/ci.js",
+      "lines": 2,
+      "beforeTokens": 34,
+      "afterTokens": 27,
+      "reductionPct": 20.6
+    },
+    {
+      "file": "src/conventions/conflicts.js",
+      "lines": 6,
+      "beforeTokens": 83,
+      "afterTokens": 70,
+      "reductionPct": 15.7
+    },
+    {
+      "file": "src/conventions/extract.js",
+      "lines": 6,
+      "beforeTokens": 100,
+      "afterTokens": 86,
+      "reductionPct": 14
+    },
+    {
+      "file": "src/conventions/fix.js",
+      "lines": 3,
+      "beforeTokens": 43,
+      "afterTokens": 35,
+      "reductionPct": 18.6
+    },
+    {
+      "file": "src/conventions/inject.js",
+      "lines": 4,
+      "beforeTokens": 64,
+      "afterTokens": 54,
+      "reductionPct": 15.6
+    },
+    {
+      "file": "src/conventions/report.js",
+      "lines": 4,
+      "beforeTokens": 53,
+      "afterTokens": 44,
+      "reductionPct": 17
+    },
+    {
+      "file": "src/conventions/update.js",
+      "lines": 3,
+      "beforeTokens": 48,
+      "afterTokens": 40,
+      "reductionPct": 16.7
+    },
+    {
+      "file": "src/create/orchestrate.js",
+      "lines": 2,
+      "beforeTokens": 30,
+      "afterTokens": 24,
+      "reductionPct": 20
+    },
+    {
+      "file": "src/daemon/daemon.js",
+      "lines": 10,
+      "beforeTokens": 114,
+      "afterTokens": 93,
+      "reductionPct": 18.4
+    },
+    {
+      "file": "src/discovery/framework-detector.js",
+      "lines": 6,
+      "beforeTokens": 62,
+      "afterTokens": 51,
+      "reductionPct": 17.7
+    },
+    {
+      "file": "src/discovery/language-detector.js",
+      "lines": 3,
+      "beforeTokens": 33,
+      "afterTokens": 27,
+      "reductionPct": 18.2
+    },
+    {
+      "file": "src/discovery/r-manifest.js",
+      "lines": 7,
+      "beforeTokens": 88,
+      "afterTokens": 74,
+      "reductionPct": 15.9
+    },
+    {
+      "file": "src/discovery/sigmapignore.js",
+      "lines": 3,
+      "beforeTokens": 41,
+      "afterTokens": 35,
+      "reductionPct": 14.6
+    },
+    {
+      "file": "src/discovery/source-root-registry.js",
+      "lines": 1,
+      "beforeTokens": 10,
+      "afterTokens": 7,
+      "reductionPct": 30
+    },
+    {
+      "file": "src/discovery/source-root-resolver.js",
+      "lines": 7,
+      "beforeTokens": 105,
+      "afterTokens": 91,
+      "reductionPct": 13.3
+    },
+    {
+      "file": "src/discovery/source-root-scorer.js",
+      "lines": 4,
+      "beforeTokens": 65,
+      "afterTokens": 56,
+      "reductionPct": 13.8
+    },
+    {
+      "file": "src/doctor/diagnose.js",
+      "lines": 8,
+      "beforeTokens": 100,
+      "afterTokens": 83,
+      "reductionPct": 17
+    },
+    {
+      "file": "src/eval/analyzer.js",
+      "lines": 9,
+      "beforeTokens": 117,
+      "afterTokens": 99,
+      "reductionPct": 15.4
+    },
+    {
+      "file": "src/eval/llm-ablation.js",
+      "lines": 8,
+      "beforeTokens": 130,
+      "afterTokens": 109,
+      "reductionPct": 16.2
+    },
+    {
+      "file": "src/eval/runner.js",
+      "lines": 8,
+      "beforeTokens": 135,
+      "afterTokens": 113,
+      "reductionPct": 16.3
+    },
+    {
+      "file": "src/eval/scorer.js",
+      "lines": 8,
+      "beforeTokens": 116,
+      "afterTokens": 95,
+      "reductionPct": 18.1
+    },
+    {
+      "file": "src/eval/usefulness-scorer.js",
+      "lines": 3,
+      "beforeTokens": 45,
+      "afterTokens": 39,
+      "reductionPct": 13.3
+    },
+    {
+      "file": "src/evidence/pack.js",
+      "lines": 14,
+      "beforeTokens": 189,
+      "afterTokens": 161,
+      "reductionPct": 14.8
+    },
+    {
+      "file": "src/extractors/coverage.js",
+      "lines": 4,
+      "beforeTokens": 45,
+      "afterTokens": 37,
+      "reductionPct": 17.8
+    },
+    {
+      "file": "src/extractors/cpp.js",
+      "lines": 6,
+      "beforeTokens": 60,
+      "afterTokens": 49,
+      "reductionPct": 18.3
+    },
+    {
+      "file": "src/extractors/csharp.js",
+      "lines": 6,
+      "beforeTokens": 60,
+      "afterTokens": 49,
+      "reductionPct": 18.3
+    },
+    {
+      "file": "src/extractors/css.js",
+      "lines": 2,
+      "beforeTokens": 19,
+      "afterTokens": 15,
+      "reductionPct": 21.1
+    },
+    {
+      "file": "src/extractors/dart.js",
+      "lines": 5,
+      "beforeTokens": 51,
+      "afterTokens": 42,
+      "reductionPct": 17.6
+    },
+    {
+      "file": "src/extractors/deps.js",
+      "lines": 5,
+      "beforeTokens": 79,
+      "afterTokens": 67,
+      "reductionPct": 15.2
+    },
+    {
+      "file": "src/extractors/dispatch.js",
+      "lines": 3,
+      "beforeTokens": 39,
+      "afterTokens": 32,
+      "reductionPct": 17.9
+    },
+    {
+      "file": "src/extractors/dockerfile.js",
+      "lines": 2,
+      "beforeTokens": 19,
+      "afterTokens": 15,
+      "reductionPct": 21.1
+    },
+    {
+      "file": "src/extractors/gdscript.js",
+      "lines": 4,
+      "beforeTokens": 46,
+      "afterTokens": 38,
+      "reductionPct": 17.4
+    },
+    {
+      "file": "src/extractors/generic.js",
+      "lines": 2,
+      "beforeTokens": 16,
+      "afterTokens": 12,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/go.js",
+      "lines": 5,
+      "beforeTokens": 53,
+      "afterTokens": 44,
+      "reductionPct": 17
+    },
+    {
+      "file": "src/extractors/graphql.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/html.js",
+      "lines": 2,
+      "beforeTokens": 19,
+      "afterTokens": 15,
+      "reductionPct": 21.1
+    },
+    {
+      "file": "src/extractors/java.js",
+      "lines": 6,
+      "beforeTokens": 60,
+      "afterTokens": 49,
+      "reductionPct": 18.3
+    },
+    {
+      "file": "src/extractors/javascript.js",
+      "lines": 8,
+      "beforeTokens": 88,
+      "afterTokens": 74,
+      "reductionPct": 15.9
+    },
+    {
+      "file": "src/extractors/kotlin.js",
+      "lines": 5,
+      "beforeTokens": 51,
+      "afterTokens": 42,
+      "reductionPct": 17.6
+    },
+    {
+      "file": "src/extractors/line-anchor.js",
+      "lines": 4,
+      "beforeTokens": 50,
+      "afterTokens": 39,
+      "reductionPct": 22
+    },
+    {
+      "file": "src/extractors/markdown.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/patterns.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 16,
+      "reductionPct": 20
+    },
+    {
+      "file": "src/extractors/php.js",
+      "lines": 6,
+      "beforeTokens": 60,
+      "afterTokens": 49,
+      "reductionPct": 18.3
+    },
+    {
+      "file": "src/extractors/prdiff.js",
+      "lines": 3,
+      "beforeTokens": 43,
+      "afterTokens": 36,
+      "reductionPct": 16.3
+    },
+    {
+      "file": "src/extractors/properties.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/protobuf.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/python.js",
+      "lines": 11,
+      "beforeTokens": 158,
+      "afterTokens": 136,
+      "reductionPct": 13.9
+    },
+    {
+      "file": "src/extractors/python_ast.py",
+      "lines": 15,
+      "beforeTokens": 328,
+      "afterTokens": 327,
+      "reductionPct": 0.3
+    },
+    {
+      "file": "src/extractors/python_dataclass.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/r.js",
+      "lines": 10,
+      "beforeTokens": 114,
+      "afterTokens": 95,
+      "reductionPct": 16.7
+    },
+    {
+      "file": "src/extractors/ruby.js",
+      "lines": 4,
+      "beforeTokens": 43,
+      "afterTokens": 35,
+      "reductionPct": 18.6
+    },
+    {
+      "file": "src/extractors/rust.js",
+      "lines": 6,
+      "beforeTokens": 63,
+      "afterTokens": 52,
+      "reductionPct": 17.5
+    },
+    {
+      "file": "src/extractors/scala.js",
+      "lines": 6,
+      "beforeTokens": 60,
+      "afterTokens": 49,
+      "reductionPct": 18.3
+    },
+    {
+      "file": "src/extractors/shell.js",
+      "lines": 2,
+      "beforeTokens": 19,
+      "afterTokens": 15,
+      "reductionPct": 21.1
+    },
+    {
+      "file": "src/extractors/sql.js",
+      "lines": 4,
+      "beforeTokens": 38,
+      "afterTokens": 30,
+      "reductionPct": 21.1
+    },
+    {
+      "file": "src/extractors/svelte.js",
+      "lines": 4,
+      "beforeTokens": 39,
+      "afterTokens": 31,
+      "reductionPct": 20.5
+    },
+    {
+      "file": "src/extractors/swift.js",
+      "lines": 6,
+      "beforeTokens": 61,
+      "afterTokens": 50,
+      "reductionPct": 18
+    },
+    {
+      "file": "src/extractors/terraform.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/todos.js",
+      "lines": 2,
+      "beforeTokens": 26,
+      "afterTokens": 21,
+      "reductionPct": 19.2
+    },
+    {
+      "file": "src/extractors/toml.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/typescript.js",
+      "lines": 6,
+      "beforeTokens": 67,
+      "afterTokens": 56,
+      "reductionPct": 16.4
+    },
+    {
+      "file": "src/extractors/typescript_react.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/vue.js",
+      "lines": 4,
+      "beforeTokens": 39,
+      "afterTokens": 31,
+      "reductionPct": 20.5
+    },
+    {
+      "file": "src/extractors/vue_sfc.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/xml.js",
+      "lines": 2,
+      "beforeTokens": 20,
+      "afterTokens": 15,
+      "reductionPct": 25
+    },
+    {
+      "file": "src/extractors/yaml.js",
+      "lines": 2,
+      "beforeTokens": 19,
+      "afterTokens": 15,
+      "reductionPct": 21.1
+    },
+    {
+      "file": "src/format/benchmark-report.js",
+      "lines": 23,
+      "beforeTokens": 289,
+      "afterTokens": 247,
+      "reductionPct": 14.5
+    },
+    {
+      "file": "src/format/cache.js",
+      "lines": 3,
+      "beforeTokens": 42,
+      "afterTokens": 35,
+      "reductionPct": 16.7
+    },
+    {
+      "file": "src/format/dashboard.js",
+      "lines": 19,
+      "beforeTokens": 235,
+      "afterTokens": 202,
+      "reductionPct": 14
+    },
+    {
+      "file": "src/format/gain-terminal.js",
+      "lines": 12,
+      "beforeTokens": 126,
+      "afterTokens": 102,
+      "reductionPct": 19
+    },
+    {
+      "file": "src/format/llm-txt.js",
+      "lines": 3,
+      "beforeTokens": 31,
+      "afterTokens": 24,
+      "reductionPct": 22.6
+    },
+    {
+      "file": "src/format/llms-txt.js",
+      "lines": 5,
+      "beforeTokens": 54,
+      "afterTokens": 44,
+      "reductionPct": 18.5
+    },
+    {
+      "file": "src/format/terse.js",
+      "lines": 6,
+      "beforeTokens": 86,
+      "afterTokens": 72,
+      "reductionPct": 16.3
+    },
+    {
+      "file": "src/format/usage-guidance.js",
+      "lines": 2,
+      "beforeTokens": 18,
+      "afterTokens": 13,
+      "reductionPct": 27.8
+    },
+    {
+      "file": "src/format/verify-report.js",
+      "lines": 6,
+      "beforeTokens": 73,
+      "afterTokens": 61,
+      "reductionPct": 16.4
+    },
+    {
+      "file": "src/graph/builder.js",
+      "lines": 12,
+      "beforeTokens": 190,
+      "afterTokens": 161,
+      "reductionPct": 15.3
+    },
+    {
+      "file": "src/graph/call-graph.js",
+      "lines": 20,
+      "beforeTokens": 267,
+      "afterTokens": 224,
+      "reductionPct": 16.1
+    },
+    {
+      "file": "src/graph/impact.js",
+      "lines": 9,
+      "beforeTokens": 135,
+      "afterTokens": 114,
+      "reductionPct": 15.6
+    },
+    {
+      "file": "src/health/scorer.js",
+      "lines": 4,
+      "beforeTokens": 40,
+      "afterTokens": 32,
+      "reductionPct": 20
+    },
+    {
+      "file": "src/init/creation-workflow.js",
+      "lines": 3,
+      "beforeTokens": 52,
+      "afterTokens": 44,
+      "reductionPct": 15.4
+    },
+    {
+      "file": "src/judge/judge-engine.js",
+      "lines": 6,
+      "beforeTokens": 84,
+      "afterTokens": 70,
+      "reductionPct": 16.7
+    },
+    {
+      "file": "src/learning/weights.js",
+      "lines": 13,
+      "beforeTokens": 195,
+      "afterTokens": 166,
+      "reductionPct": 14.9
+    },
+    {
+      "file": "src/map/build-ci.js",
+      "lines": 6,
+      "beforeTokens": 56,
+      "afterTokens": 44,
+      "reductionPct": 21.4
+    },
+    {
+      "file": "src/map/class-hierarchy.js",
+      "lines": 2,
+      "beforeTokens": 19,
+      "afterTokens": 15,
+      "reductionPct": 21.1
+    },
+    {
+      "file": "src/map/config-manifest.js",
+      "lines": 7,
+      "beforeTokens": 59,
+      "afterTokens": 46,
+      "reductionPct": 22
+    },
+    {
+      "file": "src/map/env-schema.js",
+      "lines": 4,
+      "beforeTokens": 41,
+      "afterTokens": 33,
+      "reductionPct": 19.5
+    },
+    {
+      "file": "src/map/import-graph.js",
+      "lines": 6,
+      "beforeTokens": 85,
+      "afterTokens": 73,
+      "reductionPct": 14.1
+    },
+    {
+      "file": "src/map/migrations.js",
+      "lines": 3,
+      "beforeTokens": 30,
+      "afterTokens": 23,
+      "reductionPct": 23.3
+    },
+    {
+      "file": "src/map/route-table.js",
+      "lines": 3,
+      "beforeTokens": 29,
+      "afterTokens": 23,
+      "reductionPct": 20.7
+    },
+    {
+      "file": "src/mcp/handlers.js",
+      "lines": 23,
+      "beforeTokens": 322,
+      "afterTokens": 276,
+      "reductionPct": 14.3
+    },
+    {
+      "file": "src/mcp/install.js",
+      "lines": 8,
+      "beforeTokens": 114,
+      "afterTokens": 96,
+      "reductionPct": 15.8
+    },
+    {
+      "file": "src/mcp/server.js",
+      "lines": 5,
+      "beforeTokens": 48,
+      "afterTokens": 38,
+      "reductionPct": 20.8
+    },
+    {
+      "file": "src/mcp/tools.js",
+      "lines": 1,
+      "beforeTokens": 9,
+      "afterTokens": 7,
+      "reductionPct": 22.2
+    },
+    {
+      "file": "src/nudge.js",
+      "lines": 7,
+      "beforeTokens": 93,
+      "afterTokens": 78,
+      "reductionPct": 16.1
+    },
+    {
+      "file": "src/plan/planner.js",
+      "lines": 2,
+      "beforeTokens": 23,
+      "afterTokens": 18,
+      "reductionPct": 21.7
+    },
+    {
+      "file": "src/plan/verify-plan.js",
+      "lines": 3,
+      "beforeTokens": 54,
+      "afterTokens": 45,
+      "reductionPct": 16.7
+    },
+    {
+      "file": "src/retrieval/bm25.js",
+      "lines": 5,
+      "beforeTokens": 82,
+      "afterTokens": 69,
+      "reductionPct": 15.9
+    },
+    {
+      "file": "src/retrieval/ranker.js",
+      "lines": 14,
+      "beforeTokens": 234,
+      "afterTokens": 202,
+      "reductionPct": 13.7
+    },
+    {
+      "file": "src/retrieval/tokenizer.js",
+      "lines": 2,
+      "beforeTokens": 25,
+      "afterTokens": 20,
+      "reductionPct": 20
+    },
+    {
+      "file": "src/review/pr-evidence.js",
+      "lines": 3,
+      "beforeTokens": 57,
+      "afterTokens": 48,
+      "reductionPct": 15.8
+    },
+    {
+      "file": "src/review/review-pr.js",
+      "lines": 4,
+      "beforeTokens": 61,
+      "afterTokens": 51,
+      "reductionPct": 16.4
+    },
+    {
+      "file": "src/routing/classifier.js",
+      "lines": 3,
+      "beforeTokens": 50,
+      "afterTokens": 42,
+      "reductionPct": 16
+    },
+    {
+      "file": "src/routing/hints.js",
+      "lines": 2,
+      "beforeTokens": 29,
+      "afterTokens": 24,
+      "reductionPct": 17.2
+    },
+    {
+      "file": "src/scaffold/persist.js",
+      "lines": 3,
+      "beforeTokens": 43,
+      "afterTokens": 36,
+      "reductionPct": 16.3
+    },
+    {
+      "file": "src/scaffold/propose.js",
+      "lines": 5,
+      "beforeTokens": 71,
+      "afterTokens": 59,
+      "reductionPct": 16.9
+    },
+    {
+      "file": "src/security/patterns.js",
+      "lines": 1,
+      "beforeTokens": 10,
+      "afterTokens": 7,
+      "reductionPct": 30
+    },
+    {
+      "file": "src/security/scanner.js",
+      "lines": 2,
+      "beforeTokens": 27,
+      "afterTokens": 21,
+      "reductionPct": 22.2
+    },
+    {
+      "file": "src/session/memory.js",
+      "lines": 6,
+      "beforeTokens": 81,
+      "afterTokens": 68,
+      "reductionPct": 16
+    },
+    {
+      "file": "src/session/notes.js",
+      "lines": 7,
+      "beforeTokens": 81,
+      "afterTokens": 66,
+      "reductionPct": 18.5
+    },
+    {
+      "file": "src/squeeze/cilog.js",
+      "lines": 3,
+      "beforeTokens": 46,
+      "afterTokens": 38,
+      "reductionPct": 17.4
+    },
+    {
+      "file": "src/squeeze/classify.js",
+      "lines": 6,
+      "beforeTokens": 72,
+      "afterTokens": 60,
+      "reductionPct": 16.7
+    },
+    {
+      "file": "src/squeeze/index.js",
+      "lines": 5,
+      "beforeTokens": 70,
+      "afterTokens": 58,
+      "reductionPct": 17.1
+    },
+    {
+      "file": "src/squeeze/jsonpayload.js",
+      "lines": 3,
+      "beforeTokens": 46,
+      "afterTokens": 38,
+      "reductionPct": 17.4
+    },
+    {
+      "file": "src/squeeze/stacktrace.js",
+      "lines": 6,
+      "beforeTokens": 84,
+      "afterTokens": 70,
+      "reductionPct": 16.7
+    },
+    {
+      "file": "src/tracking/aggregate.js",
+      "lines": 8,
+      "beforeTokens": 100,
+      "afterTokens": 83,
+      "reductionPct": 17
+    },
+    {
+      "file": "src/tracking/logger.js",
+      "lines": 7,
+      "beforeTokens": 97,
+      "afterTokens": 81,
+      "reductionPct": 16.5
+    },
+    {
+      "file": "src/tracking/pricing.js",
+      "lines": 3,
+      "beforeTokens": 46,
+      "afterTokens": 38,
+      "reductionPct": 17.4
+    },
+    {
+      "file": "src/util/git.js",
+      "lines": 3,
+      "beforeTokens": 30,
+      "afterTokens": 23,
+      "reductionPct": 23.3
+    },
+    {
+      "file": "src/util/truncate.js",
+      "lines": 3,
+      "beforeTokens": 56,
+      "afterTokens": 47,
+      "reductionPct": 16.1
+    },
+    {
+      "file": "src/verify/closest-match.js",
+      "lines": 6,
+      "beforeTokens": 105,
+      "afterTokens": 90,
+      "reductionPct": 14.3
+    },
+    {
+      "file": "src/verify/hallucination-guard.js",
+      "lines": 8,
+      "beforeTokens": 106,
+      "afterTokens": 89,
+      "reductionPct": 16
+    },
+    {
+      "file": "src/verify/lib-index.js",
+      "lines": 13,
+      "beforeTokens": 218,
+      "afterTokens": 187,
+      "reductionPct": 14.2
+    },
+    {
+      "file": "src/verify/parsers.js",
+      "lines": 6,
+      "beforeTokens": 116,
+      "afterTokens": 99,
+      "reductionPct": 14.7
+    },
+    {
+      "file": "src/workspace/detector.js",
+      "lines": 5,
+      "beforeTokens": 67,
+      "afterTokens": 57,
+      "reductionPct": 14.9
+    },
+    {
+      "file": "packages/adapters/claude.js",
+      "lines": 5,
+      "beforeTokens": 62,
+      "afterTokens": 49,
+      "reductionPct": 21
+    },
+    {
+      "file": "packages/adapters/codex.js",
+      "lines": 4,
+      "beforeTokens": 51,
+      "afterTokens": 40,
+      "reductionPct": 21.6
+    },
+    {
+      "file": "packages/adapters/copilot.js",
+      "lines": 5,
+      "beforeTokens": 61,
+      "afterTokens": 49,
+      "reductionPct": 19.7
+    },
+    {
+      "file": "packages/adapters/cursor.js",
+      "lines": 4,
+      "beforeTokens": 47,
+      "afterTokens": 38,
+      "reductionPct": 19.1
+    },
+    {
+      "file": "packages/adapters/gemini.js",
+      "lines": 5,
+      "beforeTokens": 62,
+      "afterTokens": 49,
+      "reductionPct": 21
+    },
+    {
+      "file": "packages/adapters/index.js",
+      "lines": 5,
+      "beforeTokens": 76,
+      "afterTokens": 63,
+      "reductionPct": 17.1
+    },
+    {
+      "file": "packages/adapters/llm-full.js",
+      "lines": 4,
+      "beforeTokens": 46,
+      "afterTokens": 37,
+      "reductionPct": 19.6
+    },
+    {
+      "file": "packages/adapters/openai.js",
+      "lines": 4,
+      "beforeTokens": 47,
+      "afterTokens": 38,
+      "reductionPct": 19.1
+    },
+    {
+      "file": "packages/adapters/willow.js",
+      "lines": 7,
+      "beforeTokens": 115,
+      "afterTokens": 97,
+      "reductionPct": 15.7
+    },
+    {
+      "file": "packages/adapters/windsurf.js",
+      "lines": 4,
+      "beforeTokens": 47,
+      "afterTokens": 38,
+      "reductionPct": 19.1
+    },
+    {
+      "file": "packages/cli/index.js",
+      "lines": 2,
+      "beforeTokens": 21,
+      "afterTokens": 16,
+      "reductionPct": 23.8
+    },
+    {
+      "file": "packages/core/README.md",
+      "lines": 16,
+      "beforeTokens": 117,
+      "afterTokens": 113,
+      "reductionPct": 3.4
+    },
+    {
+      "file": "packages/core/index.js",
+      "lines": 8,
+      "beforeTokens": 127,
+      "afterTokens": 106,
+      "reductionPct": 16.5
+    }
+  ]
+}

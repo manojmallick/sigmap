@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "76 versions shipped. See what changed in each release and what is coming next."
+      content: "83 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Eighty-two versions shipped. MIT open source from day one.
+Eighty-three versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 19 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.11.0 — Terse signature encoder, measured (D7) ✓ (2026-07-11)
+
+**Minor release — the master plan's last unstarted v8.5-tier item, shipped under its measure-first gate.** `--terse` (or `terse: true` in config) deterministically compacts every signature line — `function `→`fn `, tightened params/arrows/exports — while preserving the `:start-end` line anchor and any trailing doc hint byte-exactly, so `get_lines`, evidence packs, `parseAnchor`, symbol extraction, and ranker parse-back all keep working (regression-tested). Off by default: without the flag, output is byte-identical. The public number comes from the new `npm run benchmark:terse` gate run on the SigMap repo itself — never from another tool's prose-compression claims (the borrowed "65–75%" figure correctly did not apply).
+
+**Tags:** `--terse` · `terse: false` · `src/format/terse.js` · `benchmark:terse` · `measure-first` · `D7` · `#462` · `PR #463`
+
+**Impact:** measured −16.1% signature-block tokens (10,232 → 8,580 across 143 files / 780 sig lines); 15 new integration tests (116 derived tests); anchors byte-exact; default output unchanged.
 
 ---
 

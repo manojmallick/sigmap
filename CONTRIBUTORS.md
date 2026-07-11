@@ -35,6 +35,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.11.0)
+- **@manojmallick** — feat(format): terse signature encoder — opt-in `--terse` deterministic compaction of the signature block, measured −16.1% on this repo via the new `benchmark:terse` measure-first gate; line anchors preserved byte-exactly, ranker parse-back regression-tested (#462, PR #463)
+- **@manojmallick** — docs(readme): reliable Star History link (PR #461); 'Verified on MseeP' badge (PR #460)
+
 ### Recent Contributors (v8.10.0)
 - **@manojmallick** — feat(cli): honesty fixes across the CLI surface — claim-level grounding in `judge`, NL retrieval-confidence in `validate --query`, real `plan` impact (+ depth-cap bug fix), content-based secret scan in `review-pr`, unified `gain` pricing, auditable `--health` composite, tsconfig-alias import-graph resolution, single-word `conventions` fix, diff-driven `suggest-profile`, and visible extractor truncation (#457, PR #458)
 - **@mseep-ai** — docs: add the MseeP.ai security assessment badge to the README (PR #456)
