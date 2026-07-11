@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.13.0] — 2026-07-11
+
+Minor release — **method-level blast-radius scoring** (GR2, the biggest Phase-2 lever in the master plan §7.4). The D4 call-graph finally has consumers: review findings, the PR Evidence report, and a 20th MCP tool now answer *which functions break*, not just which files.
+
+### Added
+- **Method-level blast-radius scoring (#468, PR #469):** new `src/graph/blast-radius.js` — for each changed file, reverse-BFS the method call-graph and score the change with a documented deterministic formula (`min(100, direct×4 + transitive×1)`; tiers none/low/medium/high/critical). Wired into three consumers: `review-pr` gains a `methodBlast` result field and a `method-blast` finding on high/critical tiers; the **PR Evidence** report gains a per-file `Method blast radius: N function(s) impacted (score X/100, tier)` line with top caller ids; and the new **`get_method_impact`** MCP tool (`symbol`, `direction: callers|callees`, `depth`) exposes per-symbol blast radius to agents — **19 → 20 MCP tools**. Graceful degradation when no call graph resolves; byte-stable output for a fixed tree.
+
+---
+
 ## [8.12.0] — 2026-07-11
 
 Minor release — **`sigmap wiki`** (D9, the final unstarted in-boundary item from the master plan §3.5 backlog). With this, every in-boundary initiative D1–D9 has shipped.

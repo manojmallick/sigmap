@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "84 versions shipped. See what changed in each release and what is coming next."
+      content: "85 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Eighty-four versions shipped. MIT open source from day one.
+Eighty-five versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 19 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.13.0 — Method-level blast-radius scoring (GR2) ✓ (2026-07-11)
+
+**Minor release — the biggest Phase-2 lever from the master plan's §7.4 scorecard.** The D4 method-level call-graph finally gets consumers. New `src/graph/blast-radius.js` reverse-BFSes each changed file's defined symbols and scores the change with a documented deterministic formula — `min(100, direct×4 + transitive×1)`, tiers none/low/medium/high/critical. Three surfaces consume it: `review-pr` attaches `methodBlast` and fires a `method-blast` finding on high/critical tiers; the **PR Evidence** report adds a per-file *Method blast radius* line (impacted function count, score/tier, top caller ids); and the new **`get_method_impact`** MCP tool gives agents per-symbol blast radius (callers) or dependencies (callees) — **19 → 20 MCP tools**. A reviewer now sees *which functions break*, not just which files. Graph optional: repos without a resolvable call graph degrade gracefully.
+
+**Tags:** `blast-radius` · `method-blast` · `get_method_impact` · `20 MCP tools` · `review-pr` · `PR Evidence` · `GR2` · `#468` · `PR #469`
+
+**Impact:** deterministic per-file blast score/tier in review output; 10 new integration tests (118 derived); dogfooded on its own diff — flagged `src/graph/builder.js` at score 37/100 (high, 19 impacted functions).
+
+---
+
 ### v8.12.0 — `sigmap wiki`: deterministic architecture narrative (D9) ✓ (2026-07-11)
 
 **Minor release — the final unstarted in-boundary item from the master plan's §3.5 backlog; D1–D9 are now all shipped.** `sigmap wiki` writes `.context/WIKI.md`, a one-page onboarding narrative composed entirely from data SigMap already computes: overview (indexed files, modules, signature tokens, health grade), a module rollup with key files, dependency flow (the hub files with the widest blast radius, entry points, cycle count from the import graph), a conventions summary, and navigation pointers. Template prose only — **no LLM, no network, no timestamps** — so two consecutive runs on an unchanged repo are byte-identical (regression-tested; the Philosophy Gate holds). `--out` overrides the path; `--json` emits the structured data. Graph paths are relativized against the builder's normalized base so hubs/entries render repo-relative even on macOS tmpdirs.
@@ -1378,7 +1388,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2) and method-level call-graph v1 shipped (D4). Next: method-level **blast-radius scoring** + wiring call-graph edges into ranking, PR Evidence, and an MCP tool (GR2); call-graph for more languages (Java/Go/Rust); retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped into review-pr, PR Evidence, and the `get_method_impact` MCP tool (GR2, v8.13). Next: call-graph edges into ranking; call-graph for more languages (Java/Go/Rust); retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 
