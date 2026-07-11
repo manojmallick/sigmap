@@ -517,20 +517,21 @@ sigmap review-pr --json          # machine-readable findings
 | `missing-tests` | a changed source file with no matching changed test |
 | `security-file` | `.env*`, auth, secrets, `package.json` / lockfiles, `.github/workflows/**`, Dockerfiles, key files |
 | `god-node` | a changed file with transitive dependents above the threshold (via the impact graph) |
+| `method-blast` | **v8.13.0** — a changed file whose method-level blast radius scores high/critical: `min(100, direct×4 + transitive×1)` over the call graph (functions that transitively call into the change) |
 | `scope-drift` | the diff touches more distinct top-level directories than the threshold |
 
 | Option | Description |
 |--------|-------------|
 | `--base <ref>` | Compare against this ref's merge-base (default: `main`, then `develop`) |
 | `--staged` | Audit staged changes instead of a commit range |
-| `--json` | Emit `{ findings, blast, summary }` |
+| `--json` | Emit `{ findings, blast, methodBlast, summary }` |
 | `--markdown` | Emit the **PR Evidence Report** (alias `--evidence`) |
 
 Deletions are excluded from the source/security checks. Any finding exits non-zero, so `review-pr` works as a CI gate. To run this together with the other stages, see [`create`](#create).
 
 ### PR Evidence Report (`--markdown`)
 
-`sigmap review-pr --markdown` renders one **branded, deterministic Markdown comment** you can post on a pull request. For each changed file it folds together the extracted **signatures**, **blast radius** (direct/transitive importers, impacted tests + routes), cross-language **related tests**, a **risk label**, and the review findings above — answering *"what changed, what it touches, and what to test"* with no LLM.
+`sigmap review-pr --markdown` renders one **branded, deterministic Markdown comment** you can post on a pull request. For each changed file it folds together the extracted **signatures**, **blast radius** (direct/transitive importers, impacted tests + routes), a **method blast radius** line (v8.13.0 — how many *functions* transitively call into the change, with score/tier and the top caller ids), cross-language **related tests**, a **risk label**, and the review findings above — answering *"what changed, what it touches, and what to test"* with no LLM.
 
 ```bash
 sigmap review-pr --markdown --base main > pr-evidence.md   # post this as a PR comment

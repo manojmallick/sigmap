@@ -50,6 +50,12 @@ function buildPrEvidence(changedFiles, cwd, opts = {}) {
     impactByFile = new Map(analyzeImpact(srcPaths, cwd, { depth }).map((r) => [r.file, r.impact]));
   } catch (_) { /* graph optional */ }
 
+  // GR2: method-level blast radius per changed file (reviewPr already computed
+  // it when the call graph resolved — reuse, don't rebuild the graph).
+  const methodBlastByFile = new Map(
+    (review.methodBlast && review.methodBlast.files || []).map((m) => [m.file, m])
+  );
+
   const fileReports = files.map((f) => {
     const deleted = f.status === 'D';
     let signatures = [];
@@ -58,6 +64,7 @@ function buildPrEvidence(changedFiles, cwd, opts = {}) {
     }
     const impact = impactByFile.get(f.path) || null;
     return {
+      methodBlast: methodBlastByFile.get(f.path.replace(/\\/g, '/')) || null,
       path: f.path,
       status: f.status,
       riskLabel: riskLabelFor(f.path),
@@ -100,6 +107,7 @@ function formatPrEvidenceMarkdown(evidence, opts = {}) {
       else if (f.type === 'security-file') L.push(`- ⚠️ **sensitive path touched** (path heuristic, not a content scan) — \`${f.file}\``);
       else if (f.type === 'secret-detected') L.push(`- 🔑 **secret detected** (${f.secret}) — \`${f.file}\``);
       else if (f.type === 'god-node') L.push(`- ⚠️ **god node** — \`${f.file}\` → ${f.count} dependents (high blast radius)`);
+      else if (f.type === 'method-blast') L.push(`- ⚠️ **method blast radius ${f.tier}** — \`${f.file}\` → ${f.functions} function(s) transitively call into this change (score ${f.score}/100)`);
       else if (f.type === 'scope-drift') L.push(`- ⚠️ **scope drift** — ${f.count} top-level dirs touched (${f.dirs.join(', ')})`);
     }
     L.push('');
@@ -120,6 +128,15 @@ function formatPrEvidenceMarkdown(evidence, opts = {}) {
       if (f.blast.tests.length) L.push(`Tests to run: ${f.blast.tests.slice(0, 8).map((t) => '`' + t + '`').join(', ')}`);
     } else {
       L.push('**Blast radius:** _(not in dependency graph — new or leaf file)_');
+    }
+    if (f.methodBlast && (f.methodBlast.directCallers + f.methodBlast.transitiveCallers) > 0) {
+      const mb = f.methodBlast;
+      const total = mb.directCallers + mb.transitiveCallers;
+      L.push(
+        `**Method blast radius:** ${total} function(s) impacted (score ${mb.score}/100, ${mb.tier}) — ` +
+        mb.impactedFunctions.slice(0, 6).map((id) => '`' + id + '`').join(', ') +
+        (total > 6 ? ` +${total - 6} more` : '')
+      );
     }
     if (f.relatedTests.length) L.push(`Related tests: ${f.relatedTests.slice(0, 8).map((t) => '`' + t + '`').join(', ')}`);
 

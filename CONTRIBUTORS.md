@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.13.0)
+- **@manojmallick** — feat(graph): method-level blast-radius scoring (GR2) — deterministic per-file score/tier from the call graph, wired into `review-pr` findings, the PR Evidence report, and the new `get_method_impact` MCP tool (19→20 tools) (#468, PR #469)
+
 ### Recent Contributors (v8.12.0)
 - **@manojmallick** — feat(wiki): `sigmap wiki` — deterministic architecture narrative from signatures + dependency graph (no LLM, byte-stable, `--json`/`--out`), closing D9, the last unstarted in-boundary master-plan item (#465, PR #466)
 

@@ -1,12 +1,12 @@
 'use strict';
 
 /**
- * MCP tool definitions for SigMap (19 tools).
+ * MCP tool definitions for SigMap (20 tools).
  * read_context, search_signatures, get_map, create_checkpoint, get_routing,
- * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
- * get_callee_signatures, sigmap_notify_file_created, sigmap_notify_symbol_added,
- * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview,
- * verify_suggestion, squeeze_output.
+ * explain_file, list_modules, query_context, get_method_impact, get_impact,
+ * get_lines, read_memory, get_callee_signatures, sigmap_notify_file_created,
+ * sigmap_notify_symbol_added, sigmap_notify_file_deleted, get_diff_context,
+ * get_architecture_overview, verify_suggestion, squeeze_output.
  */
 
 const TOOLS = [
@@ -146,6 +146,35 @@ const TOOLS = [
         },
       },
       required: ['query'],
+    },
+  },
+  {
+    name: 'get_method_impact',
+    description:
+      'Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — ' +
+      'or, with direction "callees", every repo function it calls. Finer-grained than the ' +
+      'file-level get_impact: tells an agent which functions break, not just which files. ' +
+      'JS/TS + Python call-graph; deterministic, no LLM.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: {
+          type: 'string',
+          description:
+            'Function/method name (e.g. "validateToken") or a full "file#name" id ' +
+            '(e.g. "src/auth/session.js#validateToken") to disambiguate.',
+        },
+        direction: {
+          type: 'string',
+          enum: ['callers', 'callees'],
+          description: '"callers" (default) = blast radius; "callees" = what the symbol calls.',
+        },
+        depth: {
+          type: 'number',
+          description: 'BFS depth limit (default 0 = unlimited).',
+        },
+      },
+      required: ['symbol'],
     },
   },
   {

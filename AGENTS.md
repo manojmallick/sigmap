@@ -33,22 +33,16 @@ Always run `sigmap ask` (or `sigmap --query`) before searching for files relevan
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 0 seconds ago)
+## changes (last 5 commits — 1 second ago)
 ```
 src/format/terse.js                           +splitAnchor  +encodeTerseSig  +encodeTerseSigs  +_tokens
+src/graph/blast-radius.js                     +tierFor  +_normRel  +_bfs  +methodBlastRadius
+src/mcp/handlers.js                           +that  +getMethodImpact  ~queryContext  ~squeezeOutput
+src/mcp/server.js                             ~dispatch
+src/mcp/tools.js                              +it
+src/review/pr-evidence.js                     ~buildPrEvidence  ~formatPrEvidenceMarkdown
+src/review/review-pr.js                       ~isSource  ~reviewPr
 src/wiki/generate.js                          +_rel  +_pct  +_identity  +_modules
-src/conventions/extract.js                    ~classifyNaming  ~scoreConvention
-src/conventions/fix.js                        ~buildFixList
-src/extractors/javascript.js                  ~extract  ~extractClassMembers  ~extractBlock  ~buildReturnHints
-src/extractors/typescript.js                  ~extract  ~extractInterfaceMembers  ~extractClassMembers  ~extractBlock
-src/graph/builder.js                          +probeJs  +resolveJsPath  +stripJsonc  +loadAliasMap
-src/graph/impact.js                           ~formatImpact
-src/health/scorer.js                          +gradeFor  +composeHealth  +score  ~score
-src/judge/judge-engine.js                     +extracts  +claimGrounding  ~groundedness  ~judge
-src/plan/planner.js                           +createPlan  ~createPlan
-src/review/pr-evidence.js                     ~formatPrEvidenceMarkdown
-src/review/review-pr.js                       ~reviewPr
-src/util/truncate.js                          +members  +capWithNotice  +block  +capMembersWithNotice
 ```
 
 ## packages
@@ -195,13 +189,70 @@ function _tokens(sigs)  :62-64
 function measureTerse(sigsList) → { beforeTokens: number, a  :72-84
 ```
 
+### src/graph/blast-radius.js
+```
+module.exports = { methodBlastRadius, tierFor, DIRECT_WEIGHT, TRANSITIVE_WEIGHT }  :132-132
+function tierFor(score)  :25-31
+function _normRel(p)  :33-35
+function _bfs(seedIds, reverse, maxDepth)  :38-60
+function methodBlastRadius(changedFiles, cwd, opts = {}) → { * available: boolean, *  :78-130
+```
+
+### src/mcp/handlers.js
+```
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :966-966
+function _readContextFiles(cwd)  :10-17
+function readContext(args, cwd)  :36-66
+function searchSignatures(args, cwd)  :74-100
+function getMap(args, cwd)  :108-131
+function createCheckpoint(args, cwd)  :143-215
+function getRouting(args, cwd)  :224-261
+function explainFile(args, cwd)  :269-356
+function listModules(args, cwd)  :364-403
+function queryContext(args, cwd)  :411-429
+function getMethodImpact(args, cwd)  :437-451
+function getImpact(args, cwd)  :459-471
+function getLines(args, cwd)  :480-528
+function readMemory(args, cwd)  :536-571
+function getCalleeSignatures(args, cwd)  :580-625
+function _pkgVersion(cwd)  :632-635
+function notifyFileCreated(args, cwd)  :639-661
+function notifySymbolAdded(args, cwd)  :664-684
+function notifyFileDeleted(args, cwd)  :687-701
+function _changedFiles(cwd, args)  :707-719
+function getDiffContext(args, cwd)  :728-799
+function getArchitectureOverview(args, cwd)  :808-876
+function verifySuggestion(args, cwd)  :886-921
+function squeezeOutput(args, cwd)  :931-964
+```
+
 ### src/mcp/server.js
 ```
-module.exports = { start }  :140-140
+module.exports = { start }  :141-141
 function respond(id, result)  :28-30
 function respondError(id, code, message)  :32-36
-function dispatch(msg, cwd)  :41-107
-function start(cwd)  :112-138
+function dispatch(msg, cwd)  :41-108
+function start(cwd)  :113-139
+```
+
+### src/mcp/tools.js
+```
+module.exports = { TOOLS }  :392-392
+```
+
+### src/review/pr-evidence.js
+```
+module.exports = { buildPrEvidence, formatPrEvidenceMarkdown }  :157-157
+function buildPrEvidence(changedFiles, cwd, opts = {}) → { scope:string, files:obj  :31-84
+function formatPrEvidenceMarkdown(evidence, opts = {})  :89-155
+```
+
+### src/review/review-pr.js
+```
+module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD }  :150-150
+function isTestFile(p)  :32-34
+function isSource(p)  :35-37
+function reviewPr(changedFiles, cwd, opts = {}) → { findings: object[], bla  :48-148
 ```
 
 ### src/wiki/generate.js
@@ -1099,33 +1150,6 @@ function shouldSkipFile(rel)  :18-21
 function analyze(files, cwd)  :23-125
 ```
 
-### src/mcp/handlers.js
-```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :944-944
-function _readContextFiles(cwd)  :10-17
-function readContext(args, cwd)  :36-66
-function searchSignatures(args, cwd)  :74-100
-function getMap(args, cwd)  :108-131
-function createCheckpoint(args, cwd)  :143-215
-function getRouting(args, cwd)  :224-261
-function explainFile(args, cwd)  :269-356
-function listModules(args, cwd)  :364-403
-function queryContext(args, cwd)  :411-429
-function getImpact(args, cwd)  :437-449
-function getLines(args, cwd)  :458-506
-function readMemory(args, cwd)  :514-549
-function getCalleeSignatures(args, cwd)  :558-603
-function _pkgVersion(cwd)  :610-613
-function notifyFileCreated(args, cwd)  :617-639
-function notifySymbolAdded(args, cwd)  :642-662
-function notifyFileDeleted(args, cwd)  :665-679
-function _changedFiles(cwd, args)  :685-697
-function getDiffContext(args, cwd)  :706-777
-function getArchitectureOverview(args, cwd)  :786-854
-function verifySuggestion(args, cwd)  :864-899
-function squeezeOutput(args, cwd)  :909-942
-```
-
 ### src/mcp/install.js
 ```
 module.exports = { CLIENTS, listClients, installClient, resolveTarget }  :142-142
@@ -1136,11 +1160,6 @@ function _installJson(filePath, scriptPath)  :69-81
 function _installZed(filePath, scriptPath)  :84-96
 function _installYaml(filePath, scriptPath)  :99-117
 function installClient(client, opts = {}) → client, label, path, stat  :124-140
-```
-
-### src/mcp/tools.js
-```
-module.exports = { TOOLS }  :363-363
 ```
 
 ### src/nudge.js
@@ -1198,21 +1217,6 @@ function detectIntent(query)  :562-568
 ```
 module.exports = { tokenize, STOP_WORDS }  :54-54
 function tokenize(text, opts) → string[]  :31-52
-```
-
-### src/review/pr-evidence.js
-```
-module.exports = { buildPrEvidence, formatPrEvidenceMarkdown }  :140-140
-function buildPrEvidence(changedFiles, cwd, opts = {}) → { scope:string, files:obj  :31-77
-function formatPrEvidenceMarkdown(evidence, opts = {})  :82-138
-```
-
-### src/review/review-pr.js
-```
-module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD }  :128-128
-function isTestFile(p)  :32-34
-function isSource(p)  :35-37
-function reviewPr(changedFiles, cwd, opts = {}) → { findings: object[], bla  :48-126
 ```
 
 ### src/routing/classifier.js

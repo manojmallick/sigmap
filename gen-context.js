@@ -10304,6 +10304,142 @@ __factories["./src/format/verify-report"] = function(module, exports) {
   
 };
 
+// ── ./src/graph/blast-radius ──
+__factories["./src/graph/blast-radius"] = function(module, exports) {
+  
+  /**
+   * Method-level blast-radius scoring (GR2).
+   *
+   * Consumes the D4 call-graph (src/graph/call-graph.js): for each changed file,
+   * resolve the functions it defines, BFS the reverse call edges, and score how
+   * much of the codebase transitively calls into the change. The score is a
+   * documented deterministic formula — no heuristics that vary run to run — so
+   * review-pr findings and PR Evidence lines are byte-stable for a fixed tree.
+   *
+   * Score: min(100, direct×4 + transitive×1). Tiers:
+   *   0 → none · 1–9 → low · 10–29 → medium · 30–59 → high · 60+ → critical
+   */
+
+  const path = require('path');
+  const { buildCallGraph } = __require('./src/graph/call-graph');
+
+  const DIRECT_WEIGHT = 4;
+  const TRANSITIVE_WEIGHT = 1;
+  const IMPACTED_FUNCTIONS_CAP = 12;
+
+  const TEST_FILE_RE = /\.(test|spec)\.[jt]sx?$|(^|\/)test_|_test\.(py|go)$|(^|\/)(tests?|__tests__|spec)\//;
+
+  function tierFor(score) {
+    if (score >= 60) return 'critical';
+    if (score >= 30) return 'high';
+    if (score >= 10) return 'medium';
+    if (score >= 1) return 'low';
+    return 'none';
+  }
+
+  function _normRel(p) {
+    return String(p).replace(/\\/g, '/');
+  }
+
+  // BFS the reverse edges from a set of symbol ids; returns direct/transitive id sets.
+  function _bfs(seedIds, reverse, maxDepth) {
+    const direct = new Set();
+    const transitive = new Set();
+    const visited = new Set(seedIds);
+    let frontier = [];
+    for (const s of seedIds) {
+      for (const nb of (reverse.get(s) || [])) {
+        if (!visited.has(nb)) { direct.add(nb); visited.add(nb); frontier.push(nb); }
+      }
+    }
+    let depth = 1;
+    while (frontier.length && (maxDepth === 0 || depth < maxDepth)) {
+      const next = [];
+      for (const node of frontier) {
+        for (const nb of (reverse.get(node) || [])) {
+          if (!visited.has(nb)) { transitive.add(nb); visited.add(nb); next.push(nb); }
+        }
+      }
+      frontier = next;
+      depth++;
+    }
+    return { direct, transitive };
+  }
+
+  /**
+   * Score the method-level blast radius of a changed-file list.
+   *
+   * @param {string[]} changedFiles repo-relative paths
+   * @param {string} cwd
+   * @param {object} [opts]
+   * @param {object} [opts.graph]  injected call graph (tests); else built from cwd
+   * @param {number} [opts.depth=0] BFS depth limit (0 = unlimited)
+   * @returns {{
+   *   available: boolean,
+   *   files: Array<{ file:string, symbols:number, directCallers:number,
+   *                  transitiveCallers:number, testCallers:number,
+   *                  impactedFunctions:string[], score:number, tier:string }>,
+   *   aggregate: { score:number, tier:string, impactedFunctions:number }
+   * }}
+   */
+  function methodBlastRadius(changedFiles, cwd, opts = {}) {
+    const empty = { available: false, files: [], aggregate: { score: 0, tier: 'none', impactedFunctions: 0 } };
+    let graph;
+    try {
+      graph = opts.graph || buildCallGraph(cwd, opts);
+    } catch (_) {
+      return empty;
+    }
+    if (!graph || !graph.defs || graph.defs.size === 0) return empty;
+
+    // Group defined symbol ids by their (normalized) defining file.
+    const idsByFile = new Map();
+    for (const [id, def] of graph.defs.entries()) {
+      const rel = _normRel(def.file);
+      if (!idsByFile.has(rel)) idsByFile.set(rel, []);
+      idsByFile.get(rel).push(id);
+    }
+
+    const depth = Number.isFinite(opts.depth) ? opts.depth : 0;
+    const files = [];
+    const allImpacted = new Set();
+
+    for (const changed of (changedFiles || []).map(_normRel).sort()) {
+      const ids = idsByFile.get(changed);
+      if (!ids || !ids.length) continue;
+      const { direct, transitive } = _bfs(ids, graph.reverse, depth);
+      const impacted = [...direct, ...transitive].sort();
+      for (const id of impacted) allImpacted.add(id);
+      const testCallers = impacted.filter((id) => {
+        const def = graph.defs.get(id);
+        return def && TEST_FILE_RE.test(_normRel(def.file));
+      }).length;
+      const score = Math.min(100, direct.size * DIRECT_WEIGHT + transitive.size * TRANSITIVE_WEIGHT);
+      files.push({
+        file: changed,
+        symbols: ids.length,
+        directCallers: direct.size,
+        transitiveCallers: transitive.size,
+        testCallers,
+        impactedFunctions: impacted.slice(0, IMPACTED_FUNCTIONS_CAP),
+        score,
+        tier: tierFor(score),
+      });
+    }
+
+    if (!files.length) return empty;
+    const maxScore = files.reduce((m, f) => Math.max(m, f.score), 0);
+    return {
+      available: true,
+      files,
+      aggregate: { score: maxScore, tier: tierFor(maxScore), impactedFunctions: allImpacted.size },
+    };
+  }
+
+  module.exports = { methodBlastRadius, tierFor, DIRECT_WEIGHT, TRANSITIVE_WEIGHT };
+  
+};
+
 // ── ./src/graph/builder ──
 __factories["./src/graph/builder"] = function(module, exports) {
   
@@ -13360,6 +13496,28 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   }
 
   /**
+   * get_method_impact({ symbol, direction?, depth? }) → string
+   *
+   * Method-level blast radius (GR2): every function that transitively calls
+   * `symbol` (direction 'callers', default), or everything it calls ('callees').
+   */
+  function getMethodImpact(args, cwd) {
+    if (!args || !args.symbol) return 'Missing required argument: symbol';
+
+    try {
+      const { methodImpact, methodCallees, formatCallGraph } = __require('./src/graph/call-graph');
+      const kind = args.direction === 'callees' ? 'callees' : 'callers';
+      const depth = Math.max(0, parseInt(args.depth, 10) || 0);
+      const result = kind === 'callees'
+        ? methodCallees(args.symbol, cwd, { depth })
+        : methodImpact(args.symbol, cwd, { depth });
+      return formatCallGraph(result, kind);
+    } catch (err) {
+      return `_get_method_impact failed: ${err.message}_`;
+    }
+  }
+
+  /**
    * get_impact({ file, depth? }) → string
    *
    * Returns a formatted markdown impact report for the given file:
@@ -13872,7 +14030,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     return header + sq.squeezed;
   }
 
-  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput };
+  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput };
   
 };
 
@@ -14039,11 +14197,11 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const readline = require('readline');
   const { TOOLS } = __require('./src/mcp/tools');
-  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput } = __require('./src/mcp/handlers');
+  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput } = __require('./src/mcp/handlers');
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.12.0',
+    version: '8.13.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -14099,6 +14257,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
         else if (name === 'explain_file') text = explainFile(args, cwd);
         else if (name === 'list_modules') text = listModules(args, cwd);
         else if (name === 'query_context') text = queryContext(args, cwd);
+        else if (name === 'get_method_impact') text = getMethodImpact(args, cwd);
         else if (name === 'get_impact') text = getImpact(args, cwd);
         else if (name === 'get_lines') text = getLines(args, cwd);
         else if (name === 'read_memory') text = readMemory(args, cwd);
@@ -14170,12 +14329,12 @@ __factories["./src/mcp/server"] = function(module, exports) {
 __factories["./src/mcp/tools"] = function(module, exports) {
   
   /**
-   * MCP tool definitions for SigMap (19 tools).
+   * MCP tool definitions for SigMap (20 tools).
    * read_context, search_signatures, get_map, create_checkpoint, get_routing,
-   * explain_file, list_modules, query_context, get_impact, get_lines, read_memory,
-   * get_callee_signatures, sigmap_notify_file_created, sigmap_notify_symbol_added,
-   * sigmap_notify_file_deleted, get_diff_context, get_architecture_overview,
-   * verify_suggestion, squeeze_output.
+   * explain_file, list_modules, query_context, get_method_impact, get_impact,
+   * get_lines, read_memory, get_callee_signatures, sigmap_notify_file_created,
+   * sigmap_notify_symbol_added, sigmap_notify_file_deleted, get_diff_context,
+   * get_architecture_overview, verify_suggestion, squeeze_output.
    */
 
   const TOOLS = [
@@ -14315,6 +14474,35 @@ __factories["./src/mcp/tools"] = function(module, exports) {
           },
         },
         required: ['query'],
+      },
+    },
+    {
+      name: 'get_method_impact',
+      description:
+        'Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — ' +
+        'or, with direction "callees", every repo function it calls. Finer-grained than the ' +
+        'file-level get_impact: tells an agent which functions break, not just which files. ' +
+        'JS/TS + Python call-graph; deterministic, no LLM.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          symbol: {
+            type: 'string',
+            description:
+              'Function/method name (e.g. "validateToken") or a full "file#name" id ' +
+              '(e.g. "src/auth/session.js#validateToken") to disambiguate.',
+          },
+          direction: {
+            type: 'string',
+            enum: ['callers', 'callees'],
+            description: '"callers" (default) = blast radius; "callees" = what the symbol calls.',
+          },
+          depth: {
+            type: 'number',
+            description: 'BFS depth limit (default 0 = unlimited).',
+          },
+        },
+        required: ['symbol'],
       },
     },
     {
@@ -15723,6 +15911,12 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       impactByFile = new Map(analyzeImpact(srcPaths, cwd, { depth }).map((r) => [r.file, r.impact]));
     } catch (_) { /* graph optional */ }
 
+    // GR2: method-level blast radius per changed file (reviewPr already computed
+    // it when the call graph resolved — reuse, don't rebuild the graph).
+    const methodBlastByFile = new Map(
+      (review.methodBlast && review.methodBlast.files || []).map((m) => [m.file, m])
+    );
+
     const fileReports = files.map((f) => {
       const deleted = f.status === 'D';
       let signatures = [];
@@ -15731,6 +15925,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       }
       const impact = impactByFile.get(f.path) || null;
       return {
+        methodBlast: methodBlastByFile.get(f.path.replace(/\\/g, '/')) || null,
         path: f.path,
         status: f.status,
         riskLabel: riskLabelFor(f.path),
@@ -15773,6 +15968,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
         else if (f.type === 'security-file') L.push(`- ⚠️ **sensitive path touched** (path heuristic, not a content scan) — \`${f.file}\``);
         else if (f.type === 'secret-detected') L.push(`- 🔑 **secret detected** (${f.secret}) — \`${f.file}\``);
         else if (f.type === 'god-node') L.push(`- ⚠️ **god node** — \`${f.file}\` → ${f.count} dependents (high blast radius)`);
+        else if (f.type === 'method-blast') L.push(`- ⚠️ **method blast radius ${f.tier}** — \`${f.file}\` → ${f.functions} function(s) transitively call into this change (score ${f.score}/100)`);
         else if (f.type === 'scope-drift') L.push(`- ⚠️ **scope drift** — ${f.count} top-level dirs touched (${f.dirs.join(', ')})`);
       }
       L.push('');
@@ -15793,6 +15989,15 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
         if (f.blast.tests.length) L.push(`Tests to run: ${f.blast.tests.slice(0, 8).map((t) => '`' + t + '`').join(', ')}`);
       } else {
         L.push('**Blast radius:** _(not in dependency graph — new or leaf file)_');
+      }
+      if (f.methodBlast && (f.methodBlast.directCallers + f.methodBlast.transitiveCallers) > 0) {
+        const mb = f.methodBlast;
+        const total = mb.directCallers + mb.transitiveCallers;
+        L.push(
+          `**Method blast radius:** ${total} function(s) impacted (score ${mb.score}/100, ${mb.tier}) — ` +
+          mb.impactedFunctions.slice(0, 6).map((id) => '`' + id + '`').join(', ') +
+          (total > 6 ? ` +${total - 6} more` : '')
+        );
       }
       if (f.relatedTests.length) L.push(`Related tests: ${f.relatedTests.slice(0, 8).map((t) => '`' + t + '`').join(', ')}`);
 
@@ -15860,7 +16065,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
    * @param {object} [opts]
    * @param {number} [opts.godNodeThreshold=15]
    * @param {number} [opts.scopeThreshold=5]
-   * @returns {{ findings: object[], blast: object[], summary: object }}
+   * @returns {{ findings: object[], blast: object[], methodBlast: object|null, summary: object }}
    */
   function reviewPr(changedFiles, cwd, opts = {}) {
     const godThreshold = opts.godNodeThreshold != null ? opts.godNodeThreshold : GOD_NODE_THRESHOLD;
@@ -15921,6 +16126,27 @@ __factories["./src/review/review-pr"] = function(module, exports) {
       blast.sort((a, b) => b.totalImpact - a.totalImpact);
     }
 
+    // 3b. Method-level blast radius (GR2) — how many FUNCTIONS transitively call
+    // into the change, scored deterministically. Graph optional, like 3.
+    let methodBlast = null;
+    if (srcChanged.length) {
+      try {
+        const { methodBlastRadius } = __require('./src/graph/blast-radius');
+        const mb = methodBlastRadius(srcChanged, cwd, opts.methodBlastOpts || {});
+        if (mb.available) {
+          methodBlast = mb;
+          for (const f of mb.files) {
+            if (f.tier === 'high' || f.tier === 'critical') {
+              findings.push({
+                type: 'method-blast', file: f.file, severity: 'warn',
+                functions: f.directCallers + f.transitiveCallers, score: f.score, tier: f.tier,
+              });
+            }
+          }
+        }
+      } catch (_) { /* call graph optional */ }
+    }
+
     // 4. Scope drift: distinct top-level directories touched.
     const dirs = [...new Set(paths.map((p) => (p.includes('/') ? p.split('/')[0] : '.')))];
     if (dirs.length > scopeThreshold) {
@@ -15931,6 +16157,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
     return {
       findings,
       blast,
+      methodBlast,
       summary: {
         filesChanged: files.length,
         sourceChanged: srcChanged.length,
@@ -18987,7 +19214,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.12.0';
+const VERSION = '8.13.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
