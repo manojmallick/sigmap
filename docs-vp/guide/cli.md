@@ -133,7 +133,7 @@ If you are new to the product, start with the workflow pages first:
 | `--init` | Scaffold `gen-context.config.json` and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
-| `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>` (JS/TS + Python) |
+| `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>` (JS/TS, Python, Java, Go, Rust) |
 | `--callees <symbol>` | Every repo function that `<symbol>` transitively calls |
 | `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier |
 | `--version` | Print version and exit |
@@ -1769,7 +1769,7 @@ sigmap --impact src/auth/service.ts --json
 
 ## --callers / --callees
 
-**Method-level call-graph (v8.7.0+).** Where `--impact` works at the *file* level, `--callers` and `--callees` work at the *function* level. `--callers <symbol>` is the **method-level blast radius** — every function that transitively calls `<symbol>`; `--callees <symbol>` is what that symbol transitively calls. Deterministic, zero-dependency, for **JS/TS + Python**.
+**Method-level call-graph (v8.7.0+).** Where `--impact` works at the *file* level, `--callers` and `--callees` work at the *function* level. `--callers <symbol>` is the **method-level blast radius** — every function that transitively calls `<symbol>`; `--callees <symbol>` is what that symbol transitively calls. Deterministic, zero-dependency, for **JS/TS, Python, Java, Go, and Rust** (Java/Go/Rust added in v8.14.0).
 
 Call sites are resolved with high precision: a call binds to a definition of that name in the **same file** first, then in a **directly-imported file**; names with no repo definition produce no edge (no global name-collision noise). Symbols are reported as `relPath#symbol`; pass either a bare name or a full `file#symbol` id.
 

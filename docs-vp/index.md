@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.13.0</span>
+  <span><strong>Release:</strong> v8.14.0</span>
   <span>·</span>
   <span><strong>New — <code>squeeze_output</code> MCP tool + <code>squeeze --response</code>:</strong> the deterministic squeeze engine is now reachable by agents <em>mid-session</em> — compress a noisy stack trace, CI/build log, or JSON payload before it enters context (keeps the signal, strips the noise, enriches the top frame). The 19th MCP tool; also a named CLI flag. Zero-dependency, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.13-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.14-main</span>
   <span>·</span>
   <span>88% hit@5 · 97.0% token reduction · 2026-07-11</span>
 </div>
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-07-11 (v8.13.0)**.
+Latest saved benchmark run: **2026-07-11 (v8.14.0)**.
 
 </div>
 

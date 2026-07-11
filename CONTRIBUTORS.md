@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.14.0)
+- **@manojmallick** — feat(graph): call-graph support for Java, Go, and Rust (GR1) — per-language def extractors, lifetime-safe Rust masker, Go/Java same-package resolution scope; all call-graph consumers inherit the languages (#471, PR #472)
+
 ### Recent Contributors (v8.13.0)
 - **@manojmallick** — feat(graph): method-level blast-radius scoring (GR2) — deterministic per-file score/tier from the call graph, wired into `review-pr` findings, the PR Evidence report, and the new `get_method_impact` MCP tool (19→20 tools) (#468, PR #469)
 
