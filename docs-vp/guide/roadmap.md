@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "88 versions shipped. See what changed in each release and what is coming next."
+      content: "89 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Eighty-eight versions shipped. MIT open source from day one.
+Eighty-nine versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.16.1 — Hermetic grounding benchmark (CI hygiene) ✓ (2026-07-12)
+
+**Patch — benchmark isolation; the published package is unchanged.** A full benchmark sweep revealed that the grounding suite regenerated the shared cached repos with a plain default config, silently overwriting the retrieval harness's per-repo-scoped contexts — any later context-reading suite saw degraded indexes (the callgraph A/B measured 32.2% hit@5 instead of ~87.8%). `measureGroundingHermetic` now snapshots every context artifact before its regen and restores them byte-exactly after measuring. For a project whose pitch is deterministic, auditable numbers, cross-suite skew was a credibility bug of exactly the class the Trust Hygiene tier exists to kill — found and fixed the same day.
+
+**Tags:** `benchmark-isolation` · `measureGroundingHermetic` · `snapshot-restore` · `#480` · `PR #481`
+
+**Impact:** grounding → A/B parity verified (87.8% both sides, was 32.2%); no first-run retrieval transient; 3 regression tests (122 derived); headline metrics unaffected.
 
 ---
 

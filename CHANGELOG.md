@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.16.1] — 2026-07-12
+
+Patch release — **benchmark hygiene**; the published package is unchanged (scripts + tests only).
+
+### Fixed
+- **Hermetic grounding benchmark (#480, PR #481):** the grounding suite regenerated the shared cached benchmark repos with a plain default config, silently overwriting the retrieval harness's per-repo-scoped contexts — later context-reading suites saw degraded indexes (the callgraph A/B measured 32.2% hit@5 instead of ~87.8%). `measureGroundingHermetic` now snapshots every context artifact before its regen and restores them byte-exactly after measuring (leftovers removed). Verified: A/B 87.8% → grounding → 87.8%; first retrieval run post-grounding 87.8% with no transient; grounding's own aggregate unchanged. The callgraph A/B also discloses it reads contexts as-is. 3 regression tests.
+
+---
+
 ## [8.16.0] — 2026-07-12
 
 Minor release — **Evidence Pack schema v2** (the last Machine-lever item from the master plan §7.4). Also the first published release carrying v8.15.0, which was prepared but never tagged (see its note below).
