@@ -117,6 +117,9 @@ const DEFAULTS = {
   // Include a compact `name@version` list of installed direct deps (D8)
   versionPins: true,
 
+  // Terse signature encoding — deterministic compaction of sig lines (D7, opt-in)
+  terse: false,
+
   // Include TODO/FIXME/HACK/XXX comments as compact section
   todos: true,
 
