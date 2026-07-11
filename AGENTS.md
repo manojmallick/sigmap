@@ -33,15 +33,16 @@ Always run `sigmap ask` (or `sigmap --query`) before searching for files relevan
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 1 second ago)
+## changes (last 5 commits — 0 seconds ago)
 ```
-src/format/terse.js                           +splitAnchor  +encodeTerseSig  +encodeTerseSigs  +_tokens
 src/graph/blast-radius.js                     +tierFor  +_normRel  +_bfs  +methodBlastRadius
+src/graph/call-graph.js                       +calls  +maskRust  +name  +goDefs
 src/mcp/handlers.js                           +that  +getMethodImpact  ~queryContext  ~squeezeOutput
 src/mcp/server.js                             ~dispatch
 src/mcp/tools.js                              +it
 src/review/pr-evidence.js                     ~buildPrEvidence  ~formatPrEvidenceMarkdown
 src/review/review-pr.js                       ~isSource  ~reviewPr
+src/format/terse.js                           +splitAnchor  +encodeTerseSig  +encodeTerseSigs  +_tokens
 src/wiki/generate.js                          +_rel  +_pct  +_identity  +_modules
 ```
 
@@ -174,21 +175,6 @@ code-fence ---
 
 ## src
 
-### src/config/defaults.js
-```
-module.exports = { DEFAULTS }  :161-161
-```
-
-### src/format/terse.js
-```
-module.exports = { encodeTerseSig, encodeTerseSigs, measureTerse, splitAnchor }  :86-86
-function splitAnchor(sig) → { text: string, suffix: s  :25-30
-function encodeTerseSig(sig) → string  :37-50
-function encodeTerseSigs(sigs) → string[]  :57-59
-function _tokens(sigs)  :62-64
-function measureTerse(sigsList) → { beforeTokens: number, a  :72-84
-```
-
 ### src/graph/blast-radius.js
 ```
 module.exports = { methodBlastRadius, tierFor, DIRECT_WEIGHT, TRANSITIVE_WEIGHT }  :132-132
@@ -196,6 +182,35 @@ function tierFor(score)  :25-31
 function _normRel(p)  :33-35
 function _bfs(seedIds, reverse, maxDepth)  :38-60
 function methodBlastRadius(changedFiles, cwd, opts = {}) → { * available: boolean, *  :78-130
+```
+
+### src/graph/call-graph.js
+```
+module.exports = { buildCallGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :527-531
+function normalizePath(p)  :41-41
+function toRel(cwd, f)  :42-42
+function symId(cwd, absFile, name)  :43-43
+function maskJs(src)  :49-65
+function maskRust(src)  :70-91
+function maskPy(src)  :93-110
+function matchDelim(masked, openIdx, open, close)  :113-120
+function lineAt(src, idx)  :122-127
+function jsDefs(masked)  :132-237
+function pyDefs(masked)  :200-220
+function goDefs(masked)  :224-344
+function javaDefs(masked)  :250-367
+function rustDefs(masked)  :278-401
+function maskFor(filePath, src)  :300-305
+function extractDefs(filePath, src)  :307-315
+function callsInRange(masked, start, end)  :318-330
+function _walk(dir, excludeSet, out, depth)  :334-347
+function buildCallGraph(cwd, opts = {}) → { * forward: Map<string,s  :363-446
+function _resolveSymbol(symbol, defs)  :449-454
+function _bfs(seedIds, graph, maxDepth)  :457-470
+function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :480-486
+function methodCallees(symbol, cwd, opts = {}) → { symbol:string, resolved  :492-498
+function formatCallGraph(result, kind)  :501-513
+function formatCallGraphJSON(result, kind)  :515-525
 ```
 
 ### src/mcp/handlers.js
@@ -255,20 +270,6 @@ function isSource(p)  :35-37
 function reviewPr(changedFiles, cwd, opts = {}) → { findings: object[], bla  :48-148
 ```
 
-### src/wiki/generate.js
-```
-module.exports = { buildWiki, renderWikiMarkdown }  :250-250
-function _rel(cwd, f)  :22-24
-function _pct(fraction)  :26-28
-function _identity(cwd)  :31-37
-function _modules(index)  :40-67
-function _flow(cwd)  :70-97
-function _conventions(cwd, index)  :100-117
-function _health(cwd)  :119-127
-function buildWiki(cwd, opts = {}) → { data: object, markdown:  :137-162
-function renderWikiMarkdown(data, sigmapVersion) → string  :171-248
-```
-
 ### src/analysis/coverage-score.js
 ```
 module.exports = { coverageScore, CODE_EXTS }  :105-105
@@ -304,6 +305,11 @@ function loadCache(cwd, currentVersion) → Map<string, { mtime: numb  :32-42
 function saveCache(cwd, currentVersion, cache)  :51-61
 function getChangedFiles(files, cache) → { changed: string[], unch  :71-88
 function updateCacheEntries(cache, extracted)  :96-103
+```
+
+### src/config/defaults.js
+```
+module.exports = { DEFAULTS }  :161-161
 ```
 
 ### src/config/loader.js
@@ -980,6 +986,16 @@ function detectVersion(cwd)  :13-19
 function format(context, cwd, writtenFiles, sigmapVersion)  :21-69
 ```
 
+### src/format/terse.js
+```
+module.exports = { encodeTerseSig, encodeTerseSigs, measureTerse, splitAnchor }  :86-86
+function splitAnchor(sig) → { text: string, suffix: s  :25-30
+function encodeTerseSig(sig) → string  :37-50
+function encodeTerseSigs(sigs) → string[]  :57-59
+function _tokens(sigs)  :62-64
+function measureTerse(sigsList) → { beforeTokens: number, a  :72-84
+```
+
 ### src/format/usage-guidance.js
 ```
 module.exports = { usageBlock }  :28-28
@@ -1010,30 +1026,6 @@ function resolveRPath(dir, importStr, fileSet, cwd)  :161-176
 function extractFileDeps(filePath, content, fileSet, cwd, ctx) → string[]  :190-330
 function build(files, cwd, ctx) → { forward: Map<string,str  :387-426
 function buildFromCwd(cwd, opts) → { forward: Map<string,str  :438-492
-```
-
-### src/graph/call-graph.js
-```
-module.exports = { buildCallGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy }  :397-401
-function normalizePath(p)  :35-35
-function toRel(cwd, f)  :36-36
-function symId(cwd, absFile, name)  :37-37
-function maskJs(src)  :43-59
-function maskPy(src)  :61-78
-function matchDelim(masked, openIdx, open, close)  :81-88
-function lineAt(src, idx)  :90-95
-function jsDefs(masked)  :100-206
-function pyDefs(masked)  :168-188
-function extractDefs(filePath, src)  :190-195
-function callsInRange(masked, start, end)  :198-210
-function _walk(dir, excludeSet, out, depth)  :214-227
-function buildCallGraph(cwd, opts = {}) → { * forward: Map<string,s  :243-316
-function _resolveSymbol(symbol, defs)  :319-324
-function _bfs(seedIds, graph, maxDepth)  :327-340
-function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :350-356
-function methodCallees(symbol, cwd, opts = {}) → { symbol:string, resolved  :362-368
-function formatCallGraph(result, kind)  :371-383
-function formatCallGraphJSON(result, kind)  :385-395
 ```
 
 ### src/graph/impact.js
@@ -1414,6 +1406,20 @@ function extractFilePaths(text) → { path: string, line: num  :76-97
 function extractImports(text) → { module: string, kind: '  :104-159
 function extractNpmScripts(text) → { name: string, line: num  :168-184
 function extractSymbols(text) → { name: string, line: num  :192-209
+```
+
+### src/wiki/generate.js
+```
+module.exports = { buildWiki, renderWikiMarkdown }  :250-250
+function _rel(cwd, f)  :22-24
+function _pct(fraction)  :26-28
+function _identity(cwd)  :31-37
+function _modules(index)  :40-67
+function _flow(cwd)  :70-97
+function _conventions(cwd, index)  :100-117
+function _health(cwd)  :119-127
+function buildWiki(cwd, opts = {}) → { data: object, markdown:  :137-162
+function renderWikiMarkdown(data, sigmapVersion) → string  :171-248
 ```
 
 ### src/workspace/detector.js

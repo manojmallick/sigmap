@@ -101,7 +101,7 @@ sigmap weights --json                    Learned weights as JSON
 sigmap --impact <file>                   Show every file impacted by changing <file>
 sigmap --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
 sigmap --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
-sigmap --callers <symbol>                Method-level blast radius — every function that (transitively) calls <symbol> (JS/TS + Python)
+sigmap --callers <symbol>                Method-level blast radius — every function that (transitively) calls <symbol> (JS/TS, Python, Java, Go, Rust)
 sigmap --callees <symbol>                Every repo function that <symbol> (transitively) calls
 sigmap --callers <symbol> --json --depth <n>   Call-graph edges as JSON (depth 0 = unlimited)
 sigmap verify <answer.md>                Flagship grounding guard — flag fake files/tests/imports/symbols/npm-scripts in an AI answer (alias of verify-ai-output)
@@ -210,7 +210,7 @@ Input:  { query: string, topK?: number }
 
 ### get_method_impact
 
-Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — or, with direction "callees", every repo function it calls. Finer-grained than the file-level get_impact: tells an agent which functions break, not just which files. JS/TS + Python call-graph; deterministic, no LLM.
+Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — or, with direction "callees", every repo function it calls. Finer-grained than the file-level get_impact: tells an agent which functions break, not just which files. JS/TS, Python, Java, Go, and Rust call-graph; deterministic, no LLM.
 
 ```
 Input:  { symbol: string, direction?: string, depth?: number }
