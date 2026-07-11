@@ -14,7 +14,7 @@
 
 const readline = require('readline');
 const { TOOLS } = require('./tools');
-const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput } = require('./handlers');
+const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput } = require('./handlers');
 
 const SERVER_INFO = {
   name: 'sigmap',
@@ -74,6 +74,7 @@ function dispatch(msg, cwd) {
       else if (name === 'explain_file') text = explainFile(args, cwd);
       else if (name === 'list_modules') text = listModules(args, cwd);
       else if (name === 'query_context') text = queryContext(args, cwd);
+      else if (name === 'get_method_impact') text = getMethodImpact(args, cwd);
       else if (name === 'get_impact') text = getImpact(args, cwd);
       else if (name === 'get_lines') text = getLines(args, cwd);
       else if (name === 'read_memory') text = readMemory(args, cwd);

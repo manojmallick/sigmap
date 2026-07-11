@@ -429,6 +429,28 @@ function queryContext(args, cwd) {
 }
 
 /**
+ * get_method_impact({ symbol, direction?, depth? }) → string
+ *
+ * Method-level blast radius (GR2): every function that transitively calls
+ * `symbol` (direction 'callers', default), or everything it calls ('callees').
+ */
+function getMethodImpact(args, cwd) {
+  if (!args || !args.symbol) return 'Missing required argument: symbol';
+
+  try {
+    const { methodImpact, methodCallees, formatCallGraph } = require('../graph/call-graph');
+    const kind = args.direction === 'callees' ? 'callees' : 'callers';
+    const depth = Math.max(0, parseInt(args.depth, 10) || 0);
+    const result = kind === 'callees'
+      ? methodCallees(args.symbol, cwd, { depth })
+      : methodImpact(args.symbol, cwd, { depth });
+    return formatCallGraph(result, kind);
+  } catch (err) {
+    return `_get_method_impact failed: ${err.message}_`;
+  }
+}
+
+/**
  * get_impact({ file, depth? }) → string
  *
  * Returns a formatted markdown impact report for the given file:
@@ -941,4 +963,4 @@ function squeezeOutput(args, cwd) {
   return header + sq.squeezed;
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput };
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput };

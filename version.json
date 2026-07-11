@@ -4,8 +4,8 @@
   "benchmark_id": "sigmap-v8.12-main",
   "languages": 33,
   "extractors": 42,
-  "mcp_tools": 19,
-  "tests": 117,
+  "mcp_tools": 20,
+  "tests": 118,
   "metrics": {
     "hit_at_5": 0.878,
     "baseline_hit_at_5": 0.136,
