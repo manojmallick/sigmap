@@ -55,6 +55,7 @@ sigmap                                   Generate context once and exit
 sigmap --monorepo                        Generate per-package context (monorepo)
 sigmap --each                            Run for every repo in the current directory
 sigmap --routing                         Include model routing hints in output
+sigmap --terse                           Compact signature encoding (deterministic; line anchors preserved)
 sigmap --format cache                    Also write Anthropic prompt-cache JSON
 sigmap --track                           Append run metrics to .context/usage.ndjson
 sigmap --watch                           Generate + watch for file changes
@@ -325,6 +326,7 @@ tracking = false
 mcp = {"autoRegister":true}
 depMap = true
 versionPins = true
+terse = false
 todos = true
 changes = true
 changesCommits = 10

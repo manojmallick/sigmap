@@ -29,6 +29,7 @@
     "benchmark:verify": "node scripts/run-verify-benchmark.mjs",
     "benchmark:squeeze": "node scripts/run-squeeze-benchmark.mjs --save",
     "benchmark:test-discovery": "node scripts/run-test-discovery-benchmark.mjs --save",
+    "benchmark:terse": "node scripts/run-terse-benchmark.mjs --save",
     "validate:squeeze": "node scripts/run-squeeze-benchmark.mjs --gate",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",

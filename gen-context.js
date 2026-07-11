@@ -1501,6 +1501,9 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // Include a compact `name@version` list of installed direct deps (D8)
     versionPins: true,
 
+    // Terse signature encoding — deterministic compaction of sig lines (D7, opt-in)
+    terse: false,
+
     // Include TODO/FIXME/HACK/XXX comments as compact section
     todos: true,
 
@@ -10008,6 +10011,96 @@ __factories["./src/format/llms-txt"] = function(module, exports) {
 
     return lines.join('\n');
   }
+  
+};
+
+// ── ./src/format/terse ──
+__factories["./src/format/terse"] = function(module, exports) {
+  
+  /**
+   * Terse signature encoder (D7).
+   *
+   * Deterministic compaction of signature lines for the generated context —
+   * opt-in via `--terse` / `terse: true`. Every transform is a fixed string
+   * rewrite (no heuristics, no LLM), so terse output stays byte-stable.
+   *
+   * The line anchor (`  :start-end`) and everything after it (Python/R doc
+   * hints) are preserved byte-exactly: `parseAnchor`, `get_lines`, and the
+   * evidence pack keep working on terse output. Symbol extraction is safe too —
+   * `extractName` in src/extractors/prdiff.js already recognizes `fn <name>`.
+   */
+
+  /** First `  :start[-end]` anchor token (two-space prefix, as emitted by line-anchor.js). */
+  const ANCHOR_RE = /\s{2}:\d+(?:-\d+)?(?=\s|$)/;
+
+  /**
+   * Split a signature into the compactable text and the byte-preserved suffix
+   * (anchor + any trailing doc hint).
+   * @param {string} sig
+   * @returns {{ text: string, suffix: string }}
+   */
+  function splitAnchor(sig) {
+    const s = String(sig);
+    const m = ANCHOR_RE.exec(s);
+    if (!m) return { text: s, suffix: '' };
+    return { text: s.slice(0, m.index), suffix: s.slice(m.index) };
+  }
+
+  /**
+   * Compact one signature line. Leading whitespace (member indentation) is kept.
+   * @param {string} sig
+   * @returns {string}
+   */
+  function encodeTerseSig(sig) {
+    const { text, suffix } = splitAnchor(sig);
+    let t = text
+      .replace(/\basync function\b/g, 'async fn')
+      .replace(/\bfunction\b/g, 'fn')
+      .replace(/\s+→\s+/g, '→')
+      .replace(/,\s+/g, ',')
+      .replace(/\s+=\s+/g, '=')
+      .replace(/\{\s+/g, '{')
+      .replace(/\s+\}/g, '}')
+      .replace(/(\S)\s{2,}(?=\S)/g, '$1 ')
+      .replace(/^module\.exports=/, 'exports=');
+    return t + suffix;
+  }
+
+  /**
+   * Compact an array of signature lines.
+   * @param {string[]} sigs
+   * @returns {string[]}
+   */
+  function encodeTerseSigs(sigs) {
+    return (sigs || []).map(encodeTerseSig);
+  }
+
+  /** Estimated tokens of joined signature lines (same chars/4 rule as elsewhere). */
+  function _tokens(sigs) {
+    return Math.ceil(sigs.join('\n').length / 4);
+  }
+
+  /**
+   * Measure the real reduction terse encoding buys over a set of signature
+   * lists — the D7 "measure first" gate. Never quote a number this didn't produce.
+   * @param {string[][]} sigsList one string[] per file
+   * @returns {{ beforeTokens: number, afterTokens: number, reductionPct: number }}
+   */
+  function measureTerse(sigsList) {
+    let beforeTokens = 0;
+    let afterTokens = 0;
+    for (const sigs of sigsList || []) {
+      if (!sigs || !sigs.length) continue;
+      beforeTokens += _tokens(sigs);
+      afterTokens += _tokens(encodeTerseSigs(sigs));
+    }
+    const reductionPct = beforeTokens > 0
+      ? Math.round(((beforeTokens - afterTokens) / beforeTokens) * 1000) / 10
+      : 0;
+    return { beforeTokens, afterTokens, reductionPct };
+  }
+
+  module.exports = { encodeTerseSig, encodeTerseSigs, measureTerse, splitAnchor };
   
 };
 
@@ -19317,6 +19410,21 @@ function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
     groups[group].push({ rel, sigs: entry.sigs });
   }
 
+  // D7: terse signature encoding — anchors preserved byte-exactly
+  const terseOn = !!(config && config.terse);
+  let encodeTerseSigs = null;
+  if (terseOn) {
+    try {
+      const terseMod = requireSourceOrBundled('./src/format/terse');
+      encodeTerseSigs = terseMod.encodeTerseSigs;
+      const m = terseMod.measureTerse(fileEntries.map((e) => e.sigs));
+      console.warn(`[sigmap] terse: sig block ${m.beforeTokens} → ${m.afterTokens} tokens (-${m.reductionPct}%)`);
+    } catch (err) {
+      encodeTerseSigs = null;
+      console.warn(`[sigmap] terse encoding skipped: ${err.message}`);
+    }
+  }
+
   for (const [group, entries] of Object.entries(groups).sort()) {
     lines.push(`## ${group}`);
     lines.push('');
@@ -19326,7 +19434,7 @@ function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
       const usedByStr = usedBy && usedBy.length ? ` (used by: ${usedBy.join(', ')})` : '';
       lines.push(`### ${rel}${usedByStr}`);
       lines.push('```');
-      lines.push(...sigs);
+      lines.push(...(encodeTerseSigs ? encodeTerseSigs(sigs) : sigs));
       lines.push('```');
       lines.push('');
     }
@@ -20440,6 +20548,7 @@ Usage:
   ${cmd} --monorepo                        Generate per-package context (monorepo)
   ${cmd} --each                            Run for every repo in the current directory
   ${cmd} --routing                         Include model routing hints in output
+  ${cmd} --terse                           Compact signature encoding (deterministic; line anchors preserved)
   ${cmd} --format cache                    Also write Anthropic prompt-cache JSON
   ${cmd} --track                           Append run metrics to .context/usage.ndjson
   ${cmd} --watch                           Generate + watch for file changes
@@ -20824,6 +20933,11 @@ function main() {
   // --coverage: enable test coverage annotation without editing config
   if (args.includes('--coverage')) {
     config.testCoverage = true;
+  }
+
+  // --terse: compact signature encoding without editing config (D7)
+  if (args.includes('--terse')) {
+    config.terse = true;
   }
 
   // ── --output <file> — parse early so every subsequent block can use it ─────
