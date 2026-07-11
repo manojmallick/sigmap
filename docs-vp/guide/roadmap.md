@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "86 versions shipped. See what changed in each release and what is coming next."
+      content: "87 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Eighty-six versions shipped. MIT open source from day one.
+Eighty-seven versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.15.0 — Call-graph ranking boost, measured and shipped dark ✓ (2026-07-11)
+
+**Minor release — the milestone item "call-graph edges into ranking" is done, and the default is OFF because the measurement said so.** `buildCallFileGraph` collapses symbol edges to deterministic file-level bidirectional edges; `rank()` gains an opt-in single-hop, hub-suppressed call-neighbor boost (`callHop: 0.30`, `callGraphBoost` explain signal), wired config-gated into `ask`, `--query`, and `query_context` via `retrieval.callGraphBoost: false`. The new `npm run benchmark:callgraph-boost` A/B ran 90 tasks across 18 cached repos through the full ranker: import-graph arm **80% hit@5**, +call-graph arm **80%** — delta **+0, no repo moved**. Per the measure-first gate the default stays off; the boost targets call-topology-heavy repos (Go/Java same-package) where import edges structurally can't see the relationship — a shape the benchmark corpus doesn't stress. The headline BM25 harness is untouched (87.8% reproduces). This is the philosophy working as designed: the feature exists, the number decides the default, and the A/B script is the standing gate for revisiting it.
+
+**Tags:** `retrieval.callGraphBoost` · `buildCallFileGraph` · `callHop` · `benchmark:callgraph-boost` · `measure-gated` · `+0` · `#474` · `PR #475`
+
+**Impact:** measured A/B +0 (80% → 80% hit@5) — default off; 5 new integration tests (120 derived); default-path ranking byte-identical; headline unchanged.
+
+---
+
 ### v8.14.0 — Call-graph for Java, Go, and Rust (GR1) ✓ (2026-07-11)
 
 **Minor release — the method-level call-graph goes from 2 to 5 languages.** New def extractors in `src/graph/call-graph.js`: Go `func` + receiver methods (parenthesized return lists handled), Java methods + constructors (generics/`throws` tolerated; control-flow keywords and `new Foo(){}` anonymous classes rejected), and Rust `fn` incl. generics + `where` clauses and `impl` methods (bodiless trait declarations skipped). A **lifetime-safe `maskRust`** masker lets `'a` lifetimes pass through while masking char literals and strings — the one place the JS masker would corrupt offsets. Because Go/Java call same-package functions across files with *no import statement*, same-directory same-language siblings join the resolution scope (sorted, deterministic). Every consumer inherits the languages with zero further changes: `--callers`/`--callees`, GR2 blast-radius scoring, `review-pr` method-blast findings, and `get_method_impact`. Per North-Star #1, unparseable constructs are skipped — never a parser dep.
@@ -1398,7 +1408,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14). Next: call-graph edges into ranking; retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Next: retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 

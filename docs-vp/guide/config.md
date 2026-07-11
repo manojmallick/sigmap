@@ -203,6 +203,7 @@ To pin a fixed budget (v4.0 behaviour):
 | `retrieval.topK` | `number` | `10` | Number of top-ranked files returned by `--query` and the `query_context` MCP tool. |
 | `retrieval.recencyBoost` | `number` | `1.5` | Multiplier applied to recently committed files during TF-IDF ranking. |
 | `retrieval.preset` | `"precision" \| "balanced" \| "recall"` | `"balanced"` | Weight preset for the ranking algorithm. `precision` minimises false positives. `recall` maximises coverage. |
+| `retrieval.callGraphBoost` | `boolean` | `false` | **v8.15.0, opt-in.** Boost files call-graph-connected to query matches in `ask`/`--query`/`query_context` — catches Go/Java same-package relations that have no import edge. Measured on the 90-task A/B: **+0 hit@5 delta**, so it stays off by default; enable it on call-topology-heavy repos and check the `callGraphBoost` signal in `--query --json`. Re-measure with `npm run benchmark:callgraph-boost`. |
 
 ### sigCache
 

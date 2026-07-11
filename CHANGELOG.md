@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.15.0] — 2026-07-11
+
+Minor release — **call-graph ranking boost, opt-in and measure-gated**. The milestone item "call-graph edges into ranking" is done — and shipped **dark**, because the measure gate said so.
+
+### Added
+- **Call-graph ranking boost (#474, PR #475):** `buildCallFileGraph` collapses symbol edges to deterministic file-level bidirectional edges; `rank()` gains `opts.callGraph` — a single-hop, hub-suppressed neighbor boost (`callHop: 0.30`) with a `callGraphBoost` explain signal. Config-gated (non-fatal) into `ask`, `--query`, and the `query_context` MCP tool via **`retrieval.callGraphBoost` (default `false`)**. **Measured** by the new `npm run benchmark:callgraph-boost` A/B (90 tasks / 18 cached repos through the full ranker): import-graph arm 80% hit@5, +call-graph arm 80% — **delta +0, no repo moved** — so per the gate the default stays off; the boost exists for call-topology-heavy repos (Go/Java same-package) where import edges structurally can't see the relationship. The headline BM25 harness is untouched and reproduces 87.8%. Report: `benchmarks/reports/callgraph-boost.json`.
+
+---
+
 ## [8.14.0] — 2026-07-11
 
 Minor release — **call-graph support for Java, Go, and Rust** (GR1 language expansion). The method-level call-graph goes from 2 to 5 languages, and every consumer — `--callers`/`--callees`, blast-radius scoring, `review-pr` method-blast findings, `get_method_impact` — inherits them with no further changes.

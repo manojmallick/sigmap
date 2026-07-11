@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.15.0)
+- **@manojmallick** — feat(retrieval): call-graph ranking boost — opt-in `retrieval.callGraphBoost`, measured +0 on the 90-task A/B so the default stays off; new `benchmark:callgraph-boost` gate script (#474, PR #475)
+
 ### Recent Contributors (v8.14.0)
 - **@manojmallick** — feat(graph): call-graph support for Java, Go, and Rust (GR1) — per-language def extractors, lifetime-safe Rust masker, Go/Java same-package resolution scope; all call-graph consumers inherit the languages (#471, PR #472)
 
