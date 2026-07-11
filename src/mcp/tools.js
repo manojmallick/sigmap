@@ -154,7 +154,7 @@ const TOOLS = [
       'Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — ' +
       'or, with direction "callees", every repo function it calls. Finer-grained than the ' +
       'file-level get_impact: tells an agent which functions break, not just which files. ' +
-      'JS/TS + Python call-graph; deterministic, no LLM.',
+      'JS/TS, Python, Java, Go, and Rust call-graph; deterministic, no LLM.',
     inputSchema: {
       type: 'object',
       properties: {

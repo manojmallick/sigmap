@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "85 versions shipped. See what changed in each release and what is coming next."
+      content: "86 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Eighty-five versions shipped. MIT open source from day one.
+Eighty-six versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.14.0 — Call-graph for Java, Go, and Rust (GR1) ✓ (2026-07-11)
+
+**Minor release — the method-level call-graph goes from 2 to 5 languages.** New def extractors in `src/graph/call-graph.js`: Go `func` + receiver methods (parenthesized return lists handled), Java methods + constructors (generics/`throws` tolerated; control-flow keywords and `new Foo(){}` anonymous classes rejected), and Rust `fn` incl. generics + `where` clauses and `impl` methods (bodiless trait declarations skipped). A **lifetime-safe `maskRust`** masker lets `'a` lifetimes pass through while masking char literals and strings — the one place the JS masker would corrupt offsets. Because Go/Java call same-package functions across files with *no import statement*, same-directory same-language siblings join the resolution scope (sorted, deterministic). Every consumer inherits the languages with zero further changes: `--callers`/`--callees`, GR2 blast-radius scoring, `review-pr` method-blast findings, and `get_method_impact`. Per North-Star #1, unparseable constructs are skipped — never a parser dep.
+
+**Tags:** `call-graph` · `Java` · `Go` · `Rust` · `maskRust` · `same-package-scope` · `GR1` · `#471` · `PR #472`
+
+**Impact:** call-graph consumers now work on Go/Java/Rust repos; 9 new integration tests (119 derived); JS/TS + Python behavior regression-tested unchanged; benchmark headline unchanged (hit@5 87.8%).
+
+---
+
 ### v8.13.0 — Method-level blast-radius scoring (GR2) ✓ (2026-07-11)
 
 **Minor release — the biggest Phase-2 lever from the master plan's §7.4 scorecard.** The D4 method-level call-graph finally gets consumers. New `src/graph/blast-radius.js` reverse-BFSes each changed file's defined symbols and scores the change with a documented deterministic formula — `min(100, direct×4 + transitive×1)`, tiers none/low/medium/high/critical. Three surfaces consume it: `review-pr` attaches `methodBlast` and fires a `method-blast` finding on high/critical tiers; the **PR Evidence** report adds a per-file *Method blast radius* line (impacted function count, score/tier, top caller ids); and the new **`get_method_impact`** MCP tool gives agents per-symbol blast radius (callers) or dependencies (callees) — **19 → 20 MCP tools**. A reviewer now sees *which functions break*, not just which files. Graph optional: repos without a resolvable call graph degrade gracefully.
@@ -1388,7 +1398,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped into review-pr, PR Evidence, and the `get_method_impact` MCP tool (GR2, v8.13). Next: call-graph edges into ranking; call-graph for more languages (Java/Go/Rust); retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14). Next: call-graph edges into ranking; retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 

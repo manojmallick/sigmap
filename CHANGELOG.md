@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.14.0] — 2026-07-11
+
+Minor release — **call-graph support for Java, Go, and Rust** (GR1 language expansion). The method-level call-graph goes from 2 to 5 languages, and every consumer — `--callers`/`--callees`, blast-radius scoring, `review-pr` method-blast findings, `get_method_impact` — inherits them with no further changes.
+
+### Added
+- **Java/Go/Rust call-graph (#471, PR #472):** new def extractors in `src/graph/call-graph.js` — Go `func` + receiver methods (parenthesized return lists handled), Java methods + constructors (generics/`throws` tolerated; control-flow and `new Foo(){}` anonymous classes rejected), Rust `fn` incl. generics + `where` clauses and `impl` methods (bodiless trait declarations skipped). New **lifetime-safe `maskRust`** masker: `'a` lifetimes pass through untouched while char literals and strings are masked, preserving offsets. **Same-package resolution scope:** Go/Java call same-package functions across files with no import statement, so same-directory same-language siblings join the resolution scope (sorted, deterministic). Per North-Star #1, unparseable constructs are skipped — never a parser dep. Surface claims updated to "JS/TS, Python, Java, Go, Rust" in `--help`, the `get_method_impact` description, and the MCP guide.
+
+---
+
 ## [8.13.0] — 2026-07-11
 
 Minor release — **method-level blast-radius scoring** (GR2, the biggest Phase-2 lever in the master plan §7.4). The D4 call-graph finally has consumers: review findings, the PR Evidence report, and a 20th MCP tool now answer *which functions break*, not just which files.
