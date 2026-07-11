@@ -4733,12 +4733,15 @@ __factories["./src/eval/usefulness-scorer"] = function(module, exports) {
 __factories["./src/evidence/pack"] = function(module, exports) {
   
   /**
-   * Evidence Pack v1 (v8.0 E1).
+   * Evidence Pack v2 (v8.0 E1; schema v2 adds a published schema URL, per-file
+   * multi-factor risk labels, measured test-discovery provenance, and generator
+   * identity — all additive over v1).
    *
    * A deterministic, machine-consumable signature-and-evidence map. Replaces the
    * "paste this into your prompt" workflow with a byte-stable JSON artifact that
    * an agent or CI can ingest directly — every entry anchored to a real file,
-   * symbol, and line range.
+   * symbol, and line range. The published schema lives at
+   * docs-vp/public/schemas/evidence-pack-2.json (sigmap.io/schemas/).
    *
    * Composed entirely from shipped zero-dep modules:
    *   - retrieval/ranker        → ranked files, scores, signals
@@ -4758,9 +4761,20 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   const { buildSigIndex, rank, detectIntent } = __require('./src/retrieval/ranker');
   const { scan } = __require('./src/security/scanner');
 
-  const SCHEMA_VERSION = '1.0';
+  const SCHEMA_VERSION = '2.0';
+  const SCHEMA_URL = 'https://sigmap.io/schemas/evidence-pack-2.json';
   const DEFAULT_BUDGET = 6000;
   const DEFAULT_TOP = 12;
+
+  // Measured accuracy of the stem-affix test-discovery method (C2). Constants
+  // are sourced from the committed benchmarks/reports/test-discovery.json and
+  // guarded by a test that fails on drift — re-run `npm run
+  // benchmark:test-discovery` and update together, never hand-invent.
+  const TEST_DISCOVERY = {
+    method: 'stem-affix-match',
+    measured: { f1: 0.98, precision: 0.971, recall: 0.988, pairs: 3701, repos: 28 },
+    benchmark: 'npm run benchmark:test-discovery',
+  };
 
   const GENERATED_RE = /(^|\/)(dist|build|out|vendor|node_modules)\/|\.(generated|min|bundle)\.|\.(pb|_pb)\.|\.pb\.go$|_pb2\.py$/;
   const TEST_RE = /(^|\/)(tests?|__tests__|spec|specs)\/|\.(test|spec)\.[a-z]+$|(^|\/)test_[^/]+\.py$|_test\.(go|py|rb)$/;
@@ -4800,16 +4814,29 @@ __factories["./src/evidence/pack"] = function(module, exports) {
    * @returns {'generated'|'test'|'migration'|'payment'|'auth'|'security'|'config'|'public-api'|'source'}
    */
   function riskLabelFor(relPath) {
+    return riskFactorsFor(relPath)[0];
+  }
+
+  /**
+   * Every risk category a file matches, in the same strict precedence order
+   * riskLabelFor uses (schema v2). Where v1 collapsed a migration touching
+   * payments to `migration`, the factors list carries both. Always non-empty:
+   * a file matching nothing is `['source']`.
+   * @param {string} relPath
+   * @returns {string[]}
+   */
+  function riskFactorsFor(relPath) {
     const p = relPath.replace(/\\/g, '/');
-    if (GENERATED_RE.test(p)) return 'generated';
-    if (TEST_RE.test(p)) return 'test';
-    if (MIGRATION_RE.test(p)) return 'migration';
-    if (PAYMENT_RE.test(p)) return 'payment';
-    if (AUTH_RE.test(p)) return 'auth';
-    if (SECURITY_RE.test(p)) return 'security';
-    if (CONFIG_RE.test(p)) return 'config';
-    if (PUBLIC_API_RE.test(p)) return 'public-api';
-    return 'source';
+    const factors = [];
+    if (GENERATED_RE.test(p)) factors.push('generated');
+    if (TEST_RE.test(p)) factors.push('test');
+    if (MIGRATION_RE.test(p)) factors.push('migration');
+    if (PAYMENT_RE.test(p)) factors.push('payment');
+    if (AUTH_RE.test(p)) factors.push('auth');
+    if (SECURITY_RE.test(p)) factors.push('security');
+    if (CONFIG_RE.test(p)) factors.push('config');
+    if (PUBLIC_API_RE.test(p)) factors.push('public-api');
+    return factors.length ? factors : ['source'];
   }
 
   /** Filename stem (basename minus the first extension chain). */
@@ -4941,6 +4968,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
         if (start !== null) sourceLines.push({ symbol, start, end });
       }
 
+      const riskFactors = riskFactorsFor(r.file);
       files.push({
         path: r.file,
         symbols,
@@ -4948,7 +4976,8 @@ __factories["./src/evidence/pack"] = function(module, exports) {
         confidence: maxScore > 0 ? Math.round((r.score / maxScore) * 100) / 100 : 0,
         sourceLines,
         relatedTests: findRelatedTests(r.file, allFiles),
-        riskLabel: riskLabelFor(r.file),
+        riskLabel: riskFactors[0],
+        riskFactors,
       });
     }
 
@@ -4957,11 +4986,14 @@ __factories["./src/evidence/pack"] = function(module, exports) {
 
     const pack = {
       schemaVersion: SCHEMA_VERSION,
+      schemaUrl: SCHEMA_URL,
+      generator: { name: 'sigmap', version: typeof opts.version === 'string' ? opts.version : null },
       query,
       intent,
       files,
       tokenBudget: { limit: budget, used, remaining: Math.max(0, budget - used) },
       droppedFiles,
+      testDiscovery: TEST_DISCOVERY,
       grounding: {
         symbolCount,
         anchoredSymbols,
@@ -5003,7 +5035,8 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     L.push('');
 
     for (const f of pack.files) {
-      L.push(`## \`${f.path}\`  _(${f.riskLabel}, confidence ${f.confidence})_`);
+      const risk = (f.riskFactors && f.riskFactors.length > 1) ? f.riskFactors.join(' + ') : f.riskLabel;
+      L.push(`## \`${f.path}\`  _(${risk}, confidence ${f.confidence})_`);
       L.push(`_${f.reason}_`);
       if (f.relatedTests.length) L.push(`Related tests: ${f.relatedTests.map((t) => `\`${t}\``).join(', ')}`);
       L.push('');
@@ -5028,8 +5061,11 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     formatMarkdown,
     parseAnchor,
     riskLabelFor,
+    riskFactorsFor,
     findRelatedTests,
     SCHEMA_VERSION,
+    SCHEMA_URL,
+    TEST_DISCOVERY,
   };
   
 };
@@ -21905,7 +21941,7 @@ function main() {
 
     const { buildEvidencePack, formatJSON, formatMarkdown } = requireSourceOrBundled('./src/evidence/pack');
 
-    const opts = {};
+    const opts = { version: VERSION };
     const topIdx = args.indexOf('--top');
     if (topIdx !== -1 && args[topIdx + 1]) opts.top = parseInt(args[topIdx + 1], 10);
     const budgetIdx = args.indexOf('--budget');
