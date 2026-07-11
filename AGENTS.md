@@ -35,16 +35,15 @@ src/extractors/python_ast.py ← ast
 
 ## changes (last 5 commits — 0 seconds ago)
 ```
+src/evidence/pack.js                          +riskFactorsFor  ~parseAnchor  ~buildEvidencePack  ~formatMarkdown
 src/graph/call-graph.js                       +calls  +maskRust  +name  +goDefs
 src/mcp/handlers.js                           +that  +getMethodImpact  ~queryContext  ~squeezeOutput
 src/mcp/server.js                             ~dispatch
 src/mcp/tools.js                              +it
 src/retrieval/ranker.js                       ~scoreFile  ~rank
-src/format/terse.js                           +splitAnchor  +encodeTerseSig  +encodeTerseSigs  +_tokens
 src/graph/blast-radius.js                     +tierFor  +_normRel  +_bfs  +methodBlastRadius
 src/review/pr-evidence.js                     ~buildPrEvidence  ~formatPrEvidenceMarkdown
 src/review/review-pr.js                       ~isSource  ~reviewPr
-src/wiki/generate.js                          +_rel  +_pct  +_identity  +_modules
 ```
 
 ## packages
@@ -179,6 +178,25 @@ code-fence ---
 ### src/config/defaults.js
 ```
 module.exports = { DEFAULTS }  :163-163
+```
+
+### src/evidence/pack.js
+```
+module.exports = { buildEvidencePack, formatJSON, formatMarkdown, parseAnchor, riskLabelFor, riskFactorsFor, findRelatedTests, SCHEMA_VERSION, SCHEMA_URL, TEST_DISCOVERY }  :326-337
+function parseAnchor(sig) → { symbol: string, start:   :64-72
+function riskLabelFor(relPath) → 'generated'|'test'|'migra  :84-86
+function riskFactorsFor(relPath) → string[]  :96-108
+function stemOf(relPath)  :111-114
+function testTargetStem(relPath) → string  :126-132
+function findRelatedTests(relPath, allFiles) → string[]  :143-154
+function reasonFor(signals)  :157-168
+function sigTokens(sigs)  :171-173
+function canonicalize(value) → string  :180-182
+function sortKeys(value)  :184-192
+function buildEvidencePack(query, cwd, opts = {}) → object  :205-281
+function ranked0Empty(query)  :284-286
+function formatJSON(pack)  :289-291
+function formatMarkdown(pack)  :294-324
 ```
 
 ### src/graph/call-graph.js
@@ -519,24 +537,6 @@ function round(x)  :122-124
 module.exports = { scoreUsefulness, computeUsefulnessStats }  :3-3
 function scoreUsefulness(taskResult, rankingScore)  :11-38
 function computeUsefulnessStats(taskResults)  :40-66
-```
-
-### src/evidence/pack.js
-```
-module.exports = { buildEvidencePack, formatJSON, formatMarkdown, parseAnchor, riskLabelFor, findRelatedTests, SCHEMA_VERSION }  :293-301
-function parseAnchor(sig) → { symbol: string, start:   :50-58
-function riskLabelFor(relPath) → 'generated'|'test'|'migra  :70-81
-function stemOf(relPath)  :84-87
-function testTargetStem(relPath) → string  :99-105
-function findRelatedTests(relPath, allFiles) → string[]  :116-127
-function reasonFor(signals)  :130-141
-function sigTokens(sigs)  :144-146
-function canonicalize(value) → string  :153-155
-function sortKeys(value)  :157-165
-function buildEvidencePack(query, cwd, opts = {}) → object  :178-249
-function ranked0Empty(query)  :252-254
-function formatJSON(pack)  :257-259
-function formatMarkdown(pack)  :262-291
 ```
 
 ### src/extractors/coverage.js
