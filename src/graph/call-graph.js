@@ -1,14 +1,16 @@
 'use strict';
 
 /**
- * Method/caller-level call-graph (D4 v1).
+ * Method/caller-level call-graph (D4 v1, languages expanded in GR1).
  *
- * Builds symbol-level edges — which function calls which function — for JS/TS
- * and Python. Deterministic, zero-dependency, regex + brace/indent matching.
- * Call sites are resolved with high precision: a call resolves to a definition
- * of that name in the *same file* first, then in a *directly-imported* file
- * (via the existing file-level import graph). Names that resolve to no repo
- * definition produce no edge — over-approximation noise is avoided.
+ * Builds symbol-level edges — which function calls which function — for JS/TS,
+ * Python, Java, Go, and Rust. Deterministic, zero-dependency, regex +
+ * brace/indent matching. Call sites are resolved with high precision: a call
+ * resolves to a definition of that name in the *same file* first, then in a
+ * *directly-imported* file (via the existing file-level import graph). Names
+ * that resolve to no repo definition produce no edge — over-approximation
+ * noise is avoided. Constructs that can't be parsed dependency-free are
+ * skipped (less fidelity, never a parser dep).
  *
  * Symbol IDs are `relPath#symbolName` (forward-slashed, relative to cwd).
  *
@@ -21,6 +23,9 @@ const { build } = require('./builder');
 
 const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const PY_EXTS = new Set(['.py', '.pyw']);
+const JAVA_EXTS = new Set(['.java']);
+const GO_EXTS = new Set(['.go']);
+const RS_EXTS = new Set(['.rs']);
 
 // Tokens that look like `name(` calls or definition headers but are language
 // keywords, not user symbols — never treated as a call or a definition.
@@ -30,6 +35,7 @@ const NON_CALL = new Set([
   'in', 'of', 'case', 'throw', 'print', 'and', 'or', 'not', 'assert',
   'lambda', 'class', 'def', 'elif', 'except', 'finally', 'raise', 'import',
   'from', 'global', 'nonlocal', 'del', 'pass', 'async', 'require', 'constructor',
+  'synchronized',
 ]);
 
 function normalizePath(p) { return path.normalize(p).toLowerCase(); }
@@ -52,6 +58,32 @@ function maskJs(src) {
       let j = i + 1;
       while (j < n) { if (src[j] === '\\') { j += 2; continue; } if (src[j] === c) break; if (c !== '`' && src[j] === '\n') break; j++; }
       j = Math.min(n, j + 1); blank(i, j); i = j; continue;
+    }
+    i++;
+  }
+  return out.join('');
+}
+
+// Rust: `//`, `/* */`, and `"..."` mask like JS, but a bare `'` is usually a
+// lifetime (`'a`), not a string — masking to the "closing" quote would corrupt
+// offsets. Only char literals (`'x'`, `'\n'`) are masked; lifetimes pass through.
+function maskRust(src) {
+  const out = src.split('');
+  const blank = (a, b) => { for (let k = a; k < b; k++) if (out[k] !== '\n') out[k] = ' '; };
+  let i = 0; const n = src.length;
+  while (i < n) {
+    const c = src[i], d = src[i + 1];
+    if (c === '/' && d === '/') { let j = i + 2; while (j < n && src[j] !== '\n') j++; blank(i, j); i = j; continue; }
+    if (c === '/' && d === '*') { let j = i + 2; while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j++; j = Math.min(n, j + 2); blank(i, j); i = j; continue; }
+    if (c === '"') {
+      let j = i + 1;
+      while (j < n) { if (src[j] === '\\') { j += 2; continue; } if (src[j] === '"') break; j++; }
+      j = Math.min(n, j + 1); blank(i, j); i = j; continue;
+    }
+    if (c === "'") {
+      if (d === '\\' && src[i + 3] === "'") { blank(i, i + 4); i += 4; continue; } // '\n'
+      if (d !== undefined && src[i + 2] === "'") { blank(i, i + 3); i += 3; continue; } // 'x'
+      i++; continue; // lifetime `'a` — leave untouched
     }
     i++;
   }
@@ -187,10 +219,98 @@ function pyDefs(masked) {
   return defs;
 }
 
+// Go:  func name(...) { }   |   func (r Recv) name(...) (T, error) { }
+// The return list may itself be parenthesized, so scan past it to the body `{`.
+function goDefs(masked) {
+  const defs = [];
+  const re = /(?:^|\n)func\s+(?:\([^)\n]*\)\s*)?([A-Za-z_]\w*)\s*\(/g;
+  let m;
+  while ((m = re.exec(masked)) !== null) {
+    const paren = masked.indexOf('(', m.index + m[0].length - 1);
+    const close = matchDelim(masked, paren, '(', ')');
+    let k = close + 1;
+    let depth = 0;
+    while (k < masked.length) {
+      const ch = masked[k];
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      else if (ch === '{' && depth === 0) break;
+      else if (ch === '\n' && depth === 0) { k = -1; break; } // no body on this header
+      k++;
+    }
+    if (k === -1 || k >= masked.length) continue;
+    defs.push({ name: m[1], line: lineAt(masked, m.index + 1), bodyStart: k, bodyEnd: matchDelim(masked, k, '{', '}') });
+  }
+  return defs;
+}
+
+// Java: methods + constructors with braced bodies. Statement-shaped matches
+// (calls, control flow) are rejected because their `)` is followed by `;`,
+// and keyword headers (`if`, `while`, …) fall to the NON_CALL guard.
+function javaDefs(masked) {
+  const defs = [];
+  const seen = new Set();
+  const re = /(?:^|\n)[ \t]*((?:(?:public|private|protected|static|final|abstract|synchronized|native|default|strictfp)\s+)*)(?:<[^>\n]{0,80}>\s*)?(?:[\w$][\w$.<>\[\],?\s]*?\s+)?([A-Za-z_$][\w$]*)\s*\(/g;
+  let m;
+  while ((m = re.exec(masked)) !== null) {
+    const name = m[2];
+    if (NON_CALL.has(name)) continue;
+    // `new Foo() { … }` anonymous classes are uses, not definitions.
+    const before = masked.slice(Math.max(0, m.index), m.index + m[0].length - name.length - 1);
+    if (/\bnew\s*$/.test(before)) continue;
+    const paren = masked.indexOf('(', m.index + m[0].length - 1);
+    const close = matchDelim(masked, paren, '(', ')');
+    // skip `throws A, B` up to the body `{` (same line — multi-line headers are skipped)
+    let k = close + 1;
+    while (k < masked.length && masked[k] !== '{' && masked[k] !== ';' && masked[k] !== '\n' && masked[k] !== '=') k++;
+    if (masked[k] !== '{') continue;
+    const key = name + ':' + k;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    defs.push({ name, line: lineAt(masked, m.index + 1), bodyStart: k, bodyEnd: matchDelim(masked, k, '{', '}') });
+  }
+  return defs;
+}
+
+// Rust: fn name(...) { }  |  fn name<T>(...) -> T where … { }  — inside or
+// outside impl/trait blocks. A `;` before the body brace (trait declaration)
+// means no body: skipped.
+function rustDefs(masked) {
+  const defs = [];
+  const re = /\bfn\s+([A-Za-z_]\w*)/g;
+  let m;
+  while ((m = re.exec(masked)) !== null) {
+    let k = m.index + m[0].length;
+    while (k < masked.length && /\s/.test(masked[k])) k++;
+    if (masked[k] === '<') k = matchDelim(masked, k, '<', '>') + 1;
+    while (k < masked.length && /\s/.test(masked[k])) k++;
+    if (masked[k] !== '(') continue;
+    const close = matchDelim(masked, k, '(', ')');
+    // return type / where clause may span lines; stop at body `{` or decl `;`
+    let b = close + 1;
+    while (b < masked.length && masked[b] !== '{' && masked[b] !== ';') b++;
+    if (masked[b] !== '{') continue;
+    defs.push({ name: m[1], line: lineAt(masked, m.index), bodyStart: b, bodyEnd: matchDelim(masked, b, '{', '}') });
+  }
+  return defs;
+}
+
+// Pick the masker whose comment/string syntax matches the language.
+// Java and Go share JS syntax (Go raw strings mask like template literals).
+function maskFor(filePath, src) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (PY_EXTS.has(ext)) return maskPy(src);
+  if (RS_EXTS.has(ext)) return maskRust(src);
+  return maskJs(src);
+}
+
 function extractDefs(filePath, src) {
   const ext = path.extname(filePath).toLowerCase();
   if (JS_EXTS.has(ext)) return jsDefs(maskJs(src));
   if (PY_EXTS.has(ext)) return pyDefs(maskPy(src));
+  if (JAVA_EXTS.has(ext)) return javaDefs(maskJs(src));
+  if (GO_EXTS.has(ext)) return goDefs(maskJs(src));
+  if (RS_EXTS.has(ext)) return rustDefs(maskRust(src));
   return null; // unsupported language
 }
 
@@ -221,7 +341,7 @@ function _walk(dir, excludeSet, out, depth) {
     if (e.isDirectory()) _walk(full, excludeSet, out, depth + 1);
     else if (e.isFile()) {
       const ext = path.extname(e.name).toLowerCase();
-      if (JS_EXTS.has(ext) || PY_EXTS.has(ext)) out.push(full);
+      if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || JAVA_EXTS.has(ext) || GO_EXTS.has(ext) || RS_EXTS.has(ext)) out.push(full);
     }
   }
 }
@@ -288,10 +408,20 @@ function buildCallGraph(cwd, opts = {}) {
   };
 
   for (const [f, fileDefs] of perFileDefs.entries()) {
-    const masked = JS_EXTS.has(path.extname(f).toLowerCase()) ? maskJs(fs.readFileSync(f, 'utf8')) : maskPy(fs.readFileSync(f, 'utf8'));
+    const masked = maskFor(f, fs.readFileSync(f, 'utf8'));
     // resolution scope: this file's defs, then directly-imported files' defs
     const importedAbs = (fileGraph.forward.get(normalizePath(path.resolve(f))) || [])
       .map((nf) => normToAbs.get(nf)).filter(Boolean);
+    // Go/Java: same-package symbols are visible with no import statement, and
+    // a package is (in practice) a directory — extend the scope to same-dir
+    // same-language siblings. Sorted for deterministic resolution order.
+    const ext = path.extname(f).toLowerCase();
+    if (GO_EXTS.has(ext) || JAVA_EXTS.has(ext)) {
+      const siblings = [...perFileDefs.keys()]
+        .filter((o) => o !== f && path.dirname(o) === path.dirname(f) && path.extname(o).toLowerCase() === ext)
+        .sort();
+      importedAbs.push(...siblings);
+    }
     for (const d of fileDefs) {
       const callerId = symId(cwd, f, d.name);
       if (!forward.has(callerId)) forward.set(callerId, new Set()); // ensure node exists
@@ -397,5 +527,5 @@ function formatCallGraphJSON(result, kind) {
 module.exports = {
   buildCallGraph, methodImpact, methodCallees,
   formatCallGraph, formatCallGraphJSON,
-  extractDefs, maskJs, maskPy,
+  extractDefs, maskJs, maskPy, maskRust,
 };
