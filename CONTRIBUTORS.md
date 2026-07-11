@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.16.0)
+- **@manojmallick** — feat(evidence): Evidence Pack schema v2 — published JSON Schema, multi-factor risk labels, measured test-discovery provenance (F1 0.98, guard-tested), generator identity (#477, PR #478)
+
 ### Recent Contributors (v8.15.0)
 - **@manojmallick** — feat(retrieval): call-graph ranking boost — opt-in `retrieval.callGraphBoost`, measured +0 on the 90-task A/B so the default stays off; new `benchmark:callgraph-boost` gate script (#474, PR #475)
 

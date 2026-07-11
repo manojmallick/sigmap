@@ -10,7 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.16.0] — 2026-07-12
+
+Minor release — **Evidence Pack schema v2** (the last Machine-lever item from the master plan §7.4). Also the first published release carrying v8.15.0, which was prepared but never tagged (see its note below).
+
+### Added
+- **Evidence Pack schema v2 (#477, PR #478):** additive over v1 — `schemaVersion: '2.0'` + `schemaUrl` pointing at a **published draft-07 JSON Schema** (`sigmap.io/schemas/evidence-pack-2.json`) that CI/agents can validate packs against; **`files[].riskFactors`** exposes *every* matched risk category in precedence order (a migration touching payments carries `['migration','payment']`) while `riskLabel` stays the first factor for v1 consumers; a **`testDiscovery` provenance block** carries the measured accuracy of the stem-affix related-tests method (**F1 0.98, precision 0.971, recall 0.988** over 3,701 pairs / 28 repos) — constants sourced from the committed benchmark report and guard-tested against it; and `generator: { name, version }` records what built the pack. Byte-stable; `contextHash` determinism preserved.
+
+---
+
 ## [8.15.0] — 2026-07-11
+
+> **Not published as a standalone release** — prepared and merged to main, but never tagged; first shipped as part of v8.16.0.
 
 Minor release — **call-graph ranking boost, opt-in and measure-gated**. The milestone item "call-graph edges into ranking" is done — and shipped **dark**, because the measure gate said so.
 

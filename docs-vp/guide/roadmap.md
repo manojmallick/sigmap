@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "87 versions shipped. See what changed in each release and what is coming next."
+      content: "88 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Eighty-seven versions shipped. MIT open source from day one.
+Eighty-eight versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.16.0 — Evidence Pack schema v2 ✓ (2026-07-12)
+
+**Minor release — the last Machine-lever item from the master plan §7.4; with it, every Phase-1 and Phase-2 checklist item is shipped or measure-gated-closed.** Schema v2 is additive over v1: `schemaVersion: '2.0'` plus a `schemaUrl` pointing at a **published draft-07 JSON Schema** ([sigmap.io/schemas/evidence-pack-2.json](https://sigmap.io/schemas/evidence-pack-2.json)) so CI and agents can *validate* a pack, not just parse it. `files[].riskFactors` exposes every matched risk category in precedence order — a migration touching payments carries `['migration','payment']` — while `riskLabel` stays the dominant factor for v1 consumers. A `testDiscovery` provenance block states the measured accuracy of the related-tests method (**F1 0.98, precision 0.971, recall 0.988** over 3,701 pairs / 28 repos), with the constants guard-tested against the committed benchmark report so they can never silently drift. `generator: { name, version }` records what built the pack. Byte-stable; `contextHash` determinism preserved. _(Also the first published release carrying v8.15.0, which was prepared but never tagged standalone.)_
+
+**Tags:** `evidence` · `schema-v2` · `schemaUrl` · `riskFactors` · `testDiscovery` · `generator` · `#477` · `PR #478`
+
+**Impact:** packs are validatable against a published schema; multi-factor risk; measured related-tests provenance; 8 new integration tests (121 derived); v1 consumers unaffected (additive).
+
+---
+
 ### v8.15.0 — Call-graph ranking boost, measured and shipped dark ✓ (2026-07-11)
 
 **Minor release — the milestone item "call-graph edges into ranking" is done, and the default is OFF because the measurement said so.** `buildCallFileGraph` collapses symbol edges to deterministic file-level bidirectional edges; `rank()` gains an opt-in single-hop, hub-suppressed call-neighbor boost (`callHop: 0.30`, `callGraphBoost` explain signal), wired config-gated into `ask`, `--query`, and `query_context` via `retrieval.callGraphBoost: false`. The new `npm run benchmark:callgraph-boost` A/B ran 90 tasks across 18 cached repos through the full ranker: import-graph arm **80% hit@5**, +call-graph arm **80%** — delta **+0, no repo moved**. Per the measure-first gate the default stays off; the boost targets call-topology-heavy repos (Go/Java same-package) where import edges structurally can't see the relationship — a shape the benchmark corpus doesn't stress. The headline BM25 harness is untouched (87.8% reproduces). This is the philosophy working as designed: the feature exists, the number decides the default, and the A/B script is the standing gate for revisiting it.
@@ -1408,7 +1418,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Next: retrieval coverage expansion (routes, configs, build/CI, migrations); and Evidence Pack schema v2 (richer risk labels + measured related-tests)
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Evidence Pack schema v2 shipped (v8.16). Next: retrieval coverage expansion (routes, configs, build/CI, migrations) — the last open Phase-2 item
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 
