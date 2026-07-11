@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sigmap.io/schemas/evidence-pack-2.json",
+  "title": "SigMap Evidence Pack v2",
+  "description": "Deterministic, machine-consumable signature-and-evidence map produced by `sigmap evidence`. Byte-stable for a fixed repository tree; grounding.contextHash is a sha256 over the canonicalized pack. Additive over schema v1: schemaUrl, generator, files[].riskFactors, testDiscovery.",
+  "type": "object",
+  "required": ["schemaVersion", "schemaUrl", "generator", "query", "intent", "files", "tokenBudget", "droppedFiles", "testDiscovery", "grounding"],
+  "properties": {
+    "schemaVersion": { "const": "2.0" },
+    "schemaUrl": { "const": "https://sigmap.io/schemas/evidence-pack-2.json" },
+    "generator": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "sigmap" },
+        "version": { "type": ["string", "null"], "description": "SigMap version that built the pack; null when built via the library API without one." }
+      }
+    },
+    "query": { "type": "string" },
+    "intent": { "type": "string", "description": "Detected query intent (search, debug, explain, refactor, review, test, ...)." },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "symbols", "reason", "confidence", "sourceLines", "relatedTests", "riskLabel", "riskFactors"],
+        "properties": {
+          "path": { "type": "string", "description": "Repository-relative path, forward slashes." },
+          "symbols": { "type": "array", "items": { "type": "string" }, "description": "Secret-redacted signature lines (anchors stripped into sourceLines)." },
+          "reason": { "type": "string", "description": "Human-readable ranking rationale derived from the scorer signals." },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Score normalized against the top-ranked file." },
+          "sourceLines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["symbol", "start", "end"],
+              "properties": {
+                "symbol": { "type": "string" },
+                "start": { "type": "integer", "minimum": 1 },
+                "end": { "type": "integer", "minimum": 1 }
+              }
+            },
+            "description": "1-based line anchors for symbols that carry a `:start-end` anchor — fetch exact lines instead of whole files."
+          },
+          "relatedTests": { "type": "array", "items": { "type": "string" }, "description": "Impl→test discovery via the measured stem-affix method (see testDiscovery)." },
+          "riskLabel": { "$ref": "#/definitions/riskCategory", "description": "Dominant risk (first of riskFactors) — v1 compatibility." },
+          "riskFactors": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/definitions/riskCategory" },
+            "description": "Every matched risk category in strict precedence order (v2). A migration touching payments carries both."
+          }
+        }
+      }
+    },
+    "tokenBudget": {
+      "type": "object",
+      "required": ["limit", "used", "remaining"],
+      "properties": {
+        "limit": { "type": "integer" },
+        "used": { "type": "integer" },
+        "remaining": { "type": "integer" }
+      }
+    },
+    "droppedFiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "reason"],
+        "properties": { "path": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "testDiscovery": {
+      "type": "object",
+      "required": ["method", "measured", "benchmark"],
+      "description": "Provenance for relatedTests: the discovery method and its measured accuracy on the public benchmark (guard-tested against benchmarks/reports/test-discovery.json).",
+      "properties": {
+        "method": { "const": "stem-affix-match" },
+        "measured": {
+          "type": "object",
+          "required": ["f1", "precision", "recall", "pairs", "repos"],
+          "properties": {
+            "f1": { "type": "number" },
+            "precision": { "type": "number" },
+            "recall": { "type": "number" },
+            "pairs": { "type": "integer" },
+            "repos": { "type": "integer" }
+          }
+        },
+        "benchmark": { "type": "string" }
+      }
+    },
+    "grounding": {
+      "type": "object",
+      "required": ["symbolCount", "anchoredSymbols", "anchorCoverage", "contextHash", "deterministic"],
+      "properties": {
+        "symbolCount": { "type": "integer" },
+        "anchoredSymbols": { "type": "integer" },
+        "anchorCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "contextHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "deterministic": { "const": true }
+      }
+    }
+  },
+  "definitions": {
+    "riskCategory": {
+      "enum": ["generated", "test", "migration", "payment", "auth", "security", "config", "public-api", "source"]
+    }
+  }
+}

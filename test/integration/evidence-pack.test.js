@@ -158,7 +158,7 @@ test('evidence JSON has the v1 schema shape', () => {
   withTempProject((dir) => {
     writeContextFile(dir);
     const p = JSON.parse(runEvidence(dir, ['render widget']));
-    assert.strictEqual(p.schemaVersion, '1.0');
+    assert.strictEqual(p.schemaVersion, '2.0');
     assert.strictEqual(p.query, 'render widget');
     assert.ok(typeof p.intent === 'string');
     assert.ok(Array.isArray(p.files));
@@ -217,7 +217,7 @@ test('--markdown emits the Markdown handoff rendering', () => {
     writeContextFile(dir);
     const md = runEvidence(dir, ['render widget', '--markdown']);
     assert.ok(md.startsWith('# Evidence Pack'), 'markdown should start with the pack heading');
-    assert.ok(md.includes('**Schema:** v1.0'));
+    assert.ok(md.includes('**Schema:** v2.0'));
     assert.ok(md.includes('src/widget.js'));
   });
 });
@@ -253,7 +253,7 @@ test('writes the .context/evidence-pack.json artifact', () => {
     const artifact = path.join(dir, '.context', 'evidence-pack.json');
     assert.ok(fs.existsSync(artifact), 'artifact file should be written');
     const p = JSON.parse(fs.readFileSync(artifact, 'utf8'));
-    assert.strictEqual(p.schemaVersion, '1.0');
+    assert.strictEqual(p.schemaVersion, '2.0');
   });
 });
 
