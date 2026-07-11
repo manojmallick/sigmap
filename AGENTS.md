@@ -33,11 +33,12 @@ Always run `sigmap ask` (or `sigmap --query`) before searching for files relevan
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 2 days ago)
+## changes (last 5 commits — 0 seconds ago)
 ```
+src/format/terse.js                           +splitAnchor  +encodeTerseSig  +encodeTerseSigs  +_tokens
+src/wiki/generate.js                          +_rel  +_pct  +_identity  +_modules
 src/conventions/extract.js                    ~classifyNaming  ~scoreConvention
 src/conventions/fix.js                        ~buildFixList
-src/daemon/daemon.js                          +daemonDir  +pidFile  +logFile  +isAlive
 src/extractors/javascript.js                  ~extract  ~extractClassMembers  ~extractBlock  ~buildReturnHints
 src/extractors/typescript.js                  ~extract  ~extractInterfaceMembers  ~extractClassMembers  ~extractBlock
 src/graph/builder.js                          +probeJs  +resolveJsPath  +stripJsonc  +loadAliasMap
@@ -179,6 +180,21 @@ code-fence ---
 
 ## src
 
+### src/config/defaults.js
+```
+module.exports = { DEFAULTS }  :161-161
+```
+
+### src/format/terse.js
+```
+module.exports = { encodeTerseSig, encodeTerseSigs, measureTerse, splitAnchor }  :86-86
+function splitAnchor(sig) → { text: string, suffix: s  :25-30
+function encodeTerseSig(sig) → string  :37-50
+function encodeTerseSigs(sigs) → string[]  :57-59
+function _tokens(sigs)  :62-64
+function measureTerse(sigsList) → { beforeTokens: number, a  :72-84
+```
+
 ### src/mcp/server.js
 ```
 module.exports = { start }  :140-140
@@ -186,6 +202,20 @@ function respond(id, result)  :28-30
 function respondError(id, code, message)  :32-36
 function dispatch(msg, cwd)  :41-107
 function start(cwd)  :112-138
+```
+
+### src/wiki/generate.js
+```
+module.exports = { buildWiki, renderWikiMarkdown }  :250-250
+function _rel(cwd, f)  :22-24
+function _pct(fraction)  :26-28
+function _identity(cwd)  :31-37
+function _modules(index)  :40-67
+function _flow(cwd)  :70-97
+function _conventions(cwd, index)  :100-117
+function _health(cwd)  :119-127
+function buildWiki(cwd, opts = {}) → { data: object, markdown:  :137-162
+function renderWikiMarkdown(data, sigmapVersion) → string  :171-248
 ```
 
 ### src/analysis/coverage-score.js
@@ -223,11 +253,6 @@ function loadCache(cwd, currentVersion) → Map<string, { mtime: numb  :32-42
 function saveCache(cwd, currentVersion, cache)  :51-61
 function getChangedFiles(files, cache) → { changed: string[], unch  :71-88
 function updateCacheEntries(cache, extracted)  :96-103
-```
-
-### src/config/defaults.js
-```
-module.exports = { DEFAULTS }  :161-161
 ```
 
 ### src/config/loader.js
@@ -902,16 +927,6 @@ function outputPath(cwd)  :7-7
 function getShortCommit(cwd)  :9-11
 function detectVersion(cwd)  :13-19
 function format(context, cwd, writtenFiles, sigmapVersion)  :21-69
-```
-
-### src/format/terse.js
-```
-module.exports = { encodeTerseSig, encodeTerseSigs, measureTerse, splitAnchor }  :86-86
-function splitAnchor(sig) → { text: string, suffix: s  :25-30
-function encodeTerseSig(sig) → string  :37-50
-function encodeTerseSigs(sigs) → string[]  :57-59
-function _tokens(sigs)  :62-64
-function measureTerse(sigsList) → { beforeTokens: number, a  :72-84
 ```
 
 ### src/format/usage-guidance.js
