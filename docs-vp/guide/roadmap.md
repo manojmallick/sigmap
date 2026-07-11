@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "83 versions shipped. See what changed in each release and what is coming next."
+      content: "84 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Eighty-three versions shipped. MIT open source from day one.
+Eighty-four versions shipped. MIT open source from day one.
 
 **Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS + Python) · 19 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -825,6 +825,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `verify-ai-output` · `fake-test-file` · `fake-npm-script` · `closest-match` · `--report` · `note` · `status` · `read_memory` · `11 MCP tools` · `PR #232` · `PR #233`
 
 **Impact:** 5-detector Hallucination Guard + heuristic suggestions; 11 MCP tools (was 10); 42 new tests (29 verify + 13 memory); 949 tests passing.
+
+---
+
+### v8.12.0 — `sigmap wiki`: deterministic architecture narrative (D9) ✓ (2026-07-11)
+
+**Minor release — the final unstarted in-boundary item from the master plan's §3.5 backlog; D1–D9 are now all shipped.** `sigmap wiki` writes `.context/WIKI.md`, a one-page onboarding narrative composed entirely from data SigMap already computes: overview (indexed files, modules, signature tokens, health grade), a module rollup with key files, dependency flow (the hub files with the widest blast radius, entry points, cycle count from the import graph), a conventions summary, and navigation pointers. Template prose only — **no LLM, no network, no timestamps** — so two consecutive runs on an unchanged repo are byte-identical (regression-tested; the Philosophy Gate holds). `--out` overrides the path; `--json` emits the structured data. Graph paths are relativized against the builder's normalized base so hubs/entries render repo-relative even on macOS tmpdirs.
+
+**Tags:** `wiki` · `.context/WIKI.md` · `--json` · `--out` · `no-LLM` · `byte-stable` · `D9` · `#465` · `PR #466`
+
+**Impact:** the in-boundary backlog (D1–D9) is complete; 6 new integration tests (117 derived tests); zero new dependencies; benchmark headline unchanged (hit@5 87.8% — wiki adds no retrieval-path code).
 
 ---
 

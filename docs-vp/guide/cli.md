@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 78 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 79 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 78 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 79 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -92,6 +92,7 @@ If you are new to the product, start with the workflow pages first:
 | `note "<text>"` | Append a note to the cross-session decision log (`note` alone lists recent) |
 | `status` | Repo state — branch, dirty files, index freshness, notes |
 | `doctor` | Diagnose config, index, freshness, coverage, and MCP wiring — with a fix per issue (`--json`; exits 1 on hard failure) |
+| `wiki` | Deterministic architecture narrative → `.context/WIKI.md` — modules, hubs, entry points, conventions, health; no LLM (`--json`, `--out`) |
 | `mcp list` | List supported MCP clients and their config paths (`--json`) |
 | `mcp install <client>` | Wire MCP for one client — `claude`/`cursor`/`windsurf`/`vscode`/`zed`/`codex`/`gemini`/`opencode`/`mcp`; creates the config if absent; `--global` for user-level |
 | `learn` | Boost, penalize, or reset learned file ranking weights |
@@ -954,6 +955,28 @@ Each line is `✓` (ok), `⚠` (warning), or `✗` (hard failure); every non-ok 
 | Option | Description |
 |--------|-------------|
 | `--json` | Emit the machine-readable result (`{ checks:[{id,label,status,detail,fix}], ok, errors, warnings }`) |
+
+---
+
+## wiki
+
+Deterministic architecture narrative (v8.12.0, D9). Writes `.context/WIKI.md` composed entirely from data SigMap already computes — no LLM, no network, no timestamps, so two runs on an unchanged repo are **byte-identical**. Sections: **Overview** (indexed files, modules, signature tokens, health grade), **Modules** (rollup with key files), **Dependency flow** (hub files with the widest blast radius, entry points, cycle count), **Conventions** (naming / export style / test framework), and **Navigating** (the `ask` / `--impact` / `evidence` / MCP pointers a newcomer needs). The one-page onboarding doc for a new contributor or agent.
+
+```bash
+sigmap wiki                    # writes .context/WIKI.md
+sigmap wiki --out docs/ARCH.md # custom path
+sigmap wiki --json             # structured data to stdout (no file)
+```
+
+```text
+$ sigmap wiki
+[sigmap] wiki → .context/WIKI.md (143 files · 2 modules)
+```
+
+| Option | Description |
+|--------|-------------|
+| `--out <path>` | Write the markdown to a custom path instead of `.context/WIKI.md` |
+| `--json` | Print the structured data (`{ name, version, files, modules, flow, conventions, health }`) to stdout; writes no file |
 
 ---
 

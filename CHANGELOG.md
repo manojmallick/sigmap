@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.12.0] — 2026-07-11
+
+Minor release — **`sigmap wiki`** (D9, the final unstarted in-boundary item from the master plan §3.5 backlog). With this, every in-boundary initiative D1–D9 has shipped.
+
+### Added
+- **`sigmap wiki` — deterministic architecture narrative (#465, PR #466):** writes `.context/WIKI.md` composed entirely from data SigMap already computes — overview (indexed files, modules, signature tokens, health grade), module rollup with key files, dependency flow (hub files, entry points, cycle count from the import graph), conventions summary, and navigation pointers. Template prose only: **no LLM, no network, no timestamps** — two consecutive runs on an unchanged repo are byte-identical (regression-tested). `--out <path>` overrides the target; `--json` emits the structured data instead. Graph paths are relativized against the builder's normalized base so hubs/entries render repo-relative on macOS tmpdirs.
+
+---
+
 ## [8.11.0] — 2026-07-11
 
 Minor release — the **terse signature encoder** (D7 from the master plan), shipped under its measure-first gate: the public reduction number comes from a benchmark run on this repo, never borrowed from another tool's prose-compression claims.

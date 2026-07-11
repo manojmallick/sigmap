@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.12.0)
+- **@manojmallick** — feat(wiki): `sigmap wiki` — deterministic architecture narrative from signatures + dependency graph (no LLM, byte-stable, `--json`/`--out`), closing D9, the last unstarted in-boundary master-plan item (#465, PR #466)
+
 ### Recent Contributors (v8.11.0)
 - **@manojmallick** — feat(format): terse signature encoder — opt-in `--terse` deterministic compaction of the signature block, measured −16.1% on this repo via the new `benchmark:terse` measure-first gate; line anchors preserved byte-exactly, ranker parse-back regression-tested (#462, PR #463)
 - **@manojmallick** — docs(readme): reliable Star History link (PR #461); 'Verified on MseeP' badge (PR #460)
