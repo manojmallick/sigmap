@@ -114,6 +114,7 @@ sigmap verify-plan <plan.md|->           Check a plan vs the live index — file
 sigmap review-pr                         Audit a diff — scope drift, god-node edits, missing tests, security files (--staged, --base, --json, --markdown)
 sigmap review-pr --markdown              PR Evidence Report — branded Markdown (signatures + blast radius + tests) to post as a PR comment
 sigmap create "<task>"                   Grounded-creation pipeline: scaffold → verify-plan → verify-ai-output → review-pr (--staged)
+sigmap wiki                              Deterministic architecture wiki from signatures + graph — no LLM (--json, --out <path>)
 sigmap squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)
 sigmap squeeze --response <file|->       Minimize an agent/tool response (same engine; also exposed as the squeeze_output MCP tool)
 sigmap ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
