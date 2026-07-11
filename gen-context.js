@@ -1531,6 +1531,8 @@ __factories["./src/config/defaults"] = function(module, exports) {
       topK: 10,
       // Multiplier applied to recently-changed files (>1 boosts them up)
       recencyBoost: 1.5,
+      // Boost files call-graph-connected to query matches (opt-in, measure-gated)
+      callGraphBoost: false,
     },
 
     // Impact layer settings (v2.5)
@@ -11386,6 +11388,42 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     return { forward: toArr(forward), reverse: toArr(reverse), defs };
   }
 
+  /**
+   * Collapse the symbol-level call-graph to FILE-level bidirectional edges for
+   * the ranker's neighbor boost (opt-in via `retrieval.callGraphBoost`). A file
+   * whose functions call into — or are called by — another file gets an edge in
+   * both directions. Keys are `path.resolve`-form absolute paths (matching the
+   * ranker's lookups); entries and neighbor lists are sorted for determinism.
+   *
+   * @param {string} cwd
+   * @param {object} [opts] { graph } to inject a prebuilt call graph (tests)
+   * @returns {{ forward: Map<string,string[]> }}
+   */
+  function buildCallFileGraph(cwd, opts = {}) {
+    const graph = opts.graph || buildCallGraph(cwd, opts);
+    const edges = new Map(); // absFile → Set<absFile>
+    const add = (a, b) => {
+      if (a === b) return;
+      if (!edges.has(a)) edges.set(a, new Set());
+      edges.get(a).add(b);
+    };
+    for (const [callerId, calleeIds] of graph.forward.entries()) {
+      const callerDef = graph.defs.get(callerId);
+      if (!callerDef) continue;
+      for (const calleeId of calleeIds) {
+        const calleeDef = graph.defs.get(calleeId);
+        if (!calleeDef || calleeDef.file === callerDef.file) continue;
+        const a = path.resolve(cwd, callerDef.file);
+        const b = path.resolve(cwd, calleeDef.file);
+        add(a, b);
+        add(b, a);
+      }
+    }
+    const forward = new Map();
+    for (const k of [...edges.keys()].sort()) forward.set(k, [...edges.get(k)].sort());
+    return { forward };
+  }
+
   // Resolve a user-supplied symbol (bare name or full `file#name` id) to ids.
   function _resolveSymbol(symbol, defs) {
     if (defs.has(symbol)) return [symbol];
@@ -11466,7 +11504,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   }
 
   module.exports = {
-    buildCallGraph, methodImpact, methodCallees,
+    buildCallGraph, buildCallFileGraph, methodImpact, methodCallees,
     formatCallGraph, formatCallGraphJSON,
     extractDefs, maskJs, maskPy, maskRust,
   };
@@ -13618,7 +13656,16 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       // Build dependency graph for neighbor boost — non-fatal if it fails
       let graph = null;
       try { graph = buildFromCwd(cwd); } catch (_) {}
-      const results = rank(args.query, index, { topK, cwd, graph });
+      // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
+      let callGraph = null;
+      try {
+        const { loadConfig } = __require('./src/config/loader');
+        const retrieval = loadConfig(cwd).retrieval;
+        if (retrieval && retrieval.callGraphBoost) {
+          callGraph = __require('./src/graph/call-graph').buildCallFileGraph(cwd);
+        }
+      } catch (_) {}
+      const results = rank(args.query, index, { topK, cwd, graph, callGraph });
       return formatRankTable(results, args.query);
     } catch (err) {
       return `_query_context failed: ${err.message}_`;
@@ -14331,7 +14378,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.14.0',
+    version: '8.15.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -15396,6 +15443,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   const GRAPH_BOOST_AMOUNTS = {
     hop1: 0.40,   // direct import neighbor of a file with score > 0
     hop2: 0.15,   // 2 hops away (transitive), with decay
+    callHop: 0.30, // call-graph file neighbor (opt-in retrieval.callGraphBoost)
   };
 
   // Intent-specific weight adjustments
@@ -15528,6 +15576,8 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    * @param {object}  [opts.weights]               - override scoring weights
    * @param {string}  [opts.cwd]                   - project root for learned ranking weights
    * @param {{ forward: Map<string,string[]> }} [opts.graph] - dependency graph for neighbor boost
+   * @param {{ forward: Map<string,string[]> }} [opts.callGraph] - file-level call-graph edges
+   *        (from buildCallFileGraph) for the opt-in call-neighbor boost
    * @returns {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]}
    */
   function rank(query, sigIndex, opts) {
@@ -15646,6 +15696,31 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
             // Only boost files that have some baseline score (not noise)
             scored[idx].score += GRAPH_BOOST_AMOUNTS.hop2;
             scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + GRAPH_BOOST_AMOUNTS.hop2;
+          }
+        }
+      }
+    }
+
+    // Call-graph neighbor boost (opt-in via retrieval.callGraphBoost): a file
+    // whose functions call into — or are called by — a positively-scored file is
+    // relevant even when no import edge exists (Go/Java same-package, dynamic
+    // dispatch). Single hop; seeds snapshotted first so boosts never cascade.
+    const callGraph = (opts && opts.callGraph && opts.callGraph.forward instanceof Map) ? opts.callGraph : null;
+    if (callGraph && cwd) {
+      const path = require('path');
+      const relToIdx = new Map();
+      for (let i = 0; i < scored.length; i++) relToIdx.set(scored[i].file, i);
+      const hubs = _computeHubs(callGraph);
+      const seeds = scored.filter((e) => e.score > 0).map((e) => e.file);
+      for (const file of seeds) {
+        const abs = path.resolve(cwd, file);
+        for (const neighborAbs of (callGraph.forward.get(abs) || [])) {
+          if (_isHub(neighborAbs) || hubs.has(neighborAbs)) continue;
+          const neighborRel = path.relative(cwd, neighborAbs).replace(/\\/g, '/');
+          const idx = relToIdx.get(neighborRel);
+          if (idx !== undefined && scored[idx].file !== file) {
+            scored[idx].score += GRAPH_BOOST_AMOUNTS.callHop;
+            scored[idx].signals.callGraphBoost = (scored[idx].signals.callGraphBoost || 0) + GRAPH_BOOST_AMOUNTS.callHop;
           }
         }
       }
@@ -19344,7 +19419,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.14.0';
+const VERSION = '8.15.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -21667,7 +21742,13 @@ function main() {
       } catch (_) { /* squeeze is best-effort — never break ask */ }
     }
 
-    let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd });
+    // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
+    let askCallGraph = null;
+    if (config && config.retrieval && config.retrieval.callGraphBoost) {
+      try { askCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
+    }
+
+    let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd, callGraph: askCallGraph });
 
     // v6.10: Workspace scoping — infer package from query and apply boost
     const workspaces = detectWorkspaces(cwd);
@@ -23839,7 +23920,12 @@ function main() {
       const topK = topIdx >= 0 ? Math.min(Math.max(1, parseInt(args[topIdx + 1], 10) || 10), 25)
                                : ((config && config.retrieval && config.retrieval.topK) || 10);
       const recencyBoost = (config && config.retrieval && config.retrieval.recencyBoost) || 1.5;
-      const results = rank(query, index, { topK, recencyBoost, cwd });
+      // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
+      let queryCallGraph = null;
+      if (config && config.retrieval && config.retrieval.callGraphBoost) {
+        try { queryCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
+      }
+      const results = rank(query, index, { topK, recencyBoost, cwd, callGraph: queryCallGraph });
       if (args.includes('--context')) {
         const miniCtx  = buildMiniContext(results, cwd);
         const ctxOut   = path.join(cwd, '.context', 'query-context.md');

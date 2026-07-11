@@ -421,7 +421,16 @@ function queryContext(args, cwd) {
     // Build dependency graph for neighbor boost — non-fatal if it fails
     let graph = null;
     try { graph = buildFromCwd(cwd); } catch (_) {}
-    const results = rank(args.query, index, { topK, cwd, graph });
+    // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
+    let callGraph = null;
+    try {
+      const { loadConfig } = require('../config/loader');
+      const retrieval = loadConfig(cwd).retrieval;
+      if (retrieval && retrieval.callGraphBoost) {
+        callGraph = require('../graph/call-graph').buildCallFileGraph(cwd);
+      }
+    } catch (_) {}
+    const results = rank(args.query, index, { topK, cwd, graph, callGraph });
     return formatRankTable(results, args.query);
   } catch (err) {
     return `_query_context failed: ${err.message}_`;
