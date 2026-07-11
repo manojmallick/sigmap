@@ -35,14 +35,15 @@ src/extractors/python_ast.py ← ast
 
 ## changes (last 5 commits — 0 seconds ago)
 ```
-src/graph/blast-radius.js                     +tierFor  +_normRel  +_bfs  +methodBlastRadius
 src/graph/call-graph.js                       +calls  +maskRust  +name  +goDefs
 src/mcp/handlers.js                           +that  +getMethodImpact  ~queryContext  ~squeezeOutput
 src/mcp/server.js                             ~dispatch
 src/mcp/tools.js                              +it
+src/retrieval/ranker.js                       ~scoreFile  ~rank
+src/format/terse.js                           +splitAnchor  +encodeTerseSig  +encodeTerseSigs  +_tokens
+src/graph/blast-radius.js                     +tierFor  +_normRel  +_bfs  +methodBlastRadius
 src/review/pr-evidence.js                     ~buildPrEvidence  ~formatPrEvidenceMarkdown
 src/review/review-pr.js                       ~isSource  ~reviewPr
-src/format/terse.js                           +splitAnchor  +encodeTerseSig  +encodeTerseSigs  +_tokens
 src/wiki/generate.js                          +_rel  +_pct  +_identity  +_modules
 ```
 
@@ -175,18 +176,14 @@ code-fence ---
 
 ## src
 
-### src/graph/blast-radius.js
+### src/config/defaults.js
 ```
-module.exports = { methodBlastRadius, tierFor, DIRECT_WEIGHT, TRANSITIVE_WEIGHT }  :132-132
-function tierFor(score)  :25-31
-function _normRel(p)  :33-35
-function _bfs(seedIds, reverse, maxDepth)  :38-60
-function methodBlastRadius(changedFiles, cwd, opts = {}) → { * available: boolean, *  :78-130
+module.exports = { DEFAULTS }  :163-163
 ```
 
 ### src/graph/call-graph.js
 ```
-module.exports = { buildCallGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :527-531
+module.exports = { buildCallGraph, buildCallFileGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :563-567
 function normalizePath(p)  :41-41
 function toRel(cwd, f)  :42-42
 function symId(cwd, absFile, name)  :43-43
@@ -205,17 +202,18 @@ function extractDefs(filePath, src)  :307-315
 function callsInRange(masked, start, end)  :318-330
 function _walk(dir, excludeSet, out, depth)  :334-347
 function buildCallGraph(cwd, opts = {}) → { * forward: Map<string,s  :363-446
-function _resolveSymbol(symbol, defs)  :449-454
-function _bfs(seedIds, graph, maxDepth)  :457-470
-function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :480-486
-function methodCallees(symbol, cwd, opts = {}) → { symbol:string, resolved  :492-498
-function formatCallGraph(result, kind)  :501-513
-function formatCallGraphJSON(result, kind)  :515-525
+function buildCallFileGraph(cwd, opts = {}) → { forward: Map<string,str  :459-482
+function _resolveSymbol(symbol, defs)  :485-490
+function _bfs(seedIds, graph, maxDepth)  :493-506
+function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :516-522
+function methodCallees(symbol, cwd, opts = {}) → { symbol:string, resolved  :528-534
+function formatCallGraph(result, kind)  :537-549
+… +1 more signatures
 ```
 
 ### src/mcp/handlers.js
 ```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :966-966
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :975-975
 function _readContextFiles(cwd)  :10-17
 function readContext(args, cwd)  :36-66
 function searchSignatures(args, cwd)  :74-100
@@ -224,21 +222,21 @@ function createCheckpoint(args, cwd)  :143-215
 function getRouting(args, cwd)  :224-261
 function explainFile(args, cwd)  :269-356
 function listModules(args, cwd)  :364-403
-function queryContext(args, cwd)  :411-429
-function getMethodImpact(args, cwd)  :437-451
-function getImpact(args, cwd)  :459-471
-function getLines(args, cwd)  :480-528
-function readMemory(args, cwd)  :536-571
-function getCalleeSignatures(args, cwd)  :580-625
-function _pkgVersion(cwd)  :632-635
-function notifyFileCreated(args, cwd)  :639-661
-function notifySymbolAdded(args, cwd)  :664-684
-function notifyFileDeleted(args, cwd)  :687-701
-function _changedFiles(cwd, args)  :707-719
-function getDiffContext(args, cwd)  :728-799
-function getArchitectureOverview(args, cwd)  :808-876
-function verifySuggestion(args, cwd)  :886-921
-function squeezeOutput(args, cwd)  :931-964
+function queryContext(args, cwd)  :411-438
+function getMethodImpact(args, cwd)  :446-460
+function getImpact(args, cwd)  :468-480
+function getLines(args, cwd)  :489-537
+function readMemory(args, cwd)  :545-580
+function getCalleeSignatures(args, cwd)  :589-634
+function _pkgVersion(cwd)  :641-644
+function notifyFileCreated(args, cwd)  :648-670
+function notifySymbolAdded(args, cwd)  :673-693
+function notifyFileDeleted(args, cwd)  :696-710
+function _changedFiles(cwd, args)  :716-728
+function getDiffContext(args, cwd)  :737-808
+function getArchitectureOverview(args, cwd)  :817-885
+function verifySuggestion(args, cwd)  :895-930
+function squeezeOutput(args, cwd)  :940-973
 ```
 
 ### src/mcp/server.js
@@ -255,19 +253,22 @@ function start(cwd)  :113-139
 module.exports = { TOOLS }  :392-392
 ```
 
-### src/review/pr-evidence.js
+### src/retrieval/ranker.js
 ```
-module.exports = { buildPrEvidence, formatPrEvidenceMarkdown }  :157-157
-function buildPrEvidence(changedFiles, cwd, opts = {}) → { scope:string, files:obj  :31-84
-function formatPrEvidenceMarkdown(evidence, opts = {})  :89-155
-```
-
-### src/review/review-pr.js
-```
-module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD }  :150-150
-function isTestFile(p)  :32-34
-function isSource(p)  :35-37
-function reviewPr(changedFiles, cwd, opts = {}) → { findings: object[], bla  :48-148
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent }  :598-598
+function _computePenalty(filePath)  :63-70
+function _computeHubs(graph)  :73-84
+function _isHub(filePath)  :87-91
+function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:  :102-159
+function rank(query, sigIndex, opts) → { file: string, score: nu  :177-302
+function _parseContextFile(contextPath) → Map<string, string[]>  :372-404
+function _mergeSigIndex(target, source)  :407-415
+function _buildSigIndexFromCache(cwd) → Map<string, string[]>  :422-442
+function _enrichSigIndexFromStrategy(cwd, index) → Map<string, string[]>  :450-456
+function buildSigIndex(cwd, opts) → Map<string, string[]>  :473-506
+function formatRankTable(results, query) → string  :515-551
+function formatRankJSON(results, query) → object  :560-575
+function detectIntent(query)  :590-596
 ```
 
 ### src/analysis/coverage-score.js
@@ -305,11 +306,6 @@ function loadCache(cwd, currentVersion) → Map<string, { mtime: numb  :32-42
 function saveCache(cwd, currentVersion, cache)  :51-61
 function getChangedFiles(files, cache) → { changed: string[], unch  :71-88
 function updateCacheEntries(cache, extracted)  :96-103
-```
-
-### src/config/defaults.js
-```
-module.exports = { DEFAULTS }  :161-161
 ```
 
 ### src/config/loader.js
@@ -1012,6 +1008,15 @@ function renderReportHtml(result, opts = {}) → string  :48-115
 function renderReportMarkdown(result)  :144-162
 ```
 
+### src/graph/blast-radius.js
+```
+module.exports = { methodBlastRadius, tierFor, DIRECT_WEIGHT, TRANSITIVE_WEIGHT }  :132-132
+function tierFor(score)  :25-31
+function _normRel(p)  :33-35
+function _bfs(seedIds, reverse, maxDepth)  :38-60
+function methodBlastRadius(changedFiles, cwd, opts = {}) → { * available: boolean, *  :78-130
+```
+
 ### src/graph/builder.js
 ```
 module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias }  :494-494
@@ -1187,28 +1192,25 @@ function expandQuery(qToks) → Map<string, number>  :132-141
 function bm25rank(query, candidates) → Array<object & { score: n  :154-193
 ```
 
-### src/retrieval/ranker.js
-```
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent }  :570-570
-function _computePenalty(filePath)  :62-69
-function _computeHubs(graph)  :72-83
-function _isHub(filePath)  :86-90
-function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:  :101-158
-function rank(query, sigIndex, opts) → { file: string, score: nu  :174-298
-function _parseContextFile(contextPath) → Map<string, string[]>  :344-376
-function _mergeSigIndex(target, source)  :379-387
-function _buildSigIndexFromCache(cwd) → Map<string, string[]>  :394-414
-function _enrichSigIndexFromStrategy(cwd, index) → Map<string, string[]>  :422-428
-function buildSigIndex(cwd, opts) → Map<string, string[]>  :445-478
-function formatRankTable(results, query) → string  :487-523
-function formatRankJSON(results, query) → object  :532-547
-function detectIntent(query)  :562-568
-```
-
 ### src/retrieval/tokenizer.js
 ```
 module.exports = { tokenize, STOP_WORDS }  :54-54
 function tokenize(text, opts) → string[]  :31-52
+```
+
+### src/review/pr-evidence.js
+```
+module.exports = { buildPrEvidence, formatPrEvidenceMarkdown }  :157-157
+function buildPrEvidence(changedFiles, cwd, opts = {}) → { scope:string, files:obj  :31-84
+function formatPrEvidenceMarkdown(evidence, opts = {})  :89-155
+```
+
+### src/review/review-pr.js
+```
+module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD }  :150-150
+function isTestFile(p)  :32-34
+function isSource(p)  :35-37
+function reviewPr(changedFiles, cwd, opts = {}) → { findings: object[], bla  :48-148
 ```
 
 ### src/routing/classifier.js
