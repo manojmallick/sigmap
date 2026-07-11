@@ -1,6 +1,6 @@
 ---
 title: MCP server setup
-description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 19 tools over stdio. Zero npm install.
+description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 20 tools over stdio. Zero npm install.
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.
 
-The SigMap MCP server exposes 19 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
+The SigMap MCP server exposes 20 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
 
 > **Setup time: under 2 minutes.** Use `sigmap --setup` for automatic configuration.
 
@@ -99,7 +99,7 @@ Stack both MCP servers for the two-layer context strategy — SigMap for always-
 ## 11 available tools
 
 ::: tip New in v6.3.0 — native tool registration
-Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 19 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
+Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 20 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
 :::
 
 All tools are available on-demand — your AI agent calls only what it needs.
@@ -115,6 +115,7 @@ All tools are available on-demand — your AI agent calls only what it needs.
 | `get_routing` | Returns the model tier hints table (fast / balanced / powerful per file) based on complexity scores. | none | `get_routing()` |
 | `query_context` | Ranks all files by relevance to a free-text query using TF-IDF scoring. Returns top-K files. New in v2.3. | `query` (required string), `topK` (optional number, default 10) | `query_context(query="authentication flow")` |
 | `get_impact` | Returns the blast radius of a file — direct importers, transitive importers, affected tests and routes. | `file` (required string), `depth` (optional number, default 3) | `get_impact(file="src/auth/service.ts")` |
+| `get_method_impact` | **Method-level blast radius** — every function that (transitively) calls a symbol, or with `direction="callees"` everything it calls. Finer-grained than `get_impact`: which *functions* break, not just which files. JS/TS + Python. New in v8.13. | `symbol` (required string, name or `file#name`), `direction` (optional "callers"\|"callees"), `depth` (optional number, default 0 = unlimited) | `get_method_impact(symbol="validateToken")` |
 | `get_lines` | **Surgical Context** demand-driven fetch: returns an exact line range from a file behind a `:start-end` anchor. Clamped to file bounds, secret-scanned, sandboxed to the project root. New in v6.12.0. | `file` (required string), `start` (required number), `end` (required number) | `get_lines(file="src/config/loader.js", start=42, end=58)` |
 | `read_memory` | **Memory** — recall the cross-session decision log (notes left via `sigmap note`) plus the last `ask` session focus. Kills agent cold-start. New in v6.15.0. | `limit` (optional number, default 10) | `read_memory(limit=10)` |
 | `get_diff_context` | Returns every changed file (working tree, staged, or vs a base ref) with its current signatures + blast radius (importers, tests, routes) + risk label. Lists files shell-free. New in v8.0. | `base` (optional string), `staged` (optional bool), `depth` (optional number, default 2) | `get_diff_context(base="main")` |
@@ -173,6 +174,7 @@ Expected output:
       { "name": "create_checkpoint" },
       { "name": "get_routing" },
       { "name": "query_context" },
+      { "name": "get_method_impact" },
       { "name": "get_impact" },
       { "name": "get_lines" },
       { "name": "read_memory" },

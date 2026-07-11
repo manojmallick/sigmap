@@ -43,7 +43,7 @@ function isSource(p) {
  * @param {object} [opts]
  * @param {number} [opts.godNodeThreshold=15]
  * @param {number} [opts.scopeThreshold=5]
- * @returns {{ findings: object[], blast: object[], summary: object }}
+ * @returns {{ findings: object[], blast: object[], methodBlast: object|null, summary: object }}
  */
 function reviewPr(changedFiles, cwd, opts = {}) {
   const godThreshold = opts.godNodeThreshold != null ? opts.godNodeThreshold : GOD_NODE_THRESHOLD;
@@ -104,6 +104,27 @@ function reviewPr(changedFiles, cwd, opts = {}) {
     blast.sort((a, b) => b.totalImpact - a.totalImpact);
   }
 
+  // 3b. Method-level blast radius (GR2) — how many FUNCTIONS transitively call
+  // into the change, scored deterministically. Graph optional, like 3.
+  let methodBlast = null;
+  if (srcChanged.length) {
+    try {
+      const { methodBlastRadius } = require('../graph/blast-radius');
+      const mb = methodBlastRadius(srcChanged, cwd, opts.methodBlastOpts || {});
+      if (mb.available) {
+        methodBlast = mb;
+        for (const f of mb.files) {
+          if (f.tier === 'high' || f.tier === 'critical') {
+            findings.push({
+              type: 'method-blast', file: f.file, severity: 'warn',
+              functions: f.directCallers + f.transitiveCallers, score: f.score, tier: f.tier,
+            });
+          }
+        }
+      }
+    } catch (_) { /* call graph optional */ }
+  }
+
   // 4. Scope drift: distinct top-level directories touched.
   const dirs = [...new Set(paths.map((p) => (p.includes('/') ? p.split('/')[0] : '.')))];
   if (dirs.length > scopeThreshold) {
@@ -114,6 +135,7 @@ function reviewPr(changedFiles, cwd, opts = {}) {
   return {
     findings,
     blast,
+    methodBlast,
     summary: {
       filesChanged: files.length,
       sourceChanged: srcChanged.length,
