@@ -52,7 +52,7 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>" --squeeze` | Auto-accept input minimization (no prompt) — for scripts/CI |
 | `ask "<query>" --no-squeeze` | Disable input minimization entirely |
 | `ask "<query>" --squeeze-threshold <n>` | Minimum reduction %% to prompt for minimization (default 30) |
-| `evidence "<query>"` | Build a deterministic **Evidence Pack** (JSON v1) — a machine-consumable signature+evidence map; writes `.context/evidence-pack.json` |
+| `evidence "<query>"` | Build a deterministic **Evidence Pack** (JSON, schema v2) — a machine-consumable signature+evidence map; writes `.context/evidence-pack.json` |
 | `evidence "<query>" --markdown` | Emit the Markdown handoff rendering to stdout (alias `--md`) |
 | `evidence "<query>" --top <n> --budget <n> --out <path>` | Tune ranked files / token budget / write the rendered output to a path |
 | `squeeze <file\|->` | Minimize a pasted stacktrace / CI-log / JSON blob (`--json` for stats) |
@@ -264,7 +264,7 @@ sigmap ask "what did I touch" --since HEAD~3 --mode index
 
 ## evidence
 
-Build an **Evidence Pack** — a deterministic, machine-consumable signature-and-evidence map for a query. Where [`ask`](#ask) is tuned for a human reading a terminal, `evidence` emits a byte-stable JSON artifact (schema v1) that an agent or CI can ingest directly: every file entry is anchored to real symbols and line ranges, carries a relevance reason and confidence, a risk label, and the pack is signed with a sha256 `contextHash`. It always writes the artifact to `.context/evidence-pack.json`; stdout carries the requested mode (JSON by default, or Markdown with `--markdown`).
+Build an **Evidence Pack** — a deterministic, machine-consumable signature-and-evidence map for a query. Where [`ask`](#ask) is tuned for a human reading a terminal, `evidence` emits a byte-stable JSON artifact (**schema v2**, v8.16.0) that an agent or CI can ingest directly: every file entry is anchored to real symbols and line ranges, carries a relevance reason and confidence, **multi-factor risk labels** (`riskFactors`, with `riskLabel` as the dominant factor for v1 consumers), and the pack is signed with a sha256 `contextHash`. Schema v2 also publishes a validatable **JSON Schema** at [sigmap.io/schemas/evidence-pack-2.json](https://sigmap.io/schemas/evidence-pack-2.json) (`schemaUrl` in the pack), a **`testDiscovery` provenance block** stating the measured accuracy of the related-tests method (F1 0.98 on 3,701 pairs / 28 repos — guard-tested against the committed benchmark report), and a `generator` identity. It always writes the artifact to `.context/evidence-pack.json`; stdout carries the requested mode (JSON by default, or Markdown with `--markdown`).
 
 The pack carries **no wall-clock timestamp** — running it twice on an unchanged repository produces byte-identical output and an identical `contextHash`. That is the point: the artifact is auditable, exactly what an agentic grep loop cannot produce.
 
@@ -276,7 +276,9 @@ sigmap evidence "fix the login bug" --top 8 --budget 4000 --out pack.json
 
 ```json
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "2.0",
+  "schemaUrl": "https://sigmap.io/schemas/evidence-pack-2.json",
+  "generator": { "name": "sigmap", "version": "8.16.0" },
   "query": "how does the ranker score files",
   "intent": "explain",
   "files": [
@@ -287,11 +289,17 @@ sigmap evidence "fix the login bug" --top 8 --budget 4000 --out pack.json
       "confidence": 1,
       "sourceLines": [{ "symbol": "module.exports = { ... }", "start": 178, "end": 178 }],
       "relatedTests": [],
-      "riskLabel": "source"
+      "riskLabel": "source",
+      "riskFactors": ["source"]
     }
   ],
   "tokenBudget": { "limit": 16000, "used": 164, "remaining": 15836 },
   "droppedFiles": [],
+  "testDiscovery": {
+    "method": "stem-affix-match",
+    "measured": { "f1": 0.98, "precision": 0.971, "recall": 0.988, "pairs": 3701, "repos": 28 },
+    "benchmark": "npm run benchmark:test-discovery"
+  },
   "grounding": {
     "symbolCount": 10,
     "anchoredSymbols": 10,
