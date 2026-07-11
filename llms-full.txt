@@ -343,7 +343,7 @@ testCoverage = false
 testDirs = ["tests","test","__tests__","spec"]
 sigCache = false
 impactRadius = false
-retrieval = {"topK":10,"recencyBoost":1.5}
+retrieval = {"topK":10,"recencyBoost":1.5,"callGraphBoost":false}
 impact = {"depth":3,"includeSigs":true}
 ```
 

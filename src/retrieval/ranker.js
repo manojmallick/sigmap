@@ -37,6 +37,7 @@ const DEFAULT_WEIGHTS = {
 const GRAPH_BOOST_AMOUNTS = {
   hop1: 0.40,   // direct import neighbor of a file with score > 0
   hop2: 0.15,   // 2 hops away (transitive), with decay
+  callHop: 0.30, // call-graph file neighbor (opt-in retrieval.callGraphBoost)
 };
 
 // Intent-specific weight adjustments
@@ -169,6 +170,8 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
  * @param {object}  [opts.weights]               - override scoring weights
  * @param {string}  [opts.cwd]                   - project root for learned ranking weights
  * @param {{ forward: Map<string,string[]> }} [opts.graph] - dependency graph for neighbor boost
+ * @param {{ forward: Map<string,string[]> }} [opts.callGraph] - file-level call-graph edges
+ *        (from buildCallFileGraph) for the opt-in call-neighbor boost
  * @returns {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]}
  */
 function rank(query, sigIndex, opts) {
@@ -287,6 +290,31 @@ function rank(query, sigIndex, opts) {
           // Only boost files that have some baseline score (not noise)
           scored[idx].score += GRAPH_BOOST_AMOUNTS.hop2;
           scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + GRAPH_BOOST_AMOUNTS.hop2;
+        }
+      }
+    }
+  }
+
+  // Call-graph neighbor boost (opt-in via retrieval.callGraphBoost): a file
+  // whose functions call into — or are called by — a positively-scored file is
+  // relevant even when no import edge exists (Go/Java same-package, dynamic
+  // dispatch). Single hop; seeds snapshotted first so boosts never cascade.
+  const callGraph = (opts && opts.callGraph && opts.callGraph.forward instanceof Map) ? opts.callGraph : null;
+  if (callGraph && cwd) {
+    const path = require('path');
+    const relToIdx = new Map();
+    for (let i = 0; i < scored.length; i++) relToIdx.set(scored[i].file, i);
+    const hubs = _computeHubs(callGraph);
+    const seeds = scored.filter((e) => e.score > 0).map((e) => e.file);
+    for (const file of seeds) {
+      const abs = path.resolve(cwd, file);
+      for (const neighborAbs of (callGraph.forward.get(abs) || [])) {
+        if (_isHub(neighborAbs) || hubs.has(neighborAbs)) continue;
+        const neighborRel = path.relative(cwd, neighborAbs).replace(/\\/g, '/');
+        const idx = relToIdx.get(neighborRel);
+        if (idx !== undefined && scored[idx].file !== file) {
+          scored[idx].score += GRAPH_BOOST_AMOUNTS.callHop;
+          scored[idx].signals.callGraphBoost = (scored[idx].signals.callGraphBoost || 0) + GRAPH_BOOST_AMOUNTS.callHop;
         }
       }
     }

@@ -147,6 +147,8 @@ const DEFAULTS = {
     topK: 10,
     // Multiplier applied to recently-changed files (>1 boosts them up)
     recencyBoost: 1.5,
+    // Boost files call-graph-connected to query matches (opt-in, measure-gated)
+    callGraphBoost: false,
   },
 
   // Impact layer settings (v2.5)

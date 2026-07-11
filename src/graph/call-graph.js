@@ -445,6 +445,42 @@ function buildCallGraph(cwd, opts = {}) {
   return { forward: toArr(forward), reverse: toArr(reverse), defs };
 }
 
+/**
+ * Collapse the symbol-level call-graph to FILE-level bidirectional edges for
+ * the ranker's neighbor boost (opt-in via `retrieval.callGraphBoost`). A file
+ * whose functions call into — or are called by — another file gets an edge in
+ * both directions. Keys are `path.resolve`-form absolute paths (matching the
+ * ranker's lookups); entries and neighbor lists are sorted for determinism.
+ *
+ * @param {string} cwd
+ * @param {object} [opts] { graph } to inject a prebuilt call graph (tests)
+ * @returns {{ forward: Map<string,string[]> }}
+ */
+function buildCallFileGraph(cwd, opts = {}) {
+  const graph = opts.graph || buildCallGraph(cwd, opts);
+  const edges = new Map(); // absFile → Set<absFile>
+  const add = (a, b) => {
+    if (a === b) return;
+    if (!edges.has(a)) edges.set(a, new Set());
+    edges.get(a).add(b);
+  };
+  for (const [callerId, calleeIds] of graph.forward.entries()) {
+    const callerDef = graph.defs.get(callerId);
+    if (!callerDef) continue;
+    for (const calleeId of calleeIds) {
+      const calleeDef = graph.defs.get(calleeId);
+      if (!calleeDef || calleeDef.file === callerDef.file) continue;
+      const a = path.resolve(cwd, callerDef.file);
+      const b = path.resolve(cwd, calleeDef.file);
+      add(a, b);
+      add(b, a);
+    }
+  }
+  const forward = new Map();
+  for (const k of [...edges.keys()].sort()) forward.set(k, [...edges.get(k)].sort());
+  return { forward };
+}
+
 // Resolve a user-supplied symbol (bare name or full `file#name` id) to ids.
 function _resolveSymbol(symbol, defs) {
   if (defs.has(symbol)) return [symbol];
@@ -525,7 +561,7 @@ function formatCallGraphJSON(result, kind) {
 }
 
 module.exports = {
-  buildCallGraph, methodImpact, methodCallees,
+  buildCallGraph, buildCallFileGraph, methodImpact, methodCallees,
   formatCallGraph, formatCallGraphJSON,
   extractDefs, maskJs, maskPy, maskRust,
 };
