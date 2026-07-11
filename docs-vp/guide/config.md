@@ -196,6 +196,7 @@ To pin a fixed budget (v4.0 behaviour):
 | `enrichTodos` | `boolean` | `true` | Append a TODO/FIXME/HACK section extracted from inline comments. |
 | `enrichChanges` | `boolean` | `true` | Append a recent git log summary showing files changed in the last 10 commits. |
 | `versionPins` | `boolean` | `true` | Append a `## versions (installed direct deps)` section listing `name@version` for the installed direct dependencies (JS from `node_modules`, Python from the venv `site-packages`). Grounds agents against what is actually installed. See [versionPins](#versionpins). |
+| `terse` | `boolean` | `false` | Deterministic terse encoding of the signature block (`function `→`fn `, tightened params/arrows/exports). Line anchors and doc hints are preserved byte-exactly. Measured −16.1% signature tokens on the SigMap repo (`npm run benchmark:terse`). Also available at runtime as the `--terse` flag. See [terse](#terse). |
 | `enrichCoverage` | `boolean` | `false` | Append a coverage gaps section listing source files that have no corresponding test file. |
 | `testCoverage` | `boolean` | `false` | Annotate each function signature with `✓` (tested) or `✗` (untested). Can also be set at runtime via the `--coverage` flag without editing this file. |
 | `testDirs` | `string[]` | `["test","tests","__tests__","spec"]` | Directories scanned to build the test index when `testCoverage` is enabled. |
@@ -221,6 +222,23 @@ Enable incremental signature caching with mtime-based validation. When enabled, 
 {
   "versionPins": true
 }
+```
+
+### terse
+
+**v8.11.0+ (D7).** Opt-in deterministic compaction of the generated signature block: `function `→`fn `, `async function `→`async fn `, tightened parameter/arrow/exports spacing. The `:start-end` line anchor and any trailing doc hint are preserved **byte-exactly**, so `get_lines`, evidence packs, and symbol extraction keep working, and the ranker parses terse context files unchanged. When off (the default), output is byte-identical to previous releases. The reduction is measured, not claimed: `npm run benchmark:terse` reported **−16.1%** signature tokens on the SigMap repo itself (10,232 → 8,580 across 143 files).
+
+```json
+{
+  "terse": true
+}
+```
+
+```
+### src/app.js
+exports={fetchUser,formatUser}  :7-7
+async fn fetchUser(id,opts={})  :1-3
+fn formatUser(user,style)  :4-6
 ```
 
 Check cache health with:

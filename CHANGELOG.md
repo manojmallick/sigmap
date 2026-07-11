@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.11.0] — 2026-07-11
+
+Minor release — the **terse signature encoder** (D7 from the master plan), shipped under its measure-first gate: the public reduction number comes from a benchmark run on this repo, never borrowed from another tool's prose-compression claims.
+
+### Added
+- **`--terse` — deterministic terse signature encoding (#462, PR #463):** opt-in compaction of the generated signature block (`function `→`fn `, tightened params/arrows/exports). Measured on this repo by `npm run benchmark:terse`: **10,232 → 8,580 sig tokens (−16.1%)** across 143 files / 780 signature lines. The `:start-end` line anchor and any trailing doc hint are preserved byte-exactly, so `get_lines`, evidence packs, `parseAnchor`, and symbol extraction keep working; the ranker parses terse context files (regression-tested). `terse: false` config default — default output is byte-identical when off. New `benchmark:terse` npm script (`scripts/run-terse-benchmark.mjs`) is the only legitimate source for this number.
+
+### Changed
+- **README:** replaced the flaky Star History embed with a reliable link (PR #461); added the 'Verified on MseeP' badge below the MseeP security badge (PR #460).
+
+---
+
 ## [8.10.0] — 2026-07-09
 
 Minor release — **honesty fixes** from a brutal code-review audit of the CLI surface: closing the gap between what each command *claims* and what it *does*. All changes are zero-dependency, deterministic, and the bundle stays reproducible from `src/`. ~40 new regression tests.

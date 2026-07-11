@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 77 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 78 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 77 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 78 SigMap commands and flags documented with examples. ask, evidence, gain, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -119,6 +119,7 @@ If you are new to the product, start with the workflow pages first:
 | `--monorepo` | Generate a separate context section per package |
 | `--each` | Run a command in each monorepo package |
 | `--routing` | Print the model routing table |
+| `--terse` | Deterministic terse signature encoding — measured −16.1% sig tokens; line anchors preserved |
 | `--format cache` | Wrap output in Anthropic cache_control breakpoints |
 | `--track` | Log each run to `.context/usage.ndjson` |
 | `gain` | Token-savings dashboard — tokens saved, %, est. $, latency, by-operation |
@@ -1626,6 +1627,28 @@ sigmap --format cache
 ```
 
 See [Repomix integration](/guide/repomix) for an example of using this with the two-layer strategy.
+
+---
+
+## --terse
+
+Deterministic terse encoding of the signature block (v8.11.0, opt-in). Compacts each signature line — `function `→`fn `, tightened params/arrows/exports — while preserving the `:start-end` line anchor and any trailing doc hint **byte-exactly**, so `get_lines`, evidence packs, and symbol extraction keep working, and the ranker parses terse context files unchanged. Without the flag, output is byte-identical to before.
+
+Measured on the SigMap repo itself by `npm run benchmark:terse` (the only legitimate source for this number): **10,232 → 8,580 signature tokens (−16.1%)** across 143 files / 780 signature lines.
+
+```bash
+sigmap --terse
+# [sigmap] terse: sig block 10232 → 8580 tokens (-16.1%)
+```
+
+```
+### src/app.js
+exports={fetchUser,formatUser}  :7-7
+async fn fetchUser(id,opts={})  :1-3
+fn formatUser(user,style)  :4-6
+```
+
+Equivalent config key: [`terse: true`](/guide/config#terse).
 
 ---
 
