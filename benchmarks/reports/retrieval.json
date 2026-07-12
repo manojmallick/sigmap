@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-11T23:13:55.301Z",
+  "generated": "2026-07-12T10:21:30.100Z",
   "repos": [
     {
       "repo": "express",
@@ -144,7 +144,7 @@
     {
       "repo": "gin",
       "fileCount": 107,
-      "sigCount": 80,
+      "sigCount": 81,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.85,
@@ -430,7 +430,7 @@
     {
       "repo": "rust-analyzer",
       "fileCount": 635,
-      "sigCount": 227,
+      "sigCount": 191,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -485,7 +485,7 @@
             "crates/tt/src/buffer.rs",
             "crates/tt/src/storage.rs"
           ],
-          "top1": "crates/tt/src/buffer.rs",
+          "top1": "crates/tt/src/storage.rs",
           "firstHitRank": 1,
           "tier": "correct"
         },
@@ -578,7 +578,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 48,
+      "sigCount": 46,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,

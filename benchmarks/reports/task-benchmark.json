@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-11T23:14:02.141Z",
+  "generated": "2026-07-12T10:21:39.964Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,9 +26,9 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 87.8,
     "avgImprovement": 62.2,
-    "totalGroundedSymbols": 11054,
-    "totalDarkSymbols": 56327,
-    "hallucinationRiskPct": 83.6
+    "totalGroundedSymbols": 10954,
+    "totalDarkSymbols": 56428,
+    "hallucinationRiskPct": 83.7
   },
   "repos": [
     {
@@ -69,9 +69,9 @@
       "promptsWith": 1.2,
       "promptsWithout": 2.94,
       "reductionPct": 59.2,
-      "groundedSymbols": 439,
-      "darkSymbols": 645,
-      "hallucinationRiskPct": 59.5
+      "groundedSymbols": 481,
+      "darkSymbols": 604,
+      "hallucinationRiskPct": 55.7
     },
     {
       "repo": "spring-petclinic",
@@ -83,9 +83,9 @@
       "promptsWith": 1,
       "promptsWithout": 2.54,
       "reductionPct": 60.6,
-      "groundedSymbols": 59,
-      "darkSymbols": 411,
-      "hallucinationRiskPct": 87.4
+      "groundedSymbols": 52,
+      "darkSymbols": 418,
+      "hallucinationRiskPct": 88.9
     },
     {
       "repo": "rails",
@@ -125,9 +125,9 @@
       "promptsWith": 1.2,
       "promptsWithout": 2.99,
       "reductionPct": 59.9,
-      "groundedSymbols": 1131,
-      "darkSymbols": 16525,
-      "hallucinationRiskPct": 93.6
+      "groundedSymbols": 964,
+      "darkSymbols": 16692,
+      "hallucinationRiskPct": 94.5
     },
     {
       "repo": "abseil-cpp",
@@ -153,9 +153,9 @@
       "promptsWith": 2.8,
       "promptsWithout": 2.94,
       "reductionPct": 4.7,
-      "groundedSymbols": 371,
-      "darkSymbols": 607,
-      "hallucinationRiskPct": 62.1
+      "groundedSymbols": 403,
+      "darkSymbols": 575,
+      "hallucinationRiskPct": 58.8
     },
     {
       "repo": "riverpod",

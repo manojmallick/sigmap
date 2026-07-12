@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.17.0)
+- **@manojmallick** — feat(extractors): line anchors for Java, Go, Rust, and C# — newline-preserving comment strips + brace-matched `:start-end` ranges; Evidence Pack anchorCoverage 0→1.0 on those languages (#483, PR #484)
+
 ### Recent Contributors (v8.16.1)
 - **@manojmallick** — fix(bench): hermetic grounding benchmark — snapshot/restore of repo context artifacts stops cross-suite pollution (A/B 32.2% → true 87.8%); 3 regression tests (#480, PR #481)
 
