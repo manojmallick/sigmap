@@ -1,8 +1,8 @@
-pub struct UserService
-pub enum UserRole
-pub trait Repository
-impl UserService
-  pub fn new(repo: Box<dyn Repository>) → Self
-  pub fn get_user(&self, id: &str) → Option<User>
-  pub async fn create_user(&self, data: CreateUserDto) → Result<User, Box<dyn Error>>
-pub fn hash_password(password: &str) → String
+pub struct UserService  :4-6
+pub enum UserRole  :8-12
+pub trait Repository  :14-17
+impl UserService  :19-33
+  pub fn new(repo: Box<dyn Repository>) → Self  :20-20
+  pub fn get_user(&self, id: &str) → Option<User>  :24-24
+  pub async fn create_user(&self, data: CreateUserDto) → Result<User, Box<dyn Error>>  :28-28
+pub fn hash_password(password: &str) → String  :35-37

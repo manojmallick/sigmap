@@ -1,6 +1,6 @@
-class UserService
-  GetUser(string id) → User
-  CreateUserAsync(CreateUserDto dto) → Task<User>
-  ValidateUser(User user) → void
-interface IUserRepository
-enum UserStatus
+class UserService  :6-29
+  GetUser(string id) → User  :15-15
+  CreateUserAsync(CreateUserDto dto) → Task<User>  :20-20
+  ValidateUser(User user) → void  :25-25
+interface IUserRepository  :31-35
+enum UserStatus  :37-37

@@ -5229,8 +5229,12 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
 // ── ./src/extractors/csharp ──
 __factories["./src/extractors/csharp"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from C# source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -5240,14 +5244,18 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
 
     // Classes and interfaces
     const typeRe = /^\s*(?:public\s+|internal\s+|protected\s+)?(?:abstract\s+|sealed\s+|static\s+)?(class|interface|enum|record|struct)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w<>, .]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
-      sigs.push(`${m[1]} ${m[2]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const meth of extractMembers(block)) sigs.push(`  ${meth}`);
+      const declIdx = m.index + (m[0].length - m[0].trimStart().length);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, declIdx), lineAt(stripped, bodyStart + block.length)));
+      for (const meth of extractMembers(block)) {
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+      }
     }
 
     return sigs.slice(0, 25);
@@ -5270,7 +5278,11 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
     for (const m of block.matchAll(methodRe)) {
       const ret = normalizeType(m[1]);
       const retStr = ret ? ` → ${ret}` : '';
-      members.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
+      members.push({
+        text: `${m[2]}(${normalizeParams(m[3])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return members.slice(0, 8);
   }
@@ -5878,8 +5890,12 @@ __factories["./src/extractors/generic"] = function(module, exports) {
 // ── ./src/extractors/go ──
 __factories["./src/extractors/go"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from Go source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -5889,26 +5905,34 @@ __factories["./src/extractors/go"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+    // Index of the closing brace for a block opened just before startIndex.
+    const blockEndIdx = (startIndex) => startIndex + extractBlock(stripped, startIndex).length;
 
     // Structs
     for (const m of stripped.matchAll(/^type\s+(\w+)\s+struct\s*\{/gm)) {
-      sigs.push(`type ${m[1]} struct`);
+      const end = blockEndIdx(m.index + m[0].length);
+      sigs.push(withAnchor(`type ${m[1]} struct`, lineAt(stripped, m.index), lineAt(stripped, end)));
     }
 
     // Interfaces
     for (const m of stripped.matchAll(/^type\s+(\w+)\s+interface\s*\{/gm)) {
-      sigs.push(`type ${m[1]} interface`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const method of extractInterfaceMethods(block)) sigs.push(`  ${method}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`type ${m[1]} interface`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const meth of extractInterfaceMethods(block)) {
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+      }
     }
 
     // Functions and methods — capture return type between ) and {
     for (const m of stripped.matchAll(/^func\s+(?:\((\w+)\s+[\w*]+\)\s+)?(\w+)\s*\(([^)]*)\)([^{]*)\{/gm)) {
       const receiver = m[1] ? `(${m[1]}) ` : '';
       const retType = m[4] ? m[4].trim().replace(/\s+/g, ' ') : '';
-      const retStr = retType ? ` \u2192 ${retType.slice(0, 30)}` : '';
-      sigs.push(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`);
+      const retStr = retType ? ` → ${retType.slice(0, 30)}` : '';
+      const end = blockEndIdx(m.index + m[0].length);
+      sigs.push(withAnchor(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)));
     }
 
     return sigs.slice(0, 25);
@@ -5929,8 +5953,12 @@ __factories["./src/extractors/go"] = function(module, exports) {
     const methods = [];
     for (const m of block.matchAll(/^\s+(\w+)\s*\(([^)]*)\)([^\n]*)/gm)) {
       const retType = m[3] ? m[3].trim().replace(/\s+/g, ' ') : '';
-      const retStr = retType ? ` \u2192 ${retType.slice(0, 30)}` : '';
-      methods.push(`${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      const retStr = retType ? ` → ${retType.slice(0, 30)}` : '';
+      methods.push({
+        text: `${m[1]}(${normalizeParams(m[2])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return methods.slice(0, 8);
   }
@@ -6060,8 +6088,12 @@ __factories["./src/extractors/html"] = function(module, exports) {
 // ── ./src/extractors/java ──
 __factories["./src/extractors/java"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from Java source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -6071,14 +6103,17 @@ __factories["./src/extractors/java"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
 
     // Classes and interfaces
     const typeRegex = /^(?:public\s+|protected\s+)?(?:abstract\s+|final\s+)?(class|interface|enum)\s+(\w+)(?:\s+extends\s+[\w<>, .]+)?(?:\s+implements\s+[\w<>, .]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRegex)) {
-      sigs.push(`${m[1]} ${m[2]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const meth of extractMembers(block)) sigs.push(`  ${meth}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const meth of extractMembers(block)) {
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+      }
     }
 
     return sigs.slice(0, 25);
@@ -6102,7 +6137,11 @@ __factories["./src/extractors/java"] = function(module, exports) {
     for (const m of block.matchAll(methodRe)) {
       const ret = normalizeType(m[1]);
       const retStr = ret ? ` → ${ret}` : '';
-      members.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
+      members.push({
+        text: `${m[2]}(${normalizeParams(m[3])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return members.slice(0, 8);
   }
@@ -7513,8 +7552,12 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
 // ── ./src/extractors/rust ──
 __factories["./src/extractors/rust"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from Rust source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -7524,35 +7567,55 @@ __factories["./src/extractors/rust"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+    // Anchor range for a declaration at declIdx whose header ends at afterIdx:
+    // if a `{` body follows, range to its closing brace; else single-line.
+    const rangeFor = (declIdx, afterIdx) => {
+      let k = afterIdx;
+      while (k < stripped.length && /[ \t]/.test(stripped[k])) k++;
+      if (stripped[k] === '{') {
+        const end = k + 1 + extractBlock(stripped, k + 1).length;
+        return [lineAt(stripped, declIdx), lineAt(stripped, end)];
+      }
+      const line = lineAt(stripped, declIdx);
+      return [line, line];
+    };
 
     // Structs
     for (const m of stripped.matchAll(/^pub\s+struct\s+(\w+)(?:<[^{]*>)?/gm)) {
-      sigs.push(`pub struct ${m[1]}`);
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`pub struct ${m[1]}`, s, e));
     }
 
     // Enums
     for (const m of stripped.matchAll(/^pub\s+enum\s+(\w+)(?:<[^{]*>)?/gm)) {
-      sigs.push(`pub enum ${m[1]}`);
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`pub enum ${m[1]}`, s, e));
     }
 
     // Traits
     for (const m of stripped.matchAll(/^pub\s+trait\s+(\w+)(?:<[^{]*>)?/gm)) {
-      sigs.push(`pub trait ${m[1]}`);
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`pub trait ${m[1]}`, s, e));
     }
 
     // impl blocks
     for (const m of stripped.matchAll(/^impl(?:<[^>]*>)?\s+(?:[\w:]+\s+for\s+)?(\w+)(?:<[^{]*>)?\s*\{/gm)) {
-      sigs.push(`impl ${m[1]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const fn of extractMethods(block)) sigs.push(`  ${fn}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`impl ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const fn of extractMethods(block)) {
+        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+      }
     }
 
     // Top-level pub fns — capture everything after ) up to { or ; for return type
     for (const m of stripped.matchAll(/^pub(?:\s+async)?\s+fn\s+(\w+)(?:<[^(]*>)?\s*\(([^)]*)\)([^{;]*)/gm)) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
       const retStr = extractReturnType(m[3]);
-      sigs.push(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
     }
 
     return sigs.slice(0, 25);
@@ -7574,7 +7637,11 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     for (const m of block.matchAll(/^\s+pub(?:\s+async)?\s+fn\s+(\w+)(?:<[^(]*>)?\s*\(([^)]*)\)([^{;]*)/gm)) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
       const retStr = extractReturnType(m[3]);
-      methods.push(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      methods.push({
+        text: `pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return methods.slice(0, 8);
   }
@@ -7589,7 +7656,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     const m = afterParen.match(/->\s*([^{;]+)/);
     if (!m) return '';
     const rt = m[1].trim().replace(/\s+/g, ' ');
-    return ` \u2192 ${rt.length > 30 ? rt.slice(0, 27) + '...' : rt}`;
+    return ` → ${rt.length > 30 ? rt.slice(0, 27) + '...' : rt}`;
   }
 
   module.exports = { extract };

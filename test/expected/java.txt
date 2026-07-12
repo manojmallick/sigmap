@@ -1,4 +1,4 @@
-class UserService
-  getUser(String id) → User
-  createUser(CreateUserDto dto) → User
-  validateUser(User user) → void
+class UserService  :4-22
+  getUser(String id) → User  :11-11
+  createUser(CreateUserDto dto) → User  :15-15
+  validateUser(User user) → void  :19-19

@@ -1,7 +1,11 @@
 'use strict';
 
+const { lineAt, withAnchor } = require('./line-anchor');
+
 /**
  * Extract signatures from Rust source code.
+ * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+ * strip below is newline-preserving so anchor lines match the original file.
  * @param {string} src - Raw file content
  * @returns {string[]} Array of signature strings
  */
@@ -11,35 +15,55 @@ function extract(src) {
 
   const stripped = src
     .replace(/\/\/.*$/gm, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
+    .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+  // Anchor range for a declaration at declIdx whose header ends at afterIdx:
+  // if a `{` body follows, range to its closing brace; else single-line.
+  const rangeFor = (declIdx, afterIdx) => {
+    let k = afterIdx;
+    while (k < stripped.length && /[ \t]/.test(stripped[k])) k++;
+    if (stripped[k] === '{') {
+      const end = k + 1 + extractBlock(stripped, k + 1).length;
+      return [lineAt(stripped, declIdx), lineAt(stripped, end)];
+    }
+    const line = lineAt(stripped, declIdx);
+    return [line, line];
+  };
 
   // Structs
   for (const m of stripped.matchAll(/^pub\s+struct\s+(\w+)(?:<[^{]*>)?/gm)) {
-    sigs.push(`pub struct ${m[1]}`);
+    const [s, e] = rangeFor(m.index, m.index + m[0].length);
+    sigs.push(withAnchor(`pub struct ${m[1]}`, s, e));
   }
 
   // Enums
   for (const m of stripped.matchAll(/^pub\s+enum\s+(\w+)(?:<[^{]*>)?/gm)) {
-    sigs.push(`pub enum ${m[1]}`);
+    const [s, e] = rangeFor(m.index, m.index + m[0].length);
+    sigs.push(withAnchor(`pub enum ${m[1]}`, s, e));
   }
 
   // Traits
   for (const m of stripped.matchAll(/^pub\s+trait\s+(\w+)(?:<[^{]*>)?/gm)) {
-    sigs.push(`pub trait ${m[1]}`);
+    const [s, e] = rangeFor(m.index, m.index + m[0].length);
+    sigs.push(withAnchor(`pub trait ${m[1]}`, s, e));
   }
 
   // impl blocks
   for (const m of stripped.matchAll(/^impl(?:<[^>]*>)?\s+(?:[\w:]+\s+for\s+)?(\w+)(?:<[^{]*>)?\s*\{/gm)) {
-    sigs.push(`impl ${m[1]}`);
-    const block = extractBlock(stripped, m.index + m[0].length);
-    for (const fn of extractMethods(block)) sigs.push(`  ${fn}`);
+    const bodyStart = m.index + m[0].length;
+    const block = extractBlock(stripped, bodyStart);
+    sigs.push(withAnchor(`impl ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+    for (const fn of extractMethods(block)) {
+      sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+    }
   }
 
   // Top-level pub fns — capture everything after ) up to { or ; for return type
   for (const m of stripped.matchAll(/^pub(?:\s+async)?\s+fn\s+(\w+)(?:<[^(]*>)?\s*\(([^)]*)\)([^{;]*)/gm)) {
     const asyncKw = m[0].includes('async') ? 'async ' : '';
     const retStr = extractReturnType(m[3]);
-    sigs.push(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+    const [s, e] = rangeFor(m.index, m.index + m[0].length);
+    sigs.push(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
   }
 
   return sigs.slice(0, 25);
@@ -61,7 +85,11 @@ function extractMethods(block) {
   for (const m of block.matchAll(/^\s+pub(?:\s+async)?\s+fn\s+(\w+)(?:<[^(]*>)?\s*\(([^)]*)\)([^{;]*)/gm)) {
     const asyncKw = m[0].includes('async') ? 'async ' : '';
     const retStr = extractReturnType(m[3]);
-    methods.push(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+    methods.push({
+      text: `pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+      declIdx: m.index + (m[0].length - m[0].trimStart().length),
+      endIdx: m.index + m[0].length,
+    });
   }
   return methods.slice(0, 8);
 }
@@ -76,7 +104,7 @@ function extractReturnType(afterParen) {
   const m = afterParen.match(/->\s*([^{;]+)/);
   if (!m) return '';
   const rt = m[1].trim().replace(/\s+/g, ' ');
-  return ` \u2192 ${rt.length > 30 ? rt.slice(0, 27) + '...' : rt}`;
+  return ` → ${rt.length > 30 ? rt.slice(0, 27) + '...' : rt}`;
 }
 
 module.exports = { extract };
