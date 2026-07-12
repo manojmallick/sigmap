@@ -1533,6 +1533,8 @@ __factories["./src/config/defaults"] = function(module, exports) {
       recencyBoost: 1.5,
       // Boost files call-graph-connected to query matches (opt-in, measure-gated)
       callGraphBoost: false,
+      // Append route pseudo-signatures to the rankable index (opt-in, measure-gated)
+      surfaceEnrichment: false,
     },
 
     // Impact layer settings (v2.5)
@@ -13227,7 +13229,14 @@ __factories["./src/map/route-table"] = function(module, exports) {
     return /(^|\/)(gen-context|gen-project-map)\.js$/.test(normalized);
   }
 
-  function analyze(files, cwd) {
+  /**
+   * Structured route rows across the supported frameworks — the data behind
+   * `analyze`, exposed for retrieval surface-enrichment (#488).
+   * @param {string[]} files absolute paths
+   * @param {string} cwd
+   * @returns {{ method:string, path:string, file:string }[]} file is cwd-relative
+   */
+  function collectRoutes(files, cwd) {
     const routes = [];
 
     for (const filePath of files) {
@@ -13319,6 +13328,11 @@ __factories["./src/map/route-table"] = function(module, exports) {
       }
     }
 
+    return routes;
+  }
+
+  function analyze(files, cwd) {
+    const routes = collectRoutes(files, cwd);
     if (routes.length === 0) return '';
 
     const lines = [
@@ -13331,7 +13345,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
     return lines.join('\n');
   }
 
-  module.exports = { analyze };
+  module.exports = { analyze, collectRoutes };
   
 };
 
@@ -13759,13 +13773,16 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       // Build dependency graph for neighbor boost — non-fatal if it fails
       let graph = null;
       try { graph = buildFromCwd(cwd); } catch (_) {}
-      // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
+      // Opt-in call-graph neighbor boost + surface enrichment — non-fatal
       let callGraph = null;
       try {
         const { loadConfig } = __require('./src/config/loader');
         const retrieval = loadConfig(cwd).retrieval;
         if (retrieval && retrieval.callGraphBoost) {
           callGraph = __require('./src/graph/call-graph').buildCallFileGraph(cwd);
+        }
+        if (retrieval && retrieval.surfaceEnrichment) {
+          __require('./src/retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd);
         }
       } catch (_) {}
       const results = rank(args.query, index, { topK, cwd, graph, callGraph });
@@ -15503,6 +15520,65 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
   }
 
   module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT };
+  
+};
+
+// ── ./src/retrieval/enrich-from-maps ──
+__factories["./src/retrieval/enrich-from-maps"] = function(module, exports) {
+  
+  /**
+   * Retrieval surface-enrichment (#488, §7.4 Retrieval ceiling — opt-in via
+   * `retrieval.surfaceEnrichment`, measure-gated).
+   *
+   * The map analyzers extract surfaces (routes) that never reach the rankable
+   * signature index — a query like "payment webhook route" cannot match a
+   * controller whose signatures never mention the route path. This module
+   * appends deterministic pseudo-signatures (`route GET /api/users`) to the
+   * defining file's signature list so the ranker's tokenizer can see them.
+   *
+   * Deterministic: rows are deduped and sorted; entries are copy-on-write so
+   * arrays shared with the signature cache are never mutated.
+   */
+
+  const path = require('path');
+
+  /**
+   * Enrich a signature index with route pseudo-signatures.
+   * @param {Map<string,string[]>} index cwd-relative file → sigs (mutated: enriched entries are replaced with fresh arrays)
+   * @param {string} cwd
+   * @returns {number} pseudo-signatures added
+   */
+  function enrichWithSurfaces(index, cwd) {
+    if (!(index instanceof Map) || index.size === 0) return 0;
+
+    let collectRoutes;
+    try { ({ collectRoutes } = __require('./src/map/route-table')); } catch (_) { return 0; }
+
+    const rels = [...index.keys()];
+    const files = rels.map((rel) => path.join(cwd, rel));
+    let routes = [];
+    try { routes = collectRoutes(files, cwd) || []; } catch (_) { return 0; }
+
+    const byFile = new Map();
+    for (const r of routes) {
+      const rel = String(r.file).replace(/\\/g, '/');
+      if (!byFile.has(rel)) byFile.set(rel, new Set());
+      byFile.get(rel).add(`route ${r.method} ${r.path}`);
+    }
+
+    let added = 0;
+    for (const [rel, extras] of [...byFile.entries()].sort()) {
+      const sigs = index.get(rel);
+      if (!sigs) continue;
+      const fresh = [...extras].sort().filter((x) => !sigs.includes(x));
+      if (!fresh.length) continue;
+      index.set(rel, [...sigs, ...fresh]); // copy-on-write: never mutate cached arrays
+      added += fresh.length;
+    }
+    return added;
+  }
+
+  module.exports = { enrichWithSurfaces };
   
 };
 
@@ -21850,6 +21926,10 @@ function main() {
     if (config && config.retrieval && config.retrieval.callGraphBoost) {
       try { askCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
     }
+    // Opt-in route surface-enrichment (retrieval.surfaceEnrichment) — non-fatal
+    if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
+      try { requireSourceOrBundled('./src/retrieval/enrich-from-maps').enrichWithSurfaces(sigIndex, cwd); } catch (_) {}
+    }
 
     let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd, callGraph: askCallGraph });
 
@@ -24027,6 +24107,10 @@ function main() {
       let queryCallGraph = null;
       if (config && config.retrieval && config.retrieval.callGraphBoost) {
         try { queryCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
+      }
+      // Opt-in route surface-enrichment (retrieval.surfaceEnrichment) — non-fatal
+      if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
+        try { requireSourceOrBundled('./src/retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd); } catch (_) {}
       }
       const results = rank(query, index, { topK, recencyBoost, cwd, callGraph: queryCallGraph });
       if (args.includes('--context')) {

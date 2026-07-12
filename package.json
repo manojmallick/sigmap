@@ -31,6 +31,7 @@
     "benchmark:test-discovery": "node scripts/run-test-discovery-benchmark.mjs --save",
     "benchmark:terse": "node scripts/run-terse-benchmark.mjs --save",
     "benchmark:callgraph-boost": "node scripts/run-callgraph-boost-benchmark.mjs --save",
+    "benchmark:surface-enrichment": "node scripts/run-surface-enrichment-benchmark.mjs --save",
     "validate:squeeze": "node scripts/run-squeeze-benchmark.mjs --gate",
     "health": "node gen-context.js --health",
     "map": "node gen-project-map.js",

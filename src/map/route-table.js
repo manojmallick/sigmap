@@ -20,7 +20,14 @@ function shouldSkipFile(rel) {
   return /(^|\/)(gen-context|gen-project-map)\.js$/.test(normalized);
 }
 
-function analyze(files, cwd) {
+/**
+ * Structured route rows across the supported frameworks — the data behind
+ * `analyze`, exposed for retrieval surface-enrichment (#488).
+ * @param {string[]} files absolute paths
+ * @param {string} cwd
+ * @returns {{ method:string, path:string, file:string }[]} file is cwd-relative
+ */
+function collectRoutes(files, cwd) {
   const routes = [];
 
   for (const filePath of files) {
@@ -112,6 +119,11 @@ function analyze(files, cwd) {
     }
   }
 
+  return routes;
+}
+
+function analyze(files, cwd) {
+  const routes = collectRoutes(files, cwd);
   if (routes.length === 0) return '';
 
   const lines = [
@@ -124,4 +136,4 @@ function analyze(files, cwd) {
   return lines.join('\n');
 }
 
-module.exports = { analyze };
+module.exports = { analyze, collectRoutes };

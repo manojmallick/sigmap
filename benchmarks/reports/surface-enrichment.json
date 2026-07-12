@@ -1,0 +1,164 @@
+{
+  "benchmark": "surface-enrichment-ab",
+  "arms": {
+    "A": "rank + plain index",
+    "B": "rank + route-enriched index"
+  },
+  "tasks": 90,
+  "hitAt5A": 80,
+  "hitAt5B": 80,
+  "deltaTasks": 0,
+  "routeSigsTotal": 280,
+  "perRepo": [
+    {
+      "repo": "abseil-cpp",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "akka",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "axios",
+      "tasks": 5,
+      "routeSigs": 1,
+      "hitA": 4,
+      "hitB": 4,
+      "delta": 0
+    },
+    {
+      "repo": "express",
+      "tasks": 5,
+      "routeSigs": 66,
+      "hitA": 4,
+      "hitB": 4,
+      "delta": 0
+    },
+    {
+      "repo": "fastapi",
+      "tasks": 5,
+      "routeSigs": 18,
+      "hitA": 4,
+      "hitB": 4,
+      "delta": 0
+    },
+    {
+      "repo": "fastify",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 4,
+      "hitB": 4,
+      "delta": 0
+    },
+    {
+      "repo": "flask",
+      "tasks": 5,
+      "routeSigs": 162,
+      "hitA": 0,
+      "hitB": 0,
+      "delta": 0
+    },
+    {
+      "repo": "gin",
+      "tasks": 5,
+      "routeSigs": 28,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "laravel",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "okhttp",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "rails",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "riverpod",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "rust-analyzer",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "serilog",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 0,
+      "hitB": 0,
+      "delta": 0
+    },
+    {
+      "repo": "spring-petclinic",
+      "tasks": 5,
+      "routeSigs": 5,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "svelte",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    },
+    {
+      "repo": "vapor",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 1,
+      "hitB": 1,
+      "delta": 0
+    },
+    {
+      "repo": "vue-core",
+      "tasks": 5,
+      "routeSigs": 0,
+      "hitA": 5,
+      "hitB": 5,
+      "delta": 0
+    }
+  ],
+  "skipped": [
+    {
+      "repo": "retrieval",
+      "reason": "repo not cloned"
+    }
+  ]
+}
