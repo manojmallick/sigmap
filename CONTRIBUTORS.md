@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.16.1)
+- **@manojmallick** — fix(bench): hermetic grounding benchmark — snapshot/restore of repo context artifacts stops cross-suite pollution (A/B 32.2% → true 87.8%); 3 regression tests (#480, PR #481)
+
 ### Recent Contributors (v8.16.0)
 - **@manojmallick** — feat(evidence): Evidence Pack schema v2 — published JSON Schema, multi-factor risk labels, measured test-discovery provenance (F1 0.98, guard-tested), generator identity (#477, PR #478)
 

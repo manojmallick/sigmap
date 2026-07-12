@@ -108,6 +108,59 @@ function indexedNames(repoDir) {
   return names;
 }
 
+// ── Hermeticity (#480) ───────────────────────────────────────────────────────
+// This benchmark regenerates each repo's context with a PLAIN default config,
+// while the retrieval harness generates with per-repo CONFIG_OVERRIDES. Left
+// behind, the plain-config contexts skew any later suite that reads them
+// (the callgraph A/B measured 32.2% instead of ~87%). Snapshot every context
+// artifact before the regen and restore it byte-exactly after measuring, so
+// running this suite leaves the shared benchmark repos untouched.
+
+export const CONTEXT_ARTIFACTS = [
+  '.github/copilot-instructions.md', 'CLAUDE.md', 'AGENTS.md', 'GEMINI.md',
+  '.cursorrules', '.windsurfrules', 'llm.txt', 'llm-full.txt', 'llms.txt',
+  'gen-context.config.json',
+];
+
+export function snapshotArtifacts(repoDir) {
+  const snap = new Map();
+  for (const rel of CONTEXT_ARTIFACTS) {
+    const p = path.join(repoDir, rel);
+    snap.set(rel, fs.existsSync(p) ? fs.readFileSync(p) : null);
+  }
+  return snap;
+}
+
+export function restoreArtifacts(repoDir, snap) {
+  for (const [rel, bytes] of snap) {
+    const p = path.join(repoDir, rel);
+    try {
+      if (bytes === null) {
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+      } else {
+        fs.mkdirSync(path.dirname(p), { recursive: true });
+        fs.writeFileSync(p, bytes);
+      }
+    } catch (_) { /* best-effort restore */ }
+  }
+}
+
+/**
+ * Regenerate, measure, and restore — the repo's context artifacts are
+ * byte-identical before and after this call.
+ * @param {string} repoDir
+ * @returns {{ total:number, grounded:number, dark:number, coverage:number }}
+ */
+export function measureGroundingHermetic(repoDir) {
+  const snap = snapshotArtifacts(repoDir);
+  try {
+    spawnSync(process.execPath, [GEN_CTX], { cwd: repoDir, stdio: 'ignore' });
+    return measureGrounding(repoDir);
+  } finally {
+    restoreArtifacts(repoDir, snap);
+  }
+}
+
 /**
  * Grounding coverage for one repo.
  * @returns {{ total:number, grounded:number, dark:number, coverage:number }}
@@ -147,9 +200,8 @@ function main() {
   let tTotal = 0, tGrounded = 0;
   for (const repo of repos) {
     const dir = path.join(REPOS_DIR, repo);
-    // Ensure an index exists (re-generate, like the quality benchmark).
-    spawnSync(process.execPath, [GEN_CTX], { cwd: dir, stdio: 'ignore' });
-    const m = measureGrounding(dir);
+    // Regenerate + measure hermetically: context artifacts restored after (#480).
+    const m = measureGroundingHermetic(dir);
     rows.push({ repo, ...m });
     tTotal += m.total; tGrounded += m.grounded;
     console.log(`  ${repo.padEnd(22)} ${String(m.grounded).padStart(6)}/${String(m.total).padEnd(6)} grounded  ${(m.coverage * 100).toFixed(1)}%`);

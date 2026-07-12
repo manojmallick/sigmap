@@ -78,7 +78,7 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.16.0</span>
+  <span><strong>Release:</strong> v8.16.1</span>
   <span>·</span>
   <span><strong>New — <code>squeeze_output</code> MCP tool + <code>squeeze --response</code>:</strong> the deterministic squeeze engine is now reachable by agents <em>mid-session</em> — compress a noisy stack trace, CI/build log, or JSON payload before it enters context (keeps the signal, strips the noise, enriches the top frame). The 19th MCP tool; also a named CLI flag. Zero-dependency, offline, deterministic.</span>
 </div>

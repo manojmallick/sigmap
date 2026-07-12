@@ -98,6 +98,7 @@ if (JSON_OUT) {
   console.log(JSON.stringify(result, null, 2));
 } else {
   console.log('Call-graph ranking boost A/B (full rank(); headline BM25 harness untouched)');
+  console.log('  note        : reads each repo\'s context AS-IS — run the retrieval benchmark first for canonical contexts (#480)');
   console.log(`  tasks       : ${tasksA} across ${perRepo.length} repos (${skipped.length} skipped)`);
   console.log(`  arm A hit@5 : ${result.hitAt5A}%  (import graph)`);
   console.log(`  arm B hit@5 : ${result.hitAt5B}%  (+ call graph)`);
