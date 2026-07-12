@@ -228,7 +228,9 @@ Use SigMap with open-source tools and fully self-hosted setups:
 sigmap --mcp
 ```
 
-Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+
+SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**: grep finds the file; `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` prove the symbols, lines, calls, and blast radius — deterministically. See [the agent live-loop guide](https://sigmap.io/guide/mcp#your-agents-live-loop).
 
 ---
 
