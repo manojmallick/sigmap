@@ -176,6 +176,11 @@ code-fence ---
 
 ## src
 
+### src/config/defaults.js
+```
+module.exports = { DEFAULTS }  :165-165
+```
+
 ### src/extractors/csharp.js
 ```
 module.exports = { extract }  :71-71
@@ -272,6 +277,12 @@ function dispatch(msg, cwd)  :41-108
 function start(cwd)  :113-139
 ```
 
+### src/retrieval/enrich-from-maps.js
+```
+module.exports = { enrichWithSurfaces }  :55-55
+function enrichWithSurfaces(index, cwd) → number  :25-53
+```
+
 ### src/analysis/coverage-score.js
 ```
 module.exports = { coverageScore, CODE_EXTS }  :105-105
@@ -307,11 +318,6 @@ function loadCache(cwd, currentVersion) → Map<string, { mtime: numb  :32-42
 function saveCache(cwd, currentVersion, cache)  :51-61
 function getChangedFiles(files, cache) → { changed: string[], unch  :71-88
 function updateCacheEntries(cache, extracted)  :96-103
-```
-
-### src/config/defaults.js
-```
-module.exports = { DEFAULTS }  :163-163
 ```
 
 ### src/config/loader.js
@@ -1088,41 +1094,6 @@ function analyze(files, cwd)  :145-183
 module.exports = { analyze }  :84-84
 function walk(dir, cwd, depth, out)  :31-62
 function analyze(files, cwd)  :64-82
-```
-
-### src/map/route-table.js
-```
-module.exports = { analyze }  :127-127
-function shouldSkipFile(rel)  :18-21
-function analyze(files, cwd)  :23-125
-```
-
-### src/mcp/handlers.js
-```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :975-975
-function _readContextFiles(cwd)  :10-17
-function readContext(args, cwd)  :36-66
-function searchSignatures(args, cwd)  :74-100
-function getMap(args, cwd)  :108-131
-function createCheckpoint(args, cwd)  :143-215
-function getRouting(args, cwd)  :224-261
-function explainFile(args, cwd)  :269-356
-function listModules(args, cwd)  :364-403
-function queryContext(args, cwd)  :411-438
-function getMethodImpact(args, cwd)  :446-460
-function getImpact(args, cwd)  :468-480
-function getLines(args, cwd)  :489-537
-function readMemory(args, cwd)  :545-580
-function getCalleeSignatures(args, cwd)  :589-634
-function _pkgVersion(cwd)  :641-644
-function notifyFileCreated(args, cwd)  :648-670
-function notifySymbolAdded(args, cwd)  :673-693
-function notifyFileDeleted(args, cwd)  :696-710
-function _changedFiles(cwd, args)  :716-728
-function getDiffContext(args, cwd)  :737-808
-function getArchitectureOverview(args, cwd)  :817-885
-function verifySuggestion(args, cwd)  :895-930
-function squeezeOutput(args, cwd)  :940-973
 ```
 
 ### src/mcp/install.js

@@ -421,13 +421,16 @@ function queryContext(args, cwd) {
     // Build dependency graph for neighbor boost — non-fatal if it fails
     let graph = null;
     try { graph = buildFromCwd(cwd); } catch (_) {}
-    // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
+    // Opt-in call-graph neighbor boost + surface enrichment — non-fatal
     let callGraph = null;
     try {
       const { loadConfig } = require('../config/loader');
       const retrieval = loadConfig(cwd).retrieval;
       if (retrieval && retrieval.callGraphBoost) {
         callGraph = require('../graph/call-graph').buildCallFileGraph(cwd);
+      }
+      if (retrieval && retrieval.surfaceEnrichment) {
+        require('../retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd);
       }
     } catch (_) {}
     const results = rank(args.query, index, { topK, cwd, graph, callGraph });
