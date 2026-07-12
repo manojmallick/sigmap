@@ -33,16 +33,18 @@ Always run `sigmap ask` (or `sigmap --query`) before searching for files relevan
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 1 second ago)
+## changes (last 5 commits — 0 seconds ago)
 ```
 src/extractors/csharp.js                      ~extract  ~extractMembers
+src/extractors/dart.js                        ~extract  ~extractMembers
 src/extractors/go.js                          ~extract  ~extractInterfaceMethods
 src/extractors/java.js                        ~extract  ~extractMembers
+src/extractors/kotlin.js                      ~extract  ~extractMembers
+src/extractors/php.js                         ~extract  ~extractMembers
 src/extractors/rust.js                        ~extract  ~extractMethods  ~extractReturnType
+src/extractors/scala.js                       ~extract  ~extractMembers
+src/extractors/swift.js                       ~extract  ~extractMembers  ~extractArrowType
 src/evidence/pack.js                          +riskFactorsFor  ~parseAnchor  ~buildEvidencePack  ~formatMarkdown
-src/graph/call-graph.js                       +buildCallFileGraph  ~buildCallGraph  ~formatCallGraphJSON  ~_resolveSymbol
-src/mcp/handlers.js                           ~queryContext
-src/retrieval/ranker.js                       ~scoreFile  ~rank
 ```
 
 ## packages
@@ -184,6 +186,15 @@ function normalizeParams(params)  :61-64
 function normalizeType(type)  :66-69
 ```
 
+### src/extractors/dart.js
+```
+module.exports = { extract }  :84-84
+function extract(src) → string[]  :12-84
+function extractBlock(src, startIndex)  :54-63
+function extractMembers(block)  :65-77
+function normalizeParams(params)  :79-81
+```
+
 ### src/extractors/go.js
 ```
 module.exports = { extract }  :81-81
@@ -203,6 +214,25 @@ function normalizeParams(params)  :61-64
 function normalizeType(type)  :66-69
 ```
 
+### src/extractors/kotlin.js
+```
+module.exports = { extract }  :90-90
+function extract(src) → string[]  :12-90
+function extractBlock(src, startIndex)  :54-63
+function extractMembers(block)  :65-90
+function normalizeParams(params)  :81-88
+```
+
+### src/extractors/php.js
+```
+module.exports = { extract }  :96-96
+function extract(src) → string[]  :12-96
+function extractBlock(src, startIndex)  :58-67
+function extractMembers(block)  :69-96
+function normalizeParams(params)  :86-89
+function normalizeType(type)  :91-94
+```
+
 ### src/extractors/rust.js
 ```
 module.exports = { extract }  :110-110
@@ -211,6 +241,26 @@ function extractBlock(src, startIndex)  :72-81
 function extractMethods(block)  :83-110
 function normalizeParams(params)  :97-100
 function extractReturnType(afterParen)  :102-110
+```
+
+### src/extractors/scala.js
+```
+module.exports = { extract }  :88-88
+function extract(src) → string[]  :12-88
+function extractBlock(src, startIndex)  :47-56
+function extractMembers(block)  :58-88
+function normalizeParams(params)  :74-81
+function normalizeType(type)  :83-86
+```
+
+### src/extractors/swift.js
+```
+module.exports = { extract }  :97-97
+function extract(src) → string[]  :12-97
+function extractBlock(src, startIndex)  :54-63
+function extractMembers(block)  :65-97
+function normalizeParams(params)  :80-87
+function extractArrowType(str)  :89-97
 ```
 
 ### src/mcp/server.js
@@ -520,15 +570,6 @@ module.exports = { extract }  :69-69
 function extract(src) → string[]  :8-17
 ```
 
-### src/extractors/dart.js
-```
-module.exports = { extract }  :60-60
-function extract(src) → string[]  :8-60
-function extractBlock(src, startIndex)  :34-43
-function extractMembers(block)  :45-53
-function normalizeParams(params)  :55-57
-```
-
 ### src/extractors/deps.js
 ```
 module.exports = { extractPythonDeps, extractTSDeps, extractRDeps, buildReverseDepMap }  :110-110
@@ -589,15 +630,6 @@ function formatReturnHint(type)  :138-140
 function normalizeParams(params)  :142-145
 ```
 
-### src/extractors/kotlin.js
-```
-module.exports = { extract }  :66-66
-function extract(src) → string[]  :8-66
-function extractBlock(src, startIndex)  :34-43
-function extractMembers(block)  :45-66
-function normalizeParams(params)  :57-64
-```
-
 ### src/extractors/line-anchor.js
 ```
 module.exports = { lineAt, anchor, withAnchor }  :52-52
@@ -616,16 +648,6 @@ function extract(src) → string[]  :10-28
 ```
 module.exports = { extract }  :135-135
 function extract(src) → string[]  :10-133
-```
-
-### src/extractors/php.js
-```
-module.exports = { extract }  :71-71
-function extract(src) → string[]  :8-71
-function extractBlock(src, startIndex)  :37-46
-function extractMembers(block)  :48-71
-function normalizeParams(params)  :61-64
-function normalizeType(type)  :66-69
 ```
 
 ### src/extractors/prdiff.js
@@ -709,16 +731,6 @@ function normalizeParams(params)  :40-43
 function extractReturnHint(stripped, index)  :45-52
 ```
 
-### src/extractors/scala.js
-```
-module.exports = { extract }  :76-76
-function extract(src) → string[]  :8-76
-function extractBlock(src, startIndex)  :39-48
-function extractMembers(block)  :50-76
-function normalizeParams(params)  :62-69
-function normalizeType(type)  :71-74
-```
-
 ### src/extractors/shell.js
 ```
 module.exports = { extract }  :43-43
@@ -739,16 +751,6 @@ module.exports = { extract }  :58-58
 function extract(src) → string[]  :8-58
 function normalizeParams(params)  :48-51
 function normalizeType(type)  :53-56
-```
-
-### src/extractors/swift.js
-```
-module.exports = { extract }  :73-73
-function extract(src) → string[]  :8-73
-function extractBlock(src, startIndex)  :34-43
-function extractMembers(block)  :45-73
-function normalizeParams(params)  :56-63
-function extractArrowType(str)  :65-73
 ```
 
 ### src/extractors/terraform.js

@@ -1,8 +1,8 @@
-abstract class Repository
-  findById(String id) → T?
-  save(T entity) → Future<T>
-class UserService
-  getUser(String id) → User?
-  createUser(CreateUserDto data) → Future<User>
-class User
-hashPassword(String password) → String
+abstract class Repository  :2-5
+  findById(String id) → T?  :3-3
+  save(T entity) → Future<T>  :4-4
+class UserService  :7-18
+  getUser(String id) → User?  :12-12
+  createUser(CreateUserDto data) → Future<User>  :14-14
+class User  :20-24
+hashPassword(String password) → String  :26-26
