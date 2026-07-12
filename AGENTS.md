@@ -36,12 +36,14 @@ src/extractors/python_ast.py ← ast
 ## changes (last 5 commits — 0 seconds ago)
 ```
 src/extractors/csharp.js                      ~extract  ~extractMembers
+src/extractors/dart.js                        ~extract  ~extractMembers
 src/extractors/go.js                          ~extract  ~extractInterfaceMethods
 src/extractors/java.js                        ~extract  ~extractMembers
+src/extractors/kotlin.js                      ~extract  ~extractMembers
+src/extractors/php.js                         ~extract  ~extractMembers
 src/extractors/rust.js                        ~extract  ~extractMethods  ~extractReturnType
-src/map/route-table.js                        +collectRoutes  +analyze  ~analyze  ~shouldSkipFile
-src/mcp/handlers.js                           ~queryContext
-src/retrieval/enrich-from-maps.js             +enrichWithSurfaces
+src/extractors/scala.js                       ~extract  ~extractMembers
+src/extractors/swift.js                       ~extract  ~extractMembers  ~extractArrowType
 src/evidence/pack.js                          +riskFactorsFor  ~parseAnchor  ~buildEvidencePack  ~formatMarkdown
 ```
 
@@ -189,6 +191,15 @@ function normalizeParams(params)  :61-64
 function normalizeType(type)  :66-69
 ```
 
+### src/extractors/dart.js
+```
+module.exports = { extract }  :84-84
+function extract(src) → string[]  :12-84
+function extractBlock(src, startIndex)  :54-63
+function extractMembers(block)  :65-77
+function normalizeParams(params)  :79-81
+```
+
 ### src/extractors/go.js
 ```
 module.exports = { extract }  :81-81
@@ -208,6 +219,25 @@ function normalizeParams(params)  :61-64
 function normalizeType(type)  :66-69
 ```
 
+### src/extractors/kotlin.js
+```
+module.exports = { extract }  :90-90
+function extract(src) → string[]  :12-90
+function extractBlock(src, startIndex)  :54-63
+function extractMembers(block)  :65-90
+function normalizeParams(params)  :81-88
+```
+
+### src/extractors/php.js
+```
+module.exports = { extract }  :96-96
+function extract(src) → string[]  :12-96
+function extractBlock(src, startIndex)  :58-67
+function extractMembers(block)  :69-96
+function normalizeParams(params)  :86-89
+function normalizeType(type)  :91-94
+```
+
 ### src/extractors/rust.js
 ```
 module.exports = { extract }  :110-110
@@ -218,40 +248,24 @@ function normalizeParams(params)  :97-100
 function extractReturnType(afterParen)  :102-110
 ```
 
-### src/map/route-table.js
+### src/extractors/scala.js
 ```
-module.exports = { analyze, collectRoutes }  :139-139
-function shouldSkipFile(rel)  :18-21
-function collectRoutes(files, cwd) → string  :30-123
-function analyze(files, cwd)  :125-137
+module.exports = { extract }  :88-88
+function extract(src) → string[]  :12-88
+function extractBlock(src, startIndex)  :47-56
+function extractMembers(block)  :58-88
+function normalizeParams(params)  :74-81
+function normalizeType(type)  :83-86
 ```
 
-### src/mcp/handlers.js
+### src/extractors/swift.js
 ```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :978-978
-function _readContextFiles(cwd)  :10-17
-function readContext(args, cwd)  :36-66
-function searchSignatures(args, cwd)  :74-100
-function getMap(args, cwd)  :108-131
-function createCheckpoint(args, cwd)  :143-215
-function getRouting(args, cwd)  :224-261
-function explainFile(args, cwd)  :269-356
-function listModules(args, cwd)  :364-403
-function queryContext(args, cwd)  :411-441
-function getMethodImpact(args, cwd)  :449-463
-function getImpact(args, cwd)  :471-483
-function getLines(args, cwd)  :492-540
-function readMemory(args, cwd)  :548-583
-function getCalleeSignatures(args, cwd)  :592-637
-function _pkgVersion(cwd)  :644-647
-function notifyFileCreated(args, cwd)  :651-673
-function notifySymbolAdded(args, cwd)  :676-696
-function notifyFileDeleted(args, cwd)  :699-713
-function _changedFiles(cwd, args)  :719-731
-function getDiffContext(args, cwd)  :740-811
-function getArchitectureOverview(args, cwd)  :820-888
-function verifySuggestion(args, cwd)  :898-933
-function squeezeOutput(args, cwd)  :943-976
+module.exports = { extract }  :97-97
+function extract(src) → string[]  :12-97
+function extractBlock(src, startIndex)  :54-63
+function extractMembers(block)  :65-97
+function normalizeParams(params)  :80-87
+function extractArrowType(str)  :89-97
 ```
 
 ### src/mcp/server.js
@@ -562,15 +576,6 @@ module.exports = { extract }  :69-69
 function extract(src) → string[]  :8-17
 ```
 
-### src/extractors/dart.js
-```
-module.exports = { extract }  :60-60
-function extract(src) → string[]  :8-60
-function extractBlock(src, startIndex)  :34-43
-function extractMembers(block)  :45-53
-function normalizeParams(params)  :55-57
-```
-
 ### src/extractors/deps.js
 ```
 module.exports = { extractPythonDeps, extractTSDeps, extractRDeps, buildReverseDepMap }  :110-110
@@ -631,15 +636,6 @@ function formatReturnHint(type)  :138-140
 function normalizeParams(params)  :142-145
 ```
 
-### src/extractors/kotlin.js
-```
-module.exports = { extract }  :66-66
-function extract(src) → string[]  :8-66
-function extractBlock(src, startIndex)  :34-43
-function extractMembers(block)  :45-66
-function normalizeParams(params)  :57-64
-```
-
 ### src/extractors/line-anchor.js
 ```
 module.exports = { lineAt, anchor, withAnchor }  :52-52
@@ -658,16 +654,6 @@ function extract(src) → string[]  :10-28
 ```
 module.exports = { extract }  :135-135
 function extract(src) → string[]  :10-133
-```
-
-### src/extractors/php.js
-```
-module.exports = { extract }  :71-71
-function extract(src) → string[]  :8-71
-function extractBlock(src, startIndex)  :37-46
-function extractMembers(block)  :48-71
-function normalizeParams(params)  :61-64
-function normalizeType(type)  :66-69
 ```
 
 ### src/extractors/prdiff.js
@@ -751,16 +737,6 @@ function normalizeParams(params)  :40-43
 function extractReturnHint(stripped, index)  :45-52
 ```
 
-### src/extractors/scala.js
-```
-module.exports = { extract }  :76-76
-function extract(src) → string[]  :8-76
-function extractBlock(src, startIndex)  :39-48
-function extractMembers(block)  :50-76
-function normalizeParams(params)  :62-69
-function normalizeType(type)  :71-74
-```
-
 ### src/extractors/shell.js
 ```
 module.exports = { extract }  :43-43
@@ -781,16 +757,6 @@ module.exports = { extract }  :58-58
 function extract(src) → string[]  :8-58
 function normalizeParams(params)  :48-51
 function normalizeType(type)  :53-56
-```
-
-### src/extractors/swift.js
-```
-module.exports = { extract }  :73-73
-function extract(src) → string[]  :8-73
-function extractBlock(src, startIndex)  :34-43
-function extractMembers(block)  :45-73
-function normalizeParams(params)  :56-63
-function extractArrowType(str)  :65-73
 ```
 
 ### src/extractors/terraform.js

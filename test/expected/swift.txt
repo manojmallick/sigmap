@@ -1,9 +1,9 @@
-protocol Repository
-  func findById(_ id) → User?
-  func save(_ user)
-class UserService
-  func getUser(id) → User?
-  async func createUser(data) → User
-struct User
-enum UserRole
-func hashPassword(_ password) → String
+protocol Repository  :4-7
+  func findById(_ id) → User?  :5-5
+  func save(_ user)  :6-6
+class UserService  :9-25
+  func getUser(id) → User?  :16-16
+  async func createUser(data) → User  :20-20
+struct User  :27-30
+enum UserRole  :32-34
+func hashPassword(_ password) → String  :36-38
