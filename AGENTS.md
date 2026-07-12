@@ -33,17 +33,16 @@ Always run `sigmap ask` (or `sigmap --query`) before searching for files relevan
 src/extractors/python_ast.py ← ast
 ```
 
-## changes (last 5 commits — 0 seconds ago)
+## changes (last 5 commits — 1 second ago)
 ```
+src/extractors/csharp.js                      ~extract  ~extractMembers
+src/extractors/go.js                          ~extract  ~extractInterfaceMethods
+src/extractors/java.js                        ~extract  ~extractMembers
+src/extractors/rust.js                        ~extract  ~extractMethods  ~extractReturnType
 src/evidence/pack.js                          +riskFactorsFor  ~parseAnchor  ~buildEvidencePack  ~formatMarkdown
-src/graph/call-graph.js                       +calls  +maskRust  +name  +goDefs
-src/mcp/handlers.js                           +that  +getMethodImpact  ~queryContext  ~squeezeOutput
-src/mcp/server.js                             ~dispatch
-src/mcp/tools.js                              +it
+src/graph/call-graph.js                       +buildCallFileGraph  ~buildCallGraph  ~formatCallGraphJSON  ~_resolveSymbol
+src/mcp/handlers.js                           ~queryContext
 src/retrieval/ranker.js                       ~scoreFile  ~rank
-src/graph/blast-radius.js                     +tierFor  +_normRel  +_bfs  +methodBlastRadius
-src/review/pr-evidence.js                     ~buildPrEvidence  ~formatPrEvidenceMarkdown
-src/review/review-pr.js                       ~isSource  ~reviewPr
 ```
 
 ## packages
@@ -175,86 +174,43 @@ code-fence ---
 
 ## src
 
-### src/config/defaults.js
+### src/extractors/csharp.js
 ```
-module.exports = { DEFAULTS }  :163-163
-```
-
-### src/evidence/pack.js
-```
-module.exports = { buildEvidencePack, formatJSON, formatMarkdown, parseAnchor, riskLabelFor, riskFactorsFor, findRelatedTests, SCHEMA_VERSION, SCHEMA_URL, TEST_DISCOVERY }  :326-337
-function parseAnchor(sig) → { symbol: string, start:   :64-72
-function riskLabelFor(relPath) → 'generated'|'test'|'migra  :84-86
-function riskFactorsFor(relPath) → string[]  :96-108
-function stemOf(relPath)  :111-114
-function testTargetStem(relPath) → string  :126-132
-function findRelatedTests(relPath, allFiles) → string[]  :143-154
-function reasonFor(signals)  :157-168
-function sigTokens(sigs)  :171-173
-function canonicalize(value) → string  :180-182
-function sortKeys(value)  :184-192
-function buildEvidencePack(query, cwd, opts = {}) → object  :205-281
-function ranked0Empty(query)  :284-286
-function formatJSON(pack)  :289-291
-function formatMarkdown(pack)  :294-324
+module.exports = { extract }  :71-71
+function extract(src) → string[]  :12-71
+function extractBlock(src, startIndex)  :35-44
+function extractMembers(block)  :46-59
+function normalizeParams(params)  :61-64
+function normalizeType(type)  :66-69
 ```
 
-### src/graph/call-graph.js
+### src/extractors/go.js
 ```
-module.exports = { buildCallGraph, buildCallFileGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :563-567
-function normalizePath(p)  :41-41
-function toRel(cwd, f)  :42-42
-function symId(cwd, absFile, name)  :43-43
-function maskJs(src)  :49-65
-function maskRust(src)  :70-91
-function maskPy(src)  :93-110
-function matchDelim(masked, openIdx, open, close)  :113-120
-function lineAt(src, idx)  :122-127
-function jsDefs(masked)  :132-237
-function pyDefs(masked)  :200-220
-function goDefs(masked)  :224-344
-function javaDefs(masked)  :250-367
-function rustDefs(masked)  :278-401
-function maskFor(filePath, src)  :300-305
-function extractDefs(filePath, src)  :307-315
-function callsInRange(masked, start, end)  :318-330
-function _walk(dir, excludeSet, out, depth)  :334-347
-function buildCallGraph(cwd, opts = {}) → { * forward: Map<string,s  :363-446
-function buildCallFileGraph(cwd, opts = {}) → { forward: Map<string,str  :459-482
-function _resolveSymbol(symbol, defs)  :485-490
-function _bfs(seedIds, graph, maxDepth)  :493-506
-function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :516-522
-function methodCallees(symbol, cwd, opts = {}) → { symbol:string, resolved  :528-534
-function formatCallGraph(result, kind)  :537-549
-… +1 more signatures
+module.exports = { extract }  :81-81
+function extract(src) → string[]  :12-81
+function extractBlock(src, startIndex)  :51-60
+function extractInterfaceMethods(block)  :62-74
+function normalizeParams(params)  :76-79
 ```
 
-### src/mcp/handlers.js
+### src/extractors/java.js
 ```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :975-975
-function _readContextFiles(cwd)  :10-17
-function readContext(args, cwd)  :36-66
-function searchSignatures(args, cwd)  :74-100
-function getMap(args, cwd)  :108-131
-function createCheckpoint(args, cwd)  :143-215
-function getRouting(args, cwd)  :224-261
-function explainFile(args, cwd)  :269-356
-function listModules(args, cwd)  :364-403
-function queryContext(args, cwd)  :411-438
-function getMethodImpact(args, cwd)  :446-460
-function getImpact(args, cwd)  :468-480
-function getLines(args, cwd)  :489-537
-function readMemory(args, cwd)  :545-580
-function getCalleeSignatures(args, cwd)  :589-634
-function _pkgVersion(cwd)  :641-644
-function notifyFileCreated(args, cwd)  :648-670
-function notifySymbolAdded(args, cwd)  :673-693
-function notifyFileDeleted(args, cwd)  :696-710
-function _changedFiles(cwd, args)  :716-728
-function getDiffContext(args, cwd)  :737-808
-function getArchitectureOverview(args, cwd)  :817-885
-function verifySuggestion(args, cwd)  :895-930
-function squeezeOutput(args, cwd)  :940-973
+module.exports = { extract }  :71-71
+function extract(src) → string[]  :12-71
+function extractBlock(src, startIndex)  :34-44
+function extractMembers(block)  :46-59
+function normalizeParams(params)  :61-64
+function normalizeType(type)  :66-69
+```
+
+### src/extractors/rust.js
+```
+module.exports = { extract }  :110-110
+function extract(src) → string[]  :12-110
+function extractBlock(src, startIndex)  :72-81
+function extractMethods(block)  :83-110
+function normalizeParams(params)  :97-100
+function extractReturnType(afterParen)  :102-110
 ```
 
 ### src/mcp/server.js
@@ -264,29 +220,6 @@ function respond(id, result)  :28-30
 function respondError(id, code, message)  :32-36
 function dispatch(msg, cwd)  :41-108
 function start(cwd)  :113-139
-```
-
-### src/mcp/tools.js
-```
-module.exports = { TOOLS }  :392-392
-```
-
-### src/retrieval/ranker.js
-```
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent }  :598-598
-function _computePenalty(filePath)  :63-70
-function _computeHubs(graph)  :73-84
-function _isHub(filePath)  :87-91
-function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:  :102-159
-function rank(query, sigIndex, opts) → { file: string, score: nu  :177-302
-function _parseContextFile(contextPath) → Map<string, string[]>  :372-404
-function _mergeSigIndex(target, source)  :407-415
-function _buildSigIndexFromCache(cwd) → Map<string, string[]>  :422-442
-function _enrichSigIndexFromStrategy(cwd, index) → Map<string, string[]>  :450-456
-function buildSigIndex(cwd, opts) → Map<string, string[]>  :473-506
-function formatRankTable(results, query) → string  :515-551
-function formatRankJSON(results, query) → object  :560-575
-function detectIntent(query)  :590-596
 ```
 
 ### src/analysis/coverage-score.js
@@ -324,6 +257,11 @@ function loadCache(cwd, currentVersion) → Map<string, { mtime: numb  :32-42
 function saveCache(cwd, currentVersion, cache)  :51-61
 function getChangedFiles(files, cache) → { changed: string[], unch  :71-88
 function updateCacheEntries(cache, extracted)  :96-103
+```
+
+### src/config/defaults.js
+```
+module.exports = { DEFAULTS }  :163-163
 ```
 
 ### src/config/loader.js
@@ -539,6 +477,25 @@ function scoreUsefulness(taskResult, rankingScore)  :11-38
 function computeUsefulnessStats(taskResults)  :40-66
 ```
 
+### src/evidence/pack.js
+```
+module.exports = { buildEvidencePack, formatJSON, formatMarkdown, parseAnchor, riskLabelFor, riskFactorsFor, findRelatedTests, SCHEMA_VERSION, SCHEMA_URL, TEST_DISCOVERY }  :326-337
+function parseAnchor(sig) → { symbol: string, start:   :64-72
+function riskLabelFor(relPath) → 'generated'|'test'|'migra  :84-86
+function riskFactorsFor(relPath) → string[]  :96-108
+function stemOf(relPath)  :111-114
+function testTargetStem(relPath) → string  :126-132
+function findRelatedTests(relPath, allFiles) → string[]  :143-154
+function reasonFor(signals)  :157-168
+function sigTokens(sigs)  :171-173
+function canonicalize(value) → string  :180-182
+function sortKeys(value)  :184-192
+function buildEvidencePack(query, cwd, opts = {}) → object  :205-281
+function ranked0Empty(query)  :284-286
+function formatJSON(pack)  :289-291
+function formatMarkdown(pack)  :294-324
+```
+
 ### src/extractors/coverage.js
 ```
 module.exports = { buildTestIndex, isTested }  :79-79
@@ -555,16 +512,6 @@ function extractBlock(src, startIndex)  :36-45
 function extractMembers(block)  :47-57
 function normalizeParams(params)  :59-62
 function normalizeType(type)  :64-67
-```
-
-### src/extractors/csharp.js
-```
-module.exports = { extract }  :59-59
-function extract(src) → string[]  :8-59
-function extractBlock(src, startIndex)  :27-36
-function extractMembers(block)  :38-47
-function normalizeParams(params)  :49-52
-function normalizeType(type)  :54-57
 ```
 
 ### src/extractors/css.js
@@ -618,15 +565,6 @@ module.exports = { extract }  :2-2
 function extract(src)  :14-26
 ```
 
-### src/extractors/go.js
-```
-module.exports = { extract }  :65-65
-function extract(src) → string[]  :8-65
-function extractBlock(src, startIndex)  :39-48
-function extractInterfaceMethods(block)  :50-58
-function normalizeParams(params)  :60-63
-```
-
 ### src/extractors/graphql.js
 ```
 module.exports = { extract }  :66-66
@@ -637,16 +575,6 @@ function extract(src) → string[]  :11-66
 ```
 module.exports = { extract }  :39-39
 function extract(src) → string[]  :9-37
-```
-
-### src/extractors/java.js
-```
-module.exports = { extract }  :60-60
-function extract(src) → string[]  :8-60
-function extractBlock(src, startIndex)  :27-37
-function extractMembers(block)  :39-48
-function normalizeParams(params)  :50-53
-function normalizeType(type)  :55-58
 ```
 
 ### src/extractors/javascript.js
@@ -779,16 +707,6 @@ module.exports = { extract }  :54-54
 function extract(src) → string[]  :8-38
 function normalizeParams(params)  :40-43
 function extractReturnHint(stripped, index)  :45-52
-```
-
-### src/extractors/rust.js
-```
-module.exports = { extract }  :82-82
-function extract(src) → string[]  :8-82
-function extractBlock(src, startIndex)  :48-57
-function extractMethods(block)  :59-82
-function normalizeParams(params)  :69-72
-function extractReturnType(afterParen)  :74-82
 ```
 
 ### src/extractors/scala.js
@@ -1033,6 +951,36 @@ function build(files, cwd, ctx) → { forward: Map<string,str  :387-426
 function buildFromCwd(cwd, opts) → { forward: Map<string,str  :438-492
 ```
 
+### src/graph/call-graph.js
+```
+module.exports = { buildCallGraph, buildCallFileGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :563-567
+function normalizePath(p)  :41-41
+function toRel(cwd, f)  :42-42
+function symId(cwd, absFile, name)  :43-43
+function maskJs(src)  :49-65
+function maskRust(src)  :70-91
+function maskPy(src)  :93-110
+function matchDelim(masked, openIdx, open, close)  :113-120
+function lineAt(src, idx)  :122-127
+function jsDefs(masked)  :132-237
+function pyDefs(masked)  :200-220
+function goDefs(masked)  :224-344
+function javaDefs(masked)  :250-367
+function rustDefs(masked)  :278-401
+function maskFor(filePath, src)  :300-305
+function extractDefs(filePath, src)  :307-315
+function callsInRange(masked, start, end)  :318-330
+function _walk(dir, excludeSet, out, depth)  :334-347
+function buildCallGraph(cwd, opts = {}) → { * forward: Map<string,s  :363-446
+function buildCallFileGraph(cwd, opts = {}) → { forward: Map<string,str  :459-482
+function _resolveSymbol(symbol, defs)  :485-490
+function _bfs(seedIds, graph, maxDepth)  :493-506
+function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :516-522
+function methodCallees(symbol, cwd, opts = {}) → { symbol:string, resolved  :528-534
+function formatCallGraph(result, kind)  :537-549
+… +1 more signatures
+```
+
 ### src/graph/impact.js
 ```
 module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON }  :240-240
@@ -1147,6 +1095,34 @@ function shouldSkipFile(rel)  :18-21
 function analyze(files, cwd)  :23-125
 ```
 
+### src/mcp/handlers.js
+```
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput }  :975-975
+function _readContextFiles(cwd)  :10-17
+function readContext(args, cwd)  :36-66
+function searchSignatures(args, cwd)  :74-100
+function getMap(args, cwd)  :108-131
+function createCheckpoint(args, cwd)  :143-215
+function getRouting(args, cwd)  :224-261
+function explainFile(args, cwd)  :269-356
+function listModules(args, cwd)  :364-403
+function queryContext(args, cwd)  :411-438
+function getMethodImpact(args, cwd)  :446-460
+function getImpact(args, cwd)  :468-480
+function getLines(args, cwd)  :489-537
+function readMemory(args, cwd)  :545-580
+function getCalleeSignatures(args, cwd)  :589-634
+function _pkgVersion(cwd)  :641-644
+function notifyFileCreated(args, cwd)  :648-670
+function notifySymbolAdded(args, cwd)  :673-693
+function notifyFileDeleted(args, cwd)  :696-710
+function _changedFiles(cwd, args)  :716-728
+function getDiffContext(args, cwd)  :737-808
+function getArchitectureOverview(args, cwd)  :817-885
+function verifySuggestion(args, cwd)  :895-930
+function squeezeOutput(args, cwd)  :940-973
+```
+
 ### src/mcp/install.js
 ```
 module.exports = { CLIENTS, listClients, installClient, resolveTarget }  :142-142
@@ -1157,6 +1133,11 @@ function _installJson(filePath, scriptPath)  :69-81
 function _installZed(filePath, scriptPath)  :84-96
 function _installYaml(filePath, scriptPath)  :99-117
 function installClient(client, opts = {}) → client, label, path, stat  :124-140
+```
+
+### src/mcp/tools.js
+```
+module.exports = { TOOLS }  :392-392
 ```
 
 ### src/nudge.js
@@ -1190,6 +1171,24 @@ function stem(w) → string  :36-45
 function tokenize(text) → string[]  :54-65
 function expandQuery(qToks) → Map<string, number>  :132-141
 function bm25rank(query, candidates) → Array<object & { score: n  :154-193
+```
+
+### src/retrieval/ranker.js
+```
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent }  :598-598
+function _computePenalty(filePath)  :63-70
+function _computeHubs(graph)  :73-84
+function _isHub(filePath)  :87-91
+function scoreFile(filePath, sigs, queryTokens, weights) → { score: number, signals:  :102-159
+function rank(query, sigIndex, opts) → { file: string, score: nu  :177-302
+function _parseContextFile(contextPath) → Map<string, string[]>  :372-404
+function _mergeSigIndex(target, source)  :407-415
+function _buildSigIndexFromCache(cwd) → Map<string, string[]>  :422-442
+function _enrichSigIndexFromStrategy(cwd, index) → Map<string, string[]>  :450-456
+function buildSigIndex(cwd, opts) → Map<string, string[]>  :473-506
+function formatRankTable(results, query) → string  :515-551
+function formatRankJSON(results, query) → object  :560-575
+function detectIntent(query)  :590-596
 ```
 
 ### src/retrieval/tokenizer.js
