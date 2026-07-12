@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.17.0] — 2026-07-12
+
+Minor release — **line anchors for Java, Go, Rust, and C#** (§7.4 Lang ceiling, the roadmap's long-named "anchors for the remaining extractors" item).
+
+### Added
+- **Extractor line anchors for Java/Go/Rust/C# (#483, PR #484):** signatures from these languages now carry `:start-end` anchors — types/functions with bodies get real brace-matched ranges, single-line members get `:n-n`, Rust bodyless items (unit structs, trait declarations) get single-line anchors. Prerequisite fix folded in: the four extractors' comment strips are now **newline-preserving** (block comments previously collapsed outright, making true line numbers impossible — regression-tested with a multi-line license header above declarations). Downstream, verified: Evidence Pack `anchorCoverage` goes **0 → 1.0** on Go/Java fixtures with populated `sourceLines`, and `get_lines` (Surgical Context) works on all four languages. Expected extractor fixtures regenerated; `parseAnchor` round-trips every emitted anchor.
+
+---
+
 ## [8.16.1] — 2026-07-12
 
 Patch release — **benchmark hygiene**; the published package is unchanged (scripts + tests only).

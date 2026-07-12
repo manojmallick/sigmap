@@ -1,8 +1,8 @@
-type UserService struct
-type Repository interface
-  FindById(id string) → (*User, error)
-  Save(user *User) → error
-func NewUserService(repo Repository) → *UserService
-func (s) GetUser(id string) → (*User, error)
-func (s) CreateUser(data CreateUserDto) → (*User, error)
-func HashPassword(password string) → (string, error)
+type UserService struct  :4-6
+type Repository interface  :8-11
+  FindById(id string) → (*User, error)  :9-9
+  Save(user *User) → error  :10-10
+func NewUserService(repo Repository) → *UserService  :13-15
+func (s) GetUser(id string) → (*User, error)  :17-19
+func (s) CreateUser(data CreateUserDto) → (*User, error)  :21-24
+func HashPassword(password string) → (string, error)  :26-28
