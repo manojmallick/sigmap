@@ -1,7 +1,7 @@
-class User
-  fun getUser(id) → User?
-  suspend fun createUser(dto) → User
-interface Repository
-  fun findById(id) → T?
-  suspend fun save(entity) → T
-fun formatUser(user) → String
+class User  :4-14
+  fun getUser(id) → User?  :7-7
+  suspend fun createUser(dto) → User  :9-9
+interface Repository  :16-19
+  fun findById(id) → T?  :17-17
+  suspend fun save(entity) → T  :18-18
+fun formatUser(user) → String  :21-21

@@ -1,8 +1,8 @@
-class UserService
-  function getUser(string $id) → ?User
-  function createUser(array $data) → User
-  function validateUser(User $user) → bool
-interface Repository
-  function findById(string $id) → mixed
-  function save(mixed $entity) → mixed
-function hashPassword(string $password) → string
+class UserService  :5-28
+  function getUser(string $id) → ?User  :14-14
+  function createUser(array $data) → User  :19-19
+  function validateUser(User $user) → bool  :24-24
+interface Repository  :30-34
+  function findById(string $id) → mixed  :32-32
+  function save(mixed $entity) → mixed  :33-33
+function hashPassword(string $password) → string  :36-39

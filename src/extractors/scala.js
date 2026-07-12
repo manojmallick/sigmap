@@ -1,7 +1,11 @@
 'use strict';
 
+const { lineAt, withAnchor } = require('./line-anchor');
+
 /**
  * Extract signatures from Scala source code.
+ * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+ * strip below is newline-preserving so anchor lines match the original file.
  * @param {string} src - Raw file content
  * @returns {string[]} Array of signature strings
  */
@@ -11,7 +15,7 @@ function extract(src) {
 
   const stripped = src
     .replace(/\/\/.*$/gm, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
+    .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
 
   // Classes, traits, objects
   const typeRe = /^(?:case\s+)?(?:class|trait|object)\s+(\w+)(?:\[[\w, ]+\])?(?:[^{]*)\{/gm;
@@ -19,9 +23,12 @@ function extract(src) {
     const kind = m[0].trimStart().startsWith('case class') ? 'case class' :
       m[0].trimStart().startsWith('trait') ? 'trait' :
       m[0].trimStart().startsWith('object') ? 'object' : 'class';
-    sigs.push(`${kind} ${m[1]}`);
-    const block = extractBlock(stripped, m.index + m[0].length);
-    for (const fn of extractMembers(block)) sigs.push(`  ${fn}`);
+    const bodyStart = m.index + m[0].length;
+    const block = extractBlock(stripped, bodyStart);
+    sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+    for (const fn of extractMembers(block)) {
+      sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+    }
   }
 
   // Top-level defs
@@ -30,7 +37,8 @@ function extract(src) {
     const params = m[2] ? `(${normalizeParams(m[2])})` : '';
     const ret = normalizeType(m[3]);
     const retStr = ret ? ` → ${ret}` : '';
-    sigs.push(`def ${m[1]}${params}${retStr}`);
+    const line = lineAt(stripped, m.index);
+    sigs.push(withAnchor(`def ${m[1]}${params}${retStr}`, line, line));
   }
 
   return sigs.slice(0, 25);
@@ -54,7 +62,11 @@ function extractMembers(block) {
     const params = m[2] ? `(${normalizeParams(m[2])})` : '';
     const ret = normalizeType(m[3]);
     const retStr = ret ? ` → ${ret}` : '';
-    members.push(`def ${m[1]}${params}${retStr}`);
+    members.push({
+      text: `def ${m[1]}${params}${retStr}`,
+      declIdx: m.index + (m[0].length - m[0].trimStart().length),
+      endIdx: m.index + m[0].length,
+    });
   }
   return members.slice(0, 8);
 }

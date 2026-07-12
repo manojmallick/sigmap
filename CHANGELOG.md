@@ -10,6 +10,21 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.18.0] — 2026-07-12
+
+Minor release — **the §7.4 Phase-2 closer**: with these three changes, every quality-ceiling row in the master plan's scorecard is done or measure-gated-closed.
+
+### Added
+- **Line anchors for Kotlin, Swift, PHP, Scala, and Dart (#486, PR #487):** the v8.17 recipe applied to the remaining five brace languages — newline-preserving comment strips, brace-matched `:start-end` ranges on types, `:n-n` members, body-scan ranging for top-level functions (expression bodies and PSR next-line braces degrade to single-line anchors). All five fixture files anchor 100%; **9 brace languages** now carry Surgical Context anchors.
+- **Route surface-enrichment, opt-in and measure-gated (#488, PR #489):** `collectRoutes` split out of the route-table analyzer (markdown unchanged); `enrichWithSurfaces` appends deterministic `route METHOD /path` pseudo-signatures to the defining file's rankable index entry (sorted, deduped, copy-on-write, idempotent). Config `retrieval.surfaceEnrichment` (default `false`) wired into `ask`/`--query`/`query_context`. **Measured** by the new `npm run benchmark:surface-enrichment` A/B: 280 route pseudo-sigs across 18 repos, 90 tasks — **delta +0** (the corpus never asks route-worded questions), so the default stays off per the gate; the fixture test proves the value case directly — a route-worded query retrieves the controller *only* when enriched.
+
+### Changed
+- **Docs — the agent's live loop (#490, PR #491):** new "Your agent's live loop" section in the MCP guide framing `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` as what an agentic loop *calls for grounding* (grep finds; SigMap grounds); README gains the framing and the previously missing `get_method_impact` in its tool list.
+- **Ranking is now anchor-invariant:** BM25 strips `:start-end` line anchors before tokenizing, so adding anchors to an extractor never shifts length normalization — this moved one borderline task from partial to **rank-1** (correct 61→62/90, task-success proxy 67.8→68.9%).
+- **Headline metric shift, documented honestly:** anchors on the five new corpus languages consume real context budget, and one already-borderline Swift task (`vapor-t002`, a route-worded query) fell out of top-5 — **hit@5 87.8% → 86.7%** (stable across repeated runs, root-caused to the vapor repo). Rank-1 accuracy and task success went **up**; the trade buys Surgical Context anchors on 9 languages.
+
+---
+
 ## [8.17.0] — 2026-07-12
 
 Minor release — **line anchors for Java, Go, Rust, and C#** (§7.4 Lang ceiling, the roadmap's long-named "anchors for the remaining extractors" item).

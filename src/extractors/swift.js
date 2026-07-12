@@ -1,7 +1,11 @@
 'use strict';
 
+const { lineAt, withAnchor } = require('./line-anchor');
+
 /**
  * Extract signatures from Swift source code.
+ * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+ * strip below is newline-preserving so anchor lines match the original file.
  * @param {string} src - Raw file content
  * @returns {string[]} Array of signature strings
  */
@@ -11,21 +15,37 @@ function extract(src) {
 
   const stripped = src
     .replace(/\/\/.*$/gm, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '');
+    .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+  // Anchor range: scan past same-line modifiers to a body `{` (range) else single line.
+  const rangeFor = (declIdx, afterIdx) => {
+    let k = afterIdx;
+    while (k < stripped.length && /[ \tA-Za-z0-9_>-]/.test(stripped[k])) k++;
+    if (stripped[k] === '{') {
+      const end = k + 1 + extractBlock(stripped, k + 1).length;
+      return [lineAt(stripped, declIdx), lineAt(stripped, end)];
+    }
+    const line = lineAt(stripped, declIdx);
+    return [line, line];
+  };
 
   // Classes, structs, protocols, enums
   const typeRe = /^(?:public\s+|internal\s+|open\s+)?(?:final\s+)?(class|struct|protocol|enum|actor)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w, <>.]+)?\s*\{/gm;
   for (const m of stripped.matchAll(typeRe)) {
-    sigs.push(`${m[1]} ${m[2]}`);
-    const block = extractBlock(stripped, m.index + m[0].length);
-    for (const fn of extractMembers(block)) sigs.push(`  ${fn}`);
+    const bodyStart = m.index + m[0].length;
+    const block = extractBlock(stripped, bodyStart);
+    sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+    for (const fn of extractMembers(block)) {
+      sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+    }
   }
 
   // Top-level public functions — capture everything after ) to end of line for arrow type
   for (const m of stripped.matchAll(/^(?:public\s+|internal\s+)?(?:static\s+)?(?:async\s+)?func\s+(\w+)(?:<[^(]*>)?\s*\(([^)]*)\)([^{\n]*)/gm)) {
     const asyncKw = m[0].includes('async') ? 'async ' : '';
     const retStr = extractArrowType(m[3]);
-    sigs.push(`${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+    const [s, e] = rangeFor(m.index, m.index + m[0].length);
+    sigs.push(withAnchor(`${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
   }
 
   return sigs.slice(0, 25);
@@ -48,7 +68,11 @@ function extractMembers(block) {
     if (m[1].startsWith('_')) continue;
     const asyncKw = m[0].includes('async') ? 'async ' : '';
     const retStr = extractArrowType(m[3]);
-    members.push(`${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+    members.push({
+      text: `${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+      declIdx: m.index + (m[0].length - m[0].trimStart().length),
+      endIdx: m.index + m[0].length,
+    });
   }
   return members.slice(0, 8);
 }
@@ -67,7 +91,7 @@ function extractArrowType(str) {
   const m = str.match(/->\s*([^\n{]+)/);
   if (!m) return '';
   const rt = m[1].trim().replace(/\s+/g, ' ');
-  return ` \u2192 ${rt.length > 25 ? rt.slice(0, 22) + '...' : rt}`;
+  return ` → ${rt.length > 25 ? rt.slice(0, 22) + '...' : rt}`;
 }
 
 module.exports = { extract };

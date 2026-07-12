@@ -225,7 +225,7 @@ test('docs/impact-banner.svg: no stale 80.0% hit@5', () => {
 
 test('docs/impact-banner.svg: uses 75.6% hit@5', () => {
   const src = readDocs('impact-banner.svg');
-  assert.ok(src.includes('87.8%'), 'missing 86.7% in impact-banner.svg');
+  assert.ok(src.includes('86.7%'), 'missing 86.7% in impact-banner.svg');
 });
 
 test('docs/impact-banner.svg: uses 1.46 prompts (not 1.68)', () => {
@@ -237,7 +237,7 @@ test('docs/impact-banner.svg: uses 1.46 prompts (not 1.68)', () => {
 test('docs/comparison-chart.svg: uses 75.6% (not 80.0%)', () => {
   const src = readDocs('comparison-chart.svg');
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% in comparison-chart.svg');
-  assert.ok(src.includes('87.8%'), 'missing 86.7% in comparison-chart.svg');
+  assert.ok(src.includes('86.7%'), 'missing 86.7% in comparison-chart.svg');
 });
 
 test('docs/index.html: softwareVersion matches version.json', () => {

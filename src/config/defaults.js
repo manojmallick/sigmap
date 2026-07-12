@@ -149,6 +149,8 @@ const DEFAULTS = {
     recencyBoost: 1.5,
     // Boost files call-graph-connected to query matches (opt-in, measure-gated)
     callGraphBoost: false,
+    // Append route pseudo-signatures to the rankable index (opt-in, measure-gated)
+    surfaceEnrichment: false,
   },
 
   // Impact layer settings (v2.5)

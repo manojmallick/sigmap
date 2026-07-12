@@ -1533,6 +1533,8 @@ __factories["./src/config/defaults"] = function(module, exports) {
       recencyBoost: 1.5,
       // Boost files call-graph-connected to query matches (opt-in, measure-gated)
       callGraphBoost: false,
+      // Append route pseudo-signatures to the rankable index (opt-in, measure-gated)
+      surfaceEnrichment: false,
     },
 
     // Impact layer settings (v2.5)
@@ -5377,8 +5379,12 @@ __factories["./src/extractors/css"] = function(module, exports) {
 // ── ./src/extractors/dart ──
 __factories["./src/extractors/dart"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from Dart source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -5388,21 +5394,37 @@ __factories["./src/extractors/dart"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+    // Anchor range: scan past same-line trivia (`async`, `=>` stops) to a body `{`.
+    const rangeFor = (declIdx, afterIdx) => {
+      let k = afterIdx;
+      while (k < stripped.length && /[ \tA-Za-z0-9_]/.test(stripped[k])) k++;
+      if (stripped[k] === '{') {
+        const end = k + 1 + extractBlock(stripped, k + 1).length;
+        return [lineAt(stripped, declIdx), lineAt(stripped, end)];
+      }
+      const line = lineAt(stripped, declIdx);
+      return [line, line];
+    };
 
     // Classes and abstract classes
     for (const m of stripped.matchAll(/^(?:abstract\s+)?class\s+(\w+)(?:<[^{]*>)?(?:\s+extends\s+[\w<>, ]+)?(?:\s+(?:implements|with|on)\s+[\w<>, ]+)?\s*\{/gm)) {
       const abs = m[0].trimStart().startsWith('abstract') ? 'abstract ' : '';
-      sigs.push(`${abs}class ${m[1]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const meth of extractMembers(block)) sigs.push(`  ${meth}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`${abs}class ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const meth of extractMembers(block)) {
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+      }
     }
 
     // Top-level functions — capture return type (prefix before name) and show as suffix
     for (const m of stripped.matchAll(/^((?:Future<[\w<>?,\s]*>|[\w<>?]+))\s+(\w+)\s*\(([^)]*)\)/gm)) {
       if (m[2].startsWith('_')) continue;
-      const retStr = (m[1] && m[1] !== 'void') ? ` \u2192 ${m[1].replace(/\s+/g, '').slice(0, 25)}` : '';
-      sigs.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
+      const retStr = (m[1] && m[1] !== 'void') ? ` → ${m[1].replace(/\s+/g, '').slice(0, 25)}` : '';
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`${m[2]}(${normalizeParams(m[3])})${retStr}`, s, e));
     }
 
     return sigs.slice(0, 25);
@@ -5423,8 +5445,12 @@ __factories["./src/extractors/dart"] = function(module, exports) {
     const members = [];
     for (const m of block.matchAll(/^\s+(?:@override\s+)?(?:@\w+\s+)*((?:Future<[\w<>?,\s]*>|[\w<>?]+))\s+(\w+)\s*\(([^)]*)\)/gm)) {
       if (m[2].startsWith('_')) continue;
-      const retStr = (m[1] && m[1] !== 'void') ? ` \u2192 ${m[1].replace(/\s+/g, '').slice(0, 25)}` : '';
-      members.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
+      const retStr = (m[1] && m[1] !== 'void') ? ` → ${m[1].replace(/\s+/g, '').slice(0, 25)}` : '';
+      members.push({
+        text: `${m[2]}(${normalizeParams(m[3])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return members.slice(0, 8);
   }
@@ -6314,8 +6340,12 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
 // ── ./src/extractors/kotlin ──
 __factories["./src/extractors/kotlin"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from Kotlin source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -6325,21 +6355,37 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+    // Anchor range: scan past same-line modifiers to a body `{` (range) else single line.
+    const rangeFor = (declIdx, afterIdx) => {
+      let k = afterIdx;
+      while (k < stripped.length && /[ \tA-Za-z0-9_]/.test(stripped[k])) k++;
+      if (stripped[k] === '{') {
+        const end = k + 1 + extractBlock(stripped, k + 1).length;
+        return [lineAt(stripped, declIdx), lineAt(stripped, end)];
+      }
+      const line = lineAt(stripped, declIdx);
+      return [line, line];
+    };
 
     // Classes, objects, interfaces
     for (const m of stripped.matchAll(/^(?:public\s+|internal\s+)?(?:data\s+|sealed\s+|abstract\s+|open\s+)?(class|object|interface)\s+(\w+)(?:[^{]*)\{/gm)) {
-      sigs.push(`${m[1]} ${m[2]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const meth of extractMembers(block)) sigs.push(`  ${meth}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const meth of extractMembers(block)) {
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+      }
     }
 
     // Top-level functions — capture `: RetType` after params
     for (const m of stripped.matchAll(/^(?:public\s+|internal\s+)?(?:suspend\s+)?fun\s+(\w+)\s*(?:<[^(]*>)?\s*\(([^)]*)\)(?:\s*:\s*([^\n{=]+))?/gm)) {
       const suspend = m[0].includes('suspend') ? 'suspend ' : '';
       const retType = m[3] ? m[3].trim().replace(/\s+/g, ' ') : '';
-      const retStr = retType ? ` \u2192 ${retType.slice(0, 25)}` : '';
-      sigs.push(`${suspend}fun ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      const retStr = retType ? ` → ${retType.slice(0, 25)}` : '';
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`${suspend}fun ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
     }
 
     return sigs.slice(0, 25);
@@ -6362,8 +6408,12 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
       if (m[1].startsWith('_')) continue;
       const suspend = m[0].includes('suspend') ? 'suspend ' : '';
       const retType = m[3] ? m[3].trim().replace(/\s+/g, ' ') : '';
-      const retStr = retType ? ` \u2192 ${retType.slice(0, 25)}` : '';
-      members.push(`${suspend}fun ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      const retStr = retType ? ` → ${retType.slice(0, 25)}` : '';
+      members.push({
+        text: `${suspend}fun ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return members.slice(0, 8);
   }
@@ -6613,8 +6663,12 @@ __factories["./src/extractors/patterns"] = function(module, exports) {
 // ── ./src/extractors/php ──
 __factories["./src/extractors/php"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from PHP source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strips below are newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -6625,23 +6679,40 @@ __factories["./src/extractors/php"] = function(module, exports) {
     const stripped = src
       .replace(/\/\/.*$/gm, '')
       .replace(/#.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+    // Anchor range: scan past same-line trivia to a body `{` (range) else single line.
+    const rangeFor = (declIdx, afterIdx) => {
+      let k = afterIdx;
+      while (k < stripped.length && /[ \tA-Za-z0-9_:?\\]/.test(stripped[k])) k++;
+      if (stripped[k] === '{' || (stripped[k] === '\n' && stripped[k + 1] === '{')) {
+        const open = stripped[k] === '{' ? k : k + 1;
+        const end = open + 1 + extractBlock(stripped, open + 1).length;
+        return [lineAt(stripped, declIdx), lineAt(stripped, end)];
+      }
+      const line = lineAt(stripped, declIdx);
+      return [line, line];
+    };
 
     // Classes and interfaces
     const typeRe = /^(?:abstract\s+)?(?:class|interface|trait)\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+[\w, ]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
       const kind = m[0].trimStart().startsWith('interface') ? 'interface' :
         m[0].trimStart().startsWith('trait') ? 'trait' : 'class';
-      sigs.push(`${kind} ${m[1]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const meth of extractMembers(block)) sigs.push(`  ${meth}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const meth of extractMembers(block)) {
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+      }
     }
 
     // Top-level functions
     for (const m of stripped.matchAll(/^function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*([^\n{]+))?/gm)) {
       const ret = normalizeType(m[3]);
       const retStr = ret ? ` → ${ret}` : '';
-      sigs.push(`function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`function ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
     }
 
     return sigs.slice(0, 25);
@@ -6666,7 +6737,11 @@ __factories["./src/extractors/php"] = function(module, exports) {
       const isStatic = m[0].includes('static ') ? 'static ' : '';
       const ret = normalizeType(m[3]);
       const retStr = ret ? ` → ${ret}` : '';
-      members.push(`${isStatic}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      members.push({
+        text: `${isStatic}function ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return members.slice(0, 8);
   }
@@ -7666,8 +7741,12 @@ __factories["./src/extractors/rust"] = function(module, exports) {
 // ── ./src/extractors/scala ──
 __factories["./src/extractors/scala"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from Scala source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -7677,7 +7756,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
 
     // Classes, traits, objects
     const typeRe = /^(?:case\s+)?(?:class|trait|object)\s+(\w+)(?:\[[\w, ]+\])?(?:[^{]*)\{/gm;
@@ -7685,9 +7764,12 @@ __factories["./src/extractors/scala"] = function(module, exports) {
       const kind = m[0].trimStart().startsWith('case class') ? 'case class' :
         m[0].trimStart().startsWith('trait') ? 'trait' :
         m[0].trimStart().startsWith('object') ? 'object' : 'class';
-      sigs.push(`${kind} ${m[1]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const fn of extractMembers(block)) sigs.push(`  ${fn}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const fn of extractMembers(block)) {
+        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+      }
     }
 
     // Top-level defs
@@ -7696,7 +7778,8 @@ __factories["./src/extractors/scala"] = function(module, exports) {
       const params = m[2] ? `(${normalizeParams(m[2])})` : '';
       const ret = normalizeType(m[3]);
       const retStr = ret ? ` → ${ret}` : '';
-      sigs.push(`def ${m[1]}${params}${retStr}`);
+      const line = lineAt(stripped, m.index);
+      sigs.push(withAnchor(`def ${m[1]}${params}${retStr}`, line, line));
     }
 
     return sigs.slice(0, 25);
@@ -7720,7 +7803,11 @@ __factories["./src/extractors/scala"] = function(module, exports) {
       const params = m[2] ? `(${normalizeParams(m[2])})` : '';
       const ret = normalizeType(m[3]);
       const retStr = ret ? ` → ${ret}` : '';
-      members.push(`def ${m[1]}${params}${retStr}`);
+      members.push({
+        text: `def ${m[1]}${params}${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return members.slice(0, 8);
   }
@@ -7952,8 +8039,12 @@ __factories["./src/extractors/svelte"] = function(module, exports) {
 // ── ./src/extractors/swift ──
 __factories["./src/extractors/swift"] = function(module, exports) {
   
+  const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+
   /**
    * Extract signatures from Swift source code.
+   * Signatures carry `:start-end` line anchors (Surgical Context); the comment
+   * strip below is newline-preserving so anchor lines match the original file.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -7963,21 +8054,37 @@ __factories["./src/extractors/swift"] = function(module, exports) {
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\n]/g, ' '));
+
+    // Anchor range: scan past same-line modifiers to a body `{` (range) else single line.
+    const rangeFor = (declIdx, afterIdx) => {
+      let k = afterIdx;
+      while (k < stripped.length && /[ \tA-Za-z0-9_>-]/.test(stripped[k])) k++;
+      if (stripped[k] === '{') {
+        const end = k + 1 + extractBlock(stripped, k + 1).length;
+        return [lineAt(stripped, declIdx), lineAt(stripped, end)];
+      }
+      const line = lineAt(stripped, declIdx);
+      return [line, line];
+    };
 
     // Classes, structs, protocols, enums
     const typeRe = /^(?:public\s+|internal\s+|open\s+)?(?:final\s+)?(class|struct|protocol|enum|actor)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w, <>.]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
-      sigs.push(`${m[1]} ${m[2]}`);
-      const block = extractBlock(stripped, m.index + m[0].length);
-      for (const fn of extractMembers(block)) sigs.push(`  ${fn}`);
+      const bodyStart = m.index + m[0].length;
+      const block = extractBlock(stripped, bodyStart);
+      sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      for (const fn of extractMembers(block)) {
+        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+      }
     }
 
     // Top-level public functions — capture everything after ) to end of line for arrow type
     for (const m of stripped.matchAll(/^(?:public\s+|internal\s+)?(?:static\s+)?(?:async\s+)?func\s+(\w+)(?:<[^(]*>)?\s*\(([^)]*)\)([^{\n]*)/gm)) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
       const retStr = extractArrowType(m[3]);
-      sigs.push(`${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      const [s, e] = rangeFor(m.index, m.index + m[0].length);
+      sigs.push(withAnchor(`${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
     }
 
     return sigs.slice(0, 25);
@@ -8000,7 +8107,11 @@ __factories["./src/extractors/swift"] = function(module, exports) {
       if (m[1].startsWith('_')) continue;
       const asyncKw = m[0].includes('async') ? 'async ' : '';
       const retStr = extractArrowType(m[3]);
-      members.push(`${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      members.push({
+        text: `${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+        declIdx: m.index + (m[0].length - m[0].trimStart().length),
+        endIdx: m.index + m[0].length,
+      });
     }
     return members.slice(0, 8);
   }
@@ -8019,7 +8130,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
     const m = str.match(/->\s*([^\n{]+)/);
     if (!m) return '';
     const rt = m[1].trim().replace(/\s+/g, ' ');
-    return ` \u2192 ${rt.length > 25 ? rt.slice(0, 22) + '...' : rt}`;
+    return ` → ${rt.length > 25 ? rt.slice(0, 22) + '...' : rt}`;
   }
 
   module.exports = { extract };
@@ -13227,7 +13338,14 @@ __factories["./src/map/route-table"] = function(module, exports) {
     return /(^|\/)(gen-context|gen-project-map)\.js$/.test(normalized);
   }
 
-  function analyze(files, cwd) {
+  /**
+   * Structured route rows across the supported frameworks — the data behind
+   * `analyze`, exposed for retrieval surface-enrichment (#488).
+   * @param {string[]} files absolute paths
+   * @param {string} cwd
+   * @returns {{ method:string, path:string, file:string }[]} file is cwd-relative
+   */
+  function collectRoutes(files, cwd) {
     const routes = [];
 
     for (const filePath of files) {
@@ -13319,6 +13437,11 @@ __factories["./src/map/route-table"] = function(module, exports) {
       }
     }
 
+    return routes;
+  }
+
+  function analyze(files, cwd) {
+    const routes = collectRoutes(files, cwd);
     if (routes.length === 0) return '';
 
     const lines = [
@@ -13331,7 +13454,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
     return lines.join('\n');
   }
 
-  module.exports = { analyze };
+  module.exports = { analyze, collectRoutes };
   
 };
 
@@ -13759,13 +13882,16 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       // Build dependency graph for neighbor boost — non-fatal if it fails
       let graph = null;
       try { graph = buildFromCwd(cwd); } catch (_) {}
-      // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
+      // Opt-in call-graph neighbor boost + surface enrichment — non-fatal
       let callGraph = null;
       try {
         const { loadConfig } = __require('./src/config/loader');
         const retrieval = loadConfig(cwd).retrieval;
         if (retrieval && retrieval.callGraphBoost) {
           callGraph = __require('./src/graph/call-graph').buildCallFileGraph(cwd);
+        }
+        if (retrieval && retrieval.surfaceEnrichment) {
+          __require('./src/retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd);
         }
       } catch (_) {}
       const results = rank(args.query, index, { topK, cwd, graph, callGraph });
@@ -14481,7 +14607,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.17.0',
+    version: '8.18.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -15469,7 +15595,10 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
 
     const docs = candidates.map((c) => {
       const pathToks = tokenize(c.file || '');
-      const toks = tokenize((c.sigs || []).join(' '));
+      // Ranking is anchor-invariant: `:start-end` line anchors are metadata,
+      // not content — strip them before tokenizing so adding anchors to an
+      // extractor never shifts BM25 length normalization or token counts.
+      const toks = tokenize((c.sigs || []).map((s) => String(s).replace(/\s*:\d+(?:-\d+)?\s*$/, '')).join(' '));
       for (let i = 0; i < PATH_BOOST; i++) toks.push(...pathToks);
       const tf = new Map();
       for (const t of toks) tf.set(t, (tf.get(t) || 0) + 1);
@@ -15503,6 +15632,65 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
   }
 
   module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT };
+  
+};
+
+// ── ./src/retrieval/enrich-from-maps ──
+__factories["./src/retrieval/enrich-from-maps"] = function(module, exports) {
+  
+  /**
+   * Retrieval surface-enrichment (#488, §7.4 Retrieval ceiling — opt-in via
+   * `retrieval.surfaceEnrichment`, measure-gated).
+   *
+   * The map analyzers extract surfaces (routes) that never reach the rankable
+   * signature index — a query like "payment webhook route" cannot match a
+   * controller whose signatures never mention the route path. This module
+   * appends deterministic pseudo-signatures (`route GET /api/users`) to the
+   * defining file's signature list so the ranker's tokenizer can see them.
+   *
+   * Deterministic: rows are deduped and sorted; entries are copy-on-write so
+   * arrays shared with the signature cache are never mutated.
+   */
+
+  const path = require('path');
+
+  /**
+   * Enrich a signature index with route pseudo-signatures.
+   * @param {Map<string,string[]>} index cwd-relative file → sigs (mutated: enriched entries are replaced with fresh arrays)
+   * @param {string} cwd
+   * @returns {number} pseudo-signatures added
+   */
+  function enrichWithSurfaces(index, cwd) {
+    if (!(index instanceof Map) || index.size === 0) return 0;
+
+    let collectRoutes;
+    try { ({ collectRoutes } = __require('./src/map/route-table')); } catch (_) { return 0; }
+
+    const rels = [...index.keys()];
+    const files = rels.map((rel) => path.join(cwd, rel));
+    let routes = [];
+    try { routes = collectRoutes(files, cwd) || []; } catch (_) { return 0; }
+
+    const byFile = new Map();
+    for (const r of routes) {
+      const rel = String(r.file).replace(/\\/g, '/');
+      if (!byFile.has(rel)) byFile.set(rel, new Set());
+      byFile.get(rel).add(`route ${r.method} ${r.path}`);
+    }
+
+    let added = 0;
+    for (const [rel, extras] of [...byFile.entries()].sort()) {
+      const sigs = index.get(rel);
+      if (!sigs) continue;
+      const fresh = [...extras].sort().filter((x) => !sigs.includes(x));
+      if (!fresh.length) continue;
+      index.set(rel, [...sigs, ...fresh]); // copy-on-write: never mutate cached arrays
+      added += fresh.length;
+    }
+    return added;
+  }
+
+  module.exports = { enrichWithSurfaces };
   
 };
 
@@ -19522,7 +19710,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.17.0';
+const VERSION = '8.18.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -21850,6 +22038,10 @@ function main() {
     if (config && config.retrieval && config.retrieval.callGraphBoost) {
       try { askCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
     }
+    // Opt-in route surface-enrichment (retrieval.surfaceEnrichment) — non-fatal
+    if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
+      try { requireSourceOrBundled('./src/retrieval/enrich-from-maps').enrichWithSurfaces(sigIndex, cwd); } catch (_) {}
+    }
 
     let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd, callGraph: askCallGraph });
 
@@ -24027,6 +24219,10 @@ function main() {
       let queryCallGraph = null;
       if (config && config.retrieval && config.retrieval.callGraphBoost) {
         try { queryCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
+      }
+      // Opt-in route surface-enrichment (retrieval.surfaceEnrichment) — non-fatal
+      if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
+        try { requireSourceOrBundled('./src/retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd); } catch (_) {}
       }
       const results = rank(query, index, { topK, recencyBoost, cwd, callGraph: queryCallGraph });
       if (args.includes('--context')) {

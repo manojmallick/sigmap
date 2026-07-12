@@ -59,9 +59,9 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
-- **87.8% hit@5** — right file found in top 5 results (vs 13.6% baseline)
-- **97.0% token reduction** — average across 21 real repos
-- **67.8% task success rate** — up from 10% without context
+- **86.7% hit@5** — right file found in top 5 results (vs 13.6% baseline)
+- **96.9% token reduction** — average across 21 real repos
+- **68.9% task success rate** — up from 10% without context
 - **1.44 prompts per task** — down from 2.84 (49.2% fewer retries)
 <!--/SM:whyMetrics-->
 - **<!--SM:languages-->33<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
@@ -98,7 +98,7 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
 | Without SigMap | With SigMap |
 |---|---|
 | ❌ Non-reproducible agent guesses | ✅ Deterministic map — same input, same output, every time |
-| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->88%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
+| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->87%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
 | ❌ Embeddings / vector DB required | ✅ Zero deps, no infra, fully offline |
 
 ---
@@ -122,13 +122,13 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.17-main (21 repositories, including R language)
+Benchmark : sigmap-v8.18-main (21 repositories, including R language)
 Date      : 2026-07-12
 
-Hit@5          : 87.8%   (baseline 13.6%  — 6.5× lift)
-Token reduction: 97.0%   (across 21 repos)
+Hit@5          : 86.7%   (baseline 13.6%  — 6.4× lift)
+Token reduction: 96.9%   (across 21 repos)
 Prompt reduction : 49.2% (2.84 → 1.44 prompts per task)
-Task success   : 67.8%   (baseline 10%)
+Task success   : 68.9%   (baseline 10%)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 <!--/SM:benchmarkBlock-->
@@ -228,7 +228,9 @@ Use SigMap with open-source tools and fully self-hosted setups:
 sigmap --mcp
 ```
 
-Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+
+SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**: grep finds the file; `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` prove the symbols, lines, calls, and blast radius — deterministically. See [the agent live-loop guide](https://sigmap.io/guide/mcp#your-agents-live-loop).
 
 ---
 

@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v8.17.0 benchmark snapshot. 97.0% average token reduction across 21 repos, 88% retrieval hit@5, 49.2% fewer prompts, and R language support verified.
+description: Official v8.18.0 benchmark snapshot. 97.0% average token reduction across 21 repos, 88% retrieval hit@5, 49.2% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v8.17.0 snapshot with R language"
+      content: "SigMap benchmark overview — v8.18.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.17.0 benchmark run (2026-07-12) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.18.0 benchmark run (2026-07-12) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,16 +15,16 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.17.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.17-main &nbsp;·&nbsp; **Date:** 2026-07-12
+::: info Official v8.18.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.18-main &nbsp;·&nbsp; **Date:** 2026-07-12
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (18 core repos) | **88%** vs 13.6% baseline |
 | Token reduction (21 repos) | **97.0%** |
-| Retrieval lift | **6.5×** |
+| Retrieval lift | **6.4×** |
 | Prompt reduction | **49.2%** (2.84 → 1.44) |
-| Task success proxy | **67.8%** |
+| Task success proxy | **68.9%** |
 | Test discovery (impl→test) | **F1 98.0%** · hit@1 97.4% (28 repos) |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
@@ -38,9 +38,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.17.0 snapshot (with R language support)
+## Official v8.18.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-07-12 (v8.17.0)**
+Latest saved benchmark run: **2026-07-12 (v8.18.0)**
 
 | Metric | Result |
 |---|---:|
@@ -80,7 +80,7 @@ This is the best benchmark when the question is: *"Does SigMap actually put the 
 
 ### 3. Task outcomes
 
-- Correct: **61 / 90** (67.8%)
+- Correct: **61 / 90** (68.9%)
 - Partial: **17 / 90** (18.9%)
 - Wrong: **12 / 90** (13.3%)
 - Average prompts: **2.84 → 1.44**
