@@ -35,6 +35,11 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.18.0)
+- **@manojmallick** — feat(extractors): line anchors for Kotlin/Swift/PHP/Scala/Dart — 9 brace languages now anchored (#486, PR #487)
+- **@manojmallick** — feat(retrieval): route surface-enrichment, opt-in `retrieval.surfaceEnrichment`, measured +0 on the A/B so default stays off; new `benchmark:surface-enrichment` gate (#488, PR #489)
+- **@manojmallick** — docs: "Your agent's live loop" framing in the MCP guide + README (#490, PR #491)
+
 ### Recent Contributors (v8.17.0)
 - **@manojmallick** — feat(extractors): line anchors for Java, Go, Rust, and C# — newline-preserving comment strips + brace-matched `:start-end` ranges; Evidence Pack anchorCoverage 0→1.0 on those languages (#483, PR #484)
 

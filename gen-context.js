@@ -14607,7 +14607,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.17.0',
+    version: '8.18.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -15595,7 +15595,10 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
 
     const docs = candidates.map((c) => {
       const pathToks = tokenize(c.file || '');
-      const toks = tokenize((c.sigs || []).join(' '));
+      // Ranking is anchor-invariant: `:start-end` line anchors are metadata,
+      // not content — strip them before tokenizing so adding anchors to an
+      // extractor never shifts BM25 length normalization or token counts.
+      const toks = tokenize((c.sigs || []).map((s) => String(s).replace(/\s*:\d+(?:-\d+)?\s*$/, '')).join(' '));
       for (let i = 0; i < PATH_BOOST; i++) toks.push(...pathToks);
       const tf = new Map();
       for (const t of toks) tf.set(t, (tf.get(t) || 0) + 1);
@@ -19707,7 +19710,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.17.0';
+const VERSION = '8.18.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

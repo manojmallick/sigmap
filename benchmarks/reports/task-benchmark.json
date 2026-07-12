@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-12T10:21:39.964Z",
+  "generated": "2026-07-12T11:24:21.338Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -14,21 +14,21 @@
   "summary": {
     "totalRepos": 18,
     "totalTasks": 90,
-    "correctTotal": 61,
-    "partialTotal": 18,
-    "wrongTotal": 11,
-    "correctPct": 67.8,
-    "partialPct": 20,
-    "wrongPct": 12.2,
+    "correctTotal": 62,
+    "partialTotal": 16,
+    "wrongTotal": 12,
+    "correctPct": 68.9,
+    "partialPct": 17.8,
+    "wrongPct": 13.3,
     "avgPromptsWith": 1.44,
     "avgPromptsWithout": 2.84,
     "avgReductionPct": 49.2,
     "hitAt5Without": 13.6,
-    "hitAt5With": 87.8,
-    "avgImprovement": 62.2,
-    "totalGroundedSymbols": 10954,
-    "totalDarkSymbols": 56428,
-    "hallucinationRiskPct": 83.7
+    "hitAt5With": 86.7,
+    "avgImprovement": 61.9,
+    "totalGroundedSymbols": 10297,
+    "totalDarkSymbols": 57092,
+    "hallucinationRiskPct": 84.7
   },
   "repos": [
     {
@@ -70,8 +70,8 @@
       "promptsWithout": 2.94,
       "reductionPct": 59.2,
       "groundedSymbols": 481,
-      "darkSymbols": 604,
-      "hallucinationRiskPct": 55.7
+      "darkSymbols": 611,
+      "hallucinationRiskPct": 56
     },
     {
       "repo": "spring-petclinic",
@@ -167,9 +167,9 @@
       "promptsWith": 1,
       "promptsWithout": 2.99,
       "reductionPct": 66.5,
-      "groundedSymbols": 2185,
-      "darkSymbols": 1551,
-      "hallucinationRiskPct": 41.5
+      "groundedSymbols": 1734,
+      "darkSymbols": 2002,
+      "hallucinationRiskPct": 53.6
     },
     {
       "repo": "okhttp",
@@ -181,9 +181,9 @@
       "promptsWith": 1,
       "promptsWithout": 2.67,
       "reductionPct": 62.5,
-      "groundedSymbols": 115,
-      "darkSymbols": 41,
-      "hallucinationRiskPct": 26.3
+      "groundedSymbols": 112,
+      "darkSymbols": 44,
+      "hallucinationRiskPct": 28.2
     },
     {
       "repo": "laravel",
@@ -195,9 +195,9 @@
       "promptsWith": 1.2,
       "promptsWithout": 3,
       "reductionPct": 60,
-      "groundedSymbols": 1444,
-      "darkSymbols": 6954,
-      "hallucinationRiskPct": 82.8
+      "groundedSymbols": 1267,
+      "darkSymbols": 7131,
+      "hallucinationRiskPct": 84.9
     },
     {
       "repo": "akka",
@@ -209,23 +209,23 @@
       "promptsWith": 1.4,
       "promptsWithout": 2.97,
       "reductionPct": 52.9,
-      "groundedSymbols": 776,
-      "darkSymbols": 3177,
-      "hallucinationRiskPct": 80.4
+      "groundedSymbols": 755,
+      "darkSymbols": 3198,
+      "hallucinationRiskPct": 80.9
     },
     {
       "repo": "vapor",
       "fileCount": 131,
       "tasks": 5,
       "correctPct": 0,
-      "partialPct": 20,
-      "wrongPct": 80,
-      "promptsWith": 2.8,
+      "partialPct": 0,
+      "wrongPct": 100,
+      "promptsWith": 3,
       "promptsWithout": 2.95,
-      "reductionPct": 5.2,
-      "groundedSymbols": 161,
-      "darkSymbols": 696,
-      "hallucinationRiskPct": 81.2
+      "reductionPct": -1.5,
+      "groundedSymbols": 156,
+      "darkSymbols": 701,
+      "hallucinationRiskPct": 81.8
     },
     {
       "repo": "vue-core",
@@ -273,12 +273,12 @@
       "repo": "fastapi",
       "fileCount": 48,
       "tasks": 5,
-      "correctPct": 40,
-      "partialPct": 40,
+      "correctPct": 60,
+      "partialPct": 20,
       "wrongPct": 20,
-      "promptsWith": 1.8,
+      "promptsWith": 1.6,
       "promptsWithout": 2.88,
-      "reductionPct": 37.4,
+      "reductionPct": 44.4,
       "groundedSymbols": 165,
       "darkSymbols": 727,
       "hallucinationRiskPct": 81.5

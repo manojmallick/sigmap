@@ -159,7 +159,10 @@ function bm25rank(query, candidates) {
 
   const docs = candidates.map((c) => {
     const pathToks = tokenize(c.file || '');
-    const toks = tokenize((c.sigs || []).join(' '));
+    // Ranking is anchor-invariant: `:start-end` line anchors are metadata,
+    // not content — strip them before tokenizing so adding anchors to an
+    // extractor never shifts BM25 length normalization or token counts.
+    const toks = tokenize((c.sigs || []).map((s) => String(s).replace(/\s*:\d+(?:-\d+)?\s*$/, '')).join(' '));
     for (let i = 0; i < PATH_BOOST; i++) toks.push(...pathToks);
     const tf = new Map();
     for (const t of toks) tf.set(t, (tf.get(t) || 0) + 1);

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-12T10:21:30.100Z",
+  "generated": "2026-07-12T11:24:05.877Z",
   "repos": [
     {
       "repo": "express",
@@ -649,7 +649,7 @@
     {
       "repo": "riverpod",
       "fileCount": 446,
-      "sigCount": 132,
+      "sigCount": 115,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 1,
@@ -784,7 +784,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 296,
+      "sigCount": 271,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -855,10 +855,10 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 100,
+      "sigCount": 108,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.717,
+      "mrr": 0.75,
       "randomBaseline": 0.024,
       "improvement": 42.2,
       "tiers": {
@@ -896,7 +896,7 @@
             "akka-cluster/src/main/scala/akka/cluster/ClusterSettings.scala"
           ],
           "top1": "akka-cluster/src/main/scala/akka/cluster/routing/ClusterRouterConfig.scala",
-          "firstHitRank": 4,
+          "firstHitRank": 2,
           "tier": "partial"
         },
         {
@@ -916,8 +916,8 @@
           "expected": [
             "akka-stream/src/main/scala/akka/stream/javadsl/RestartFlow.scala"
           ],
-          "top1": "akka-stream/src/main/scala/akka/stream/scaladsl/RestartFlow.scala",
-          "firstHitRank": 3,
+          "top1": "akka-stream/src/main/scala/akka/stream/javadsl/RestartSource.scala",
+          "firstHitRank": 4,
           "tier": "partial"
         }
       ]
@@ -925,16 +925,16 @@
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 62,
+      "sigCount": 58,
       "tasks": 5,
-      "hitAt5": 0.2,
-      "mrr": 0.1,
+      "hitAt5": 0,
+      "mrr": 0,
       "randomBaseline": 0.038,
-      "improvement": 5.2,
+      "improvement": 0,
       "tiers": {
         "correct": 0,
-        "partial": 1,
-        "wrong": 4
+        "partial": 0,
+        "wrong": 5
       },
       "taskDetails": [
         {
@@ -955,9 +955,9 @@
             "Sources/Vapor/Routing/RoutesBuilder+Method.swift",
             "Sources/Vapor/Application.swift"
           ],
-          "top1": "Sources/Vapor/Routing/RoutesBuilder.swift",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "Sources/Vapor/Routing/RoutesBuilder+WebSocket.swift",
+          "firstHitRank": null,
+          "tier": "wrong"
         },
         {
           "id": "vapor-t003",
@@ -966,7 +966,7 @@
             "Sources/Vapor/Content/ContentContainer.swift",
             "Sources/Vapor/Content/Request+Content.swift"
           ],
-          "top1": "Sources/VaporTestUtils/TestingHTTPRequest.swift",
+          "top1": "Sources/Vapor/URLEncodedForm/URLEncodedFormDecoder.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -1146,7 +1146,7 @@
       "sigCount": 28,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.833,
+      "mrr": 0.829,
       "randomBaseline": 0.161,
       "improvement": 5,
       "tiers": {
@@ -1172,7 +1172,7 @@
             "lib/request.js"
           ],
           "top1": "lib/content-type-parser.js",
-          "firstHitRank": 6,
+          "firstHitRank": 7,
           "tier": "wrong"
         },
         {
@@ -1213,12 +1213,12 @@
       "sigCount": 25,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.6,
+      "mrr": 0.7,
       "randomBaseline": 0.104,
       "improvement": 7.7,
       "tiers": {
-        "correct": 2,
-        "partial": 2,
+        "correct": 3,
+        "partial": 1,
         "wrong": 1
       },
       "taskDetails": [
@@ -1248,9 +1248,9 @@
           "expected": [
             "fastapi/dependencies/utils.py"
           ],
-          "top1": "fastapi/dependencies/models.py",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "fastapi/dependencies/utils.py",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "fastapi-t004",
