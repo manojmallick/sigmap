@@ -123,6 +123,20 @@ All tools are available on-demand — your AI agent calls only what it needs.
 | `verify_suggestion` | Ground an AI code suggestion before writing it — verify a snippet against the repo **and the libraries actually installed** in `node_modules` (the grounding moat); flags fake files/imports/symbols/scripts and reports the installed libraries verified against with pinned versions. New in v8.2. | `code` (required string) | `verify_suggestion(code="const r = Router()")` |
 | `squeeze_output` | Compress noisy tool/command/agent output — a stack trace, CI/build log, or JSON payload — before it enters context. Same deterministic, offline engine as `sigmap squeeze`: keeps the signal, strips the noise, enriches the top stack frame. Passes the input through unchanged when nothing is squeezable. New in v8.8. | `content` (required string) | `squeeze_output(content="Traceback…")` |
 
+## Your agent's live loop
+
+SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**. Agentic grep is superb at *finding* a file and terrible at *proving* anything about it: it can't tell you a symbol's exact signature, what breaks if you change it, or whether the call your model is about to write actually exists. Five tools cover that gap, and each is deterministic, byte-stable, and auditable — the same inputs return the same bytes, every time:
+
+| Loop step | Tool | What the agent gets |
+|---|---|---|
+| "Which files matter for this task?" | `query_context` | Ranked files with scores and explain signals — reproducible, no embeddings |
+| "What exactly can I call here?" | `get_callee_signatures` | Exact signatures for the symbols in scope, before the model writes a call |
+| "Show me just those lines" | `get_lines` | The anchored `:start-end` range — no whole-file dumps |
+| "What breaks if I change this?" | `get_method_impact` | Every function that transitively calls the symbol (JS/TS, Python, Java, Go, Rust) |
+| "Is this suggestion real?" | `verify_suggestion` | The snippet checked against the repo **and the libraries actually installed** |
+
+The canonical sequence: your agent greps (or asks) its way to a candidate area → `query_context` confirms and ranks → `get_callee_signatures` + `get_lines` ground the exact surface → the model writes code → `verify_suggestion` proves the calls exist → `get_method_impact` sizes the blast radius before committing. Grep finds; SigMap grounds.
+
 ## Token cost per tool call
 
 Use `list_modules()` first and `read_context(module=...)` to stay efficient.
