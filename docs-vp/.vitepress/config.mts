@@ -94,6 +94,7 @@ export default defineConfig({
           { text: 'Troubleshooting', link: '/guide/troubleshooting' },
           { text: 'Release checklist', link: '/guide/release-checklist' },
           { text: 'Roadmap', link: '/guide/roadmap' },
+          { text: 'Learning Resources', link: '/guide/resources' },
         ],
       },
     ],
