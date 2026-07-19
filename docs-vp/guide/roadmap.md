@@ -7,7 +7,7 @@ head:
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "91 versions shipped. See what changed in each release and what is coming next."
+      content: "92 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Ninety-one versions shipped. MIT open source from day one.
+Ninety-two versions shipped. MIT open source from day one.
 
 **Stats:** 96.8% overall token reduction · 85.6% retrieval hit@5 (2.00× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.21.0 — Semantic Bridge II: Go/Rust/Java doc hints, centrality blend ✓ (2026-07-19)
+
+**Minor release — the doc-comment bridge reaches three more languages, and the import graph gains a principled ranking prior.** (1) **B1b:** `buildDocHints` lands in the Go extractor (godoc `//` blocks above top-level `func`/`type`, compiler directives `//go:`/`nolint` skipped), the Rust extractor (`///` blocks above `pub fn`/`struct`/`enum`/`trait` and impl methods, `#[attr]` lines between doc and declaration tolerated), and the Java extractor (Javadoc on type declarations *and* public/protected members; tag-only blocks produce no hint) — first prose sentence, 60-char cap, `  # <hint>` after the anchor, byte-format identical to the Python/JS/TS hints. Hints are mined from the original source since `extract()` strips comments before matching. (2) **B3:** new `src/graph/centrality.js` — zero-dependency power iteration over the forward import graph (damping 0.85, 20 iterations, deterministic), max-normalized; `rank()` blends `0.3 × centrality` onto **positively-scored files only** as a tie-breaker (`signals.centrality`), gated by the new opt-in `retrieval.centralityBlend` and wired like `callGraphBoost` (MCP `query_context` + CLI `ask`/`--query`, non-fatal). The `benchmark:centrality-blend` A/B measured **both arms at 77.8% hit@5 (+0 tasks)** over 90 tasks / 18 repos — non-regressing but neutral on the lexical corpus, so the flag ships **off** per the measure gate; the v8.22 hard-split corpus is the next chance to show a real delta.
+
+**Tags:** `buildDocHints (Go/Rust/Java)` · `centrality.js` · `retrieval.centralityBlend` · `signals.centrality` · `benchmark:centrality-blend` · `#501` · `PR #502`
+
+**Impact:** doc hints on 6 languages total (Python, JS, TS, Go, Rust, Java); centrality prior measured +0 → shipped dark; 11 new integration tests (127 files); zero new dependencies.
+
+---
+
 ### v8.20.0 — Semantic Bridge I: JS/TS doc hints, sigmap memory ✓ (2026-07-19)
 
 **Minor release — the JS/TS extractors gain the doc-comment hints Python has carried for releases.** `buildDocHints` mines the first prose sentence of the JSDoc block preceding each top-level function form and appends it after the line anchor as `  # <hint>` — byte-format identical to Python's `extractDocHint`. A tempered comment-body pattern prevents cross-block misattribution (caught in smoke testing). The trade was measured and shipped honestly: hints add English tokens that compete on the lexical corpus — **hit@5 86.4% → 85.5% task-level (−0.9pt, one borderline task: `svelte-t002`), honest lift 2.02× → 2.00×**, grep baseline unchanged — shipped default-on per the v8.18 anchors precedent and Python-parity, with the semantic upside proven directly by a new vocab-mismatch fixture (a query fully disjoint from every identifier retrieves the file *only* via its hint; BM25 score 0 without). The v8.22 hard-split corpus will measure that upside at scale. Also ships `sigmap memory`: one inspect/prune view over the existing `.context/` cross-session stores (session, notes, weights, evidence, gain, usage) with `--json` and explicit `--clear` — no new storage.
@@ -1468,7 +1478,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Evidence Pack schema v2 shipped (v8.16). Retrieval surface-enrichment shipped measure-gated (v8.18) — every Phase-2 quality-ceiling row is now done or gate-closed. Honest Numbers shipped (v8.19): the published lift is now measured vs a grep-agent baseline, with claim-hygiene guards. Semantic Bridge I shipped (v8.20): JS/TS doc hints (Python-parity, −0.9pt on the lexical corpus, default-on per the anchors precedent) + `sigmap memory`. Next: pull-based v10 items only (enterprise, IDE plugins — built if users ask) and the no-code growth lane
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Evidence Pack schema v2 shipped (v8.16). Retrieval surface-enrichment shipped measure-gated (v8.18) — every Phase-2 quality-ceiling row is now done or gate-closed. Honest Numbers shipped (v8.19): the published lift is now measured vs a grep-agent baseline, with claim-hygiene guards. Semantic Bridge I shipped (v8.20): JS/TS doc hints (Python-parity, −0.9pt on the lexical corpus, default-on per the anchors precedent) + `sigmap memory`. Semantic Bridge II shipped (v8.21): Go/Rust/Java doc hints (6 hint languages total) + the import-graph centrality blend (measured +0 → shipped dark behind `retrieval.centralityBlend`). Next: the v8.22 hard-split corpus (A3) to measure the semantic upside the hints exist for, then pull-based v10 items only (enterprise, IDE plugins — built if users ask) and the no-code growth lane
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 

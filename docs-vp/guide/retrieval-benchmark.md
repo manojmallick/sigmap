@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.20.0. 87% hit@5 vs 42.7% single-shot grep baseline (2.00× honest lift) across 90 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v8.21.0. 85.6% hit@5 vs 42.7% single-shot grep baseline (2.00× honest lift) across 90 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 87% hit@5"
+      content: "SigMap retrieval benchmark — 85.6% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 87% hit@5 vs 42.7% single-shot grep baseline, 2.00x honest lift, 90 tasks, 18 repos."
+      content: "Latest saved run: 85.6% hit@5 vs 42.7% single-shot grep baseline, 2.00x honest lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,23 +15,23 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.20.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.20-main &nbsp;·&nbsp; **Date:** 2026-07-19 (with R language)
+::: info Official v8.21.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.21-main &nbsp;·&nbsp; **Date:** 2026-07-19 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **86%** vs 42.7% single-shot grep baseline |
 | Graph-boosted hit@5 | **88%** |
 | Honest lift (vs grep agent) | **2.00×** |
-| Prompt reduction | **48.4%** (2.84 → 1.47) |
-| Task success proxy | **67.8%** |
-| Overall token reduction | **97.0%** |
+| Prompt reduction | **48%** (2.84 → 1.48) |
+| Task success proxy | **66.7%** |
+| Overall token reduction | **96.8%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-07-19 (v8.20.0)**
+Latest saved run: **2026-07-19 (v8.21.0)**
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **87% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **85.6% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
 ## Why this benchmark matters
 
@@ -51,17 +51,17 @@ This benchmark isolates that first question: *did the right file appear in conte
 | Graph-boosted hit@5 | — | **85.6%** |
 | Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.00x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
-| Correct (rank 1) | ~1% | **67.8%** |
+| Correct (rank 1) | ~1% | **66.7%** |
 | Partial (ranks 2–5) | ~13% | **18.9%** |
-| Wrong (not in top 5) | ~86% | **13.3%** |
+| Wrong (not in top 5) | ~86% | **14.4%** |
 
 ## Quality tiers from the saved run
 
 | Tier | Tasks | Share |
 |---|---:|---:|
-| Correct | 61 / 90 | **67.8%** |
+| Correct | 60 / 90 | **66.7%** |
 | Partial | 17 / 90 | **18.9%** |
-| Wrong | 12 / 90 | **13.3%** |
+| Wrong | 13 / 90 | **14.4%** |
 
 ## Per-repo results
 

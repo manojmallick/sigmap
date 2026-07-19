@@ -35,6 +35,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.21.0)
+- **@manojmallick** — feat(extractors): Go/Rust/Java doc-comment hints (godoc/rustdoc/Javadoc first sentence as `  # <hint>` after the anchor; directives skipped, attributes tolerated, members covered) (#501, PR #502)
+- **@manojmallick** — feat(retrieval): import-graph centrality rank blend — zero-dep power iteration, opt-in `retrieval.centralityBlend`, A/B measure gate `benchmark:centrality-blend` (77.8% both arms → ships off) (#501, PR #502)
+
 ### Recent Contributors (v8.20.0)
 - **@manojmallick** — feat(extractors): JS/TS doc-comment hints (`  # <hint>` after the anchor, Python-parity); measured −0.9pt on the lexical corpus, shipped default-on per the anchors precedent; vocab-mismatch fixture proves the semantic bridge (#498, PR #499)
 - **@manojmallick** — feat(cli): `sigmap memory` — inspect/prune the cross-session `.context/` stores, `--json`, explicit `--clear`; no new storage (#498, PR #499)

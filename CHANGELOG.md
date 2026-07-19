@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.21.0] — 2026-07-19
+
+Minor release — **"Semantic Bridge II" (v8.21)**: doc-comment hints reach Go, Rust, and Java, and the import graph gains a principled centrality prior for ranking — flag-gated and measured.
+
+### Added
+- **Go/Rust/Java doc-comment hints (#501, PR #502):** `buildDocHints` in the Go extractor (godoc `//` blocks above top-level `func`/`type`, compiler directives `//go:`/`nolint` skipped), the Rust extractor (`///` blocks above `pub fn`/`struct`/`enum`/`trait` and impl methods, `#[attr]` lines between doc and declaration tolerated), and the Java extractor (Javadoc on type declarations **and** public/protected members; tag-only blocks produce no hint). First prose sentence, 60-char cap, appended after the line anchor as `  # <hint>` — byte-format identical to the Python/JS/TS hints. Hints are mined from the original source since `extract()` strips comments before matching; undocumented signatures are byte-identical to before.
+- **Centrality rank blend (#501, PR #502, opt-in `retrieval.centralityBlend`):** new `src/graph/centrality.js` — zero-dependency power iteration over the forward import graph (damping 0.85, 20 iterations, sorted nodes, dangling mass redistributed; deterministic), max-normalized to (0,1]. `rank()` blends `0.3 × centrality` as a small additive prior onto **positively-scored files only** (`signals.centrality`) — a tie-breaker among matches, never a way to surface non-matches. Wired like `callGraphBoost`: MCP `query_context` + CLI `ask`/`--query`, all non-fatal. New A/B measure gate `scripts/run-centrality-blend-benchmark.mjs` (`npm run benchmark:centrality-blend`).
+
+### Changed
+- **Measured and gated off by default:** the centrality A/B over 90 tasks / 18 repos scored both arms at 77.8% hit@5 (+0 tasks) — non-regressing but neutral on the lexical-favoring corpus, so `retrieval.centralityBlend` ships **off** per the measure gate; the v8.22 hard-split corpus (A3) is the next chance to show a real delta. 11 new integration tests (127 test files).
+
+---
+
 ## [8.20.0] — 2026-07-19
 
 Minor release — **"Semantic Bridge I" (v8.20)**: the JS/TS extractors gain the same doc-comment hints Python has carried for releases, and the cross-session stores get a single inspect/prune surface.
