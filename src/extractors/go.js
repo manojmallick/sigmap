@@ -12,6 +12,10 @@ const { lineAt, withAnchor } = require('./line-anchor');
 function extract(src) {
   if (!src || typeof src !== 'string') return [];
   const sigs = [];
+  const docHints = buildDocHints(src);
+  // Append the godoc hint after the anchor as `  # <hint>` — same convention
+  // as the Python/JS extractors' doc hints.
+  const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
 
   const stripped = src
     .replace(/\/\/.*$/gm, '')
@@ -23,14 +27,14 @@ function extract(src) {
   // Structs
   for (const m of stripped.matchAll(/^type\s+(\w+)\s+struct\s*\{/gm)) {
     const end = blockEndIdx(m.index + m[0].length);
-    sigs.push(withAnchor(`type ${m[1]} struct`, lineAt(stripped, m.index), lineAt(stripped, end)));
+    sigs.push(hinted(withAnchor(`type ${m[1]} struct`, lineAt(stripped, m.index), lineAt(stripped, end)), m[1]));
   }
 
   // Interfaces
   for (const m of stripped.matchAll(/^type\s+(\w+)\s+interface\s*\{/gm)) {
     const bodyStart = m.index + m[0].length;
     const block = extractBlock(stripped, bodyStart);
-    sigs.push(withAnchor(`type ${m[1]} interface`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+    sigs.push(hinted(withAnchor(`type ${m[1]} interface`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)), m[1]));
     for (const meth of extractInterfaceMethods(block)) {
       sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
     }
@@ -42,7 +46,7 @@ function extract(src) {
     const retType = m[4] ? m[4].trim().replace(/\s+/g, ' ') : '';
     const retStr = retType ? ` → ${retType.slice(0, 30)}` : '';
     const end = blockEndIdx(m.index + m[0].length);
-    sigs.push(withAnchor(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)));
+    sigs.push(hinted(withAnchor(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)), m[2]));
   }
 
   return sigs.slice(0, 25);
@@ -76,6 +80,30 @@ function extractInterfaceMethods(block) {
 function normalizeParams(params) {
   if (!params) return '';
   return params.trim().replace(/\s+/g, ' ');
+}
+
+// Godoc: the `//` comment block directly above a top-level func/type/method
+// declaration → first prose sentence, 60-char cap. Runs on the ORIGINAL src
+// (extract strips comments before matching). Compiler directives (`//go:...`)
+// carry no prose and are skipped.
+function buildDocHints(src) {
+  const hints = new Map();
+  const re = /((?:^\/\/[^\n]*\n)+)(?:func\s+(?:\(\w+\s+[\w*]+\)\s+)?(\w+)\s*\(|type\s+(\w+)\s+(?:struct|interface)\b)/gm;
+  for (const m of src.matchAll(re)) {
+    const name = m[2] || m[3];
+    const hint = firstDocSentence(m[1]);
+    if (hint && !hints.has(name)) hints.set(name, hint);
+  }
+  return hints;
+}
+
+// First non-directive prose line of a `//` block → first sentence, 60-char cap.
+function firstDocSentence(block) {
+  const line = String(block).split('\n')
+    .map((l) => l.replace(/^\/\/\s?/, '').trim())
+    .find((l) => l && !l.startsWith('go:') && !l.startsWith('nolint'));
+  if (!line) return '';
+  return line.split(/[.!?]/)[0].trim().slice(0, 60);
 }
 
 module.exports = { extract };

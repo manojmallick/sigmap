@@ -149,6 +149,8 @@ const DEFAULTS = {
     recencyBoost: 1.5,
     // Boost files call-graph-connected to query matches (opt-in, measure-gated)
     callGraphBoost: false,
+    // Blend import-graph centrality into ranking as a small prior (opt-in, measure-gated)
+    centralityBlend: false,
     // Append route pseudo-signatures to the rankable index (opt-in, measure-gated)
     surfaceEnrichment: false,
   },

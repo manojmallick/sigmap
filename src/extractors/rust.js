@@ -12,6 +12,10 @@ const { lineAt, withAnchor } = require('./line-anchor');
 function extract(src) {
   if (!src || typeof src !== 'string') return [];
   const sigs = [];
+  const docHints = buildDocHints(src);
+  // Append the doc-comment hint after the anchor as `  # <hint>` — same
+  // convention as the Python/JS extractors' doc hints.
+  const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
 
   const stripped = src
     .replace(/\/\/.*$/gm, '')
@@ -33,19 +37,19 @@ function extract(src) {
   // Structs
   for (const m of stripped.matchAll(/^pub\s+struct\s+(\w+)(?:<[^{]*>)?/gm)) {
     const [s, e] = rangeFor(m.index, m.index + m[0].length);
-    sigs.push(withAnchor(`pub struct ${m[1]}`, s, e));
+    sigs.push(hinted(withAnchor(`pub struct ${m[1]}`, s, e), m[1]));
   }
 
   // Enums
   for (const m of stripped.matchAll(/^pub\s+enum\s+(\w+)(?:<[^{]*>)?/gm)) {
     const [s, e] = rangeFor(m.index, m.index + m[0].length);
-    sigs.push(withAnchor(`pub enum ${m[1]}`, s, e));
+    sigs.push(hinted(withAnchor(`pub enum ${m[1]}`, s, e), m[1]));
   }
 
   // Traits
   for (const m of stripped.matchAll(/^pub\s+trait\s+(\w+)(?:<[^{]*>)?/gm)) {
     const [s, e] = rangeFor(m.index, m.index + m[0].length);
-    sigs.push(withAnchor(`pub trait ${m[1]}`, s, e));
+    sigs.push(hinted(withAnchor(`pub trait ${m[1]}`, s, e), m[1]));
   }
 
   // impl blocks
@@ -54,7 +58,7 @@ function extract(src) {
     const block = extractBlock(stripped, bodyStart);
     sigs.push(withAnchor(`impl ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
     for (const fn of extractMethods(block)) {
-      sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+      sigs.push(hinted(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)), fn.name));
     }
   }
 
@@ -63,7 +67,7 @@ function extract(src) {
     const asyncKw = m[0].includes('async') ? 'async ' : '';
     const retStr = extractReturnType(m[3]);
     const [s, e] = rangeFor(m.index, m.index + m[0].length);
-    sigs.push(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
+    sigs.push(hinted(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e), m[1]));
   }
 
   return sigs.slice(0, 25);
@@ -87,6 +91,7 @@ function extractMethods(block) {
     const retStr = extractReturnType(m[3]);
     methods.push({
       text: `pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+      name: m[1],
       declIdx: m.index + (m[0].length - m[0].trimStart().length),
       endIdx: m.index + m[0].length,
     });
@@ -105,6 +110,29 @@ function extractReturnType(afterParen) {
   if (!m) return '';
   const rt = m[1].trim().replace(/\s+/g, ' ');
   return ` → ${rt.length > 30 ? rt.slice(0, 27) + '...' : rt}`;
+}
+
+// Rustdoc: the `///` block directly above a declaration → first prose
+// sentence, 60-char cap. Runs on the ORIGINAL src (extract strips comments
+// before matching). Attribute lines (`#[...]`) between the doc block and the
+// declaration are tolerated.
+function buildDocHints(src) {
+  const hints = new Map();
+  const re = /((?:^[ \t]*\/\/\/[^\n]*\n)+)(?:[ \t]*#\[[^\n]*\n)*[ \t]*pub(?:\s+async)?\s+(?:fn|struct|enum|trait)\s+(\w+)/gm;
+  for (const m of src.matchAll(re)) {
+    const hint = firstDocSentence(m[1]);
+    if (hint && !hints.has(m[2])) hints.set(m[2], hint);
+  }
+  return hints;
+}
+
+// First prose line of a `///` block → first sentence, 60-char cap.
+function firstDocSentence(block) {
+  const line = String(block).split('\n')
+    .map((l) => l.replace(/^[ \t]*\/\/\/\s?/, '').trim())
+    .find((l) => l);
+  if (!line) return '';
+  return line.split(/[.!?]/)[0].trim().slice(0, 60);
 }
 
 module.exports = { extract };
