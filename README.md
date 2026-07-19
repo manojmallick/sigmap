@@ -59,10 +59,10 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
-- **86.7% hit@5** — right file found in top 5 results (vs 13.6% baseline)
+- **86.7% hit@5** — right file in top 5 results (vs 42.7% single-shot grep baseline — 2.02× lift)
 - **96.9% token reduction** — average across 21 real repos
-- **68.9% task success rate** — up from 10% without context
-- **1.44 prompts per task** — down from 2.84 (49.2% fewer retries)
+- **68.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
+- **1.44 prompts per task** — down from 2.84 (49.2% fewer retries, modeled)
 <!--/SM:whyMetrics-->
 - **<!--SM:languages-->33<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
@@ -125,10 +125,10 @@ Ask → Rank → Context → Validate → Judge → Learn
 Benchmark : sigmap-v8.18-main (21 repositories, including R language)
 Date      : 2026-07-12
 
-Hit@5          : 86.7%   (baseline 13.6%  — 6.4× lift)
+Hit@5          : 86.7%   (grep-agent baseline 42.7%  — 2.02× lift)
 Token reduction: 96.9%   (across 21 repos)
-Prompt reduction : 49.2% (2.84 → 1.44 prompts per task)
-Task success   : 68.9%   (baseline 10%)
+Prompt reduction : 49.2% (2.84 → 1.44 prompts per task, modeled)
+Task success   : 68.9%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 <!--/SM:benchmarkBlock-->

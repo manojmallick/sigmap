@@ -77,8 +77,11 @@ test('why: hit@5 (from version.json) mentioned', () => {
   assert.ok(src.includes(pct1(M.hit_at_5 * 100)), `missing ${pct1(M.hit_at_5 * 100)} hit@5`);
 });
 
-test('why: baseline (from version.json) mentioned', () => {
-  assert.ok(src.includes(pct1(M.baseline_hit_at_5 * 100)), `missing ${pct1(M.baseline_hit_at_5 * 100)} baseline`);
+test('why: grep baseline (from version.json) mentioned', () => {
+  // v8.19 (#495): human surfaces quote the measured grep-agent baseline,
+  // never the random baseline (baseline_hit_at_5 stays data-only).
+  assert.ok(src.includes(pct1(M.grep_baseline_hit_at_5 * 100)), `missing ${pct1(M.grep_baseline_hit_at_5 * 100)} grep baseline`);
+  assert.ok(!src.includes(pct1(M.baseline_hit_at_5 * 100)), `random baseline ${pct1(M.baseline_hit_at_5 * 100)} must stay off the README`);
 });
 
 test('why: token reduction (from version.json) mentioned', () => {
@@ -145,8 +148,8 @@ test('benchmark: Hit@5 (from version.json) present', () => {
   assert.ok(src.includes(pct1(M.hit_at_5 * 100)), `missing Hit@5 ${pct1(M.hit_at_5 * 100)}`);
 });
 
-test('benchmark: baseline (from version.json) present', () => {
-  assert.ok(src.includes(pct1(M.baseline_hit_at_5 * 100)), `missing baseline ${pct1(M.baseline_hit_at_5 * 100)}`);
+test('benchmark: grep baseline (from version.json) present', () => {
+  assert.ok(src.includes(pct1(M.grep_baseline_hit_at_5 * 100)), `missing grep baseline ${pct1(M.grep_baseline_hit_at_5 * 100)}`);
 });
 
 test('benchmark: prompt reduction (from version.json) present', () => {

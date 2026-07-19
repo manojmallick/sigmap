@@ -43,11 +43,18 @@ export function renderTokens(root = ROOT) {
   const m = latest.metrics;
   const languages = deriveLanguages(root).length;
 
+  // Honest baseline (v8.19): quote the measured grep-agent comparison, never
+  // the random baseline. Falls back to no baseline clause if the honest
+  // report has not been generated yet.
+  const grepClause = m.grep_baseline_hit_at_5 != null
+    ? `vs ${pct(m.grep_baseline_hit_at_5 * 100)} single-shot grep baseline — ${Number(m.grep_lift).toFixed(2)}× lift`
+    : 'right file found in top 5 results';
+
   const bullets = [
-    `- **${pct(m.hit_at_5 * 100)} hit@5** — right file found in top 5 results (vs ${pct(m.baseline_hit_at_5 * 100)} baseline)`,
+    `- **${pct(m.hit_at_5 * 100)} hit@5** — right file in top 5 results (${grepClause})`,
     `- **${pct(m.overall_token_reduction_pct)} token reduction** — average across ${latest.repos_token} real repos`,
-    `- **${pct(m.task_success_proxy_pct)} task success rate** — up from 10% without context`,
-    `- **${m.prompts_per_task} prompts per task** — down from ${m.baseline_prompts_per_task} (${pct(m.prompt_reduction_pct)} fewer retries)`,
+    `- **${pct(m.task_success_proxy_pct)} task-success proxy** — modeled from retrieval tiers, not measured LLM sessions`,
+    `- **${m.prompts_per_task} prompts per task** — down from ${m.baseline_prompts_per_task} (${pct(m.prompt_reduction_pct)} fewer retries, modeled)`,
   ].join('\n');
 
   // The fenced code block, rendered whole (markers sit *outside* the fence so
@@ -57,10 +64,12 @@ export function renderTokens(root = ROOT) {
     `Benchmark : ${latest.benchmark_id} (${latest.repos_token} repositories, including R language)`,
     `Date      : ${latest.benchmark_date}`,
     '',
-    `Hit@5          : ${pct(m.hit_at_5 * 100)}   (baseline ${pct(m.baseline_hit_at_5 * 100)}  — ${Number(m.retrieval_lift).toFixed(1)}× lift)`,
+    m.grep_baseline_hit_at_5 != null
+      ? `Hit@5          : ${pct(m.hit_at_5 * 100)}   (grep-agent baseline ${pct(m.grep_baseline_hit_at_5 * 100)}  — ${Number(m.grep_lift).toFixed(2)}× lift)`
+      : `Hit@5          : ${pct(m.hit_at_5 * 100)}`,
     `Token reduction: ${pct(m.overall_token_reduction_pct)}   (across ${latest.repos_token} repos)`,
-    `Prompt reduction : ${pct(m.prompt_reduction_pct)} (${m.baseline_prompts_per_task} → ${m.prompts_per_task} prompts per task)`,
-    `Task success   : ${pct(m.task_success_proxy_pct)}   (baseline 10%)`,
+    `Prompt reduction : ${pct(m.prompt_reduction_pct)} (${m.baseline_prompts_per_task} → ${m.prompts_per_task} prompts per task, modeled)`,
+    `Task success   : ${pct(m.task_success_proxy_pct)}   (proxy — modeled from retrieval tiers)`,
     `Repos tested   : ${latest.repos_token} (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)`,
     '```',
   ].join('\n');
