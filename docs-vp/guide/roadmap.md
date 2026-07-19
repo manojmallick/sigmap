@@ -22,7 +22,7 @@ head:
 
 Ninety-one versions shipped. MIT open source from day one.
 
-**Stats:** 96.9% overall token reduction · 86.7% retrieval hit@5 (2.02× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.8% overall token reduction · 85.6% retrieval hit@5 (2.00× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.20.0 — Semantic Bridge I: JS/TS doc hints, sigmap memory ✓ (2026-07-19)
+
+**Minor release — the JS/TS extractors gain the doc-comment hints Python has carried for releases.** `buildDocHints` mines the first prose sentence of the JSDoc block preceding each top-level function form and appends it after the line anchor as `  # <hint>` — byte-format identical to Python's `extractDocHint`. A tempered comment-body pattern prevents cross-block misattribution (caught in smoke testing). The trade was measured and shipped honestly: hints add English tokens that compete on the lexical corpus — **hit@5 86.4% → 85.5% task-level (−0.9pt, one borderline task: `svelte-t002`), honest lift 2.02× → 2.00×**, grep baseline unchanged — shipped default-on per the v8.18 anchors precedent and Python-parity, with the semantic upside proven directly by a new vocab-mismatch fixture (a query fully disjoint from every identifier retrieves the file *only* via its hint; BM25 score 0 without). The v8.22 hard-split corpus will measure that upside at scale. Also ships `sigmap memory`: one inspect/prune view over the existing `.context/` cross-session stores (session, notes, weights, evidence, gain, usage) with `--json` and explicit `--clear` — no new storage.
+
+**Tags:** `buildDocHints` · `firstDocSentence` · `sigmap memory` · `memory --clear` · `vocab-mismatch fixture` · `#498` · `PR #499`
+
+**Impact:** doc hints on 3 JS + 2 TS top-level forms (Python-parity); measured −0.9pt lexical-corpus trade documented; 10 new integration tests (126 files); memory command over 6 existing stores; zero new dependencies.
+
+---
+
 ### v8.19.0 — Honest Numbers: measured grep baseline, random-baseline lift retired ✓ (2026-07-19)
 
 **Minor release — the published retrieval lift now comes from a measurement, not a strawman.** The old headline compared hit@5 against random file selection (`min(1, 5/fileCount)` ≈ 13.6%) — a 6.4× lift nobody could defend. The new `npm run benchmark:honest` (`scripts/run-honest-benchmark.mjs`) scores the production ranker against an **internal single-shot grep-agent baseline** — a pure-Node, zero-dependency, child-process-free repo scan ranked by distinct-term coverage then occurrences, `.gitignore`-aware — on the same 110-task / 19-repo corpus with the same scorer. **Measured: SigMap 86.4% hit@5 / MRR .780 vs grep 42.7% / .228 → 2.02× lift (+43.6pt)**, reproduced exactly across independent runs. `grep_baseline_hit_at_5` + `grep_lift` flow from the report through `computeLatest` → latest.json → every human surface; task success is labeled a **retrieval-tier proxy** everywhere; and a claim-hygiene guard test makes the retired numbers a one-way door — 6.4×, 13.6%, and the unsourced "10% without" can never reappear on README or llms surfaces. (Release hygiene note: the benchmark ordering matters — the quality suite regenerates shared repo contexts with a default config, so `benchmark:honest` runs immediately after the retrieval harness, the same cross-suite-skew class the v8.16.1 hermetic fix addressed.)
@@ -1458,7 +1468,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Evidence Pack schema v2 shipped (v8.16). Retrieval surface-enrichment shipped measure-gated (v8.18) — every Phase-2 quality-ceiling row is now done or gate-closed. Honest Numbers shipped (v8.19): the published lift is now a measured 2.02× vs a grep-agent baseline, with claim-hygiene guards. Next: pull-based v10 items only (enterprise, IDE plugins — built if users ask) and the no-code growth lane
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Evidence Pack schema v2 shipped (v8.16). Retrieval surface-enrichment shipped measure-gated (v8.18) — every Phase-2 quality-ceiling row is now done or gate-closed. Honest Numbers shipped (v8.19): the published lift is now measured vs a grep-agent baseline, with claim-hygiene guards. Semantic Bridge I shipped (v8.20): JS/TS doc hints (Python-parity, −0.9pt on the lexical corpus, default-on per the anchors precedent) + `sigmap memory`. Next: pull-based v10 items only (enterprise, IDE plugins — built if users ask) and the no-code growth lane
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 

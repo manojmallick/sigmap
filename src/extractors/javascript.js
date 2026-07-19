@@ -14,7 +14,12 @@ function extract(src) {
   if (!src || typeof src !== 'string') return [];
   const sigs = [];
   const anchors = [];
+  // docHintFor[i] is the doc-comment hint for sigs[i] (top-level functions
+  // only), appended after the anchor as `  # <hint>` — same convention as the
+  // Python extractor's extractDocHint.
+  const docHintFor = [];
   const returnHints = buildReturnHints(src);
+  const docHints = buildDocHints(src);
 
   // Block comments are blanked newline-by-newline (non-newline chars → spaces)
   // so character offsets AND line numbers stay exact for anchors.
@@ -49,6 +54,7 @@ function extract(src) {
     const retStr = formatReturnHint(returnHints.get(m[1]));
     const startLn = lineAt(stripped, m.index);
     sigs.push(`export ${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+    docHintFor[sigs.length - 1] = docHints.get(m[1]);
     anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
   }
 
@@ -58,6 +64,7 @@ function extract(src) {
     const retStr = formatReturnHint(returnHints.get(m[1]));
     const startLn = lineAt(stripped, m.index);
     sigs.push(`export const ${m[1]} = ${asyncKw}(${normalizeParams(m[2])}) =>${retStr}`);
+    docHintFor[sigs.length - 1] = docHints.get(m[1]);
     anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
   }
 
@@ -78,10 +85,14 @@ function extract(src) {
     const retStr = formatReturnHint(returnHints.get(m[1]));
     const startLn = lineAt(stripped, m.index);
     sigs.push(`${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+    docHintFor[sigs.length - 1] = docHints.get(m[1]);
     anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
   }
 
-  const withAnchors = sigs.map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s));
+  const withAnchors = sigs.map((s, i) => {
+    const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
+    return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+  });
   return capWithNotice(withAnchors, 25, 'signatures');
 }
 
@@ -128,6 +139,36 @@ function buildReturnHints(src) {
     hints.set(m[2], normalizeType(m[1]));
   }
   return hints;
+}
+
+// First prose sentence of the JSDoc block immediately preceding a top-level
+// function (same three shapes as buildReturnHints). Mirrors the Python
+// extractor's extractDocHint: first sentence only, 60-char cap.
+function buildDocHints(src) {
+  const hints = new Map();
+  // Body may not contain `*/` — otherwise a failed adjacency check would let
+  // the match expand across a whole function to the next comment block and
+  // misattribute the hint.
+  const patterns = [
+    /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/g,
+    /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/g,
+  ];
+  for (const re of patterns) {
+    for (const m of src.matchAll(re)) {
+      const hint = firstDocSentence(m[1]);
+      if (hint && !hints.has(m[2])) hints.set(m[2], hint);
+    }
+  }
+  return hints;
+}
+
+// First non-tag prose line of a JSDoc body → first sentence, 60-char cap.
+function firstDocSentence(body) {
+  const line = String(body).split('\n')
+    .map((l) => l.replace(/^\s*\*\s?/, '').trim())
+    .find((l) => l && !l.startsWith('@'));
+  if (!line) return '';
+  return line.split(/[.!?]/)[0].trim().slice(0, 60);
 }
 
 function normalizeType(type) {

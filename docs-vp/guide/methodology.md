@@ -64,7 +64,7 @@ Example tasks:
 
 **Baseline:** Single-shot grep agent = 42.7% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
 
-**SigMap score:** 86.7% — a measured 2.02× honest lift over the grep baseline
+**SigMap score:** 85.6% — a measured 2.00× honest lift over the grep baseline
 
 ### 2. Task success proxy (correct rank)
 
@@ -90,7 +90,7 @@ Example tasks:
 
 **Metric:** Average prompts per task
 - **Without SigMap:** 2.84 prompts/task (cold start, no context)
-- **With SigMap:** 1.44 prompts/task
+- **With SigMap:** 1.47 prompts/task
 - **Reduction:** 41.0%
 
 ### 4. Token reduction

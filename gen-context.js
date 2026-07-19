@@ -6203,7 +6203,12 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
     const anchors = [];
+    // docHintFor[i] is the doc-comment hint for sigs[i] (top-level functions
+    // only), appended after the anchor as `  # <hint>` — same convention as the
+    // Python extractor's extractDocHint.
+    const docHintFor = [];
     const returnHints = buildReturnHints(src);
+    const docHints = buildDocHints(src);
 
     // Block comments are blanked newline-by-newline (non-newline chars → spaces)
     // so character offsets AND line numbers stay exact for anchors.
@@ -6238,6 +6243,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       const retStr = formatReturnHint(returnHints.get(m[1]));
       const startLn = lineAt(stripped, m.index);
       sigs.push(`export ${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
     }
 
@@ -6247,6 +6253,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       const retStr = formatReturnHint(returnHints.get(m[1]));
       const startLn = lineAt(stripped, m.index);
       sigs.push(`export const ${m[1]} = ${asyncKw}(${normalizeParams(m[2])}) =>${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
     }
 
@@ -6267,10 +6274,14 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       const retStr = formatReturnHint(returnHints.get(m[1]));
       const startLn = lineAt(stripped, m.index);
       sigs.push(`${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([startLn, fnEndLine(m.index + m[0].length, startLn)]);
     }
 
-    const withAnchors = sigs.map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s));
+    const withAnchors = sigs.map((s, i) => {
+      const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
+      return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+    });
     return capWithNotice(withAnchors, 25, 'signatures');
   }
 
@@ -6317,6 +6328,36 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       hints.set(m[2], normalizeType(m[1]));
     }
     return hints;
+  }
+
+  // First prose sentence of the JSDoc block immediately preceding a top-level
+  // function (same three shapes as buildReturnHints). Mirrors the Python
+  // extractor's extractDocHint: first sentence only, 60-char cap.
+  function buildDocHints(src) {
+    const hints = new Map();
+    // Body may not contain `*/` — otherwise a failed adjacency check would let
+    // the match expand across a whole function to the next comment block and
+    // misattribute the hint.
+    const patterns = [
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/g,
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/g,
+    ];
+    for (const re of patterns) {
+      for (const m of src.matchAll(re)) {
+        const hint = firstDocSentence(m[1]);
+        if (hint && !hints.has(m[2])) hints.set(m[2], hint);
+      }
+    }
+    return hints;
+  }
+
+  // First non-tag prose line of a JSDoc body → first sentence, 60-char cap.
+  function firstDocSentence(body) {
+    const line = String(body).split('\n')
+      .map((l) => l.replace(/^\s*\*\s?/, '').trim())
+      .find((l) => l && !l.startsWith('@'));
+    if (!line) return '';
+    return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
 
   function normalizeType(type) {
@@ -8307,6 +8348,11 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
+    // docHintFor[i] is the doc-comment hint for sigs[i] (exported top-level
+    // functions only), appended after the anchor as `  # <hint>` — same
+    // convention as the Python extractor's extractDocHint.
+    const docHintFor = [];
+    const docHints = buildDocHints(src);
     // anchors[i] is [start, end] for a top-level sig, or null for an indented member.
     // Kept parallel to `sigs` so existing push/mutation logic stays untouched;
     // anchors are applied once at return.
@@ -8374,6 +8420,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       const retStr = retType ? ` → ${retType}` : '';
       const bodyStart = m.index + m[0].length;
       sigs.push(`export ${asyncKw}function ${m[1]}(${params})${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
 
       // Hooks: capture compact return object shape for use* functions.
@@ -8398,6 +8445,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       const asyncKw = /=\s*async\s+/.test(m[0]) ? 'async ' : '';
       const params = normalizeParams(m[2]);
       sigs.push(`export const ${m[1]} = ${asyncKw}(${params}) =>`);
+      docHintFor[sigs.length - 1] = docHints.get(m[1]);
       const bodyStart = stripped.indexOf('{', m.index + m[0].length);
       const endLn = bodyStart !== -1
         ? lineAt(stripped, blockEndIdx(bodyStart + 1))
@@ -8447,7 +8495,10 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     }
 
-    const withAnchors = sigs.map((s, i) => (anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s));
+    const withAnchors = sigs.map((s, i) => {
+      const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
+      return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+    });
     return capWithNotice(withAnchors, 35, 'signatures');
   }
 
@@ -8510,6 +8561,36 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ').replace(/:[^,)]+/g, '').trim();
+  }
+
+  // First prose sentence of the JSDoc block immediately preceding an exported
+  // top-level function (function or arrow-const form). Mirrors the Python
+  // extractor's extractDocHint: first sentence only, 60-char cap.
+  function buildDocHints(src) {
+    const hints = new Map();
+    // Body may not contain `*/` — otherwise a failed adjacency check would let
+    // the match expand across a whole function to the next comment block and
+    // misattribute the hint.
+    const patterns = [
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+(?:async\s+)?function\s+(\w+)\s*[<(]/g,
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+const\s+(\w+)\s*[:=]/g,
+    ];
+    for (const re of patterns) {
+      for (const m of src.matchAll(re)) {
+        const hint = firstDocSentence(m[1]);
+        if (hint && !hints.has(m[2])) hints.set(m[2], hint);
+      }
+    }
+    return hints;
+  }
+
+  // First non-tag prose line of a JSDoc body → first sentence, 60-char cap.
+  function firstDocSentence(body) {
+    const line = String(body).split('\n')
+      .map((l) => l.replace(/^\s*\*\s?/, '').trim())
+      .find((l) => l && !l.startsWith('@'));
+    if (!line) return '';
+    return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
 
   module.exports = { extract };
@@ -14607,7 +14688,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.19.0',
+    version: '8.20.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -17202,6 +17283,96 @@ __factories["./src/session/memory"] = function(module, exports) {
   
 };
 
+// ── ./src/session/memory-inspect ──
+__factories["./src/session/memory-inspect"] = function(module, exports) {
+  
+  /**
+   * memory-inspect.js — one view over SigMap's existing cross-session stores.
+   * No new storage: reads the JSON/NDJSON files the session, notes, weights,
+   * evidence, and tracking modules already own under `.context/`.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  /** store name → { file, kind } (kind drives the entry count). */
+  const STORES = {
+    session: { file: 'session.json', kind: 'json' },
+    notes: { file: 'notes.ndjson', kind: 'ndjson' },
+    weights: { file: 'weights.json', kind: 'weights' },
+    evidence: { file: 'evidence-pack.json', kind: 'json' },
+    gain: { file: 'gain.ndjson', kind: 'ndjson' },
+    usage: { file: 'usage.ndjson', kind: 'ndjson' },
+  };
+
+  /** Stores `clearMemory` may delete ('gain'/'usage' have their own reset flows). */
+  const CLEARABLE = ['session', 'notes', 'weights', 'evidence'];
+
+  function storePath(cwd, name) {
+    return path.join(cwd, '.context', STORES[name].file);
+  }
+
+  function countEntries(kind, filePath) {
+    try {
+      if (kind === 'ndjson') {
+        return fs.readFileSync(filePath, 'utf8').split('\n').filter(Boolean).length;
+      }
+      if (kind === 'weights') {
+        const w = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        return Object.keys((w && w.files) || w || {}).length;
+      }
+      return 1; // json: a single snapshot object
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /**
+   * Describe every cross-session store.
+   * @param {string} cwd
+   * @returns {Array<{store:string, path:string, exists:boolean, entries:number, bytes:number, modified:string|null, clearable:boolean}>}
+   */
+  function inspectMemory(cwd) {
+    return Object.entries(STORES).map(([store, { file, kind }]) => {
+      const p = storePath(cwd, store);
+      let stat = null;
+      try { stat = fs.statSync(p); } catch (_) {}
+      return {
+        store,
+        path: path.join('.context', file),
+        exists: !!stat,
+        entries: stat ? countEntries(kind, p) : 0,
+        bytes: stat ? stat.size : 0,
+        modified: stat ? new Date(stat.mtimeMs).toISOString() : null,
+        clearable: CLEARABLE.includes(store),
+      };
+    });
+  }
+
+  /**
+   * Delete one clearable store (or 'all' clearable stores).
+   * @param {string} cwd
+   * @param {string} store - session|notes|weights|evidence|all
+   * @returns {string[]} names of stores actually removed
+   */
+  function clearMemory(cwd, store) {
+    const targets = store === 'all' ? CLEARABLE : [store];
+    for (const t of targets) {
+      if (!CLEARABLE.includes(t)) {
+        throw new Error(`unknown or protected store "${t}" — clearable: ${CLEARABLE.join(', ')}, all`);
+      }
+    }
+    const removed = [];
+    for (const t of targets) {
+      try { fs.unlinkSync(storePath(cwd, t)); removed.push(t); } catch (_) {}
+    }
+    return removed;
+  }
+
+  module.exports = { inspectMemory, clearMemory, STORES, CLEARABLE };
+  
+};
+
 // ── ./src/session/notes ──
 __factories["./src/session/notes"] = function(module, exports) {
   
@@ -19710,7 +19881,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.19.0';
+const VERSION = '8.20.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -21593,6 +21764,8 @@ Usage:
   ${cmd} evidence "<query>"                Build a deterministic Evidence Pack (JSON) → .context/evidence-pack.json
   ${cmd} evidence "<query>" --markdown     Emit the Markdown handoff rendering to stdout
   ${cmd} evidence "<query>" --top <n> --budget <n> --out <path>   Tune ranked files / token budget / write rendered output
+  ${cmd} memory                            List cross-session stores (.context/) — entries, size, age
+  ${cmd} memory --clear <store>            Clear one store: session|notes|weights|evidence|all (--json supported)
   ${cmd} note "<text>"                     Append a note to the cross-session decision log
   ${cmd} note                              List recent notes (also: note --list <N>)
   ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
@@ -22986,6 +23159,56 @@ function main() {
 
   // `sigmap note "<text>"` — append to the cross-session decision log.
   // With no text, lists recent notes (also `note --list [N]`).
+  // `sigmap memory` — one view over the cross-session stores in .context/.
+  if (args[0] === 'memory') {
+    const jsonOut = args.includes('--json');
+    const { inspectMemory, clearMemory } = requireSourceOrBundled('./src/session/memory-inspect');
+    const clearIdx = args.indexOf('--clear');
+
+    if (clearIdx !== -1) {
+      const store = args[clearIdx + 1];
+      if (!store || store.startsWith('--')) {
+        console.error('[sigmap] usage: sigmap memory --clear <session|notes|weights|evidence|all>');
+        process.exit(1);
+      }
+      let removed;
+      try {
+        removed = clearMemory(cwd, store);
+      } catch (err) {
+        console.error(`[sigmap] ${err.message}`);
+        process.exit(1);
+      }
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify({ cleared: removed }) + '\n');
+      } else {
+        console.log(removed.length
+          ? `[sigmap] cleared: ${removed.join(', ')}`
+          : `[sigmap] nothing to clear for "${store}"`);
+      }
+      process.exit(0);
+    }
+
+    const stores = inspectMemory(cwd);
+    if (jsonOut) {
+      process.stdout.write(JSON.stringify({ stores }) + '\n');
+      process.exit(0);
+    }
+    const fmtAge = (iso) => {
+      if (!iso) return '—';
+      const m = Math.floor((Date.now() - Date.parse(iso)) / 60000);
+      const h = Math.floor(m / 60), d = Math.floor(h / 24);
+      return d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : `${m}m ago`;
+    };
+    const fmtKB = (b) => (b >= 1024 ? `${(b / 1024).toFixed(1)}KB` : `${b}B`);
+    console.log('[sigmap] cross-session memory (.context/)');
+    for (const s of stores) {
+      const state = s.exists ? `${String(s.entries).padStart(5)} entries  ${fmtKB(s.bytes).padStart(8)}  ${fmtAge(s.modified)}` : '    — empty';
+      console.log(`  ${s.store.padEnd(9)} ${state}${s.clearable ? '' : '   (reset via its own command)'}`);
+    }
+    console.log('  clear: sigmap memory --clear <session|notes|weights|evidence|all>');
+    process.exit(0);
+  }
+
   if (args[0] === 'note') {
     const jsonOut = args.includes('--json');
     const { addNote, readNotes, formatNotes } = requireSourceOrBundled('./src/session/notes');

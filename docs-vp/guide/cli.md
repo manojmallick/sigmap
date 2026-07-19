@@ -1,6 +1,6 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
@@ -833,6 +833,37 @@ This is part of Layer 4 (grounded code generation); a `--naming-pattern` overrid
 
 ---
 
+## memory
+
+One view over every cross-session store SigMap keeps in `.context/` — session, notes, weights, evidence pack, gain log, and usage log — with per-store entry counts, size on disk, and age. Clearing is explicit and per-store; the tracking stores (`gain`, `usage`) are listed for visibility but keep their own reset flows (`gain --reset`, `--no-track`).
+
+```bash
+sigmap memory                       # list all stores
+sigmap memory --json                # machine-readable
+sigmap memory --clear notes         # remove one store
+sigmap memory --clear all           # session + notes + weights + evidence
+```
+
+```
+[sigmap] cross-session memory (.context/)
+  session       1 entries      393B  15m ago
+  notes         12 entries    2.1KB  2h ago
+  weights       8 entries     1.4KB  1d ago
+  evidence      1 entries    11.5KB  7d ago
+  gain       2148 entries   370.4KB  15m ago   (reset via its own command)
+  usage         — empty   (reset via its own command)
+  clear: sigmap memory --clear <session|notes|weights|evidence|all>
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Emit `{ stores: [{ store, path, exists, entries, bytes, modified, clearable }] }` |
+| `--clear <store>` | Delete one store: `session`, `notes`, `weights`, `evidence`, or `all` (those four) |
+
+No new storage is introduced — this reads the same files `note`, `learn`/`weights`, `evidence`, and the session engine already own.
+
+---
+
 ## note
 
 Append a note to a cross-session decision log so an agent (or you) can recall *what we were doing and why* later. Notes are stored as append-only NDJSON at `.context/notes.ndjson` (text + ISO timestamp + git branch). Running `note` with no text lists recent notes.
@@ -1170,7 +1201,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         86.7% vs 42.7% grep   (2.02× lift)
+ hit@5         85.6% vs 42.7% grep   (2.00× lift)
  Avg prompts   1.44 vs 2.84
  Token story   97.0% overall reduction
 ────────────────────────────────────────────
@@ -1188,7 +1219,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-96.9% fewer tokens · 86.7% retrieval hit@5 · 49.2% fewer prompts
+96.8% fewer tokens · 85.6% retrieval hit@5 · 48.4% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -1208,13 +1239,13 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
- SigMap version : 8.19.0
- Benchmark ID   : sigmap-v8.19-main
+ SigMap version : 8.20.0
+ Benchmark ID   : sigmap-v8.20-main
  Submitted      : 2026-07-19
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 86.7%
- token reduction: 96.9%
+ hit@5          : 85.6%
+ token reduction: 96.8%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
 ────────────────────────────────────────────────────────
