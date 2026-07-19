@@ -18,7 +18,7 @@ const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, exp
 
 const SERVER_INFO = {
   name: 'sigmap',
-  version: '8.18.0',
+  version: '8.19.0',
   description: 'SigMap MCP server — code signatures on demand',
 };
 

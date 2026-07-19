@@ -35,6 +35,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.19.0)
+- **@manojmallick** — feat(benchmark): honest grep-agent baseline (`benchmark:honest`) — measured 2.02× lift vs single-shot grep; 6.4×-vs-random retired from all human surfaces; task success labeled a retrieval-tier proxy; claim-hygiene guard test (#495, PR #496)
+- **@manojmallick** — docs: Learning Resources page (#493, PR #494)
+
 ### Recent Contributors (v8.18.0)
 - **@manojmallick** — feat(extractors): line anchors for Kotlin/Swift/PHP/Scala/Dart — 9 brace languages now anchored (#486, PR #487)
 - **@manojmallick** — feat(retrieval): route surface-enrichment, opt-in `retrieval.surfaceEnrichment`, measured +0 on the A/B so default stays off; new `benchmark:surface-enrichment` gate (#488, PR #489)

@@ -1,0 +1,141 @@
+{
+  "generated": "2026-07-19T09:32:07.127Z",
+  "methodology": {
+    "corpus": "benchmarks/tasks/*.jsonl",
+    "scorer": "src/eval/scorer.js hitAtK/reciprocalRank, k=5",
+    "sigmap": "src/eval/runner.js buildSigIndex + rank over committed context output",
+    "baseline": "internal single-shot grep-agent: whole-repo term scan, ranked by distinct-term coverage then occurrences; skips VCS/vendor dirs + top-level .gitignore dirs; files ≤1MB, non-binary",
+    "note": "Single-shot floor for agentic grep — a live agent iterates above this at the cost of extra turns and tokens."
+  },
+  "summary": {
+    "tasks": 110,
+    "repos": 19,
+    "sigmap": {
+      "hitAt5": 0.864,
+      "mrr": 0.78
+    },
+    "grepBaseline": {
+      "hitAt5": 0.427,
+      "mrr": 0.228
+    },
+    "lift": 2.02,
+    "deltaPts": 43.6
+  },
+  "repos": [
+    {
+      "repo": "abseil-cpp",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.8
+    },
+    {
+      "repo": "akka",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.4
+    },
+    {
+      "repo": "axios",
+      "tasks": 5,
+      "sigmapHitAt5": 0.8,
+      "grepHitAt5": 0
+    },
+    {
+      "repo": "express",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 1
+    },
+    {
+      "repo": "fastapi",
+      "tasks": 5,
+      "sigmapHitAt5": 0.8,
+      "grepHitAt5": 0.8
+    },
+    {
+      "repo": "fastify",
+      "tasks": 5,
+      "sigmapHitAt5": 0.8,
+      "grepHitAt5": 0.6
+    },
+    {
+      "repo": "flask",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.8
+    },
+    {
+      "repo": "gin",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.8
+    },
+    {
+      "repo": "laravel",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.8
+    },
+    {
+      "repo": "okhttp",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.4
+    },
+    {
+      "repo": "rails",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.2
+    },
+    {
+      "repo": "retrieval",
+      "tasks": 20,
+      "sigmapHitAt5": 0.85,
+      "grepHitAt5": 0.1
+    },
+    {
+      "repo": "riverpod",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.4
+    },
+    {
+      "repo": "rust-analyzer",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.2
+    },
+    {
+      "repo": "serilog",
+      "tasks": 5,
+      "sigmapHitAt5": 0.2,
+      "grepHitAt5": 0
+    },
+    {
+      "repo": "spring-petclinic",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.4
+    },
+    {
+      "repo": "svelte",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.6
+    },
+    {
+      "repo": "vapor",
+      "tasks": 5,
+      "sigmapHitAt5": 0,
+      "grepHitAt5": 0.4
+    },
+    {
+      "repo": "vue-core",
+      "tasks": 5,
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.4
+    }
+  ],
+  "skipped": []
+}

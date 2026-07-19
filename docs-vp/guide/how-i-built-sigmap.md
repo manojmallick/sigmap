@@ -25,7 +25,7 @@ I built SigMap to fix that — without embeddings, vector databases, or external
 
 ## What SigMap does
 
-Before the story, the outcome — so you know what you're reading toward:
+Before the story, the outcome — so you know what you're reading toward. These are the **v6.10-era numbers as published at the time** (the story's ending, not today's scoreboard); the baseline then was random selection, which later releases replaced with a measured grep-agent baseline — see the [benchmark page](/guide/benchmark) for current numbers:
 
 | | Number |
 |---|---|

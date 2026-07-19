@@ -182,7 +182,7 @@ test('compare-alternatives.md: covers SigMap vs Copilot', () => {
 
 test('compare-alternatives.md: contains correct hit@5 figure', () => {
   const src = readGuide('compare-alternatives.md');
-  assert.ok(src.includes('87.8%'), 'missing 86.7% hit@5 in compare-alternatives');
+  assert.ok(src.includes('86.7%'), 'missing 86.7% hit@5 in compare-alternatives');
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% hit@5 in compare-alternatives');
 });
 

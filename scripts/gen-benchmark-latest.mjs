@@ -58,7 +58,7 @@ export function computeLatest(root = ROOT) {
   const out = {
     benchmark_id: `sigmap-v${maj}.${min}-main`,
     benchmark_date,
-    source: 'benchmarks/reports/{benchmark-matrix,task-benchmark,token-reduction}.json',
+    source: 'benchmarks/reports/{benchmark-matrix,task-benchmark,token-reduction,honest-baseline}.json',
     repos_token: matrix.reposToken,
     repos_retrieval: matrix.reposRetrieval,
     metrics: {
@@ -73,6 +73,16 @@ export function computeLatest(root = ROOT) {
       graph_boosted_hit_at_5: round(matrix.avgHitAt5Pct / 100, 3),
     },
   };
+
+  // Honest grep-agent baseline (v8.19 A1) — optional, present once
+  // scripts/run-honest-benchmark.mjs --save has run. These are the only
+  // baseline numbers surfaced on human-facing pages; the random baseline
+  // stays above as data but is no longer quoted.
+  const honest = readReportOptional(root, 'honest-baseline.json');
+  if (honest && honest.summary) {
+    out.metrics.grep_baseline_hit_at_5 = round(honest.summary.grepBaseline.hitAt5, 3);
+    out.metrics.grep_lift = round(honest.summary.lift, 2);
+  }
 
   // Test-discovery (v8.5 C2) — optional, present once the benchmark has run.
   // Kept top-level (not under `metrics`) so version.json's metrics mirror is

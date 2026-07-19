@@ -37,9 +37,9 @@
   <!-- Card 1: 6.8x -->
   <rect x="22" y="56" width="228" height="116" rx="10" fill="#0f0a24" stroke="#3a2b88" stroke-width="1.5"/>
   <rect x="22" y="56" width="228" height="116" rx="10" fill="url(#cardglow)"/>
-  <text x="136" y="122" text-anchor="middle" font-size="64" font-weight="900" fill="#7c6af7">6.9x</text>
-  <text x="136" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#b8adff">better answers</text>
-  <text x="136" y="161" text-anchor="middle" font-size="11" fill="#5b4fcc">correct: 10% to 68.9%</text>
+  <text x="136" y="122" text-anchor="middle" font-size="64" font-weight="900" fill="#7c6af7">2.02x</text>
+  <text x="136" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#b8adff">measured lift</text>
+  <text x="136" y="161" text-anchor="middle" font-size="11" fill="#5b4fcc">hit@5: 42.7% grep to 86.7%</text>
 
   <!-- Card 2: 98.1% -->
   <rect x="266" y="56" width="228" height="116" rx="10" fill="#071a10" stroke="#155228" stroke-width="1.5"/>
@@ -62,14 +62,14 @@
   <rect x="22" y="195" width="352" height="158" rx="9" fill="url(#redglow)"/>
   <rect x="22" y="195" width="352" height="158" rx="9" fill="none" stroke="#5c1f1f" stroke-width="1"/>
   <text x="198" y="216" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#ef4444">WITHOUT SIGMAP</text>
-  <text x="38" y="237" font-size="12.5" fill="#f87171">X  Blind to 74.7% of your codebase</text>
+  <text x="38" y="237" font-size="12.5" fill="#f87171">X  Blind to 84.7% of your codebase</text>
   <text x="38" y="257" font-size="12.5" fill="#f87171">X  Reads wrong files, unsupported answers</text>
   <text x="38" y="277" font-size="12.5" fill="#f87171">X  3 prompts and still wrong</text>
   <text x="38" y="297" font-size="12.5" fill="#f87171">X  Invents code that does not exist</text>
-  <text x="38" y="320" font-size="10" fill="#6b3333">TASK SUCCESS</text>
+  <text x="38" y="320" font-size="10" fill="#6b3333">RETRIEVAL HIT@5 (SINGLE-SHOT GREP)</text>
   <rect x="38" y="326" width="320" height="17" fill="#1a0808" rx="4"/>
-  <rect x="38" y="326" width="32" height="17" fill="#ef4444" rx="4"/>
-  <text x="76" y="338" font-size="12" font-weight="800" fill="#ef4444">10%</text>
+  <rect x="38" y="326" width="137" height="17" fill="#ef4444" rx="4"/>
+  <text x="181" y="338" font-size="12" font-weight="800" fill="#ef4444">42.7%</text>
 
   <!-- WITH SIGMAP - right (green tint) -->
   <rect x="386" y="195" width="352" height="158" rx="9" fill="url(#greenglow)"/>
@@ -78,11 +78,11 @@
   <text x="402" y="237" font-size="12.5" fill="#86efac">+  Every function fully indexed</text>
   <text x="402" y="257" font-size="12.5" fill="#86efac">+  Right file in context, first prompt</text>
   <text x="402" y="277" font-size="12.5" fill="#86efac">+  1-2 prompts. Grounded answer.</text>
-  <text x="402" y="297" font-size="12.5" fill="#86efac">+  86.7% hit@5 on real repo tasks</text>
-  <text x="402" y="320" font-size="10" fill="#1a4a2a">TASK SUCCESS</text>
+  <text x="402" y="297" font-size="12.5" fill="#86efac">+  Task-success proxy: 68.9% (modeled)</text>
+  <text x="402" y="320" font-size="10" fill="#1a4a2a">RETRIEVAL HIT@5 (SIGMAP)</text>
   <rect x="402" y="326" width="320" height="17" fill="#071a0e" rx="4"/>
-  <rect x="402" y="326" width="220" height="17" fill="#22c55e" rx="4"/>
-  <text x="624" y="338" font-size="12" font-weight="800" fill="#22c55e">68.9% -- 6.9x better</text>
+  <rect x="402" y="326" width="277" height="17" fill="#22c55e" rx="4"/>
+  <text x="624" y="338" font-size="12" font-weight="800" fill="#22c55e">86.7% -- 2.02x better</text>
 
   <!-- FOOTER -->
   <line x1="22" y1="363" x2="738" y2="363" stroke="#1e1440" stroke-width="1"/>

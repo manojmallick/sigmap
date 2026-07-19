@@ -72,10 +72,12 @@ function metricsBullets(d) {
   return [
     `## Core metrics (benchmark: ${d.latest.benchmark_id}, ${d.latest.benchmark_date})`,
     '',
-    `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)} vs ${pct(m.baseline_hit_at_5 * 100)} random baseline (${Number(m.retrieval_lift).toFixed(1)}× lift)`,
+    m.grep_baseline_hit_at_5 != null
+      ? `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)} vs ${pct(m.grep_baseline_hit_at_5 * 100)} single-shot grep baseline (${Number(m.grep_lift).toFixed(2)}× lift)`
+      : `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)}`,
     `- Token reduction: ${pct(m.overall_token_reduction_pct)} average across benchmark repos`,
-    `- Task success: ${pct(m.task_success_proxy_pct)} vs 10% without SigMap`,
-    `- Prompts per task: ${m.prompts_per_task} vs ${m.baseline_prompts_per_task} baseline (${pct(m.prompt_reduction_pct)} fewer)`,
+    `- Task-success proxy: ${pct(m.task_success_proxy_pct)} (modeled from retrieval tiers, not measured LLM sessions)`,
+    `- Prompts per task: ${m.prompts_per_task} vs ${m.baseline_prompts_per_task} baseline (${pct(m.prompt_reduction_pct)} fewer, modeled)`,
     `- Languages: ${d.version.languages} supported · MCP tools: ${d.version.mcp_tools}`,
     '- Dependencies: zero npm runtime dependencies · fully offline',
   ].join('\n');
@@ -88,9 +90,11 @@ function metricsTable(d) {
     '',
     '| Metric | Without SigMap | With SigMap |',
     '|--------|----------------|-------------|',
-    `| Retrieval hit@5 | ${pct(m.baseline_hit_at_5 * 100)} (random) | ${pct(m.hit_at_5 * 100)} (${Number(m.retrieval_lift).toFixed(1)}× lift) |`,
+    m.grep_baseline_hit_at_5 != null
+      ? `| Retrieval hit@5 | ${pct(m.grep_baseline_hit_at_5 * 100)} (single-shot grep) | ${pct(m.hit_at_5 * 100)} (${Number(m.grep_lift).toFixed(2)}× lift) |`
+      : `| Retrieval hit@5 | — | ${pct(m.hit_at_5 * 100)} |`,
     `| Token reduction | — | ${pct(m.overall_token_reduction_pct)} average |`,
-    `| Task success proxy | 10% | ${pct(m.task_success_proxy_pct)} |`,
+    `| Task-success proxy (modeled) | — | ${pct(m.task_success_proxy_pct)} |`,
     `| Prompts per task | ${m.prompts_per_task < m.baseline_prompts_per_task ? m.baseline_prompts_per_task : '—'} | ${m.prompts_per_task} (${pct(m.prompt_reduction_pct)} fewer) |`,
     `| Supported languages | — | ${d.version.languages} |`,
     `| MCP tools | — | ${d.version.mcp_tools} |`,

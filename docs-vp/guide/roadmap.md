@@ -22,7 +22,7 @@ head:
 
 Ninety-one versions shipped. MIT open source from day one.
 
-**Stats:** 97.0% overall token reduction · 87.8% retrieval hit@5 · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.9% overall token reduction · 86.7% retrieval hit@5 (2.02× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 20 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -828,6 +828,16 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.19.0 — Honest Numbers: measured grep baseline, random-baseline lift retired ✓ (2026-07-19)
+
+**Minor release — the published retrieval lift now comes from a measurement, not a strawman.** The old headline compared hit@5 against random file selection (`min(1, 5/fileCount)` ≈ 13.6%) — a 6.4× lift nobody could defend. The new `npm run benchmark:honest` (`scripts/run-honest-benchmark.mjs`) scores the production ranker against an **internal single-shot grep-agent baseline** — a pure-Node, zero-dependency, child-process-free repo scan ranked by distinct-term coverage then occurrences, `.gitignore`-aware — on the same 110-task / 19-repo corpus with the same scorer. **Measured: SigMap 86.4% hit@5 / MRR .780 vs grep 42.7% / .228 → 2.02× lift (+43.6pt)**, reproduced exactly across independent runs. `grep_baseline_hit_at_5` + `grep_lift` flow from the report through `computeLatest` → latest.json → every human surface; task success is labeled a **retrieval-tier proxy** everywhere; and a claim-hygiene guard test makes the retired numbers a one-way door — 6.4×, 13.6%, and the unsourced "10% without" can never reappear on README or llms surfaces. (Release hygiene note: the benchmark ordering matters — the quality suite regenerates shared repo contexts with a default config, so `benchmark:honest` runs immediately after the retrieval harness, the same cross-suite-skew class the v8.16.1 hermetic fix addressed.)
+
+**Tags:** `benchmark:honest` · `grep_baseline_hit_at_5` · `grep_lift` · `honest-baseline.test.js` · `claim hygiene` · `#495` · `PR #496`
+
+**Impact:** honest lift 2.02× (+43.6pt) vs single-shot grep, measured and reproduced; 6.4×-vs-random retired from all human surfaces; 7 new guard checks (125 test files); zero new dependencies, zero child processes.
+
+---
+
 ### v8.18.0 — Phase-2 closer: anchors everywhere, surface enrichment, live-loop framing ✓ (2026-07-12)
 
 **Minor release — with these three changes, every §7.4 Phase-2 quality-ceiling row is done or measure-gated-closed.** (1) **Anchors:** the v8.17 recipe applied to Kotlin, Swift, PHP, Scala, and Dart — all five fixture files anchor 100%, bringing Surgical Context anchors to **9 brace languages**. (2) **Route surface-enrichment** (opt-in `retrieval.surfaceEnrichment`): `enrichWithSurfaces` appends deterministic `route METHOD /path` pseudo-signatures to the rankable index; the new `benchmark:surface-enrichment` A/B measured **+0** on the file-discovery-flavored 90-task corpus, so the default stays off — while the fixture test proves the value case directly (a route-worded query retrieves the controller *only* when enriched). (3) **Live-loop framing** (docs): the MCP guide now positions `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` as what an agentic loop *calls for grounding* — grep finds; SigMap grounds.
@@ -1448,7 +1458,7 @@ Alongside it: the **token budget now keeps full signatures** (#240) — when con
 
 ---
 
-## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Evidence Pack schema v2 shipped (v8.16). Retrieval surface-enrichment shipped measure-gated (v8.18) — every Phase-2 quality-ceiling row is now done or gate-closed. Next: pull-based v10 items only (enterprise, IDE plugins — built if users ask) and the no-code growth lane
+## Current milestone — Phase 2 "buy the A+" 🚧 NEXT — Phase 1 grounding banked (G1/D8/G2); the §3.5 in-boundary backlog D1–D9 is complete (v8.12) and method-level blast-radius scoring shipped (GR2, v8.13) and the call-graph now covers Java/Go/Rust (GR1, v8.14) with the ranking boost measured and shipped dark (v8.15). Evidence Pack schema v2 shipped (v8.16). Retrieval surface-enrichment shipped measure-gated (v8.18) — every Phase-2 quality-ceiling row is now done or gate-closed. Honest Numbers shipped (v8.19): the published lift is now a measured 2.02× vs a grep-agent baseline, with claim-hygiene guards. Next: pull-based v10 items only (enterprise, IDE plugins — built if users ask) and the no-code growth lane
 
 **v8.0 "Evidence Pack & the Pivot" ✓ COMPLETE** — E1 Evidence Pack in v7.26.0, D3 +2 MCP tools (15→17) in v7.27.0, E3 `doctor` in v7.28.0, E4 `mcp install` in v7.29.0, and **v7.30.0** the repositioning pivot: every public surface now states *"the deterministic, verifiable grounding layer for AI code work"* (token reduction demoted to proof) plus **agent recipes** framing Claude Code, Cursor, Cline, Continue, Aider, OpenHands, and Codex CLI as consumers. The v8.0 exit gate is met: a cold user reaches a useful answer in <5 min, an agent consumes the Evidence Pack JSON with zero copy-paste, and no public surface still calls SigMap a "compression tool".
 

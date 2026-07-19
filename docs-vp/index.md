@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 86.7% hit@5 across 21 repos and 90 tasks. Random selection finds the right file only 13.6% of the time.
+    details: 86.7% hit@5 across 21 repos and 90 tasks. A single-shot grep agent finds the right file 42.7% of the time — SigMap is a measured 2.02× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.18.0</span>
+  <span><strong>Release:</strong> v8.19.0</span>
   <span>·</span>
   <span><strong>New — <code>squeeze_output</code> MCP tool + <code>squeeze --response</code>:</strong> the deterministic squeeze engine is now reachable by agents <em>mid-session</em> — compress a noisy stack trace, CI/build log, or JSON payload before it enters context (keeps the signal, strips the noise, enriches the top frame). The 19th MCP tool; also a named CLI flag. Zero-dependency, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.18-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.19-main</span>
   <span>·</span>
   <span>87% hit@5 · 97.0% token reduction · 2026-07-12</span>
 </div>
@@ -172,11 +172,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 |---|:---:|:---:|
 | Task success proxy | 10% | **68.9%** |
 | Prompts per task | 2.84 | **1.44** |
-| Retrieval hit@5 | 13.6% | **88%** (88% graph-boosted) |
+| Retrieval hit@5 | 42.7% (single-shot grep) | **87%** (2.02× honest lift) |
 | Overall token reduction | — | **97.0%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-07-12 (v8.18.0)**.
+Latest saved benchmark run: **2026-07-19 (v8.19.0)**.
 
 </div>
 
