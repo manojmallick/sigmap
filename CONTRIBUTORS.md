@@ -35,6 +35,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.20.0)
+- **@manojmallick** — feat(extractors): JS/TS doc-comment hints (`  # <hint>` after the anchor, Python-parity); measured −0.9pt on the lexical corpus, shipped default-on per the anchors precedent; vocab-mismatch fixture proves the semantic bridge (#498, PR #499)
+- **@manojmallick** — feat(cli): `sigmap memory` — inspect/prune the cross-session `.context/` stores, `--json`, explicit `--clear`; no new storage (#498, PR #499)
+
 ### Recent Contributors (v8.19.0)
 - **@manojmallick** — feat(benchmark): honest grep-agent baseline (`benchmark:honest`) — measured 2.02× lift vs single-shot grep; 6.4×-vs-random retired from all human surfaces; task success labeled a retrieval-tier proxy; claim-hygiene guard test (#495, PR #496)
 - **@manojmallick** — docs: Learning Resources page (#493, PR #494)

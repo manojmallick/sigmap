@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.20.0] — 2026-07-19
+
+Minor release — **"Semantic Bridge I" (v8.20)**: the JS/TS extractors gain the same doc-comment hints Python has carried for releases, and the cross-session stores get a single inspect/prune surface.
+
+### Added
+- **JS/TS doc-comment hints (#498, PR #499):** `buildDocHints` in the JavaScript and TypeScript extractors mines the first prose sentence of the JSDoc block immediately preceding each top-level function form (exported function, exported arrow const, top-level function) and appends it after the line anchor as `  # <hint>` — byte-format identical to the Python extractor's `extractDocHint`, restoring cross-language consistency. A tempered comment-body pattern prevents cross-block hint misattribution (caught in smoke testing before landing). The semantic value is proven directly by a new vocab-mismatch fixture: a query whose vocabulary is fully disjoint from every identifier retrieves the file **only** via its hint (BM25 score 0 without).
+- **`sigmap memory` (#498, PR #499):** one view over the existing `.context/` cross-session stores — session, notes, weights, evidence, gain, usage — with per-store entry counts, size, and age; `--json`; and explicit `--clear <session|notes|weights|evidence|all>`. Tracking stores (gain/usage) are listed but protected (they keep their own reset flows). No new storage, zero dependencies.
+
+### Changed
+- **Headline metric shift, documented honestly:** doc hints add English tokens that compete on the lexical-favoring corpus — one borderline task (`svelte-t002`) fell out of top-5 because competing public-API files' hints carry the query's words. **hit@5 86.4% → 85.5% task-level (−0.9pt), honest lift 2.02× → 2.00×**; grep baseline unchanged at 42.7%. Shipped default-on per the v8.18 anchors precedent and Python-parity; the v8.22 hard-split corpus (A3) will measure the semantic upside these hints exist for. 10 new integration tests (126 test files).
+
+---
+
 ## [8.19.0] — 2026-07-19
 
 Minor release — **"Honest Numbers" (v8.19, P0)**: the published retrieval lift now comes from a measured grep-agent comparison, not a random-file baseline, and every proxy metric says so on the label.

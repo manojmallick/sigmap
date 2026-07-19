@@ -30,13 +30,13 @@
   <!-- With row -->
   <text x="105" y="126" text-anchor="end" font-size="11" fill="#7c6af7">SigMap</text>
   <rect x="112" y="113" width="462" height="20" fill="#ede9fe" rx="4"/>
-  <!-- 86.7% of 462 = 400.6 -->
-  <rect x="112" y="113" width="401" height="20" fill="#7c6af7" rx="4"/>
-  <text x="466" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">86.7%</text>
+  <!-- 85.6% of 462 = 395 -->
+  <rect x="112" y="113" width="395" height="20" fill="#7c6af7" rx="4"/>
+  <text x="466" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">85.6%</text>
 
   <!-- Badge -->
   <rect x="588" y="95" width="94" height="32" fill="#7c6af7" rx="6"/>
-  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+2.02× lift</text>
+  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+2.00× lift</text>
   <text x="635" y="121" text-anchor="middle" font-size="9" fill="#ded9ff">vs grep agent</text>
 
   <!-- ═══════════════════════════════════════════ -->
@@ -53,9 +53,9 @@
   <!-- With row -->
   <text x="105" y="196" text-anchor="end" font-size="11" fill="#22c55e">SigMap</text>
   <rect x="112" y="183" width="462" height="20" fill="#dcfce7" rx="4"/>
-  <!-- 68.9% of 462 = 318.3 -->
-  <rect x="112" y="183" width="318" height="20" fill="#22c55e" rx="4"/>
-  <text x="419" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">68.9% (proxy)</text>
+  <!-- 67.8% of 462 = 313 -->
+  <rect x="112" y="183" width="313" height="20" fill="#22c55e" rx="4"/>
+  <text x="419" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">67.8% (proxy)</text>
 
   <!-- Badge -->
   <rect x="588" y="165" width="94" height="32" fill="#22c55e" rx="6"/>
