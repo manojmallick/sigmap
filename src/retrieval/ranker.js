@@ -40,6 +40,9 @@ const GRAPH_BOOST_AMOUNTS = {
   callHop: 0.30, // call-graph file neighbor (opt-in retrieval.callGraphBoost)
 };
 
+// Max additive prior for import-graph centrality (opt-in retrieval.centralityBlend)
+const CENTRALITY_BLEND_WEIGHT = 0.3;
+
 // Intent-specific weight adjustments
 const INTENT_WEIGHTS = {
   search:     DEFAULT_WEIGHTS,
@@ -172,6 +175,8 @@ function scoreFile(filePath, sigs, queryTokens, weights) {
  * @param {{ forward: Map<string,string[]> }} [opts.graph] - dependency graph for neighbor boost
  * @param {{ forward: Map<string,string[]> }} [opts.callGraph] - file-level call-graph edges
  *        (from buildCallFileGraph) for the opt-in call-neighbor boost
+ * @param {Map<string,number>} [opts.centrality] - absolute file → normalized
+ *        centrality (from computeCentrality) for the opt-in centrality blend
  * @returns {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]}
  */
 function rank(query, sigIndex, opts) {
@@ -316,6 +321,26 @@ function rank(query, sigIndex, opts) {
           scored[idx].score += GRAPH_BOOST_AMOUNTS.callHop;
           scored[idx].signals.callGraphBoost = (scored[idx].signals.callGraphBoost || 0) + GRAPH_BOOST_AMOUNTS.callHop;
         }
+      }
+    }
+  }
+
+  // Centrality blend (opt-in via retrieval.centralityBlend): a small additive
+  // prior from import-graph centrality so heavily-referenced files rank above
+  // one-off helpers on ambiguous queries. Applied only to positively-scored
+  // files — a tie-breaker among matches, never a way to surface non-matches.
+  const centrality = (opts && opts.centrality instanceof Map && opts.centrality.size > 0) ? opts.centrality : null;
+  if (centrality && cwd) {
+    const path = require('path');
+    for (const entry of scored) {
+      if (entry.score <= 0) continue;
+      const abs = path.resolve(cwd, entry.file);
+      // The graph builder lowercases paths (normalizePath) — probe both forms.
+      const c = centrality.get(abs) || centrality.get(abs.toLowerCase());
+      if (c) {
+        const bonus = CENTRALITY_BLEND_WEIGHT * c;
+        entry.score += bonus;
+        entry.signals.centrality = bonus;
       }
     }
   }
@@ -595,4 +620,4 @@ function detectIntent(query) {
   return 'search';
 }
 
-module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent };
+module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
