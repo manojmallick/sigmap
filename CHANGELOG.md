@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.19.0] — 2026-07-19
+
+Minor release — **"Honest Numbers" (v8.19, P0)**: the published retrieval lift now comes from a measured grep-agent comparison, not a random-file baseline, and every proxy metric says so on the label.
+
+### Added
+- **Honest grep-agent baseline benchmark (#495, PR #496):** new `scripts/run-honest-benchmark.mjs` (`npm run benchmark:honest`) scores the production ranker against an internal single-shot grep-agent baseline — a pure-Node, zero-dependency, no-child-process repo scan ranked by distinct-term coverage then occurrences, `.gitignore`-aware, deterministic ordering — on the same 110-task / 19-repo corpus and the same scorer. **Measured: SigMap 86.4% hit@5 / MRR .780 vs grep 42.7% / .228 → 2.02× lift (+43.6pt)** → `benchmarks/reports/honest-baseline.json`. `computeLatest` derives `grep_baseline_hit_at_5` + `grep_lift` from the report (optional-report pattern; hermetic fixture unaffected).
+- **Claim-hygiene guard test:** `test/integration/honest-baseline.test.js` (7 checks) — report shape, derived-not-hand-typed metrics, version.json mirror, and a one-way door: the 6.4×-vs-random lift, the 13.6% random baseline, and the unsourced "10% without" claim can never reappear on README or llms surfaces; the benchmark script itself is guarded to stay child-process-free.
+
+### Changed
+- **Random-baseline lift retired from all human surfaces (#495, PR #496):** README and llms.txt/llms-full.txt now quote the measured grep-agent lift (2.02×) instead of 6.4×-vs-random; task success is labeled a **retrieval-tier proxy** ("modeled from retrieval tiers, not measured LLM sessions") and the "baseline 10%" / "up from 10%" claims are removed. The random-baseline fields (`baseline_hit_at_5`, `retrieval_lift`) remain in latest.json/version.json as data only. `readme-structure` guards advanced: README must show the grep baseline and must **not** show the random one.
+
+---
+
 ## [8.18.0] — 2026-07-12
 
 Minor release — **the §7.4 Phase-2 closer**: with these three changes, every quality-ceiling row in the master plan's scorecard is done or measure-gated-closed.

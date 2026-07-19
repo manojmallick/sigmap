@@ -122,8 +122,8 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.18-main (21 repositories, including R language)
-Date      : 2026-07-12
+Benchmark : sigmap-v8.19-main (21 repositories, including R language)
+Date      : 2026-07-19
 
 Hit@5          : 86.7%   (grep-agent baseline 42.7%  — 2.02× lift)
 Token reduction: 96.9%   (across 21 repos)

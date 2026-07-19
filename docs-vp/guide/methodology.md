@@ -62,9 +62,9 @@ Example tasks:
 
 **Metric:** Hit@5 — the right file appears in the top 5 ranked results
 
-**Baseline:** Random selection = ~13.6% (1 correct file out of ~90 files in typical repo)
+**Baseline:** Single-shot grep agent = 42.7% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
 
-**SigMap score:** 87.8% — 6.5× better than random
+**SigMap score:** 86.7% — a measured 2.02× honest lift over the grep baseline
 
 ### 2. Task success proxy (correct rank)
 

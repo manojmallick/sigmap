@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.18.0. 87% hit@5 vs 13.6% random baseline across 90 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v8.19.0. 87% hit@5 vs 42.7% single-shot grep baseline (2.02× honest lift) across 90 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
       content: "SigMap retrieval benchmark — 87% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 87% hit@5 vs 13.6% random baseline, 6.5x lift, 90 tasks, 18 repos."
+      content: "Latest saved run: 87% hit@5 vs 42.7% single-shot grep baseline, 2.02x honest lift, 90 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,21 +15,21 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.18.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.18-main &nbsp;·&nbsp; **Date:** 2026-07-12 (with R language)
+::: info Official v8.19.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.19-main &nbsp;·&nbsp; **Date:** 2026-07-19 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 | **88%** vs 13.6% baseline |
+| Hit@5 | **87%** vs 42.7% single-shot grep baseline |
 | Graph-boosted hit@5 | **88%** |
-| Retrieval lift | **6.4×** |
+| Honest lift (vs grep agent) | **2.02×** |
 | Prompt reduction | **49.2%** (2.84 → 1.44) |
 | Task success proxy | **68.9%** |
 | Overall token reduction | **97.0%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-07-12 (v8.18.0)**
+Latest saved run: **2026-07-19 (v8.19.0)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **87% hit@5** vs **13.6%** random baseline across 90 tasks on 18 real repos.
 
@@ -47,9 +47,10 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 | 13.6% | **86.7%** |
+| Average hit@5 (grep-agent baseline) | 42.7% | **86.7%** |
 | Graph-boosted hit@5 | — | **86.7%** |
-| Lift | — | **6.5x** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.02x** |
+| Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
 | Correct (rank 1) | ~1% | **68.9%** |
 | Partial (ranks 2–5) | ~13% | **18.9%** |
 | Wrong (not in top 5) | ~86% | **13.3%** |
