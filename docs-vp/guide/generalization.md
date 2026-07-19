@@ -1,6 +1,6 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 33 languages, and multiple domains with 85.6% hit@5 in the latest saved v8.20.0 retrieval run.
+description: SigMap generalizes across 21 repos, 33 languages, and multiple domains with 85.6% hit@5 in the latest saved v8.21.0 retrieval run.
 head:
   - - meta
     - property: og:title
@@ -19,16 +19,16 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v8.20.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.20-main &nbsp;·&nbsp; **Date:** 2026-07-19 (with R language)
+::: info Official v8.21.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.21-main &nbsp;·&nbsp; **Date:** 2026-07-19 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **86%** vs 42.7% single-shot grep baseline |
 | Honest lift (vs grep agent) | **2.00×** |
-| Prompt reduction | **48.4%** (2.84 → 1.47) |
-| Task success proxy | **67.8%** |
-| Overall token reduction | **97.0%** |
+| Prompt reduction | **48%** (2.84 → 1.48) |
+| Task success proxy | **66.7%** |
+| Overall token reduction | **96.8%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
@@ -37,7 +37,7 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 90 tasks is yes — 87% hit@5 with no per-repo tuning in the latest saved v8.20.0 run.
+these 90 tasks is yes — 85.6% hit@5 with no per-repo tuning in the latest saved v8.21.0 run.
 :::
 
 - **21 repos** (including 3 R language repos)
@@ -67,7 +67,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v8.20.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v8.21.0` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|

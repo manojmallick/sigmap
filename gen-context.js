@@ -1533,6 +1533,8 @@ __factories["./src/config/defaults"] = function(module, exports) {
       recencyBoost: 1.5,
       // Boost files call-graph-connected to query matches (opt-in, measure-gated)
       callGraphBoost: false,
+      // Blend import-graph centrality into ranking as a small prior (opt-in, measure-gated)
+      centralityBlend: false,
       // Append route pseudo-signatures to the rankable index (opt-in, measure-gated)
       surfaceEnrichment: false,
     },
@@ -5928,6 +5930,10 @@ __factories["./src/extractors/go"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
+    const docHints = buildDocHints(src);
+    // Append the godoc hint after the anchor as `  # <hint>` — same convention
+    // as the Python/JS extractors' doc hints.
+    const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
@@ -5939,14 +5945,14 @@ __factories["./src/extractors/go"] = function(module, exports) {
     // Structs
     for (const m of stripped.matchAll(/^type\s+(\w+)\s+struct\s*\{/gm)) {
       const end = blockEndIdx(m.index + m[0].length);
-      sigs.push(withAnchor(`type ${m[1]} struct`, lineAt(stripped, m.index), lineAt(stripped, end)));
+      sigs.push(hinted(withAnchor(`type ${m[1]} struct`, lineAt(stripped, m.index), lineAt(stripped, end)), m[1]));
     }
 
     // Interfaces
     for (const m of stripped.matchAll(/^type\s+(\w+)\s+interface\s*\{/gm)) {
       const bodyStart = m.index + m[0].length;
       const block = extractBlock(stripped, bodyStart);
-      sigs.push(withAnchor(`type ${m[1]} interface`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      sigs.push(hinted(withAnchor(`type ${m[1]} interface`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)), m[1]));
       for (const meth of extractInterfaceMethods(block)) {
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
       }
@@ -5958,7 +5964,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
       const retType = m[4] ? m[4].trim().replace(/\s+/g, ' ') : '';
       const retStr = retType ? ` → ${retType.slice(0, 30)}` : '';
       const end = blockEndIdx(m.index + m[0].length);
-      sigs.push(withAnchor(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)));
+      sigs.push(hinted(withAnchor(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)), m[2]));
     }
 
     return sigs.slice(0, 25);
@@ -5992,6 +5998,30 @@ __factories["./src/extractors/go"] = function(module, exports) {
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
+  }
+
+  // Godoc: the `//` comment block directly above a top-level func/type/method
+  // declaration → first prose sentence, 60-char cap. Runs on the ORIGINAL src
+  // (extract strips comments before matching). Compiler directives (`//go:...`)
+  // carry no prose and are skipped.
+  function buildDocHints(src) {
+    const hints = new Map();
+    const re = /((?:^\/\/[^\n]*\n)+)(?:func\s+(?:\(\w+\s+[\w*]+\)\s+)?(\w+)\s*\(|type\s+(\w+)\s+(?:struct|interface)\b)/gm;
+    for (const m of src.matchAll(re)) {
+      const name = m[2] || m[3];
+      const hint = firstDocSentence(m[1]);
+      if (hint && !hints.has(name)) hints.set(name, hint);
+    }
+    return hints;
+  }
+
+  // First non-directive prose line of a `//` block → first sentence, 60-char cap.
+  function firstDocSentence(block) {
+    const line = String(block).split('\n')
+      .map((l) => l.replace(/^\/\/\s?/, '').trim())
+      .find((l) => l && !l.startsWith('go:') && !l.startsWith('nolint'));
+    if (!line) return '';
+    return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
 
   module.exports = { extract };
@@ -6126,6 +6156,10 @@ __factories["./src/extractors/java"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
+    const docHints = buildDocHints(src);
+    // Append the Javadoc hint after the anchor as `  # <hint>` — same convention
+    // as the Python/JS extractors' doc hints.
+    const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
@@ -6136,9 +6170,9 @@ __factories["./src/extractors/java"] = function(module, exports) {
     for (const m of stripped.matchAll(typeRegex)) {
       const bodyStart = m.index + m[0].length;
       const block = extractBlock(stripped, bodyStart);
-      sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
+      sigs.push(hinted(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)), m[2]));
       for (const meth of extractMembers(block)) {
-        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+        sigs.push(hinted(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)), meth.name));
       }
     }
 
@@ -6165,6 +6199,7 @@ __factories["./src/extractors/java"] = function(module, exports) {
       const retStr = ret ? ` → ${ret}` : '';
       members.push({
         text: `${m[2]}(${normalizeParams(m[3])})${retStr}`,
+        name: m[2],
         declIdx: m.index + (m[0].length - m[0].trimStart().length),
         endIdx: m.index + m[0].length,
       });
@@ -6180,6 +6215,36 @@ __factories["./src/extractors/java"] = function(module, exports) {
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/\s+/g, ' ').slice(0, 30);
+  }
+
+  // Javadoc: the `/** ... */` block directly above a type or public/protected
+  // member declaration → first prose sentence, 60-char cap. Runs on the
+  // ORIGINAL src (extract strips comments before matching). Annotation lines
+  // (`@Override` etc.) between the doc block and the declaration are tolerated.
+  // Body may not contain `*/` so a failed adjacency check can't expand across
+  // code to the next comment block and misattribute the hint.
+  function buildDocHints(src) {
+    const hints = new Map();
+    const patterns = [
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:public\s+|protected\s+)?(?:abstract\s+|final\s+)?(?:class|interface|enum)\s+(\w+)/g,
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:public|protected)\s+(?:static\s+)?(?:final\s+)?(?:synchronized\s+)?(?:<[^>]+>\s+)?[\w<>\[\], ?.]+\s+(\w+)\s*\(/g,
+    ];
+    for (const re of patterns) {
+      for (const m of src.matchAll(re)) {
+        const hint = firstDocSentence(m[1]);
+        if (hint && !hints.has(m[2])) hints.set(m[2], hint);
+      }
+    }
+    return hints;
+  }
+
+  // First non-tag prose line of a Javadoc body → first sentence, 60-char cap.
+  function firstDocSentence(body) {
+    const line = String(body).split('\n')
+      .map((l) => l.replace(/^\s*\*\s?/, '').trim())
+      .find((l) => l && !l.startsWith('@'));
+    if (!line) return '';
+    return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
 
   module.exports = { extract };
@@ -7680,6 +7745,10 @@ __factories["./src/extractors/rust"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
+    const docHints = buildDocHints(src);
+    // Append the doc-comment hint after the anchor as `  # <hint>` — same
+    // convention as the Python/JS extractors' doc hints.
+    const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
 
     const stripped = src
       .replace(/\/\/.*$/gm, '')
@@ -7701,19 +7770,19 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     // Structs
     for (const m of stripped.matchAll(/^pub\s+struct\s+(\w+)(?:<[^{]*>)?/gm)) {
       const [s, e] = rangeFor(m.index, m.index + m[0].length);
-      sigs.push(withAnchor(`pub struct ${m[1]}`, s, e));
+      sigs.push(hinted(withAnchor(`pub struct ${m[1]}`, s, e), m[1]));
     }
 
     // Enums
     for (const m of stripped.matchAll(/^pub\s+enum\s+(\w+)(?:<[^{]*>)?/gm)) {
       const [s, e] = rangeFor(m.index, m.index + m[0].length);
-      sigs.push(withAnchor(`pub enum ${m[1]}`, s, e));
+      sigs.push(hinted(withAnchor(`pub enum ${m[1]}`, s, e), m[1]));
     }
 
     // Traits
     for (const m of stripped.matchAll(/^pub\s+trait\s+(\w+)(?:<[^{]*>)?/gm)) {
       const [s, e] = rangeFor(m.index, m.index + m[0].length);
-      sigs.push(withAnchor(`pub trait ${m[1]}`, s, e));
+      sigs.push(hinted(withAnchor(`pub trait ${m[1]}`, s, e), m[1]));
     }
 
     // impl blocks
@@ -7722,7 +7791,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       sigs.push(withAnchor(`impl ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const fn of extractMethods(block)) {
-        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+        sigs.push(hinted(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)), fn.name));
       }
     }
 
@@ -7731,7 +7800,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
       const retStr = extractReturnType(m[3]);
       const [s, e] = rangeFor(m.index, m.index + m[0].length);
-      sigs.push(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
+      sigs.push(hinted(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e), m[1]));
     }
 
     return sigs.slice(0, 25);
@@ -7755,6 +7824,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
       const retStr = extractReturnType(m[3]);
       methods.push({
         text: `pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`,
+        name: m[1],
         declIdx: m.index + (m[0].length - m[0].trimStart().length),
         endIdx: m.index + m[0].length,
       });
@@ -7773,6 +7843,29 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     if (!m) return '';
     const rt = m[1].trim().replace(/\s+/g, ' ');
     return ` → ${rt.length > 30 ? rt.slice(0, 27) + '...' : rt}`;
+  }
+
+  // Rustdoc: the `///` block directly above a declaration → first prose
+  // sentence, 60-char cap. Runs on the ORIGINAL src (extract strips comments
+  // before matching). Attribute lines (`#[...]`) between the doc block and the
+  // declaration are tolerated.
+  function buildDocHints(src) {
+    const hints = new Map();
+    const re = /((?:^[ \t]*\/\/\/[^\n]*\n)+)(?:[ \t]*#\[[^\n]*\n)*[ \t]*pub(?:\s+async)?\s+(?:fn|struct|enum|trait)\s+(\w+)/gm;
+    for (const m of src.matchAll(re)) {
+      const hint = firstDocSentence(m[1]);
+      if (hint && !hints.has(m[2])) hints.set(m[2], hint);
+    }
+    return hints;
+  }
+
+  // First prose line of a `///` block → first sentence, 60-char cap.
+  function firstDocSentence(block) {
+    const line = String(block).split('\n')
+      .map((l) => l.replace(/^[ \t]*\/\/\/\s?/, '').trim())
+      .find((l) => l);
+    if (!line) return '';
+    return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
 
   module.exports = { extract };
@@ -11806,6 +11899,71 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   
 };
 
+// ── ./src/graph/centrality ──
+__factories["./src/graph/centrality"] = function(module, exports) {
+  
+  /**
+   * Zero-dependency import-graph centrality (Semantic Bridge II, B3).
+   *
+   * Power iteration over the forward dependency graph: rank flows from each
+   * importer to the files it imports, so heavily-referenced files accumulate
+   * centrality and one-off helpers do not. Deterministic — fixed damping,
+   * fixed iteration count, nodes processed in sorted order.
+   *
+   * The result feeds the opt-in `retrieval.centralityBlend` ranking prior
+   * (see src/retrieval/ranker.js) — a principled deepening of the existing
+   * graph-boost idea, not a replacement for query relevance.
+   */
+
+  const DAMPING = 0.85;
+  const ITERATIONS = 20;
+
+  /**
+   * Compute a normalized centrality score for every file in a dependency graph.
+   *
+   * @param {{ forward: Map<string, string[]> }} graph - forward dependency graph
+   *        (file → files it imports), as built by src/graph/builder.js
+   * @returns {Map<string, number>} file → centrality in (0, 1], max-normalized;
+   *          empty Map when the graph is missing or empty
+   */
+  function computeCentrality(graph) {
+    if (!graph || !(graph.forward instanceof Map) || graph.forward.size === 0) return new Map();
+
+    const nodes = new Set(graph.forward.keys());
+    for (const deps of graph.forward.values()) {
+      for (const dep of deps || []) nodes.add(dep);
+    }
+    const nodeList = [...nodes].sort();
+    const n = nodeList.length;
+    const indexOf = new Map(nodeList.map((file, i) => [file, i]));
+    const outLinks = nodeList.map((file) =>
+      (graph.forward.get(file) || []).map((dep) => indexOf.get(dep)).filter((i) => i !== undefined));
+
+    let ranks = new Array(n).fill(1 / n);
+    for (let iter = 0; iter < ITERATIONS; iter++) {
+      const next = new Array(n).fill((1 - DAMPING) / n);
+      let dangling = 0;
+      for (let i = 0; i < n; i++) {
+        if (outLinks[i].length === 0) { dangling += ranks[i]; continue; }
+        const share = (DAMPING * ranks[i]) / outLinks[i].length;
+        for (const j of outLinks[i]) next[j] += share;
+      }
+      // Dangling mass (files that import nothing) is redistributed uniformly.
+      const danglingShare = (DAMPING * dangling) / n;
+      for (let i = 0; i < n; i++) next[i] += danglingShare;
+      ranks = next;
+    }
+
+    const max = Math.max(...ranks) || 1;
+    const result = new Map();
+    for (let i = 0; i < n; i++) result.set(nodeList[i], ranks[i] / max);
+    return result;
+  }
+
+  module.exports = { computeCentrality, DAMPING, ITERATIONS };
+  
+};
+
 // ── ./src/graph/impact ──
 __factories["./src/graph/impact"] = function(module, exports) {
   
@@ -13963,8 +14121,9 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       // Build dependency graph for neighbor boost — non-fatal if it fails
       let graph = null;
       try { graph = buildFromCwd(cwd); } catch (_) {}
-      // Opt-in call-graph neighbor boost + surface enrichment — non-fatal
+      // Opt-in call-graph neighbor boost + surface enrichment + centrality blend — non-fatal
       let callGraph = null;
+      let centrality = null;
       try {
         const { loadConfig } = __require('./src/config/loader');
         const retrieval = loadConfig(cwd).retrieval;
@@ -13974,8 +14133,11 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         if (retrieval && retrieval.surfaceEnrichment) {
           __require('./src/retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd);
         }
+        if (retrieval && retrieval.centralityBlend && graph) {
+          centrality = __require('./src/graph/centrality').computeCentrality(graph);
+        }
       } catch (_) {}
-      const results = rank(args.query, index, { topK, cwd, graph, callGraph });
+      const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality });
       return formatRankTable(results, args.query);
     } catch (err) {
       return `_query_context failed: ${err.message}_`;
@@ -14688,7 +14850,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.20.0',
+    version: '8.21.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -15818,6 +15980,9 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     callHop: 0.30, // call-graph file neighbor (opt-in retrieval.callGraphBoost)
   };
 
+  // Max additive prior for import-graph centrality (opt-in retrieval.centralityBlend)
+  const CENTRALITY_BLEND_WEIGHT = 0.3;
+
   // Intent-specific weight adjustments
   const INTENT_WEIGHTS = {
     search:     DEFAULT_WEIGHTS,
@@ -15950,6 +16115,8 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    * @param {{ forward: Map<string,string[]> }} [opts.graph] - dependency graph for neighbor boost
    * @param {{ forward: Map<string,string[]> }} [opts.callGraph] - file-level call-graph edges
    *        (from buildCallFileGraph) for the opt-in call-neighbor boost
+   * @param {Map<string,number>} [opts.centrality] - absolute file → normalized
+   *        centrality (from computeCentrality) for the opt-in centrality blend
    * @returns {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]}
    */
   function rank(query, sigIndex, opts) {
@@ -16094,6 +16261,26 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
             scored[idx].score += GRAPH_BOOST_AMOUNTS.callHop;
             scored[idx].signals.callGraphBoost = (scored[idx].signals.callGraphBoost || 0) + GRAPH_BOOST_AMOUNTS.callHop;
           }
+        }
+      }
+    }
+
+    // Centrality blend (opt-in via retrieval.centralityBlend): a small additive
+    // prior from import-graph centrality so heavily-referenced files rank above
+    // one-off helpers on ambiguous queries. Applied only to positively-scored
+    // files — a tie-breaker among matches, never a way to surface non-matches.
+    const centrality = (opts && opts.centrality instanceof Map && opts.centrality.size > 0) ? opts.centrality : null;
+    if (centrality && cwd) {
+      const path = require('path');
+      for (const entry of scored) {
+        if (entry.score <= 0) continue;
+        const abs = path.resolve(cwd, entry.file);
+        // The graph builder lowercases paths (normalizePath) — probe both forms.
+        const c = centrality.get(abs) || centrality.get(abs.toLowerCase());
+        if (c) {
+          const bonus = CENTRALITY_BLEND_WEIGHT * c;
+          entry.score += bonus;
+          entry.signals.centrality = bonus;
         }
       }
     }
@@ -16373,7 +16560,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     return 'search';
   }
 
-  module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, detectIntent };
+  module.exports = { rank, buildSigIndex, scoreFile, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
   
 };
 
@@ -19881,7 +20068,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.20.0';
+const VERSION = '8.21.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -22215,8 +22402,16 @@ function main() {
     if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
       try { requireSourceOrBundled('./src/retrieval/enrich-from-maps').enrichWithSurfaces(sigIndex, cwd); } catch (_) {}
     }
+    // Opt-in import-graph centrality blend (retrieval.centralityBlend) — non-fatal
+    let askCentrality = null;
+    if (config && config.retrieval && config.retrieval.centralityBlend) {
+      try {
+        const askCentralityGraph = requireSourceOrBundled('./src/graph/builder').buildFromCwd(cwd);
+        askCentrality = requireSourceOrBundled('./src/graph/centrality').computeCentrality(askCentralityGraph);
+      } catch (_) {}
+    }
 
-    let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd, callGraph: askCallGraph });
+    let ranked = rank(query, sigIndex, { topK: 5, weights: intentWeights, cwd, callGraph: askCallGraph, centrality: askCentrality });
 
     // v6.10: Workspace scoping — infer package from query and apply boost
     const workspaces = detectWorkspaces(cwd);
@@ -24447,7 +24642,15 @@ function main() {
       if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
         try { requireSourceOrBundled('./src/retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd); } catch (_) {}
       }
-      const results = rank(query, index, { topK, recencyBoost, cwd, callGraph: queryCallGraph });
+      // Opt-in import-graph centrality blend (retrieval.centralityBlend) — non-fatal
+      let queryCentrality = null;
+      if (config && config.retrieval && config.retrieval.centralityBlend) {
+        try {
+          const centralityGraph = requireSourceOrBundled('./src/graph/builder').buildFromCwd(cwd);
+          queryCentrality = requireSourceOrBundled('./src/graph/centrality').computeCentrality(centralityGraph);
+        } catch (_) {}
+      }
+      const results = rank(query, index, { topK, recencyBoost, cwd, callGraph: queryCallGraph, centrality: queryCentrality });
       if (args.includes('--context')) {
         const miniCtx  = buildMiniContext(results, cwd);
         const ctxOut   = path.join(cwd, '.context', 'query-context.md');

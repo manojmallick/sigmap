@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-19T11:38:54.836Z",
+  "generated": "2026-07-19T13:50:28.698Z",
   "repos": [
     {
       "repo": "express",
@@ -144,15 +144,15 @@
     {
       "repo": "gin",
       "fileCount": 107,
-      "sigCount": 81,
+      "sigCount": 78,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.85,
+      "mrr": 0.75,
       "randomBaseline": 0.047,
       "improvement": 21.4,
       "tiers": {
-        "correct": 4,
-        "partial": 1,
+        "correct": 3,
+        "partial": 2,
         "wrong": 0
       },
       "taskDetails": [
@@ -175,7 +175,7 @@
             "binding/form.go",
             "binding/binding.go"
           ],
-          "top1": "mode.go",
+          "top1": "binding/multipart_form_mapping.go",
           "firstHitRank": 4,
           "tier": "partial"
         },
@@ -197,9 +197,9 @@
             "render/html.go",
             "context.go"
           ],
-          "top1": "render/html.go",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "render/render.go",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "gin-t005",
@@ -208,7 +208,7 @@
             "recovery.go",
             "logger.go"
           ],
-          "top1": "logger.go",
+          "top1": "recovery.go",
           "firstHitRank": 1,
           "tier": "correct"
         }
@@ -430,7 +430,7 @@
     {
       "repo": "rust-analyzer",
       "fileCount": 635,
-      "sigCount": 191,
+      "sigCount": 162,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,

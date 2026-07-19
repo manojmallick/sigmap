@@ -1202,8 +1202,8 @@ sigmap compare --json
  SigMap vs Baseline
 ────────────────────────────────────────────
  hit@5         85.6% vs 42.7% grep   (2.00× lift)
- Avg prompts   1.44 vs 2.84
- Token story   97.0% overall reduction
+ Avg prompts   1.48 vs 2.84
+ Token story   96.8% overall reduction
 ────────────────────────────────────────────
 ```
 
@@ -1219,7 +1219,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-96.8% fewer tokens · 85.6% retrieval hit@5 · 48.4% fewer prompts
+96.8% fewer tokens · 85.6% retrieval hit@5 · 48% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -1239,8 +1239,8 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
- SigMap version : 8.20.0
- Benchmark ID   : sigmap-v8.20-main
+ SigMap version : 8.21.0
+ Benchmark ID   : sigmap-v8.21-main
  Submitted      : 2026-07-19
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):

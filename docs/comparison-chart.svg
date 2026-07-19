@@ -53,9 +53,9 @@
   <!-- With row -->
   <text x="105" y="196" text-anchor="end" font-size="11" fill="#22c55e">SigMap</text>
   <rect x="112" y="183" width="462" height="20" fill="#dcfce7" rx="4"/>
-  <!-- 67.8% of 462 = 313 -->
-  <rect x="112" y="183" width="313" height="20" fill="#22c55e" rx="4"/>
-  <text x="419" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">67.8% (proxy)</text>
+  <!-- 66.7% of 462 = 308 -->
+  <rect x="112" y="183" width="308" height="20" fill="#22c55e" rx="4"/>
+  <text x="419" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">66.7% (proxy)</text>
 
   <!-- Badge -->
   <rect x="588" y="165" width="94" height="32" fill="#22c55e" rx="6"/>

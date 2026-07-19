@@ -231,7 +231,7 @@ test('docs/impact-banner.svg: uses 75.6% hit@5', () => {
 test('docs/impact-banner.svg: uses 1.46 prompts (not 1.68)', () => {
   const src = readDocs('impact-banner.svg');
   assert.ok(!src.includes('1.68'), 'found stale 1.68 in impact-banner.svg');
-  assert.ok(src.includes('1.47'), 'missing 1.47 in impact-banner.svg');
+  assert.ok(src.includes('1.48'), 'missing 1.48 in impact-banner.svg');
 });
 
 test('docs/comparison-chart.svg: uses 75.6% (not 80.0%)', () => {

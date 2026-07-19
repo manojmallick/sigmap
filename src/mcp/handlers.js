@@ -421,8 +421,9 @@ function queryContext(args, cwd) {
     // Build dependency graph for neighbor boost — non-fatal if it fails
     let graph = null;
     try { graph = buildFromCwd(cwd); } catch (_) {}
-    // Opt-in call-graph neighbor boost + surface enrichment — non-fatal
+    // Opt-in call-graph neighbor boost + surface enrichment + centrality blend — non-fatal
     let callGraph = null;
+    let centrality = null;
     try {
       const { loadConfig } = require('../config/loader');
       const retrieval = loadConfig(cwd).retrieval;
@@ -432,8 +433,11 @@ function queryContext(args, cwd) {
       if (retrieval && retrieval.surfaceEnrichment) {
         require('../retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd);
       }
+      if (retrieval && retrieval.centralityBlend && graph) {
+        centrality = require('../graph/centrality').computeCentrality(graph);
+      }
     } catch (_) {}
-    const results = rank(args.query, index, { topK, cwd, graph, callGraph });
+    const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality });
     return formatRankTable(results, args.query);
   } catch (err) {
     return `_query_context failed: ${err.message}_`;
