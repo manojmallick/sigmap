@@ -50,6 +50,7 @@
     "check:metrics": "node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check",
     "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/build-bundle.mjs --check && node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check && node scripts/generate-llms.mjs",
     "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs",
+    "benchmark:honest": "node scripts/run-honest-benchmark.mjs --save",
     "benchmark:llm-ablation": "node scripts/run-llm-ablation.mjs"
   },
   "files": [
