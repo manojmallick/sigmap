@@ -18,10 +18,10 @@
     "tasks": 20
   },
   "jvm": {
-    "hitAt5": 0.2345,
-    "mrr": 0.149,
-    "precisionAt5": 0.047,
-    "tasks": 64,
+    "hitAt5": 0.18042622950819673,
+    "mrr": 0.11378688524590165,
+    "precisionAt5": 0.036295081967213115,
+    "tasks": 61,
     "repos": [
       "spring-petclinic",
       "akka"
