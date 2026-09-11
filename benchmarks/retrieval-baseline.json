@@ -1,8 +1,8 @@
 {
   "hard": {
-    "hitAt5": 0.744,
-    "mrr": 0.644,
-    "precisionAt5": 0.149,
+    "hitAt5": 0.756,
+    "mrr": 0.645,
+    "precisionAt5": 0.151,
     "tasks": 90
   },
   "mined": {
@@ -16,6 +16,16 @@
     "mrr": 0.825,
     "precisionAt5": 0.22,
     "tasks": 20
+  },
+  "jvm": {
+    "hitAt5": 0.2345,
+    "mrr": 0.149,
+    "precisionAt5": 0.047,
+    "tasks": 64,
+    "repos": [
+      "spring-petclinic",
+      "akka"
+    ]
   },
   "recordedBy": "run-retrieval-gate.mjs"
 }

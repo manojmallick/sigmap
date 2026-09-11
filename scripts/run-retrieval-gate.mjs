@@ -73,7 +73,37 @@ function assertLeakFree(file) {
   return { total: tasks.length, leaking: leaking.map((t) => t.id) };
 }
 
+/**
+ * A JVM corpus, mined from the cloned repos' own history and scored against
+ * them. Every other corpus here is 100% JavaScript, which is why the v8.30
+ * data-holder penalty — a ranking change aimed squarely at generated Java
+ * entities — measured +0.0pp and had to be checked by hand (#575).
+ *
+ * Skipped, not failed, when the repos are absent: they are gitignored, so a
+ * fresh checkout has no history to score against.
+ */
+function scoreJvm() {
+  const repos = ['spring-petclinic', 'akka'];
+  let tasks = 0, hits = 0, rr = 0, prec = 0;
+  const present = [];
+  for (const name of repos) {
+    const repo = join(ROOT, 'benchmarks', 'repos', name);
+    const file = join(ROOT, 'benchmarks', 'tasks', `retrieval-jvm-${name}.jsonl`);
+    if (!existsSync(repo) || !existsSync(file)) continue;
+    if (!existsSync(join(repo, '.context', 'sig-index.json'))) continue;
+    const m = run(file, repo, { topK: 5, learned: false }).metrics;
+    present.push(name);
+    tasks += m.tasks;
+    hits += m.hitAt5 * m.tasks;
+    rr += m.mrr * m.tasks;
+    prec += m.precisionAt5 * m.tasks;
+  }
+  if (!tasks) return null;
+  return { hitAt5: hits / tasks, mrr: rr / tasks, precisionAt5: prec / tasks, tasks, repos: present };
+}
+
 const hard = score('retrieval-hard.jsonl');
+const jvm = scoreJvm();
 const easy = score('retrieval.jsonl');
 const mined = score('retrieval-mined.jsonl');
 const leak = assertLeakFree('retrieval-hard.jsonl');
@@ -86,6 +116,11 @@ console.log('  ' + '-'.repeat(48));
 console.log(`  hard (gated)      ${String(hard.tasks).padStart(5)}   ${pct(hard.hitAt5).padStart(6)}   ${hard.mrr.toFixed(3)}   ${pct(hard.precisionAt5).padStart(6)}`);
 console.log(`  mined (gated)     ${String(mined.tasks).padStart(5)}   ${pct(mined.hitAt5).padStart(6)}   ${mined.mrr.toFixed(3)}   ${pct(mined.precisionAt5).padStart(6)}`);
 console.log(`  easy (reference)  ${String(easy.tasks).padStart(5)}   ${pct(easy.hitAt5).padStart(6)}   ${easy.mrr.toFixed(3)}   ${pct(easy.precisionAt5).padStart(6)}`);
+if (jvm) {
+  console.log(`  jvm (gated)       ${String(jvm.tasks).padStart(5)}   ${pct(jvm.hitAt5).padStart(6)}   ${jvm.mrr.toFixed(3)}   ${pct(jvm.precisionAt5).padStart(6)}`);
+} else {
+  console.log('  jvm               repos not cloned — skipped');
+}
 console.log('\n  mined = commit subjects + the files that commit touched. Nobody tuning');
 console.log('  the ranker wrote them, so it is the only unbiased number here.');
 console.log('  It is also SMALL: 1 task = ' + (100 / mined.tasks).toFixed(1) + 'pp, and the defensible miner');
@@ -96,11 +131,17 @@ if (prior && prior.hard) {
   const dm2 = prior.mined ? mined.hitAt5 - prior.mined.hitAt5 : 0;
   const d = hard.hitAt5 - prior.hard.hitAt5;
   const dm = hard.mrr - prior.hard.mrr;
-  console.log(`\n  vs baseline       hard ${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}pp   mined ${dm2 >= 0 ? '+' : ''}${(dm2 * 100).toFixed(1)}pp   MRR ${dm >= 0 ? '+' : ''}${dm.toFixed(3)}`);
+  const dj = (jvm && prior.jvm) ? jvm.hitAt5 - prior.jvm.hitAt5 : null;
+  console.log(`\n  vs baseline       hard ${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}pp   mined ${dm2 >= 0 ? '+' : ''}${(dm2 * 100).toFixed(1)}pp   MRR ${dm >= 0 ? '+' : ''}${dm.toFixed(3)}`
+    + (dj === null ? '' : `   jvm ${dj >= 0 ? '+' : ''}${(dj * 100).toFixed(1)}pp`));
 }
 
 if (SAVE) {
-  writeFileSync(BASELINE, JSON.stringify({ hard, mined, easy, recordedBy: 'run-retrieval-gate.mjs' }, null, 2) + '\n');
+  const prev = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : {};
+  // Keep a previously recorded jvm baseline when the repos are not cloned, so a
+  // save from a machine without them does not silently erase the gate.
+  const jvmOut = jvm || prev.jvm || undefined;
+  writeFileSync(BASELINE, JSON.stringify({ hard, mined, easy, ...(jvmOut ? { jvm: jvmOut } : {}), recordedBy: 'run-retrieval-gate.mjs' }, null, 2) + '\n');
   console.log(`\n[retrieval-gate] baseline saved → ${BASELINE.replace(ROOT + '/', '')}`);
 }
 
@@ -116,6 +157,11 @@ if (NO_REGRESS && prior && prior.mined && mined.hitAt5 < prior.mined.hitAt5 - EP
 }
 if (leak.leaking.length > 0) {
   reasons.push(`hard split leaks basename tokens in ${leak.leaking.length} task(s): ${leak.leaking.join(', ')}`);
+}
+// The JVM corpus is scored only when the repos are cloned, so it can never fail
+// a fresh checkout — but when it IS measured, a regression counts like any other.
+if (NO_REGRESS && prior && prior.jvm && jvm && jvm.hitAt5 < prior.jvm.hitAt5 - EPS) {
+  reasons.push(`jvm hit@5 regressed ${pct(prior.jvm.hitAt5)} -> ${pct(jvm.hitAt5)}`);
 }
 if (hard.hitAt5 < MIN - EPS) {
   reasons.push(`hard hit@5 ${pct(hard.hitAt5)} below floor ${pct(MIN)}`);
