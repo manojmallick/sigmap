@@ -1,5 +1,11 @@
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling sits above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed (#576).
+const PER_FILE_LIMIT = 25;
+
 /**
  * Extract signatures from Ruby source code.
  * @param {string} src - Raw file content
@@ -34,7 +40,7 @@ function extract(src) {
     sigs.push(`def ${m[1]}${params}${retStr}`);
   }
 
-  return sigs.slice(0, 25);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 function normalizeParams(params) {

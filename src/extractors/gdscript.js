@@ -1,5 +1,15 @@
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling sits above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed (#576).
+const PER_FILE_LIMIT = 25;
+
+// Ceilings disclose what they drop rather than truncating silently (#576).
+const MEMBER_LIMIT = 6;
+const ENUM_LIMIT = 24;
+
 /**
  * Extract signatures from Godot GDScript source code.
  * @param {string} src - Raw file content
@@ -44,7 +54,7 @@ function extract(src) {
       .split(',')
       .map((s) => s.trim().split(/\s*=/)[0].trim())
       .filter(Boolean);
-    sigs.push(`${indent}enum ${m[1]} { ${members.slice(0, 6).join(', ')} }`);
+    sigs.push(`${indent}enum ${m[1]} { ${capWithNotice(members, ENUM_LIMIT, 'values').join(', ')} }`);
   }
 
   let constCount = 0;
@@ -92,7 +102,7 @@ function extract(src) {
     }
   }
 
-  return sigs.slice(0, 25);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 function extractInnerMembers(stripped, startIndex) {
@@ -110,7 +120,7 @@ function extractInnerMembers(stripped, startIndex) {
       members.push(`${staticKw}func ${fm[2]}(${params})${retStr}`);
     }
   }
-  return members.slice(0, 6);
+  return capWithNotice(members, MEMBER_LIMIT, 'members');
 }
 
 function normalizeParams(params) {
