@@ -1300,16 +1300,16 @@ sigmap lines src/graph/builder.js :447         # a window around one line
 sigmap lines src/graph/builder.js :447 --context 20
 ```
 
-```text
+````text
 $ sigmap lines src/graph/builder.js :447 --context 2
 # src/graph/builder.js:445-449
 ```
- * @returns {{ forward: Map<string,string[]>, reverse: Map<string,string[]> }}
+ * @returns { forward: Map<string,string[]>, reverse: Map<string,string[]> }
  */
 function buildFromCwd(cwd, opts) {
   // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
 ```
-```
+````
 
 The `:447` form takes an anchor **pasted straight off a signature** — `ask` prints `buildFromCwd(cwd, opts) → { forward: …  :447-501`, and that string is the argument.
 
