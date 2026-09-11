@@ -11752,24 +11752,60 @@ __factories["./src/graph/builder"] = function(module, exports) {
     return { forward, reverse };
   }
 
+  // Directory names assumed when neither the caller nor the project config says
+  // otherwise. A Maven/Gradle module (`mall-portal/`, `service-api/`) matches none
+  // of them, which is why the config is consulted first.
+  const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'R', 'inst'];
+
+  // Walk depth measured from EACH srcDir root, not from cwd — so this is not the
+  // same quantity as the extractor's cwd-relative `maxDepth` and must not be read
+  // from it. A standard Maven tree reaches `src/main/java/<group>/<artifact>/…`
+  // nine directories below its module root, so the previous ceiling of 8 silently
+  // dropped the deepest packages (on macrozheng/mall: every `service/impl/` class).
+  const DEFAULT_WALK_DEPTH = 12;
+
+  /**
+   * Source directories declared in the project's own config, or null when there
+   * is no readable config. Read directly rather than through `loadConfig`, which
+   * can fetch `extends` over the network and spawn a child process — neither is
+   * acceptable inside a graph build.
+   */
+  function _configuredSrcDirs(cwd) {
+    try {
+      const raw = fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8');
+      const cfg = JSON.parse(raw);
+      if (Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0) return cfg.srcDirs;
+    } catch (_) { /* absent or unparsable — fall back to the defaults */ }
+    return null;
+  }
+
   /**
    * Build a dependency graph scoped to a single cwd by walking all JS/TS/Py/Go
    * files under srcDirs. Useful for the MCP tool handler.
+   *
+   * srcDirs resolution order: explicit `opts.srcDirs` → `gen-context.config.json`
+   * → DEFAULT_SRC_DIRS. Without the config step the graph is empty on any repo
+   * whose sources do not sit under a conventionally-named directory.
    *
    * @param {string} cwd
    * @param {object} [opts]
    * @param {string[]} [opts.srcDirs]
    * @param {string[]} [opts.exclude]
+   * @param {number}   [opts.maxDepth] - walk depth from each srcDir root
    * @returns {{ forward: Map<string,string[]>, reverse: Map<string,string[]> }}
    */
   function buildFromCwd(cwd, opts) {
     // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
     // The existence check below makes these no-ops in non-R projects.
-    const { srcDirs = ['src', 'app', 'lib', 'R', 'inst'], exclude = ['node_modules', '.git', 'dist', 'build'] } = opts || {};
+    const {
+      srcDirs = _configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS,
+      exclude = ['node_modules', '.git', 'dist', 'build'],
+      maxDepth = DEFAULT_WALK_DEPTH,
+    } = opts || {};
     const excludeSet = new Set(exclude);
 
     function walkDir(dir, depth) {
-      if (depth > 8) return [];
+      if (depth > maxDepth) return [];
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return []; }
       const out = [];
@@ -11818,7 +11854,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     return build(files, cwd, ctx);
   }
 
-  module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias };
+  module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };
   
 };
 
@@ -12073,6 +12109,44 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   // Java: methods + constructors with braced bodies. Statement-shaped matches
   // (calls, control flow) are rejected because their `)` is followed by `;`,
   // and keyword headers (`if`, `while`, …) fall to the NON_CALL guard.
+  // Words that can precede `name(` in a STATEMENT, so their presence means the
+  // line is not a method declaration.
+  const STMT_KEYWORDS = new Set([
+    'return', 'throw', 'else', 'do', 'try', 'case', 'yield', 'assert', 'new',
+    'if', 'while', 'for', 'switch', 'catch', 'synchronized', 'instanceof', 'await',
+  ]);
+
+  // Types a Java class declares it implements or extends, with generic arguments
+  // stripped and any package qualifier dropped: `implements Foo<Bar, Baz>` yields
+  // ['Foo'], never 'Baz>'. Also records whether the class is a Spring bean and
+  // whether it is @Primary, which is what disambiguates several implementations.
+  function javaTypeDecl(masked) {
+    const m = /(?:^|\n)[^\n]*?\bclass\s+([A-Za-z_$][\w$]*)([^{]*)\{/.exec(masked);
+    if (!m) return null;
+    const [, className, tail] = m;
+    const supers = [];
+    for (const kw of ['implements', 'extends']) {
+      const k = new RegExp('\\b' + kw + '\\s+([^{]*?)(?=\\b(?:implements|extends)\\b|$)').exec(tail);
+      if (!k) continue;
+      let depth = 0;
+      let cur = '';
+      for (const ch of k[1]) {
+        if (ch === '<') { depth++; continue; }
+        if (ch === '>') { depth--; continue; }
+        if (ch === ',' && depth === 0) { if (cur.trim()) supers.push(cur.trim()); cur = ''; continue; }
+        if (depth === 0) cur += ch;
+      }
+      if (cur.trim()) supers.push(cur.trim());
+    }
+    const head = masked.slice(0, m.index + m[0].length);
+    return {
+      className,
+      supers: supers.map((t) => t.split('.').pop().trim()).filter(Boolean),
+      isBean: /@(Service|Component|Repository|Controller|RestController)\b/.test(head),
+      isPrimary: /@Primary\b/.test(head),
+    };
+  }
+
   function javaDefs(masked) {
     const defs = [];
     const seen = new Set();
@@ -12089,11 +12163,24 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       // skip `throws A, B` up to the body `{` (same line — multi-line headers are skipped)
       let k = close + 1;
       while (k < masked.length && masked[k] !== '{' && masked[k] !== ';' && masked[k] !== '\n' && masked[k] !== '=') k++;
-      if (masked[k] !== '{') continue;
+      // A `;` here is an interface or abstract method DECLARATION. It owns no body,
+      // so it emits no calls — but in Spring the declared interface is what callers
+      // name, so without it as a node every controller→service edge has no target.
+      // Recorded with an empty body range: can receive edges, never produces them.
+      // `before` is everything between line start and the method name. A real
+      // declaration has modifiers or a return type there (`void chargeCard(`);
+      // a call statement has only whitespace (`identity(1);`) or a statement
+      // keyword (`return helper(a);`) — neither may be read as a declaration,
+      // or the call resolves to a phantom local def instead of the real target.
+      const headWord = (before.match(/([A-Za-z_$][\w$]*)\s*$/) || [])[1];
+      const isDecl = masked[k] === ';' && /\S/.test(before) && !STMT_KEYWORDS.has(headWord);
+      if (masked[k] !== '{' && !isDecl) continue;
       const key = name + ':' + k;
       if (seen.has(key)) continue;
       seen.add(key);
-      defs.push({ name, line: lineAt(masked, m.index + 1), bodyStart: k, bodyEnd: matchDelim(masked, k, '{', '}') });
+      defs.push(isDecl
+        ? { name, line: lineAt(masked, m.index + 1), bodyStart: k, bodyEnd: k }
+        : { name, line: lineAt(masked, m.index + 1), bodyStart: k, bodyEnd: matchDelim(masked, k, '{', '}') });
     }
     return defs;
   }
@@ -12147,7 +12234,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const re = /([A-Za-z_$][\w$]*)\s*\(/g;
     let m;
     while ((m = re.exec(slice)) !== null) {
-      // skip a `.name(` method access (can't resolve the receiver deterministically)
+      // skip a `.name(` method access — resolved separately via receiverCallsInRange
       const before = slice[m.index - 1];
       if (before === '.') continue;
       if (!NON_CALL.has(m[1])) names.add(m[1]);
@@ -12155,16 +12242,75 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     return names;
   }
 
+  // Collect `receiver.method(` pairs within [start,end). A chained or computed
+  // receiver (`a.b().c(`, `arr[0].c(`) is skipped: only a plain identifier can be
+  // looked up in the declaration map, and guessing is worse than no edge.
+  function receiverCallsInRange(masked, start, end) {
+    const slice = masked.slice(start, end);
+    const out = [];
+    const re = /([A-Za-z_$][\w$]*)\s*\.\s*([A-Za-z_$][\w$]*)\s*\(/g;
+    let m;
+    while ((m = re.exec(slice)) !== null) {
+      const before = slice[m.index - 1];
+      if (before === '.' || before === ')' || before === ']') continue;
+      if (NON_CALL.has(m[2])) continue;
+      out.push({ receiver: m[1], method: m[2] });
+    }
+    return out;
+  }
+
+  // `private UserService userService;` / `UserService svc = new UserService();`
+  // / `for (OmsOrderItem item : list)` → { userService: 'UserService', … }.
+  // Declarations only: a bare assignment carries no type and is not inferred.
+  const DECL_RE = /(?:^|[;{}(,\n])\s*(?:(?:public|private|protected|static|final|volatile|transient)\s+)*([A-Z][\w$]*)(?:\s*<[^>;=(){}]*>)?(?:\s*\[\s*\])?\s+([a-z_$][\w$]*)\s*(?=[;=:)])/g;
+
+  function buildTypeMap(masked) {
+    const map = new Map();
+    let m;
+    DECL_RE.lastIndex = 0;
+    while ((m = DECL_RE.exec(masked)) !== null) {
+      const [, type, name] = m;
+      if (JVM_KEYWORDS.has(type) || JVM_KEYWORDS.has(name)) continue;
+      if (!map.has(name)) map.set(name, type);   // first declaration wins — deterministic
+    }
+    return map;
+  }
+
+  // Type names that are never a user class, so never a resolvable receiver type.
+  const JVM_KEYWORDS = new Set([
+    'return', 'new', 'if', 'else', 'for', 'while', 'switch', 'case', 'throw', 'catch',
+    'String', 'Integer', 'Long', 'Boolean', 'Double', 'Float', 'Object', 'List', 'Map',
+    'Set', 'Collection', 'Optional', 'Override', 'Autowired', 'Resource', 'Deprecated',
+  ]);
+
   // ── Public API ───────────────────────────────────────────────────────────────
 
-  function _walk(dir, excludeSet, out, depth) {
-    if (depth > 8) return;
+  // Walk depth from each srcDir root (not from cwd). A Maven module reaches
+  // `src/main/java/<group>/<artifact>/service/impl` nine directories down, so the
+  // previous ceiling of 8 never saw the classes that own the method bodies.
+  const DEFAULT_WALK_DEPTH = 12;
+
+  /**
+   * Source directories declared in the project's own config, or null. Read
+   * directly rather than through `loadConfig`, which can fetch `extends` over the
+   * network and spawn a child process — neither belongs inside a graph build.
+   */
+  function _configuredSrcDirs(cwd) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
+      if (Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0) return cfg.srcDirs;
+    } catch (_) { /* absent or unparsable — fall back to the defaults */ }
+    return null;
+  }
+
+  function _walk(dir, excludeSet, out, depth, maxDepth) {
+    if (depth > (maxDepth === undefined ? DEFAULT_WALK_DEPTH : maxDepth)) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
     for (const e of entries) {
       if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
       const full = path.join(dir, e.name);
-      if (e.isDirectory()) _walk(full, excludeSet, out, depth + 1);
+      if (e.isDirectory()) _walk(full, excludeSet, out, depth + 1, maxDepth);
       else if (e.isFile()) {
         const ext = path.extname(e.name).toLowerCase();
         if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || JAVA_EXTS.has(ext) || GO_EXTS.has(ext) || RS_EXTS.has(ext)) out.push(full);
@@ -12190,9 +12336,13 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const excludeSet = new Set(opts.exclude || ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor']);
     let files = opts.files ? opts.files.map((f) => path.resolve(f)) : [];
     if (!opts.files) {
-      for (const sd of (opts.srcDirs || ['src', 'app', 'lib'])) {
+      // Same resolution order as the dependency graph (#560): explicit opts →
+      // the project's own config → the historical defaults. Without the config
+      // step this is empty on any repo whose sources are not under src/app/lib.
+      const srcDirs = opts.srcDirs || _configuredSrcDirs(cwd) || ['src', 'app', 'lib'];
+      for (const sd of srcDirs) {
         const abs = path.resolve(cwd, sd);
-        if (fs.existsSync(abs)) _walk(abs, excludeSet, files, 0);
+        if (fs.existsSync(abs)) _walk(abs, excludeSet, files, 0, opts.maxDepth);
       }
     }
 
@@ -12205,6 +12355,44 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const defsByName = new Map();     // absFile → Map<name, symbolId[]>
     const normToAbs = new Map();      // normalized abs → abs
     const defs = new Map();           // symbolId → {file,name,line}
+
+    // JVM convention: a public type lives in a file of the same name. This is the
+    // deterministic type→file mapping receiver resolution needs, with no AST.
+    const fileByTypeName = new Map();   // 'UserService' → [absFile]
+    for (const f of files) {
+      const ext = path.extname(f).toLowerCase();
+      if (JAVA_EXTS.has(ext)) {
+        const base = path.basename(f, path.extname(f));
+        if (!fileByTypeName.has(base)) fileByTypeName.set(base, []);
+        fileByTypeName.get(base).push(f);
+      }
+    }
+
+    // interface/superclass name → implementing files, for the Spring hop below.
+    const implsByType = new Map();     // 'PaymentService' → [{ file, isBean, isPrimary }]
+    for (const f of files) {
+      if (!JAVA_EXTS.has(path.extname(f).toLowerCase())) continue;
+      let decl;
+      try { decl = javaTypeDecl(maskJs(fs.readFileSync(f, 'utf8'))); } catch (_) { continue; }
+      if (!decl) continue;
+      for (const sup of decl.supers) {
+        if (!implsByType.has(sup)) implsByType.set(sup, []);
+        implsByType.get(sup).push({ file: f, isBean: decl.isBean, isPrimary: decl.isPrimary });
+      }
+    }
+
+    /**
+     * The single implementing file for a type, or null when it is ambiguous.
+     * One implementation resolves outright; several resolve only via @Primary.
+     * Anything still ambiguous yields no edge — polymorphism is not guessed.
+     */
+    const soleImpl = (typeName) => {
+      const cands = implsByType.get(typeName) || [];
+      if (cands.length === 1) return cands[0].file;
+      const primary = cands.filter((c) => c.isPrimary);
+      if (primary.length === 1) return primary[0].file;
+      return null;
+    };
 
     for (const f of files) {
       normToAbs.set(normalizePath(path.resolve(f)), path.resolve(f));
@@ -12225,12 +12413,20 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
 
     const forward = new Map();
     const reverse = new Map();
-    const addEdge = (from, to) => {
+    // Additive: `forward`/`reverse` keep their existing shape, so every current
+    // consumer is unaffected. Confidence is looked up by "from\u0000to".
+    const edgeConfidence = new Map();
+    const addEdge = (from, to, confidence) => {
       if (from === to) return;
       if (!forward.has(from)) forward.set(from, new Set());
       forward.get(from).add(to);
       if (!reverse.has(to)) reverse.set(to, new Set());
       reverse.get(to).add(from);
+      if (confidence) {
+        const k = from + '\u0000' + to;
+        // A 'high' resolution never loses to a later 'medium' one.
+        if (edgeConfidence.get(k) !== 'high') edgeConfidence.set(k, confidence);
+      }
     };
 
     for (const [f, fileDefs] of perFileDefs.entries()) {
@@ -12248,16 +12444,59 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
           .sort();
         importedAbs.push(...siblings);
       }
+      // Receiver types come from declarations anywhere in the file: fields are
+      // declared outside any method body, locals inside one.
+      const typeMap = JAVA_EXTS.has(ext) ? buildTypeMap(masked) : null;
+      // Types reachable from this file, by name — imports first, then same-package
+      // siblings, so an import always wins over a coincidental sibling name.
+      const scopeByTypeName = new Map();
+      if (typeMap) {
+        for (const imp of importedAbs) {
+          const base = path.basename(imp, path.extname(imp));
+          if (!scopeByTypeName.has(base)) scopeByTypeName.set(base, imp);
+        }
+      }
+
       for (const d of fileDefs) {
         const callerId = symId(cwd, f, d.name);
         if (!forward.has(callerId)) forward.set(callerId, new Set()); // ensure node exists
         const callees = callsInRange(masked, d.bodyStart, d.bodyEnd);
         for (const nm of callees) {
           const local = (defsByName.get(f) || new Map()).get(nm);
-          if (local && local.length) { for (const id of local) addEdge(callerId, id); continue; }
+          if (local && local.length) { for (const id of local) addEdge(callerId, id, 'high'); continue; }
           for (const imp of importedAbs) {
             const ids = (defsByName.get(imp) || new Map()).get(nm);
-            if (ids && ids.length) { for (const id of ids) addEdge(callerId, id); break; }
+            if (ids && ids.length) { for (const id of ids) addEdge(callerId, id, 'high'); break; }
+          }
+        }
+
+        // `receiver.method(` — resolve the receiver's declared type to a file.
+        if (!typeMap) continue;
+        for (const { receiver, method } of receiverCallsInRange(masked, d.bodyStart, d.bodyEnd)) {
+          // A receiver that is itself a type name is a static call: `Foo.bar()`.
+          const typeName = typeMap.get(receiver)
+            || (fileByTypeName.has(receiver) ? receiver : null);
+          if (!typeName) continue;                 // unknown receiver → no edge, never a guess
+
+          let target = scopeByTypeName.get(typeName);
+          let confidence = 'high';                 // typed receiver, resolved in scope
+          if (!target) {
+            const candidates = fileByTypeName.get(typeName) || [];
+            if (candidates.length !== 1) continue; // ambiguous or absent → no edge
+            target = candidates[0];
+            confidence = 'medium';                 // type known, but not in this file's scope
+          }
+          const ids = (defsByName.get(target) || new Map()).get(method);
+          if (ids && ids.length) for (const id of ids) addEdge(callerId, id, confidence);
+
+          // Spring: the call names the interface, but the code that runs — and
+          // that a reviewer changes — lives in the implementation. Both edges are
+          // true, so both are recorded; without the second, blast radius on an
+          // implementation is empty.
+          const implFile = soleImpl(typeName);
+          if (implFile && implFile !== target) {
+            const implIds = (defsByName.get(implFile) || new Map()).get(method);
+            if (implIds && implIds.length) for (const id of implIds) addEdge(callerId, id, confidence);
           }
         }
       }
@@ -12268,7 +12507,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       for (const [k, set] of mapOfSets.entries()) out.set(k, [...set]);
       return out;
     };
-    return { forward: toArr(forward), reverse: toArr(reverse), defs };
+    return { forward: toArr(forward), reverse: toArr(reverse), defs, edgeConfidence };
   }
 
   /**
@@ -12390,7 +12629,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   }
 
   module.exports = {
-    buildCallGraph, buildCallFileGraph, methodImpact, methodCallees,
+    buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, methodImpact, methodCallees,
     formatCallGraph, formatCallGraphJSON,
     extractDefs, maskJs, maskPy, maskRust,
   };
@@ -15440,7 +15679,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.30.0',
+    version: '8.31.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -18805,7 +19044,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
         'Follow this loop before any file exploration in a repo with SigMap installed.',
         '',
         '1. **Ask before reading.** `sigmap ask "<task>"` (or the `query_context` MCP tool) ranks the relevant files as ~hundreds of tokens of signatures instead of thousands of raw-file tokens. Never open files to "look around".',
-        '2. **Read ranges, not files.** Use the `get_lines` MCP tool with the `:start-end` line anchors carried on every signature to pull only the lines you need.',
+        '2. **Read ranges, not files.** Use the `get_lines` MCP tool — or `sigmap lines <file> :<line> --context <n>` where MCP is unavailable — with the `:start-end` line anchors carried on every signature to pull only the lines you need.',
         '3. **Ground before trusting.** Run the `verify_suggestion` MCP tool (or `sigmap verify-ai-output`) on generated code before applying it — it flags fabricated files, imports, symbols, and npm scripts against the live index.',
         '4. **Squeeze big pastes.** Any stack trace, CI/build log, or JSON blob goes through `sigmap squeeze` (or the `squeeze_output` MCP tool) before it enters context — the signal survives, the noise does not.',
         '5. **Checkpoint progress.** Use the `create_checkpoint` MCP tool or `sigmap note "<decision>"` so a follow-up session resumes without re-deriving state.',
@@ -18823,7 +19062,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
         '',
         '1. **Look up, do not search.** `npx sigmap ask "<the task>"` — this writes `.context/query-context.md`.',
         '2. **Read the map.** `cat .context/query-context.md`. It ranks the relevant files and lists their signatures with `:start-end` line anchors — a few hundred tokens where the same files read whole are tens of thousands. Say which files it surfaced before continuing. If nothing relevant appears, re-run step 1 with different wording; fall back to search only after two attempts, and say so.',
-        '3. **Open only the anchored ranges.** A signature ending `:425-425` means read line 425, not the whole file. Never read a file in full when you hold an anchor for it.',
+        '3. **Read the anchored range, by command.** A signature ending `:425-425` means line 425, not the 547-line file. Run `npx sigmap lines <file> :425 --context 10` — paste the anchor straight off the signature. Never `cat` a whole file when you hold an anchor for it: on a real repo a 220-line span costs ~2,700 tokens where the anchored window costs ~220.',
         '4. **Make the change.** Follow the conventions visible in the signatures — same layering, same response wrapper, same annotation style. Add no dependencies.',
         '5. **Verify before reporting.** Write what you changed to `.sigmap-notes.md`, naming every file by its **full repository-relative path** (a bare filename is reported as fake), then run `npx sigmap verify-ai-output .sigmap-notes.md`. It checks every name against the real index, offline, with no model call. Fix anything it flags and re-run before you reply.',
         '6. **Refresh the map.** `npx sigmap` — your edits made it stale.',
@@ -21734,7 +21973,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.30.0';
+const VERSION = '8.31.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -23740,6 +23979,8 @@ Usage:
   ${cmd} tune --apply                      Write the recommendations into gen-context.config.json (merges; your keys preserved)
   ${cmd} skills list                       List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)
   ${cmd} skills install                    Install the SigMap agent playbooks for detected clients (--client <name> | --all)
+  ${cmd} lines <file> <start>-<end>        Print an exact line range — CLI twin of get_lines (secrets redacted)
+  ${cmd} lines <file> :<line> --context <n>  Window around one signature anchor (default ±10)
   ${cmd} note "<text>"                     Append a note to the cross-session decision log
   ${cmd} note                              List recent notes (also: note --list <N>)
   ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
@@ -25340,6 +25581,55 @@ function main() {
     console.error(r.redacted
       ? `[sigmap] redact: masked ${r.findings.length} secret(s) — ${parts.join(', ')}`
       : '[sigmap] redact: no secrets found');
+    process.exit(0);
+  }
+
+  // `sigmap lines <file> <start>-<end>` — the CLI twin of the get_lines MCP
+  // tool. Without it, an agent in an MCP-less environment receives precise
+  // `:start-end` anchors from `ask` and has no sanctioned way to spend them,
+  // so it falls back to reading whole files and throws the saving away.
+  // Delegates to the same handler as MCP so both paths share the sandbox,
+  // the bounds clamping and the secret redaction.
+  if (args[0] === 'lines') {
+    const valOf = (f) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] ? args[i + 1] : null; };
+    const positional = [];
+    const VALUE_FLAGS = new Set(['--cwd', '--context']);
+    for (let i = 1; i < args.length; i++) {
+      const a = args[i];
+      if (a.startsWith('--')) { if (VALUE_FLAGS.has(a)) i++; continue; }
+      positional.push(a);
+    }
+    const file = positional[0];
+    const range = positional[1];
+    if (!file || !range) {
+      console.error('[sigmap] usage: sigmap lines <file> <start>-<end>   (or :<line> --context <n>)');
+      process.exit(2);
+    }
+
+    // Accept `84-104`, a bare `94`, or the `:94` form copied straight off a
+    // signature anchor — the whole point is to paste what `ask` printed.
+    const ctx = Math.max(0, parseInt(valOf('--context') || '10', 10));
+    let start;
+    let end;
+    const span = /^:?(\d+)\s*-\s*(\d+)$/.exec(range);
+    const single = /^:?(\d+)$/.exec(range);
+    if (span) { start = parseInt(span[1], 10); end = parseInt(span[2], 10); }
+    else if (single) { const n = parseInt(single[1], 10); start = Math.max(1, n - ctx); end = n + ctx; }
+    else {
+      console.error(`[sigmap] lines: could not read range "${range}" — expected <start>-<end> or :<line>`);
+      process.exit(2);
+    }
+
+    const { getLines } = requireSourceOrBundled('./src/mcp/handlers');
+    const out = getLines({ file, start, end }, cwd);
+    // The handler reports its own failures as prose; surface them on stderr
+    // with a non-zero exit so a script can tell a hit from a miss.
+    if (/^(Missing required argument|Refused:|File not found:|Could not read |Arguments )/.test(out)
+        || /has only \d+ lines; requested/.test(out)) {
+      console.error('[sigmap] ' + out);
+      process.exit(1);
+    }
+    process.stdout.write(out + '\n');
     process.exit(0);
   }
 
