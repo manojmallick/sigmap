@@ -1,5 +1,11 @@
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling sits above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed (#576).
+const PER_FILE_LIMIT = 200;
+
 /**
  * Extract signatures from R source code.
  *
@@ -113,7 +119,7 @@ function extract(src) {
     sigs.push(`setClass("${sm[1]}")`);
   }
 
-  return sigs.slice(0, 30);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 /**

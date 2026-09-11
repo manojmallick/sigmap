@@ -2,6 +2,11 @@
 
 const path = require('path');
 const { lineAt } = require('./line-anchor');
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling sits above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed (#576).
+const PER_FILE_LIMIT = 200;
 
 /**
  * 1-based line of the last source line belonging to a top-level (indent 0)
@@ -136,7 +141,7 @@ function extract(src, filePath) {
     }
   }
 
-  return sigs.slice(0, 30);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 function extractClassMethods(stripped, startIndex) {

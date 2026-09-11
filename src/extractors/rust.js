@@ -1,6 +1,11 @@
 'use strict';
 
 const { lineAt, withAnchor } = require('./line-anchor');
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling sits above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed (#576).
+const PER_FILE_LIMIT = 200;
 
 /**
  * Extract signatures from Rust source code.
@@ -70,7 +75,7 @@ function extract(src) {
     sigs.push(hinted(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e), m[1]));
   }
 
-  return sigs.slice(0, 25);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 function extractBlock(src, startIndex) {

@@ -1,6 +1,11 @@
 'use strict';
 
 const { lineAt, withAnchor } = require('./line-anchor');
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling sits above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed (#576).
+const PER_FILE_LIMIT = 200;
 
 /**
  * Extract signatures from Go source code.
@@ -49,7 +54,7 @@ function extract(src) {
     sigs.push(hinted(withAnchor(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)), m[2]));
   }
 
-  return sigs.slice(0, 25);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 function extractBlock(src, startIndex) {
