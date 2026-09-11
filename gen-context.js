@@ -5444,8 +5444,8 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  const MEMBER_LIMIT = 120;
-  const PER_FILE_LIMIT = 200;
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from C/C++ source code.
@@ -5526,8 +5526,8 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  const MEMBER_LIMIT = 120;
-  const PER_FILE_LIMIT = 200;
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from C# source code.
@@ -5607,7 +5607,7 @@ __factories["./src/extractors/css"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from CSS/SCSS/SASS/Less source code.
@@ -5688,8 +5688,8 @@ __factories["./src/extractors/dart"] = function(module, exports) {
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  const MEMBER_LIMIT = 120;
-  const PER_FILE_LIMIT = 200;
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Dart source code.
@@ -6012,7 +6012,7 @@ __factories["./src/extractors/dockerfile"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Dockerfiles.
@@ -6071,10 +6071,10 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   // Ceilings disclose what they drop rather than truncating silently (#576).
-  const MEMBER_LIMIT = 120;
+  const MEMBER_LIMIT = 6;
   const ENUM_LIMIT = 24;
 
   /**
@@ -6248,7 +6248,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Go source code.
@@ -6435,7 +6435,7 @@ __factories["./src/extractors/html"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from HTML files.
@@ -6834,8 +6834,8 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  const MEMBER_LIMIT = 120;
-  const PER_FILE_LIMIT = 200;
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Kotlin source code.
@@ -7165,8 +7165,8 @@ __factories["./src/extractors/php"] = function(module, exports) {
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  const MEMBER_LIMIT = 120;
-  const PER_FILE_LIMIT = 200;
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from PHP source code.
@@ -7455,7 +7455,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 30;
 
   /**
    * 1-based line of the last source line belonging to a top-level (indent 0)
@@ -7805,7 +7805,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 30;
 
   /**
    * Extract signatures from R source code.
@@ -8088,7 +8088,7 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Ruby source code.
@@ -8153,7 +8153,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Rust source code.
@@ -8301,8 +8301,8 @@ __factories["./src/extractors/scala"] = function(module, exports) {
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  const MEMBER_LIMIT = 120;
-  const PER_FILE_LIMIT = 200;
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Scala source code.
@@ -8494,7 +8494,7 @@ __factories["./src/extractors/shell"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from shell scripts (bash, zsh, fish).
@@ -8644,7 +8644,7 @@ __factories["./src/extractors/svelte"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Svelte components.
@@ -8714,8 +8714,8 @@ __factories["./src/extractors/swift"] = function(module, exports) {
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  const MEMBER_LIMIT = 120;
-  const PER_FILE_LIMIT = 200;
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Swift source code.
@@ -9369,7 +9369,7 @@ __factories["./src/extractors/vue"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Vue single-file components.
@@ -9612,7 +9612,7 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 200;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from YAML configuration files.

@@ -6,8 +6,8 @@ const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
 // Ceilings sit above the default `maxSigsPerFile` so the configured budget
 // governs output rather than a literal buried here, and omissions are disclosed
 // — an undisclosed cap looks like a class that simply has eight methods (#576).
-const MEMBER_LIMIT = 120;
-const PER_FILE_LIMIT = 200;
+const MEMBER_LIMIT = 8;
+const PER_FILE_LIMIT = 25;
 
 /**
  * Extract signatures from PHP source code.

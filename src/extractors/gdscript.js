@@ -4,10 +4,10 @@ const { capWithNotice } = require('../util/truncate');
 
 // Ceiling sits above the default `maxSigsPerFile` so the configured budget
 // governs output rather than a literal buried here, and omissions are disclosed (#576).
-const PER_FILE_LIMIT = 200;
+const PER_FILE_LIMIT = 25;
 
 // Ceilings disclose what they drop rather than truncating silently (#576).
-const MEMBER_LIMIT = 120;
+const MEMBER_LIMIT = 6;
 const ENUM_LIMIT = 24;
 
 /**

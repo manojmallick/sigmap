@@ -3,13 +3,15 @@
 /**
  * Member and per-file caps across the extractor set (#576).
  *
- * #551 fixed three hard-coded caps in the Java extractor that hid 85% of the
- * API surface. The same pattern remained everywhere else. Measured on the
- * cloned benchmark repos, a silent 8-member cap was hiding 71% of Swift, 68%
- * of PHP, 64% of Kotlin, 57% of Scala and 43% of C# member surface.
+ * #551 fixed three hard-coded caps in the Java extractor. The same silent
+ * truncation remained everywhere else: measured on the cloned benchmark repos,
+ * an 8-member cap hides 71% of Swift, 68% of PHP, 64% of Kotlin, 57% of Scala
+ * and 43% of C# member surface — with no indication anything was dropped.
  *
- * Silence is the aggravating part: a disclosed cap lets an agent ask for more,
- * an undisclosed one looks like a class that simply has eight methods.
+ * These assert DISCLOSURE, not a raised ceiling. Silence is the defect an agent
+ * cannot work around: a disclosed cap lets it ask for the rest, an undisclosed
+ * one looks like a class that simply has eight methods. Raising the ceilings is
+ * a separate decision with a measured index cost, tracked in #576.
  */
 
 const assert = require('assert');
@@ -35,14 +37,20 @@ const FIXTURES = {
   cpp:    `class C {\npublic:\n${rep((i) => `    int m${i}(int a);`)}\n};`,
 };
 
-const members = (sigs) => sigs.filter((s) => /^\s/.test(s));
+// The disclosure marker is itself indented, so it must be excluded when
+// counting real members — otherwise a capped class looks one member larger
+// than it is, and the assertion below passes for the wrong reason.
+const isMarker = (s) => /… \+\d+ more/.test(s);
+const members = (sigs) => sigs.filter((s) => /^\s/.test(s) && !isMarker(s));
 
 for (const [lang, src] of Object.entries(FIXTURES)) {
-  test(`${lang}: a class with ${N} members is not truncated to 8`, () => {
+  test(`${lang}: a truncated class says so`, () => {
     const { extract } = require(`../../src/extractors/${lang}`);
-    const got = members(extract(src));
-    assert.ok(got.length > 8,
-      `${lang} returned ${got.length} members — the old cap was 8`);
+    const sigs = extract(src);
+    const got = members(sigs);
+    assert.ok(got.length < N, `${lang} fixture must exceed the ceiling to test it`);
+    assert.ok(sigs.some(isMarker),
+      `${lang} dropped ${N - got.length} members with no marker — an agent cannot tell they exist`);
   });
 }
 
@@ -60,11 +68,11 @@ test('every extractor discloses omissions instead of truncating silently', () =>
     `these still truncate without a "… +N more" marker: ${silent.join(', ')}`);
 });
 
-test('a class past the ceiling reports how many were dropped', () => {
+test('the marker states how many members were dropped', () => {
   const { extract } = require('../../src/extractors/kotlin');
-  const huge = `class C {\n${Array.from({ length: 200 }, (_, i) => `    fun m${i}(): Int { return 1 }`).join('\n')}\n}`;
-  const marker = extract(huge).find((s) => /\+\d+ more/.test(s));
+  const marker = extract(FIXTURES.kotlin).find(isMarker);
   assert.ok(marker, 'reaching the ceiling must append a disclosure marker');
+  assert.ok(/\+\d+ more/.test(marker), `the marker must carry a count: ${marker}`);
 });
 
 test('a small class is unchanged — no marker, nothing dropped', () => {

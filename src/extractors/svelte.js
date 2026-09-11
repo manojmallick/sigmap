@@ -4,7 +4,7 @@ const { capWithNotice } = require('../util/truncate');
 
 // Ceiling sits above the default `maxSigsPerFile` so the configured budget
 // governs output rather than a literal buried here, and omissions are disclosed (#576).
-const PER_FILE_LIMIT = 200;
+const PER_FILE_LIMIT = 25;
 
 /**
  * Extract signatures from Svelte components.
