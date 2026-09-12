@@ -44,7 +44,7 @@ function extract(src) {
   //   ClassName <- R6::R6Class(...)
   const r6Re = /([\w.]+)\s*(?:<<-|<-|=)\s*(?:R6::)?R6Class\s*\(/g;
   let m;
-  while ((m = r6Re.exec(stripped)) !== null && sigs.length < 30) {
+  while ((m = r6Re.exec(stripped)) !== null) {
     const name = m[1];
     if (name.startsWith('.')) continue;
     const openIdx = r6Re.lastIndex - 1;
@@ -55,7 +55,6 @@ function extract(src) {
     sigs.push(`${name} <- R6Class("${classNameLit}")` + applyHint(docHints, name));
     for (const memberSig of extractListMethods(body, 8)) {
       sigs.push('  ' + memberSig);
-      if (sigs.length >= 30) break;
     }
     consumedRanges.push([m.index, closeIdx]);
     r6Re.lastIndex = closeIdx;
@@ -65,7 +64,7 @@ function extract(src) {
   //   ClassName <- new_class("ClassName", properties = list(...))
   const s7Classes = new Set();
   const s7Re = /([\w.]+)\s*(?:<<-|<-|=)\s*(?:S7::)?new_class\s*\(/g;
-  while ((m = s7Re.exec(stripped)) !== null && sigs.length < 30) {
+  while ((m = s7Re.exec(stripped)) !== null) {
     const name = m[1];
     if (name.startsWith('.')) continue;
     const openIdx = s7Re.lastIndex - 1;
@@ -82,7 +81,7 @@ function extract(src) {
 
   // S7 method dispatch: `method(generic, ClassName) <- function(args)`
   const s7MethodRe = /^[ \t]*method\s*\(\s*([\w.]+)\s*,\s*([\w.]+)\s*\)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
-  while ((m = s7MethodRe.exec(stripped)) !== null && sigs.length < 30) {
+  while ((m = s7MethodRe.exec(stripped)) !== null) {
     if (!s7Classes.has(m[2])) continue;
     const argsStart = s7MethodRe.lastIndex - 1;
     const args = readBalancedParens(stripped, argsStart);
@@ -95,7 +94,7 @@ function extract(src) {
   // Skip matches whose position falls inside an R6/S7 class body — those have
   // already been emitted as indented members.
   const funcRe = /^(?:[ \t]*)([\w.]+)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
-  while ((m = funcRe.exec(stripped)) !== null && sigs.length < 30) {
+  while ((m = funcRe.exec(stripped)) !== null) {
     const name = m[1];
     if (name.startsWith('.')) continue;
     if (inAnyRange(m.index, consumedRanges)) continue;
@@ -107,15 +106,12 @@ function extract(src) {
 
   // ── S4 ────────────────────────────────────────────────────────────────────
   for (const sm of stripped.matchAll(/^[ \t]*setGeneric\s*\(\s*["']([\w.]+)["']/gm)) {
-    if (sigs.length >= 30) break;
     sigs.push(`setGeneric("${sm[1]}")`);
   }
   for (const sm of stripped.matchAll(/^[ \t]*setMethod\s*\(\s*["']([\w.]+)["']\s*,\s*["']([\w.]+)["']/gm)) {
-    if (sigs.length >= 30) break;
     sigs.push(`setMethod("${sm[1]}", "${sm[2]}")`);
   }
   for (const sm of stripped.matchAll(/^[ \t]*setClass\s*\(\s*["']([\w.]+)["']/gm)) {
-    if (sigs.length >= 30) break;
     sigs.push(`setClass("${sm[1]}")`);
   }
 

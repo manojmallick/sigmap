@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-12T15:43:28.713Z",
+  "generated": "2026-09-12T22:16:15.611Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -14,21 +14,21 @@
   "summary": {
     "totalRepos": 18,
     "totalTasks": 105,
-    "correctTotal": 68,
+    "correctTotal": 66,
     "partialTotal": 17,
-    "wrongTotal": 20,
-    "correctPct": 64.8,
+    "wrongTotal": 22,
+    "correctPct": 62.9,
     "partialPct": 16.2,
-    "wrongPct": 19,
-    "avgPromptsWith": 1.54,
+    "wrongPct": 21,
+    "avgPromptsWith": 1.58,
     "avgPromptsWithout": 2.84,
-    "avgReductionPct": 45.7,
+    "avgReductionPct": 44.4,
     "hitAt5Without": 13.6,
-    "hitAt5With": 81.1,
-    "avgImprovement": 60.1,
-    "totalGroundedSymbols": 9501,
-    "totalDarkSymbols": 57900,
-    "hallucinationRiskPct": 85.9
+    "hitAt5With": 78.9,
+    "avgImprovement": 60,
+    "totalGroundedSymbols": 9557,
+    "totalDarkSymbols": 57975,
+    "hallucinationRiskPct": 85.8
   },
   "repos": [
     {
@@ -70,22 +70,22 @@
       "promptsWithout": 2.94,
       "reductionPct": 57.5,
       "groundedSymbols": 433,
-      "darkSymbols": 672,
+      "darkSymbols": 673,
       "hallucinationRiskPct": 60.8
     },
     {
       "repo": "spring-petclinic",
       "fileCount": 13,
       "tasks": 5,
-      "correctPct": 100,
+      "correctPct": 60,
       "partialPct": 0,
-      "wrongPct": 0,
-      "promptsWith": 1,
+      "wrongPct": 40,
+      "promptsWith": 1.8,
       "promptsWithout": 2.54,
-      "reductionPct": 60.6,
-      "groundedSymbols": 13,
-      "darkSymbols": 393,
-      "hallucinationRiskPct": 96.8
+      "reductionPct": 29.1,
+      "groundedSymbols": 69,
+      "darkSymbols": 467,
+      "hallucinationRiskPct": 87.1
     },
     {
       "repo": "rails",

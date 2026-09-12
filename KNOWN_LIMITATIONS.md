@@ -2,7 +2,7 @@
 
 SigMap's benchmark claims are honesty-audited (measured grep-agent baseline, retrieval-tier proxies labeled as proxies, leakage-gated hard corpus). This page extends the same standard to the **extraction layer**: what each extractor tier actually does, where it truncates, and what that means for verification. Every claim here is checkable against the code.
 
-Currently: **43 extractor modules covering 33 languages**. Counts are guarded against drift by `test/integration/known-limitations.test.js` (they must match `version.json`).
+Currently: **42 extractor modules covering 32 languages**. Counts are guarded against drift by `test/integration/known-limitations.test.js` (they must match `version.json`).
 
 ## Extractor tiers
 

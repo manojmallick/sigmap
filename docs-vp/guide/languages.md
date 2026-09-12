@@ -22,7 +22,7 @@ head:
 
 SigMap extracts signatures from 33 programming languages and formats using deterministic, zero-dependency extraction — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 33 languages · 25 max signatures per file · 0 npm packages
+**Stats:** 32 languages · 25 max signatures per file · 0 npm packages
 
 Not every language gets the same depth — the tiers (AST / anchored regex / pattern-heuristic), the truncation caps, and the known regex gaps are stated plainly in [KNOWN_LIMITATIONS.md](https://github.com/manojmallick/sigmap/blob/main/KNOWN_LIMITATIONS.md) (v8.26.1), drift-locked by a guard test.
 

@@ -1,5 +1,10 @@
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling discloses what it drops rather than truncating silently (#583).
+const PER_FILE_LIMIT = 50;
+
 /**
  * Extract React component signatures from .tsx files.
  * Captures component props interfaces, hooks usage, and exports.
@@ -54,7 +59,7 @@ function extract(src) {
     sigs.push(`handler on${h}`);
   }
 
-  return Array.from(new Set(sigs)).slice(0, 50);
+  return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'signatures');
 }
 
 module.exports = { extract };

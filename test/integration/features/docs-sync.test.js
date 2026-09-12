@@ -80,11 +80,14 @@ test('quality-benchmark: latest saved run is v5.7.0 or later', () => {
 
 // ── Benchmark metric accuracy ─────────────────────────────────────────────────
 
-test('generalization: uses 81.1% hit@5 (current v8.27 benchmark)', () => {
+test('generalization: hit@5 matches version.json', () => {
+  // Was pinned to '81.1%' AND blocklisted '78.9%' — doubly self-invalidating:
+  // the JVM walk-depth fix (#590) moved hit@5 to 78.9%, so the guard both
+  // required a stale value and forbade the correct one. Derive it instead.
   const src = readGuide('generalization.md');
-  assert.ok(src.includes('81.1%'), 'missing 81.1% hit@5 in generalization.md');
-  assert.ok(!src.includes('80.0% hit@5'), 'found stale 80.0% in generalization.md');
-  assert.ok(!src.includes('78.9%'), 'found stale 78.9% in generalization.md');
+  const v = JSON.parse(fs.readFileSync(path.join(ROOT, 'version.json'), 'utf8'));
+  const expected = `${(v.metrics.hit_at_5 * 100).toFixed(1)}%`;
+  assert.ok(src.includes(expected), `missing ${expected} hit@5 in generalization.md`);
 });
 
 test('cli: no stale v5.x benchmark numbers in cli.md', () => {

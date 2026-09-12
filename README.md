@@ -59,12 +59,12 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
-- **81.1% hit@5** — right file in top 5 results (vs 44.0% single-shot grep baseline — 1.73× lift)
+- **78.9% hit@5** — right file in top 5 results (vs 44.0% single-shot grep baseline — 1.73× lift)
 - **96.8% token reduction** — average across 21 real repos
-- **64.8% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
-- **1.54 prompts per task** — down from 2.84 (45.7% fewer retries, modeled)
+- **62.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
+- **1.58 prompts per task** — down from 2.84 (44.4% fewer retries, modeled)
 <!--/SM:whyMetrics-->
-- **<!--SM:languages-->33<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
+- **<!--SM:languages-->32<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
@@ -98,7 +98,7 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
 | Without SigMap | With SigMap |
 |---|---|
 | ❌ Non-reproducible agent guesses | ✅ Deterministic map — same input, same output, every time |
-| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->81%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
+| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->79%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
 | ❌ Embeddings / vector DB required | ✅ Zero deps, no infra, fully offline |
 
 ---
@@ -125,10 +125,10 @@ Ask → Rank → Context → Validate → Judge → Learn
 Benchmark : sigmap-v8.32-main (21 repositories, including R language)
 Date      : 2026-09-12
 
-Hit@5          : 81.1%   (grep-agent baseline 44.0%  — 1.73× lift)
+Hit@5          : 78.9%   (grep-agent baseline 44.0%  — 1.73× lift)
 Token reduction: 96.8%   (across 21 repos)
-Prompt reduction : 45.7% (2.84 → 1.54 prompts per task, modeled)
-Task success   : 64.8%   (proxy — modeled from retrieval tiers)
+Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
+Task success   : 62.9%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 <!--/SM:benchmarkBlock-->
@@ -332,7 +332,7 @@ sigmap --health
 | Benchmark methodology | [benchmark.html](https://sigmap.io/guide/benchmark.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
-| <!--SM:languages-->33<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
+| <!--SM:languages-->32<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
 
 ---
 
@@ -389,7 +389,7 @@ See [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the
 
 ---
 
-## <!--SM:languages-->33<!--/SM:languages--> languages
+## <!--SM:languages-->32<!--/SM:languages--> languages
 
 TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
 

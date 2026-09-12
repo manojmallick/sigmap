@@ -1791,6 +1791,55 @@ __factories["./src/config/loader"] = function(module, exports) {
   }
 
   /**
+   * Directory depth needed to reach source under a JVM package layout.
+   *
+   * `maxDepth: 6` is right for the JS/Python-shaped trees it was tuned on, but a
+   * JVM project puts one directory per package segment — real code in
+   * `src/main/java/com/company/project/module/Class.java` sits 8-10 levels down.
+   * At depth 6 only the top-level package was indexed: on spring-petclinic, 6 of
+   * 47 Java files (#590).
+   *
+   * #561 already raised the dependency-graph walk to 12 for exactly this reason,
+   * so extraction was the shallower half of an inconsistent pair.
+   *
+   * Deepening globally is not free — it adds candidates to every repo and cost
+   * 2.2pp on the (filename-leaky) 105-task matrix corpus while the unbiased
+   * `mined` corpus stayed flat. So the depth is raised only where the layout
+   * demands it, leaving non-JVM repos byte-identical.
+   *
+   * @param {string} cwd
+   * @returns {boolean} true when the repo looks like a Maven/Gradle/sbt project
+   */
+  function _isJvmLayout(cwd) {
+    const MARKERS = ['pom.xml', 'build.gradle', 'build.gradle.kts', 'build.sbt', 'settings.gradle', 'settings.gradle.kts'];
+    for (const m of MARKERS) {
+      try { if (fs.existsSync(path.join(cwd, m))) return true; } catch { /* unreadable cwd */ }
+    }
+    for (const d of ['src/main/java', 'src/main/kotlin', 'src/main/scala']) {
+      try { if (fs.existsSync(path.join(cwd, d))) return true; } catch { /* ignore */ }
+    }
+    return false;
+  }
+
+  /** Walk depth for a JVM package layout — matches the graph walk from #561. */
+  const JVM_MAX_DEPTH = 12;
+
+  /**
+   * Raise `maxDepth` to the JVM depth when the layout needs it (#590).
+   * An explicit user value always wins, including a deliberately shallow one.
+   * @param {object} cfg   resolved config (mutated and returned)
+   * @param {string} cwd
+   * @param {boolean} userSetDepth
+   * @returns {object} cfg
+   */
+  function _applyJvmDepth(cfg, cwd, userSetDepth) {
+    if (!userSetDepth && cfg.maxDepth < JVM_MAX_DEPTH && _isJvmLayout(cwd)) {
+      cfg.maxDepth = JVM_MAX_DEPTH;
+    }
+    return cfg;
+  }
+
+  /**
    * Load and merge configuration for a given working directory.
    *
    * @param {string} cwd - Project root directory
@@ -1802,7 +1851,7 @@ __factories["./src/config/loader"] = function(module, exports) {
       const cfg = deepClone(DEFAULTS);
       const detected = detectAutoSrcDirs(cwd, cfg.exclude);
       if (detected.length > 0) cfg.srcDirs = detected;
-      return cfg;
+      return _applyJvmDepth(cfg, cwd, false);
     }
 
     let userConfig;
@@ -1814,7 +1863,7 @@ __factories["./src/config/loader"] = function(module, exports) {
       const cfg = deepClone(DEFAULTS);
       const detected = detectAutoSrcDirs(cwd, cfg.exclude);
       if (detected.length > 0) cfg.srcDirs = detected;
-      return cfg;
+      return _applyJvmDepth(cfg, cwd, false);
     }
 
     // Warn on unknown keys (helps catch typos)
@@ -1866,7 +1915,8 @@ __factories["./src/config/loader"] = function(module, exports) {
     } else if (Array.isArray(merged.adapters) && !userConfig.outputs) {
       merged.outputs = merged.adapters.filter((a) => ['copilot','claude','cursor','windsurf'].includes(a));
     }
-    return merged;
+
+    return _applyJvmDepth(merged, cwd, userConfig.maxDepth !== undefined);
   }
 
   function deepClone(obj) {
@@ -4118,7 +4168,6 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     '.scala': 'scala',   '.sc': 'scala',
     '.gd': 'gdscript',
     '.r': 'r',           '.R': 'r',
-    '.vue': 'vue',
     '.svelte': 'svelte',
     '.html': 'html',     '.htm': 'html',
     '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',
@@ -5922,7 +5971,6 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
     scala: __require('./src/extractors/scala'),
     gdscript: __require('./src/extractors/gdscript'),
     r: __require('./src/extractors/r'),
-    vue: __require('./src/extractors/vue'),
     vue_sfc: __require('./src/extractors/vue_sfc'),
     svelte: __require('./src/extractors/svelte'),
     html: __require('./src/extractors/html'),
@@ -6986,6 +7034,11 @@ __factories["./src/extractors/line-anchor"] = function(module, exports) {
 // ── ./src/extractors/markdown ──
 __factories["./src/extractors/markdown"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling discloses what it drops rather than truncating silently (#583).
+  const PER_FILE_LIMIT = 40;
+
   /**
    * Lightweight markdown technical indexer.
    * Captures headings and fenced code block language hints only.
@@ -7010,7 +7063,7 @@ __factories["./src/extractors/markdown"] = function(module, exports) {
       sigs.push(`code-fence ${lang}`);
     }
 
-    return Array.from(new Set(sigs)).slice(0, 40);
+    return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'headings');
   }
 
   module.exports = { extract };
@@ -7341,6 +7394,11 @@ __factories["./src/extractors/prdiff"] = function(module, exports) {
 // ── ./src/extractors/properties ──
 __factories["./src/extractors/properties"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling discloses what it drops rather than truncating silently (#583).
+  const PER_FILE_LIMIT = 50;
+
   /**
    * Extract signatures from .properties configuration files.
    * Captures key names, grouped by prefixes where possible.
@@ -7372,7 +7430,7 @@ __factories["./src/extractors/properties"] = function(module, exports) {
       sigs.push(`key ${key}`);
     }
 
-    return Array.from(new Set(sigs)).slice(0, 50);
+    return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'keys');
   }
 
   module.exports = { extract };
@@ -7845,7 +7903,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
     //   ClassName <- R6::R6Class(...)
     const r6Re = /([\w.]+)\s*(?:<<-|<-|=)\s*(?:R6::)?R6Class\s*\(/g;
     let m;
-    while ((m = r6Re.exec(stripped)) !== null && sigs.length < 30) {
+    while ((m = r6Re.exec(stripped)) !== null) {
       const name = m[1];
       if (name.startsWith('.')) continue;
       const openIdx = r6Re.lastIndex - 1;
@@ -7856,7 +7914,6 @@ __factories["./src/extractors/r"] = function(module, exports) {
       sigs.push(`${name} <- R6Class("${classNameLit}")` + applyHint(docHints, name));
       for (const memberSig of extractListMethods(body, 8)) {
         sigs.push('  ' + memberSig);
-        if (sigs.length >= 30) break;
       }
       consumedRanges.push([m.index, closeIdx]);
       r6Re.lastIndex = closeIdx;
@@ -7866,7 +7923,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
     //   ClassName <- new_class("ClassName", properties = list(...))
     const s7Classes = new Set();
     const s7Re = /([\w.]+)\s*(?:<<-|<-|=)\s*(?:S7::)?new_class\s*\(/g;
-    while ((m = s7Re.exec(stripped)) !== null && sigs.length < 30) {
+    while ((m = s7Re.exec(stripped)) !== null) {
       const name = m[1];
       if (name.startsWith('.')) continue;
       const openIdx = s7Re.lastIndex - 1;
@@ -7883,7 +7940,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
 
     // S7 method dispatch: `method(generic, ClassName) <- function(args)`
     const s7MethodRe = /^[ \t]*method\s*\(\s*([\w.]+)\s*,\s*([\w.]+)\s*\)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
-    while ((m = s7MethodRe.exec(stripped)) !== null && sigs.length < 30) {
+    while ((m = s7MethodRe.exec(stripped)) !== null) {
       if (!s7Classes.has(m[2])) continue;
       const argsStart = s7MethodRe.lastIndex - 1;
       const args = readBalancedParens(stripped, argsStart);
@@ -7896,7 +7953,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
     // Skip matches whose position falls inside an R6/S7 class body — those have
     // already been emitted as indented members.
     const funcRe = /^(?:[ \t]*)([\w.]+)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
-    while ((m = funcRe.exec(stripped)) !== null && sigs.length < 30) {
+    while ((m = funcRe.exec(stripped)) !== null) {
       const name = m[1];
       if (name.startsWith('.')) continue;
       if (inAnyRange(m.index, consumedRanges)) continue;
@@ -7908,15 +7965,12 @@ __factories["./src/extractors/r"] = function(module, exports) {
 
     // ── S4 ────────────────────────────────────────────────────────────────────
     for (const sm of stripped.matchAll(/^[ \t]*setGeneric\s*\(\s*["']([\w.]+)["']/gm)) {
-      if (sigs.length >= 30) break;
       sigs.push(`setGeneric("${sm[1]}")`);
     }
     for (const sm of stripped.matchAll(/^[ \t]*setMethod\s*\(\s*["']([\w.]+)["']\s*,\s*["']([\w.]+)["']/gm)) {
-      if (sigs.length >= 30) break;
       sigs.push(`setMethod("${sm[1]}", "${sm[2]}")`);
     }
     for (const sm of stripped.matchAll(/^[ \t]*setClass\s*\(\s*["']([\w.]+)["']/gm)) {
-      if (sigs.length >= 30) break;
       sigs.push(`setClass("${sm[1]}")`);
     }
 
@@ -8925,6 +8979,11 @@ __factories["./src/extractors/todos"] = function(module, exports) {
 // ── ./src/extractors/toml ──
 __factories["./src/extractors/toml"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling discloses what it drops rather than truncating silently (#583).
+  const PER_FILE_LIMIT = 40;
+
   /**
    * Extract signatures from TOML configuration files.
    * Focuses on section/table names and high-value keys.
@@ -8961,7 +9020,7 @@ __factories["./src/extractors/toml"] = function(module, exports) {
       }
     }
 
-    return Array.from(new Set(sigs)).slice(0, 40);
+    return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'entries');
   }
 
   module.exports = { extract };
@@ -9301,6 +9360,11 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
 // ── ./src/extractors/typescript_react ──
 __factories["./src/extractors/typescript_react"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling discloses what it drops rather than truncating silently (#583).
+  const PER_FILE_LIMIT = 50;
+
   /**
    * Extract React component signatures from .tsx files.
    * Captures component props interfaces, hooks usage, and exports.
@@ -9355,97 +9419,7 @@ __factories["./src/extractors/typescript_react"] = function(module, exports) {
       sigs.push(`handler on${h}`);
     }
 
-    return Array.from(new Set(sigs)).slice(0, 50);
-  }
-
-  module.exports = { extract };
-  
-};
-
-// ── ./src/extractors/vue ──
-__factories["./src/extractors/vue"] = function(module, exports) {
-  
-  const { capWithNotice } = __require('./src/util/truncate');
-
-  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
-  // governs output rather than a literal buried here, and omissions are disclosed (#576).
-  const PER_FILE_LIMIT = 25;
-
-  /**
-   * Extract signatures from Vue single-file components.
-   * @param {string} src - Raw file content
-   * @returns {string[]} Array of signature strings
-   */
-  function extract(src) {
-    if (!src || typeof src !== 'string') return [];
-    const sigs = [];
-
-    // Extract component name from filename hint if present or defineComponent
-    const nameMatch = src.match(/name\s*:\s*['"](\w+)['"]/);
-    if (nameMatch) sigs.push(`component ${nameMatch[1]}`);
-
-    // Extract <script> block
-    const scriptMatch = src.match(/<script(?:\s[^>]*)?>(?:\s*)([\s\S]*?)<\/script>/i);
-    if (!scriptMatch) return sigs;
-
-    const script = scriptMatch[1]
-      .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
-
-    // Props
-    const propsMatch = script.match(/props\s*:\s*(\{[\s\S]*?\})/);
-    if (propsMatch) {
-      const propNames = [];
-      for (const m of propsMatch[1].matchAll(/^\s+(\w+)\s*:/gm)) {
-        propNames.push(m[1]);
-      }
-      if (propNames.length > 0) sigs.push(`props: [${propNames.join(', ')}]`);
-    }
-
-    // Methods in options API
-    const methodsMatch = script.match(/methods\s*:\s*\{([\s\S]*?)\},?\s*(?:computed|watch|mounted|created|data|\})/);
-    if (methodsMatch) {
-      for (const m of methodsMatch[1].matchAll(/^\s+(?:async\s+)?(\w+)\s*\(([^)]*)\)(?:\s*:\s*([^{=\n]+))?/gm)) {
-        if (m[1].startsWith('_')) continue;
-        const asyncKw = m[0].includes('async') ? 'async ' : '';
-        const retStr = m[3] ? ` → ${normalizeType(m[3])}` : '';
-        sigs.push(`  ${asyncKw}${m[1]}(${normalizeParams(m[2])})${retStr}`);
-      }
-    }
-
-    // Top-level functions in <script> (e.g., composition API helpers)
-    for (const m of script.matchAll(/^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)(?:\s*:\s*([^{=\n]+))?/gm)) {
-      if (m[1].startsWith('_')) continue;
-      const asyncKw = m[0].includes('async') ? 'async ' : '';
-      const retStr = m[3] ? ` → ${normalizeType(m[3])}` : '';
-      sigs.push(`${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
-    }
-
-    // defineProps (Composition API)
-    const definePropsMatch = script.match(/defineProps(?:<[^>]*>)?\s*\(\s*(\{[\s\S]*?\})\s*\)/);
-    if (definePropsMatch) {
-      const propNames = [];
-      for (const m of definePropsMatch[1].matchAll(/^\s+(\w+)\s*:/gm)) {
-        propNames.push(m[1]);
-      }
-      if (propNames.length > 0) sigs.push(`defineProps: [${propNames.join(', ')}]`);
-    }
-
-    // Emits
-    const emitsMatch = script.match(/(?:defineEmits|emits)\s*(?::\s*|\(\s*)(\[[\s\S]*?\])/);
-    if (emitsMatch) sigs.push(`emits: ${emitsMatch[1].replace(/\s+/g, ' ')}`);
-
-    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
-  }
-
-  function normalizeParams(params) {
-    if (!params) return '';
-    return params.trim().replace(/\s+/g, ' ');
-  }
-
-  function normalizeType(type) {
-    if (!type) return '';
-    return type.trim().replace(/[;\s]+$/g, '').replace(/\s+/g, ' ').slice(0, 25);
+    return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'signatures');
   }
 
   module.exports = { extract };
@@ -15814,7 +15788,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.32.0',
+    version: '8.32.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -22108,7 +22082,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.32.0';
+const VERSION = '8.32.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -26881,7 +26855,7 @@ function main() {
         '.cs': 'csharp', '.cpp': 'cpp', '.rb': 'ruby', '.php': 'php',
         '.swift': 'swift', '.dart': 'dart', '.scala': 'scala',
         '.r': 'r', '.R': 'r',
-        '.vue': 'vue', '.svelte': 'svelte', '.html': 'html',
+        '.vue': 'vue_sfc', '.svelte': 'svelte', '.html': 'html',
         '.css': 'css', '.yml': 'yaml', '.sh': 'shell',
       };
       const SPECIAL = { 'Dockerfile': 'dockerfile' };

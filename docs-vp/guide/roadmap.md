@@ -22,7 +22,7 @@ head:
 
 One hundred seventy-three versions shipped. MIT open source from day one.
 
-**Stats:** 96.8% overall token reduction · 81.1% retrieval hit@5 (1.73× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 21 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.8% overall token reduction · 78.9% retrieval hit@5 (1.79× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 21 MCP tools · 32 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -838,6 +838,22 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.32.1 — the audit that read its own release notes ✓ (2026-09-13)
+
+**Patch release — v8.32.0 claimed "every extractor now discloses what a ceiling dropped". It did not.** An end-to-end audit — generate 80 symbols per language, run the *real dispatched* extractor, check for a marker — found three ways the claim was false. `vue.js` was registered in the dispatcher but **unreachable**: `.vue` resolves to `vue_sfc`, so the previous release added disclosure to dead code while the live handler kept truncating silently. Four reachable extractors still cut output with a bare `slice()` — `.tsx` (every React component), `.properties`, `.toml` and `.md`. And `r.js` called `capWithNotice` but **eight** inner caps stopped collection at the ceiling, so it never fired; forced to fire, it reported `+1 more` where 50 signatures were hidden. The root cause was not carelessness but coverage: three of those languages have no test fixture, so no test could observe their output.
+
+The same audit found something larger. Installing the actual competitors — repomix, universal-ctags, gitingest — and running them head-to-head on `spring-petclinic/src` showed SigMap at 292 characters per covered file against repomix `--compress` at 2,868, roughly **ten times denser**. But it also showed SigMap indexing **6 of 47** Java files. `maxDepth: 6` suits the JS/Python-shaped trees it was tuned on; Java puts one directory per package segment, so `OwnerController.java` and every other file one package deep was invisible. v8.31.0 had already raised the *dependency-graph* walk to 12 for exactly this reason — extraction was the shallower half of an inconsistent pair, resolving edges into files the signature index had never seen. The walk now deepens to 12 for JVM layouts only; deepening globally was measured first and rejected, because it added candidates to every repo for no gain.
+
+That fix moved a published number, and the movement is the honest part. Headline hit@5 goes **81.1% → 78.9%**, and exactly one of eighteen repos accounts for it: spring-petclinic falls 100% → 60%. That 100% was measured against an index holding 6 of 47 Java files — ranking five hand-written tasks is easy when 87% of the repo is missing. The leak-free `mined` corpus stayed flat and the leak-free `jvm` corpus rose 16.4% → 23.0% on the same change, so the prior figure was inflated by under-indexing rather than this being a ranking regression. The two regressed tasks are tracked as a ranking weakness the missing files were concealing.
+
+Four guard tests were de-hardcoded along the way, each of which had begun failing on a *correct* value: one pinned the banner to `81.1%` while its own title said 75.6%, and another required `81.1%` while blocklisting `78.9%` — doubly self-invalidating once the benchmark legitimately returned to it.
+
+**Tags:** `vue_sfc` · `typescript_react` · `capWithNotice` · `_isJvmLayout` · `_applyJvmDepth` · `JVM_MAX_DEPTH` · `extractor-reachability.test.js` · `jvm-walk-depth.test.js` · `#582` · `#583` · `#584` · `#590` · `PR #589` · `#593`
+
+**Impact:** JVM corpus 16.4% → 23.0% (+6.6pp); spring-petclinic Java coverage 6/47 → 42/47; 4 reachable extractors gained disclosure and `r.js` now reports the true overflow (`+50`, not `+1`); a reachability test fails CI if any registered extractor becomes unreachable. 142 test files passing, 0 failed.
+
+---
+
 ### v8.32.0 — The gate cried wolf, so we built one that doesn't ✓ (2026-09-12)
 
 **Minor release — the retrieval gate was measuring the repository it was defending.** The `hard` corpus scores SigMap against its own source, so its BM25 statistics shift whenever the indexed file set changes — including when the change cannot possibly affect ranking. This was not argued, it was proven: a probe branch containing **one two-assertion test file and no source change** scored 75.6% → 74.4% and failed the gate. A gate that fails honest work is worse than no gate, because it teaches you to override it. `hard` is now held to its **70% floor** rather than to the previous run; the floor, the leak assertions, and `--no-regress` on `mined` and `jvm` remain enforced.
@@ -846,11 +862,11 @@ Underneath that sat a plainer defect: the gate reused `.context/sig-index.json`,
 
 The structural fix is a corpus that sits **outside the feedback loop**: 61 tasks mined from `spring-petclinic` (32) and `akka` (29), verified leak-free, scoring against repositories SigMap's source cannot move. It earned its place the day it landed by catching a real one-task regression (18.0% → 16.4%) in the same release's extractor change — and the cause was identified rather than absorbed. `akka:m018` expects `Logging.scala`, which holds a class the 8-member ceiling truncates, so disclosing the truncation adds one `… +N more methods` line and BM25's document-length normalisation drops it from rank 5 to 6. A fix excluding markers from the scored term space did not move the number and was reverted rather than left in as unexplained complexity.
 
-That extractor change closes a documentation lie. `KNOWN_LIMITATIONS.md` has long promised that caps are "cut with a `… +N more signatures` notice" — but only the JS/TS/Java paths actually did it. **20 extractors** truncated silently, so an eight-method class and a forty-method class were indistinguishable in the output, and the drift-guard test never caught it because it only checks that the tier names are named. All 23 now disclose. The ceilings themselves are deliberately unchanged: raising them is a separate decision that needs its own measurement, and this release built the corpus that can measure it. Finally, a markdown guard closes the hole that broke the v8.31.0 Pages deploy *after* the tag was pushed — an unbalanced fence or a stray Vue interpolation outside a code block now fails a test instead of a release.
+That extractor change closes a documentation lie. `KNOWN_LIMITATIONS.md` has long promised that caps are "cut with a `… +N more signatures` notice" — but only the JS/TS/Java paths actually did it. **20 extractors** truncated silently, so an eight-method class and a forty-method class were indistinguishable in the output, and the drift-guard test never caught it because it only checks that the tier names are named. All 23 were believed to disclose — **that was wrong, and a later audit corrected it**: `vue.js` was dead code (`.vue` dispatches to `vue_sfc`), so one of the 20 was unreachable; `.tsx`, `.properties`, `.toml` and `.md` still truncated silently; and `r.js`'s own disclosure was defeated by eight inner caps. Fixed in #589. The ceilings themselves are deliberately unchanged: raising them is a separate decision that needs its own measurement, and this release built the corpus that can measure it. Finally, a markdown guard closes the hole that broke the v8.31.0 Pages deploy *after* the tag was pushed — an unbalanced fence or a stray Vue interpolation outside a code block now fails a test instead of a release.
 
 **Tags:** `run-retrieval-gate.mjs` · `retrieval-jvm-spring-petclinic.jsonl` · `retrieval-jvm-akka.jsonl` · `mine-corpus.mjs --repo` · `config-overrides.json` · `capWithNotice` · `capMembersWithNotice` · `docs-markdown.test.js` · `#573` · `#575` · `#576` · `PR #574` · `#577` · `#578` · `#579`
 
-**Impact:** 61 new gated tasks against external repos, 0 leaking; 20 extractors gained disclosure (23 total); the gate is reproducible — a clean re-run reports hard 75.6%, mined 60.9%, easy 90.0%, jvm 16.4% at +0.0pp on every corpus. 140 test files passing, 0 failed.
+**Impact:** 61 new gated tasks against external repos, 0 leaking; 19 reachable extractors gained disclosure (4 more were missed and fixed later in #589); the gate is reproducible — a clean re-run reports hard 75.6%, mined 60.9%, easy 90.0%, jvm 16.4% at +0.0pp on every corpus. 140 test files passing, 0 failed.
 
 ---
 

@@ -30,7 +30,6 @@ const EXTRACTORS = {
   scala: require('./scala'),
   gdscript: require('./gdscript'),
   r: require('./r'),
-  vue: require('./vue'),
   vue_sfc: require('./vue_sfc'),
   svelte: require('./svelte'),
   html: require('./html'),
