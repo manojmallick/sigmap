@@ -223,9 +223,15 @@ test('docs/impact-banner.svg: no stale 80.0% hit@5', () => {
   assert.ok(!src.includes('80.0%'), 'found stale 80.0% in impact-banner.svg');
 });
 
-test('docs/impact-banner.svg: uses 75.6% hit@5', () => {
+test('docs/impact-banner.svg: hit@5 matches version.json', () => {
+  // Was hardcoded ('81.1%', with a title still naming 75.6%) and so drifted
+  // every time the benchmark moved — the same trap the prompts-per-task guard
+  // below documents. Derive it from the source of truth instead.
   const src = readDocs('impact-banner.svg');
-  assert.ok(src.includes('81.1%'), 'missing 81.1% in impact-banner.svg');
+  const v = JSON.parse(readRoot('version.json'));
+  const expected = `${(v.metrics.hit_at_5 * 100).toFixed(1)}%`;
+  assert.ok(src.includes(expected),
+    `impact-banner.svg should show ${expected} hit@5 (from version.json)`);
 });
 
 test('docs/impact-banner.svg: prompts-per-task matches version.json', () => {

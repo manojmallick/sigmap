@@ -228,6 +228,55 @@ function _legacyDetectAutoSrcDirs(cwd, excludeList) {
 }
 
 /**
+ * Directory depth needed to reach source under a JVM package layout.
+ *
+ * `maxDepth: 6` is right for the JS/Python-shaped trees it was tuned on, but a
+ * JVM project puts one directory per package segment — real code in
+ * `src/main/java/com/company/project/module/Class.java` sits 8-10 levels down.
+ * At depth 6 only the top-level package was indexed: on spring-petclinic, 6 of
+ * 47 Java files (#590).
+ *
+ * #561 already raised the dependency-graph walk to 12 for exactly this reason,
+ * so extraction was the shallower half of an inconsistent pair.
+ *
+ * Deepening globally is not free — it adds candidates to every repo and cost
+ * 2.2pp on the (filename-leaky) 105-task matrix corpus while the unbiased
+ * `mined` corpus stayed flat. So the depth is raised only where the layout
+ * demands it, leaving non-JVM repos byte-identical.
+ *
+ * @param {string} cwd
+ * @returns {boolean} true when the repo looks like a Maven/Gradle/sbt project
+ */
+function _isJvmLayout(cwd) {
+  const MARKERS = ['pom.xml', 'build.gradle', 'build.gradle.kts', 'build.sbt', 'settings.gradle', 'settings.gradle.kts'];
+  for (const m of MARKERS) {
+    try { if (fs.existsSync(path.join(cwd, m))) return true; } catch { /* unreadable cwd */ }
+  }
+  for (const d of ['src/main/java', 'src/main/kotlin', 'src/main/scala']) {
+    try { if (fs.existsSync(path.join(cwd, d))) return true; } catch { /* ignore */ }
+  }
+  return false;
+}
+
+/** Walk depth for a JVM package layout — matches the graph walk from #561. */
+const JVM_MAX_DEPTH = 12;
+
+/**
+ * Raise `maxDepth` to the JVM depth when the layout needs it (#590).
+ * An explicit user value always wins, including a deliberately shallow one.
+ * @param {object} cfg   resolved config (mutated and returned)
+ * @param {string} cwd
+ * @param {boolean} userSetDepth
+ * @returns {object} cfg
+ */
+function _applyJvmDepth(cfg, cwd, userSetDepth) {
+  if (!userSetDepth && cfg.maxDepth < JVM_MAX_DEPTH && _isJvmLayout(cwd)) {
+    cfg.maxDepth = JVM_MAX_DEPTH;
+  }
+  return cfg;
+}
+
+/**
  * Load and merge configuration for a given working directory.
  *
  * @param {string} cwd - Project root directory
@@ -239,7 +288,7 @@ function loadConfig(cwd) {
     const cfg = deepClone(DEFAULTS);
     const detected = detectAutoSrcDirs(cwd, cfg.exclude);
     if (detected.length > 0) cfg.srcDirs = detected;
-    return cfg;
+    return _applyJvmDepth(cfg, cwd, false);
   }
 
   let userConfig;
@@ -251,7 +300,7 @@ function loadConfig(cwd) {
     const cfg = deepClone(DEFAULTS);
     const detected = detectAutoSrcDirs(cwd, cfg.exclude);
     if (detected.length > 0) cfg.srcDirs = detected;
-    return cfg;
+    return _applyJvmDepth(cfg, cwd, false);
   }
 
   // Warn on unknown keys (helps catch typos)
@@ -303,7 +352,8 @@ function loadConfig(cwd) {
   } else if (Array.isArray(merged.adapters) && !userConfig.outputs) {
     merged.outputs = merged.adapters.filter((a) => ['copilot','claude','cursor','windsurf'].includes(a));
   }
-  return merged;
+
+  return _applyJvmDepth(merged, cwd, userConfig.maxDepth !== undefined);
 }
 
 function deepClone(obj) {

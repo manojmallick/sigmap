@@ -289,8 +289,15 @@ test('consistency: no stale v6.0-main benchmark ID', () => {
   assert.ok(!src.includes('sigmap-v6.0-main'), 'found stale sigmap-v6.0-main in README');
 });
 
-test('consistency: no stale 80.0% / 78.9% hit@5', () => {
-  assert.ok(!src.includes('80.0%') && !src.includes('78.9%'), 'found stale hit@5 (80.0%/78.9%) in README');
+test('consistency: README hit@5 matches version.json', () => {
+  // Was a blocklist of historical values ('80.0%', '78.9%'), which is
+  // self-invalidating: the benchmark legitimately returned to 78.9% after the
+  // JVM walk-depth fix (#590) and the guard then failed on a correct number.
+  // Assert the current value is present instead — that catches an un-synced
+  // README without going stale.
+  const v = JSON.parse(fs.readFileSync(path.join(ROOT, 'version.json'), 'utf8'));
+  const expected = `${(v.metrics.hit_at_5 * 100).toFixed(1)}%`;
+  assert.ok(src.includes(expected), `README missing current hit@5 ${expected}`);
 });
 
 test('consistency: no stale 1.69 prompts per task', () => {
