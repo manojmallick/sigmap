@@ -8,6 +8,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Fixed
+- **Retraction of a v8.32.0 claim.** That release stated "every extractor now discloses what a ceiling dropped". It did not. `vue.js` was registered but unreachable (`.vue` dispatches to `vue_sfc`), so disclosure was added to dead code while the live `.vue` handler kept truncating silently; `.tsx` (every React component), `.properties`, `.toml` and `.md` still cut output with a bare `slice()`; and `r.js` called `capWithNotice` but eight inner caps stopped collection at the ceiling so it never fired — and when forced to, reported `+1 more` where 50 signatures were hidden. All fixed, ceilings unchanged, with a test that fails against the pre-fix extractors. The root cause was that three of those languages have no test fixture (#582, #583, #584, #588)
+- The walk depth hid most code in JVM package layouts: `maxDepth: 6` indexed **6 of 47** Java files on spring-petclinic, because Java puts one directory per package segment. #561 had already raised the *graph* walk to 12, so extraction was the shallower half of an inconsistent pair. Depth now rises to 12 only for JVM layouts; an explicit `maxDepth` always wins. Gated JVM corpus 16.4% → 23.0% (#590)
+
+### Changed
+- Published retrieval hit@5 moves 81.1% → 78.9%. One of 18 repos accounts for it: spring-petclinic 100% → 60%, previously measured against an index holding 6 of 47 Java files. The leak-free `mined` corpus is flat and the leak-free `jvm` corpus improves, so the prior figure was inflated by under-indexing rather than this being a ranking regression. The two affected tasks are tracked as a ranking weakness the missing files were concealing (#592)
+
 ---
 
 ## [8.32.0] — 2026-09-12
@@ -18,6 +25,7 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ### Fixed
 - Every extractor now **discloses what a ceiling dropped** instead of truncating silently. 20 extractors gained `… +N more` markers on their member and per-file caps (23 now carry them in total). The ceilings themselves are unchanged — raising them is a separate, measured decision (#578, #576)
+  > **Correction (2026-09-13):** "every extractor" was wrong as published. `vue.js` was dead code — `.vue` dispatches to `vue_sfc` — so one of the 20 was unreachable; four reachable extractors (`.tsx`, `.properties`, `.toml`, `.md`) still truncated silently; and `r.js`'s disclosure was defeated by eight inner caps. Corrected in #589 (#582, #583, #584).
 - The retrieval gate reused a gitignored index, so a "regression" could be pure staleness — this produced three separate false investigations, including one re-baseline. It now regenerates every index it scores, including one per JVM repo driven from `benchmarks/config-overrides.json` rather than a hand-written config (#579)
 - The `sigmap lines` CLI example nested a fenced block inside a text fence; the inner fence closed early and a brace expression became a Vue interpolation. This failed the Pages build *after* v8.31.0 was tagged and published (#574)
 
