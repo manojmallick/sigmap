@@ -1,5 +1,10 @@
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling discloses what it drops rather than truncating silently (#583).
+const PER_FILE_LIMIT = 40;
+
 /**
  * Lightweight markdown technical indexer.
  * Captures headings and fenced code block language hints only.
@@ -24,7 +29,7 @@ function extract(src) {
     sigs.push(`code-fence ${lang}`);
   }
 
-  return Array.from(new Set(sigs)).slice(0, 40);
+  return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'headings');
 }
 
 module.exports = { extract };
