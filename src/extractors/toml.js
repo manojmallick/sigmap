@@ -1,5 +1,10 @@
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling discloses what it drops rather than truncating silently (#583).
+const PER_FILE_LIMIT = 40;
+
 /**
  * Extract signatures from TOML configuration files.
  * Focuses on section/table names and high-value keys.
@@ -36,7 +41,7 @@ function extract(src) {
     }
   }
 
-  return Array.from(new Set(sigs)).slice(0, 40);
+  return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'entries');
 }
 
 module.exports = { extract };

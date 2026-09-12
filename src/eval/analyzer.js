@@ -31,7 +31,6 @@ const EXT_MAP = {
   '.scala': 'scala',   '.sc': 'scala',
   '.gd': 'gdscript',
   '.r': 'r',           '.R': 'r',
-  '.vue': 'vue',
   '.svelte': 'svelte',
   '.html': 'html',     '.htm': 'html',
   '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',

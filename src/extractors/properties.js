@@ -1,5 +1,10 @@
 'use strict';
 
+const { capWithNotice } = require('../util/truncate');
+
+// Ceiling discloses what it drops rather than truncating silently (#583).
+const PER_FILE_LIMIT = 50;
+
 /**
  * Extract signatures from .properties configuration files.
  * Captures key names, grouped by prefixes where possible.
@@ -31,7 +36,7 @@ function extract(src) {
     sigs.push(`key ${key}`);
   }
 
-  return Array.from(new Set(sigs)).slice(0, 50);
+  return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'keys');
 }
 
 module.exports = { extract };
