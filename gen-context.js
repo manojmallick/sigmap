@@ -5439,6 +5439,14 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
 // ── ./src/extractors/cpp ──
 __factories["./src/extractors/cpp"] = function(module, exports) {
   
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
+
+  // Ceilings sit above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed
+  // — an undisclosed cap looks like a class that simply has eight methods (#576).
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from C/C++ source code.
    * @param {string} src - Raw file content
@@ -5469,7 +5477,7 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
       sigs.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -5492,7 +5500,7 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
       const retStr = ret ? ` → ${ret}` : '';
       members.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
     }
-    return members.slice(0, 8);
+    return capWithNotice(members, MEMBER_LIMIT, 'members');
   }
 
   function normalizeParams(params) {
@@ -5513,6 +5521,13 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
 __factories["./src/extractors/csharp"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
+
+  // Ceilings sit above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed
+  // — an undisclosed cap looks like a class that simply has eight methods (#576).
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from C# source code.
@@ -5537,11 +5552,12 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, declIdx), lineAt(stripped, bodyStart + block.length)));
       for (const meth of extractMembers(block)) {
-        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+        // The disclosure marker carries no offsets; anchor it at the class body.
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -5567,7 +5583,7 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
         endIdx: m.index + m[0].length,
       });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, MEMBER_LIMIT);
   }
 
   function normalizeParams(params) {
@@ -5587,6 +5603,12 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
 // ── ./src/extractors/css ──
 __factories["./src/extractors/css"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from CSS/SCSS/SASS/Less source code.
    * @param {string} src - Raw file content
@@ -5650,7 +5672,7 @@ __factories["./src/extractors/css"] = function(module, exports) {
       for (const name of selected) sigs.push(`.${name}`);
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   module.exports = { extract };
@@ -5661,6 +5683,13 @@ __factories["./src/extractors/css"] = function(module, exports) {
 __factories["./src/extractors/dart"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
+
+  // Ceilings sit above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed
+  // — an undisclosed cap looks like a class that simply has eight methods (#576).
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Dart source code.
@@ -5696,7 +5725,8 @@ __factories["./src/extractors/dart"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       sigs.push(withAnchor(`${abs}class ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const meth of extractMembers(block)) {
-        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+        // The disclosure marker carries no offsets; anchor it at the class body.
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
 
@@ -5708,7 +5738,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
       sigs.push(withAnchor(`${m[2]}(${normalizeParams(m[3])})${retStr}`, s, e));
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -5733,7 +5763,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
         endIdx: m.index + m[0].length,
       });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, MEMBER_LIMIT);
   }
 
   function normalizeParams(params) {
@@ -5978,6 +6008,12 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
 // ── ./src/extractors/dockerfile ──
 __factories["./src/extractors/dockerfile"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from Dockerfiles.
    * @param {string} src - Raw file content
@@ -6021,7 +6057,7 @@ __factories["./src/extractors/dockerfile"] = function(module, exports) {
       if (m) sigs.push(`ARG ${m[1]}`);
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   module.exports = { extract };
@@ -6031,6 +6067,16 @@ __factories["./src/extractors/dockerfile"] = function(module, exports) {
 // ── ./src/extractors/gdscript ──
 __factories["./src/extractors/gdscript"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
+  // Ceilings disclose what they drop rather than truncating silently (#576).
+  const MEMBER_LIMIT = 6;
+  const ENUM_LIMIT = 24;
+
   /**
    * Extract signatures from Godot GDScript source code.
    * @param {string} src - Raw file content
@@ -6075,7 +6121,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
         .split(',')
         .map((s) => s.trim().split(/\s*=/)[0].trim())
         .filter(Boolean);
-      sigs.push(`${indent}enum ${m[1]} { ${members.slice(0, 6).join(', ')} }`);
+      sigs.push(`${indent}enum ${m[1]} { ${capWithNotice(members, ENUM_LIMIT, 'values').join(', ')} }`);
     }
 
     let constCount = 0;
@@ -6123,7 +6169,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
       }
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractInnerMembers(stripped, startIndex) {
@@ -6141,7 +6187,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
         members.push(`${staticKw}func ${fm[2]}(${params})${retStr}`);
       }
     }
-    return members.slice(0, 6);
+    return capWithNotice(members, MEMBER_LIMIT, 'members');
   }
 
   function normalizeParams(params) {
@@ -6198,6 +6244,11 @@ __factories["./src/extractors/generic"] = function(module, exports) {
 __factories["./src/extractors/go"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Go source code.
@@ -6246,7 +6297,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
       sigs.push(hinted(withAnchor(`func ${receiver}${m[2]}(${normalizeParams(m[3])})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)), m[2]));
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -6380,6 +6431,12 @@ __factories["./src/extractors/graphql"] = function(module, exports) {
 // ── ./src/extractors/html ──
 __factories["./src/extractors/html"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from HTML files.
    * Focuses on id/class attributes, forms, and script tags.
@@ -6413,7 +6470,7 @@ __factories["./src/extractors/html"] = function(module, exports) {
       sigs.push(`data-${m[0].match(/data-(\w[\w-]*)/i)[1]}: ${m[1]}`);
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   module.exports = { extract };
@@ -6772,6 +6829,13 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
 __factories["./src/extractors/kotlin"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
+
+  // Ceilings sit above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed
+  // — an undisclosed cap looks like a class that simply has eight methods (#576).
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Kotlin source code.
@@ -6806,7 +6870,8 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const meth of extractMembers(block)) {
-        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+        // The disclosure marker carries no offsets; anchor it at the class body.
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
 
@@ -6819,7 +6884,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
       sigs.push(withAnchor(`${suspend}fun ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -6846,7 +6911,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
         endIdx: m.index + m[0].length,
       });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, MEMBER_LIMIT);
   }
 
   function normalizeParams(params) {
@@ -7095,6 +7160,13 @@ __factories["./src/extractors/patterns"] = function(module, exports) {
 __factories["./src/extractors/php"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
+
+  // Ceilings sit above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed
+  // — an undisclosed cap looks like a class that simply has eight methods (#576).
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from PHP source code.
@@ -7134,7 +7206,8 @@ __factories["./src/extractors/php"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const meth of extractMembers(block)) {
-        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+        // The disclosure marker carries no offsets; anchor it at the class body.
+        sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
 
@@ -7146,7 +7219,7 @@ __factories["./src/extractors/php"] = function(module, exports) {
       sigs.push(withAnchor(`function ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -7174,7 +7247,7 @@ __factories["./src/extractors/php"] = function(module, exports) {
         endIdx: m.index + m[0].length,
       });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, MEMBER_LIMIT);
   }
 
   function normalizeParams(params) {
@@ -7378,6 +7451,11 @@ __factories["./src/extractors/python"] = function(module, exports) {
   
   const path = require('path');
   const { lineAt } = __require('./src/extractors/line-anchor');
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 30;
 
   /**
    * 1-based line of the last source line belonging to a top-level (indent 0)
@@ -7512,7 +7590,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
       }
     }
 
-    return sigs.slice(0, 30);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractClassMethods(stripped, startIndex) {
@@ -7723,6 +7801,12 @@ __factories["./src/extractors/python_dataclass"] = function(module, exports) {
 // ── ./src/extractors/r ──
 __factories["./src/extractors/r"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 30;
+
   /**
    * Extract signatures from R source code.
    *
@@ -7836,7 +7920,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
       sigs.push(`setClass("${sm[1]}")`);
     }
 
-    return sigs.slice(0, 30);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   /**
@@ -8000,6 +8084,12 @@ __factories["./src/extractors/r"] = function(module, exports) {
 // ── ./src/extractors/ruby ──
 __factories["./src/extractors/ruby"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from Ruby source code.
    * @param {string} src - Raw file content
@@ -8034,7 +8124,7 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
       sigs.push(`def ${m[1]}${params}${retStr}`);
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function normalizeParams(params) {
@@ -8059,6 +8149,11 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
 __factories["./src/extractors/rust"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Rust source code.
@@ -8128,7 +8223,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
       sigs.push(hinted(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e), m[1]));
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -8201,6 +8296,13 @@ __factories["./src/extractors/rust"] = function(module, exports) {
 __factories["./src/extractors/scala"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
+
+  // Ceilings sit above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed
+  // — an undisclosed cap looks like a class that simply has eight methods (#576).
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Scala source code.
@@ -8227,7 +8329,8 @@ __factories["./src/extractors/scala"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       sigs.push(withAnchor(`${kind} ${m[1]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const fn of extractMembers(block)) {
-        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+        // The disclosure marker carries no offsets; anchor it at the class body.
+        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + (fn.declIdx || 0)), lineAt(stripped, bodyStart + (fn.endIdx || 0))));
       }
     }
 
@@ -8241,7 +8344,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
       sigs.push(withAnchor(`def ${m[1]}${params}${retStr}`, line, line));
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -8268,7 +8371,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
         endIdx: m.index + m[0].length,
       });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, MEMBER_LIMIT);
   }
 
   function normalizeParams(params) {
@@ -8387,6 +8490,12 @@ __factories["./src/extractors/scan"] = function(module, exports) {
 // ── ./src/extractors/shell ──
 __factories["./src/extractors/shell"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from shell scripts (bash, zsh, fish).
    * @param {string} src - Raw file content
@@ -8424,7 +8533,7 @@ __factories["./src/extractors/shell"] = function(module, exports) {
       }
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   module.exports = { extract };
@@ -8531,6 +8640,12 @@ __factories["./src/extractors/sql"] = function(module, exports) {
 // ── ./src/extractors/svelte ──
 __factories["./src/extractors/svelte"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from Svelte components.
    * @param {string} src - Raw file content
@@ -8573,7 +8688,7 @@ __factories["./src/extractors/svelte"] = function(module, exports) {
       sigs.push(`$: ${m[1]}`);
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function normalizeParams(params) {
@@ -8594,6 +8709,13 @@ __factories["./src/extractors/svelte"] = function(module, exports) {
 __factories["./src/extractors/swift"] = function(module, exports) {
   
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
+  const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
+
+  // Ceilings sit above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed
+  // — an undisclosed cap looks like a class that simply has eight methods (#576).
+  const MEMBER_LIMIT = 8;
+  const PER_FILE_LIMIT = 25;
 
   /**
    * Extract signatures from Swift source code.
@@ -8629,7 +8751,8 @@ __factories["./src/extractors/swift"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)));
       for (const fn of extractMembers(block)) {
-        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + fn.declIdx), lineAt(stripped, bodyStart + fn.endIdx)));
+        // The disclosure marker carries no offsets; anchor it at the class body.
+        sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + (fn.declIdx || 0)), lineAt(stripped, bodyStart + (fn.endIdx || 0))));
       }
     }
 
@@ -8641,7 +8764,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
       sigs.push(withAnchor(`${asyncKw}func ${m[1]}(${normalizeParams(m[2])})${retStr}`, s, e));
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function extractBlock(src, startIndex) {
@@ -8667,7 +8790,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
         endIdx: m.index + m[0].length,
       });
     }
-    return members.slice(0, 8);
+    return capMembersWithNotice(members, MEMBER_LIMIT);
   }
 
   function normalizeParams(params) {
@@ -9242,6 +9365,12 @@ __factories["./src/extractors/typescript_react"] = function(module, exports) {
 // ── ./src/extractors/vue ──
 __factories["./src/extractors/vue"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from Vue single-file components.
    * @param {string} src - Raw file content
@@ -9306,7 +9435,7 @@ __factories["./src/extractors/vue"] = function(module, exports) {
     const emitsMatch = script.match(/(?:defineEmits|emits)\s*(?::\s*|\(\s*)(\[[\s\S]*?\])/);
     if (emitsMatch) sigs.push(`emits: ${emitsMatch[1].replace(/\s+/g, ' ')}`);
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   function normalizeParams(params) {
@@ -9479,6 +9608,12 @@ __factories["./src/extractors/xml"] = function(module, exports) {
 // ── ./src/extractors/yaml ──
 __factories["./src/extractors/yaml"] = function(module, exports) {
   
+  const { capWithNotice } = __require('./src/util/truncate');
+
+  // Ceiling sits above the default `maxSigsPerFile` so the configured budget
+  // governs output rather than a literal buried here, and omissions are disclosed (#576).
+  const PER_FILE_LIMIT = 25;
+
   /**
    * Extract signatures from YAML configuration files.
    * @param {string} src - Raw file content
@@ -9532,7 +9667,7 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
       }
     }
 
-    return sigs.slice(0, 25);
+    return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
   module.exports = { extract };
@@ -15679,7 +15814,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.31.0',
+    version: '8.32.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -21973,7 +22108,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.31.0';
+const VERSION = '8.32.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {

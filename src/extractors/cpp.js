@@ -1,5 +1,13 @@
 'use strict';
 
+const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
+
+// Ceilings sit above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed
+// — an undisclosed cap looks like a class that simply has eight methods (#576).
+const MEMBER_LIMIT = 8;
+const PER_FILE_LIMIT = 25;
+
 /**
  * Extract signatures from C/C++ source code.
  * @param {string} src - Raw file content
@@ -30,7 +38,7 @@ function extract(src) {
     sigs.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
   }
 
-  return sigs.slice(0, 25);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 function extractBlock(src, startIndex) {
@@ -53,7 +61,7 @@ function extractMembers(block) {
     const retStr = ret ? ` → ${ret}` : '';
     members.push(`${m[2]}(${normalizeParams(m[3])})${retStr}`);
   }
-  return members.slice(0, 8);
+  return capWithNotice(members, MEMBER_LIMIT, 'members');
 }
 
 function normalizeParams(params) {

@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.28.1</span>
+  <span><strong>Release:</strong> v8.32.0</span>
   <span>·</span>
-  <span><strong>New — arity-checked verification:</strong> <code>verify</code> now checks not just <em>does this function exist</em> but <em>is it called with a plausible number of arguments</em> — against your repo's exact signatures (JS/TS via the v8.27 balanced scanner, Python via AST). Wrong argument counts flag <code>arity-mismatch</code> with the real signature as the suggestion. Conservative by construction; unknown symbols stay <code>fake-symbol</code>. The first grounding check no grep loop can replicate. Zero dependencies, offline, deterministic.</span>
+  <span><strong>New — a retrieval gate you can trust:</strong> the benchmark now regenerates every index it scores, so a stale artifact can no longer read as a regression. A new 61-task JVM corpus mined from <code>spring-petclinic</code> and <code>akka</code> scores against <em>other</em> repos — outside the feedback loop that shifts scores whenever SigMap's own source changes — and it immediately caught a real one-task regression the previous gate would have missed. Separately, every extractor now discloses what a ceiling dropped instead of truncating silently. Zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.31-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.32-main</span>
   <span>·</span>
-  <span>81.1% hit@5 · 96.8% token reduction · 2026-09-08</span>
+  <span>81.1% hit@5 · 96.8% token reduction · 2026-09-12</span>
 </div>
 </div>
 
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.8%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-09-08 (v8.31.0)**.
+Latest saved benchmark run: **2026-09-12 (v8.32.0)**.
 
 </div>
 

@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.31.0. 81.1% hit@5 vs 44.0% single-shot grep baseline (1.73× honest lift) across 105 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v8.32.0. 81.1% hit@5 vs 44.0% single-shot grep baseline (1.73× honest lift) across 105 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.31.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.31-main &nbsp;·&nbsp; **Date:** 2026-09-08 (with R language)
+::: info Official v8.32.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.32-main &nbsp;·&nbsp; **Date:** 2026-09-12 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -29,7 +29,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-09-08 (v8.31.0)**
+Latest saved run: **2026-09-12 (v8.32.0)**
 
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **81.1% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
 
@@ -86,6 +86,55 @@ The hard split is published deliberately: with filename leakage removed, the
 single-shot grep baseline currently **beats** SigMap. That is the measured
 vocabulary-mismatch ceiling — the number repo-mined query expansion (planned
 for v9.0) exists to move. When it moves, this table is the proof.
+
+## The CI retrieval gate (v8.32.0)
+
+The split above comes from `benchmark:honest`, which scores **across repos**. A
+separate gate — `npm run validate:retrieval`, run on every CI job — scores four
+corpora and is what actually blocks a merge. Do not confuse its `hard` corpus
+with the `benchmark:honest` hard split above; they are different task sets that
+happen to share an adjective.
+
+| Corpus | Tasks | hit@5 | Gated on | What it measures |
+|---|---:|:---:|---|---|
+| `hard` | 90 | **75.6%** | 70% floor | Leak-free tasks over **SigMap's own source** |
+| `mined` | 23 | **60.9%** | no-regress | Commit subjects + the files that commit touched |
+| `jvm` | 61 | **16.4%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
+| `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
+
+Every corpus is asserted leak-free: no query shares a stemmed token with its
+expected file's basename. `hard` and `mined` are re-asserted on every run.
+
+### Why `hard` is reported but not enforced
+
+`hard` scores SigMap against its own source, so its BM25 statistics shift
+whenever the indexed file set changes — **including when the change cannot
+affect ranking**. This was proven in CI rather than argued: a probe branch
+containing one two-assertion test file and no source change scored 75.6% →
+74.4% and failed the gate. Enforcing `hard` against the previous run therefore
+fails honest work and, worse, trains you to ignore the gate.
+
+It is now held to its **70% floor** instead (currently 68/90 tasks pass, 1 task
+= 1.1pp, five tasks of headroom). The floor, the leak assertions, and
+`--no-regress` on `mined` and `jvm` are the enforced checks.
+
+### Why the JVM corpus exists
+
+`jvm` scores against *other* repositories, which puts it outside that feedback
+loop entirely — a code change cannot move the corpus it is measured on. It
+earned that design immediately: in #578 it caught a real one-task regression
+(18.0% → 16.4%) that the old gate would have attributed to noise.
+
+The cause was identified rather than absorbed. `akka:m018` expects
+`Logging.scala`, which holds a class the 8-member ceiling truncates — so
+disclosing the truncation adds one `… +N more methods` line, and BM25's
+document-length normalisation drops it from rank 5 to rank 6. A fix excluding
+markers from the scored term space did not move the number, so it was reverted
+rather than left in as unexplained complexity.
+
+At 16.4%, `jvm` is the least flattering number SigMap publishes. It is here for
+the same reason the hard split is: it is the one that moves when the
+vocabulary-mismatch problem gets solved.
 
 ## Per-repo results
 

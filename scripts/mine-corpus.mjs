@@ -28,11 +28,16 @@
  * Defaults below are chosen for the least-skewed corpus (fewest repeats per
  * file), NOT the highest score. Treat the output as a band, not a point.
  *
- * Usage: node scripts/mine-corpus.mjs [--limit 960] [--out <file>]
+ * Usage: node scripts/mine-corpus.mjs [--limit 960] [--out <file>] [--repo <path>]
+ *
+ * --repo mines a checkout other than this one. The default invocation is
+ * unchanged in every respect, so `retrieval-mined.jsonl` cannot drift: the
+ * sigmap-specific heuristics below (the src/packages path rule and the
+ * gen-context.js dominance rule) apply only when mining this repo.
  */
 import { execFileSync } from 'child_process';
 import { writeFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
@@ -45,9 +50,19 @@ const argv = process.argv.slice(2);
 const val = (f, d) => { const i = argv.indexOf(f); return i !== -1 && argv[i + 1] ? argv[i + 1] : d; };
 const LIMIT = parseInt(val('--limit', '960'), 10);
 const OUT = val('--out', 'benchmarks/tasks/retrieval-mined.jsonl');
+const REPO = resolve(val('--repo', ROOT));
+const SELF = REPO === ROOT;
 
-const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26 });
-const index = readFullIndex(ROOT);
+// Source files a mined task may point at. Restricted to languages with an
+// extractor, since a task whose answer is never indexed is unusable.
+const SRC_EXT = /\.(js|mjs|cjs|ts|tsx|py|java|kt|kts|scala|go|rs|rb|php|swift|cs|dart)$/;
+
+const git = (args) => execFileSync('git', args, { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 });
+const index = readFullIndex(REPO);
+if (index.size === 0) {
+  console.error(`[mine] no retrieval index at ${REPO}/.context/sig-index.json — run \`sigmap\` there first`);
+  process.exit(1);
+}
 
 /** Strip conventional-commit furniture so the subject reads as a request. */
 function cleanSubject(s) {
@@ -57,7 +72,7 @@ function cleanSubject(s) {
     .replace(/#\d+/g, '')
     .replace(/\bv?\d+\.\d+\.\d+\b/g, '')
     .replace(/`[^`]*`/g, ' ')
-    .replace(/\b[\w./-]+\.(js|ts|py|mjs|json|md)\b/g, ' ')
+    .replace(/\b[\w./-]+\.(js|ts|py|mjs|json|md|java|kt|kts|scala|go|rs|rb|php|swift|cs|dart)\b/g, ' ')
     .replace(/\(\s*\)/g, ' ')                      // empty parens left by the strips above
     .replace(/[—–-]\s*$/, '')
     .replace(/^\s*[—–-]\s*/, '')
@@ -126,10 +141,12 @@ for (const line of log) {
   const MIN_SHARE = 0.25;
   const maxChurn = Math.max(...churn.values(), 0);
   const src = files.filter((f) => {
-    if (!/\.(js|py)$/.test(f)) return false;
-    if (!/^(src|packages)\//.test(f) && f.includes('/')) return false;
+    if (!SRC_EXT.test(f)) return false;
+    // sigmap's own layout: everything worth mining lives in src/ or packages/.
+    // Another repo has its own conventions, so the share rule alone decides.
+    if (SELF && !/^(src|packages)\//.test(f) && f.includes('/')) return false;
     const share = (churn.get(f) || 0) / totalChurn;
-    if (f === 'gen-context.js') return churn.get(f) === maxChurn && share >= MIN_SHARE;
+    if (SELF && f === 'gen-context.js') return churn.get(f) === maxChurn && share >= MIN_SHARE;
     return share >= MIN_SHARE;
   });
   // No file-count ceiling. It used to reject any commit touching >4 source

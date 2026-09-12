@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.32.0)
+- **@manojmallick** — feat(bench): a gated JVM retrieval corpus, 61 leak-checked tasks mined from spring-petclinic and akka, scoring against other repos so it sits outside the feedback loop that moves the `hard` split (#575, PR #577); fix(bench): the gate reused a gitignored index, so staleness could read as a regression — every index it scores is now regenerated, JVM repos included (PR #579); fix(bench): the `hard` corpus held to its 70% floor rather than the previous run, after CI proved a one-file no-op change failed the gate (PR #579); fix(extractors): 20 extractors now disclose what their member and per-file ceilings dropped instead of truncating silently, ceilings unchanged (#576, PR #578); test(docs): a markdown guard so an unbalanced fence or stray Vue interpolation cannot break the Pages build after a tag is already pushed (#573, PR #574)
+
 ### Recent Contributors (v8.31.0)
 - **@manojmallick** — fix(graph): dependency graph was empty on Maven/Gradle repos — `srcDirs` hard-coded and never read from config, plus an 8-directory walk cap (#560, PR #561); fix(graph): Java call graph discarded every `receiver.method(` call, 58% of call sites in a Spring module — receiver types now resolved from declarations, interface declarations indexed so calls have a target (#562, PR #563); feat(graph): Spring interface calls linked to their implementation, ambiguity left unresolved rather than guessed (#564, PR #565); test(graph): a JVM call-graph gate verified to fail on a simulated revert (#566, PR #567); feat(cli): `sigmap lines` — the CLI twin of `get_lines` for MCP-less environments (PR #568); chore(bench): retrieval baseline re-recorded after establishing the movement was index regeneration under a token budget, not a ranking change (PR #569)
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-08T10:26:05.515Z",
+  "generated": "2026-09-12T15:43:12.707Z",
   "repos": [
     {
       "repo": "express",
@@ -701,7 +701,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 46,
+      "sigCount": 47,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -907,7 +907,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 271,
+      "sigCount": 269,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,

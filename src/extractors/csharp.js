@@ -1,6 +1,13 @@
 'use strict';
 
 const { lineAt, withAnchor } = require('./line-anchor');
+const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
+
+// Ceilings sit above the default `maxSigsPerFile` so the configured budget
+// governs output rather than a literal buried here, and omissions are disclosed
+// — an undisclosed cap looks like a class that simply has eight methods (#576).
+const MEMBER_LIMIT = 8;
+const PER_FILE_LIMIT = 25;
 
 /**
  * Extract signatures from C# source code.
@@ -25,11 +32,12 @@ function extract(src) {
     const block = extractBlock(stripped, bodyStart);
     sigs.push(withAnchor(`${m[1]} ${m[2]}`, lineAt(stripped, declIdx), lineAt(stripped, bodyStart + block.length)));
     for (const meth of extractMembers(block)) {
-      sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + meth.declIdx), lineAt(stripped, bodyStart + meth.endIdx)));
+      // The disclosure marker carries no offsets; anchor it at the class body.
+      sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
     }
   }
 
-  return sigs.slice(0, 25);
+  return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
 
 function extractBlock(src, startIndex) {
@@ -55,7 +63,7 @@ function extractMembers(block) {
       endIdx: m.index + m[0].length,
     });
   }
-  return members.slice(0, 8);
+  return capMembersWithNotice(members, MEMBER_LIMIT);
 }
 
 function normalizeParams(params) {
