@@ -10,6 +10,21 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.32.0] — 2026-09-12
+
+### Added
+- A gated **JVM retrieval corpus** — 61 tasks mined from `spring-petclinic` (32) and `akka` (29), leak-checked so no query shares a stemmed token with its expected file's basename. It scores against *other* repos, which puts it outside the feedback loop that makes the `hard` split move whenever sigmap's own source changes. `scripts/mine-corpus.mjs` gained `--repo` and gates its sigmap-specific rules on the target being sigmap itself, with byte-identical default output (#577, closes #575)
+- `test/integration/docs-markdown.test.js` — guards the VitePress sources against the two failure modes that can break the docs build *after* a release is already tagged: unbalanced code fences, and `{{ }}` outside a fenced block, which Vue parses as an interpolation (#574, closes #573)
+
+### Fixed
+- Every extractor now **discloses what a ceiling dropped** instead of truncating silently. 20 extractors gained `… +N more` markers on their member and per-file caps (23 now carry them in total). The ceilings themselves are unchanged — raising them is a separate, measured decision (#578, #576)
+- The retrieval gate reused a gitignored index, so a "regression" could be pure staleness — this produced three separate false investigations, including one re-baseline. It now regenerates every index it scores, including one per JVM repo driven from `benchmarks/config-overrides.json` rather than a hand-written config (#579)
+- The `sigmap lines` CLI example nested a fenced block inside a text fence; the inner fence closed early and a brace expression became a Vue interpolation. This failed the Pages build *after* v8.31.0 was tagged and published (#574)
+
+### Changed
+- The `hard` corpus is now **reported but not enforced** against the previous run — only against its 70% floor. Proven necessary in CI: a probe branch containing one two-assertion test file and no source change scored 75.6% → 74.4% and failed the gate, because `hard` scores sigmap against its own source and BM25 statistics shift with the indexed file set. `mined` and `jvm` keep `--no-regress` (#579)
+- JVM baseline re-recorded at 16.4% hit@5 (from 18.0%) — a single task. `akka:m018` expects `Logging.scala`, which holds a class the 8-member ceiling truncates, so disclosure adds one `… +N more methods` line and BM25's length normalisation drops it from rank 5 to 6. A fix excluding markers from the scored term space did not move the number and was reverted rather than left in as unexplained complexity (#578)
+
 ## [8.31.0] — 2026-09-08
 
 ### Added

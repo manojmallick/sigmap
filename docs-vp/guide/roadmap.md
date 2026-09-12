@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.29.0, with recent releases completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v8.32.0, with recent releases completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "101 versions shipped. See what changed in each release and what is coming next."
+      content: "173 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-One hundred one versions shipped. MIT open source from day one.
+One hundred seventy-three versions shipped. MIT open source from day one.
 
 **Stats:** 96.8% overall token reduction · 81.1% retrieval hit@5 (1.73× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 21 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
 
@@ -835,6 +835,22 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.32.0 — The gate cried wolf, so we built one that doesn't ✓ (2026-09-12)
+
+**Minor release — the retrieval gate was measuring the repository it was defending.** The `hard` corpus scores SigMap against its own source, so its BM25 statistics shift whenever the indexed file set changes — including when the change cannot possibly affect ranking. This was not argued, it was proven: a probe branch containing **one two-assertion test file and no source change** scored 75.6% → 74.4% and failed the gate. A gate that fails honest work is worse than no gate, because it teaches you to override it. `hard` is now held to its **70% floor** rather than to the previous run; the floor, the leak assertions, and `--no-regress` on `mined` and `jvm` remain enforced.
+
+Underneath that sat a plainer defect: the gate reused `.context/sig-index.json`, which is gitignored. A stale artifact was therefore indistinguishable from a regression — a trap that consumed **three separate false investigations**, one of which ended in an unnecessary re-baseline. Every index the gate scores is now regenerated, including one per JVM repo, driven from `benchmarks/config-overrides.json` rather than a hand-written config dropped into the repo under test (the exact cross-suite skew #522 established). A re-run now reproduces all four corpora at +0.0pp.
+
+The structural fix is a corpus that sits **outside the feedback loop**: 61 tasks mined from `spring-petclinic` (32) and `akka` (29), verified leak-free, scoring against repositories SigMap's source cannot move. It earned its place the day it landed by catching a real one-task regression (18.0% → 16.4%) in the same release's extractor change — and the cause was identified rather than absorbed. `akka:m018` expects `Logging.scala`, which holds a class the 8-member ceiling truncates, so disclosing the truncation adds one `… +N more methods` line and BM25's document-length normalisation drops it from rank 5 to 6. A fix excluding markers from the scored term space did not move the number and was reverted rather than left in as unexplained complexity.
+
+That extractor change closes a documentation lie. `KNOWN_LIMITATIONS.md` has long promised that caps are "cut with a `… +N more signatures` notice" — but only the JS/TS/Java paths actually did it. **20 extractors** truncated silently, so an eight-method class and a forty-method class were indistinguishable in the output, and the drift-guard test never caught it because it only checks that the tier names are named. All 23 now disclose. The ceilings themselves are deliberately unchanged: raising them is a separate decision that needs its own measurement, and this release built the corpus that can measure it. Finally, a markdown guard closes the hole that broke the v8.31.0 Pages deploy *after* the tag was pushed — an unbalanced fence or a stray Vue interpolation outside a code block now fails a test instead of a release.
+
+**Tags:** `run-retrieval-gate.mjs` · `retrieval-jvm-spring-petclinic.jsonl` · `retrieval-jvm-akka.jsonl` · `mine-corpus.mjs --repo` · `config-overrides.json` · `capWithNotice` · `capMembersWithNotice` · `docs-markdown.test.js` · `#573` · `#575` · `#576` · `PR #574` · `#577` · `#578` · `#579`
+
+**Impact:** 61 new gated tasks against external repos, 0 leaking; 20 extractors gained disclosure (23 total); the gate is reproducible — a clean re-run reports hard 75.6%, mined 60.9%, easy 90.0%, jvm 16.4% at +0.0pp on every corpus. 140 test files passing, 0 failed.
 
 ---
 
