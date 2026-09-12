@@ -8,6 +8,11 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+---
+
+## [8.32.1] — 2026-09-13
+
+
 ### Fixed
 - **Retraction of a v8.32.0 claim.** That release stated "every extractor now discloses what a ceiling dropped". It did not. `vue.js` was registered but unreachable (`.vue` dispatches to `vue_sfc`), so disclosure was added to dead code while the live `.vue` handler kept truncating silently; `.tsx` (every React component), `.properties`, `.toml` and `.md` still cut output with a bare `slice()`; and `r.js` called `capWithNotice` but eight inner caps stopped collection at the ceiling so it never fired — and when forced to, reported `+1 more` where 50 signatures were hidden. All fixed, ceilings unchanged, with a test that fails against the pre-fix extractors. The root cause was that three of those languages have no test fixture (#582, #583, #584, #588)
 - The walk depth hid most code in JVM package layouts: `maxDepth: 6` indexed **6 of 47** Java files on spring-petclinic, because Java puts one directory per package segment. #561 had already raised the *graph* walk to 12, so extraction was the shallower half of an inconsistent pair. Depth now rises to 12 only for JVM layouts; an explicit `maxDepth` always wins. Gated JVM corpus 16.4% → 23.0% (#590)

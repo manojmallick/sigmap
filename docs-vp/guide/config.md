@@ -167,6 +167,35 @@ To pin a fixed budget (v4.0 behaviour):
 |-----|------|---------|-------------|
 | `srcDirs` | `string[]` | `["src", "app", "lib"]` | Directories to scan for source files. Relative to the project root. |
 | `monorepo` | `boolean` | `false` | When true, generates a separate context section per package under `packages/`, `apps/`, or `services/`. |
+| `maxDepth` | `number` | `6` (`12` for JVM layouts) | How many directory levels below each `srcDirs` entry to scan. Raised automatically to 12 when a Maven/Gradle/sbt layout is detected — see below. An explicit value always wins. |
+
+### `maxDepth` and JVM layouts
+
+`6` suits the JS/Python-shaped trees the default was tuned on. A JVM project is
+different: Java puts **one directory per package segment**, so real code in
+`src/main/java/com/company/project/module/Class.java` sits 8–10 levels down. At
+depth 6 only the top-level package is reachable — on `spring-petclinic` that
+indexed **6 of 47** Java files, and files like `OwnerController.java` were
+invisible to `ask` and to the context file alike.
+
+SigMap therefore resolves `maxDepth` to **12** when it detects a JVM layout —
+a `pom.xml`, `build.gradle[.kts]`, `build.sbt`, `settings.gradle[.kts]`, or a
+`src/main/{java,kotlin,scala}` tree. This matches the dependency-graph walk,
+which has used 12 since v8.31.0.
+
+Non-JVM repos are unaffected: deepening globally was measured and rejected, as
+it added candidates to every repo for no gain. Setting `maxDepth` yourself
+always wins, including a deliberately shallow value:
+
+```json
+{ "srcDirs": ["src"], "maxDepth": 4 }
+```
+
+If a repo looks under-indexed, compare what is on disk with what was scanned:
+
+```bash
+sigmap --analyze          # files scanned, signatures per file
+```
 
 ## Strategy
 

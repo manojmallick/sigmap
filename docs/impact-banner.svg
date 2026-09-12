@@ -78,7 +78,7 @@
   <text x="402" y="237" font-size="12.5" fill="#86efac">+  Every function fully indexed</text>
   <text x="402" y="257" font-size="12.5" fill="#86efac">+  Right file in context, first prompt</text>
   <text x="402" y="277" font-size="12.5" fill="#86efac">+  1-2 prompts. Grounded answer.</text>
-  <text x="402" y="297" font-size="12.5" fill="#86efac">+  Task-success proxy: 64.8% (modeled)</text>
+  <text x="402" y="297" font-size="12.5" fill="#86efac">+  Task-success proxy: 62.9% (modeled)</text>
   <text x="402" y="320" font-size="10" fill="#1a4a2a">RETRIEVAL HIT@5 (SIGMAP)</text>
   <rect x="402" y="326" width="320" height="17" fill="#071a0e" rx="4"/>
   <rect x="402" y="326" width="252" height="17" fill="#22c55e" rx="4"/>

@@ -22,7 +22,7 @@ head:
 
 One hundred seventy-three versions shipped. MIT open source from day one.
 
-**Stats:** 96.8% overall token reduction · 81.1% retrieval hit@5 (1.73× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 21 MCP tools · 33 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.8% overall token reduction · 78.9% retrieval hit@5 (1.79× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust) · 21 MCP tools · 32 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,22 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.32.1 — the audit that read its own release notes ✓ (2026-09-13)
+
+**Patch release — v8.32.0 claimed "every extractor now discloses what a ceiling dropped". It did not.** An end-to-end audit — generate 80 symbols per language, run the *real dispatched* extractor, check for a marker — found three ways the claim was false. `vue.js` was registered in the dispatcher but **unreachable**: `.vue` resolves to `vue_sfc`, so the previous release added disclosure to dead code while the live handler kept truncating silently. Four reachable extractors still cut output with a bare `slice()` — `.tsx` (every React component), `.properties`, `.toml` and `.md`. And `r.js` called `capWithNotice` but **eight** inner caps stopped collection at the ceiling, so it never fired; forced to fire, it reported `+1 more` where 50 signatures were hidden. The root cause was not carelessness but coverage: three of those languages have no test fixture, so no test could observe their output.
+
+The same audit found something larger. Installing the actual competitors — repomix, universal-ctags, gitingest — and running them head-to-head on `spring-petclinic/src` showed SigMap at 292 characters per covered file against repomix `--compress` at 2,868, roughly **ten times denser**. But it also showed SigMap indexing **6 of 47** Java files. `maxDepth: 6` suits the JS/Python-shaped trees it was tuned on; Java puts one directory per package segment, so `OwnerController.java` and every other file one package deep was invisible. v8.31.0 had already raised the *dependency-graph* walk to 12 for exactly this reason — extraction was the shallower half of an inconsistent pair, resolving edges into files the signature index had never seen. The walk now deepens to 12 for JVM layouts only; deepening globally was measured first and rejected, because it added candidates to every repo for no gain.
+
+That fix moved a published number, and the movement is the honest part. Headline hit@5 goes **81.1% → 78.9%**, and exactly one of eighteen repos accounts for it: spring-petclinic falls 100% → 60%. That 100% was measured against an index holding 6 of 47 Java files — ranking five hand-written tasks is easy when 87% of the repo is missing. The leak-free `mined` corpus stayed flat and the leak-free `jvm` corpus rose 16.4% → 23.0% on the same change, so the prior figure was inflated by under-indexing rather than this being a ranking regression. The two regressed tasks are tracked as a ranking weakness the missing files were concealing.
+
+Four guard tests were de-hardcoded along the way, each of which had begun failing on a *correct* value: one pinned the banner to `81.1%` while its own title said 75.6%, and another required `81.1%` while blocklisting `78.9%` — doubly self-invalidating once the benchmark legitimately returned to it.
+
+**Tags:** `vue_sfc` · `typescript_react` · `capWithNotice` · `_isJvmLayout` · `_applyJvmDepth` · `JVM_MAX_DEPTH` · `extractor-reachability.test.js` · `jvm-walk-depth.test.js` · `#582` · `#583` · `#584` · `#590` · `PR #589` · `#593`
+
+**Impact:** JVM corpus 16.4% → 23.0% (+6.6pp); spring-petclinic Java coverage 6/47 → 42/47; 4 reachable extractors gained disclosure and `r.js` now reports the true overflow (`+50`, not `+1`); a reachability test fails CI if any registered extractor becomes unreachable. 142 test files passing, 0 failed.
 
 ---
 

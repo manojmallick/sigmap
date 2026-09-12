@@ -35,6 +35,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.32.1)
+- **@manojmallick** — fix(extractors): made the v8.32.0 disclosure claim true — removed the unreachable `vue.js` (`.vue` dispatches to `vue_sfc`), added disclosure to `.tsx`/`.properties`/`.toml`/`.md`, and cleared the eight inner caps that defeated `r.js`'s own marker (#582, #583, #584, PR #589); fix(config): JVM package layouts were mostly invisible at `maxDepth: 6` — 6 of 47 Java files on spring-petclinic — so the walk now deepens to 12 for JVM layouts only, matching the graph walk from #561 (#590, PR #593); docs: retracted the overstated v8.32.0 claim in the changelog, roadmap and GitHub release
+
 ### Recent Contributors (v8.32.0)
 - **@manojmallick** — feat(bench): a gated JVM retrieval corpus, 61 leak-checked tasks mined from spring-petclinic and akka, scoring against other repos so it sits outside the feedback loop that moves the `hard` split (#575, PR #577); fix(bench): the gate reused a gitignored index, so staleness could read as a regression — every index it scores is now regenerated, JVM repos included (PR #579); fix(bench): the `hard` corpus held to its 70% floor rather than the previous run, after CI proved a one-file no-op change failed the gate (PR #579); fix(extractors): 20 extractors now disclose what their member and per-file ceilings dropped instead of truncating silently, ceilings unchanged (#576, PR #578); test(docs): a markdown guard so an unbalanced fence or stray Vue interpolation cannot break the Pages build after a tag is already pushed (#573, PR #574)
 

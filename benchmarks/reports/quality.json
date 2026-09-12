@@ -1,6 +1,6 @@
 {
-  "version": "8.32.0",
-  "timestamp": "2026-09-12T21:22:30.572Z",
+  "version": "8.32.1",
+  "timestamp": "2026-09-12T22:16:15.514Z",
   "assumptions": {
     "callsPerDay": 10,
     "models": [
@@ -141,8 +141,8 @@
     {
       "repo": "gin",
       "language": "Go",
-      "rawTokens": 221142,
-      "finalTokens": 10825,
+      "rawTokens": 221242,
+      "finalTokens": 10895,
       "groundedSymbols": 433,
       "estimatedRawSymbols": 1106,
       "darkSymbols": 673,
@@ -159,33 +159,33 @@
       "costRows": [
         {
           "model": "GPT-4o",
-          "rawDayRegular": 5.52855,
-          "sigDayRegular": 0.270625,
-          "savedDayRegular": 5.257925,
-          "rawDayCached": 2.764275,
-          "sigDayCached": 0.1353125,
-          "savedDayCached": 2.6289625,
-          "savedMonthRegular": 157.73775
+          "rawDayRegular": 5.53105,
+          "sigDayRegular": 0.27237500000000003,
+          "savedDayRegular": 5.258674999999999,
+          "rawDayCached": 2.765525,
+          "sigDayCached": 0.13618750000000002,
+          "savedDayCached": 2.6293374999999997,
+          "savedMonthRegular": 157.76024999999998
         },
         {
           "model": "Claude Sonnet",
-          "rawDayRegular": 6.634260000000001,
-          "sigDayRegular": 0.32475,
-          "savedDayRegular": 6.309510000000001,
-          "rawDayCached": 0.6634260000000001,
-          "sigDayCached": 0.032475,
-          "savedDayCached": 0.630951,
-          "savedMonthRegular": 189.28530000000003
+          "rawDayRegular": 6.63726,
+          "sigDayRegular": 0.32685,
+          "savedDayRegular": 6.31041,
+          "rawDayCached": 0.6637259999999999,
+          "sigDayCached": 0.032685,
+          "savedDayCached": 0.631041,
+          "savedMonthRegular": 189.3123
         },
         {
           "model": "Claude Haiku",
-          "rawDayRegular": 2.21142,
-          "sigDayRegular": 0.10825,
-          "savedDayRegular": 2.10317,
-          "rawDayCached": 0.221142,
-          "sigDayCached": 0.010825,
-          "savedDayCached": 0.210317,
-          "savedMonthRegular": 63.0951
+          "rawDayRegular": 2.21242,
+          "sigDayRegular": 0.10895,
+          "savedDayRegular": 2.1034699999999997,
+          "rawDayCached": 0.221242,
+          "sigDayCached": 0.010895,
+          "savedDayCached": 0.210347,
+          "savedMonthRegular": 63.10409999999999
         }
       ]
     },
@@ -1102,6 +1102,6 @@
     "totalGroundedSymbols": 9557,
     "totalDarkSymbols": 57975,
     "totalHiddenFiles": 5186,
-    "gpt4oSavedPerMonth": 9960.4
+    "gpt4oSavedPerMonth": 9960.43
   }
 }

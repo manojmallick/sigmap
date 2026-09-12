@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.32.0. 81.1% hit@5 vs 44.0% single-shot grep baseline (1.73× honest lift) across 105 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v8.32.1. 78.9% hit@5 vs 44.0% single-shot grep baseline (1.79× honest lift) across 105 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 81.1% hit@5"
+      content: "SigMap retrieval benchmark — 78.9% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 81.1% hit@5 vs 44.0% single-shot grep baseline, 1.73x honest lift, 105 tasks, 18 repos."
+      content: "Latest saved run: 78.9% hit@5 vs 44.0% single-shot grep baseline, 1.79x honest lift, 105 tasks, 18 repos."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,23 +15,23 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.32.0 benchmark snapshot
+::: info Official v8.32.1 benchmark snapshot
 **Benchmark ID:** sigmap-v8.32-main &nbsp;·&nbsp; **Date:** 2026-09-12 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 | **82%** vs 44.0% single-shot grep baseline |
 | Graph-boosted hit@5 | **88%** |
-| Honest lift (vs grep agent) | **1.73×** |
-| Prompt reduction | **45.7%** (2.84 → 1.54) |
-| Task success proxy | **64.8%** |
+| Honest lift (vs grep agent) | **1.79×** |
+| Prompt reduction | **44.4%** (2.84 → 1.58) |
+| Task success proxy | **62.9%** |
 | Overall token reduction | **96.8%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-09-12 (v8.32.0)**
+Latest saved run: **2026-09-12 (v8.32.1)**
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **81.1% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **78.9% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
 
 ## Why this benchmark matters
 
@@ -47,11 +47,11 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 (grep-agent baseline) | 44.0% | **81.1%** |
-| Graph-boosted hit@5 | — | **81.1%** |
-| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **1.73x** |
+| Average hit@5 (grep-agent baseline) | 44.0% | **78.9%** |
+| Graph-boosted hit@5 | — | **78.9%** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **1.79x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
-| Correct (rank 1) | ~1% | **64.8%** |
+| Correct (rank 1) | ~1% | **62.9%** |
 | Partial (ranks 2–5) | ~13% | **17.1%** |
 | Wrong (not in top 5) | ~86% | **18.1%** |
 
@@ -59,7 +59,7 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Tier | Tasks | Share |
 |---|---:|---:|
-| Correct | 68 / 105 | **64.8%** |
+| Correct | 68 / 105 | **62.9%** |
 | Partial | 18 / 105 | **17.1%** |
 | Wrong | 19 / 105 | **18.1%** |
 
@@ -87,7 +87,7 @@ single-shot grep baseline currently **beats** SigMap. That is the measured
 vocabulary-mismatch ceiling — the number repo-mined query expansion (planned
 for v9.0) exists to move. When it moves, this table is the proof.
 
-## The CI retrieval gate (v8.32.0)
+## The CI retrieval gate (v8.32.1)
 
 The split above comes from `benchmark:honest`, which scores **across repos**. A
 separate gate — `npm run validate:retrieval`, run on every CI job — scores four
