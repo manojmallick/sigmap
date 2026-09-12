@@ -1,0 +1,4 @@
+root project
+tag properties
+tag dependencies
+tag dependency

@@ -1,0 +1,17 @@
+group server.port
+key server.port
+group server.servlet
+key server.servlet.context-path
+group spring.datasource
+key spring.datasource.url
+key spring.datasource.username
+key spring.datasource.password
+group spring.jpa
+key spring.jpa.hibernate.ddl-auto
+key spring.jpa.show-sql
+group spring.cache
+key spring.cache.type
+key spring.cache.cache-names
+group logging.level
+key logging.level.root
+key logging.level.org.springframework.web

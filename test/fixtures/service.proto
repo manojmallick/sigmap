@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package acme.orders.v1;
+
+option go_package = "github.com/acme/orders/v1;ordersv1";
+
+import "google/protobuf/timestamp.proto";
+
+// An order placed by a customer.
+message Order {
+  string id = 1;
+  string customer_id = 2;
+  repeated LineItem items = 3;
+  Status status = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message LineItem {
+  string sku = 1;
+  int32 quantity = 2;
+  int64 unit_price_cents = 3;
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_PENDING = 1;
+  STATUS_SHIPPED = 2;
+  STATUS_CANCELLED = 3;
+}
+
+message GetOrderRequest {
+  string id = 1;
+}
+
+service OrderService {
+  rpc GetOrder(GetOrderRequest) returns (Order);
+  rpc ListOrders(ListOrdersRequest) returns (stream Order);
+  rpc CancelOrder(CancelOrderRequest) returns (Order);
+}

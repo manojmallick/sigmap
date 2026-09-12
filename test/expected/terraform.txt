@@ -1,0 +1,8 @@
+resource "aws_s3_bucket" "artifacts"
+resource "aws_s3_bucket_versioning" "artifacts"
+module "vpc"
+variable "region"
+variable "bucket_name"
+output "bucket_arn"
+provider "aws"
+terraform { ... }

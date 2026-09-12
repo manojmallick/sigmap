@@ -26857,6 +26857,10 @@ function main() {
         '.r': 'r', '.R': 'r',
         '.vue': 'vue_sfc', '.svelte': 'svelte', '.html': 'html',
         '.css': 'css', '.yml': 'yaml', '.sh': 'shell',
+        '.tsx': 'typescript_react',
+        '.graphql': 'graphql', '.md': 'markdown', '.properties': 'properties',
+        '.proto': 'protobuf', '.sql': 'sql', '.tf': 'terraform',
+        '.toml': 'toml', '.xml': 'xml',
       };
       const SPECIAL = { 'Dockerfile': 'dockerfile' };
 

@@ -1,0 +1,46 @@
+"""User account in the system."""
+type User implements Node {
+  id: ID!
+  email: String!
+  displayName: String
+  posts(first: Int = 10, after: String): PostConnection!
+  createdAt: DateTime!
+}
+
+type Post {
+  id: ID!
+  title: String!
+  body: String
+  author: User!
+  tags: [String!]!
+}
+
+interface Node {
+  id: ID!
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+input CreatePostInput {
+  title: String!
+  body: String
+  tags: [String!] = []
+}
+
+type Query {
+  user(id: ID!): User
+  posts(first: Int, after: String): PostConnection!
+}
+
+type Mutation {
+  createPost(input: CreatePostInput!): Post!
+  deletePost(id: ID!): Boolean!
+}
+
+scalar DateTime
+
+union SearchResult = User | Post
