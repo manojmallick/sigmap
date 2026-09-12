@@ -1,0 +1,5 @@
+component UserProfile
+prop userId
+prop required
+emit saved
+emit cancelled

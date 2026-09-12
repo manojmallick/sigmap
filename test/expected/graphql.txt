@@ -1,0 +1,9 @@
+type User implements Node
+type Post
+interface Node
+input CreatePostInput
+type Query
+type Mutation
+enum Role
+union SearchResult
+scalar DateTime

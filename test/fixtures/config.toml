@@ -1,0 +1,26 @@
+[package]
+name = "petclinic-worker"
+version = "0.4.2"
+edition = "2021"
+authors = ["Platform Team <platform@acme.test>"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[server]
+host = "0.0.0.0"
+port = 8080
+workers = 4
+
+[server.tls]
+enabled = true
+cert_path = "/etc/ssl/server.pem"
+
+[database]
+url = "postgres://localhost/petclinic"
+pool_size = 10

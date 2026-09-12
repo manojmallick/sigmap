@@ -1,0 +1,12 @@
+h1 Payments Service
+h2 Installation
+h2 Configuration
+h3 Environment variables
+h2 Usage
+h2 Webhooks
+h3 Signature verification
+h3 Retry policy
+h2 Troubleshooting
+code-fence bash
+code-fence plain
+code-fence js

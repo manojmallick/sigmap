@@ -1,0 +1,4 @@
+TABLE owners
+TABLE pets
+VIEW owner_pet_counts
+INDEX idx_pets_owner ON pets

@@ -1,0 +1,8 @@
+component OwnerCard
+props OwnerCardProps
+hook useState
+hook useEffect
+hook useCallback
+export OwnerCard
+export PetList
+handler onClick
