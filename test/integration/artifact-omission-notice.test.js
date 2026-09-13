@@ -63,10 +63,14 @@ test('an artifact that fits carries no notice', () => {
 });
 
 test('output stays deterministic', () => {
-  const a = generate(40, 1200).content;
-  const b = generate(40, 1200).content;
+  // Regenerate in the SAME directory. Comparing two fresh temp dirs was wrong:
+  // the artifact embeds path-derived content, so that test compared unequal
+  // inputs and passed only by luck locally — CI caught it.
+  const { dir, content: first } = generate(40, 1200);
+  execFileSync('node', [CLI], { cwd: dir, encoding: 'utf8', stdio: 'pipe' });
+  const second = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8');
   const strip = (s) => s.replace(/^.*(generated|updated|ago|\d{4}-\d{2}-\d{2}).*$/gmi, '');
-  assert.strictEqual(strip(a), strip(b), 'two runs produced different content');
+  assert.strictEqual(strip(first), strip(second), 'regenerating produced different content');
 });
 
 test('the notice does not claim files are unreachable', () => {
