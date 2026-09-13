@@ -22550,6 +22550,17 @@ function applyTokenBudget(fileEntries, maxTokens) {
   // Restore the original file order for stable output.
   const kept = withPriority.filter((e) => finalByPath.has(e.filePath)).map((e) => finalByPath.get(e.filePath));
 
+  // Record what was omitted so the artifact itself can say so (#587). The
+  // stderr warning below is invisible to an agent that only reads the file:
+  // 25 sections with no notice is indistinguishable from a 25-file repo.
+  // Non-enumerable so every existing consumer still sees a plain array.
+  if (verboseDropped.length > 0 || collapsedCount > 0) {
+    Object.defineProperty(kept, '__omissions', {
+      value: { dropped: verboseDropped.length, collapsed: collapsedCount, maxTokens },
+      enumerable: false, writable: false, configurable: true,
+    });
+  }
+
   if (verboseDropped.length > 0 || collapsedCount > 0) {
     const parts = [];
     if (verboseDropped.length) parts.push(`dropped ${verboseDropped.length} file(s)`);
@@ -22876,6 +22887,20 @@ function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
     } catch (err) {
       console.warn(`[sigmap] routing hints skipped: ${err.message}`);
     }
+  }
+
+  // Say what the budget left out — an omission the reader cannot see is the
+  // same failure as an undisclosed truncation cap (#587, cf. #576).
+  const omitted = fileEntries && fileEntries.__omissions;
+  if (omitted && (omitted.dropped > 0 || omitted.collapsed > 0)) {
+    const bits = [];
+    if (omitted.dropped) bits.push(`${omitted.dropped} file(s) omitted`);
+    if (omitted.collapsed) bits.push(`${omitted.collapsed} collapsed to anchors`);
+    lines.push('');
+    lines.push(`> **Not everything is here.** ${bits.join(', ')} to stay under the `
+      + `${omitted.maxTokens}-token budget (tests and configs go first). `
+      + 'The retrieval index still has them all — run `sigmap ask "<question>"` '
+      + 'to pull in anything missing.');
   }
 
   return lines.join('\n');
