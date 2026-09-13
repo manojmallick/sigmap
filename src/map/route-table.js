@@ -21,6 +21,45 @@ function shouldSkipFile(rel) {
 }
 
 /**
+ * Byte offsets and prefixes of every `@Controller(...)` in a file.
+ * A file may declare several controllers, so each route is attributed to the
+ * nearest one above it rather than to a single file-wide prefix.
+ * @param {string} content
+ * @returns {Array<{index:number, prefix:string}>} ascending by index
+ */
+function nestControllerPrefixes(content) {
+  const out = [];
+  const re = /@Controller\s*\(\s*(?:['"`]([^'"`]*)['"`])?/g;
+  let m;
+  while ((m = re.exec(content)) !== null) {
+    out.push({ index: m.index, prefix: m[1] || '' });
+  }
+  return out;
+}
+
+/** Prefix of the nearest `@Controller` above `index`, or '' when there is none. */
+function prefixBefore(controllers, index) {
+  let prefix = '';
+  for (const c of controllers) {
+    if (c.index > index) break;
+    prefix = c.prefix;
+  }
+  return prefix;
+}
+
+/**
+ * Join a controller prefix and a method path into one route path.
+ * Either side may be empty, absent, or carry its own slashes.
+ * @returns {string} always slash-prefixed; never a trailing slash except '/'
+ */
+function joinRoute(prefix, methodPath) {
+  const parts = [prefix, methodPath]
+    .map((p) => String(p || '').trim().replace(/^\/+|\/+$/g, ''))
+    .filter(Boolean);
+  return parts.length ? '/' + parts.join('/') : '/';
+}
+
+/**
  * Structured route rows across the supported frameworks — the data behind
  * `analyze`, exposed for retrieval surface-enrichment (#488).
  * @param {string[]} files absolute paths
@@ -48,16 +87,14 @@ function collectRoutes(files, cwd) {
         routes.push({ method: m[1].toUpperCase(), path: m[2], file: rel });
       }
 
-      // NestJS decorators: @Get('/path') @Post('/path')
-      const re2 = /@(Get|Post|Put|Patch|Delete|Head|Options|All)\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+      // NestJS: @Get(':id') / @Post() — composed with the enclosing
+      // @Controller('prefix'). Without the prefix the emitted path matches
+      // nothing real, which defeats the point of route pseudo-signatures (#585).
+      const controllers = nestControllerPrefixes(content);
+      const re2 = /@(Get|Post|Put|Patch|Delete|Head|Options|All)\s*\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/g;
       while ((m = re2.exec(content)) !== null) {
-        routes.push({ method: m[1].toUpperCase(), path: m[2], file: rel });
-      }
-
-      // NestJS: @Get() with no path
-      const re3 = /@(Get|Post|Put|Patch|Delete)\s*\(\s*\)/g;
-      while ((m = re3.exec(content)) !== null) {
-        routes.push({ method: m[1].toUpperCase(), path: '/', file: rel });
+        const prefix = prefixBefore(controllers, m.index);
+        routes.push({ method: m[1].toUpperCase(), path: joinRoute(prefix, m[2]), file: rel });
       }
     }
 
