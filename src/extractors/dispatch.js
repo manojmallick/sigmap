@@ -48,6 +48,21 @@ const EXTRACTORS = {
   generic: require('./generic'),
 };
 
+/**
+ * Extension → extractor module name. **The single source of truth for
+ * extractor resolution** (#591).
+ *
+ * Anything that decides *which extractor module to load* must go through
+ * `langFor` rather than declaring its own copy. Three copies existed and two
+ * had drifted: `src/eval/analyzer.js` carried a dead duplicate `.vue` key, and
+ * the `--diagnose-extractors` map pointed at `vue.js` after that module was
+ * deleted — which is how an unreachable extractor survived unnoticed (#582).
+ *
+ * Not every extension map in the codebase belongs here. `language-detector.js`
+ * maps `.tsx → typescript` for language *statistics*, and `dashboard.js` keeps
+ * short display *labels*. Both are correct for their purpose and deliberately
+ * differ from resolution — folding them in would miscount languages.
+ */
 const EXT_MAP = {
   '.ts': 'typescript', '.tsx': 'typescript_react',
   '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
@@ -108,4 +123,4 @@ function extractFile(filePathOrName, src) {
   }
 }
 
-module.exports = { extractFile, langFor };
+module.exports = { extractFile, langFor, EXT_MAP };

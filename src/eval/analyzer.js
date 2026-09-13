@@ -14,47 +14,13 @@ const fs   = require('fs');
 const path = require('path');
 
 // Extension → extractor name (mirrors EXT_MAP in gen-context.js)
-const EXT_MAP = {
-  '.ts': 'typescript', '.tsx': 'typescript',
-  '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
-  '.py': 'python',     '.pyw': 'python',
-  '.java': 'java',
-  '.kt': 'kotlin',     '.kts': 'kotlin',
-  '.go': 'go',
-  '.rs': 'rust',
-  '.cs': 'csharp',
-  '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.cc': 'cpp',
-  '.rb': 'ruby',       '.rake': 'ruby',
-  '.php': 'php',
-  '.swift': 'swift',
-  '.dart': 'dart',
-  '.scala': 'scala',   '.sc': 'scala',
-  '.gd': 'gdscript',
-  '.r': 'r',           '.R': 'r',
-  '.svelte': 'svelte',
-  '.html': 'html',     '.htm': 'html',
-  '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',
-  '.yml': 'yaml',      '.yaml': 'yaml',
-  '.sh': 'shell',      '.bash': 'shell', '.zsh': 'shell', '.fish': 'shell',
-  '.toml': 'toml',
-  '.properties': 'properties',
-  '.xml': 'xml',
-  '.md': 'markdown',
-  // Phase C specialized extractors
-  '.tsx': 'typescript_react',
-  '.vue': 'vue_sfc',
-};
-
-function isDockerfile(name) {
-  return name === 'Dockerfile' || name.startsWith('Dockerfile.');
-}
+// Extractor resolution goes through the dispatcher — the single source of
+// truth (#591). This file previously kept its own copy, which had drifted to
+// a dead duplicate `.vue` key.
+const { langFor } = require('../extractors/dispatch');
 
 function getExtractorName(filePath) {
-  const base = path.basename(filePath);
-  const ext  = path.extname(base).toLowerCase();
-  if (EXT_MAP[ext]) return EXT_MAP[ext];
-  if (isDockerfile(base)) return 'dockerfile';
-  return null;
+  return langFor(filePath);
 }
 
 /** Rough token estimate: chars / 4 */

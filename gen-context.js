@@ -4151,47 +4151,13 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
   const path = require('path');
 
   // Extension → extractor name (mirrors EXT_MAP in gen-context.js)
-  const EXT_MAP = {
-    '.ts': 'typescript', '.tsx': 'typescript',
-    '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
-    '.py': 'python',     '.pyw': 'python',
-    '.java': 'java',
-    '.kt': 'kotlin',     '.kts': 'kotlin',
-    '.go': 'go',
-    '.rs': 'rust',
-    '.cs': 'csharp',
-    '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.cc': 'cpp',
-    '.rb': 'ruby',       '.rake': 'ruby',
-    '.php': 'php',
-    '.swift': 'swift',
-    '.dart': 'dart',
-    '.scala': 'scala',   '.sc': 'scala',
-    '.gd': 'gdscript',
-    '.r': 'r',           '.R': 'r',
-    '.svelte': 'svelte',
-    '.html': 'html',     '.htm': 'html',
-    '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',
-    '.yml': 'yaml',      '.yaml': 'yaml',
-    '.sh': 'shell',      '.bash': 'shell', '.zsh': 'shell', '.fish': 'shell',
-    '.toml': 'toml',
-    '.properties': 'properties',
-    '.xml': 'xml',
-    '.md': 'markdown',
-    // Phase C specialized extractors
-    '.tsx': 'typescript_react',
-    '.vue': 'vue_sfc',
-  };
-
-  function isDockerfile(name) {
-    return name === 'Dockerfile' || name.startsWith('Dockerfile.');
-  }
+  // Extractor resolution goes through the dispatcher — the single source of
+  // truth (#591). This file previously kept its own copy, which had drifted to
+  // a dead duplicate `.vue` key.
+  const { langFor } = __require('./src/extractors/dispatch');
 
   function getExtractorName(filePath) {
-    const base = path.basename(filePath);
-    const ext  = path.extname(base).toLowerCase();
-    if (EXT_MAP[ext]) return EXT_MAP[ext];
-    if (isDockerfile(base)) return 'dockerfile';
-    return null;
+    return langFor(filePath);
   }
 
   /** Rough token estimate: chars / 4 */
@@ -5989,6 +5955,21 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
     generic: __require('./src/extractors/generic'),
   };
 
+  /**
+   * Extension → extractor module name. **The single source of truth for
+   * extractor resolution** (#591).
+   *
+   * Anything that decides *which extractor module to load* must go through
+   * `langFor` rather than declaring its own copy. Three copies existed and two
+   * had drifted: `src/eval/analyzer.js` carried a dead duplicate `.vue` key, and
+   * the `--diagnose-extractors` map pointed at `vue.js` after that module was
+   * deleted — which is how an unreachable extractor survived unnoticed (#582).
+   *
+   * Not every extension map in the codebase belongs here. `language-detector.js`
+   * maps `.tsx → typescript` for language *statistics*, and `dashboard.js` keeps
+   * short display *labels*. Both are correct for their purpose and deliberately
+   * differ from resolution — folding them in would miscount languages.
+   */
   const EXT_MAP = {
     '.ts': 'typescript', '.tsx': 'typescript_react',
     '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
@@ -6049,7 +6030,7 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
     }
   }
 
-  module.exports = { extractFile, langFor };
+  module.exports = { extractFile, langFor, EXT_MAP };
   
 };
 
@@ -26849,27 +26830,16 @@ function main() {
         process.exit(1);
       }
 
-      const EXT_TO_LANG = {
-        '.ts': 'typescript', '.js': 'javascript', '.py': 'python',
-        '.java': 'java', '.kt': 'kotlin', '.go': 'go', '.rs': 'rust',
-        '.cs': 'csharp', '.cpp': 'cpp', '.rb': 'ruby', '.php': 'php',
-        '.swift': 'swift', '.dart': 'dart', '.scala': 'scala',
-        '.r': 'r', '.R': 'r',
-        '.vue': 'vue_sfc', '.svelte': 'svelte', '.html': 'html',
-        '.css': 'css', '.yml': 'yaml', '.sh': 'shell',
-        '.tsx': 'typescript_react',
-        '.graphql': 'graphql', '.md': 'markdown', '.properties': 'properties',
-        '.proto': 'protobuf', '.sql': 'sql', '.tf': 'terraform',
-        '.toml': 'toml', '.xml': 'xml',
-      };
-      const SPECIAL = { 'Dockerfile': 'dockerfile' };
+      // Resolution goes through the dispatcher — the single source of truth
+      // (#591). This map was a third copy, and it still pointed at `vue.js`
+      // after that module was deleted, which is how a dead extractor survived.
+      const { langFor } = requireSourceOrBundled('./src/extractors/dispatch');
 
       let passed = 0; let failed = 0;
       const entries = fs.readdirSync(fixturesDir).sort();
 
       for (const filename of entries) {
-        const ext  = path.extname(filename).toLowerCase();
-        const lang = EXT_TO_LANG[ext] || SPECIAL[filename];
+        const lang = langFor(filename);
         if (!lang) continue;
 
         const fixturePath = path.join(fixturesDir, filename);
