@@ -93,6 +93,10 @@ sigmap --diagnose-extractors             Run all 21 extractors vs fixtures; show
 sigmap --query "<text>"                  Rank files by relevance to a query
 sigmap --query "<text>" --json           Ranked results as JSON
 sigmap --query "<text>" --top <n>        Limit results to top N files (default 10)
+sigmap ask "<query>"                     Ranked answer with signatures for a question (--json, --top <n>, --mode)
+sigmap plan "<goal>"                     Files to inspect, likely-to-change set, and impact radius (--json)
+sigmap explain <file>                    Why a file is in or out of the generated context (--json)
+sigmap run                               Alias for a bare generate (gen-context run --report, etc.)
 sigmap learn --good <files...>           Boost files in .context/weights.json
 sigmap learn --bad <files...>            Penalize files in .context/weights.json
 sigmap learn --reset                     Delete learned file weights
@@ -108,6 +112,8 @@ sigmap verify <answer.md>                Flagship grounding guard — flag fake 
 sigmap verify <answer.md> --json         Grounding report as JSON (exits 1 if issues)
 sigmap verify <answer.md> --report       Write a standalone HTML report (red/amber/green)
 sigmap verify-ai-output <answer.md>      Full command name for gen-context verify
+sigmap validate                          Check config + index coverage; --query "<text>" also probes retrieval (--json)
+sigmap judge --response <f> --context <f>   Score an AI answer's groundedness (--json, --threshold <n>, --learn)
 sigmap conventions                       Extract repo file-naming/export/test conventions (--conflicts, --inject, --report, --fix)
 sigmap scaffold "<name>"                 Propose a convention-matched file/dir scaffold (--ext, --threshold, --force, --json)
 sigmap verify-plan <plan.md|->           Check a plan vs the live index — files/symbols exist, blast radius, scope (--json)
@@ -136,6 +142,13 @@ sigmap lines <file> <start>-<end>        Print an exact line range — CLI twin 
 sigmap lines <file> :<line> --context <n>  Window around one signature anchor (default ±10)
 sigmap note "<text>"                     Append a note to the cross-session decision log
 sigmap note                              List recent notes (also: note --list <N>)
+sigmap history                           Recent usage-log entries with a sparkline (--last <n>, --json)
+sigmap compare                           SigMap vs baseline benchmark; outside the source checkout shows local history (--run, --json)
+sigmap share                             Shareable one-liner with your live numbers (copied to clipboard)
+sigmap bench --submit                    Format local benchmark history as a shareable community block
+sigmap roots                             Detect source roots for this repo (--fix, --json)
+sigmap sync                              Write every adapter output + llms.txt and print a compact diff
+sigmap suggest-profile                   Infer the task profile from staged changes (--short)
 sigmap status                            Show repo state — branch, dirty files, index freshness, notes
 sigmap doctor                            Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)
 sigmap mcp list                          List MCP clients and their config paths (--json)

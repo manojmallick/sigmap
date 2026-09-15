@@ -26930,6 +26930,10 @@ Usage:
   ${cmd} --query "<text>"                  Rank files by relevance to a query
   ${cmd} --query "<text>" --json           Ranked results as JSON
   ${cmd} --query "<text>" --top <n>        Limit results to top N files (default 10)
+  ${cmd} ask "<query>"                     Ranked answer with signatures for a question (--json, --top <n>, --mode)
+  ${cmd} plan "<goal>"                     Files to inspect, likely-to-change set, and impact radius (--json)
+  ${cmd} explain <file>                    Why a file is in or out of the generated context (--json)
+  ${cmd} run                               Alias for a bare generate (${cmd} run --report, etc.)
   ${cmd} learn --good <files...>           Boost files in .context/weights.json
   ${cmd} learn --bad <files...>            Penalize files in .context/weights.json
   ${cmd} learn --reset                     Delete learned file weights
@@ -26945,6 +26949,8 @@ Usage:
   ${cmd} verify <answer.md> --json         Grounding report as JSON (exits 1 if issues)
   ${cmd} verify <answer.md> --report       Write a standalone HTML report (red/amber/green)
   ${cmd} verify-ai-output <answer.md>      Full command name for ${cmd} verify
+  ${cmd} validate                          Check config + index coverage; --query "<text>" also probes retrieval (--json)
+  ${cmd} judge --response <f> --context <f>   Score an AI answer's groundedness (--json, --threshold <n>, --learn)
   ${cmd} conventions                       Extract repo file-naming/export/test conventions (--conflicts, --inject, --report, --fix)
   ${cmd} scaffold "<name>"                 Propose a convention-matched file/dir scaffold (--ext, --threshold, --force, --json)
   ${cmd} verify-plan <plan.md|->           Check a plan vs the live index — files/symbols exist, blast radius, scope (--json)
@@ -26973,6 +26979,13 @@ Usage:
   ${cmd} lines <file> :<line> --context <n>  Window around one signature anchor (default ±10)
   ${cmd} note "<text>"                     Append a note to the cross-session decision log
   ${cmd} note                              List recent notes (also: note --list <N>)
+  ${cmd} history                           Recent usage-log entries with a sparkline (--last <n>, --json)
+  ${cmd} compare                           SigMap vs baseline benchmark; outside the source checkout shows local history (--run, --json)
+  ${cmd} share                             Shareable one-liner with your live numbers (copied to clipboard)
+  ${cmd} bench --submit                    Format local benchmark history as a shareable community block
+  ${cmd} roots                             Detect source roots for this repo (--fix, --json)
+  ${cmd} sync                              Write every adapter output + llms.txt and print a compact diff
+  ${cmd} suggest-profile                   Infer the task profile from staged changes (--short)
   ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
   ${cmd} doctor                            Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)
   ${cmd} mcp list                          List MCP clients and their config paths (--json)
@@ -27744,6 +27757,82 @@ function main() {
 
   // v4.2: `sigmap compare` — human-readable benchmark CLI
   if (args[0] === 'compare') {
+    const bar = '─'.repeat(44);
+
+    // The 21-repo comparison benchmark lives in the SOURCE checkout: the runner
+    // script and the task corpus are both absent from the published package, so
+    // outside a checkout the old unconditional spawn burned ~30-60s and then
+    // died on `Could not parse benchmark output`. Probe for both before
+    // spawning anything, and fall back to the user's own recorded history.
+    const benchScript = path.join(__dirname, 'scripts', 'run-retrieval-benchmark.mjs');
+    const benchCorpus = path.join(__dirname, 'benchmarks', 'tasks');
+    const hasCorpus = fs.existsSync(benchScript) && fs.existsSync(benchCorpus);
+    const forceRun = args.includes('--run');
+
+    if (forceRun && !hasCorpus) {
+      console.error('[sigmap] compare --run needs the sigmap source checkout with its benchmark corpus.');
+      console.error(`  missing: ${!fs.existsSync(benchScript) ? 'scripts/run-retrieval-benchmark.mjs' : 'benchmarks/tasks/'}`);
+      console.error('  Run plain `sigmap compare` to see your local benchmark history instead.');
+      process.exit(1);
+    }
+
+    if (!hasCorpus) {
+      // Fallback: the user's own before/after numbers, from the same store
+      // `share` reads. Reads only from cwd; writes nothing.
+      const histPath = path.join(cwd, '.context', 'benchmark-history.ndjson');
+      let entries = [];
+      if (fs.existsSync(histPath)) {
+        try {
+          entries = fs.readFileSync(histPath, 'utf8').trim().split('\n')
+            .map((l) => { try { return JSON.parse(l); } catch (_) { return null; } })
+            .filter(Boolean);
+        } catch (_) {}
+      }
+
+      const seriesOf = (type, field) => {
+        const vals = entries.filter((e) => e.type === type && typeof e[field] === 'number');
+        if (vals.length === 0) return null;
+        return { first: vals[0][field], latest: vals[vals.length - 1][field], runs: vals.length };
+      };
+      const retrieval = seriesOf('retrieval', 'hitAt5');
+      const tokens    = seriesOf('token-reduction', 'reduction');
+
+      if (!retrieval && !tokens) {
+        if (args.includes('--json')) {
+          process.stdout.write(JSON.stringify({ mode: 'history', available: false, runs: 0 }) + '\n');
+        } else {
+          console.log('[sigmap] compare: no local benchmark history yet.');
+          console.log('  The 21-repo comparison needs the sigmap source checkout with its benchmark corpus.');
+          console.log('  Record your own numbers first: run `sigmap --benchmark` in this repo.');
+        }
+        process.exit(0);
+      }
+
+      if (args.includes('--json')) {
+        process.stdout.write(JSON.stringify({
+          mode: 'history',
+          available: true,
+          runs: Math.max(retrieval ? retrieval.runs : 0, tokens ? tokens.runs : 0),
+          hitAt5: retrieval,
+          tokenReduction: tokens,
+        }, null, 2) + '\n');
+      } else {
+        const delta = (s, unit) => {
+          const d = s.latest - s.first;
+          const sign = d > 0 ? '+' : '';
+          return s.runs > 1 ? `  (first ${s.first}${unit} → ${sign}${parseFloat(d.toFixed(3))}${unit})` : '';
+        };
+        const lines = [bar, ' SigMap — local benchmark history', bar];
+        if (retrieval) lines.push(` hit@5          ${(retrieval.latest * 100).toFixed(1)}%${delta({ ...retrieval, first: parseFloat((retrieval.first * 100).toFixed(1)), latest: parseFloat((retrieval.latest * 100).toFixed(1)) }, '%')}`);
+        if (tokens)    lines.push(` token savings  ${tokens.latest}%${delta(tokens, '%')}`);
+        lines.push(bar);
+        lines.push(' Live 21-repo comparison needs the sigmap source checkout;');
+        lines.push(' run `sigmap compare --run` there for SigMap vs baseline.');
+        console.log(lines.join('\n'));
+      }
+      process.exit(0);
+    }
+
     const { execFileSync } = require('child_process');
     console.log('[sigmap] Running comparison benchmark (this may take ~30s)...\n');
 
@@ -27752,7 +27841,7 @@ function main() {
       // Shell-free: run the node binary directly with the script path as an argv.
       raw = execFileSync(
         process.execPath,
-        [path.join(__dirname, 'scripts', 'run-retrieval-benchmark.mjs'), '--compare'],
+        [benchScript, '--compare'],
         { cwd, timeout: 90_000, encoding: 'utf8' }
       );
     } catch (e) { raw = (e && e.stdout) ? e.stdout : ''; }
@@ -27771,7 +27860,6 @@ function main() {
     } else {
       const pct  = (v) => `${(v * 100).toFixed(1)}%`;
       const lift = (a, b) => (b > 0 ? (a / b).toFixed(1) : '∞');
-      const bar  = '─'.repeat(44);
       console.log([
         bar,
         ' SigMap vs Baseline',
@@ -28072,13 +28160,35 @@ function main() {
     if ((config.maxTokens || 0) > 50000)
       warnings.push(`maxTokens ${config.maxTokens} is very high — may exceed LLM context windows`);
 
-    // Coverage check: files actually in context vs total source files
+    // Coverage check: files actually in context vs total source files.
+    // These are two different populations — the persisted index can hold files
+    // the current config no longer scopes (deletions, srcDir changes, a
+    // different strategy), so a raw `index.size / fileList.length` ratio ran
+    // past 100% (218% in this repo) and stopped meaning anything. Coverage is
+    // the INTERSECTION over the in-scope list, which is <= 100% by
+    // construction; the two residuals are reported separately because they say
+    // different things: `notIndexed` is missing context, `staleEntries` is a
+    // stale index.
     const { buildSigIndex: valBuildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
     const valSigIndex  = valBuildSigIndex(cwd);
-    const valTotal     = buildFileList(cwd, config).length;
-    const coveragePct  = valTotal > 0 ? Math.round((valSigIndex.size / valTotal) * 100) : 0;
+    const valFiles     = buildFileList(cwd, config);
+    const valTotal     = valFiles.length;
+
+    const valRel       = (f) => path.relative(cwd, path.resolve(cwd, f)).replace(/\\/g, '/');
+    const valInScope   = new Set(valFiles.map(valRel));
+    const valIndexed   = new Set([...valSigIndex.keys()].map(valRel));
+
+    let valCovered = 0;
+    for (const f of valInScope) if (valIndexed.has(f)) valCovered++;
+    let valStale = 0;
+    for (const f of valIndexed) if (!valInScope.has(f)) valStale++;
+
+    const coveragePct  = valTotal > 0 ? Math.round((valCovered / valTotal) * 100) : 0;
+    const valNotIndexed = valTotal - valCovered;
     if (coveragePct < 70)
       warnings.push(`coverage ${coveragePct}% is below recommended 70% — increase maxTokens or expand srcDirs`);
+    if (valStale > 0)
+      warnings.push(`stale index entries: ${valStale} indexed file(s) are no longer in scope — re-run sigmap to refresh the index`);
 
     // Optional query check. Two complementary signals:
     //  (a) cased-symbol coverage — if the query literally names a camelCase /
@@ -28137,13 +28247,26 @@ function main() {
     }
 
     if (args.includes('--json')) {
-      const payload = { valid: issues.length === 0, issues, warnings, coverage: coveragePct };
+      const payload = {
+        valid: issues.length === 0,
+        issues,
+        warnings,
+        coverage: coveragePct,
+        indexedInScope: valCovered,
+        notIndexed: valNotIndexed,
+        staleEntries: valStale,
+        totalFiles: valTotal,
+      };
       if (queryReport) payload.query = queryReport;
       process.stdout.write(JSON.stringify(payload) + '\n');
     } else {
       for (const w of warnings) console.warn(`[sigmap] ⚠  ${w}`);
       if (issues.length === 0) {
-        console.log(`[sigmap] ✓ config valid  coverage: ${coveragePct}%`);
+        const residual = [
+          valNotIndexed > 0 ? `${valNotIndexed} not indexed` : null,
+          valStale > 0 ? `${valStale} stale` : null,
+        ].filter(Boolean).join(', ');
+        console.log(`[sigmap] ✓ config valid  coverage: ${coveragePct}% (${valCovered}/${valTotal} files)${residual ? `  — ${residual}` : ''}`);
       } else {
         for (const iss of issues) console.error(`[sigmap] ✗ ${iss}`);
         process.exit(1);

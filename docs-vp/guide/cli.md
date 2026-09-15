@@ -80,7 +80,7 @@ If you are new to the product, start with the workflow pages first:
 | `weights --export [file]` | Write learned weights JSON to file or stdout for team sharing |
 | `weights --import <file>` | Merge or replace local weights from a portable JSON file |
 | `bench --submit` | Format local + canonical benchmark results as a shareable community block |
-| `compare` | CLI wrapper for retrieval benchmark vs baseline |
+| `compare` | Retrieval benchmark vs baseline in the source checkout; local history elsewhere |
 | `share` | Print shareable one-liner with live benchmark numbers |
 
 ## Team, CI, and observability
@@ -104,13 +104,14 @@ If you are new to the product, start with the workflow pages first:
 | `suggest-profile` | Auto-detect context profile from git state |
 | `explain <file>` | Why a file is included or excluded from context |
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
+| `run` | Alias for a bare generate (`sigmap run --report`, etc.) |
 | `--watch` | Watch for file changes and regenerate incrementally |
 | `daemon start\|stop\|status` | Run `--watch` as a detached background daemon (PID + log in `.context/`) |
 | `--setup` | Auto-wire MCP for Claude, Cursor, Windsurf, Zed, VS Code, OpenCode, Gemini CLI, Codex CLI; install git hook; start watcher |
 | `--diff` | Generate context only for changed files (shows risk score per file) |
 | `--diff --staged` | Generate context only for staged files |
 | `--mcp` | Start the stdio MCP server |
-| `--query <text>` | Rank files by relevance to a free-text query (TF-IDF) |
+| `--query <text>` | Rank files by relevance to a free-text query (identifier-aware BM25 + signals) |
 | `--output <file>` | Write context to a custom path (persisted to config) |
 | `--cost [--model <name>]` | Per-model token/dollar cost comparison |
 | `--coverage` | Enable test coverage annotation (✓/✗ per function) without editing config |
@@ -123,7 +124,7 @@ If you are new to the product, start with the workflow pages first:
 | `--health --json` | Machine-readable health output with coverage fields |
 | `--monorepo` | Generate a separate context section per package |
 | `--each` | Run a command in each monorepo package |
-| `--routing` | Print the model routing table |
+| `--routing` | Regenerate with model routing hints embedded in the output |
 | `--terse` | Deterministic terse signature encoding — measured −16.1% sig tokens; line anchors preserved |
 | `--format cache` | Wrap output in Anthropic cache_control breakpoints |
 | `--track` | Log each run to `.context/usage.ndjson` |
@@ -1378,10 +1379,15 @@ Profiles: `debug`, `architecture`, `review`, `default`.
 
 ## compare
 
-Human-readable CLI wrapper for the retrieval benchmark. Runs SigMap vs a random baseline and shows hit@5, token counts, and lift multiplier.
+Human-readable CLI wrapper for the retrieval benchmark. It has **two modes**, chosen by whether the benchmark corpus is present.
+
+**In the SigMap source checkout** (where `scripts/run-retrieval-benchmark.mjs` and `benchmarks/tasks/` exist) it runs the full 21-repo comparison: SigMap vs a random baseline, with hit@5, token counts, and lift multiplier.
+
+**Anywhere else** — including an npm-installed copy, where the runner and corpus are not published — it renders *your own* recorded numbers from `.context/benchmark-history.ndjson` instead. It never spawns the benchmark and never writes outside the current directory. Use `--run` to demand the live comparison; it exits 1 with an explanation when the corpus is unavailable rather than falling back.
 
 ```bash
-sigmap compare
+sigmap compare           # live comparison in the checkout, local history elsewhere
+sigmap compare --run     # live comparison only; exit 1 if the corpus is missing
 sigmap compare --json
 ```
 
@@ -1410,6 +1416,53 @@ Generated with SigMap — the deterministic, verifiable grounding layer for AI c
 96.6% fewer tokens · 78.6% retrieval hit@5 · 43.7% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
+```
+
+---
+
+## explain
+
+Explain why a single file is **in or out** of the generated context — which extractor claimed it, how many signatures it contributed, and a preview of them. The first thing to reach for when a file you expected is missing from the index.
+
+```bash
+sigmap explain src/auth/service.js
+sigmap explain src/auth/service.js --json
+```
+
+```
+[sigmap] src/graph/path-key.js — INCLUDED
+  Extractor : javascript
+  Signatures: 3
+  Preview   : module.exports = { graphKey, displayPath }  :56-56 · function graphKey(p)  :22-24 …
+```
+
+`sigmap --explain <file>` is accepted as an equivalent flag form.
+
+---
+
+## run
+
+Alias for a bare generate, for readability in scripts and task runners. `sigmap run` is exactly `sigmap`, and the positional is stripped before flag parsing, so every generation flag still applies.
+
+```bash
+sigmap run
+sigmap run --report
+```
+
+---
+
+## sync
+
+Write **every** configured adapter output plus `llm.txt` and `llms.txt` in one pass, then print a compact diff of what changed. Use it after a config change, when you want all agent-facing files regenerated together rather than one adapter at a time.
+
+```bash
+sigmap sync
+```
+
+```
+[sigmap] sync complete
+  .github/copilot-instructions.md  updated
+  llm.txt                          updated
 ```
 
 ---
@@ -1685,7 +1738,7 @@ node gen-context.js --mcp
 
 ## --query
 
-Rank all files by relevance to a free-text query using zero-dependency TF-IDF scoring.
+Rank all files by relevance to a free-text query using zero-dependency, identifier-aware **BM25** as the base relevance signal, modulated by keyword/symbol/path weights, dependency-graph and centrality boosts, and any learned file weights.
 
 ```bash
 sigmap --query "authentication flow"
@@ -1831,9 +1884,14 @@ sigmap --suggest-tool "Fix the null pointer in UserService.findById"
 ```
 
 ```
-[sigmap] task: "Fix the null pointer in UserService.findById"
-[sigmap] → balanced  (business logic, 1× cost)
+[sigmap] suggest-tool:
+  tier   : balanced
+  label  : Balanced (mid-tier)
+  models : claude-sonnet-4-6, gpt-5-2, gemini-3-1-pro
+  cost   : ~$0.003 / 1K tokens
 ```
+
+Add `--json` for the machine-readable form.
 
 ---
 
@@ -1861,7 +1919,7 @@ sigmap --each "node gen-context.js --diff"
 
 ## --routing
 
-Print the model routing table — a per-file classification of `fast`, `balanced`, or `powerful` based on complexity scoring.
+Regenerate the context **with model-routing hints embedded in the output** — a per-file classification of `fast`, `balanced`, or `powerful` based on complexity scoring. This is a generation flag, not a report: it writes the adapter outputs as usual, with the routing annotations included. Equivalent to setting `"routing": true` in config.
 
 ```bash
 sigmap --routing
@@ -1979,7 +2037,10 @@ Run retrieval evaluation tasks from a JSONL task file. Outputs hit@5, MRR, and p
 ```bash
 sigmap --benchmark
 sigmap --benchmark --repo /path/to/external/repo
+sigmap --benchmark --json
 ```
+
+`--eval` is an alias for `--benchmark` and accepts the same flags.
 
 ---
 
