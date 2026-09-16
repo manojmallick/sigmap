@@ -8,6 +8,9 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Fixed
+- **Config reference: dead keys removed, every `DEFAULTS` key documented, drift gated** (#708) — thanks @tunglambk — `docs-vp/guide/config.md` documented `enrichTodos`, `enrichChanges` and `enrichCoverage`, none of which exists in `src/`, `packages/` or `gen-context.js`; `loadConfig` drops them as unknown keys, so the copy-paste sample config silently did nothing. Checking every key against `src/config/defaults.js` and its consumer also caught `outputPath` (the key is `output`), `retrieval.preset` (read by nothing) and `gainTracking` (dropped as unknown before `isTrackingEnabled` sees it), and found eleven keys the page omitted — `todos`, `changes`, `changesCommits`, `maxSigsPerFile`, `depMap`, `routing`, `impactRadius`, `format`, `exclude`, `tracking` and `impact.depth`. Three `DEFAULTS`-only keys are now listed with a factual note that nothing reads them (`adapters`, `mcp.autoRegister`, `impact.includeSigs`), so the table covers `DEFAULTS` exactly. New `test/integration/config-docs.test.js` derives the documented keys from the page's own tables and the accepted keys from `DEFAULTS`, fails on drift in either direction or on a sample block that uses an unknown key, and checks each documented default against `DEFAULTS` too — skipping abbreviated (`…`) and prose cells — which caught `diffPriority` (`false` → `true`), `srcDirs` (three of 42 entries shown as if the whole list) and `testDirs` (wrong order); `version.json`'s derived test count is synced to 173
+
 ---
 
 ## [8.50.1] — 2026-09-25
