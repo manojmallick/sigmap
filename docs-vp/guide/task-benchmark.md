@@ -31,6 +31,8 @@ head:
 
 Latest saved run: **2026-09-15 (v8.49.2)** — includes R language support (ggplot2, dplyr, shiny)
 
+The success/proxy definitions and the task corpus are described in [benchmark methodology](/guide/methodology).
+
 This page answers the question people care about most:
 
 > does SigMap help the developer finish the task with fewer retries?

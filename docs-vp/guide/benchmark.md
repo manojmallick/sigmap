@@ -42,6 +42,8 @@ This is the landing page for the public benchmark story. It answers four differe
 
 Latest saved benchmark run: **2026-09-15 (v8.49.2)**
 
+Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
+
 | Metric | Result |
 |---|---:|
 | Token reduction repos | 21 (including R: ggplot2, dplyr, shiny) |

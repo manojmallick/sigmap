@@ -8,6 +8,12 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Added
+- **A docs-nav guard that fails when a guide page has no sidebar entry** (#700) — `docs-vp/guide/methodology.md` built and deployed, but no entry in `docs-vp/.vitepress/config.mts` pointed at it, so the page explaining how the benchmarks are produced was reachable only by typing the URL; the existing docs check only proved the site compiled. `test/integration/sidebar-coverage.test.js` derives the sidebar links from the config and the pages from disk, then asserts both directions, so a new page must be linked and a renamed one can't leave a dead link. Methodology is now in the Benchmarks sidebar group and cross-linked from all five benchmark pages, and the links that said "methodology" while pointing at the benchmark overview (`README.md`, `how-i-built-sigmap.md`, `local-llms.md`) now point at the page itself
+
+### Fixed
+- **`cli.md` understated what `sync` writes** (#700) — the `sync` section listed `llm.txt` and `llms.txt` and stopped its example after `llm.txt`, but the command also writes `llm-full.txt` and reports four files. The section now matches what the command actually prints. The `explain` section is also explicit about its three exclusion reasons — `.contextignore`, `srcDirs`, and an extractor that returned no signatures — and notes that it doesn't model the token budget
+
 ---
 
 ## [8.49.2] — 2026-09-16
