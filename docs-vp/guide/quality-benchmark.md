@@ -36,6 +36,8 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 
 Latest saved run: **2026-09-24 (v8.50.0)**
 
+How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
+
 ## Headline numbers
 
 | Metric | Without SigMap | With SigMap |

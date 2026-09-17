@@ -48,6 +48,8 @@ these 105 tasks is yes — 78.6% hit@5 with no per-repo tuning in the latest sav
 
 That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
 
+The repo mix, task selection, and per-language breakdown rules are in [benchmark methodology](/guide/methodology).
+
 ## Why this matters
 
 SigMap uses hand-written extractors and lightweight ranking rather than a hosted retrieval stack. The strongest proof of generalization is therefore breadth:

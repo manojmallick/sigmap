@@ -31,6 +31,8 @@ head:
 
 Latest saved run: **2026-09-24 (v8.50.0)**
 
+The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
+
 **Result:** SigMap finds the right file in the top 5 far more often than chance — **78.6% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
 
 ## Why this benchmark matters

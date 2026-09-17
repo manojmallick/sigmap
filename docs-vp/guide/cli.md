@@ -1475,7 +1475,13 @@ https://sigmap.io
 
 ## explain
 
-Explain why a single file is **in or out** of the generated context — which extractor claimed it, how many signatures it contributed, and a preview of them. The first thing to reach for when a file you expected is missing from the index.
+Explain why a single file is **in or out** of the generated context. It runs the same checks generation does, in the same order, and stops at the first one that excludes the file:
+
+1. **`.contextignore`** — the path matches an ignore pattern.
+2. **`srcDirs`** — the path isn't under any configured source directory.
+3. **Extractor** — the file's extractor returned no signatures.
+
+If it clears all three it is reported as **INCLUDED**, with the extractor that claimed it, how many signatures it contributed, and a preview of them. The first thing to reach for when a file you expected is missing from the index.
 
 ```bash
 sigmap explain src/auth/service.js
@@ -1488,6 +1494,24 @@ sigmap explain src/auth/service.js --json
   Signatures: 3
   Preview   : module.exports = { graphKey, displayPath }  :56-56 · function graphKey(p)  :22-24 …
 ```
+
+An excluded file names the reason and the fix:
+
+```
+[sigmap] src/thing.generated.js — EXCLUDED
+  Reason: matched .contextignore
+  Fix:    remove the pattern or add '!src/thing.generated.js' as an exception
+```
+
+```
+[sigmap] docs/note.js — EXCLUDED
+  Reason: not under any srcDir (src)
+  Fix:    add the containing directory to srcDirs in gen-context.config.json
+```
+
+`--json` emits the same as one object, with a machine-readable `reason` (`.contextignore`, `not in srcDirs`, or `no signatures`).
+
+`sigmap explain` doesn't model the token budget, so a file can read as INCLUDED here and still be dropped from a particular run once the budget is applied.
 
 `sigmap --explain <file>` is accepted as an equivalent flag form.
 
@@ -1506,7 +1530,7 @@ sigmap run --report
 
 ## sync
 
-Write **every** configured adapter output plus `llm.txt` and `llms.txt` in one pass, then print a compact diff of what changed. Use it after a config change, when you want all agent-facing files regenerated together rather than one adapter at a time.
+Write **every** configured adapter output plus `llm.txt`, `llm-full.txt` and `llms.txt` in one pass, then print what it wrote. Use it after a config change, when you want all agent-facing files regenerated together rather than one adapter at a time.
 
 ```bash
 sigmap sync
@@ -1516,6 +1540,8 @@ sigmap sync
 [sigmap] sync complete
   .github/copilot-instructions.md  updated
   llm.txt                          updated
+  llm-full.txt                     updated
+  llms.txt                         updated
 ```
 
 ---
