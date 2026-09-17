@@ -1,10 +1,10 @@
 ---
 title: Config reference
-description: Complete SigMap configuration reference. All 24 keys in gen-context.config.json with types, defaults, and examples. srcDirs, maxTokens, extends, strategy, outputs, secretScan and more.
+description: Complete SigMap configuration reference. Every key in gen-context.config.json with types, defaults, and examples. srcDirs, maxTokens, extends, strategy, outputs, secretScan and more.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Configuration Reference — all 24 keys"
+      content: "SigMap Configuration Reference"
   - - meta
     - property: og:description
       content: "Every gen-context.config.json key documented with types, defaults, and examples."
@@ -16,7 +16,7 @@ head:
       content: article
   - - meta
     - name: twitter:title
-      content: "SigMap Configuration Reference — all 24 keys"
+      content: "SigMap Configuration Reference"
   - - meta
     - name: twitter:description
       content: "Every gen-context.config.json key documented with types, defaults, and examples."
@@ -88,7 +88,7 @@ Or let detection write it for you: `sigmap tune` (v8.25.0) prints a recommended 
 {
   "extends": "./team-base.json",
   "srcDirs": ["src", "app", "lib"],
-  "outputPath": ".github/copilot-instructions.md",
+  "output": ".github/copilot-instructions.md",
   "outputs": ["copilot", "claude"],
   "autoMaxTokens": true,
   "coverageTarget": 0.80,
@@ -98,13 +98,11 @@ Or let detection write it for you: `sigmap tune` (v8.25.0) prints a recommended 
   "monorepo": false,
   "watchDebounce": 300,
   "secretScan": true,
-  "enrichTodos": true,
-  "enrichChanges": true,
-  "enrichCoverage": false,
+  "todos": true,
+  "changes": true,
   "retrieval": {
     "topK": 10,
-    "recencyBoost": 1.5,
-    "preset": "balanced"
+    "recencyBoost": 1.5
   }
 }
 ```
@@ -139,8 +137,9 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `outputPath` | `string` | `.github/copilot-instructions.md` | Path to write the primary context file. |
+| `output` | `string` | `.github/copilot-instructions.md` | Path to write the primary context file for the `"copilot"` target. |
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
+| `adapters` | `string[]\|null` | `null` | v3.0+ alias for `outputs`. `loadConfig` mirrors it into `outputs` for `"copilot"`, `"claude"`, `"cursor"` and `"windsurf"`; `"openai"`, `"gemini"` and `"codex"` are dropped by that mirror, so list those in `outputs` instead. |
 
 ## Token budget
 
@@ -165,7 +164,9 @@ To pin a fixed budget (v4.0 behaviour):
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `srcDirs` | `string[]` | `["src", "app", "lib"]` | Directories to scan for source files. Relative to the project root. |
+| `srcDirs` | `string[]` | `["src", "app", "lib", …]` | Directories to scan for source files. Relative to the project root. The default list has 42 entries; see `src/config/defaults.js`. |
+| `exclude` | `string[]` | `["node_modules", ".git", "dist", "build", "out", …]` | Directory and file names skipped entirely during scanning and source-root auto-detection. See `src/config/defaults.js` for the full list. |
+| `maxSigsPerFile` | `number` | `25` | Maximum signatures extracted per file; the tail is replaced with a `… +N more signatures` notice. See [KNOWN_LIMITATIONS.md](https://github.com/manojmallick/sigmap/blob/main/KNOWN_LIMITATIONS.md). |
 | `monorepo` | `boolean` | `false` | When true, generates a separate context section per package under `packages/`, `apps/`, or `services/`. |
 | `maxDepth` | `number` | `6` (`12` for JVM layouts) | How many directory levels below each `srcDirs` entry to scan. Raised automatically to 12 when a Maven/Gradle/sbt layout is detected — see below. An explicit value always wins. |
 
@@ -203,7 +204,7 @@ sigmap --analyze          # files scanned, signatures per file
 |-----|------|---------|-------------|
 | `strategy` | `"full" \| "per-module" \| "hot-cold"` | `"full"` | Context output strategy. `full` = one file, all signatures. `per-module` = one file per source directory. `hot-cold` = recently changed files auto-injected; everything else in a cold file for MCP retrieval. See [Strategies](/guide/strategies). |
 | `hotCommits` | `number` | `10` | Number of recent commits to include in the hot set when `strategy` is `"hot-cold"`. |
-| `diffPriority` | `boolean` | `false` | When true, files changed in the current git diff are ranked highest in the output. |
+| `diffPriority` | `boolean` | `true` | When true, files changed in the current git diff are ranked highest in the output. |
 
 ## Features
 
@@ -214,7 +215,14 @@ sigmap --analyze          # files scanned, signatures per file
 | `sigCache` | `boolean` | `false` | Enable incremental signature cache. When true, caches extracted signatures with mtime-based validation. Cache is automatically busted on version changes. Skips re-extraction of unchanged files for faster subsequent runs. |
 | `sessionBudgetTokens` | `number\|null` | `null` | Opt-in per-session budget for **estimated SigMap-emitted tokens** (chars/4). When set, [`sigmap budget`](/guide/cli#budget) and the MCP `get_budget` tool report remaining tokens, percent used, and an over-budget flag. Counts only what SigMap outputs — not the host chat's total spend. |
 | `contextTtlDays` | `number\|null` | `null` | Opt-in staleness threshold: when the newest generated context file is older than this many days, `budget`/`get_budget` flag it `STALE` and advise re-running sigmap. |
-| `gainTracking` | `boolean` | `true` | Capture per-operation token savings to `.context/gain.ndjson` for the [`sigmap gain`](/guide/cli#gain) dashboard. Counts only — no file paths, source, or query text — and never leaves the machine. Set `false` to disable (equivalent to passing `--no-track` or `SIGMAP_NO_TRACK=1`). Independent of the legacy `tracking` / `--track` health log. |
+| `format` | `"default"\|"cache"` | `"default"` | Output format. `"cache"` additionally writes an Anthropic prompt-cache JSON payload beside the markdown. |
+| `routing` | `boolean` | `false` | Append a model-routing hints section that groups files into fast / balanced / powerful tiers by complexity. |
+| `depMap` | `boolean` | `true` | Include a compact import dependency map (`## deps`) at the top of the output. |
+| `impactRadius` | `boolean` | `false` | Annotate file headings with reverse-dependency usage hints — the files that import them. |
+| `tracking` | `boolean` | `false` | Legacy per-run health log: append run metrics to `.context/usage.ndjson`. |
+| `mcp.autoRegister` | `boolean` | `true` | Present in `DEFAULTS` but read nowhere in the source. MCP registration is done by `sigmap --setup`; setting this key has no effect. |
+
+Per-operation gain capture (`.context/gain.ndjson`, surfaced by [`sigmap gain`](/guide/cli#gain)) is on by default; it stores counts only — no file paths, source, or query text — and never leaves the machine. Opt out with `--no-track` or `SIGMAP_NO_TRACK=1`. It is independent of the legacy `tracking` health log.
 
 ## Watch
 
@@ -222,20 +230,26 @@ sigmap --analyze          # files scanned, signatures per file
 |-----|------|---------|-------------|
 | `watchDebounce` | `number` | `300` | Debounce delay in milliseconds for file watcher events. Increase if you see multiple regenerations for a single save. |
 
+## Impact
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `impact.depth` | `number` | `3` | BFS depth for the `--impact` report (`0` = unlimited). The `--depth` flag overrides it. |
+| `impact.includeSigs` | `boolean` | `true` | Present in `DEFAULTS` but read nowhere in the source; the `--impact` report lists impacted files and never consumes this key. |
+
 ## Enrichment
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `enrichTodos` | `boolean` | `true` | Append a TODO/FIXME/HACK section extracted from inline comments. |
-| `enrichChanges` | `boolean` | `true` | Append a recent git log summary showing files changed in the last 10 commits. |
+| `todos` | `boolean` | `true` | Append a TODO/FIXME/HACK/XXX section extracted from inline comments (max 20 entries). |
+| `changes` | `boolean` | `true` | Append a recent git log summary showing files changed in the last `changesCommits` commits. |
+| `changesCommits` | `number` | `10` | Number of recent commits analyzed for the `changes` section. |
 | `versionPins` | `boolean` | `true` | Append a `## versions (installed direct deps)` section listing `name@version` for the installed direct dependencies (JS from `node_modules`, Python from the venv `site-packages`). Grounds agents against what is actually installed. See [versionPins](#versionpins). |
 | `terse` | `boolean` | `false` | Deterministic terse encoding of the signature block (`function `→`fn `, tightened params/arrows/exports). Line anchors and doc hints are preserved byte-exactly. Measured −16.1% signature tokens on the SigMap repo (`npm run benchmark:terse`). Also available at runtime as the `--terse` flag. See [terse](#terse). |
-| `enrichCoverage` | `boolean` | `false` | Append a coverage gaps section listing source files that have no corresponding test file. |
 | `testCoverage` | `boolean` | `false` | Annotate each function signature with `✓` (tested) or `✗` (untested). Can also be set at runtime via the `--coverage` flag without editing this file. |
-| `testDirs` | `string[]` | `["test","tests","__tests__","spec"]` | Directories scanned to build the test index when `testCoverage` is enabled. |
+| `testDirs` | `string[]` | `["tests","test","__tests__","spec"]` | Directories scanned to build the test index when `testCoverage` is enabled. |
 | `retrieval.topK` | `number` | `10` | Number of top-ranked files returned by `--query` and the `query_context` MCP tool. |
 | `retrieval.recencyBoost` | `number` | `1.5` | Multiplier applied to recently committed files during TF-IDF ranking. |
-| `retrieval.preset` | `"precision" \| "balanced" \| "recall"` | `"balanced"` | Weight preset for the ranking algorithm. `precision` minimises false positives. `recall` maximises coverage. |
 | `retrieval.callGraphBoost` | `boolean` | `false` | **v8.15.0, opt-in.** Boost files call-graph-connected to query matches in `ask`/`--query`/`query_context` — catches Go/Java same-package relations that have no import edge. Measured on the 90-task A/B: **+0 hit@5 delta**, so it stays off by default; enable it on call-topology-heavy repos and check the `callGraphBoost` signal in `--query --json`. Re-measure with `npm run benchmark:callgraph-boost`. |
 | `retrieval.surfaceEnrichment` | `boolean` | `false` | **v8.18.0, opt-in.** Append `route METHOD /path` pseudo-signatures to the rankable index so route-worded queries can match controllers whose signatures never mention the path (Express/Fastify/NestJS/Flask/FastAPI/Gin/Spring). Measured on the 90-task A/B: **+0 delta** (the corpus never asks route-worded questions), so it stays off by default; enable it on API-heavy repos. Re-measure with `npm run benchmark:surface-enrichment`. |
 | `retrieval.centralityBlend` | `boolean` | `false` | **v8.21.0, opt-in.** Blend import-graph centrality (zero-dep power iteration over the forward dependency graph) into `ask`/`--query`/`query_context` ranking as a small additive prior (`0.3 × centrality`) on positively-scored files only — heavily-referenced files break ties above one-off helpers, and non-matching files are never surfaced. Measured on the 90-task A/B: **+0 delta** (both arms 77.8% hit@5), so it stays off by default; enable it on hub-and-spoke architectures and check the `centrality` signal in `--query --json`. Re-measure with `npm run benchmark:centrality-blend`. |
