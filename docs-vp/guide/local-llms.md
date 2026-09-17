@@ -478,4 +478,4 @@ Full precision models are only needed if you require maximum quality and have th
 - **Agents:** [Open-source agents guide](/guide/agents)
 - **Config:** [Advanced configuration](/guide/config)
 - **MCP:** [MCP server setup for Claude Code/Cursor](/guide/mcp)
-- **Benchmark:** [Full benchmark methodology](/guide/benchmark)
+- **Benchmark:** [Full benchmark methodology](/guide/methodology)

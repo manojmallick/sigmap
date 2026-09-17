@@ -138,7 +138,7 @@ Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift
 Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.
 
 **Resources:**
-- [Full methodology →](https://sigmap.io/guide/benchmark.html)
+- [Full methodology →](https://sigmap.io/guide/methodology.html)
 - [Benchmark suite (GitHub)](https://github.com/manojmallick/sigmap-benchmark-suite) — scripts, tasks, and raw data
 - [Benchmark data (Zenodo)](https://zenodo.org/records/19898842) — archived results for reproducibility
 
@@ -329,7 +329,7 @@ sigmap --health
 | Section | Link |
 |---|---|
 | CLI reference (32 commands) | [cli.html](https://sigmap.io/guide/cli.html) |
-| Benchmark methodology | [benchmark.html](https://sigmap.io/guide/benchmark.html) |
+| Benchmark methodology | [methodology.html](https://sigmap.io/guide/methodology.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
 | <!--SM:languages-->36<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
