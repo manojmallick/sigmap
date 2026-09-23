@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+
 /**
  * Bundle-safe extractor dispatch.
  *
@@ -123,7 +125,11 @@ function extractFile(filePathOrName, src) {
   const mod = lang ? EXTRACTORS[lang] : null;
   if (!mod || typeof mod.extract !== 'function') return [];
   try {
-    const out = mod.extract(src);
+    const abs = path.isAbsolute(filePathOrName)
+      ? filePathOrName
+      : path.resolve(filePathOrName);
+    const fileArg = fs.existsSync(abs) ? abs : undefined;
+    const out = mod.extract(src, fileArg);
     return Array.isArray(out) ? out : [];
   } catch (_) {
     return [];

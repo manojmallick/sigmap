@@ -693,8 +693,9 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
    * Willow adapter — writes SigMap context to Willow MCP knowledge store.
    *
    * Instead of writing a flat .willow-context.md file, this adapter sends
-   * signature atoms to a Willow MCP server (https://github.com/rudi193-cmd/willow-1.9)
-   * via HTTP POST. Each indexed file becomes a searchable knowledge atom.
+   * signature atoms to a Willow MCP server (https://github.com/willow-memory/willow-mcp)
+   * via HTTP JSON-RPC (`POST …/tools/call`). Each indexed file becomes one
+   * `knowledge_ingest` atom. Requires an HTTP MCP listener (not Cursor stdio).
    *
    * Contract:
    *   format(context, opts?) → string   (markdown for display/debug)
@@ -786,15 +787,13 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              name: 'willow_knowledge_ingest',
+              name: 'knowledge_ingest',
               arguments: {
                 app_id: atom.agent,
-                title: atom.title,
-                summary: atom.summary,
+                content: atom.content,
                 domain: atom.domain,
-                source_type: atom.source_type,
-                category: 'code',
-                record_id: atom.id,
+                source: atom.id,
+                tags: ['sigmap', 'code', atom.project].filter(Boolean),
               },
             }),
           },
@@ -4288,10 +4287,10 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
 
       if (slow) {
         const t0 = Date.now();
-        try { sigs = extractor.extract(content); } catch (_) { sigs = []; }
-        elapsedMs = Date.now() - t0;
+        try { sigs = extractor.extract(content, filePath); } catch (_) { sigs = []; }
+          elapsedMs = Date.now() - t0;
       } else {
-        try { sigs = extractor.extract(content); } catch (_) { sigs = []; }
+        try { sigs = extractor.extract(content, filePath); } catch (_) { sigs = []; }
       }
 
       sigs = (Array.isArray(sigs) ? sigs : []).slice(0, maxSigs);
@@ -6208,6 +6207,8 @@ __factories["./src/extractors/deps"] = function(module, exports) {
 // ── ./src/extractors/dispatch ──
 __factories["./src/extractors/dispatch"] = function(module, exports) {
   
+  const fs = require('fs');
+
   /**
    * Bundle-safe extractor dispatch.
    *
@@ -6331,7 +6332,11 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
     const mod = lang ? EXTRACTORS[lang] : null;
     if (!mod || typeof mod.extract !== 'function') return [];
     try {
-      const out = mod.extract(src);
+      const abs = path.isAbsolute(filePathOrName)
+        ? filePathOrName
+        : path.resolve(filePathOrName);
+      const fileArg = fs.existsSync(abs) ? abs : undefined;
+      const out = mod.extract(src, fileArg);
       return Array.isArray(out) ? out : [];
     } catch (_) {
       return [];
@@ -8497,6 +8502,7 @@ __factories["./src/extractors/protobuf"] = function(module, exports) {
 // ── ./src/extractors/python ──
 __factories["./src/extractors/python"] = function(module, exports) {
   
+  const fs = require('fs');
   const path = require('path');
   const { lineAt } = __require('./src/extractors/line-anchor');
   const { capWithNotice } = __require('./src/util/truncate');
@@ -8534,10 +8540,25 @@ __factories["./src/extractors/python"] = function(module, exports) {
    * @param {string} filePath - Absolute path to the Python file
    * @returns {string[]|null}
    */
+  /** Resolve packaged python_ast.py (dev, npm tarball, or bundled CLI root). */
+  function resolvePythonAstScript() {
+    const candidates = [
+      path.join(__dirname, 'python_ast.py'),
+      path.join(__dirname, 'src', 'extractors', 'python_ast.py'),
+    ];
+    for (const candidate of candidates) {
+      try {
+        if (fs.existsSync(candidate)) return candidate;
+      } catch (_) {}
+    }
+    return null;
+  }
+
   function tryNativeExtract(filePath) {
     try {
       const { execFileSync } = require('child_process');
-      const scriptPath = path.join(__dirname, 'python_ast.py');
+      const scriptPath = resolvePythonAstScript();
+      if (!scriptPath) return null;
       const result = execFileSync('python3', [scriptPath, filePath], {
         timeout: 5000,
         encoding: 'utf8',
@@ -8558,10 +8579,13 @@ __factories["./src/extractors/python"] = function(module, exports) {
    * @returns {string[]} Array of signature strings
    */
   function extract(src, filePath) {
-    // Prefer native AST extractor when a real file path is available
+    // Prefer native AST extractor when the file exists on disk (#693)
     if (filePath && typeof filePath === 'string') {
-      const native = tryNativeExtract(filePath);
-      if (native) return native;
+      const abs = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+      if (fs.existsSync(abs)) {
+        const native = tryNativeExtract(abs);
+        if (native) return native;
+      }
     }
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
@@ -8764,7 +8788,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     return sentence.slice(0, 60);
   }
 
-  module.exports = { extract, tryNativeExtract };
+  module.exports = { extract, tryNativeExtract, resolvePythonAstScript };
   
 };
 
@@ -24942,6 +24966,7 @@ function _toolchainLabel() {
 }
 
 function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd) {
+  const absFilePath = path.resolve(cwd || process.cwd(), filePath);
   const base = path.basename(filePath);
   const ext = path.extname(base).toLowerCase();
   let extractorName = EXT_MAP[ext] || null;
@@ -24976,7 +25001,7 @@ function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd) {
       const out = scipx.extractViaScip(filePath, cwd);
       if (out && Array.isArray(out.sigs) && out.sigs.length > 0) {
         const extractor = getExtractor(extractorName);
-        const regexSigs = extractor ? (extractor.extract(content) || []) : [];
+        const regexSigs = extractor ? (extractor.extract(content, absFilePath) || []) : [];
         if (out.sigs.length >= regexSigs.length) {
           scipx.acceptLabel(out.label);
           return out.sigs.slice(0, maxSigsPerFile);
@@ -25000,7 +25025,7 @@ function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd) {
         // Ties go to LSP: exact anchors. Measured: libuv (C) 943 vs 867 for
         // regex; fmt 45 vs 698, correctly refused per file by this guard.
         const extractor = getExtractor(extractorName);
-        const regexSigs = extractor ? (extractor.extract(content) || []) : [];
+        const regexSigs = extractor ? (extractor.extract(content, absFilePath) || []) : [];
         if (out.sigs.length >= regexSigs.length) {
           lspx.acceptLabel(out.label);
           return out.sigs.slice(0, maxSigsPerFile);
@@ -25013,7 +25038,7 @@ function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd) {
   if (!extractor) return [];
 
   try {
-    const sigs = extractor.extract(content);
+    const sigs = extractor.extract(content, absFilePath);
     return Array.isArray(sigs) ? sigs.slice(0, maxSigsPerFile) : [];
   } catch (err) {
     console.warn(`[sigmap] extractor failed for ${filePath}: ${err.message}`);
@@ -29632,7 +29657,7 @@ function main() {
       try {
         const content = fs.readFileSync(absPath, 'utf8');
         const extractor = getExtractor(extractorName);
-        if (extractor) sigs = extractor.extract(content).slice(0, config.maxSigsPerFile || 25);
+        if (extractor) sigs = extractor.extract(content, absPath).slice(0, config.maxSigsPerFile || 25);
       } catch (_) {}
     }
 

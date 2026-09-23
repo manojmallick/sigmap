@@ -200,7 +200,7 @@ volta install sigmap
 | `openai` | `.github/openai-context.md` | OpenAI API, Aider, local Ollama/llama.cpp |
 | `gemini` | `.github/gemini-context.md` | Google Gemini |
 | `codex` | `AGENTS.md` | OpenAI Codex (legacy) |
-| `willow` | _Willow MCP store (HTTP POST — no file)_ | [Willow](https://github.com/rudi193-cmd/willow-1.9) knowledge store |
+| `willow` | _Willow MCP store (HTTP POST — no file)_ | [willow-mcp](https://github.com/willow-memory/willow-mcp) knowledge store (`knowledge_ingest`) |
 
 ```bash
 sigmap --adapter copilot   # default — works with Copilot, OpenCode

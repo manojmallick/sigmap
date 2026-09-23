@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+
 /**
  * sigmap-core — public programmatic API
  *
@@ -95,6 +97,7 @@ function extract(src, language) {
 
   // If language looks like a file path, derive language from extension
   let lang = language;
+  let filePathArg;
   if (language.includes('.') || language.includes('/') || language.includes('\\')) {
     const ext = path.extname(language).toLowerCase();
     const base = path.basename(language);
@@ -104,6 +107,8 @@ function extract(src, language) {
       lang = EXT_MAP[ext] || null;
     }
     if (!lang) return [];
+    const abs = path.isAbsolute(language) ? language : path.resolve(language);
+    if (fs.existsSync(abs)) filePathArg = abs;
   } else {
     // Normalise e.g. 'JavaScript' → 'javascript'
     lang = language.toLowerCase();
@@ -113,7 +118,7 @@ function extract(src, language) {
   if (!mod || typeof mod.extract !== 'function') return [];
 
   try {
-    const result = mod.extract(src);
+    const result = mod.extract(src, filePathArg);
     return Array.isArray(result) ? result : [];
   } catch (_) {
     return [];
