@@ -85,6 +85,10 @@ const DEFAULTS = {
   diffPriority: true,
 
   // Context strategy controls how the output is split and injected.
+  // 'index'      -> always-on file is a MAP only (modules, entry points,
+  //                 versions, retrieval commands); every signature stays in
+  //                 .context/sig-index.json and is pulled per question by
+  //                 `sigmap ask`. Largest always-on saving (#1a, v8.50).
   // 'full'       -> single context file (default)
   // 'per-module' -> one context-<module>.md per top-level srcDir + thin overview
   // 'hot-cold'   -> recent files in primary output, older files in context-cold.md
