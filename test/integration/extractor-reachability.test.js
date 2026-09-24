@@ -39,6 +39,8 @@ test('every registered extractor is reachable via langFor', () => {
   const probes = [
     ...[...src.matchAll(/'(\.[a-z0-9]+)'/g)].map((m) => `probe${m[1]}`),
     'Dockerfile', 'Containerfile', 'Makefile', 'CMakeLists.txt',
+    // Path-routed extractors resolve on the directory, never on an extension.
+    '.github/workflows/probe.yml', 'Jenkinsfile', 'docker-compose.yml', '.gitlab-ci.yml',
   ];
   const resolved = new Set(probes.map((f) => dispatch.langFor(f)).filter(Boolean));
   resolved.add('generic'); // programmatic fallback, never name-resolved

@@ -43,14 +43,39 @@ const langs = fs.readdirSync(path.join(ROOT, 'src', 'extractors'))
   .filter((n) => !HELPERS.has(n))
   .sort();
 
-/** Map each fixture file to the language it exercises, via the real dispatcher. */
+// Only these top-level subdirectories hold extractor fixtures, and they exist
+// solely so PATH-routed extractors can be exercised at a routable location.
+// `r-package/` and `binary-smoke/` are sample PROJECTS consumed by other
+// suites — their files are not single-language snapshots and must not be
+// compared against test/expected/<lang>.txt.
+const FIXTURE_SUBDIRS = new Set(['.github']);
+
+/** Every fixture path under test/fixtures, relative to it (routing dirs included). */
+function fixtureFiles(dir = FIXTURES, prefix = '') {
+  const out = [];
+  for (const name of fs.readdirSync(dir).sort()) {
+    const full = path.join(dir, name);
+    const rel = prefix ? path.join(prefix, name) : name;
+    if (fs.statSync(full).isDirectory()) {
+      if (!prefix && !FIXTURE_SUBDIRS.has(name)) continue;
+      out.push(...fixtureFiles(full, rel));
+    } else out.push(rel);
+  }
+  return out;
+}
+
+/**
+ * Map each fixture to the language it exercises, via the real dispatcher.
+ *
+ * Fixtures are keyed by RELATIVE PATH, not basename: path-routed extractors
+ * (`.github/workflows/*.yml` → pipeline) only resolve when the dispatcher sees
+ * the directory too, which is exactly the rule worth exercising.
+ */
 function fixtureLangs() {
   const out = new Map();
-  for (const name of fs.readdirSync(FIXTURES)) {
-    const full = path.join(FIXTURES, name);
-    if (fs.statSync(full).isDirectory()) continue;
-    const lang = dispatch.langFor(name);
-    if (lang) out.set(lang, name);
+  for (const rel of fixtureFiles()) {
+    const lang = dispatch.langFor(rel);
+    if (lang) out.set(lang, rel);
   }
   return out;
 }

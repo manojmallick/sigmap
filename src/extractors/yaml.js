@@ -13,6 +13,18 @@ const PER_FILE_LIMIT = 200;
  */
 function extract(src) {
   if (!src || typeof src !== 'string') return [];
+
+  // A workflow living outside its conventional path (vendored templates,
+  // generator fixtures) still deserves semantic signatures rather than a bare
+  // key list. The sniff is deliberately narrow so plain config never matches.
+  try {
+    const pipeline = require('./pipeline');
+    if (pipeline.sniffPlatform(src)) {
+      const routed = pipeline.extract(src, '');
+      if (routed.length > 0) return routed;
+    }
+  } catch (_) { /* fall through to the generic key scan */ }
+
   const sigs = [];
 
   const lines = src.split('\n');

@@ -17,6 +17,12 @@ const ROOT = path.join(__dirname, '..');
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const EXPECTED_DIR = path.join(__dirname, 'expected');
 
+// Extractors that resolve by PATH, not by extension: their fixture must live
+// at a routable location or `langFor` would send it elsewhere (#3, v8.50).
+const FIXTURE_PATHS = {
+  pipeline: path.join('.github', 'workflows', 'pipeline.yml'),
+};
+
 const args = process.argv.slice(2);
 const UPDATE = args.includes('--update');
 const FILTER = args.filter((a) => !a.startsWith('--'))[0] || null;
@@ -46,6 +52,7 @@ const LANG_EXT = {
   html: 'html',
   css: 'css',
   yaml: 'yml',
+  pipeline: 'yml',
   shell: 'sh',
   dockerfile: 'Dockerfile',
   gdscript: 'gd',
@@ -58,7 +65,7 @@ const failures = [];
 for (const [lang, ext] of Object.entries(LANG_EXT)) {
   if (FILTER && lang !== FILTER) continue;
 
-  const fixtureName = ext === 'Dockerfile' ? 'Dockerfile' : `${lang}.${ext}`;
+  const fixtureName = FIXTURE_PATHS[lang] || (ext === 'Dockerfile' ? 'Dockerfile' : `${lang}.${ext}`);
   const fixturePath = path.join(FIXTURES_DIR, fixtureName);
   const expectedPath = path.join(EXPECTED_DIR, `${lang}.txt`);
   const extractorPath = path.join(ROOT, 'src', 'extractors', `${lang}.js`);
@@ -86,7 +93,9 @@ for (const [lang, ext] of Object.entries(LANG_EXT)) {
   const src = fs.readFileSync(fixturePath, 'utf8');
   let sigs;
   try {
-    sigs = extractor.extract(src);
+    // Only the path-routed extractor takes a second argument; passing a path
+    // to python.extract would switch it to the native AST tier.
+    sigs = FIXTURE_PATHS[lang] ? extractor.extract(src, fixtureName) : extractor.extract(src);
   } catch (err) {
     console.log(`  FAIL  ${lang} — extract() threw: ${err.message}`);
     failed++;
