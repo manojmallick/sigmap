@@ -25,7 +25,7 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 | Token reduction | — | 96.6% average |
 | Task-success proxy (modeled) | — | 61.9% |
 | Prompts per task | 2.84 | 1.6 (43.7% fewer) |
-| Supported languages | — | 35 |
+| Supported languages | — | 36 |
 | MCP tools | — | 22 |
 | npm runtime dependencies | — | 0 |
 
@@ -126,6 +126,10 @@ sigmap squeeze --response <file|->       Minimize an agent/tool response (same e
 sigmap ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
 sigmap ask "<query>" --no-squeeze        Disable input minimization entirely
 sigmap ask "<query>" --squeeze-threshold N  Min reduction %% to prompt (default 30)
+sigmap deps                              List declared dependencies across every manifest at the root
+sigmap deps --json                       Same, as machine-readable JSON
+sigmap sbom                              CycloneDX 1.5 SBOM on stdout (pipe to osv-scanner for CVEs)
+sigmap sbom --out sbom.json              Write the SBOM to a file (--exact-only, --no-dev)
 sigmap evidence "<query>"                Build a deterministic Evidence Pack (JSON) → .context/evidence-pack.json
 sigmap evidence "<query>" --markdown     Emit the Markdown handoff rendering to stdout
 sigmap evidence "<query>" --top <n> --budget <n> --out <path>   Tune ranked files / token budget / write rendered output
@@ -393,9 +397,9 @@ impact = {"depth":3,"includeSigs":true}
 
 ---
 
-## Supported languages (35 extractors)
+## Supported languages (36 extractors)
 
-astro, cpp, csharp, css, dart, dockerfile, elixir, gdscript, go, graphql, html, java, javascript, kotlin, lua, markdown, php, properties, protobuf, python, r, ruby, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue_sfc, xml, yaml
+astro, cpp, csharp, css, dart, dockerfile, elixir, gdscript, go, graphql, html, java, javascript, kotlin, lua, markdown, php, pipeline, properties, protobuf, python, r, ruby, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue_sfc, xml, yaml
 
 ---
 

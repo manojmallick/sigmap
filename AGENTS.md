@@ -33,9 +33,10 @@ Always run `sigmap ask` (or `sigmap --query`) before searching for files relevan
 gen-context.js:27247  # TODO: s');
 ```
 
-## changes (last 5 commits — 5 minutes ago)
+## changes (last 5 commits — 8 minutes ago)
 ```
 src/deps/inventory.js                         +readText  +readJson  +exists  +stripXmlComments
+src/deps/sbom.js                              +isExactVersion  +normalizeVersion  +purlEncode  +purlFor
 src/extractors/dispatch.js                    ~extractFile  ~langFor
 src/extractors/pipeline.js                    +platformFor  +sniffPlatform  +stripInlineComment  +unquote
 src/extractors/yaml.js                        ~extract
@@ -47,7 +48,6 @@ src/map/config-manifest.js                    +scopeSummary  ~readText  ~readJso
 src/plan/planner.js                           ~createPlan
 src/wiki/generate.js                          +_rel  ~_rel  ~_flow  ~_pct
 gen-context.js                                +readText  +readJson  +exists  +stripXmlComments
-src/security/scanner.js                       ~scan
 ```
 
 ## .
@@ -153,6 +153,18 @@ function pubspecDeps(cwd, rel, out)  :385-405
 function findCsproj(cwd)  :431-435  # Locate a single `*
 function collectDependencies(cwd, opts = {}) → { * deps: Array<{ecosyste  :450-504  # Read every manifest at the repo root into a flat dependency 
 function versionPins(inventory, opts = {}) → { pins: string[], total:   :516-536  # `name@version` pins for direct runtime dependencies — the de
+```
+
+### src/deps/sbom.js
+```
+module.exports = { buildSbom, formatSbom, summarize, purlFor, normalizeVersion, isExactVersion, SPEC_VERSION, PURL_TYPE }  :252-261
+function isExactVersion(v)  :65-69  # True when a version string is an exact pin rather than a ran
+function normalizeVersion(spec) → string  :83-92  # Best-effort exact version for a declared range
+function purlEncode(segment)  :95-97  # Percent-encode a purl path segment, keeping the `/` that sep
+function purlFor(d, version) → string  :103-129  # Build a Package URL for one dependency row
+function buildSbom(cwd, opts = {}) → { bom: object, stats: { t  :142-224  # Build a CycloneDX 1
+function formatSbom(bom)  :227-229  # Pretty-printed JSON rendering, stable across runs
+function summarize(stats) → string[]  :236-250  # One-line human summary for stderr, disclosing how precise th
 ```
 
 ### src/extractors/dispatch.js
@@ -320,18 +332,6 @@ function formatTuneProposal(proposal)  :193-208  # Human rendering of a proposal
 ```
 module.exports  :48-48
 function ciGate  :25-46
-```
-
-### src/deps/sbom.js
-```
-module.exports = { buildSbom, formatSbom, summarize, purlFor, normalizeVersion, isExactVersion, SPEC_VERSION, PURL_TYPE }  :252-261
-function isExactVersion(v)  :65-69  # True when a version string is an exact pin rather than a ran
-function normalizeVersion(spec) → string  :83-92  # Best-effort exact version for a declared range
-function purlEncode(segment)  :95-97  # Percent-encode a purl path segment, keeping the `/` that sep
-function purlFor(d, version) → string  :103-129  # Build a Package URL for one dependency row
-function buildSbom(cwd, opts = {}) → { bom: object, stats: { t  :142-224  # Build a CycloneDX 1
-function formatSbom(bom)  :227-229  # Pretty-printed JSON rendering, stable across runs
-function summarize(stats) → string[]  :236-250  # One-line human summary for stderr, disclosing how precise th
 ```
 
 ### src/discovery/language-detector.js
