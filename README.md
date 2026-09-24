@@ -122,8 +122,8 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.49-main (21 repositories, including R language)
-Date      : 2026-09-15
+Benchmark : sigmap-v8.50-main (21 repositories, including R language)
+Date      : 2026-09-24
 
 Hit@5          : 78.6%   (grep-agent baseline 44.0%  — 1.73× lift)
 Token reduction: 96.6%   (across 21 repos)
@@ -399,7 +399,7 @@ All implemented with zero external dependencies.
 
 ### Extraction honesty
 
-Not all 33 languages get the same depth — and we say so plainly:
+Not all 36 languages get the same depth — and we say so plainly:
 
 | Tier | Coverage | Depth |
 |------|----------|-------|

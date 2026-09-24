@@ -1,10 +1,10 @@
 ---
 title: Context strategies
-description: Choose the right SigMap strategy — full, per-module, or hot-cold. Token cost comparison, MCP integration, and decision guide.
+description: Choose the right SigMap strategy — full, index, per-module, or hot-cold. Token cost comparison, MCP integration, and decision guide.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Strategies — full, per-module, hot-cold"
+      content: "SigMap Strategies — full, index, per-module, hot-cold"
   - - meta
     - property: og:description
       content: "Choose the right SigMap strategy for your workflow. Token cost comparison, MCP integration, and decision guide."
@@ -16,17 +16,18 @@ head:
       content: article
   - - meta
     - name: keywords
-      content: "sigmap strategy, sigmap full, sigmap per-module, sigmap hot-cold, ai context strategy, token budget"
+      content: "sigmap strategy, sigmap full, sigmap index, sigmap per-module, sigmap hot-cold, ai context strategy, token budget"
 ---
 # Context strategies
 
-SigMap supports three output strategies: `full`, `per-module`, and `hot-cold`. This page shows when to use each one, what token cost to expect, and how MCP changes the decision.
+SigMap supports four output strategies: `full`, `index`, `per-module`, and `hot-cold`. This page shows when to use each one, what token cost to expect, and how MCP changes the decision.
 
 ## Quick comparison
 
 | Strategy | Always injected | Context loss | MCP required | Best fit |
 |----------|----------------|--------------|--------------|----------|
 | `full` | ~4,000 tokens | No | No | Default for all IDEs and onboarding |
+| `index` | ~400 tokens (map only) | No — index holds everything | No (`sigmap ask` suffices) | Large repos; agents that will actually look things up |
 | `per-module` | ~100–300 tokens overview | No | No | Module-based projects, focused work |
 | `hot-cold` | ~200–800 hot set | Cold files unless fetched | Yes for cold | Claude Code / Cursor with MCP |
 
@@ -39,6 +40,7 @@ SigMap supports three output strategies: `full`, `per-module`, and `hot-cold`. T
 | Large repo with Claude Code or Cursor MCP | `hot-cold` | Lowest always-on token load while keeping cold context fetchable |
 | CI, reporting, and shared docs output | `full` or `per-module` | Easier to reason about and easier to compare across runs |
 | Clear module boundaries | `per-module` | Lets teams inject only the relevant package or service |
+| Long sessions where the always-on tax dominates | `index` | Pays for the map once; each question pulls only what it needs |
 
 ## Each strategy in detail
 
@@ -55,6 +57,31 @@ Single output file with all signatures. Best if you want complete context all th
 Budget auto-scales by default. For a fixed cap: `{ "autoMaxTokens": false, "maxTokens": 6000 }`.
 
 **No context loss. No MCP needed.**
+
+### index
+
+The always-on file is a **map**, not a dump: how to retrieve, a module rollup, entry points, and direct-dependency version pins. Every signature stays in `.context/sig-index.json`, which `sigmap ask` already reads and which no adapter injects.
+
+```json
+{
+  "strategy": "index"
+}
+```
+
+This exists because a full dump does not merely *cost* tokens — it **suppresses retrieval**. An agent that already holds a superset of what `sigmap ask` would return is correct not to call it, so the always-on artifact ends up competing with the lookup path it exists to feed.
+
+Measured on the SigMap repo itself:
+
+| | `full` | `index` |
+|---|---|---|
+| Always-on context | 55,567 B (~13,892 tokens) | 1,510 B (~377 tokens) |
+| First answer | ~13,892 tokens | ~1,385 tokens (map + one `ask`) |
+
+Retrieval is unaffected: the index is written before the strategy split, and a test pins that it is **byte-identical** under `index` and `full`. Switching changes only *where* signatures are injected, never what retrieval can reach.
+
+**Two caveats, both reported by the tool rather than buried here.** Below roughly 400 tokens of signatures the map's fixed overhead costs more than inlining everything, and SigMap says `strategy:"full" is cheaper here` instead of reporting a saving of zero. And the payoff depends on the agent actually running `sigmap ask` (or the MCP tools) — the map tells it to, but an agent that ignores the instruction gets less context, not more.
+
+**No context loss. No MCP required** — `sigmap ask` works from the CLI.
 
 ### per-module
 
@@ -111,10 +138,11 @@ Need broad project understanding quickly, with minimal setup complexity.
 
 ## Decision tree
 
-1. **No MCP in your IDE**: choose `full` or `per-module`.
-2. **Module boundaries are clear**: choose `per-module`.
-3. **MCP always available and active area is small**: choose `hot-cold`.
-4. **Unsure**: start with `full`, then move to `per-module` when output grows.
+1. **Your agent reliably runs `sigmap ask` (or the MCP tools)**: choose `index` — the largest always-on saving.
+2. **No MCP in your IDE and you want everything inline**: choose `full` or `per-module`.
+3. **Module boundaries are clear**: choose `per-module`.
+4. **MCP always available and active area is small**: choose `hot-cold`.
+5. **Unsure**: start with `full`, then move to `index` once you can see the always-on cost in your own sessions.
 
 ## Further reading
 

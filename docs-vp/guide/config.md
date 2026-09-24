@@ -201,7 +201,7 @@ sigmap --analyze          # files scanned, signatures per file
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `strategy` | `"full" \| "per-module" \| "hot-cold"` | `"full"` | Context output strategy. `full` = one file, all signatures. `per-module` = one file per source directory. `hot-cold` = recently changed files auto-injected; everything else in a cold file for MCP retrieval. See [Strategies](/guide/strategies). |
+| `strategy` | `"full" \| "index" \| "per-module" \| "hot-cold"` | `"full"` | Context output strategy. `full` = one file, all signatures. `index` = the always-on file is a **map only**; every signature stays in `.context/sig-index.json` and is pulled per question by `sigmap ask` (largest always-on saving). `per-module` = one file per source directory. `hot-cold` = recently changed files auto-injected; everything else in a cold file for MCP retrieval. See [Strategies](/guide/strategies). |
 | `hotCommits` | `number` | `10` | Number of recent commits to include in the hot set when `strategy` is `"hot-cold"`. |
 | `diffPriority` | `boolean` | `false` | When true, files changed in the current git diff are ranked highest in the output. |
 
