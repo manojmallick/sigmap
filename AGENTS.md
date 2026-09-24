@@ -30,10 +30,10 @@ Always run `sigmap ask` (or `sigmap --query`) before searching for files relevan
 
 ## todos
 ```
-gen-context.js:26982  # TODO: s');
+gen-context.js:27247  # TODO: s');
 ```
 
-## changes (last 5 commits — 7 minutes ago)
+## changes (last 5 commits — 5 minutes ago)
 ```
 src/deps/inventory.js                         +readText  +readJson  +exists  +stripXmlComments
 src/extractors/dispatch.js                    ~extractFile  ~langFor
@@ -47,7 +47,6 @@ src/map/config-manifest.js                    +scopeSummary  ~readText  ~readJso
 src/plan/planner.js                           ~createPlan
 src/wiki/generate.js                          +_rel  ~_rel  ~_flow  ~_pct
 gen-context.js                                +readText  +readJson  +exists  +stripXmlComments
-src/judge/judge-engine.js                     ~groundedness  ~claimGrounding  ~judge
 src/security/scanner.js                       ~scan
 ```
 
@@ -56,35 +55,35 @@ src/security/scanner.js                       ~scan
 ### gen-context.js
 ```
 function __require(key)  :9-20
-function __git(args, opts = {})  :26121-26124
-function __tryGit(args, opts = {})  :26125-26128
-function requireSourceOrBundled(key)  :26133-26140
-function isDockerfile(filename)  :26159-26161
-function loadIgnorePatterns(cwd)  :26166-26179
-function matchesIgnore(relPath, patterns)  :26181-26202
-function walkDir(dir, exclude, maxDepth, depth = 0)  :26207-26230
-function buildFileList(cwd, config)  :26232-26243
-function collectTestEntries(cwd, config, existing)  :26254-26280  # Source files a project declares as its own entrypoints in pa
-function declaredEntrypoints(cwd, config, existing)  :26282-26302
-function getExtractor(name)  :26308-26318
-function _toolchainLabel()  :26328-26340
-function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd)  :26342-26433
-function extractFileDeps(filePath, content, config) → string[]  :26435-26446  # Extract absolute dependency paths from a single file
-function extractSignatureName(sig)  :26448-26452
-function annotateCoverage(sigs, testIndex, enabled)  :26454-26464
-function nextRecentMtime()  :26485-26487
-function estimateTokens(str) → number  :26489-26491  # Estimate token count from character count (chars/4, ±5%)
-function isTestFile(filePath)  :26493-26508
-function isConfigFile(filePath)  :26510-26513
-function isGeneratedFile(filePath)  :26515-26517
-function isMockFile(filePath)  :26519-26524
-function isEntryPointFile(filePath)  :26534-26539
-function computeEffectiveMaxTokens(fileEntries, config) → number  :26556-26594  # , tests/, spec/, __tests__/, e2e/)
-function pruneStaleContextSplits(cwd, keep) → string[]  :26611-26626  # Delete `
-function applyTokenBudget(fileEntries, maxTokens)  :26628-26734
-function getRecentlyCommittedFiles(cwd, count)  :26739-26747
-function getDiffFiles(cwd, stagedOnly)  :26752-26762
-function getFilesChangedSinceBase(cwd, baseRef)  :26764-26778
+function __git(args, opts = {})  :26386-26389
+function __tryGit(args, opts = {})  :26390-26393
+function requireSourceOrBundled(key)  :26398-26405
+function isDockerfile(filename)  :26424-26426
+function loadIgnorePatterns(cwd)  :26431-26444
+function matchesIgnore(relPath, patterns)  :26446-26467
+function walkDir(dir, exclude, maxDepth, depth = 0)  :26472-26495
+function buildFileList(cwd, config)  :26497-26508
+function collectTestEntries(cwd, config, existing)  :26519-26545  # Source files a project declares as its own entrypoints in pa
+function declaredEntrypoints(cwd, config, existing)  :26547-26567
+function getExtractor(name)  :26573-26583
+function _toolchainLabel()  :26593-26605
+function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd)  :26607-26698
+function extractFileDeps(filePath, content, config) → string[]  :26700-26711  # Extract absolute dependency paths from a single file
+function extractSignatureName(sig)  :26713-26717
+function annotateCoverage(sigs, testIndex, enabled)  :26719-26729
+function nextRecentMtime()  :26750-26752
+function estimateTokens(str) → number  :26754-26756  # Estimate token count from character count (chars/4, ±5%)
+function isTestFile(filePath)  :26758-26773
+function isConfigFile(filePath)  :26775-26778
+function isGeneratedFile(filePath)  :26780-26782
+function isMockFile(filePath)  :26784-26789
+function isEntryPointFile(filePath)  :26799-26804
+function computeEffectiveMaxTokens(fileEntries, config) → number  :26821-26859  # , tests/, spec/, __tests__/, e2e/)
+function pruneStaleContextSplits(cwd, keep) → string[]  :26876-26891  # Delete `
+function applyTokenBudget(fileEntries, maxTokens)  :26893-26999
+function getRecentlyCommittedFiles(cwd, count)  :27004-27012
+function getDiffFiles(cwd, stagedOnly)  :27017-27027
+function getFilesChangedSinceBase(cwd, baseRef)  :27029-27043
 ```
 
 ## packages
@@ -120,6 +119,11 @@ function adapt(context, adapterName, opts = {}) → string  :242-250  # Format a
 ```
 
 ## src
+
+### src/config/defaults.js
+```
+module.exports = { DEFAULTS }  :212-212
+```
 
 ### src/deps/inventory.js
 ```
@@ -289,11 +293,6 @@ function buildWiki(cwd, opts = {}) → { data: object, markdown:  :140-165  # Bu
 function renderWikiMarkdown(data, sigmapVersion) → string  :174-251  # Render the narrative markdown
 ```
 
-### src/config/defaults.js
-```
-module.exports = { DEFAULTS }  :212-212
-```
-
 ### src/config/loader.js
 ```
 module.exports = { loadConfig, loadBaseConfig }  :363-363
@@ -317,11 +316,22 @@ function applyTuneProposal(cwd, proposal) → { path: string, applied:   :184-19
 function formatTuneProposal(proposal)  :193-208  # Human rendering of a proposal (one block per change, reason 
 ```
 
-### src/conventions/fix.js
+### src/conventions/ci.js
 ```
-module.exports  :61-61
-function _renamePath  :24-31
-function buildFixList  :40-59
+module.exports  :48-48
+function ciGate  :25-46
+```
+
+### src/deps/sbom.js
+```
+module.exports = { buildSbom, formatSbom, summarize, purlFor, normalizeVersion, isExactVersion, SPEC_VERSION, PURL_TYPE }  :252-261
+function isExactVersion(v)  :65-69  # True when a version string is an exact pin rather than a ran
+function normalizeVersion(spec) → string  :83-92  # Best-effort exact version for a declared range
+function purlEncode(segment)  :95-97  # Percent-encode a purl path segment, keeping the `/` that sep
+function purlFor(d, version) → string  :103-129  # Build a Package URL for one dependency row
+function buildSbom(cwd, opts = {}) → { bom: object, stats: { t  :142-224  # Build a CycloneDX 1
+function formatSbom(bom)  :227-229  # Pretty-printed JSON rendering, stable across runs
+function summarize(stats) → string[]  :236-250  # One-line human summary for stderr, disclosing how precise th
 ```
 
 ### src/discovery/language-detector.js
@@ -732,25 +742,6 @@ module.exports = { extract }  :48-48
 function extract(src) → string[]  :12-46  # Lightweight XML config extractor
 ```
 
-### src/format/terse.js
-```
-module.exports  :86-86
-function splitAnchor  :25-30
-function encodeTerseSig  :37-50
-function encodeTerseSigs  :57-59
-function _tokens  :62-64
-function measureTerse  :72-84
-```
-
-### src/graph/blast-radius.js
-```
-module.exports = { methodBlastRadius, tierFor, DIRECT_WEIGHT, TRANSITIVE_WEIGHT }  :132-132
-function tierFor(score)  :25-31
-function _normRel(p)  :33-35
-function _bfs(seedIds, reverse, maxDepth)  :38-60
-function methodBlastRadius(changedFiles, cwd, opts = {}) → { * available: boolean, *  :78-130  # Score the method-level blast radius of a changed-file list
-```
-
 ### src/graph/call-graph.js
 ```
 module.exports = { buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :850-854
@@ -1066,13 +1057,6 @@ function resolvePrice(model) → { model: string, perMtok:  :34-39  # Resolve a 
 function listModels() → string[]  :42-44
 ```
 
-### src/util/truncate.js
-```
-module.exports  :42-42
-function capWithNotice  :22-26
-function capMembersWithNotice  :36-40
-```
-
 ### src/verify/arity.js
 ```
 module.exports = { parseParams, buildArityIndex, extractCallArgCounts, checkArity, cleanSig, EXACT_PARAM_EXTS }  :202-202
@@ -1096,4 +1080,4 @@ function verify(answerText, cwd, opts = {}) → { issues: object[], summa  :180-
 ```
 
 
-> **Not everything is here.** 74 file(s) omitted, 3 collapsed to anchors to stay under the 16000-token budget (tests and configs go first). The retrieval index still has them all — run `sigmap ask "<question>"` to pull in anything missing.
+> **Not everything is here.** 77 file(s) omitted, 1 collapsed to anchors to stay under the 16000-token budget (tests and configs go first). The retrieval index still has them all — run `sigmap ask "<question>"` to pull in anything missing.
