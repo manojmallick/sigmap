@@ -31,19 +31,39 @@ test('benchmarks/config-overrides.json exists, parses, and covers the skew repos
   }
 });
 
-test('retrieval and quality suites both load the shared table — no local copies', () => {
-  for (const script of ['scripts/run-retrieval-benchmark.mjs', 'scripts/run-quality-benchmark.mjs']) {
+test('every repo-regenerating suite loads the shared table — no local copies', () => {
+  // #706 added run-benchmark.mjs: it used to generate with whatever config was
+  // on disk, so it rewrote the canonical contexts with a DEFAULT config.
+  const scripts = [
+    'scripts/run-retrieval-benchmark.mjs',
+    'scripts/run-quality-benchmark.mjs',
+    'scripts/run-benchmark.mjs',
+  ];
+  for (const script of scripts) {
     const src = read(script);
-    assert.ok(src.includes("config-overrides.json"), `${script} must load the shared table`);
+    // Either read the shared JSON directly or go through the shared loader.
+    assert.ok(src.includes('config-overrides.json') || src.includes('loadOverrides'),
+      `${script} must load the shared override table`);
     assert.ok(!/CONFIG_OVERRIDES = \{\s*\n\s+['"a-z]/.test(src), `${script} still defines a local override table`);
   }
 });
 
-test('quality suite mirrors retrieval apply/restore semantics', () => {
-  const q = read('scripts/run-quality-benchmark.mjs');
-  assert.ok(q.includes('existingConfig'), 'quality must snapshot the pre-existing config');
-  assert.ok(!/!hadConfig && configOverride/.test(q), 'quality must ALWAYS apply the override, not only when no config exists');
-  assert.ok(/finally\s*\{/.test(q), 'quality must restore the prior config in finally');
+test('consumer suites apply/restore via the shared hermetic primitive', () => {
+  // #522 restored only the config; #480 restored only the markdown adapters.
+  // Both were hand-rolled and both were partial. The primitive owns the whole
+  // artifact set (adapters + config + .context/) and restores in a finally —
+  // see test/integration/benchmark-isolation.test.js for the behavioural proof.
+  const lib = read('scripts/lib/shared-repo-context.mjs');
+  assert.ok(/finally\s*\{/.test(lib), 'shared primitive must restore in finally');
+  assert.ok(/CONTEXT_DIRS\s*=\s*\[\s*'\.context'/.test(lib),
+    'shared primitive must snapshot .context/ — the index the ranker reads');
+
+  for (const script of ['scripts/run-quality-benchmark.mjs', 'scripts/run-benchmark.mjs']) {
+    const src = read(script);
+    assert.ok(src.includes('withSharedRepoContext'), `${script} must regenerate through the shared primitive`);
+    assert.ok(!/!hadConfig && configOverride/.test(src),
+      `${script} must ALWAYS apply the override, not only when no config exists`);
+  }
 });
 
 test('honest benchmark labels the self-repo task set', () => {
