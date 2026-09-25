@@ -438,7 +438,103 @@ test('SigMap itself reports zero runtime dependencies (the claim is load-bearing
   assert.strictEqual(pkg.name, 'sigmap');
 });
 
-// ─────────────── rendering: the "present" regression ───────────────
+// ───────── field-test regressions (real repos, v8.50.1) ─────────
+
+test('PEP 508 environment markers do not become phantom packages', () => {
+  // httpx declares "brotli; platform_python_implementation == 'CPython'".
+  // A naive quoted-string sweep split that at the inner quotes and reported
+  // `CPython` as a dependency — a phantom that would reach a CVE scanner.
+  withRepo({
+    'pyproject.toml': [
+      '[project]', 'name = "x"', 'version = "1.0"',
+      'dependencies = [',
+      '  "httpcore==1.*",',
+      '  "brotli; platform_python_implementation == \'CPython\'",',
+      '  "brotlicffi; platform_python_implementation != \'CPython\'",',
+      ']',
+    ].join('\n'),
+  }, (dir) => {
+    const r = inv.collectDependencies(dir);
+    const names = r.deps.map((d) => d.name);
+    assert.ok(!names.includes('CPython'), `phantom package from an env marker: ${names.join(', ')}`);
+    assert.ok(names.includes('brotli'), names.join(', '));
+    assert.ok(names.includes('brotlicffi'), names.join(', '));
+    assert.strictEqual(r.deps.length, 3, names.join(', '));
+  });
+});
+
+test('composer platform constraints are flagged, not treated as packages', () => {
+  // laravel requires php, ext-mbstring, composer-runtime-api — none have a
+  // registry entry, so none can carry a purl.
+  withRepo({
+    'composer.json': JSON.stringify({
+      name: 'v/app',
+      require: { php: '^8.2', 'ext-mbstring': '*', 'composer-runtime-api': '^2.2', 'monolog/monolog': '^3.0' },
+    }),
+  }, (dir) => {
+    const r = inv.collectDependencies(dir);
+    const platform = r.deps.filter((d) => d.platform).map((d) => d.name).sort();
+    assert.deepStrictEqual(platform, ['composer-runtime-api', 'ext-mbstring', 'php']);
+    // The real package is untouched, and the PHP bound is still discoverable.
+    const monolog = find(r.deps, 'monolog/monolog');
+    assert.ok(monolog && !monolog.platform);
+    assert.ok(find(r.deps, 'php'), 'the php version bound should stay in the inventory');
+    // Pins cover packages only.
+    assert.ok(!inv.versionPins(r).pins.some((p) => p.startsWith('php@')));
+  });
+});
+
+test('wildcard versions are not pinned', () => {
+  // dio declares `cli_util: any`; `pkg:pub/cli_util@any` is not scannable.
+  withRepo({
+    'pubspec.yaml': ['name: app', 'version: 1.0.0', 'dependencies:',
+      '  cli_util: any', '  melos: ^3.0.0'].join('\n'),
+  }, (dir) => {
+    const r = inv.collectDependencies(dir);
+    const pins = inv.versionPins(r).pins;
+    assert.ok(!pins.some((p) => p.includes('any')), `wildcard pinned: ${pins.join(', ')}`);
+    assert.ok(pins.some((p) => p.startsWith('melos@')), pins.join(', '));
+  });
+});
+
+test('gradle resolves its own ext/def/properties variables', () => {
+  // spring-petclinic: `ext.webjarsBootstrapVersion = "5.3.8"` used as
+  // `"org.webjars.npm:bootstrap:${webjarsBootstrapVersion}"`. Maven's
+  // ${property} form was resolved from the start; Gradle's was not, leaving a
+  // literal placeholder as the "version".
+  withRepo({
+    'gradle.properties': 'kotlinVersion=2.0.21\n',
+    'build.gradle': [
+      'ext.webjarsBootstrapVersion = "5.3.8"',
+      'def guavaVersion = "33.0.0-jre"',
+      'ext {',
+      '  jacksonVersion = "2.17.1"',
+      '}',
+      'dependencies {',
+      '  runtimeOnly "org.webjars.npm:bootstrap:${webjarsBootstrapVersion}"',
+      '  implementation "com.google.guava:guava:${guavaVersion}"',
+      '  implementation "com.fasterxml:jackson:${jacksonVersion}"',
+      '  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"',
+      '  implementation "com.unknown:lib:${notDefinedAnywhere}"',
+      '}',
+    ].join('\n'),
+  }, (dir) => {
+    const r = inv.collectDependencies(dir);
+    expectDep(r.deps, 'org.webjars.npm:bootstrap', '5.3.8');
+    expectDep(r.deps, 'com.google.guava:guava', '33.0.0-jre');
+    expectDep(r.deps, 'com.fasterxml:jackson', '2.17.1');
+    // Bare `$name` form, and the value from gradle.properties.
+    expectDep(r.deps, 'org.jetbrains.kotlin:kotlin-stdlib', '2.0.21');
+    // An unknown variable stays literal rather than resolving to something wrong.
+    expectDep(r.deps, 'com.unknown:lib', '${notDefinedAnywhere}');
+    // ...and is therefore never pinned.
+    assert.ok(!inv.versionPins(r).pins.some((p) => p.includes('${')),
+      'an unresolved placeholder leaked into the pins');
+  });
+});
+
+// ───────────────── rendering: the "present" regression ─────────────────
+
 
 const configManifest = require(path.join(ROOT, 'src/map/config-manifest'));
 

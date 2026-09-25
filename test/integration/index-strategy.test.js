@@ -292,6 +292,69 @@ test('index reports its saving on stderr rather than claiming signatures vanishe
   }
 });
 
+test('the reported saving is measured against what `full` would really emit', () => {
+  // The first version compared the stub against the UNCAPPED index and claimed
+  // 64,667 tokens/turn on fastapi where `full` actually emits ~19,910 — an
+  // overclaim of 3x. `full` applies a token budget; the comparison must too.
+  const many = {};
+  for (let i = 0; i < 60; i++) {
+    many[`src/mod${i}.js`] = `/** Module ${i}. */\n`
+      + `function handler${i}(request, response, options) { return null; }\n`
+      + `module.exports = { handler${i} };\n`;
+  }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-idx-'));
+  try {
+    for (const [rel, content] of Object.entries(many)) {
+      const full = path.join(dir, rel);
+      fs.mkdirSync(path.dirname(full), { recursive: true });
+      fs.writeFileSync(full, content, 'utf8');
+    }
+    // A deliberately tight budget, so the uncapped index is far larger than
+    // anything `full` could emit.
+    fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({
+      output: 'context.md', outputs: ['copilot'], srcDirs: ['src'], strategy: 'index',
+      secretScan: false, maxTokens: 1200, autoMaxTokens: false,
+    }));
+    const res = require('child_process').spawnSync('node', [CLI], { cwd: dir, encoding: 'utf8' });
+    const err = res.stderr || '';
+    const m = /always-on saving: ~(\d+) tokens per turn .*?~(\d+) after its budget/.exec(err);
+    assert.ok(m, `saving line missing or reshaped:\n${err}`);
+    const claimed = parseInt(m[2], 10);
+    // The claim must respect the budget `full` was given, not the index size.
+    assert.ok(claimed <= 1200 * 1.2,
+      `claimed ~${claimed} tokens for a 1200-token budget — the cap is not being applied`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a repo where one ask outweighs the per-turn saving is told so', () => {
+  // express: full 1,374 vs stub 537 + query ~1,094. Every turn is cheaper
+  // under `index`, but the FIRST answer is not — reporting only the per-turn
+  // saving implies a first-turn win that is not there.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-idx-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+    // Sized into the crossover band: more signatures than the stub costs, but
+    // fewer than stub + one ask. That is exactly where the per-turn number is
+    // true and the first-turn implication is false.
+    for (let i = 0; i < 30; i++) {
+      fs.writeFileSync(path.join(dir, 'src', `m${i}.js`),
+        `/** Module ${i} handles a slice of the request pipeline. */\n`
+        + `function handleRequest${i}(request, response, options, next) { return null; }\n`
+        + `module.exports = { handleRequest${i} };\n`);
+    }
+    fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({
+      output: 'context.md', outputs: ['copilot'], srcDirs: ['src'], strategy: 'index', secretScan: false,
+    }));
+    const res = require('child_process').spawnSync('node', [CLI], { cwd: dir, encoding: 'utf8' });
+    assert.ok(/FIRST answer here is/.test(res.stderr || ''),
+      `small repo was not warned that its first answer is cheaper under full:\n${res.stderr}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 console.log('');
 console.log(`index-strategy: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
