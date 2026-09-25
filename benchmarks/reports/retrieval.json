@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-25T14:20:16.623Z",
+  "generated": "2026-09-25T20:49:50.023Z",
   "repos": [
     {
       "repo": "express",
@@ -104,7 +104,7 @@
     {
       "repo": "flask",
       "fileCount": 19,
-      "sigCount": 17,
+      "sigCount": 14,
       "tasks": 8,
       "hitAt5": 0.625,
       "mrr": 0.625,
@@ -134,7 +134,7 @@
             "src/flask/ctx.py",
             "src/flask/globals.py"
           ],
-          "top1": "src/flask/app.py",
+          "top1": "src/flask/sansio/scaffold.py",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -186,7 +186,7 @@
           "expected": [
             "src/flask/blueprints.py"
           ],
-          "top1": "src/flask/sansio/scaffold.py",
+          "top1": "src/flask/logging.py",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -1120,7 +1120,7 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 129,
+      "sigCount": 130,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -1363,10 +1363,10 @@
     {
       "repo": "fastapi",
       "fileCount": 48,
-      "sigCount": 25,
+      "sigCount": 31,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.7,
+      "mrr": 0.667,
       "randomBaseline": 0.104,
       "improvement": 7.7,
       "tiers": {
@@ -1381,7 +1381,7 @@
           "expected": [
             "fastapi/applications.py"
           ],
-          "top1": "fastapi/exceptions.py",
+          "top1": "fastapi/routing.py",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -1391,9 +1391,9 @@
           "expected": [
             "fastapi/routing.py"
           ],
-          "top1": "fastapi/exception_handlers.py",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "fastapi/routing.py",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "fastapi-t003",
@@ -1401,9 +1401,9 @@
           "expected": [
             "fastapi/dependencies/utils.py"
           ],
-          "top1": "fastapi/dependencies/utils.py",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "fastapi/.agents/skills/fastapi/references/dependencies.md",
+          "firstHitRank": 3,
+          "tier": "partial"
         },
         {
           "id": "fastapi-t004",

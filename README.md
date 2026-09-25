@@ -60,7 +60,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **78.6% hit@5** — right file in top 5 results (vs 44.0% single-shot grep baseline — 1.73× lift)
-- **96.6% token reduction** — average across 21 real repos
+- **96.2% token reduction** — average across 21 real repos
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.6 prompts per task** — down from 2.84 (43.7% fewer retries, modeled)
 <!--/SM:whyMetrics-->
@@ -126,7 +126,7 @@ Benchmark : sigmap-v8.51-main (21 repositories, including R language)
 Date      : 2026-09-25
 
 Hit@5          : 78.6%   (grep-agent baseline 44.0%  — 1.73× lift)
-Token reduction: 96.6%   (across 21 repos)
+Token reduction: 96.2%   (across 21 repos)
 Prompt reduction : 43.7% (2.84 → 1.6 prompts per task, modeled)
 Task success   : 61.9%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)

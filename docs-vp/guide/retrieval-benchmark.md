@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.51.0. 78.6% hit@5 vs 44.0% single-shot grep baseline (1.73× honest lift) across 105 tasks on 18 repos, with R language support.
+description: Latest saved retrieval benchmark for SigMap v8.51.2. 78.6% hit@5 vs 44.0% single-shot grep baseline (1.73× honest lift) across 105 tasks on 18 repos, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,7 +15,7 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.51.0 benchmark snapshot
+::: info Official v8.51.2 benchmark snapshot
 **Benchmark ID:** sigmap-v8.51-main &nbsp;·&nbsp; **Date:** 2026-09-25 (with R language)
 
 | Metric | Value |
@@ -25,11 +25,11 @@ head:
 | Honest lift (vs grep agent) | **1.73×** |
 | Prompt reduction | **43.7%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
-| Overall token reduction | **96.6%** |
+| Overall token reduction | **96.2%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-09-25 (v8.51.0)**
+Latest saved run: **2026-09-25 (v8.51.2)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -89,7 +89,7 @@ single-shot grep baseline currently **beats** SigMap. That is the measured
 vocabulary-mismatch ceiling — the number repo-mined query expansion (planned
 for v9.0) exists to move. When it moves, this table is the proof.
 
-## The CI retrieval gate (v8.51.0)
+## The CI retrieval gate (v8.51.2)
 
 The split above comes from `benchmark:honest`, which scores **across repos**. A
 separate gate — `npm run validate:retrieval`, run on every CI job — scores four

@@ -1450,7 +1450,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  hit@5         78.6% vs 44.0% grep   (1.73× lift)
  Avg prompts   1.53 vs 2.84
- Token story   96.6% overall reduction
+ Token story   96.2% overall reduction
 ────────────────────────────────────────────
 ```
 
@@ -1466,7 +1466,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-96.6% fewer tokens · 78.6% retrieval hit@5 · 43.7% fewer prompts
+96.2% fewer tokens · 78.6% retrieval hit@5 · 43.7% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -1559,13 +1559,13 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
- SigMap version : 8.51.0
+ SigMap version : 8.51.2
  Benchmark ID   : sigmap-v8.51-main
  Submitted      : 2026-09-13
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
  hit@5          : 78.6%
- token reduction: 96.6%
+ token reduction: 96.2%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
 ────────────────────────────────────────────────────────

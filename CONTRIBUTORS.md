@@ -15,7 +15,8 @@ SigMap is built by a great community of contributors. Thank you to everyone who 
 - [Denis Solonenko](https://github.com/dsolonenko) — GDScript extractor (#146)
 - [Matt Van Horn](https://github.com/mvanhorn) — Testing, reliability improvements
 - [kumamaki](https://github.com/kumamaki) — Bug fixes, improvements
-- [Tung Lam](https://github.com/tunglambk) — Secret redaction: unquoted `.env`/YAML values (#668)
+- [Tung Lam](https://github.com/tunglambk) — Secret redaction (#668); docs-nav coverage guard (#700); config-reference drift gate (#708)
+- [rudi193-cmd](https://github.com/rudi193-cmd) — Python AST extractor wired into the shipped pipeline (#693)
 
 ## Supporters
 
@@ -35,6 +36,11 @@ To ensure proper attribution:
 ## How to Contribute
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
+
+### Recent Contributors (v8.51.2)
+- **[@tunglambk](https://github.com/tunglambk)** (Tung Lam) — docs(nav): `methodology.md` shipped and built but nothing linked to it, so the page explaining how the benchmarks are produced was reachable only by typing the URL; linked from the sidebar and the five benchmark pages, plus a coverage guard that derives pages-on-disk and sidebar-links independently so the next orphaned page fails CI (#700, PR #724)
+- **[@tunglambk](https://github.com/tunglambk)** (Tung Lam) — docs(config): the config reference documented three keys that exist nowhere in the source and omitted keys `loadConfig` actually reads; every key now derives from `DEFAULTS` and a drift gate fails in both directions (#708, PR #725)
+- **[@rudi193-cmd](https://github.com/rudi193-cmd)** — fix(python): `python_ast.py` was tested and documented as Tier 1 but nothing in the shipped pipeline ever passed it a file path, so every Python file in production silently used the regex tier; paths are now threaded through `extractFile` and the script resolves from both dev and packaged layouts (#693, PR #726)
 
 ### Recent Contributors (v8.51.1)
 - **@manojmallick** — fix(extractors): mixin-composed classes (`extends Mixin(LitElement)`) and indented classes were dropped entirely — 111 of 326 classes on ing-bank/lion — because the class regex matched the heritage clause inline and was anchored to column 0; both extractors now walk to the body brace. Also closed a TS/JS asymmetry that silently shed every `get`/`set` accessor from TypeScript classes

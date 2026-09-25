@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% average token reduction, 36 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.2% average token reduction, 36 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.2% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.2% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Grounded context AI can trust. Deterministic. Verifiable.
-  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 96.6% token reduction · zero deps, fully offline."
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 96.2% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.51.1</span>
+  <span><strong>Release:</strong> v8.51.2</span>
   <span>·</span>
-  <span><strong>New — the layout finally reads:</strong> v8.50 was field-tested against 15 real public repos, and the sweep found a long-latent miss: multi-module Gradle/Maven/sbt builds keep their code under <code>&lt;module&gt;/src/main/&lt;lang&gt;</code>, which detection never reached — <strong>okhttp indexed 4 files of 596, akka 29 of 2,651</strong>. Source sets are now discovered rather than assumed, so Kotlin Multiplatform (<code>jvmMain</code>, <code>commonMain</code>, <code>androidMain</code>) resolves too; okhttp goes to 326 files and akka to 582, while nine non-JVM repos in the same sweep scan an identical count. The same sweep fixed four v8.50 defects: the CI extractor was wired into resolution but not into file discovery, three SBOM rows were unscannable, and <code>strategy:"index"</code> was overstating its own saving by up to 3x — now measured, not estimated. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — three from the outside:</strong> every change in this release came from a contributor. @rudi193-cmd found that the Python AST extractor had <em>never run in production</em> — it was tested and documented as Tier 1, but nothing in the shipped pipeline passed it a file path, so every Python file quietly used the regex tier. That is the same shape as the last two releases: wired into resolution, absent from the path that actually runs. Python signatures are now richer (type annotations, docstrings, defaults), which costs ~23% more Python tokens — a deliberate trade, and why average token reduction reads 96.2% rather than 96.6%. @tunglambk added two drift gates: a docs-nav coverage check that failed on an orphaned page, and a config reference now derived from <code>DEFAULTS</code> rather than hand-maintained. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.51-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 96.6% token reduction · 2026-09-25</span>
+  <span>78.6% hit@5 · 96.2% token reduction · 2026-09-25</span>
 </div>
 </div>
 
@@ -173,10 +173,10 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.6** |
 | Retrieval hit@5 | 44.0% (single-shot grep) | **78.6%** (1.73× honest lift) |
-| Overall token reduction | — | **96.6%** |
+| Overall token reduction | — | **96.2%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-09-25 (v8.51.0)**.
+Latest saved benchmark run: **2026-09-25 (v8.51.2)**.
 
 </div>
 

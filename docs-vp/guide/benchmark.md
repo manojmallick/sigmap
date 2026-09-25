@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v8.51.0 benchmark snapshot. 96.6% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.7% fewer prompts, and R language support verified.
+description: Official v8.51.2 benchmark snapshot. 96.2% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.7% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v8.51.0 snapshot with R language"
+      content: "SigMap benchmark overview — v8.51.2 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.51.0 benchmark run (2026-09-25) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.51.2 benchmark run (2026-09-25) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,13 +15,13 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.51.0 benchmark snapshot (21 repos, including R language)
+::: info Official v8.51.2 benchmark snapshot (21 repos, including R language)
 **Benchmark ID:** sigmap-v8.51-main &nbsp;·&nbsp; **Date:** 2026-09-25
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (18 core repos) | **78.6%** vs 44.0% single-shot grep baseline |
-| Token reduction (21 repos) | **96.6%** |
+| Token reduction (21 repos) | **96.2%** |
 | Honest lift (vs grep agent) | **1.73×** |
 | Prompt reduction | **43.7%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
@@ -38,18 +38,26 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.51.0 snapshot (with R language support)
+## Official v8.51.2 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-09-25 (v8.51.0)**
+Latest saved benchmark run: **2026-09-25 (v8.51.2)**
 
 Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
+
+::: tip Why token reduction moved 96.6% → 96.2% in v8.51.2
+The Python AST extractor began running in production for the first time ([#693](https://github.com/manojmallick/sigmap/issues/693)). It was always the documented Tier-1 path — `KNOWN_LIMITATIONS.md` describes it as a native CPython AST parse when `python3` is on PATH — but nothing in the shipped pipeline passed it a file path, so Python files silently used the Tier-2 regex tier instead.
+
+AST signatures are **richer per symbol**: they carry type annotations, docstrings, `self`, and default markers. Measured on `flask`: 661 → 670 signatures, but 54.4 → 65.8 characters each (+21%), so roughly 23% more Python tokens. The two Python-heavy repos in the corpus account for the whole delta — `fastapi` 97.8% → 89.5%, `flask` 95.6% → 94.6% — while every non-Python repo is unchanged.
+
+This is a deliberate trade, not a regression: more accurate Python grounding at slightly lower compression. A repo built on a machine without `python3` still gets the regex tier and its previous numbers, exactly as the limitations table has always stated.
+:::
 
 | Metric | Result |
 |---|---:|
 | Token reduction repos | 21 (including R: ggplot2, dplyr, shiny) |
 | Retrieval benchmark repos | 18 (core languages) |
 | Total tasks | 90 |
-| Average token reduction (all 21) | **96.6%** |
+| Average token reduction (all 21) | **96.2%** |
 | Retrieval hit@5 (18 core) | **78.6%** |
 | Graph-boosted hit@5 | **78.6%** |
 | Grep-agent baseline hit@5 (125 tasks, 19 repos) | 44.0% — **1.73× honest lift** |
@@ -64,7 +72,7 @@ Task selection, metric definitions, baselines, and the limits of what these test
 
 - Raw source across benchmark set: **13,499,894** tokens (21 repos)
 - Final SigMap output: **~470,000** tokens
-- Overall reduction: **96.6%**
+- Overall reduction: **96.2%**
 - **New in v6.11.1:** R language support verified
   - ggplot2: 94.3% reduction (381.5K → 21.7K tokens)
   - dplyr: 93.4% reduction (145.1K → 9.5K tokens)
