@@ -56,6 +56,8 @@
     "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs",
     "benchmark:honest": "node scripts/run-honest-benchmark.mjs --save",
     "benchmark:llm-ablation": "node scripts/run-llm-ablation.mjs",
+    "benchmark:source-roots": "node scripts/run-source-root-gate.mjs",
+    "validate:source-roots": "node scripts/run-source-root-gate.mjs --gate",
     "benchmark:retrieval": "node scripts/run-retrieval-gate.mjs",
     "validate:retrieval": "node scripts/check-corpus.mjs && node scripts/check-corpus.mjs benchmarks/tasks/retrieval-mined.jsonl && node scripts/run-retrieval-gate.mjs --gate --no-regress",
     "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save"
