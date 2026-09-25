@@ -19,6 +19,7 @@
  * benchmark first). Exit 1 on any divergence, with a per-repo diff.
  */
 
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
@@ -26,6 +27,26 @@ import { spawnSync } from 'child_process';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const CROSS_SUITE = process.argv.includes('--cross-suite');
+
+// The corpus lives outside the repo (cached clones under benchmarks/repos).
+// Without it the honest benchmark scores zero tasks and exits 1, which would
+// read as a determinism failure rather than a missing corpus. Say so and skip
+// — an honest skip beats both a false red and a false green.
+const REPOS_DIR = path.join(ROOT, 'benchmarks', 'repos');
+function cachedRepoCount() {
+  if (!fs.existsSync(REPOS_DIR)) return 0;
+  return fs.readdirSync(REPOS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory()
+      && fs.existsSync(path.join(REPOS_DIR, e.name, '.github', 'copilot-instructions.md')))
+    .length;
+}
+const cached = cachedRepoCount();
+if (cached === 0) {
+  console.log('[determinism] SKIP — no benchmark repos with generated context under'
+    + ' benchmarks/repos.\n            Run `node scripts/run-retrieval-benchmark.mjs` first.');
+  process.exit(0);
+}
+console.log(`[determinism] corpus: ${cached} cached repo(s) with context`);
 
 function runJson(script, args = []) {
   const res = spawnSync('node', [path.join(ROOT, 'scripts', script), ...args], {

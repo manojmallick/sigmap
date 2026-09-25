@@ -17,12 +17,18 @@ import { execSync, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { withSharedRepoContext, loadOverrides } from './lib/shared-repo-context.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const REPOS_DIR = path.join(ROOT, 'benchmarks', 'repos');
 const REPORTS_DIR = path.join(ROOT, 'benchmarks', 'reports');
 const GEN_CONTEXT = path.join(ROOT, 'gen-context.js');
+
+// Shared per-repo config — the single source of truth every suite generates
+// with (#522). This harness used to fall back to whatever config happened to
+// be on disk, so it rewrote the canonical contexts with a DEFAULT config.
+const SHARED_OVERRIDES = loadOverrides(ROOT);
 
 const SKIP_CLONE = process.argv.includes('--skip-clone');
 const SAVE = process.argv.includes('--save');
@@ -325,22 +331,18 @@ for (const repo of REPOS) {
     process.stdout.write(`  repo already present, skipping clone\n`);
   }
 
-  // ── Write temporary config override (if needed) ─────────────────────────
-  const configPath = path.join(repoDir, 'gen-context.config.json');
-  const hadConfig = fs.existsSync(configPath);
-  const tempConfigWritten = !hadConfig && repo.configOverride;
-  if (tempConfigWritten) {
-    fs.writeFileSync(configPath, JSON.stringify(repo.configOverride, null, 2));
-  }
-
-  // ── Run sigmap --report --json ───────────────────────────────────────────
+  // ── Run sigmap --report --json, hermetically ─────────────────────────────
+  // This suite is a READER of the shared benchmark repos. It used to generate
+  // with whatever config was on disk and leave every artifact behind, so the
+  // honest benchmark — which reads context AS-IS — scored whatever this run
+  // happened to produce (#706). Generate under the shared override, then
+  // restore the repo byte-exactly.
   process.stdout.write(`  running sigmap analysis ...\n`);
-  const reportResult = run(`node "${GEN_CONTEXT}" --report --json`, repoDir);
-
-  // ── Remove temp config ───────────────────────────────────────────────────
-  if (tempConfigWritten) {
-    try { fs.unlinkSync(configPath); } catch (_) {}
-  }
+  const reportResult = withSharedRepoContext(repoDir, {
+    override: SHARED_OVERRIDES[repo.name] || repo.configOverride,
+    generate: () => {},
+    measure: () => run(`node "${GEN_CONTEXT}" --report --json`, repoDir),
+  });
 
   // The --report --json output goes to stdout as a single JSON line
   let reportData = null;

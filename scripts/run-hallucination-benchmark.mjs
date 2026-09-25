@@ -30,6 +30,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { spawnSync } from 'child_process';
+import { snapshotArtifacts, restoreArtifacts } from './lib/shared-repo-context.mjs';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -108,42 +109,22 @@ function indexedNames(repoDir) {
   return names;
 }
 
-// ── Hermeticity (#480) ───────────────────────────────────────────────────────
+// ── Hermeticity (#480, #706) ────────────────────────────────────────────────
 // This benchmark regenerates each repo's context with a PLAIN default config,
 // while the retrieval harness generates with per-repo CONFIG_OVERRIDES. Left
 // behind, the plain-config contexts skew any later suite that reads them
 // (the callgraph A/B measured 32.2% instead of ~87%). Snapshot every context
 // artifact before the regen and restore it byte-exactly after measuring, so
 // running this suite leaves the shared benchmark repos untouched.
+//
+// The snapshot/restore primitive now lives in scripts/lib/shared-repo-context.mjs
+// so every suite uses ONE artifact set. The local copy here omitted `.context/`
+// — the directory holding `sig-index.json`, which is what the ranker actually
+// reads — so a "hermetic" call still rewrote the retrieval index (#706).
 
-export const CONTEXT_ARTIFACTS = [
-  '.github/copilot-instructions.md', 'CLAUDE.md', 'AGENTS.md', 'GEMINI.md',
-  '.cursorrules', '.windsurfrules', 'llm.txt', 'llm-full.txt', 'llms.txt',
-  'gen-context.config.json',
-];
-
-export function snapshotArtifacts(repoDir) {
-  const snap = new Map();
-  for (const rel of CONTEXT_ARTIFACTS) {
-    const p = path.join(repoDir, rel);
-    snap.set(rel, fs.existsSync(p) ? fs.readFileSync(p) : null);
-  }
-  return snap;
-}
-
-export function restoreArtifacts(repoDir, snap) {
-  for (const [rel, bytes] of snap) {
-    const p = path.join(repoDir, rel);
-    try {
-      if (bytes === null) {
-        if (fs.existsSync(p)) fs.unlinkSync(p);
-      } else {
-        fs.mkdirSync(path.dirname(p), { recursive: true });
-        fs.writeFileSync(p, bytes);
-      }
-    } catch (_) { /* best-effort restore */ }
-  }
-}
+export {
+  CONTEXT_ARTIFACTS, CONTEXT_DIRS, snapshotArtifacts, restoreArtifacts,
+} from './lib/shared-repo-context.mjs';
 
 /**
  * Regenerate, measure, and restore — the repo's context artifacts are

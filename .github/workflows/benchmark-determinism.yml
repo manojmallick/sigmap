@@ -1,0 +1,45 @@
+name: Benchmark determinism
+
+# The #522 / #706 reproducibility gate.
+#
+# SigMap's published numbers are only meaningful if suite execution order
+# cannot move them. `benchmarks/repos/*` is shared state that several suites
+# regenerate, so a suite that leaves its artifacts behind decides what every
+# later suite measures. This gate runs the honest benchmark, runs the quality
+# suite between two honest runs, and fails if the scores diverge.
+#
+# It runs only on changes that can reintroduce the skew — the harnesses
+# themselves and the benchmark corpus. The artifact-level guard that needs no
+# corpus lives in test/integration/benchmark-isolation.test.js and runs on
+# every PR via the main CI workflow.
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'benchmarks/**'
+      - '.github/workflows/benchmark-determinism.yml'
+  workflow_dispatch:
+
+jobs:
+  determinism:
+    name: Cross-suite determinism
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache benchmark repos
+        uses: actions/cache@v4
+        with:
+          path: benchmarks/repos
+          key: benchmark-repos-${{ hashFiles('benchmarks/repos.json', 'benchmarks/config-overrides.json') }}
+          restore-keys: benchmark-repos-
+
+      - name: Generate canonical contexts
+        run: node scripts/run-retrieval-benchmark.mjs || true
+
+      - name: Cross-suite determinism gate
+        run: npm run validate:benchmark-determinism
