@@ -25,6 +25,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import { withSharedRepoContext, loadOverrides } from './lib/shared-repo-context.mjs';
+import { countSignatureLines, countContextLines } from './lib/signature-count.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT      = path.resolve(__dirname, '..');
@@ -60,10 +61,30 @@ if (!fs.existsSync(tokenFile)) {
 const tokenData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
 
 // ─── Count grounded symbols in each repo's SigMap output ─────────────────────
+// Counted STRUCTURALLY, from the shape of the generated context, not by
+// pattern-matching the prose inside it (#694). The old implementation tested
+// each line against a hardcoded keyword-prefix allowlist (`function `, `def `,
+// `fun `, … plus a `→` fallback), so any language whose signature begins with
+// the identifier rather than a keyword counted as ZERO. R was the worst case:
+// `name <- function(args)` matches nothing, so ggplot2 reported 1 grounded
+// symbol out of 964 real signature lines — a 964x undercount published as
+// "0% grounding" for a language the project markets as a headline capability.
+// spring-petclinic (59 -> 361), vue-core (244 -> 666) and svelte (380 -> 1108)
+// were wrong for the same reason.
+//
+// The generated context already delimits signatures: fenced blocks under
+// `### <file>` headers. Counting non-empty lines inside those fences is
+// language-agnostic and needs no allowlist, so a new extractor cannot silently
+// read as zero.
+/**
+ * @returns {{ grounded: number, contextLines: number }} both measured from the
+ *   SAME regenerated context — the hermetic wrapper restores the file on exit,
+ *   so reading it afterwards would measure the previous run's artifact instead.
+ */
 function countGroundedSymbols(repoDir, configOverride) {
   const contextFile = path.join(repoDir, '.github', 'copilot-instructions.md');
 
-  if (!fs.existsSync(repoDir)) return 0;
+  if (!fs.existsSync(repoDir)) return { grounded: 0, contextLines: 0 };
 
   // Regenerate through the shared hermetic primitive (#706). Restoring only
   // `gen-context.config.json` (the #522 fix) left the regenerated context AND
@@ -73,22 +94,12 @@ function countGroundedSymbols(repoDir, configOverride) {
     override: configOverride,
     generate: () => { spawnSync('node', [GEN_CTX], { cwd: repoDir, encoding: 'utf8' }); },
     measure: () => {
-      if (!fs.existsSync(contextFile)) return 0;
+      if (!fs.existsSync(contextFile)) return { grounded: 0, contextLines: 0 };
       const content = fs.readFileSync(contextFile, 'utf8');
-      // Count lines that look like signatures (heuristic, works across all extractors)
-      return content.split('\n').filter(l => {
-        const t = l.trim();
-        return t.startsWith('function ') || t.startsWith('async function ') ||
-               t.startsWith('class ') || t.startsWith('def ') || t.startsWith('fn ') ||
-               t.startsWith('func ') || t.startsWith('pub fn') || t.startsWith('pub async') ||
-               t.startsWith('override ') || t.startsWith('suspend fun') || t.startsWith('fun ') ||
-               t.startsWith('module.exports') || t.startsWith('interface ') ||
-               t.startsWith('type ') || t.startsWith('struct ') || t.startsWith('impl ') ||
-               t.startsWith('enum ') || t.startsWith('object ') || t.startsWith('trait ') ||
-               t.startsWith('abstract ') || t.startsWith('static ') || t.startsWith('val ') ||
-               t.startsWith('var ') || t.startsWith('let ') || t.startsWith('const ') ||
-               /^\w.*→/.test(t);   // return-type arrows in SigMap format
-      }).length;
+      return {
+        grounded: countSignatureLines(content),
+        contextLines: countContextLines(content),
+      };
     },
   });
 }
@@ -119,7 +130,7 @@ for (const repo of tokenData.repos) {
     continue;
   }
   process.stdout.write(`  ${repo.repo} (${repo.language})... `);
-  const groundedSymbols = countGroundedSymbols(repoDir, CONFIG_OVERRIDES[repo.repo]);
+  const { grounded: groundedSymbols, contextLines } = countGroundedSymbols(repoDir, CONFIG_OVERRIDES[repo.repo]);
   // Estimate raw functions: raw codebase has bodies+comments+whitespace averaging
   // ~200 tokens per function body. SigMap distills to ~15 tokens per signature.
   // So rough total functions ≈ rawTokens / 200.
@@ -172,7 +183,16 @@ for (const repo of tokenData.repos) {
     groundedSymbols,
     estimatedRawSymbols,
     darkSymbols,
-    groundingPct: Math.round(groundedSymbols / Math.max(estimatedRawSymbols, 1) * 100),
+    groundingPct: Math.min(100, Math.round(groundedSymbols / Math.max(estimatedRawSymbols, 1) * 100)),
+    // `estimatedRawSymbols` is a heuristic (rawTokens / 200). When the MEASURED
+    // grounded count exceeds it, the estimate is wrong — not the measurement —
+    // and the ratio is not a publishable number (#694). okhttp printed 114%.
+    // Clamped above; flagged here so the rendering says so instead of implying
+    // a precision the estimate does not have.
+    estimateReliable: groundedSymbols <= estimatedRawSymbols,
+    // Non-empty lines in the generated context, so the zero-grounding guard
+    // below can tell "nothing to count" from "counter did not see it".
+    contextLines,
     overflowModels,
     fitsModels,
     filesVisible: repo.fileCount,
@@ -256,13 +276,27 @@ for (const r of results) {
     pad(r.repo,                                    hs[0].w),
     pad(r.groundedSymbols + ' symbols',            hs[1].w, true),
     pad('~' + r.darkSymbols + ' symbols',          hs[2].w, true),
-    pad(r.groundingPct + '%',                      hs[3].w, true),
-    pad(risk,                                      hs[4].w, true),
+    pad(r.estimateReliable ? r.groundingPct + '%' : '>=100%*', hs[3].w, true),
+    pad(r.estimateReliable ? risk : 'n/a',         hs[4].w, true),
   ].join('  '));
 }
 console.log(hsDiv);
-const avgGrounding = Math.round(results.reduce((s, r) => s + r.groundingPct, 0) / results.length);
-console.log(`\n  Average grounding with SigMap: ${avgGrounding}% of estimated symbols made visible.`);
+// Average over rows whose raw-symbol ESTIMATE held. Including a row where the
+// measured count already exceeded the estimate would average in a number the
+// estimate cannot support; excluding it silently would read as full coverage,
+// so the exclusion is stated.
+const reliable = results.filter((r) => r.estimateReliable);
+const unreliable = results.filter((r) => !r.estimateReliable);
+const avgGrounding = reliable.length
+  ? Math.round(reliable.reduce((s, r) => s + r.groundingPct, 0) / reliable.length)
+  : 0;
+console.log(`\n  Average grounding with SigMap: ${avgGrounding}% of estimated symbols made visible`
+  + ` (${reliable.length}/${results.length} repos).`);
+if (unreliable.length) {
+  console.log(`  * ${unreliable.length} repo(s) excluded — measured signatures exceed the`
+    + ` rawTokens/200 symbol estimate, so the ratio is not meaningful: `
+    + unreliable.map((r) => `${r.repo} (${r.groundedSymbols} > ${r.estimatedRawSymbols})`).join(', '));
+}
 
 // ─── Table 3: Clarifying Questions + Forced Assumptions ───────────────────────
 console.log('\n\n' + sep);
@@ -347,6 +381,21 @@ for (const pricing of PRICING) {
   ].join('  '));
 }
 
+// ─── Zero-grounding guard (#694) ─────────────────────────────────────────────
+// The R repos published "0% grounding" for months because the counter returned
+// zero while the context file was full of signatures. A zero that coexists with
+// a non-empty context is a COUNTER failure, not a measurement — fail the suite
+// rather than writing the number into quality.json and the public benchmark page.
+const zeroGrounded = results.filter((r) => r.groundedSymbols === 0 && r.contextLines > 0);
+if (zeroGrounded.length) {
+  console.error('\n[quality] FAIL — repo(s) counted 0 grounded symbols from a non-empty context file:');
+  for (const r of zeroGrounded) {
+    console.error(`  ${r.repo} (${r.language}): ${r.contextLines} non-empty context lines, 0 counted`);
+  }
+  console.error('  The signature counter is not seeing this language. Fix the counter, not the number.');
+  process.exit(1);
+}
+
 // ─── Summary scorecard ────────────────────────────────────────────────────────
 console.log('\n\n' + sep);
 console.log('QUALITY SCORE SUMMARY');
@@ -400,7 +449,7 @@ mdLines.push('');
 mdLines.push('| Repo | Grounded symbols (SigMap) | Dark symbols (no SigMap) | Grounding % |');
 mdLines.push('|------|:-------------------------:|:------------------------:|:-----------:|');
 for (const r of results) {
-  mdLines.push(`| **${r.repo}** | ${r.groundedSymbols} | ~${r.darkSymbols} | **${r.groundingPct}%** |`);
+  mdLines.push(`| **${r.repo}** | ${r.groundedSymbols} | ~${r.darkSymbols} | **${r.estimateReliable ? r.groundingPct + '%' : '≥100%*'}** |`);
 }
 
 mdLines.push('');
@@ -460,6 +509,7 @@ if (SAVE) {
       estimatedRawSymbols: r.estimatedRawSymbols,
       darkSymbols: r.darkSymbols,
       groundingPct: r.groundingPct,
+      estimateReliable: r.estimateReliable,
       overflowModels: r.overflowModels,
       filesVisible: r.filesVisible,
       filesVisibleRaw: r.filesVisibleRaw,
