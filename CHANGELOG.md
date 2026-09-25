@@ -10,6 +10,19 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.51.1] — 2026-09-25
+
+### Fixed
+- **Mixin-composed classes were dropped entirely — 34% of a Lit codebase** (reported against [ing-bank/lion](https://github.com/ing-bank/lion)) — the class regex matched the heritage clause inline, `class (\w+)(?:\s+extends\s+([\w.]+))?\s*\{`, which cannot match a **call expression**. `extends LocalizeMixin(LitElement)` — the idiomatic Lit/web-component composition — failed the extends branch, and because that branch was optional the fallback needed `{` immediately after the class name and failed too. The result was not a missing `extends` annotation: the **entire class vanished** — no class line, no methods, nothing. On lion that was **111 of 326 classes (34%)**, including `LionProgressIndicator`, which extracted zero signatures despite being a plain, well-formed component. Both extractors now walk to the body brace with a bounded, depth-aware scan instead of matching the heritage inline, so any superclass expression resolves — including nested chains like `A(B(C(LitElement)))`. Measured on lion: **517 → 597 files, 797 → 1,017 symbols**, with 129 mixin compositions now visible
+- **Indented classes were dropped** (same report) — the class regex was `^`-anchored with no allowance for leading whitespace, so a class had to start at column 0. That silently excluded the mixin-factory form every web-component library uses (`const Impl = superclass => class SlotMixin extends superclass { … }`), where the class sits indented on its own line. lion's `SlotMixin`, `ScopedElementsMixin` and friends now extract their members
+- **TypeScript lost every `get`/`set` accessor** (found while fixing the above) — `javascript.js` had always carried `get`/`set` in its member-modifier list and `typescript.js` had not, so a TS class silently shed its accessors while the JS extractor kept them. That asymmetry is how the gap survived, and it matters most exactly where it was found: in a Lit component, `static get properties()` **is** the reactive surface. A test now pins that the two extractors agree on which members a class has
+
+### Added
+- **Source-root coverage gate** (`npm run validate:source-roots`) — source-root detection can return almost nothing while every existing gate still passes, which has now happened twice: the CI extractor was inert through a whole release, and multi-module JVM layouts indexed 4 files of 596 for far longer. Neither was caught, for the reason the JVM call-graph gate already documents about itself — the gated retrieval corpus is JavaScript and measures *ranking* over an index it assumes is populated. A ranker scores what it is given; it cannot report what detection never handed it. The gate asserts the input side directly: per repo, how many source files detection reaches out of how many exist. A 5% floor catches a collapse even if the baseline were recorded while broken (pre-fix okhttp reached 1.1%, akka 2.3%), and a 10%-tolerance baseline catches narrower regressions that stay above it (retrofit, 35 files against 196). Skips when `benchmarks/repos` is absent — every CI run — so 8 hermetic tests cover the guard itself
+- **Known gap recorded, not fixed** — the gate's first real run found kotlinx-coroutines reaching ~10%: it uses a flat multiplatform layout (`<module>/<target>/src`, e.g. `kotlinx-coroutines-core/common/src`) rather than the `src/<sourceSet>/<lang>` form v8.51.0 covers. Recorded in the committed baseline so it cannot silently worsen
+
+---
+
 ## [8.51.0] — 2026-09-25
 
 ### Fixed
