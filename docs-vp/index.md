@@ -80,12 +80,12 @@ features:
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
   <span><strong>Release:</strong> v8.51.0</span>
   <span>·</span>
-  <span><strong>New — the map stops competing with the territory:</strong> the generated context file had been carrying every signature and auto-injecting it — ~13,900 tokens on this repo, paid before a single question was asked. That does not merely cost tokens, it <em>suppresses retrieval</em>: an agent already holding a superset of what <code>sigmap ask</code> returns is right not to call it. The opt-in <code>strategy:"index"</code> keeps the always-on file to a map (~377 tokens) and leaves every signature in the retrieval index, which is pinned byte-identical across strategies. Alongside it: a semantic CI/pipeline extractor for nine formats, real dependency coordinates across nine ecosystems, and deterministic CycloneDX export — scanning deliberately left to osv-scanner. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — the layout finally reads:</strong> v8.50 was field-tested against 15 real public repos, and the sweep found a long-latent miss: multi-module Gradle/Maven/sbt builds keep their code under <code>&lt;module&gt;/src/main/&lt;lang&gt;</code>, which detection never reached — <strong>okhttp indexed 4 files of 596, akka 29 of 2,651</strong>. Source sets are now discovered rather than assumed, so Kotlin Multiplatform (<code>jvmMain</code>, <code>commonMain</code>, <code>androidMain</code>) resolves too; okhttp goes to 326 files and akka to 582, while nine non-JVM repos in the same sweep scan an identical count. The same sweep fixed four v8.50 defects: the CI extractor was wired into resolution but not into file discovery, three SBOM rows were unscannable, and <code>strategy:"index"</code> was overstating its own saving by up to 3x — now measured, not estimated. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.50-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.51-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 96.6% token reduction · 2026-09-24</span>
+  <span>78.6% hit@5 · 96.6% token reduction · 2026-09-25</span>
 </div>
 </div>
 
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.6%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-09-24 (v8.50.0)**.
+Latest saved benchmark run: **2026-09-25 (v8.51.0)**.
 
 </div>
 

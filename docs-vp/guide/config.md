@@ -165,7 +165,7 @@ To pin a fixed budget (v4.0 behaviour):
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `srcDirs` | `string[]` | `["src", "app", "lib"]` | Directories to scan for source files. Relative to the project root. |
+| `srcDirs` | `string[]` | auto-detected | Directories to scan for source files, relative to the project root. Omit it and SigMap detects them; set it to pin them explicitly. On a **multi-module JVM build** (Gradle, Maven or sbt) detection returns one root per module source set — `core/src/main/kotlin`, `core/src/jvmMain/kotlin`, … — rather than the module directories, so tests, resources and build output are excluded by construction. Verify with `sigmap roots --explain`. |
 | `monorepo` | `boolean` | `false` | When true, generates a separate context section per package under `packages/`, `apps/`, or `services/`. |
 | `maxDepth` | `number` | `6` (`12` for JVM layouts) | How many directory levels below each `srcDirs` entry to scan. Raised automatically to 12 when a Maven/Gradle/sbt layout is detected — see below. An explicit value always wins. |
 
@@ -196,6 +196,24 @@ If a repo looks under-indexed, compare what is on disk with what was scanned:
 ```bash
 sigmap --analyze          # files scanned, signatures per file
 ```
+
+
+### Source-root detection on JVM projects
+
+Leave `srcDirs` unset and SigMap detects it. On a multi-module Gradle, Maven or sbt build this returns **one root per module source set**:
+
+```
+core/src/main/kotlin
+core/src/jvmMain/kotlin
+client/src/main/java
+samples/guide/src/main/java
+```
+
+Source sets are discovered rather than assumed, so Kotlin Multiplatform layouts (`commonMain`, `jvmMain`, `androidMain`, and custom sets) resolve alongside the classic `main`. Test source sets (`src/test`, `commonTest`, `androidHostTest`) are deliberately excluded — test files are indexed separately and reachable via `sigmap ask`, but they are not source roots.
+
+Detection is structural: two or more module source directories on disk is what makes a build multi-module, with `settings.gradle` `include`, Maven `<modules>` and sbt `lazy val … = project` as secondary evidence. A build file that declares a module which is not present cannot mislead it.
+
+Before v8.51.0 these layouts were badly under-detected — the scan looked two directory levels deep while module source sits at four, so okhttp indexed 4 files of 596. If you pinned `srcDirs` by hand to work around that, you can now drop the override and re-check with `sigmap roots --explain`.
 
 ## Strategy
 
