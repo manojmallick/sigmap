@@ -64,7 +64,9 @@ const CDX_SCOPE = {
 /** True when a version string is an exact pin rather than a range. */
 function isExactVersion(v) {
   const s = String(v || '').trim();
-  if (!s) return false;
+  // A version must carry at least one digit: `any` (Dart), `latest` and `*`
+  // are wildcards, and `pkg:pub/cli_util@any` is not a scannable component.
+  if (!s || !/\d/.test(s)) return false;
   return !/[\^~<>=!*|\s,]/.test(s) || /^v?\d+(\.\d+)*([-+][\w.]+)*$/.test(s);
 }
 
@@ -82,7 +84,7 @@ function isExactVersion(v) {
  */
 function normalizeVersion(spec) {
   const s = String(spec || '').trim();
-  if (!s) return '';
+  if (!s || !/\d/.test(s)) return '';
   // The leading `v` is NOT stripped: Go module versions carry it by
   // convention (`pkg:golang/...@v1.10.0`) and no other ecosystem declares one.
   if (isExactVersion(s)) return s;
@@ -149,6 +151,10 @@ function buildSbom(cwd, opts = {}) {
   const seen = new Set();
 
   for (const d of inventory.deps) {
+    // Platform constraints (`php`, `ext-mbstring`, Dart `sdk`) have no registry
+    // entry and therefore no purl; emitting them as components gives a scanner
+    // rows it can never resolve.
+    if (d.platform) { stats.skipped++; continue; }
     const cdxScope = CDX_SCOPE[d.scope] || 'optional';
     if (!includeDev && cdxScope === 'optional') { stats.skipped++; continue; }
 

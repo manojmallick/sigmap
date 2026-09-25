@@ -82,10 +82,42 @@ function tomlTable(tables, name) {
   return hit ? hit.body : '';
 }
 
+/**
+ * Quoted strings in a TOML array, matched by the OUTER quote style only.
+ *
+ * A naive `/["']([^"']+)["']/g` sweep splits
+ * `"brotli; platform_python_implementation == 'CPython'"` at the inner single
+ * quotes and reports `CPython` as a package — a phantom component that would
+ * reach a vulnerability scanner as a real one.
+ *
+ * @param {string} body
+ * @returns {string[]}
+ */
+function tomlStrings(body) {
+  const src = String(body || '');
+  const dq = [...src.matchAll(/"([^"]*)"/g)].map((m) => m[1]);
+  if (dq.length) return dq.filter(Boolean);
+  return [...src.matchAll(/'([^']*)'/g)].map((m) => m[1]).filter(Boolean);
+}
+
 /** `key = "value"` lookup inside a table body. */
 function tomlValue(body, key) {
   const m = new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']`, 'm').exec(body || '');
   return m ? m[1] : null;
+}
+
+/**
+ * True for a constraint on the runtime/toolchain rather than on a package.
+ * These have no registry entry, so they can never carry a purl.
+ */
+function isPlatformRequirement(ecosystem, name) {
+  const n = String(name).toLowerCase();
+  if (ecosystem === 'composer') {
+    return n === 'php' || n.startsWith('php-') || n.startsWith('ext-')
+      || n === 'hhvm' || n.startsWith('composer-');
+  }
+  if (ecosystem === 'pub') return n === 'sdk' || n === 'flutter';
+  return false;
 }
 
 function dep(ecosystem, name, version, scope, file) {
@@ -174,19 +206,21 @@ function pyprojectDeps(cwd, rel, out) {
   const version = tomlValue(project, 'version') || tomlValue(poetryMeta, 'version');
 
   const pushSpec = (raw, scope) => {
-    const spec = REQ_LINE.exec(String(raw).trim());
+    // PEP 508 environment marker: "brotli; platform_python_implementation == 'CPython'".
+    // Everything after `;` is a condition, not part of the requirement.
+    const spec = REQ_LINE.exec(String(raw).split(';')[0].trim());
     if (spec && spec[1]) out.push(dep('pypi', spec[1], (spec[3] || '').replace(/\s+/g, ''), scope, rel));
   };
 
   // PEP 621: dependencies = ["requests>=2", "flask==3.0"]
   const arr = /dependencies\s*=\s*\[([\s\S]*?)\]/.exec(project);
-  if (arr) for (const m of arr[1].matchAll(/["']([^"']+)["']/g)) pushSpec(m[1], 'runtime');
+  if (arr) for (const q of tomlStrings(arr[1])) pushSpec(q, 'runtime');
 
   // PEP 621 extras: [project.optional-dependencies] with one array per extra.
   const optional = tomlTable(tables, 'project.optional-dependencies');
   if (optional) {
     for (const m of optional.matchAll(/=\s*\[([\s\S]*?)\]/g)) {
-      for (const q of m[1].matchAll(/["']([^"']+)["']/g)) pushSpec(q[1], 'optional');
+      for (const q of tomlStrings(m[1])) pushSpec(q, 'optional');
     }
   }
 
@@ -247,16 +281,59 @@ function mavenDeps(cwd, rel, out) {
 
 const GRADLE_CONFIGS = 'implementation|api|compileOnly|runtimeOnly|testImplementation|testCompileOnly|testRuntimeOnly|annotationProcessor|kapt|ksp|classpath';
 
+/**
+ * Gradle's own version variables, so `"g:a:${someVersion}"` resolves.
+ *
+ * Maven `${property}` placeholders were resolved from the start; Gradle's were
+ * not, which left real coordinates carrying a literal `${webjarsBootstrapVersion}`
+ * — the same uselessness the Maven resolution exists to prevent. Covers the
+ * three forms that appear in practice: `ext.NAME = "v"`, an `ext { NAME = "v" }`
+ * block, and `gradle.properties`.
+ *
+ * @param {string} cwd
+ * @param {string} src - the build script, comments already stripped
+ * @returns {Map<string,string>}
+ */
+function gradleVars(cwd, src) {
+  const vars = new Map();
+
+  // gradle.properties — plain key=value, and the conventional place for these.
+  const props = readText(path.join(cwd, 'gradle.properties'));
+  if (props) {
+    for (const m of stripHashComments(props).matchAll(/^\s*([A-Za-z_][\w.-]*)\s*=\s*(.+)$/gm)) {
+      vars.set(m[1], m[2].trim().replace(/^["']|["']$/g, ''));
+    }
+  }
+
+  // ext.NAME = "value"  /  def NAME = "value"  /  NAME = "value" inside ext { }
+  for (const m of src.matchAll(/(?:^|\n)\s*(?:ext\.|def\s+)([A-Za-z_]\w*)\s*=\s*["']([^"']+)["']/g)) {
+    vars.set(m[1], m[2]);
+  }
+  const extBlock = /(?:^|\n)\s*ext\s*\{([\s\S]*?)\n\s*\}/.exec(src);
+  if (extBlock) {
+    for (const m of extBlock[1].matchAll(/^\s*([A-Za-z_]\w*)\s*=\s*["']([^"']+)["']/gm)) {
+      vars.set(m[1], m[2]);
+    }
+  }
+  return vars;
+}
+
 function gradleDeps(cwd, rel, out) {
   const src = readText(path.join(cwd, rel));
   if (src == null) return false;
   const clean = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const vars = gradleVars(cwd, clean);
+  // `${name}` and the bare `$name` form Groovy also accepts.
+  const resolve = (v) => String(v || '')
+    .replace(/\$\{([^}]+)\}/g, (full, key) => (vars.has(key.trim()) ? vars.get(key.trim()) : full))
+    .replace(/\$([A-Za-z_]\w*)/g, (full, key) => (vars.has(key) ? vars.get(key) : full));
+
   const re = new RegExp(`\\b(${GRADLE_CONFIGS})\\s*[( ]\\s*["']([^"']+)["']`, 'g');
   for (const m of clean.matchAll(re)) {
     const scope = /^test/.test(m[1]) ? 'test' : 'runtime';
     const parts = m[2].split(':');
     if (parts.length >= 2) {
-      out.push(dep('maven', `${parts[0]}:${parts[1]}`, parts[2] || '', scope, rel));
+      out.push(dep('maven', `${parts[0]}:${parts[1]}`, resolve(parts[2] || ''), scope, rel));
     }
   }
   return true;
@@ -364,7 +441,15 @@ function composerDeps(cwd, rel, out) {
   for (const [key, scope] of [['require', 'runtime'], ['require-dev', 'dev']]) {
     const block = json[key];
     if (!block || typeof block !== 'object') continue;
-    for (const [name, version] of Object.entries(block)) out.push(dep('composer', name, version, scope, rel));
+    for (const [name, version] of Object.entries(block)) {
+      const row = dep('composer', name, version, scope, rel);
+      // `php`, `ext-mbstring`, `composer-runtime-api` are platform constraints,
+      // not packages: they have no registry entry and no purl. Kept in the
+      // inventory (the PHP version bound is useful grounding) but flagged so
+      // the SBOM does not emit them as library components.
+      if (isPlatformRequirement('composer', name)) row.platform = true;
+      out.push(row);
+    }
   }
   return { name: json.name || null, version: json.version || null };
 }
@@ -518,9 +603,11 @@ function versionPins(inventory, opts = {}) {
   const seen = new Set();
   const pins = [];
   for (const d of (inventory && inventory.deps) || []) {
-    if (d.scope !== 'runtime') continue;
+    if (d.scope !== 'runtime' || d.platform) continue;
     const version = d.resolved || d.version;
-    if (!version) continue;
+    // `any` (Dart), `latest` and `*` are wildcards, not versions — pinning to
+    // them would be a false precision.
+    if (!version || !/\d/.test(version)) continue;
     // PyPI writes its own operator (`requests==2.31.0`); an interposed `@`
     // would produce `requests@==2.31.0`, which is not a real requirement
     // string. Every other ecosystem uses the `name@version` form.
@@ -537,6 +624,7 @@ function versionPins(inventory, opts = {}) {
 
 module.exports = {
   collectDependencies,
+  isPlatformRequirement,
   versionPins,
   npmLockVersions,
   MANIFESTS,

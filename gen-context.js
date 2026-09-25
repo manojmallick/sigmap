@@ -3140,10 +3140,42 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     return hit ? hit.body : '';
   }
 
+  /**
+   * Quoted strings in a TOML array, matched by the OUTER quote style only.
+   *
+   * A naive `/["']([^"']+)["']/g` sweep splits
+   * `"brotli; platform_python_implementation == 'CPython'"` at the inner single
+   * quotes and reports `CPython` as a package — a phantom component that would
+   * reach a vulnerability scanner as a real one.
+   *
+   * @param {string} body
+   * @returns {string[]}
+   */
+  function tomlStrings(body) {
+    const src = String(body || '');
+    const dq = [...src.matchAll(/"([^"]*)"/g)].map((m) => m[1]);
+    if (dq.length) return dq.filter(Boolean);
+    return [...src.matchAll(/'([^']*)'/g)].map((m) => m[1]).filter(Boolean);
+  }
+
   /** `key = "value"` lookup inside a table body. */
   function tomlValue(body, key) {
     const m = new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']`, 'm').exec(body || '');
     return m ? m[1] : null;
+  }
+
+  /**
+   * True for a constraint on the runtime/toolchain rather than on a package.
+   * These have no registry entry, so they can never carry a purl.
+   */
+  function isPlatformRequirement(ecosystem, name) {
+    const n = String(name).toLowerCase();
+    if (ecosystem === 'composer') {
+      return n === 'php' || n.startsWith('php-') || n.startsWith('ext-')
+        || n === 'hhvm' || n.startsWith('composer-');
+    }
+    if (ecosystem === 'pub') return n === 'sdk' || n === 'flutter';
+    return false;
   }
 
   function dep(ecosystem, name, version, scope, file) {
@@ -3232,19 +3264,21 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     const version = tomlValue(project, 'version') || tomlValue(poetryMeta, 'version');
 
     const pushSpec = (raw, scope) => {
-      const spec = REQ_LINE.exec(String(raw).trim());
+      // PEP 508 environment marker: "brotli; platform_python_implementation == 'CPython'".
+      // Everything after `;` is a condition, not part of the requirement.
+      const spec = REQ_LINE.exec(String(raw).split(';')[0].trim());
       if (spec && spec[1]) out.push(dep('pypi', spec[1], (spec[3] || '').replace(/\s+/g, ''), scope, rel));
     };
 
     // PEP 621: dependencies = ["requests>=2", "flask==3.0"]
     const arr = /dependencies\s*=\s*\[([\s\S]*?)\]/.exec(project);
-    if (arr) for (const m of arr[1].matchAll(/["']([^"']+)["']/g)) pushSpec(m[1], 'runtime');
+    if (arr) for (const q of tomlStrings(arr[1])) pushSpec(q, 'runtime');
 
     // PEP 621 extras: [project.optional-dependencies] with one array per extra.
     const optional = tomlTable(tables, 'project.optional-dependencies');
     if (optional) {
       for (const m of optional.matchAll(/=\s*\[([\s\S]*?)\]/g)) {
-        for (const q of m[1].matchAll(/["']([^"']+)["']/g)) pushSpec(q[1], 'optional');
+        for (const q of tomlStrings(m[1])) pushSpec(q, 'optional');
       }
     }
 
@@ -3305,16 +3339,59 @@ __factories["./src/deps/inventory"] = function(module, exports) {
 
   const GRADLE_CONFIGS = 'implementation|api|compileOnly|runtimeOnly|testImplementation|testCompileOnly|testRuntimeOnly|annotationProcessor|kapt|ksp|classpath';
 
+  /**
+   * Gradle's own version variables, so `"g:a:${someVersion}"` resolves.
+   *
+   * Maven `${property}` placeholders were resolved from the start; Gradle's were
+   * not, which left real coordinates carrying a literal `${webjarsBootstrapVersion}`
+   * — the same uselessness the Maven resolution exists to prevent. Covers the
+   * three forms that appear in practice: `ext.NAME = "v"`, an `ext { NAME = "v" }`
+   * block, and `gradle.properties`.
+   *
+   * @param {string} cwd
+   * @param {string} src - the build script, comments already stripped
+   * @returns {Map<string,string>}
+   */
+  function gradleVars(cwd, src) {
+    const vars = new Map();
+
+    // gradle.properties — plain key=value, and the conventional place for these.
+    const props = readText(path.join(cwd, 'gradle.properties'));
+    if (props) {
+      for (const m of stripHashComments(props).matchAll(/^\s*([A-Za-z_][\w.-]*)\s*=\s*(.+)$/gm)) {
+        vars.set(m[1], m[2].trim().replace(/^["']|["']$/g, ''));
+      }
+    }
+
+    // ext.NAME = "value"  /  def NAME = "value"  /  NAME = "value" inside ext { }
+    for (const m of src.matchAll(/(?:^|\n)\s*(?:ext\.|def\s+)([A-Za-z_]\w*)\s*=\s*["']([^"']+)["']/g)) {
+      vars.set(m[1], m[2]);
+    }
+    const extBlock = /(?:^|\n)\s*ext\s*\{([\s\S]*?)\n\s*\}/.exec(src);
+    if (extBlock) {
+      for (const m of extBlock[1].matchAll(/^\s*([A-Za-z_]\w*)\s*=\s*["']([^"']+)["']/gm)) {
+        vars.set(m[1], m[2]);
+      }
+    }
+    return vars;
+  }
+
   function gradleDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return false;
     const clean = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    const vars = gradleVars(cwd, clean);
+    // `${name}` and the bare `$name` form Groovy also accepts.
+    const resolve = (v) => String(v || '')
+      .replace(/\$\{([^}]+)\}/g, (full, key) => (vars.has(key.trim()) ? vars.get(key.trim()) : full))
+      .replace(/\$([A-Za-z_]\w*)/g, (full, key) => (vars.has(key) ? vars.get(key) : full));
+
     const re = new RegExp(`\\b(${GRADLE_CONFIGS})\\s*[( ]\\s*["']([^"']+)["']`, 'g');
     for (const m of clean.matchAll(re)) {
       const scope = /^test/.test(m[1]) ? 'test' : 'runtime';
       const parts = m[2].split(':');
       if (parts.length >= 2) {
-        out.push(dep('maven', `${parts[0]}:${parts[1]}`, parts[2] || '', scope, rel));
+        out.push(dep('maven', `${parts[0]}:${parts[1]}`, resolve(parts[2] || ''), scope, rel));
       }
     }
     return true;
@@ -3422,7 +3499,15 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     for (const [key, scope] of [['require', 'runtime'], ['require-dev', 'dev']]) {
       const block = json[key];
       if (!block || typeof block !== 'object') continue;
-      for (const [name, version] of Object.entries(block)) out.push(dep('composer', name, version, scope, rel));
+      for (const [name, version] of Object.entries(block)) {
+        const row = dep('composer', name, version, scope, rel);
+        // `php`, `ext-mbstring`, `composer-runtime-api` are platform constraints,
+        // not packages: they have no registry entry and no purl. Kept in the
+        // inventory (the PHP version bound is useful grounding) but flagged so
+        // the SBOM does not emit them as library components.
+        if (isPlatformRequirement('composer', name)) row.platform = true;
+        out.push(row);
+      }
     }
     return { name: json.name || null, version: json.version || null };
   }
@@ -3576,9 +3661,11 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     const seen = new Set();
     const pins = [];
     for (const d of (inventory && inventory.deps) || []) {
-      if (d.scope !== 'runtime') continue;
+      if (d.scope !== 'runtime' || d.platform) continue;
       const version = d.resolved || d.version;
-      if (!version) continue;
+      // `any` (Dart), `latest` and `*` are wildcards, not versions — pinning to
+      // them would be a false precision.
+      if (!version || !/\d/.test(version)) continue;
       // PyPI writes its own operator (`requests==2.31.0`); an interposed `@`
       // would produce `requests@==2.31.0`, which is not a real requirement
       // string. Every other ecosystem uses the `name@version` form.
@@ -3595,6 +3682,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
 
   module.exports = {
     collectDependencies,
+    isPlatformRequirement,
     versionPins,
     npmLockVersions,
     MANIFESTS,
@@ -3670,7 +3758,9 @@ __factories["./src/deps/sbom"] = function(module, exports) {
   /** True when a version string is an exact pin rather than a range. */
   function isExactVersion(v) {
     const s = String(v || '').trim();
-    if (!s) return false;
+    // A version must carry at least one digit: `any` (Dart), `latest` and `*`
+    // are wildcards, and `pkg:pub/cli_util@any` is not a scannable component.
+    if (!s || !/\d/.test(s)) return false;
     return !/[\^~<>=!*|\s,]/.test(s) || /^v?\d+(\.\d+)*([-+][\w.]+)*$/.test(s);
   }
 
@@ -3688,7 +3778,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
    */
   function normalizeVersion(spec) {
     const s = String(spec || '').trim();
-    if (!s) return '';
+    if (!s || !/\d/.test(s)) return '';
     // The leading `v` is NOT stripped: Go module versions carry it by
     // convention (`pkg:golang/...@v1.10.0`) and no other ecosystem declares one.
     if (isExactVersion(s)) return s;
@@ -3755,6 +3845,10 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     const seen = new Set();
 
     for (const d of inventory.deps) {
+      // Platform constraints (`php`, `ext-mbstring`, Dart `sdk`) have no registry
+      // entry and therefore no purl; emitting them as components gives a scanner
+      // rows it can never resolve.
+      if (d.platform) { stats.skipped++; continue; }
       const cdxScope = CDX_SCOPE[d.scope] || 'optional';
       if (!includeDev && cdxScope === 'optional') { stats.skipped++; continue; }
 
@@ -4460,6 +4554,95 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   const MONOREPO_MARKERS = ['pnpm-workspace.yaml','turbo.json','nx.json','lerna.json'];
   const MAX_ROOTS = 6;
 
+  // A Gradle/Maven multi-module build legitimately has one source root per
+  // module — okhttp has 27 — so the 6-root cap tuned for JS layouts would
+  // discard most of the repo. Raised only for that case.
+  const MAX_JVM_MODULE_ROOTS = 40;
+  const JVM_SOURCE_LANGS = ['java', 'kotlin', 'scala'];
+
+  /**
+   * Build-file evidence of a multi-module JVM project.
+   *
+   * Secondary signal only: the primary test is structural (see below), because
+   * a build file can describe modules that are not on disk, and a layout can be
+   * multi-module under a tool nobody enumerated. Covers the three that declare
+   * modules declaratively — Gradle, Maven, sbt.
+   */
+  function _hasMultiModuleMarker(cwd) {
+    for (const f of ['settings.gradle', 'settings.gradle.kts']) {
+      try {
+        if (/^\s*include\b/m.test(fs.readFileSync(path.join(cwd, f), 'utf8'))) return true;
+      } catch (_) { /* absent */ }
+    }
+    try {
+      const pom = fs.readFileSync(path.join(cwd, 'pom.xml'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+      if (/<modules>[\s\S]*?<module>/.test(pom)) return true;
+    } catch (_) { /* absent */ }
+    try {
+      // sbt: `lazy val core = project.in(file("core"))` / `= Project(...)`.
+      if (/^\s*lazy\s+val\s+\w+\s*=\s*[\w.]*[Pp]roject/m.test(fs.readFileSync(path.join(cwd, 'build.sbt'), 'utf8'))) return true;
+    } catch (_) { /* absent */ }
+    return false;
+  }
+
+  /**
+   * JVM source-set directories under each module, one and two levels deep.
+   *
+   * Two levels because grouped layouts (`libs/core/...`, `samples/guide/...`)
+   * are common. Leaves are used rather than module roots so tests, resources
+   * and build output are excluded by construction rather than filtered later.
+   *
+   * Source sets are discovered rather than assumed: classic Gradle uses
+   * `src/main/<lang>`, but Kotlin Multiplatform uses `src/jvmMain/<lang>`,
+   * `src/commonMain/<lang>`, `src/androidMain/<lang>` and friends. Anything
+   * test-shaped is skipped — test files are indexed by their own pass and must
+   * not become source roots.
+   *
+   * @returns {Array<{name:string, full:string}>}
+   */
+  function _jvmModuleSourceDirs(cwd, ignorePatterns, excSet) {
+    const out = [];
+    const seen = new Set();
+
+    const dirsIn = (abs) => {
+      try {
+        return fs.readdirSync(abs, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => e.name)
+          .sort((a, b) => a.localeCompare(b));
+      } catch (_) { return []; }
+    };
+
+    // `<base>/src/<sourceSet>/<lang>` for every non-test source set present.
+    const collect = (relBase) => {
+      const srcRel = relBase ? `${relBase}/src` : 'src';
+      const srcAbs = path.join(cwd, srcRel.split('/').join(path.sep));
+      for (const sourceSet of dirsIn(srcAbs)) {
+        if (/test/i.test(sourceSet)) continue;
+        for (const lang of JVM_SOURCE_LANGS) {
+          const rel = `${srcRel}/${sourceSet}/${lang}`;
+          if (seen.has(rel)) continue;
+          const full = path.join(cwd, rel.split('/').join(path.sep));
+          try { if (!fs.statSync(full).isDirectory()) continue; } catch (_) { continue; }
+          seen.add(rel);
+          out.push({ name: rel, full });
+        }
+      }
+    };
+
+    collect('');
+    for (const top of dirsIn(cwd)) {
+      if (excSet.has(top) || matchesIgnorePattern(top, ignorePatterns)) continue;
+      if (top.startsWith('.')) continue;
+      collect(top);
+      for (const nested of dirsIn(path.join(cwd, top))) {
+        if (excSet.has(nested) || nested.startsWith('.') || nested === 'src' || nested === 'build') continue;
+        collect(`${top}/${nested}`);
+      }
+    }
+    return out;
+  }
+
   function resolveSourceRoots(cwd, opts = {}) {
     const ignorePatterns = loadIgnorePatterns(cwd);
     const languages      = detectLanguages(cwd);
@@ -4482,6 +4665,20 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     // Enumerate candidates
     const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || []);
 
+    // JVM source sets are discovered STRUCTURALLY — two or more module source
+    // dirs on disk is what makes a build multi-module, whatever tool declares
+    // them. Gradle/Maven/sbt markers are a secondary signal, so a single-module
+    // project with a declared-but-absent module still behaves normally.
+    const jvmModuleDirs = _jvmModuleSourceDirs(cwd, ignorePatterns, new Set(opts.exclude || []));
+    const nestedModuleDirs = jvmModuleDirs.filter((c) => c.name.includes('/src/'));
+    const isJvmMultiModule = nestedModuleDirs.length >= 2 || (nestedModuleDirs.length >= 1 && _hasMultiModuleMarker(cwd));
+    if (isJvmMultiModule) {
+      const have = new Set(candidates.map((c) => c.name));
+      for (const c of jvmModuleDirs) {
+        if (!have.has(c.name)) candidates.push(c);
+      }
+    }
+
     // Score each candidate
     const scored = candidates
       .map(({ name, full }) => ({
@@ -4502,8 +4699,10 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     // Dedupe nested paths (prefer parent)
     roots = _dedupeNested(roots);
 
-    // Cap at MAX_ROOTS
-    roots = roots.slice(0, MAX_ROOTS).map(r => r.dir);
+    // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
+    // per module is the correct answer rather than over-detection.
+    const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : MAX_ROOTS;
+    roots = roots.slice(0, cap).map(r => r.dir);
 
     // Fallback: if nothing scored, return empty (caller falls back to legacy)
     const confidence = _computeConfidence(frameworks, languages, scored.length);
@@ -4519,6 +4718,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         reason: `score: ${c.score}`,
       })),
       isMonorepo,
+      isJvmMultiModule,
     };
   }
 
@@ -4678,7 +4878,18 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     'benchmarks','scripts',
   ]);
 
-  const JVM_PATH_PATTERN = /^(src\/main\/(java|kotlin|scala)|app\/src\/main\/(java|kotlin|scala))$/;
+  // Matches a JVM source root anywhere in a path, for any SOURCE SET.
+  //
+  // Two separate misses were hiding behind the original anchored `src/main/...`
+  // form. It never matched `<module>/src/main/kotlin`, the standard Gradle
+  // multi-module layout, so every module in a 27-module build scored 0. And it
+  // assumed the source set is always called `main`, which Kotlin Multiplatform
+  // has not been true of for years — okhttp's core keeps 307 files under
+  // `okhttp/src/jvmMain/kotlin` and `src/androidMain/kotlin`.
+  //
+  // Test source sets (`src/test`, `src/commonTest`, `src/androidHostTest`) are
+  // excluded here; they are indexed separately and must not become src roots.
+  const JVM_PATH_PATTERN = /(^|\/)(app\/)?src\/(?!.*[Tt]est)[A-Za-z0-9_]+\/(java|kotlin|scala)$/;
 
   const ROOT_ENTRYPOINTS = {
     go:         ['main.go'],
@@ -19688,7 +19899,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.50.1',
+    version: '8.51.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -26392,7 +26603,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.50.1';
+const VERSION = '8.51.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -28001,17 +28212,42 @@ function runIndexStrategy(cwd, config, fileEntries, inputTokenTotal, indexWritte
   console.warn('[sigmap] index strategy:');
   console.warn(`  always-on stub  : ~${stubTokens} tokens → primary output`);
   console.warn(`  retrieval index : ${fileEntries.length} files ~${indexTokens} tokens → ${indexRel} (not injected)`);
+  // Typical `.context/query-context.md`, measured across the field-test repos.
+  // Used only to say WHEN the strategy pays off — never to claim a saving.
+  const TYPICAL_QUERY_TOKENS = 1000;
+
   if (!indexWritten) {
     console.warn('[sigmap] ⚠ retrieval index was NOT written — `sigmap ask` will find nothing');
-  } else if (indexTokens > stubTokens) {
-    console.warn(`  always-on saving: ~${indexTokens - stubTokens} tokens per session vs strategy:"full"`);
-  } else {
-    // The stub carries fixed overhead (commands, module table, retrieval
-    // instructions). Below roughly 400 tokens of signatures that overhead
-    // costs more than inlining everything, so say so instead of reporting a
-    // saving of zero and letting the user assume they gained something.
+  } else if (indexTokens <= stubTokens) {
+    // Below the stub's own fixed overhead (commands, module table, retrieval
+    // instructions), inlining everything is simply cheaper.
     console.warn(`[sigmap] note: this repo's signatures (~${indexTokens} tokens) are smaller than the`);
     console.warn('[sigmap]       index stub itself — strategy:"full" is cheaper here.');
+  } else {
+    // `full` does NOT emit the whole index — applyTokenBudget drops files to
+    // fit maxTokens. Comparing the stub against the UNCAPPED index overstated
+    // the saving badly (fastapi: 64,667 claimed vs 19,910 actual), and capping
+    // at the budget ceiling still overshot by ~26% because the budget is a
+    // ceiling, not the outcome. So run the same budget pass `full` would run
+    // and measure it. One sort+filter over entries already in memory.
+    let fullWouldEmit = indexTokens;
+    try {
+      const budgeted = applyTokenBudget(fileEntries.slice(), config.maxTokens);
+      fullWouldEmit = budgeted.reduce((n, e) => n + estimateTokens(e.sigs.join('\n')), 0);
+    } catch (_) { /* fall back to the uncapped figure */ }
+    const perTurn = Math.max(0, fullWouldEmit - stubTokens);
+    console.warn(`  always-on saving: ~${perTurn} tokens per turn vs strategy:"full" (~${fullWouldEmit} after its budget)`);
+    // Reporting the per-turn saving alone overstates the case on small repos:
+    // one `ask` costs ~1k, so if the dump is smaller than stub + query, the
+    // FIRST answer is more expensive under `index` even though every
+    // subsequent turn is cheaper. Measured on express: full 1,374 vs
+    // stub 537 + query 1,094 = 1,631. Say which side of that line this repo
+    // falls on rather than letting the headline number imply a first-turn win.
+    if (fullWouldEmit < stubTokens + TYPICAL_QUERY_TOKENS) {
+      console.warn(`[sigmap] note: one ask costs ~${TYPICAL_QUERY_TOKENS} tokens, so the FIRST answer here is`);
+      console.warn('[sigmap]       cheaper under strategy:"full". `index` wins from the second turn on,');
+      console.warn('[sigmap]       or sooner if the agent asks less than once per turn.');
+    }
   }
 
   return { inputTokenTotal, finalTokens: stubTokens, fileCount: fileEntries.length, droppedCount: 0 };

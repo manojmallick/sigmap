@@ -278,6 +278,44 @@ test('SigMap does not ship a CVE database or any network call', () => {
   }
 });
 
+// ───────── field-test regressions (real repos, v8.50.1) ─────────
+
+test('platform constraints are not emitted as components', () => {
+  withRepo({
+    'composer.json': JSON.stringify({
+      name: 'v/app',
+      require: { php: '^8.2', 'ext-mbstring': '*', 'monolog/monolog': '^3.0' },
+    }),
+  }, (dir) => {
+    const { bom } = sbom.buildSbom(dir);
+    const names = bom.components.map((c) => c.name);
+    assert.ok(!names.includes('php'), names.join(', '));
+    assert.ok(!names.includes('ext-mbstring'), names.join(', '));
+    assert.ok(names.includes('monolog/monolog'), names.join(', '));
+    // Every remaining component must be resolvable by a scanner.
+    assert.deepStrictEqual(bom.components.filter((c) => !c.purl), []);
+  });
+});
+
+test('wildcard versions never reach a purl', () => {
+  withRepo({
+    'pubspec.yaml': ['name: app', 'version: 1.0.0', 'dependencies:',
+      '  cli_util: any', '  melos: ^3.0.0'].join('\n'),
+  }, (dir) => {
+    const { bom } = sbom.buildSbom(dir);
+    const purls = bom.components.map((c) => c.purl);
+    assert.ok(!purls.some((p) => /@(any|latest|\*)$/.test(p)), purls.join(', '));
+    assert.ok(purls.includes('pkg:pub/melos@3.0.0'), purls.join(', '));
+  });
+});
+
+test('normalizeVersion rejects wildcards outright', () => {
+  for (const w of ['any', 'latest', '*', 'ANY']) {
+    assert.strictEqual(sbom.normalizeVersion(w), '', `wildcard "${w}" was accepted as a version`);
+    assert.strictEqual(sbom.isExactVersion(w), false, w);
+  }
+});
+
 console.log('');
 console.log(`sbom: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
