@@ -24,6 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
+import { withSharedRepoContext, loadOverrides } from './lib/shared-repo-context.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT      = path.resolve(__dirname, '..');
@@ -61,46 +62,35 @@ const tokenData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
 // ─── Count grounded symbols in each repo's SigMap output ─────────────────────
 function countGroundedSymbols(repoDir, configOverride) {
   const contextFile = path.join(repoDir, '.github', 'copilot-instructions.md');
-  const configPath  = path.join(repoDir, 'gen-context.config.json');
 
   if (!fs.existsSync(repoDir)) return 0;
 
-  // Mirror run-retrieval-benchmark.mjs exactly (#522): ALWAYS apply the shared
-  // override (even over a pre-existing config), regenerate, then restore the
-  // prior state. Regenerating with a different config than the retrieval
-  // harness silently rewrites the canonical context and skews every suite
-  // that reads it afterwards.
-  const existingConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : null;
-  if (configOverride) {
-    fs.writeFileSync(configPath, JSON.stringify(configOverride, null, 2));
-  }
-  try {
-    spawnSync('node', [GEN_CTX], { cwd: repoDir, encoding: 'utf8' });
-  } finally {
-    if (configOverride) {
-      try {
-        if (existingConfig !== null) fs.writeFileSync(configPath, existingConfig);
-        else fs.unlinkSync(configPath);
-      } catch (_) {}
-    }
-  }
-
-  if (!fs.existsSync(contextFile)) return 0;
-  const content = fs.readFileSync(contextFile, 'utf8');
-  // Count lines that look like signatures (heuristic, works across all extractors)
-  return content.split('\n').filter(l => {
-    const t = l.trim();
-    return t.startsWith('function ') || t.startsWith('async function ') ||
-           t.startsWith('class ') || t.startsWith('def ') || t.startsWith('fn ') ||
-           t.startsWith('func ') || t.startsWith('pub fn') || t.startsWith('pub async') ||
-           t.startsWith('override ') || t.startsWith('suspend fun') || t.startsWith('fun ') ||
-           t.startsWith('module.exports') || t.startsWith('interface ') ||
-           t.startsWith('type ') || t.startsWith('struct ') || t.startsWith('impl ') ||
-           t.startsWith('enum ') || t.startsWith('object ') || t.startsWith('trait ') ||
-           t.startsWith('abstract ') || t.startsWith('static ') || t.startsWith('val ') ||
-           t.startsWith('var ') || t.startsWith('let ') || t.startsWith('const ') ||
-           /^\w.*→/.test(t);   // return-type arrows in SigMap format
-  }).length;
+  // Regenerate through the shared hermetic primitive (#706). Restoring only
+  // `gen-context.config.json` (the #522 fix) left the regenerated context AND
+  // `.context/sig-index.json` on disk, so whichever suite ran last decided
+  // what `run-honest-benchmark` — which reads context AS-IS — measured next.
+  return withSharedRepoContext(repoDir, {
+    override: configOverride,
+    generate: () => { spawnSync('node', [GEN_CTX], { cwd: repoDir, encoding: 'utf8' }); },
+    measure: () => {
+      if (!fs.existsSync(contextFile)) return 0;
+      const content = fs.readFileSync(contextFile, 'utf8');
+      // Count lines that look like signatures (heuristic, works across all extractors)
+      return content.split('\n').filter(l => {
+        const t = l.trim();
+        return t.startsWith('function ') || t.startsWith('async function ') ||
+               t.startsWith('class ') || t.startsWith('def ') || t.startsWith('fn ') ||
+               t.startsWith('func ') || t.startsWith('pub fn') || t.startsWith('pub async') ||
+               t.startsWith('override ') || t.startsWith('suspend fun') || t.startsWith('fun ') ||
+               t.startsWith('module.exports') || t.startsWith('interface ') ||
+               t.startsWith('type ') || t.startsWith('struct ') || t.startsWith('impl ') ||
+               t.startsWith('enum ') || t.startsWith('object ') || t.startsWith('trait ') ||
+               t.startsWith('abstract ') || t.startsWith('static ') || t.startsWith('val ') ||
+               t.startsWith('var ') || t.startsWith('let ') || t.startsWith('const ') ||
+               /^\w.*→/.test(t);   // return-type arrows in SigMap format
+      }).length;
+    },
+  });
 }
 
 // ─── Config overrides — shared single source of truth (#522) ─────────────────
@@ -108,8 +98,7 @@ function countGroundedSymbols(repoDir, configOverride) {
 // table; the missing entries (express, flask, spring-petclinic, serilog, …)
 // meant this suite regenerated those repos with default srcDirs, overwriting
 // the canonical contexts and decaying every later honest/retrieval score.
-const CONFIG_OVERRIDES = JSON.parse(
-  fs.readFileSync(path.join(ROOT, 'benchmarks', 'config-overrides.json'), 'utf8'));
+const CONFIG_OVERRIDES = loadOverrides(ROOT);
 
 // ─── Per-repo analysis ────────────────────────────────────────────────────────
 function pad(s, w, right = false) {

@@ -11,7 +11,7 @@ ranking keeps the relevant context in scope (cutting tokens ~97% as a side
 effect), with no LLM calls, embeddings, or vector database. Works with Claude,
 Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 
-# Version: 8.51.2 | Benchmark: sigmap-v8.51-main (2026-09-25)
+# Version: 8.51.3 | Benchmark: sigmap-v8.51-main (2026-09-25)
 # Source: auto-generated from package.json, version.json, benchmarks/latest.json, src/mcp/tools.js, src/config/defaults.js
 # Regenerate: npm run generate:llms   |   Validate: npm run validate:llms
 
@@ -21,8 +21,9 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 
 | Metric | Without SigMap | With SigMap |
 |--------|----------------|-------------|
-| Retrieval hit@5 | 44.0% (single-shot grep) | 78.6% (1.73× lift) |
-| Token reduction | — | 96.2% average |
+| Retrieval hit@5 (retrieval corpus) | — | 78.6% |
+| Honest corpus hit@5 (125 tasks) | 40.8% (single-shot grep) | 86.4% (2.12× lift) |
+| Token reduction | — | 96.1% average |
 | Task-success proxy (modeled) | — | 61.9% |
 | Prompts per task | 2.84 | 1.6 (43.7% fewer) |
 | Supported languages | — | 36 |

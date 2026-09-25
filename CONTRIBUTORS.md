@@ -37,6 +37,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.51.3)
+- **@manojmallick** — fix(benchmarks): the suites that only *read* the shared benchmark corpus were rewriting it — one quality-suite run changed 42 of 86 tracked artifacts, so the published hit@5 depended on which suite ran last. #522 had restored the config but not the generated context, and #480 restored the markdown adapters but not `.context/sig-index.json`, the index the ranker actually reads. One shared snapshot/restore primitive now owns the whole artifact set, and the determinism gate — which existed and worked but nothing ran — is wired into CI (#706, PR #729)
+
 ### Recent Contributors (v8.51.2)
 - **[@tunglambk](https://github.com/tunglambk)** (Tung Lam) — docs(nav): `methodology.md` shipped and built but nothing linked to it, so the page explaining how the benchmarks are produced was reachable only by typing the URL; linked from the sidebar and the five benchmark pages, plus a coverage guard that derives pages-on-disk and sidebar-links independently so the next orphaned page fails CI (#700, PR #724)
 - **[@tunglambk](https://github.com/tunglambk)** (Tung Lam) — docs(config): the config reference documented three keys that exist nowhere in the source and omitted keys `loadConfig` actually reads; every key now derives from `DEFAULTS` and a drift gate fails in both directions (#708, PR #725)
