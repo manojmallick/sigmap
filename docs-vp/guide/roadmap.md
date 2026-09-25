@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.51.2, with recent releases completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v8.51.3, with recent releases completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 One hundred eighty-seven versions shipped. MIT open source from day one.
 
-**Stats:** 96.2% overall token reduction · 78.6% retrieval hit@5 (1.73× measured lift vs single-shot grep) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 36 languages · 17-language source resolver · 0 npm deps
+**Stats:** 96.1% overall token reduction · 78.6% retrieval hit@5 · 2.12× measured lift vs single-shot grep (86.4% vs 40.8%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 36 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,20 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.51.3 — the benchmark that graded its own homework ✓ (2026-09-26)
+
+**Patch release closing a defect in the measurement layer itself.** `benchmarks/repos/*` is shared state, and the honest benchmark never regenerates — it reads each repo's context AS-IS. So every suite that regenerated a repo and left the result on disk was quietly deciding what the *next* suite measured. The published hit@5 depended on which suite ran last, which is precisely the opposite of the reproducibility this project sells.
+
+Two earlier fixes had each closed half the hole. #522 restored `gen-context.config.json` but not the generated context. #480 restored the markdown adapters but omitted `.context/` — the directory holding `sig-index.json`, which is exactly what the ranker reads. A function named `measureGroundingHermetic` was therefore still rewriting the retrieval index on every call, and `run-benchmark.mjs` restored nothing at all, generating with whatever config happened to be on disk. Measured on the 43-repo corpus: **one pre-fix quality-suite run rewrote 42 of 86 tracked artifacts**. One shared primitive now owns the entire artifact set and restores in a `finally`; after the fix a full cross-suite run leaves all 86 byte-identical. The determinism gate — which existed, worked, and was wired to nothing — now runs in CI, and the corpus-free half runs on every PR.
+
+Refreshing the reports this unblocked also corrected two stale inputs feeding the published numbers: `honest-baseline.json` was a **v8.28.1** measurement (2026-08-22) and `test-discovery.json` a **v8.8.0** one. The honest grep baseline moves 44.0% → **40.8%** and the measured lift 1.73× → **2.12×**. That exposed a second defect (#707): the lift divides the honest corpus's own pair (86.4 ÷ 40.8), but every public page rendered it beside the *retrieval* corpus's 78.6% — so 78.6 ÷ 40.8 read 1.93 and the arithmetic never closed. `latest.json` now carries the honest pair as its own block, and all thirteen public surfaces quote the lift only against the two numbers it is computed from.
+
+**Tags:** `scripts/lib/shared-repo-context.mjs` · `.context/` in the snapshot set · cross-suite CI gate · `#706` · `#707` (partial) · PR `#729`
+
+**Impact:** shared-corpus artifacts rewritten per consumer-suite run 42 → 0; two stale benchmark inputs refreshed (one 34 days, one 82 days old); honest lift restated 1.73× → 2.12× and made arithmetically coherent across 13 surfaces; 173 integration tests (up from 168 committed), 6 new hermeticity assertions.
 
 ---
 

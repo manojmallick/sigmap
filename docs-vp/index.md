@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.2% average token reduction, 36 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.1% average token reduction, 36 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.2% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.1% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.2% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.1% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Grounded context AI can trust. Deterministic. Verifiable.
-  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 96.2% token reduction · zero deps, fully offline."
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 96.1% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →
@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 78.6% hit@5 across 18 repos and 105 tasks. A single-shot grep agent finds the right file 44.0% of the time — SigMap is a measured 1.73× better.
+    details: 78.6% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 86.4% where a single-shot grep agent finds the right file 40.8% of the time — a measured 2.12× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.51.2</span>
+  <span><strong>Release:</strong> v8.51.3</span>
   <span>·</span>
-  <span><strong>New — three from the outside:</strong> every change in this release came from a contributor. @rudi193-cmd found that the Python AST extractor had <em>never run in production</em> — it was tested and documented as Tier 1, but nothing in the shipped pipeline passed it a file path, so every Python file quietly used the regex tier. That is the same shape as the last two releases: wired into resolution, absent from the path that actually runs. Python signatures are now richer (type annotations, docstrings, defaults), which costs ~23% more Python tokens — a deliberate trade, and why average token reduction reads 96.2% rather than 96.6%. @tunglambk added two drift gates: a docs-nav coverage check that failed on an orphaned page, and a config reference now derived from <code>DEFAULTS</code> rather than hand-maintained. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — the benchmark that graded its own homework:</strong> the suites that only <em>read</em> the shared benchmark corpus were quietly rewriting it. The honest benchmark never regenerates — it reads each repo's context as-is — so whichever suite ran last decided what the next one measured, and the published hit@5 depended on suite order. Two earlier fixes had each closed half the hole: one restored the config but not the generated context, the other restored the markdown adapters but not <code>.context/sig-index.json</code>, the index the ranker actually reads. Measured: <strong>one pre-fix run rewrote 42 of 86 shared artifacts</strong>; now zero, and the determinism gate that existed but was wired to nothing runs in CI. Refreshing the reports this unblocked also retired two stale inputs — a v8.28.1 grep baseline and a v8.8.0 test-discovery run — moving the measured lift 1.73× → <strong>2.12×</strong> and exposing that the lift had been printed beside a hit@5 from a different corpus, so the arithmetic never closed. It does now, on all thirteen public surfaces. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.51-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 96.2% token reduction · 2026-09-25</span>
+  <span>78.6% hit@5 · 96.1% token reduction · 2026-09-25</span>
 </div>
 </div>
 
@@ -172,11 +172,12 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 |---|:---:|:---:|
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.6** |
-| Retrieval hit@5 | 44.0% (single-shot grep) | **78.6%** (1.73× honest lift) |
-| Overall token reduction | — | **96.2%** |
+| Retrieval hit@5 (retrieval corpus) | — | **78.6%** |
+| Honest corpus hit@5 (125 tasks) | 40.8% (single-shot grep) | **86.4%** (2.12× lift) |
+| Overall token reduction | — | **96.1%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-09-25 (v8.51.2)**.
+Latest saved benchmark run: **2026-09-25 (v8.51.3)**.
 
 </div>
 

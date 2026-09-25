@@ -18,26 +18,27 @@
   <!-- ═══════════════════════════════════════════ -->
   <!-- METRIC 1: Finding the right file           -->
   <!-- ═══════════════════════════════════════════ -->
-  <text x="20" y="85" font-size="10" font-weight="600" fill="#9ca3af" letter-spacing="1">FINDING THE RIGHT FILE</text>
+  <text x="20" y="85" font-size="10" font-weight="600" fill="#9ca3af" letter-spacing="1">FINDING THE RIGHT FILE (HONEST CORPUS, 125 TASKS)</text>
 
   <!-- Without row -->
   <text x="105" y="103" text-anchor="end" font-size="11" fill="#9ca3af">Without</text>
   <rect x="112" y="90" width="462" height="20" fill="#fee2e2" rx="4"/>
-  <!-- 44.0% of 462 = 203 (single-shot grep baseline) -->
-  <rect x="112" y="90" width="203" height="20" fill="#ef4444" rx="4"/>
-  <text x="315" y="104" font-size="11" font-weight="600" fill="#ef4444">44.0%</text>
+  <!-- 40.8% of 462 = 188 (single-shot grep baseline, honest corpus) -->
+  <rect x="112" y="90" width="188" height="20" fill="#ef4444" rx="4"/>
+  <text x="300" y="104" font-size="11" font-weight="600" fill="#ef4444">40.8%</text>
 
   <!-- With row -->
   <text x="105" y="126" text-anchor="end" font-size="11" fill="#7c6af7">SigMap</text>
   <rect x="112" y="113" width="462" height="20" fill="#ede9fe" rx="4"/>
-  <!-- 78.6% of 462 = 363 -->
-  <rect x="112" y="113" width="363" height="20" fill="#7c6af7" rx="4"/>
-  <text x="466" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">78.6%</text>
+  <!-- 86.4% of 462 = 399 (honest corpus; the lift divides these two numbers) -->
+  <rect x="112" y="113" width="399" height="20" fill="#7c6af7" rx="4"/>
+  <text x="502" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">86.4%</text>
 
   <!-- Badge -->
   <rect x="588" y="95" width="94" height="32" fill="#7c6af7" rx="6"/>
-  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+1.73× lift</text>
+  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+2.12× lift</text>
   <text x="635" y="121" text-anchor="middle" font-size="9" fill="#ded9ff">vs grep agent</text>
+  <text x="112" y="145" font-size="9" fill="#9ca3af">Retrieval corpus (105 tasks / 18 repos) scores 78.6% hit@5 and is reported separately.</text>
 
   <!-- ═══════════════════════════════════════════ -->
   <!-- METRIC 2: Answer correctness               -->

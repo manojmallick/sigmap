@@ -1,5 +1,5 @@
 {
-  "version": "8.51.2",
+  "version": "8.51.3",
   "benchmark_date": "2026-09-25",
   "benchmark_id": "sigmap-v8.51-main",
   "languages": 36,
@@ -10,14 +10,14 @@
     "hit_at_5": 0.786,
     "baseline_hit_at_5": 0.136,
     "retrieval_lift": 5.8,
-    "overall_token_reduction_pct": 96.2,
+    "overall_token_reduction_pct": 96.1,
     "task_success_proxy_pct": 61.9,
     "prompts_per_task": 1.6,
     "baseline_prompts_per_task": 2.84,
     "prompt_reduction_pct": 43.7,
     "graph_boosted_hit_at_5": 0.786,
-    "grep_baseline_hit_at_5": 0.44,
-    "grep_lift": 1.73
+    "grep_baseline_hit_at_5": 0.408,
+    "grep_lift": 2.12
   },
   "ablation": {
     "benchmark_id": "sigmap-v7.24-ablation",
