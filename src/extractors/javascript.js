@@ -47,6 +47,27 @@ function extract(src) {
   };
 
   const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
+  /**
+   * Index of the `{` that opens a class body, scanning from just after the
+   * class name, or -1 when there is none.
+   *
+   * Depth-aware so a call-expression superclass (`extends Mixin(Base)`) and a
+   * generic argument list are stepped over rather than mistaken for the body.
+   * Bounded, so a malformed class cannot walk the rest of the file.
+   */
+  const findClassBody = (from) => {
+    let depth = 0;
+    const limit = Math.min(masked.length, from + 600);
+    for (let i = from; i < limit; i++) {
+      const c = masked[i];
+      if (c === '(' || c === '<' || c === '[') depth++;
+      else if (c === ')' || c === '>' || c === ']') depth = Math.max(0, depth - 1);
+      else if (c === '{' && depth === 0) return i;
+      else if (c === ';' || c === '=') return -1;   // not a class declaration
+    }
+    return -1;
+  };
+
   // End line for a function whose params close just before `matchEnd`.
   const fnEndLine = (matchEnd, startLn) => {
     const brace = masked.indexOf('{', matchEnd);
@@ -54,17 +75,37 @@ function extract(src) {
   };
 
   // Classes
-  const classRegex = /^(export\s+(?:default\s+)?)?class\s+(\w+)(?:\s+extends\s+([\w.]+))?\s*\{/gm;
+  //
+  // The heritage clause is NOT matched by this regex, only the class name.
+  // Trying to match it inline silently dropped whole classes: `extends
+  // Mixin(LitElement)` — the idiomatic Lit/web-component composition — never
+  // matched `extends [\w.]+` followed by `{`, and because the extends group
+  // was optional the fallback failed too. On ing-bank/lion that was 111 of
+  // 326 classes (34%) extracted as nothing at all: no class, no methods.
+  // `findClassBody` walks to the body brace instead, so any superclass
+  // expression works. Leading whitespace is allowed as well, which is what
+  // makes the mixin-factory form (`superclass => class X extends superclass`)
+  // reachable — its class sits indented on its own line.
+  const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+(\w+)\b/gm;
   // Web-component surface (#537) — gated on detection, see typescript.js.
   const compMarkers = scanComponentMarkers(stripped);
   for (const m of stripped.matchAll(classRegex)) {
     const prefix = m[1] ? m[1].trim() + ' ' : '';
-    const bodyStart = m.index + m[0].length;
+    const bodyBrace = findClassBody(m.index + m[0].length);
+    if (bodyBrace === -1) continue;
+    const heritage = stripped.slice(m.index + m[0].length, bodyBrace)
+      .replace(/\s+/g, ' ').trim().replace(/^extends\s+/, '');
+    const bodyStart = bodyBrace + 1;
     const blockEnd = blockEndIdx(bodyStart);
     const marker = markersForClass(compMarkers.decorated, stripped, m.index, m[0]);
     const definedTag = compMarkers.defined.get(m[2]);
     const isComponent = !!(marker || definedTag);
-    const base = isComponent && m[3] ? ` extends ${m[3]}` : '';
+    // A call-expression superclass is mixin composition — `extends
+    // LocalizeMixin(LitElement)` states which behaviours a component gets and
+    // is not recoverable from anywhere else, so it is always rendered. A plain
+    // `extends Base` stays gated on component detection, keeping every other
+    // repo's output byte-identical.
+    const base = heritage && (isComponent || heritage.includes('(')) ? ` extends ${heritage}` : '';
     sigs.push(`${prefix}class ${m[2]}${base}`);
     const classStartLn = lineAt(stripped, m.index);
     anchors.push([classStartLn, lineAt(stripped, blockEnd)]);

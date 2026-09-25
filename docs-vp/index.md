@@ -78,7 +78,7 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.51.0</span>
+  <span><strong>Release:</strong> v8.51.1</span>
   <span>·</span>
   <span><strong>New — the layout finally reads:</strong> v8.50 was field-tested against 15 real public repos, and the sweep found a long-latent miss: multi-module Gradle/Maven/sbt builds keep their code under <code>&lt;module&gt;/src/main/&lt;lang&gt;</code>, which detection never reached — <strong>okhttp indexed 4 files of 596, akka 29 of 2,651</strong>. Source sets are now discovered rather than assumed, so Kotlin Multiplatform (<code>jvmMain</code>, <code>commonMain</code>, <code>androidMain</code>) resolves too; okhttp goes to 326 files and akka to 582, while nine non-JVM repos in the same sweep scan an identical count. The same sweep fixed four v8.50 defects: the CI extractor was wired into resolution but not into file discovery, three SBOM rows were unscannable, and <code>strategy:"index"</code> was overstating its own saving by up to 3x — now measured, not estimated. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>

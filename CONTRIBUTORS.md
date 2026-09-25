@@ -36,6 +36,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.51.1)
+- **@manojmallick** — fix(extractors): mixin-composed classes (`extends Mixin(LitElement)`) and indented classes were dropped entirely — 111 of 326 classes on ing-bank/lion — because the class regex matched the heritage clause inline and was anchored to column 0; both extractors now walk to the body brace. Also closed a TS/JS asymmetry that silently shed every `get`/`set` accessor from TypeScript classes
+- **@manojmallick** — test(discovery): source-root coverage gate, so detection returning almost nothing fails loudly instead of passing every existing check
+
 ### Recent Contributors (v8.51.0)
 - **@manojmallick** — fix(discovery): multi-module JVM builds indexed almost nothing (okhttp 4 files of 596, akka 29 of 2,651) because module source lives four levels deep and the candidate scan looked two; module source sets are now enumerated structurally, and Kotlin Multiplatform sets (`jvmMain`, `commonMain`, `androidMain`) are discovered rather than assumed to be `main` (PR #721)
 

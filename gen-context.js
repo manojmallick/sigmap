@@ -8335,6 +8335,27 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     };
 
     const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
+    /**
+     * Index of the `{` that opens a class body, scanning from just after the
+     * class name, or -1 when there is none.
+     *
+     * Depth-aware so a call-expression superclass (`extends Mixin(Base)`) and a
+     * generic argument list are stepped over rather than mistaken for the body.
+     * Bounded, so a malformed class cannot walk the rest of the file.
+     */
+    const findClassBody = (from) => {
+      let depth = 0;
+      const limit = Math.min(masked.length, from + 600);
+      for (let i = from; i < limit; i++) {
+        const c = masked[i];
+        if (c === '(' || c === '<' || c === '[') depth++;
+        else if (c === ')' || c === '>' || c === ']') depth = Math.max(0, depth - 1);
+        else if (c === '{' && depth === 0) return i;
+        else if (c === ';' || c === '=') return -1;   // not a class declaration
+      }
+      return -1;
+    };
+
     // End line for a function whose params close just before `matchEnd`.
     const fnEndLine = (matchEnd, startLn) => {
       const brace = masked.indexOf('{', matchEnd);
@@ -8342,17 +8363,37 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     };
 
     // Classes
-    const classRegex = /^(export\s+(?:default\s+)?)?class\s+(\w+)(?:\s+extends\s+([\w.]+))?\s*\{/gm;
+    //
+    // The heritage clause is NOT matched by this regex, only the class name.
+    // Trying to match it inline silently dropped whole classes: `extends
+    // Mixin(LitElement)` — the idiomatic Lit/web-component composition — never
+    // matched `extends [\w.]+` followed by `{`, and because the extends group
+    // was optional the fallback failed too. On ing-bank/lion that was 111 of
+    // 326 classes (34%) extracted as nothing at all: no class, no methods.
+    // `findClassBody` walks to the body brace instead, so any superclass
+    // expression works. Leading whitespace is allowed as well, which is what
+    // makes the mixin-factory form (`superclass => class X extends superclass`)
+    // reachable — its class sits indented on its own line.
+    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+(\w+)\b/gm;
     // Web-component surface (#537) — gated on detection, see typescript.js.
     const compMarkers = scanComponentMarkers(stripped);
     for (const m of stripped.matchAll(classRegex)) {
       const prefix = m[1] ? m[1].trim() + ' ' : '';
-      const bodyStart = m.index + m[0].length;
+      const bodyBrace = findClassBody(m.index + m[0].length);
+      if (bodyBrace === -1) continue;
+      const heritage = stripped.slice(m.index + m[0].length, bodyBrace)
+        .replace(/\s+/g, ' ').trim().replace(/^extends\s+/, '');
+      const bodyStart = bodyBrace + 1;
       const blockEnd = blockEndIdx(bodyStart);
       const marker = markersForClass(compMarkers.decorated, stripped, m.index, m[0]);
       const definedTag = compMarkers.defined.get(m[2]);
       const isComponent = !!(marker || definedTag);
-      const base = isComponent && m[3] ? ` extends ${m[3]}` : '';
+      // A call-expression superclass is mixin composition — `extends
+      // LocalizeMixin(LitElement)` states which behaviours a component gets and
+      // is not recoverable from anywhere else, so it is always rendered. A plain
+      // `extends Base` stays gated on component detection, keeping every other
+      // repo's output byte-identical.
+      const base = heritage && (isComponent || heritage.includes('(')) ? ` extends ${heritage}` : '';
       sigs.push(`${prefix}class ${m[2]}${base}`);
       const classStartLn = lineAt(stripped, m.index);
       anchors.push([classStartLn, lineAt(stripped, blockEnd)]);
@@ -12099,7 +12140,30 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
 
     // Classes (exported and internal)
-    const classRegex = /^(export\s+)?(abstract\s+)?class\s+(\w+)(?:<[^{]*>)?(?:\s+extends\s+([\w<>, .]+?))?(?:\s+implements\s+[\w<> ,]+)?\s*\{/gm;
+    // The heritage clause is walked to, not matched inline — see the note in
+    // javascript.js. `extends Mixin(LitElement)` (idiomatic Lit composition)
+    // never matched the old inline form, so the whole class was dropped:
+    // no class line, no members. Leading whitespace is allowed so an indented
+    // class expression — the mixin-factory form — is reachable too.
+    const classRegex = /^[ \t]*(export\s+)?(abstract\s+)?class\s+(\w+)\b/gm;
+
+    /**
+     * Index of the `{` that opens a class body, or -1. Depth-aware so a
+     * call-expression superclass, a generic argument list and an `implements`
+     * clause are stepped over rather than mistaken for the body. Bounded.
+     */
+    const findClassBody = (from) => {
+      let depth = 0;
+      const limit = Math.min(masked.length, from + 600);
+      for (let i = from; i < limit; i++) {
+        const c = masked[i];
+        if (c === '(' || c === '<' || c === '[') depth++;
+        else if (c === ')' || c === '>' || c === ']') depth = Math.max(0, depth - 1);
+        else if (c === '{' && depth === 0) return i;
+        else if (c === ';' || c === '=') return -1;
+      }
+      return -1;
+    };
     // Web-component surface (#537): tag/selector + reactive fields + base are
     // rendered ONLY when a component marker is detected, so every other class
     // stays byte-identical.
@@ -12107,12 +12171,23 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     for (const m of stripped.matchAll(classRegex)) {
       const prefix = m[1] ? 'export ' : '';
       const abs = m[2] ? 'abstract ' : '';
-      const bodyStart = m.index + m[0].length;
+      const bodyBrace = findClassBody(m.index + m[0].length);
+      if (bodyBrace === -1) continue;
+      // `implements` is dropped: the extends target is the behavioural parent,
+      // and interfaces are already indexed in their own right.
+      const heritage = stripped.slice(m.index + m[0].length, bodyBrace)
+        .replace(/\s+/g, ' ').trim()
+        .replace(/\s*\bimplements\b.*$/, '')
+        .replace(/^extends\s+/, '').trim();
+      const bodyStart = bodyBrace + 1;
       const blockEnd = blockEndIdx(bodyStart);
       const marker = markersForClass(compMarkers.decorated, stripped, m.index, m[0]);
       const definedTag = compMarkers.defined.get(m[3]);
       const isComponent = !!(marker || definedTag);
-      const base = isComponent && m[4] ? ` extends ${m[4].trim().replace(/\s+/g, ' ')}` : '';
+      // Mixin composition is always rendered (it is not recoverable elsewhere);
+      // a plain `extends Base` stays gated on component detection so existing
+      // output is unchanged.
+      const base = heritage && (isComponent || heritage.includes('(')) ? ` extends ${heritage}` : '';
       sigs.push(`${prefix}${abs}class ${m[3]}${base}`);
       const classStartLn = lineAt(stripped, m.index);
       anchors.push([classStartLn, lineAt(stripped, blockEnd)]);
@@ -12280,7 +12355,12 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     const masked = maskedBlock || maskCode(block);
     const members = [];
     // Public methods (skip private/protected/_ prefixed and control-flow keywords)
-    const methodRe = /^\s+(?:public\s+|static\s+|async\s+|override\s+)*(\w+)\s*(?:<[^(]*>)?\s*\(/gm;
+    // `get`/`set` are in the modifier list because an accessor is part of a
+    // class's public surface — javascript.js has always treated them this way,
+    // and the asymmetry meant a TypeScript class silently lost every accessor.
+    // Found while fixing mixin-class extraction on a Lit codebase, where
+    // `static get properties()` IS the reactive surface.
+    const methodRe = /^\s+(?:public\s+|static\s+|async\s+|override\s+|get\s+|set\s+)*(\w+)\s*(?:<[^(]*>)?\s*\(/gm;
     for (const m of masked.matchAll(methodRe)) {
       if (_CTRL_KEYWORDS.has(m[1])) continue;
       if (/^(private|protected|_)/.test(m[1])) continue;
@@ -19899,7 +19979,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.51.0',
+    version: '8.51.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -26603,7 +26683,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.51.0';
+const VERSION = '8.51.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
