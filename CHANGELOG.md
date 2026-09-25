@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.50.1] — 2026-09-25
+
+### Fixed
+- **The CI/pipeline extractor was correct but unreachable through `generate`** (PR #717 follow-up) — v8.50.0 shipped `src/extractors/pipeline.js` and wired it into `langFor`, but not into **file discovery**. `.github/workflows/` is a root dotdir: it is never in `srcDirs`, never auto-detected as a source root, and therefore never walked — so the generate pipeline never handed a workflow to the extractor. The extractor passed 29 direct tests while the feature did nothing in real use: on a repo with `src/` and `.github/workflows/ci.yml`, `sigmap ask "where does deploy happen"` returned **no workflow signatures at all** — the exact question the feature was built to answer. The fixture that made the tests pass lives under `test/fixtures/.github/workflows/`, which is reachable only because `collectTestEntries` sweeps `test/`, and that masked the gap. `collectPipelineEntries` now walks the CI locations (`.github`/`.gitea`/`.forgejo` workflow dirs, `.circleci`, `.woodpecker`, and the repo root for the single-file forms) and indexes anything the extractor's own `platformFor` claims, so routing cannot drift from `langFor`. Same contract as test files: **indexed so `sigmap ask` reaches them, never rendered into the prompt artifact**, so the generated context file stays byte-identical for anyone who was not asking for this. Five end-to-end tests now drive the CLI rather than the extractor — three of them fail against v8.50.0
+
+---
+
 ## [8.50.0] — 2026-09-24
 
 ### Added

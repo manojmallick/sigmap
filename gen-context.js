@@ -19688,7 +19688,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.50.0',
+    version: '8.50.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -26392,7 +26392,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.50.0';
+const VERSION = '8.50.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -26539,6 +26539,74 @@ function collectTestEntries(cwd, config, existing) {
       if (!sigs.length) continue;
       const doc = moduleDocSig ? moduleDocSig(src, fp) : '';
       out.push({ filePath: fp, sigs: doc ? [doc, ...sigs] : sigs });
+    }
+  }
+  return out;
+}
+
+/**
+ * CI / pipeline definitions, which live OUTSIDE srcDirs by construction.
+ *
+ * v8.50.0 shipped the pipeline extractor but not this: `.github/workflows/` is
+ * a root dotdir, never in `srcDirs` and never auto-detected as a source root,
+ * so the generate pipeline never handed a workflow to the extractor. The
+ * extractor was correct and unreachable — "where does deploy happen" returned
+ * nothing on a real repo, which is the exact question it was built to answer.
+ *
+ * Same treatment as `collectTestEntries`: indexed so `sigmap ask` can reach
+ * them, never rendered into the prompt artifact, so the generated context file
+ * stays byte-identical for everyone who was not asking for this.
+ *
+ * @param {string} cwd
+ * @param {object} config
+ * @param {Array<{filePath:string}>} existing - entries already collected
+ * @returns {Array<{filePath:string, sigs:string[]}>}
+ */
+function collectPipelineEntries(cwd, config, existing) {
+  // Directories whose contents are CI definitions, plus the root itself for
+  // the single-file forms (.gitlab-ci.yml, Jenkinsfile, compose files, …).
+  const CI_DIRS = [
+    '.', '.github/workflows', '.gitea/workflows', '.forgejo/workflows',
+    '.circleci', '.woodpecker',
+  ];
+  const have = new Set((existing || []).map((e) => e.filePath));
+  const out = [];
+  const seen = new Set();
+
+  let platformFor = null;
+  let extractPipeline = null;
+  try {
+    const pipe = requireSourceOrBundled('./src/extractors/pipeline');
+    platformFor = pipe.platformFor;
+    extractPipeline = pipe.extract;
+  } catch (_) { return out; }
+
+  for (const dir of CI_DIRS) {
+    const abs = path.join(cwd, dir);
+    let names = [];
+    try {
+      if (!fs.statSync(abs).isDirectory()) continue;
+      names = fs.readdirSync(abs).sort();
+    } catch (_) { continue; }
+
+    for (const name of names) {
+      const fp = path.join(abs, name);
+      try { if (!fs.statSync(fp).isFile()) continue; } catch (_) { continue; }
+      if (have.has(fp) || seen.has(fp)) continue;
+
+      // The extractor's own routing decides what counts as a pipeline file,
+      // so this list cannot drift from `langFor`.
+      const rel = path.relative(cwd, fp).replace(/\\/g, '/');
+      if (!platformFor(rel)) continue;
+
+      let src = '';
+      try { src = fs.readFileSync(fp, 'utf8'); } catch (_) { continue; }
+      let sigs = [];
+      try { sigs = extractPipeline(src, rel) || []; } catch (_) { continue; }
+      if (!sigs.length) continue;
+
+      seen.add(fp);
+      out.push({ filePath: fp, sigs });
     }
   }
   return out;
@@ -28249,6 +28317,12 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       // prompt artifact stays clean because this list never reaches formatOutput.
       try {
         __entries = __entries.concat(collectTestEntries(cwd, config, __entries));
+      } catch (_) { /* best-effort */ }
+      // CI definitions live outside srcDirs by construction (`.github/workflows`
+      // is a root dotdir), so without this the pipeline extractor is correct but
+      // unreachable through generate — the defect v8.50.0 shipped with.
+      try {
+        __entries = __entries.concat(collectPipelineEntries(cwd, config, __entries));
       } catch (_) { /* best-effort */ }
       const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION });
       __indexWritten = __w.files > 0;
