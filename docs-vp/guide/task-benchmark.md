@@ -1,6 +1,6 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v8.51.0. 61.9% correct, 43.7% fewer prompts, 78.6% hit@5 across 105 tasks, with R language support.
+description: Latest saved task benchmark for SigMap v8.51.2. 61.9% correct, 43.7% fewer prompts, 78.6% hit@5 across 105 tasks, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,7 +15,7 @@ head:
 
 # Task benchmark
 
-::: info Official v8.51.0 benchmark snapshot
+::: info Official v8.51.2 benchmark snapshot
 **Benchmark ID:** sigmap-v8.51-main &nbsp;·&nbsp; **Date:** 2026-09-25 (with R language)
 
 | Metric | Value |
@@ -25,11 +25,13 @@ head:
 | Honest lift (vs grep agent) | **1.73×** |
 | Prompt reduction | **43.7%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
-| Token reduction (21 repos) | **96.6%** |
+| Token reduction (21 repos) | **96.2%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-09-25 (v8.51.0)** — includes R language support (ggplot2, dplyr, shiny)
+Latest saved run: **2026-09-25 (v8.51.2)** — includes R language support (ggplot2, dplyr, shiny)
+
+The success/proxy definitions and the task corpus are described in [benchmark methodology](/guide/methodology).
 
 This page answers the question people care about most:
 
@@ -43,7 +45,7 @@ This page answers the question people care about most:
 | Prompts per task | 2.84 | **1.6** |
 | Prompt reduction | — | **48%** |
 | Retrieval hit@5 | 13.6% | **88%** |
-| Token reduction | — | **96.6%** |
+| Token reduction | — | **96.2%** |
 
 ## Why the task benchmark exists
 

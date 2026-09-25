@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const { lineAt } = require('./line-anchor');
 const { capWithNotice } = require('../util/truncate');
@@ -37,10 +38,25 @@ function pyBlockEnd(srcLines, startLine) {
  * @param {string} filePath - Absolute path to the Python file
  * @returns {string[]|null}
  */
+/** Resolve packaged python_ast.py (dev, npm tarball, or bundled CLI root). */
+function resolvePythonAstScript() {
+  const candidates = [
+    path.join(__dirname, 'python_ast.py'),
+    path.join(__dirname, 'src', 'extractors', 'python_ast.py'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch (_) {}
+  }
+  return null;
+}
+
 function tryNativeExtract(filePath) {
   try {
     const { execFileSync } = require('child_process');
-    const scriptPath = path.join(__dirname, 'python_ast.py');
+    const scriptPath = resolvePythonAstScript();
+    if (!scriptPath) return null;
     const result = execFileSync('python3', [scriptPath, filePath], {
       timeout: 5000,
       encoding: 'utf8',
@@ -61,10 +77,13 @@ function tryNativeExtract(filePath) {
  * @returns {string[]} Array of signature strings
  */
 function extract(src, filePath) {
-  // Prefer native AST extractor when a real file path is available
+  // Prefer native AST extractor when the file exists on disk (#693)
   if (filePath && typeof filePath === 'string') {
-    const native = tryNativeExtract(filePath);
-    if (native) return native;
+    const abs = path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+    if (fs.existsSync(abs)) {
+      const native = tryNativeExtract(abs);
+      if (native) return native;
+    }
   }
   if (!src || typeof src !== 'string') return [];
   const sigs = [];
@@ -267,4 +286,4 @@ function extractDocHint(src, fnName, fnSigLine) {
   return sentence.slice(0, 60);
 }
 
-module.exports = { extract, tryNativeExtract };
+module.exports = { extract, tryNativeExtract, resolvePythonAstScript };

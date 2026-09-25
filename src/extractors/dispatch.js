@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+
 /**
  * Bundle-safe extractor dispatch.
  *
@@ -131,10 +133,19 @@ function extractFile(filePathOrName, src) {
   const mod = lang ? EXTRACTORS[lang] : null;
   if (!mod || typeof mod.extract !== 'function') return [];
   try {
-    // Only the pipeline extractor takes the path as a second argument. It is
-    // NOT passed blanket-wide: python's extract(src, filePath) would switch to
-    // the native AST tier and change output for every caller of this function.
-    const out = lang === 'pipeline' ? mod.extract(src, filePathOrName) : mod.extract(src);
+    // Every extractor receives the path: python.js uses it to reach the native
+    // AST tier (#693) and pipeline.js uses it to route by location; the rest
+    // ignore the extra argument.
+    //
+    // Resolved to an absolute path when the file is on disk, because python's
+    // AST pass shells out and needs a real path. When it is NOT on disk the
+    // ORIGINAL string is passed rather than undefined, so path-routed
+    // extraction still works for in-memory content (MCP write hooks, tests) —
+    // `tryNativeExtract` returns null for a path it cannot read, so python
+    // falls back to regex on its own.
+    const abs = path.isAbsolute(filePathOrName) ? filePathOrName : path.resolve(filePathOrName);
+    const fileArg = fs.existsSync(abs) ? abs : filePathOrName;
+    const out = mod.extract(src, fileArg);
     return Array.isArray(out) ? out : [];
   } catch (_) {
     return [];

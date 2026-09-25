@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-25T14:20:34.352Z",
+  "generated": "2026-09-25T20:50:12.031Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,8 +26,8 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 78.6,
     "avgImprovement": 59.3,
-    "totalGroundedSymbols": 9472,
-    "totalDarkSymbols": 58087,
+    "totalGroundedSymbols": 9537,
+    "totalDarkSymbols": 58470,
     "hallucinationRiskPct": 86
   },
   "repos": [
@@ -55,9 +55,9 @@
       "promptsWith": 1.75,
       "promptsWithout": 2.68,
       "reductionPct": 34.8,
-      "groundedSymbols": 220,
-      "darkSymbols": 477,
-      "hallucinationRiskPct": 68.4
+      "groundedSymbols": 206,
+      "darkSymbols": 491,
+      "hallucinationRiskPct": 70.4
     },
     {
       "repo": "gin",
@@ -111,9 +111,9 @@
       "promptsWith": 2.38,
       "promptsWithout": 2.76,
       "reductionPct": 13.9,
-      "groundedSymbols": 58,
-      "darkSymbols": 304,
-      "hallucinationRiskPct": 84
+      "groundedSymbols": 57,
+      "darkSymbols": 312,
+      "hallucinationRiskPct": 84.6
     },
     {
       "repo": "rust-analyzer",
@@ -237,9 +237,9 @@
       "promptsWith": 1.2,
       "promptsWithout": 2.97,
       "reductionPct": 59.6,
-      "groundedSymbols": 243,
-      "darkSymbols": 1909,
-      "hallucinationRiskPct": 88.7
+      "groundedSymbols": 244,
+      "darkSymbols": 2344,
+      "hallucinationRiskPct": 90.6
     },
     {
       "repo": "svelte",
@@ -251,8 +251,8 @@
       "promptsWith": 1.8,
       "promptsWithout": 2.98,
       "reductionPct": 39.7,
-      "groundedSymbols": 378,
-      "darkSymbols": 1813,
+      "groundedSymbols": 380,
+      "darkSymbols": 1816,
       "hallucinationRiskPct": 82.7
     },
     {
@@ -279,9 +279,9 @@
       "promptsWith": 1.6,
       "promptsWithout": 2.88,
       "reductionPct": 44.4,
-      "groundedSymbols": 165,
-      "darkSymbols": 727,
-      "hallucinationRiskPct": 81.5
+      "groundedSymbols": 242,
+      "darkSymbols": 650,
+      "hallucinationRiskPct": 72.9
     }
   ]
 }

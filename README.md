@@ -60,7 +60,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **78.6% hit@5** — right file in top 5 results (vs 44.0% single-shot grep baseline — 1.73× lift)
-- **96.6% token reduction** — average across 21 real repos
+- **96.2% token reduction** — average across 21 real repos
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.6 prompts per task** — down from 2.84 (43.7% fewer retries, modeled)
 <!--/SM:whyMetrics-->
@@ -126,7 +126,7 @@ Benchmark : sigmap-v8.51-main (21 repositories, including R language)
 Date      : 2026-09-25
 
 Hit@5          : 78.6%   (grep-agent baseline 44.0%  — 1.73× lift)
-Token reduction: 96.6%   (across 21 repos)
+Token reduction: 96.2%   (across 21 repos)
 Prompt reduction : 43.7% (2.84 → 1.6 prompts per task, modeled)
 Task success   : 61.9%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
@@ -138,7 +138,7 @@ Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift
 Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.
 
 **Resources:**
-- [Full methodology →](https://sigmap.io/guide/benchmark.html)
+- [Full methodology →](https://sigmap.io/guide/methodology.html)
 - [Benchmark suite (GitHub)](https://github.com/manojmallick/sigmap-benchmark-suite) — scripts, tasks, and raw data
 - [Benchmark data (Zenodo)](https://zenodo.org/records/19898842) — archived results for reproducibility
 
@@ -200,7 +200,7 @@ volta install sigmap
 | `openai` | `.github/openai-context.md` | OpenAI API, Aider, local Ollama/llama.cpp |
 | `gemini` | `.github/gemini-context.md` | Google Gemini |
 | `codex` | `AGENTS.md` | OpenAI Codex (legacy) |
-| `willow` | _Willow MCP store (HTTP POST — no file)_ | [Willow](https://github.com/rudi193-cmd/willow-1.9) knowledge store |
+| `willow` | _Willow MCP store (HTTP POST — no file)_ | [willow-mcp](https://github.com/willow-memory/willow-mcp) knowledge store (`knowledge_ingest`) |
 
 ```bash
 sigmap --adapter copilot   # default — works with Copilot, OpenCode
@@ -329,7 +329,7 @@ sigmap --health
 | Section | Link |
 |---|---|
 | CLI reference (32 commands) | [cli.html](https://sigmap.io/guide/cli.html) |
-| Benchmark methodology | [benchmark.html](https://sigmap.io/guide/benchmark.html) |
+| Benchmark methodology | [methodology.html](https://sigmap.io/guide/methodology.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
 | <!--SM:languages-->36<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
