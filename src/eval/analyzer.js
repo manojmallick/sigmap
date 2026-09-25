@@ -102,10 +102,10 @@ function analyzeFiles(files, cwd, opts) {
 
     if (slow) {
       const t0 = Date.now();
-      try { sigs = extractor.extract(content); } catch (_) { sigs = []; }
-      elapsedMs = Date.now() - t0;
+      try { sigs = extractor.extract(content, filePath); } catch (_) { sigs = []; }
+        elapsedMs = Date.now() - t0;
     } else {
-      try { sigs = extractor.extract(content); } catch (_) { sigs = []; }
+      try { sigs = extractor.extract(content, filePath); } catch (_) { sigs = []; }
     }
 
     sigs = (Array.isArray(sigs) ? sigs : []).slice(0, maxSigs);

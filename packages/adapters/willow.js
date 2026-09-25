@@ -4,8 +4,9 @@
  * Willow adapter — writes SigMap context to Willow MCP knowledge store.
  *
  * Instead of writing a flat .willow-context.md file, this adapter sends
- * signature atoms to a Willow MCP server (https://github.com/rudi193-cmd/willow-1.9)
- * via HTTP POST. Each indexed file becomes a searchable knowledge atom.
+ * signature atoms to a Willow MCP server (https://github.com/willow-memory/willow-mcp)
+ * via HTTP JSON-RPC (`POST …/tools/call`). Each indexed file becomes one
+ * `knowledge_ingest` atom. Requires an HTTP MCP listener (not Cursor stdio).
  *
  * Contract:
  *   format(context, opts?) → string   (markdown for display/debug)
@@ -97,15 +98,13 @@ async function postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: 'willow_knowledge_ingest',
+            name: 'knowledge_ingest',
             arguments: {
               app_id: atom.agent,
-              title: atom.title,
-              summary: atom.summary,
+              content: atom.content,
               domain: atom.domain,
-              source_type: atom.source_type,
-              category: 'code',
-              record_id: atom.id,
+              source: atom.id,
+              tags: ['sigmap', 'code', atom.project].filter(Boolean),
             },
           }),
         },
