@@ -36,6 +36,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.50.1)
+- **@manojmallick** — fix(extractors): the v8.50.0 CI/pipeline extractor was wired into `langFor` but not into file discovery, so `.github/workflows/` — a root dotdir never in `srcDirs` — was never walked and the feature did nothing in real use; `collectPipelineEntries` now indexes CI definitions the same way test files are indexed (PR #717 follow-up)
+
 ### Recent Contributors (v8.50.0)
 - **@manojmallick** — feat(extractors): semantic CI/pipeline extractor — a GitHub Actions workflow reduced to `keys: [name, on, jobs]` plus bare job ids with no triggers, steps, secrets or line anchors; now parsed structurally across nine CI formats with real `:start-end` anchors, routed by path ahead of the extension map (#3, PR #717)
 - **@manojmallick** — feat(deps): dependency inventory across nine ecosystems — `pom.xml (maven) | present` replaced with real coordinates, Maven `${property}` placeholders resolved, and a locked lockfile version preferred over a declared range (#2a, PR #717)

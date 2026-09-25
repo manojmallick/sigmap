@@ -12,7 +12,10 @@
  */
 
 const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..', '..');
 const pipeline = require(path.join(ROOT, 'src/extractors/pipeline'));
@@ -521,6 +524,98 @@ test('yaml.js sniffs a workflow that sits outside .github/workflows', () => {
 test('yaml.js still key-scans ordinary config', () => {
   const sigs = yamlExtractor.extract('server:\n  host: localhost\n  port: 8080\nlogging:\n  level: info\n');
   hasLine(sigs, 'keys: [server, logging]');
+});
+
+
+// ───────────── reachability through the generate pipeline ─────────────
+//
+// v8.50.0 shipped the extractor but not its wiring: `.github/workflows/` is a
+// root dotdir, never in srcDirs and never auto-detected, so generate never
+// handed a workflow to the extractor. Every test above passed while the
+// feature was unreachable in real use — these close that gap by driving the
+// CLI end to end instead of calling the extractor directly.
+
+const CLI = path.join(ROOT, 'gen-context.js');
+
+function withGeneratedRepo(files, fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-reach-'));
+  try {
+    for (const [rel, content] of Object.entries(files)) {
+      const full = path.join(dir, rel);
+      fs.mkdirSync(path.dirname(full), { recursive: true });
+      fs.writeFileSync(full, content, 'utf8');
+    }
+    execFileSync('node', [CLI], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    fn(dir);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+const REACH_REPO = {
+  'src/app.js': '/** App entry. */\nfunction startServer(port) { return port; }\nmodule.exports = { startServer };\n',
+  '.github/workflows/ci.yml': [
+    'name: CI', 'on:', '  push:', '    branches: [main]', 'jobs:', '  deploy:',
+    '    runs-on: ubuntu-latest', '    steps:', '      - name: Deploy', '        run: ./deploy.sh', '',
+  ].join('\n'),
+  '.gitlab-ci.yml': 'stages: [build]\nbuild-app:\n  stage: build\n  script:\n    - npm run build\n',
+};
+
+const indexOf = (dir) => JSON.parse(fs.readFileSync(path.join(dir, '.context', 'sig-index.json'), 'utf8')).files;
+
+test('generate indexes CI files that live outside srcDirs', () => {
+  withGeneratedRepo(REACH_REPO, (dir) => {
+    const files = Object.keys(indexOf(dir));
+    assert.ok(files.some((f) => f.endsWith('.github/workflows/ci.yml')),
+      `workflow not indexed — the extractor is unreachable through generate:\n${files.join('\n')}`);
+    assert.ok(files.some((f) => f.endsWith('.gitlab-ci.yml')),
+      `root-level CI file not indexed:\n${files.join('\n')}`);
+    // The ordinary source file must still be there.
+    assert.ok(files.some((f) => f.endsWith('src/app.js')), files.join('\n'));
+  });
+});
+
+test('generate extracts real job semantics, not a bare key list', () => {
+  withGeneratedRepo(REACH_REPO, (dir) => {
+    const idx = indexOf(dir);
+    const wf = idx[Object.keys(idx).find((f) => f.endsWith('.github/workflows/ci.yml'))];
+    const joinedSigs = wf.join('\n');
+    assert.ok(/workflow: CI/.test(joinedSigs), joinedSigs);
+    assert.ok(/job: deploy/.test(joinedSigs), joinedSigs);
+    assert.ok(/run: \.\/deploy\.sh/.test(joinedSigs), joinedSigs);
+    assert.ok(!/keys: \[/.test(joinedSigs), `fell back to the generic key scan:\n${joinedSigs}`);
+  });
+});
+
+test('`sigmap ask` answers "where does deploy happen" from a real repo', () => {
+  // The exact question the feature was justified with. It returned nothing in
+  // v8.50.0 despite 29 passing extractor tests.
+  withGeneratedRepo(REACH_REPO, (dir) => {
+    execFileSync('node', [CLI, 'ask', 'where does deploy happen'], {
+      cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const qc = fs.readFileSync(path.join(dir, '.context', 'query-context.md'), 'utf8');
+    assert.ok(/job: deploy/.test(qc), `ask did not surface the deploy job:\n${qc}`);
+    assert.ok(/run: \.\/deploy\.sh/.test(qc), `ask did not surface the deploy command:\n${qc}`);
+  });
+});
+
+test('CI files are indexed but NOT rendered into the prompt artifact', () => {
+  // Same contract as test files: reachable by `ask`, without changing the
+  // generated context file for users who did not ask for this.
+  withGeneratedRepo(REACH_REPO, (dir) => {
+    const ctx = fs.readFileSync(path.join(dir, '.github', 'copilot-instructions.md'), 'utf8');
+    assert.ok(!/job: deploy/.test(ctx),
+      `CI signatures leaked into the always-on prompt artifact:\n${ctx}`);
+  });
+});
+
+test('a repo with no CI files generates cleanly', () => {
+  withGeneratedRepo({ 'src/app.js': 'function f(a) { return a; }\n' }, (dir) => {
+    const files = Object.keys(indexOf(dir));
+    assert.deepStrictEqual(files.filter((f) => /workflows|gitlab-ci/.test(f)), []);
+    assert.ok(files.some((f) => f.endsWith('src/app.js')));
+  });
 });
 
 console.log('');

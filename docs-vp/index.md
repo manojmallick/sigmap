@@ -78,7 +78,7 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.50.0</span>
+  <span><strong>Release:</strong> v8.50.1</span>
   <span>·</span>
   <span><strong>New — the map stops competing with the territory:</strong> the generated context file had been carrying every signature and auto-injecting it — ~13,900 tokens on this repo, paid before a single question was asked. That does not merely cost tokens, it <em>suppresses retrieval</em>: an agent already holding a superset of what <code>sigmap ask</code> returns is right not to call it. The opt-in <code>strategy:"index"</code> keeps the always-on file to a map (~377 tokens) and leaves every signature in the retrieval index, which is pinned byte-identical across strategies. Alongside it: a semantic CI/pipeline extractor for nine formats, real dependency coordinates across nine ecosystems, and deterministic CycloneDX export — scanning deliberately left to osv-scanner. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
