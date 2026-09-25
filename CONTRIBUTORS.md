@@ -16,7 +16,7 @@ SigMap is built by a great community of contributors. Thank you to everyone who 
 - [Matt Van Horn](https://github.com/mvanhorn) — Testing, reliability improvements
 - [kumamaki](https://github.com/kumamaki) — Bug fixes, improvements
 - [Tung Lam](https://github.com/tunglambk) — Secret redaction (#668); docs-nav coverage guard (#700); config-reference drift gate (#708)
-- [rudi193-cmd](https://github.com/rudi193-cmd) — Python AST extractor wired into the shipped pipeline (#693)
+- [rudi193-cmd](https://github.com/rudi193-cmd) — Hot-cold cold signatures in the bundled MCP server (#201); Python AST extractor wired into the shipped pipeline (#693)
 
 ## Supporters
 

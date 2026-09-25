@@ -48,15 +48,30 @@ def annotation_to_str(node):
         return "..."
 
 
-def format_args(args_node):
-    """Format a function arguments node into a compact signature string."""
+def format_args(args_node, drop_receiver=False):
+    """Format a function arguments node into a compact signature string.
+
+    `drop_receiver` removes a leading `self`/`cls`. It carries no information
+    — every instance method has one — and the regex tier has always filtered
+    it (src/extractors/python.js:263). Emitting it here made the two tiers
+    disagree on the same file and cost ~3% of Python signature bytes for
+    nothing: 233 of flask's 235 methods carried it.
+
+    Only the FIRST positional argument is dropped, which is stricter than the
+    regex tier's filter-by-name. A parameter legitimately named `self` in any
+    other position is kept, because dropping it would be wrong; in practice
+    the two tiers produce identical output.
+    """
     parts = []
-    all_args = args_node.args or []
+    all_args = list(args_node.args or [])
     defaults = args_node.defaults or []
-    # Align defaults to the right of args
+    # Align defaults to the right of args BEFORE dropping the receiver, so the
+    # remaining arguments keep their correct defaults.
     default_offset = len(all_args) - len(defaults)
 
     for i, arg in enumerate(all_args):
+        if i == 0 and drop_receiver and arg.arg in ("self", "cls"):
+            continue
         name = arg.arg
         ann = annotation_to_str(arg.annotation) if arg.annotation else None
         default_idx = i - default_offset
@@ -223,7 +238,9 @@ def extract_method_sig(func_node):
     """Format a method signature string (already indented by caller)."""
     is_async = isinstance(func_node, ast.AsyncFunctionDef)
     prefix = "async " if is_async else ""
-    params = format_args(func_node.args)
+    # A method's leading self/cls is implicit — dropped here to match the
+    # regex tier, which has always filtered it.
+    params = format_args(func_node.args, drop_receiver=True)
     ret = annotation_to_str(func_node.returns) if func_node.returns else None
     ret_str = f" → {ret}" if ret else ""
     return f"{prefix}def {func_node.name}({params}){ret_str}"

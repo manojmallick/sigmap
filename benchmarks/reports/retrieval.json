@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-25T20:49:50.023Z",
+  "generated": "2026-09-25T21:18:02.750Z",
   "repos": [
     {
       "repo": "express",
@@ -104,7 +104,7 @@
     {
       "repo": "flask",
       "fileCount": 19,
-      "sigCount": 14,
+      "sigCount": 15,
       "tasks": 8,
       "hitAt5": 0.625,
       "mrr": 0.625,
@@ -1366,7 +1366,7 @@
       "sigCount": 31,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.667,
+      "mrr": 0.65,
       "randomBaseline": 0.104,
       "improvement": 7.7,
       "tiers": {
@@ -1402,7 +1402,7 @@
             "fastapi/dependencies/utils.py"
           ],
           "top1": "fastapi/.agents/skills/fastapi/references/dependencies.md",
-          "firstHitRank": 3,
+          "firstHitRank": 4,
           "tier": "partial"
         },
         {
