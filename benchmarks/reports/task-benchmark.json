@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-24T21:58:37.345Z",
+  "generated": "2026-09-25T14:20:34.352Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -27,7 +27,7 @@
     "hitAt5With": 78.6,
     "avgImprovement": 59.3,
     "totalGroundedSymbols": 9472,
-    "totalDarkSymbols": 58086,
+    "totalDarkSymbols": 58087,
     "hallucinationRiskPct": 86
   },
   "repos": [
@@ -70,7 +70,7 @@
       "promptsWithout": 2.94,
       "reductionPct": 61.8,
       "groundedSymbols": 461,
-      "darkSymbols": 649,
+      "darkSymbols": 650,
       "hallucinationRiskPct": 58.5
     },
     {
