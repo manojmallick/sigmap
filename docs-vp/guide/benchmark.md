@@ -47,9 +47,11 @@ Task selection, metric definitions, baselines, and the limits of what these test
 ::: tip Why token reduction moved 96.6% → 96.2% in v8.51.2
 The Python AST extractor began running in production for the first time ([#693](https://github.com/manojmallick/sigmap/issues/693)). It was always the documented Tier-1 path — `KNOWN_LIMITATIONS.md` describes it as a native CPython AST parse when `python3` is on PATH — but nothing in the shipped pipeline passed it a file path, so Python files silently used the Tier-2 regex tier instead.
 
-AST signatures are **richer per symbol**: they carry type annotations, docstrings, `self`, and default markers. Measured on `flask`: 661 → 670 signatures, but 54.4 → 65.8 characters each (+21%), so roughly 23% more Python tokens. The two Python-heavy repos in the corpus account for the whole delta — `fastapi` 97.8% → 89.5%, `flask` 95.6% → 94.6% — while every non-Python repo is unchanged.
+AST signatures are **richer per symbol**: they carry type annotations, return types and docstring hints. Measured on `flask`, 661 → 670 signatures at 54.4 → 63.8 characters each (+17%). The two Python-heavy repos in the corpus account for the whole delta — `fastapi` 97.8% → 89.6%, `flask` 95.6% → 94.8% — while every non-Python repo is unchanged.
 
-This is a deliberate trade, not a regression: more accurate Python grounding at slightly lower compression. A repo built on a machine without `python3` still gets the regex tier and its previous numbers, exactly as the limitations table has always stated.
+We looked for waste before accepting the number. The AST tier had been emitting the implicit `self`/`cls` receiver that the regex tier has always filtered — 233 of flask's 235 methods carried it, for no information. Removing it recovered about 3% of Python signature bytes and, more importantly, made the two tiers agree on the same file. It moved the headline figure by roughly 0.1–0.2 points per repo: **the rest of the increase is type annotations, and those are the point.**
+
+So this is a deliberate trade, not drift: more accurate Python grounding at slightly lower compression. A repo built on a machine without `python3` still gets the regex tier and its previous numbers, exactly as the limitations table has always stated.
 :::
 
 | Metric | Result |
