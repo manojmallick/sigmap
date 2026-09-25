@@ -36,6 +36,12 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.50.0)
+- **@manojmallick** — feat(extractors): semantic CI/pipeline extractor — a GitHub Actions workflow reduced to `keys: [name, on, jobs]` plus bare job ids with no triggers, steps, secrets or line anchors; now parsed structurally across nine CI formats with real `:start-end` anchors, routed by path ahead of the extension map (#3, PR #717)
+- **@manojmallick** — feat(deps): dependency inventory across nine ecosystems — `pom.xml (maven) | present` replaced with real coordinates, Maven `${property}` placeholders resolved, and a locked lockfile version preferred over a declared range (#2a, PR #717)
+- **@manojmallick** — feat(strategy): opt-in `strategy: "index"` — the always-on context file becomes a ~377-token map and every signature moves to `.context/sig-index.json`, cutting this repo's always-on cost from ~13,892 tokens and unsuppressing `sigmap ask` (#1a, PR #717)
+- **@manojmallick** — feat(deps): deterministic CycloneDX 1.5 SBOM export and `sigmap deps`, deliberately stopping short of a CVE feed so byte-reproducibility holds and osv-scanner/Dependabot own the scanning (#2c', PR #717)
+
 ### Recent Contributors (v8.49.2)
 - **@manojmallick** — fix(cli): an unrecognized subcommand fell through the dispatch chain onto the default generate path and silently rewrote `AGENTS.md`/`CLAUDE.md`/copilot/gemini context files with exit 0; a `KNOWN_COMMANDS` guard now rejects it before any dispatch, with a levenshtein-2 suggestion (#655, PR #710)
 - **@manojmallick** — fix(cli): `--report --json` documented "exits 1 if over budget" but the dispatch tail's `process.exit(0)` clobbered `process.exitCode`, so every CI job trusting that contract was silently green; the gate now covers text and JSON alike via `exitWithCode()` (#656, PR #710)

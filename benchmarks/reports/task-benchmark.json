@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-15T08:22:15.347Z",
+  "generated": "2026-09-24T21:58:37.345Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,9 +26,9 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 78.6,
     "avgImprovement": 59.3,
-    "totalGroundedSymbols": 9498,
-    "totalDarkSymbols": 58060,
-    "hallucinationRiskPct": 85.9
+    "totalGroundedSymbols": 9472,
+    "totalDarkSymbols": 58086,
+    "hallucinationRiskPct": 86
   },
   "repos": [
     {
@@ -69,9 +69,9 @@
       "promptsWith": 1.13,
       "promptsWithout": 2.94,
       "reductionPct": 61.8,
-      "groundedSymbols": 472,
-      "darkSymbols": 638,
-      "hallucinationRiskPct": 57.5
+      "groundedSymbols": 461,
+      "darkSymbols": 649,
+      "hallucinationRiskPct": 58.5
     },
     {
       "repo": "spring-petclinic",
@@ -195,9 +195,9 @@
       "promptsWith": 1.2,
       "promptsWithout": 3,
       "reductionPct": 60,
-      "groundedSymbols": 1454,
-      "darkSymbols": 6944,
-      "hallucinationRiskPct": 82.7
+      "groundedSymbols": 1439,
+      "darkSymbols": 6959,
+      "hallucinationRiskPct": 82.9
     },
     {
       "repo": "akka",

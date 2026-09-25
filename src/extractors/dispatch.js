@@ -10,6 +10,7 @@
  */
 
 const path = require('path');
+const pipeline = require('./pipeline');
 
 // Static language → extractor map (every entry is a bundled factory).
 const EXTRACTORS = {
@@ -47,6 +48,7 @@ const EXTRACTORS = {
   properties: require('./properties'),
   xml: require('./xml'),
   markdown: require('./markdown'),
+  pipeline: require('./pipeline'),
   dockerfile: require('./dockerfile'),
   generic: require('./generic'),
 };
@@ -105,7 +107,13 @@ const EXT_MAP = {
 
 /** Resolve a language key from a file path/name. */
 function langFor(filePathOrName) {
-  const base = path.basename(String(filePathOrName || ''));
+  const raw = String(filePathOrName || '');
+  // CI/pipeline definitions route by PATH, ahead of the extension map:
+  // `.github/workflows/ci.yml` is a workflow first and YAML second, and
+  // `Jenkinsfile` has no extension at all. Resolution stays single-source —
+  // this is a path rule, not a second extension map.
+  if (pipeline.platformFor(raw)) return 'pipeline';
+  const base = path.basename(raw);
   if (base === 'Dockerfile' || base.startsWith('Dockerfile.')) return 'dockerfile';
   const ext = path.extname(base).toLowerCase();
   return EXT_MAP[ext] || null;
@@ -123,7 +131,10 @@ function extractFile(filePathOrName, src) {
   const mod = lang ? EXTRACTORS[lang] : null;
   if (!mod || typeof mod.extract !== 'function') return [];
   try {
-    const out = mod.extract(src);
+    // Only the pipeline extractor takes the path as a second argument. It is
+    // NOT passed blanket-wide: python's extract(src, filePath) would switch to
+    // the native AST tier and change output for every caller of this function.
+    const out = lang === 'pipeline' ? mod.extract(src, filePathOrName) : mod.extract(src);
     return Array.isArray(out) ? out : [];
   } catch (_) {
     return [];

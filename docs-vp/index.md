@@ -1,7 +1,7 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% average token reduction, 35 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% average token reduction, 36 languages with R support.
 head:
   - - meta
     - property: og:title
@@ -60,7 +60,7 @@ features:
     link: /guide/judge
     linkText: Workflow docs →
   - icon: 🌐
-    title: 35 languages, zero native deps
+    title: 36 languages, zero native deps
     details: TypeScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, R, GDScript, and more.
     link: /guide/languages
     linkText: Language support →
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.49.2</span>
+  <span><strong>Release:</strong> v8.50.0</span>
   <span>·</span>
-  <span><strong>New — the CLI stops lying:</strong> seven fixes from a full-CLI audit, every one a command that exited 0 while doing the wrong thing. A typo'd subcommand silently rewrote your <code>CLAUDE.md</code>; <code>--report --json</code> promised a CI exit-1 gate that never fired; <code>learn</code> decayed weights toward 0 instead of neutral; <code>--impact</code> printed paths that climbed out of the repo on every macOS checkout; <code>compare</code> crashed after a minute outside this repo; <code>validate</code> reported 218% coverage. Plus two drift gates that derive the CLI's documented surface from the dispatch chain itself, so this class of rot fails CI instead of shipping. 35 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — the map stops competing with the territory:</strong> the generated context file had been carrying every signature and auto-injecting it — ~13,900 tokens on this repo, paid before a single question was asked. That does not merely cost tokens, it <em>suppresses retrieval</em>: an agent already holding a superset of what <code>sigmap ask</code> returns is right not to call it. The opt-in <code>strategy:"index"</code> keeps the always-on file to a map (~377 tokens) and leaves every signature in the retrieval index, which is pinned byte-identical across strategies. Alongside it: a semantic CI/pipeline extractor for nine formats, real dependency coordinates across nine ecosystems, and deterministic CycloneDX export — scanning deliberately left to osv-scanner. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.49-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.50-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 96.6% token reduction · 2026-09-15</span>
+  <span>78.6% hit@5 · 96.6% token reduction · 2026-09-24</span>
 </div>
 </div>
 
@@ -176,7 +176,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.6%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-09-15 (v8.49.2)**.
+Latest saved benchmark run: **2026-09-24 (v8.50.0)**.
 
 </div>
 
