@@ -10,6 +10,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.51.0] — 2026-09-25
+
+### Fixed
+- **Multi-module JVM projects indexed almost nothing** (PR #721) — a standard Gradle/Maven/sbt build keeps its code under `<module>/src/main/<lang>`, but the root-level candidate scan never reached it: `_countSourceFiles` looks two levels deep and the source sits at four, so every module scored 0 and the only survivor was whatever dir happened to hold a manifest. Measured before the fix: **okhttp indexed 4 files of 596, akka 29 of 2,651** — on the layout that covers a large share of the Java/Kotlin/Scala world. Module source sets are now enumerated directly, and the six-root cap (tuned for JS layouts, where six is generous) is lifted only for these builds, since one root per module is the correct answer rather than over-detection. Detection is **structural** — two or more module source dirs on disk — with Gradle `include`, Maven `<modules>` and sbt `lazy val … = project` as secondary signals, so a build file declaring modules that are not present cannot mislead it
+- **Kotlin Multiplatform source sets were invisible** (PR #721) — everything assumed the source set is called `main`, which has not been true of Kotlin for years. okhttp's core module keeps 307 files under `okhttp/src/jvmMain/kotlin` and `src/androidMain/kotlin`, none of which matched. Source sets are now discovered rather than assumed, so `commonMain`, `jvmMain`, `androidMain`, `nativeMain` and custom sets are all found; anything test-shaped (`src/test`, `commonTest`, `androidHostTest`) is excluded, because test files are indexed by their own pass and must not become source roots
+- **`JVM_PATH_PATTERN` was anchored to the repo root** (PR #721) — it matched `src/main/java` but not `<module>/src/main/java`, so it also silently withheld its +5.0 score from the `packages/<pkg>/src/main/java` candidates the monorepo branch had been enumerating all along
+
+### Changed
+- **Measured effect across 15 real repos** (PR #721) — okhttp 4 → 326 files, akka 29 → 582, retrofit 571 → 697, kotlinx-coroutines 40 → 90, gson 244 → 265. The nine non-JVM-multi-module repos in the same sweep (express, fastapi, httpx, laravel, clap, cobra, sidekiq, dio, upickle) scanned an **identical** file count before and after, so the change is confined to the layout it targets
+
+---
+
 ## [8.50.1] — 2026-09-25
 
 ### Fixed

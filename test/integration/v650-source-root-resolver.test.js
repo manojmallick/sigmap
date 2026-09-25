@@ -532,4 +532,187 @@ test('resolveSourceRoots is deterministic across repeated calls (tied scores)', 
     'tied-score dirs must be in a stable alphabetical order');
 });
 
+
+// ───────────── JVM multi-module source roots (v8.51) ─────────────
+//
+// A standard Gradle/Maven/sbt multi-module build kept its source under
+// `<module>/src/main/<lang>`, which the root-level candidate scan never
+// reached: `_countSourceFiles` looks 2 levels deep and the code sits at 4.
+// Measured before the fix: okhttp indexed 4 files of 596, akka 29 of 2,651.
+//
+// Kotlin Multiplatform compounded it — okhttp's core keeps 307 files under
+// `okhttp/src/jvmMain/kotlin`, and nothing assumed a source set could be
+// called anything but `main`.
+
+const KOTLIN = 'class Foo {\n  fun bar(baz: String): Int { return 1 }\n}\n';
+const JAVA = 'public class Foo {\n  public int bar(String baz) { return 1; }\n}\n';
+
+/** A module with `count` source files under one source set. */
+function moduleFiles(mod, sourceSet, lang, count, body) {
+  const out = {};
+  for (let i = 0; i < count; i++) {
+    out[`${mod}/src/${sourceSet}/${lang}/pkg/File${i}.${lang === 'java' ? 'java' : 'kt'}`] = body;
+  }
+  return out;
+}
+
+test('gradle multi-module: every module source dir becomes a root', () => {
+  const cwd = makeRepo(Object.assign(
+    {
+      'settings.gradle.kts': 'include(":core")\ninclude(":client")\ninclude(":server")\n',
+      'build.gradle.kts': 'plugins { kotlin("jvm") }\n',
+    },
+    moduleFiles('core', 'main', 'kotlin', 4, KOTLIN),
+    moduleFiles('client', 'main', 'kotlin', 4, KOTLIN),
+    moduleFiles('server', 'main', 'kotlin', 4, KOTLIN),
+  ));
+  const { roots, isJvmMultiModule } = resolveSourceRoots(cwd);
+  assert.strictEqual(isJvmMultiModule, true, 'multi-module build not recognised');
+  for (const m of ['core', 'client', 'server']) {
+    assert.ok(roots.includes(`${m}/src/main/kotlin`),
+      `${m} missing from roots: ${roots.join(', ')}`);
+  }
+});
+
+test('kotlin multiplatform source sets are found, not just `main`', () => {
+  const cwd = makeRepo(Object.assign(
+    { 'settings.gradle.kts': 'include(":core")\ninclude(":io")\n' },
+    moduleFiles('core', 'jvmMain', 'kotlin', 4, KOTLIN),
+    moduleFiles('core', 'commonMain', 'kotlin', 4, KOTLIN),
+    moduleFiles('core', 'androidMain', 'kotlin', 3, KOTLIN),
+    moduleFiles('io', 'main', 'kotlin', 4, KOTLIN),
+  ));
+  const { roots } = resolveSourceRoots(cwd);
+  for (const r of ['core/src/jvmMain/kotlin', 'core/src/commonMain/kotlin', 'core/src/androidMain/kotlin']) {
+    assert.ok(roots.includes(r), `${r} missing: ${roots.join(', ')}`);
+  }
+  // The classic layout still works alongside it.
+  assert.ok(roots.includes('io/src/main/kotlin'), roots.join(', '));
+});
+
+test('test source sets never become source roots', () => {
+  const cwd = makeRepo(Object.assign(
+    { 'settings.gradle.kts': 'include(":core")\ninclude(":io")\n' },
+    moduleFiles('core', 'main', 'kotlin', 4, KOTLIN),
+    moduleFiles('core', 'test', 'kotlin', 6, KOTLIN),
+    moduleFiles('core', 'commonTest', 'kotlin', 6, KOTLIN),
+    moduleFiles('core', 'androidHostTest', 'kotlin', 6, KOTLIN),
+    moduleFiles('io', 'main', 'kotlin', 4, KOTLIN),
+  ));
+  const { roots } = resolveSourceRoots(cwd);
+  const leaked = roots.filter((r) => /test/i.test(r));
+  assert.deepStrictEqual(leaked, [], `test source sets leaked into roots: ${leaked.join(', ')}`);
+  assert.ok(roots.includes('core/src/main/kotlin'), roots.join(', '));
+});
+
+test('maven <modules> builds are recognised', () => {
+  const cwd = makeRepo(Object.assign(
+    {
+      'pom.xml': '<project><modules><module>api</module><module>impl</module></modules></project>',
+    },
+    moduleFiles('api', 'main', 'java', 4, JAVA),
+    moduleFiles('impl', 'main', 'java', 4, JAVA),
+  ));
+  const { roots, isJvmMultiModule } = resolveSourceRoots(cwd);
+  assert.strictEqual(isJvmMultiModule, true);
+  assert.ok(roots.includes('api/src/main/java'), roots.join(', '));
+  assert.ok(roots.includes('impl/src/main/java'), roots.join(', '));
+});
+
+test('sbt multi-project builds are recognised', () => {
+  const cwd = makeRepo(Object.assign(
+    { 'build.sbt': 'lazy val core = project.in(file("core"))\nlazy val stream = project.in(file("stream"))\n' },
+    moduleFiles('core', 'main', 'scala', 4, 'class Foo { def bar(x: String): Int = 1 }\n'),
+    moduleFiles('stream', 'main', 'scala', 4, 'class Baz { def qux(x: String): Int = 1 }\n'),
+  ));
+  const { roots, isJvmMultiModule } = resolveSourceRoots(cwd);
+  assert.strictEqual(isJvmMultiModule, true);
+  assert.ok(roots.includes('core/src/main/scala'), roots.join(', '));
+});
+
+test('a module layout with no build file is still found (structure decides)', () => {
+  // A build file can declare modules that are absent, and a layout can be
+  // multi-module under a tool nobody enumerated. Two module source dirs on
+  // disk is the honest signal.
+  const cwd = makeRepo(Object.assign(
+    {},
+    moduleFiles('alpha', 'main', 'java', 4, JAVA),
+    moduleFiles('beta', 'main', 'java', 4, JAVA),
+  ));
+  const { roots, isJvmMultiModule } = resolveSourceRoots(cwd);
+  assert.strictEqual(isJvmMultiModule, true, 'structural detection failed');
+  assert.ok(roots.includes('alpha/src/main/java'), roots.join(', '));
+});
+
+test('grouped modules one level deeper are found', () => {
+  const cwd = makeRepo(Object.assign(
+    { 'settings.gradle': 'include ":samples:guide"\ninclude ":libs:core"\n' },
+    moduleFiles('samples/guide', 'main', 'java', 4, JAVA),
+    moduleFiles('libs/core', 'main', 'kotlin', 4, KOTLIN),
+  ));
+  const { roots } = resolveSourceRoots(cwd);
+  assert.ok(roots.includes('samples/guide/src/main/java'), roots.join(', '));
+  assert.ok(roots.includes('libs/core/src/main/kotlin'), roots.join(', '));
+});
+
+test('the 6-root cap is lifted only for multi-module JVM builds', () => {
+  // okhttp has 27 module source dirs; a cap tuned for JS layouts would
+  // discard most of the repo.
+  const files = { 'settings.gradle.kts': '' };
+  for (let m = 0; m < 12; m++) {
+    files['settings.gradle.kts'] += `include(":m${m}")\n`;
+    Object.assign(files, moduleFiles(`m${m}`, 'main', 'kotlin', 4, KOTLIN));
+  }
+  const { roots } = resolveSourceRoots(makeRepo(files));
+  assert.ok(roots.length > 6, `cap not lifted for a 12-module build: ${roots.length} roots`);
+  assert.ok(roots.length >= 12, `modules dropped: ${roots.length} of 12`);
+});
+
+test('a single-module JVM project is unaffected', () => {
+  const cwd = makeRepo(Object.assign(
+    { 'build.gradle': 'apply plugin: "java"\n' },
+    moduleFiles('', 'main', 'java', 5, JAVA),
+  ));
+  const { roots, isJvmMultiModule } = resolveSourceRoots(cwd);
+  assert.strictEqual(isJvmMultiModule, false, 'single module wrongly treated as multi-module');
+  assert.ok(roots.includes('src/main/java'), roots.join(', '));
+});
+
+test('non-JVM projects are untouched by the JVM branch', () => {
+  // Verified empirically too: 9 of 10 field-test repos scanned an identical
+  // file count before and after this change.
+  const cwd = makeRepo({
+    'package.json': '{"name":"app","version":"1.0.0"}',
+    'src/index.ts': 'export function a(x: string) { return x; }',
+    'src/auth.ts': 'export function b(x: string) { return x; }',
+    'src/db.ts': 'export function c(x: string) { return x; }',
+  });
+  const { roots, isJvmMultiModule } = resolveSourceRoots(cwd);
+  assert.strictEqual(isJvmMultiModule, false);
+  assert.ok(roots.includes('src'), roots.join(', '));
+  assert.ok(roots.length <= 6, `JS project exceeded the normal cap: ${roots.join(', ')}`);
+});
+
+test('JVM_PATH_PATTERN matches module and multiplatform paths, not tests', () => {
+  for (const p of ['src/main/kotlin', 'okhttp/src/main/kotlin', 'okhttp/src/jvmMain/kotlin',
+    'core/src/commonMain/kotlin', 'packages/a/src/main/java', 'app/src/main/java',
+    'samples/guide/src/main/java']) {
+    assert.ok(JVM_PATH_PATTERN.test(p), `should match: ${p}`);
+  }
+  for (const p of ['src/commonTest/kotlin', 'core/src/jvmTest/kotlin', 'src/androidHostTest/kotlin',
+    'src/main/resources', 'notsrc/main/kotlin']) {
+    assert.ok(!JVM_PATH_PATTERN.test(p), `should NOT match: ${p}`);
+  }
+});
+
+test('multi-module detection is deterministic', () => {
+  const files = Object.assign(
+    { 'settings.gradle.kts': 'include(":a")\ninclude(":b")\n' },
+    moduleFiles('a', 'main', 'kotlin', 4, KOTLIN),
+    moduleFiles('b', 'jvmMain', 'kotlin', 4, KOTLIN),
+  );
+  const cwd = makeRepo(files);
+  assert.deepStrictEqual(resolveSourceRoots(cwd).roots, resolveSourceRoots(cwd).roots);
+});
+
 console.log('\nAll tests passed!');

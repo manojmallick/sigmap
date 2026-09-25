@@ -1,7 +1,7 @@
 {
-  "version": "8.50.1",
+  "version": "8.51.0",
   "benchmark_date": "2026-09-24",
-  "benchmark_id": "sigmap-v8.50-main",
+  "benchmark_id": "sigmap-v8.51-main",
   "languages": 36,
   "extractors": 50,
   "mcp_tools": 22,

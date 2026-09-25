@@ -36,6 +36,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.51.0)
+- **@manojmallick** — fix(discovery): multi-module JVM builds indexed almost nothing (okhttp 4 files of 596, akka 29 of 2,651) because module source lives four levels deep and the candidate scan looked two; module source sets are now enumerated structurally, and Kotlin Multiplatform sets (`jvmMain`, `commonMain`, `androidMain`) are discovered rather than assumed to be `main` (PR #721)
+
 ### Recent Contributors (v8.50.1)
 - **@manojmallick** — fix(extractors): the v8.50.0 CI/pipeline extractor was wired into `langFor` but not into file discovery, so `.github/workflows/` — a root dotdir never in `srcDirs` — was never walked and the feature did nothing in real use; `collectPipelineEntries` now indexes CI definitions the same way test files are indexed (PR #717 follow-up)
 
