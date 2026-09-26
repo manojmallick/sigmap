@@ -4,10 +4,10 @@ description: SigMap extracts signatures from 31 programming languages and format
 head:
   - - meta
     - property: og:title
-      content: "SigMap Language Support — 31 languages, zero Tree-sitter"
+      content: "SigMap Language Support — 36 languages, zero Tree-sitter"
   - - meta
     - property: og:description
-      content: "Pure regex AST extraction for 31 languages and formats. No compiler required, no binary dependencies."
+      content: "Pure regex AST extraction for 36 languages and formats. No compiler required, no binary dependencies."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/languages"

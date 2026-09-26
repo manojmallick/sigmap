@@ -30,7 +30,7 @@ Each tool is optimised for a specific workflow. They stack, not compete.
 
 ### sigmap — Always-on signatures
 
-Runs automatically on every save and every commit. Extracts function and class signatures from 29 languages and formats. Writes a compact context file that every AI coding agent can read at session start.
+Runs automatically on every save and every commit. Extracts function and class signatures from 36 languages and formats. Writes a compact context file that every AI coding agent can read at session start.
 
 - Automatic — zero manual steps after `--setup`
 - Under 4,000 tokens for any codebase

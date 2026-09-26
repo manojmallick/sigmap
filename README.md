@@ -54,7 +54,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Deterministic and verifiable — the two things an agentic-grep loop can't give you:**
 - **Deterministic** — no LLM calls, no agent loop; the same repo always produces a byte-identical map you can diff, cache, and gate in CI.
-- **Auditable & grounded** — every file and symbol traces to a real line anchor; `sigmap verify` flags any AI claim that isn't.
+- **Auditable & grounded** — every symbol in the AST and anchored-regex tiers carries a real `:start-end` line anchor; Tier-3 formats (Ruby, R, Lua, Elixir, C/C++, config formats) are listed without anchors, as [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) states. `sigmap verify` flags any AI claim that isn't grounded.
 - **Zero dependencies** — `npx sigmap` on any machine; no embeddings, no vector DB, no hosted service, fully offline.
 
 **Proof it pays off** (full benchmark below):
@@ -99,7 +99,7 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
 | Without SigMap | With SigMap |
 |---|---|
 | ❌ Non-reproducible agent guesses | ✅ Deterministic map — same input, same output, every time |
-| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->79%<!--/SM:hitWhole--> of the time, every symbol on a real line anchor |
+| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->79%<!--/SM:hitWhole--> of the time, anchored tiers on a real line anchor |
 | ❌ Embeddings / vector DB required | ✅ Zero deps, no infra, fully offline |
 
 ---

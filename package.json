@@ -1,7 +1,7 @@
 {
   "name": "sigmap",
   "version": "8.51.4",
-  "description": "The deterministic, verifiable grounding layer for AI code work — a zero-dependency signature-and-evidence map that grounds Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP agents against your real code (repo + installed libraries) so they stop hallucinating files, imports & APIs. Runs offline via npx; byte-stable output; ~97% token reduction as proof.",
+  "description": "The deterministic, verifiable grounding layer for AI code work \u2014 a zero-dependency signature-and-evidence map that grounds Claude, Cursor, Copilot, Aider, Windsurf, local LLMs & MCP agents against your real code (repo + installed libraries) so they stop hallucinating files, imports & APIs. Runs offline via npx; byte-stable output; ~97% token reduction as proof.",
   "main": "packages/core/index.js",
   "exports": {
     ".": "./packages/core/index.js",
@@ -51,7 +51,7 @@
     "validate:llms": "node scripts/validate-llms.mjs",
     "metrics:latest": "node scripts/gen-benchmark-latest.mjs",
     "metrics:sync": "node scripts/gen-benchmark-latest.mjs && node scripts/check-version-meta.mjs --fix && node scripts/sync-metrics.mjs && node scripts/generate-llms.mjs",
-    "check:metrics": "node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check",
+    "check:metrics": "node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check && node scripts/check-doc-counts.mjs",
     "prepublishOnly": "node scripts/check-bundle.mjs && node scripts/build-bundle.mjs --check && node scripts/gen-benchmark-latest.mjs --check && node scripts/check-version-meta.mjs && node scripts/sync-metrics.mjs --check && node scripts/generate-llms.mjs",
     "benchmark:grounding": "node scripts/run-hallucination-benchmark.mjs",
     "benchmark:honest": "node scripts/run-honest-benchmark.mjs --save",
@@ -60,7 +60,8 @@
     "validate:source-roots": "node scripts/run-source-root-gate.mjs --gate",
     "benchmark:retrieval": "node scripts/run-retrieval-gate.mjs",
     "validate:retrieval": "node scripts/check-corpus.mjs && node scripts/check-corpus.mjs benchmarks/tasks/retrieval-mined.jsonl && node scripts/run-retrieval-gate.mjs --gate --no-regress",
-    "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save"
+    "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save",
+    "fix:doc-counts": "node scripts/check-doc-counts.mjs --fix"
   },
   "files": [
     "gen-context.js",
