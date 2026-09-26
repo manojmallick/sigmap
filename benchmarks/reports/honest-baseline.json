@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-22T07:35:07.767Z",
+  "generated": "2026-09-26T00:06:17.308Z",
   "methodology": {
     "corpus": "benchmarks/tasks/*.jsonl",
     "scorer": "src/eval/scorer.js hitAtK/reciprocalRank, k=5",
@@ -11,36 +11,36 @@
     "tasks": 125,
     "repos": 19,
     "sigmap": {
-      "hitAt5": 0.76,
-      "mrr": 0.681
+      "hitAt5": 0.864,
+      "mrr": 0.728
     },
     "grepBaseline": {
-      "hitAt5": 0.44,
-      "mrr": 0.227
+      "hitAt5": 0.408,
+      "mrr": 0.192
     },
-    "lift": 1.73,
-    "deltaPts": 32,
+    "lift": 2.12,
+    "deltaPts": 45.6,
     "splits": {
       "easy": {
         "tasks": 110,
         "sigmap": {
-          "hitAt5": 0.782,
-          "mrr": 0.697
+          "hitAt5": 0.909,
+          "mrr": 0.755
         },
         "grepBaseline": {
-          "hitAt5": 0.427,
-          "mrr": 0.224
+          "hitAt5": 0.391,
+          "mrr": 0.187
         }
       },
       "hard": {
         "tasks": 15,
         "sigmap": {
-          "hitAt5": 0.6,
-          "mrr": 0.571
+          "hitAt5": 0.533,
+          "mrr": 0.525
         },
         "grepBaseline": {
           "hitAt5": 0.533,
-          "mrr": 0.248
+          "mrr": 0.236
         }
       }
     },
@@ -49,33 +49,33 @@
         "tasks": 13,
         "sigmap": {
           "hitAt5": 1,
-          "mrr": 0.904
+          "mrr": 0.923
         },
         "grepBaseline": {
-          "hitAt5": 0.692,
-          "mrr": 0.328
+          "hitAt5": 0.615,
+          "mrr": 0.295
         }
       },
       "medium": {
         "tasks": 52,
         "sigmap": {
-          "hitAt5": 0.673,
-          "mrr": 0.597
+          "hitAt5": 0.788,
+          "mrr": 0.645
         },
         "grepBaseline": {
-          "hitAt5": 0.442,
-          "mrr": 0.243
+          "hitAt5": 0.462,
+          "mrr": 0.232
         }
       },
       "large": {
         "tasks": 60,
         "sigmap": {
-          "hitAt5": 0.783,
-          "mrr": 0.706
+          "hitAt5": 0.9,
+          "mrr": 0.757
         },
         "grepBaseline": {
-          "hitAt5": 0.383,
-          "mrr": 0.191
+          "hitAt5": 0.317,
+          "mrr": 0.136
         }
       }
     }
@@ -106,15 +106,15 @@
       "repo": "express",
       "tasks": 8,
       "bucket": "medium",
-      "sigmapHitAt5": 1,
+      "sigmapHitAt5": 0.625,
       "grepHitAt5": 0.875
     },
     {
       "repo": "fastapi",
       "tasks": 5,
       "bucket": "large",
-      "sigmapHitAt5": 0.8,
-      "grepHitAt5": 0.8
+      "sigmapHitAt5": 0.6,
+      "grepHitAt5": 0.4
     },
     {
       "repo": "fastify",
@@ -127,15 +127,15 @@
       "repo": "flask",
       "tasks": 8,
       "bucket": "medium",
-      "sigmapHitAt5": 0.875,
-      "grepHitAt5": 0.75
+      "sigmapHitAt5": 1,
+      "grepHitAt5": 0.875
     },
     {
       "repo": "gin",
       "tasks": 8,
       "bucket": "small",
       "sigmapHitAt5": 1,
-      "grepHitAt5": 0.875
+      "grepHitAt5": 0.75
     },
     {
       "repo": "laravel",
@@ -156,21 +156,21 @@
       "tasks": 5,
       "bucket": "large",
       "sigmapHitAt5": 1,
-      "grepHitAt5": 0.2
+      "grepHitAt5": 0
     },
     {
       "repo": "retrieval",
       "tasks": 20,
       "bucket": "large",
       "selfRepo": true,
-      "sigmapHitAt5": 0.5,
+      "sigmapHitAt5": 0.9,
       "grepHitAt5": 0.1
     },
     {
       "repo": "riverpod",
       "tasks": 5,
       "bucket": "large",
-      "sigmapHitAt5": 1,
+      "sigmapHitAt5": 0.8,
       "grepHitAt5": 0.4
     },
     {
@@ -184,7 +184,7 @@
       "repo": "serilog",
       "tasks": 5,
       "bucket": "medium",
-      "sigmapHitAt5": 0.2,
+      "sigmapHitAt5": 1,
       "grepHitAt5": 0
     },
     {
@@ -198,14 +198,14 @@
       "repo": "svelte",
       "tasks": 5,
       "bucket": "large",
-      "sigmapHitAt5": 0.6,
-      "grepHitAt5": 0.6
+      "sigmapHitAt5": 0.8,
+      "grepHitAt5": 0.4
     },
     {
       "repo": "vapor",
       "tasks": 5,
       "bucket": "medium",
-      "sigmapHitAt5": 0,
+      "sigmapHitAt5": 0.8,
       "grepHitAt5": 0.4
     },
     {
@@ -216,5 +216,22 @@
       "grepHitAt5": 0.4
     }
   ],
-  "skipped": []
+  "skipped": [
+    {
+      "repo": "retrieval-hard",
+      "reason": "repo not cloned"
+    },
+    {
+      "repo": "retrieval-jvm-akka",
+      "reason": "repo not cloned"
+    },
+    {
+      "repo": "retrieval-jvm-spring-petclinic",
+      "reason": "repo not cloned"
+    },
+    {
+      "repo": "retrieval-mined",
+      "reason": "repo not cloned"
+    }
+  ]
 }

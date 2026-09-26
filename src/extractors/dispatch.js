@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+
 /**
  * Bundle-safe extractor dispatch.
  *
@@ -10,6 +12,7 @@
  */
 
 const path = require('path');
+const pipeline = require('./pipeline');
 
 // Static language → extractor map (every entry is a bundled factory).
 const EXTRACTORS = {
@@ -47,6 +50,7 @@ const EXTRACTORS = {
   properties: require('./properties'),
   xml: require('./xml'),
   markdown: require('./markdown'),
+  pipeline: require('./pipeline'),
   dockerfile: require('./dockerfile'),
   generic: require('./generic'),
 };
@@ -105,7 +109,13 @@ const EXT_MAP = {
 
 /** Resolve a language key from a file path/name. */
 function langFor(filePathOrName) {
-  const base = path.basename(String(filePathOrName || ''));
+  const raw = String(filePathOrName || '');
+  // CI/pipeline definitions route by PATH, ahead of the extension map:
+  // `.github/workflows/ci.yml` is a workflow first and YAML second, and
+  // `Jenkinsfile` has no extension at all. Resolution stays single-source —
+  // this is a path rule, not a second extension map.
+  if (pipeline.platformFor(raw)) return 'pipeline';
+  const base = path.basename(raw);
   if (base === 'Dockerfile' || base.startsWith('Dockerfile.')) return 'dockerfile';
   const ext = path.extname(base).toLowerCase();
   return EXT_MAP[ext] || null;
@@ -123,7 +133,19 @@ function extractFile(filePathOrName, src) {
   const mod = lang ? EXTRACTORS[lang] : null;
   if (!mod || typeof mod.extract !== 'function') return [];
   try {
-    const out = mod.extract(src);
+    // Every extractor receives the path: python.js uses it to reach the native
+    // AST tier (#693) and pipeline.js uses it to route by location; the rest
+    // ignore the extra argument.
+    //
+    // Resolved to an absolute path when the file is on disk, because python's
+    // AST pass shells out and needs a real path. When it is NOT on disk the
+    // ORIGINAL string is passed rather than undefined, so path-routed
+    // extraction still works for in-memory content (MCP write hooks, tests) —
+    // `tryNativeExtract` returns null for a path it cannot read, so python
+    // falls back to regex on its own.
+    const abs = path.isAbsolute(filePathOrName) ? filePathOrName : path.resolve(filePathOrName);
+    const fileArg = fs.existsSync(abs) ? abs : filePathOrName;
+    const out = mod.extract(src, fileArg);
     return Array.isArray(out) ? out : [];
   } catch (_) {
     return [];

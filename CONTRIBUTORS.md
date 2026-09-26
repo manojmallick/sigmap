@@ -15,7 +15,8 @@ SigMap is built by a great community of contributors. Thank you to everyone who 
 - [Denis Solonenko](https://github.com/dsolonenko) — GDScript extractor (#146)
 - [Matt Van Horn](https://github.com/mvanhorn) — Testing, reliability improvements
 - [kumamaki](https://github.com/kumamaki) — Bug fixes, improvements
-- [Tung Lam](https://github.com/tunglambk) — Secret redaction: unquoted `.env`/YAML values (#668)
+- [Tung Lam](https://github.com/tunglambk) — Secret redaction (#668); docs-nav coverage guard (#700); config-reference drift gate (#708)
+- [rudi193-cmd](https://github.com/rudi193-cmd) — Hot-cold cold signatures in the bundled MCP server (#201); Python AST extractor wired into the shipped pipeline (#693)
 
 ## Supporters
 
@@ -35,6 +36,33 @@ To ensure proper attribution:
 ## How to Contribute
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
+
+### Recent Contributors (v8.51.4)
+- **@manojmallick** — fix(benchmarks): the quality benchmark counted signatures with a keyword-prefix allowlist, so every language whose signature starts with the identifier read as zero — ggplot2 reported 1 grounded symbol against 964 real ones and published "0% grounding" for R. Counting is now structural (fenced blocks), the impossible 114% is clamped and flagged as a failed estimate rather than printed, and a zero-with-content row fails the suite instead of reaching the public page (#694, PR #731)
+
+### Recent Contributors (v8.51.3)
+- **@manojmallick** — fix(benchmarks): the suites that only *read* the shared benchmark corpus were rewriting it — one quality-suite run changed 42 of 86 tracked artifacts, so the published hit@5 depended on which suite ran last. #522 had restored the config but not the generated context, and #480 restored the markdown adapters but not `.context/sig-index.json`, the index the ranker actually reads. One shared snapshot/restore primitive now owns the whole artifact set, and the determinism gate — which existed and worked but nothing ran — is wired into CI (#706, PR #729)
+
+### Recent Contributors (v8.51.2)
+- **[@tunglambk](https://github.com/tunglambk)** (Tung Lam) — docs(nav): `methodology.md` shipped and built but nothing linked to it, so the page explaining how the benchmarks are produced was reachable only by typing the URL; linked from the sidebar and the five benchmark pages, plus a coverage guard that derives pages-on-disk and sidebar-links independently so the next orphaned page fails CI (#700, PR #724)
+- **[@tunglambk](https://github.com/tunglambk)** (Tung Lam) — docs(config): the config reference documented three keys that exist nowhere in the source and omitted keys `loadConfig` actually reads; every key now derives from `DEFAULTS` and a drift gate fails in both directions (#708, PR #725)
+- **[@rudi193-cmd](https://github.com/rudi193-cmd)** — fix(python): `python_ast.py` was tested and documented as Tier 1 but nothing in the shipped pipeline ever passed it a file path, so every Python file in production silently used the regex tier; paths are now threaded through `extractFile` and the script resolves from both dev and packaged layouts (#693, PR #726)
+
+### Recent Contributors (v8.51.1)
+- **@manojmallick** — fix(extractors): mixin-composed classes (`extends Mixin(LitElement)`) and indented classes were dropped entirely — 111 of 326 classes on ing-bank/lion — because the class regex matched the heritage clause inline and was anchored to column 0; both extractors now walk to the body brace. Also closed a TS/JS asymmetry that silently shed every `get`/`set` accessor from TypeScript classes
+- **@manojmallick** — test(discovery): source-root coverage gate, so detection returning almost nothing fails loudly instead of passing every existing check
+
+### Recent Contributors (v8.51.0)
+- **@manojmallick** — fix(discovery): multi-module JVM builds indexed almost nothing (okhttp 4 files of 596, akka 29 of 2,651) because module source lives four levels deep and the candidate scan looked two; module source sets are now enumerated structurally, and Kotlin Multiplatform sets (`jvmMain`, `commonMain`, `androidMain`) are discovered rather than assumed to be `main` (PR #721)
+
+### Recent Contributors (v8.50.1)
+- **@manojmallick** — fix(extractors): the v8.50.0 CI/pipeline extractor was wired into `langFor` but not into file discovery, so `.github/workflows/` — a root dotdir never in `srcDirs` — was never walked and the feature did nothing in real use; `collectPipelineEntries` now indexes CI definitions the same way test files are indexed (PR #717 follow-up)
+
+### Recent Contributors (v8.50.0)
+- **@manojmallick** — feat(extractors): semantic CI/pipeline extractor — a GitHub Actions workflow reduced to `keys: [name, on, jobs]` plus bare job ids with no triggers, steps, secrets or line anchors; now parsed structurally across nine CI formats with real `:start-end` anchors, routed by path ahead of the extension map (#3, PR #717)
+- **@manojmallick** — feat(deps): dependency inventory across nine ecosystems — `pom.xml (maven) | present` replaced with real coordinates, Maven `${property}` placeholders resolved, and a locked lockfile version preferred over a declared range (#2a, PR #717)
+- **@manojmallick** — feat(strategy): opt-in `strategy: "index"` — the always-on context file becomes a ~377-token map and every signature moves to `.context/sig-index.json`, cutting this repo's always-on cost from ~13,892 tokens and unsuppressing `sigmap ask` (#1a, PR #717)
+- **@manojmallick** — feat(deps): deterministic CycloneDX 1.5 SBOM export and `sigmap deps`, deliberately stopping short of a CVE feed so byte-reproducibility holds and osv-scanner/Dependabot own the scanning (#2c', PR #717)
 
 ### Recent Contributors (v8.49.2)
 - **@manojmallick** — fix(cli): an unrecognized subcommand fell through the dispatch chain onto the default generate path and silently rewrote `AGENTS.md`/`CLAUDE.md`/copilot/gemini context files with exit 0; a `KNOWN_COMMANDS` guard now rejects it before any dispatch, with a levenshtein-2 suggestion (#655, PR #710)

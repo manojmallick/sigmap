@@ -55,6 +55,7 @@ export default defineConfig({
         text: 'Benchmarks',
         items: [
           { text: 'Overview', link: '/guide/benchmark' },
+          { text: 'Methodology', link: '/guide/methodology' },
           { text: 'Quality', link: '/guide/quality-benchmark' },
           { text: 'Retrieval', link: '/guide/retrieval-benchmark' },
           { text: 'Task benchmark', link: '/guide/task-benchmark' },

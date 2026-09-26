@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, deps, sbom, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 81 SigMap commands and flags documented with examples. ask, evidence, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 83 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,13 +19,13 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 81 SigMap commands and flags documented with examples. ask, evidence, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
+      content: "All 83 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --mcp, --report, --health, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
   - - meta
     - name: keywords
-      content: "sigmap cli, sigmap ask, sigmap evidence, sigmap judge, sigmap validate, sigmap history, sigmap --ci, sigmap --cost, sigmap flags, command line reference"
+      content: "sigmap cli, sigmap ask, sigmap evidence, sigmap deps, sigmap sbom, sigmap judge, sigmap validate, sigmap history, sigmap --ci, sigmap --cost, sigmap flags, command line reference"
 ---
 # CLI reference
 
@@ -55,6 +55,8 @@ If you are new to the product, start with the workflow pages first:
 | `evidence "<query>"` | Build a deterministic **Evidence Pack** (JSON, schema v2) — a machine-consumable signature+evidence map; writes `.context/evidence-pack.json` |
 | `evidence "<query>" --markdown` | Emit the Markdown handoff rendering to stdout (alias `--md`) |
 | `evidence "<query>" --top <n> --budget <n> --out <path>` | Tune ranked files / token budget / write the rendered output to a path |
+| `deps` | List declared dependencies across every package manifest at the repo root (`--json`, `--runtime`) |
+| `sbom` | Emit a deterministic **CycloneDX 1.5** SBOM on stdout (`--out <path>`, `--exact-only`, `--no-dev`) |
 | `squeeze <file\|->` | Minimize a pasted stacktrace / CI-log / JSON blob (`--json` for stats) |
 | `squeeze --response <file\|->` | Minimize an agent/tool response explicitly (same engine; also the `squeeze_output` MCP tool) |
 | `conventions` | Extract & report a repo's coding conventions — file naming, export style, test framework (TS/JS/Python); writes `.context/conventions.json` (`--json` for machine output) |
@@ -264,6 +266,47 @@ sigmap ask "what did I touch" --since HEAD~3 --mode index
 | Option | Description |
 |--------|-------------|
 | `--since <ref>` | Keep only ranked files changed since `<ref>` (any git ref: branch, tag, or SHA) |
+
+---
+
+## deps
+
+List every dependency the repo **declares**, across all nine supported ecosystems, read straight from the manifests — so it works on a checkout that has never been installed.
+
+Covers `package.json` (all four scopes), `requirements.txt`, `pyproject.toml` (PEP 621 and Poetry), `pom.xml`, `build.gradle(.kts)`, Gradle version catalogs, `go.mod`, `Cargo.toml`, `Gemfile`, `composer.json`, `*.csproj` and `pubspec.yaml`.
+
+Two details make the output usable rather than decorative. Maven `${property}` placeholders are resolved against the POM's own `<properties>` block, so you get `2.17.1` and not `${jackson.version}`. And when a `package-lock.json` is present the **exact locked version wins over the declared range** — `^5.1.0` is not what the code actually runs against, and a model grounded on the wrong major writes the wrong API.
+
+```bash
+sigmap deps                # human-readable, grouped by ecosystem
+sigmap deps --json         # machine-readable inventory
+sigmap deps --runtime      # production dependencies only
+```
+
+---
+
+## sbom
+
+Emit a **CycloneDX 1.5** Software Bill of Materials for the repo.
+
+SigMap deliberately does **not** ship vulnerability scanning. A network-sourced CVE section would make two runs on the same commit disagree — which contaminates the byte-reproducibility guarantee for every artifact SigMap produces, not just that section — and it would mean maintaining a vulnerability feed forever against tools that already do the job well and for free.
+
+So SigMap emits the one thing those scanners need and cannot derive from a signature map: a complete, deterministic component list. Pipe it onward:
+
+```bash
+sigmap sbom --out sbom.json && osv-scanner --sbom sbom.json
+```
+
+```bash
+sigmap sbom                      # CycloneDX JSON on stdout
+sigmap sbom --out sbom.json      # write to a file
+sigmap sbom --exact-only         # only components with a real pin
+sigmap sbom --no-dev             # production components only
+```
+
+The document carries **no `serialNumber` and no `metadata.timestamp`** — both are optional in the spec and both would vary run to run. Components are sorted by `bom-ref`, so the output is byte-identical across runs on an unchanged repo.
+
+Where a manifest declares a **range** rather than a pin, the lower bound is used and the component is explicitly labelled `sigmap:versionInferred: lower-bound-of-range`, with the original spec preserved in `sigmap:versionSpec`. The command reports how many components are pinned versus inferred on stderr, so you can say how precise a scan result actually is rather than implying a precision that is not there. Commit a lockfile to get exact pins.
 
 ---
 
@@ -1405,9 +1448,9 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs Baseline
 ────────────────────────────────────────────
- hit@5         78.6% vs 44.0% grep   (1.73× lift)
+ hit@5         86.4% vs 40.8% grep   (2.12× lift)
  Avg prompts   1.53 vs 2.84
- Token story   96.6% overall reduction
+ Token story   96.1% overall reduction
 ────────────────────────────────────────────
 ```
 
@@ -1423,7 +1466,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-96.6% fewer tokens · 78.6% retrieval hit@5 · 43.7% fewer prompts
+96.1% fewer tokens · 78.6% retrieval hit@5 · 43.7% fewer prompts
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -1432,7 +1475,13 @@ https://sigmap.io
 
 ## explain
 
-Explain why a single file is **in or out** of the generated context — which extractor claimed it, how many signatures it contributed, and a preview of them. The first thing to reach for when a file you expected is missing from the index.
+Explain why a single file is **in or out** of the generated context. It runs the same checks generation does, in the same order, and stops at the first one that excludes the file:
+
+1. **`.contextignore`** — the path matches an ignore pattern.
+2. **`srcDirs`** — the path isn't under any configured source directory.
+3. **Extractor** — the file's extractor returned no signatures.
+
+If it clears all three it is reported as **INCLUDED**, with the extractor that claimed it, how many signatures it contributed, and a preview of them. The first thing to reach for when a file you expected is missing from the index.
 
 ```bash
 sigmap explain src/auth/service.js
@@ -1445,6 +1494,24 @@ sigmap explain src/auth/service.js --json
   Signatures: 3
   Preview   : module.exports = { graphKey, displayPath }  :56-56 · function graphKey(p)  :22-24 …
 ```
+
+An excluded file names the reason and the fix:
+
+```
+[sigmap] src/thing.generated.js — EXCLUDED
+  Reason: matched .contextignore
+  Fix:    remove the pattern or add '!src/thing.generated.js' as an exception
+```
+
+```
+[sigmap] docs/note.js — EXCLUDED
+  Reason: not under any srcDir (src)
+  Fix:    add the containing directory to srcDirs in gen-context.config.json
+```
+
+`--json` emits the same as one object, with a machine-readable `reason` (`.contextignore`, `not in srcDirs`, or `no signatures`).
+
+`sigmap explain` doesn't model the token budget, so a file can read as INCLUDED here and still be dropped from a particular run once the budget is applied.
 
 `sigmap --explain <file>` is accepted as an equivalent flag form.
 
@@ -1463,7 +1530,7 @@ sigmap run --report
 
 ## sync
 
-Write **every** configured adapter output plus `llm.txt` and `llms.txt` in one pass, then print a compact diff of what changed. Use it after a config change, when you want all agent-facing files regenerated together rather than one adapter at a time.
+Write **every** configured adapter output plus `llm.txt`, `llm-full.txt` and `llms.txt` in one pass, then print what it wrote. Use it after a config change, when you want all agent-facing files regenerated together rather than one adapter at a time.
 
 ```bash
 sigmap sync
@@ -1473,6 +1540,8 @@ sigmap sync
 [sigmap] sync complete
   .github/copilot-instructions.md  updated
   llm.txt                          updated
+  llm-full.txt                     updated
+  llms.txt                         updated
 ```
 
 ---
@@ -1490,13 +1559,13 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
- SigMap version : 8.49.1
- Benchmark ID   : sigmap-v8.49-main
+ SigMap version : 8.51.2
+ Benchmark ID   : sigmap-v8.51-main
  Submitted      : 2026-09-13
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
  hit@5          : 78.6%
- token reduction: 96.6%
+ token reduction: 96.1%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
 ────────────────────────────────────────────────────────

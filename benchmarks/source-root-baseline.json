@@ -1,0 +1,270 @@
+{
+  "generated_note": "Deterministic source-root reach per cloned repo. Regenerate with --save.",
+  "min_reach": 0.05,
+  "repos": [
+    {
+      "repo": "akka",
+      "roots": 40,
+      "reached": 947,
+      "present": 1240,
+      "ratio": 0.764,
+      "jvmMultiModule": true
+    },
+    {
+      "repo": "alamofire",
+      "roots": 4,
+      "reached": 57,
+      "present": 61,
+      "ratio": 0.934,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "axios",
+      "roots": 4,
+      "reached": 65,
+      "present": 76,
+      "ratio": 0.855,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "clap",
+      "roots": 6,
+      "reached": 120,
+      "present": 124,
+      "ratio": 0.968,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "cobra",
+      "roots": 1,
+      "reached": 11,
+      "present": 36,
+      "ratio": 0.306,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "dio",
+      "roots": 4,
+      "reached": 74,
+      "present": 101,
+      "ratio": 0.733,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "echo",
+      "roots": 2,
+      "reached": 57,
+      "present": 102,
+      "ratio": 0.559,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "fastapi",
+      "roots": 4,
+      "reached": 529,
+      "present": 532,
+      "ratio": 0.994,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "fastify",
+      "roots": 6,
+      "reached": 48,
+      "present": 51,
+      "ratio": 0.941,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "flask",
+      "roots": 2,
+      "reached": 24,
+      "present": 25,
+      "ratio": 0.96,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "gin",
+      "roots": 6,
+      "reached": 59,
+      "present": 99,
+      "ratio": 0.596,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "gorm",
+      "roots": 6,
+      "reached": 83,
+      "present": 103,
+      "ratio": 0.806,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "gson",
+      "roots": 13,
+      "reached": 102,
+      "present": 102,
+      "ratio": 1,
+      "jvmMultiModule": true
+    },
+    {
+      "repo": "guzzle",
+      "roots": 2,
+      "reached": 46,
+      "present": 47,
+      "ratio": 0.979,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "httpx",
+      "roots": 2,
+      "reached": 23,
+      "present": 23,
+      "ratio": 1,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "kotlinx-coroutines",
+      "roots": 8,
+      "reached": 42,
+      "present": 401,
+      "ratio": 0.105,
+      "jvmMultiModule": true
+    },
+    {
+      "repo": "laravel",
+      "roots": 5,
+      "reached": 1665,
+      "present": 1666,
+      "ratio": 0.999,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "okhttp",
+      "roots": 31,
+      "reached": 290,
+      "present": 360,
+      "ratio": 0.806,
+      "jvmMultiModule": true
+    },
+    {
+      "repo": "polly",
+      "roots": 4,
+      "reached": 458,
+      "present": 460,
+      "ratio": 0.996,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "rails",
+      "roots": 6,
+      "reached": 659,
+      "present": 1578,
+      "ratio": 0.418,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "redux",
+      "roots": 4,
+      "reached": 23,
+      "present": 25,
+      "ratio": 0.92,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "retrofit",
+      "roots": 25,
+      "reached": 196,
+      "present": 198,
+      "ratio": 0.99,
+      "jvmMultiModule": true
+    },
+    {
+      "repo": "rich",
+      "roots": 4,
+      "reached": 105,
+      "present": 107,
+      "ratio": 0.981,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "riverpod",
+      "roots": 2,
+      "reached": 697,
+      "present": 862,
+      "ratio": 0.809,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "rust-analyzer",
+      "roots": 2,
+      "reached": 1343,
+      "present": 1387,
+      "ratio": 0.968,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "serilog",
+      "roots": 2,
+      "reached": 112,
+      "present": 112,
+      "ratio": 1,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "shiny",
+      "roots": 2,
+      "reached": 180,
+      "present": 294,
+      "ratio": 0.612,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "sidekiq",
+      "roots": 4,
+      "reached": 105,
+      "present": 113,
+      "ratio": 0.929,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "svelte",
+      "roots": 4,
+      "reached": 433,
+      "present": 437,
+      "ratio": 0.991,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "upickle",
+      "roots": 2,
+      "reached": 31,
+      "present": 91,
+      "ratio": 0.341,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "vapor",
+      "roots": 2,
+      "reached": 237,
+      "present": 238,
+      "ratio": 0.996,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "vue-core",
+      "roots": 3,
+      "reached": 314,
+      "present": 318,
+      "ratio": 0.987,
+      "jvmMultiModule": false
+    },
+    {
+      "repo": "zod",
+      "roots": 6,
+      "reached": 218,
+      "present": 224,
+      "ratio": 0.973,
+      "jvmMultiModule": false
+    }
+  ]
+}

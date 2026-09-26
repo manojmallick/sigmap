@@ -22,7 +22,18 @@ const PENALTY_DIRS = new Set([
   'benchmarks','scripts',
 ]);
 
-const JVM_PATH_PATTERN = /^(src\/main\/(java|kotlin|scala)|app\/src\/main\/(java|kotlin|scala))$/;
+// Matches a JVM source root anywhere in a path, for any SOURCE SET.
+//
+// Two separate misses were hiding behind the original anchored `src/main/...`
+// form. It never matched `<module>/src/main/kotlin`, the standard Gradle
+// multi-module layout, so every module in a 27-module build scored 0. And it
+// assumed the source set is always called `main`, which Kotlin Multiplatform
+// has not been true of for years — okhttp's core keeps 307 files under
+// `okhttp/src/jvmMain/kotlin` and `src/androidMain/kotlin`.
+//
+// Test source sets (`src/test`, `src/commonTest`, `src/androidHostTest`) are
+// excluded here; they are indexed separately and must not become src roots.
+const JVM_PATH_PATTERN = /(^|\/)(app\/)?src\/(?!.*[Tt]est)[A-Za-z0-9_]+\/(java|kotlin|scala)$/;
 
 const ROOT_ENTRYPOINTS = {
   go:         ['main.go'],

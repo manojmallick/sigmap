@@ -59,12 +59,13 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
-- **78.6% hit@5** — right file in top 5 results (vs 44.0% single-shot grep baseline — 1.73× lift)
-- **96.6% token reduction** — average across 21 real repos
+- **78.6% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
+- **86.4% vs 40.8% single-shot grep baseline** — 2.12× measured lift on the honest corpus (125 tasks / 19 repos)
+- **96.1% token reduction** — average across 21 real repos
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.6 prompts per task** — down from 2.84 (43.7% fewer retries, modeled)
 <!--/SM:whyMetrics-->
-- **<!--SM:languages-->35<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
+- **<!--SM:languages-->36<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
@@ -122,11 +123,12 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.49-main (21 repositories, including R language)
-Date      : 2026-09-15
+Benchmark : sigmap-v8.51-main (21 repositories, including R language)
+Date      : 2026-09-26
 
-Hit@5          : 78.6%   (grep-agent baseline 44.0%  — 1.73× lift)
-Token reduction: 96.6%   (across 21 repos)
+Hit@5          : 78.6%   (retrieval corpus, 18 repos)
+Honest vs grep : 86.4% vs 40.8% grep baseline — 2.12× lift (125 tasks / 19 repos)
+Token reduction: 96.1%   (across 21 repos)
 Prompt reduction : 43.7% (2.84 → 1.6 prompts per task, modeled)
 Task success   : 61.9%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
@@ -138,7 +140,7 @@ Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift
 Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.
 
 **Resources:**
-- [Full methodology →](https://sigmap.io/guide/benchmark.html)
+- [Full methodology →](https://sigmap.io/guide/methodology.html)
 - [Benchmark suite (GitHub)](https://github.com/manojmallick/sigmap-benchmark-suite) — scripts, tasks, and raw data
 - [Benchmark data (Zenodo)](https://zenodo.org/records/19898842) — archived results for reproducibility
 
@@ -200,7 +202,7 @@ volta install sigmap
 | `openai` | `.github/openai-context.md` | OpenAI API, Aider, local Ollama/llama.cpp |
 | `gemini` | `.github/gemini-context.md` | Google Gemini |
 | `codex` | `AGENTS.md` | OpenAI Codex (legacy) |
-| `willow` | _Willow MCP store (HTTP POST — no file)_ | [Willow](https://github.com/rudi193-cmd/willow-1.9) knowledge store |
+| `willow` | _Willow MCP store (HTTP POST — no file)_ | [willow-mcp](https://github.com/willow-memory/willow-mcp) knowledge store (`knowledge_ingest`) |
 
 ```bash
 sigmap --adapter copilot   # default — works with Copilot, OpenCode
@@ -329,10 +331,10 @@ sigmap --health
 | Section | Link |
 |---|---|
 | CLI reference (32 commands) | [cli.html](https://sigmap.io/guide/cli.html) |
-| Benchmark methodology | [benchmark.html](https://sigmap.io/guide/benchmark.html) |
+| Benchmark methodology | [methodology.html](https://sigmap.io/guide/methodology.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
-| <!--SM:languages-->35<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
+| <!--SM:languages-->36<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
 
 ---
 
@@ -389,7 +391,7 @@ See [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the
 
 ---
 
-## <!--SM:languages-->35<!--/SM:languages--> languages
+## <!--SM:languages-->36<!--/SM:languages--> languages
 
 TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
 
@@ -399,7 +401,7 @@ All implemented with zero external dependencies.
 
 ### Extraction honesty
 
-Not all 33 languages get the same depth — and we say so plainly:
+Not all 36 languages get the same depth — and we say so plainly:
 
 | Tier | Coverage | Depth |
 |------|----------|-------|

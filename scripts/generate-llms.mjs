@@ -73,7 +73,7 @@ function metricsBullets(d) {
     `## Core metrics (benchmark: ${d.latest.benchmark_id}, ${d.latest.benchmark_date})`,
     '',
     m.grep_baseline_hit_at_5 != null
-      ? `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)} vs ${pct(m.grep_baseline_hit_at_5 * 100)} single-shot grep baseline (${Number(m.grep_lift).toFixed(2)}× lift)`
+      ? `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)} (retrieval corpus)\n- honest vs grep: ${pct(d.latest.honest.sigmap_hit_at_5 * 100)} vs ${pct(d.latest.honest.grep_baseline_hit_at_5 * 100)} single-shot grep (${Number(d.latest.honest.lift).toFixed(2)}× lift, ${d.latest.honest.tasks} tasks / ${d.latest.honest.repos} repos)`
       : `- hit@5 retrieval: ${pct(m.hit_at_5 * 100)}`,
     `- Token reduction: ${pct(m.overall_token_reduction_pct)} average across benchmark repos`,
     `- Task-success proxy: ${pct(m.task_success_proxy_pct)} (modeled from retrieval tiers, not measured LLM sessions)`,
@@ -91,7 +91,7 @@ function metricsTable(d) {
     '| Metric | Without SigMap | With SigMap |',
     '|--------|----------------|-------------|',
     m.grep_baseline_hit_at_5 != null
-      ? `| Retrieval hit@5 | ${pct(m.grep_baseline_hit_at_5 * 100)} (single-shot grep) | ${pct(m.hit_at_5 * 100)} (${Number(m.grep_lift).toFixed(2)}× lift) |`
+      ? `| Retrieval hit@5 (retrieval corpus) | — | ${pct(m.hit_at_5 * 100)} |\n| Honest corpus hit@5 (${d.latest.honest.tasks} tasks) | ${pct(d.latest.honest.grep_baseline_hit_at_5 * 100)} (single-shot grep) | ${pct(d.latest.honest.sigmap_hit_at_5 * 100)} (${Number(d.latest.honest.lift).toFixed(2)}× lift) |`
       : `| Retrieval hit@5 | — | ${pct(m.hit_at_5 * 100)} |`,
     `| Token reduction | — | ${pct(m.overall_token_reduction_pct)} average |`,
     `| Task-success proxy (modeled) | — | ${pct(m.task_success_proxy_pct)} |`,

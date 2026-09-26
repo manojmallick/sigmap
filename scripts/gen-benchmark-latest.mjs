@@ -82,6 +82,19 @@ export function computeLatest(root = ROOT) {
   if (honest && honest.summary) {
     out.metrics.grep_baseline_hit_at_5 = round(honest.summary.grepBaseline.hitAt5, 3);
     out.metrics.grep_lift = round(honest.summary.lift, 2);
+    // The lift is SigMap-vs-grep on the HONEST corpus, so the hit@5 that
+    // divides into it has to travel with it. Publishing `grep_lift` while the
+    // only visible hit@5 came from the RETRIEVAL corpus is what made the
+    // arithmetic fail to close on every public page (#707): 78.6/40.8 reads
+    // 1.93, not the published 2.12 (= 86.4/40.8). Kept top-level so
+    // version.json's `metrics` mirror is unaffected.
+    out.honest = {
+      sigmap_hit_at_5: round(honest.summary.sigmap.hitAt5, 3),
+      grep_baseline_hit_at_5: round(honest.summary.grepBaseline.hitAt5, 3),
+      lift: round(honest.summary.lift, 2),
+      tasks: honest.summary.tasks,
+      repos: honest.summary.repos,
+    };
   }
 
   // Test-discovery (v8.5 C2) — optional, present once the benchmark has run.

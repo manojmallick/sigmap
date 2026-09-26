@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% average token reduction, 35 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.1% average token reduction, 36 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.1% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.6% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.7% fewer prompts, 96.1% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Grounded context AI can trust. Deterministic. Verifiable.
-  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 96.6% token reduction · zero deps, fully offline."
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 96.1% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →
@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 78.6% hit@5 across 18 repos and 105 tasks. A single-shot grep agent finds the right file 44.0% of the time — SigMap is a measured 1.73× better.
+    details: 78.6% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 86.4% where a single-shot grep agent finds the right file 40.8% of the time — a measured 2.12× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -60,7 +60,7 @@ features:
     link: /guide/judge
     linkText: Workflow docs →
   - icon: 🌐
-    title: 35 languages, zero native deps
+    title: 36 languages, zero native deps
     details: TypeScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, R, GDScript, and more.
     link: /guide/languages
     linkText: Language support →
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.49.2</span>
+  <span><strong>Release:</strong> v8.51.4</span>
   <span>·</span>
-  <span><strong>New — the CLI stops lying:</strong> seven fixes from a full-CLI audit, every one a command that exited 0 while doing the wrong thing. A typo'd subcommand silently rewrote your <code>CLAUDE.md</code>; <code>--report --json</code> promised a CI exit-1 gate that never fired; <code>learn</code> decayed weights toward 0 instead of neutral; <code>--impact</code> printed paths that climbed out of the repo on every macOS checkout; <code>compare</code> crashed after a minute outside this repo; <code>validate</code> reported 218% coverage. Plus two drift gates that derive the CLI's documented surface from the dispatch chain itself, so this class of rot fails CI instead of shipping. 35 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — the language that counted as zero:</strong> the quality benchmark matched each context line against a keyword allowlist (<code>function </code>, <code>class </code>, <code>def </code>, …), so every language whose signature starts with the <em>identifier</em> read as zero. R is shaped <code>name &lt;- function(args)</code>, so ggplot2 reported <strong>1 grounded symbol against 964 real ones</strong> and this site published <strong>0% grounding for R</strong> — a language with its own benchmark doc and a test inside <code>npm test</code>. Counting is now structural, over the fenced blocks the context already delimits, so a new extractor cannot go silently blind. R grounding reads 51% / 41% / 71%; the aggregate moves 9,544 → <strong>15,674</strong> grounded. An impossible <strong>114%</strong> is clamped and flagged as a failed estimate instead of printed, a zero-with-content row now fails the suite, and six stale figures on the quality page — including a "16,500+" no saved run ever supported — are re-sourced from the report. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.49-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.51-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 96.6% token reduction · 2026-09-15</span>
+  <span>78.6% hit@5 · 96.1% token reduction · 2026-09-25</span>
 </div>
 </div>
 
@@ -172,11 +172,12 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 |---|:---:|:---:|
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.6** |
-| Retrieval hit@5 | 44.0% (single-shot grep) | **78.6%** (1.73× honest lift) |
-| Overall token reduction | — | **96.6%** |
+| Retrieval hit@5 (retrieval corpus) | — | **78.6%** |
+| Honest corpus hit@5 (125 tasks) | 40.8% (single-shot grep) | **86.4%** (2.12× lift) |
+| Overall token reduction | — | **96.1%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-09-15 (v8.49.2)**.
+Latest saved benchmark run: **2026-09-25 (v8.51.4)**.
 
 </div>
 

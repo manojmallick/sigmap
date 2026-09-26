@@ -77,7 +77,30 @@ function extract(src) {
   }
 
   // Classes (exported and internal)
-  const classRegex = /^(export\s+)?(abstract\s+)?class\s+(\w+)(?:<[^{]*>)?(?:\s+extends\s+([\w<>, .]+?))?(?:\s+implements\s+[\w<> ,]+)?\s*\{/gm;
+  // The heritage clause is walked to, not matched inline — see the note in
+  // javascript.js. `extends Mixin(LitElement)` (idiomatic Lit composition)
+  // never matched the old inline form, so the whole class was dropped:
+  // no class line, no members. Leading whitespace is allowed so an indented
+  // class expression — the mixin-factory form — is reachable too.
+  const classRegex = /^[ \t]*(export\s+)?(abstract\s+)?class\s+(\w+)\b/gm;
+
+  /**
+   * Index of the `{` that opens a class body, or -1. Depth-aware so a
+   * call-expression superclass, a generic argument list and an `implements`
+   * clause are stepped over rather than mistaken for the body. Bounded.
+   */
+  const findClassBody = (from) => {
+    let depth = 0;
+    const limit = Math.min(masked.length, from + 600);
+    for (let i = from; i < limit; i++) {
+      const c = masked[i];
+      if (c === '(' || c === '<' || c === '[') depth++;
+      else if (c === ')' || c === '>' || c === ']') depth = Math.max(0, depth - 1);
+      else if (c === '{' && depth === 0) return i;
+      else if (c === ';' || c === '=') return -1;
+    }
+    return -1;
+  };
   // Web-component surface (#537): tag/selector + reactive fields + base are
   // rendered ONLY when a component marker is detected, so every other class
   // stays byte-identical.
@@ -85,12 +108,23 @@ function extract(src) {
   for (const m of stripped.matchAll(classRegex)) {
     const prefix = m[1] ? 'export ' : '';
     const abs = m[2] ? 'abstract ' : '';
-    const bodyStart = m.index + m[0].length;
+    const bodyBrace = findClassBody(m.index + m[0].length);
+    if (bodyBrace === -1) continue;
+    // `implements` is dropped: the extends target is the behavioural parent,
+    // and interfaces are already indexed in their own right.
+    const heritage = stripped.slice(m.index + m[0].length, bodyBrace)
+      .replace(/\s+/g, ' ').trim()
+      .replace(/\s*\bimplements\b.*$/, '')
+      .replace(/^extends\s+/, '').trim();
+    const bodyStart = bodyBrace + 1;
     const blockEnd = blockEndIdx(bodyStart);
     const marker = markersForClass(compMarkers.decorated, stripped, m.index, m[0]);
     const definedTag = compMarkers.defined.get(m[3]);
     const isComponent = !!(marker || definedTag);
-    const base = isComponent && m[4] ? ` extends ${m[4].trim().replace(/\s+/g, ' ')}` : '';
+    // Mixin composition is always rendered (it is not recoverable elsewhere);
+    // a plain `extends Base` stays gated on component detection so existing
+    // output is unchanged.
+    const base = heritage && (isComponent || heritage.includes('(')) ? ` extends ${heritage}` : '';
     sigs.push(`${prefix}${abs}class ${m[3]}${base}`);
     const classStartLn = lineAt(stripped, m.index);
     anchors.push([classStartLn, lineAt(stripped, blockEnd)]);
@@ -258,7 +292,12 @@ function extractClassMembers(block, maskedBlock) {
   const masked = maskedBlock || maskCode(block);
   const members = [];
   // Public methods (skip private/protected/_ prefixed and control-flow keywords)
-  const methodRe = /^\s+(?:public\s+|static\s+|async\s+|override\s+)*(\w+)\s*(?:<[^(]*>)?\s*\(/gm;
+  // `get`/`set` are in the modifier list because an accessor is part of a
+  // class's public surface — javascript.js has always treated them this way,
+  // and the asymmetry meant a TypeScript class silently lost every accessor.
+  // Found while fixing mixin-class extraction on a Lit codebase, where
+  // `static get properties()` IS the reactive surface.
+  const methodRe = /^\s+(?:public\s+|static\s+|async\s+|override\s+|get\s+|set\s+)*(\w+)\s*(?:<[^(]*>)?\s*\(/gm;
   for (const m of masked.matchAll(methodRe)) {
     if (_CTRL_KEYWORDS.has(m[1])) continue;
     if (/^(private|protected|_)/.test(m[1])) continue;

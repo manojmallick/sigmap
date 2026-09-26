@@ -46,12 +46,19 @@ export function renderTokens(root = ROOT) {
   // Honest baseline (v8.19): quote the measured grep-agent comparison, never
   // the random baseline. Falls back to no baseline clause if the honest
   // report has not been generated yet.
-  const grepClause = m.grep_baseline_hit_at_5 != null
-    ? `vs ${pct(m.grep_baseline_hit_at_5 * 100)} single-shot grep baseline — ${Number(m.grep_lift).toFixed(2)}× lift`
-    : 'right file found in top 5 results';
+  // The lift divides the HONEST corpus's own two numbers, so it must never be
+  // rendered beside `hit_at_5`, which comes from the RETRIEVAL corpus — that
+  // pairing is what made every public page fail its own arithmetic (#707):
+  // 78.6/40.8 reads 1.93, not the published 2.12 (= 86.4/40.8). The honest
+  // pair is quoted as a separate, labelled clause.
+  const honest = latest.honest;
+  const honestClause = honest
+    ? `- **${pct(honest.sigmap_hit_at_5 * 100)} vs ${pct(honest.grep_baseline_hit_at_5 * 100)} single-shot grep baseline** — ${Number(honest.lift).toFixed(2)}× measured lift on the honest corpus (${honest.tasks} tasks / ${honest.repos} repos)`
+    : null;
 
   const bullets = [
-    `- **${pct(m.hit_at_5 * 100)} hit@5** — right file in top 5 results (${grepClause})`,
+    `- **${pct(m.hit_at_5 * 100)} hit@5** — right file in top 5 results (retrieval corpus, ${latest.repos_retrieval} repos)`,
+    ...(honestClause ? [honestClause] : []),
     `- **${pct(m.overall_token_reduction_pct)} token reduction** — average across ${latest.repos_token} real repos`,
     `- **${pct(m.task_success_proxy_pct)} task-success proxy** — modeled from retrieval tiers, not measured LLM sessions`,
     `- **${m.prompts_per_task} prompts per task** — down from ${m.baseline_prompts_per_task} (${pct(m.prompt_reduction_pct)} fewer retries, modeled)`,
@@ -64,9 +71,10 @@ export function renderTokens(root = ROOT) {
     `Benchmark : ${latest.benchmark_id} (${latest.repos_token} repositories, including R language)`,
     `Date      : ${latest.benchmark_date}`,
     '',
-    m.grep_baseline_hit_at_5 != null
-      ? `Hit@5          : ${pct(m.hit_at_5 * 100)}   (grep-agent baseline ${pct(m.grep_baseline_hit_at_5 * 100)}  — ${Number(m.grep_lift).toFixed(2)}× lift)`
-      : `Hit@5          : ${pct(m.hit_at_5 * 100)}`,
+    `Hit@5          : ${pct(m.hit_at_5 * 100)}   (retrieval corpus, ${latest.repos_retrieval} repos)`,
+    ...(honest
+      ? [`Honest vs grep : ${pct(honest.sigmap_hit_at_5 * 100)} vs ${pct(honest.grep_baseline_hit_at_5 * 100)} grep baseline — ${Number(honest.lift).toFixed(2)}× lift (${honest.tasks} tasks / ${honest.repos} repos)`]
+      : []),
     `Token reduction: ${pct(m.overall_token_reduction_pct)}   (across ${latest.repos_token} repos)`,
     `Prompt reduction : ${pct(m.prompt_reduction_pct)} (${m.baseline_prompts_per_task} → ${m.prompts_per_task} prompts per task, modeled)`,
     `Task success   : ${pct(m.task_success_proxy_pct)}   (proxy — modeled from retrieval tiers)`,
