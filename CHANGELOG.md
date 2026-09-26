@@ -10,6 +10,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.51.4] — 2026-09-26
+
+### Fixed
+- **The quality benchmark counted R as zero and published it as "0% grounding"** (#694, PR #731) — `countGroundedSymbols` tested every line of generated context against a hardcoded keyword-prefix allowlist (`function `, `class `, `def `, `fun `, `struct `, … plus a `→` return-arrow fallback), so any language whose signature begins with the **identifier** rather than a keyword matched nothing and counted as zero. R is the worst case: its signatures are shaped `name <- function(args)`, so ggplot2 counted **1** grounded symbol against **964** real signature lines — a 964× undercount, published as 0% grounding for a language the project markets as a headline capability, with a dedicated `benchmarks/R_LANGUAGE_BENCHMARKS.md` and an `r-language.test.js` in `npm test`. The generated context already delimits signatures as fenced blocks under `### <file>` headers, so counting non-empty lines inside those fences is language-agnostic and cannot silently read as zero when a new extractor lands. Three more repos were wrong the same way — **ggplot2 1 → 964 (0% → 51%)**, **shiny 0 → 548 (0% → 41%)**, **dplyr 2 → 517 (0% → 71%)**, **svelte 380 → 1108 (17% → 50%)**, vue-core 244 → 666, spring-petclinic 59 → 361 — moving the aggregate from 9,544 grounded / 57,290 dark to **15,674 / 51,183**. The counter is extracted to `scripts/lib/signature-count.mjs` so it is unit-testable; the benchmark script executes on import
+- **`groundingPct` could exceed 100%** (#694, PR #731) — the ratio divides by `estimatedRawSymbols`, a `rawTokens / 200` **heuristic**, so a repo whose measured signature count beat the estimate printed an impossible percentage; okhttp published **114%**. When that happens the estimate is what is wrong, not the measurement, so the ratio is clamped, the row is flagged `estimateReliable: false`, and it is excluded from the reported average **with the exclusion and both counts printed** rather than silently dropped (`axios 183 > 161`, `okhttp 179 > 156` — 2 of 21 repos once the counting is correct). Same class as the `validate` coverage-above-100% bug closed in v8.49.2
+- **A zero that coexists with a non-empty context now fails the suite** (#694, PR #731) — the R undercount published for months because nothing asserted that a repo with a full context file must count more than zero signatures. The suite now exits 1 and names the repo instead of writing the number into `quality.json` and the public benchmark page. `contextLines` is measured **inside** the hermetic wrapper alongside the signature count, since reading the file afterwards would measure the artifact the wrapper just restored (#706)
+
+---
+
 ## [8.51.3] — 2026-09-26
 
 ### Fixed

@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.51.3, with recent releases completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v8.51.4, with recent releases completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
@@ -835,6 +835,22 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.51.4 — the language that counted as zero ✓ (2026-09-26)
+
+**Patch release, and the second consecutive one spent on the measurement layer rather than the product.** v8.51.3 fixed a benchmark that overwrote the corpus it read. This one fixes a benchmark that could not see a whole language.
+
+`countGroundedSymbols` tested every line of generated context against a hardcoded keyword-prefix allowlist — `function `, `class `, `def `, `fun `, `struct `, plus a `→` return-arrow fallback. Any language whose signature begins with the **identifier** rather than a keyword matched nothing and counted as zero. R is shaped `name <- function(args)`, so **ggplot2 reported 1 grounded symbol against 964 real signature lines** — a 964× undercount, published on the quality-benchmark page as **0% grounding for R**, a language with its own `benchmarks/R_LANGUAGE_BENCHMARKS.md` and an `r-language.test.js` inside `npm test`. Three more repos were wrong for the same reason. The context already delimits signatures as fenced blocks under `### <file>` headers, so counting non-empty lines inside them needs no per-language knowledge and cannot go silently blind when a new extractor lands.
+
+The same rows carried a second, separate defect: `groundingPct` divides by `estimatedRawSymbols`, a `rawTokens / 200` heuristic, so a repo whose measured count beat the estimate printed an impossible percentage — okhttp published **114%**, the same class as the `validate` coverage-above-100% bug closed in v8.49.2. There the estimate is what is wrong, not the measurement, so the ratio is clamped, the row is flagged, and it is dropped from the average **with the exclusion and both counts stated** rather than silently. And the guard that would have caught the original bug now exists: a repo counting zero from a non-empty context file fails the suite instead of writing the number onto a public page.
+
+Correcting the counter also caught six stale figures on the quality page that no report had ever backed — grounded symbols published as "16,500+" while every saved run said 9,544, GPT-4o overflow as 16 of 21 against a measured 14, and the three window-fit rows. Every number on that page is now sourced from `quality.json`, with the full per-repo table published rather than a rounded headline.
+
+**Tags:** `scripts/lib/signature-count.mjs` · structural fenced-block counting · `estimateReliable` · zero-grounding guard · `#694` · PR `#731`
+
+**Impact:** R grounding 0% → 51% (ggplot2), 0% → 41% (shiny), 0% → 71% (dplyr); svelte 17% → 50%; aggregate grounded 9,544 → **15,674** and dark 57,290 → **51,183**; no published percentage above 100; 174 integration tests (up from 173), 11 new assertions of which 8 fail against the v8.51.3 build.
 
 ---
 

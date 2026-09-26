@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.51.3</span>
+  <span><strong>Release:</strong> v8.51.4</span>
   <span>·</span>
-  <span><strong>New — the benchmark that graded its own homework:</strong> the suites that only <em>read</em> the shared benchmark corpus were quietly rewriting it. The honest benchmark never regenerates — it reads each repo's context as-is — so whichever suite ran last decided what the next one measured, and the published hit@5 depended on suite order. Two earlier fixes had each closed half the hole: one restored the config but not the generated context, the other restored the markdown adapters but not <code>.context/sig-index.json</code>, the index the ranker actually reads. Measured: <strong>one pre-fix run rewrote 42 of 86 shared artifacts</strong>; now zero, and the determinism gate that existed but was wired to nothing runs in CI. Refreshing the reports this unblocked also retired two stale inputs — a v8.28.1 grep baseline and a v8.8.0 test-discovery run — moving the measured lift 1.73× → <strong>2.12×</strong> and exposing that the lift had been printed beside a hit@5 from a different corpus, so the arithmetic never closed. It does now, on all thirteen public surfaces. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — the language that counted as zero:</strong> the quality benchmark matched each context line against a keyword allowlist (<code>function </code>, <code>class </code>, <code>def </code>, …), so every language whose signature starts with the <em>identifier</em> read as zero. R is shaped <code>name &lt;- function(args)</code>, so ggplot2 reported <strong>1 grounded symbol against 964 real ones</strong> and this site published <strong>0% grounding for R</strong> — a language with its own benchmark doc and a test inside <code>npm test</code>. Counting is now structural, over the fenced blocks the context already delimits, so a new extractor cannot go silently blind. R grounding reads 51% / 41% / 71%; the aggregate moves 9,544 → <strong>15,674</strong> grounded. An impossible <strong>114%</strong> is clamped and flagged as a failed estimate instead of printed, a zero-with-content row now fails the suite, and six stale figures on the quality page — including a "16,500+" no saved run ever supported — are re-sourced from the report. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.51-main</span>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **96.1%** |
 | GPT-4o overflow repos | 16/21 | **0/21** |
 
-Latest saved benchmark run: **2026-09-25 (v8.51.3)**.
+Latest saved benchmark run: **2026-09-25 (v8.51.4)**.
 
 </div>
 
