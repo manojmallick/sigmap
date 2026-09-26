@@ -37,6 +37,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.51.4)
+- **@manojmallick** — fix(benchmarks): the quality benchmark counted signatures with a keyword-prefix allowlist, so every language whose signature starts with the identifier read as zero — ggplot2 reported 1 grounded symbol against 964 real ones and published "0% grounding" for R. Counting is now structural (fenced blocks), the impossible 114% is clamped and flagged as a failed estimate rather than printed, and a zero-with-content row fails the suite instead of reaching the public page (#694, PR #731)
+
 ### Recent Contributors (v8.51.3)
 - **@manojmallick** — fix(benchmarks): the suites that only *read* the shared benchmark corpus were rewriting it — one quality-suite run changed 42 of 86 tracked artifacts, so the published hit@5 depended on which suite ran last. #522 had restored the config but not the generated context, and #480 restored the markdown adapters but not `.context/sig-index.json`, the index the ranker actually reads. One shared snapshot/restore primitive now owns the whole artifact set, and the determinism gate — which existed and worked but nothing ran — is wired into CI (#706, PR #729)
 
