@@ -22246,7 +22246,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.61.0',
+    version: '8.61.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -30273,7 +30273,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.61.0';
+const VERSION = '8.61.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -33725,6 +33725,21 @@ function main() {
           blast: __sourceSection.blast,
         } : null,
         contextPath: path.relative(cwd, outPath),
+        // #662: `cli.md` has documented `rankedFiles` since before v8.54.2 and
+        // nothing ever emitted it, so a consumer written against the documented
+        // contract got `undefined`. `ask` was also the one command whose ranked
+        // selection could not be read back from its own JSON — `selectedFiles`
+        // is a count and `contextPath` is a file to re-parse. Same per-result
+        // shape `--query --json` uses, minus `sigs`: those are already in the
+        // context file this very run wrote, and duplicating them would double
+        // the payload for no new information. Scores are rounded exactly as
+        // `cutoffScore` is, so a row and the cutoff compare as equals.
+        rankedFiles: (ranked || []).map((r, i) => ({
+          rank: i + 1,
+          file: r.file,
+          score: typeof r.score === 'number' ? Math.round(r.score * 1000) / 1000 : null,
+          tokens: typeof r.tokens === 'number' ? r.tokens : null,
+        })),
         topK: askTopK, selectedFiles: __selection.count, cutoffScore: __selection.cutoff,
         notes: __relevantNotes.map((n) => ({ text: n.text, score: n.score, paths: n.paths })),
         contextHash: __selection.hash,
