@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.60.0. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.8% (2.16× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.61.0. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
       content: "SigMap retrieval benchmark — 78.6% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 78.6% hit@5 over 105 tasks on 18 repos; honest grep comparison 88.0% vs 40.8% (2.16x lift, 125 tasks, 19 repos)."
+      content: "Latest saved run: 78.6% hit@5 over 105 tasks on 18 repos; honest grep comparison 88.0% vs 40.0% (2.20x lift, 125 tasks, 19 repos)."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,22 +15,22 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.60.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.60-main &nbsp;·&nbsp; **Date:** 2026-10-01 (with R language)
+::: info Official v8.61.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-02 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **78.6%** |
-| Honest grep comparison (125 tasks / 19 repos) | **88.0%** vs 40.8% single-shot grep — **2.16× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **88.0%** vs 40.0% single-shot grep — **2.20× lift** |
 | Graph-boosted hit@5 | **78.6%** |
-| Honest lift (vs grep agent) | **2.16×** |
+| Honest lift (vs grep agent) | **2.20×** |
 | Prompt reduction | **43.4%** (2.84 → 1.6) |
 | Task success proxy | **61.0%** |
 | Overall token reduction | **95.8%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-01 (v8.60.0)**
+Latest saved run: **2026-10-02 (v8.61.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -58,9 +58,9 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 (honest corpus, 125 tasks) | 40.8% | **88.0%** |
+| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **88.0%** |
 | Graph-boosted hit@5 | — | **78.6%** |
-| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.16x** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.20x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
 | Correct (rank 1) | ~1% | **61.0%** |
 | Partial (ranks 2–5) | ~13% | **17.1%** |
@@ -143,10 +143,10 @@ It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
 = 1.1pp, three tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
-<!-- benchmark: re-measured at v8.60.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
+<!-- benchmark: re-measured at v8.61.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
 
-::: tip Re-measured at v8.60.0 — and self-repo drift finally showed up
-All four corpora were present in the v8.60.0 release run, so the figures above
+::: tip Re-measured at v8.61.0 — and self-repo drift finally showed up
+All four corpora were present in the v8.61.0 release run, so the figures above
 are **measured, not carried forward**. Every hit@5 is unchanged from v8.56.0 to
 the decimal: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%.
 
@@ -160,8 +160,19 @@ same cached corpus rather than assumed:
 | v8.58.0 | `src/analysis/index-state.js` + tests | 73.3% (control 73.3%) | 0.589 (control 0.589) |
 | v8.59.0 | a test file, two modules rewritten | 73.3% | 0.589 |
 | v8.60.0 | a test file, five sources edited | 73.3% (control 73.3%) | **0.584** (control 0.589) |
+| v8.61.0 | two modules + a test file | 73.3% (control 73.3%) | **0.582** (control 0.584) |
 
-v8.60.0 is the first of the three to move anything: **MRR −0.005, hit@5 flat.**
+v8.61.0 moved the same way, and this time the attribution is unambiguous. The
+two corpora that score against SigMap's own source both drifted by a hair —
+`hard` MRR 0.584 → 0.582, `mined` 0.412 → 0.411, both hit@5 flat — while the two
+that score against **external** repos came back byte-identical: `easy` 90.0% /
+0.817 and `jvm` 29.5% / 0.192 on both sides. A ranking change could not have
+spared the external corpora, so the movement is corpus composition and nothing
+else: the release added `src/retrieval/with-source.js`,
+`src/retrieval/selection-quality.js` and one test file, which changed the indexed
+file set and with it the IDF statistics.
+
+v8.60.0 was the first of the three to move anything: **MRR −0.005, hit@5 flat.**
 The indexed file set changed, so the IDF statistics did too, and that was enough
 to reorder results *within* the top five without changing which queries land
 there. It is not a ranking change — `retrieval.callGraphBoost` is off by default,

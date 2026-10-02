@@ -10,6 +10,28 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.61.0] — 2026-10-02
+
+Fourth PR of ladder **R2**. Three defects on **one surface** — `ask`, the command the product is used through — so they shipped together. Two are R2's own theme (every figure names its basis); the third closes the gap between what the map saves and what the agent actually spends.
+
+### Added
+- **`ask --with-source`** (#814, PR #836) — `ask` emitted signatures only, so an agent that then needed a body opened the **whole file**: the exact cost the map exists to avoid, handed back one level down. `--with-source` slices the top symbols' lines from the `:start-end` anchors every extractor already emits, and attaches the blast radius so the agent sees what else a change there touches without a second query. Breadth first — up to three symbols per file, files in rank order — so one long member list cannot eat the budget. Bodies are secret-scanned with the same redactor `get_lines` uses, and an export list never takes a budget slot because it is already in the signature section verbatim. Strictly **opt-in**: the default context is prefix-identical, asserted by a test
+- **`ask --source-budget <tokens>`** (#814, PR #836) — the source addendum is budgeted against the project's existing `maxTokens` minus what the signatures already spent, so there is no second knob to tune; this flag overrides it for a one-off deep read. A body that does not fit is skipped **whole** and the omission disclosed in both the summary line and the written context — half a function is not a cheaper answer, it is a wrong one
+- **Stale-index banner on `ask` and the MCP read tools** (#815, PR #836) — `judge` has warned since v8.54.2 (#780) when the context it scores against is older than the sources it describes. `ask`, `read_context`, `search_signatures` and `query_context` answered from the same ground in **silence**, so a stale answer was byte-indistinguishable from a fresh one: `[sigmap] ⚠ context is 11.8 hour(s) older than src/mcp/handlers.js — this answer is ranked against stale ground`
+- **`src/retrieval/selection-quality.js`** (#806, PR #836) — `classifySelection()` splits a result set into the implementation an answer can be grounded in and the support files it cannot, and names the composition: `Selection : 2 source, 3 support (test, docs, ci)`. A selection with **no** implementation in it warns and points at `--explain`
+- **`src/retrieval/with-source.js`** (#814, PR #836) — anchor parsing, budgeted symbol slicing with a path sandbox matching `get_lines`, and a blast radius that reuses `--impact`'s reverse-dependency walk, so `ask --with-source` and `sigmap --impact <file>` cannot disagree about who depends on what
+- **`STALE_TAILS` in `src/judge/context-source.js`** (#815, PR #836) — one definition of "stale" for three surfaces rather than one rule each: the threshold and the gap wording are fixed in the shared module and only the consequence clause varies, because what a stale index does to a verdict is not what it does to a ranking. `judge`'s own line stays byte-identical to what #780 shipped
+
+### Fixed
+- **`ask` printed `Coverage : 100%` over a result set with no source code in it** (#806, PR #836) — verified on a fresh `gin` clone whose five selected files were a test, a README, a CI workflow and two unrelated sources, with not one of `gin.go`, `routergroup.go` or `tree.go` among them. The figure is fed every file the scan found, so it reports how much of `srcDirs` is **readable** — 100% in any healthy repo, whatever the query returned. The #762 precedent applies: the defect is the missing population, not the number. It now reads `readable 100% (179/179 files in srcDirs)`
+- **`ask` printed `Risk : NONE` whether or not anything had been assessed** (#806, PR #836) — on a clean checkout the probe legitimately counts zero changed files; outside a git repo it throws and the old code still rendered a level. Printed bare next to a coverage figure about an unrelated population, the pair read as "this answer is trustworthy" when nothing had been verified. Risk now names its basis — `NONE (0 file(s) changed vs HEAD)` — or reads `not assessed (no git repo, or git unavailable)` when the check could not run
+
+### Changed
+- **`ask --json` names the basis of every figure it reports** (#806, PR #836) — `coveragePopulation`, `coverageIncluded`, `coverageTotal` and a `coverageBasis` that states what the number is **not** ("NOT whether the query found the right files"); `riskAssessed`, `riskChangedFiles`, `riskBasis`; `sourceFiles`, `supportFiles`, `sourceFree`; `stale`, `staleWarning`; and `withSource` plus a `source` report carrying the budget, spend, skip count and blast radius. Every pre-existing key is unchanged, so no consumer breaks
+- **`--help` and `llms-full.txt` document `--with-source`** (PR #836) — `sigmap ask "<query>" --with-source   Add top-symbol bodies + blast radius (budgeted; --source-budget <n>)`
+
+---
+
 ## [8.60.0] — 2026-10-01
 
 Third PR of ladder **R2**. Two commands reported a **narrower scope than they claimed**, and neither said so. R2's theme is one definition per number; this is its sibling — every claim names its basis.
