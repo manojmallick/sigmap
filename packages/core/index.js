@@ -26,6 +26,7 @@ const EXT_MAP = {
   '.rs': 'rust',
   '.cs': 'csharp',
   '.cpp': 'cpp', '.c': 'cpp', '.h': 'cpp', '.hpp': 'cpp', '.cc': 'cpp',
+  '.m': 'objc', '.mm': 'objc',
   '.rb': 'ruby',       '.rake': 'ruby',
   '.php': 'php',
   '.swift': 'swift',

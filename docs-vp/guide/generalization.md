@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 36 languages, and multiple domains with 78.6% hit@5 in the latest saved v8.61.1 retrieval run.
+description: SigMap generalizes across 21 repos, 37 languages, and multiple domains with 78.6% hit@5 in the latest saved v8.61.1 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 78.6% hit@5 across 36 languages with R support"
+      content: "SigMap Generalization — 78.6% hit@5 across 37 languages with R support"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
@@ -42,7 +42,7 @@ these 105 tasks is yes — 78.6% hit@5 with no per-repo tuning in the latest sav
 :::
 
 - **21 repos** (including 3 R language repos)
-- **36 languages** (added R, GDScript, and CI/pipeline definitions)
+- **37 languages** (added R, GDScript, and CI/pipeline definitions)
 - **multiple domains**
 - **78.6%** overall hit@5
 - **no per-repo tuning**

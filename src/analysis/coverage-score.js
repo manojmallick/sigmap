@@ -30,7 +30,7 @@
 const CODE_EXTS = new Set([
   '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx',
   '.py', '.rb', '.go', '.rs', '.java', '.kt',
-  '.cs', '.cpp', '.c', '.h', '.hpp',
+  '.cs', '.cpp', '.c', '.h', '.hpp', '.m', '.mm',
   '.swift', '.dart', '.scala', '.php',
   '.vue', '.svelte', '.css', '.scss',
   '.sql', '.graphql', '.proto', '.tf',

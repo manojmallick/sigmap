@@ -196,14 +196,15 @@ test('#808 symbolMatch outweighs pathMatch — defining beats mentioning', () =>
 
 test('file-class recognises every test convention the extractors support', () => {
   for (const p of ['routes_test.go', 'test_ranker.py', 'ranker_test.rs', 'FooTest.java',
-    'FooTests.kt', 'FooSpec.scala', 'foo.test.js', 'foo.spec.ts', 'src/test/java/A.java',
+    'FooTests.kt', 'FooSpec.scala', 'FooTest.m', 'FooTests.m', 'FooTestCase.m', 'FooTests.mm',
+    'foo.test.js', 'foo.spec.ts', 'src/test/java/A.java',
     'tests/a.py', '__tests__/a.js', 'e2e/flow.ts']) {
     assert.ok(fileClass.isTestFile(p), `${p} must classify as a test file`);
   }
 });
 
 test('file-class does not misread ordinary names as tests', () => {
-  for (const p of ['Latest.java', 'contest.java', 'protest.kt', 'src/attest.go', 'greatest.js']) {
+  for (const p of ['Latest.java', 'contest.java', 'protest.kt', 'src/attest.go', 'greatest.js', 'contest.m', 'protest.mm']) {
     assert.ok(!fileClass.isTestFile(p), `${p} must NOT classify as a test file`);
   }
 });
