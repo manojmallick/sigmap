@@ -10,6 +10,28 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.61.1] — 2026-10-02
+
+Patch. A documented output contract that was partly fiction, and the guard that was missing for the whole class.
+
+### Fixed
+- **`ask --json` omitted two of the five keys its documentation promised** (#662, PR #846) — `cli.md` had described the object since before v8.54.2 as carrying `intent`, `coverage`, `cost`, `riskLevel` and `rankedFiles`. `rankedFiles` was **never implemented**, and no surface emits that name — the closest, `--query --json`, calls its array `results`. There is no `cost` key either; the figure ships as `costBefore`/`costAfter`/`savingsPct`, because a saving needs both sides of the comparison to mean anything. A consumer written against the documented contract got `undefined` twice
+- **`ask` was the one command whose ranked selection could not be read back from its own JSON** (#662, PR #846) — `selectedFiles` is a count and `contextPath` is a file to re-parse, so an agent that wanted the files and their scores had to issue a second query against the same index it had just ranked
+
+### Added
+- **`rankedFiles` in `ask --json`** (#662, PR #846) — the ranked selection as `[{ rank, file, score, tokens }]` in rank order, the same per-result shape `--query --json` uses minus `sigs`: those are already in the context file the same run wrote, and repeating them would double the payload for no new information. Scores are rounded exactly as `cutoffScore` is, so the last row's score **is** the cutoff rather than a near-miss differing in the fourth decimal — two roundings of one number is the defect this project keeps closing, so the agreement is asserted
+- **An output-contract guard for the `--json` surfaces** (#845, PR #846) — `test/integration/json-key-contract.test.js` reads the documented key list **out of `cli.md`** and asserts every key is really emitted, for `ask`, `--callers` and `judge`. The list is read rather than restated: a hand-kept copy in the test would be a third place to drift, which is the defect and not the fix. A negative case proves the comparison fails rather than passing quietly, and six of its eleven tests fail against the pre-fix binary
+
+### Changed
+- **The documented `ask --json` key list names only keys that exist** (#662, PR #846) — and states the three cost keys instead of implying a single `cost` field
+
+### Notes
+- #661 already guarded that every dispatchable **command** appears in `--help`, and #817 asks for the same at **flag** level; neither covered **output keys**, which is how a documented-but-absent key survived several releases. The exposure was live rather than theoretical: v8.61.0 added fourteen keys to this exact surface
+- The other two documented contracts were checked and found exact — `--callers` 9/9 keys, `judge` 4/4 — so `ask` was the only breach. Both are pinned anyway, because the point is the class rather than the instance
+- #817's first criterion, rendering `--help` from a canonical table, is deliberately **not** done: the command-level drift it targets is already guarded, and every flag `--help` advertises is parsed today (the six a naive `args.includes` scan flags are all read via `process.argv` or a helper), so it would be a 136-line rewrite of a literal that is currently correct. #817 stays open for the generation half
+
+---
+
 ## [8.61.0] — 2026-10-02
 
 Fourth PR of ladder **R2**. Three defects on **one surface** — `ask`, the command the product is used through — so they shipped together. Two are R2's own theme (every figure names its basis); the third closes the gap between what the map saves and what the agent actually spends.

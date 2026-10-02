@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.61.0. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.61.1. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,7 +15,7 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.61.0 benchmark snapshot
+::: info Official v8.61.1 benchmark snapshot
 **Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-02 (with R language)
 
 | Metric | Value |
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-02 (v8.61.0)**
+Latest saved run: **2026-10-02 (v8.61.1)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -143,17 +143,17 @@ It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
 = 1.1pp, three tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
-<!-- benchmark: re-measured at v8.61.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
+<!-- benchmark: re-measured at v8.61.1 — all four corpora present (43 cached repos); figures above are measured, not carried -->
 
-::: tip Re-measured at v8.61.0 — and self-repo drift finally showed up
-All four corpora were present in the v8.61.0 release run, so the figures above
+::: tip Re-measured at v8.61.1 — and self-repo drift finally showed up
+All four corpora were present in the v8.61.1 release run, so the figures above
 are **measured, not carried forward**. Every hit@5 is unchanged from v8.56.0 to
 the decimal: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%.
 
 `hard` scores against **SigMap's own source**, so anything that changes the
 indexed file set can shift its BM25 statistics whether or not ranking changed.
-Each of the last three releases was checked against a pristine worktree over the
-same cached corpus rather than assumed:
+Each of the last four releases was checked over the same cached corpus rather
+than assumed:
 
 | release | what it added to SigMap's own source | `hard` hit@5 | `hard` MRR |
 |---|---|---|---|
@@ -161,8 +161,20 @@ same cached corpus rather than assumed:
 | v8.59.0 | a test file, two modules rewritten | 73.3% | 0.589 |
 | v8.60.0 | a test file, five sources edited | 73.3% (control 73.3%) | **0.584** (control 0.589) |
 | v8.61.0 | two modules + a test file | 73.3% (control 73.3%) | **0.582** (control 0.584) |
+| v8.61.1 | a test file + 15 lines in the CLI | 73.3% | 0.582 — **unmoved** |
 
-v8.61.0 moved the same way, and this time the attribution is unambiguous. The
+v8.61.1 is the first release in the series to move **nothing**. Every gated
+corpus came back byte-identical to the v8.61.0 measurement — `hard` 73.3% /
+0.582, `mined` 60.9% / 0.411, `easy` 90.0% / 0.817, `jvm` 29.5% / 0.192 — and
+`benchmarks/reports/honest-baseline.json` differs from the previous release only
+in its `generated` timestamp. That is the expected shape for a change that adds
+a test file and fifteen lines to one JSON branch: test files are dropped first by
+the token budget, so the indexed file set the `hard` corpus scores against did
+not change, and the IDF statistics did not either. A null result is recorded here
+for the same reason the movements are — the series is only evidence if the quiet
+releases appear in it too.
+
+v8.61.0 moved the other way, and there the attribution is unambiguous. The
 two corpora that score against SigMap's own source both drifted by a hair —
 `hard` MRR 0.584 → 0.582, `mined` 0.412 → 0.411, both hit@5 flat — while the two
 that score against **external** repos came back byte-identical: `easy` 90.0% /

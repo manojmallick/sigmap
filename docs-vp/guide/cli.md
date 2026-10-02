@@ -182,7 +182,21 @@ sigmap ask "how are secrets redacted" --top 12
 
 With `--json` the output is a machine-readable object. The core keys are `intent`, `coverage`, `riskLevel`, `contextTokens`, `contextPath`, `contextHash` and `rankedFiles` — the ranked selection as `[{ rank, file, score, tokens }]`, in rank order, so the file list is readable without re-parsing the written context. Cost is reported as `costBefore`, `costAfter` and `savingsPct` rather than a single `cost` field, because a saving needs both sides of the comparison to mean anything.
 
-Until v8.62.0 this sentence promised `cost` and `rankedFiles`, and neither key existed — a consumer written against the documented contract got `undefined` twice ([#662](https://github.com/manojmallick/sigmap/issues/662)). Every documented `--json` key is now pinned by a guard test against the command's real output.
+```json
+"rankedFiles": [
+  { "rank": 1, "file": "src/graph/blast-radius.js", "score": 11.928, "tokens": 192 },
+  { "rank": 2, "file": "src/graph/impact.js",       "score": 11.056, "tokens": 260 },
+  { "rank": 3, "file": "src/util/git.js",           "score": 9.674,  "tokens": 168 }
+]
+```
+
+`sigs` are deliberately absent: the same run already wrote them to the context file at `contextPath`, so repeating them would double the payload for no new information. The last row's score **is** `cutoffScore` — both are rounded the same way, so a row and the cutoff compare as equals rather than differing in the fourth decimal.
+
+::: warning Two of these keys did not exist until v8.61.1
+This sentence promised `cost` and `rankedFiles` from before v8.54.2, and neither key was ever emitted — a consumer written against the documented contract got `undefined` twice ([#662](https://github.com/manojmallick/sigmap/issues/662)). `rankedFiles` had no implementation anywhere; `--query --json` calls its own array `results`.
+
+[#661](https://github.com/manojmallick/sigmap/issues/661) already guarded that every dispatchable *command* appears in `--help`, and [#817](https://github.com/manojmallick/sigmap/issues/817) asks for the same at *flag* level — neither covered **output keys**, which is how this survived several releases. Every documented `--json` key is now read out of this page and pinned against the command's real output, for `ask`, `--callers` and `judge`.
+:::
 
 ### Every figure names its basis (v8.61.0)
 
