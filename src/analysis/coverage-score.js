@@ -38,6 +38,23 @@ const CODE_EXTS = new Set([
   '.sh', '.bash', '.zsh', '.ps1',
 ]);
 
+/**
+ * The one coverage ratio (#848).
+ *
+ * `validate` kept its own `Math.round((covered / total) * 100)`, which agreed
+ * with this module on every populated repo and disagreed on an empty one: the
+ * hand-rolled version read 0% where every other surface read 100%. An empty
+ * in-scope set has nothing left uncovered, so 100 is the convention — and it is
+ * now stated in exactly one place.
+ *
+ * @param {number} included
+ * @param {number} total
+ * @returns {number} whole percent
+ */
+function coveragePct(included, total) {
+  return total > 0 ? Math.round((included / total) * 100) : 100;
+}
+
 function coverageScore(cwd, fileEntries, config) {
   const fs   = require('fs');
   const path = require('path');
@@ -71,7 +88,7 @@ function coverageScore(cwd, fileEntries, config) {
   const total    = allSource.length;
   const included = allSource.filter(f => includedSet.has(f)).length;
   const dropped  = total - included;
-  const pct      = total > 0 ? Math.round((included / total) * 100) : 100;
+  const pct      = coveragePct(included, total);
 
   const grade = pct >= 90 ? 'A' : pct >= 75 ? 'B' : pct >= 50 ? 'C' : 'D';
   const confidence = pct >= 90 ? 'HIGH' : pct >= 70 ? 'MEDIUM' : 'LOW';
@@ -82,7 +99,7 @@ function coverageScore(cwd, fileEntries, config) {
     const absDir   = path.resolve(cwd, relDir);
     const modFiles = allSource.filter(f => f.startsWith(absDir + path.sep) || f === absDir);
     const modIncl  = modFiles.filter(f => includedSet.has(f)).length;
-    const modPct   = modFiles.length > 0 ? Math.round((modIncl / modFiles.length) * 100) : 100;
+    const modPct   = coveragePct(modIncl, modFiles.length);
     perModule.set(relDir, { total: modFiles.length, included: modIncl, pct: modPct });
   }
 
@@ -270,6 +287,31 @@ function formatCoverage(cov, population, opts = {}) {
 }
 
 /**
+ * The `indexed` population: how much of the in-scope file list the retrieval
+ * index actually holds (#848).
+ *
+ * The naive form — `index.size / fileList.length` — is not a coverage ratio at
+ * all. The persisted index deliberately holds more than the current config
+ * scopes (declared entrypoints, test roots, CI definitions, files a srcDir
+ * change dropped), so the quotient runs past 100%: `validate` reported 218%
+ * before #770 replaced it with the INTERSECTION, and `--ci` was still gating
+ * releases on 241% until this became a shared function instead of a formula
+ * each surface kept its own copy of.
+ *
+ * @param {Set<string>|Iterable<string>} indexedRel - index keys, repo-relative
+ * @param {Iterable<string>} inScopeRel - the in-scope file list, repo-relative
+ * @returns {{score:number, included:number, total:number, grade:string}}
+ */
+function indexedCoverage(indexedRel, inScopeRel) {
+  const indexed = indexedRel instanceof Set ? indexedRel : new Set(indexedRel);
+  let included = 0;
+  let total = 0;
+  for (const f of inScopeRel) { total++; if (indexed.has(f)) included++; }
+  const score = coveragePct(included, total);
+  return { score, included, total, grade: score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 50 ? 'C' : 'D' };
+}
+
+/**
  * The files actually present in the generated context file — the `in-context`
  * population. Parsed from the `### <relpath>` section headings rather than the
  * retrieval index, because the index deliberately holds more than the budget
@@ -300,5 +342,5 @@ function inContextFiles(cwd) {
   return [...out].map((filePath) => ({ filePath }));
 }
 
-module.exports = { coverageScore, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
+module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
 

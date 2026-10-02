@@ -493,13 +493,31 @@ function rank(query, sigIndex, opts) {
     // recent-commits hoist. That made gate scores differ between a shallow CI
     // checkout and a developer clone of the same commit (#596).
     const hop1SeedEntries = scored.filter((e) => e.score > 0);
+    // #851: a file may take ONE hop-1 bonus for free — that is the designed
+    // lift for a direct neighbour of a match, and #596 pins it — but it may
+    // only ACCUMULATE further bonuses if it matched the query on its own.
+    //
+    // Without that, hop1 was added once per importing seed, so popularity
+    // became relevance: a shared utility with 23 importing seeds and bm25 0
+    // collected 23 x 0.40 = 9.2 and ranked 3rd for a query it shares no token
+    // with — above every genuine match but the top two. Whether it happened at
+    // all turned on `_computeHubs`' threshold, `ceil(fileCount * 0.2)`, which
+    // any single added file can step past: that utility has exactly 36
+    // importers, so it was hub-suppressed at 180 graph nodes and not at 181.
+    //
+    // Capping everyone at one bonus instead was tried and is wrong: files that
+    // DO match legitimately accumulate, and flattening them reordered the
+    // matches among themselves, costing a real rank-5 answer its place.
+    const hop1Matched = scored.map((e) => e.score > 0);
+    const hop1Count = new Map();
     for (const entry of hop1SeedEntries) {
       const neighbors = _graphGet(graph.forward, path.resolve(cwd, entry.file)) || [];
       for (const neighborAbs of neighbors) {
         const nk = path.normalize(neighborAbs);
         if (_isHub(nk) || hubs.has(nk) || hubs.has(nk.toLowerCase())) continue;
         const idx = _graphGet(keyToIdx, nk);
-        if (idx !== undefined) {
+        if (idx !== undefined && (hop1Matched[idx] || !hop1Count.has(idx))) {
+          hop1Count.set(idx, (hop1Count.get(idx) || 0) + 1);
           scored[idx].score += GRAPH_BOOST_AMOUNTS.hop1;
           scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + GRAPH_BOOST_AMOUNTS.hop1;
           hop1Files.add(nk);

@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.61.1. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.61.2. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,7 +15,7 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.61.1 benchmark snapshot
+::: info Official v8.61.2 benchmark snapshot
 **Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-02 (with R language)
 
 | Metric | Value |
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-02 (v8.61.1)**
+Latest saved run: **2026-10-02 (v8.61.2)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -143,10 +143,10 @@ It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
 = 1.1pp, three tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
-<!-- benchmark: re-measured at v8.61.1 — all four corpora present (43 cached repos); figures above are measured, not carried -->
+<!-- benchmark: re-measured at v8.61.2 — all four corpora present (43 cached repos); figures above are measured, not carried -->
 
-::: tip Re-measured at v8.61.1 — and self-repo drift finally showed up
-All four corpora were present in the v8.61.1 release run, so the figures above
+::: tip Re-measured at v8.61.2 — and self-repo drift finally showed up
+All four corpora were present in the v8.61.2 release run, so the figures above
 are **measured, not carried forward**. Every hit@5 is unchanged from v8.56.0 to
 the decimal: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%.
 
@@ -162,6 +162,7 @@ than assumed:
 | v8.60.0 | a test file, five sources edited | 73.3% (control 73.3%) | **0.584** (control 0.589) |
 | v8.61.0 | two modules + a test file | 73.3% (control 73.3%) | **0.582** (control 0.584) |
 | v8.61.1 | a test file + 15 lines in the CLI | 73.3% | 0.582 — **unmoved** |
+| v8.61.2 | 2 modules + 3 test files, and a ranker condition | 73.3% (control 73.3%) | **0.584** (control 0.586) |
 
 v8.61.1 is the first release in the series to move **nothing**. Every gated
 corpus came back byte-identical to the v8.61.0 measurement — `hard` 73.3% /
@@ -173,6 +174,23 @@ the token budget, so the indexed file set the `hard` corpus scores against did
 not change, and the IDF statistics did not either. A null result is recorded here
 for the same reason the movements are — the series is only evidence if the quiet
 releases appear in it too.
+
+v8.61.2 is the first release in the series whose own change touches the ranker,
+so it was measured by **toggling that one condition on the release tree** rather
+than against a previous release. With the condition off, `mined` hit@5 reads
+56.5%; with it on, 60.9% — the 4.4pp is given back, not won, because adding the
+module is what exposed the bug ([#851](https://github.com/manojmallick/sigmap/issues/851)).
+`hard` MRR moves −0.002 and `easy` does not move at all.
+
+Two MRR figures recorded for v8.61.1 above — `mined` 0.411 and `easy` 0.817 — do
+**not** reproduce on this release's tree, which measures 0.389 and 0.792 with the
+fix applied and 0.380 and 0.792 without it. Both corpora score against SigMap's
+own source, so four added files are enough to shift their IDF statistics, and
+MRR is the more sensitive of the two metrics: every published hit@5 is unchanged.
+The earlier numbers are left as recorded rather than quietly rewritten — that is
+the same provenance gap [#707](https://github.com/manojmallick/sigmap/issues/707)
+exists to close, and silently re-recording a baseline is what makes a drift
+series worthless.
 
 v8.61.0 moved the other way, and there the attribution is unambiguous. The
 two corpora that score against SigMap's own source both drifted by a hair —
