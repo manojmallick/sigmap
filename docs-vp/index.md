@@ -78,7 +78,7 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.61.1</span>
+  <span><strong>Release:</strong> v8.61.2</span>
   <span>·</span>
   <span><strong>New — the documented contract was partly fiction:</strong> the CLI reference had described <code>ask --json</code> since before v8.54.2 as "a machine-readable object with <code>intent</code>, <code>coverage</code>, <code>cost</code>, <code>riskLevel</code>, and <code>rankedFiles</code>" — and two of those five keys did not exist. <code>rankedFiles</code> was <strong>never implemented</strong>, and no surface emits that name; there is no <code>cost</code> key either, the figure shipping as <code>costBefore</code>/<code>costAfter</code>/<code>savingsPct</code>, because a saving needs both sides of the comparison to mean anything. Anyone who wrote against the documented contract got <code>undefined</code> twice. It also left <code>ask</code> as the one command whose ranked selection could not be read back out of its own JSON, so an agent wanting the files and their scores had to re-query the index it had just ranked. <code>rankedFiles</code> now ships as <code>[{ rank, file, score, tokens }]</code>, with the last row's score rounded to equal <code>cutoffScore</code> exactly rather than differing in the fourth decimal. The wider gap was that <em>nothing pinned output keys at all</em> — <code>--help</code> had guards for commands and flags, but a key documented and never emitted could survive release after release. Every documented <code>--json</code> key is now read out of the docs and checked against the command's real output. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.8%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-02 (v8.61.1)**.
+Latest saved benchmark run: **2026-10-02 (v8.61.2)**.
 
 </div>
 
