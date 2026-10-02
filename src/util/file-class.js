@@ -40,7 +40,7 @@ function isTestFile(filePath) {
   const p = _norm(filePath);
   if (/\.(test|spec)\.[a-z]+$/.test(p) || /_test\.[a-z]+$/.test(p)) return true;
   if (/(^|\/)test_[^/]+\.[a-z]+$/.test(p)) return true;
-  if (/[a-z0-9](Test|Spec)s?\.(java|kt|kts|scala|groovy|cs|swift)$/.test(p)) return true;
+  if (/[a-z0-9.](Test|Spec)s?\.(java|kt|kts|scala|groovy|cs|swift|ps1)$/.test(p)) return true;
   return /(^|\/)(test|tests|spec|specs|__tests__|e2e)(\/|$)/i.test(p);
 }
 

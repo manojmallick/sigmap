@@ -1,7 +1,7 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 36 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 37 languages with R support.
 head:
   - - meta
     - property: og:title
@@ -60,7 +60,7 @@ features:
     link: /guide/judge
     linkText: Workflow docs →
   - icon: 🌐
-    title: 36 languages, zero native deps
+    title: 37 languages, zero native deps
     details: TypeScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, R, GDScript, and more.
     link: /guide/languages
     linkText: Language support →
@@ -80,7 +80,7 @@ features:
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
   <span><strong>Release:</strong> v8.61.1</span>
   <span>·</span>
-  <span><strong>New — the documented contract was partly fiction:</strong> the CLI reference had described <code>ask --json</code> since before v8.54.2 as "a machine-readable object with <code>intent</code>, <code>coverage</code>, <code>cost</code>, <code>riskLevel</code>, and <code>rankedFiles</code>" — and two of those five keys did not exist. <code>rankedFiles</code> was <strong>never implemented</strong>, and no surface emits that name; there is no <code>cost</code> key either, the figure shipping as <code>costBefore</code>/<code>costAfter</code>/<code>savingsPct</code>, because a saving needs both sides of the comparison to mean anything. Anyone who wrote against the documented contract got <code>undefined</code> twice. It also left <code>ask</code> as the one command whose ranked selection could not be read back out of its own JSON, so an agent wanting the files and their scores had to re-query the index it had just ranked. <code>rankedFiles</code> now ships as <code>[{ rank, file, score, tokens }]</code>, with the last row's score rounded to equal <code>cutoffScore</code> exactly rather than differing in the fourth decimal. The wider gap was that <em>nothing pinned output keys at all</em> — <code>--help</code> had guards for commands and flags, but a key documented and never emitted could survive release after release. Every documented <code>--json</code> key is now read out of the docs and checked against the command's real output. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — the documented contract was partly fiction:</strong> the CLI reference had described <code>ask --json</code> since before v8.54.2 as "a machine-readable object with <code>intent</code>, <code>coverage</code>, <code>cost</code>, <code>riskLevel</code>, and <code>rankedFiles</code>" — and two of those five keys did not exist. <code>rankedFiles</code> was <strong>never implemented</strong>, and no surface emits that name; there is no <code>cost</code> key either, the figure shipping as <code>costBefore</code>/<code>costAfter</code>/<code>savingsPct</code>, because a saving needs both sides of the comparison to mean anything. Anyone who wrote against the documented contract got <code>undefined</code> twice. It also left <code>ask</code> as the one command whose ranked selection could not be read back out of its own JSON, so an agent wanting the files and their scores had to re-query the index it had just ranked. <code>rankedFiles</code> now ships as <code>[{ rank, file, score, tokens }]</code>, with the last row's score rounded to equal <code>cutoffScore</code> exactly rather than differing in the fourth decimal. The wider gap was that <em>nothing pinned output keys at all</em> — <code>--help</code> had guards for commands and flags, but a key documented and never emitted could survive release after release. Every documented <code>--json</code> key is now read out of the docs and checked against the command's real output. 37 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.61-main</span>
