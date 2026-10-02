@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, evidence, deps, sbom, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, ask --with-source, evidence, deps, sbom, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 101 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 103 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -46,6 +46,8 @@ If you are new to the product, start with the workflow pages first:
 | `ask "<query>"` | Unified intent→rank→cost→risk pipeline in one command |
 | `ask "<query>" --top <n>` | How many files to select (default 5) |
 | `ask "<query>" --explain` | Diagnose a miss: which query tokens matched, every signal behind each file, why a file was demoted, and the near misses |
+| `ask "<query>" --with-source` | Add the top symbols' **bodies** (sliced from their line anchors) plus a blast-radius list — budgeted, opt-in |
+| `ask "<query>" --source-budget <n>` | Token ceiling for `--with-source` bodies (default: `maxTokens` minus what the signatures spent) |
 | `ask "<query>" --followup` | Reuse previous session context for follow-up queries (session carry-forward) |
 | `ask "<query>" --package <name>` | Scope retrieval to a specific monorepo workspace package |
 | `ask "<query>" --global` | Disable package scoping; search entire repo (monorepo override) |
@@ -171,13 +173,51 @@ sigmap ask "how are secrets redacted" --top 12
  Context   : 1,823 tokens  →  .context/query-context.md
  Selected  : 5 of 441 file(s) (--top 5) · cutoff score 6.121
  Hash      : sha256:66de57f5b3a8
- Coverage  : 97%
- Risk      : LOW
+ Selection : 4 source, 1 support (test)
+ Coverage  : readable 97% (428/441 files in srcDirs)
+ Risk      : LOW (2 file(s) changed vs HEAD)
  Cost      : $0.0005/query  (was $0.032 · saved 98%)
 ────────────────────────────────────────────
 ```
 
 With `--json` the output is a machine-readable object with `intent`, `coverage`, `cost`, `riskLevel`, and `rankedFiles`.
+
+### Every figure names its basis (v8.61.0)
+
+Three of those lines used to be bare numbers, and two of them read as a trust signal they could not support (#806). On a fresh `gin` clone `ask` reported **`Coverage : 100%`** and **`Risk : NONE`** over five selected files that were a test, a README, a CI workflow and two unrelated sources — with not one of `gin.go`, `routergroup.go` or `tree.go` among them.
+
+Neither reading was a lie on its own:
+
+- **Coverage** is fed every file the scan found, so it measures how much of `srcDirs` is **readable** — 100% in any healthy repo, whatever the query returned. It was never "did I find the right files".
+- **Risk** counts files changed in the working tree versus `HEAD`, which on a clean checkout is legitimately zero.
+
+Printed bare, side by side, directly under the answer, the pair reads as *"this answer is trustworthy"*. The [#762](https://github.com/manojmallick/sigmap/issues/762) precedent applies — the defect is the missing population, not the number — so each figure now names what it counted, and a third line names what neither of them ever asked:
+
+| Line | Reads | Means |
+|------|-------|-------|
+| `Selection` | `4 source, 1 support (test)` | How many selected files carry implementation an answer can stand on |
+| `Coverage` | `readable 97% (428/441 files in srcDirs)` | Share of `srcDirs` that is readable — **not** retrieval accuracy |
+| `Risk` | `LOW (2 file(s) changed vs HEAD)` | Working-tree churn, with the count it was derived from |
+
+When the probe cannot run at all — outside a git repo, or with `git` unavailable — `Risk` reads `not assessed (no git repo, or git unavailable)` rather than printing a reassuring level anyway. And when the selection contains **no implementation at all** (only tests, docs, CI and config), that is a strong signal the query missed, so it says so on stderr:
+
+```
+[sigmap] ⚠  no source file in the selection — 0 source, 4 support (test, docs, ci, config);
+            the query likely missed. Re-run with --explain to see which tokens matched, or raise --top
+```
+
+`--json` carries the basis of every figure alongside it — `coveragePopulation`, `coverageIncluded`, `coverageTotal`, `coverageBasis`, `riskAssessed`, `riskChangedFiles`, `riskBasis`, `sourceFiles`, `supportFiles`, `sourceFree` — so a machine consumer cannot read `coverage` as retrieval accuracy either. Every pre-existing key is unchanged.
+
+### The index can be stale, and now it says so (v8.61.0)
+
+Index freshness is yours to manage, and [`judge`](#judge) has warned since v8.54.2 when the context it scores against is older than the sources it describes ([#780](https://github.com/manojmallick/sigmap/issues/780)). `ask` and the MCP read tools answered from that same ground **in silence**, so a stale answer was byte-indistinguishable from a fresh one ([#815](https://github.com/manojmallick/sigmap/issues/815)):
+
+```
+[sigmap] ⚠  context is 11.8 hour(s) older than src/mcp/handlers.js —
+            this answer is ranked against stale ground; re-run `sigmap` to refresh the index
+```
+
+The same banner leads the `read_context`, `search_signatures` and `query_context` MCP results. All four surfaces call one shared module, so "stale" has a single definition rather than one per surface — the threshold and the gap wording are fixed, and only the consequence clause differs, because what a stale index does to a *verdict* is not what it does to a *ranking*. A fresh index prints nothing, and `--json` reports `stale` plus `staleWarning`.
 
 ### ask --top &lt;n&gt; (fixed in v8.54.2)
 
@@ -235,6 +275,62 @@ Matched nothing: penalise — these tokens contributed no score.
 Note in the example above that `penalty` is `1.00` on the test files: the query contains the word *test*, so the test demotion is correctly suspended. That is visible rather than implied.
 
 `--explain` is **opt-in**, so default `ask` output is byte-identical without it, and because it is a diagnostic it writes nothing to `.context/` and does not overwrite the `--followup` session.
+
+### ask --with-source (v8.61.0)
+
+`ask` emitted **signatures only**. An agent that then needed a body opened the whole file — which is the exact cost the map exists to avoid, so the saving was real at the map level and partly handed back one level down ([#814](https://github.com/manojmallick/sigmap/issues/814)). The `:start-end` line anchors every extractor already emits were enough to close that loop.
+
+```bash
+sigmap ask "how does the ranker penalise test files" --with-source
+sigmap ask "how are secrets redacted" --with-source --source-budget 3000
+```
+
+```
+────────────────────────────────────────────
+ sigmap ask  "how does the ranker penalise test files"
+ Intent    : explain, test
+ Context   : 2,356 tokens  →  .context/query-context.md
+ Selected  : 3 of 454 file(s) (--top 3) · cutoff score 9.658
+ Hash      : sha256:67282dea11a0
+ Selection : 2 source, 1 support (test)
+ Coverage  : readable 100% (179/179 files in srcDirs)
+ Risk      : HIGH (12 file(s) changed vs HEAD)
+ Source    : 9 of 9 top symbol(s), 1,274 of 14,981 budget token(s)
+ Cost      : $0.0059/query  (was $0.0426 · saved 86%)
+────────────────────────────────────────────
+```
+
+The written context gains two sections after the signatures — the bodies, each labelled with the anchor it was sliced from, and the blast radius so the agent sees what else a change there touches **without a second query**:
+
+````markdown
+## Source (top symbols)
+
+### src/retrieval/ranker.js:132-162  — function _computePenalty(filePath, wants, sigs)
+```
+function _computePenalty(filePath, wants, sigs) {
+  ...
+}
+```
+
+## Blast radius
+```
+src/retrieval/ranker.js  ← 11 direct, 15 total dependent file(s)
+src/learning/weights.js  ← 2 direct, 13 total dependent file(s)
+```
+````
+
+**How symbols are chosen.** Breadth before depth: up to **three** anchored symbols per file, files walked in rank order, capped at 12 overall. A flat "top N anchors" ordering would let one file's long member list eat the entire budget. Declarations with no body worth reading are skipped — an export list (`module.exports = { … }`) is already in the signature section verbatim, so slicing it back out would spend budget to repeat what the agent holds. Anything longer than 120 lines is a module rather than a symbol and stays a pointer.
+
+**Budget.** There is no second knob to tune: the ceiling is the project's existing [`maxTokens`](/guide/config#maxtokens-vs-automaxtokens) minus what the signature context already spent, so the addendum can never push the signatures themselves over the limit. `--source-budget <tokens>` overrides it for a one-off deep read. A body that does not fit is skipped **whole** and the omission is disclosed in both the summary line and the written context — half a function is not a cheaper answer, it is a wrong one:
+
+```
+> 4 of 9 top symbol(s) included — 5 omitted to stay within the 400-token source budget
+  (raise `maxTokens` or pass `--source-budget <tokens>`).
+```
+
+**Safety.** Slices are secret-scanned with the same redactor the signature pipeline and the [`get_lines`](#mcp-tools) MCP tool use, and paths are sandboxed to the project root.
+
+`--with-source` is **opt-in** — anything that adds tokens has to be asked for — so the default context is byte-identical without it, and the signature section stays prefix-identical when it is present. `--json` reports `withSource` plus a `source` object carrying `included`, `skipped`, `candidates`, `budgetTokens`, `spentTokens`, `truncated` and `blast`.
 
 **Input minimization (v7.0.0).** When the query is a pasted blob — a stack trace, CI log, or JSON payload — `ask` classifies it and, on an interactive terminal, offers to minimize it before ranking (dedupe frames, strip vendor noise, collapse repeated array items, and enrich the top stack frame with its real signature). It only prompts when the reduction clears `--squeeze-threshold` (default 30%). Non-interactive (piped/CI) usage is never blocked: `--squeeze` auto-accepts, `--no-squeeze` disables it entirely. See [`squeeze`](#squeeze) below.
 
@@ -1840,7 +1936,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         88.0% vs 40.8%   (2.16× lift)
+ hit@5         88.0% vs 40.0%   (2.20× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.8% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -1867,7 +1963,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.8% fewer tokens · 78% retrieval accuracy (this repo) · 2.16× vs a grep agent (published)
+95.8% fewer tokens · 78% retrieval accuracy (this repo) · 2.20× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -1877,7 +1973,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.16× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.20× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -1993,7 +2089,7 @@ sigmap bench --submit --json
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
  SigMap version : 8.51.2
- Benchmark ID   : sigmap-v8.60-main
+ Benchmark ID   : sigmap-v8.61-main
  Submitted      : 2026-09-13
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):

@@ -125,10 +125,33 @@ function _formatGap(ms) {
   return `${Math.round((hours / 24) * 10) / 10} day(s)`;
 }
 
-/** Human one-liner for a stale context, or null when it is fresh. */
-function stalenessWarning(staleness) {
+/**
+ * Human one-liner for a stale context, or null when it is fresh.
+ *
+ * `ask` and the MCP read tools answer from the same possibly-stale ground as
+ * `judge` and used to say nothing about it (#815). They share this function
+ * rather than growing a second definition of "stale": the threshold (any
+ * positive gap) and the gap wording are fixed here, and only the consequence
+ * clause varies by surface — what a stale index does to a verdict is not what
+ * it does to a ranking.
+ *
+ * @param {{stale:boolean, gapMs:number, newest:string}|null} staleness
+ * @param {{ tail?: string }} [opts] consequence clause; defaults to `judge`'s.
+ */
+function stalenessWarning(staleness, opts = {}) {
   if (!staleness || !staleness.stale) return null;
-  return `context is ${_formatGap(staleness.gapMs)} older than ${staleness.newest} — the answer is being judged against stale ground`;
+  const tail = opts.tail || 'the answer is being judged against stale ground';
+  return `context is ${_formatGap(staleness.gapMs)} older than ${staleness.newest} — ${tail}`;
 }
 
-module.exports = { resolveContextFile, contextStaleness, stalenessWarning, ADAPTER_OUTPUTS };
+/**
+ * Consequence clauses for the surfaces that share the warning above, so the
+ * CLI and the MCP server cannot drift into two phrasings of one condition.
+ */
+const STALE_TAILS = {
+  judge: 'the answer is being judged against stale ground',
+  ask:   'this answer is ranked against stale ground; re-run `sigmap` to refresh the index',
+  mcp:   'this result is ranked against stale ground; re-run `sigmap` to refresh the index',
+};
+
+module.exports = { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS, ADAPTER_OUTPUTS };

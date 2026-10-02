@@ -1,6 +1,6 @@
 {
-  "version": "8.60.0",
-  "timestamp": "2026-10-01T13:58:46.202Z",
+  "version": "8.61.0",
+  "timestamp": "2026-10-02T08:11:51.766Z",
   "assumptions": {
     "tokensPerSecUncached": 2000,
     "cacheSpeedup": 10,
@@ -16,7 +16,7 @@
       "reductionPct": 95,
       "fileCount": 6,
       "droppedCount": 0,
-      "timestamp": "2026-10-01T13:58:08.168Z",
+      "timestamp": "2026-10-02T08:11:31.204Z",
       "timings": {
         "rawColdSec": 7.73,
         "sigColdSec": 0.39,
@@ -36,7 +36,7 @@
       "reductionPct": 94.8,
       "fileCount": 20,
       "droppedCount": 5,
-      "timestamp": "2026-10-01T13:58:09.944Z",
+      "timestamp": "2026-10-02T08:11:32.101Z",
       "timings": {
         "rawColdSec": 42.44,
         "sigColdSec": 2.23,
@@ -56,7 +56,7 @@
       "reductionPct": 94.8,
       "fileCount": 119,
       "droppedCount": 44,
-      "timestamp": "2026-10-01T13:58:10.548Z",
+      "timestamp": "2026-10-02T08:11:32.479Z",
       "timings": {
         "rawColdSec": 111.15,
         "sigColdSec": 5.81,
@@ -76,7 +76,7 @@
       "reductionPct": 96.2,
       "fileCount": 65,
       "droppedCount": 30,
-      "timestamp": "2026-10-01T13:58:10.972Z",
+      "timestamp": "2026-10-02T08:11:32.715Z",
       "timings": {
         "rawColdSec": 53.55,
         "sigColdSec": 2.03,
@@ -96,7 +96,7 @@
       "reductionPct": 98.7,
       "fileCount": 1193,
       "droppedCount": 931,
-      "timestamp": "2026-10-01T13:58:11.900Z",
+      "timestamp": "2026-10-02T08:11:33.233Z",
       "timings": {
         "rawColdSec": 749.53,
         "sigColdSec": 9.85,
@@ -116,7 +116,7 @@
       "reductionPct": 93.3,
       "fileCount": 29,
       "droppedCount": 0,
-      "timestamp": "2026-10-01T13:58:12.367Z",
+      "timestamp": "2026-10-02T08:11:33.453Z",
       "timings": {
         "rawColdSec": 16.07,
         "sigColdSec": 1.07,
@@ -136,7 +136,7 @@
       "reductionPct": 99.4,
       "fileCount": 675,
       "droppedCount": 533,
-      "timestamp": "2026-10-01T13:58:16.934Z",
+      "timestamp": "2026-10-02T08:11:35.891Z",
       "timings": {
         "rawColdSec": 1765.57,
         "sigColdSec": 10.79,
@@ -156,7 +156,7 @@
       "reductionPct": 99.1,
       "fileCount": 719,
       "droppedCount": 589,
-      "timestamp": "2026-10-01T13:58:31.402Z",
+      "timestamp": "2026-10-02T08:11:43.540Z",
       "timings": {
         "rawColdSec": 1181.62,
         "sigColdSec": 10.84,
@@ -176,7 +176,7 @@
       "reductionPct": 96,
       "fileCount": 100,
       "droppedCount": 52,
-      "timestamp": "2026-10-01T13:58:33.726Z",
+      "timestamp": "2026-10-02T08:11:44.719Z",
       "timings": {
         "rawColdSec": 56.91,
         "sigColdSec": 2.29,
@@ -196,7 +196,7 @@
       "reductionPct": 97.2,
       "fileCount": 465,
       "droppedCount": 279,
-      "timestamp": "2026-10-01T13:58:34.787Z",
+      "timestamp": "2026-10-02T08:11:45.325Z",
       "timings": {
         "rawColdSec": 373.61,
         "sigColdSec": 10.41,
@@ -216,7 +216,7 @@
       "reductionPct": 90.9,
       "fileCount": 18,
       "droppedCount": 0,
-      "timestamp": "2026-10-01T13:58:35.272Z",
+      "timestamp": "2026-10-02T08:11:45.592Z",
       "timings": {
         "rawColdSec": 15.64,
         "sigColdSec": 1.42,
@@ -236,7 +236,7 @@
       "reductionPct": 98.8,
       "fileCount": 1536,
       "droppedCount": 1365,
-      "timestamp": "2026-10-01T13:58:37.148Z",
+      "timestamp": "2026-10-02T08:11:46.703Z",
       "timings": {
         "rawColdSec": 839.75,
         "sigColdSec": 10.41,
@@ -256,7 +256,7 @@
       "reductionPct": 97.8,
       "fileCount": 307,
       "droppedCount": 182,
-      "timestamp": "2026-10-01T13:58:38.629Z",
+      "timestamp": "2026-10-02T08:11:47.733Z",
       "timings": {
         "rawColdSec": 512.35,
         "sigColdSec": 11.07,
@@ -276,7 +276,7 @@
       "reductionPct": 97.5,
       "fileCount": 192,
       "droppedCount": 100,
-      "timestamp": "2026-10-01T13:58:39.203Z",
+      "timestamp": "2026-10-02T08:11:48.075Z",
       "timings": {
         "rawColdSec": 110.29,
         "sigColdSec": 2.78,
@@ -296,7 +296,7 @@
       "reductionPct": 97.6,
       "fileCount": 271,
       "droppedCount": 141,
-      "timestamp": "2026-10-01T13:58:40.173Z",
+      "timestamp": "2026-10-02T08:11:48.741Z",
       "timings": {
         "rawColdSec": 258.75,
         "sigColdSec": 6.27,
@@ -316,7 +316,7 @@
       "reductionPct": 94.9,
       "fileCount": 371,
       "droppedCount": 230,
-      "timestamp": "2026-10-01T13:58:41.047Z",
+      "timestamp": "2026-10-02T08:11:49.188Z",
       "timings": {
         "rawColdSec": 219.56,
         "sigColdSec": 11.1,
@@ -336,7 +336,7 @@
       "reductionPct": 93.8,
       "fileCount": 29,
       "droppedCount": 0,
-      "timestamp": "2026-10-01T13:58:41.515Z",
+      "timestamp": "2026-10-02T08:11:49.411Z",
       "timings": {
         "rawColdSec": 31.39,
         "sigColdSec": 1.95,
@@ -356,7 +356,7 @@
       "reductionPct": 89.4,
       "fileCount": 32,
       "droppedCount": 1,
-      "timestamp": "2026-10-01T13:58:44.689Z",
+      "timestamp": "2026-10-02T08:11:50.879Z",
       "timings": {
         "rawColdSec": 89.19,
         "sigColdSec": 9.41,
@@ -376,7 +376,7 @@
       "reductionPct": 95.1,
       "fileCount": 189,
       "droppedCount": 75,
-      "timestamp": "2026-10-01T13:58:45.234Z",
+      "timestamp": "2026-10-02T08:11:51.235Z",
       "timings": {
         "rawColdSec": 190.73,
         "sigColdSec": 9.32,
@@ -396,7 +396,7 @@
       "reductionPct": 94.2,
       "fileCount": 97,
       "droppedCount": 38,
-      "timestamp": "2026-10-01T13:58:45.700Z",
+      "timestamp": "2026-10-02T08:11:51.483Z",
       "timings": {
         "rawColdSec": 72.54,
         "sigColdSec": 4.17,
@@ -416,7 +416,7 @@
       "reductionPct": 96.7,
       "fileCount": 93,
       "droppedCount": 39,
-      "timestamp": "2026-10-01T13:58:46.182Z",
+      "timestamp": "2026-10-02T08:11:51.743Z",
       "timings": {
         "rawColdSec": 132.3,
         "sigColdSec": 4.38,

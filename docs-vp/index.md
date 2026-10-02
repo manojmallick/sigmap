@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 78.6% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 88.0% where a single-shot grep agent finds the right file 40.8% of the time — a measured 2.16× better.
+    details: 78.6% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 88.0% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.20× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.60.0</span>
+  <span><strong>Release:</strong> v8.61.0</span>
   <span>·</span>
-  <span><strong>New — say what was actually searched:</strong> two commands reported a narrower scope than they claimed, and neither said so. <code>--diff &lt;ref&gt;</code> ran <code>git diff &lt;ref&gt;..HEAD</code> — ref vs <em>HEAD</em>, which excludes the working tree — while the flag is documented as "changes since <code>&lt;ref&gt;</code>". A developer with local edits got a diff that omitted exactly the files they were editing; on a fixture holding one committed and one uncommitted change it reported a single file. The same wrong range existed <strong>twice</strong>, in the CLI and in the <code>get_diff_context</code> MCP tool, so one helper now owns all three ranges and the two surfaces cannot disagree about what "since <code>&lt;ref&gt;</code>" means. Separately <code>--callers</code> printed <code>zero method blast radius</code> for symbols that are demonstrably called: the call graph walks <code>srcDirs</code> only, so a repo's root-level CLI entry point — the largest caller of every module beneath it — contributes no edges, and the bundle-safe require wrapper is a module load the resolver cannot follow. It could not tell <em>no caller exists</em> from <em>no edge was found</em>, which is precisely the claim you lean on before deleting or changing a signature. Every result now names the scope it searched and counts what it could not follow — in the human output, in <code>--json</code>, and for <code>--callees</code> on the same reasoning. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — close the loop at the agent:</strong> three defects on one surface, so they shipped together. <code>ask</code> emitted <em>signatures only</em>, so an agent that then needed a body opened the whole file — the exact cost the map exists to avoid, handed back one level down. <code>ask --with-source</code> now slices the top symbols' lines from the <code>:start-end</code> anchors every extractor already emits and attaches the blast radius, so the agent reads the code without opening the file; it is budgeted against your existing <code>maxTokens</code>, and a body that does not fit is skipped whole with the omission disclosed, because half a function is not a cheaper answer. Separately, <code>judge</code> has warned since v8.54.2 when the context is older than the sources it describes, while <code>ask</code> and the MCP read tools answered from that same ground <strong>in silence</strong> — a stale answer was byte-indistinguishable from a fresh one; all four now share one definition of "stale". And on a fresh <code>gin</code> clone <code>ask</code> printed <code>Coverage : 100%</code> and <code>Risk : NONE</code> over five files that were a test, a README, a CI workflow and two unrelated sources: neither reading was a lie alone — coverage measures how much of <code>srcDirs</code> is <em>readable</em>, risk counts changed files — but side by side under the answer they read as "this is trustworthy". Every figure now names what it counted, <code>Risk</code> says <code>not assessed</code> when nothing ran, and a new <code>Selection</code> line names how much of the result is implementation at all. 36 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.60-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.61-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 95.8% token reduction · 2026-10-01</span>
+  <span>78.6% hit@5 · 95.8% token reduction · 2026-10-02</span>
 </div>
 </div>
 
@@ -173,11 +173,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.0%** |
 | Prompts per task | 2.84 | **1.61** |
 | Retrieval hit@5 (retrieval corpus) | — | **78.6%** |
-| Honest corpus hit@5 (125 tasks) | 40.8% (single-shot grep) | **88.0%** (2.16× lift) |
+| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **88.0%** (2.20× lift) |
 | Overall token reduction | — | **95.8%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-01 (v8.60.0)**.
+Latest saved benchmark run: **2026-10-02 (v8.61.0)**.
 
 </div>
 

@@ -16,6 +16,32 @@ function _readContextFiles(cwd) {
   return chunks.join('\n');
 }
 
+/**
+ * Stale-index banner for the MCP read tools (#815).
+ *
+ * `judge` has warned since v8.54.2 (#780) when the context it scores against is
+ * older than the sources it describes. The retrieval surfaces answered from the
+ * same ground and said nothing, so a stale result was byte-indistinguishable
+ * from a fresh one. Both now call `src/judge/context-source.js`, so there is
+ * one definition of "stale" rather than one per surface.
+ *
+ * Best-effort by design: freshness is advisory, and a failure to establish it
+ * must never fail the read it annotates.
+ *
+ * @returns {string} the banner plus a blank line, or '' when fresh/unknowable
+ */
+function _stalenessBanner(cwd) {
+  try {
+    const { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS } = require('../judge/context-source');
+    const contextFile = resolveContextFile(cwd);
+    if (!contextFile) return '';
+    let config = {};
+    try { config = require('../config/loader').loadConfig(cwd); } catch (_) {}
+    const warning = stalenessWarning(contextStaleness(contextFile, cwd, config), { tail: STALE_TAILS.mcp });
+    return warning ? `> ⚠ ${warning}\n\n` : '';
+  } catch (_) { return ''; }
+}
+
 // Section header keywords in PROJECT_MAP.md
 const MAP_SECTIONS = {
   imports: '### Import graph',
@@ -38,8 +64,9 @@ function readContext(args, cwd) {
   if (!content) {
     return 'No context file found. Run: node gen-context.js';
   }
+  const banner = _stalenessBanner(cwd);
 
-  if (!args || !args.module) return content;
+  if (!args || !args.module) return banner + content;
 
   const mod = args.module.replace(/\\/g, '/').replace(/\/$/, '');
   const lines = content.split('\n');
@@ -62,7 +89,7 @@ function readContext(args, cwd) {
   }
 
   if (result.length === 0) return `No signatures found for module: ${mod}`;
-  return result.join('\n');
+  return banner + result.join('\n');
 }
 
 /**
@@ -93,7 +120,7 @@ function searchSignatures(args, cwd) {
     }
 
     if (result.length === 0) return `No signatures found matching: ${args.query}`;
-    return result.join('\n');
+    return _stalenessBanner(cwd) + result.join('\n');
   } catch (err) {
     return `_search_signatures failed: ${err.message}_`;
   }
@@ -442,7 +469,7 @@ function queryContext(args, cwd) {
       }
     } catch (_) {}
     const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality, expansions });
-    return formatRankTable(results, args.query);
+    return _stalenessBanner(cwd) + formatRankTable(results, args.query);
   } catch (err) {
     return `_query_context failed: ${err.message}_`;
   }

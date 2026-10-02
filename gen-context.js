@@ -18928,13 +18928,36 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     return `${Math.round((hours / 24) * 10) / 10} day(s)`;
   }
 
-  /** Human one-liner for a stale context, or null when it is fresh. */
-  function stalenessWarning(staleness) {
+  /**
+   * Human one-liner for a stale context, or null when it is fresh.
+   *
+   * `ask` and the MCP read tools answer from the same possibly-stale ground as
+   * `judge` and used to say nothing about it (#815). They share this function
+   * rather than growing a second definition of "stale": the threshold (any
+   * positive gap) and the gap wording are fixed here, and only the consequence
+   * clause varies by surface — what a stale index does to a verdict is not what
+   * it does to a ranking.
+   *
+   * @param {{stale:boolean, gapMs:number, newest:string}|null} staleness
+   * @param {{ tail?: string }} [opts] consequence clause; defaults to `judge`'s.
+   */
+  function stalenessWarning(staleness, opts = {}) {
     if (!staleness || !staleness.stale) return null;
-    return `context is ${_formatGap(staleness.gapMs)} older than ${staleness.newest} — the answer is being judged against stale ground`;
+    const tail = opts.tail || 'the answer is being judged against stale ground';
+    return `context is ${_formatGap(staleness.gapMs)} older than ${staleness.newest} — ${tail}`;
   }
 
-  module.exports = { resolveContextFile, contextStaleness, stalenessWarning, ADAPTER_OUTPUTS };
+  /**
+   * Consequence clauses for the surfaces that share the warning above, so the
+   * CLI and the MCP server cannot drift into two phrasings of one condition.
+   */
+  const STALE_TAILS = {
+    judge: 'the answer is being judged against stale ground',
+    ask:   'this answer is ranked against stale ground; re-run `sigmap` to refresh the index',
+    mcp:   'this result is ranked against stale ground; re-run `sigmap` to refresh the index',
+  };
+
+  module.exports = { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS, ADAPTER_OUTPUTS };
   
 };
 
@@ -20993,6 +21016,32 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     return chunks.join('\n');
   }
 
+  /**
+   * Stale-index banner for the MCP read tools (#815).
+   *
+   * `judge` has warned since v8.54.2 (#780) when the context it scores against is
+   * older than the sources it describes. The retrieval surfaces answered from the
+   * same ground and said nothing, so a stale result was byte-indistinguishable
+   * from a fresh one. Both now call `src/judge/context-source.js`, so there is
+   * one definition of "stale" rather than one per surface.
+   *
+   * Best-effort by design: freshness is advisory, and a failure to establish it
+   * must never fail the read it annotates.
+   *
+   * @returns {string} the banner plus a blank line, or '' when fresh/unknowable
+   */
+  function _stalenessBanner(cwd) {
+    try {
+      const { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS } = __require('./src/judge/context-source');
+      const contextFile = resolveContextFile(cwd);
+      if (!contextFile) return '';
+      let config = {};
+      try { config = __require('./src/config/loader').loadConfig(cwd); } catch (_) {}
+      const warning = stalenessWarning(contextStaleness(contextFile, cwd, config), { tail: STALE_TAILS.mcp });
+      return warning ? `> ⚠ ${warning}\n\n` : '';
+    } catch (_) { return ''; }
+  }
+
   // Section header keywords in PROJECT_MAP.md
   const MAP_SECTIONS = {
     imports: '### Import graph',
@@ -21015,8 +21064,9 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     if (!content) {
       return 'No context file found. Run: node gen-context.js';
     }
+    const banner = _stalenessBanner(cwd);
 
-    if (!args || !args.module) return content;
+    if (!args || !args.module) return banner + content;
 
     const mod = args.module.replace(/\\/g, '/').replace(/\/$/, '');
     const lines = content.split('\n');
@@ -21039,7 +21089,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     }
 
     if (result.length === 0) return `No signatures found for module: ${mod}`;
-    return result.join('\n');
+    return banner + result.join('\n');
   }
 
   /**
@@ -21070,7 +21120,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       }
 
       if (result.length === 0) return `No signatures found matching: ${args.query}`;
-      return result.join('\n');
+      return _stalenessBanner(cwd) + result.join('\n');
     } catch (err) {
       return `_search_signatures failed: ${err.message}_`;
     }
@@ -21419,7 +21469,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         }
       } catch (_) {}
       const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality, expansions });
-      return formatRankTable(results, args.query);
+      return _stalenessBanner(cwd) + formatRankTable(results, args.query);
     } catch (err) {
       return `_query_context failed: ${err.message}_`;
     }
@@ -22196,7 +22246,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.60.0',
+    version: '8.61.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -24840,6 +24890,114 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   
 };
 
+// ── ./src/retrieval/selection-quality ──
+__factories["./src/retrieval/selection-quality"] = function(module, exports) {
+  
+  /**
+   * Honesty checks on an `ask` selection (#806).
+   *
+   * `ask` printed `Coverage : 100%` and `Risk : NONE` over a result set holding a
+   * test file, a README and a CI workflow. Neither reading was a lie on its own —
+   * the coverage figure counts "of the source files under srcDirs, how many are
+   * indexed", and the risk figure counts changed files in the working tree — but
+   * printed bare, side by side, directly under the answer, they read as "this
+   * answer is trustworthy". Same class as #762 (unlabelled coverage) and #764
+   * (unmeasured rendered as measured).
+   *
+   * This module owns the one question those two numbers never asked: did the
+   * selection actually contain any implementation? A query that returns only
+   * tests, docs, CI and config has missed, and that is a signal the user can act
+   * on — unlike a coverage percentage about a different population entirely.
+   *
+   * Zero dependencies, pure, deterministic.
+   */
+
+  const path = require('path');
+  const { isTestFile, isMockFile, isGeneratedFile, isDocsFile, isCiFile } = __require('./src/util/file-class');
+  const { CODE_EXTS } = __require('./src/analysis/coverage-score');
+
+  /**
+   * Configuration and data files, by extension or by the `*.config.*` convention.
+   * Deliberately narrower than `src/util/file-class.js`'s categories: those cover
+   * the classes the ranker demotes, and config is not one of them — it is indexed
+   * at full weight because "where is the build configured" is a real question.
+   */
+  const CONFIG_EXTS = new Set(['.json', '.yml', '.yaml', '.toml', '.ini', '.cfg', '.properties', '.lock', '.env']);
+
+  /** True when a selected path is configuration rather than implementation. */
+  function isConfigPath(filePath) {
+    const p = String(filePath).replace(/\\/g, '/');
+    const base = p.slice(p.lastIndexOf('/') + 1);
+    if (/\.config\.[a-z]+$/i.test(base)) return true;
+    return CONFIG_EXTS.has(path.extname(base).toLowerCase());
+  }
+
+  /** Prose that is not under a docs/ root and carries no well-known doc name. */
+  function isProsePath(filePath) {
+    return /\.(md|mdx|rst|txt|adoc)$/i.test(String(filePath));
+  }
+
+  /**
+   * Split a selection into the implementation files an answer can be grounded in
+   * and the support files it cannot.
+   *
+   * "Support" is not a complaint — a CI workflow is the right answer to a CI
+   * question. It becomes a signal only when it is ALL that came back.
+   *
+   * @param {Array<{file:string}>|string[]} selected
+   * @returns {{ source: string[], support: string[], sourceFree: boolean, total: number }}
+   */
+  function classifySelection(selected) {
+    const files = (selected || []).map((r) => (typeof r === 'string' ? r : r && r.file)).filter(Boolean);
+    const source = [];
+    const support = [];
+    for (const f of files) {
+      const isSupport =
+        isTestFile(f) || isMockFile(f) || isGeneratedFile(f) ||
+        isDocsFile(f) || isCiFile(f) || isConfigPath(f) || isProsePath(f);
+      const isCode = CODE_EXTS.has(path.extname(String(f)).toLowerCase());
+      if (isCode && !isSupport) source.push(f);
+      else support.push(f);
+    }
+    return { source, support, sourceFree: files.length > 0 && source.length === 0, total: files.length };
+  }
+
+  /**
+   * The composition of a selection, named — `3 source, 2 support (test, docs)`.
+   * Printed next to the figures it qualifies so a reader can see at a glance what
+   * the answer is standing on.
+   */
+  function formatComposition(classification) {
+    const c = classification;
+    if (!c || c.total === 0) return 'no files selected';
+    const kinds = [];
+    for (const f of c.support) {
+      const kind = isTestFile(f) || isMockFile(f) ? 'test'
+        : isCiFile(f) ? 'ci'
+        : isDocsFile(f) || isProsePath(f) ? 'docs'
+        : isGeneratedFile(f) ? 'generated'
+        : 'config';
+      if (!kinds.includes(kind)) kinds.push(kind);
+    }
+    const support = c.support.length > 0 ? `, ${c.support.length} support (${kinds.join(', ')})` : '';
+    return `${c.source.length} source${support}`;
+  }
+
+  /**
+   * Warning for a selection with no implementation in it, or null when at least
+   * one source file came back.
+   */
+  function selectionWarning(classification) {
+    const c = classification;
+    if (!c || !c.sourceFree) return null;
+    return `no source file in the selection — ${formatComposition(c)}; the query likely missed. `
+      + `Re-run with --explain to see which tokens matched, or raise --top`;
+  }
+
+  module.exports = { classifySelection, selectionWarning, formatComposition, isConfigPath, CONFIG_EXTS };
+  
+};
+
 // ── ./src/retrieval/sig-index-store ──
 __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
   
@@ -24994,6 +25152,234 @@ __factories["./src/retrieval/tokenizer"] = function(module, exports) {
   }
 
   module.exports = { tokenize, STOP_WORDS };
+  
+};
+
+// ── ./src/retrieval/with-source ──
+__factories["./src/retrieval/with-source"] = function(module, exports) {
+  
+  /**
+   * `ask --with-source` — give back the bodies, not the files (#814).
+   *
+   * The map saves tokens by emitting signatures. An agent that then needs the
+   * body opens the whole file, which is the exact cost the map exists to avoid:
+   * the saving is real at the map level and partly handed back at the agent
+   * level. The `:start-end` anchors every extractor already emits are enough to
+   * close that loop — slice the top symbols' lines instead of the files holding
+   * them, and add the blast radius so the agent sees what else a change there
+   * touches without a second query.
+   *
+   * Strictly opt-in: anything that adds tokens must be asked for. Budgeted
+   * against the project's single `maxTokens` knob rather than a second one, and
+   * truncation is disclosed — a silently clipped body is worse than no body.
+   *
+   * Zero dependencies, deterministic (ordered by rank, never by filesystem).
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  /** Token estimate; same chars/4 heuristic as the CLI's `estimateTokens`. */
+  const estimateTokens = (s) => Math.ceil(String(s).length / 4);
+
+  /**
+   * Declaration heads whose body is not worth a budget slot.
+   *
+   * A module's export list is already in the signature section verbatim, so
+   * slicing its line back out spends budget to repeat what the agent has — and
+   * it competes for the same per-file slots as the functions being exported.
+   */
+  const NON_BODY_HEAD = /^(module\.exports|export\s+(default\s+)?\{|exports\.)/;
+
+  const DEFAULT_MAX_PER_FILE = 3;
+  const DEFAULT_MAX_SYMBOLS = 12;
+  const DEFAULT_BLAST_FILES = 5;
+  /** A body longer than this is a module, not a symbol — pointer only. */
+  const MAX_SYMBOL_LINES = 120;
+
+  /**
+   * Parse a signature's trailing `:start-end` line anchor.
+   *
+   * @param {string} sig
+   * @returns {{ head: string, start: number, end: number }|null} null when the
+   *   signature carries no anchor (an indented member, or a non-code section).
+   */
+  function parseAnchor(sig) {
+    if (typeof sig !== 'string') return null;
+    const m = sig.match(/\s*:(\d+)-(\d+)(?:\s*#.*)?\s*$/);
+    if (!m) return null;
+    const start = parseInt(m[1], 10);
+    const end = parseInt(m[2], 10);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+    return { head: sig.slice(0, m.index).trim(), start, end };
+  }
+
+  /**
+   * The anchored symbols worth slicing, in rank order.
+   *
+   * Breadth before depth: up to `maxPerFile` symbols from each file, files walked
+   * in rank order. One file's long member list cannot eat the whole budget, which
+   * is what a flat "top N anchors" ordering would do.
+   *
+   * @param {Array<{file:string, sigs:string[]}>} ranked
+   * @param {{ maxPerFile?:number, maxSymbols?:number }} [opts]
+   * @returns {Array<{ file:string, head:string, start:number, end:number }>}
+   */
+  function collectSymbols(ranked, opts = {}) {
+    const maxPerFile = opts.maxPerFile || DEFAULT_MAX_PER_FILE;
+    const maxSymbols = opts.maxSymbols || DEFAULT_MAX_SYMBOLS;
+    const out = [];
+    for (const entry of ranked || []) {
+      if (!entry || !Array.isArray(entry.sigs)) continue;
+      let taken = 0;
+      for (const sig of entry.sigs) {
+        if (taken >= maxPerFile) break;
+        const a = parseAnchor(sig);
+        if (!a) continue;
+        if (NON_BODY_HEAD.test(a.head)) continue;
+        if (a.end - a.start + 1 > MAX_SYMBOL_LINES) continue;
+        out.push({ file: entry.file, head: a.head, start: a.start, end: a.end });
+        taken++;
+      }
+      if (out.length >= maxSymbols) break;
+    }
+    return out.slice(0, maxSymbols);
+  }
+
+  /**
+   * Read one symbol's lines, clamped to the file and secret-scanned with the same
+   * redactor `get_lines` and the signature pipeline use.
+   *
+   * @returns {{ lines:string[], from:number, to:number }|null} null when the file
+   *   is unreadable or the anchor points past its end.
+   */
+  function sliceSymbol(cwd, sym) {
+    const abs = path.resolve(cwd, sym.file);
+    const root = path.resolve(cwd);
+    // Sandbox, matching `get_lines`: a ranked path is repo-relative by
+    // construction, but the index is a file on disk and may be hand-edited.
+    if (abs !== root && !abs.startsWith(root + path.sep)) return null;
+    let all;
+    try { all = fs.readFileSync(abs, 'utf8').split('\n'); } catch (_) { return null; }
+    const from = Math.max(1, sym.start);
+    const to = Math.min(all.length, sym.end);
+    if (from > all.length) return null;
+    let lines = all.slice(from - 1, to);
+    try {
+      const { scan } = __require('./src/security/scanner');
+      lines = scan(lines, sym.file).safe;
+    } catch (_) {} // non-fatal: a missing scanner must not drop the body
+    return { lines, from, to };
+  }
+
+  /**
+   * Blast radius for the files a source section covers — what else imports them.
+   *
+   * Reuses the same reverse-dependency walk as `--impact`, so `ask --with-source`
+   * and `sigmap --impact <file>` cannot disagree about who depends on what.
+   *
+   * @returns {Array<{ file:string, direct:number, total:number }>}
+   */
+  function blastRadius(cwd, files, opts = {}) {
+    const limit = opts.limit || DEFAULT_BLAST_FILES;
+    const targets = [...new Set(files || [])].slice(0, limit);
+    if (targets.length === 0) return [];
+    let rows;
+    try {
+      const { analyzeImpact } = __require('./src/graph/impact');
+      rows = analyzeImpact(targets, cwd, { depth: 2, srcDirs: opts.srcDirs, exclude: opts.exclude });
+    } catch (_) { return []; }
+    return rows.map(({ file, impact }) => ({
+      file,
+      direct: (impact && impact.direct ? impact.direct.length : 0),
+      total: (impact && typeof impact.totalImpact === 'number' ? impact.totalImpact : 0),
+    }));
+  }
+
+  /**
+   * Render the `--with-source` addendum for a ranked selection.
+   *
+   * @param {Array<{file:string, sigs:string[]}>} ranked
+   * @param {string} cwd
+   * @param {object} [opts]
+   * @param {number} [opts.budgetTokens=0] token ceiling for the bodies; 0 or less
+   *   admits nothing and is reported as such rather than silently ignored.
+   * @returns {{
+   *   text: string, included: number, skipped: number, candidates: number,
+   *   spentTokens: number, budgetTokens: number, truncated: boolean,
+   *   blast: Array<{file:string, direct:number, total:number}>
+   * }}
+   */
+  function buildSourceSection(ranked, cwd, opts = {}) {
+    const budgetTokens = Number.isFinite(opts.budgetTokens) ? opts.budgetTokens : 0;
+    const symbols = collectSymbols(ranked, opts);
+    const blocks = [];
+    const covered = [];
+    let spent = 0;
+    let included = 0;
+
+    for (const sym of symbols) {
+      const slice = sliceSymbol(cwd, sym);
+      if (!slice) continue;
+      const block = [
+        `### ${sym.file}:${slice.from}-${slice.to}${sym.head ? `  — ${sym.head}` : ''}`,
+        '```',
+        ...slice.lines,
+        '```',
+        '',
+      ].join('\n');
+      const cost = estimateTokens(block);
+      // Budget is a ceiling, not a target: a body that does not fit is skipped
+      // whole. Half a function is not a cheaper answer, it is a wrong one.
+      if (spent + cost > budgetTokens) continue;
+      blocks.push(block);
+      if (!covered.includes(sym.file)) covered.push(sym.file);
+      spent += cost;
+      included++;
+    }
+
+    const blast = blastRadius(cwd, covered, opts);
+
+    const skipped = symbols.length - included;
+    const lines = [];
+    if (blocks.length > 0) {
+      lines.push('## Source (top symbols)', '');
+      lines.push(...blocks);
+    }
+    if (blast.length > 0) {
+      lines.push('## Blast radius', '```');
+      for (const b of blast) {
+        lines.push(`${b.file}  ← ${b.direct} direct, ${b.total} total dependent file(s)`);
+      }
+      lines.push('```', '');
+    }
+    if (skipped > 0) {
+      // Disclosure, not a footnote: the agent must know the section is partial
+      // before it concludes the listed symbols are all there are.
+      lines.push(
+        `> ${included} of ${symbols.length} top symbol(s) included — `
+        + `${skipped} omitted to stay within the ${budgetTokens.toLocaleString()}-token source budget `
+        + `(raise \`maxTokens\` or pass \`--source-budget <tokens>\`).`,
+        ''
+      );
+    }
+
+    return {
+      text: lines.join('\n'),
+      included,
+      skipped,
+      candidates: symbols.length,
+      spentTokens: spent,
+      budgetTokens,
+      truncated: skipped > 0,
+      blast,
+    };
+  }
+
+  module.exports = {
+    parseAnchor, collectSymbols, sliceSymbol, blastRadius, buildSourceSection,
+    DEFAULT_MAX_PER_FILE, DEFAULT_MAX_SYMBOLS, DEFAULT_BLAST_FILES, MAX_SYMBOL_LINES, NON_BODY_HEAD,
+  };
   
 };
 
@@ -29887,7 +30273,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.60.0';
+const VERSION = '8.61.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -32529,6 +32915,7 @@ Usage:
   ${cmd} --query "<text>" --explain        Per-file score signals, token coverage and near misses
   ${cmd} ask "<query>"                     Ranked answer with signatures for a question (--json, --top <n>, --mode)
   ${cmd} ask "<query>" --explain           Diagnose a miss: which tokens matched, why files were demoted
+  ${cmd} ask "<query>" --with-source       Add top-symbol bodies + blast radius (budgeted; --source-budget <n>)
   ${cmd} plan "<goal>"                     Files to inspect, likely-to-change set, and impact radius (--json)
   ${cmd} explain <file>                    Why a file is in or out of the generated context (--json)
   ${cmd} run                               Alias for a bare generate (${cmd} run --report, etc.)
@@ -32781,15 +33168,19 @@ function buildIndexContext(ranked, cwd) {
   return lines.join('\n');
 }
 
+// `ask` printed `Risk : NONE` whether or not anything had been assessed (#806):
+// outside a git repo the check throws and the old code answered 'UNKNOWN', but
+// inside one a clean tree and a failed probe were both rendered as reassurance
+// next to a coverage figure about an unrelated population. The level is now
+// returned with the evidence behind it, so the renderer can say `not assessed`
+// when nothing ran and name the basis when something did.
 function computeCurrentRisk(cwd) {
   try {
     const out = __git(['diff', '--name-only', 'HEAD'], { cwd, timeout: 3000 });
     const count = out.trim().split('\n').filter(Boolean).length;
-    if (count === 0) return 'NONE';
-    if (count <= 3)  return 'LOW';
-    if (count <= 10) return 'MEDIUM';
-    return 'HIGH';
-  } catch (_) { return 'UNKNOWN'; }
+    const level = count === 0 ? 'NONE' : count <= 3 ? 'LOW' : count <= 10 ? 'MEDIUM' : 'HIGH';
+    return { level, assessed: true, changed: count };
+  } catch (_) { return { level: 'UNKNOWN', assessed: false, changed: null }; }
 }
 
 function getRawTokenCount(cwd, config) {
@@ -32978,12 +33369,12 @@ function main() {
       query = args[2];
     } else if (query && query.startsWith('--') && query !== '--json' && query !== '--model') {
       // Allow --json and --model but not other flags as query
-      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--explain] [--model <name>]');
+      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--explain] [--with-source] [--model <name>]');
       console.error('  Example: sigmap ask "fix the login bug" --followup');
       process.exit(1);
     }
     if (!query || query.startsWith('--')) {
-      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--explain] [--model <name>] [--top <n>]');
+      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--explain] [--with-source] [--model <name>] [--top <n>]');
       console.error('  Example: sigmap ask "fix the login bug" --followup');
       process.exit(1);
     }
@@ -33006,7 +33397,18 @@ function main() {
     }
 
     const { detectIntent, detectIntents, buildSigIndex, rank } = requireSourceOrBundled('./src/retrieval/ranker');
-    const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
+    const { coverageScore, formatCoverage } = requireSourceOrBundled('./src/analysis/coverage-score');
+
+    // `ask --with-source` (#814): opt-in symbol bodies + blast radius. Default
+    // output is untouched — anything that ADDS tokens has to be asked for.
+    // The budget is the project's existing `maxTokens` knob minus what the
+    // signature context already spent, so there is no second budget to tune;
+    // `--source-budget <n>` overrides it for a one-off deep read.
+    const __withSource = args.includes('--with-source');
+    const __srcBudgetIdx = args.indexOf('--source-budget');
+    const __srcBudgetFlag = (__srcBudgetIdx !== -1 && args[__srcBudgetIdx + 1] && !args[__srcBudgetIdx + 1].startsWith('--'))
+      ? parseInt(args[__srcBudgetIdx + 1], 10)
+      : null;
     const { loadSession, saveSession, mergeSessionContext } = requireSourceOrBundled('./src/session/memory');
     const { detectWorkspaces, inferPackage, scopeToPackage } = requireSourceOrBundled('./src/workspace/detector');
 
@@ -33186,13 +33588,46 @@ function main() {
     const miniCtx = indexMode ? buildIndexContext(ranked, cwd) : buildMiniContext(ranked, cwd, __notesSection);
     const outPath = path.join(cwd, '.context', 'query-context.md');
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
-    fs.writeFileSync(outPath, miniCtx, 'utf8');
-    const ctxTok = estimateTokens(miniCtx);
+
+    // --with-source (#814): the signature context is written first, then the
+    // bodies are budgeted against whatever room is left under `maxTokens`, so
+    // the addendum can never push the signatures themselves over the ceiling.
+    let __sourceSection = null;
+    let __fullCtx = miniCtx;
+    if (__withSource) {
+      const __sigTok = estimateTokens(miniCtx);
+      const __ceiling = Number.isFinite(__srcBudgetFlag) && __srcBudgetFlag > 0
+        ? __srcBudgetFlag
+        : Math.max(0, (config.maxTokens || 6000) - __sigTok);
+      try {
+        const { buildSourceSection } = requireSourceOrBundled('./src/retrieval/with-source');
+        __sourceSection = buildSourceSection(ranked, cwd, {
+          budgetTokens: __ceiling, srcDirs: config.srcDirs, exclude: config.exclude,
+        });
+        if (__sourceSection.text) __fullCtx = `${miniCtx}\n${__sourceSection.text}`;
+      } catch (err) {
+        process.stderr.write(`[sigmap] \u26a0  --with-source unavailable: ${err.message}\n`);
+        __sourceSection = null;
+      }
+    }
+
+    fs.writeFileSync(outPath, __fullCtx, 'utf8');
+    const ctxTok = estimateTokens(__fullCtx);
 
     const allFiles = buildFileList(cwd, config);
     const fakeEntries = allFiles.map((f) => ({ filePath: f }));
+    // #806: this figure was printed as a bare `Coverage : 100%` directly under
+    // the answer, where it reads as "the right files were found". It is not
+    // that measurement at all — the entries fed in are every file the scan
+    // found, so it reports how much of srcDirs is readable, and it is 100% in
+    // any healthy repo regardless of what the query returned. The #762
+    // precedent applies: the defect is the missing population, not the number.
+    let __cov = null;
     let coveragePct = 0;
-    try { coveragePct = coverageScore(cwd, fakeEntries, config).score; } catch (_) {}
+    try {
+      __cov = coverageScore(cwd, fakeEntries, config);
+      coveragePct = __cov.score;
+    } catch (_) {}
 
     // Realistic baseline: the full content of the files SigMap actually surfaced
     // for this query. Without SigMap you'd read these files in full; SigMap gives
@@ -33215,7 +33650,31 @@ function main() {
     const costRaw = ((rawTok / 1000) * rateK).toFixed(4);
     const costCtx = ((ctxTok / 1000) * rateK).toFixed(4);
 
-    const riskLevel = computeCurrentRisk(cwd);
+    const __risk = computeCurrentRisk(cwd);
+    const riskLevel = __risk.level;
+
+    // #806: did the selection contain any implementation at all? Neither the
+    // coverage figure nor the risk figure ever asked, and that is the one
+    // question a reader is actually using them to answer.
+    const { classifySelection, selectionWarning, formatComposition } =
+      requireSourceOrBundled('./src/retrieval/selection-quality');
+    const __selectionClass = classifySelection(ranked);
+    const __selectionWarning = selectionWarning(__selectionClass);
+
+    // #815: `judge` has warned about a stale index since v8.54.2 (#780); the
+    // retrieval surfaces answered from the same ground in silence. Shared
+    // module, so "stale" has one definition across judge, ask and MCP.
+    let __staleWarn = null;
+    try {
+      const __cs = requireSourceOrBundled('./src/judge/context-source');
+      const __ctxFile = __cs.resolveContextFile(cwd);
+      if (__ctxFile) {
+        __staleWarn = __cs.stalenessWarning(
+          __cs.contextStaleness(__ctxFile, cwd, config),
+          { tail: __cs.STALE_TAILS.ask }
+        );
+      }
+    } catch (_) {} // advisory: never fail an answer over its own freshness check
 
     // Reproducibility (#775): an `ask` result reported tokens and cost but never
     // which files it chose, where the cut fell, or a hash of what it emitted —
@@ -33242,10 +33701,30 @@ function main() {
     if (args.includes('--json')) {
       process.stdout.write(JSON.stringify({
         intent, coverage: coveragePct, contextTokens: ctxTok,
+        // #806: the bare `coverage` number is kept for compatibility and now
+        // ships with the population it measures, so a consumer cannot read it
+        // as "the query found the right files".
+        coveragePopulation: 'readable',
+        coverageIncluded: __cov ? __cov.included : null,
+        coverageTotal: __cov ? __cov.total : null,
+        coverageBasis: 'share of source files under srcDirs that are readable — NOT whether the query found the right files',
         costBefore: costRaw, costAfter: costCtx, savingsPct: savings,
         pricedModel: __price.model,
         costBasis: 'estimate — counterfactual = full content of ranked files; input tokens only',
-        riskLevel, contextPath: path.relative(cwd, outPath),
+        riskLevel, riskAssessed: __risk.assessed, riskChangedFiles: __risk.changed,
+        riskBasis: 'files changed in the working tree vs HEAD',
+        sourceFiles: __selectionClass.source.length,
+        supportFiles: __selectionClass.support.length,
+        sourceFree: __selectionClass.sourceFree,
+        stale: __staleWarn !== null, staleWarning: __staleWarn,
+        withSource: __withSource,
+        source: __sourceSection ? {
+          included: __sourceSection.included, skipped: __sourceSection.skipped,
+          candidates: __sourceSection.candidates, budgetTokens: __sourceSection.budgetTokens,
+          spentTokens: __sourceSection.spentTokens, truncated: __sourceSection.truncated,
+          blast: __sourceSection.blast,
+        } : null,
+        contextPath: path.relative(cwd, outPath),
         topK: askTopK, selectedFiles: __selection.count, cutoffScore: __selection.cutoff,
         notes: __relevantNotes.map((n) => ({ text: n.text, score: n.score, paths: n.paths })),
         contextHash: __selection.hash,
@@ -33253,6 +33732,15 @@ function main() {
     } else {
       if (coveragePct < 70) {
         process.stderr.write(`[sigmap] ⚠  coverage ${coveragePct}% — consider running: sigmap validate\n`);
+      }
+      // Both warnings go to stderr so they cannot corrupt a piped context path,
+      // and both are printed BEFORE the table: a reader who stops at the first
+      // line still sees that the ground under it is in question.
+      if (__staleWarn) {
+        process.stderr.write(`[sigmap] ⚠  ${__staleWarn}\n`);
+      }
+      if (__selectionWarning) {
+        process.stderr.write(`[sigmap] ⚠  ${__selectionWarning}\n`);
       }
       const bar = '─'.repeat(44);
       console.log([
@@ -33265,8 +33753,17 @@ function main() {
         __relevantNotes.length > 0
           ? ` Notes     : ${__relevantNotes.length} matching (${__relevantNotes.map((n) => n.text.slice(0, 48)).join(' · ')})`
           : null,
-        ` Coverage  : ${coveragePct}%`,
-        ` Risk      : ${riskLevel}`,
+        ` Selection : ${formatComposition(__selectionClass)}`,
+        ` Coverage  : ${__cov ? formatCoverage(__cov, 'readable', { grade: false }) : 'not assessed'}`,
+        ` Risk      : ${__risk.assessed
+            ? `${__risk.level} (${__risk.changed} file(s) changed vs HEAD)`
+            : 'not assessed (no git repo, or git unavailable)'}`,
+        __sourceSection && __sourceSection.included > 0
+          ? ` Source    : ${__sourceSection.included} of ${__sourceSection.candidates} top symbol(s), ${__sourceSection.spentTokens.toLocaleString()} of ${__sourceSection.budgetTokens.toLocaleString()} budget token(s)${__sourceSection.truncated ? ` · ${__sourceSection.skipped} omitted (over budget)` : ''}`
+          : null,
+        __withSource && (!__sourceSection || __sourceSection.included === 0)
+          ? ` Source    : none included — no anchored symbol fit the ${__sourceSection ? __sourceSection.budgetTokens.toLocaleString() : '0'}-token budget (raise maxTokens or pass --source-budget <n>)`
+          : null,
         ` Cost      : $${costCtx}/query  (was $${costRaw} · saved ${savings}%)`,
         ` ${' '.repeat(9)} est. @ ${__price.model} $${__price.perMtok}/Mtok input; "was" = full ranked files`,
         bar,
