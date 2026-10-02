@@ -180,7 +180,9 @@ sigmap ask "how are secrets redacted" --top 12
 ────────────────────────────────────────────
 ```
 
-With `--json` the output is a machine-readable object with `intent`, `coverage`, `cost`, `riskLevel`, and `rankedFiles`.
+With `--json` the output is a machine-readable object. The core keys are `intent`, `coverage`, `riskLevel`, `contextTokens`, `contextPath`, `contextHash` and `rankedFiles` — the ranked selection as `[{ rank, file, score, tokens }]`, in rank order, so the file list is readable without re-parsing the written context. Cost is reported as `costBefore`, `costAfter` and `savingsPct` rather than a single `cost` field, because a saving needs both sides of the comparison to mean anything.
+
+Until v8.62.0 this sentence promised `cost` and `rankedFiles`, and neither key existed — a consumer written against the documented contract got `undefined` twice ([#662](https://github.com/manojmallick/sigmap/issues/662)). Every documented `--json` key is now pinned by a guard test against the command's real output.
 
 ### Every figure names its basis (v8.61.0)
 
