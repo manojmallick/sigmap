@@ -23,6 +23,12 @@ const FIXTURE_PATHS = {
   pipeline: path.join('.github', 'workflows', 'pipeline.yml'),
 };
 
+// Groovy has two supported surfaces: source files and Gradle build scripts.
+// Keep one language snapshot while exercising both file extensions.
+const FIXTURE_CASES = {
+  groovy: ['groovy.groovy', 'groovy.gradle'],
+};
+
 const args = process.argv.slice(2);
 const UPDATE = args.includes('--update');
 const FILTER = args.filter((a) => !a.startsWith('--'))[0] || null;
@@ -43,6 +49,7 @@ const LANG_EXT = {
   swift: 'swift',
   dart: 'dart',
   scala: 'scala',
+  groovy: 'groovy',
   lua: 'lua',
   elixir: 'ex',
   astro: 'astro',
@@ -65,13 +72,14 @@ const failures = [];
 for (const [lang, ext] of Object.entries(LANG_EXT)) {
   if (FILTER && lang !== FILTER) continue;
 
-  const fixtureName = FIXTURE_PATHS[lang] || (ext === 'Dockerfile' ? 'Dockerfile' : `${lang}.${ext}`);
-  const fixturePath = path.join(FIXTURES_DIR, fixtureName);
+  const fixtureNames = FIXTURE_CASES[lang] || [FIXTURE_PATHS[lang] || (ext === 'Dockerfile' ? 'Dockerfile' : `${lang}.${ext}`)];
+  const fixturePaths = fixtureNames.map((name) => path.join(FIXTURES_DIR, name));
   const expectedPath = path.join(EXPECTED_DIR, `${lang}.txt`);
   const extractorPath = path.join(ROOT, 'src', 'extractors', `${lang}.js`);
 
-  if (!fs.existsSync(fixturePath)) {
-    console.log(`  SKIP  ${lang} — no fixture at test/fixtures/${fixtureName}`);
+  if (fixturePaths.some((fixturePath) => !fs.existsSync(fixturePath))) {
+    const missing = fixturePaths.findIndex((fixturePath) => !fs.existsSync(fixturePath));
+    console.log(`  SKIP  ${lang} — no fixture at test/fixtures/${fixtureNames[missing]}`);
     continue;
   }
 
@@ -90,12 +98,15 @@ for (const [lang, ext] of Object.entries(LANG_EXT)) {
     continue;
   }
 
-  const src = fs.readFileSync(fixturePath, 'utf8');
   let sigs;
   try {
-    // Only the path-routed extractor takes a second argument; passing a path
-    // to python.extract would switch it to the native AST tier.
-    sigs = FIXTURE_PATHS[lang] ? extractor.extract(src, fixtureName) : extractor.extract(src);
+    sigs = fixturePaths.flatMap((fixturePath, index) => {
+      const src = fs.readFileSync(fixturePath, 'utf8');
+      // Pass paths only to extractors whose behavior is path-sensitive. This
+      // preserves Python's native AST fixture contract for every other language.
+      const pathSensitive = Boolean(FIXTURE_PATHS[lang] || FIXTURE_CASES[lang]);
+      return pathSensitive ? extractor.extract(src, fixtureNames[index]) : extractor.extract(src);
+    });
   } catch (err) {
     console.log(`  FAIL  ${lang} — extract() threw: ${err.message}`);
     failed++;

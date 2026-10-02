@@ -17,7 +17,7 @@ const MAX_ROOTS = 6;
 // module — okhttp has 27 — so the 6-root cap tuned for JS layouts would
 // discard most of the repo. Raised only for that case.
 const MAX_JVM_MODULE_ROOTS = 40;
-const JVM_SOURCE_LANGS = ['java', 'kotlin', 'scala'];
+const JVM_SOURCE_LANGS = ['java', 'kotlin', 'scala', 'groovy'];
 
 /**
  * Build-file evidence of a multi-module JVM project.
@@ -216,7 +216,7 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
           candidates.push({ name: `${top}/${pkg.name}`, full: path.join(topFull, pkg.name) });
 
           // JVM project structures in monorepo packages (Java, Kotlin, Scala)
-          for (const jvmLang of ['java', 'kotlin', 'scala']) {
+          for (const jvmLang of ['java', 'kotlin', 'scala', 'groovy']) {
             const srcMainJvm = path.join(topFull, pkg.name, 'src', 'main', jvmLang);
             if (fs.existsSync(srcMainJvm)) {
               candidates.push({ name: `${top}/${pkg.name}/src/main/${jvmLang}`, full: srcMainJvm });
@@ -233,9 +233,9 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
 
   // Deep paths known by language/framework (e.g. src/main/java, src-tauri/src)
   const DEEP_PATHS = [
-    'src/main/java','src/main/kotlin','src/main/scala',
+    'src/main/java','src/main/kotlin','src/main/scala','src/main/groovy',
     'src-tauri/src','Sources/App','app/src/main/java','app/src/main/kotlin','app/src/main/scala',
-    'src/test/java','src/test/kotlin',
+    'src/test/java','src/test/kotlin','src/test/groovy',
   ];
   for (const dp of DEEP_PATHS) {
     const full = path.join(cwd, dp);

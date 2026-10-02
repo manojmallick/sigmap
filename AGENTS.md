@@ -19,35 +19,110 @@ low-priority files rather than collapsing signatures to bare line anchors.
 
 ## SigMap commands
 
+**Run these yourself in the terminal** — offline, deterministic, no model call.
+
 | When | Command |
 |------|---------|
-| Before answering a question about code | `sigmap ask "<your question>"` |
+| Before answering anything about this code | `sigmap ask "<question>"` |
+| To read code you hold a `:start-end` anchor for | `sigmap lines <file> :<line> --context 10` |
+| Before editing a file / a function | `sigmap --impact <file>` · `sigmap --callers <symbol>` |
+| Before trusting generated code | `sigmap verify <answer.md>` |
 | To rank files by topic | `sigmap --query "<topic>"` |
+| Why a file is or is not in context | `sigmap explain <file>` |
 | After changing config or source dirs | `sigmap validate` |
-| To verify an AI answer is grounded | `sigmap judge --response <file>` |
+| To score an answer against this repo | `sigmap judge --response <file>` |
 
-Always run `sigmap ask` (or `sigmap --query`) before searching for files relevant to a task.
+Never open a file to "look around" — `sigmap ask` costs hundreds of tokens where
+reading the same files costs thousands. `:425-425` means line 425: read that range.
+
+## deps
+```
+src\graph\call-graph.js ← fs, path, builder, path-key
+src\judge\context-source.js ← fs, path, analysis/coverage-score
+src\mcp\handlers.js ← fs, path, util/git, judge/context-source, config/loader
+src\mcp\server.js ← readline, tools, handlers
+src\retrieval\selection-quality.js ← path, util/file-class, analysis/coverage-score
+src\retrieval\with-source.js ← fs, path, security/scanner, graph/impact
+src\util\git.js ← child_process
+gen-context.js ← path, fs, crypto, https, http
+src\analysis\coverage-score.js ← fs, path, util/file-class
+src\analysis\index-state.js ← fs, path, extractors/pipeline, tracking/logger, coverage-score
+src\cache\sig-cache.js ← fs, path
+src\config\loader.js ← fs, path, https, http, child_process
+src\config\tune.js ← fs, path, loader, discovery/source-root-resolver, discovery/monorepo
+src\create\orchestrate.js ← scaffold/propose, plan/verify-plan, verify/hallucination-guard, review/review-pr
+src\deps\inventory.js ← fs, path
+src\deps\sbom.js ← inventory
+src\discovery\language-detector.js ← fs, path, source-root-registry
+src\discovery\monorepo.js ← fs, path
+src\discovery\source-root-resolver.js ← fs, path, source-root-registry, language-detector, framework-detector
+src\discovery\source-root-scorer.js ← fs, path, util/git
+src\doctor\diagnose.js ← fs, path, os, analysis/index-state, util/git
+src\eval\analyzer.js ← fs, path, extractors/dispatch
+src\extractors\cpp.js ← util/truncate, scan
+src\extractors\csharp.js ← line-anchor, util/truncate, scan
+src\extractors\dart.js ← line-anchor, util/truncate, scan
+src\extractors\dispatch.js ← fs, path, pipeline, typescript, typescript_react
+src\extractors\groovy.js ← line-anchor, scan, util/truncate
+src\extractors\java.js ← line-anchor, scan, util/truncate
+src\extractors\javascript.js ← line-anchor, util/truncate, scan, component-surface
+src\extractors\kotlin.js ← line-anchor, util/truncate, scan
+src\extractors\php.js ← line-anchor, util/truncate, scan
+src\extractors\pipeline.js ← path, util/truncate
+src\extractors\python_ast.py ← ast
+src\extractors\python.js ← fs, path, child_process, line-anchor, util/truncate
+src\extractors\ruby.js ← util/truncate, scan
+src\extractors\rust.js ← line-anchor, util/truncate, scan
+src\extractors\scala.js ← line-anchor, util/truncate, scan
+src\extractors\swift.js ← line-anchor, util/truncate, scan
+src\extractors\typescript.js ← line-anchor, util/truncate, scan, component-surface
+src\extractors\yaml.js ← util/truncate, pipeline
+src\format\dashboard.js ← fs, path, tracking/logger, extractors/dispatch, tracking/usage-source
+src\graph\builder.js ← fs, path, path-key, extractors/deps, discovery/r-manifest
+src\health\scorer.js ← fs, path, tracking/usage-source, tracking/logger, format/dashboard
+src\judge\judge-engine.js ← fs, path, learning/weights, verify/parsers, retrieval/bm25
+src\map\config-manifest.js ← fs, path, deps/inventory
+src\plan\verify-plan.js ← fs, path, verify/parsers, verify/hallucination-guard, verify/closest-match
+src\retrieval\ranker.js ← path, fs, learning/weights, tokenizer, bm25
+src\session\note-relevance.js ← retrieval/bm25
+src\tracking\usage-source.js ← fs, path
+src\verify\hallucination-guard.js ← fs, path, parsers, closest-match, lib-index
+src\wiki\generate.js ← fs, path, graph/path-key, graph/builder, map/import-graph
+src\workspace\detector.js ← fs, path
+packages\adapters\claude.js ← path, fs
+packages\adapters\codex.js ← path, fs
+packages\adapters\copilot.js ← path, fs
+packages\adapters\cursor.js ← path
+packages\adapters\gemini.js ← path, fs
+packages\adapters\index.js ← path
+packages\adapters\llm-full.js ← path, fs
+packages\adapters\openai.js ← path
+packages\adapters\willow.js ← crypto, path
+packages\adapters\windsurf.js ← path
+packages\cli\index.js ← path
+packages\core\index.js ← fs, path
+gen-project-map.js ← fs, path, src/config/loader
+```
 
 ## todos
 ```
-gen-context.js:27247  # TODO: s');
+gen-context.js:31524  # TODO: s');
 ```
 
-## changes (last 5 commits — 8 minutes ago)
+## changes (last 5 commits — 2 hours ago)
 ```
-src/deps/inventory.js                         +readText  +readJson  +exists  +stripXmlComments
-src/deps/sbom.js                              +isExactVersion  +normalizeVersion  +purlEncode  +purlFor
-src/extractors/dispatch.js                    ~extractFile  ~langFor
-src/extractors/pipeline.js                    +platformFor  +sniffPlatform  +stripInlineComment  +unquote
-src/extractors/yaml.js                        ~extract
-src/graph/builder.js                          ~extractFileDeps  ~build  ~_configuredSrcDirs  ~buildFromCwd
-src/graph/impact.js                           ~isRouteFile  ~getImpact  ~normalizePath
-src/graph/path-key.js                         +displayPath  ~graphKey
-src/learning/weights.js                       ~sanitizeWeights  ~updateWeights  ~importWeights  ~weightsPath
-src/map/config-manifest.js                    +scopeSummary  ~readText  ~readJson  ~count
-src/plan/planner.js                           ~createPlan
-src/wiki/generate.js                          +_rel  ~_rel  ~_flow  ~_pct
-gen-context.js                                +readText  +readJson  +exists  +stripXmlComments
+src\graph\call-graph.js                       +countDynamicLoads  +_scopeClause  ~buildCallGraph  ~_bfs
+src\judge\context-source.js                   +stalenessWarning  ~stalenessWarning  ~_formatGap
+src\mcp\handlers.js                           +_stalenessBanner  ~_readContextFiles  ~readContext  ~searchSignatures
+src\retrieval\selection-quality.js            +as  +isConfigPath  +isProsePath  +classifySelection
+src\retrieval\with-source.js                  +parseAnchor  +collectSymbols  +sliceSymbol  +blastRadius
+src\util\git.js                               +changedFiles  ~tryGit
+gen-context.js                                +_norm  +declaredEntrypointPaths  +augmentedReason  +classifyIndexEntries
+src\analysis\index-state.js                   +_norm  +declaredEntrypointPaths  +augmentedReason  +classifyIndexEntries
+src\cache\sig-cache.js                        +pruneMissing  ~updateCacheEntries
+src\doctor\diagnose.js                        ~_mcpTargets  ~diagnose  ~_countChangedSince
+src\extractors\dispatch.js                    ~extractFile  ~langFor
+src\format\dashboard.js                       ~shouldExclude  ~computeExtractorCoverage  ~lineChartSvg  ~toNumber
 ```
 
 ## .
@@ -55,40 +130,50 @@ gen-context.js                                +readText  +readJson  +exists  +st
 ### gen-context.js
 ```
 function __require(key)  :9-20
-function __git(args, opts = {})  :26386-26389
-function __tryGit(args, opts = {})  :26390-26393
-function requireSourceOrBundled(key)  :26398-26405
-function isDockerfile(filename)  :26424-26426
-function loadIgnorePatterns(cwd)  :26431-26444
-function matchesIgnore(relPath, patterns)  :26446-26467
-function walkDir(dir, exclude, maxDepth, depth = 0)  :26472-26495
-function buildFileList(cwd, config)  :26497-26508
-function collectTestEntries(cwd, config, existing)  :26519-26545  # Source files a project declares as its own entrypoints in pa
-function declaredEntrypoints(cwd, config, existing)  :26547-26567
-function getExtractor(name)  :26573-26583
-function _toolchainLabel()  :26593-26605
-function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd)  :26607-26698
-function extractFileDeps(filePath, content, config) → string[]  :26700-26711  # Extract absolute dependency paths from a single file
-function extractSignatureName(sig)  :26713-26717
-function annotateCoverage(sigs, testIndex, enabled)  :26719-26729
-function nextRecentMtime()  :26750-26752
-function estimateTokens(str) → number  :26754-26756  # Estimate token count from character count (chars/4, ±5%)
-function isTestFile(filePath)  :26758-26773
-function isConfigFile(filePath)  :26775-26778
-function isGeneratedFile(filePath)  :26780-26782
-function isMockFile(filePath)  :26784-26789
-function isEntryPointFile(filePath)  :26799-26804
-function computeEffectiveMaxTokens(fileEntries, config) → number  :26821-26859  # , tests/, spec/, __tests__/, e2e/)
-function pruneStaleContextSplits(cwd, keep) → string[]  :26876-26891  # Delete `
-function applyTokenBudget(fileEntries, maxTokens)  :26893-26999
-function getRecentlyCommittedFiles(cwd, count)  :27004-27012
-function getDiffFiles(cwd, stagedOnly)  :27017-27027
-function getFilesChangedSinceBase(cwd, baseRef)  :27029-27043
+function __git(args, opts = {})  :30472-30475
+function __tryGit(args, opts = {})  :30476-30479
+function requireSourceOrBundled(key)  :30484-30491
+function isDockerfile(filename)  :30510-30512
+function loadIgnorePatterns(cwd)  :30517-30530
+function matchesIgnore(relPath, patterns)  :30532-30553
+function walkDir(dir, exclude, maxDepth, depth = 0)  :30558-30581
+function buildFileList(cwd, config)  :30583-30601
+function collectTestEntries(cwd, config, existing)  :30612-30640  # Source files a project declares as its own entrypoints in pa
+function collectPipelineEntries(cwd, config, existing) → Array<{filePath:string, s  :30660-30706  # CI / pipeline definitions, which live OUTSIDE srcDirs by con
+function declaredEntrypoints(cwd, config, existing)  :30708-30728
+function getExtractor(name)  :30734-30744
+function _toolchainLabel()  :30754-30766
+function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd)  :30768-30860
+function extractFileDeps(filePath, content, config) → string[]  :30862-30878  # Extract absolute dependency paths from a single file
+function extractSignatureName(sig)  :30880-30884
+function annotateCoverage(sigs, testIndex, enabled)  :30886-30896
+function nextRecentMtime()  :30917-30919
+function estimateTokens(str) → number  :30921-30923  # Estimate token count from character count (chars/4, ±5%)
+function _fileClass()  :30932-30935
+function isTestFile(filePath)  :30937-30939  # Test files, across every convention the extractors support
+function isConfigFile(filePath)  :30941-30944
+function isGeneratedFile(filePath)  :30946-30948  # Machine-emitted sources
+function isMockFile(filePath)  :30950-30952  # Mocks, stubs, fakes and fixtures — test scaffolding, not beh
+function isEntryPointFile(filePath)  :30962-30967
+function _pinnedBudgetOverridden(config, effectiveMaxTokens)  :30992-30996  # True when the project pinned `maxTokens` and auto-scaling re
+function computeEffectiveMaxTokens(fileEntries, config)  :30998-31036
+function pruneStaleContextSplits(cwd, keep) → string[]  :31053-31068  # Delete `
+function applyTokenBudget(fileEntries, maxTokens)  :31070-31250
+```
+
+### gen-project-map.js
+```
+function detectInvokedAs()  :27-37
+function walkDir(dir, excludeSet, maxDepth, depth, results)  :77-90
+function buildFileList(cwd, srcDirs, exclude, maxDepth)  :92-103
+function runAnalyzer(name, files, cwd)  :108-116
+function formatOutput(sections)  :121-151
+function main()  :156-191
 ```
 
 ## packages
 
-### packages/adapters/claude.js
+### packages\adapters\claude.js
 ```
 module.exports = { name, format, outputPath, write }  :126-126
 function format(context, opts = {}) → string  :58-69  # Format context suited for CLAUDE
@@ -97,7 +182,15 @@ function outputPath(cwd) → string  :87-89  # Return the output file path for t
 function write(context, cwd, opts = {})  :98-124  # Write signatures into CLAUDE
 ```
 
-### packages/adapters/copilot.js
+### packages\adapters\codex.js
+```
+module.exports = { name, format, outputPath, write }  :74-74
+function format(context, opts = {}) → string  :27-30  # Format context for AGENTS
+function outputPath(cwd) → string  :37-39  # Return the output file path for this adapter
+function write(context, cwd, opts = {})  :49-72  # Write signatures into AGENTS
+```
+
+### packages\adapters\copilot.js
 ```
 module.exports = { name, format, outputPath, write }  :95-95
 function format(context, opts = {}) → string  :25-40  # Format context for GitHub Copilot instructions
@@ -106,28 +199,297 @@ function outputPath(cwd) → string  :58-60  # Return the output file path for t
 function write(context, cwd, opts = {})  :70-93  # Write signatures into copilot-instructions
 ```
 
-### packages/core/index.js
+### packages\adapters\cursor.js
 ```
-module.exports = { extract, rank, buildSigIndex, scan, score, adapt }  :255-268
-function _resolveExtractor(language)  :65-72
-function extract(src, language) → string[]  :92-121  # Extract code signatures from source text for the given langu
-function rank(query, sigIndex, opts) → { file: string, score: nu  :144-151  # Rank files in a signature index against a natural-language q
-function buildSigIndex(cwd) → Map<string, string[]>  :163-170  # Build a file→signatures index from the generated context fil
-function scan(sigs, filePath) → { safe: string[], redacte  :186-193  # Scan an array of signature strings for secrets and redact an
-function score(cwd) → { * score: number, * grad  :216-223  # Compute a composite health score for the project at cwd
-function adapt(context, adapterName, opts = {}) → string  :242-250  # Format a context string using the named output adapter
+module.exports = { name, format, outputPath }  :56-56
+function format(context, opts = {}) → string  :23-36  # Format context for Cursor rules file
+function _confidenceMeta(opts)  :38-45
+function outputPath(cwd) → string  :52-54  # Return the output file path for this adapter
+```
+
+### packages\adapters\gemini.js
+```
+module.exports = { name, format, outputPath, write }  :104-104
+function format(context, opts = {}) → string  :31-51  # Format context as a Gemini system instruction
+function outputPath(cwd) → string  :58-60  # Return the output file path for this adapter
+function write(context, cwd, opts = {})  :70-93  # Write signatures into gemini-context
+function _confidenceMeta(opts)  :95-102
+```
+
+### packages\adapters\index.js
+```
+module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters }  :81-81
+function getAdapter(name) → { name: string, format: F  :26-38  # Load and return an adapter module by name
+function listAdapters() → string[]  :44-46  # List all available adapter names
+function adapt(context, adapterName, opts = {}) → string  :55-64  # Format context using the named adapter
+function outputsToAdapters(outputs) → string[]  :72-79  # Map old `outputs` config values to new `adapters` names
+```
+
+### packages\adapters\llm-full.js
+```
+module.exports = { name: 'llm-full', format, outputPath, write }  :4-4
+function outputPath(cwd)  :6-6
+function format(context, opts)  :8-20
+function write(context, cwd, opts)  :22-25
+```
+
+### packages\adapters\openai.js
+```
+module.exports = { name, format, outputPath }  :70-70
+function format(context, opts = {}) → string  :29-49  # Format context as an OpenAI system prompt
+function outputPath(cwd) → string  :57-59  # Return the output file path for this adapter
+function _confidenceMeta(opts)  :61-68
+```
+
+### packages\adapters\willow.js
+```
+module.exports = { name, format, outputPath, write }  :199-199
+function format(context, opts = {}) → string  :37-41  # Format SigMap context as markdown for display or debug
+function outputPath(cwd) → string  :48-50  # Return the placeholder output path (no file is written by th
+function generateAtomId(filepath) → string  :58-64  # Generate a cryptographically strong ID for an atom
+async function fetchWithTimeout(url, opts, timeoutMs) → Promise<Response>  :73-81  # Fetch with timeout support
+async function postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries) → Promise<boolean>  :91-141  # POST an atom to Willow with exponential backoff retry
+async function write(context, cwd, opts = {}) → Promise<void>  :154-197  # POST each file section from SigMap context to the Willow MCP
+```
+
+### packages\adapters\windsurf.js
+```
+module.exports = { name, format, outputPath }  :56-56
+function format(context, opts = {}) → string  :23-36  # Format context for Windsurf rules file
+function _confidenceMeta(opts)  :38-45
+function outputPath(cwd) → string  :52-54  # Return the output file path for this adapter
+```
+
+### packages\cli\index.js
+```
+module.exports = { CLI_ENTRY, run }  :58-63
+function run(argv, cwd) → void  :36-56  # Run the SigMap CLI programmatically with the given argv arra
+```
+
+### packages\core\index.js
+```
+module.exports = { extract, rank, buildSigIndex, scan, score, adapt }  :260-273
+function _resolveExtractor(language)  :67-74
+function extract(src, language) → string[]  :94-126  # Extract code signatures from source text for the given langu
+function rank(query, sigIndex, opts) → { file: string, score: nu  :149-156  # Rank files in a signature index against a natural-language q
+function buildSigIndex(cwd) → Map<string, string[]>  :168-175  # Build a file→signatures index from the generated context fil
+function scan(sigs, filePath) → { safe: string[], redacte  :191-198  # Scan an array of signature strings for secrets and redact an
+function score(cwd) → { * score: number, * grad  :221-228  # Compute a composite health score for the project at cwd
+function adapt(context, adapterName, opts = {}) → string  :247-255  # Format a context string using the named output adapter
+```
+
+### packages\core\README.md
+```
+h1 sigmap-core
+h2 Installation
+h2 Quick start
+h2 API reference
+h3 `extract(src, language)` → `string[]`
+h3 `rank(query, sigIndex, opts?)` → `Result[]`
+h3 `buildSigIndex(cwd)` → `Map<string, string[]>`
+h3 `scan(sigs, filePath)` → `{ safe: string[], redacted: boolean }`
+h3 `score(cwd)` → `HealthResult`
+h2 Migration from v2.3 and earlier
+h2 v3.0 — Multi-Adapter Architecture (released)
+h2 Zero dependencies
+code-fence bash
+code-fence plain
+code-fence js
+code-fence ---
 ```
 
 ## src
 
-### src/config/defaults.js
+### src\graph\call-graph.js
+```
+module.exports = { buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :910-914
+function normalizePath(p)  :44-44
+function toRel(cwd, f)  :45-45
+function symId(cwd, absFile, name)  :46-46
+function maskJs(src)  :52-68
+function maskRust(src)  :73-94
+function maskPy(src)  :96-113
+function matchDelim(masked, openIdx, open, close)  :116-123
+function lineAt(src, idx)  :125-130
+function jsDefs(masked)  :135-201
+function pyDefs(masked)  :203-223
+function goDefs(masked)  :227-248
+function javaTypeDecl(masked)  :264-914
+function javaDefs(masked)  :291-327
+function rustDefs(masked)  :332-350
+function jvmBodyRange(masked, from) → {bodyStart:number, bodyEn  :361-374  # Body range for a JVM-family member that may use either a bra
+function ktDefs(masked)  :380-401  # Kotlin `fun` definitions, including extension functions (`fu
+function scalaDefs(masked)  :407-427  # Scala `def` definitions
+function maskFor(filePath, src)  :429-434
+function extractDefs(filePath, src)  :436-446
+function callsInRange(masked, start, end)  :449-461
+function receiverCallsInRange(masked, start, end)  :466-478
+function buildTypeMap(masked)  :485-495
+function _configuredSrcDirs(cwd)  :516-522  # Source directories declared in the project's own config, or 
+function _walk(dir, excludeSet, out, depth, maxDepth)  :524-538
+function buildCallGraph(cwd, opts = {}) → { * forward: Map<string,s  :554-741  # Build the method-level call-graph for a project
+function buildCallFileGraph(cwd, opts = {}) → { forward: Map<string,str  :754-780  # Collapse the symbol-level call-graph to FILE-level bidirecti
+function _resolveSymbol(symbol, defs)  :783-788
+function _bfs(seedIds, graph, maxDepth)  :791-804
+function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :814-821  # Method-level blast radius: everything that (transitively) ca
+```
+
+### src\judge\context-source.js
+```
+module.exports = { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS, ADAPTER_OUTPUTS }  :157-157
+function resolveContextFile(cwd) → string|null  :47-53  # The repo's generated context file, or null when none has bee
+function _newestSource(cwd, srcDirs, config) → { file: string, mtimeMs:   :60-89  # Newest source file under `srcDirs`, by mtime
+function contextStaleness(contextFile, cwd, config) → { stale: boolean, ageHour  :100-117  # Whether a context file is older than the sources it describe
+function _formatGap(ms)  :120-126  # Largest sensible unit for a gap, so a sub-hour drift never p
+function stalenessWarning(staleness, opts = {})  :141-145  # Human one-liner for a stale context, or null when it is fres
+```
+
+### src\mcp\handlers.js
+```
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap }  :1051-1051
+function _readContextFiles(cwd)  :10-17
+function _stalenessBanner(cwd) → string  :33-43  # Stale-index banner for the MCP read tools (#815)
+function readContext(args, cwd)  :62-93  # read_context({ module
+function searchSignatures(args, cwd)  :101-127  # search_signatures({ query }) → string
+function getMap(args, cwd)  :135-158  # get_map({ type }) → string
+function createCheckpoint(args, cwd)  :170-242  # create_checkpoint({ note
+function getRouting(args, cwd)  :251-288  # get_routing({}) → string
+function explainFile(args, cwd)  :296-383  # explain_file({ path }) → string
+function listModules(args, cwd)  :391-430  # list_modules({}) → string
+function queryContext(args, cwd)  :438-476  # query_context({ query, topK
+function getMethodImpact(args, cwd)  :484-498  # get_method_impact({ symbol, direction
+function getImpact(args, cwd)  :506-521  # get_impact({ file, depth
+function getLines(args, cwd)  :530-578  # get_lines({ file, start, end }) → string
+function readMemory(args, cwd)  :586-621  # read_memory({ limit
+function getBudget(args, cwd)  :630-656  # get_budget({ session
+function getCalleeSignatures(args, cwd)  :665-710  # get_callee_signatures — return the exact defining signature(
+function _pkgVersion(cwd)  :717-720
+function notifyFileCreated(args, cwd)  :724-746  # notify_file_created — extract a file's signatures and index 
+function notifySymbolAdded(args, cwd)  :749-769  # notify_symbol_added — append one signature to a file's live 
+function notifyFileDeleted(args, cwd)  :772-786  # notify_file_deleted — drop a file's cache-overlay entry
+function _changedFiles(cwd, args)  :792-797  # List the files changed in the working tree, staged area, or 
+function getDiffContext(args, cwd)  :806-877  # get_diff_context({ base
+function getArchitectureOverview(args, cwd)  :886-922  # get_architecture_overview({}) → string
+function verifySuggestion(args, cwd)  :932-967  # verify_suggestion({ code }) → string
+function squeezeOutput(args, cwd)  :977-1010  # squeeze_output({ content }) → string
+function queryKnowledgeMap(args, cwd)  :1013-1049
+```
+
+### src\mcp\server.js
+```
+module.exports = { start }  :185-185
+function respond(id, result)  :40-42
+function respondError(id, code, message)  :44-48
+function dispatch(msg, cwd)  :53-152
+function start(cwd)  :157-183
+```
+
+### src\mcp\tools.js
+```
+module.exports = { TOOLS }  :437-437
+```
+
+### src\retrieval\selection-quality.js
+```
+module.exports = { classifySelection, selectionWarning, formatComposition, isConfigPath, CONFIG_EXTS }  :104-104
+function isConfigPath(filePath)  :35-40  # True when a selected path is configuration rather than imple
+function isProsePath(filePath)  :43-45  # Prose that is not under a docs/ root and carries no well-kno
+function classifySelection(selected) → { source: string[], suppo  :57-70  # Split a selection into the implementation files an answer ca
+function formatComposition(classification)  :77-91  # The composition of a selection, named — `3 source, 2 support
+function selectionWarning(classification)  :97-102  # Warning for a selection with no implementation in it, or nul
+```
+
+### src\retrieval\with-source.js
+```
+module.exports = { parseAnchor, collectSymbols, sliceSymbol, blastRadius, buildSourceSection, DEFAULT_MAX_PER_FILE, DEFAULT_MAX_SYMBOLS, DEFAULT_BLAST_FILES, MAX_SYMBOL_LINES, NON_BODY_HEAD }  :221-224
+function parseAnchor(sig) → { head: string, start: nu  :49-57  # Parse a signature's trailing `:start-end` line anchor
+function collectSymbols(ranked, opts = {}) → Array<{ file:string, head  :70-89  # The anchored symbols worth slicing, in rank order
+function sliceSymbol(cwd, sym) → { lines:string[], from:nu  :98-115  # Read one symbol's lines, clamped to the file and secret-scan
+function blastRadius(cwd, files, opts = {}) → Array<{ file:string, dire  :125-139  # Blast radius for the files a source section covers — what el
+function buildSourceSection(ranked, cwd, opts = {}) → { * text: string, include  :155-219  # Render the `--with-source` addendum for a ranked selection
+```
+
+### src\util\git.js
+```
+module.exports = { git, tryGit, changedFiles, REF_RE }  :76-76
+function git(args, opts = {})  :17-23
+function tryGit(args, opts = {})  :26-29
+function changedFiles(cwd, mode = {}) → string[]  :63-74  # Files changed in one of the three diff modes, as repo-relati
+```
+
+### src\analysis\coverage-score.js
+```
+module.exports = { coverageScore, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS }  :303-303
+function coverageScore(cwd, fileEntries, config)  :41-90
+function outsideSrcDirs(cwd, config) → { total: number, byExt: A  :115-192  # Source files that exist in the repo but fall OUTSIDE every c
+function _walkOwned(dir, excludeSet, out, depth)  :206-219
+function _walk(dir, excludeSet, out)  :221-232
+function formatCoverage(cov, population, opts = {})  :263-270  # Render a coverage figure with its population, numerator and 
+function inContextFiles(cwd)  :278-301  # The files actually present in the generated context file — t
+```
+
+### src\analysis\index-state.js
+```
+module.exports = { TEST_ROOTS, CI_DIRS, INDEX_REL, ADAPTER_OUTPUTS, declaredEntrypointPaths, augmentedReason, classifyIndexEntries, formatAugmented, staleRemedies, indexFreshness, changedSince }  :321-333
+function _norm(p)  :68-70
+function declaredEntrypointPaths(cwd) → Set<string>  :79-95  # Source files a project declares as its own entrypoints in pa
+function augmentedReason(rel, ctx = {}) → 'test'|'ci'|'entrypoint'|  :105-123  # Why a repo-relative path is in the index despite falling out
+function classifyIndexEntries(cwd, indexedRel, config) → { inScope: string[], augm  :140-172  # Split the entries an index holds into the four classes that 
+function formatAugmented(classification) → string  :180-187  # Human summary of the augmented entries, e
+function staleRemedies(classification) → string[]  :198-209  # Remediation lines for whatever stale classes are actually pr
+function _contextMtime(cwd)  :212-221  # Newest mtime among the generated context files, or 0 when no
+function indexFreshness(cwd) → { ts: string|null, source  :236-276  # When the index was last built, and from which evidence
+function changedSince(cwd, config, sinceMs) → number  :291-319  # Count code files under `srcDirs` modified after `sinceMs`
+```
+
+### src\cache\sig-cache.js
+```
+module.exports = { loadCache, saveCache, getChangedFiles, updateCacheEntries, pruneMissing }  :130-130
+function cachePath(cwd)  :19-21
+function loadCache(cwd, currentVersion) → Map<string, { mtime: numb  :32-42  # Load the cache from disk
+function saveCache(cwd, currentVersion, cache)  :51-61  # Persist the cache to disk
+function getChangedFiles(files, cache) → { changed: string[], unch  :71-88  # Given a list of absolute file paths, return only those whose
+function updateCacheEntries(cache, extracted)  :96-103  # Update cache entries for a batch of files after fresh extrac
+function pruneMissing(cache) → number  :118-128  # Drop cache entries whose file no longer exists on disk
+```
+
+### src\config\defaults.js
 ```
 module.exports = { DEFAULTS }  :212-212
 ```
 
-### src/deps/inventory.js
+### src\config\loader.js
 ```
-module.exports = { collectDependencies, versionPins, npmLockVersions, MANIFESTS, MAX_DEPS_PER_MANIFEST }  :538-544
+module.exports = { loadConfig, loadBaseConfig }  :382-382
+function loadBaseConfig(extendsVal, cwd)  :9-64
+function detectAutoSrcDirs(cwd, excludeList) → string[]  :99-114  # Detect source directories for the given project root
+function _legacyDetectAutoSrcDirs(cwd, excludeList) → string[]  :123-228  # Legacy source directory detection (fallback)
+function _isJvmLayout(cwd) → boolean  :250-259  # Directory depth needed to reach source under a JVM package l
+function _applyJvmDepth(cfg, cwd, userSetDepth) → object  :272-277  # Raise `maxDepth` to the JVM depth when the layout needs it (
+function loadConfig(cwd) → object  :285-376  # Load and merge configuration for a given working directory
+function deepClone(obj)  :378-380
+```
+
+### src\config\tune.js
+```
+module.exports = { buildTuneProposal, applyTuneProposal, formatTuneProposal, JUNK_DIRS, TOKENS_PER_FILE }  :205-205
+function _readUserConfig(cwd)  :43-49  # Raw user config file content, or null when absent/unparsable
+function _countSourceFiles(cwd, roots, exclude, depth = 5)  :52-70  # Count source files under `roots` (relative to cwd), depth-ca
+function buildTuneProposal(cwd) → { changes: Array<{key:str  :87-169  # Build the recommended config diff for a repo
+function applyTuneProposal(cwd, proposal) → { path: string, applied:   :177-183  # Merge a proposal's changes into gen-context
+function formatTuneProposal(proposal)  :186-203  # Human rendering of a proposal (one block per change, reason 
+```
+
+### src\create\orchestrate.js
+```
+module.exports = { orchestrate, TOTAL, STAGE_NEEDS }  :119-119
+function _scaffoldIntroductions(step)  :38-42  # Files a successful scaffold proposes — introductions for ver
+function orchestrate(ctx = {}, cwd) → { task: string|null, step  :59-117  # Run the create pipeline over whatever inputs are available
+```
+
+### src\deps\inventory.js
+```
+module.exports = { findManifests, collectDependencies, isPlatformRequirement, versionPins, npmLockVersions, MANIFESTS, MAX_DEPS_PER_MANIFEST }  :765-773
 function readText(p)  :32-32
 function readJson(p)  :33-33
 function exists(p)  :34-34
@@ -135,46 +497,228 @@ function stripXmlComments(src)  :37-37  # Strip XML comments so a commented-out 
 function stripHashComments(src)  :40-51  # Blank `#` comments outside quotes, preserving line structure
 function tomlTables(src) → Array<{name:string, body:  :64-77  # Split a TOML document into `[table]` sections
 function tomlTable(tables, name)  :80-83  # Body of the first table with this exact name, or '' when abs
-function tomlValue(body, key)  :86-89  # `key = "value"` lookup inside a table body
-function dep(ecosystem, name, version, scope, file)  :91-93
-function npmDeps(cwd, rel, out)  :106-117
-function npmLockVersions(cwd) → Map<string,string>  :124-144  # Exact installed versions from package-lock
-function requirementsDeps(cwd, rel, out)  :152-164
-function pyprojectDeps(cwd, rel, out)  :167-208  # `[project] dependencies` (PEP 621) and `[tool
-function mavenDeps(cwd, rel, out)  :219-229  # Maven coordinates, with `${property}` placeholders resolved 
-function gradleDeps(cwd, rel, out)  :250-263
-function versionCatalogDeps(cwd, rel, out)  :266-294  # Gradle version catalog: [libraries] entries in gradle/libs
-function goDeps(cwd, rel, out)  :300-317
-function cargoDeps(cwd, rel, out)  :319-344
-function gemfileDeps(cwd, rel, out)  :346-359
-function composerDeps(cwd, rel, out)  :361-370
-function csprojDeps(cwd, rel, out)  :372-383
-function pubspecDeps(cwd, rel, out)  :385-405
-function findCsproj(cwd)  :431-435  # Locate a single `*
-function collectDependencies(cwd, opts = {}) → { * deps: Array<{ecosyste  :450-504  # Read every manifest at the repo root into a flat dependency 
-function versionPins(inventory, opts = {}) → { pins: string[], total:   :516-536  # `name@version` pins for direct runtime dependencies — the de
+function tomlStrings(body) → string[]  :96-101  # Quoted strings in a TOML array, matched by the OUTER quote s
+function tomlValue(body, key)  :104-107  # `key = "value"` lookup inside a table body
+function isPlatformRequirement(ecosystem, name)  :113-121  # True for a constraint on the runtime/toolchain rather than o
+function dep(ecosystem, name, version, scope, file)  :123-125
+function npmDeps(cwd, rel, out)  :138-149
+function npmLockVersions(cwd) → Map<string,string>  :156-176  # Exact installed versions from package-lock
+function requirementsDeps(cwd, rel, out)  :184-196
+function pyprojectDeps(cwd, rel, out)  :199-242  # `[project] dependencies` (PEP 621) and `[tool
+function mavenDeps(cwd, rel, out)  :253-263  # Maven coordinates, with `${property}` placeholders resolved 
+function gradleVars(cwd, src) → Map<string,string>  :316-338  # Gradle's own version variables, so `"g:a:${someVersion}"` re
+function gradleDeps(cwd, rel, out)  :340-347
+function versionCatalogDeps(cwd, rel, out)  :362-390  # Gradle version catalog: [libraries] entries in gradle/libs
+function goDeps(cwd, rel, out)  :396-413
+function cargoDeps(cwd, rel, out)  :415-440
+function gemfileDeps(cwd, rel, out)  :442-455
+function composerDeps(cwd, rel, out)  :457-474
+function csprojDeps(cwd, rel, out)  :476-487
+function pubspecDeps(cwd, rel, out)  :489-509
+function findCsproj(cwd)  :535-539  # Locate a single `*
+function projectExcludes(cwd) → string[]  :584-600  # Directory names the project itself excludes, read straight f
+function findManifests(cwd, opts = {}) → string[]  :619-664  # Every manifest in the tree, not just the ones at the repo ro
+function collectDependencies(cwd, opts = {})  :666-729
 ```
 
-### src/deps/sbom.js
+### src\deps\sbom.js
 ```
-module.exports = { buildSbom, formatSbom, summarize, purlFor, normalizeVersion, isExactVersion, SPEC_VERSION, PURL_TYPE }  :252-261
-function isExactVersion(v)  :65-69  # True when a version string is an exact pin rather than a ran
-function normalizeVersion(spec) → string  :83-92  # Best-effort exact version for a declared range
-function purlEncode(segment)  :95-97  # Percent-encode a purl path segment, keeping the `/` that sep
-function purlFor(d, version) → string  :103-129  # Build a Package URL for one dependency row
-function buildSbom(cwd, opts = {}) → { bom: object, stats: { t  :142-224  # Build a CycloneDX 1
-function formatSbom(bom)  :227-229  # Pretty-printed JSON rendering, stable across runs
-function summarize(stats) → string[]  :236-250  # One-line human summary for stderr, disclosing how precise th
-```
-
-### src/extractors/dispatch.js
-```
-module.exports = { extractFile, langFor, EXT_MAP }  :144-144
-function langFor(filePathOrName)  :109-120  # Resolve a language key from a file path/name
-function extractFile(filePathOrName, src) → string[]  :128-142  # Extract signatures from a file's content using the right ext
+module.exports = { buildSbom, formatSbom, summarize, purlFor, normalizeVersion, isExactVersion, SPEC_VERSION, PURL_TYPE }  :258-267
+function isExactVersion(v)  :65-71  # True when a version string is an exact pin rather than a ran
+function normalizeVersion(spec) → string  :85-94  # Best-effort exact version for a declared range
+function purlEncode(segment)  :97-99  # Percent-encode a purl path segment, keeping the `/` that sep
+function purlFor(d, version) → string  :105-131  # Build a Package URL for one dependency row
+function buildSbom(cwd, opts = {}) → { bom: object, stats: { t  :144-230  # Build a CycloneDX 1
+function formatSbom(bom)  :233-235  # Pretty-printed JSON rendering, stable across runs
+function summarize(stats) → string[]  :242-256  # One-line human summary for stderr, disclosing how precise th
 ```
 
-### src/extractors/pipeline.js
+### src\discovery\language-detector.js
+```
+module.exports = { detectLanguages }  :7-7
+function detectLanguages(cwd)  :29-64
+function _walkDepth(dir, depth, extCount)  :66-79
+```
+
+### src\discovery\monorepo.js
+```
+module.exports = { detectMonorepo, workspaceMarker, layoutPackages, MARKERS, MONO_ROOTS, PKG_MANIFESTS, MIN_LAYOUT_PACKAGES }  :129-137
+function workspaceMarker(cwd) → string|null  :48-57  # The declared-workspace marker for this repo, or null
+function layoutPackages(cwd) → Array<{dir: string, manif  :63-77  # Sibling packages found by scanning the conventional containe
+function detectMonorepo(cwd) → { * isMonorepo: boolean,   :95-127  # The monorepo verdict for a repo, and the evidence behind it
+```
+
+### src\discovery\source-root-registry.js
+```
+module.exports = { REGISTRY }  :191-191
+```
+
+### src\discovery\source-root-resolver.js
+```
+module.exports = { resolveSourceRoots }  :12-12
+function _hasMultiModuleMarker(cwd)  :30-45  # Build-file evidence of a multi-module JVM project
+function _jvmModuleSourceDirs(cwd, ignorePatterns, excSet) → Array<{name:string, full:  :62-103  # JVM source-set directories under each module, one and two le
+function resolveSourceRoots(cwd, opts = {})  :105-184
+function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList)  :186-246
+function _directCodeFiles(dir)  :268-273  # Code files directly in `dir` (non-recursive)
+function _treeCodeFiles(dir, excSet, depth = 0)  :280-292  # Code files in the whole tree, bounded in depth, skipping ven
+function _flatLayoutRoot(cwd, excSet) → { score: number, reason:   :298-323  # Whether the repo root is itself a source root, and why
+function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set())  :325-369
+function _dedupeNested(scored)  :371-386
+function _computeConfidence(frameworks, languages, scoredCount)  :388-392
+```
+
+### src\discovery\source-root-scorer.js
+```
+module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS }  :119-119
+function getRecentlyChangedDirs(cwd)  :52-57
+function scoreCandidate(dirName, fullPath, context)  :59-105
+function _countSourceFiles(dir, depth)  :107-117
+```
+
+### src\doctor\diagnose.js
+```
+module.exports = { diagnose, formatDoctor, formatDoctorJSON }  :277-277
+function _short(p, cwd)  :41-44
+function _contextFiles(cwd)  :46-53
+function _mcpTargets(cwd)  :55-69
+function _countChangedSince(cwd, srcDirs, config, ctxMtime)  :76-79  # Count code files under srcDirs modified after the context wa
+function diagnose(cwd, opts = {}) → { checks: Array<{id,label  :86-254  # Run all diagnostic checks
+function formatDoctor(result)  :257-270  # Human-readable checklist
+function formatDoctorJSON(result)  :273-275  # Machine-readable result
+```
+
+### src\eval\analyzer.js
+```
+module.exports = { analyzeFiles, formatAnalysisTable, formatAnalysisJSON }  :200-200
+function getExtractorName(filePath)  :22-24
+function tokenCount(sigs)  :27-29  # Rough token estimate: chars / 4
+function hasCoverage(filePath, cwd)  :35-50  # Check whether a test file exists for this source file by loo
+function loadExtractor(name, cwd)  :56-65  # Load an extractor module from src/extractors/ relative to cw
+function analyzeFiles(files, cwd, opts) → object[]  :78-135  # Analyze a list of absolute file paths
+function formatAnalysisTable(stats, showSlow) → string  :144-178  # Format stats as a markdown table
+function formatAnalysisJSON(stats) → object  :186-198  # Format stats as a plain-object suitable for JSON
+```
+
+### src\extractors\cpp.js
+```
+module.exports = { extract }  :108-108
+function extract(src) → string[]  :22-108  # Extract signatures from C/C++ source code
+function readParams(stripped, masked, openIdx)  :64-68  # Balanced parameter read (#695)
+function extractBlock(src, startIndex)  :70-79
+function extractMembers(block, maskedBlock)  :81-96
+function normalizeParams(params)  :98-101
+function normalizeType(type)  :103-106
+```
+
+### src\extractors\csharp.js
+```
+module.exports = { extract }  :155-155
+function extract(src) → string[]  :28-155  # Extract signatures from C# source code
+function readParams(stripped, masked, openIdx)  :63-79  # Resolve a declaration's parameter list with a BALANCED read 
+function blankNestedTypeBodies(block, maskedBlock, typeRe)  :86-110  # Blank the bodies of NESTED type declarations so their member
+function extractBlock(src, startIndex)  :112-121
+function extractMembers(block, maskedBlock, opts = {})  :123-143
+function normalizeParams(params)  :145-148
+function normalizeType(type)  :150-153
+```
+
+### src\extractors\dart.js
+```
+module.exports = { extract }  :135-135
+function extract(src) → string[]  :25-133  # Extract signatures from Dart source code
+function readParams(stripped, masked, openIdx)  :73-77  # Balanced parameter read — `\(([^)]*)\)` truncated at a neste
+function extractBlock(src, startIndex)  :79-88
+function extractMembers(block, maskedBlock)  :90-104
+function normalizeParams(params)  :114-132  # Compact the parameter text, keeping Dart's `{named}` / `[opt
+```
+
+### src\extractors\deps.js
+```
+module.exports = { extractPythonDeps, extractTSDeps, extractJavaDeps, extractRDeps, extractLuaDeps, extractElixirDeps, buildReverseDepMap }  :192-192
+function extractPythonDeps(src) → string[]  :26-41  # Extract project-level import dependencies from Python source
+function extractTSDeps(src) → string[]  :48-80  # Extract relative import dependencies from TypeScript/JavaScr
+function extractRDeps(src) → string[]  :89-95  # Extract project-level import dependencies from R source
+function extractLuaDeps(src) → string[]  :112-117  # Extract Lua require() module dependencies
+function extractElixirDeps(src) → string[]  :127-134  # Extract Elixir module dependencies: `alias A
+function stripLuaComments(src)  :136-140
+function buildReverseDepMap(forwardMap) → Map<string, string[]>  :147-158  # Build reverse dependency map from forward map
+function extractJavaDeps(src) → string[]  :174-190  # Extract third-party package dependencies from Java/Kotlin so
+```
+
+### src\extractors\dispatch.js
+```
+module.exports = { extractFile, langFor, EXT_MAP, LANGUAGES }  :173-173
+function langFor(filePathOrName)  :129-140  # Resolve a language key from a file path/name
+function extractFile(filePathOrName, src) → string[]  :148-171  # Extract signatures from a file's content using the right ext
+```
+
+### src\extractors\groovy.js
+```
+module.exports = { extract }  :189-189
+function extract(src, filePath)  :17-189  # Extract anchored Groovy declarations and the structural surf
+function findBody(masked, from, cap, header = false)  :71-86
+function extractMethods(text, mask, offset, original, topLevel)  :88-110
+function extractClosures(text, mask, original)  :112-189
+function extractConstructors(text, mask, offset, original, typeName)  :125-137
+function bodyEndAt(mask, open)  :139-142
+function blankNestedTypes(text, mask)  :144-157
+function renderParams(raw, masked)  :159-167
+function splitParams(raw, masked)  :169-183
+function renderCallArgs(raw)  :185-187
+```
+
+### src\extractors\java.js
+```
+module.exports = { extract }  :260-260
+function extract(src) → string[]  :34-100  # Extract signatures from Java source code
+function blankNestedTypeBodies(block, maskedBlock, typeRe)  :108-132  # Blank the bodies of NESTED type declarations so their member
+function extractBlock(stripped, masked, startIndex)  :134-144
+function extractMembers(block, maskedBlock, opts = {})  :155-218  # Member scan over a type body
+function normalizeParams(params)  :220-223
+function normalizeType(type)  :225-228
+function buildDocHints(src)  :236-249
+function firstDocSentence(body)  :252-258
+```
+
+### src\extractors\javascript.js
+```
+module.exports = { extract }  :294-294
+function extract(src) → string[]  :19-153  # Extract signatures from JavaScript source code
+function extractBlock(src, startIndex)  :181-191
+function extractClassMembers(block, maskedBlock, returnHints)  :199-228
+function buildReturnHints(src)  :235-246
+function buildDocHints(src)  :253-269
+function firstDocSentence(body)  :272-278
+function normalizeType(type)  :280-283
+function formatReturnHint(type)  :285-287
+function normalizeParams(params)  :289-292
+```
+
+### src\extractors\kotlin.js
+```
+module.exports = { extract }  :303-303
+function extract(src) → string[]  :49-129  # Extract signatures from Kotlin source code
+function scanFunctions(stripped, masked, headRe) → Array<{text:string, declI  :136-190  # Walk every `fun` matched by `headRe`, resolving its paramete
+function blankNestedTypeBodies(block, maskedBlock, typeRe) → { block: string, masked:   :208-240  # Blank the bodies of NESTED type declarations inside a block,
+function extractBlock(stripped, masked, startIndex)  :242-251
+function extractMembers(block, maskedBlock)  :253-259
+function normalizeParams(params) → string  :270-301  # Parameter NAMES only, with `: Type` and `= default` dropped
+```
+
+### src\extractors\php.js
+```
+module.exports = { extract }  :149-149
+function extract(src) → string[]  :28-149  # Extract signatures from PHP source code
+function blankHashComments(src)  :84-86  # Blank `#` line comments, preserving length and newlines
+function readParams(stripped, masked, openIdx)  :95-106  # Resolve a declaration's parameter list with a BALANCED read 
+function extractBlock(src, startIndex)  :108-117
+function extractMembers(block, maskedBlock)  :119-149
+function normalizeParams(params)  :139-142
+function normalizeType(type)  :144-147
+```
+
+### src\extractors\pipeline.js
 ```
 module.exports = { extract, platformFor, sniffPlatform, scanYaml, PER_FILE_LIMIT }  :818-818
 function platformFor(filePath) → string|null  :41-58  # Resolve a CI platform key from a file path, or null when the
@@ -208,67 +752,173 @@ function bitbucket(nodes, lines)  :664-691
 function drone(nodes, lines)  :697-722
 ```
 
-### src/extractors/yaml.js
+### src\extractors\python_ast.py
+```
+def annotation_to_str(node)  :25-48  # Convert an AST annotation node to a string representation
+def format_args(args_node, drop_receiver)  :51-123
+def get_decorator_names(node)  :126-140  # Return a list of decorator name strings for a function/class
+def is_dataclass(node)  :143-144  # Check if class bases include BaseModel or BaseSettings
+def is_basemodel(bases)  :147-153  # Check if class bases include BaseModel or BaseSettings
+def is_optional_annotation(annotation)  :156-166  # Check if an annotation represents an Optional type
+def get_docstring_hint(node)  :169-178  # Extract first sentence of docstring, if present
+def extract_dataclass_fields(class_node)  :181-191  # Return a collapsed fields string for a @dataclass class
+def extract_basemodel_fields(class_node)  :194-210  # Return a compact {required*, optional
+def extract_class_constants(class_node)  :213-233  # Yield ALL_CAPS constant assignments from class body
+def extract_method_sig(func_node)  :242-251  # Format a method signature string (already indented by caller
+def extract_function_sig(func_node, src_lines)  :254-263  # Format a top-level function signature string
+def extract_fastapi_routes(tree, src_lines)  :266-287  # Extract FastAPI route signatures from top-level decorated fu
+def extract(filepath)  :290-360
+def main()  :363-373
+```
+
+### src\extractors\python.js
+```
+module.exports = { extract, tryNativeExtract, resolvePythonAstScript }  :289-289
+function pyBlockEnd(srcLines, startLine) → number  :23-33  # 1-based line of the last source line belonging to a top-leve
+function resolvePythonAstScript()  :42-53  # Resolve packaged python_ast
+function tryNativeExtract(filePath)  :55-68
+function extract(src, filePath) → string[]  :79-167  # Extract signatures from Python source code
+function extractClassMethods(stripped, startIndex)  :169-188
+function tryExtractDataclassFields(stripped, classIndex)  :190-204
+function tryExtractBaseModelFields(stripped, bodyStart)  :206-221
+function extractClassConstants(stripped, startIndex)  :223-237
+function extractReturnType(sigLine)  :239-245
+function normalizeParams(params)  :247-265
+function extractDocHint(src, fnName, fnSigLine)  :267-287
+```
+
+### src\extractors\ruby.js
+```
+module.exports = { extract }  :74-74
+function extract(src) → string[]  :15-51  # Extract signatures from Ruby source code
+function readParams(stripped, masked, openIdx)  :54-58  # Balanced parameter read — `\(([^)]*)\)` truncated at a neste
+function normalizeParams(params)  :60-63
+function extractReturnHint(stripped, index)  :65-72
+```
+
+### src\extractors\rust.js
+```
+module.exports = { extract }  :211-211
+function extract(src) → string[]  :29-211  # Extract signatures from Rust source code
+function blankLifetimes(src) → string  :124-126  # Blank Rust lifetime tokens so they are not mistaken for char
+function readParams(stripped, masked, openIdx)  :128-145
+function extractBlock(src, startIndex)  :147-156
+function extractMethods(block, maskedBlock)  :158-173
+function normalizeParams(params)  :175-178
+function extractReturnType(afterParen)  :180-211
+function buildDocHints(src)  :192-200
+function firstDocSentence(block)  :203-209
+```
+
+### src\extractors\scala.js
+```
+module.exports = { extract }  :293-293
+function extract(src) → string[]  :50-129  # Extract signatures from Scala source code
+function scanDefs(stripped, masked, headRe) → Array<{text:string, declI  :137-186  # Walk every `def` matched by `headRe`, resolving each paramet
+function blankNestedTypeBodies(block, maskedBlock, typeRe) → { block: string, masked:   :204-236  # Blank the bodies of NESTED type declarations inside a block,
+function extractBlock(stripped, masked, startIndex)  :238-247
+function normalizeParams(params) → string  :258-286  # Parameter NAMES only, with `: Type` and `= default` dropped
+function normalizeType(type)  :288-291
+```
+
+### src\extractors\swift.js
+```
+module.exports = { extract }  :206-206
+function extract(src) → string[]  :28-206  # Extract signatures from Swift source code
+function readParams(stripped, masked, openIdx)  :89-107  # Resolve a `func` declaration's parameter list with a BALANCE
+function blankNestedTypeBodies(block, maskedBlock, typeRe)  :113-137  # Blank the bodies of NESTED type declarations so their member
+function extractBlock(src, startIndex)  :139-148
+function extractMembers(block, maskedBlock)  :150-165
+function normalizeParams(params)  :173-196  # Parameter NAMES only, `: Type` and `= default` dropped
+function extractArrowType(str)  :198-206
+```
+
+### src\extractors\typescript.js
+```
+module.exports = { extract }  :388-388
+function extract(src) → string[]  :19-388  # Extract signatures from TypeScript source code
+function extractBlock(src, startIndex)  :252-262
+function extractInterfaceMembers(block)  :266-284
+function extractClassMembers(block, maskedBlock)  :291-388
+function normalizeParams(params)  :326-356
+function buildDocHints(src)  :361-377
+function firstDocSentence(body)  :380-386
+```
+
+### src\extractors\yaml.js
 ```
 module.exports = { extract }  :77-77
 function extract(src) → string[]  :14-75  # Extract signatures from YAML configuration files
 ```
 
-### src/graph/builder.js
+### src\format\dashboard.js
 ```
-module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH }  :575-575
-function normalizePath(p)  :18-20
-function probeJs(base, fileSet) → string|null  :42-55  # Probe an absolute base path for a JS/TS module file in fileS
-function resolveJsPath(dir, importStr, fileSet) → string|null  :64-66  # Resolve a JS/TS relative import string to an absolute path i
-function stripJsonc(src)  :72-86  # Strip comments and trailing commas so a tsconfig/jsconfig (J
-function loadAliasMap(cwd) → { baseUrl: string|null, e  :98-119  # Load the JS/TS path-alias map from tsconfig
-function resolveAlias(spec, aliasMap, fileSet) → string|null  :128-152  # Resolve a non-relative JS/TS import specifier through the al
-function escapeRegex(s)  :159-161  # Resolve an R `source(
-function resolveRPath(dir, importStr, fileSet, cwd)  :163-178
-function extractFileDeps(filePath, content, fileSet, cwd, ctx) → string[]  :192-408  # Extract absolute dependency paths from a single file
-function build(files, cwd, ctx) → { forward: Map<string,str  :425-470  # Build a forward and reverse dependency graph for all given f
-function _configuredSrcDirs(cwd)  :490-497  # Source directories declared in the project's own config, or 
-function buildFromCwd(cwd, opts) → { forward: Map<string,str  :515-573  # Build a dependency graph scoped to a single cwd by walking a
-```
-
-### src/graph/impact.js
-```
-module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON, isTestFile, isRouteFile }  :248-248
-function normalizePath(p)  :17-19
-function bfs(startFile, reverseGraph, maxDepth) → { direct: Set<string>, tr  :34-71  # Walk the reverse graph from `startFile` using BFS up to `max
-function isTestFile(f)  :93-93
-function isRouteFile(f)  :94-94
-function getImpact(changedFile, graph, opts) → { * changed: string, * di  :117-150  # Compute the impact of changing `changedFile`
-function analyzeImpact(changedFiles, cwd, opts) → { file: string, impact: o  :164-179  # Analyse the impact of one or more changed files, building th
-function formatImpact(result) → string  :191-229  # Format an impact result as a readable markdown string
-function formatImpactJSON(result) → object  :237-246  # Format an impact result as a JSON-serialisable object
+module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak }  :527-527
+function toNumber(v)  :7-10
+function percentile(values, p)  :12-24
+function overBudgetStreak(entries)  :26-34
+function loadConfig(cwd)  :36-44
+function shouldExclude(rel, excludeSet)  :46-53
+function detectLanguage(filePath)  :63-70  # Resolve a file to a language key
+function walkFiles(dir, maxDepth, depth, out, excludeSet)  :72-90
+function computeExtractorCoverage(cwd)  :92-127
+function readBenchmarkTrend(cwd)  :129-191
+function lineChartSvg(values, title, ySuffix)  :193-242
+function barChartSvg(perLanguage)  :254-293  # Per-language file counts for the languages actually present 
+function sparkline(values)  :295-306
+function escapeAttr(s)  :308-312
+function readTokenReduction(cwd)  :317-351
+function tokenReductionPanelHtml(tr)  :353-406
+function buildDashboardData(cwd, health)  :408-446
+function generateDashboardHtml(cwd, health)  :448-498
+function renderHistoryCharts(cwd, health)  :500-525
 ```
 
-### src/graph/path-key.js
+### src\format\usage-guidance.js
 ```
-module.exports = { graphKey, displayPath }  :56-56
-function graphKey(p)  :22-24  # Canonical key for a filesystem path used as a graph node
-function displayPath(key, cwd, realPaths) → string  :41-54  # Render a graph node key as a repo-relative path in its ORIGI
-```
-
-### src/learning/weights.js
-```
-module.exports = { BASELINE, DECAY, NEUTRAL_EPSILON, MAX_MULT, MIN_MULT, weightsPath, clampMultiplier, normalizeFile, loadWeights, saveWeights, updateWeights, boostFiles, penalizeFiles, resetWeights, exportWeights, importWeights }  :161-178
-function weightsPath(cwd)  :14-16
-function clampMultiplier(value)  :18-23
-function normalizeFile(cwd, filePath)  :25-34
-function sanitizeWeights(cwd, weights)  :36-49
-function loadWeights(cwd)  :51-58
-function saveWeights(cwd, weights)  :60-79
-function updateWeights(cwd, opts = {})  :81-116
-function boostFiles(cwd, files, amount = 0.15)  :118-120
-function penalizeFiles(cwd, files, amount = 0.10)  :122-124
-function resetWeights(cwd)  :126-129
-function exportWeights(cwd, outputPath)  :131-141
-function importWeights(cwd, importPath, replace)  :143-159
+module.exports = { usageBlock }  :41-41
+function usageBlock()  :18-39  # Canonical "how to use SigMap" guidance block (v6
 ```
 
-### src/map/config-manifest.js
+### src\graph\builder.js
+```
+module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH }  :578-578
+function normalizePath(p)  :19-21
+function probeJs(base, fileSet) → string|null  :43-56  # Probe an absolute base path for a JS/TS module file in fileS
+function resolveJsPath(dir, importStr, fileSet) → string|null  :65-67  # Resolve a JS/TS relative import string to an absolute path i
+function stripJsonc(src)  :73-87  # Strip comments and trailing commas so a tsconfig/jsconfig (J
+function loadAliasMap(cwd) → { baseUrl: string|null, e  :99-120  # Load the JS/TS path-alias map from tsconfig
+function resolveAlias(spec, aliasMap, fileSet) → string|null  :129-153  # Resolve a non-relative JS/TS import specifier through the al
+function escapeRegex(s)  :160-162  # Resolve an R `source(
+function resolveRPath(dir, importStr, fileSet, cwd)  :164-179
+function extractFileDeps(filePath, content, fileSet, cwd, ctx) → string[]  :193-411  # Extract absolute dependency paths from a single file
+function build(files, cwd, ctx) → { forward: Map<string,str  :428-473  # Build a forward and reverse dependency graph for all given f
+function _configuredSrcDirs(cwd)  :493-500  # Source directories declared in the project's own config, or 
+function buildFromCwd(cwd, opts) → { forward: Map<string,str  :518-576  # Build a dependency graph scoped to a single cwd by walking a
+```
+
+### src\health\scorer.js
+```
+module.exports = { score, composeHealth }  :234-234
+function gradeFor(points)  :52-57
+function composeHealth(s) → { score:number, grade:'A'  :66-117  # Pure scoring core
+function score(cwd)  :123-232  # Gather health signals from disk and score them
+```
+
+### src\judge\judge-engine.js
+```
+module.exports = { groundedness, claimGrounding, judge, scoreTokens, markerRegex, GENERIC_MARKERS, PROSE_STOP }  :379-379
+function scoreTokens(text) → string[]  :73-75  # The tokens a groundedness score is computed over
+function groundedness(response, context)  :77-85
+function claimGrounding(response, context, opts = {}) → { total: number, grounded  :115-186  # Claim-level grounding (v8
+function markerRegex(marker)  :212-214  # Word-boundary matcher for a generic marker
+function extractContextFiles(context, cwd)  :216-238
+function emptyClaims()  :241-243  # Empty claim report, for a verdict reached without scoring an
+function inconclusiveReason(response, context)  :253-259  # Why this input cannot be judged at all, or null when it can 
+function judge(response, context, opts = {})  :261-377
+```
+
+### src\map\config-manifest.js
 ```
 module.exports = { analyze }  :102-102
 function scopeSummary(deps)  :40-52  # `12 runtime, 3 dev` — scope counts for one manifest, most-im
@@ -276,22 +926,136 @@ function configFiles(cwd)  :54-60
 function analyze(files, cwd)  :62-100
 ```
 
-### src/mcp/server.js
+### src\plan\verify-plan.js
 ```
-module.exports = { start }  :185-185
-function respond(id, result)  :40-42
-function respondError(id, code, message)  :44-48
-function dispatch(msg, cwd)  :53-152
-function start(cwd)  :157-183
-```
-
-### src/plan/planner.js
-```
-module.exports = { createPlan }  :9-9
-function createPlan(goal, cwd, config = {})  :11-87
+module.exports = { verifyPlan, extractIntroductions, DEFAULT_BLAST_THRESHOLD, DEFAULT_SCOPE_THRESHOLD }  :205-205
+function _fileExists(cwd, ref)  :39-45  # Resolve a referenced path against cwd (handles a leading "
+function _cleanEntry(raw)  :48-205  # Strip markdown list bullets, backticks, call parens and trai
+function extractIntroductions(text) → { name: string, line: num  :66-66  # Names a plan declares it will introduce
+function _isPathLike(name)  :92-92  # True when an introduction names a file rather than a symbol
+function verifyPlan(planText, cwd, opts = {}) → { issues: object[], blast  :108-108  # Verify a plan against the live index
 ```
 
-### src/wiki/generate.js
+### src\retrieval\bm25.js
+```
+module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, MODULE_DOC_RE, stripAnchor }  :277-277
+function stem(w) → string  :36-53  # Light suffix stemmer — conservative, tuned for code identifi
+function tokenize(text) → string[]  :62-73  # Split on non-alphanumeric characters AND camelCase / snake_c
+function stripAnchor(line)  :134-136
+function expandQuery(qToks, mined) → Map<string, number>  :174-195  # Expand stemmed query tokens with curated synonyms
+function bm25rank(query, candidates, opts) → Array<object & { score: n  :208-275  # BM25 re-rank of candidates against a query
+```
+
+### src\retrieval\ranker.js
+```
+module.exports = { rank, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent }  :1025-1025
+function _queryWants(queryTokens)  :108-117  # Which penalised categories the query is explicitly asking fo
+function _isDataHolder(sigs)  :124-130  # True when a file's members are overwhelmingly trivial access
+function _computePenalty(filePath, wants, sigs)  :132-162
+function _computeHubs(graph)  :165-176
+function _graphKeys(p)  :183-187
+function _graphGet(map, absPath)  :188-194
+function _registerKeys(map, absPath, value)  :195-197
+function _isHub(filePath)  :199-203
+function _tokenCoverage(sigIndex, queryTokens) → Array<{token: string, sig  :218-238  # Per-token corpus coverage: how many indexed files carry each
+function _pathIdf(sigIndex, queryTokens) → Map<string, number>  :259-277  # Inverse document frequency of each query token across the co
+function scoreFile(filePath, sigs, queryTokens, weights, wants, pathIdf) → { score: number, signals:  :288-353  # Score a single file against a query, returning detailed sign
+function rank(query, sigIndex, opts) → { file: string, score: nu  :379-625  # Rank all files in a signature index against a query
+function _parseContextFile(contextPath) → Map<string, string[]>  :654-686  # Parse a single context file into a Map<filePath, string[]>
+function _mergeSigIndex(target, source)  :689-697  # Merge source index into target; prefer non-empty sig lists
+function _buildSigIndexFromCache(cwd) → Map<string, string[]>  :704-724  # Load signatures from
+function _enrichSigIndexFromStrategy(cwd, index) → Map<string, string[]>  :732-763  # Hot-cold and per-module strategies store most signatures out
+function buildSigIndex(cwd, opts) → Map<string, string[]>  :780-813  # Build a signature index from the generated context file
+function formatRankTable(results, query) → string  :822-858  # Format ranked results as a markdown table string
+function formatRankJSON(results, query) → object  :867-882  # Format ranked results as a structured JSON-serialisable obje
+function _penaltyReason(filePath, penalty)  :895-904  # Human-readable reason a file was demoted, or '' when it was 
+function formatExplainTable(results, query) → string  :923-977  # Render the `--explain` diagnostic view (#813)
+function detectIntents(query) → string[]  :1004-1018  # Every intent whose pattern matches, strongest first
+function detectIntent(query)  :1021-1023  # Primary intent
+```
+
+### src\security\patterns.js
+```
+module.exports = { PATTERNS }  :89-89
+```
+
+### src\session\note-relevance.js
+```
+module.exports = { selectRelevant, applyNoteBoost, formatNotesSection, relevance, pathsIn, MAX_NOTES, RELEVANCE_FLOOR, NOTE_BOOST }  :181-190
+function relevance(noteText, queryTokens) → number  :66-72  # Overlap between a note and a query, as a share of the note's
+function pathsIn(noteText)  :75-77  # Repo-relative paths a note mentions
+function selectRelevant(notes, query) → Array<{text:string, ts:st  :87-109  # Select the notes relevant to a query
+function applyNoteBoost(ranked, relevantNotes) → Array  :121-166  # Re-order ranked results so files named by a relevant note ri
+function formatNotesSection(relevantNotes)  :169-179  # Render relevant notes as a `## Notes` context section, or ''
+```
+
+### src\tracking\pricing.js
+```
+module.exports = { PRICES, DEFAULT_MODEL, resolvePrice, listModels }  :60-60
+function resolvePrice(model) → { model: string, perMtok:  :40-53  # Resolve a price (USD per token) for a model name
+function listModels() → string[]  :56-58
+```
+
+### src\tracking\usage-source.js
+```
+module.exports = { readRuns, describeSource, summarizeRuns, USAGE_FILE, GAIN_FILE }  :122-122
+function readNdjson(file)  :33-42
+function readRuns(cwd) → {ts:string, version:strin  :53-94  # Normalised run record
+function describeSource(cwd)  :97-105  # Which stores actually hold data, for labelling the window a 
+function summarizeRuns(runs)  :108-120  # Task-weighted reduction over the given runs, with the baseli
+```
+
+### src\util\file-class.js
+```
+module.exports = { isTestFile, isMockFile, isGeneratedFile, isGeneratedDir, isDocsFile, isCiFile }  :103-110
+function _norm(filePath)  :23-25  # Normalise to forward slashes so Windows paths classify ident
+function isTestFile(filePath)  :39-45  # Test files, across every convention the extractors support
+function isMockFile(filePath)  :48-54  # Mocks, stubs, fakes and fixtures — test scaffolding, not beh
+function isGeneratedFile(filePath)  :57-59  # Machine-emitted sources
+function isGeneratedDir(filePath)  :62-64  # Build output and vendored trees
+function isDocsFile(filePath)  :76-84  # Prose documentation
+function isCiFile(filePath)  :95-101  # CI / pipeline definitions
+```
+
+### src\verify\closest-match.js
+```
+module.exports = { levenshtein, closestMatch, buildSymbolCandidates, isSuggestibleFile, SUGGESTIBLE_EXTS, suggestionConfidence, formatSuggestion }  :187-195
+function levenshtein(a, b, max = Infinity)  :20-47  # Levenshtein edit distance with an early-exit ceiling
+function suggestionConfidence(distance, targetLen)  :50-55  # Bucket a normalized edit distance into a confidence label (p
+function closestMatch(target, candidates, opts = {}) → { name, file, line, dista  :67-98  # Find the nearest candidate name to `target`
+function isSuggestibleFile(file)  :133-139  # Whether a file may source a closest-match suggestion
+function buildSymbolCandidates(sigIndex, opts = {})  :148-174  # Build `[{ name, file, line }]` symbol candidates from a SigM
+function formatSuggestion(match, asCall)  :177-185  # Format a suggestion object into a human one-liner for report
+```
+
+### src\verify\globals.js
+```
+module.exports = { LANG_GLOBALS, GROUPS, ES_GLOBALS, WEB_GLOBALS, NODE_GLOBALS, TEST_GLOBALS, PY_GLOBALS }  :87-87
+```
+
+### src\verify\hallucination-guard.js
+```
+module.exports = { verify, buildSymbolSet, loadDeps, loadScripts, isTestPath }  :384-384
+function isTestPath(p)  :30-30
+function buildSymbolSet(cwd)  :68-88  # Build the set of known symbol identifiers from the SigMap si
+function loadDeps(cwd)  :91-104  # Load declared dependency names from package
+function loadScripts(cwd)  :107-116  # Load the set of npm script names declared in package
+function defaultFileExists(cwd, ref)  :119-127  # Default file-existence check: resolve a referenced path agai
+function defaultRelativeResolvable(cwd, mod, fileBasenames)  :130-147  # Default relative-import resolver: fs candidates + basename m
+function verify(answerText, cwd, opts = {}) → { issues: object[], summa  :171-382  # Verify an AI answer against the repository
+```
+
+### src\verify\parsers.js
+```
+module.exports  :211-217
+function extractCodeBlocks  :43-159
+function extractFilePaths  :76-95
+function extractImports  :104-137
+function extractNpmScripts  :168-184
+function extractSymbols  :192-217
+```
+
+### src\wiki\generate.js
 ```
 module.exports = { buildWiki, renderWikiMarkdown }  :253-253
 function _rel(cwd, f, realPaths)  :24-26
@@ -305,779 +1069,14 @@ function buildWiki(cwd, opts = {}) → { data: object, markdown:  :140-165  # Bu
 function renderWikiMarkdown(data, sigmapVersion) → string  :174-251  # Render the narrative markdown
 ```
 
-### src/config/loader.js
+### src\workspace\detector.js
 ```
-module.exports = { loadConfig, loadBaseConfig }  :363-363
-function loadBaseConfig(extendsVal, cwd)  :9-64
-function detectAutoSrcDirs(cwd, excludeList) → string[]  :99-114  # Detect source directories for the given project root
-function _legacyDetectAutoSrcDirs(cwd, excludeList) → string[]  :123-228  # Legacy source directory detection (fallback)
-function _isJvmLayout(cwd) → boolean  :250-259  # Directory depth needed to reach source under a JVM package l
-function _applyJvmDepth(cfg, cwd, userSetDepth) → object  :272-277  # Raise `maxDepth` to the JVM depth when the layout needs it (
-function loadConfig(cwd) → object  :285-357  # Load and merge configuration for a given working directory
-function deepClone(obj)  :359-361
+module.exports = { detectWorkspaces, inferPackage, scopeToPackage }  :4-4
+function detectWorkspaces(cwd)  :6-36
+function inferPackage(query, workspaceDirs, cwd)  :39-61
+function _getMatchLength(name, token)  :63-68
+function scopeToPackage(filePath, packageDir)  :71-85
 ```
 
-### src/config/tune.js
-```
-module.exports = { buildTuneProposal, applyTuneProposal, formatTuneProposal, JUNK_DIRS, TOKENS_PER_FILE }  :210-210
-function _readUserConfig(cwd)  :45-51  # Raw user config file content, or null when absent/unparsable
-function _countSourceFiles(cwd, roots, exclude, depth = 5)  :54-72  # Count source files under `roots` (relative to cwd), depth-ca
-function _monorepoMarker(cwd)  :75-84  # The workspace marker present at cwd, or null
-function buildTuneProposal(cwd) → { changes: Array<{key:str  :94-176  # Build the recommended config diff for a repo
-function applyTuneProposal(cwd, proposal) → { path: string, applied:   :184-190  # Merge a proposal's changes into gen-context
-function formatTuneProposal(proposal)  :193-208  # Human rendering of a proposal (one block per change, reason 
-```
-
-### src/conventions/ci.js
-```
-module.exports  :48-48
-function ciGate  :25-46
-```
-
-### src/discovery/language-detector.js
-```
-module.exports = { detectLanguages }  :7-7
-function detectLanguages(cwd)  :29-64
-function _walkDepth(dir, depth, extCount)  :66-79
-```
-
-### src/discovery/source-root-registry.js
-```
-module.exports = { REGISTRY }  :184-184
-```
-
-### src/discovery/source-root-scorer.js
-```
-module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN }  :103-103
-function getRecentlyChangedDirs(cwd)  :36-41
-function scoreCandidate(dirName, fullPath, context)  :43-89
-function _countSourceFiles(dir, depth)  :91-101
-```
-
-### src/eval/analyzer.js
-```
-module.exports = { analyzeFiles, formatAnalysisTable, formatAnalysisJSON }  :200-200
-function getExtractorName(filePath)  :22-24
-function tokenCount(sigs)  :27-29  # Rough token estimate: chars / 4
-function hasCoverage(filePath, cwd)  :35-50  # Check whether a test file exists for this source file by loo
-function loadExtractor(name, cwd)  :56-65  # Load an extractor module from src/extractors/ relative to cw
-function analyzeFiles(files, cwd, opts) → object[]  :78-135  # Analyze a list of absolute file paths
-function formatAnalysisTable(stats, showSlow) → string  :144-178  # Format stats as a markdown table
-function formatAnalysisJSON(stats) → object  :186-198  # Format stats as a plain-object suitable for JSON
-```
-
-### src/eval/corpus.js
-```
-module.exports = { basenameTokens, queryLeakage, validateTasks, sizeBucket, BUCKET_LIMITS }  :83-83
-function basenameTokens(filePath) → string[]  :31-34  # Stemmed tokens of a file path's basename (extension stripped
-function queryLeakage(query, expectedFiles) → { leaked: string[], clean  :42-51  # Leaked tokens between a query and its expected files' basena
-function validateTasks(tasks) → { results: object[], hard  :59-70  # Validate a task list: every task gets a leakage result; hard
-function sizeBucket(fileCount) → 'small'|'medium'|'large'  :77-81  # Size bucket for a repo by indexed file count
-```
-
-### src/eval/runner.js
-```
-module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize }  :226-226
-function buildSigIndex(cwd) → Map<string, string[]>  :40-47  # Read the generated context file and build a simple signature
-function rank(query, index, topK = 10, opts = {}) → { file: string, score: nu  :64-71  # Rank all files in the index against a query with the identif
-function estimateTokens(sigs) → number  :82-85  # Estimate token count from character count (chars/4, ±5%)
-function loadTasks(tasksFile) → Array<{id:string, query:s  :98-121  # Load tasks from a JSONL file
-function run(tasksFile, cwd, opts = {}) → { * tasks: Array<{id, que  :139-189  # Run all tasks in tasksFile against the repo at cwd
-function formatTable(taskResults) → string  :200-208  # Format task results as a markdown table string
-function formatMetrics(metrics) → string  :215-224  # Format aggregate metrics as a human-readable string
-```
-
-### src/evidence/pack.js
-```
-module.exports = { buildEvidencePack, formatJSON, formatMarkdown, parseAnchor, riskLabelFor, riskFactorsFor, findRelatedTests, SCHEMA_VERSION, SCHEMA_URL, TEST_DISCOVERY }  :341-352
-function parseAnchor(sig) → { symbol: string, start:   :65-73  # Split a signature's `  :start-end` line anchor from its symb
-function riskLabelFor(relPath) → 'generated'|'test'|'migra  :85-87  # Classify a file into a risk label (C3, v8
-function riskFactorsFor(relPath) → string[]  :97-109  # Every risk category a file matches, in the same strict prece
-function stemOf(relPath)  :112-115  # Filename stem (basename minus the first extension chain)
-function testTargetStem(relPath) → string  :127-133  # Infer the implementation stem a test file targets, by stripp
-function findRelatedTests(relPath, allFiles) → string[]  :144-155  # Impl→test discovery (C2, v8
-function reasonFor(signals)  :158-169  # Map a ranker `signals` object into a short human-readable re
-function sigTokens(sigs)  :172-174  # Token estimate for a signature block (matches the ranker's h
-function canonicalize(value) → string  :181-183  # Stable stringify with recursively sorted object keys, for ha
-function sortKeys(value)  :185-193
-function buildEvidencePack(query, cwd, opts = {}) → object  :207-296  # Build an Evidence Pack for a query
-function ranked0Empty(query)  :299-301
-function formatJSON(pack)  :304-306  # Pretty-printed canonical JSON rendering of a pack
-function formatMarkdown(pack)  :309-330  # Markdown handoff rendering of a pack
-```
-
-### src/extractors/astro.js
-```
-module.exports = { extract }  :81-81
-function extract(src) → string[]  :21-79  # Extract signatures from Astro components (
-```
-
-### src/extractors/component-surface.js
-```
-module.exports = { scanComponentMarkers, markersForClass, componentMembers }  :96-96
-function scanComponentMarkers(stripped) → { decorated: Map<number,   :33-62  # Pre-pass over a whole (comment-stripped) source: component m
-function markersForClass(decorated, stripped, classLineStart, matchText)  :69-75  # Component-marker lookup for one class match
-function componentMembers(block) → Array<{text: string, star  :82-94  # Component surface member lines for a class body
-```
-
-### src/extractors/cpp.js
-```
-module.exports = { extract }  :82-82
-function extract(src) → string[]  :21-82  # Extract signatures from C/C++ source code
-function extractBlock(src, startIndex)  :49-58
-function extractMembers(block)  :60-70
-function normalizeParams(params)  :72-75
-function normalizeType(type)  :77-80
-```
-
-### src/extractors/csharp.js
-```
-module.exports = { extract }  :84-84
-function extract(src) → string[]  :24-84  # Extract signatures from C# source code
-function extractBlock(src, startIndex)  :48-57
-function extractMembers(block)  :59-72
-function normalizeParams(params)  :74-77
-function normalizeType(type)  :79-82
-```
-
-### src/extractors/css.js
-```
-module.exports = { extract }  :75-75
-function extract(src) → string[]  :14-23  # Extract signatures from CSS/SCSS/SASS/Less source code
-```
-
-### src/extractors/dart.js
-```
-module.exports = { extract }  :97-97
-function extract(src) → string[]  :24-97  # Extract signatures from Dart source code
-function extractBlock(src, startIndex)  :67-76
-function extractMembers(block)  :78-90
-function normalizeParams(params)  :92-94
-```
-
-### src/extractors/deps.js
-```
-module.exports = { extractPythonDeps, extractTSDeps, extractRDeps, extractLuaDeps, extractElixirDeps, buildReverseDepMap }  :147-147
-function extractPythonDeps(src) → string[]  :26-41  # Extract project-level import dependencies from Python source
-function extractTSDeps(src) → string[]  :48-59  # Extract relative import dependencies from TypeScript/JavaScr
-function extractRDeps(src) → string[]  :76-82  # Extract project-level import dependencies from R source
-function extractLuaDeps(src) → string[]  :99-104  # Extract Lua require() module dependencies
-function extractElixirDeps(src) → string[]  :114-121  # Extract Elixir module dependencies: `alias A
-function stripLuaComments(src)  :123-127
-function buildReverseDepMap(forwardMap) → Map<string, string[]>  :134-145  # Build reverse dependency map from forward map
-```
-
-### src/extractors/dockerfile.js
-```
-module.exports = { extract }  :55-55
-function extract(src) → string[]  :14-53  # Extract signatures from Dockerfiles
-```
-
-### src/extractors/elixir.js
-```
-module.exports = { extract }  :141-141
-function extract(src) → string[]  :25-83  # Extract signatures from Elixir source code (
-function docText(rest, lines, i)  :86-100  # First sentence of a @doc/@moduledoc value; follows heredocs 
-function normalizeParams(params)  :102-116
-function stripComments(src)  :119-139  # Blank `#` comments while preserving line structure; strings 
-```
-
-### src/extractors/gdscript.js
-```
-module.exports = { extract }  :141-141
-function extract(src) → string[]  :19-52  # Extract signatures from Godot GDScript source code
-function extractInnerMembers(stripped, startIndex)  :108-124
-function normalizeParams(params)  :126-139
-```
-
-### src/extractors/go.js
-```
-module.exports = { extract }  :173-173
-function extract(src) → string[]  :33-173  # Extract signatures from Go source code
-function extractBlock(stripped, masked, startIndex)  :114-123
-function extractInterfaceMethods(block, maskedBlock)  :125-142
-function normalizeParams(params)  :144-147
-function buildDocHints(src)  :153-162
-function firstDocSentence(block)  :165-171
-```
-
-### src/extractors/html.js
-```
-module.exports = { extract }  :45-45
-function extract(src) → string[]  :15-35  # Extract signatures from HTML files
-```
-
-### src/extractors/java.js
-```
-module.exports = { extract }  :224-224
-function extract(src) → string[]  :34-94  # Extract signatures from Java source code
-function extractBlock(stripped, masked, startIndex)  :98-108
-function extractMembers(block, maskedBlock, opts = {})  :119-182  # Member scan over a type body
-function normalizeParams(params)  :184-187
-function normalizeType(type)  :189-192
-function buildDocHints(src)  :200-213
-function firstDocSentence(body)  :216-222
-```
-
-### src/extractors/javascript.js
-```
-module.exports = { extract }  :253-253
-function extract(src) → string[]  :19-138  # Extract signatures from JavaScript source code
-function extractBlock(src, startIndex)  :140-150
-function extractClassMembers(block, maskedBlock, returnHints)  :158-187
-function buildReturnHints(src)  :194-205
-function buildDocHints(src)  :212-228
-function firstDocSentence(body)  :231-237
-function normalizeType(type)  :239-242
-function formatReturnHint(type)  :244-246
-function normalizeParams(params)  :248-251
-```
-
-### src/extractors/kotlin.js
-```
-module.exports = { extract }  :103-103
-function extract(src) → string[]  :24-103  # Extract signatures from Kotlin source code
-function extractBlock(src, startIndex)  :67-76
-function extractMembers(block)  :78-103
-function normalizeParams(params)  :94-101
-```
-
-### src/extractors/lsp_symbols.js
-```
-module.exports = { extractViaLsp, acceptLabel, toolchainLabels, DEFAULT_SERVERS }  :190-190
-function _resolveBinaryStat(cmd0)  :57-71
-function _loadCache(cwd)  :73-83
-function _saveCache()  :85-93
-function _compact(s)  :95-97
-function _render(symbols)  :100-132  # Flatten hierarchical symbols into the two-level signature vo
-function extractViaLsp(filePath, src, serverOverrides, cwd) → { sigs: string[], label:   :143-177  # Extract signatures for a file via its registered language se
-function acceptLabel(label)  :181-183  # Register a label once the caller has ACCEPTED the LSP result
-function toolchainLabels()  :186-188  # Toolchain labels for servers whose results were actually use
-```
-
-### src/extractors/lua.js
-```
-module.exports = { extract }  :152-152
-function extract(src) → string[]  :27-37  # Extract signatures from Lua source code
-function pushUnique(out, seen, sig)  :62-66
-function normalizeParams(params)  :68-75
-function applyHint(hints, name)  :77-80
-function collectDocHints(src)  :86-106  # Attach each contiguous `---` doc block to the next function-
-function firstDocSentence(block)  :108-115
-function stripLuaComments(src)  :118-150  # Strip Lua line and long comments while preserving strings en
-```
-
-### src/extractors/markdown.js
-```
-module.exports = { extract }  :35-35
-function extract(src) → string[]  :15-35  # Lightweight markdown technical indexer
-```
-
-### src/extractors/php.js
-```
-module.exports = { extract }  :109-109
-function extract(src) → string[]  :24-109  # Extract signatures from PHP source code
-function extractBlock(src, startIndex)  :71-80
-function extractMembers(block)  :82-109
-function normalizeParams(params)  :99-102
-function normalizeType(type)  :104-107
-```
-
-### src/extractors/properties.js
-```
-module.exports = { extract }  :42-42
-function extract(src) → string[]  :15-40  # Extract signatures from
-```
-
-### src/extractors/python_dataclass.js
-```
-module.exports = { extract }  :79-79
-function extract(src) → string[]  :12-77  # Extract Python dataclass, Pydantic model, and SQLAlchemy ORM
-```
-
-### src/extractors/python.js
-```
-module.exports = { extract, tryNativeExtract }  :270-270
-function pyBlockEnd(srcLines, startLine) → number  :22-32  # 1-based line of the last source line belonging to a top-leve
-function tryNativeExtract(filePath) → string[]|null  :40-52  # Try to extract signatures using the native Python AST extrac
-function extract(src, filePath) → string[]  :63-148  # Extract signatures from Python source code
-function extractClassMethods(stripped, startIndex)  :150-169
-function tryExtractDataclassFields(stripped, classIndex)  :171-185
-function tryExtractBaseModelFields(stripped, bodyStart)  :187-202
-function extractClassConstants(stripped, startIndex)  :204-218
-function extractReturnType(sigLine)  :220-226
-function normalizeParams(params)  :228-246
-function extractDocHint(src, fnName, fnSigLine)  :248-268
-```
-
-### src/extractors/r.js
-```
-module.exports = { extract }  :275-275
-function extract(src) → string[]  :26-110  # Extract signatures from R source code
-function collectRoxygenHints(src)  :127-153  # Collect roxygen2 docstring hints from the original (uncommen
-function pickRoxygenLine(block, tag)  :157-171
-function applyHint(hints, name)  :173-176
-function extractListMethods(body, cap)  :182-195  # Extract method-like entries from the body of an R6/S7 list(
-function inAnyRange(pos, ranges)  :197-202
-function readFirstStringArg(body)  :205-208  # Extract the first quoted string from a comma-separated argum
-function readBalancedParens(src, openIdx, cap = 16384)  :216-239  # Read a parenthesis-balanced substring starting at the positi
-function normalizeParams(raw)  :246-273  # Compress whitespace inside a parameter list, collapse multi-
-```
-
-### src/extractors/ruby.js
-```
-module.exports = { extract }  :60-60
-function extract(src) → string[]  :14-44  # Extract signatures from Ruby source code
-function normalizeParams(params)  :46-49
-function extractReturnHint(stripped, index)  :51-58
-```
-
-### src/extractors/rust.js
-```
-module.exports = { extract }  :151-151
-function extract(src) → string[]  :25-151  # Extract signatures from Rust source code
-function extractBlock(src, startIndex)  :89-98
-function extractMethods(block)  :100-151
-function normalizeParams(params)  :115-118
-function extractReturnType(afterParen)  :120-151
-function buildDocHints(src)  :132-140
-function firstDocSentence(block)  :143-149
-```
-
-### src/extractors/scala.js
-```
-module.exports = { extract }  :101-101
-function extract(src) → string[]  :24-101  # Extract signatures from Scala source code
-function extractBlock(src, startIndex)  :60-69
-function extractMembers(block)  :71-101
-function normalizeParams(params)  :87-94
-function normalizeType(type)  :96-99
-```
-
-### src/extractors/scan.js
-```
-module.exports = { stripComments, maskCode, readBalanced }  :91-91
-function stripComments(src) → string  :23-39  # Blank comments only — string-aware, so `//` or `/*` INSIDE a
-function maskCode(src) → string  :47-63  # Blank comments AND string/template contents (quotes included
-function readBalanced(masked, openIdx, open = '(', close = ')', cap = 4000) → number  :76-89  # Index of the delimiter that closes the one open at `openIdx`
-```
-
-### src/extractors/scip_symbols.js
-```
-module.exports = { extractViaScip, acceptLabel, toolchainLabels }  :114-114
-function _loadIndex(cwd)  :29-44
-function _sigText(doc)  :47-51  # Fence interior of a SCIP documentation string, compacted to 
-function _hint(doc)  :53-55
-function _isMemberSymbol(symbol)  :58-61  # Member-of relation from SCIP symbol structure: `
-function extractViaScip(filePath, cwd) → { sigs: string[], label:   :70-100  # Extract signatures for one file from the repo's SCIP index
-function acceptLabel(label)  :105-107  # Register a label once the wiring has ACCEPTED the SCIP resul
-function toolchainLabels()  :110-112  # Toolchain labels for indexes whose entries were actually use
-```
-
-### src/extractors/shell.js
-```
-module.exports = { extract }  :49-49
-function extract(src) → string[]  :14-47  # Extract signatures from shell scripts (bash, zsh, fish)
-```
-
-### src/extractors/svelte.js
-```
-module.exports = { extract }  :64-64
-function extract(src) → string[]  :14-64  # Extract signatures from Svelte components
-function normalizeParams(params)  :54-57
-function normalizeType(type)  :59-62
-```
-
-### src/extractors/swift.js
-```
-module.exports = { extract }  :110-110
-function extract(src) → string[]  :24-110  # Extract signatures from Swift source code
-function extractBlock(src, startIndex)  :67-76
-function extractMembers(block)  :78-110
-function normalizeParams(params)  :93-100
-function extractArrowType(str)  :102-110
-```
-
-### src/extractors/toml.js
-```
-module.exports = { extract }  :47-47
-function extract(src) → string[]  :15-42  # Extract signatures from TOML configuration files
-```
-
-### src/extractors/typescript_native.js
-```
-module.exports = { extract, resolveRepoTypescript }  :190-190
-function resolveRepoTypescript(fromPath) → { ts: object, version: st  :38-51  # Resolve the target repo's own `typescript` package, walking 
-function extract(src, filePath, ts) → string[]|null  :63-70  # Extract signatures from TypeScript source via the provided c
-function _extract(src, filePath, ts)  :72-188
-```
-
-### src/extractors/typescript_react.js
-```
-module.exports = { extract }  :65-65
-function extract(src) → string[]  :15-25  # Extract React component signatures from
-```
-
-### src/extractors/typescript.js
-```
-module.exports = { extract }  :349-349
-function extract(src) → string[]  :19-349  # Extract signatures from TypeScript source code
-function extractBlock(src, startIndex)  :218-228
-function extractInterfaceMembers(block)  :232-250
-function extractClassMembers(block, maskedBlock)  :257-349
-function normalizeParams(params)  :287-317
-function buildDocHints(src)  :322-338
-function firstDocSentence(body)  :341-347
-```
-
-### src/extractors/vue_sfc.js
-```
-module.exports = { extract }  :101-101
-function extract(src) → string[]  :12-29  # Extract Vue Single-File Component (SFC) signatures from
-```
-
-### src/extractors/xml.js
-```
-module.exports = { extract }  :48-48
-function extract(src) → string[]  :12-46  # Lightweight XML config extractor
-```
-
-### src/graph/call-graph.js
-```
-module.exports = { buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, methodImpact, methodCallees, formatCallGraph, formatCallGraphJSON, extractDefs, maskJs, maskPy, maskRust }  :850-854
-function normalizePath(p)  :44-44
-function toRel(cwd, f)  :45-45
-function symId(cwd, absFile, name)  :46-46
-function maskJs(src)  :52-68
-function maskRust(src)  :73-94
-function maskPy(src)  :96-113
-function matchDelim(masked, openIdx, open, close)  :116-123
-function lineAt(src, idx)  :125-130
-function jsDefs(masked)  :135-201
-function pyDefs(masked)  :203-223
-function goDefs(masked)  :227-248
-function javaTypeDecl(masked)  :264-854
-function javaDefs(masked)  :291-327
-function rustDefs(masked)  :332-350
-function jvmBodyRange(masked, from) → {bodyStart:number, bodyEn  :361-374  # Body range for a JVM-family member that may use either a bra
-function ktDefs(masked)  :380-401  # Kotlin `fun` definitions, including extension functions (`fu
-function scalaDefs(masked)  :407-427  # Scala `def` definitions
-function maskFor(filePath, src)  :429-434
-function extractDefs(filePath, src)  :436-446
-function callsInRange(masked, start, end)  :449-461
-function receiverCallsInRange(masked, start, end)  :466-478
-function buildTypeMap(masked)  :485-495
-function _configuredSrcDirs(cwd)  :516-522  # Source directories declared in the project's own config, or 
-function _walk(dir, excludeSet, out, depth, maxDepth)  :524-538
-function buildCallGraph(cwd, opts = {}) → { * forward: Map<string,s  :554-730  # Build the method-level call-graph for a project
-function buildCallFileGraph(cwd, opts = {}) → { forward: Map<string,str  :743-769  # Collapse the symbol-level call-graph to FILE-level bidirecti
-function _resolveSymbol(symbol, defs)  :772-777
-function _bfs(seedIds, graph, maxDepth)  :780-793
-function methodImpact(symbol, cwd, opts = {}) → { symbol:string, resolved  :803-809  # Method-level blast radius: everything that (transitively) ca
-```
-
-### src/graph/centrality.js
-```
-module.exports = { computeCentrality, DAMPING, ITERATIONS }  :61-61
-function computeCentrality(graph) → Map<string, number>  :27-59  # Compute a normalized centrality score for every file in a de
-```
-
-### src/judge/judge-engine.js
-```
-module.exports = { groundedness, claimGrounding, judge }  :256-256
-function tokenize(text)  :15-17
-function groundedness(response, context)  :19-27
-function claimGrounding(response, context, opts = {}) → { total: number, grounded  :57-128  # Claim-level grounding (v8
-function extractContextFiles(context, cwd)  :139-161
-function judge(response, context, opts = {})  :163-254
-```
-
-### src/lsp/client.js
-```
-module.exports = { documentSymbols, parseFrames, frame, SESSION_TIMEOUT_MS }  :102-102
-function frame(obj)  :23-26
-function parseFrames(raw)  :29-42  # Parse Content-Length-framed JSON-RPC messages from a capture
-function documentSymbols(cmd, filePath, src, languageId) → { symbols: object[], serv  :52-100  # One-shot documentSymbol session against a language server
-```
-
-### src/map/build-ci.js
-```
-module.exports = { analyze, collectTargets }  :100-100
-function readJson(p)  :20-22
-function npmScripts(cwd, rows)  :24-30
-function ciWorkflows(cwd, rows)  :32-56
-function makeTargets(cwd, rows)  :58-69
-function collectTargets(cwd)  :75-81  # Structured build/CI target rows (#629): npm scripts, workflo
-function analyze(files, cwd)  :83-98
-```
-
-### src/map/env-schema.js
-```
-module.exports = { analyze, collectEnvReads }  :111-111
-function collectMatches(re, content, into)  :30-103
-function readExampleKeys(cwd)  :39-103
-function collectEnvReads(files, cwd) → Array<{name: string, file  :59-103  # Structured env reads with per-file attribution (#629): one r
-function analyze(files, cwd)  :91-103
-```
-
-### src/map/knowledge-map.js
-```
-module.exports = { buildKnowledgeMap, loadOrBuild, upgradeImpact, fileNeighbors, envReaders, impactView, architectureView, relatedTestsView, canonicalJson, SCHEMA_VERSION }  :450-450
-function _sortKeys(value)  :46-54  # Stable stringify: object keys sorted recursively (evidence-p
-function canonicalJson(value)  :55-57
-function _bareImports(src)  :60-67  # Bare (non-relative) import specifiers in a JS/TS source, roo
-function buildKnowledgeMap(cwd) → { schema: number, nodes:   :77-231  # Build the unified knowledge map for a repo from existing pro
-function loadOrBuild(cwd)  :234-256  # Load from
-function upgradeImpact(map, libraryName)  :262-284  # Upgrade-impact walk: lib → importing files → their callers/i
-function impactView(map, relFile, depth)  :294-346  # Impact of changing one file, computed from the store's `impo
-function architectureView(map)  :352-387  # Architecture rollup from the store: module token table, hub 
-function envReaders(map, name)  :390-396  # Readers of one env var: the files that read it, and the comm
-function relatedTestsView(map, rels) → Map<string, string[]>  :407-424  # Related tests per file, from the store's `tests` edges (test
-function fileNeighbors(map, rel)  :427-448  # Typed neighbors of one file node
-```
-
-### src/map/migrations.js
-```
-module.exports = { analyze, collectMigrations }  :92-92
-function walk(dir, cwd, depth, out)  :31-62
-function collectMigrations(cwd) → Array<{version: string, n  :68-73  # Structured migration rows (#629), sorted by repo-relative fi
-function analyze(files, cwd)  :75-90
-```
-
-### src/map/route-table.js
-```
-module.exports = { analyze, collectRoutes }  :176-176
-function shouldSkipFile(rel)  :18-21
-function nestControllerPrefixes(content) → Array<{index:number, pref  :30-176  # Byte offsets and prefixes of every `@Controller(
-function prefixBefore(controllers, index)  :41-88  # Prefix of the nearest `@Controller` above `index`, or '' whe
-function joinRoute(prefix, methodPath) → string  :55-88  # Join a controller prefix and a method path into one route pa
-function collectRoutes(files, cwd) → { method:string, path:str  :69-88  # Structured route rows across the supported frameworks — the 
-function analyze(files, cwd)  :162-171
-```
-
-### src/mcp/handlers.js
-```
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap }  :1031-1031
-function _readContextFiles(cwd)  :10-17
-function readContext(args, cwd)  :36-66  # read_context({ module
-function searchSignatures(args, cwd)  :74-100  # search_signatures({ query }) → string
-function getMap(args, cwd)  :108-131  # get_map({ type }) → string
-function createCheckpoint(args, cwd)  :143-215  # create_checkpoint({ note
-function getRouting(args, cwd)  :224-261  # get_routing({}) → string
-function explainFile(args, cwd)  :269-356  # explain_file({ path }) → string
-function listModules(args, cwd)  :364-403  # list_modules({}) → string
-function queryContext(args, cwd)  :411-449  # query_context({ query, topK
-function getMethodImpact(args, cwd)  :457-471  # get_method_impact({ symbol, direction
-function getImpact(args, cwd)  :479-494  # get_impact({ file, depth
-function getLines(args, cwd)  :503-551  # get_lines({ file, start, end }) → string
-function readMemory(args, cwd)  :559-594  # read_memory({ limit
-function getBudget(args, cwd)  :603-629  # get_budget({ session
-function getCalleeSignatures(args, cwd)  :638-683  # get_callee_signatures — return the exact defining signature(
-function _pkgVersion(cwd)  :690-693
-function notifyFileCreated(args, cwd)  :697-719  # notify_file_created — extract a file's signatures and index 
-function notifySymbolAdded(args, cwd)  :722-742  # notify_symbol_added — append one signature to a file's live 
-function notifyFileDeleted(args, cwd)  :745-759  # notify_file_deleted — drop a file's cache-overlay entry
-function _changedFiles(cwd, args)  :765-777  # List the files changed in the working tree, staged area, or 
-function getDiffContext(args, cwd)  :786-857  # get_diff_context({ base
-function getArchitectureOverview(args, cwd)  :866-902  # get_architecture_overview({}) → string
-function verifySuggestion(args, cwd)  :912-947  # verify_suggestion({ code }) → string
-function squeezeOutput(args, cwd)  :957-990  # squeeze_output({ content }) → string
-function queryKnowledgeMap(args, cwd)  :993-1029
-```
-
-### src/mcp/install.js
-```
-module.exports = { CLIENTS, listClients, installClient, resolveTarget }  :169-169
-function resolveTarget(spec, cwd, home, useGlobal)  :40-46  # Resolve the absolute config path for a client, honoring `glo
-function listClients(opts = {})  :49-63  # List supported clients with their resolved target paths
-function serverArgs(scriptPath)  :65-67
-function _installJson(filePath, scriptPath)  :70-82  # Install into a JSON `mcpServers` config (create file/dir if 
-function _installVscode(filePath, scriptPath)  :90-107  # Install into VS Code's `
-function _installZed(filePath, scriptPath)  :110-122  # Install into Zed's `context_servers` config (create file/dir
-function _installYaml(filePath, scriptPath)  :125-143  # Install into Codex CLI YAML (append block; create file if ab
-function installClient(client, opts = {}) → client, label, path, stat  :150-167  # Install the sigmap MCP server for a single client
-```
-
-### src/mcp/tools.js
-```
-module.exports = { TOOLS }  :437-437
-```
-
-### src/retrieval/bm25.js
-```
-module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, MODULE_DOC_RE, stripAnchor }  :269-269
-function stem(w) → string  :36-45  # Light suffix stemmer — conservative, tuned for code identifi
-function tokenize(text) → string[]  :54-65  # Split on non-alphanumeric characters AND camelCase / snake_c
-function stripAnchor(line)  :126-128
-function expandQuery(qToks, mined) → Map<string, number>  :166-187  # Expand stemmed query tokens with curated synonyms
-function bm25rank(query, candidates, opts) → Array<object & { score: n  :200-267  # BM25 re-rank of candidates against a query
-```
-
-### src/retrieval/enrich-from-maps.js
-```
-module.exports = { enrichWithSurfaces }  :55-55
-function enrichWithSurfaces(index, cwd) → number  :25-53  # Enrich a signature index with route pseudo-signatures
-```
-
-### src/retrieval/mined-expansions.js
-```
-module.exports = { mineExpansions, loadOrMine, canonicalJson, SCHEMA_VERSION, MIN_DF, MAX_DF_RATIO, MIN_COOC, TOP_K }  :142-142
-function mineExpansions(sigIndex) → { schema: number, files:   :38-98  # Mine per-repo expansion candidates from a signature index
-function canonicalJson(mined)  :101-103  # Canonical rendering: stable key order comes from mineExpansi
-function loadOrMine(cwd) → { schema: number, files:   :112-140  # Load the mined map from `
-```
-
-### src/retrieval/module-doc.js
-```
-module.exports = { extractModuleDoc, moduleDocSig, MAX_CHARS }  :120-120
-function _extOf(filePath)  :33-36
-function _cleanLine(line)  :39-120  # Strip comment furniture, JSDoc tags, and markup from one raw
-function extractModuleDoc(src, filePath) → string  :55-117  # Extract a module's leading documentation prose
-function moduleDocSig(src, filePath)  :115-117  # Render as an index-only pseudo-signature, or '' when there i
-```
-
-### src/retrieval/ranker.js
-```
-module.exports = { rank, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent }  :800-800
-function _queryWants(queryTokens)  :97-105  # Which penalised categories the query is explicitly asking fo
-function _isDataHolder(sigs)  :112-118  # True when a file's members are overwhelmingly trivial access
-function _computePenalty(filePath, wants, sigs)  :120-139
-function _computeHubs(graph)  :142-153
-function _graphKeys(p)  :160-164
-function _graphGet(map, absPath)  :165-171
-function _registerKeys(map, absPath, value)  :172-174
-function _isHub(filePath)  :176-180
-function scoreFile(filePath, sigs, queryTokens, weights, wants) → { score: number, signals:  :191-252  # Score a single file against a query, returning detailed sign
-function rank(query, sigIndex, opts) → { file: string, score: nu  :272-489  # Rank all files in a signature index against a query
-function _parseContextFile(contextPath) → Map<string, string[]>  :518-550  # Parse a single context file into a Map<filePath, string[]>
-function _mergeSigIndex(target, source)  :553-561  # Merge source index into target; prefer non-empty sig lists
-function _buildSigIndexFromCache(cwd) → Map<string, string[]>  :568-588  # Load signatures from
-function _enrichSigIndexFromStrategy(cwd, index) → Map<string, string[]>  :596-627  # Hot-cold and per-module strategies store most signatures out
-function buildSigIndex(cwd, opts) → Map<string, string[]>  :644-677  # Build a signature index from the generated context file
-function formatRankTable(results, query) → string  :686-722  # Format ranked results as a markdown table string
-function formatRankJSON(results, query) → object  :731-746  # Format ranked results as a structured JSON-serialisable obje
-function detectIntents(query) → string[]  :779-793  # Every intent whose pattern matches, strongest first
-function detectIntent(query)  :796-798  # Primary intent
-```
-
-### src/retrieval/sig-index-store.js
-```
-module.exports = { writeFullIndex, readFullIndex, indexPath, SCHEMA, INDEX_FILE }  :95-95
-function indexPath(cwd)  :34-36  # Absolute path to the retrieval index artifact
-function writeFullIndex(cwd, fileEntries, opts = {}) → { path: string, files: nu  :47-70  # Persist the complete signature index
-function readFullIndex(cwd) → Map<string, string[]>  :83-93  # Load the complete signature index, or an empty Map when abse
-```
-
-### src/review/pr-evidence.js
-```
-module.exports = { buildPrEvidence, formatPrEvidenceMarkdown }  :176-176
-function buildPrEvidence(changedFiles, cwd, opts = {}) → { scope:string, files:obj  :32-103  # Build the structured PR evidence for a changed-file list
-function formatPrEvidenceMarkdown(evidence, opts = {})  :108-174  # Render the branded, deterministic "PR Evidence Report" Markd
-```
-
-### src/review/review-pr.js
-```
-module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD }  :150-150
-function isTestFile(p)  :32-34
-function isSource(p)  :35-37
-function reviewPr(changedFiles, cwd, opts = {}) → { findings: object[], bla  :48-148  # Audit a changed-file list
-```
-
-### src/scip/reader.js
-```
-module.exports = { parseIndex, fields, readVarint, packedVarints, DEFINITION_ROLE }  :106-106
-function readVarint(buf, pos)  :19-28
-function packedVarints(buf)  :45-50
-function parseIndex(buf) → { tool: string, documents  :60-104  # Parse a SCIP index buffer into a compact per-document struct
-```
-
-### src/security/patterns.js
-```
-module.exports = { PATTERNS }  :62-62
-```
-
-### src/security/redact.js
-```
-module.exports = { redactText }  :56-56
-function redactText(text) → { * text: string, redacte  :30-54  # Redact secrets in arbitrary text
-```
-
-### src/security/scanner.js
-```
-module.exports = { scan }  :40-40
-function scan(signatures, filePath) → { safe: string[], redacte  :14-38  # Scan an array of signature strings for secrets
-```
-
-### src/session/memory-inspect.js
-```
-module.exports = { inspectMemory, clearMemory, STORES, CLEARABLE }  :86-86
-function storePath(cwd, name)  :25-27
-function countEntries(kind, filePath)  :29-42
-function inspectMemory(cwd) → Array<{store:string, path  :49-64  # Describe every cross-session store
-function clearMemory(cwd, store) → string[]  :72-84  # Delete one clearable store (or 'all' clearable stores)
-```
-
-### src/skills/skills.js
-```
-module.exports = { SKILLS, SKILL_CLIENTS, renderSkill, renderAgentsBlock, injectSkillsBlock, installSkills, listSkillClients, clientPresent, START, END }  :206-206
-function _footer(version)  :86-89
-function renderSkill(client, skillName, version)  :92-109  # Render one skill's client-specific file content
-function renderAgentsBlock(version)  :112-119  # Render the combined AGENTS
-function injectSkillsBlock(existing, block)  :127-142  # Inject (or replace) the skills block in AGENTS
-function _writeIfChanged(filePath, content)  :144-154
-function installSkills(client, opts = {}) → { client, label, results:  :161-183  # Install both skills for one client
-function clientPresent(client, cwd)  :186-189  # True when the client's parent artifact exists (plain-install
-function listSkillClients(opts = {})  :192-204  # List clients with target paths, presence, and installed stat
-```
-
-### src/tracking/budget.js
-```
-module.exports = { sessionKey, budgetStatus, contextMtime, entryInSession }  :113-113
-function sessionKey(env)  :30-34  # Session key: SIGMAP_SESSION override, else UTC day bucket
-function contextMtime(cwd)  :37-43  # Newest mtime (ms) among generated context files, or 0 if non
-function entryInSession(entry, session)  :46-50  # Does a gain-log entry belong to this session
-function budgetStatus(cwd, opts = {}) → { * session: string, unit  :70-111  # Session spend status
-```
-
-### src/tracking/logger.js
-```
-module.exports = { logRun, recordUsage, readLog, readGainLog, summarize, isTrackingEnabled, GAIN_FILE }  :199-199
-function logRun(entry, cwd)  :30-55  # Append one run entry to the usage log
-function readLog(cwd) → object[]  :62-77  # Read and parse all usage log entries
-function readGainLog(cwd) → object[]  :84-96  # Read and parse all `gain` dashboard records (oldest first)
-function summarize(entries) → object  :103-135  # Compute summary statistics from an array of log records
-function isTrackingEnabled(config, argv) → boolean  :147-153  # Whether `gain` savings capture is enabled
-function recordUsage(entry, cwd)  :169-197  # Append one operation to the usage log using the extended `ga
-```
-
-### src/tracking/pricing.js
-```
-module.exports = { PRICES, DEFAULT_MODEL, resolvePrice, listModels }  :46-46
-function resolvePrice(model) → { model: string, perMtok:  :34-39  # Resolve a price (USD per token) for a model name
-function listModels() → string[]  :42-44
-```
-
-### src/verify/arity.js
-```
-module.exports = { parseParams, buildArityIndex, extractCallArgCounts, checkArity, cleanSig, EXACT_PARAM_EXTS }  :202-202
-function cleanSig(sig)  :42-44  # Strip the `  :start-end` anchor and `  # hint` tail from a s
-function parseParams(paramText) → { min: number, max: numbe  :54-106  # Parse a parameter-list string into an arity range
-function buildArityIndex(sigIndex) → Map<string, { min, max, v  :115-144  # Build a per-name arity index from a SigMap signature index
-function extractCallArgCounts(code) → { name: string, args: num  :154-188  # Extract call sites with argument counts from answer code
-function checkArity(name, argCount, arityIndex) → null | { min, max, variad  :194-200  # Check one call against the arity index
-```
-
-### src/verify/hallucination-guard.js
-```
-module.exports = { verify, buildSymbolSet, loadDeps, loadScripts, isTestPath }  :388-388
-function isTestPath(p)  :30-30
-function buildSymbolSet(cwd)  :77-97  # Build the set of known symbol identifiers from the SigMap si
-function loadDeps(cwd)  :100-113  # Load declared dependency names from package
-function loadScripts(cwd)  :116-125  # Load the set of npm script names declared in package
-function defaultFileExists(cwd, ref)  :128-136  # Default file-existence check: resolve a referenced path agai
-function defaultRelativeResolvable(cwd, mod, fileBasenames)  :139-156  # Default relative-import resolver: fs candidates + basename m
-function verify(answerText, cwd, opts = {}) → { issues: object[], summa  :180-386  # Verify an AI answer against the repository
-```
-
 
-> **Not everything is here.** 77 file(s) omitted, 1 collapsed to anchors to stay under the 16000-token budget (tests and configs go first). The retrieval index still has them all — run `sigmap ask "<question>"` to pull in anything missing.
+> **Not everything is here.** 105 file(s) omitted, 1 collapsed to anchors to stay under the 16000-token budget (tests and configs go first). The retrieval index still has them all — run `sigmap ask "<question>"` to pull in anything missing.

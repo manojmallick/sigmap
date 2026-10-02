@@ -7,7 +7,7 @@ const { git } = require('../util/git');
 const CODE_EXTS = new Set([
   '.js','.mjs','.cjs','.ts','.tsx','.jsx',
   '.py','.rb','.go','.rs','.java','.kt',
-  '.cs','.cpp','.c','.h','.swift','.dart','.scala','.php','.lua',
+  '.cs','.cpp','.c','.h','.swift','.dart','.scala','.groovy','.php','.lua',
 ]);
 
 const AUTO_SKIP = new Set([
@@ -38,7 +38,7 @@ const PENALTY_DIRS = new Set([
 //
 // Test source sets (`src/test`, `src/commonTest`, `src/androidHostTest`) are
 // excluded here; they are indexed separately and must not become src roots.
-const JVM_PATH_PATTERN = /(^|\/)(app\/)?src\/(?!.*[Tt]est)[A-Za-z0-9_]+\/(java|kotlin|scala)$/;
+const JVM_PATH_PATTERN = /(^|\/)(app\/)?src\/(?!.*[Tt]est)[A-Za-z0-9_]+\/(java|kotlin|scala|groovy)$/;
 
 const ROOT_ENTRYPOINTS = {
   go:         ['main.go'],

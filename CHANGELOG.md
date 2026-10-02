@@ -8,6 +8,8 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+- Added a Tier-2 Groovy extractor for `.groovy` and `.gradle` (#839), including anchored Groovy declarations and Gradle build-script surface extraction without duplicating dependency-coordinate parsing.
+
 ---
 
 ## [8.61.0] — 2026-10-02

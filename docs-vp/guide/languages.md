@@ -4,10 +4,10 @@ description: SigMap extracts signatures from 31 programming languages and format
 head:
   - - meta
     - property: og:title
-      content: "SigMap Language Support — 36 languages, zero Tree-sitter"
+      content: "SigMap Language Support — 37 languages, zero Tree-sitter"
   - - meta
     - property: og:description
-      content: "Pure regex AST extraction for 36 languages and formats. No compiler required, no binary dependencies."
+      content: "Pure regex AST extraction for 37 languages and formats. No compiler required, no binary dependencies."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/languages"
@@ -22,7 +22,7 @@ head:
 
 SigMap extracts signatures from 33 programming languages and formats using deterministic, zero-dependency extraction — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 36 languages · 25 max signatures per file · 0 npm packages
+**Stats:** 37 languages · 200 max signatures per file · 0 npm packages
 
 Not every language gets the same depth — the tiers (AST / anchored regex / pattern-heuristic), the truncation caps, and the known regex gaps are stated plainly in [KNOWN_LIMITATIONS.md](https://github.com/manojmallick/sigmap/blob/main/KNOWN_LIMITATIONS.md) (v8.26.1), drift-locked by a guard test.
 
@@ -89,7 +89,7 @@ export class UserService
 - Generated files (`*.pb.*`, `*.generated.*`)
 - Any credential, key, token, or secret pattern
 
-## All 36 languages
+## All 37 languages
 
 | Language | Extensions | Extracts |
 |----------|------------|----------|
@@ -107,6 +107,7 @@ export class UserService
 | Swift | `.swift` | func, class / struct, protocol, enum, extension |
 | Dart | `.dart` | class, void / return type functions, abstract class, mixin, methods |
 | Scala | `.scala` `.sc` | def, class, object, trait, case class, methods |
+| Groovy / Gradle | `.groovy` `.gradle` | classes, traits, interfaces, methods, Gradle plugins, repositories, source sets, tasks, build blocks |
 | Vue | `.vue` | defineProps, defineEmits, composables, component name, script functions |
 | Svelte | `.svelte` | export let props, export function, script functions, component name |
 | HTML | `.html` `.htm` | page title, h1–h3 headings, form id/action, script src, link rel |
@@ -139,7 +140,7 @@ These extractors cover the public shapes most developers care about day to day a
 
 ### Stable
 
-Vue, Svelte, GraphQL, SQL, Terraform, Protobuf, YAML, Shell, Dockerfile, TOML, XML, Properties, Markdown, R, GDScript.
+Groovy / Gradle, Vue, Svelte, GraphQL, SQL, Terraform, Protobuf, YAML, Shell, Dockerfile, TOML, XML, Properties, Markdown, R, GDScript.
 
 These are reliable for structure-first context, but some ecosystems have more variation in how teams write files.
 

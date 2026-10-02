@@ -15,6 +15,7 @@ const path = require('path');
 // Cross-platform node key. Delegates to the ONE shared definition so this graph
 // and the call-graph cannot drift apart again (see src/graph/path-key.js).
 const { graphKey } = require('./path-key');
+const { extractJavaDeps } = require('../extractors/deps');
 function normalizePath(p) {
   return graphKey(p);
 }
@@ -27,7 +28,7 @@ const JS_EXTS  = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const PY_EXTS  = new Set(['.py', '.pyw']);
 const GO_EXTS  = new Set(['.go']);
 const RS_EXTS  = new Set(['.rs']);
-const JVM_EXTS = new Set(['.java', '.kt', '.kts', '.scala', '.sc']);
+const JVM_EXTS = new Set(['.java', '.kt', '.kts', '.scala', '.sc', '.groovy']);
 const RB_EXTS  = new Set(['.rb', '.rake']);
 const R_EXTS   = new Set(['.r', '.R']);
 const EX_EXTS  = new Set(['.ex', '.exs']);
@@ -316,11 +317,13 @@ function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
   // Match same-project import statements by matching package-relative paths
   if (JVM_EXTS.has(ext)) {
     const re = /^\s*import\s+([\w.]+)\s*;?/gm;
+    const groovyPackages = ext === '.groovy' ? new Set(extractJavaDeps(content)) : null;
     let m;
     while ((m = re.exec(content)) !== null) {
+      if (groovyPackages && ![...groovyPackages].some((pkg) => m[1] === pkg || m[1].startsWith(pkg + '.'))) continue;
       // Convert com.example.utils.StringHelper → com/example/utils/StringHelper.java
       const asPath = m[1].replace(/\./g, path.sep);
-      for (const jvmExt of ['.java', '.kt', '.kts', '.scala', '.sc']) {
+      for (const jvmExt of ['.java', '.kt', '.kts', '.scala', '.sc', '.groovy']) {
         for (const f of fileSet) {
           const normF = normalizePath(f);
           if (normF.endsWith(normalizePath(asPath + jvmExt))) { found.push(normF); break; }

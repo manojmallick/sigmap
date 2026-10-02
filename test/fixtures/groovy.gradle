@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.example:library:1.0"
+}
+
+task checkStyle(type: Checkstyle) {
+    description = 'Check style'
+}
+
+tasks.register('verifyBuild') {
+    doLast {
+        println 'verified'
+    }
+}

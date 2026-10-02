@@ -93,6 +93,13 @@ const REGISTRY = {
     penalties: ['build','.gradle'],
   },
 
+  groovy: {
+    manifestFiles: ['build.gradle', 'settings.gradle'],
+    frameworks: {},
+    srcDirs: ['src/main/groovy', 'src', 'scripts'],
+    penalties: ['build', '.gradle'],
+  },
+
   csharp: {
     manifestFiles: ['.csproj','.sln'],
     frameworks: {

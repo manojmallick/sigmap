@@ -173,7 +173,7 @@ const JAVA_PLATFORM = /^(?:java|javax|jdk|sun|com\.sun)\./;
  */
 function extractJavaDeps(src) {
   const deps = new Set();
-  for (const m of src.matchAll(/^\s*import\s+(static\s+)?([\w.]+)(?:\.\*)?\s*;/gm)) {
+  for (const m of src.matchAll(/^\s*import\s+(static\s+)?([\w.]+)(?:\.\*)?\s*;?/gm)) {
     const isStatic = Boolean(m[1]);
     const full = m[2];
     if (JAVA_PLATFORM.test(full)) continue;

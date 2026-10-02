@@ -1,7 +1,7 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 36 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 37 languages with R support.
 head:
   - - meta
     - property: og:title
@@ -60,7 +60,7 @@ features:
     link: /guide/judge
     linkText: Workflow docs →
   - icon: 🌐
-    title: 36 languages, zero native deps
+    title: 37 languages, zero native deps
     details: TypeScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, R, GDScript, and more.
     link: /guide/languages
     linkText: Language support →
@@ -80,7 +80,7 @@ features:
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
   <span><strong>Release:</strong> v8.61.0</span>
   <span>·</span>
-  <span><strong>New — close the loop at the agent:</strong> three defects on one surface, so they shipped together. <code>ask</code> emitted <em>signatures only</em>, so an agent that then needed a body opened the whole file — the exact cost the map exists to avoid, handed back one level down. <code>ask --with-source</code> now slices the top symbols' lines from the <code>:start-end</code> anchors every extractor already emits and attaches the blast radius, so the agent reads the code without opening the file; it is budgeted against your existing <code>maxTokens</code>, and a body that does not fit is skipped whole with the omission disclosed, because half a function is not a cheaper answer. Separately, <code>judge</code> has warned since v8.54.2 when the context is older than the sources it describes, while <code>ask</code> and the MCP read tools answered from that same ground <strong>in silence</strong> — a stale answer was byte-indistinguishable from a fresh one; all four now share one definition of "stale". And on a fresh <code>gin</code> clone <code>ask</code> printed <code>Coverage : 100%</code> and <code>Risk : NONE</code> over five files that were a test, a README, a CI workflow and two unrelated sources: neither reading was a lie alone — coverage measures how much of <code>srcDirs</code> is <em>readable</em>, risk counts changed files — but side by side under the answer they read as "this is trustworthy". Every figure now names what it counted, <code>Risk</code> says <code>not assessed</code> when nothing ran, and a new <code>Selection</code> line names how much of the result is implementation at all. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — close the loop at the agent:</strong> three defects on one surface, so they shipped together. <code>ask</code> emitted <em>signatures only</em>, so an agent that then needed a body opened the whole file — the exact cost the map exists to avoid, handed back one level down. <code>ask --with-source</code> now slices the top symbols' lines from the <code>:start-end</code> anchors every extractor already emits and attaches the blast radius, so the agent reads the code without opening the file; it is budgeted against your existing <code>maxTokens</code>, and a body that does not fit is skipped whole with the omission disclosed, because half a function is not a cheaper answer. Separately, <code>judge</code> has warned since v8.54.2 when the context is older than the sources it describes, while <code>ask</code> and the MCP read tools answered from that same ground <strong>in silence</strong> — a stale answer was byte-indistinguishable from a fresh one; all four now share one definition of "stale". And on a fresh <code>gin</code> clone <code>ask</code> printed <code>Coverage : 100%</code> and <code>Risk : NONE</code> over five files that were a test, a README, a CI workflow and two unrelated sources: neither reading was a lie alone — coverage measures how much of <code>srcDirs</code> is <em>readable</em>, risk counts changed files — but side by side under the answer they read as "this is trustworthy". Every figure now names what it counted, <code>Risk</code> says <code>not assessed</code> when nothing ran, and a new <code>Selection</code> line names how much of the result is implementation at all. 37 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.61-main</span>

@@ -1,0 +1,12 @@
+class Greeter  :3-11
+  greet(name) → String  :4-6
+  configure(options)  :8-10
+interface Runner  :13-15
+  run(input) → void  :14-14
+buildMessage(name, options)  :21-23
+  def handler = { name, count -> }  :17-19
+plugins { }  :1-3
+repositories { }  :5-7
+dependencies { }  :9-11
+tasks.register('verifyBuild')  :17-21
+task checkStyle(type: Checkstyle)  :11-15

@@ -179,8 +179,8 @@ function _legacyDetectAutoSrcDirs(cwd, excludeList) {
   const hasMaven = fs.existsSync(path.join(cwd, 'pom.xml'));
   if (hasGradle || hasMaven) {
     for (const d of [
-      'src/main/java', 'src/main/kotlin', 'src/main/scala',
-      'src/main/resources', 'src/test/java', 'src/test/kotlin',
+      'src/main/java', 'src/main/kotlin', 'src/main/scala', 'src/main/groovy',
+      'src/main/resources', 'src/test/java', 'src/test/kotlin', 'src/test/groovy',
     ]) candidates.add(d);
   }
 
@@ -252,7 +252,7 @@ function _isJvmLayout(cwd) {
   for (const m of MARKERS) {
     try { if (fs.existsSync(path.join(cwd, m))) return true; } catch { /* unreadable cwd */ }
   }
-  for (const d of ['src/main/java', 'src/main/kotlin', 'src/main/scala']) {
+  for (const d of ['src/main/java', 'src/main/kotlin', 'src/main/scala', 'src/main/groovy']) {
     try { if (fs.existsSync(path.join(cwd, d))) return true; } catch { /* ignore */ }
   }
   return false;

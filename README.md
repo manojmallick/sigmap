@@ -67,7 +67,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 - **61.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.61 prompts per task** — down from 2.84 (43.4% fewer retries, modeled)
 <!--/SM:whyMetrics-->
-- **<!--SM:languages-->36<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
+- **<!--SM:languages-->37<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
@@ -337,7 +337,7 @@ sigmap --health
 | Benchmark methodology | [methodology.html](https://sigmap.io/guide/methodology.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
-| <!--SM:languages-->36<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
+| <!--SM:languages-->37<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
 
 ---
 
@@ -394,7 +394,7 @@ See [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the
 
 ---
 
-## <!--SM:languages-->36<!--/SM:languages--> languages
+## <!--SM:languages-->37<!--/SM:languages--> languages
 
 TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
 
@@ -404,15 +404,15 @@ All implemented with zero external dependencies.
 
 ### Extraction honesty
 
-Not all 36 languages get the same depth — and we say so plainly:
+Not all 37 languages get the same depth — and we say so plainly:
 
 | Tier | Coverage | Depth |
 |------|----------|-------|
 | **AST** | Python (`python3` on PATH; regex fallback without) | Full parse |
-| **Anchored regex** | 11 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#) | Declarations + `:start-end` line anchors; doc hints on 6 |
+| **Anchored regex** | 12 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, Groovy) | Declarations + `:start-end` line anchors; doc hints on 6 |
 | **Pattern/heuristic** | Everything else + generic fallback | Line-oriented patterns |
 
-Caps: 25 signatures/file · 8 members/block. Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.
+Caps: 200 signatures/file · 120 members/block. Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.
 
 ---
 
