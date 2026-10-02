@@ -123,7 +123,7 @@ If you are new to the product, start with the workflow pages first:
 | `--output <file>` | Write context to a custom path (persisted to config) |
 | `--cost [--model <name>]` | Per-model token/dollar cost comparison |
 | `--coverage` | Enable test coverage annotation (✓/✗ per function) without editing config |
-| `--ci [--min-coverage N]` | CI exit gate — exits 1 when coverage < threshold |
+| `--ci [--min-coverage N]` | CI exit gate — exits 1 when `indexed` coverage < threshold (default 80); same measurement as `validate` |
 | `--analyze` | Per-file breakdown of signatures, tokens, and extractor |
 | `--report` | Token reduction + coverage score + module heatmap |
 | `--report --json` | Machine-readable JSON report with coverage object |
