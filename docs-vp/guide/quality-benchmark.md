@@ -16,7 +16,7 @@ head:
 # Quality benchmark
 
 ::: info Official v8.61.2 benchmark snapshot
-**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-02 (with R language)
+**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-03 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -35,7 +35,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-10-02 (v8.61.2)**
+Latest saved run: **2026-10-03 (v8.61.2)**
 
 How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
 

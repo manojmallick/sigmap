@@ -26,6 +26,7 @@
     "report": "node gen-context.js --report",
     "audit:strategies": "node scripts/run-strategy-audit.mjs",
     "benchmark:matrix": "node scripts/run-benchmark-matrix.mjs --save --skip-clone",
+    "benchmark:all": "npm run benchmark:matrix && npm run benchmark:honest && npm run benchmark:test-discovery",
     "benchmark:verify": "node scripts/run-verify-benchmark.mjs",
     "benchmark:squeeze": "node scripts/run-squeeze-benchmark.mjs --save",
     "benchmark:test-discovery": "node scripts/run-test-discovery-benchmark.mjs --save",

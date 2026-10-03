@@ -7,7 +7,7 @@ head:
       content: "SigMap benchmark overview — v8.61.2 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.61.2 benchmark run (2026-10-02) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.61.2 benchmark run (2026-10-03) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -16,7 +16,7 @@ head:
 # Benchmark overview
 
 ::: info Official v8.61.2 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-02
+**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-03
 
 | Metric | Value |
 |---|---:|
@@ -41,7 +41,7 @@ This is the landing page for the public benchmark story. It answers four differe
 
 ## Official v8.61.2 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-10-02 (v8.61.2)**
+Latest saved benchmark run: **2026-10-03 (v8.61.2)**
 
 Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
 

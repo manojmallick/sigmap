@@ -85,7 +85,7 @@ features:
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.61-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 95.8% token reduction · 2026-10-02</span>
+  <span>78.6% hit@5 · 95.8% token reduction · 2026-10-03</span>
 </div>
 </div>
 
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.8%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-02 (v8.61.2)**.
+Latest saved benchmark run: **2026-10-03 (v8.61.2)**.
 
 </div>
 

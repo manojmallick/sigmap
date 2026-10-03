@@ -26,6 +26,7 @@ import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import { withSharedRepoContext, loadOverrides } from './lib/shared-repo-context.mjs';
 import { countSignatureLines, countContextLines } from './lib/signature-count.mjs';
+import { stamp } from './lib/report-stamp.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT      = path.resolve(__dirname, '..');
@@ -528,7 +529,7 @@ if (SAVE) {
     },
   };
   const outPath = path.join(REPORTS, 'quality.json');
-  fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
+  fs.writeFileSync(outPath, JSON.stringify(stamp(out, ROOT), null, 2));
   console.log(`\nReport saved → benchmarks/reports/quality.json`);
 }
 
