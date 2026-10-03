@@ -34,15 +34,15 @@ __factories["./packages/adapters/claude"] = function(module, exports) {
    *   outputPath(cwd) → string
    *   write(context, cwd, opts?) → void   (handles append logic)
    */
-  
+
   const path = require('path');
   const fs = require('fs');
-  
+
   const name = 'claude';
-  
+
   const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
   const ALLOWLIST_MARKER = '<!-- sigmap-bash-allowlist -->';
-  
+
   const ALLOWLIST_BLOCK = [
     '## Bash allowlist',
     '',
@@ -72,7 +72,7 @@ __factories["./packages/adapters/claude"] = function(module, exports) {
     'Add the `permissions.allow` array above to `.claude/settings.json` to activate.',
     '',
   ].join('\n');
-  
+
   /**
    * Format context suited for CLAUDE.md.
    * @param {string} context - Raw signature context string
@@ -92,7 +92,7 @@ __factories["./packages/adapters/claude"] = function(module, exports) {
       context,
     ].join('\n');
   }
-  
+
   function _confidenceMeta(opts) {
     const parts = [`version=${opts.version || 'unknown'}`];
     if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
@@ -103,7 +103,7 @@ __factories["./packages/adapters/claude"] = function(module, exports) {
     if (opts.toolchain)     parts.push(`toolchain=${opts.toolchain}`);
     return `<!-- sigmap: ${parts.join(' ')} -->`;
   }
-  
+
   /**
    * Return the output file path for this adapter.
    * @param {string} cwd - Project root
@@ -112,7 +112,7 @@ __factories["./packages/adapters/claude"] = function(module, exports) {
   function outputPath(cwd) {
     return path.join(cwd, 'CLAUDE.md');
   }
-  
+
   /**
    * Write signatures into CLAUDE.md using the append-under-marker strategy.
    * Human content above the marker is never touched.
@@ -134,7 +134,7 @@ __factories["./packages/adapters/claude"] = function(module, exports) {
     } else {
       newContent = existing + MARKER + formatted;
     }
-  
+
     // Inject ## Bash allowlist above the sig marker if not already present
     if (!newContent.includes(ALLOWLIST_MARKER)) {
       const sigMarkerPos = newContent.indexOf('## Auto-generated signatures');
@@ -144,10 +144,10 @@ __factories["./packages/adapters/claude"] = function(module, exports) {
         newContent = ALLOWLIST_BLOCK + '\n' + newContent;
       }
     }
-  
+
     fs.writeFileSync(filePath, newContent, 'utf8');
   }
-  
+
   module.exports = { name, format, outputPath, write };
   
 };
@@ -166,13 +166,13 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
    *   outputPath(cwd) → string
    *   write(context, cwd, opts?) → void
    */
-  
+
   const path = require('path');
   const fs = require('fs');
-  
+
   const name = 'codex';
   const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
-  
+
   /**
    * Format context for AGENTS.md — clean markdown, no LLM preamble.
    * @param {string} context - Raw signature context string
@@ -183,7 +183,7 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
     if (!context || typeof context !== 'string' || !context.trim()) return '';
     return `# Code signatures\n\n${context}`;
   }
-  
+
   /**
    * Return the output file path for this adapter.
    * @param {string} cwd - Project root
@@ -192,7 +192,7 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
   function outputPath(cwd) {
     return path.join(cwd, 'AGENTS.md');
   }
-  
+
   /**
    * Write signatures into AGENTS.md using append-under-marker.
    * If marker exists, content above marker is preserved.
@@ -207,10 +207,10 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
     if (fs.existsSync(filePath)) {
       existing = fs.readFileSync(filePath, 'utf8');
     }
-  
+
     const formatted = format(context, opts);
     const markerIdx = existing.indexOf('## Auto-generated signatures');
-  
+
     let newContent;
     if (markerIdx !== -1) {
       newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
@@ -222,10 +222,10 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
         ? MARKER.trimStart() + formatted
         : existing + MARKER + formatted;
     }
-  
+
     fs.writeFileSync(filePath, newContent, 'utf8');
   }
-  
+
   module.exports = { name, format, outputPath, write };
   
 };
@@ -241,13 +241,13 @@ __factories["./packages/adapters/copilot"] = function(module, exports) {
    *   format(context, opts?) → string
    *   outputPath(cwd) → string
    */
-  
+
   const path = require('path');
   const fs = require('fs');
-  
+
   const name = 'copilot';
   const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
-  
+
   /**
    * Format context for GitHub Copilot instructions.
    * @param {string} context - Raw signature context string
@@ -271,7 +271,7 @@ __factories["./packages/adapters/copilot"] = function(module, exports) {
     ].join('\n');
     return header + context;
   }
-  
+
   function _confidenceMeta(opts) {
     const parts = [`version=${opts.version || 'unknown'}`];
     if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
@@ -282,7 +282,7 @@ __factories["./packages/adapters/copilot"] = function(module, exports) {
     if (opts.toolchain)     parts.push(`toolchain=${opts.toolchain}`);
     return `<!-- sigmap: ${parts.join(' ')} -->`;
   }
-  
+
   /**
    * Return the output file path for this adapter.
    * @param {string} cwd - Project root
@@ -291,7 +291,7 @@ __factories["./packages/adapters/copilot"] = function(module, exports) {
   function outputPath(cwd) {
     return path.join(cwd, '.github', 'copilot-instructions.md');
   }
-  
+
   /**
    * Write signatures into copilot-instructions.md using append-under-marker.
    * If marker exists, content above marker is preserved.
@@ -306,10 +306,10 @@ __factories["./packages/adapters/copilot"] = function(module, exports) {
     if (fs.existsSync(filePath)) {
       existing = fs.readFileSync(filePath, 'utf8');
     }
-  
+
     const formatted = format(context, opts);
     const markerIdx = existing.indexOf('## Auto-generated signatures');
-  
+
     let newContent;
     if (markerIdx !== -1) {
       newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
@@ -320,11 +320,11 @@ __factories["./packages/adapters/copilot"] = function(module, exports) {
         ? MARKER.trimStart() + formatted
         : existing + MARKER + formatted;
     }
-  
+
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, newContent, 'utf8');
   }
-  
+
   module.exports = { name, format, outputPath, write };
   
 };
@@ -340,11 +340,11 @@ __factories["./packages/adapters/cursor"] = function(module, exports) {
    *   format(context, opts?) → string
    *   outputPath(cwd) → string
    */
-  
+
   const path = require('path');
-  
+
   const name = 'cursor';
-  
+
   /**
    * Format context for Cursor rules file.
    * @param {string} context - Raw signature context string
@@ -366,7 +366,7 @@ __factories["./packages/adapters/cursor"] = function(module, exports) {
     ].join('\n');
     return header + context;
   }
-  
+
   function _confidenceMeta(opts) {
     const parts = [`version=${opts.version || 'unknown'}`];
     if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
@@ -375,7 +375,7 @@ __factories["./packages/adapters/cursor"] = function(module, exports) {
     if (opts.commit)        parts.push(`commit=${opts.commit}`);
     return `sigmap: ${parts.join(' ')}`;
   }
-  
+
   /**
    * Return the output file path for this adapter.
    * @param {string} cwd - Project root
@@ -384,7 +384,7 @@ __factories["./packages/adapters/cursor"] = function(module, exports) {
   function outputPath(cwd) {
     return path.join(cwd, '.cursorrules');
   }
-  
+
   module.exports = { name, format, outputPath };
   
 };
@@ -405,13 +405,13 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
    *   format(context, opts?) → string
    *   outputPath(cwd) → string
    */
-  
+
   const path = require('path');
   const fs = require('fs');
-  
+
   const name = 'gemini';
   const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
-  
+
   /**
    * Format context as a Gemini system instruction.
    * @param {string} context - Raw signature context string
@@ -427,7 +427,7 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
     const projectLine = opts.projectName
       ? `Project: ${opts.projectName}\n`
       : '';
-  
+
     const meta = _confidenceMeta(opts);
     return [
       `You are a coding assistant with complete knowledge of this codebase.`,
@@ -441,7 +441,7 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
       context,
     ].join('\n');
   }
-  
+
   /**
    * Return the output file path for this adapter.
    * @param {string} cwd - Project root
@@ -450,7 +450,7 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
   function outputPath(cwd) {
     return path.join(cwd, '.github', 'gemini-context.md');
   }
-  
+
   /**
    * Write signatures into gemini-context.md using append-under-marker.
    * If marker exists, content above marker is preserved.
@@ -465,10 +465,10 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
     if (fs.existsSync(filePath)) {
       existing = fs.readFileSync(filePath, 'utf8');
     }
-  
+
     const formatted = format(context, opts);
     const markerIdx = existing.indexOf('## Auto-generated signatures');
-  
+
     let newContent;
     if (markerIdx !== -1) {
       newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
@@ -479,11 +479,11 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
         ? MARKER.trimStart() + formatted
         : existing + MARKER + formatted;
     }
-  
+
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, newContent, 'utf8');
   }
-  
+
   function _confidenceMeta(opts) {
     const parts = [`version=${opts.version || 'unknown'}`];
     if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
@@ -492,7 +492,7 @@ __factories["./packages/adapters/gemini"] = function(module, exports) {
     if (opts.commit)        parts.push(`commit=${opts.commit}`);
     return `sigmap: ${parts.join(' ')}`;
   }
-  
+
   module.exports = { name, format, outputPath, write };
   
 };
@@ -508,16 +508,16 @@ __factories["./packages/adapters/index"] = function(module, exports) {
    *   const { getAdapter, listAdapters, adapt } = require('sigmap/adapters');
    *   const output = adapt(context, 'copilot', { version: '3.0.0' });
    */
-  
+
   const path = require('path');
-  
+
   // Third-party adapters: 'willow' writes atoms to a Willow MCP knowledge store
   // instead of a flat file (see willow.js for configuration).
   const ADAPTER_NAMES = ['copilot', 'claude', 'cursor', 'windsurf', 'openai', 'gemini', 'codex', 'willow'];
-  
+
   // Lazy-load adapters so unused ones don't pay any require() cost
   const _cache = {};
-  
+
   /**
    * Load and return an adapter module by name.
    * @param {string} name - Adapter name (copilot|claude|cursor|windsurf|openai|gemini|codex|willow)
@@ -536,7 +536,7 @@ __factories["./packages/adapters/index"] = function(module, exports) {
     }
     return _cache[key];
   }
-  
+
   /**
    * List all available adapter names.
    * @returns {string[]}
@@ -544,7 +544,7 @@ __factories["./packages/adapters/index"] = function(module, exports) {
   function listAdapters() {
     return ADAPTER_NAMES.slice();
   }
-  
+
   /**
    * Format context using the named adapter.
    * @param {string} context - Raw signature context string
@@ -562,7 +562,7 @@ __factories["./packages/adapters/index"] = function(module, exports) {
       return '';
     }
   }
-  
+
   /**
    * Map old `outputs` config values to new `adapters` names.
    * Provides backward compatibility for existing configurations.
@@ -577,7 +577,7 @@ __factories["./packages/adapters/index"] = function(module, exports) {
       return o; // pass through unknowns — getAdapter() will handle gracefully
     });
   }
-  
+
   module.exports = { getAdapter, listAdapters, adapt, outputsToAdapters };
   
 };
@@ -588,9 +588,9 @@ __factories["./packages/adapters/llm-full"] = function(module, exports) {
   const path = require('path');
   const fs   = require('fs');
   module.exports = { name: 'llm-full', format, outputPath, write };
-  
+
   function outputPath(cwd) { return path.join(cwd, 'llm-full.txt'); }
-  
+
   function format(context, opts) {
     opts = opts || {};
     const lines = [
@@ -604,7 +604,7 @@ __factories["./packages/adapters/llm-full"] = function(module, exports) {
     }
     return lines.join('\n');
   }
-  
+
   function write(context, cwd, opts) {
     opts = opts || {};
     fs.writeFileSync(outputPath(cwd), format(context, { ...opts, cwd }));
@@ -628,11 +628,11 @@ __factories["./packages/adapters/openai"] = function(module, exports) {
    *   format(context, opts?) → string
    *   outputPath(cwd) → string
    */
-  
+
   const path = require('path');
-  
+
   const name = 'openai';
-  
+
   /**
    * Format context as an OpenAI system prompt.
    * @param {string} context - Raw signature context string
@@ -648,7 +648,7 @@ __factories["./packages/adapters/openai"] = function(module, exports) {
     const projectLine = opts.projectName
       ? `Project: ${opts.projectName}\n`
       : '';
-  
+
     const meta = _confidenceMeta(opts);
     return [
       `You are a coding assistant with full knowledge of this codebase.`,
@@ -662,7 +662,7 @@ __factories["./packages/adapters/openai"] = function(module, exports) {
       context,
     ].join('\n');
   }
-  
+
   /**
    * Return the output file path for this adapter.
    * Writes a .openai-context.md file that can be loaded at runtime.
@@ -672,7 +672,7 @@ __factories["./packages/adapters/openai"] = function(module, exports) {
   function outputPath(cwd) {
     return path.join(cwd, '.github', 'openai-context.md');
   }
-  
+
   function _confidenceMeta(opts) {
     const parts = [`version=${opts.version || 'unknown'}`];
     if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
@@ -681,7 +681,7 @@ __factories["./packages/adapters/openai"] = function(module, exports) {
     if (opts.commit)        parts.push(`commit=${opts.commit}`);
     return `sigmap: ${parts.join(' ')}`;
   }
-  
+
   module.exports = { name, format, outputPath };
   
 };
@@ -709,14 +709,14 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
    *   WILLOW_MAX_ATOM_SIZE — max atom size in bytes (default: 100000)
    *   WILLOW_RETRIES   — max retry attempts for transient failures (default: 3)
    */
-  
+
   const crypto = require('crypto');
   const name = 'willow';
   const DEFAULT_MCP_URL = 'http://localhost:8000';
   const DEFAULT_TIMEOUT_MS = 30000;
   const DEFAULT_MAX_ATOM_SIZE = 100000;
   const DEFAULT_RETRIES = 3;
-  
+
   /**
    * Format SigMap context as markdown for display or debug.
    * @param {string} context - Raw SigMap context string
@@ -728,7 +728,7 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
     const ts = new Date().toISOString();
     return `<!-- SigMap Willow context — ${ts} -->\n\n${context}`;
   }
-  
+
   /**
    * Return the placeholder output path (no file is written by this adapter).
    * @param {string} cwd - Working directory
@@ -737,7 +737,7 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
   function outputPath(cwd) {
     return '.willow-context.md';
   }
-  
+
   /**
    * Generate a cryptographically strong ID for an atom.
    * Uses SHA256 hash of the filepath to ensure uniqueness and prevent collisions.
@@ -751,7 +751,7 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
       .digest('hex');
     return `sigmap-${hash}`;
   }
-  
+
   /**
    * Fetch with timeout support.
    * @param {string} url - URL to fetch
@@ -768,7 +768,7 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
       clearTimeout(timeoutId);
     }
   }
-  
+
   /**
    * POST an atom to Willow with exponential backoff retry.
    * @param {object} atom - Atom to ingest
@@ -799,11 +799,11 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
           },
           timeoutMs,
         );
-  
+
         if (resp.ok) {
           return true;
         }
-  
+
         if (resp.status >= 500) {
           lastErr = new Error(`HTTP ${resp.status}`);
           if (attempt < maxRetries - 1) {
@@ -822,13 +822,13 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
         }
       }
     }
-  
+
     process.stderr.write(
       `[willow-adapter] ${atom.id}: failed after ${maxRetries} attempts: ${lastErr?.message || 'unknown'}\n`,
     );
     return false;
   }
-  
+
   /**
    * POST each file section from SigMap context to the Willow MCP knowledge store.
    * Each `## filepath` section becomes one searchable knowledge atom.
@@ -842,27 +842,27 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
    */
   async function write(context, cwd, opts = {}) {
     if (!context) return;
-  
+
     const mcpUrl = opts.mcpUrl || process.env.WILLOW_MCP_URL || DEFAULT_MCP_URL;
     const agent = opts.agent || process.env.WILLOW_AGENT || 'sigmap';
     const timeoutMs = opts.timeoutMs || parseInt(process.env.WILLOW_TIMEOUT, 10) || DEFAULT_TIMEOUT_MS;
     const maxAtomSize = opts.maxAtomSize || parseInt(process.env.WILLOW_MAX_ATOM_SIZE, 10) || DEFAULT_MAX_ATOM_SIZE;
     const maxRetries = opts.maxRetries || parseInt(process.env.WILLOW_RETRIES, 10) || DEFAULT_RETRIES;
-  
+
     const sections = context.split(/\n(?=##\s)/);
     const atoms = sections
       .map((section) => {
         const titleMatch = section.match(/^##\s+(.+)/);
         if (!titleMatch) return null;
-  
+
         const title = titleMatch[1].trim();
         const contentSize = section.length;
-  
+
         if (contentSize > maxAtomSize) {
           process.stderr.write(`[willow-adapter] ${title}: oversized (${contentSize} > ${maxAtomSize} bytes)\n`);
           return null;
         }
-  
+
         return {
           id: generateAtomId(title),
           title,
@@ -875,16 +875,16 @@ __factories["./packages/adapters/willow"] = function(module, exports) {
         };
       })
       .filter(Boolean);
-  
+
     if (!atoms.length) return;
-  
+
     await Promise.all(
       atoms.map((atom) => postAtomWithRetry(atom, mcpUrl, timeoutMs, maxRetries).catch((err) => {
         process.stderr.write(`[willow-adapter] ${atom.id}: unexpected error: ${err.message}\n`);
       })),
     );
   }
-  
+
   module.exports = { name, format, outputPath, write };
   
 };
@@ -900,11 +900,11 @@ __factories["./packages/adapters/windsurf"] = function(module, exports) {
    *   format(context, opts?) → string
    *   outputPath(cwd) → string
    */
-  
+
   const path = require('path');
-  
+
   const name = 'windsurf';
-  
+
   /**
    * Format context for Windsurf rules file.
    * @param {string} context - Raw signature context string
@@ -926,7 +926,7 @@ __factories["./packages/adapters/windsurf"] = function(module, exports) {
     ].join('\n');
     return header + context;
   }
-  
+
   function _confidenceMeta(opts) {
     const parts = [`version=${opts.version || 'unknown'}`];
     if (opts.confidence)    parts.push(`confidence=${opts.confidence}`);
@@ -935,7 +935,7 @@ __factories["./packages/adapters/windsurf"] = function(module, exports) {
     if (opts.commit)        parts.push(`commit=${opts.commit}`);
     return `sigmap: ${parts.join(' ')}`;
   }
-  
+
   /**
    * Return the output file path for this adapter.
    * @param {string} cwd - Project root
@@ -944,7 +944,7 @@ __factories["./packages/adapters/windsurf"] = function(module, exports) {
   function outputPath(cwd) {
     return path.join(cwd, '.windsurfrules');
   }
-  
+
   module.exports = { name, format, outputPath };
   
 };
@@ -978,7 +978,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
    *   perModule: Map<string, {total:number, included:number, pct:number}>,
    * }}
    */
-  
+
   const CODE_EXTS = new Set([
     '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx',
     '.py', '.rb', '.go', '.rs', '.java', '.kt',
@@ -989,15 +989,15 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     '.lua', '.r', '.jl', '.ex', '.exs',
     '.sh', '.bash', '.zsh', '.ps1', '.psm1', '.psd1',
   ]);
-  
+
   function coverageScore(cwd, fileEntries, config) {
     const fs   = require('fs');
     const path = require('path');
-  
+
     const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length > 0)
       ? config.srcDirs
       : ['src', 'app', 'lib'];
-  
+
     const excludeSet = new Set([
       'node_modules', '.git', 'dist', 'build', 'out', '__pycache__',
       '.next', 'coverage', 'target', 'vendor', '.context',
@@ -1005,9 +1005,9 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     if (config && Array.isArray(config.exclude)) {
       for (const x of config.exclude) excludeSet.add(String(x));
     }
-  
+
     const includedSet = new Set((fileEntries || []).map(f => f.filePath));
-  
+
     // Walk srcDirs: separate code files from non-code files
     const allFiles  = [];
     const allSource = [];
@@ -1019,15 +1019,15 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       if (CODE_EXTS.has(path.extname(f).toLowerCase())) allSource.push(f);
     }
     const nonCodeSkipped = allFiles.length - allSource.length;
-  
+
     const total    = allSource.length;
     const included = allSource.filter(f => includedSet.has(f)).length;
     const dropped  = total - included;
     const pct      = total > 0 ? Math.round((included / total) * 100) : 100;
-  
+
     const grade = pct >= 90 ? 'A' : pct >= 75 ? 'B' : pct >= 50 ? 'C' : 'D';
     const confidence = pct >= 90 ? 'HIGH' : pct >= 70 ? 'MEDIUM' : 'LOW';
-  
+
     // Per-module breakdown (one entry per srcDir)
     const perModule = new Map();
     for (const relDir of srcDirs) {
@@ -1037,10 +1037,10 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       const modPct   = modFiles.length > 0 ? Math.round((modIncl / modFiles.length) * 100) : 100;
       perModule.set(relDir, { total: modFiles.length, included: modIncl, pct: modPct });
     }
-  
+
     return { score: pct, grade, total, included, dropped, nonCodeSkipped, confidence, perModule };
   }
-  
+
   /**
    * Source files that exist in the repo but fall OUTSIDE every configured
    * srcDir (#805).
@@ -1067,13 +1067,13 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
   function outsideSrcDirs(cwd, config) {
     const fs   = require('fs');
     const path = require('path');
-  
+
     const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length > 0)
       ? config.srcDirs : ['src', 'app', 'lib'];
-  
+
     // A srcDir of '.' covers the whole tree, so nothing can be outside it.
     if (srcDirs.some((d) => d === '.' || d === './')) return { total: 0, byExt: [], dirs: [], skipped: 0, inScope: 0, share: 0 };
-  
+
     const excludeSet = new Set([
       'node_modules', '.git', 'dist', 'build', 'out', '__pycache__',
       '.next', 'coverage', 'target', 'vendor', '.context',
@@ -1081,20 +1081,20 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     if (config && Array.isArray(config.exclude)) {
       for (const x of config.exclude) excludeSet.add(String(x));
     }
-  
+
     const srcAbs = srcDirs.map((d) => path.resolve(cwd, d));
     const inSrc  = (f) => srcAbs.some((a) => f === a || f.startsWith(a + path.sep));
-  
+
     const all = [];
     _walkOwned(cwd, excludeSet, all, 0);
-  
+
     let inScope = 0;
     for (const a of srcAbs) {
       const found = [];
       try { if (fs.existsSync(a)) _walkOwned(a, excludeSet, found, 0); } catch (_) {}
       for (const f of found) if (CODE_EXTS.has(path.extname(f).toLowerCase())) inScope++;
     }
-  
+
     // Only IMPLEMENTATION counts. Tests, docs, CI, mocks and the conventional
     // tooling directories are routinely and correctly outside srcDirs — counting
     // them turned this into a 297-file warning on SigMap's own repo, where the
@@ -1108,7 +1108,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       'scripts', 'benchmarks', 'fixtures', 'mocks', '__mocks__',
       'testdata', 'demo', 'demos', 'tools', 'migrations',
     ]);
-  
+
     const byExt = new Map();
     const dirs  = new Set();
     let total = 0;
@@ -1127,7 +1127,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       byExt.set(ext, (byExt.get(ext) || 0) + 1);
       dirs.add(topDir);
     }
-  
+
     return {
       total,
       byExt: [...byExt.entries()]
@@ -1142,7 +1142,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       share: inScope + total > 0 ? total / (inScope + total) : 0,
     };
   }
-  
+
   /**
    * Depth-bounded walk that stops at NESTED REPOSITORIES.
    *
@@ -1154,7 +1154,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
    * checkout the exclude list does not happen to name.
    */
   const OWNED_WALK_MAX_DEPTH = 10;
-  
+
   function _walkOwned(dir, excludeSet, out, depth) {
     const fs   = require('fs');
     const path = require('path');
@@ -1169,7 +1169,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       else if (e.isFile())  { out.push(full); }
     }
   }
-  
+
   function _walk(dir, excludeSet, out) {
     const fs   = require('fs');
     const path = require('path');
@@ -1182,7 +1182,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       else if (e.isFile())  { out.push(full); }
     }
   }
-  
+
   /**
    * Named populations (#762).
    *
@@ -1207,7 +1207,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     // Readable on disk under srcDirs — an access check, not a coverage claim.
     readable:     { label: 'readable',   noun: 'files in srcDirs' },
   };
-  
+
   /**
    * Render a coverage figure with its population, numerator and denominator.
    * `indexed 98% (175/179 files)` — never a bare percentage.
@@ -1220,7 +1220,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     const grade    = opts.grade === false ? '' : ` grade ${cov.grade}`;
     return `${pop.label} ${cov.score}% (${included}/${total} ${pop.noun})${grade}`;
   }
-  
+
   /**
    * The files actually present in the generated context file — the `in-context`
    * population. Parsed from the `### <relpath>` section headings rather than the
@@ -1251,7 +1251,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     }
     return [...out].map((filePath) => ({ filePath }));
   }
-  
+
   module.exports = { coverageScore, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
   
 };
@@ -1267,13 +1267,13 @@ __factories["./src/analysis/diagnostics"] = function(module, exports) {
    * - Ranking scores and signals
    * - Budget constraints and priorities
    */
-  
+
   const path = require('path');
-  
+
   function estimateTokens(text) {
     return Math.ceil(text.length / 4);
   }
-  
+
   function formatFileDecision(entry, decision, reason, score = null) {
     const rel = path.relative(process.cwd(), entry.filePath);
     const tokens = estimateTokens(entry.sigs.join('\n'));
@@ -1283,13 +1283,13 @@ __factories["./src/analysis/diagnostics"] = function(module, exports) {
     if (reason) line += ` — ${reason}`;
     return line;
   }
-  
+
   function computeFileMetrics(entry) {
     const loc = entry.content ? entry.content.split('\n').length : 1;
     const sigCount = entry.sigs ? entry.sigs.length : 0;
     const signalQuality = loc > 0 ? sigCount / loc : 0;
     const tokens = estimateTokens(entry.sigs.join('\n'));
-  
+
     return {
       lineOfCode: loc,
       sigCount: sigCount,
@@ -1298,24 +1298,24 @@ __factories["./src/analysis/diagnostics"] = function(module, exports) {
       relevance: (sigCount / Math.max(loc, 1)).toFixed(3),
     };
   }
-  
+
   function explainInclusion(fileEntries, budgetLimit) {
     const lines = [];
-  
+
     lines.push('## File Inclusion Diagnostics\n');
     lines.push(`Budget: ${budgetLimit} tokens`);
     lines.push(`Files: ${fileEntries.length} scanned\n`);
-  
+
     let totalTokens = 0;
     const withMetrics = fileEntries.map((e) => {
       const metrics = computeFileMetrics(e);
       totalTokens += metrics.tokens;
       return { entry: e, metrics };
     });
-  
+
     lines.push(`Total token requirement: ${totalTokens} tokens`);
     lines.push(`Budget headroom: ${budgetLimit * 0.9} tokens (90% of ${budgetLimit})\n`);
-  
+
     if (totalTokens > budgetLimit * 0.9) {
       lines.push('⚠ Over budget — files will be dropped\n');
       lines.push('### Per-file metrics:');
@@ -1328,14 +1328,14 @@ __factories["./src/analysis/diagnostics"] = function(module, exports) {
     } else {
       lines.push('✓ All files fit within budget\n');
     }
-  
+
     return lines.join('\n');
   }
-  
+
   function explainExclusion(dropped, reason) {
     return `Excluded ${dropped.length} files: ${reason}`;
   }
-  
+
   module.exports = {
     formatFileDecision,
     computeFileMetrics,
@@ -1373,16 +1373,16 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
    *
    * Zero-dependency, bundle-safe (fs + path only).
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   /**
    * Directory roots whose contents `generate` indexes as tests. Imported by
    * `collectTestEntries` so the collector and the classifier cannot drift.
    */
   const TEST_ROOTS = ['test', 'tests', '__tests__', 'spec', 'e2e'];
-  
+
   /**
    * Directories holding CI / pipeline definitions. `.` covers the single-file
    * forms (.gitlab-ci.yml, Jenkinsfile, compose files, …). Imported by
@@ -1392,10 +1392,10 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     '.', '.github/workflows', '.gitea/workflows', '.forgejo/workflows',
     '.circleci', '.woodpecker',
   ];
-  
+
   /** The index artifact `generate` writes before the token budget is applied. */
   const INDEX_REL = '.context/sig-index.json';
-  
+
   /** Generated context files, in the order the resolvers prefer them. */
   const ADAPTER_OUTPUTS = [
     ['.github', 'copilot-instructions.md'],
@@ -1408,16 +1408,16 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     ['llm-full.txt'],
     ['llm.txt'],
   ];
-  
+
   const EXCLUDE_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', 'out', '__pycache__',
     '.next', 'coverage', 'target', 'vendor', '.context',
   ]);
-  
+
   function _norm(p) {
     return String(p || '').replace(/\\/g, '/').replace(/^\.\//, '');
   }
-  
+
   /**
    * Source files a project declares as its own entrypoints in package.json
    * (`main` and every `bin` target), repo-relative.
@@ -1442,7 +1442,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     } catch (_) { /* no package.json → nothing declared */ }
     return out;
   }
-  
+
   /**
    * Why a repo-relative path is in the index despite falling outside `srcDirs`,
    * or null when nothing justifies it.
@@ -1455,10 +1455,10 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     const r = _norm(rel);
     if (!r) return null;
     if (ctx.entrypoints && ctx.entrypoints.has(r)) return 'entrypoint';
-  
+
     const first = r.split('/')[0];
     if (r.includes('/') && TEST_ROOTS.includes(first)) return 'test';
-  
+
     const dir = r.includes('/') ? r.slice(0, r.lastIndexOf('/')) : '.';
     if (CI_DIRS.includes(dir)) {
       // The extractor's own routing decides what counts as a pipeline file, so
@@ -1470,7 +1470,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Split the entries an index holds into the four classes that have different
    * remedies.
@@ -1491,35 +1491,35 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
       ? config.srcDirs.map((d) => _norm(d).replace(/\/+$/, ''))
       : ['src', 'app', 'lib'];
     const entrypoints = declaredEntrypointPaths(cwd);
-  
+
     const inScope = [];
     const augmented = [];
     const missing = [];
     const outOfScope = [];
     const byReason = { test: 0, ci: 0, entrypoint: 0 };
-  
+
     for (const raw of indexedRel || []) {
       const rel = _norm(raw);
       if (!rel) continue;
       let exists = true;
       try { exists = fs.statSync(path.join(cwd, rel)).isFile(); } catch (_) { exists = false; }
       if (!exists) { missing.push(rel); continue; }
-  
+
       if (srcDirs.some((d) => rel === d || rel.startsWith(`${d}/`))) { inScope.push(rel); continue; }
-  
+
       const reason = augmentedReason(rel, { entrypoints });
       if (reason) { augmented.push(rel); byReason[reason]++; continue; }
-  
+
       outOfScope.push(rel);
     }
-  
+
     return {
       inScope, augmented, missing, outOfScope,
       stale: missing.length + outOfScope.length,
       byReason,
     };
   }
-  
+
   /**
    * Human summary of the augmented entries, e.g. "256 test, 10 CI".
    *
@@ -1534,7 +1534,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
       .map((k) => `${by[k]} ${label[k]}`)
       .join(', ');
   }
-  
+
   /**
    * Remediation lines for whatever stale classes are actually present, each
    * naming a command or change that fixes THAT class. Empty when nothing is
@@ -1556,7 +1556,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /** Newest mtime among the generated context files, or 0 when none exist. */
   function _contextMtime(cwd) {
     let newest = 0;
@@ -1568,7 +1568,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     }
     return newest;
   }
-  
+
   /**
    * When the index was last built, and from which evidence.
    *
@@ -1599,7 +1599,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
         }
       }
     } catch (_) {}
-  
+
     // 2. The retrieval index — self-describing, written by every full run.
     try {
       const abs = path.join(cwd, INDEX_REL);
@@ -1614,16 +1614,16 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
         version: (data && data.sigmapVersion) || null,
       };
     } catch (_) {}
-  
+
     // 3. The generated context file — mtime only.
     const ctx = _contextMtime(cwd);
     if (ctx > 0) {
       return { ts: new Date(ctx).toISOString(), source: 'context file mtime', files: null, version: null };
     }
-  
+
     return { ts: null, source: null, files: null, version: null };
   }
-  
+
   /**
    * Count code files under `srcDirs` modified after `sinceMs`.
    *
@@ -1643,7 +1643,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     if (config && Array.isArray(config.exclude)) for (const x of config.exclude) exclude.add(String(x));
     const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length)
       ? config.srcDirs : ['src', 'app', 'lib'];
-  
+
     let changed = 0;
     let seen = 0;
     const walk = (dir, depth) => {
@@ -1666,7 +1666,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     }
     return changed;
   }
-  
+
   module.exports = {
     TEST_ROOTS,
     CI_DIRS,
@@ -1700,12 +1700,12 @@ __factories["./src/cache/freshen"] = function(module, exports) {
    *
    * Zero-dependency, bundle-safe (fs + dispatch + sig-cache).
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { loadCache, saveCache, getChangedFiles } = __require('./src/cache/sig-cache');
   const { extractFile, langFor } = __require('./src/extractors/dispatch');
-  
+
   const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'packages', 'services', 'api'];
   const DEFAULT_EXCLUDE = [
     'node_modules', '.git', 'dist', 'build', 'out', '__pycache__',
@@ -1717,19 +1717,19 @@ __factories["./src/cache/freshen"] = function(module, exports) {
   ];
   const THROTTLE_MS = 1500;
   const _lastRun = new Map();
-  
+
   function _readConfig(cwd) {
     try {
       const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
       return cfg && typeof cfg === 'object' ? cfg : {};
     } catch (_) { return {}; }
   }
-  
+
   function _pkgVersion(cwd) {
     try { return JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8')).version || '0.0.0'; }
     catch (_) { return '0.0.0'; }
   }
-  
+
   /** Newest mtime among existing generated context files, or 0 if none. */
   function _contextMtime(cwd) {
     let newest = 0;
@@ -1738,7 +1738,7 @@ __factories["./src/cache/freshen"] = function(module, exports) {
     }
     return newest;
   }
-  
+
   function _walk(dir, exclude, out, depth, maxDepth) {
     if (depth > maxDepth) return;
     let entries;
@@ -1750,7 +1750,7 @@ __factories["./src/cache/freshen"] = function(module, exports) {
       else if (e.isFile() && langFor(e.name)) out.push(full);
     }
   }
-  
+
   /**
    * Re-extract source files changed since the last generate; drop deleted files.
    * @param {string} cwd
@@ -1763,31 +1763,31 @@ __factories["./src/cache/freshen"] = function(module, exports) {
       if (now - (_lastRun.get(cwd) || 0) < THROTTLE_MS) return 0;
     }
     _lastRun.set(cwd, now);
-  
+
     try {
       const version = _pkgVersion(cwd);
       const cache = loadCache(cwd, version);
       const ctxMtime = _contextMtime(cwd);
       // Nothing to heal: no generated context AND no live cache overlay.
       if (ctxMtime === 0 && cache.size === 0) return 0;
-  
+
       const cfg = _readConfig(cwd);
       const srcDirs = Array.isArray(cfg.srcDirs) && cfg.srcDirs.length ? cfg.srcDirs : DEFAULT_SRC_DIRS;
       const exclude = new Set([...DEFAULT_EXCLUDE, ...(Array.isArray(cfg.exclude) ? cfg.exclude : [])]);
       const maxDepth = Number.isFinite(cfg.maxDepth) ? cfg.maxDepth : 8;
-  
+
       const files = [];
       for (const d of srcDirs) {
         const abs = path.isAbsolute(d) ? d : path.join(cwd, d);
         if (fs.existsSync(abs)) _walk(abs, exclude, files, 0, maxDepth);
       }
-  
+
       // Candidates = files modified since the context was generated, or not yet cached.
       const candidates = files.filter((f) => {
         try { return fs.statSync(f).mtimeMs > ctxMtime || !cache.has(f); } catch (_) { return false; }
       });
       const { changed } = getChangedFiles(candidates, cache);
-  
+
       let touched = 0;
       for (const f of changed) {
         try {
@@ -1798,14 +1798,14 @@ __factories["./src/cache/freshen"] = function(module, exports) {
       }
       // Note: deletions are NOT swept here — a cache entry may be a `notify`
       // overlay for a file not yet on disk. Explicit removal is `notify_file_deleted`.
-  
+
       if (touched > 0) saveCache(cwd, version, cache);
       return touched;
     } catch (_) {
       return 0;
     }
   }
-  
+
   module.exports = { freshen };
   
 };
@@ -1823,16 +1823,16 @@ __factories["./src/cache/sig-cache"] = function(module, exports) {
    * Format:
    *   { sigmapVersion: string, entries: { [absPath]: { mtime: number, sigs: string[] } } }
    */
-  
+
   const fs   = require('fs');
   const path = require('path');
-  
+
   const CACHE_FILE = '.sigmap-cache.json';
-  
+
   function cachePath(cwd) {
     return path.join(cwd, CACHE_FILE);
   }
-  
+
   /**
    * Load the cache from disk.
    * Returns a Map<absPath, { mtime: number, sigs: string[] }>.
@@ -1853,7 +1853,7 @@ __factories["./src/cache/sig-cache"] = function(module, exports) {
       return new Map();
     }
   }
-  
+
   /**
    * Persist the cache to disk.
    *
@@ -1872,7 +1872,7 @@ __factories["./src/cache/sig-cache"] = function(module, exports) {
       // Non-fatal: cache save failure just means a full re-extract next run
     }
   }
-  
+
   /**
    * Given a list of absolute file paths, return only those whose mtime
    * differs from the cached value (or that are not cached at all).
@@ -1899,7 +1899,7 @@ __factories["./src/cache/sig-cache"] = function(module, exports) {
     }
     return { changed, unchanged };
   }
-  
+
   /**
    * Update cache entries for a batch of files after fresh extraction.
    *
@@ -1914,7 +1914,7 @@ __factories["./src/cache/sig-cache"] = function(module, exports) {
       } catch (_) {}
     }
   }
-  
+
   /**
    * Drop cache entries whose file no longer exists on disk.
    *
@@ -1939,7 +1939,7 @@ __factories["./src/cache/sig-cache"] = function(module, exports) {
     }
     return removed;
   }
-  
+
   module.exports = { loadCache, saveCache, getChangedFiles, updateCacheEntries, pruneMissing };
   
 };
@@ -1954,14 +1954,14 @@ __factories["./src/config/defaults"] = function(module, exports) {
   const DEFAULTS = {
     // Primary output file (used when outputs includes 'copilot')
     output: '.github/copilot-instructions.md',
-  
+
     // Output targets: 'copilot' | 'claude' | 'cursor' | 'windsurf'
     outputs: ['copilot'],
-  
+
     // Adapter targets (v3.0+): replaces 'outputs'. Same names, adds 'openai' | 'gemini'.
     // Old 'outputs' config key is still accepted and silently maps to 'adapters'.
     adapters: null,
-  
+
     // Directories to scan (relative to project root)
     srcDirs: [
       'src', 'app', 'lib', 'packages', 'services', 'api',
@@ -1978,7 +1978,7 @@ __factories["./src/config/defaults"] = function(module, exports) {
       'app/src/main/java', 'app/src/main/kotlin',
       'src/test/java', 'src/test/kotlin',
     ],
-  
+
     // Directory/file names to exclude entirely
     exclude: [
       'node_modules', '.git', 'dist', 'build', 'out',
@@ -1991,46 +1991,46 @@ __factories["./src/config/defaults"] = function(module, exports) {
       // documentation build output
       'storybook-static', '.docusaurus',
     ],
-  
+
     // Maximum directory depth to recurse
     maxDepth: 6,
-  
+
     // Maximum signatures extracted per file
     maxSigsPerFile: 25,
-  
+
     // Maximum tokens in final output before budget enforcement kicks in.
     // Used only when autoMaxTokens is false, or as a floor for auto-scaling.
     maxTokens: 6000,
-  
+
     // Automatically scale the token budget based on repo size.
     // When true, SigMap targets `coverageTarget` fraction of source files and
     // raises the budget up to `modelContextLimit * maxTokensHeadroom`.
     // Set to false (or set maxTokens explicitly) to pin the budget.
     autoMaxTokens: true,
-  
+
     // Fraction of source files to target for inclusion (0.0–1.0).
     // 0.80 = include at least 80% of source files in the context output.
     coverageTarget: 0.80,
-  
+
     // Model context window size (tokens). Used to compute the hard cap:
     //   hardCap = modelContextLimit × maxTokensHeadroom
     // Default: GPT-4o / Claude Sonnet (128K). Set higher for Gemini 1M etc.
     modelContextLimit: 128000,
-  
+
     // Fraction of the model context window reserved for SigMap output.
     // Leaves the remaining fraction for the conversation, system prompt, etc.
     // Default 0.20 = 20% of 128K = 25,600 token hard cap.
     maxTokensHeadroom: 0.20,
-  
+
     // Scan signatures for secrets and redact matches
     secretScan: true,
-  
+
     // Auto-detect monorepo packages and write per-package output files
     monorepo: false,
-  
+
     // Sort recently git-committed files higher in output
     diffPriority: true,
-  
+
     // Context strategy controls how the output is split and injected.
     // 'index'      -> always-on file is a MAP only (modules, entry points,
     //                 versions, retrieval commands); every signature stays in
@@ -2040,17 +2040,17 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // 'per-module' -> one context-<module>.md per top-level srcDir + thin overview
     // 'hot-cold'   -> recent files in primary output, older files in context-cold.md
     strategy: 'full',
-  
+
     // For hot-cold strategy: how many recent git commits count as "hot"
     hotCommits: 10,
-  
+
     // Debounce delay (ms) between file-system events and regeneration in watch mode
     watchDebounce: 300,
-  
+
     // Append model routing hints section to the context output
     // Routes files to fast/balanced/powerful model tiers based on complexity
     routing: false,
-  
+
     // sigmap judge — verdict threshold and the --learn boost/penalize band (J2).
     // The band is measured, not hand-picked: answers built from ≥ ~80% context-
     // grounded vocabulary score above learnBoostAbove, answers under ~30%
@@ -2062,56 +2062,56 @@ __factories["./src/config/defaults"] = function(module, exports) {
       learnBoostAbove: 0.75,    // --learn boosts context files above this score
       learnPenalizeBelow: 0.40, // --learn penalizes context files below this score
     },
-  
+
     // Output format: 'default' (markdown only) | 'cache' (also write Anthropic prompt-cache JSON)
     format: 'default',
-  
+
     // Append run metrics to .context/usage.ndjson after each generate
     tracking: false,
-  
+
     // Session spend ledger (`sigmap budget` / MCP get_budget). Estimates only —
     // counts tokens SigMap emitted (chars/4), not the host chat's total spend.
     // Number → warn threshold for estimated SigMap-emitted tokens per session.
     sessionBudgetTokens: null,
-  
+
     // Number of days before generated context counts as stale in budget output.
     contextTtlDays: null,
-  
+
     // MCP server configuration
     mcp: {
       autoRegister: true,
     },
-  
+
     // Include a compact import dependency map at top of output
     depMap: true,
-  
+
     // Include a compact `name@version` list of installed direct deps (D8)
     versionPins: true,
-  
+
     // Terse signature encoding — deterministic compaction of sig lines (D7, opt-in)
     terse: false,
-  
+
     // Include TODO/FIXME/HACK/XXX comments as compact section
     todos: true,
-  
+
     // Include compact recent git changes section
     changes: true,
-  
+
     // Number of commits used for changes section
     changesCommits: 10,
-  
+
     // Add test coverage markers to extracted function signatures (opt-in)
     testCoverage: false,
-  
+
     // Directories scanned for tests when testCoverage is enabled
     testDirs: ['tests', 'test', '__tests__', 'spec'],
-  
+
     // Enable incremental signature cache (v6.7) - only re-extract changed files
     sigCache: false,
-  
+
     // Add reverse dependency usage hints on file headings (opt-in)
     impactRadius: false,
-  
+
     // Query-aware retrieval settings (v2.3)
     retrieval: {
       // Maximum number of files to return for --query
@@ -2128,7 +2128,7 @@ __factories["./src/config/defaults"] = function(module, exports) {
       // .context/mined-expansions.json (B2, opt-in, measure-gated)
       minedExpansions: false,
     },
-  
+
     // Host-toolchain exactness tiers (#542 T2, opt-in, silent regex fallback).
     // typescript: parse .ts with the TARGET repo's own node_modules/typescript
     // (the user's install, never bundled). Byte-stability then holds per
@@ -2146,7 +2146,7 @@ __factories["./src/config/defaults"] = function(module, exports) {
       // per-file never-lose-vs-regex guard as the LSP tier.
       scip: false,
     },
-  
+
     // Impact layer settings (v2.5)
     impact: {
       // BFS traversal depth limit for --impact (0 = unlimited)
@@ -2155,7 +2155,7 @@ __factories["./src/config/defaults"] = function(module, exports) {
       includeSigs: true,
     },
   };
-  
+
   module.exports = { DEFAULTS };
   
 };
@@ -2166,24 +2166,24 @@ __factories["./src/config/loader"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { DEFAULTS } = __require('./src/config/defaults');
-  
+
   const BASE_CONFIG_TTL_MS = 60 * 60 * 1000; // 1 hour
-  
+
   function loadBaseConfig(extendsVal, cwd) {
     if (!extendsVal || typeof extendsVal !== 'string') return {};
-  
+
     if (extendsVal.startsWith('https://') || extendsVal.startsWith('http://')) {
       const cacheDir  = path.join(cwd, '.context', 'config-cache');
       const cacheKey  = Buffer.from(extendsVal).toString('base64url').replace(/[^a-zA-Z0-9_-]/g, '_');
       const cachePath = path.join(cacheDir, `${cacheKey}.json`);
-  
+
       if (fs.existsSync(cachePath)) {
         const age = Date.now() - fs.statSync(cachePath).mtimeMs;
         if (age < BASE_CONFIG_TTL_MS) {
           try { return JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch (_) {}
         }
       }
-  
+
       try {
         const https = require('https');
         const http  = require('http');
@@ -2215,7 +2215,7 @@ __factories["./src/config/loader"] = function(module, exports) {
         return {};
       }
     }
-  
+
     // Local file path
     const absPath = path.resolve(cwd, extendsVal);
     try {
@@ -2225,10 +2225,10 @@ __factories["./src/config/loader"] = function(module, exports) {
       return {};
     }
   }
-  
+
   // Keys that are valid in gen-context.config.json
   const KNOWN_KEYS = new Set(Object.keys(DEFAULTS));
-  
+
   // Common top-level folder names that reliably hold source code
   const COMMON_CODE_DIRS = new Set([
     'src', 'app', 'lib', 'packages', 'services', 'api', 'core', 'cmd',
@@ -2239,7 +2239,7 @@ __factories["./src/config/loader"] = function(module, exports) {
     'hooks', 'composables', 'stores', 'features', 'domain', 'infra',
     'infrastructure', 'application', 'data', 'Sources', 'Tests',
   ]);
-  
+
   const SUPPORTED_CODE_EXTS = new Set([
     '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
     '.py', '.pyw', '.java', '.kt', '.kts', '.go', '.rs', '.cs',
@@ -2251,7 +2251,7 @@ __factories["./src/config/loader"] = function(module, exports) {
     '.sql', '.graphql', '.gql', '.tf', '.tfvars', '.proto',
     '.toml', '.properties', '.xml', '.md',
   ]);
-  
+
   /**
    * Detect source directories for the given project root.
    * Uses smart resolver (v6.5+) with fallback to legacy heuristics.
@@ -2273,10 +2273,10 @@ __factories["./src/config/loader"] = function(module, exports) {
         return result.roots;
       }
     } catch (_) {}
-  
+
     return _legacyDetectAutoSrcDirs(cwd, excludeList);
   }
-  
+
   /**
    * Legacy source directory detection (fallback).
    *
@@ -2287,7 +2287,7 @@ __factories["./src/config/loader"] = function(module, exports) {
   function _legacyDetectAutoSrcDirs(cwd, excludeList) {
     const excludeSet = new Set(excludeList || []);
     const candidates = new Set(DEFAULTS.srcDirs);
-  
+
     // ── Manifest-based detection ──────────────────────────────────────────────
     const pkgPath = path.join(cwd, 'package.json');
     if (fs.existsSync(pkgPath)) {
@@ -2314,30 +2314,30 @@ __factories["./src/config/loader"] = function(module, exports) {
         }
       } catch (_) {}
     }
-  
+
     const hasPyproject = fs.existsSync(path.join(cwd, 'pyproject.toml'));
     const hasRequirements = fs.existsSync(path.join(cwd, 'requirements.txt'));
     const hasSetupPy = fs.existsSync(path.join(cwd, 'setup.py'));
     if (hasPyproject || hasRequirements || hasSetupPy) {
       for (const d of ['src', 'app', 'apps', 'tests', 'examples', 'instance', 'blueprints']) candidates.add(d);
     }
-  
+
     if (fs.existsSync(path.join(cwd, 'Gemfile'))) {
       for (const d of ['app', 'lib', 'config', 'db', 'spec', 'test']) candidates.add(d);
     }
-  
+
     if (fs.existsSync(path.join(cwd, 'composer.json'))) {
       for (const d of ['app', 'resources', 'routes', 'database', 'tests']) candidates.add(d);
     }
-  
+
     if (fs.existsSync(path.join(cwd, 'go.mod'))) {
       for (const d of ['cmd', 'internal', 'pkg', 'api', 'handler', 'handlers', 'middleware', 'service']) candidates.add(d);
     }
-  
+
     if (fs.existsSync(path.join(cwd, 'Cargo.toml'))) {
       for (const d of ['src', 'crates', 'examples', 'tests', 'benches']) candidates.add(d);
     }
-  
+
     const hasGradle = fs.existsSync(path.join(cwd, 'build.gradle')) ||
                       fs.existsSync(path.join(cwd, 'build.gradle.kts'));
     const hasMaven = fs.existsSync(path.join(cwd, 'pom.xml'));
@@ -2347,15 +2347,15 @@ __factories["./src/config/loader"] = function(module, exports) {
         'src/main/resources', 'src/test/java', 'src/test/kotlin',
       ]) candidates.add(d);
     }
-  
+
     if (fs.existsSync(path.join(cwd, 'pubspec.yaml'))) {
       for (const d of ['lib', 'test', 'integration_test', 'example', 'bin']) candidates.add(d);
     }
-  
+
     if (fs.existsSync(path.join(cwd, 'Package.swift'))) {
       for (const d of ['Sources', 'Tests']) candidates.add(d);
     }
-  
+
     // ── Top-level directory scan ──────────────────────────────────────────────
     try {
       const entries = fs.readdirSync(cwd, { withFileTypes: true });
@@ -2363,7 +2363,7 @@ __factories["./src/config/loader"] = function(module, exports) {
         if (!entry.isDirectory()) continue;
         if (entry.name.startsWith('.')) continue;
         if (excludeSet.has(entry.name)) continue;
-  
+
         const lname = entry.name.toLowerCase();
         if (COMMON_CODE_DIRS.has(entry.name) || COMMON_CODE_DIRS.has(lname)) {
           candidates.add(entry.name);
@@ -2384,13 +2384,13 @@ __factories["./src/config/loader"] = function(module, exports) {
         } catch (_) {}
       }
     } catch (_) {}
-  
+
     // Only return those that exist
     return Array.from(candidates).filter((d) => {
       try { return fs.statSync(path.join(cwd, d)).isDirectory(); } catch (_) { return false; }
     });
   }
-  
+
   /**
    * Directory depth needed to reach source under a JVM package layout.
    *
@@ -2421,10 +2421,10 @@ __factories["./src/config/loader"] = function(module, exports) {
     }
     return false;
   }
-  
+
   /** Walk depth for a JVM package layout — matches the graph walk from #561. */
   const JVM_MAX_DEPTH = 12;
-  
+
   /**
    * Raise `maxDepth` to the JVM depth when the layout needs it (#590).
    * An explicit user value always wins, including a deliberately shallow one.
@@ -2439,7 +2439,7 @@ __factories["./src/config/loader"] = function(module, exports) {
     }
     return cfg;
   }
-  
+
   /**
    * Load and merge configuration for a given working directory.
    *
@@ -2455,7 +2455,7 @@ __factories["./src/config/loader"] = function(module, exports) {
       cfg._userKeys = [];
       return _applyJvmDepth(cfg, cwd, false);
     }
-  
+
     let userConfig;
     try {
       const raw = fs.readFileSync(configPath, 'utf8');
@@ -2468,7 +2468,7 @@ __factories["./src/config/loader"] = function(module, exports) {
       cfg._userKeys = [];
       return _applyJvmDepth(cfg, cwd, false);
     }
-  
+
     // Warn on unknown keys (helps catch typos)
     for (const key of Object.keys(userConfig)) {
       if (key.startsWith('_') || key === 'extends') continue;
@@ -2476,11 +2476,11 @@ __factories["./src/config/loader"] = function(module, exports) {
         console.warn(`[sigmap] unknown config key: "${key}" (ignored)`);
       }
     }
-  
+
     // Deep merge: DEFAULTS → base (extends) → user config
     const baseConfig = loadBaseConfig(userConfig.extends, cwd);
     const merged = deepClone(DEFAULTS);
-  
+
     for (const key of Object.keys(baseConfig)) {
       if (key.startsWith('_') || key === 'extends') continue;
       if (!KNOWN_KEYS.has(key)) continue;
@@ -2492,7 +2492,7 @@ __factories["./src/config/loader"] = function(module, exports) {
         merged[key] = val;
       }
     }
-  
+
     for (const key of Object.keys(userConfig)) {
       if (key.startsWith('_') || key === 'extends') continue;
       if (!KNOWN_KEYS.has(key)) continue; // skip unknown keys
@@ -2504,13 +2504,13 @@ __factories["./src/config/loader"] = function(module, exports) {
         merged[key] = val;
       }
     }
-  
+
     // If user didn't specify srcDirs, auto-detect; fall back to DEFAULTS if nothing found
     if (!Array.isArray(userConfig.srcDirs)) {
       const detected = detectAutoSrcDirs(cwd, merged.exclude);
       merged.srcDirs = detected.length > 0 ? detected : deepClone(DEFAULTS.srcDirs);
     }
-  
+
     // Backward compat (v3.0+): mirror outputs ↔ adapters
     if (merged.adapters && !Array.isArray(merged.adapters)) merged.adapters = null;
     if (!merged.adapters && Array.isArray(merged.outputs)) {
@@ -2518,7 +2518,7 @@ __factories["./src/config/loader"] = function(module, exports) {
     } else if (Array.isArray(merged.adapters) && !userConfig.outputs) {
       merged.outputs = merged.adapters.filter((a) => ['copilot','claude','cursor','windsurf'].includes(a));
     }
-  
+
     // Provenance (#783): which keys the project actually set, as opposed to
     // inheriting from DEFAULTS. Without this, "your maxTokens was overridden"
     // could not tell a pinned 500 from the shipped default 6000, and the notice
@@ -2535,14 +2535,14 @@ __factories["./src/config/loader"] = function(module, exports) {
       }
     }
     merged._userKeys = _userKeys;
-  
+
     return _applyJvmDepth(merged, cwd, userConfig.maxDepth !== undefined);
   }
-  
+
   function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
   }
-  
+
   module.exports = { loadConfig, loadBaseConfig };
   
 };
@@ -2559,13 +2559,13 @@ __factories["./src/config/tune"] = function(module, exports) {
    * merges accepted changes into gen-context.config.json, preserving every
    * user key. Explicit user choices are never proposed against.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { loadConfig } = __require('./src/config/loader');
   const { resolveSourceRoots } = __require('./src/discovery/source-root-resolver');
   const { detectMonorepo } = __require('./src/discovery/monorepo');
-  
+
   // Client artifacts → adapter names (additive only).
   const ADAPTER_MARKERS = [
     { adapter: 'claude',   files: ['CLAUDE.md'] },
@@ -2573,23 +2573,23 @@ __factories["./src/config/tune"] = function(module, exports) {
     { adapter: 'windsurf', files: ['.windsurfrules', '.windsurf'] },
     { adapter: 'codex',    files: ['AGENTS.md'] },
   ];
-  
+
   // Root-level dirs that are typically vendored/generated when present.
   const JUNK_DIRS = [
     'third_party', 'thirdparty', 'external', 'externals',
     'generated', 'testdata', 'snapshots', 'tmp', 'temp', '.cache',
   ];
-  
+
   // Rough signature cost per source file (chars/4 world) for the budget check.
   const TOKENS_PER_FILE = 25;
-  
+
   const SOURCE_EXTS = new Set([
     '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.py', '.rb', '.go', '.rs',
     '.java', '.kt', '.cs', '.cpp', '.c', '.h', '.hpp', '.swift', '.dart',
     '.scala', '.php', '.lua', '.gd', '.r', '.R',
     '.ps1', '.psm1', '.psd1',
   ]);
-  
+
   /** Raw user config file content, or null when absent/unparsable. */
   function _readUserConfig(cwd) {
     try {
@@ -2598,7 +2598,7 @@ __factories["./src/config/tune"] = function(module, exports) {
       return null;
     }
   }
-  
+
   /** Count source files under `roots` (relative to cwd), depth-capped, deterministic. */
   function _countSourceFiles(cwd, roots, exclude, depth = 5) {
     const excSet = new Set(exclude || []);
@@ -2619,13 +2619,13 @@ __factories["./src/config/tune"] = function(module, exports) {
     }
     return count;
   }
-  
+
   // `_monorepoMarker` used to live here as a byte-for-byte duplicate of the
   // resolver's own marker check. Both answered "no" on a repo where `--monorepo`
   // processes two packages, so `tune` never proposed `monorepo: true` for a
   // layout the mode demonstrably supports (#781). One detector now answers it,
   // and it reports whether the evidence is a declared marker or the layout.
-  
+
   /**
    * Build the recommended config diff for a repo.
    *
@@ -2640,7 +2640,7 @@ __factories["./src/config/tune"] = function(module, exports) {
     const config = loadConfig(cwd);
     const detection = resolveSourceRoots(cwd, { exclude: config.exclude });
     const changes = [];
-  
+
     // 1. srcDirs — recommend pinning the detected roots when the user hasn't.
     // Pinned srcDirs make generation explicit/stable and are protected from
     // token-budget drops; user-pinned srcDirs are never proposed against.
@@ -2653,7 +2653,7 @@ __factories["./src/config/tune"] = function(module, exports) {
         reason: `pin the ${detection.roots.length} detected source root(s) [confidence ${detection.confidence}] — explicit srcDirs are stable across runs and protected from budget drops`,
       });
     }
-  
+
     // 2. monorepo — a workspace marker exists but the mode is off.
     const monorepo = detectMonorepo(cwd);
     if (monorepo.isMonorepo && config.monorepo !== true) {
@@ -2664,7 +2664,7 @@ __factories["./src/config/tune"] = function(module, exports) {
         reason: monorepo.evidence,
       });
     }
-  
+
     // 3. adapters — client artifacts present that the adapter list doesn't cover.
     const currentAdapters = Array.isArray(config.adapters) ? config.adapters
       : (Array.isArray(config.outputs) ? config.outputs : ['copilot']);
@@ -2682,7 +2682,7 @@ __factories["./src/config/tune"] = function(module, exports) {
         reason: `client files present: ${found.map((f) => f.hit).join(', ')}`,
       });
     }
-  
+
     // 4. exclude — root-level vendored/generated dirs not excluded yet.
     const junkFound = JUNK_DIRS.filter((d) => {
       if ((config.exclude || []).includes(d)) return false;
@@ -2696,7 +2696,7 @@ __factories["./src/config/tune"] = function(module, exports) {
         reason: `present at root and typically vendored/generated: ${junkFound.join(', ')}`,
       });
     }
-  
+
     // 5. autoMaxTokens — a pinned budget that the repo's size will overflow.
     if (config.autoMaxTokens === false) {
       const roots = detection.roots.length > 0 ? detection.roots : config.srcDirs;
@@ -2711,14 +2711,14 @@ __factories["./src/config/tune"] = function(module, exports) {
         });
       }
     }
-  
+
     return {
       changes,
       detection: { roots: detection.roots, confidence: detection.confidence, isMonorepo: monorepo.isMonorepo, monorepoEvidence: monorepo.evidence },
       configExists: userConfig !== null,
     };
   }
-  
+
   /**
    * Merge a proposal's changes into gen-context.config.json (create if absent).
    * Preserves every existing user key; only the proposed keys are written.
@@ -2732,7 +2732,7 @@ __factories["./src/config/tune"] = function(module, exports) {
     fs.writeFileSync(cfgPath, JSON.stringify(existing, null, 2) + '\n');
     return { path: cfgPath, applied: proposal.changes.map((c) => c.key) };
   }
-  
+
   /** Human rendering of a proposal (one block per change, reason indented). */
   function formatTuneProposal(proposal) {
     const lines = [];
@@ -2752,7 +2752,7 @@ __factories["./src/config/tune"] = function(module, exports) {
     lines.push(`  detection: roots [${proposal.detection.roots.join(', ')}] · confidence ${proposal.detection.confidence} · monorepo ${mono}${monoWhy}`);
     return lines.join('\n');
   }
-  
+
   module.exports = { buildTuneProposal, applyTuneProposal, formatTuneProposal, JUNK_DIRS, TOKENS_PER_FILE };
   
 };
@@ -2767,12 +2767,12 @@ __factories["./src/conventions/ci"] = function(module, exports) {
    * and optionally when it regresses vs the last recorded run. Builds on the
    * `--report` score. Pure, zero-dependency, bundle-safe.
    */
-  
+
   const { overallScore } = __require('./src/conventions/report');
-  
+
   const DEFAULT_MIN = 0.7;
   const EPS = 1e-9;
-  
+
   /**
    * Evaluate the consistency gate.
    * @param {object} result an `extractConventions` result
@@ -2787,12 +2787,12 @@ __factories["./src/conventions/ci"] = function(module, exports) {
     const score = overallScore(result);
     const reasons = [];
     let ok = true;
-  
+
     if (score < min) {
       ok = false;
       reasons.push(`consistency ${(score * 100).toFixed(0)}% below min ${(min * 100).toFixed(0)}%`);
     }
-  
+
     let regressed = false;
     if (opts.noRegress && prior && typeof prior.score === 'number') {
       if (score < prior.score - EPS) {
@@ -2801,10 +2801,10 @@ __factories["./src/conventions/ci"] = function(module, exports) {
         reasons.push(`consistency dropped ${(prior.score * 100).toFixed(0)}% → ${(score * 100).toFixed(0)}%`);
       }
     }
-  
+
     return { score, min, ok, regressed, reasons };
   }
-  
+
   module.exports = { ciGate, DEFAULT_MIN };
   
 };
@@ -2820,7 +2820,7 @@ __factories["./src/conventions/conflicts"] = function(module, exports) {
    * rename suggestions that move minority file-naming files toward the dominant
    * style. Pure, zero-dependency, bundle-safe.
    */
-  
+
   /** Split a file name into its stem (before the first dot) and the rest. */
   function _splitName(filename) {
     const s = String(filename || '');
@@ -2828,7 +2828,7 @@ __factories["./src/conventions/conflicts"] = function(module, exports) {
     if (dot <= 0) return { stem: s, ext: '' };
     return { stem: s.slice(0, dot), ext: s.slice(dot) };
   }
-  
+
   /** Break a stem into lowercase word parts regardless of its current style. */
   function _words(stem) {
     return String(stem || '')
@@ -2839,9 +2839,9 @@ __factories["./src/conventions/conflicts"] = function(module, exports) {
       .filter(Boolean)
       .map((w) => w.toLowerCase());
   }
-  
+
   const _cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
-  
+
   /**
    * Convert a file stem to a target naming style.
    * @param {string} stem name without extension
@@ -2859,19 +2859,19 @@ __factories["./src/conventions/conflicts"] = function(module, exports) {
       default: return String(stem || '');
     }
   }
-  
+
   /** Rename suggestion to bring a file to the dominant naming style. */
   function renameSuggestion(filename, dominantStyle) {
     const { stem, ext } = _splitName(filename);
     const to = toNamingStyle(stem, dominantStyle) + ext;
     return { from: filename, to };
   }
-  
+
   const LABELS = {
     fileNaming: 'file naming',
     exportStyle: 'export style',
   };
-  
+
   /**
    * Analyze an `extractConventions` result for conflicts.
    * @param {object} result the object returned by `extractConventions`
@@ -2887,14 +2887,14 @@ __factories["./src/conventions/conflicts"] = function(module, exports) {
       const conv = result && result[key];
       // A conflict is any convention with more than one observed pattern.
       if (!conv || conv.total === 0 || conv.variants.length < 2) continue;
-  
+
       const variants = conv.variants.map((v) => ({
         pattern: v.label,
         count: v.count,
         pct: v.pct,
         examples: v.examples || [],
       }));
-  
+
       // Rename suggestions only for file naming (export style is a code change, not a rename).
       const renames = [];
       if (key === 'fileNaming' && conv.dominant) {
@@ -2905,7 +2905,7 @@ __factories["./src/conventions/conflicts"] = function(module, exports) {
           }
         }
       }
-  
+
       out.push({
         key,
         name: LABELS[key] || key,
@@ -2919,7 +2919,7 @@ __factories["./src/conventions/conflicts"] = function(module, exports) {
     }
     return { hasConflicts: out.length > 0, conventions: out };
   }
-  
+
   module.exports = { analyzeConflicts, toNamingStyle, renameSuggestion };
   
 };
@@ -2938,19 +2938,19 @@ __factories["./src/conventions/extract"] = function(module, exports) {
    *
    * Zero dependencies, bundle-safe (fs + path only).
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const JS_TS_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
   const PY_EXTS = new Set(['.py']);
   const SCOPED_EXTS = new Set([...JS_TS_EXTS, ...PY_EXTS]);
-  
+
   // Consistency tiers (IMPL.md §5.1): a convention is only safe to enforce when
   // it is actually consistent.
   const TIER_CONSISTENT = 0.9;
   const TIER_MOSTLY = 0.7;
-  
+
   /**
    * Classify a file's base name (without extension) into a naming style.
    *
@@ -2976,9 +2976,9 @@ __factories["./src/conventions/extract"] = function(module, exports) {
     if (/^[a-z][a-z0-9]*$/.test(stem)) return 'single-word'; // style-neutral (no case boundary)
     return 'other';
   }
-  
+
   const MAX_EXAMPLES = 3;
-  
+
   /**
    * Score a set of categorical observations into a dominant convention plus its
    * consistency tier. The reusable primitive (IMPL.md §5.2).
@@ -3028,7 +3028,7 @@ __factories["./src/conventions/extract"] = function(module, exports) {
       tier,
     };
   }
-  
+
   /** Detect JS/TS export style for a single file's source. */
   function _jsExportStyle(src) {
     const s = String(src || '');
@@ -3044,7 +3044,7 @@ __factories["./src/conventions/extract"] = function(module, exports) {
     }
     return 'other';
   }
-  
+
   /** Detect the test framework in use from manifests + source heuristics. */
   function _detectTestFramework(cwd, files) {
     const deps = {};
@@ -3075,7 +3075,7 @@ __factories["./src/conventions/extract"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Extract repo coding conventions for the scoped languages (TS/JS/Python).
    * @param {string} cwd repo root
@@ -3111,7 +3111,7 @@ __factories["./src/conventions/extract"] = function(module, exports) {
       scannedFiles: scoped.length,
     };
   }
-  
+
   module.exports = { classifyNaming, scoreConvention, extractConventions };
   
 };
@@ -3128,17 +3128,17 @@ __factories["./src/conventions/fix"] = function(module, exports) {
    * basenames) — `--fix` lists *every* offending file with its real path, ready
    * to paste into a task or PR. Pure, zero-dependency, bundle-safe.
    */
-  
+
   const path = require('path');
   const { classifyNaming } = __require('./src/conventions/extract');
   const { toNamingStyle } = __require('./src/conventions/conflicts');
-  
+
   const JS_TS_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
   const PY_EXTS = new Set(['.py']);
   const SCOPED_EXTS = new Set([...JS_TS_EXTS, ...PY_EXTS]);
-  
+
   const TEST_RE = /\.(test|spec)\.[jt]sx?$|(^|\/)test_|_test\.py$/;
-  
+
   /** Rename a file path's basename to the target naming style (keep dir + ext). */
   function _renamePath(relPath, style) {
     const dir = relPath.includes('/') ? relPath.slice(0, relPath.lastIndexOf('/') + 1) : '';
@@ -3148,7 +3148,7 @@ __factories["./src/conventions/fix"] = function(module, exports) {
     const ext = dot > 0 ? base.slice(dot) : '';
     return `${dir}${toNamingStyle(stem, style)}${ext}`;
   }
-  
+
   /**
    * Build the exhaustive rename checklist for the dominant file-naming convention.
    * @param {string} cwd repo root (for relative paths)
@@ -3159,7 +3159,7 @@ __factories["./src/conventions/fix"] = function(module, exports) {
   function buildFixList(cwd, files, conventions) {
     const dominant = conventions && conventions.fileNaming && conventions.fileNaming.dominant;
     if (!dominant) return { dominant: null, renames: [], count: 0 };
-  
+
     const renames = [];
     for (const f of files || []) {
       if (!SCOPED_EXTS.has(path.extname(f).toLowerCase())) continue;
@@ -3176,7 +3176,7 @@ __factories["./src/conventions/fix"] = function(module, exports) {
     renames.sort((a, b) => a.from.localeCompare(b.from));
     return { dominant, renames, count: renames.length };
   }
-  
+
   module.exports = { buildFixList };
   
 };
@@ -3193,23 +3193,23 @@ __factories["./src/conventions/inject"] = function(module, exports) {
    * marker-scoped — it never touches human content or the `## Auto-generated
    * signatures` block. Pure string transforms; zero-dependency, bundle-safe.
    */
-  
+
   const START = '<!-- sigmap-conventions:start -->';
   const END = '<!-- sigmap-conventions:end -->';
-  
+
   const TIER_NOTE = {
     consistent: 'consistent — match it',
     mostly: 'dominant, with some drift',
     inconsistent: 'no clear convention — check neighboring files',
   };
-  
+
   const NAMES = {
     fileNaming: 'File naming',
     exportStyle: 'Export style',
   };
-  
+
   const _pct = (n) => `${Math.round(n * 100)}%`;
-  
+
   function _conventionLine(label, conv) {
     if (!conv || conv.total === 0 || !conv.dominant) return null;
     const note = TIER_NOTE[conv.tier] || conv.tier;
@@ -3220,7 +3220,7 @@ __factories["./src/conventions/inject"] = function(module, exports) {
     }
     return line;
   }
-  
+
   /**
    * Render the conventions block (including its start/end markers).
    * @param {object} result an `extractConventions` result
@@ -3236,11 +3236,11 @@ __factories["./src/conventions/inject"] = function(module, exports) {
     if (result && result.testFramework) {
       lines.push(`- **Test framework:** ${result.testFramework}.`);
     }
-  
+
     const body = lines.length
       ? lines
       : ['- No conventions detected yet (run `sigmap conventions` on a TS/JS/Python repo).'];
-  
+
     const ver = version ? ` v${version}` : '';
     return [
       START,
@@ -3254,7 +3254,7 @@ __factories["./src/conventions/inject"] = function(module, exports) {
       END,
     ].join('\n');
   }
-  
+
   /**
    * Inject (or replace) the conventions block in existing CLAUDE.md content.
    * Replaces an existing marked block in place; appends one when absent.
@@ -3278,7 +3278,7 @@ __factories["./src/conventions/inject"] = function(module, exports) {
     const sep = src.endsWith('\n') ? '\n' : '\n\n';
     return src + sep + block + '\n';
   }
-  
+
   module.exports = { renderConventionsBlock, injectConventions, START, END };
   
 };
@@ -3293,9 +3293,9 @@ __factories["./src/conventions/report"] = function(module, exports) {
    * convention plus a single file-count-weighted overall score, each with a delta
    * vs the previous run (the trend). Pure, zero-dependency, bundle-safe.
    */
-  
+
   const NAMES = { fileNaming: 'file naming', exportStyle: 'export style' };
-  
+
   /** File-count-weighted mean of the scored conventions' dominant shares (0–1). */
   function overallScore(result) {
     let num = 0;
@@ -3306,7 +3306,7 @@ __factories["./src/conventions/report"] = function(module, exports) {
     }
     return den > 0 ? num / den : 0;
   }
-  
+
   /**
    * Build a consistency report with trend vs a prior snapshot.
    * @param {object} result an `extractConventions` result
@@ -3339,7 +3339,7 @@ __factories["./src/conventions/report"] = function(module, exports) {
       scoreDelta: prevScore == null ? null : score - prevScore,
     };
   }
-  
+
   /**
    * A compact, persistable snapshot of a run (one line in the history log).
    * @param {object} result an `extractConventions` result
@@ -3357,7 +3357,7 @@ __factories["./src/conventions/report"] = function(module, exports) {
       score: overallScore(result),
     };
   }
-  
+
   module.exports = { scoreReport, snapshot, overallScore };
   
 };
@@ -3373,9 +3373,9 @@ __factories["./src/conventions/update"] = function(module, exports) {
    * rescan when the snapshot is missing or some file is newer. Pure (fs reads
    * only), zero-dependency, bundle-safe.
    */
-  
+
   const fs = require('fs');
-  
+
   /**
    * Source files modified after a reference time.
    * @param {string[]} files absolute paths
@@ -3389,7 +3389,7 @@ __factories["./src/conventions/update"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /**
    * Decide whether the conventions snapshot needs a rescan.
    * @param {string} cwd repo root (unused but kept for signature symmetry)
@@ -3407,7 +3407,7 @@ __factories["./src/conventions/update"] = function(module, exports) {
     const changed = changedSince(files, snapshotMs);
     return { snapshotExists: true, stale: changed.length > 0, changed };
   }
-  
+
   module.exports = { changedSince, planUpdate };
   
 };
@@ -3433,14 +3433,14 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
    * introductions (#666), so the pipeline's own primary use case — a plan for code
    * that does not exist yet — can reach stage 2 instead of failing on itself.
    */
-  
+
   const { proposeScaffold } = __require('./src/scaffold/propose');
   const { verifyPlan } = __require('./src/plan/verify-plan');
   const { verify } = __require('./src/verify/hallucination-guard');
   const { reviewPr } = __require('./src/review/review-pr');
-  
+
   const TOTAL = 4;
-  
+
   /** What each stage needs in order to run — printed when nothing ran (#767). */
   const STAGE_NEEDS = {
     scaffold: '--name <module> (plus a detectable file-naming convention)',
@@ -3448,14 +3448,14 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
     'verify-ai-output': '--answer <answer.md>',
     'review-pr': '--staged, or commits since --base',
   };
-  
+
   /** Files a successful scaffold proposes — introductions for verify-plan. */
   function _scaffoldIntroductions(step) {
     const p = step && step.ran && step.ok && step.detail && step.detail.proposal;
     if (!p) return [];
     return [p.filename, p.testFile].filter(Boolean);
   }
-  
+
   /**
    * Run the create pipeline over whatever inputs are available.
    * @param {object} ctx
@@ -3475,7 +3475,7 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
     const steps = [];
     const skip = (n, name, reason) =>
       ({ n, total: TOTAL, name, ran: false, ok: null, skipped: true, reason, needs: STAGE_NEEDS[name] });
-  
+
     // 1/4 — scaffold (needs a name + conventions)
     if (ctx.name && ctx.conventions) {
       const d = proposeScaffold(ctx.name, ctx.conventions, ctx.scaffoldOpts || {});
@@ -3483,7 +3483,7 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
     } else {
       steps.push(skip(1, 'scaffold', 'no --name'));
     }
-  
+
     // 2/4 — verify-plan (needs a plan). The scaffold's proposed files are
     // introductions, so stage 2 does not reject the files stage 1 just designed.
     if (ctx.plan != null && String(ctx.plan).trim() !== '') {
@@ -3493,7 +3493,7 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
     } else {
       steps.push(skip(2, 'verify-plan', 'no --plan'));
     }
-  
+
     // 3/4 — verify-ai-output (needs an answer)
     if (ctx.answer != null && String(ctx.answer).trim() !== '') {
       const r = verify(ctx.answer, cwd);
@@ -3501,7 +3501,7 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
     } else {
       steps.push(skip(3, 'verify-ai-output', 'no --answer'));
     }
-  
+
     // 4/4 — review-pr (needs changed files)
     if (Array.isArray(ctx.changedFiles) && ctx.changedFiles.length) {
       const r = reviewPr(ctx.changedFiles, cwd);
@@ -3509,7 +3509,7 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
     } else {
       steps.push(skip(4, 'review-pr', 'no changes'));
     }
-  
+
     const ran = steps.filter((s) => s.ran);
     const passed = ran.filter((s) => s.ok).length;
     const failed = ran.length - passed;
@@ -3530,7 +3530,7 @@ __factories["./src/create/orchestrate"] = function(module, exports) {
       },
     };
   }
-  
+
   module.exports = { orchestrate, TOTAL, STAGE_NEEDS };
   
 };
@@ -3550,25 +3550,25 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
    * `spawn(process.execPath, [gen-context.js, '--watch'], { detached: true })` —
    * an arguments array, never a shell command string.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { spawn } = require('child_process');
-  
+
   module.exports = { start, stop, status, pidFile, logFile, isAlive, readPid };
-  
+
   function daemonDir(cwd) {
     return path.join(cwd, '.context');
   }
-  
+
   function pidFile(cwd) {
     return path.join(daemonDir(cwd), 'daemon.pid');
   }
-  
+
   function logFile(cwd) {
     return path.join(daemonDir(cwd), 'daemon.log');
   }
-  
+
   /** True if a process with this PID exists (signal 0 probes without killing). */
   function isAlive(pid) {
     if (!Number.isInteger(pid) || pid <= 0) return false;
@@ -3580,7 +3580,7 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
       return err.code === 'EPERM';
     }
   }
-  
+
   /** Read the recorded PID, or null if the file is missing/unparseable. */
   function readPid(cwd) {
     try {
@@ -3591,13 +3591,13 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
       return null;
     }
   }
-  
+
   function removePidFile(cwd) {
     try {
       fs.unlinkSync(pidFile(cwd));
     } catch (_) {}
   }
-  
+
   /**
    * @returns {{ running: boolean, pid: number|null, pidFile: string, logFile: string }}
    */
@@ -3608,7 +3608,7 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
     if (pid != null && !running) removePidFile(cwd);
     return { running, pid: running ? pid : null, pidFile: pidFile(cwd), logFile: logFile(cwd) };
   }
-  
+
   /**
    * Launch a detached `--watch` process. Idempotent: if one is already running
    * this is a no-op that reports the existing PID.
@@ -3620,12 +3620,12 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
   function start(cwd, opts = {}) {
     const scriptPath = opts.scriptPath;
     if (!scriptPath) throw new Error('daemon.start requires opts.scriptPath');
-  
+
     const current = status(cwd);
     if (current.running) {
       return { status: 'already', pid: current.pid, logFile: logFile(cwd) };
     }
-  
+
     fs.mkdirSync(daemonDir(cwd), { recursive: true });
     const out = fs.openSync(logFile(cwd), 'a');
     try {
@@ -3641,7 +3641,7 @@ __factories["./src/daemon/daemon"] = function(module, exports) {
       try { fs.closeSync(out); } catch (_) {}
     }
   }
-  
+
   /**
    * Stop the running watcher (SIGTERM) and clear its PID file.
    *
@@ -3685,23 +3685,23 @@ __factories["./src/deps/inventory"] = function(module, exports) {
    * Pure, zero-dependency, deterministic: no network, no clock, no child
    * processes. Rows are sorted and capped, and every cap is disclosed.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const MAX_DEPS_PER_MANIFEST = 400;
-  
+
   // ---------------------------------------------------------------------------
   // Small readers
   // ---------------------------------------------------------------------------
-  
+
   function readText(p) { try { return fs.readFileSync(p, 'utf8'); } catch (_) { return null; } }
   function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; } }
   function exists(p) { try { return fs.existsSync(p); } catch (_) { return false; } }
-  
+
   /** Strip XML comments so a commented-out <dependency> is never counted. */
   function stripXmlComments(src) { return String(src).replace(/<!--[\s\S]*?-->/g, ''); }
-  
+
   /** Blank `#` comments outside quotes, preserving line structure. */
   function stripHashComments(src) {
     return String(src).split('\n').map((line) => {
@@ -3715,7 +3715,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
       return line;
     }).join('\n');
   }
-  
+
   /**
    * Split a TOML document into `[table]` sections.
    *
@@ -3741,13 +3741,13 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return out.map((t) => ({ name: t.name, body: t.lines.join('\n') }));
   }
-  
+
   /** Body of the first table with this exact name, or '' when absent. */
   function tomlTable(tables, name) {
     const hit = tables.find((t) => t.name === name);
     return hit ? hit.body : '';
   }
-  
+
   /**
    * Quoted strings in a TOML array, matched by the OUTER quote style only.
    *
@@ -3765,13 +3765,13 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     if (dq.length) return dq.filter(Boolean);
     return [...src.matchAll(/'([^']*)'/g)].map((m) => m[1]).filter(Boolean);
   }
-  
+
   /** `key = "value"` lookup inside a table body. */
   function tomlValue(body, key) {
     const m = new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']`, 'm').exec(body || '');
     return m ? m[1] : null;
   }
-  
+
   /**
    * True for a constraint on the runtime/toolchain rather than on a package.
    * These have no registry entry, so they can never carry a purl.
@@ -3785,22 +3785,22 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     if (ecosystem === 'pub') return n === 'sdk' || n === 'flutter';
     return false;
   }
-  
+
   function dep(ecosystem, name, version, scope, file) {
     return { ecosystem, name: String(name).trim(), version: version ? String(version).trim() : '', scope, file };
   }
-  
+
   // ---------------------------------------------------------------------------
   // npm / package.json
   // ---------------------------------------------------------------------------
-  
+
   const NPM_SCOPES = [
     ['dependencies', 'runtime'],
     ['devDependencies', 'dev'],
     ['peerDependencies', 'peer'],
     ['optionalDependencies', 'optional'],
   ];
-  
+
   function npmDeps(cwd, rel, out) {
     const pkg = readJson(path.join(cwd, rel));
     if (!pkg) return null;
@@ -3813,7 +3813,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return { name: pkg.name || null, version: pkg.version || null };
   }
-  
+
   /**
    * Exact installed versions from package-lock.json — the version the code
    * actually runs against, which a `^5.1.0` range does not tell you.
@@ -3840,13 +3840,13 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return out;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Python
   // ---------------------------------------------------------------------------
-  
+
   const REQ_LINE = /^\s*([A-Za-z0-9._-]+)\s*(\[[^\]]*\])?\s*((?:[<>=!~^]=?|===)\s*[^;,\s]+(?:\s*,\s*(?:[<>=!~^]=?|===)\s*[^;,\s]+)*)?/;
-  
+
   function requirementsDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return false;
@@ -3860,7 +3860,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return true;
   }
-  
+
   /** `[project] dependencies` (PEP 621) and `[tool.poetry.dependencies]`. */
   function pyprojectDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
@@ -3870,18 +3870,18 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     const poetryMeta = tomlTable(tables, 'tool.poetry');
     const name = tomlValue(project, 'name') || tomlValue(poetryMeta, 'name');
     const version = tomlValue(project, 'version') || tomlValue(poetryMeta, 'version');
-  
+
     const pushSpec = (raw, scope) => {
       // PEP 508 environment marker: "brotli; platform_python_implementation == 'CPython'".
       // Everything after `;` is a condition, not part of the requirement.
       const spec = REQ_LINE.exec(String(raw).split(';')[0].trim());
       if (spec && spec[1]) out.push(dep('pypi', spec[1], (spec[3] || '').replace(/\s+/g, ''), scope, rel));
     };
-  
+
     // PEP 621: dependencies = ["requests>=2", "flask==3.0"]
     const arr = /dependencies\s*=\s*\[([\s\S]*?)\]/.exec(project);
     if (arr) for (const q of tomlStrings(arr[1])) pushSpec(q, 'runtime');
-  
+
     // PEP 621 extras: [project.optional-dependencies] with one array per extra.
     const optional = tomlTable(tables, 'project.optional-dependencies');
     if (optional) {
@@ -3889,7 +3889,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
         for (const q of tomlStrings(m[1])) pushSpec(q, 'optional');
       }
     }
-  
+
     // Poetry: name = "^1.2" or name = { version = "1.2", ... } per table.
     for (const t of tables) {
       if (!/^tool\.poetry\.(dev-)?dependencies$/.test(t.name)
@@ -3906,11 +3906,11 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return { name, version };
   }
-  
+
   // ---------------------------------------------------------------------------
   // Maven / Gradle
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Maven coordinates, with `${property}` placeholders resolved against the
    * POM's own <properties> block — unresolved `${jackson.version}` strings are
@@ -3920,14 +3920,14 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     const raw = readText(path.join(cwd, rel));
     if (raw == null) return null;
     const src = stripXmlComments(raw);
-  
+
     const props = new Map();
     const propBlock = src.match(/<properties>([\s\S]*?)<\/properties>/);
     if (propBlock) {
       for (const m of propBlock[1].matchAll(/<([A-Za-z0-9._-]+)>([^<]*)<\/\1>/g)) props.set(m[1], m[2].trim());
     }
     const resolve = (v) => String(v || '').replace(/\$\{([^}]+)\}/g, (full, key) => (props.has(key) ? props.get(key) : full));
-  
+
     // Project identity is the POM's OWN coordinates. Slicing "everything before
     // <dependencies>" took the FIRST artifactId in that span, which is the
     // <parent>'s whenever one is declared — so every Spring Boot POM reported
@@ -3941,12 +3941,12 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     const pick = (block, tag) => ((block.match(new RegExp(`<${tag}>([^<]+)</${tag}>`)) || [])[1] || '').trim();
     const artifactId = pick(head, 'artifactId') || null;
     const version = resolve(pick(head, 'version') || pick(parentBlock, 'version')) || null;
-  
+
     // <dependencyManagement> declares VERSION CONSTRAINTS, not dependencies. It
     // was being scanned as if it did, so managed-only coordinates were reported
     // as runtime dependencies and leaked into `sigmap sbom` (#747).
     const declared = src.replace(/<dependencyManagement>[\s\S]*?<\/dependencyManagement>/g, '');
-  
+
     for (const block of declared.matchAll(/<dependency>([\s\S]*?)<\/dependency>/g)) {
       const body = block[1];
       const g = (body.match(/<groupId>([^<]+)<\/groupId>/) || [])[1];
@@ -3963,9 +3963,9 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return { name: artifactId, version };
   }
-  
+
   const GRADLE_CONFIGS = 'implementation|api|compileOnly|runtimeOnly|testImplementation|testCompileOnly|testRuntimeOnly|annotationProcessor|kapt|ksp|classpath';
-  
+
   /**
    * Gradle's own version variables, so `"g:a:${someVersion}"` resolves.
    *
@@ -3981,7 +3981,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
    */
   function gradleVars(cwd, src) {
     const vars = new Map();
-  
+
     // gradle.properties — plain key=value, and the conventional place for these.
     const props = readText(path.join(cwd, 'gradle.properties'));
     if (props) {
@@ -3989,7 +3989,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
         vars.set(m[1], m[2].trim().replace(/^["']|["']$/g, ''));
       }
     }
-  
+
     // ext.NAME = "value"  /  def NAME = "value"  /  NAME = "value" inside ext { }
     for (const m of src.matchAll(/(?:^|\n)\s*(?:ext\.|def\s+)([A-Za-z_]\w*)\s*=\s*["']([^"']+)["']/g)) {
       vars.set(m[1], m[2]);
@@ -4002,7 +4002,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return vars;
   }
-  
+
   function gradleDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return false;
@@ -4012,7 +4012,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     const resolve = (v) => String(v || '')
       .replace(/\$\{([^}]+)\}/g, (full, key) => (vars.has(key.trim()) ? vars.get(key.trim()) : full))
       .replace(/\$([A-Za-z_]\w*)/g, (full, key) => (vars.has(key) ? vars.get(key) : full));
-  
+
     const re = new RegExp(`\\b(${GRADLE_CONFIGS})\\s*[( ]\\s*["']([^"']+)["']`, 'g');
     for (const m of clean.matchAll(re)) {
       const scope = /^test/.test(m[1]) ? 'test' : 'runtime';
@@ -4023,18 +4023,18 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return true;
   }
-  
+
   /** Gradle version catalog: [libraries] entries in gradle/libs.versions.toml. */
   function versionCatalogDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return false;
     const tables = tomlTables(src);
-  
+
     const versions = new Map();
     for (const m of tomlTable(tables, 'versions').matchAll(/^\s*([A-Za-z0-9._-]+)\s*=\s*["']([^"']+)["']/gm)) {
       versions.set(m[1], m[2]);
     }
-  
+
     for (const m of tomlTable(tables, 'libraries').matchAll(/^\s*([A-Za-z0-9._-]+)\s*=\s*(.+)$/gm)) {
       const body = m[2];
       let coord = (body.match(/module\s*=\s*["']([^"']+)["']/) || [])[1];
@@ -4054,18 +4054,18 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return true;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Go / Rust / Ruby / PHP / .NET / Dart
   // ---------------------------------------------------------------------------
-  
+
   function goDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return null;
     const clean = src.replace(/^\s*\/\/.*$/gm, '');
     const moduleName = (clean.match(/^module\s+(\S+)/m) || [])[1] || null;
     const goVersion = (clean.match(/^go\s+(\S+)/m) || [])[1] || null;
-  
+
     for (const block of clean.matchAll(/^require\s*\(([\s\S]*?)^\)/gm)) {
       for (const line of block[1].split('\n')) {
         const m = /^\s*(\S+)\s+(v\S+)/.exec(line);
@@ -4077,13 +4077,13 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return { name: moduleName, version: goVersion ? `go ${goVersion}` : null };
   }
-  
+
   function cargoDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return null;
     const tables = tomlTables(src);
     const pkg = tomlTable(tables, 'package');
-  
+
     const SCOPES = { dependencies: 'runtime', 'dev-dependencies': 'dev', 'build-dependencies': 'build' };
     for (const t of tables) {
       // Flat table: [dependencies] with one key per crate.
@@ -4104,7 +4104,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return { name: tomlValue(pkg, 'name'), version: tomlValue(pkg, 'version') };
   }
-  
+
   function gemfileDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return false;
@@ -4119,7 +4119,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return true;
   }
-  
+
   function composerDeps(cwd, rel, out) {
     const json = readJson(path.join(cwd, rel));
     if (!json) return null;
@@ -4138,7 +4138,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return { name: json.name || null, version: json.version || null };
   }
-  
+
   function csprojDeps(cwd, rel, out) {
     const raw = readText(path.join(cwd, rel));
     if (raw == null) return false;
@@ -4151,14 +4151,14 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return true;
   }
-  
+
   function pubspecDeps(cwd, rel, out) {
     const src = readText(path.join(cwd, rel));
     if (src == null) return null;
     const clean = stripHashComments(src);
     const name = (clean.match(/^name:\s*(\S+)/m) || [])[1] || null;
     const version = (clean.match(/^version:\s*(\S+)/m) || [])[1] || null;
-  
+
     // Walked line by line: a regex block match cannot reliably terminate the
     // final section of the file, and dev_dependencies is usually last.
     let scope = null;
@@ -4173,11 +4173,11 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return { name, version };
   }
-  
+
   // ---------------------------------------------------------------------------
   // Aggregation
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Every manifest this module knows how to read, in a stable order.
    * `parse` pushes dep rows and may return `{ name, version }` project identity.
@@ -4196,14 +4196,14 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     { file: 'composer.json', ecosystem: 'composer', label: 'php', parse: composerDeps },
     { file: 'pubspec.yaml', ecosystem: 'pub', label: 'dart', parse: pubspecDeps },
   ];
-  
+
   /** Locate a single `*.csproj` at the repo root, if one exists. */
   function findCsproj(cwd) {
     try {
       return fs.readdirSync(cwd).filter((f) => f.endsWith('.csproj')).sort()[0] || null;
     } catch (_) { return null; }
   }
-  
+
   /**
    * Read every manifest at the repo root into a flat dependency inventory.
    *
@@ -4217,7 +4217,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
    *   truncated: number
    * }}
    */
-  
+
   /** Directories a manifest walk must never descend into. */
   const MANIFEST_SKIP_DIRS = new Set([
     'node_modules', 'target', 'build', 'dist', 'out', 'vendor', '.git', '.svn',
@@ -4228,12 +4228,12 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     // spring-petclinic dependency set.
     'fixtures', '__fixtures__', 'testdata', 'test-fixtures', '__snapshots__',
   ]);
-  
+
   /** How deep the manifest walk descends, and how many manifests it will take. */
   const MANIFEST_MAX_DEPTH = 4;
   const MANIFEST_MAX_FILES = 200;
-  
-  
+
+
   /**
    * Directory names the project itself excludes, read straight from its config
    * and `.contextignore`.
@@ -4264,7 +4264,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     }
     return names.filter(Boolean);
   }
-  
+
   /**
    * Every manifest in the tree, not just the ones at the repo root (#747).
    *
@@ -4328,12 +4328,12 @@ __factories["./src/deps/inventory"] = function(module, exports) {
       return a < b ? -1 : a > b ? 1 : 0;
     }).slice(0, MANIFEST_MAX_FILES);
   }
-  
+
   function collectDependencies(cwd, opts = {}) {
     const deps = [];
     const manifests = [];
     let truncated = 0;
-  
+
     // Resolve each discovered path back to its parser by basename (or by the
     // `gradle/libs.versions.toml` relative form, the one manifest named by path).
     const byFile = new Map(MANIFESTS.map((m) => [m.file, m]));
@@ -4346,20 +4346,20 @@ __factories["./src/deps/inventory"] = function(module, exports) {
         entries.push({ file: rel, ecosystem: 'nuget', label: 'dotnet', parse: csprojDeps });
       }
     }
-  
+
     for (const m of entries) {
       if (!exists(path.join(cwd, m.file))) continue;
       const before = deps.length;
       let identity = null;
       try { identity = m.parse(cwd, m.file, deps); } catch (_) { identity = null; }
-  
+
       // Per-manifest cap, disclosed rather than silently applied.
       const produced = deps.length - before;
       if (produced > MAX_DEPS_PER_MANIFEST) {
         truncated += produced - MAX_DEPS_PER_MANIFEST;
         deps.splice(before + MAX_DEPS_PER_MANIFEST, produced - MAX_DEPS_PER_MANIFEST);
       }
-  
+
       manifests.push({
         file: m.file,
         label: m.label,
@@ -4369,7 +4369,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
         count: Math.min(produced, MAX_DEPS_PER_MANIFEST),
       });
     }
-  
+
     if (opts.resolve !== false) {
       const locked = npmLockVersions(cwd);
       if (locked.size) {
@@ -4380,12 +4380,12 @@ __factories["./src/deps/inventory"] = function(module, exports) {
         }
       }
     }
-  
+
     // Deterministic order: ecosystem, then name, then scope.
     deps.sort((a, b) => (a.ecosystem < b.ecosystem ? -1 : a.ecosystem > b.ecosystem ? 1
       : a.name < b.name ? -1 : a.name > b.name ? 1
         : a.scope < b.scope ? -1 : a.scope > b.scope ? 1 : 0));
-  
+
     return {
       deps,
       manifests,
@@ -4393,7 +4393,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
       truncated,
     };
   }
-  
+
   /**
    * `name@version` pins for direct runtime dependencies — the densest grounding
    * that fits in an always-on context header. Prefers the exact locked version
@@ -4427,7 +4427,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     pins.sort();
     return { pins: limit ? pins.slice(0, limit) : pins, total: pins.length };
   }
-  
+
   module.exports = {
     findManifests,
     collectDependencies,
@@ -4471,12 +4471,12 @@ __factories["./src/deps/sbom"] = function(module, exports) {
    * the spec and are deliberately OMITTED — both would vary run to run and break
    * byte-stability for no analytic gain.
    */
-  
+
   const { collectDependencies } = __require('./src/deps/inventory');
-  
+
   const SPEC_VERSION = '1.5';
   const BOM_FORMAT = 'CycloneDX';
-  
+
   /** SigMap ecosystem key → Package URL type (purl-spec). */
   const PURL_TYPE = {
     npm: 'npm',
@@ -4489,7 +4489,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     nuget: 'nuget',
     pub: 'pub',
   };
-  
+
   /**
    * CycloneDX `scope` is a three-value enum. Anything shipped to production is
    * `required`; build/dev/test tooling is `optional`.
@@ -4503,7 +4503,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     optional: 'optional',
     indirect: 'required',
   };
-  
+
   /** True when a version string is an exact pin rather than a range. */
   function isExactVersion(v) {
     const s = String(v || '').trim();
@@ -4512,7 +4512,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     if (!s || !/\d/.test(s)) return false;
     return !/[\^~<>=!*|\s,]/.test(s) || /^v?\d+(\.\d+)*([-+][\w.]+)*$/.test(s);
   }
-  
+
   /**
    * Best-effort exact version for a declared range.
    *
@@ -4535,12 +4535,12 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     const m = /(\d+(?:\.\d+)*(?:[-+][\w.]+)*)/.exec(first);
     return m ? m[1] : '';
   }
-  
+
   /** Percent-encode a purl path segment, keeping the `/` that separates scopes. */
   function purlEncode(segment) {
     return encodeURIComponent(String(segment)).replace(/%40/g, '%40');
   }
-  
+
   /**
    * Build a Package URL for one dependency row.
    * @returns {string} purl, or '' when the ecosystem has no purl type
@@ -4549,7 +4549,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     const type = PURL_TYPE[d.ecosystem];
     if (!type) return '';
     const ver = version ? `@${encodeURIComponent(version)}` : '';
-  
+
     if (type === 'maven') {
       // Maven coordinates are `groupId:artifactId`.
       const [group, artifact] = String(d.name).split(':');
@@ -4572,7 +4572,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     }
     return `pkg:${type}/${purlEncode(d.name)}${ver}`;
   }
-  
+
   /**
    * Build a CycloneDX 1.5 document for a repo.
    *
@@ -4588,11 +4588,11 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     const exactOnly = opts.exactOnly === true;
     const includeDev = opts.includeDev !== false;
     const inventory = collectDependencies(cwd);
-  
+
     const components = [];
     const stats = { total: 0, exact: 0, ranged: 0, unversioned: 0, skipped: 0 };
     const seen = new Set();
-  
+
     for (const d of inventory.deps) {
       // Platform constraints (`php`, `ext-mbstring`, Dart `sdk`) have no registry
       // entry and therefore no purl; emitting them as components gives a scanner
@@ -4600,11 +4600,11 @@ __factories["./src/deps/sbom"] = function(module, exports) {
       if (d.platform) { stats.skipped++; continue; }
       const cdxScope = CDX_SCOPE[d.scope] || 'optional';
       if (!includeDev && cdxScope === 'optional') { stats.skipped++; continue; }
-  
+
       const declared = d.resolved || d.version;
       const exact = !!d.resolved || isExactVersion(declared);
       const version = normalizeVersion(declared);
-  
+
       // Count only what actually lands in the BOM, so `total` always equals
       // exact + ranged + unversioned; anything dropped is counted as skipped.
       const ranged = !exact && !!version;
@@ -4612,13 +4612,13 @@ __factories["./src/deps/sbom"] = function(module, exports) {
       if (!version) stats.unversioned++;
       else if (exact) stats.exact++;
       else stats.ranged++;
-  
+
       const purl = purlFor(d, version);
       // bom-ref must be unique; purl already is, and it keeps the doc readable.
       const ref = purl || `${d.ecosystem}:${d.name}@${version || 'unknown'}`;
       if (seen.has(ref)) continue;
       seen.add(ref);
-  
+
       const component = {
         type: 'library',
         'bom-ref': ref,
@@ -4627,7 +4627,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
       };
       if (version) component.version = version;
       if (purl) component.purl = purl;
-  
+
       const properties = [
         { name: 'sigmap:ecosystem', value: d.ecosystem },
         { name: 'sigmap:manifest', value: d.file },
@@ -4642,20 +4642,20 @@ __factories["./src/deps/sbom"] = function(module, exports) {
         properties.push({ name: 'sigmap:versionInferred', value: 'lower-bound-of-range' });
       }
       component.properties = properties;
-  
+
       components.push(component);
       stats.total++;
     }
-  
+
     // Deterministic ordering, independent of manifest read order.
     components.sort((a, b) => (a['bom-ref'] < b['bom-ref'] ? -1 : a['bom-ref'] > b['bom-ref'] ? 1 : 0));
-  
+
     // Project identity: prefer a manifest that actually names the project.
     const root = inventory.manifests.find((m) => m.name) || null;
     const metadataComponent = root
       ? { type: 'application', 'bom-ref': root.name, name: root.name, ...(root.version ? { version: root.version } : {}) }
       : { type: 'application', 'bom-ref': 'root', name: 'unknown' };
-  
+
     const bom = {
       bomFormat: BOM_FORMAT,
       specVersion: SPEC_VERSION,
@@ -4668,15 +4668,15 @@ __factories["./src/deps/sbom"] = function(module, exports) {
       },
       components,
     };
-  
+
     return { bom, stats };
   }
-  
+
   /** Pretty-printed JSON rendering, stable across runs. */
   function formatSbom(bom) {
     return JSON.stringify(bom, null, 2);
   }
-  
+
   /**
    * One-line human summary for stderr, disclosing how precise the BOM is.
    * @param {object} stats - from buildSbom
@@ -4697,7 +4697,7 @@ __factories["./src/deps/sbom"] = function(module, exports) {
     lines.push('[sigmap]   scan it: osv-scanner --sbom <file>');
     return lines;
   }
-  
+
   module.exports = {
     buildSbom,
     formatSbom,
@@ -4717,22 +4717,22 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
   const fs   = require('fs');
   const path = require('path');
   const { REGISTRY } = __require('./src/discovery/source-root-registry');
-  
+
   module.exports = { detectFrameworks };
-  
+
   function detectFrameworks(cwd) {
     const detected = [];
-  
+
     for (const [lang, reg] of Object.entries(REGISTRY)) {
       if (!reg.frameworks) continue;
       for (const [name, fw] of Object.entries(reg.frameworks)) {
         let confidence = 0;
-  
+
         // Detection files: +0.95 / 0.93 / 0.90 depending on specificity
         for (const f of (fw.detectionFiles || [])) {
           if (_existsAnywhere(cwd, f, 3)) { confidence = Math.max(confidence, 0.93); }
         }
-  
+
         // Detection deps in package.json
         if (fw.detectionDeps?.length) {
           const deps = _readDeps(cwd);
@@ -4740,7 +4740,7 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
             if (deps.has(dep)) { confidence = Math.max(confidence, 0.90); }
           }
         }
-  
+
         // go.mod and Cargo.toml deps
         if (lang === 'go' && fw.detectionDeps?.length) {
           const goMod = _readFile(path.join(cwd, 'go.mod'));
@@ -4754,7 +4754,7 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
             if (cargoToml.includes(dep)) { confidence = Math.max(confidence, 0.88); }
           }
         }
-  
+
         // Special rules
         if (fw.specialRule === 'django-app-dirs' && fs.existsSync(path.join(cwd, 'manage.py'))) {
           confidence = Math.max(confidence, 0.95);
@@ -4762,31 +4762,31 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
         if (fw.specialRule === 'swift-project-dir' && _existsAnywhere(cwd, '.xcodeproj', 2)) {
           confidence = Math.max(confidence, 0.90);
         }
-  
+
         if (confidence > 0) detected.push({ name, language: lang, confidence });
       }
     }
-  
+
     return detected.sort((a, b) => b.confidence - a.confidence);
   }
-  
+
   function _readDeps(cwd) {
     try {
       const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
       return new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.devDependencies || {})]);
     } catch { return new Set(); }
   }
-  
+
   function _readFile(p) {
     try { return fs.readFileSync(p, 'utf8'); } catch { return ''; }
   }
-  
+
   function _existsAnywhere(cwd, filename, maxDepth) {
     const parts = filename.split('/');
     if (parts.length > 1) return fs.existsSync(path.join(cwd, filename));
     return _walkFind(cwd, filename, maxDepth);
   }
-  
+
   function _walkFind(dir, name, depth) {
     if (depth <= 0) return false;
     try {
@@ -4809,15 +4809,15 @@ __factories["./src/discovery/language-detector"] = function(module, exports) {
   const fs   = require('fs');
   const path = require('path');
   const { REGISTRY } = __require('./src/discovery/source-root-registry');
-  
+
   module.exports = { detectLanguages };
-  
+
   const SKIP_DIRS = new Set([
     'node_modules','dist','build','.git','venv','.venv','target',
     'DerivedData','Pods','.build','Carthage','coverage','.next','.nuxt',
     '__pycache__','.pytest_cache','vendor','.bundle','Carthage',
   ]);
-  
+
   const EXT_TO_LANG = {
     '.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
     '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript',
@@ -4832,10 +4832,10 @@ __factories["./src/discovery/language-detector"] = function(module, exports) {
     '.r': 'r', '.R': 'r',
     '.ps1': 'powershell', '.psm1': 'powershell', '.psd1': 'powershell',
   };
-  
+
   function detectLanguages(cwd) {
     const weights = {};
-  
+
     // Signal 1: manifest files (+3 each)
     for (const [lang, reg] of Object.entries(REGISTRY)) {
       for (const mf of (reg.manifestFiles || [])) {
@@ -4844,14 +4844,14 @@ __factories["./src/discovery/language-detector"] = function(module, exports) {
         }
       }
     }
-  
+
     // Signal 2: TypeScript dep in package.json (+2)
     try {
       const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
       const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
       if (allDeps.typescript) { weights.typescript = (weights.typescript || 0) + 2; }
     } catch (_) {}
-  
+
     // Signal 3: file extension count (walk depth 3, capped at +5 per language)
     const extCount = {};
     _walkDepth(cwd, 3, extCount);
@@ -4862,14 +4862,14 @@ __factories["./src/discovery/language-detector"] = function(module, exports) {
         weights[lang] = (weights[lang] || 0) + Math.min(5, (count / maxCount) * 5);
       }
     }
-  
+
     // Normalize to [0,1] and sort
     const maxW = Math.max(1, ...Object.values(weights));
     return Object.entries(weights)
       .map(([name, w]) => ({ name, weight: Math.round(w / maxW * 100) / 100 }))
       .sort((a, b) => b.weight - a.weight);
   }
-  
+
   function _walkDepth(dir, depth, extCount) {
     if (depth <= 0) return;
     let entries;
@@ -4912,25 +4912,25 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
    *
    * Zero dependencies.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   /** Files that DECLARE a workspace. */
   const MARKERS = ['pnpm-workspace.yaml', 'turbo.json', 'nx.json', 'lerna.json'];
-  
+
   /** Directories that conventionally hold sibling packages. */
   const MONO_ROOTS = ['packages', 'apps', 'services', 'libs', 'modules'];
-  
+
   /** Any of these makes a directory a package. */
   const PKG_MANIFESTS = [
     'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod',
     'build.gradle', 'build.gradle.kts', 'pom.xml', 'requirements.txt',
   ];
-  
+
   /** A layout match needs at least this many sibling packages to count. */
   const MIN_LAYOUT_PACKAGES = 2;
-  
+
   /**
    * The declared-workspace marker for this repo, or null.
    * @returns {string|null} the marker's filename, for use as evidence
@@ -4945,7 +4945,7 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
     } catch (_) {}
     return null;
   }
-  
+
   /**
    * Sibling packages found by scanning the conventional container directories.
    * @returns {Array<{dir: string, manifest: string}>} repo-relative package dirs
@@ -4965,7 +4965,7 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
     }
     return found;
   }
-  
+
   /**
    * The monorepo verdict for a repo, and the evidence behind it.
    *
@@ -4985,7 +4985,7 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
   function detectMonorepo(cwd) {
     const marker = workspaceMarker(cwd);
     const packages = layoutPackages(cwd);
-  
+
     if (marker) {
       return {
         isMonorepo: true,
@@ -5015,7 +5015,7 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
       packages,
     };
   }
-  
+
   module.exports = {
     detectMonorepo,
     workspaceMarker,
@@ -5042,10 +5042,10 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
    *   readNamespace(cwd)   → { exports: Set, exportPatterns: RegExp[], s3methods: [{generic,class}], importFrom: Map<pkg, Set<name>> } | null
    *   collectLocalDefs(rFiles) → Map<defName, absPath>
    */
-  
+
   const fs   = require('fs');
   const path = require('path');
-  
+
   /**
    * Parse a DESCRIPTION file (Debian control format).
    *
@@ -5061,7 +5061,7 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
     if (!fs.existsSync(p)) return null;
     let raw;
     try { raw = fs.readFileSync(p, 'utf8'); } catch (_) { return null; }
-  
+
     const fields = {};
     let currentKey = null;
     for (const rawLine of raw.split('\n')) {
@@ -5078,7 +5078,7 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
         currentKey = null;
       }
     }
-  
+
     return {
       package:   fields.Package   || null,
       version:   fields.Version   || null,
@@ -5088,7 +5088,7 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
       linkingTo: splitDeps(fields.LinkingTo),
     };
   }
-  
+
   /**
    * Split a DESCRIPTION dep list like
    *   "dplyr (>= 1.0.0), ggplot2, R (>= 4.0)"
@@ -5100,7 +5100,7 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
       .map((s) => s.trim().replace(/\s*\([^)]*\)\s*$/, '').trim())
       .filter((s) => s && s !== 'R');
   }
-  
+
   /**
    * Parse a NAMESPACE file.
    *
@@ -5121,15 +5121,15 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
     if (!fs.existsSync(p)) return null;
     let raw;
     try { raw = fs.readFileSync(p, 'utf8'); } catch (_) { return null; }
-  
+
     // Strip comments.
     const text = raw.replace(/#.*$/gm, '');
-  
+
     const exports = new Set();
     const exportPatterns = [];
     const s3methods = [];
     const importFrom = new Map();
-  
+
     for (const m of text.matchAll(/\bexport\s*\(\s*([^)]+)\)/g)) {
       for (const name of splitArgs(m[1])) {
         const clean = stripQuotes(name);
@@ -5158,18 +5158,18 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
         if (clean) importFrom.get(pkg).add(clean);
       }
     }
-  
+
     return { exports, exportPatterns, s3methods, importFrom };
   }
-  
+
   function splitArgs(raw) {
     return raw.split(',').map((s) => s.trim()).filter(Boolean);
   }
-  
+
   function stripQuotes(s) {
     return s.replace(/^["']|["']$/g, '').trim();
   }
-  
+
   /**
    * Build a Map<symbolName, absFilePath> from the top-level definitions in a
    * set of R files. Used by the graph builder to resolve `localPkg::fn` to a
@@ -5203,7 +5203,7 @@ __factories["./src/discovery/r-manifest"] = function(module, exports) {
     }
     return defs;
   }
-  
+
   module.exports = { readDescription, readNamespace, collectLocalDefs };
   
 };
@@ -5213,9 +5213,9 @@ __factories["./src/discovery/sigmapignore"] = function(module, exports) {
   
   const fs   = require('fs');
   const path = require('path');
-  
+
   module.exports = { loadIgnorePatterns, matchesIgnorePattern };
-  
+
   function loadIgnorePatterns(cwd) {
     for (const fname of ['.sigmapignore', '.contextignore']) {
       const p = path.join(cwd, fname);
@@ -5228,7 +5228,7 @@ __factories["./src/discovery/sigmapignore"] = function(module, exports) {
     }
     return [];
   }
-  
+
   function matchesIgnorePattern(dirName, patterns) {
     for (const pat of patterns) {
       const clean = pat.replace(/\/$/, '');
@@ -5265,7 +5265,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src','lib','index.js','server.js','app.js'],
       penalties: ['dist','build','.next','.nuxt','coverage','storybook-static'],
     },
-  
+
     typescript: {
       manifestFiles: ['package.json','tsconfig.json'],
       frameworks: {
@@ -5276,7 +5276,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src','lib','packages'],
       penalties: ['dist','build','.next'],
     },
-  
+
     python: {
       manifestFiles: ['requirements.txt','pyproject.toml','setup.py','Pipfile'],
       frameworks: {
@@ -5288,7 +5288,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['.'],
       penalties: ['venv','.venv','__pycache__','.pytest_cache','htmlcov'],
     },
-  
+
     go: {
       manifestFiles: ['go.mod'],
       frameworks: {
@@ -5301,7 +5301,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['internal','cmd','pkg','api'],
       penalties: ['vendor'],
     },
-  
+
     rust: {
       manifestFiles: ['Cargo.toml'],
       frameworks: {
@@ -5312,7 +5312,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src'],
       penalties: ['target'],
     },
-  
+
     java: {
       manifestFiles: ['pom.xml','build.gradle'],
       frameworks: {
@@ -5324,7 +5324,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src/main/java','src'],
       penalties: ['target','build'],
     },
-  
+
     kotlin: {
       manifestFiles: ['build.gradle.kts'],
       frameworks: {
@@ -5336,7 +5336,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src/main/kotlin','src'],
       penalties: ['build','.gradle'],
     },
-  
+
     csharp: {
       manifestFiles: ['.csproj','.sln'],
       frameworks: {
@@ -5348,7 +5348,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src','Controllers','Services','Models'],
       penalties: ['bin','obj','.vs'],
     },
-  
+
     php: {
       manifestFiles: ['composer.json'],
       frameworks: {
@@ -5360,7 +5360,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src','app'],
       penalties: ['vendor'],
     },
-  
+
     ruby: {
       manifestFiles: ['Gemfile'],
       frameworks: {
@@ -5371,7 +5371,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['app','lib'],
       penalties: ['vendor','coverage','.bundle'],
     },
-  
+
     swift: {
       manifestFiles: ['Package.swift'],
       frameworks: {
@@ -5382,7 +5382,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['Sources','Source'],
       penalties: ['.build','DerivedData','Pods','Carthage'],
     },
-  
+
     dart: {
       manifestFiles: ['pubspec.yaml'],
       frameworks: {
@@ -5393,7 +5393,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['lib','lib/src'],
       penalties: ['.dart_tool','build'],
     },
-  
+
     scala: {
       manifestFiles: ['build.sbt'],
       frameworks: {
@@ -5405,7 +5405,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src/main/scala','src'],
       penalties: ['target'],
     },
-  
+
     lua: {
       manifestFiles: ['.luarc.json', 'selene.toml', 'stylua.toml'],
       frameworks: {
@@ -5414,7 +5414,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       srcDirs:  ['src','lua','lib'],
       penalties: ['.luarocks','luarocks_modules'],
     },
-  
+
     r: {
       manifestFiles: ['DESCRIPTION','renv.lock'],
       frameworks: {
@@ -5424,7 +5424,7 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
       penalties: ['renv','packrat','.Rcheck'],
     },
   };
-  
+
   module.exports = { REGISTRY };
   
 };
@@ -5440,17 +5440,17 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   const { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, CODE_EXTS, AUTO_SKIP } = __require('./src/discovery/source-root-scorer');
   const { loadIgnorePatterns, matchesIgnorePattern } = __require('./src/discovery/sigmapignore');
   const { detectMonorepo }         = __require('./src/discovery/monorepo');
-  
+
   module.exports = { resolveSourceRoots };
-  
+
   const MAX_ROOTS = 6;
-  
+
   // A Gradle/Maven multi-module build legitimately has one source root per
   // module — okhttp has 27 — so the 6-root cap tuned for JS layouts would
   // discard most of the repo. Raised only for that case.
   const MAX_JVM_MODULE_ROOTS = 40;
   const JVM_SOURCE_LANGS = ['java', 'kotlin', 'scala'];
-  
+
   /**
    * Build-file evidence of a multi-module JVM project.
    *
@@ -5475,7 +5475,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     } catch (_) { /* absent */ }
     return false;
   }
-  
+
   /**
    * JVM source-set directories under each module, one and two levels deep.
    *
@@ -5494,7 +5494,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   function _jvmModuleSourceDirs(cwd, ignorePatterns, excSet) {
     const out = [];
     const seen = new Set();
-  
+
     const dirsIn = (abs) => {
       try {
         return fs.readdirSync(abs, { withFileTypes: true })
@@ -5503,7 +5503,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
           .sort((a, b) => a.localeCompare(b));
       } catch (_) { return []; }
     };
-  
+
     // `<base>/src/<sourceSet>/<lang>` for every non-test source set present.
     const collect = (relBase) => {
       const srcRel = relBase ? `${relBase}/src` : 'src';
@@ -5520,7 +5520,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         }
       }
     };
-  
+
     collect('');
     for (const top of dirsIn(cwd)) {
       if (excSet.has(top) || matchesIgnorePattern(top, ignorePatterns)) continue;
@@ -5533,7 +5533,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     }
     return out;
   }
-  
+
   function resolveSourceRoots(cwd, opts = {}) {
     const ignorePatterns = loadIgnorePatterns(cwd);
     const languages      = detectLanguages(cwd);
@@ -5541,22 +5541,22 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     const recentDirs     = getRecentlyChangedDirs(cwd);
     const monorepo       = detectMonorepo(cwd);
     const isMonorepo     = monorepo.isMonorepo;
-  
+
     const primaryLang   = languages[0]?.name;
     const primaryFw     = frameworks[0];
     const registry      = primaryLang ? REGISTRY[primaryLang] : null;
-  
+
     // Build framework-derived context
     const fwEntry        = primaryFw && registry?.frameworks?.[primaryFw.name];
     const frameworkSrcDirs   = new Set(fwEntry?.srcDirs || registry?.srcDirs || []);
     const entrypoints        = fwEntry?.entrypoints || [];
     const frameworkPenalties = registry?.penalties || [];
-  
+
     const context = { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties };
-  
+
     // Enumerate candidates
     const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || []);
-  
+
     // JVM source sets are discovered STRUCTURALLY — two or more module source
     // dirs on disk is what makes a build multi-module, whatever tool declares
     // them. Gradle/Maven/sbt markers are a secondary signal, so a single-module
@@ -5570,7 +5570,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         if (!have.has(c.name)) candidates.push(c);
       }
     }
-  
+
     // Score each candidate
     const scored = candidates
       .map(({ name, full }) => ({
@@ -5584,21 +5584,21 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       // (candidate order comes from filesystem readdir), changing which files are
       // collected and making the generated context non-reproducible.
       .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
-  
+
     // Handle special rules
     let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []));
-  
+
     // Dedupe nested paths (prefer parent)
     roots = _dedupeNested(roots);
-  
+
     // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
     // per module is the correct answer rather than over-detection.
     const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : MAX_ROOTS;
     roots = roots.slice(0, cap).map(r => r.dir);
-  
+
     // Fallback: if nothing scored, return empty (caller falls back to legacy)
     const confidence = _computeConfidence(frameworks, languages, scored.length);
-  
+
     return {
       roots,
       languages,
@@ -5614,11 +5614,11 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       isJvmMultiModule,
     };
   }
-  
+
   function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
     const candidates = [];
     const excSet     = new Set(excludeList);
-  
+
     // Root-level dirs (sorted so candidate order — and downstream dedupe/selection
     // — is deterministic regardless of filesystem readdir order)
     try {
@@ -5631,7 +5631,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         candidates.push({ name: e.name, full: path.join(cwd, e.name) });
       }
     } catch (_) {}
-  
+
     // Monorepo sub-packages: packages/*/src, apps/*/src, services/*/src
     if (isMonorepo) {
       for (const top of ['packages','apps','services','modules']) {
@@ -5646,7 +5646,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
             }
             // Also consider the package root itself
             candidates.push({ name: `${top}/${pkg.name}`, full: path.join(topFull, pkg.name) });
-  
+
             // JVM project structures in monorepo packages (Java, Kotlin, Scala)
             for (const jvmLang of ['java', 'kotlin', 'scala']) {
               const srcMainJvm = path.join(topFull, pkg.name, 'src', 'main', jvmLang);
@@ -5662,7 +5662,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         } catch (_) {}
       }
     }
-  
+
     // Deep paths known by language/framework (e.g. src/main/java, src-tauri/src)
     const DEEP_PATHS = [
       'src/main/java','src/main/kotlin','src/main/scala',
@@ -5673,10 +5673,10 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       const full = path.join(cwd, dp);
       if (fs.existsSync(full)) candidates.push({ name: dp, full });
     }
-  
+
     return candidates;
   }
-  
+
   // A flat layout keeps its source at the repo root — the normal shape of a Go
   // module, and common in C and single-file-per-package Rust. `_enumerateCandidates`
   // only ever walks DIRECTORIES, so `.` could never be selected no matter how much
@@ -5695,7 +5695,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   const ROOT_MIN_FILES = 3;
   const ROOT_MIN_SHARE = 0.20;
   const ROOT_SCORE     = 9.0;   // above any scored subdirectory, so `.` sorts first
-  
+
   /** Code files directly in `dir` (non-recursive). */
   function _directCodeFiles(dir) {
     try {
@@ -5703,7 +5703,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         .filter((e) => e.isFile() && CODE_EXTS.has(path.extname(e.name))).length;
     } catch (_) { return 0; }
   }
-  
+
   /**
    * Code files in the whole tree, bounded in depth, skipping vendor directories
    * and stopping at NESTED REPOSITORIES — a vendored or cloned repo is not this
@@ -5722,7 +5722,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     }
     return n;
   }
-  
+
   /**
    * Whether the repo root is itself a source root, and why.
    * @returns {{ score: number, reason: string }|null}
@@ -5730,7 +5730,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   function _flatLayoutRoot(cwd, excSet) {
     const rootFiles = _directCodeFiles(cwd);
     if (rootFiles === 0) return null;
-  
+
     // A — a Go module's root is a package by definition.
     if (fs.existsSync(path.join(cwd, 'go.mod'))) {
       let goFiles = 0;
@@ -5742,7 +5742,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         return { score: ROOT_SCORE, reason: `go.mod with ${goFiles} root-level .go file(s)` };
       }
     }
-  
+
     // B — the root holds a meaningful share of the tree's code.
     if (rootFiles < ROOT_MIN_FILES) return null;
     const total = _treeCodeFiles(cwd, excSet);
@@ -5753,10 +5753,10 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     }
     return null;
   }
-  
+
   function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set()) {
     let roots = [...scored];
-  
+
     // Flat layout: the root is a source root. Added here rather than as an
     // ordinary candidate because `scoreCandidate` scores directory NAMES against
     // the framework registry, and `.` is not a name it can reason about.
@@ -5765,7 +5765,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       roots.push({ dir: '.', full: cwd, score: flatRoot.score, reason: flatRoot.reason });
       roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
     }
-  
+
     // Django: walk root dirs for any containing models.py or views.py
     if (primaryFw?.name === 'django' || frameworks.some(f => f.name === 'django')) {
       try {
@@ -5781,7 +5781,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       } catch (_) {}
       roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
     }
-  
+
     // Swift project dir: dirs with ≥3 .swift files
     if (frameworks.some(f => f.name === 'swiftui')) {
       try {
@@ -5796,10 +5796,10 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       } catch (_) {}
       roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
     }
-  
+
     return roots;
   }
-  
+
   function _dedupeNested(scored) {
     const result = [];
     for (const c of scored) {
@@ -5816,7 +5816,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     }
     return result;
   }
-  
+
   function _computeConfidence(frameworks, languages, scoredCount) {
     if (frameworks.length > 0 && frameworks[0].confidence >= 0.90) return 'high';
     if (languages.length > 0 && scoredCount > 0) return 'medium';
@@ -5831,20 +5831,20 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
   const fs   = require('fs');
   const path = require('path');
   const { git } = __require('./src/util/git');
-  
+
   const CODE_EXTS = new Set([
     '.js','.mjs','.cjs','.ts','.tsx','.jsx',
     '.py','.rb','.go','.rs','.java','.kt',
     '.cs','.cpp','.c','.h','.swift','.dart','.scala','.php','.lua',
     '.ps1','.psm1','.psd1',
   ]);
-  
+
   const AUTO_SKIP = new Set([
     'node_modules','dist','build','.git','.next','.nuxt','vendor',
     'DerivedData','Pods','target','coverage','__pycache__','.venv','venv',
     '.build','Carthage','storybook-static','.gradle','bin','obj','.vs',
   ]);
-  
+
   const PENALTY_DIRS = new Set([
     'test','tests','spec','__tests__','e2e','docs','doc','docs-vp',
     'examples','example','fixtures','mocks','__mocks__','demo','samples','migrations',
@@ -5855,7 +5855,7 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     // never even a candidate (#805).
     'testdata','test-data','__fixtures__','snapshots','__snapshots__',
   ]);
-  
+
   // Matches a JVM source root anywhere in a path, for any SOURCE SET.
   //
   // Two separate misses were hiding behind the original anchored `src/main/...`
@@ -5868,7 +5868,7 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
   // Test source sets (`src/test`, `src/commonTest`, `src/androidHostTest`) are
   // excluded here; they are indexed separately and must not become src roots.
   const JVM_PATH_PATTERN = /(^|\/)(app\/)?src\/(?!.*[Tt]est)[A-Za-z0-9_]+\/(java|kotlin|scala)$/;
-  
+
   const ROOT_ENTRYPOINTS = {
     go:         ['main.go'],
     python:     ['app.py','main.py','wsgi.py','asgi.py'],
@@ -5877,42 +5877,42 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     rust:       [],
     php:        ['index.php'],
   };
-  
+
   function getRecentlyChangedDirs(cwd) {
     try {
       const out = git(['log', '--name-only', '--format=', 'HEAD~10'], { cwd, timeout: 3000 }).toString();
       return new Set(out.split('\n').filter(Boolean).map(f => f.split('/')[0]));
     } catch { return new Set(); }
   }
-  
+
   function scoreCandidate(dirName, fullPath, context) {
     const { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties } = context;
-  
+
     // Auto-skip noise
     if (AUTO_SKIP.has(dirName)) return -99;
     if (!fs.existsSync(fullPath)) return -99;
-  
+
     let score = 0;
-  
+
     // JVM paths (Java, Kotlin, Scala) get highest priority: +5.0
     if (JVM_PATH_PATTERN.test(dirName)) score += 5.0;
-  
+
     // Framework match: +3.0 if this dir is in the framework's srcDirs
     if (frameworkSrcDirs.has(dirName)) score += 3.0;
-  
+
     // Count source files in dir (depth 2)
     const sourceFileCount = _countSourceFiles(fullPath, 2);
     const density = Math.min(1.0, sourceFileCount / 10);
-  
+
     // Language density: +2.5
     score += density * 2.5;
-  
+
     // Symbol density: +2.0 if ≥3 source files
     if (sourceFileCount >= 3) score += 2.0;
-  
+
     // Entrypoint: +1.5 if a known entrypoint lives in this dir
     if ((entrypoints || []).some(ep => ep.startsWith(dirName + '/'))) score += 1.5;
-  
+
     // Manifest proximity: +1.0 if a manifest file is in this dir
     if (fs.existsSync(path.join(fullPath, 'package.json')) ||
         fs.existsSync(path.join(fullPath, 'go.mod')) ||
@@ -5920,19 +5920,19 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
         fs.existsSync(path.join(fullPath, 'pom.xml'))) {
       score += 1.0;
     }
-  
+
     // Git activity bonus: +2.0 if recently committed files exist here
     if (recentDirs.has(dirName)) score += 2.0;
-  
+
     // Noise penalty: -3.0 (unless directory is in framework's srcDirs)
     if (PENALTY_DIRS.has(dirName.toLowerCase()) && !frameworkSrcDirs.has(dirName)) score -= 3.0;
-  
+
     // Framework penalty dirs
     if ((frameworkPenalties || []).includes(dirName)) score -= 3.0;
-  
+
     return Math.round(score * 100) / 100;
   }
-  
+
   function _countSourceFiles(dir, depth) {
     if (depth <= 0) return 0;
     let count = 0;
@@ -5944,7 +5944,7 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     } catch (_) {}
     return count;
   }
-  
+
   module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS };
   
 };
@@ -5961,11 +5961,11 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
    * loader, coverage scorer, signature index, and the known adapter-output /
    * MCP-config paths.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const os = require('os');
-  
+
   // Generated context files a `read_context`/`ask` flow can consume.
   const ADAPTER_OUTPUTS = [
     ['.github', 'copilot-instructions.md'],
@@ -5978,23 +5978,23 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     ['llm-full.txt'],
     ['llm.txt'],
   ];
-  
+
   const EXCLUDE_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', 'out', '__pycache__',
     '.next', 'coverage', 'target', 'vendor', '.context',
   ]);
-  
+
   const ICON = { ok: '✓', warn: '⚠', fail: '✗' };
-  
+
   // Share of implementation outside srcDirs that turns the report into a warning.
   // Below it, a couple of root entrypoints outside srcDirs is an ordinary layout.
   const OUTSIDE_WARN_SHARE = 0.10;
-  
+
   function _short(p, cwd) {
     const rel = path.relative(cwd, p);
     return rel && !rel.startsWith('..') ? rel : p.replace(os.homedir(), '~');
   }
-  
+
   function _contextFiles(cwd) {
     const out = [];
     for (const parts of ADAPTER_OUTPUTS) {
@@ -6003,7 +6003,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     }
     return out;
   }
-  
+
   function _mcpTargets(cwd) {
     return [
       path.join(cwd, '.mcp.json'),
@@ -6019,7 +6019,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       path.join(os.homedir(), '.config', 'zed', 'settings.json'),
     ];
   }
-  
+
   /**
    * Count code files under srcDirs modified after the context was generated.
    * Delegates to the shared primitive so `status` counts the same population
@@ -6029,7 +6029,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     const { changedSince } = __require('./src/analysis/index-state');
     return changedSince(cwd, Object.assign({}, config, { srcDirs }), ctxMtime);
   }
-  
+
   /**
    * Run all diagnostic checks.
    * @param {string} cwd
@@ -6038,7 +6038,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
   function diagnose(cwd, opts = {}) {
     const checks = [];
     const add = (id, label, status, detail, fix) => checks.push({ id, label, status, detail: detail || '', fix: fix || null });
-  
+
     // 1. Git repository
     try {
       const { tryGit } = __require('./src/util/git');
@@ -6048,7 +6048,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     } catch (_) {
       add('git', 'Git repository', 'warn', 'git not available', 'install git for recency boost + impact analysis');
     }
-  
+
     // 2. Config & source roots
     let config = {};
     try {
@@ -6073,7 +6073,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
         const exists = (d) => { try { return fs.existsSync(path.isAbsolute(d) ? d : path.join(cwd, d)); } catch (_) { return false; } };
         const srcDirs = Array.isArray(config.srcDirs) ? config.srcDirs : [];
         const present = srcDirs.filter(exists);
-  
+
         if (explicitSrcDirs) {
           const missing = explicitSrcDirs.filter((d) => !exists(d));
           if (missing.length) add('config', 'Config & source roots', 'warn', `configured srcDirs not found: ${missing.join(', ')}`, 'fix "srcDirs" in gen-context.config.json');
@@ -6083,7 +6083,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
         } else {
           add('config', 'Config & source roots', 'ok', `source roots: ${present.slice(0, 8).join(', ')}${present.length > 8 ? `, +${present.length - 8} more` : ''}`);
         }
-  
+
         // #805: srcDirs can be confidently wrong. A coverage figure computed over
         // srcDirs cannot see a file the detector never selected, so a flat Go
         // layout reported a healthy-looking percentage while the codebase was
@@ -6112,7 +6112,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     } catch (e) {
       if (!checks.some((c) => c.id === 'config')) add('config', 'Config & source roots', 'warn', `could not load config: ${e.message}`);
     }
-  
+
     // 3. Generated context file
     const ctxFiles = _contextFiles(cwd);
     if (ctxFiles.length === 0) {
@@ -6120,7 +6120,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     } else {
       add('context', 'Generated context', 'ok', `${ctxFiles.length} file(s): ${ctxFiles.map((f) => _short(f, cwd)).join(', ')}`);
     }
-  
+
     // 4. Signature index
     //
     // #825: this printed one bare total ("447 file(s) indexed") over a population
@@ -6148,7 +6148,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       const remedies = staleRemedies(indexClass);
       add('index', 'Signature index', indexClass.stale ? 'warn' : 'ok', parts.join(' · '), remedies.length ? remedies[0] : null);
     }
-  
+
     // 5. Index freshness
     //
     // #825: the timestamp comes from the shared primitive, so `status` cannot
@@ -6170,7 +6170,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
         else add('freshness', 'Index freshness', 'ok', `index is up to date with sources${from}`);
       }
     } catch (_) {}
-  
+
     // 6. Coverage
     try {
       if (indexSize > 0) {
@@ -6186,7 +6186,7 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
         else add('coverage', 'Coverage', 'ok', line);
       }
     } catch (_) {}
-  
+
     // 7. MCP wiring
     try {
       let wired = null;
@@ -6199,12 +6199,12 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       if (wired) add('mcp', 'MCP wiring', 'ok', `registered in ${_short(wired, cwd)}`);
       else add('mcp', 'MCP wiring', 'warn', 'MCP server not registered in any editor config', 'run: sigmap --setup   (auto-wires Claude, Cursor, Windsurf, VS Code, …)');
     } catch (_) {}
-  
+
     const errors = checks.filter((c) => c.status === 'fail').length;
     const warnings = checks.filter((c) => c.status === 'warn').length;
     return { checks, ok: errors === 0, errors, warnings };
   }
-  
+
   /** Human-readable checklist. */
   function formatDoctor(result) {
     const lines = ['sigmap doctor', ''];
@@ -6220,12 +6220,12 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     );
     return lines.join('\n');
   }
-  
+
   /** Machine-readable result. */
   function formatDoctorJSON(result) {
     return JSON.stringify(result, null, 2);
   }
-  
+
   module.exports = { diagnose, formatDoctor, formatDoctorJSON };
   
 };
@@ -6242,25 +6242,25 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
    *   formatAnalysisTable(stats)    → markdown table string
    *   formatAnalysisJSON(stats)     → plain object suitable for JSON.stringify
    */
-  
+
   const fs   = require('fs');
   const path = require('path');
-  
+
   // Extension → extractor name (mirrors EXT_MAP in gen-context.js)
   // Extractor resolution goes through the dispatcher — the single source of
   // truth (#591). This file previously kept its own copy, which had drifted to
   // a dead duplicate `.vue` key.
   const { langFor } = __require('./src/extractors/dispatch');
-  
+
   function getExtractorName(filePath) {
     return langFor(filePath);
   }
-  
+
   /** Rough token estimate: chars / 4 */
   function tokenCount(sigs) {
     return Math.ceil(sigs.reduce((sum, s) => sum + s.length, 0) / 4);
   }
-  
+
   /**
    * Check whether a test file exists for this source file by looking for
    * *.test.* / *.spec.* patterns in the test/ directory tree.
@@ -6281,7 +6281,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     }
     return false;
   }
-  
+
   /**
    * Load an extractor module from src/extractors/ relative to cwd.
    * Falls back to requiring from the module directory itself.
@@ -6296,7 +6296,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     try { return require(path.join(__dirname, '..', 'extractors', `${name}.js`)); } catch (_) {}
     return null;
   }
-  
+
   /**
    * Analyze a list of absolute file paths.
    *
@@ -6312,27 +6312,27 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     const slow    = (opts && opts.slow)   || false;
     const slowMs  = (opts && opts.slowMs) || 50;
     const maxSigs = (opts && opts.maxSigs) || 25;
-  
+
     const stats = [];
     const extractorCache = {};
-  
+
     for (const filePath of files) {
       const extractorName = getExtractorName(filePath);
       if (!extractorName) continue;
-  
+
       // Load extractor (cached)
       if (!extractorCache[extractorName]) {
         extractorCache[extractorName] = loadExtractor(extractorName, cwd);
       }
       const extractor = extractorCache[extractorName];
       if (!extractor || typeof extractor.extract !== 'function') continue;
-  
+
       let content;
       try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
-  
+
       let sigs;
       let elapsedMs = 0;
-  
+
       if (slow) {
         const t0 = Date.now();
         try { sigs = extractor.extract(content, filePath); } catch (_) { sigs = []; }
@@ -6340,9 +6340,9 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
       } else {
         try { sigs = extractor.extract(content, filePath); } catch (_) { sigs = []; }
       }
-  
+
       sigs = (Array.isArray(sigs) ? sigs : []).slice(0, maxSigs);
-  
+
       const rel      = path.relative(cwd, filePath);
       const tokens   = tokenCount(sigs);
       const covered  = hasCoverage(filePath, cwd);
@@ -6350,7 +6350,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
       // v4.0: signal quality = sigs per line-of-code (higher = more informative to LLMs)
       const linesOfCode    = content.split('\n').length;
       const signalQuality  = linesOfCode > 0 ? parseFloat((sigs.length / linesOfCode).toFixed(4)) : 0;
-  
+
       stats.push({
         file:          rel,
         extractor:     extractorName,
@@ -6363,10 +6363,10 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
         slow:          slow ? isSlow : undefined,
       });
     }
-  
+
     return stats;
   }
-  
+
   /**
    * Format stats as a markdown table.
    *
@@ -6376,18 +6376,18 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
    */
   function formatAnalysisTable(stats, showSlow) {
     if (!stats || stats.length === 0) return '_(no files analyzed)_\n';
-  
+
     // Column widths
     const maxFile = Math.max(4, ...stats.map((s) => s.file.length));
-  
+
     const header = showSlow
       ? `| ${'File'.padEnd(maxFile)} | Sigs | Tokens | Extractor   | Coverage   | Elapsed  |`
       : `| ${'File'.padEnd(maxFile)} | Sigs | Tokens | Extractor   | Coverage   |`;
-  
+
     const sep = showSlow
       ? `|${'-'.repeat(maxFile + 2)}|------|--------|-------------|------------|----------|`
       : `|${'-'.repeat(maxFile + 2)}|------|--------|-------------|------------|`;
-  
+
     const rows = stats.map((s) => {
       const cov  = s.covered ? '✓ tested  ' : '✗ untested';
       const file = s.file.padEnd(maxFile);
@@ -6400,16 +6400,16 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
       }
       return base;
     });
-  
+
     const totalSigs   = stats.reduce((n, s) => n + s.sigs,   0);
     const totalTokens = stats.reduce((n, s) => n + s.tokens, 0);
     const slotFile    = ''.padEnd(maxFile);
     const baseFoot    = `| ${slotFile} | ${String(totalSigs).padStart(4)} | ${String(totalTokens).padStart(6)} | **Total**   |            |`;
     const footer = showSlow ? `${baseFoot} ${' '.padStart(8)} |` : baseFoot;
-  
+
     return [header, sep, ...rows, sep, footer].join('\n') + '\n';
   }
-  
+
   /**
    * Format stats as a plain-object suitable for JSON.stringify.
    *
@@ -6420,7 +6420,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
     const totalSigs   = stats.reduce((n, s) => n + s.sigs,   0);
     const totalTokens = stats.reduce((n, s) => n + s.tokens, 0);
     const slowFiles   = stats.filter((s) => s.slow);
-  
+
     return {
       files:       stats,
       totalSigs,
@@ -6429,7 +6429,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
       fileCount:   stats.length,
     };
   }
-  
+
   module.exports = { analyzeFiles, formatAnalysisTable, formatAnalysisJSON };
   
 };
@@ -6455,11 +6455,11 @@ __factories["./src/eval/corpus"] = function(module, exports) {
    * averaged away by tiny ones. Thresholds are the rough tertiles of the
    * current benchmarks/repos corpus (43 repos, 27–3450 source files).
    */
-  
+
   const { tokenize } = __require('./src/retrieval/bm25');
-  
+
   const BUCKET_LIMITS = { small: 200, medium: 1000 }; // files; large = above medium
-  
+
   /**
    * Stemmed tokens of a file path's basename (extension stripped).
    * @param {string} filePath
@@ -6469,7 +6469,7 @@ __factories["./src/eval/corpus"] = function(module, exports) {
     const base = String(filePath).split('/').pop() || '';
     return tokenize(base.replace(/\.[^.]*$/, ''));
   }
-  
+
   /**
    * Leaked tokens between a query and its expected files' basenames.
    * @param {string} query
@@ -6486,7 +6486,7 @@ __factories["./src/eval/corpus"] = function(module, exports) {
     }
     return { leaked: [...leaked].sort(), clean: leaked.size === 0 };
   }
-  
+
   /**
    * Validate a task list: every task gets a leakage result; hard-split tasks
    * that leak are violations.
@@ -6505,7 +6505,7 @@ __factories["./src/eval/corpus"] = function(module, exports) {
     }
     return { results, hardViolations };
   }
-  
+
   /**
    * Size bucket for a repo by indexed file count.
    * @param {number} fileCount
@@ -6516,7 +6516,7 @@ __factories["./src/eval/corpus"] = function(module, exports) {
     if (fileCount <= BUCKET_LIMITS.medium) return 'medium';
     return 'large';
   }
-  
+
   module.exports = { basenameTokens, queryLeakage, validateTasks, sizeBucket, BUCKET_LIMITS };
   
 };
@@ -6534,16 +6534,16 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
    * offline-testable; the live model adapter lives in `scripts/run-llm-ablation.mjs`.
    * Zero-dependency, bundle-safe (no network here).
    */
-  
+
   const { verify } = __require('./src/verify/hallucination-guard');
-  
+
   const path = require('path');
-  
+
   /** Strip a signature's trailing line anchor (` :12-20`) for prompt cleanliness. */
   function _cleanSig(sig) {
     return String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim();
   }
-  
+
   /**
    * Build the SigMap grounding block for a repo — what we prepend to a task
    * prompt in arm B. Conventions (the house style) + **exact signatures** grouped
@@ -6558,20 +6558,20 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
   function buildGrounding(cwd, opts = {}) {
     const maxSignatures = opts.maxSignatures != null ? opts.maxSignatures : 150;
     const parts = [];
-  
+
     let index = null;
     try {
       const { buildSigIndex } = __require('./src/retrieval/ranker');
       index = buildSigIndex(cwd);
     } catch (_) {}
-  
+
     try {
       const { extractConventions } = __require('./src/conventions/extract');
       const { renderConventionsBlock } = __require('./src/conventions/inject');
       const files = index ? [...index.keys()] : [];
       parts.push(renderConventionsBlock(extractConventions(cwd, files)));
     } catch (_) {}
-  
+
     if (index) {
       const lines = ['## Exact signatures (use these — do not invent symbols or paths)'];
       let count = 0;
@@ -6589,10 +6589,10 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
       }
       if (count > 0) parts.push(lines.join('\n'));
     }
-  
+
     return parts.join('\n\n');
   }
-  
+
   /**
    * Score an answer: flagged codebase-fact errors + the issue list (the §9 metric).
    * @param {string} answerText
@@ -6607,12 +6607,12 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
       return { total: 0, issues: [] };
     }
   }
-  
+
   /** Count flagged codebase-fact errors in an answer (the §9 metric). */
   function scoreAnswer(answerText, cwd) {
     return scoreAnswerDetail(answerText, cwd).total;
   }
-  
+
   /**
    * Run the A/B ablation over a task corpus.
    * @param {Array<{id:string, prompt:string}>} tasks
@@ -6628,14 +6628,14 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
     const rows = [];
     let sumA = 0;
     let sumB = 0;
-  
+
     for (const task of tasks || []) {
       const basePrompt = task.prompt || '';
       const groundedPrompt = grounding ? `${grounding}\n\n---\n\n${basePrompt}` : basePrompt;
-  
+
       const outA = String(complete(basePrompt, { id: task.id, grounded: false }) || '');
       const outB = String(complete(groundedPrompt, { id: task.id, grounded: true }) || '');
-  
+
       const a = scoreAnswerDetail(outA, cwd);
       const b = scoreAnswerDetail(outB, cwd);
       sumA += a.total;
@@ -6644,7 +6644,7 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
       if (opts.collectIssues) { row.aIssues = a.issues; row.bIssues = b.issues; }
       rows.push(row);
     }
-  
+
     const n = rows.length;
     const per100 = (sum) => (n > 0 ? (sum / n) * 100 : 0);
     return {
@@ -6659,14 +6659,14 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
       },
     };
   }
-  
+
   /** mean/min/max of a number list (0s for an empty list). */
   function _stats(nums) {
     if (!nums.length) return { mean: 0, min: 0, max: 0 };
     const sum = nums.reduce((a, b) => a + b, 0);
     return { mean: sum / nums.length, min: Math.min(...nums), max: Math.max(...nums) };
   }
-  
+
   /**
    * Aggregate several `runAblation` passes into a stable estimate — mean ± range
    * of the without/with per-100 flag rates and their delta. At N=40 with tiny raw
@@ -6688,7 +6688,7 @@ __factories["./src/eval/llm-ablation"] = function(module, exports) {
       deltaPer100: _stats(delta),
     };
   }
-  
+
   module.exports = { buildGrounding, scoreAnswer, scoreAnswerDetail, runAblation, aggregateRuns };
   
 };
@@ -6712,16 +6712,16 @@ __factories["./src/eval/runner"] = function(module, exports) {
    *   node gen-context.js --benchmark
    *   node gen-context.js --benchmark --json
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { aggregate } = __require('./src/eval/scorer');
   const { bm25rank } = __require('./src/retrieval/bm25');
-  
+
   // ---------------------------------------------------------------------------
   // Context file reader
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Read the generated context file and build a simple signature index:
    *   Map<filePath, string[]>  — file → list of signature strings
@@ -6741,13 +6741,13 @@ __factories["./src/eval/runner"] = function(module, exports) {
     // corpus therefore scored a smaller index than `sigmap ask` actually uses.
     return __require('./src/retrieval/ranker').buildSigIndex(cwd);
   }
-  
+
   // ---------------------------------------------------------------------------
   // Identifier-aware BM25 ranking (v7.31; see src/retrieval/bm25.js and #395)
   // ---------------------------------------------------------------------------
-  
+
   const { tokenize } = __require('./src/retrieval/bm25');
-  
+
   /**
    * Rank all files in the index against a query with the identifier-aware BM25
    * re-ranker. Returns file entries sorted by relevance score descending; ties
@@ -6765,11 +6765,11 @@ __factories["./src/eval/runner"] = function(module, exports) {
     const { rank: prodRank } = __require('./src/retrieval/ranker');
     return prodRank(query, index, Object.assign({ topK }, opts)).slice(0, topK);
   }
-  
+
   // ---------------------------------------------------------------------------
   // Token estimation
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Estimate token count from character count (chars/4, ±5%).
    * @param {string[]} sigs
@@ -6779,11 +6779,11 @@ __factories["./src/eval/runner"] = function(module, exports) {
     const text = (sigs || []).join('\n');
     return Math.ceil(text.length / 4);
   }
-  
+
   // ---------------------------------------------------------------------------
   // Task loader
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Load tasks from a JSONL file.
    * Each line: { id, query, expected_files, repo, split? ('easy'|'hard') }
@@ -6815,11 +6815,11 @@ __factories["./src/eval/runner"] = function(module, exports) {
     }
     return tasks;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Main runner
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Run all tasks in tasksFile against the repo at cwd.
    *
@@ -6834,12 +6834,12 @@ __factories["./src/eval/runner"] = function(module, exports) {
    */
   function run(tasksFile, cwd, opts = {}) {
     const topK = opts.topK || 10;
-  
+
     // Resolve paths
     const resolvedTasksFile = path.isAbsolute(tasksFile)
       ? tasksFile
       : path.resolve(cwd, tasksFile);
-  
+
     const tasks = loadTasks(resolvedTasksFile);
     if (tasks.length === 0) {
       return {
@@ -6847,24 +6847,24 @@ __factories["./src/eval/runner"] = function(module, exports) {
         metrics: { hitAt5: 0, mrr: 0, precisionAt5: 0, avgTokens: 0, tasks: 0 },
       };
     }
-  
+
     // Build index once (re-used across all tasks in the same repo)
     const index = buildSigIndex(cwd);
     // Import graph built once too — the hop-1/hop-2 boost is part of what ships.
     let graph = null;
     try { graph = __require('./src/graph/builder').buildFromCwd(cwd); } catch (_) {}
-  
+
     const taskResults = [];
     for (const task of tasks) {
       const topResult = rank(task.query, index, topK, { cwd, graph, learned: opts.learned });
       const ranked = topResult.map((r) => r.file);
       const tokens = topResult.reduce((sum, r) => sum + estimateTokens(r.sigs), 0);
-  
+
       const { hitAtK, reciprocalRank, precisionAtK } = __require('./src/eval/scorer');
       const hit5 = hitAtK(ranked, task.expected, 5);
       const rr = reciprocalRank(ranked, task.expected);
       const precAt5 = precisionAtK(ranked, task.expected, 5);
-  
+
       taskResults.push({
         id: task.id,
         query: task.query,
@@ -6876,18 +6876,18 @@ __factories["./src/eval/runner"] = function(module, exports) {
         tokens,
       });
     }
-  
+
     const metrics = aggregate(
       taskResults.map((r) => ({ ranked: r.ranked, expected: r.expected, tokens: r.tokens })),
     );
-  
+
     return { tasks: taskResults, metrics };
   }
-  
+
   // ---------------------------------------------------------------------------
   // Table formatter
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Format task results as a markdown table string.
    * @param {Array} taskResults - from run()
@@ -6902,7 +6902,7 @@ __factories["./src/eval/runner"] = function(module, exports) {
     });
     return [header, divider, ...rows].join('\n');
   }
-  
+
   /**
    * Format aggregate metrics as a human-readable string.
    * @param {object} metrics - from aggregate()
@@ -6918,7 +6918,7 @@ __factories["./src/eval/runner"] = function(module, exports) {
       `  avg tokens  : ${metrics.avgTokens}`,
     ].join('\n');
   }
-  
+
   module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize };
   
 };
@@ -6937,7 +6937,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
    *
    * All functions are pure and never throw.
    */
-  
+
   /**
    * Return the 1-based rank of the first expected file found in the ranked
    * result list, or Infinity if none found.
@@ -6953,7 +6953,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
     }
     return Infinity;
   }
-  
+
   /**
    * Normalize a file path for comparison (trim leading ./, lowercase on
    * case-insensitive platforms is intentionally NOT done — keep paths as-is
@@ -6964,7 +6964,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
   function normalizePath(p) {
     return String(p).replace(/^\.\//, '').replace(/\\/g, '/');
   }
-  
+
   /**
    * Compute hit@k for one task.
    * @param {string[]} ranked   - Ordered results
@@ -6975,7 +6975,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
   function hitAtK(ranked, expected, k = 5) {
     return firstRank(ranked, expected) <= k ? 1 : 0;
   }
-  
+
   /**
    * Compute reciprocal rank for one task.
    * @param {string[]} ranked
@@ -6986,7 +6986,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
     const rank = firstRank(ranked, expected);
     return rank === Infinity ? 0 : 1 / rank;
   }
-  
+
   /**
    * Compute precision@k for one task.
    * Fraction of the top-k results that appear in expected.
@@ -7002,7 +7002,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
     const hits = topK.filter((f) => expSet.has(normalizePath(f))).length;
     return hits / topK.length;
   }
-  
+
   /**
    * Aggregate metrics across all task results.
    *
@@ -7020,12 +7020,12 @@ __factories["./src/eval/scorer"] = function(module, exports) {
     if (!Array.isArray(results) || results.length === 0) {
       return { hitAt5: 0, mrr: 0, precisionAt5: 0, avgTokens: 0, tasks: 0 };
     }
-  
+
     let totalHit = 0;
     let totalRR = 0;
     let totalPrec = 0;
     let totalTokens = 0;
-  
+
     for (const r of results) {
       const ranked = r.ranked || [];
       const expected = r.expected || [];
@@ -7034,7 +7034,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
       totalPrec += precisionAtK(ranked, expected, k);
       totalTokens += (typeof r.tokens === 'number' ? r.tokens : 0);
     }
-  
+
     const n = results.length;
     return {
       hitAt5: round(totalHit / n),
@@ -7044,11 +7044,11 @@ __factories["./src/eval/scorer"] = function(module, exports) {
       tasks: n,
     };
   }
-  
+
   function round(x) {
     return Math.round(x * 1000) / 1000;
   }
-  
+
   module.exports = { hitAtK, reciprocalRank, precisionAtK, aggregate, firstRank };
   
 };
@@ -7057,7 +7057,7 @@ __factories["./src/eval/scorer"] = function(module, exports) {
 __factories["./src/eval/usefulness-scorer"] = function(module, exports) {
   
   module.exports = { scoreUsefulness, computeUsefulnessStats };
-  
+
   /**
    * Score answer usefulness based on:
    * 1. Whether right file was retrieved (retrieval hit)
@@ -7066,7 +7066,7 @@ __factories["./src/eval/usefulness-scorer"] = function(module, exports) {
    */
   function scoreUsefulness(taskResult, rankingScore) {
     const { hitRank } = taskResult;
-  
+
     // Tier 1: File not retrieved — context cannot be useful
     if (hitRank === -1 || hitRank > 5) {
       return {
@@ -7075,7 +7075,7 @@ __factories["./src/eval/usefulness-scorer"] = function(module, exports) {
         reason: 'expected file not in top 5'
       };
     }
-  
+
     // Tier 2: File retrieved but not top ranking — partially useful
     if (hitRank > 1) {
       return {
@@ -7084,7 +7084,7 @@ __factories["./src/eval/usefulness-scorer"] = function(module, exports) {
         reason: `file ranked #${hitRank}`
       };
     }
-  
+
     // Tier 3: File at top of ranking — fully useful
     return {
       tier: 'fully-useful',
@@ -7092,24 +7092,24 @@ __factories["./src/eval/usefulness-scorer"] = function(module, exports) {
       reason: 'file ranked first'
     };
   }
-  
+
   function computeUsefulnessStats(taskResults) {
     const tiers = {
       'fully-useful': 0,
       'partially-useful': 0,
       'not-useful': 0
     };
-  
+
     let totalScore = 0;
     let count = 0;
-  
+
     taskResults.forEach(result => {
       const usefulness = scoreUsefulness(result, result.rankingScore || 1.0);
       tiers[usefulness.tier]++;
       totalScore += usefulness.score;
       count++;
     });
-  
+
     return {
       fully_useful: tiers['fully-useful'],
       partially_useful: tiers['partially-useful'],
@@ -7148,19 +7148,19 @@ __factories["./src/evidence/pack"] = function(module, exports) {
    * repository, `buildEvidencePack` returns a byte-identical object, and
    * `grounding.contextHash` is stable. This is the point — the pack is auditable.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const crypto = require('crypto');
-  
+
   const { buildSigIndex, rank, detectIntent } = __require('./src/retrieval/ranker');
   const { scan } = __require('./src/security/scanner');
-  
+
   const SCHEMA_VERSION = '2.0';
   const SCHEMA_URL = 'https://sigmap.io/schemas/evidence-pack-2.json';
   const DEFAULT_BUDGET = 6000;
   const DEFAULT_TOP = 12;
-  
+
   // Measured accuracy of the stem-affix test-discovery method (C2). Constants
   // are sourced from the committed benchmarks/reports/test-discovery.json and
   // guarded by a test that fails on drift — re-run `npm run
@@ -7170,7 +7170,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     measured: { f1: 0.98, precision: 0.971, recall: 0.988, pairs: 3701, repos: 28 },
     benchmark: 'npm run benchmark:test-discovery',
   };
-  
+
   const GENERATED_RE = /(^|\/)(dist|build|out|vendor|node_modules)\/|\.(generated|min|bundle)\.|\.(pb|_pb)\.|\.pb\.go$|_pb2\.py$/;
   const TEST_RE = /(^|\/)(tests?|__tests__|spec|specs)\/|\.(test|spec)\.[a-z]+$|(^|\/)test_[^/]+\.py$|_test\.(go|py|rb)$/;
   const CONFIG_RE = /\.(json|ya?ml|toml|ini|conf|config|properties|env)$|(^|\/)(\.?[a-z]+rc)$|\.config\.[a-z]+$/i;
@@ -7182,7 +7182,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   const SECURITY_RE = /(^|\/|[._-])(secret|secrets|crypto|cipher|encrypt|decrypt|token|signing|keystore|vault)([._-]|\/|$)/i;
   // Public API surface: `api/` dirs, `public-api`, and module barrel entrypoints.
   const PUBLIC_API_RE = /(^|\/)api(\/|$)|(^|\/)public[-_]?api(\/|$)|(^|\/)index\.(js|ts|mjs|cjs)$/i;
-  
+
   /**
    * Split a signature's `  :start-end` line anchor from its symbol text.
    * @param {string} sig
@@ -7197,7 +7197,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
       end: parseInt(m[2], 10),
     };
   }
-  
+
   /**
    * Classify a file into a risk label (C3, v8.5). Path-based, deterministic.
    * Precedence is strict, most-specific-risk first: a migration touching payments
@@ -7211,7 +7211,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   function riskLabelFor(relPath) {
     return riskFactorsFor(relPath)[0];
   }
-  
+
   /**
    * Every risk category a file matches, in the same strict precedence order
    * riskLabelFor uses (schema v2). Where v1 collapsed a migration touching
@@ -7233,13 +7233,13 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     if (PUBLIC_API_RE.test(p)) factors.push('public-api');
     return factors.length ? factors : ['source'];
   }
-  
+
   /** Filename stem (basename minus the first extension chain). */
   function stemOf(relPath) {
     const base = path.basename(relPath);
     return base.replace(/\.[^.]+$/, '').replace(/\.(test|spec)$/i, '');
   }
-  
+
   /**
    * Infer the implementation stem a test file targets, by stripping the
    * conventional test affixes across languages (measured in the C2 benchmark):
@@ -7257,7 +7257,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     s = s.replace(/(Tests?|Specs?)$/, ''); // JVM PascalCase: FooTest, BarSpec
     return s;
   }
-  
+
   /**
    * Impl→test discovery (C2, v8.5). Matches test files back to their
    * implementation by normalizing conventional test affixes, so JS/TS, Python,
@@ -7279,7 +7279,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     }
     return out.sort();
   }
-  
+
   /** Map a ranker `signals` object into a short human-readable reason string. */
   function reasonFor(signals) {
     if (!signals) return 'ranked match';
@@ -7293,12 +7293,12 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     if (signals.learnedWeights && signals.learnedWeights !== 1) parts.push('learned weight');
     return parts.length ? parts.join('; ') : 'ranked match';
   }
-  
+
   /** Token estimate for a signature block (matches the ranker's heuristic). */
   function sigTokens(sigs) {
     return Math.ceil(sigs.join('\n').length / 4);
   }
-  
+
   /**
    * Stable stringify with recursively sorted object keys, for hashing.
    * @param {*} value
@@ -7307,7 +7307,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   function canonicalize(value) {
     return JSON.stringify(sortKeys(value));
   }
-  
+
   function sortKeys(value) {
     if (Array.isArray(value)) return value.map(sortKeys);
     if (value && typeof value === 'object') {
@@ -7317,7 +7317,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     }
     return value;
   }
-  
+
   /**
    * Build an Evidence Pack for a query.
    *
@@ -7333,15 +7333,15 @@ __factories["./src/evidence/pack"] = function(module, exports) {
   function buildEvidencePack(query, cwd, opts = {}) {
     const budget = Number.isFinite(opts.budget) ? opts.budget : DEFAULT_BUDGET;
     const top = Number.isFinite(opts.top) ? opts.top : DEFAULT_TOP;
-  
+
     const sigIndex = opts.sigIndex instanceof Map ? opts.sigIndex : buildSigIndex(cwd);
     const intent = detectIntent(query);
     const allFiles = Array.from(sigIndex.keys());
-  
+
     const ranked = rank(query, sigIndex, { topK: top, cwd })
       .filter((r) => r.score > 0 || ranked0Empty(query));
     const maxScore = ranked.reduce((m, r) => Math.max(m, r.score), 0);
-  
+
     // Related tests are a view over the knowledge-map store (#635) — same bytes
     // as per-file discovery (the store's tests edges come from findRelatedTests
     // over the same index). Injected-index callers keep the legacy path: loading
@@ -7354,12 +7354,12 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     if (kmap) {
       try { storeTests = __require('./src/map/knowledge-map').relatedTestsView(kmap, ranked.map((r) => r.file)); } catch (_) { storeTests = null; }
     }
-  
+
     // Greedy budget fill in rank order; the remainder is reported as dropped.
     const files = [];
     const droppedFiles = [];
     let used = 0;
-  
+
     for (const r of ranked) {
       const tokens = sigTokens(r.sigs);
       if (files.length > 0 && used + tokens > budget) {
@@ -7367,7 +7367,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
         continue;
       }
       used += tokens;
-  
+
       const safe = scan(r.sigs, r.file).safe;
       const symbols = [];
       const sourceLines = [];
@@ -7376,7 +7376,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
         symbols.push(symbol);
         if (start !== null) sourceLines.push({ symbol, start, end });
       }
-  
+
       const riskFactors = riskFactorsFor(r.file);
       files.push({
         path: r.file,
@@ -7389,10 +7389,10 @@ __factories["./src/evidence/pack"] = function(module, exports) {
         riskFactors,
       });
     }
-  
+
     const symbolCount = files.reduce((n, f) => n + f.symbols.length, 0);
     const anchoredSymbols = files.reduce((n, f) => n + f.sourceLines.length, 0);
-  
+
     const pack = {
       schemaVersion: SCHEMA_VERSION,
       schemaUrl: SCHEMA_URL,
@@ -7411,26 +7411,26 @@ __factories["./src/evidence/pack"] = function(module, exports) {
         deterministic: true,
       },
     };
-  
+
     // Hash everything except the hash field itself.
     const forHash = Object.assign({}, pack, {
       grounding: Object.assign({}, pack.grounding, { contextHash: undefined }),
     });
     pack.grounding.contextHash = 'sha256:' + crypto.createHash('sha256').update(canonicalize(forHash)).digest('hex');
-  
+
     return pack;
   }
-  
+
   // rank() returns [] for an empty/whitespace query; keep the filter readable.
   function ranked0Empty(query) {
     return !query || !query.trim();
   }
-  
+
   /** Pretty-printed canonical JSON rendering of a pack. */
   function formatJSON(pack) {
     return JSON.stringify(pack, null, 2);
   }
-  
+
   /** Markdown handoff rendering of a pack. */
   function formatMarkdown(pack) {
     const L = [];
@@ -7442,7 +7442,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     L.push(`- **Grounding:** ${pack.grounding.anchoredSymbols}/${pack.grounding.symbolCount} symbols anchored (${Math.round(pack.grounding.anchorCoverage * 100)}%)`);
     L.push(`- **Hash:** \`${pack.grounding.contextHash}\``);
     L.push('');
-  
+
     for (const f of pack.files) {
       const risk = (f.riskFactors && f.riskFactors.length > 1) ? f.riskFactors.join(' + ') : f.riskLabel;
       L.push(`## \`${f.path}\`  _(${risk}, confidence ${f.confidence})_`);
@@ -7454,16 +7454,16 @@ __factories["./src/evidence/pack"] = function(module, exports) {
       L.push('```');
       L.push('');
     }
-  
+
     if (pack.droppedFiles.length) {
       L.push('## Dropped (over budget)');
       for (const d of pack.droppedFiles) L.push(`- \`${d.path}\` — ${d.reason}`);
       L.push('');
     }
-  
+
     return L.join('\n');
   }
-  
+
   module.exports = {
     buildEvidencePack,
     formatJSON,
@@ -7484,11 +7484,11 @@ __factories["./src/extractors/astro"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
   const typescript = __require('./src/extractors/typescript');
-  
+
   // Ceiling discloses what it drops rather than truncating silently (#576).
   const PER_FILE_LIMIT = 200;
   const MAX_COMPONENT_HINTS = 8;
-  
+
   /**
    * Extract signatures from Astro components (.astro) — frontmatter + template
    * (#539). The TS frontmatter between `---` fences is delegated to the real
@@ -7503,7 +7503,7 @@ __factories["./src/extractors/astro"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(src);
     if (fm) {
       // Frontmatter content starts on line 2 of the file.
@@ -7515,11 +7515,11 @@ __factories["./src/extractors/astro"] = function(module, exports) {
       for (const sig of typescript.extract(body)) {
         sigs.push(sig.replace(/ {2}:(\d+)-(\d+)/, (_, s, e) => `  :${Number(s) + offset}-${Number(e) + offset}`));
       }
-  
+
       // Frontmatter code is file-local by design, so the exported-only passes
       // above miss most of it. Astro-specific surface:
       const lineOf = (idx) => body.slice(0, idx).split('\n').length + offset;
-  
+
       // const { title, description = 'x' } = Astro.props — the props actually consumed.
       const propsUse = /^const\s*\{([^}]+)\}\s*=\s*Astro\.props/m.exec(body);
       if (propsUse) {
@@ -7527,7 +7527,7 @@ __factories["./src/extractors/astro"] = function(module, exports) {
         const ln = lineOf(propsUse.index);
         sigs.push(`props { ${names.join(', ')} }  :${ln}-${ln}`);
       }
-  
+
       // Non-exported top-level functions (the norm in frontmatter).
       for (const m of body.matchAll(/^(async\s+)?function\s+(\w+)\s*\(([^)]*)\)(?:\s*:\s*([^{=\n]+))?/gm)) {
         if (m[2].startsWith('_')) continue;
@@ -7536,14 +7536,14 @@ __factories["./src/extractors/astro"] = function(module, exports) {
         const ln = lineOf(m.index);
         sigs.push(`${m[1] ? 'async ' : ''}function ${m[2]}(${params})${ret}  :${ln}-${ln}`);
       }
-  
+
       // Data-loading consts: const posts = await getCollection('blog').
       for (const m of body.matchAll(/^const\s+(\w+)\s*=\s*await\s+(\w[\w.]*)\s*\(/gm)) {
         const ln = lineOf(m.index);
         sigs.push(`const ${m[1]} = await ${m[2]}()  :${ln}-${ln}`);
       }
     }
-  
+
     // Component usages in the template: <Layout ...>, <Card />, dotted islands.
     const template = fm ? src.slice(fm.index + fm[0].length) : src;
     const used = new Set();
@@ -7556,10 +7556,10 @@ __factories["./src/extractors/astro"] = function(module, exports) {
       const more = names.length - shown.length;
       sigs.push(`uses ${shown.join(', ')}${more > 0 ? ` … +${more} more` : ''}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -7568,7 +7568,7 @@ __factories["./src/extractors/astro"] = function(module, exports) {
 __factories["./src/extractors/component-surface"] = function(module, exports) {
   
   const { readBalanced } = __require('./src/extractors/scan');
-  
+
   // Web-component surface for the TS/JS extractors (#537). The class extractor
   // sees a Lit or Angular component's methods but loses everything that makes
   // it a component — the tag name or selector, the reactive/input/output
@@ -7576,21 +7576,21 @@ __factories["./src/extractors/component-surface"] = function(module, exports) {
   // decorator-aware enrichment in the hooks/Zustand idiom family, not a new
   // extractor: every addition is gated on detecting a component marker, so
   // non-component classes stay byte-identical.
-  
+
   // Decorators (and nothing but decorators/whitespace/modifier keywords) may
   // sit between a recognised marker and its class declaration.
   const GAP_RE = /^(?:\s|@[\w.]+\([^)]*\)|export|default|abstract)*$/;
-  
+
   const CUSTOM_ELEMENT_RE = /@customElement\(\s*['"]([^'"]+)['"]\s*\)/g;
   const NG_COMPONENT_RE = /@(?:Component|Directive)\(/g;
   const DEFINE_RE = /customElements\.define\(\s*['"]([^'"]+)['"]\s*,\s*(\w+)/g;
-  
+
   const PROP_RE = /@(property|state)\s*\(([^)]*)\)\s*(?:declare\s+)?(?:readonly\s+)?(\w+)\s*([?!]?)\s*(?::\s*([^=;\n]+))?/g;
   const IO_RE = /@(Input|Output)\s*\(\s*(?:['"][^'"]*['"])?\s*\)\s*(?:declare\s+)?(?:readonly\s+)?(\w+)\s*([?!]?)\s*(?::\s*([^=;\n]+))?/g;
-  
+
   const TYPE_CHARS = 30;
   const _type = (t) => (t ? `: ${t.trim().replace(/\s+/g, ' ').slice(0, TYPE_CHARS)}` : '');
-  
+
   /**
    * Pre-pass over a whole (comment-stripped) source: component markers by the
    * class index they attach to, plus `customElements.define` tags by class name.
@@ -7600,7 +7600,7 @@ __factories["./src/extractors/component-surface"] = function(module, exports) {
   function scanComponentMarkers(stripped) {
     const decorated = new Map();
     const defined = new Map();
-  
+
     const attach = (endIdx, info) => {
       // The marker binds to the next `class` whose gap is decorators-only.
       const rel = stripped.slice(endIdx).search(/(?:^|\n)[^\n]*\bclass\s+\w/);
@@ -7610,7 +7610,7 @@ __factories["./src/extractors/component-surface"] = function(module, exports) {
       const existing = decorated.get(classAt) || {};
       decorated.set(classAt, Object.assign(existing, info));
     };
-  
+
     for (const m of stripped.matchAll(CUSTOM_ELEMENT_RE)) {
       attach(m.index + m[0].length, { tag: m[1] });
     }
@@ -7627,7 +7627,7 @@ __factories["./src/extractors/component-surface"] = function(module, exports) {
     }
     return { decorated, defined };
   }
-  
+
   /**
    * Component-marker lookup for one class match. `classLineStart` is the match
    * index of the class STATEMENT (line start); decorators bind to the position
@@ -7640,7 +7640,7 @@ __factories["./src/extractors/component-surface"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Component surface member lines for a class body.
    * @param {string} block - class body (comment-stripped)
@@ -7659,7 +7659,7 @@ __factories["./src/extractors/component-surface"] = function(module, exports) {
     out.sort((a, b) => a.start - b.start);
     return out;
   }
-  
+
   module.exports = { scanComponentMarkers, markersForClass, componentMembers };
   
 };
@@ -7669,7 +7669,7 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
   
   const fs = require('fs');
   const path = require('path');
-  
+
   function walkFiles(dir) {
     let out = [];
     let entries;
@@ -7685,11 +7685,11 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
     }
     return out;
   }
-  
+
   function buildTestIndex(cwd, testDirs) {
     const dirs = Array.isArray(testDirs) && testDirs.length ? testDirs : ['tests', 'test', '__tests__', 'spec'];
     const names = new Set();
-  
+
     for (const dir of dirs) {
       const abs = path.join(cwd, dir);
       if (!fs.existsSync(abs)) continue;
@@ -7700,7 +7700,7 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
         } catch (_) {
           continue;
         }
-  
+
         // Extract tokens from JS/TS test name strings (it/test/describe calls)
         for (const m of src.matchAll(/\b(?:it|test|describe)\s*\(\s*['"\`]([\w_ ]+)['"\`]/g)) {
           if (!m[1]) continue;
@@ -7724,10 +7724,10 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
         }
       }
     }
-  
+
     return names;
   }
-  
+
   function isTested(funcName, testIndex) {
     if (!funcName || funcName.length < 3 || !testIndex || testIndex.size === 0) return false;
     const lower = funcName.toLowerCase();
@@ -7742,7 +7742,7 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
     if (tokens.length >= 2 && tokens.every(t => testIndex.has(t))) return true;
     return false;
   }
-  
+
   module.exports = { buildTestIndex, isTested };
   
 };
@@ -7752,7 +7752,7 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
   
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
@@ -7763,7 +7763,7 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
   const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from C/C++ source code.
    * @param {string} src - Raw file content
@@ -7772,13 +7772,13 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // stripComments is length- AND newline-preserving; the previous strip DELETED
     // comment text, so offsets no longer aligned with the masked surface the
     // balanced reader walks (#695).
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     // Classes and structs
     const classRe = /^(?:class|struct)\s+(\w+)(?:\s*:\s*(?:public|protected|private)\s+[\w:]+)?\s*\{/gm;
     for (const m of stripped.matchAll(classRe)) {
@@ -7788,7 +7788,7 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
       const block = extractBlock(stripped, bodyStart);
       for (const meth of extractMembers(block, masked.slice(bodyStart, bodyStart + block.length))) sigs.push(`  ${meth}`);
     }
-  
+
     // Top-level function declarations/definitions (not inside a class)
     for (const m of stripped.matchAll(/^(?!class|struct|if|for|while|switch)([\w:*&<> ]+?)\s+(\w+)\s*\(/gm)) {
       if (m[2].startsWith('_')) continue;
@@ -7801,10 +7801,10 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
       const retStr = ret ? ` → ${ret}` : '';
       sigs.push(`${m[2]}(${normalizeParams(pr.params)})${retStr}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /**
    * Balanced parameter read (#695). `\(([^)]*)\)` stopped at the first `)`, so
    * `int f(int a, int b = g(1, 2))` and a function-pointer parameter
@@ -7816,7 +7816,7 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
     if (close < 0) return null;
     return { params: stripped.slice(openIdx + 1, close), close };
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(src.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -7827,7 +7827,7 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   function extractMembers(block, maskedBlock) {
     const members = [];
     const methodRe = /^[ \t]+(?:virtual\s+|static\s+|inline\s+)?(?!private:|protected:|public:)([\w:*&<> ]+?)\s+(\w+)\s*\(/gm;
@@ -7844,17 +7844,17 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
     }
     return capWithNotice(members, MEMBER_LIMIT, 'members');
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
+
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/\s+/g, ' ').slice(0, 30);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -7865,7 +7865,7 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
@@ -7876,10 +7876,10 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
   const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   // Chars scanned past the params before giving up on a return type.
   const RET_SCAN_CHARS = 400;
-  
+
   /**
    * Extract signatures from C# source code.
    * Signatures carry `:start-end` line anchors (Surgical Context); the comment
@@ -7890,13 +7890,13 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // stripComments is length- AND newline-preserving; the previous regex strip
     // DELETED comment text, so offsets no longer aligned with the masked surface
     // the balanced reader walks (#695).
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     // Classes and interfaces
     const typeRe = /^\s*(?:public\s+|internal\s+|protected\s+)?(?:abstract\s+|sealed\s+|static\s+)?(class|interface|enum|record|struct)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w<>, .]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
@@ -7912,10 +7912,10 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /**
    * Resolve a declaration's parameter list with a BALANCED read (#695).
    *
@@ -7939,7 +7939,7 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
     // anchor past the signature itself.
     return { params: stripped.slice(openIdx + 1, close), after: stripped.slice(close + 1, i), end: i, close };
   }
-  
+
   /**
    * Blank the bodies of NESTED type declarations so their members are not also
    * attributed to the enclosing type (#741). Length- and newline-preserving, so
@@ -7970,7 +7970,7 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
     }
     return { block: b.join(''), masked: mb.join('') };
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(src.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -7981,7 +7981,7 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   function extractMembers(block, maskedBlock, opts = {}) {
     const members = [];
     // Interface members are IMPLICITLY public, so demanding an explicit modifier
@@ -8003,17 +8003,17 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
     }
     return capMembersWithNotice(members, MEMBER_LIMIT);
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
+
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/\s+/g, ' ').slice(0, 30);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -8022,11 +8022,11 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
 __factories["./src/extractors/css"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from CSS/SCSS/SASS/Less source code.
    * @param {string} src - Raw file content
@@ -8035,11 +8035,11 @@ __factories["./src/extractors/css"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     const stripped = src
       .replace(/\/\/.*$/gm, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
     // CSS custom properties (variables)
     const rootMatch = stripped.match(/:root\s*\{([^}]*)\}/);
     if (rootMatch) {
@@ -8047,23 +8047,23 @@ __factories["./src/extractors/css"] = function(module, exports) {
         sigs.push(`var ${m[1]}`);
       }
     }
-  
+
     // SCSS/Less variables
     for (const m of stripped.matchAll(/^(\$[\w-]+)\s*:/gm)) {
       sigs.push(`$var ${m[1]}`);
     }
-  
+
     // SCSS mixins
     for (const m of stripped.matchAll(/^@mixin\s+([\w-]+)(?:\s*\(([^)]*)\))?/gm)) {
       const params = m[2] ? `(${m[2].trim()})` : '';
       sigs.push(`@mixin ${m[1]}${params}`);
     }
-  
+
     // SCSS functions
     for (const m of stripped.matchAll(/^@function\s+([\w-]+)\s*\(([^)]*)\)/gm)) {
       sigs.push(`@function ${m[1]}(${m[2].trim()})`);
     }
-  
+
     // Key class names (top-level) — prefer hyphenated BEM/component names over utilities
     const allClassMatches = [...stripped.matchAll(/^\.([\w-]+)(?=[^{]*\{)/gm)];
     // Utility-class detection: classes are "utility-like" if they have no hyphen (e.g. .flex)
@@ -8089,10 +8089,10 @@ __factories["./src/extractors/css"] = function(module, exports) {
       const selected = [...hyphenated, ...singleWord].slice(0, 8);
       for (const name of selected) sigs.push(`.${name}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -8103,7 +8103,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
@@ -8114,7 +8114,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
   const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from Dart source code.
    * Signatures carry `:start-end` line anchors (Surgical Context); the comment
@@ -8125,13 +8125,13 @@ __factories["./src/extractors/dart"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // stripComments is length- AND newline-preserving; the previous strip DELETED
     // comment text, so offsets no longer aligned with the masked surface the
     // balanced reader walks (#695).
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     // Anchor range: scan past same-line trivia (`async`, `=>` stops) to a body `{`.
     const rangeFor = (declIdx, afterIdx) => {
       let k = afterIdx;
@@ -8143,7 +8143,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
       const line = lineAt(stripped, declIdx);
       return [line, line];
     };
-  
+
     // Classes and abstract classes
     for (const m of stripped.matchAll(/^(?:abstract\s+)?class\s+(\w+)(?:<[^{]*>)?(?:\s+extends\s+[\w<>, ]+)?(?:\s+(?:implements|with|on)\s+[\w<>, ]+)?\s*\{/gm)) {
       const abs = m[0].trimStart().startsWith('abstract') ? 'abstract ' : '';
@@ -8155,7 +8155,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
-  
+
     // Top-level functions — capture return type (prefix before name) and show as suffix
     for (const m of stripped.matchAll(/^((?:Future<[\w<>?,\s]*>|[\w<>?]+))\s+(\w+)\s*\(/gm)) {
       if (m[2].startsWith('_')) continue;
@@ -8165,17 +8165,17 @@ __factories["./src/extractors/dart"] = function(module, exports) {
       const [s, e] = rangeFor(m.index, pr.close + 1);
       sigs.push(withAnchor(`${m[2]}(${normalizeParams(pr.params)})${retStr}`, s, e));
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /** Balanced parameter read — `\(([^)]*)\)` truncated at a nested `)` (#695). */
   function readParams(stripped, masked, openIdx) {
     const close = readBalanced(masked, openIdx);
     if (close < 0) return null;
     return { params: stripped.slice(openIdx + 1, close), close };
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(src.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -8186,7 +8186,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   function extractMembers(block, maskedBlock) {
     const members = [];
     for (const m of block.matchAll(/^[ \t]+(?:@override\s+)?(?:@\w+\s+)*((?:Future<[\w<>?,\s]*>|[\w<>?]+))\s+(\w+)\s*\(/gm)) {
@@ -8202,7 +8202,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
     }
     return capMembersWithNotice(members, MEMBER_LIMIT);
   }
-  
+
   /**
    * Compact the parameter text, keeping Dart's `{named}` / `[optional]` groups.
    *
@@ -8231,7 +8231,7 @@ __factories["./src/extractors/dart"] = function(module, exports) {
     }
     return out.replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').replace(/,\s*([}\]])/g, '$1').replace(/\s+([}\])])/g, '$1').replace(/\(\s+/g, '(').trim().replace(/,$/, '');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -8243,7 +8243,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
    * Extract import dependencies from Python and TypeScript/JavaScript files.
    * Returns compact dependency arrays for the dep-map section of the context output.
    */
-  
+
   const PYTHON_STDLIB = new Set([
     'os', 'sys', 're', 'json', 'time', 'threading', 'logging', 'typing',
     'dataclasses', 'datetime', 'uuid', 'pathlib', 'collections', 'functools',
@@ -8256,7 +8256,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     'queue', 'asyncio', 'concurrent', 'multiprocessing', 'signal', 'mmap',
     'builtins', 'warnings', 'operator', 'textwrap', 'difflib', 'readline',
   ]);
-  
+
   /**
    * Extract project-level import dependencies from Python source.
    * @param {string} src
@@ -8278,7 +8278,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     }
     return [...deps].filter(Boolean).slice(0, 5);
   }
-  
+
   /**
    * Extract relative import dependencies from TypeScript/JavaScript source.
    * @param {string} src
@@ -8289,7 +8289,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     const stripped = src.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
     const local = new Set();
     const pkgs = new Set();
-  
+
     const add = (spec) => {
       if (!spec) return;
       if (spec.startsWith('.')) {
@@ -8307,17 +8307,17 @@ __factories["./src/extractors/deps"] = function(module, exports) {
       const name = spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
       if (name) pkgs.add(name);
     };
-  
+
     for (const m of stripped.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) add(m[1]);
     for (const m of stripped.matchAll(/\brequire\(\s*['"]([^'"]+)['"]\s*\)/g)) add(m[1]);
     for (const m of stripped.matchAll(/\bimport\s+['"]([^'"]+)['"]/g)) add(m[1]);
     for (const m of stripped.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)) add(m[1]);
-  
+
     // Packages first: which libraries a file uses is the scarcer signal, and the
     // local wiring is already recoverable from the file tree.
     return [...pkgs, ...local].slice(0, 5);
   }
-  
+
   /**
    * Extract project-level import dependencies from R source.
    * Captures `library(pkg)`, `require(pkg)`, `requireNamespace("pkg")`, and
@@ -8340,7 +8340,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     }
     return [...deps].slice(0, 5);
   }
-  
+
   /**
    * Extract Lua require() module dependencies.
    * Captures `require "mod"` and `require("mod")`, returning compact module
@@ -8356,7 +8356,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     }
     return [...deps].slice(0, 5);
   }
-  
+
   /**
    * Extract Elixir module dependencies: `alias A.B`, `import A.B`, `use A.B`,
    * `require A.B` — module names for repo-local resolution (#538).
@@ -8371,13 +8371,13 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     }
     return [...deps].slice(0, 5);
   }
-  
+
   function stripLuaComments(src) {
     return String(src || '')
       .replace(/--\[\[[\s\S]*?\]\]/g, '')
       .replace(/--.*$/gm, '');
   }
-  
+
   /**
    * Build reverse dependency map from forward map.
    * @param {Map<string, string[]>} forwardMap
@@ -8395,10 +8395,10 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     }
     return reverse;
   }
-  
+
   /** `java.*`/`javax.*` are the platform, not a dependency worth mapping. */
   const JAVA_PLATFORM = /^(?:java|javax|jdk|sun|com\.sun)\./;
-  
+
   /**
    * Extract third-party package dependencies from Java/Kotlin source.
    *
@@ -8427,7 +8427,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
     }
     return [...deps].slice(0, 5);
   }
-  
+
   module.exports = { extractPythonDeps, extractTSDeps, extractJavaDeps, extractRDeps, extractLuaDeps, extractElixirDeps, buildReverseDepMap };
   
 };
@@ -8436,7 +8436,7 @@ __factories["./src/extractors/deps"] = function(module, exports) {
 __factories["./src/extractors/dispatch"] = function(module, exports) {
   
   const fs = require('fs');
-  
+
   /**
    * Bundle-safe extractor dispatch.
    *
@@ -8445,10 +8445,10 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
    * uses STATIC requires so the bundler rewrites them to `__require` and the extractors
    * resolve from the bundled factories. Used by the live-index MCP write hooks.
    */
-  
+
   const path = require('path');
   const pipeline = __require('./src/extractors/pipeline');
-  
+
   // Static language → extractor map (every entry is a bundled factory).
   const EXTRACTORS = {
     typescript: __require('./src/extractors/typescript'),
@@ -8490,7 +8490,7 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
     dockerfile: __require('./src/extractors/dockerfile'),
     generic: __require('./src/extractors/generic'),
   };
-  
+
   /**
    * Extension → extractor module name. **The single source of truth for
    * extractor resolution** (#591).
@@ -8543,7 +8543,7 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
     '.xml': 'xml',
     '.md': 'markdown',
   };
-  
+
   /**
    * Languages SigMap can extract, resolved from the one map above plus the two
    * that `langFor` routes by FILENAME rather than extension.
@@ -8559,7 +8559,7 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
    * @type {string[]} sorted, deduplicated
    */
   const LANGUAGES = [...new Set([...Object.values(EXT_MAP), 'dockerfile', 'pipeline'])].sort();
-  
+
   /** Resolve a language key from a file path/name. */
   function langFor(filePathOrName) {
     const raw = String(filePathOrName || '');
@@ -8573,7 +8573,7 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
     const ext = path.extname(base).toLowerCase();
     return EXT_MAP[ext] || null;
   }
-  
+
   /**
    * Extract signatures from a file's content using the right extractor.
    * @param {string} filePathOrName - path or name (extension drives the extractor)
@@ -8604,7 +8604,7 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
       return [];
     }
   }
-  
+
   module.exports = { extractFile, langFor, EXT_MAP, LANGUAGES };
   
 };
@@ -8613,11 +8613,11 @@ __factories["./src/extractors/dispatch"] = function(module, exports) {
 __factories["./src/extractors/dockerfile"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from Dockerfiles.
    * @param {string} src - Raw file content
@@ -8626,15 +8626,15 @@ __factories["./src/extractors/dockerfile"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     const lines = src.split('\n').filter((l) => l.trim() && !l.trimStart().startsWith('#'));
-  
+
     // FROM stages
     for (const line of lines) {
       const m = line.match(/^FROM\s+([^\s]+)(?:\s+AS\s+(\w+))?/i);
       if (m) sigs.push(`FROM ${m[1]}${m[2] ? ` AS ${m[2]}` : ''}`);
     }
-  
+
     // EXPOSE ports
     const exposePorts = [];
     for (const line of lines) {
@@ -8642,28 +8642,28 @@ __factories["./src/extractors/dockerfile"] = function(module, exports) {
       if (m) exposePorts.push(...m[1].trim().split(/\s+/));
     }
     if (exposePorts.length > 0) sigs.push(`EXPOSE ${exposePorts.join(' ')}`);
-  
+
     // ENTRYPOINT and CMD
     for (const line of lines) {
       if (/^ENTRYPOINT\s+/i.test(line)) sigs.push(line.trim());
       if (/^CMD\s+/i.test(line)) sigs.push(line.trim());
     }
-  
+
     // ENV variables
     for (const line of lines) {
       const m = line.match(/^ENV\s+([\w]+)/i);
       if (m) sigs.push(`ENV ${m[1]}`);
     }
-  
+
     // ARG variables
     for (const line of lines) {
       const m = line.match(/^ARG\s+([\w]+)/i);
       if (m) sigs.push(`ARG ${m[1]}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -8672,12 +8672,12 @@ __factories["./src/extractors/dockerfile"] = function(module, exports) {
 __factories["./src/extractors/elixir"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling discloses what it drops rather than truncating silently (#576).
   const PER_FILE_LIMIT = 200;
   const HINT_CHARS = 60;
   const SPEC_CHARS = 30;
-  
+
   /**
    * Extract signatures from Elixir source code (.ex/.exs) — Tier 3 (#538).
    *
@@ -8697,16 +8697,16 @@ __factories["./src/extractors/elixir"] = function(module, exports) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
     const lines = stripComments(src).split('\n');
-  
+
     // Pending attribute state: @doc/@spec bind to the NEXT def; @moduledoc to
     // the enclosing module line just emitted.
     let pendingDoc = '';
     let pendingSpec = '';
     let moduleIdx = -1; // index in sigs of the current module line, for @moduledoc
-  
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-  
+
       const mod = /^\s*defmodule\s+([A-Z][\w.]*)\s+do\b/.exec(line);
       if (mod) {
         sigs.push(`defmodule ${mod[1]}`);
@@ -8715,27 +8715,27 @@ __factories["./src/extractors/elixir"] = function(module, exports) {
         pendingSpec = '';
         continue;
       }
-  
+
       const moduledoc = /^\s*@moduledoc\s+(.*)/.exec(line);
       if (moduledoc && moduleIdx !== -1) {
         const text = docText(moduledoc[1], lines, i);
         if (text && !sigs[moduleIdx].includes('  # ')) sigs[moduleIdx] += `  # ${text}`;
         continue;
       }
-  
+
       const doc = /^\s*@doc\s+(.*)/.exec(line);
       if (doc) {
         pendingDoc = docText(doc[1], lines, i);
         continue;
       }
-  
+
       const spec = /^\s*@spec\s+\w+[?!]?\s*\(.*::\s*(.+?)\s*$/.exec(line)
         || /^\s*@spec\s+\w+[?!]?\s+::\s*(.+?)\s*$/.exec(line);
       if (spec) {
         pendingSpec = spec[1].replace(/\s+/g, ' ').slice(0, SPEC_CHARS);
         continue;
       }
-  
+
       const def = /^(\s*)(defmacrop?|defp?)\s+([a-z_]\w*[?!]?)\s*(?:\(([^)]*)\))?/.exec(line);
       if (def) {
         const name = def[3];
@@ -8749,10 +8749,10 @@ __factories["./src/extractors/elixir"] = function(module, exports) {
         pendingSpec = '';
       }
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /** First sentence of a @doc/@moduledoc value; follows heredocs one line in. */
   function docText(rest, lines, i) {
     let text = rest.trim();
@@ -8769,7 +8769,7 @@ __factories["./src/extractors/elixir"] = function(module, exports) {
     if (text === 'false') return '';
     return text.split(/[.!?]/)[0].trim().slice(0, HINT_CHARS);
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     // Strip default values (`\\ default`) and pattern-match internals down to
@@ -8785,7 +8785,7 @@ __factories["./src/extractors/elixir"] = function(module, exports) {
       .filter(Boolean)
       .join(', ');
   }
-  
+
   /** Blank `#` comments while preserving line structure; strings kept. */
   function stripComments(src) {
     return String(src)
@@ -8808,7 +8808,7 @@ __factories["./src/extractors/elixir"] = function(module, exports) {
       })
       .join('\n');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -8817,31 +8817,31 @@ __factories["./src/extractors/elixir"] = function(module, exports) {
 __factories["./src/extractors/gdscript"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   // Ceilings disclose what they drop rather than truncating silently (#576).
   const MEMBER_LIMIT = 120;
   const ENUM_LIMIT = 24;
-  
+
   /**
    * Extract signatures from Godot GDScript source code.
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
-  
+
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     const stripped = src.replace(/#.*$/gm, '');
-  
+
     let className = null;
     let baseName = null;
     const addedClasses = new Set();
-  
+
     const cm = stripped.match(/^class_name\s+(\w+)(?:\s+extends\s+([\w.]+))?/m);
     if (cm) {
       className = cm[1];
@@ -8851,20 +8851,20 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
       const em = stripped.match(/^extends\s+([\w."/]+)/m);
       if (em) baseName = em[1];
     }
-  
+
     if (className) {
       sigs.push(baseName ? `class ${className}(${baseName})` : `class ${className}`);
       addedClasses.add(className);
     } else if (baseName) {
       sigs.push(`extends ${baseName}`);
     }
-  
+
     const indent = (className || baseName) ? '  ' : '';
-  
+
     for (const m of stripped.matchAll(/^signal\s+(\w+)(?:\s*\(([^)]*)\))?/gm)) {
       sigs.push(`${indent}signal ${m[1]}(${normalizeParams(m[2] || '')})`);
     }
-  
+
     for (const m of stripped.matchAll(/^enum\s+(\w+)\s*\{([^}]*)\}/gm)) {
       const members = m[2]
         .split(',')
@@ -8872,7 +8872,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
         .filter(Boolean);
       sigs.push(`${indent}enum ${m[1]} { ${capWithNotice(members, ENUM_LIMIT, 'values').join(', ')} }`);
     }
-  
+
     let constCount = 0;
     for (const m of stripped.matchAll(/^const\s+(\w+)(?:\s*:\s*[^=\n]+)?\s*:?=\s*([^\n]+)$/gm)) {
       let val = m[2].trim();
@@ -8885,7 +8885,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
       sigs.push(`${indent}const ${m[1]} = ${val}`);
       if (++constCount >= 5) break;
     }
-  
+
     for (const m of stripped.matchAll(/^((?:@\w+(?:\([^)]*\))?\s+)*)var\s+(\w+)(?:\s*:\s*([^=\n]+?))?(?:\s*:?=\s*[^\n]+)?$/gm)) {
       const decorators = m[1] || '';
       const name = m[2];
@@ -8899,7 +8899,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
       const typeStr = type ? `: ${type}` : '';
       sigs.push(`${indent}${prefix}var ${name}${typeStr}`);
     }
-  
+
     for (const m of stripped.matchAll(/^(static\s+)?func\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*([^:\n]+))?\s*:/gm)) {
       const params = normalizeParams(m[3]);
       const ret = (m[4] || '').trim();
@@ -8907,7 +8907,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
       const staticKw = m[1] ? 'static ' : '';
       sigs.push(`${indent}${staticKw}func ${m[2]}(${params})${retStr}`);
     }
-  
+
     for (const m of stripped.matchAll(/^class\s+(\w+)(?:\s+extends\s+(\w+))?\s*:/gm)) {
       if (addedClasses.has(m[1])) continue;
       addedClasses.add(m[1]);
@@ -8917,10 +8917,10 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
         sigs.push(`  ${meth}`);
       }
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   function extractInnerMembers(stripped, startIndex) {
     const members = [];
     const lines = stripped.slice(startIndex).split('\n');
@@ -8938,7 +8938,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
     }
     return capWithNotice(members, MEMBER_LIMIT, 'members');
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim()
@@ -8953,7 +8953,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
       .filter(Boolean)
       .join(', ');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -8962,7 +8962,7 @@ __factories["./src/extractors/gdscript"] = function(module, exports) {
 __factories["./src/extractors/generic"] = function(module, exports) {
   
   module.exports = { extract };
-  
+
   const PATTERNS = [
     /^(?:pub\s+)?(?:async\s+)?function\s+\w+\s*\(/,
     /^(?:pub\s+)?(?:async\s+)?fn\s+\w+[\s(<]/,
@@ -8972,7 +8972,7 @@ __factories["./src/extractors/generic"] = function(module, exports) {
     /^class\s+\w+/,
     /^(?:proc|sub|method)\s+\w+\s*\(/,
   ];
-  
+
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const results = [];
@@ -8995,7 +8995,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   // Class bodies are scanned to this many characters. Real classes routinely
@@ -9004,14 +9004,14 @@ __factories["./src/extractors/go"] = function(module, exports) {
   // ceiling only guards against pathological input (Java parity, #551).
   const MAX_CLASS_BODY_CHARS = 200000;
   const PER_FILE_LIMIT = 200;
-  
+
   // Per-interface member ceiling, disclosed via capMembersWithNotice (#576).
   const MEMBER_LIMIT = 120;
-  
+
   // Chars scanned past the params for the return type before giving up — a
   // body-less declaration (assembly stub) must not swallow the next func's `{`.
   const RET_SCAN_CHARS = 300;
-  
+
   /**
    * Extract signatures from Go source code.
    * Signatures carry `:start-end` line anchors (Surgical Context); comment
@@ -9029,22 +9029,22 @@ __factories["./src/extractors/go"] = function(module, exports) {
     // Append the godoc hint after the anchor as `  # <hint>` — same convention
     // as the Python/JS extractors' doc hints.
     const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
-  
+
     // stripComments is string-aware; maskCode additionally blanks string
     // contents so every delimiter seen on it is structural. Both preserve
     // length and newlines, so offsets align across all three surfaces.
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     // Index of the closing brace for a block opened just before startIndex.
     const blockEndIdx = (startIndex) => startIndex + extractBlock(stripped, masked, startIndex).length;
-  
+
     // Structs (type parameters on the name allowed: `type Stack[T any] struct`)
     for (const m of stripped.matchAll(/^type\s+(\w+)(?:\[[^\]\n]*\])?\s+struct\s*\{/gm)) {
       const end = blockEndIdx(m.index + m[0].length);
       sigs.push(hinted(withAnchor(`type ${m[1]} struct`, lineAt(stripped, m.index), lineAt(stripped, end)), m[1]));
     }
-  
+
     // Interfaces (type parameters on the name allowed)
     for (const m of stripped.matchAll(/^type\s+(\w+)(?:\[[^\]\n]*\])?\s+interface\s*\{/gm)) {
       const bodyStart = m.index + m[0].length;
@@ -9054,7 +9054,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
-  
+
     // Functions and methods — balanced walk: optional receiver, name, optional
     // type params, params, return segment up to the body brace.
     const ws = (i) => { while (stripped[i] === ' ' || stripped[i] === '\t') i++; return i; };
@@ -9097,10 +9097,10 @@ __factories["./src/extractors/go"] = function(module, exports) {
       const end = blockEndIdx(bodyOpen + 1);
       sigs.push(hinted(withAnchor(`func ${receiver}${name}(${normalizeParams(params)})${retStr}`, lineAt(stripped, m.index), lineAt(stripped, end)), name));
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   // Depth-counted on the MASKED surface (a brace inside a string can no longer
   // open or close a block); content sliced from the stripped surface.
   function extractBlock(stripped, masked, startIndex) {
@@ -9113,7 +9113,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
     }
     return stripped.slice(startIndex, i - 1);
   }
-  
+
   function extractInterfaceMethods(block, maskedBlock) {
     const methods = [];
     for (const m of block.matchAll(/^[ \t]+([A-Za-z_]\w*)\s*\(/gm)) {
@@ -9132,12 +9132,12 @@ __factories["./src/extractors/go"] = function(module, exports) {
     }
     return capMembersWithNotice(methods, MEMBER_LIMIT, 'methods');
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ').replace(/,\s*$/, '');
   }
-  
+
   // Godoc: the `//` comment block directly above a top-level func/type/method
   // declaration → first prose sentence, 60-char cap. Runs on the ORIGINAL src
   // (extract strips comments before matching). Compiler directives (`//go:...`)
@@ -9152,7 +9152,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   // First non-directive prose line of a `//` block → first sentence, 60-char cap.
   function firstDocSentence(block) {
     const line = String(block).split('\n')
@@ -9161,7 +9161,7 @@ __factories["./src/extractors/go"] = function(module, exports) {
     if (!line) return '';
     return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -9180,10 +9180,10 @@ __factories["./src/extractors/graphql"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Strip comments (# style)
     const stripped = src.replace(/#[^\n]*/g, '');
-  
+
     // Schema type definitions: type Foo [implements Bar] { ... }
     for (const m of stripped.matchAll(
       /\b(type|interface|input)\s+(\w+)(?:\s+implements\s+([\w\s&]+))?\s*\{/g
@@ -9191,47 +9191,47 @@ __factories["./src/extractors/graphql"] = function(module, exports) {
       const implements_ = m[3] ? ` implements ${m[3].trim().replace(/\s+/g, ' ')}` : '';
       sigs.push(`${m[1]} ${m[2]}${implements_}`);
     }
-  
+
     // enum
     for (const m of stripped.matchAll(/\benum\s+(\w+)\s*\{/g)) {
       sigs.push(`enum ${m[1]}`);
     }
-  
+
     // union
     for (const m of stripped.matchAll(/\bunion\s+(\w+)\s*=/g)) {
       sigs.push(`union ${m[1]}`);
     }
-  
+
     // scalar
     for (const m of stripped.matchAll(/\bscalar\s+(\w+)/g)) {
       sigs.push(`scalar ${m[1]}`);
     }
-  
+
     // extend type / extend interface
     for (const m of stripped.matchAll(/\bextend\s+(type|interface)\s+(\w+)/g)) {
       sigs.push(`extend ${m[1]} ${m[2]}`);
     }
-  
+
     // Query / Mutation / Subscription operations
     for (const m of stripped.matchAll(
       /\b(query|mutation|subscription)\s+(\w+)\s*(?:\([^)]*\))?\s*\{/g
     )) {
       sigs.push(`${m[1]} ${m[2]}`);
     }
-  
+
     // Named fragments
     for (const m of stripped.matchAll(/\bfragment\s+(\w+)\s+on\s+(\w+)/g)) {
       sigs.push(`fragment ${m[1]} on ${m[2]}`);
     }
-  
+
     // Top-level schema { query: ... }
     if (/\bschema\s*\{/.test(stripped)) {
       sigs.push('schema { ... }');
     }
-  
+
     return sigs;
   }
-  
+
   module.exports = { extract };
   
 };
@@ -9240,11 +9240,11 @@ __factories["./src/extractors/graphql"] = function(module, exports) {
 __factories["./src/extractors/html"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from HTML files.
    * Focuses on id/class attributes, forms, and script tags.
@@ -9254,11 +9254,11 @@ __factories["./src/extractors/html"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Page title
     const titleMatch = src.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     if (titleMatch) sigs.push(`title: ${titleMatch[1].trim()}`);
-  
+
     // Forms with id/action
     for (const m of src.matchAll(/<form\s+([^>]*)>/gi)) {
       const attrs = m[1];
@@ -9266,21 +9266,21 @@ __factories["./src/extractors/html"] = function(module, exports) {
       const action = attrs.match(/action=["']?([^"'\s>]+)/i);
       if (id) sigs.push(`form#${id[1]}${action ? ` action="${action[1]}"` : ''}`);
     }
-  
+
     // Elements with id
     for (const m of src.matchAll(/<(\w+)\s+[^>]*id=["'](\w+)["'][^>]*>/gi)) {
       if (['html', 'head', 'body', 'script', 'style', 'link', 'meta'].includes(m[1].toLowerCase())) continue;
       sigs.push(`${m[1]}#${m[2]}`);
     }
-  
+
     // Data attributes (data-component, data-controller etc)
     for (const m of src.matchAll(/data-(?:component|controller|view|page)=["'](\w[\w-]*)/gi)) {
       sigs.push(`data-${m[0].match(/data-(\w[\w-]*)/i)[1]}: ${m[1]}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -9291,23 +9291,23 @@ __factories["./src/extractors/java"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
-  
+
   // Class bodies are scanned to this many characters. Generated JVM sources
   // (MyBatis/JPA entities) routinely run past 10KB, so the ceiling only guards
   // against pathological input rather than trimming ordinary classes.
   const MAX_CLASS_BODY_CHARS = 200000;
-  
+
   // Per-class member ceiling. Sits above the default `maxSigsPerFile` so the
   // caller's configured budget governs the output rather than this file.
   const MAX_MEMBERS_PER_CLASS = 120;
-  
+
   // Per-file signature ceiling, likewise above the configured default.
   const MAX_SIGS_PER_FILE = 200;
-  
+
   // Chars scanned past a type's name/header for the body `{` (extends /
   // implements / permits clauses) before giving up.
   const HEAD_SCAN_CHARS = 500;
-  
+
   /**
    * Extract signatures from Java source code.
    * Signatures carry `:start-end` line anchors (Surgical Context); comment
@@ -9326,11 +9326,11 @@ __factories["./src/extractors/java"] = function(module, exports) {
     // Append the Javadoc hint after the anchor as `  # <hint>` — same convention
     // as the Python/JS extractors' doc hints.
     const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
-  
+
     const stripped = stripComments(src);
     const masked = maskCode(src);
     const ws = (i) => { while (stripped[i] === ' ' || stripped[i] === '\t' || stripped[i] === '\n') i++; return i; };
-  
+
     // Type declarations: classes, interfaces, enums, records — modifiers in any
     // order, sealed/non-sealed included, generic names allowed.
     const typeRegex = /^[ \t]*(?:(?:public|protected|private|abstract|final|sealed|non-sealed|static|strictfp)\s+)*(class|interface|enum|record)\s+(\w+)/gm;
@@ -9383,10 +9383,10 @@ __factories["./src/extractors/java"] = function(module, exports) {
         sigs.push(hinted(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + declIdx), lineAt(stripped, bodyStart + endIdx)), meth.name));
       }
     }
-  
+
     return capWithNotice(sigs, MAX_SIGS_PER_FILE, 'signatures');
   }
-  
+
   // Depth-counted on the MASKED surface (a brace inside a string can no longer
   // open or close a block); content sliced from the stripped surface.
   /**
@@ -9418,7 +9418,7 @@ __factories["./src/extractors/java"] = function(module, exports) {
     }
     return { block: b.join(''), masked: mb.join('') };
   }
-  
+
   function extractBlock(stripped, masked, startIndex) {
     let depth = 1;
     let i = startIndex;
@@ -9430,9 +9430,9 @@ __factories["./src/extractors/java"] = function(module, exports) {
     }
     return stripped.slice(startIndex, i - 1);
   }
-  
+
   const MODIFIER_RE = /^(?:public|protected|private|static|final|synchronized|abstract|default|native|strictfp)\b/;
-  
+
   /**
    * Member scan over a type body. Class/enum/record mode requires a
    * public/protected modifier (statements inside method bodies never carry
@@ -9504,17 +9504,17 @@ __factories["./src/extractors/java"] = function(module, exports) {
     }
     return capMembersWithNotice(members, MAX_MEMBERS_PER_CLASS);
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ').replace(/,\s*$/, '');
   }
-  
+
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/\s+/g, ' ').slice(0, 30);
   }
-  
+
   // Javadoc: the `/** ... */` block directly above a type or public/protected
   // member declaration → first prose sentence, 60-char cap. Runs on the
   // ORIGINAL src (extract strips comments before matching). Annotation lines
@@ -9535,7 +9535,7 @@ __factories["./src/extractors/java"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   // First non-tag prose line of a Javadoc body → first sentence, 60-char cap.
   function firstDocSentence(body) {
     const line = String(body).split('\n')
@@ -9544,7 +9544,7 @@ __factories["./src/extractors/java"] = function(module, exports) {
     if (!line) return '';
     return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -9556,11 +9556,11 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
-  
+
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
   const MAX_CLASS_BODY_CHARS = 200000;
-  
+
   /**
    * Extract signatures from JavaScript source code.
    * Top-level declarations and class members carry a `:start-end` line anchor
@@ -9578,14 +9578,14 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     const docHintFor = [];
     const returnHints = buildReturnHints(src);
     const docHints = buildDocHints(src);
-  
+
     // stripComments is string-aware (a `//` inside a string literal survives);
     // maskCode additionally blanks string/template contents so every delimiter
     // found on it is structural. Both are length- and newline-preserving, so
     // offsets and line anchors align across all three views (#526).
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     // Full params for a declaration whose `(` sits at openIdx: depth-matched
     // close over masked text; TEXT sliced from stripped so string defaults keep
     // their real content. Falls back to first-`)` when unbalanced (cap hit).
@@ -9597,7 +9597,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       }
       return { params: stripped.slice(openIdx + 1, closeIdx), closeIdx };
     };
-  
+
     const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
     /**
      * Index of the `{` that opens a class body, scanning from just after the
@@ -9619,13 +9619,13 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       }
       return -1;
     };
-  
+
     // End line for a function whose params close just before `matchEnd`.
     const fnEndLine = (matchEnd, startLn) => {
       const brace = masked.indexOf('{', matchEnd);
       return brace !== -1 ? lineAt(stripped, blockEndIdx(brace + 1)) : startLn;
     };
-  
+
     // Classes
     //
     // The heritage clause is NOT matched by this regex, only the class name.
@@ -9677,7 +9677,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
         anchors.push([lineAt(stripped, bodyStart + meth.start), lineAt(stripped, bodyStart + meth.end)]);
       }
     }
-  
+
     // Exported named functions
     for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
       const asyncKw = /export\s+async/.test(m[0]) ? 'async ' : '';
@@ -9688,7 +9688,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
-  
+
     // Exported arrow functions
     for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/gm)) {
       const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
@@ -9700,7 +9700,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
-  
+
     // module.exports = { ... }
     const moduleExports = stripped.match(/^module\.exports\s*=\s*\{([^}]+)\}/m);
     if (moduleExports) {
@@ -9711,7 +9711,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
         anchors.push([startLn, lineAt(stripped, moduleExports.index + moduleExports[0].length)]);
       }
     }
-  
+
     // Top-level named functions (non-exported)
     for (const m of stripped.matchAll(/^(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
       const asyncKw = m[0].startsWith('async') ? 'async ' : '';
@@ -9722,14 +9722,14 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
-  
+
     const withAnchors = sigs.map((s, i) => {
       const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
       return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
     });
     return capWithNotice(withAnchors, 200, 'signatures');
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1;
     let i = startIndex;
@@ -9741,9 +9741,9 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'catch', 'finally', 'else', 'return']);
-  
+
   // Returns members as { text, start, end } where start/end are char offsets
   // WITHIN `block` (end = the method's closing brace), so the caller can resolve
   // per-method line anchors that span the method body. `maskedBlock` is the
@@ -9770,7 +9770,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     }
     return capMembersWithNotice(members, 120, 'methods');
   }
-  
+
   // One linear pass over well-formed docblocks. The previous three matchAll
   // passes used `\/\*\*[\s\S]*?@returns?...[\s\S]*?\*\/` — lazy gaps free to
   // scan ACROSS comment boundaries, so every docblock without a matching
@@ -9783,7 +9783,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     /\s*export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/y,
     /\s*(?:static\s+|async\s+|get\s+|set\s+)*(\w+)\s*\(/y,
   ];
-  
+
   function buildReturnHints(src) {
     const hints = new Map();
     for (const block of src.matchAll(/\/\*\*(?:[^*]|\*(?!\/))*\*\//g)) {
@@ -9798,7 +9798,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   // First prose sentence of the JSDoc block immediately preceding a top-level
   // function (same three shapes as buildReturnHints). Mirrors the Python
   // extractor's extractDocHint: first sentence only, 60-char cap.
@@ -9819,7 +9819,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   // First non-tag prose line of a JSDoc body → first sentence, 60-char cap.
   function firstDocSentence(body) {
     const line = String(body).split('\n')
@@ -9828,21 +9828,21 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     if (!line) return '';
     return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
-  
+
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/\s+/g, ' ').slice(0, 25);
   }
-  
+
   function formatReturnHint(type) {
     return type ? ` → ${type}` : '';
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -9853,7 +9853,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
@@ -9864,13 +9864,13 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
   const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   // Chars scanned past the params for a `: ReturnType` before giving up.
   const RET_SCAN_CHARS = 400;
-  
+
   /** Type/class keywords that terminate a header walk — see `bodyBraceFor`. */
   const DECL_KEYWORDS = /\b(?:class|object|interface|fun|val|var)\b/;
-  
+
   /**
    * Extract signatures from Kotlin source code.
    *
@@ -9899,13 +9899,13 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // stripComments is string-aware; maskCode additionally blanks string
     // contents so every delimiter seen on it is structural. Both preserve
     // length and newlines, so offsets align across both surfaces.
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     /**
      * Index of the body `{` belonging to the declaration starting at `from`, or
      * -1 when it has no body.
@@ -9939,10 +9939,10 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
       }
       return -1;
     };
-  
+
     /** Closing `}` index for a block opened at `bodyOpen`, depth on the mask. */
     const blockEndIdx = (bodyOpen) => bodyOpen + 1 + extractBlock(stripped, masked, bodyOpen + 1).length;
-  
+
     // ── Classes, objects, interfaces ──────────────────────────────────────────
     // The header is walked rather than regex-spanned, so a body-less declaration
     // is reported on its own line instead of borrowing the next one's body.
@@ -9967,17 +9967,17 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
-  
+
     // ── Top-level functions ───────────────────────────────────────────────────
     for (const fn of scanFunctions(stripped, masked, /^(?:public\s+|internal\s+)?(?:suspend\s+)?fun\b/gm)) {
       const bodyOpen = bodyBraceFor(fn.afterRet);
       const end = bodyOpen >= 0 ? blockEndIdx(bodyOpen) : fn.afterRet;
       sigs.push(withAnchor(fn.text, lineAt(stripped, fn.declIdx), lineAt(stripped, end)));
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /**
    * Walk every `fun` matched by `headRe`, resolving its parameter list with a
    * balanced read instead of a first-`)` capture.
@@ -9991,13 +9991,13 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
       const declIdx = m.index + (head.length - head.trimStart().length);
       const suspend = /\bsuspend\b/.test(head) ? 'suspend ' : '';
       let i = ws(m.index + head.length);
-  
+
       const nameM = /^[A-Za-z_]\w*/.exec(stripped.slice(i, i + 200));
       if (!nameM) continue;
       const name = nameM[0];
       if (name.startsWith('_')) continue;
       i = ws(i + name.length);
-  
+
       // Generic parameters, e.g. `fun <T> map(...)` handled by the head regex's
       // caller; a receiver-side `<T>` here is jumped whole.
       if (masked[i] === '<') {
@@ -10008,7 +10008,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
       const close = readBalanced(masked, i);
       if (close < 0) continue;
       const params = stripped.slice(i + 1, close);
-  
+
       // `: ReturnType` — read to the body `{`, the expression `=`, or EOL,
       // jumping balanced groups so `(Int) -> Int` survives intact.
       let j = close + 1;
@@ -10038,7 +10038,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
     }
     return out;
   }
-  
+
   // Depth-counted on the MASKED surface (a brace inside a string can no longer
   // open or close a block); content sliced from the stripped surface.
   /**
@@ -10088,7 +10088,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
     }
     return { block: b.join(''), masked: mb.join('') };
   }
-  
+
   function extractBlock(stripped, masked, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(masked.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -10099,7 +10099,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
     }
     return stripped.slice(startIndex, i - 1);
   }
-  
+
   function extractMembers(block, maskedBlock) {
     const members = [];
     const fns = scanFunctions(block, maskedBlock,
@@ -10107,7 +10107,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
     for (const fn of fns) members.push({ text: fn.text, declIdx: fn.declIdx, endIdx: fn.endIdx });
     return capMembersWithNotice(members, MEMBER_LIMIT);
   }
-  
+
   /**
    * Parameter NAMES only, with `: Type` and `= default` dropped.
    *
@@ -10149,7 +10149,7 @@ __factories["./src/extractors/kotlin"] = function(module, exports) {
     flush();
     return names.join(', ');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -10165,7 +10165,7 @@ __factories["./src/extractors/line-anchor"] = function(module, exports) {
    * a plain string suffix, which keeps the existing `string[]` signature contract
    * intact — ranker, adapters, and CLAUDE.md render it for free.
    */
-  
+
   /**
    * 1-based line number of character index `idx` within `src`.
    * Counts newlines in the prefix, so it stays correct as long as the source
@@ -10184,7 +10184,7 @@ __factories["./src/extractors/line-anchor"] = function(module, exports) {
     }
     return line;
   }
-  
+
   /**
    * Render an anchor suffix: `  :start-end`.
    * @param {number} start
@@ -10194,7 +10194,7 @@ __factories["./src/extractors/line-anchor"] = function(module, exports) {
   function anchor(start, end) {
     return `  :${start}-${end}`;
   }
-  
+
   /**
    * Append a line anchor to a signature string.
    * @param {string} sig
@@ -10205,7 +10205,7 @@ __factories["./src/extractors/line-anchor"] = function(module, exports) {
   function withAnchor(sig, start, end) {
     return `${sig}${anchor(start, end)}`;
   }
-  
+
   module.exports = { lineAt, anchor, withAnchor };
   
 };
@@ -10219,7 +10219,7 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
   const { documentSymbols } = __require('./src/lsp/client');
   const { anchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
-  
+
   // LSP documentSymbol → signature lines (#612, tier T3 of #542). One client,
   // every LSP language: symbols come back language-neutral (SymbolKind + name
   // + a server-rendered `detail` type string + exact ranges), so the mapping
@@ -10231,10 +10231,10 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
   // cached across runs in .context/lsp-cache.json keyed by content hash +
   // server command + the server binary's size/mtime — cheap to compute with
   // no extra spawn, and invalidated by either a file edit or a server upgrade.
-  
+
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   // Built-in extension → server command. `exactness.lspServers` in config lays
   // entries over this (command arrays, spawned directly — never a shell).
   const DEFAULT_SERVERS = {
@@ -10243,13 +10243,13 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
     '.go': ['gopls'],
     '.rs': ['rust-analyzer'],
   };
-  
+
   const LANGUAGE_IDS = {
     '.c': 'c', '.cc': 'cpp', '.cpp': 'cpp', '.cxx': 'cpp',
     '.h': 'cpp', '.hpp': 'cpp', '.hh': 'cpp',
     '.go': 'go', '.rs': 'rust',
   };
-  
+
   // LSP SymbolKind — containers get their own top-level line; leaf kinds
   // inside a container render as indented members.
   const KIND_WORDS = {
@@ -10257,7 +10257,7 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
   };
   const CONTAINER_KINDS = new Set(Object.keys(KIND_WORDS).map(Number));
   const LEAF_KINDS = new Set([6, 7, 8, 9, 12, 13, 14]); // method, property, field, ctor, function, variable, constant
-  
+
   // Per-run state: failed server commands are not retried (a repo with the
   // flag on but no server pays one fast ENOENT, not one per file), and the
   // cache file is loaded once and written through on miss.
@@ -10266,7 +10266,7 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
   let _cache = null;
   let _cachePath = null;
   const _labels = new Set();
-  
+
   function _resolveBinaryStat(cmd0) {
     if (_serverStat.has(cmd0)) return _serverStat.get(cmd0);
     let out = null;
@@ -10282,7 +10282,7 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
     _serverStat.set(cmd0, out);
     return out;
   }
-  
+
   function _loadCache(cwd) {
     if (_cache && _cachePath === path.join(cwd, '.context', 'lsp-cache.json')) return _cache;
     _cachePath = path.join(cwd, '.context', 'lsp-cache.json');
@@ -10294,7 +10294,7 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
     }
     return _cache;
   }
-  
+
   function _saveCache() {
     if (!_cache || !_cachePath) return;
     try {
@@ -10304,11 +10304,11 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
       fs.renameSync(tmp, _cachePath);
     } catch (_) {}
   }
-  
+
   function _compact(s) {
     return String(s || '').replace(/\s+/g, ' ').trim().slice(0, 60);
   }
-  
+
   /** Flatten hierarchical symbols into the two-level signature vocabulary. */
   function _render(symbols) {
     const sigs = [];
@@ -10343,7 +10343,7 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
     walk(symbols);
     return sigs;
   }
-  
+
   /**
    * Extract signatures for a file via its registered language server.
    * Returns null on any failure so the caller falls back to the regex tier.
@@ -10360,7 +10360,7 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
     if (!Array.isArray(cmd) || cmd.length === 0) return null;
     const cmdKey = cmd.join(' ');
     if (_deadServers.has(cmdKey)) return null;
-  
+
     const binStat = _resolveBinaryStat(cmd[0]);
     const cache = cwd ? _loadCache(cwd) : null;
     const key = binStat
@@ -10369,17 +10369,17 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
     if (cache && key && Array.isArray(cache.entries[key])) {
       return { sigs: cache.entries[key], label: cache.servers[cmdKey] || null };
     }
-  
+
     const languageId = LANGUAGE_IDS[ext] || 'plaintext';
     const out = documentSymbols(cmd, filePath, src, languageId);
     if (!out || out.missing || !out.symbols) {
       if (out && out.missing) _deadServers.add(cmdKey);
       return null;
     }
-  
+
     const sigs = capWithNotice(_render(out.symbols), PER_FILE_LIMIT, 'signatures');
     if (sigs.length === 0) return null;
-  
+
     const label = `${out.serverName || path.basename(cmd[0])}@${out.serverVersion || 'unknown'}`;
     if (cache && key) {
       cache.entries[key] = sigs;
@@ -10388,18 +10388,18 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
     }
     return { sigs, label };
   }
-  
+
   /** Register a label once the caller has ACCEPTED the LSP result — a result
    * rejected by the quality guard must not put its server in the header. */
   function acceptLabel(label) {
     if (label) _labels.add(label);
   }
-  
+
   /** Toolchain labels for servers whose results were actually used this run. */
   function toolchainLabels() {
     return [..._labels].sort();
   }
-  
+
   module.exports = { extractViaLsp, acceptLabel, toolchainLabels, DEFAULT_SERVERS };
   
 };
@@ -10408,12 +10408,12 @@ __factories["./src/extractors/lsp_symbols"] = function(module, exports) {
 __factories["./src/extractors/lua"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling discloses what it drops rather than truncating silently (#583).
   // Collection runs to completion so the marker reports the true overflow —
   // stopping early made r.js report "+1 more" where 50 were hidden (#584).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from Lua source code.
    *
@@ -10437,41 +10437,41 @@ __factories["./src/extractors/lua"] = function(module, exports) {
     const hints = collectDocHints(src);
     const stripped = stripLuaComments(src);
     const seen = new Set();
-  
+
     // local foo = require('bar.baz') — useful module-surface hint, capped low.
     for (const m of stripped.matchAll(/^\s*(?:local\s+)?([A-Za-z_]\w*)\s*=\s*require\s*\(\s*['"]([A-Za-z0-9_.\/-]+)['"]\s*\)/gm)) {
       pushUnique(sigs, seen, `require ${m[2]} as ${m[1]}`);
     }
-  
+
     // local function name(args)
     for (const m of stripped.matchAll(/^\s*local\s+function\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/gm)) {
       if (m[1].startsWith('_')) continue;
       pushUnique(sigs, seen, `local function ${m[1]}(${normalizeParams(m[2])})${applyHint(hints, m[1])}`);
     }
-  
+
     // function name(args), function M.name(args), function M:name(args)
     for (const m of stripped.matchAll(/^\s*function\s+([A-Za-z_]\w*(?:(?:\.|:)[A-Za-z_]\w*)*)\s*\(([^)]*)\)/gm)) {
       const name = m[1];
       if (name.startsWith('_')) continue;
       pushUnique(sigs, seen, `function ${name}(${normalizeParams(m[2])})${applyHint(hints, name)}`);
     }
-  
+
     // name = function(args), M.name = function(args), M:name = function(args)
     for (const m of stripped.matchAll(/^\s*(?:local\s+)?([A-Za-z_]\w*(?:(?:\.|:)[A-Za-z_]\w*)*)\s*=\s*function\s*\(([^)]*)\)/gm)) {
       const name = m[1];
       if (name.startsWith('_')) continue;
       pushUnique(sigs, seen, `${name} = function(${normalizeParams(m[2])})${applyHint(hints, name)}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   function pushUnique(out, seen, sig) {
     if (!sig || seen.has(sig)) return;
     seen.add(sig);
     out.push(sig);
   }
-  
+
   function normalizeParams(params) {
     return String(params || '')
       .replace(/--.*$/gm, '')
@@ -10480,12 +10480,12 @@ __factories["./src/extractors/lua"] = function(module, exports) {
       .filter(Boolean)
       .join(', ');
   }
-  
+
   function applyHint(hints, name) {
     const h = hints.get(name);
     return h ? `  # ${h}` : '';
   }
-  
+
   /**
    * Attach each contiguous `---` doc block to the next function-like declaration
    * by its extracted symbol name.
@@ -10511,7 +10511,7 @@ __factories["./src/extractors/lua"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   function firstDocSentence(block) {
     for (const raw of block) {
       const line = String(raw || '').trim();
@@ -10520,7 +10520,7 @@ __factories["./src/extractors/lua"] = function(module, exports) {
     }
     return '';
   }
-  
+
   /** Strip Lua line and long comments while preserving strings enough for regex scans. */
   function stripLuaComments(src) {
     const out = src.split('');
@@ -10555,7 +10555,7 @@ __factories["./src/extractors/lua"] = function(module, exports) {
     }
     return out.join('');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -10564,10 +10564,10 @@ __factories["./src/extractors/lua"] = function(module, exports) {
 __factories["./src/extractors/markdown"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling discloses what it drops rather than truncating silently (#583).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Lightweight markdown technical indexer.
    * Captures headings and fenced code block language hints only.
@@ -10578,23 +10578,23 @@ __factories["./src/extractors/markdown"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Headings: # .. ######
     for (const m of src.matchAll(/^(#{1,6})\s+(.+)$/gm)) {
       const level = m[1].length;
       const title = m[2].trim().replace(/\s+/g, ' ');
       if (title) sigs.push(`h${level} ${title}`);
     }
-  
+
     // Fenced code blocks: ```lang
     for (const m of src.matchAll(/^```\s*([A-Za-z0-9_+-]*)\s*$/gm)) {
       const lang = m[1] ? m[1].toLowerCase() : 'plain';
       sigs.push(`code-fence ${lang}`);
     }
-  
+
     return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'headings');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -10612,23 +10612,23 @@ __factories["./src/extractors/patterns"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // ────────────────────────────────────────────────────────────────
     // Dependency Injection Pattern Detection
     // ────────────────────────────────────────────────────────────────
-  
+
     // Service container / factory patterns
     const containerRe = /(?:class|function|const)\s+([A-Z]\w*(?:Container|Factory|Registry|Provider|Injector))\b/g;
     for (const m of src.matchAll(containerRe)) {
       sigs.push(`di-container ${m[1]}`);
     }
-  
+
     // Service decorators: @Injectable, @Service, @Singleton, @Provide
     const decoratorRe = /@(?:Injectable|Service|Singleton|Provide|Module|Component)\s*(?:\([^)]*\))?\s*(?:class|export\s+class|const\s+)\s+([A-Z]\w*)/g;
     for (const m of src.matchAll(decoratorRe)) {
       sigs.push(`service-decorated ${m[1]}`);
     }
-  
+
     // Dependency injection via constructor: constructor(private readonly ...: Service)
     const ctorDiRe = /constructor\s*\([^)]*(?:private|protected)?\s+(?:readonly\s+)?([a-z_]\w*)\s*:\s*([A-Z]\w*)/g;
     const diServices = new Set();
@@ -10638,39 +10638,39 @@ __factories["./src/extractors/patterns"] = function(module, exports) {
     if (diServices.size > 0) {
       sigs.push(`di-injection ${diServices.size} params`);
     }
-  
+
     // ────────────────────────────────────────────────────────────────
     // Service/Repository/Middleware Layer Detection
     // ────────────────────────────────────────────────────────────────
-  
+
     // Repository pattern: extends Repository, implements IRepository
     const repoRe = /class\s+([A-Z]\w*(?:Repository|Repo|DataAccess))\b/g;
     for (const m of src.matchAll(repoRe)) {
       sigs.push(`repo ${m[1]}`);
     }
-  
+
     // Service layer: @Service or ServiceImpl pattern
     const serviceRe = /(?:export\s+)?class\s+([A-Z]\w*Service\b)/g;
     for (const m of src.matchAll(serviceRe)) {
       sigs.push(`service ${m[1]}`);
     }
-  
+
     // Middleware detection: app.use(), router.use(), middleware function
     if (/app\.use\s*\(|router\.use\s*\(|\.use\s*\(\s*function|middleware|app\.get\s*\(\s*['"`]\/[^'"`]*['"`]/.test(src)) {
       sigs.push('middleware-present');
     }
-  
+
     // ────────────────────────────────────────────────────────────────
     // Type Linkage: Exported types → Implementations
     // ────────────────────────────────────────────────────────────────
-  
+
     // Export type/interface followed by class implementing it
     const exportTypeRe = /export\s+(?:type|interface)\s+([A-Z]\w*)/g;
     const exportedTypes = new Set();
     for (const m of src.matchAll(exportTypeRe)) {
       exportedTypes.add(m[1]);
     }
-  
+
     // Check if exported types have implementations
     for (const type of exportedTypes) {
       const implRe = new RegExp(`class\\s+([A-Z]\\w*)\\s+(?:extends|implements)\\s+(?:.*\\s+)?${type}\\b`, 'i');
@@ -10678,36 +10678,36 @@ __factories["./src/extractors/patterns"] = function(module, exports) {
         sigs.push(`type-impl ${type}`);
       }
     }
-  
+
     // ────────────────────────────────────────────────────────────────
     // Unsafe Pattern Detection
     // ────────────────────────────────────────────────────────────────
-  
+
     // Unchecked nulls / optional without validation
     if (/\?\s*{|Optional\s*<|\?\s*\.get\(\)|\?\s*\[|\?\s*\.length|\.split\(\)\.filter\(Boolean\)|if\s*\(\s*!.*\).*throw/.test(src)) {
       sigs.push('unsafe-null-check');
     }
-  
+
     // Missing validation (direct use of user input)
     const userInputRe = /(?:request|input|params|body|query|args)\s*\[\s*['"][^'"]*['"]\s*\]|req(?:uest)?\..*\s*==|params\.split|String\(.*\)\.toLowerCase/;
     if (userInputRe.test(src)) {
       sigs.push('unsafe-input-validation');
     }
-  
+
     // Weak error handling (catch {} or empty catch)
     if (/catch\s*\(\s*\)\s*\{|\}\s*catch\s*\{(\s*\/\/|\s*\})/.test(src)) {
       sigs.push('weak-error-handling');
     }
-  
+
     // Direct error exposure
     if (/throw\s+new\s+Error\(|console\s*\.\s*error|res\.status\(500\)\.send\(err\)/.test(src)) {
       sigs.push('unsafe-error-exposure');
     }
-  
+
     // ────────────────────────────────────────────────────────────────
     // Circular Dependency Hints
     // ────────────────────────────────────────────────────────────────
-  
+
     // Mutual imports detected (A imports B, B imports A) — can't directly detect in single file,
     // but we can flag suspicious patterns
     const importRe = /(?:import|require)\s+(?:{[^}]*}|[a-zA-Z_]\w*)\s+from\s+['"]\.?\.?\/[^'"]+['"]/g;
@@ -10715,25 +10715,25 @@ __factories["./src/extractors/patterns"] = function(module, exports) {
     if (importCount > 5) {
       sigs.push(`heavy-imports ${importCount}`);
     }
-  
+
     // ────────────────────────────────────────────────────────────────
     // Layer/Module Organization Hints
     // ────────────────────────────────────────────────────────────────
-  
+
     // Controller/Handler layer
     const controllerRe = /(?:class|export)\s+([A-Z]\w*(?:Controller|Handler|Route))\b/g;
     for (const m of src.matchAll(controllerRe)) {
       sigs.push(`controller ${m[1]}`);
     }
-  
+
     // Use case / Domain logic
     if (/UseCase|Command|Query|UseCase\b|Interactor/.test(src)) {
       sigs.push('domain-usecase');
     }
-  
+
     return Array.from(new Set(sigs)).slice(0, 60);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -10744,7 +10744,7 @@ __factories["./src/extractors/php"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
@@ -10755,10 +10755,10 @@ __factories["./src/extractors/php"] = function(module, exports) {
   const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   // Chars scanned past the params before giving up on a return type.
   const RET_SCAN_CHARS = 400;
-  
+
   /**
    * Extract signatures from PHP source code.
    * Signatures carry `:start-end` line anchors (Surgical Context); the comment
@@ -10769,14 +10769,14 @@ __factories["./src/extractors/php"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // stripComments is length- AND newline-preserving; the previous regex strip
     // DELETED comment text, so offsets no longer aligned with the masked surface
     // the balanced reader walks (#695). The `#` line-comment form PHP also
     // accepts is blanked separately, preserving length.
     const stripped = blankHashComments(stripComments(src));
     const masked = blankHashComments(maskCode(src));
-  
+
     // Anchor range: scan past same-line trivia to a body `{` (range) else single line.
     const rangeFor = (declIdx, afterIdx) => {
       let k = afterIdx;
@@ -10789,7 +10789,7 @@ __factories["./src/extractors/php"] = function(module, exports) {
       const line = lineAt(stripped, declIdx);
       return [line, line];
     };
-  
+
     // Classes and interfaces
     const typeRe = /^(?:abstract\s+)?(?:class|interface|trait)\s+(\w+)(?:\s+extends\s+\w+)?(?:\s+implements\s+[\w, ]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
@@ -10803,7 +10803,7 @@ __factories["./src/extractors/php"] = function(module, exports) {
         sigs.push(withAnchor(`  ${meth.text}`, lineAt(stripped, bodyStart + (meth.declIdx || 0)), lineAt(stripped, bodyStart + (meth.endIdx || 0))));
       }
     }
-  
+
     // Top-level functions
     // `(?:<\?php\s+)?` lets a declaration share its line with the opening tag —
     // `<?php function f($a) {…}` previously yielded NOTHING at all (#696).
@@ -10817,15 +10817,15 @@ __factories["./src/extractors/php"] = function(module, exports) {
       const [s, e] = rangeFor(declIdx, pr.end);
       sigs.push(withAnchor(`function ${m[1]}(${normalizeParams(pr.params)})${retStr}`, s, e));
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /** Blank `#` line comments, preserving length and newlines. */
   function blankHashComments(src) {
     return src.replace(/#[^\n]*/g, (m) => ' '.repeat(m.length));
   }
-  
+
   /**
    * Resolve a declaration's parameter list with a BALANCED read (#695).
    *
@@ -10845,7 +10845,7 @@ __factories["./src/extractors/php"] = function(module, exports) {
     }
     return { params: stripped.slice(openIdx + 1, close), after: stripped.slice(close + 1, i), end: i, close };
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(src.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -10856,7 +10856,7 @@ __factories["./src/extractors/php"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   function extractMembers(block, maskedBlock) {
     const members = [];
     const methodRe = /^[ \t]+(?:public|protected)\s+(?:static\s+)?function\s+(\w+)\s*\(/gm;
@@ -10876,17 +10876,17 @@ __factories["./src/extractors/php"] = function(module, exports) {
     }
     return capMembersWithNotice(members, MEMBER_LIMIT);
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
+
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/[;\s]+$/g, '').replace(/\s+/g, ' ').slice(0, 25);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -10914,18 +10914,18 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
    * formats use, and it degrades to fewer signatures rather than wrong ones.
    * Pure and deterministic: same bytes in, same bytes out, no clock, no I/O.
    */
-  
+
   const path = require('path');
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   const PER_FILE_LIMIT = 200;
   const MAX_STEPS_PER_JOB = 12;
   const MAX_VALUE_CHARS = 90;
-  
+
   // ---------------------------------------------------------------------------
   // Platform routing
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Resolve a CI platform key from a file path, or null when the file is not a
    * pipeline definition. Path-based and case-insensitive on the basename.
@@ -10936,7 +10936,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     const p = String(filePath || '').replace(/\\/g, '/');
     const base = path.posix.basename(p);
     const lower = base.toLowerCase();
-  
+
     // Forge workflow directories: GitHub, Gitea, Forgejo all use the same schema.
     if (/(^|\/)\.(github|gitea|forgejo)\/workflows\/[^/]+\.ya?ml$/i.test(p)) return 'github';
     if (lower === 'action.yml' || lower === 'action.yaml') return 'action';
@@ -10950,7 +10950,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     if (/^(docker-)?compose[\w.-]*\.ya?ml$/i.test(lower)) return 'compose';
     return null;
   }
-  
+
   /**
    * Content sniff for workflow files sitting outside their conventional path.
    * Deliberately narrow — it must never claim a plain config file.
@@ -10964,11 +10964,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     if (/^services\s*:/m.test(s) && /^\s{2,}\w[\w.-]*\s*:\s*$/m.test(s) && /\b(image|build)\s*:/.test(s)) return 'compose';
     return null;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Minimal YAML structure scanner
   // ---------------------------------------------------------------------------
-  
+
   /** Strip an unquoted trailing `# comment` from a line. */
   function stripInlineComment(line) {
     let quote = null;
@@ -10984,7 +10984,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return line;
   }
-  
+
   function unquote(v) {
     const s = String(v == null ? '' : v).trim();
     if (s.length >= 2 && ((s[0] === '"' && s[s.length - 1] === '"') || (s[0] === "'" && s[s.length - 1] === "'"))) {
@@ -10992,21 +10992,21 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return s;
   }
-  
+
   function compact(v, limit = MAX_VALUE_CHARS) {
     const s = unquote(v).replace(/\s+/g, ' ').trim();
     return s.length > limit ? s.slice(0, limit - 1) + '…' : s;
   }
-  
+
   /** Parse a `[a, b, c]` flow sequence, else null. */
   function flowList(v) {
     const s = unquote(v);
     if (!/^\[.*\]$/.test(s)) return null;
     return s.slice(1, -1).split(',').map((x) => unquote(x)).filter(Boolean);
   }
-  
+
   const KV_RE = /^("[^"]*"|'[^']*'|[^:]+?)\s*:(?:\s+([\s\S]*))?$/;
-  
+
   /**
    * Scan YAML into a flat node list. Each node is one `key:` occurrence with its
    * indentation, 1-based line number, and whether it opened a sequence item.
@@ -11022,12 +11022,12 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     const nodes = [];
     let blockIndent = -1;
     let blockTarget = null;
-  
+
     for (let i = 0; i < lines.length; i++) {
       const raw = lines[i].replace(/\t/g, '  ');
       if (!raw.trim()) continue;
       const indent = raw.length - raw.replace(/^\s*/, '').length;
-  
+
       if (blockIndent >= 0) {
         if (indent > blockIndent) {
           if (blockTarget) blockTarget.block.push(raw.trim());
@@ -11036,12 +11036,12 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
         blockIndent = -1;
         blockTarget = null;
       }
-  
+
       let content = raw.trim();
       if (content.startsWith('#')) continue;
       content = stripInlineComment(content);
       if (!content) continue;
-  
+
       let item = false;
       let itemIndent = indent;
       // `- key: value` opens an item whose mapping sits two columns further in.
@@ -11055,17 +11055,17 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
         nodes.push({ indent: itemIndent, key: '', value: '', line: i + 1, item });
         continue;
       }
-  
+
       const m = KV_RE.exec(content);
       if (!m) {
         nodes.push({ indent: itemIndent, key: '', value: content, line: i + 1, item });
         continue;
       }
-  
+
       const key = unquote(m[1]);
       const value = (m[2] || '').trim();
       nodes.push({ indent: itemIndent, key, value, line: i + 1, item });
-  
+
       if (/^[|>][-+]?\d*$/.test(value)) {
         blockIndent = indent;
         blockTarget = nodes[nodes.length - 1];
@@ -11074,11 +11074,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return nodes;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Node-tree helpers
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Exclusive end index of the block owned by nodes[i].
    *
@@ -11099,12 +11099,12 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return nodes.length;
   }
-  
+
   /** All descendants of nodes[i], including an item's sibling mapping keys. */
   function childrenOf(nodes, i) {
     return nodes.slice(i + 1, scopeEnd(nodes, i));
   }
-  
+
   /** Immediate children of nodes[i] — the shallowest descendant indent only. */
   function directChildren(nodes, i) {
     const kids = childrenOf(nodes, i);
@@ -11112,13 +11112,13 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     const min = Math.min(...kids.map((k) => k.indent));
     return kids.filter((k) => k.indent === min);
   }
-  
+
   /** Find a top-level (indent 0) node by key. */
   function topNode(nodes, key) {
     const i = nodes.findIndex((n) => n.indent === 0 && n.key === key);
     return i === -1 ? null : i;
   }
-  
+
   /**
    * Value of an IMMEDIATE child key, or null.
    *
@@ -11130,7 +11130,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     const hit = directChildren(nodes, i).find((k) => k.key === key);
     return hit ? hit.value : null;
   }
-  
+
   /** listValues restricted to an immediate child key. */
   function directListValues(nodes, i, key) {
     const hit = directChildren(nodes, i).find((k) => k.key === key);
@@ -11143,7 +11143,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return out.filter(Boolean);
   }
-  
+
   /** First meaningful command inside a captured block scalar. */
   function blockText(node) {
     const body = (node && node.block) || [];
@@ -11153,21 +11153,21 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     const rest = meaningful.length - 1;
     return rest > 0 ? `${first} (+${rest} line${rest === 1 ? '' : 's'})` : first;
   }
-  
+
   /** Render a step/script value that may be an inline scalar or a block scalar. */
   function valueText(node) {
     if (!node) return '';
     if (/^[|>][-+]?\d*$/.test(String(node.value || '').trim())) return blockText(node);
     return compact(node.value);
   }
-  
+
   /** First descendant with this key, or null. */
   function childValue(nodes, i, key) {
     const kids = childrenOf(nodes, i);
     const hit = kids.find((k) => k.key === key);
     return hit ? hit.value : null;
   }
-  
+
   /**
    * Values of a key that may be a scalar, a flow list, or a block sequence.
    * @returns {string[]}
@@ -11187,17 +11187,17 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return out.filter(Boolean);
   }
-  
+
   /** Last line covered by the block that starts at nodes[i]. */
   function spanEnd(nodes, i, lastLine) {
     const end = scopeEnd(nodes, i);
     return end < nodes.length ? Math.max(nodes[i].line, nodes[end].line - 1) : lastLine;
   }
-  
+
   function anchor(start, end) {
     return `  :${start}-${Math.max(start, end)}`;
   }
-  
+
   /** Secret names referenced anywhere in a line range, sorted and deduped. */
   function secretsIn(lines, start, end) {
     const text = lines.slice(start - 1, end).join('\n');
@@ -11206,11 +11206,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     for (const m of text.matchAll(/\$\{\{\s*secrets\.([A-Za-z_][A-Za-z0-9_]*)/g)) found.add(m[1]);
     return [...found].sort();
   }
-  
+
   // ---------------------------------------------------------------------------
   // GitHub Actions
   // ---------------------------------------------------------------------------
-  
+
   /** Render the `on:` trigger block as `push[main], pull_request, schedule[cron]`. */
   function githubTriggers(nodes) {
     const i = topNode(nodes, 'on');
@@ -11244,7 +11244,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return out.join(', ');
   }
-  
+
   function githubSteps(nodes, stepsIdx) {
     const out = [];
     for (const item of directChildren(nodes, stepsIdx)) {
@@ -11270,18 +11270,18 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return capWithNotice(out, MAX_STEPS_PER_JOB, 'steps');
   }
-  
+
   function githubActions(nodes, lines, fileName) {
     const sigs = [];
     const nameIdx = topNode(nodes, 'name');
     const wfName = nameIdx !== null ? unquote(nodes[nameIdx].value) || fileName : fileName;
     const triggers = githubTriggers(nodes);
-  
+
     const onIdx = topNode(nodes, 'on');
     const headEnd = onIdx !== null ? spanEnd(nodes, onIdx, lines.length) : 1;
     let head = `workflow: ${wfName}`;
     if (triggers) head += `  on: ${triggers}`;
-  
+
     const conc = topNode(nodes, 'concurrency');
     if (conc !== null) {
       const group = childValue(nodes, conc, 'group') || nodes[conc].value;
@@ -11293,30 +11293,30 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
       head += `  permissions: ${kids.length ? kids.join(' ') : compact(nodes[perms].value)}`;
     }
     sigs.push(head + anchor(1, headEnd));
-  
+
     const jobsIdx = topNode(nodes, 'jobs');
     if (jobsIdx === null) return sigs;
-  
+
     for (const job of directChildren(nodes, jobsIdx)) {
       if (!job.key) continue;
       const idx = nodes.indexOf(job);
       const end = spanEnd(nodes, idx, lines.length);
-  
+
       let line = `job: ${job.key}`;
       const runsOn = directValue(nodes, idx, 'runs-on');
       const reusable = directValue(nodes, idx, 'uses');
       if (runsOn) line += `  runs-on: ${compact(runsOn, 40)}`;
       else if (reusable) line += `  uses: ${compact(reusable)}`;
-  
+
       const needs = directListValues(nodes, idx, 'needs');
       if (needs.length) line += `  needs: ${needs.join(',')}`;
-  
+
       const cond = directValue(nodes, idx, 'if');
       if (cond) line += `  if: ${compact(cond, 60)}`;
-  
+
       const env = directValue(nodes, idx, 'environment');
       if (env) line += `  environment: ${compact(env, 30)}`;
-  
+
       // Matrix axes live under strategy.matrix; `include`/`exclude` are not axes.
       const kids = childrenOf(nodes, idx);
       const matrixNode = kids.find((k) => k.key === 'matrix');
@@ -11330,18 +11330,18 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
           });
         if (axes.length) line += `  matrix: ${axes.join(' ')}`;
       }
-  
+
       const secrets = secretsIn(lines, job.line, end);
       if (secrets.length) line += `  secrets: ${secrets.join(',')}`;
-  
+
       sigs.push(line + anchor(job.line, end));
-  
+
       const stepsNode = kids.find((k) => k.key === 'steps');
       if (stepsNode) sigs.push(...githubSteps(nodes, nodes.indexOf(stepsNode)));
     }
     return sigs;
   }
-  
+
   /** Composite / JS action definitions (`action.yml`). */
   function githubAction(nodes, lines, fileName) {
     const sigs = [];
@@ -11352,7 +11352,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     let head = `action: ${name}`;
     if (using) head += `  using: ${compact(using, 30)}`;
     sigs.push(head + anchor(1, Math.min(lines.length, nameIdx !== null ? nodes[nameIdx].line : 1)));
-  
+
     for (const section of ['inputs', 'outputs']) {
       const idx = topNode(nodes, section);
       if (idx === null) continue;
@@ -11369,16 +11369,16 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // GitLab CI
   // ---------------------------------------------------------------------------
-  
+
   const GITLAB_RESERVED = new Set([
     'stages', 'variables', 'default', 'include', 'workflow', 'image', 'services',
     'before_script', 'after_script', 'cache', 'pages',
   ]);
-  
+
   function gitlabCi(nodes, lines) {
     const sigs = [];
     const stagesIdx = topNode(nodes, 'stages');
@@ -11390,7 +11390,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
         sigs.push(`pipeline: gitlab-ci  stages: ${list.join(' → ')}${anchor(nodes[stagesIdx].line, spanEnd(nodes, stagesIdx, lines.length))}`);
       }
     }
-  
+
     for (let i = 0; i < nodes.length; i++) {
       const n = nodes[i];
       // Jobs are top-level mappings; `.hidden` entries are templates, still useful.
@@ -11413,7 +11413,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
         if (envName) line += `  environment: ${compact(envName, 30)}`;
       }
       sigs.push(line + anchor(n.line, end));
-  
+
       const scriptNode = childrenOf(nodes, i).find((k) => k.key === 'script');
       if (scriptNode) {
         const sIdx = nodes.indexOf(scriptNode);
@@ -11427,11 +11427,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // CircleCI
   // ---------------------------------------------------------------------------
-  
+
   function circleCi(nodes, lines) {
     const sigs = [];
     const jobsIdx = topNode(nodes, 'jobs');
@@ -11450,7 +11450,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
         const executor = childValue(nodes, idx, 'executor');
         if (executor) line += `  executor: ${compact(executor, 30)}`;
         sigs.push(line + anchor(job.line, end));
-  
+
         const steps = kids.find((k) => k.key === 'steps');
         if (steps) {
           const sIdx = nodes.indexOf(steps);
@@ -11467,7 +11467,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
         }
       }
     }
-  
+
     const wfIdx = topNode(nodes, 'workflows');
     if (wfIdx !== null) {
       for (const wf of directChildren(nodes, wfIdx)) {
@@ -11486,11 +11486,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Azure Pipelines
   // ---------------------------------------------------------------------------
-  
+
   function azurePipelines(nodes, lines) {
     const sigs = [];
     const parts = [];
@@ -11512,7 +11512,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     if (parts.length) head += `  on: ${parts.join(', ')}`;
     if (pool) head += `  pool: ${compact(pool, 40)}`;
     sigs.push(head + anchor(1, nodes.length ? Math.min(lines.length, nodes[0].line) : 1));
-  
+
     for (const section of ['stages', 'jobs']) {
       const idx = topNode(nodes, section);
       if (idx === null) continue;
@@ -11532,7 +11532,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
         const cond = get('condition');
         if (cond) line += `  condition: ${compact(cond, 50)}`;
         sigs.push(line + anchor(item.line, end));
-  
+
         const stepsNode = childrenOf(nodes, iIdx).find((k) => k.key === 'steps');
         if (stepsNode) {
           const sIdx = nodes.indexOf(stepsNode);
@@ -11550,18 +11550,18 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Bitbucket Pipelines
   // ---------------------------------------------------------------------------
-  
+
   function bitbucket(nodes, lines) {
     const sigs = [];
     const imgIdx = topNode(nodes, 'image');
     let head = 'pipeline: bitbucket';
     if (imgIdx !== null && nodes[imgIdx].value) head += `  image: ${compact(nodes[imgIdx].value, 40)}`;
     sigs.push(head + anchor(1, nodes.length ? nodes[0].line : 1));
-  
+
     const pIdx = topNode(nodes, 'pipelines');
     if (pIdx === null) return sigs;
     for (const group of directChildren(nodes, pIdx)) {
@@ -11569,7 +11569,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
       const gIdx = nodes.indexOf(group);
       const gEnd = spanEnd(nodes, gIdx, lines.length);
       sigs.push(`trigger: ${group.key}${anchor(group.line, gEnd)}`);
-  
+
       for (const step of childrenOf(nodes, gIdx).filter((k) => k.key === 'step')) {
         const sIdx = nodes.indexOf(step);
         const name = childValue(nodes, sIdx, 'name');
@@ -11583,11 +11583,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Drone / Woodpecker
   // ---------------------------------------------------------------------------
-  
+
   function drone(nodes, lines) {
     const sigs = [];
     const nameIdx = topNode(nodes, 'name');
@@ -11595,7 +11595,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     let head = `pipeline: ${nameIdx !== null ? unquote(nodes[nameIdx].value) : 'drone'}`;
     if (kindIdx !== null && nodes[kindIdx].value) head += `  kind: ${unquote(nodes[kindIdx].value)}`;
     sigs.push(head + anchor(1, nodes.length ? nodes[0].line : 1));
-  
+
     const stepsIdx = topNode(nodes, 'steps');
     if (stepsIdx === null) return sigs;
     for (const step of directChildren(nodes, stepsIdx)) {
@@ -11614,11 +11614,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Docker Compose
   // ---------------------------------------------------------------------------
-  
+
   function compose(nodes, lines) {
     const sigs = [];
     const sIdx = topNode(nodes, 'services');
@@ -11647,17 +11647,17 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Jenkinsfile (Groovy declarative)
   // ---------------------------------------------------------------------------
-  
+
   function jenkins(src) {
     const sigs = [];
     const lines = String(src).split('\n');
     const agent = src.match(/^\s*agent\s+(.+)$/m);
     sigs.push(`pipeline: jenkins${agent ? `  agent: ${compact(agent[1], 40)}` : ''}  :1-1`);
-  
+
     for (let i = 0; i < lines.length; i++) {
       const stage = lines[i].match(/^\s*stage\s*\(\s*['"]([^'"]+)['"]/);
       if (stage) sigs.push(`stage: ${stage[1]}${anchor(i + 1, i + 1)}`);
@@ -11666,11 +11666,11 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     }
     return sigs;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Entry point
   // ---------------------------------------------------------------------------
-  
+
   const RENDERERS = {
     github: githubActions,
     action: githubAction,
@@ -11681,7 +11681,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     drone,
     compose,
   };
-  
+
   /**
    * Extract semantic signatures from a CI / pipeline definition.
    * @param {string} src - raw file content
@@ -11692,7 +11692,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
     if (!src || typeof src !== 'string') return [];
     const platform = platformFor(filePath) || sniffPlatform(src);
     if (!platform) return [];
-  
+
     try {
       if (platform === 'jenkins') return capWithNotice(jenkins(src), PER_FILE_LIMIT, 'signatures');
       const lines = src.split('\n');
@@ -11708,7 +11708,7 @@ __factories["./src/extractors/pipeline"] = function(module, exports) {
       return [];
     }
   }
-  
+
   module.exports = { extract, platformFor, sniffPlatform, scanYaml, PER_FILE_LIMIT };
   
 };
@@ -11801,16 +11801,15 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
         while (k < n && (src[k] === ' ' || src[k] === '\t' || src[k] === '\r')) k++;
         if (k < n && src[k] === '\n') {
           let j = k + 1;
-          let closed = false;
           while (j < n) {
             // Terminator occurs at the beginning of a line (column 0, or right after \n)
             if ((j === 0 || src[j - 1] === '\n') && src[j] === quote && j + 1 < n && src[j + 1] === '@') {
               j += 2;
-              closed = true;
               break;
             }
             j++;
           }
+          // Unterminated here-strings safely blank to EOF
           blank(i, j);
           i = j;
           continue;
@@ -11931,6 +11930,7 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
     }
 
     // 3. Functions, Filters, and Workflows
+    let lastDeclEnd = 0;
     const fnRe = /^[ \t]*(?:(?:\[[^\]]+\]\s*)*)(function|filter|workflow)\s+([A-Za-z0-9_:-]+)/gim;
     for (const m of masked.matchAll(fnRe)) {
       // Skip if inside a class body
@@ -12004,7 +12004,10 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
       const paramStr = params !== null ? params.join(', ') : '';
 
       // Advanced function attribute: [CmdletBinding()]
-      const headerPrefix = src.slice(Math.max(0, m.index - 300), m.index);
+      // Scoped to the region between the end of the previous declaration (or previous block brace) and m.index
+      const lastBrace = src.lastIndexOf('}', m.index);
+      const lookbackStart = Math.max(lastDeclEnd, lastBrace >= 0 ? lastBrace + 1 : 0);
+      const headerPrefix = src.slice(lookbackStart, m.index);
       const bodyPrefix = bodySlice.slice(0, 1000);
       const hasCmdletBinding = /\[CmdletBinding\b/i.test(headerPrefix) || /\[CmdletBinding\b/i.test(bodyPrefix);
 
@@ -12014,6 +12017,8 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
       if (otMatch) {
         returnType = otMatch[1] || otMatch[2] || '';
       }
+
+      lastDeclEnd = endIdx + 1;
 
       // Build signature string
       let sig = `${keyword} ${rawName}(${paramStr})`;
@@ -12041,7 +12046,7 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
       // Normalise: Export-ModuleMember -Function a, b -> Export-ModuleMember a, b
       const rawArgs = m[1].trim();
       // Strip trailing other flags like -Variable, -Alias if present
-      const cleanArgs = rawArgs.replace(/-[A-Za-z]+\b.*$/, '').trim();
+      const cleanArgs = stripTrailingFlags(rawArgs);
       if (cleanArgs) {
         const text = `Export-ModuleMember ${cleanArgs.replace(/\s+/g, ' ')}`;
         sigs.push(withAnchor(text, lineAt(src, declStart), lineAt(src, declEnd)));
@@ -12052,52 +12057,83 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
   }
 
   /**
-   * Extract PS5 class constructors and methods.
+   * Strip trailing flags like -Alias or -Variable from an Export-ModuleMember argument string.
+   * Anchors on a whitespace-delimited flag token so a hyphen inside a Verb-Noun name is not stripped.
+   */
+  function stripTrailingFlags(args) {
+    if (!args) return '';
+    return args.replace(/\s-[A-Za-z]+\b[\s\S]*$/, '').trim();
+  }
+
+  /**
+   * Extract PS5 class properties, constructors, and methods.
    */
   function extractClassMembers(body, maskedBody, offset, src, className) {
     const members = [];
+    const KEYWORDS = /^(if|elseif|else|while|for|foreach|switch|until|trap|catch|return|throw|do|try|in|exit|break|continue)$/i;
 
-    // Match method/constructor declarations:
-    //   [Type] Method($a)
-    //   Method($a)
-    //   static [Type] Method($a)
-    //   ClassName($a)   (Constructor)
-    const memberRe = /^[ \t]*(hidden\s+)?(static\s+)?(?:\[\s*([\w.\[\]]+)\s*\]\s+)?([A-Za-z_]\w*)\s*\(/gm;
+    const methodRe = /^[ \t]*(hidden\s+)?(static\s+)?(?:\[\s*([\w.\[\]]+)\s*\]\s+)?([A-Za-z_]\w*)\s*\(/gm;
 
-    for (const m of maskedBody.matchAll(memberRe)) {
+    // 1. Blank method bodies so statements inside methods (return, throw, calls)
+    // are never matched as members or properties.
+    const b = body.split('');
+    const mb = maskedBody.split('');
+
+    for (const m of maskedBody.matchAll(methodRe)) {
+      const name = m[4];
+      if (KEYWORDS.test(name)) continue;
+      const openParen = m.index + m[0].length - 1;
+      const closeParen = readBalanced(maskedBody, openParen, '(', ')', 2000);
+      if (closeParen < 0) continue;
+
+      let openBrace = -1;
+      for (let k = closeParen + 1; k < Math.min(maskedBody.length, closeParen + 500); k++) {
+        if (maskedBody[k] === '{') { openBrace = k; break; }
+      }
+      if (openBrace < 0) continue;
+      const closeBrace = readBalanced(maskedBody, openBrace, '{', '}', MAX_CLASS_BODY_CHARS);
+      if (closeBrace < 0) continue;
+
+      // Blank inside { ... }
+      for (let k = openBrace + 1; k < closeBrace; k++) {
+        if (b[k] !== '\n') b[k] = ' ';
+        if (mb[k] !== '\n') mb[k] = ' ';
+      }
+    }
+
+    const cleanBody = b.join('');
+    const cleanMasked = mb.join('');
+
+    // 2. Extract methods and constructors
+    for (const m of cleanMasked.matchAll(methodRe)) {
       const isHidden = Boolean(m[1]);
       if (isHidden) continue; // Skip private/hidden members
 
       const isStatic = Boolean(m[2]);
       const declaredType = m[3] || '';
       const name = m[4];
-
-      // Keywords to ignore
-      if (/^(if|elseif|else|while|for|foreach|switch|until|trap|catch)$/i.test(name)) {
-        continue;
-      }
+      if (KEYWORDS.test(name)) continue;
 
       const declStart = offset + m.index + (m[0].length - m[0].trimStart().length);
       const openParen = m.index + m[0].length - 1;
-      const closeParen = readBalanced(maskedBody, openParen, '(', ')', 2000);
+      const closeParen = readBalanced(cleanMasked, openParen, '(', ')', 2000);
       if (closeParen < 0) continue;
 
-      // Find opening { of method body
       let openBrace = -1;
-      for (let k = closeParen + 1; k < Math.min(maskedBody.length, closeParen + 500); k++) {
-        if (maskedBody[k] === '{') {
+      for (let k = closeParen + 1; k < Math.min(cleanMasked.length, closeParen + 500); k++) {
+        if (cleanMasked[k] === '{') {
           openBrace = k;
           break;
         }
       }
       const closeBrace = openBrace >= 0
-        ? readBalanced(maskedBody, openBrace, '{', '}', MAX_CLASS_BODY_CHARS)
+        ? readBalanced(cleanMasked, openBrace, '{', '}', MAX_CLASS_BODY_CHARS)
         : -1;
       const endIdx = offset + (closeBrace >= 0 ? closeBrace : closeParen);
 
       const paramList = parseParams(
-        body.slice(openParen + 1, closeParen),
-        maskedBody.slice(openParen + 1, closeParen)
+        cleanBody.slice(openParen + 1, closeParen),
+        cleanMasked.slice(openParen + 1, closeParen)
       );
       const paramStr = paramList.join(', ');
 
@@ -12114,9 +12150,41 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
       members.push({
         text: withAnchor(sigText, lineAt(src, declStart), lineAt(src, endIdx)),
         declStart,
-        endIdx,
       });
     }
+
+    // 3. Extract PS5 class properties: [string]$BasePath, static [int]$Count, etc.
+    const propRe = /^[ \t]*(hidden\s+)?(static\s+)?((?:\[[^\]]+\]\s*)*)\$([A-Za-z_]\w*)(?:\s*=.*)?$/gm;
+    for (const m of cleanMasked.matchAll(propRe)) {
+      const isHidden = Boolean(m[1]);
+      if (isHidden) continue;
+      const isStatic = Boolean(m[2]);
+      const attrAndType = (m[3] || '').trim();
+      const name = m[4];
+
+      let declaredType = '';
+      if (attrAndType) {
+        const brackets = [...attrAndType.matchAll(/\[\s*([\w.\[\]]+)\s*\]/g)];
+        if (brackets.length > 0) {
+          declaredType = brackets[brackets.length - 1][1];
+        }
+      }
+
+      const declStart = offset + m.index + (m[0].length - m[0].trimStart().length);
+      const declEnd = offset + m.index + m[0].trimEnd().length;
+
+      const typePrefix = declaredType ? `[${declaredType}] ` : '';
+      const staticPrefix = isStatic ? 'static ' : '';
+      const sigText = `  ${staticPrefix}${typePrefix}$${name}`;
+
+      members.push({
+        text: withAnchor(sigText, lineAt(src, declStart), lineAt(src, declEnd)),
+        declStart,
+      });
+    }
+
+    // Sort members by declaration offset so they appear in document order
+    members.sort((m1, m2) => m1.declStart - m2.declStart);
 
     const capped = capMembersWithNotice(members, MEMBER_LIMIT, 'methods');
     return capped.map((m) => m.text);
@@ -12238,7 +12306,7 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
     const emmRe = /^[ \t]*Export-ModuleMember\s+(?:-Function\s+)?([^\r\n;#]+)/gim;
     for (const m of src.matchAll(emmRe)) {
       if (masked[m.index] === ' ') continue;
-      const args = m[1].replace(/-[A-Za-z]+\b.*$/, '').trim();
+      const args = stripTrailingFlags(m[1]);
       if (args) {
         if (!exportSet) exportSet = new Set();
         const parts = args.split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '').toLowerCase());
@@ -12281,10 +12349,11 @@ __factories["./src/extractors/powershell"] = function(module, exports) {
   }
 
   /**
-   * Extract synopsis inside a function's body if defined there.
+   * Extract synopsis inside a function's body if defined there (restricted to the body prefix).
    */
   function findBodySynopsis(bodySlice) {
-    const m = bodySlice.match(/<#([\s\S]*?)#>/);
+    const prefix = bodySlice.slice(0, 1500);
+    const m = prefix.match(/<#([\s\S]*?)#>/);
     if (!m) return '';
     return extractSynopsis(m[0]);
   }
@@ -12322,10 +12391,10 @@ __factories["./src/extractors/prdiff"] = function(module, exports) {
   function diffSignatures(baseSigs, currentSigs) {
     const base = new Set(baseSigs || []);
     const curr = new Set(currentSigs || []);
-  
+
     const added = [...curr].filter((s) => !base.has(s));
     const removed = [...base].filter((s) => !curr.has(s));
-  
+
     const byName = (arr) => {
       const m = new Map();
       for (const s of arr) {
@@ -12336,18 +12405,18 @@ __factories["./src/extractors/prdiff"] = function(module, exports) {
       }
       return m;
     };
-  
+
     const aBy = byName(added);
     const rBy = byName(removed);
     const modified = [];
-  
+
     for (const [name] of aBy) {
       if (rBy.has(name)) modified.push(name);
     }
-  
+
     return { added, removed, modified };
   }
-  
+
   /**
    * Extract the declared symbol name from a signature line.
    *
@@ -12379,7 +12448,7 @@ __factories["./src/extractors/prdiff"] = function(module, exports) {
     if ((m = t.match(/^([A-Za-z_$][\w$]*)$/))) return m[1];
     return '';
   }
-  
+
   module.exports = { diffSignatures, extractName };
   
 };
@@ -12388,10 +12457,10 @@ __factories["./src/extractors/prdiff"] = function(module, exports) {
 __factories["./src/extractors/properties"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling discloses what it drops rather than truncating silently (#583).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from .properties configuration files.
    * Captures key names, grouped by prefixes where possible.
@@ -12402,30 +12471,30 @@ __factories["./src/extractors/properties"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     const lines = src.split(/\r?\n/);
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('!')) continue;
-  
+
       const idxEq = trimmed.indexOf('=');
       const idxColon = trimmed.indexOf(':');
       const idx = idxEq >= 0 && idxColon >= 0 ? Math.min(idxEq, idxColon) : Math.max(idxEq, idxColon);
       if (idx <= 0) continue;
-  
+
       const key = trimmed.slice(0, idx).trim();
       if (!key) continue;
-  
+
       const parts = key.split('.').filter(Boolean);
       if (parts.length >= 2) {
         sigs.push(`group ${parts[0]}.${parts[1]}`);
       }
       sigs.push(`key ${key}`);
     }
-  
+
     return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'keys');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -12443,34 +12512,34 @@ __factories["./src/extractors/protobuf"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Strip single-line and block comments
     const stripped = src
       .replace(/\/\/[^\n]*/g, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
     // syntax / package / option (top-level metadata)
     const syntaxM = stripped.match(/\bsyntax\s*=\s*"([^"]+)"/);
     if (syntaxM) sigs.push(`syntax = "${syntaxM[1]}"`);
-  
+
     const pkgM = stripped.match(/\bpackage\s+([\w.]+)\s*;/);
     if (pkgM) sigs.push(`package ${pkgM[1]}`);
-  
+
     // message <Name> { ... }
     for (const m of stripped.matchAll(/\bmessage\s+(\w+)\s*\{/g)) {
       sigs.push(`message ${m[1]}`);
     }
-  
+
     // enum <Name> { ... }
     for (const m of stripped.matchAll(/\benum\s+(\w+)\s*\{/g)) {
       sigs.push(`enum ${m[1]}`);
     }
-  
+
     // service <Name> { ... }
     for (const m of stripped.matchAll(/\bservice\s+(\w+)\s*\{/g)) {
       sigs.push(`service ${m[1]}`);
     }
-  
+
     // rpc <Name>(<Request>) returns (<Response>)
     for (const m of stripped.matchAll(
       /\brpc\s+(\w+)\s*\(\s*(stream\s+)?(\w+)\s*\)\s+returns\s*\(\s*(stream\s+)?(\w+)\s*\)/g
@@ -12479,20 +12548,20 @@ __factories["./src/extractors/protobuf"] = function(module, exports) {
       const res = `${m[4] || ''}${m[5]}`.trim();
       sigs.push(`rpc ${m[1]}(${req}) returns (${res})`);
     }
-  
+
     // oneof <name>
     for (const m of stripped.matchAll(/\boneof\s+(\w+)\s*\{/g)) {
       sigs.push(`oneof ${m[1]}`);
     }
-  
+
     // extend <TypeName>
     for (const m of stripped.matchAll(/\bextend\s+([\w.]+)\s*\{/g)) {
       sigs.push(`extend ${m[1]}`);
     }
-  
+
     return sigs;
   }
-  
+
   module.exports = { extract };
   
 };
@@ -12504,14 +12573,14 @@ __factories["./src/extractors/python"] = function(module, exports) {
   const path = require('path');
   const { lineAt } = __require('./src/extractors/line-anchor');
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   // Per-class member ceiling, disclosed via capWithNotice (#576).
   const MEMBER_LIMIT = 120;
-  
+
   /**
    * 1-based line of the last source line belonging to a top-level (indent 0)
    * def/class body that starts at `startLine` (1-based). Trailing blank lines
@@ -12531,7 +12600,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     }
     return end;
   }
-  
+
   /**
    * Try to extract signatures using the native Python AST extractor.
    * Returns null if Python3 is unavailable or the script returns empty results.
@@ -12551,7 +12620,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     }
     return null;
   }
-  
+
   function tryNativeExtract(filePath) {
     try {
       const { execFileSync } = require('child_process');
@@ -12566,7 +12635,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     } catch (_) {}
     return null;
   }
-  
+
   /**
    * Extract signatures from Python source code.
    * When a real file path is provided, tries the native Python AST extractor first
@@ -12587,7 +12656,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     }
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // noComments: strip only # comments, keep docstrings (needed for @decorator detection)
     const noComments = src.replace(/#.*$/gm, '');
     // stripped: also strip docstrings (safe for regex matching). Docstrings are
@@ -12597,7 +12666,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
       .replace(/"""[\s\S]*?"""/g, (m) => m.replace(/[^\n]/g, ' '))
       .replace(/'''[\s\S]*?'''/g, (m) => m.replace(/[^\n]/g, ' '));
     const srcLines = src.split('\n');
-  
+
     // Classes
     for (const m of stripped.matchAll(/^class\s+(\w+)(?:\s*\(([^)]*)\))?\s*:/gm)) {
       const className = m[1];
@@ -12605,14 +12674,14 @@ __factories["./src/extractors/python"] = function(module, exports) {
       const bodyStart = m.index + m[0].length;
       const clsStart = lineAt(stripped, m.index);
       const clsAnchor = `  :${clsStart}-${pyBlockEnd(srcLines, clsStart)}`;
-  
+
       // Try @dataclass collapse
       const dcFields = tryExtractDataclassFields(stripped, m.index);
       if (dcFields !== null) {
         sigs.push(`@dataclass ${className}(${dcFields})${clsAnchor}`);
         continue;
       }
-  
+
       // Try BaseModel/BaseSettings collapse
       if (/(BaseModel|BaseSettings)/.test(baseName)) {
         const bmFields = tryExtractBaseModelFields(stripped, bodyStart);
@@ -12621,20 +12690,20 @@ __factories["./src/extractors/python"] = function(module, exports) {
           continue;
         }
       }
-  
+
       const baseStr = baseName ? `(${baseName})` : '';
       sigs.push(`class ${className}${baseStr}${clsAnchor}`);
-  
+
       // Class-level ALL_CAPS constants
       for (const c of extractClassConstants(stripped, bodyStart)) {
         sigs.push(`  ${c}`);
       }
-  
+
       // Methods
       const methods = extractClassMethods(stripped, bodyStart);
       for (const meth of methods) sigs.push(`  ${meth}`);
     }
-  
+
     // Top-level functions
     for (const m of stripped.matchAll(/^((?:async\s+)?def\s+(\w+)\s*\(([^)]*)\)(?:\s*->\s*[^:]+)?)\s*:/gm)) {
       if (/^_/.test(m[2])) continue;
@@ -12648,7 +12717,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
       const fnAnchor = `  :${fnStart}-${pyBlockEnd(srcLines, fnStart)}`;
       sigs.push(`${asyncKw}def ${m[2]}(${params})${retStr}${fnAnchor}${hintStr}`);
     }
-  
+
     // FastAPI router endpoints: @router.METHOD("path") + async def name(...)
     const lines = noComments.split('\n');
     for (let i = 0; i < lines.length - 1; i++) {
@@ -12662,10 +12731,10 @@ __factories["./src/extractors/python"] = function(module, exports) {
         if (fl && !fl.startsWith('@') && !fl.startsWith('#')) break;
       }
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   function extractClassMethods(stripped, startIndex) {
     const methods = [];
     const lines = stripped.slice(startIndex).split('\n');
@@ -12686,7 +12755,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     }
     return capWithNotice(methods, MEMBER_LIMIT, 'methods');
   }
-  
+
   function tryExtractDataclassFields(stripped, classIndex) {
     const before = stripped.slice(Math.max(0, classIndex - 120), classIndex);
     if (!/@dataclass/.test(before)) return null;
@@ -12702,7 +12771,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     }
     return fields.length ? fields.join(', ') : null;
   }
-  
+
   function tryExtractBaseModelFields(stripped, bodyStart) {
     const lines = stripped.slice(bodyStart, bodyStart + 800).split('\n');
     const fields = [];
@@ -12719,7 +12788,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     }
     return fields.length ? `{${fields.slice(0, 6).join(', ')}}` : null;
   }
-  
+
   function extractClassConstants(stripped, startIndex) {
     const lines = stripped.slice(startIndex).split('\n');
     const consts = [];
@@ -12735,7 +12804,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     }
     return consts.slice(0, 3);
   }
-  
+
   function extractReturnType(sigLine) {
     const m = sigLine.match(/->\s*([^:]+):/);
     if (!m) return '';
@@ -12743,7 +12812,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     rt = rt.replace(/Optional\[([^\]]+)\]/, '$1|None');
     return rt.length > 30 ? rt.slice(0, 27) + '...' : rt;
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim()
@@ -12763,7 +12832,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
       .filter((p) => p && p !== 'self' && p !== 'cls')
       .join(', ');
   }
-  
+
   function extractDocHint(src, fnName, fnSigLine) {
     if (!src || !fnName || !fnSigLine) return '';
     const escSig = fnSigLine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -12771,21 +12840,21 @@ __factories["./src/extractors/python"] = function(module, exports) {
     const pos = src.search(re);
     if (pos === -1) return '';
     const afterSig = src.slice(pos + fnSigLine.length, pos + fnSigLine.length + 600);
-  
+
     // Find first non-empty line after function signature indentation
     const m = afterSig.match(/^\s*\n\s*(?:[rubfRUBF]{0,2})?("""|''')([\s\S]*?)\1/m);
     if (!m) return '';
-  
+
     const firstLine = m[2]
       .split('\n')
       .map((l) => l.trim())
       .find(Boolean);
     if (!firstLine) return '';
-  
+
     const sentence = firstLine.split(/[.!?]/)[0].trim();
     return sentence.slice(0, 60);
   }
-  
+
   module.exports = { extract, tryNativeExtract, resolvePythonAstScript };
   
 };
@@ -12794,7 +12863,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
 __factories["./src/extractors/python_dataclass"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   /**
    * Extract Python dataclass, Pydantic model, and SQLAlchemy ORM metadata.
    * Focuses on model fields, validation, and relationships.
@@ -12805,30 +12874,30 @@ __factories["./src/extractors/python_dataclass"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Dataclass definitions
     const dataclassRe = /@dataclass(?:\([^)]*\))?[\s\n]+class\s+([A-Z]\w*)/g;
     for (const m of src.matchAll(dataclassRe)) {
       sigs.push(`dataclass ${m[1]}`);
     }
-  
+
     // Pydantic BaseModel classes
     const pydanticRe = /class\s+([A-Z]\w*)\s*\([^)]*BaseModel[^)]*\)/g;
     for (const m of src.matchAll(pydanticRe)) {
       sigs.push(`model ${m[1]}`);
     }
-  
+
     // Pydantic v2 model_validate / field definitions
     if (/model_validate|field_validator|computed_field/.test(src)) {
       sigs.push('pydantic v2+');
     }
-  
+
     // SQLAlchemy model classes
     const sqlalchemyRe = /class\s+([A-Z]\w*)\s*\([^)]*(?:Base|declarative_base)[^)]*\)/g;
     for (const m of src.matchAll(sqlalchemyRe)) {
       sigs.push(`orm ${m[1]}`);
     }
-  
+
     // Model fields with type hints (for dataclass/Pydantic)
     const fieldRe = /^\s+([a-z_]\w*)\s*:\s*([A-Z]\w*|List|Dict|Optional|Union)[^=]*/gm;
     const fields = new Set();
@@ -12838,19 +12907,19 @@ __factories["./src/extractors/python_dataclass"] = function(module, exports) {
     for (const f of fields) {
       sigs.push(`field ${f}`);
     }
-  
+
     // SQLAlchemy Column definitions
     const columnRe = /([a-z_]\w*)\s*=\s*Column\s*\([^)]*\)/g;
     for (const m of src.matchAll(columnRe)) {
       sigs.push(`column ${m[1]}`);
     }
-  
+
     // Relationships (SQLAlchemy ForeignKey, relationship)
     const relRe = /(?:ForeignKey|relationship)\s*\(\s*['"]([a-zA-Z_]\w*)['"]/g;
     for (const m of src.matchAll(relRe)) {
       sigs.push(`relation ${m[1]}`);
     }
-  
+
     // Validators (@validator, @field_validator)
     const validatorRe = /@(?:validator|field_validator)\s*\(\s*['"]?([a-z_]\w*)(?:['"]|,|\s|\))/g;
     const validators = new Set();
@@ -12860,15 +12929,15 @@ __factories["./src/extractors/python_dataclass"] = function(module, exports) {
     for (const v of validators) {
       sigs.push(`validator ${v}`);
     }
-  
+
     // Config class (Pydantic v1 / SQLAlchemy)
     if (/class\s+Config\s*:/.test(src)) {
       sigs.push('config-class');
     }
-  
+
     return capWithNotice(Array.from(new Set(sigs)), 200, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -12877,11 +12946,11 @@ __factories["./src/extractors/python_dataclass"] = function(module, exports) {
 __factories["./src/extractors/r"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from R source code.
    *
@@ -12902,19 +12971,19 @@ __factories["./src/extractors/r"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Collect roxygen2 hints from the original source (before stripping `#`).
     const docHints = collectRoxygenHints(src);
-  
+
     // Strip line comments for the rest of the parsing. R uses `#` comments and
     // roxygen2 `#'` is consumed alongside them — its content already lives in
     // docHints.
     const stripped = src.replace(/#.*$/gm, '');
-  
+
     // Track byte ranges already accounted for by R6 / setClass blocks so the
     // top-level function regex doesn't re-emit their methods as bare functions.
     const consumedRanges = [];
-  
+
     // ── R6 classes ────────────────────────────────────────────────────────────
     //   ClassName <- R6Class("ClassName", public = list(method = function(...)))
     //   ClassName <- R6::R6Class(...)
@@ -12935,7 +13004,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
       consumedRanges.push([m.index, closeIdx]);
       r6Re.lastIndex = closeIdx;
     }
-  
+
     // ── S7 classes ────────────────────────────────────────────────────────────
     //   ClassName <- new_class("ClassName", properties = list(...))
     const s7Classes = new Set();
@@ -12954,7 +13023,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
       consumedRanges.push([m.index, closeIdx]);
       s7Re.lastIndex = closeIdx;
     }
-  
+
     // S7 method dispatch: `method(generic, ClassName) <- function(args)`
     const s7MethodRe = /^[ \t]*method\s*\(\s*([\w.]+)\s*,\s*([\w.]+)\s*\)\s*(?:<<-|<-|=)\s*function\s*\(/gm;
     while ((m = s7MethodRe.exec(stripped)) !== null) {
@@ -12964,7 +13033,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
       if (args === null) continue;
       sigs.push(`  method(${m[1]}, ${m[2]}) <- function(${normalizeParams(args)})`);
     }
-  
+
     // ── Top-level function definitions ────────────────────────────────────────
     //   name <- function(args), name = function(args), name <<- function(args)
     // Skip matches whose position falls inside an R6/S7 class body — those have
@@ -12979,7 +13048,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
       if (args === null) continue;
       sigs.push(`${name} <- function(${normalizeParams(args)})` + applyHint(docHints, name));
     }
-  
+
     // ── S4 ────────────────────────────────────────────────────────────────────
     for (const sm of stripped.matchAll(/^[ \t]*setGeneric\s*\(\s*["']([\w.]+)["']/gm)) {
       sigs.push(`setGeneric("${sm[1]}")`);
@@ -12990,10 +13059,10 @@ __factories["./src/extractors/r"] = function(module, exports) {
     for (const sm of stripped.matchAll(/^[ \t]*setClass\s*\(\s*["']([\w.]+)["']/gm)) {
       sigs.push(`setClass("${sm[1]}")`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /**
    * Collect roxygen2 docstring hints from the original (uncommented) source.
    * Returns Map<symbolName, hint> where hint is the first @title line, else
@@ -13029,7 +13098,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   function pickRoxygenLine(block, tag) {
     for (const raw of block) {
       const b = raw.trim();
@@ -13045,12 +13114,12 @@ __factories["./src/extractors/r"] = function(module, exports) {
     }
     return null;
   }
-  
+
   function applyHint(hints, name) {
     const h = hints.get(name);
     return h ? `  # ${h}` : '';
   }
-  
+
   /**
    * Extract method-like entries from the body of an R6/S7 list(...) argument.
    * Matches `name = function(args)` at any indentation. Caps at `cap` entries.
@@ -13069,20 +13138,20 @@ __factories["./src/extractors/r"] = function(module, exports) {
     }
     return out;
   }
-  
+
   function inAnyRange(pos, ranges) {
     for (const [s, e] of ranges) {
       if (pos >= s && pos < e) return true;
     }
     return false;
   }
-  
+
   /** Extract the first quoted string from a comma-separated argument body. */
   function readFirstStringArg(body) {
     const m = body.match(/^\s*["']([\w.]+)["']/);
     return m ? m[1] : null;
   }
-  
+
   /**
    * Read a parenthesis-balanced substring starting at the position of the
    * opening '(' character, returning the inner content (without the outer
@@ -13113,7 +13182,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Compress whitespace inside a parameter list, collapse multi-line default
    * expressions onto a single line, and trim. String literals are protected so
@@ -13147,7 +13216,7 @@ __factories["./src/extractors/r"] = function(module, exports) {
     }
     return out.trim();
   }
-  
+
   module.exports = { extract };
   
 };
@@ -13157,11 +13226,11 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
   const { readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from Ruby source code.
    * @param {string} src - Raw file content
@@ -13170,19 +13239,19 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Length- AND newline-preserving: a deleting strip would desynchronise the
     // offsets the balanced reader walks (#695).
     const stripped = src.replace(/#[^\n]*/g, (m) => ' '.repeat(m.length));
     const masked = stripped.replace(/(['"])(?:\\.|(?!\1)[^\\\n])*\1/g,
       (m) => m[0] + ' '.repeat(Math.max(0, m.length - 2)) + m[0]);
-  
+
     // Modules and classes
     for (const m of stripped.matchAll(/^(?:module|class)\s+([\w:]+)(?:\s*<\s*[\w:]+)?\s*$/gm)) {
       const kind = m[0].trimStart().startsWith('module') ? 'module' : 'class';
       sigs.push(`${kind} ${m[1]}`);
     }
-  
+
     // Public methods (not private/protected)
     for (const m of stripped.matchAll(/^[ \t]+def\s+(?:self\.)?(\w+)(\s*\()?/gm)) {
       if (m[1].startsWith('_')) continue;
@@ -13192,7 +13261,7 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
       const retStr = extractReturnHint(stripped, m.index);
       sigs.push(`  def ${selfPrefix}${m[1]}${params}${retStr}`);
     }
-  
+
     // Top-level def
     for (const m of stripped.matchAll(/^def\s+(\w+)(\s*\()?/gm)) {
       if (m[1].startsWith('_')) continue;
@@ -13201,22 +13270,22 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
       const retStr = extractReturnHint(stripped, m.index);
       sigs.push(`def ${m[1]}${params}${retStr}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /** Balanced parameter read — `\(([^)]*)\)` truncated at a nested `)` (#695). */
   function readParams(stripped, masked, openIdx) {
     const close = readBalanced(masked, openIdx);
     if (close < 0) return null;
     return { params: stripped.slice(openIdx + 1, close), close };
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
+
   function extractReturnHint(stripped, index) {
     const start = Math.max(0, index - 180);
     const before = stripped.slice(start, index);
@@ -13225,7 +13294,7 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
     const type = m[1].trim().replace(/\s+/g, ' ').slice(0, 25);
     return type ? ` → ${type}` : '';
   }
-  
+
   module.exports = { extract };
   
 };
@@ -13236,7 +13305,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   // Class bodies are scanned to this many characters. Real classes routinely
@@ -13245,13 +13314,13 @@ __factories["./src/extractors/rust"] = function(module, exports) {
   // ceiling only guards against pathological input (Java parity, #551).
   const MAX_CLASS_BODY_CHARS = 200000;
   const PER_FILE_LIMIT = 200;
-  
+
   // Chars scanned past the params for a `-> Return` before giving up.
   const RET_SCAN_CHARS = 400;
-  
+
   // Per-impl member ceiling, disclosed via capMembersWithNotice (#576).
   const MEMBER_LIMIT = 120;
-  
+
   /**
    * Extract signatures from Rust source code.
    * Signatures carry `:start-end` line anchors (Surgical Context); the comment
@@ -13266,7 +13335,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     // Append the doc-comment hint after the anchor as `  # <hint>` — same
     // convention as the Python/JS extractors' doc hints.
     const hinted = (sig, name) => (docHints.has(name) ? `${sig}  # ${docHints.get(name)}` : sig);
-  
+
     // stripComments is length- AND newline-preserving; the previous regex strip
     // DELETED comment text, so offsets computed on it no longer aligned with the
     // masked surface the balanced reader walks (#695).
@@ -13277,7 +13346,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     // on rust-analyzer, every one of them lifetime-annotated. Blanked on the mask
     // surface only, length-preserving, so the rendered signature keeps them.
     const masked = maskCode(blankLifetimes(src));
-  
+
     // Anchor range for a declaration at declIdx whose header ends at afterIdx:
     // if a `{` body follows, range to its closing brace; else single-line.
     const rangeFor = (declIdx, afterIdx) => {
@@ -13290,25 +13359,25 @@ __factories["./src/extractors/rust"] = function(module, exports) {
       const line = lineAt(stripped, declIdx);
       return [line, line];
     };
-  
+
     // Structs
     for (const m of stripped.matchAll(/^pub\s+struct\s+(\w+)(?:<[^{]*>)?/gm)) {
       const [s, e] = rangeFor(m.index, m.index + m[0].length);
       sigs.push(hinted(withAnchor(`pub struct ${m[1]}`, s, e), m[1]));
     }
-  
+
     // Enums
     for (const m of stripped.matchAll(/^pub\s+enum\s+(\w+)(?:<[^{]*>)?/gm)) {
       const [s, e] = rangeFor(m.index, m.index + m[0].length);
       sigs.push(hinted(withAnchor(`pub enum ${m[1]}`, s, e), m[1]));
     }
-  
+
     // Traits
     for (const m of stripped.matchAll(/^pub\s+trait\s+(\w+)(?:<[^{]*>)?/gm)) {
       const [s, e] = rangeFor(m.index, m.index + m[0].length);
       sigs.push(hinted(withAnchor(`pub trait ${m[1]}`, s, e), m[1]));
     }
-  
+
     // impl blocks
     for (const m of stripped.matchAll(/^impl(?:<[^>]*>)?\s+(?:[\w:]+\s+for\s+)?(\w+)(?:<[^{]*>)?\s*\{/gm)) {
       const bodyStart = m.index + m[0].length;
@@ -13318,7 +13387,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
         sigs.push(hinted(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + (fn.declIdx || 0)), lineAt(stripped, bodyStart + (fn.endIdx || 0))), fn.name));
       }
     }
-  
+
     // Top-level pub fns — capture everything after ) up to { or ; for return type
     for (const m of stripped.matchAll(/^pub(?:\s+async)?\s+fn\s+(\w+)(?:<[^(]*>)?\s*\(/gm)) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
@@ -13328,10 +13397,10 @@ __factories["./src/extractors/rust"] = function(module, exports) {
       const [s, e] = rangeFor(m.index, pr.end);
       sigs.push(hinted(withAnchor(`pub ${asyncKw}fn ${m[1]}(${normalizeParams(pr.params)})${retStr}`, s, e), m[1]));
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /**
    * Resolve a `fn` declaration's parameter list with a BALANCED read (#695).
    *
@@ -13357,7 +13426,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
   function blankLifetimes(src) {
     return src.replace(/'(?:[A-Za-z_][A-Za-z0-9_]*|_)(?!')/g, (m) => ' '.repeat(m.length));
   }
-  
+
   function readParams(stripped, masked, openIdx) {
     const close = readBalanced(masked, openIdx);
     if (close < 0) return null;
@@ -13376,7 +13445,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     // anchor past the signature itself.
     return { params: stripped.slice(openIdx + 1, close), after: stripped.slice(close + 1, i), end: i, close };
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(src.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -13387,7 +13456,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   function extractMethods(block, maskedBlock) {
     const methods = [];
     for (const m of block.matchAll(/^[ \t]+pub(?:\s+async)?\s+fn\s+(\w+)(?:<[^(]*>)?\s*\(/gm)) {
@@ -13404,12 +13473,12 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     }
     return capMembersWithNotice(methods, MEMBER_LIMIT, 'methods');
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
+
   function extractReturnType(afterParen) {
     if (!afterParen) return '';
     const m = afterParen.match(/->\s*([^{;]+)/);
@@ -13417,7 +13486,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     const rt = m[1].trim().replace(/\s+/g, ' ');
     return ` → ${rt.length > 30 ? rt.slice(0, 27) + '...' : rt}`;
   }
-  
+
   // Rustdoc: the `///` block directly above a declaration → first prose
   // sentence, 60-char cap. Runs on the ORIGINAL src (extract strips comments
   // before matching). Attribute lines (`#[...]`) between the doc block and the
@@ -13431,7 +13500,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   // First prose line of a `///` block → first sentence, 60-char cap.
   function firstDocSentence(block) {
     const line = String(block).split('\n')
@@ -13440,7 +13509,7 @@ __factories["./src/extractors/rust"] = function(module, exports) {
     if (!line) return '';
     return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -13451,7 +13520,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
@@ -13462,13 +13531,13 @@ __factories["./src/extractors/scala"] = function(module, exports) {
   const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   // Chars scanned past the params for a `: ReturnType` before giving up.
   const RET_SCAN_CHARS = 400;
-  
+
   /** Keywords that mean the header ended without a body — see `bodyBraceFor`. */
   const DECL_KEYWORDS = /\b(?:class|trait|object|def|val|var|case)\b/;
-  
+
   /**
    * Extract signatures from Scala source code.
    *
@@ -13498,13 +13567,13 @@ __factories["./src/extractors/scala"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // stripComments is string-aware; maskCode additionally blanks string
     // contents so every delimiter seen on it is structural. Both preserve
     // length and newlines, so offsets align across both surfaces.
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     /**
      * Index of the body `{` belonging to the declaration starting at `from`, or
      * -1 when it has no body. Balanced constructor parens and `[T]` groups are
@@ -13535,9 +13604,9 @@ __factories["./src/extractors/scala"] = function(module, exports) {
       }
       return -1;
     };
-  
+
     const blockEndIdx = (bodyOpen) => bodyOpen + 1 + extractBlock(stripped, masked, bodyOpen + 1).length;
-  
+
     // ── Classes, traits, objects ───────────────────────────────────────────────
     for (const m of stripped.matchAll(
       /^[ \t]*(?:(?:final|sealed|abstract|implicit|private|protected)\s+)*(case\s+class|case\s+object|class|trait|object)\s+(\w+)/gm)) {
@@ -13566,16 +13635,16 @@ __factories["./src/extractors/scala"] = function(module, exports) {
         sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + (fn.declIdx || 0)), lineAt(stripped, bodyStart + (fn.endIdx || 0))));
       }
     }
-  
+
     // ── Top-level defs ─────────────────────────────────────────────────────────
     for (const fn of scanDefs(stripped, masked, /^(?:(?:implicit|private|protected|final)\s+)*def\b/gm)) {
       const line = lineAt(stripped, fn.declIdx);
       sigs.push(withAnchor(fn.text, line, line));
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /**
    * Walk every `def` matched by `headRe`, resolving each parameter list with a
    * balanced read. Multiple lists (currying) are all rendered, so the return
@@ -13589,20 +13658,20 @@ __factories["./src/extractors/scala"] = function(module, exports) {
       const head = m[0];
       const declIdx = m.index + (head.length - head.trimStart().length);
       let i = ws(m.index + head.length);
-  
+
       const nameM = /^(?:[A-Za-z_]\w*|[+\-*/<>=!&|^%]+)/.exec(stripped.slice(i, i + 200));
       if (!nameM) continue;
       const name = nameM[0];
       if (name.startsWith('_')) continue;
       i = ws(i + name.length);
-  
+
       // Method type parameters: `def f[T](a: T)`.
       if (masked[i] === '[') {
         const c = readBalanced(masked, i, '[', ']');
         if (c < 0) continue;
         i = ws(c + 1);
       }
-  
+
       // One or more parameter lists.
       let lists = '';
       while (masked[i] === '(') {
@@ -13611,7 +13680,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
         lists += `(${normalizeParams(stripped.slice(i + 1, close))})`;
         i = ws(close + 1);
       }
-  
+
       // `: ReturnType` up to `=`, the body `{`, or end of line.
       let ret = '';
       if (masked[i] === ':') {
@@ -13632,7 +13701,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
     }
     return out;
   }
-  
+
   // Depth-counted on the MASKED surface (a brace inside a string can no longer
   // open or close a block); content sliced from the stripped surface.
   /**
@@ -13682,7 +13751,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
     }
     return { block: b.join(''), masked: mb.join('') };
   }
-  
+
   function extractBlock(stripped, masked, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(masked.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -13693,7 +13762,7 @@ __factories["./src/extractors/scala"] = function(module, exports) {
     }
     return stripped.slice(startIndex, i - 1);
   }
-  
+
   /**
    * Parameter NAMES only, with `: Type` and `= default` dropped.
    *
@@ -13732,12 +13801,12 @@ __factories["./src/extractors/scala"] = function(module, exports) {
     flush();
     return names.join(', ');
   }
-  
+
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/\s+/g, ' ').slice(0, 25);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -13757,7 +13826,7 @@ __factories["./src/extractors/scan"] = function(module, exports) {
    * All transforms are length- and newline-preserving, so character offsets
    * and line anchors computed on the output align 1:1 with the input.
    */
-  
+
   /**
    * Blank comments only — string-aware, so `//` or `/*` INSIDE a string
    * literal survives (the naive regex strip corrupted e.g. `url = "https://x"`).
@@ -13782,7 +13851,7 @@ __factories["./src/extractors/scan"] = function(module, exports) {
     }
     return out.join('');
   }
-  
+
   /**
    * Blank comments AND string/template contents (quotes included) — the
    * boundary-scanning surface: delimiters found here are always structural.
@@ -13806,7 +13875,7 @@ __factories["./src/extractors/scan"] = function(module, exports) {
     }
     return out.join('');
   }
-  
+
   /**
    * Index of the delimiter that closes the one open at `openIdx`, matched by
    * depth over MASKED text (strings/comments already blanked, so every
@@ -13832,7 +13901,7 @@ __factories["./src/extractors/scan"] = function(module, exports) {
     }
     return -1;
   }
-  
+
   module.exports = { stripComments, maskCode, readBalanced };
   
 };
@@ -13845,7 +13914,7 @@ __factories["./src/extractors/scip_symbols"] = function(module, exports) {
   const { parseIndex } = __require('./src/scip/reader');
   const { anchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // SCIP index → signature lines (#618, tier T4 of #542, import only). When a
   // repo's CI already produced `index.scip` at the root, its documents carry
   // compiler-typed signatures inside `documentation[0]` code fences — richer
@@ -13854,18 +13923,18 @@ __factories["./src/extractors/scip_symbols"] = function(module, exports) {
   // LSP tier, the wiring applies a per-file quality guard, so a sparse or stale
   // index entry never loses surface vs the regex floor, and the toolchain label
   // (`scip:<tool>@<version>` from Metadata) is registered only on acceptance.
-  
+
   const PER_FILE_LIMIT = 200;
   const SIG_TEXT_CHARS = 110;
   const HINT_CHARS = 60;
-  
+
   // SCIP symbol grammar suffixes to SKIP — not API surface:
   //   `(name)`  parameter · `[T]` type parameter · `local N` locals ·
   //   trailing `/` package/file symbols · `typeLiteral` synthesized members
   const SKIP_SYMBOL = /\((?:[^()]*)\)$|\[[^\]]*\]$|(^|\s)local\s+\d|\/$|typeLiteral/;
-  
+
   let _cache = null; // { cwd, mtimeMs, size, index } — reloaded when the file changes
-  
+
   function _loadIndex(cwd) {
     const p = path.join(cwd, 'index.scip');
     let st;
@@ -13882,24 +13951,24 @@ __factories["./src/extractors/scip_symbols"] = function(module, exports) {
       return null;
     }
   }
-  
+
   /** Fence interior of a SCIP documentation string, compacted to one line. */
   function _sigText(doc) {
     const m = /^```[\w-]*\n([\s\S]*?)\n?```/.exec(doc || '');
     const inner = m ? m[1] : '';
     return inner.replace(/\s+/g, ' ').trim().slice(0, SIG_TEXT_CHARS);
   }
-  
+
   function _hint(doc) {
     return String(doc || '').replace(/\s+/g, ' ').trim().split(/[.!?]/)[0].trim().slice(0, HINT_CHARS);
   }
-  
+
   /** Member-of relation from SCIP symbol structure: `...X#member().` ⊂ `...X#`. */
   function _isMemberSymbol(symbol) {
     const hash = symbol.lastIndexOf('#');
     return hash !== -1 && hash < symbol.length - 1;
   }
-  
+
   /**
    * Extract signatures for one file from the repo's SCIP index.
    * Returns null (caller falls back) when there is no usable entry.
@@ -13914,7 +13983,7 @@ __factories["./src/extractors/scip_symbols"] = function(module, exports) {
     const rel = path.relative(cwd, path.resolve(filePath)).replace(/\\/g, '/');
     const doc = index.documents.get(rel);
     if (!doc || doc.defs.length === 0) return null;
-  
+
     const rows = [];
     for (const def of doc.defs) {
       if (SKIP_SYMBOL.test(def.symbol)) continue;
@@ -13938,19 +14007,19 @@ __factories["./src/extractors/scip_symbols"] = function(module, exports) {
     const sigs = capWithNotice(rows.map((r) => r.text), PER_FILE_LIMIT, 'signatures');
     return { sigs, label: `scip:${index.tool || 'unknown'}` };
   }
-  
+
   const _labels = new Set();
-  
+
   /** Register a label once the wiring has ACCEPTED the SCIP result. */
   function acceptLabel(label) {
     if (label) _labels.add(label);
   }
-  
+
   /** Toolchain labels for indexes whose entries were actually used this run. */
   function toolchainLabels() {
     return [..._labels].sort();
   }
-  
+
   module.exports = { extractViaScip, acceptLabel, toolchainLabels };
   
 };
@@ -13959,11 +14028,11 @@ __factories["./src/extractors/scip_symbols"] = function(module, exports) {
 __factories["./src/extractors/shell"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from shell scripts (bash, zsh, fish).
    * @param {string} src - Raw file content
@@ -13972,25 +14041,25 @@ __factories["./src/extractors/shell"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     const stripped = src.replace(/#.*$/gm, '');
-  
+
     // Function definitions (bash: name() { and function name {)
     for (const m of stripped.matchAll(/^(?:function\s+)?([\w:-]+)\s*\(\s*\)\s*\{/gm)) {
       if (m[1].startsWith('_')) continue;
       sigs.push(`function ${m[1]}()`);
     }
-  
+
     // Main entry point patterns
     if (/^\s*main\s*\(/m.test(src) || /^\s*main\s+"?\$@/m.test(src)) {
       sigs.push('main "$@"');
     }
-  
+
     // Exported variables
     for (const m of stripped.matchAll(/^export\s+([\w]+)=/gm)) {
       sigs.push(`export ${m[1]}`);
     }
-  
+
     // Script description (first non-comment line after shebang)
     const lines = src.split('\n');
     for (const line of lines.slice(0, 5)) {
@@ -14000,10 +14069,10 @@ __factories["./src/extractors/shell"] = function(module, exports) {
         if (desc) { sigs.unshift(`# ${desc}`); break; }
       }
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -14021,33 +14090,33 @@ __factories["./src/extractors/sql"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Strip single-line comments and block comments
     const stripped = src
       .replace(/--[^\n]*/g, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
     // CREATE TABLE [IF NOT EXISTS] <name> / CREATE [TEMP] TABLE ...
     for (const m of stripped.matchAll(
       /CREATE\s+(?:OR\s+REPLACE\s+)?(?:TEMP(?:ORARY)?\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)/gi
     )) {
       sigs.push(`TABLE ${_cleanName(m[1])}`);
     }
-  
+
     // CREATE VIEW / MATERIALIZED VIEW
     for (const m of stripped.matchAll(
       /CREATE\s+(?:OR\s+REPLACE\s+)?(?:MATERIALIZED\s+)?VIEW\s+(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)/gi
     )) {
       sigs.push(`VIEW ${_cleanName(m[1])}`);
     }
-  
+
     // CREATE INDEX / UNIQUE INDEX
     for (const m of stripped.matchAll(
       /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)\s+ON\s+([`"[\w.]+)/gi
     )) {
       sigs.push(`INDEX ${_cleanName(m[1])} ON ${_cleanName(m[2])}`);
     }
-  
+
     // CREATE FUNCTION / CREATE OR REPLACE FUNCTION
     for (const m of stripped.matchAll(
       /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([`"[\w.]+)\s*\(([^)]*)\)/gi
@@ -14055,7 +14124,7 @@ __factories["./src/extractors/sql"] = function(module, exports) {
       const params = _normalizeParams(m[2]);
       sigs.push(`FUNCTION ${_cleanName(m[1])}(${params})`);
     }
-  
+
     // CREATE PROCEDURE
     for (const m of stripped.matchAll(
       /CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+([`"[\w.]+)\s*\(([^)]*)\)/gi
@@ -14063,35 +14132,35 @@ __factories["./src/extractors/sql"] = function(module, exports) {
       const params = _normalizeParams(m[2]);
       sigs.push(`PROCEDURE ${_cleanName(m[1])}(${params})`);
     }
-  
+
     // CREATE TRIGGER
     for (const m of stripped.matchAll(
       /CREATE\s+(?:OR\s+REPLACE\s+)?(?:CONSTRAINT\s+)?TRIGGER\s+([`"[\w.]+)/gi
     )) {
       sigs.push(`TRIGGER ${_cleanName(m[1])}`);
     }
-  
+
     // CREATE TYPE (composite, enum, domain)
     for (const m of stripped.matchAll(
       /CREATE\s+(?:OR\s+REPLACE\s+)?TYPE\s+([`"[\w.]+)/gi
     )) {
       sigs.push(`TYPE ${_cleanName(m[1])}`);
     }
-  
+
     // CREATE SEQUENCE
     for (const m of stripped.matchAll(
       /CREATE\s+(?:OR\s+REPLACE\s+)?SEQUENCE\s+(?:IF\s+NOT\s+EXISTS\s+)?([`"[\w.]+)/gi
     )) {
       sigs.push(`SEQUENCE ${_cleanName(m[1])}`);
     }
-  
+
     return sigs;
   }
-  
+
   function _cleanName(raw) {
     return raw.replace(/^[`"[]|[`"\]]+$/g, '').trim();
   }
-  
+
   function _normalizeParams(raw) {
     if (!raw || !raw.trim()) return '';
     return raw.trim()
@@ -14100,7 +14169,7 @@ __factories["./src/extractors/sql"] = function(module, exports) {
       .filter(Boolean)
       .join(', ');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -14109,11 +14178,11 @@ __factories["./src/extractors/sql"] = function(module, exports) {
 __factories["./src/extractors/svelte"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from Svelte components.
    * @param {string} src - Raw file content
@@ -14122,27 +14191,27 @@ __factories["./src/extractors/svelte"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Extract <script> block
     const scriptMatch = src.match(/<script(?:\s[^>]*)?>(?:\s*)([\s\S]*?)<\/script>/i);
     if (!scriptMatch) return sigs;
-  
+
     const script = scriptMatch[1]
       .replace(/\/\/.*$/gm, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
     // Exported props (writable)
     for (const m of script.matchAll(/^\s+export\s+let\s+(\w+)(?:\s*=\s*[^;]+)?;/gm)) {
       sigs.push(`export let ${m[1]}`);
     }
-  
+
     // Exported functions
     for (const m of script.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)(?:\s*:\s*([^{=\n]+))?/gm)) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
       const retStr = m[3] ? ` → ${normalizeType(m[3])}` : '';
       sigs.push(`export ${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
     }
-  
+
     // Top-level functions
     for (const m of script.matchAll(/^(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)(?:\s*:\s*([^{=\n]+))?/gm)) {
       if (m[1].startsWith('_')) continue;
@@ -14150,25 +14219,25 @@ __factories["./src/extractors/svelte"] = function(module, exports) {
       const retStr = m[3] ? ` → ${normalizeType(m[3])}` : '';
       sigs.push(`${asyncKw}function ${m[1]}(${normalizeParams(m[2])})${retStr}`);
     }
-  
+
     // Reactive declarations $:
     for (const m of script.matchAll(/^\s+\$:\s+(\w+)\s*=/gm)) {
       sigs.push(`$: ${m[1]}`);
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     return params.trim().replace(/\s+/g, ' ');
   }
-  
+
   function normalizeType(type) {
     if (!type) return '';
     return type.trim().replace(/[;\s]+$/g, '').replace(/\s+/g, ' ').slice(0, 25);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -14179,7 +14248,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
   const { lineAt, withAnchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
@@ -14190,10 +14259,10 @@ __factories["./src/extractors/swift"] = function(module, exports) {
   const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
-  
+
   // Chars scanned past the params for a `-> Return` before giving up.
   const RET_SCAN_CHARS = 400;
-  
+
   /**
    * Extract signatures from Swift source code.
    * Signatures carry `:start-end` line anchors (Surgical Context); the comment
@@ -14204,13 +14273,13 @@ __factories["./src/extractors/swift"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // stripComments is length- AND newline-preserving; the previous regex strip
     // DELETED comment text, so offsets no longer aligned with the masked surface
     // the balanced reader walks (#695).
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     // Anchor range: scan past same-line modifiers to a body `{` (range) else single line.
     const rangeFor = (declIdx, afterIdx) => {
       let k = afterIdx;
@@ -14222,7 +14291,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
       const line = lineAt(stripped, declIdx);
       return [line, line];
     };
-  
+
     // Classes, structs, protocols, enums
     const typeRe = /^[ \t]*(?:public\s+|internal\s+|open\s+|private\s+|fileprivate\s+)?(?:final\s+)?(class|struct|protocol|enum|actor)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w, <>.]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
@@ -14240,7 +14309,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
         sigs.push(withAnchor(`  ${fn.text}`, lineAt(stripped, bodyStart + (fn.declIdx || 0)), lineAt(stripped, bodyStart + (fn.endIdx || 0))));
       }
     }
-  
+
     // Top-level public functions — capture everything after ) to end of line for arrow type
     for (const m of stripped.matchAll(/^(?:public\s+|internal\s+)?(?:static\s+)?(?:async\s+)?func\s+(\w+)(?:<[^(]*>)?\s*\(/gm)) {
       const asyncKw = m[0].includes('async') ? 'async ' : '';
@@ -14250,10 +14319,10 @@ __factories["./src/extractors/swift"] = function(module, exports) {
       const [s, e] = rangeFor(m.index, pr.end);
       sigs.push(withAnchor(`${asyncKw}func ${m[1]}(${normalizeParams(pr.params)})${retStr}`, s, e));
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   /**
    * Resolve a `func` declaration's parameter list with a BALANCED read (#695).
    *
@@ -14281,7 +14350,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
     // anchor past the signature itself.
     return { params: stripped.slice(openIdx + 1, close), after: stripped.slice(close + 1, i), end: i, close };
   }
-  
+
   /**
    * Blank the bodies of NESTED type declarations so their members are not also
    * attributed to the enclosing type (#741). Length- and newline-preserving.
@@ -14311,7 +14380,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
     }
     return { block: b.join(''), masked: mb.join('') };
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1, i = startIndex;
     const end = Math.min(src.length, startIndex + MAX_CLASS_BODY_CHARS);
@@ -14322,7 +14391,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   function extractMembers(block, maskedBlock) {
     const members = [];
     for (const m of block.matchAll(/^[ \t]+(?:public\s+|internal\s+|open\s+)?(?:static\s+|class\s+)?(?:mutating\s+)?(?:async\s+)?func\s+(\w+)(?:<[^(]*>)?\s*\(/gm)) {
@@ -14339,7 +14408,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
     }
     return capMembersWithNotice(members, MEMBER_LIMIT);
   }
-  
+
   /**
    * Parameter NAMES only, `: Type` and `= default` dropped.
    *
@@ -14370,7 +14439,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
     flush();
     return names.join(', ');
   }
-  
+
   function extractArrowType(str) {
     if (!str) return '';
     const m = str.match(/->\s*([^\n{]+)/);
@@ -14378,7 +14447,7 @@ __factories["./src/extractors/swift"] = function(module, exports) {
     const rt = m[1].trim().replace(/\s+/g, ' ');
     return ` → ${rt.length > 25 ? rt.slice(0, 22) + '...' : rt}`;
   }
-  
+
   module.exports = { extract };
   
 };
@@ -14397,66 +14466,66 @@ __factories["./src/extractors/terraform"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Strip single-line comments
     const stripped = src
       .replace(/\/\/[^\n]*/g, '')
       .replace(/#[^\n]*/g, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
     // resource "<type>" "<name>" { ... }
     for (const m of stripped.matchAll(/\bresource\s+"([^"]+)"\s+"([^"]+)"\s*\{/g)) {
       sigs.push(`resource "${m[1]}" "${m[2]}"`);
     }
-  
+
     // data "<type>" "<name>" { ... }
     for (const m of stripped.matchAll(/\bdata\s+"([^"]+)"\s+"([^"]+)"\s*\{/g)) {
       sigs.push(`data "${m[1]}" "${m[2]}"`);
     }
-  
+
     // module "<name>" { ... }
     for (const m of stripped.matchAll(/\bmodule\s+"([^"]+)"\s*\{/g)) {
       sigs.push(`module "${m[1]}"`);
     }
-  
+
     // variable "<name>" { ... }
     for (const m of stripped.matchAll(/\bvariable\s+"([^"]+)"\s*\{/g)) {
       sigs.push(`variable "${m[1]}"`);
     }
-  
+
     // output "<name>" { ... }
     for (const m of stripped.matchAll(/\boutput\s+"([^"]+)"\s*\{/g)) {
       sigs.push(`output "${m[1]}"`);
     }
-  
+
     // provider "<name>" { ... }
     for (const m of stripped.matchAll(/\bprovider\s+"([^"]+)"\s*\{/g)) {
       sigs.push(`provider "${m[1]}"`);
     }
-  
+
     // locals { ... } (just mark presence; key names too noisy to enumerate)
     if (/\blocals\s*\{/.test(stripped)) {
       sigs.push('locals { ... }');
     }
-  
+
     // terraform { required_providers / backend }
     if (/\bterraform\s*\{/.test(stripped)) {
       sigs.push('terraform { ... }');
     }
-  
+
     // moved block
     for (const m of stripped.matchAll(/\bmoved\s*\{[\s\S]*?from\s*=\s*([^\n]+)/g)) {
       sigs.push(`moved from ${m[1].trim()}`);
     }
-  
+
     // import block (Terraform 1.5+)
     for (const m of stripped.matchAll(/\bimport\s*\{[\s\S]*?to\s*=\s*([^\n]+)/g)) {
       sigs.push(`import to ${m[1].trim()}`);
     }
-  
+
     return sigs;
   }
-  
+
   module.exports = { extract };
   
 };
@@ -14473,7 +14542,7 @@ __factories["./src/extractors/todos"] = function(module, exports) {
     if (!src || typeof src !== 'string') return [];
     const todos = [];
     const lines = src.split('\n');
-  
+
     for (let i = 0; i < lines.length; i++) {
       const m = lines[i].match(/(?:\/\/|#)\s*(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)/i);
       if (!m) continue;
@@ -14483,10 +14552,10 @@ __factories["./src/extractors/todos"] = function(module, exports) {
         text: m[2].trim().slice(0, 70),
       });
     }
-  
+
     return todos;
   }
-  
+
   module.exports = { extractTodos };
   
 };
@@ -14495,10 +14564,10 @@ __factories["./src/extractors/todos"] = function(module, exports) {
 __factories["./src/extractors/toml"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling discloses what it drops rather than truncating silently (#583).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from TOML configuration files.
    * Focuses on section/table names and high-value keys.
@@ -14509,35 +14578,35 @@ __factories["./src/extractors/toml"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Remove # comments while preserving values before comment markers.
     const stripped = src.replace(/\s+#.*$/gm, '');
-  
+
     // [section] and [[array.section]]
     for (const m of stripped.matchAll(/^\s*(\[\[?[^\]]+\]\]?)\s*$/gm)) {
       sigs.push(`table ${m[1].trim()}`);
     }
-  
+
     // Key-value lines (top-level and nested) — keep key names only.
     for (const m of stripped.matchAll(/^\s*([A-Za-z0-9_.-]+)\s*=\s*(.+)$/gm)) {
       const key = m[1].trim();
       const value = m[2].trim();
-  
+
       // Prefer common metadata/config keys for compact, useful output.
       if (/^(name|version|description|authors|license|requires-python|dependencies|optional-dependencies|scripts|tool\.|build-system\.|project\.)/.test(key)) {
         sigs.push(`key ${key}`);
         continue;
       }
-  
+
       // Include booleans and simple scalar keys as generic config signal.
       if (/^(true|false|"[^"]*"|'[^']*'|[0-9._-]+)$/.test(value)) {
         sigs.push(`key ${key}`);
       }
     }
-  
+
     return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'entries');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -14549,11 +14618,11 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
-  
+
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
   const MAX_CLASS_BODY_CHARS = 200000;
-  
+
   /**
    * Extract signatures from TypeScript source code.
    * Top-level declarations carry a `:start-end` line anchor (see line-anchor.js);
@@ -14573,14 +14642,14 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // Kept parallel to `sigs` so existing push/mutation logic stays untouched;
     // anchors are applied once at return.
     const anchors = [];
-  
+
     // stripComments is string-aware (a `//` inside a string literal survives);
     // maskCode additionally blanks string/template contents so every delimiter
     // found on it is structural. Both are length- and newline-preserving, so
     // offsets and line anchors align across all three views (#526).
     const stripped = stripComments(src);
     const masked = maskCode(src);
-  
+
     // Full params for a declaration whose `(` sits at openIdx (see javascript.js).
     const paramsFrom = (openIdx) => {
       const closeIdx = readBalanced(masked, openIdx);
@@ -14590,10 +14659,10 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
       return { params: stripped.slice(openIdx + 1, closeIdx), closeIdx };
     };
-  
+
     // Index of the closing brace for a block whose body starts at bodyStart.
     const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
-  
+
     // Exported interfaces
     for (const m of stripped.matchAll(/^export\s+interface\s+(\w+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
       const bodyStart = m.index + m[0].length;
@@ -14607,20 +14676,20 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         anchors.push([lineAt(stripped, bodyStart + mem.start), lineAt(stripped, bodyStart + mem.end)]);
       }
     }
-  
+
     // Exported type aliases
     for (const m of stripped.matchAll(/^export\s+type\s+(\w+)(?:<[^=]*>)?\s*=/gm)) {
       sigs.push(`export type ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, m.index + m[0].length)]);
     }
-  
+
     // Exported enums
     for (const m of stripped.matchAll(/^export\s+(?:const\s+)?enum\s+(\w+)\s*\{/gm)) {
       const bodyStart = m.index + m[0].length;
       sigs.push(`export enum ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
     }
-  
+
     // Classes (exported and internal)
     // The heritage clause is walked to, not matched inline — see the note in
     // javascript.js. `extends Mixin(LitElement)` (idiomatic Lit composition)
@@ -14628,7 +14697,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // no class line, no members. Leading whitespace is allowed so an indented
     // class expression — the mixin-factory form — is reachable too.
     const classRegex = /^[ \t]*(export\s+)?(abstract\s+)?class\s+(\w+)\b/gm;
-  
+
     /**
      * Index of the `{` that opens a class body, or -1. Depth-aware so a
      * call-expression superclass, a generic argument list and an `implements`
@@ -14690,7 +14759,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         anchors.push([lineAt(stripped, bodyStart + meth.start), lineAt(stripped, bodyStart + meth.end)]);
       }
     }
-  
+
     // Exported top-level functions (not methods)
     for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
       const { params: rawParams, closeIdx } = paramsFrom(m.index + m[0].length - 1);
@@ -14708,7 +14777,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       sigs.push(`export ${asyncKw}function ${m[1]}(${params})${retStr}`);
       docHintFor[sigs.length - 1] = docHints.get(m[1]);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
-  
+
       // Hooks: capture compact return object shape for use* functions.
       if (m[1].startsWith('use')) {
         const body = stripped.slice(bodyStart, bodyStart + 800);
@@ -14725,7 +14794,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         }
       }
     }
-  
+
     // Exported arrow functions / const functions
     for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/gm)) {
       const { params: rawParams, closeIdx } = paramsFrom(m.index + m[0].length - 1);
@@ -14743,7 +14812,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         ? lineAt(stripped, blockEndIdx(bodyStart + 1))
         : lineAt(stripped, matchEnd);
       anchors.push([lineAt(stripped, m.index), endLn]);
-  
+
       // Hooks: capture compact return object shape for use* functions.
       if (m[1].startsWith('use')) {
         if (bodyStart !== -1) {
@@ -14762,7 +14831,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         }
       }
     }
-  
+
     // Zustand stores: export const useXxxStore = create<State>()(...)
     for (const m of stripped.matchAll(/^export\s+const\s+(use\w+Store)\s*=\s*create(?:<[^>]*>)?\s*\(/gm)) {
       const stateType = m[0].match(/create<([\w]+)>/)?.[1] || '';
@@ -14775,7 +14844,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         for (const fm of ifm[1].matchAll(/^\s+(\w+)\s*(?:\([^)]*\))?\s*:/gm)) { sigs.push(`  ${fm[1]}`); anchors.push(null); }
       }
     }
-  
+
     // API client objects: const xxxApi = { method: async () => {} }
     for (const m of stripped.matchAll(/^(?:export\s+default\s+|const\s+)(\w*[Aa]pi\w*)\s*=\s*\{/gm)) {
       const bodyStart = m.index + m[0].length;
@@ -14786,14 +14855,14 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         anchors.push([lineAt(stripped, m.index), lineAt(stripped, bodyStart + block.length)]);
       }
     }
-  
+
     const withAnchors = sigs.map((s, i) => {
       const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
       return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
     });
     return capWithNotice(withAnchors, 200, 'signatures');
   }
-  
+
   function extractBlock(src, startIndex) {
     let depth = 1;
     let i = startIndex;
@@ -14805,7 +14874,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
     return src.slice(startIndex, i - 1);
   }
-  
+
   // Returns members as { text, start, end } where start/end are char offsets
   // WITHIN `block`, so the caller can resolve member line anchors.
   function extractInterfaceMembers(block) {
@@ -14827,9 +14896,9 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
     return capMembersWithNotice(members, 120, 'members');
   }
-  
+
   const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'catch', 'finally', 'else', 'return']);
-  
+
   // Returns members as { text, start, end } where start/end are char offsets
   // WITHIN `block` (end = the method's closing brace), so the caller can resolve
   // per-method line anchors that span the method body.
@@ -14867,7 +14936,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
     return capMembersWithNotice(members, 120, 'methods');
   }
-  
+
   function normalizeParams(params) {
     if (!params) return '';
     const compact = params.trim().replace(/\s+/g, ' ');
@@ -14899,7 +14968,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
     return out.replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ').trim();
   }
-  
+
   // First prose sentence of the JSDoc block immediately preceding an exported
   // top-level function (function or arrow-const form). Mirrors the Python
   // extractor's extractDocHint: first sentence only, 60-char cap.
@@ -14920,7 +14989,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
     return hints;
   }
-  
+
   // First non-tag prose line of a JSDoc body → first sentence, 60-char cap.
   function firstDocSentence(body) {
     const line = String(body).split('\n')
@@ -14929,7 +14998,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     if (!line) return '';
     return line.split(/[.!?]/)[0].trim().slice(0, 60);
   }
-  
+
   module.exports = { extract };
   
 };
@@ -14940,7 +15009,7 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
   const path = require('path');
   const { anchor } = __require('./src/extractors/line-anchor');
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
-  
+
   // True-AST TypeScript extraction via the TARGET REPO's own `typescript`
   // package (#609, tier T2 of #542). Nothing is bundled and nothing is
   // required to exist: `resolveRepoTypescript` probes node_modules upward from
@@ -14954,7 +15023,7 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
   // regex floor), same ceilings, same disclosure markers — only the parse is
   // different, so anchors and signatures survive multiline declarations,
   // constrained generics, decorators, and overloads that regex cannot see.
-  
+
   // Emit only what the regex tier emits, in the same kind-grouped order, so a
   // flag-on/flag-off diff shows parsing differences rather than reordering.
   const MEMBER_LIMIT = 120;
@@ -14962,9 +15031,9 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
   const FUNC_RET_CHARS = 30;
   const METHOD_RET_CHARS = 20;
   const IFACE_TYPE_CHARS = 35;
-  
+
   const _resolveCache = new Map(); // dirname → { ts, version } | null
-  
+
   /**
    * Resolve the target repo's own `typescript` package, walking node_modules
    * upward from the file's directory. Cached per directory; null when absent
@@ -14986,9 +15055,9 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
     _resolveCache.set(dir, out);
     return out;
   }
-  
+
   const _compact = (s) => String(s).replace(/\s+/g, ' ').trim();
-  
+
   /**
    * Extract signatures from TypeScript source via the provided compiler module.
    * Returns null on ANY failure so the caller can fall back to regex.
@@ -15005,7 +15074,7 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
       return null;
     }
   }
-  
+
   function _extract(src, filePath, ts) {
     const sf = ts.createSourceFile(filePath || 'file.ts', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
     const lineOf = (pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
@@ -15014,7 +15083,7 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
     const mods = (node) => (ts.canHaveModifiers && ts.canHaveModifiers(node) ? ts.getModifiers(node) : node.modifiers) || [];
     const hasMod = (node, kind) => mods(node).some((m) => m.kind === kind);
     const isExported = (node) => hasMod(node, ts.SyntaxKind.ExportKeyword);
-  
+
     // Parameter rendering matches normalizeParams' output: names and defaults
     // survive, type annotations do not; constructor parameter-property
     // modifiers (private/readonly/...) survive because they name real fields.
@@ -15040,14 +15109,14 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
         : js.comment.map((c) => c.text || '').join('');
       return _compact(text).split(/[.!?]/)[0].trim().slice(0, 60);
     };
-  
+
     const interfaces = [];
     const types = [];
     const enums = [];
     const classes = [];
     const funcs = [];
     const arrows = [];
-  
+
     for (const node of sf.statements) {
       if (ts.isInterfaceDeclaration(node) && isExported(node)) {
         const block = [{ text: `export interface ${node.name.text}`, s: startLine(node), e: endLine(node) }];
@@ -15115,7 +15184,7 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
         }
       }
     }
-  
+
     const rows = [...interfaces, ...types, ...enums, ...classes, ...funcs, ...arrows];
     const sigs = rows.map((r) => {
       const base = r.marker ? r.text : `${r.text}${anchor(r.s, r.e)}`;
@@ -15123,7 +15192,7 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
     });
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract, resolveRepoTypescript };
   
 };
@@ -15132,10 +15201,10 @@ __factories["./src/extractors/typescript_native"] = function(module, exports) {
 __factories["./src/extractors/typescript_react"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling discloses what it drops rather than truncating silently (#583).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract React component signatures from .tsx files.
    * Captures component props interfaces, hooks usage, and exports.
@@ -15146,24 +15215,24 @@ __factories["./src/extractors/typescript_react"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Remove comments to simplify matching
     const stripped = src
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/\/\/.*$/gm, '');
-  
+
     // Component function declarations
     const compRe = /(?:export\s+)?(?:const|function)\s+([A-Z]\w*)\s*(?:<[^>]*>)?\s*\(\s*(?:props|{\s*[^}]*})?/g;
     for (const m of stripped.matchAll(compRe)) {
       sigs.push(`component ${m[1]}`);
     }
-  
+
     // Props interfaces: interface SomeProps { ... }
     const propsRe = /interface\s+(\w*Props)\s*(?:<[^>]*>)?\s*{/g;
     for (const m of stripped.matchAll(propsRe)) {
       sigs.push(`props ${m[1]}`);
     }
-  
+
     // React hooks (useState, useEffect, useContext, useCallback, useMemo, useReducer)
     const hookRe = /use([A-Z]\w*)\s*(?:<[^>]*>)?\s*\(/g;
     const hooks = new Set();
@@ -15173,13 +15242,13 @@ __factories["./src/extractors/typescript_react"] = function(module, exports) {
     for (const h of hooks) {
       sigs.push(`hook use${h}`);
     }
-  
+
     // Import/export statements for components
     const exportRe = /export\s+(?:const|function|default|interface|type)\s+([A-Z]\w*)/g;
     for (const m of stripped.matchAll(exportRe)) {
       sigs.push(`export ${m[1]}`);
     }
-  
+
     // Event handler patterns: onClick, onChange, onSubmit, etc
     const handlerRe = /on([A-Z]\w+)\s*=\s*{?\s*\(?[a-zA-Z_$]/g;
     const handlers = new Set();
@@ -15189,10 +15258,10 @@ __factories["./src/extractors/typescript_react"] = function(module, exports) {
     for (const h of handlers) {
       sigs.push(`handler on${h}`);
     }
-  
+
     return capWithNotice(Array.from(new Set(sigs)), PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -15201,7 +15270,7 @@ __factories["./src/extractors/typescript_react"] = function(module, exports) {
 __factories["./src/extractors/vue_sfc"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   /**
    * Extract Vue Single-File Component (SFC) signatures from .vue files.
    * Captures component metadata: name, props, emits, slots, composables, lifecycle.
@@ -15212,19 +15281,19 @@ __factories["./src/extractors/vue_sfc"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Extract script block (both <script> and <script setup>)
     const scriptMatch = src.match(/<script[^>]*>([\s\S]*?)<\/script>/);
     if (!scriptMatch) return sigs;
     const script = scriptMatch[1];
-  
+
     // Component name (from export default { name: '...' })
     const nameRe = /(?:name\s*:\s*['"`]([a-zA-Z0-9]+)['"`]|export\s+default\s+defineComponent\s*\(\s*{\s*name\s*:\s*['"`]([a-zA-Z0-9]+)['"`])/;
     const nameMatch = script.match(nameRe);
     if (nameMatch) {
       sigs.push(`component ${nameMatch[1] || nameMatch[2]}`);
     }
-  
+
     // Props definition
     const propsRe = /props\s*:\s*{([^}]*)}/;
     const propsMatch = script.match(propsRe);
@@ -15235,13 +15304,13 @@ __factories["./src/extractors/vue_sfc"] = function(module, exports) {
         if (propName) sigs.push(`prop ${propName[1]}`);
       }
     }
-  
+
     // Props in composition API (defineProps)
     const definePropsRe = /defineProps\s*(?:<([^>]+)>)?\s*\(/;
     if (definePropsRe.test(script)) {
       sigs.push('props composition-api');
     }
-  
+
     // Emits definition
     const emitsRe = /emits\s*:\s*\[([^\]]+)\]/;
     const emitsMatch = script.match(emitsRe);
@@ -15251,13 +15320,13 @@ __factories["./src/extractors/vue_sfc"] = function(module, exports) {
         if (e) sigs.push(`emit ${e}`);
       }
     }
-  
+
     // Emits in composition API (defineEmits)
     const defineEmitsRe = /defineEmits\s*(?:<([^>]+)>)?\s*\(/;
     if (defineEmitsRe.test(script)) {
       sigs.push('emits composition-api');
     }
-  
+
     // Lifecycle hooks
     const lifecycleHooks = ['setup', 'created', 'mounted', 'updated', 'unmounted'];
     for (const hook of lifecycleHooks) {
@@ -15265,7 +15334,7 @@ __factories["./src/extractors/vue_sfc"] = function(module, exports) {
         sigs.push(`lifecycle ${hook}`);
       }
     }
-  
+
     // Composable/hooks usage (useXxx)
     const composableRe = /(?:import|const)\s+(?:{[^}]*}|[a-zA-Z_$]\w*)\s+from\s+['"]/g;
     if (composableRe.test(script)) {
@@ -15274,7 +15343,7 @@ __factories["./src/extractors/vue_sfc"] = function(module, exports) {
         sigs.push(`composable use${m[1]}`);
       }
     }
-  
+
     // Slots definition — capture from <slot name="..."> and template slots
     const namedSlotRe = /<slot\s+name=['"]([a-zA-Z_$]\w*)['"][^>]*>/g;
     const templateSlotRe = /<template\s+#([a-zA-Z_$]\w*)|v-slot:([a-zA-Z_$]\w*)/g;
@@ -15294,10 +15363,10 @@ __factories["./src/extractors/vue_sfc"] = function(module, exports) {
     for (const s of slots) {
       sigs.push(`slot ${s}`);
     }
-  
+
     return capWithNotice(Array.from(new Set(sigs)), 200, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -15306,7 +15375,7 @@ __factories["./src/extractors/vue_sfc"] = function(module, exports) {
 __factories["./src/extractors/xml"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   /**
    * Lightweight XML config extractor.
    * Captures root tags, key config tags, and id/name/class attributes.
@@ -15317,39 +15386,39 @@ __factories["./src/extractors/xml"] = function(module, exports) {
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
     const sigs = [];
-  
+
     // Remove comments and XML declaration for simpler scanning.
     const stripped = src
       .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/<\?xml[\s\S]*?\?>/gi, '');
-  
+
     // Root element (first opening tag).
     const root = stripped.match(/<\s*([A-Za-z_][\w:.-]*)\b[^>]*>/);
     if (root) sigs.push(`root ${root[1]}`);
-  
+
     // High-value config-like tags.
     const tagRe = /<\s*([A-Za-z_][\w:.-]*)\b([^>]*)>/g;
     for (const m of stripped.matchAll(tagRe)) {
       const tag = m[1];
       const attrs = m[2] || '';
-  
+
       if (/^(bean|beans|route|routes|property|properties|dependency|dependencies|plugin|plugins|configuration|settings|profile|profiles|module|modules)$/i.test(tag)) {
         sigs.push(`tag ${tag}`);
       }
-  
+
       const id = attrs.match(/\bid\s*=\s*"([^"]+)"/i);
       if (id) sigs.push(`${tag}#${id[1]}`);
-  
+
       const name = attrs.match(/\bname\s*=\s*"([^"]+)"/i);
       if (name) sigs.push(`${tag}[name=${name[1]}]`);
-  
+
       const cls = attrs.match(/\bclass\s*=\s*"([^"]+)"/i);
       if (cls) sigs.push(`${tag} -> ${cls[1]}`);
     }
-  
+
     return capWithNotice(Array.from(new Set(sigs)), 200, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -15358,11 +15427,11 @@ __factories["./src/extractors/xml"] = function(module, exports) {
 __factories["./src/extractors/yaml"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
-  
+
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
   const PER_FILE_LIMIT = 200;
-  
+
   /**
    * Extract signatures from YAML configuration files.
    * @param {string} src - Raw file content
@@ -15370,7 +15439,7 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
    */
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
-  
+
     // A workflow living outside its conventional path (vendored templates,
     // generator fixtures) still deserves semantic signatures rather than a bare
     // key list. The sniff is deliberately narrow so plain config never matches.
@@ -15381,11 +15450,11 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
         if (routed.length > 0) return routed;
       }
     } catch (_) { /* fall through to the generic key scan */ }
-  
+
     const sigs = [];
-  
+
     const lines = src.split('\n');
-  
+
     // Top-level keys (no leading whitespace)
     const topKeys = [];
     for (const line of lines) {
@@ -15394,7 +15463,7 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
       if (m) topKeys.push(m[1]);
     }
     if (topKeys.length > 0) sigs.push(`keys: [${topKeys.slice(0, 12).join(', ')}]`);
-  
+
     // GitHub Actions: jobs
     let inJobs = false;
     for (const line of lines) {
@@ -15405,7 +15474,7 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
         if (m) sigs.push(`job: ${m[1]}`);
       }
     }
-  
+
     // Docker Compose: services
     let inServices = false;
     for (const line of lines) {
@@ -15416,7 +15485,7 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
         if (m) sigs.push(`service: ${m[1]}`);
       }
     }
-  
+
     // OpenAPI paths
     let inPaths = false;
     for (const line of lines) {
@@ -15427,10 +15496,10 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
         if (m) sigs.push(`path: ${m[1]}`);
       }
     }
-  
+
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
-  
+
   module.exports = { extract };
   
 };
@@ -15440,7 +15509,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
   
   const fs = require('fs');
   const path = require('path');
-  
+
   function escapeHtml(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -15448,13 +15517,13 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
-  
+
   function formatInt(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) return 'n/a';
     return Math.round(n).toLocaleString('en-US');
   }
-  
+
   function formatCompact(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) return 'n/a';
@@ -15462,31 +15531,31 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
     if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
     return String(Math.round(n));
   }
-  
+
   function formatPct(value, digits = 1) {
     const n = Number(value);
     if (!Number.isFinite(n)) return 'n/a';
     return `${n.toFixed(digits)}%`;
   }
-  
+
   function formatMaybePct(value, digits = 1) {
     const n = Number(value);
     if (!Number.isFinite(n)) return 'n/a';
     return `${n.toFixed(digits)}%`;
   }
-  
+
   function formatRatio(value, digits = 1) {
     const n = Number(value);
     if (!Number.isFinite(n)) return 'n/a';
     return `${n.toFixed(digits)}x`;
   }
-  
+
   function formatMoney(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) return 'n/a';
     return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
-  
+
   function durationLabel(ms) {
     const n = Number(ms);
     if (!Number.isFinite(n)) return 'n/a';
@@ -15496,12 +15565,12 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
     const rem = sec - (min * 60);
     return `${min}m ${rem.toFixed(1)}s`;
   }
-  
+
   function maxOrZero(values) {
     if (!Array.isArray(values) || values.length === 0) return 0;
     return Math.max(...values.map((v) => (Number.isFinite(v) ? v : 0)));
   }
-  
+
   function readJson(filePath) {
     try {
       if (!fs.existsSync(filePath)) return null;
@@ -15510,7 +15579,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       return null;
     }
   }
-  
+
   function loadBenchmarkReports(cwd) {
     const reportsDir = path.join(cwd, 'benchmarks', 'reports');
     return {
@@ -15522,7 +15591,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       matrix: readJson(path.join(reportsDir, 'benchmark-matrix.json')),
     };
   }
-  
+
   function buildRetrievalSummary(retrieval) {
     if (!retrieval || !Array.isArray(retrieval.repos) || retrieval.repos.length === 0) return null;
     let totalTasks = 0;
@@ -15532,7 +15601,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
     let partial = 0;
     let wrong = 0;
     let repoCount = 0;
-  
+
     for (const repo of retrieval.repos) {
       const tasks = Number(repo.tasks) || 0;
       repoCount++;
@@ -15543,11 +15612,11 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       partial += Number(repo.tiers && repo.tiers.partial) || 0;
       wrong += Number(repo.tiers && repo.tiers.wrong) || 0;
     }
-  
+
     const hitAt5 = totalTasks > 0 ? (weightedHit / totalTasks) * 100 : null;
     const randomBaseline = totalTasks > 0 ? (weightedRand / totalTasks) * 100 : null;
     const lift = hitAt5 && randomBaseline ? hitAt5 / randomBaseline : null;
-  
+
     return {
       repoCount,
       totalTasks,
@@ -15559,20 +15628,20 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       wrong,
     };
   }
-  
+
   function buildBenchmarkSummary(reports, matrixSummary) {
     const missing = [];
     if (!reports.token) missing.push('token-reduction.json');
     if (!reports.retrieval) missing.push('retrieval.json');
     if (!reports.quality) missing.push('quality.json');
     if (!reports.task) missing.push('task-benchmark.json');
-  
+
     const retrievalSummary = buildRetrievalSummary(reports.retrieval);
     const qualitySummary = reports.quality && reports.quality.summary ? reports.quality.summary : null;
     const tokenSummary = reports.token && reports.token.summary ? reports.token.summary : null;
     const taskSummary = reports.task && reports.task.summary ? reports.task.summary : null;
     const matrix = matrixSummary || reports.matrix || null;
-  
+
     const generatedCandidates = [
       matrix && matrix.generated,
       reports.task && reports.task.generated,
@@ -15584,7 +15653,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       .map((value) => ({ value, time: Date.parse(value) }))
       .filter((item) => Number.isFinite(item.time))
       .sort((a, b) => b.time - a.time)[0];
-  
+
     return {
       generatedAt: (generatedAt && generatedAt.value) || generatedCandidates[0] || new Date().toISOString(),
       missing,
@@ -15595,7 +15664,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       matrix,
     };
   }
-  
+
   function renderCard(label, value, hint, tone) {
     const toneClass = tone ? ` ${tone}` : '';
     return [
@@ -15606,7 +15675,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</article>',
     ].join('');
   }
-  
+
   function renderProgress(label, value, max, suffix) {
     const safeValue = Number.isFinite(value) ? value : 0;
     const safeMax = Math.max(1, Number.isFinite(max) ? max : 1);
@@ -15621,7 +15690,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</div>',
     ].join('');
   }
-  
+
   function renderMatrixSection(matrix) {
     if (!matrix || !Array.isArray(matrix.steps) || matrix.steps.length === 0) return '';
     const rows = matrix.steps.map((step) => {
@@ -15635,7 +15704,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
         '</tr>',
       ].join('');
     }).join('');
-  
+
     return [
       '<section>',
       '<h2>Run matrix</h2>',
@@ -15647,7 +15716,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</section>',
     ].join('');
   }
-  
+
   function renderTokenSection(token) {
     if (!token || !Array.isArray(token.repos) || token.repos.length === 0) return '';
     const rows = token.repos
@@ -15663,7 +15732,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
         '</tr>',
       ].join(''))
       .join('');
-  
+
     return [
       '<section>',
       '<h2>Token reduction</h2>',
@@ -15675,7 +15744,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</section>',
     ].join('');
   }
-  
+
   function renderRetrievalSection(retrieval) {
     if (!retrieval || !Array.isArray(retrieval.repos) || retrieval.repos.length === 0) return '';
     const rows = retrieval.repos.map((repo) => {
@@ -15692,7 +15761,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
         '</tr>',
       ].join('');
     }).join('');
-  
+
     return [
       '<section>',
       '<h2>Retrieval quality</h2>',
@@ -15704,7 +15773,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</section>',
     ].join('');
   }
-  
+
   function renderQualitySection(quality) {
     if (!quality || !Array.isArray(quality.repos) || quality.repos.length === 0) return '';
     const rows = quality.repos.map((repo) => {
@@ -15720,7 +15789,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
         '</tr>',
       ].join('');
     }).join('');
-  
+
     return [
       '<section>',
       '<h2>Quality and hallucination surface</h2>',
@@ -15732,7 +15801,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</section>',
     ].join('');
   }
-  
+
   function renderTaskSection(task) {
     if (!task || !Array.isArray(task.repos) || task.repos.length === 0 || !task.summary) return '';
     const summary = task.summary;
@@ -15743,7 +15812,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       .slice(0, 10)
       .map((repo) => renderProgress(repo.repo, Number(repo.reductionPct) || 0, maxReduction, '%'))
       .join('');
-  
+
     return [
       '<section>',
       '<h2>Task benchmark</h2>',
@@ -15763,7 +15832,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</section>',
     ].join('');
   }
-  
+
   function generateBenchmarkReportHtml(reports, opts = {}) {
     const summary = buildBenchmarkSummary(reports, opts.matrixSummary);
     const cards = [];
@@ -15791,11 +15860,11 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       summary.qualitySummary ? `${formatInt(summary.qualitySummary.totalHiddenFiles)} hidden raw files • ${formatMoney(summary.qualitySummary.gpt4oSavedPerMonth)}/month saved` : 'quality.json missing',
       summary.qualitySummary && summary.qualitySummary.overflowGPT4oCount > 0 ? 'warn' : 'ok'
     ));
-  
+
     const missingHtml = summary.missing.length > 0
       ? `<div class="notice">Missing source reports: ${escapeHtml(summary.missing.join(', '))}. The page still renders whatever data is available.</div>`
       : '';
-  
+
     return [
       '<!doctype html>',
       '<html lang="en">',
@@ -15860,7 +15929,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       '</html>',
     ].join('');
   }
-  
+
   function writeBenchmarkReport(cwd, opts = {}) {
     const reports = loadBenchmarkReports(cwd);
     const html = generateBenchmarkReportHtml(reports, opts);
@@ -15872,7 +15941,7 @@ __factories["./src/format/benchmark-report"] = function(module, exports) {
       summary: buildBenchmarkSummary(reports, opts.matrixSummary),
     };
   }
-  
+
   module.exports = {
     loadBenchmarkReports,
     buildBenchmarkSummary,
@@ -15895,7 +15964,7 @@ __factories["./src/format/cache"] = function(module, exports) {
    *
    * Writes: .github/copilot-instructions.cache.json
    */
-  
+
   /**
    * Wrap markdown context in an Anthropic cache-control system block.
    * @param {string} content - Markdown content from formatOutput()
@@ -15910,7 +15979,7 @@ __factories["./src/format/cache"] = function(module, exports) {
     };
     return JSON.stringify(block, null, 2);
   }
-  
+
   /**
    * Wrap markdown context in a full Anthropic messages API payload.
    * Includes the system array with cache_control so it can be copy-pasted
@@ -15934,7 +16003,7 @@ __factories["./src/format/cache"] = function(module, exports) {
     };
     return JSON.stringify(payload, null, 2);
   }
-  
+
   module.exports = { formatCache, formatCachePayload };
   
 };
@@ -15945,12 +16014,12 @@ __factories["./src/format/dashboard"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { readLog } = __require('./src/tracking/logger');
-  
+
   function toNumber(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
   }
-  
+
   function percentile(values, p) {
     if (!Array.isArray(values) || values.length === 0) return 0;
     const sorted = values.filter(Number.isFinite).slice().sort((a, b) => a - b);
@@ -15964,7 +16033,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     const frac = idx - lo;
     return sorted[lo] + (sorted[hi] - sorted[lo]) * frac;
   }
-  
+
   function overBudgetStreak(entries) {
     if (!Array.isArray(entries) || entries.length === 0) return 0;
     let streak = 0;
@@ -15974,7 +16043,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     }
     return streak;
   }
-  
+
   function loadConfig(cwd) {
     try {
       const p = path.join(cwd, 'gen-context.config.json');
@@ -15984,7 +16053,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       return null;
     }
   }
-  
+
   function shouldExclude(rel, excludeSet) {
     if (!rel) return true;
     const parts = rel.split('/');
@@ -15993,7 +16062,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     }
     return false;
   }
-  
+
   /**
    * Resolve a file to a language key.
    *
@@ -16010,7 +16079,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       return null;
     }
   }
-  
+
   function walkFiles(dir, maxDepth, depth, out, excludeSet) {
     if (depth > maxDepth) return;
     let entries = [];
@@ -16030,7 +16099,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       }
     }
   }
-  
+
   function computeExtractorCoverage(cwd) {
     const cfg = loadConfig(cwd) || {};
     const srcDirs = Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0
@@ -16043,31 +16112,31 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     if (Array.isArray(cfg.exclude)) {
       for (const item of cfg.exclude) exclude.add(String(item));
     }
-  
+
     let languages = [];
     try { ({ LANGUAGES: languages } = __require('./src/extractors/dispatch')); } catch (_) { languages = []; }
-  
+
     const counts = {};
     for (const key of languages) counts[key] = 0;
-  
+
     const files = [];
     for (const relDir of srcDirs) {
       const absDir = path.join(cwd, relDir);
       if (!fs.existsSync(absDir)) continue;
       walkFiles(absDir, 8, 0, files, exclude);
     }
-  
+
     for (const f of files) {
       const lang = detectLanguage(f);
       if (lang && counts[lang] !== undefined) counts[lang]++;
     }
-  
+
     const covered = languages.filter((k) => counts[k] > 0).length;
     const supported = languages.length;
     const pct = supported > 0 ? parseFloat(((covered / supported) * 100).toFixed(1)) : 0;
     return { supported, covered, pct, perLanguage: counts };
   }
-  
+
   function readBenchmarkTrend(cwd) {
     // Prefer per-user history file written by benchmark scripts
     const histPath = path.join(cwd, '.context', 'benchmark-history.ndjson');
@@ -16087,14 +16156,14 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       } catch (_) {}
       if (values.length > 0) return values.slice(-30);
     }
-  
+
     // Fallback: legacy benchmarks/results directory (CI artifacts)
     const resultDir = path.join(cwd, 'benchmarks', 'results');
     if (!fs.existsSync(resultDir)) return [];
-  
+
     const files = [];
     walkFiles(resultDir, 6, 0, files, new Set());
-  
+
     const values = [];
     for (const filePath of files) {
       const base = path.basename(filePath).toLowerCase();
@@ -16105,7 +16174,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       } catch (_) {
         continue;
       }
-  
+
       if (base.endsWith('.json')) {
         try {
           const obj = JSON.parse(raw);
@@ -16116,7 +16185,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
         } catch (_) {}
         continue;
       }
-  
+
       const lines = raw.split('\n').filter(Boolean);
       for (const line of lines) {
         try {
@@ -16128,10 +16197,10 @@ __factories["./src/format/dashboard"] = function(module, exports) {
         } catch (_) {}
       }
     }
-  
+
     return values.slice(-30);
   }
-  
+
   function lineChartSvg(values, title, ySuffix) {
     const width = 760;
     const height = 210;
@@ -16142,7 +16211,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     const innerW = width - left - right;
     const innerH = height - top - bottom;
     const clean = values.filter((n) => Number.isFinite(n));
-  
+
     if (clean.length === 0) {
       return [
         `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">`,
@@ -16152,17 +16221,17 @@ __factories["./src/format/dashboard"] = function(module, exports) {
         '</svg>',
       ].join('');
     }
-  
+
     const min = Math.min(...clean);
     const max = Math.max(...clean);
     const span = max - min || 1;
-  
+
     const points = clean.map((v, i) => {
       const x = left + ((clean.length === 1 ? 0 : i / (clean.length - 1)) * innerW);
       const y = top + (1 - ((v - min) / span)) * innerH;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
-  
+
     const latest = clean[clean.length - 1];
     const yLabel = ySuffix || '';
     const grid = [];
@@ -16170,7 +16239,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       const gy = top + (i / 4) * innerH;
       grid.push(`<line x1="${left}" y1="${gy.toFixed(1)}" x2="${left + innerW}" y2="${gy.toFixed(1)}" stroke="#223056" stroke-width="1"/>`);
     }
-  
+
     return [
       `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">`,
       '<defs><linearGradient id="lineFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#42d392" stop-opacity="0.25"/><stop offset="100%" stop-color="#42d392" stop-opacity="0"/></linearGradient></defs>',
@@ -16182,7 +16251,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       '</svg>',
     ].join('');
   }
-  
+
   /**
    * Per-language file counts for the languages actually present in this repo.
    *
@@ -16199,11 +16268,11 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     const left = 20;
     const top = 34;
     const usableW = width - left * 2;
-  
+
     const present = Object.entries(perLanguage || {})
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  
+
     const frame = (body) => [
       `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Extractor coverage by language">`,
       '<rect x="0" y="0" width="100%" height="100%" fill="#0f1320" rx="12"/>',
@@ -16212,11 +16281,11 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       body,
       '</svg>',
     ].join('');
-  
+
     if (present.length === 0) {
       return frame('<text x="380" y="120" fill="#8ea0d9" font-size="12" font-family="monospace" text-anchor="middle">no files in a supported language under srcDirs</text>');
     }
-  
+
     const max = Math.max(1, ...present.map(([, v]) => v));
     const barW = usableW / present.length;
     const bars = [];
@@ -16230,10 +16299,10 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       const cx = left + i * barW + barW / 2;
       xLabels.push(`<text x="${cx.toFixed(1)}" y="222" fill="#8ea0d9" font-size="9" font-family="monospace" text-anchor="middle">${escapeAttr(key)}</text>`);
     }
-  
+
     return frame(bars.join('') + xLabels.join(''));
   }
-  
+
   function sparkline(values) {
     const clean = values.filter((n) => Number.isFinite(n));
     if (clean.length === 0) return 'n/a';
@@ -16246,13 +16315,13 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       return ticks[idx];
     }).join('');
   }
-  
+
   function escapeAttr(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
       { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
     ));
   }
-  
+
   // Surgical Context (v6.12.0): read the published token-reduction benchmark and
   // aggregate it for the dashboard panel. Numbers are never hand-typed — they come
   // straight from benchmarks/reports/token-reduction.json.
@@ -16262,7 +16331,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     try { data = JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; }
     const repos = Array.isArray(data.repos) ? data.repos : [];
     if (repos.length === 0) return null;
-  
+
     let baseline = 0, signatures = 0, surgical = 0, hasSurgical = false;
     for (const r of repos) {
       baseline += toNumber(r.rawTokens) || 0;
@@ -16270,7 +16339,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       const s = toNumber(r.surgicalTokens);
       if (s !== null) { surgical += s; hasSurgical = true; }
     }
-  
+
     const out = {
       version: data.version || null,
       repoCount: repos.length,
@@ -16291,7 +16360,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     }
     return out;
   }
-  
+
   function tokenReductionPanelHtml(tr) {
     if (!tr) {
       return '<div class="panel"><div class="label">Token Reduction</div>' +
@@ -16311,7 +16380,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     const tierHtml = tiers.map((t) =>
       `<div class="card"><div class="label">${escapeAttr(t.label)}</div><div class="value">${escapeAttr(t.value)}</div></div>`
     ).join('');
-  
+
     // Proportional comparison bar (baseline = full width).
     const sigPct = tr.baseline > 0 ? Math.max(0.4, (tr.signatures / tr.baseline) * 100) : 0;
     const surgPct = (tr.surgical != null && tr.baseline > 0) ? Math.max(0.4, (tr.surgical / tr.baseline) * 100) : null;
@@ -16324,14 +16393,14 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       barRow(`Ranked signatures — ${tr.savedPct}% saved`, sigPct, '#2e7d6b'),
       surgPct != null ? barRow(`Surgical — ${tr.surgicalSavedPct}% saved`, surgPct, '#5ad1a8') : '',
     ].filter(Boolean).join('');
-  
+
     const rows = tr.perRepo.slice(0, 8).map((r) =>
       `<tr><td>${escapeAttr(r.repo)}</td><td>${escapeAttr(r.language)}</td>` +
       `<td style="text-align:right">${fmt(r.rawTokens)}</td>` +
       `<td style="text-align:right">${fmt(r.finalTokens)}</td>` +
       `<td style="text-align:right">${r.reductionPct}%</td></tr>`
     ).join('');
-  
+
     return [
       '<div class="panel">',
       `<div class="label">Token Reduction — ${tr.repoCount} benchmark repos${tr.version ? ' · v' + escapeAttr(tr.version) : ''}</div>`,
@@ -16346,7 +16415,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       '</div>',
     ].join('');
   }
-  
+
   function buildDashboardData(cwd, health) {
     // #773: one read path — usage.ndjson alone is empty whenever tracking is off.
     const entries = __require('./src/tracking/usage-source').readRuns(cwd);
@@ -16354,7 +16423,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     const tokenReductionTrend = recent.map((e) => toNumber(e.reductionPct)).filter((n) => n !== null);
     const hitAt5Trend = readBenchmarkTrend(cwd);
     const coverage = computeExtractorCoverage(cwd);
-  
+
     const finals = entries.map((e) => toNumber(e.finalTokens)).filter((n) => n !== null);
     const summary = {
       grade: health.grade,
@@ -16369,9 +16438,9 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       overBudgetStreak: overBudgetStreak(entries),
       extractorCoverage: coverage.pct,
     };
-  
+
     const tokenReduction = readTokenReduction(cwd);
-  
+
     return {
       summary,
       tokenReductionTrend,
@@ -16386,7 +16455,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       },
     };
   }
-  
+
   function generateDashboardHtml(cwd, health) {
     const data = buildDashboardData(cwd, health);
     const cards = [
@@ -16399,9 +16468,9 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       { label: 'Over-budget streak', value: String(data.summary.overBudgetStreak) },
       { label: 'Extractor coverage', value: `${data.summary.extractorCoverage}%` },
     ];
-  
+
     const cardHtml = cards.map((c) => `<div class="card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`).join('');
-  
+
     const html = [
       '<!doctype html>',
       '<html lang="en">',
@@ -16435,10 +16504,10 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       '</body>',
       '</html>',
     ].join('');
-  
+
     return { html, data };
   }
-  
+
   function renderHistoryCharts(cwd, health) {
     const data = buildDashboardData(cwd, health);
     const lines = [
@@ -16456,7 +16525,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       '[sigmap] inline svg: coverage',
       data.charts.coverageSvg,
     ];
-  
+
     return {
       text: lines.join('\n'),
       tokenReductionSparkline: sparkline(data.tokenReductionTrend),
@@ -16465,7 +16534,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       charts: data.charts,
     };
   }
-  
+
   module.exports = { generateDashboardHtml, renderHistoryCharts, computeExtractorCoverage, percentile, overBudgetStreak };
   
 };
@@ -16482,9 +16551,9 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
    * "saved" is a counterfactual estimate (whole-file baseline − actual context),
    * never a measured delta — the footer says so on every view.
    */
-  
+
   const USE_COLOR = !process.env.NO_COLOR && process.stdout.isTTY;
-  
+
   const C = {
     reset: USE_COLOR ? '\x1b[0m' : '',
     dim: USE_COLOR ? '\x1b[2m' : '',
@@ -16495,7 +16564,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     cyan: USE_COLOR ? '\x1b[36m' : '',
     gray: USE_COLOR ? '\x1b[90m' : '',
   };
-  
+
   // ── formatters ───────────────────────────────────────────────────────────
   function humanTokens(n) {
     n = Number(n) || 0;
@@ -16504,17 +16573,17 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
     return String(Math.round(n));
   }
-  
+
   function fmtInt(n) {
     return (Number(n) || 0).toLocaleString('en-US');
   }
-  
+
   function fmtUSD(n) {
     n = Number(n) || 0;
     if (n >= 1000) return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
     return '$' + n.toFixed(2);
   }
-  
+
   function fmtDuration(ms) {
     ms = Number(ms) || 0;
     if (ms >= 3.6e6) return (ms / 3.6e6).toFixed(1) + 'h';
@@ -16522,24 +16591,24 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     if (ms >= 1000) return (ms / 1000).toFixed(1) + 's';
     return Math.round(ms) + 'ms';
   }
-  
+
   function fmtPct(p) {
     return (Number(p) || 0).toFixed(1) + '%';
   }
-  
+
   function colorPct(p, text) {
     if (!USE_COLOR) return text;
     const c = p >= 85 ? C.green : p >= 60 ? C.yellow : C.red;
     return c + text + C.reset;
   }
-  
+
   function pad(s, w, align) {
     s = String(s);
     const visible = s.replace(/\x1b\[[0-9;]*m/g, '');
     const gap = Math.max(0, w - visible.length);
     return align === 'right' ? ' '.repeat(gap) + s : s + ' '.repeat(gap);
   }
-  
+
   /** Solid horizontal efficiency bar with a dotted remainder. */
   function bar(pct, width) {
     const filled = Math.round((clamp(pct, 0, 100) / 100) * width);
@@ -16547,16 +16616,16 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     const rest = '░'.repeat(Math.max(0, width - filled));
     return (USE_COLOR ? C.green : '') + solid + (USE_COLOR ? C.gray : '') + rest + C.reset;
   }
-  
+
   /** Proportional impact bar (share of total saved). */
   function impactBar(sharePct, width) {
     const n = Math.max(1, Math.round((clamp(sharePct, 0, 100) / 100) * width));
     return (USE_COLOR ? C.cyan : '') + '█'.repeat(n) + C.reset;
   }
-  
+
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
   const rule = (w) => C.gray + '─'.repeat(w) + C.reset;
-  
+
   // ── views ──────────────────────────────────────────────────────────────
   /**
    * Render the global summary + by-operation table.
@@ -16570,14 +16639,14 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     const L = [];
     const scope = opts.scope || 'this repo';
     const ver = opts.version ? `v${opts.version}` : '';
-  
+
     L.push('');
     const heading = `⚡ SigMap — Token Savings (${scope})`;
     L.push('  ' + C.bold + C.cyan + heading + C.reset +
       pad(`${C.green}✓${C.reset} ${C.dim}${ver}${C.reset}`, W - heading.length, 'right'));
     L.push('  ' + rule(W));
     L.push('');
-  
+
     if (t.count === 0) {
       L.push(`  ${C.yellow}No usage recorded yet.${C.reset}`);
       L.push(`  ${C.dim}Run a few queries (sigmap ask "...") or seed a demo:${C.reset}`);
@@ -16585,7 +16654,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
       L.push('');
       return L.join('\n');
     }
-  
+
     const label = (k) => C.dim + pad(k, 21) + C.reset;
     L.push('  ' + label('Total operations') + ': ' + C.bold + fmtInt(t.count) + C.reset);
     L.push('  ' + label('Whole-file baseline') + ': ' + humanTokens(t.baseline) + ' tok' +
@@ -16601,7 +16670,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     L.push('  ' + label('Efficiency') + ': ▕' + bar(t.savedPct, 30) + '▏  ' +
       colorPct(t.savedPct, C.bold + fmtPct(t.savedPct) + C.reset));
     L.push('');
-  
+
     // By operation table
     L.push(`  ${C.bold}By operation${C.reset}`);
     L.push('  ' + rule(W));
@@ -16624,7 +16693,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     L.push('');
     return L.join('\n');
   }
-  
+
   /**
    * Render daily / weekly / monthly trend tables.
    * @param {object} agg
@@ -16633,7 +16702,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
   function renderBreakdown(agg) {
     const L = [];
     if (agg.totals.count === 0) return renderSummary(agg);
-  
+
     const section = (icon, title, rows, keyHeader) => {
       L.push('');
       L.push(`  ${C.bold}${icon} ${title}${C.reset}`);
@@ -16658,7 +16727,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
         pad(humanTokens(TS), 10, 'right') + pad(fmtPct(tp), 8, 'right') +
         pad(fmtDuration(TM), 8, 'right') + C.reset);
     };
-  
+
     const daily = agg.buckets.daily.slice(-30);
     section('📅', `Daily (last ${daily.length})`, daily, 'Date');
     const weekly = agg.buckets.weekly.slice(-6);
@@ -16670,7 +16739,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     L.push('');
     return L.join('\n');
   }
-  
+
   module.exports = {
     renderSummary,
     renderBreakdown,
@@ -16685,14 +16754,14 @@ __factories["./src/format/llm-txt"] = function(module, exports) {
   
   const path = require('path');
   module.exports = { format, outputPath };
-  
+
   function outputPath(cwd) { return path.join(cwd, 'llm.txt'); }
-  
+
   function format(context, cwd, version) {
     const name  = context.projectName || path.basename(cwd);
     const langs = [...new Set((context.fileEntries || []).map(f => f.language).filter(Boolean))];
     const mods  = context.srcDirs || [];
-  
+
     return [
       `# Project: ${name}`,
       `Languages: ${langs.join(', ') || 'unknown'}`,
@@ -16720,13 +16789,13 @@ __factories["./src/format/llms-txt"] = function(module, exports) {
   const fs   = require('fs');
   const { tryGit } = __require('./src/util/git');
   module.exports = { format, outputPath };
-  
+
   function outputPath(cwd) { return path.join(cwd, 'llms.txt'); }
-  
+
   function getShortCommit(cwd) {
     return tryGit(['rev-parse', '--short', 'HEAD'], { cwd, timeout: 2000 });
   }
-  
+
   function detectVersion(cwd) {
     try {
       const pkg = path.join(cwd, 'package.json');
@@ -16734,16 +16803,16 @@ __factories["./src/format/llms-txt"] = function(module, exports) {
     } catch (_) {}
     return '';
   }
-  
+
   function format(context, cwd, writtenFiles, sigmapVersion) {
     writtenFiles  = writtenFiles  || [];
     sigmapVersion = sigmapVersion || '';
-  
+
     const name   = context.projectName || path.basename(cwd);
     const ver    = detectVersion(cwd);
     const commit = getShortCommit(cwd);
     const langs  = [...new Set((context.fileEntries || []).map(f => f.language).filter(Boolean))];
-  
+
     const lines = [
       '# SigMap Context Index',
       `> Generated by SigMap v${sigmapVersion} — the deterministic, verifiable grounding layer for AI code work`,
@@ -16754,7 +16823,7 @@ __factories["./src/format/llms-txt"] = function(module, exports) {
     if (ver)          lines.push(`- Version: ${ver}`);
     if (langs.length) lines.push(`- Language: ${langs.join(', ')}`);
     if (commit)       lines.push(`- Commit: ${commit}`);
-  
+
     if (writtenFiles.length) {
       lines.push('', '## Context Files');
       for (const f of writtenFiles) {
@@ -16763,13 +16832,13 @@ __factories["./src/format/llms-txt"] = function(module, exports) {
         lines.push(`- [${f.label || rel}](${rel})${extra}`);
       }
     }
-  
+
     const mods = context.srcDirs || [];
     if (mods.length) {
       lines.push('', '## Source Modules');
       for (const m of mods) lines.push(`- [${m}/](${m}/)`);
     }
-  
+
     const top5 = (context.fileEntries || [])
       .sort((a, b) => (b.sigs || []).length - (a.sigs || []).length)
       .slice(0, 5);
@@ -16781,7 +16850,7 @@ __factories["./src/format/llms-txt"] = function(module, exports) {
         lines.push(`- ${rel}: ${preview}`);
       }
     }
-  
+
     return lines.join('\n');
   }
   
@@ -16802,10 +16871,10 @@ __factories["./src/format/terse"] = function(module, exports) {
    * evidence pack keep working on terse output. Symbol extraction is safe too —
    * `extractName` in src/extractors/prdiff.js already recognizes `fn <name>`.
    */
-  
+
   /** First `  :start[-end]` anchor token (two-space prefix, as emitted by line-anchor.js). */
   const ANCHOR_RE = /\s{2}:\d+(?:-\d+)?(?=\s|$)/;
-  
+
   /**
    * Split a signature into the compactable text and the byte-preserved suffix
    * (anchor + any trailing doc hint).
@@ -16818,7 +16887,7 @@ __factories["./src/format/terse"] = function(module, exports) {
     if (!m) return { text: s, suffix: '' };
     return { text: s.slice(0, m.index), suffix: s.slice(m.index) };
   }
-  
+
   /**
    * Compact one signature line. Leading whitespace (member indentation) is kept.
    * @param {string} sig
@@ -16838,7 +16907,7 @@ __factories["./src/format/terse"] = function(module, exports) {
       .replace(/^module\.exports=/, 'exports=');
     return t + suffix;
   }
-  
+
   /**
    * Compact an array of signature lines.
    * @param {string[]} sigs
@@ -16847,12 +16916,12 @@ __factories["./src/format/terse"] = function(module, exports) {
   function encodeTerseSigs(sigs) {
     return (sigs || []).map(encodeTerseSig);
   }
-  
+
   /** Estimated tokens of joined signature lines (same chars/4 rule as elsewhere). */
   function _tokens(sigs) {
     return Math.ceil(sigs.join('\n').length / 4);
   }
-  
+
   /**
    * Measure the real reduction terse encoding buys over a set of signature
    * lists — the D7 "measure first" gate. Never quote a number this didn't produce.
@@ -16872,7 +16941,7 @@ __factories["./src/format/terse"] = function(module, exports) {
       : 0;
     return { beforeTokens, afterTokens, reductionPct };
   }
-  
+
   module.exports = { encodeTerseSig, encodeTerseSigs, measureTerse, splitAnchor };
   
 };
@@ -16896,7 +16965,7 @@ __factories["./src/format/usage-guidance"] = function(module, exports) {
    * paid for on every question. `sigmap skills install` ships the long-form
    * playbook; this is what every agent gets without opting in.
    */
-  
+
   function usageBlock() {
     return [
       '## SigMap commands',
@@ -16919,7 +16988,7 @@ __factories["./src/format/usage-guidance"] = function(module, exports) {
       '',
     ].join('\n');
   }
-  
+
   module.exports = { usageBlock };
   
 };
@@ -16938,7 +17007,7 @@ __factories["./src/format/verify-report"] = function(module, exports) {
    * Zero dependencies, inline CSS/SVG, no external assets. Also exports a compact
    * Markdown renderer for CI / PR comments that shares the same structure.
    */
-  
+
   const TYPE_META = {
     'fake-file': { label: 'Fake file', tone: 'red', icon: '✕' },
     'fake-test-file': { label: 'Fake test file', tone: 'red', icon: '✕' },
@@ -16946,7 +17015,7 @@ __factories["./src/format/verify-report"] = function(module, exports) {
     'fake-npm-script': { label: 'Fake npm script', tone: 'red', icon: '✕' },
     'fake-symbol': { label: 'Fake symbol', tone: 'amber', icon: '!' },
   };
-  
+
   function escapeHtml(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -16954,17 +17023,17 @@ __factories["./src/format/verify-report"] = function(module, exports) {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
-  
+
   function toneFor(issue) {
     const meta = TYPE_META[issue.type];
     if (meta) return meta.tone;
     return issue.confidence === 'high' ? 'red' : 'amber';
   }
-  
+
   function labelFor(issue) {
     return (TYPE_META[issue.type] && TYPE_META[issue.type].label) || issue.type;
   }
-  
+
   /**
    * Render the verify result to a full HTML document.
    * @param {{ file?: string, issues: object[], summary: object }} result
@@ -16979,16 +17048,16 @@ __factories["./src/format/verify-report"] = function(module, exports) {
     const title = opts.title || 'SigMap — Hallucination Guard report';
     const clean = summary.clean || issues.length === 0;
     const byType = summary.byType || {};
-  
+
     const chips = Object.keys(TYPE_META)
       .filter((t) => byType[t])
       .map((t) => `<span class="chip chip-${TYPE_META[t].tone}">${escapeHtml(TYPE_META[t].label)}: ${byType[t]}</span>`)
       .join('');
-  
+
     const banner = clean
       ? `<div class="banner banner-green"><span class="dot"></span> No hallucinations detected — ${escapeHtml(String(summary.symbolsIndexed || 0))} symbols indexed</div>`
       : `<div class="banner banner-red"><span class="dot"></span> ${issues.length} issue${issues.length === 1 ? '' : 's'} found in <code>${escapeHtml(file)}</code></div>`;
-  
+
     const rows = issues.map((issue) => {
       const tone = toneFor(issue);
       const sugg = issue.suggestion
@@ -17006,11 +17075,11 @@ __factories["./src/format/verify-report"] = function(module, exports) {
         `</li>`,
       ].join('\n');
     }).join('\n');
-  
+
     const list = clean
       ? '<p class="empty">Nothing to report — every file, import, symbol, and script in the answer resolves against the repository.</p>'
       : `<ul class="issues">${rows}</ul>`;
-  
+
     return `<!DOCTYPE html>
   <html lang="en">
   <head>
@@ -17066,7 +17135,7 @@ __factories["./src/format/verify-report"] = function(module, exports) {
   </html>
   `;
   }
-  
+
   /** Compact Markdown rendering of the same result (CI / PR comments). */
   function renderReportMarkdown(result) {
     const issues = Array.isArray(result.issues) ? result.issues : [];
@@ -17087,7 +17156,7 @@ __factories["./src/format/verify-report"] = function(module, exports) {
     }
     return lines.join('\n');
   }
-  
+
   module.exports = { renderReportHtml, renderReportMarkdown, escapeHtml };
   
 };
@@ -17107,16 +17176,16 @@ __factories["./src/graph/blast-radius"] = function(module, exports) {
    * Score: min(100, direct×4 + transitive×1). Tiers:
    *   0 → none · 1–9 → low · 10–29 → medium · 30–59 → high · 60+ → critical
    */
-  
+
   const path = require('path');
   const { buildCallGraph } = __require('./src/graph/call-graph');
-  
+
   const DIRECT_WEIGHT = 4;
   const TRANSITIVE_WEIGHT = 1;
   const IMPACTED_FUNCTIONS_CAP = 12;
-  
+
   const TEST_FILE_RE = /\.(test|spec)\.[jt]sx?$|(^|\/)test_|_test\.(py|go)$|(^|\/)(tests?|__tests__|spec)\//;
-  
+
   function tierFor(score) {
     if (score >= 60) return 'critical';
     if (score >= 30) return 'high';
@@ -17124,11 +17193,11 @@ __factories["./src/graph/blast-radius"] = function(module, exports) {
     if (score >= 1) return 'low';
     return 'none';
   }
-  
+
   function _normRel(p) {
     return String(p).replace(/\\/g, '/');
   }
-  
+
   // BFS the reverse edges from a set of symbol ids; returns direct/transitive id sets.
   function _bfs(seedIds, reverse, maxDepth) {
     const direct = new Set();
@@ -17153,7 +17222,7 @@ __factories["./src/graph/blast-radius"] = function(module, exports) {
     }
     return { direct, transitive };
   }
-  
+
   /**
    * Score the method-level blast radius of a changed-file list.
    *
@@ -17179,7 +17248,7 @@ __factories["./src/graph/blast-radius"] = function(module, exports) {
       return empty;
     }
     if (!graph || !graph.defs || graph.defs.size === 0) return empty;
-  
+
     // Group defined symbol ids by their (normalized) defining file.
     const idsByFile = new Map();
     for (const [id, def] of graph.defs.entries()) {
@@ -17187,11 +17256,11 @@ __factories["./src/graph/blast-radius"] = function(module, exports) {
       if (!idsByFile.has(rel)) idsByFile.set(rel, []);
       idsByFile.get(rel).push(id);
     }
-  
+
     const depth = Number.isFinite(opts.depth) ? opts.depth : 0;
     const files = [];
     const allImpacted = new Set();
-  
+
     for (const changed of (changedFiles || []).map(_normRel).sort()) {
       const ids = idsByFile.get(changed);
       if (!ids || !ids.length) continue;
@@ -17214,7 +17283,7 @@ __factories["./src/graph/blast-radius"] = function(module, exports) {
         tier: tierFor(score),
       });
     }
-  
+
     if (!files.length) return empty;
     const maxScore = files.reduce((m, f) => Math.max(m, f.score), 0);
     return {
@@ -17223,7 +17292,7 @@ __factories["./src/graph/blast-radius"] = function(module, exports) {
       aggregate: { score: maxScore, tier: tierFor(maxScore), impactedFunctions: allImpacted.size },
     };
   }
-  
+
   module.exports = { methodBlastRadius, tierFor, DIRECT_WEIGHT, TRANSITIVE_WEIGHT };
   
 };
@@ -17239,21 +17308,21 @@ __factories["./src/graph/builder"] = function(module, exports) {
    *
    * @module src/graph/builder
    */
-  
+
   const fs   = require('fs');
   const path = require('path');
-  
+
   // Cross-platform node key. Delegates to the ONE shared definition so this graph
   // and the call-graph cannot drift apart again (see src/graph/path-key.js).
   const { graphKey } = __require('./src/graph/path-key');
   function normalizePath(p) {
     return graphKey(p);
   }
-  
+
   // ---------------------------------------------------------------------------
   // Language-specific import extractors
   // ---------------------------------------------------------------------------
-  
+
   const JS_EXTS  = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
   const PY_EXTS  = new Set(['.py', '.pyw']);
   const GO_EXTS  = new Set(['.go']);
@@ -17262,7 +17331,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
   const RB_EXTS  = new Set(['.rb', '.rake']);
   const R_EXTS   = new Set(['.r', '.R']);
   const EX_EXTS  = new Set(['.ex', '.exs']);
-  
+
   /**
    * Probe an absolute base path for a JS/TS module file in fileSet, trying the
    * usual extension and index-file candidates.
@@ -17284,7 +17353,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Resolve a JS/TS relative import string to an absolute path in fileSet.
    * @param {string} dir - directory of the importing file
@@ -17295,7 +17364,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
   function resolveJsPath(dir, importStr, fileSet) {
     return probeJs(path.resolve(dir, importStr), fileSet);
   }
-  
+
   /**
    * Strip comments and trailing commas so a tsconfig/jsconfig (JSONC) parses.
    * Deliberately conservative — leaves string contents alone.
@@ -17316,7 +17385,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     // remove trailing commas before } or ]
     return out.replace(/,(\s*[}\]])/g, '$1');
   }
-  
+
   /**
    * Load the JS/TS path-alias map from tsconfig.json / jsconfig.json.
    * Resolves `compilerOptions.paths` and `baseUrl` into absolute target bases so
@@ -17348,7 +17417,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Resolve a non-relative JS/TS import specifier through the alias map.
    * @param {string} spec - e.g. '@/utils', '@app/Button', 'components/Nav'
@@ -17381,7 +17450,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Resolve an R `source(...)` argument to an absolute path in fileSet.
    * Tries the dir-relative path first, then a cwd-relative path so that
@@ -17390,7 +17459,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
   function escapeRegex(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
-  
+
   function resolveRPath(dir, importStr, fileSet, cwd) {
     const tried = new Set();
     const bases = [path.resolve(dir, importStr)];
@@ -17407,7 +17476,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Extract absolute dependency paths from a single file.
    * @param {string} filePath - absolute path to the file
@@ -17424,7 +17493,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     const ext = path.extname(filePath).toLowerCase();
     const dir = path.dirname(filePath);
     const found = [];
-  
+
     // ── JS / TS ───────────────────────────────────────────────────────────────
     if (JS_EXTS.has(ext)) {
       const aliasMap = ctx && ctx.aliasMap;
@@ -17434,11 +17503,11 @@ __factories["./src/graph/builder"] = function(module, exports) {
       const resolveSpec = (spec) => spec.startsWith('.')
         ? resolveJsPath(dir, spec, fileSet)
         : resolveAlias(spec, aliasMap, fileSet);
-  
+
       const stripped = content
         .replace(/\/\/.*$/gm, '')
         .replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
       let m;
       // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
       const reEs = /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
@@ -17453,7 +17522,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (r) found.push(r);
       }
     }
-  
+
     // ── Python ────────────────────────────────────────────────────────────────
     if (PY_EXTS.has(ext)) {
       // from .module import ...  /  from ..pkg import ...
@@ -17472,7 +17541,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
           if (fileSet.has(normC)) found.push(normC);
         }
       }
-  
+
       // Absolute imports: from package.module import ... (infer from project
       // structure). The module is resolved against EVERY ancestor of the
       // importing file up to the project root, nearest first — any of them can
@@ -17500,7 +17569,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (hit) found.push(hit);
       }
     }
-  
+
     // ── Go ────────────────────────────────────────────────────────────────────
     // Go uses module paths, not relative file paths — we match same-module paths
     // by checking if any known file's relative path matches the imported suffix.
@@ -17513,7 +17582,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         for (const imp of m[1].matchAll(/"([^"]+)"/g)) imports.push(imp[1]);
       }
       while ((m = reInline.exec(content)) !== null) imports.push(m[1]);
-  
+
       for (const imp of imports) {
         const suffix = imp.split('/').pop();
         for (const f of fileSet) {
@@ -17526,7 +17595,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         }
       }
     }
-  
+
     // ── Rust ──────────────────────────────────────────────────────────────────
     // Match `mod foo;` and `use crate::foo::bar` — resolve to sibling .rs files
     if (RS_EXTS.has(ext)) {
@@ -17542,7 +17611,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (fileSet.has(normC2)) found.push(normC2);
       }
     }
-  
+
     // ── Java / Kotlin / Scala ─────────────────────────────────────────────────
     // Match same-project import statements by matching package-relative paths
     if (JVM_EXTS.has(ext)) {
@@ -17559,7 +17628,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         }
       }
     }
-  
+
     // ── Ruby ──────────────────────────────────────────────────────────────────
     if (RB_EXTS.has(ext)) {
       const re = /^\s*require_relative\s+['"]([^'"]+)['"]/gm;
@@ -17571,7 +17640,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (fileSet.has(normC)) found.push(normC);
       }
     }
-  
+
     // ── Elixir ────────────────────────────────────────────────────────────────
     // Module references (`alias A.B`, `import A.B`, `use A.B`, `require A.B`)
     // resolve to repo files by the lib/ snake_case convention: A.B.C →
@@ -17598,7 +17667,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (hit) found.push(hit);
       }
     }
-  
+
     // ── R ─────────────────────────────────────────────────────────────────────
     // R doesn't have JS-style relative imports inside packages — files in R/ are
     // auto-sourced in alphabetical order. We emit edges for:
@@ -17634,14 +17703,14 @@ __factories["./src/graph/builder"] = function(module, exports) {
         }
       }
     }
-  
+
     return [...new Set(found)];
   }
-  
+
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Build a forward and reverse dependency graph for all given files.
    *
@@ -17663,12 +17732,12 @@ __factories["./src/graph/builder"] = function(module, exports) {
     const effectiveCtx = Object.assign({}, ctx, { aliasMap });
     const forward = new Map();
     const reverse = new Map();
-  
+
     // Node keys are lowercased for case-insensitive matching, which loses the
     // real spelling every display surface needs. Keep the original-case path
     // alongside so renderers can recover it (see src/graph/path-key displayPath).
     const realPaths = new Map();
-  
+
     // Initialise every known file in both maps (ensures isolated files appear)
     // Store using normalized paths for Windows compatibility
     for (const f of fileSet) {
@@ -17677,7 +17746,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
       if (!forward.has(normF)) forward.set(normF, []);
       if (!reverse.has(normF)) reverse.set(normF, []);
     }
-  
+
     for (const filePath of fileSet) {
       let content;
       try {
@@ -17685,7 +17754,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
       } catch (_) {
         continue;
       }
-  
+
       const normFilePath = normalizePath(filePath);
       const deps = extractFileDeps(filePath, content, fileSetNormalized, cwd, effectiveCtx);
       if (deps.length > 0) {
@@ -17696,22 +17765,22 @@ __factories["./src/graph/builder"] = function(module, exports) {
         }
       }
     }
-  
+
     return { forward, reverse, realPaths };
   }
-  
+
   // Directory names assumed when neither the caller nor the project config says
   // otherwise. A Maven/Gradle module (`mall-portal/`, `service-api/`) matches none
   // of them, which is why the config is consulted first.
   const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'R', 'inst'];
-  
+
   // Walk depth measured from EACH srcDir root, not from cwd — so this is not the
   // same quantity as the extractor's cwd-relative `maxDepth` and must not be read
   // from it. A standard Maven tree reaches `src/main/java/<group>/<artifact>/…`
   // nine directories below its module root, so the previous ceiling of 8 silently
   // dropped the deepest packages (on macrozheng/mall: every `service/impl/` class).
   const DEFAULT_WALK_DEPTH = 12;
-  
+
   /**
    * Source directories declared in the project's own config, or null when there
    * is no readable config. Read directly rather than through `loadConfig`, which
@@ -17726,7 +17795,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     } catch (_) { /* absent or unparsable — fall back to the defaults */ }
     return null;
   }
-  
+
   /**
    * Build a dependency graph scoped to a single cwd by walking all JS/TS/Py/Go
    * files under srcDirs. Useful for the MCP tool handler.
@@ -17752,7 +17821,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
       maxDepth = DEFAULT_WALK_DEPTH,
     } = opts || {};
     const excludeSet = new Set(exclude);
-  
+
     function walkDir(dir, depth) {
       if (depth > maxDepth) return [];
       let entries;
@@ -17774,7 +17843,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
       }
       return out;
     }
-  
+
     const files = [];
     for (const sd of srcDirs) {
       const absDir = path.resolve(cwd, sd);
@@ -17786,7 +17855,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
       const abs = path.resolve(cwd, rootFile);
       if (fs.existsSync(abs)) files.push(abs);
     }
-  
+
     // Build R namespace context if this looks like an R package.
     let ctx;
     try {
@@ -17799,10 +17868,10 @@ __factories["./src/graph/builder"] = function(module, exports) {
         }
       }
     } catch (_) { /* manifest module missing or read failed — proceed without ctx */ }
-  
+
     return build(files, cwd, ctx);
   }
-  
+
   module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };
   
 };
@@ -17826,11 +17895,11 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
    *
    * @module src/graph/call-graph
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { build } = __require('./src/graph/builder');
-  
+
   const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
   const PY_EXTS = new Set(['.py', '.pyw']);
   const JAVA_EXTS = new Set(['.java']);
@@ -17838,7 +17907,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   const RS_EXTS = new Set(['.rs']);
   const KT_EXTS = new Set(['.kt', '.kts']);
   const SCALA_EXTS = new Set(['.scala', '.sc']);
-  
+
   // Tokens that look like `name(` calls or definition headers but are language
   // keywords, not user symbols — never treated as a call or a definition.
   const NON_CALL = new Set([
@@ -17849,16 +17918,16 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     'from', 'global', 'nonlocal', 'del', 'pass', 'async', 'require', 'constructor',
     'synchronized',
   ]);
-  
+
   const { graphKey } = __require('./src/graph/path-key');
   function normalizePath(p) { return graphKey(p); }
   function toRel(cwd, f) { return path.relative(cwd, f).replace(/\\/g, '/'); }
   function symId(cwd, absFile, name) { return `${toRel(cwd, absFile)}#${name}`; }
-  
+
   // ── Length- and newline-preserving maskers ──────────────────────────────────
   // Replace comment / string bodies with spaces so their braces, parens, and
   // call-looking tokens never confuse structure detection. Offsets stay aligned.
-  
+
   function maskJs(src) {
     const out = src.split('');
     const blank = (a, b) => { for (let k = a; k < b; k++) if (out[k] !== '\n') out[k] = ' '; };
@@ -17876,7 +17945,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return out.join('');
   }
-  
+
   // Rust: `//`, `/* */`, and `"..."` mask like JS, but a bare `'` is usually a
   // lifetime (`'a`), not a string — masking to the "closing" quote would corrupt
   // offsets. Only char literals (`'x'`, `'\n'`) are masked; lifetimes pass through.
@@ -17902,7 +17971,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return out.join('');
   }
-  
+
   function maskPy(src) {
     const out = src.split('');
     const blank = (a, b) => { for (let k = a; k < b; k++) if (out[k] !== '\n') out[k] = ' '; };
@@ -17921,7 +17990,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return out.join('');
   }
-  
+
   // ── Balanced-delimiter matchers (operate on masked source) ───────────────────
   function matchDelim(masked, openIdx, open, close) {
     let depth = 0;
@@ -17931,17 +18000,17 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return masked.length - 1;
   }
-  
+
   function lineAt(src, idx) {
     let line = 1;
     const end = Math.min(idx, src.length);
     for (let i = 0; i < end; i++) if (src.charCodeAt(i) === 10) line++;
     return line;
   }
-  
+
   // ── Definition extraction ────────────────────────────────────────────────────
   // Each def: { name, line, bodyStart, bodyEnd } with char offsets into `masked`.
-  
+
   function jsDefs(masked) {
     const defs = [];
     const seen = new Set();
@@ -17951,7 +18020,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       seen.add(key);
       defs.push({ name, line: lineAt(masked, headerIdx), bodyStart, bodyEnd });
     };
-  
+
     // Locate the `{` body (or `=>` expression) that follows a param list `)`.
     const bodyAfterParams = (closeParen) => {
       let k = closeParen + 1;
@@ -17960,7 +18029,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       if (masked[k] === '{') { const end = matchDelim(masked, k, '{', '}'); return { bodyStart: k, bodyEnd: end }; }
       return null; // no braced body (interface/abstract/overload signature) — skip
     };
-  
+
     // 1) function declarations:  (async) function name(...) { ... }
     const reFn = /\b(?:async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)\s*\(/g;
     let m;
@@ -17970,7 +18039,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       const body = bodyAfterParams(close);
       if (body) push(m[1], m.index, body.bodyStart, body.bodyEnd);
     }
-  
+
     // 2) arrow / function expressions:  const name = (...) => { }  |  = function(...) { }
     const reArrow = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?(?:function\b\s*\*?\s*[A-Za-z_$]*\s*)?\(/g;
     while ((m = reArrow.exec(masked)) !== null) {
@@ -17989,7 +18058,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         }
       }
     }
-  
+
     // 3) class methods:  class X { name(...) { } }
     const reClass = /\bclass\s+[A-Za-z_$][\w$]*/g;
     while ((m = reClass.exec(masked)) !== null) {
@@ -18006,10 +18075,10 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         if (body && body.bodyEnd <= classEnd) push(mm[1], mm.index, body.bodyStart, body.bodyEnd);
       }
     }
-  
+
     return defs;
   }
-  
+
   function pyDefs(masked) {
     const defs = [];
     const lines = masked.split('\n');
@@ -18031,7 +18100,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return defs;
   }
-  
+
   // Go:  func name(...) { }   |   func (r Recv) name(...) (T, error) { }
   // The return list may itself be parenthesized, so scan past it to the body `{`.
   function goDefs(masked) {
@@ -18056,7 +18125,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return defs;
   }
-  
+
   // Java: methods + constructors with braced bodies. Statement-shaped matches
   // (calls, control flow) are rejected because their `)` is followed by `;`,
   // and keyword headers (`if`, `while`, …) fall to the NON_CALL guard.
@@ -18066,7 +18135,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     'return', 'throw', 'else', 'do', 'try', 'case', 'yield', 'assert', 'new',
     'if', 'while', 'for', 'switch', 'catch', 'synchronized', 'instanceof', 'await',
   ]);
-  
+
   // Types a Java class declares it implements or extends, with generic arguments
   // stripped and any package qualifier dropped: `implements Foo<Bar, Baz>` yields
   // ['Foo'], never 'Baz>'. Also records whether the class is a Spring bean and
@@ -18097,7 +18166,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       isPrimary: /@Primary\b/.test(head),
     };
   }
-  
+
   function javaDefs(masked) {
     const defs = [];
     const seen = new Set();
@@ -18135,7 +18204,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return defs;
   }
-  
+
   // Rust: fn name(...) { }  |  fn name<T>(...) -> T where … { }  — inside or
   // outside impl/trait blocks. A `;` before the body brace (trait declaration)
   // means no body: skipped.
@@ -18158,7 +18227,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return defs;
   }
-  
+
   // Pick the masker whose comment/string syntax matches the language.
   // Java and Go share JS syntax (Go raw strings mask like template literals).
   /**
@@ -18182,7 +18251,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return null; // abstract member or interface declaration
   }
-  
+
   /**
    * Kotlin `fun` definitions, including extension functions (`fun Foo.bar()`,
    * recorded as `bar`) and expression bodies.
@@ -18209,7 +18278,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return defs;
   }
-  
+
   /**
    * Scala `def` definitions. Handles parameterless members (`def foo: Int = 1`),
    * type parameters, and expression bodies.
@@ -18235,14 +18304,14 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return defs;
   }
-  
+
   function maskFor(filePath, src) {
     const ext = path.extname(filePath).toLowerCase();
     if (PY_EXTS.has(ext)) return maskPy(src);
     if (RS_EXTS.has(ext)) return maskRust(src);
     return maskJs(src);
   }
-  
+
   function extractDefs(filePath, src) {
     const ext = path.extname(filePath).toLowerCase();
     if (JS_EXTS.has(ext)) return jsDefs(maskJs(src));
@@ -18254,7 +18323,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     if (SCALA_EXTS.has(ext)) return scalaDefs(maskJs(src));
     return null; // unsupported language
   }
-  
+
   // Collect `name(` call tokens within [start,end) of masked source.
   function callsInRange(masked, start, end) {
     const slice = masked.slice(start, end);
@@ -18269,7 +18338,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return names;
   }
-  
+
   // Collect `receiver.method(` pairs within [start,end). A chained or computed
   // receiver (`a.b().c(`, `arr[0].c(`) is skipped: only a plain identifier can be
   // looked up in the declaration map, and guessing is worse than no edge.
@@ -18286,12 +18355,12 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return out;
   }
-  
+
   // `private UserService userService;` / `UserService svc = new UserService();`
   // / `for (OmsOrderItem item : list)` → { userService: 'UserService', … }.
   // Declarations only: a bare assignment carries no type and is not inferred.
   const DECL_RE = /(?:^|[;{}(,\n])\s*(?:(?:public|private|protected|static|final|volatile|transient)\s+)*([A-Z][\w$]*)(?:\s*<[^>;=(){}]*>)?(?:\s*\[\s*\])?\s+([a-z_$][\w$]*)\s*(?=[;=:)])/g;
-  
+
   function buildTypeMap(masked) {
     const map = new Map();
     let m;
@@ -18303,21 +18372,21 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return map;
   }
-  
+
   // Type names that are never a user class, so never a resolvable receiver type.
   const JVM_KEYWORDS = new Set([
     'return', 'new', 'if', 'else', 'for', 'while', 'switch', 'case', 'throw', 'catch',
     'String', 'Integer', 'Long', 'Boolean', 'Double', 'Float', 'Object', 'List', 'Map',
     'Set', 'Collection', 'Optional', 'Override', 'Autowired', 'Resource', 'Deprecated',
   ]);
-  
+
   // ── Public API ───────────────────────────────────────────────────────────────
-  
+
   // Walk depth from each srcDir root (not from cwd). A Maven module reaches
   // `src/main/java/<group>/<artifact>/service/impl` nine directories down, so the
   // previous ceiling of 8 never saw the classes that own the method bodies.
   const DEFAULT_WALK_DEPTH = 12;
-  
+
   /**
    * Source directories declared in the project's own config, or null. Read
    * directly rather than through `loadConfig`, which can fetch `extends` over the
@@ -18330,7 +18399,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     } catch (_) { /* absent or unparsable — fall back to the defaults */ }
     return null;
   }
-  
+
   function _walk(dir, excludeSet, out, depth, maxDepth) {
     if (depth > (maxDepth === undefined ? DEFAULT_WALK_DEPTH : maxDepth)) return;
     let entries;
@@ -18346,7 +18415,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       }
     }
   }
-  
+
   /**
    * Build the method-level call-graph for a project.
    *
@@ -18374,17 +18443,17 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         if (fs.existsSync(abs)) _walk(abs, excludeSet, files, 0, opts.maxDepth);
       }
     }
-  
+
     // File-level import graph (for precise call-site resolution). Keys normalized.
     let fileGraph;
     try { fileGraph = build(files, cwd); } catch (_) { fileGraph = { forward: new Map() }; }
-  
+
     // Per-file definitions + name→file lookups.
     const perFileDefs = new Map();   // absFile → def[]
     const defsByName = new Map();     // absFile → Map<name, symbolId[]>
     const normToAbs = new Map();      // normalized abs → abs
     const defs = new Map();           // symbolId → {file,name,line}
-  
+
     // JVM convention: a public type lives in a file of the same name. This is the
     // deterministic type→file mapping receiver resolution needs, with no AST.
     const fileByTypeName = new Map();   // 'UserService' → [absFile]
@@ -18396,7 +18465,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         fileByTypeName.get(base).push(f);
       }
     }
-  
+
     // interface/superclass name → implementing files, for the Spring hop below.
     const implsByType = new Map();     // 'PaymentService' → [{ file, isBean, isPrimary }]
     for (const f of files) {
@@ -18409,7 +18478,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         implsByType.get(sup).push({ file: f, isBean: decl.isBean, isPrimary: decl.isPrimary });
       }
     }
-  
+
     /**
      * The single implementing file for a type, or null when it is ambiguous.
      * One implementation resolves outright; several resolve only via @Primary.
@@ -18422,7 +18491,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       if (primary.length === 1) return primary[0].file;
       return null;
     };
-  
+
     // #768: a zero here means "no edge was found", not "no caller exists". The
     // two systematic blind spots are counted while scanning so the formatter can
     // say which, instead of asserting a safety property the graph cannot support.
@@ -18444,7 +18513,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       }
       defsByName.set(f, byName);
     }
-  
+
     const forward = new Map();
     const reverse = new Map();
     // Additive: `forward`/`reverse` keep their existing shape, so every current
@@ -18462,7 +18531,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         if (edgeConfidence.get(k) !== 'high') edgeConfidence.set(k, confidence);
       }
     };
-  
+
     for (const [f, fileDefs] of perFileDefs.entries()) {
       const masked = maskFor(f, fs.readFileSync(f, 'utf8'));
       // resolution scope: this file's defs, then directly-imported files' defs
@@ -18490,7 +18559,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
           if (!scopeByTypeName.has(base)) scopeByTypeName.set(base, imp);
         }
       }
-  
+
       for (const d of fileDefs) {
         const callerId = symId(cwd, f, d.name);
         if (!forward.has(callerId)) forward.set(callerId, new Set()); // ensure node exists
@@ -18503,7 +18572,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
             if (ids && ids.length) { for (const id of ids) addEdge(callerId, id, 'high'); break; }
           }
         }
-  
+
         // `receiver.method(` — resolve the receiver's declared type to a file.
         if (!typeMap) continue;
         for (const { receiver, method } of receiverCallsInRange(masked, d.bodyStart, d.bodyEnd)) {
@@ -18511,7 +18580,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
           const typeName = typeMap.get(receiver)
             || (fileByTypeName.has(receiver) ? receiver : null);
           if (!typeName) continue;                 // unknown receiver → no edge, never a guess
-  
+
           let target = scopeByTypeName.get(typeName);
           let confidence = 'high';                 // typed receiver, resolved in scope
           if (!target) {
@@ -18522,7 +18591,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
           }
           const ids = (defsByName.get(target) || new Map()).get(method);
           if (ids && ids.length) for (const id of ids) addEdge(callerId, id, confidence);
-  
+
           // Spring: the call names the interface, but the code that runs — and
           // that a reviewer changes — lives in the implementation. Both edges are
           // true, so both are recorded; without the second, blast radius on an
@@ -18535,7 +18604,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         }
       }
     }
-  
+
     const toArr = (mapOfSets) => {
       const out = new Map();
       for (const [k, set] of mapOfSets.entries()) out.set(k, [...set]);
@@ -18549,7 +18618,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       scope: { roots: scopeRoots, files: files.length, dynamicLoads },
     };
   }
-  
+
   /**
    * Collapse the symbol-level call-graph to FILE-level bidirectional edges for
    * the ranker's neighbor boost (opt-in via `retrieval.callGraphBoost`). A file
@@ -18588,7 +18657,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     for (const k of [...edges.keys()].sort()) forward.set(k, [...edges.get(k)].sort());
     return { forward };
   }
-  
+
   // Resolve a user-supplied symbol (bare name or full `file#name` id) to ids.
   function _resolveSymbol(symbol, defs) {
     if (defs.has(symbol)) return [symbol];
@@ -18596,7 +18665,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     for (const id of defs.keys()) if (id.slice(id.indexOf('#') + 1) === symbol) ids.push(id);
     return ids;
   }
-  
+
   // BFS over a graph map from seed ids up to maxDepth (0 = unlimited).
   function _bfs(seedIds, graph, maxDepth) {
     const direct = new Set();
@@ -18612,7 +18681,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return { direct: [...direct], transitive: [...transitive] };
   }
-  
+
   /**
    * Method-level blast radius: everything that (transitively) calls `symbol`.
    *
@@ -18629,7 +18698,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const { direct, transitive } = _bfs(ids, graph.reverse, opts.depth || 0);
     return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
   }
-  
+
   /**
    * Module loads the import graph cannot follow, per file.
    *
@@ -18647,7 +18716,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     while (wrappers.exec(src)) n++;
     return n;
   }
-  
+
   /**
    * What `symbol` (transitively) calls.
    * @returns {{ symbol:string, resolved:string[], direct:string[], transitive:string[], total:number, unresolved:boolean }}
@@ -18660,7 +18729,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const { direct, transitive } = _bfs(ids, graph.forward, opts.depth || 0);
     return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
   }
-  
+
   // ── Formatters ───────────────────────────────────────────────────────────────
   /**
    * What the search actually covered, as a human clause (#768).
@@ -18683,7 +18752,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     }
     return clause;
   }
-  
+
   function formatCallGraph(result, kind) {
     const verb = kind === 'callees' ? 'calls' : 'callers of';
     const lines = [`## ${kind === 'callees' ? 'Callees' : 'Callers'}: \`${result.symbol}\``, ''];
@@ -18700,7 +18769,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     if (result.transitive.length) { lines.push(`### Transitive`); for (const id of result.transitive) lines.push(`- \`${id}\``); lines.push(''); }
     return lines.join('\n');
   }
-  
+
   function formatCallGraphJSON(result, kind) {
     return {
       symbol: result.symbol,
@@ -18716,7 +18785,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       scope: result.scope || null,
     };
   }
-  
+
   module.exports = {
     buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, methodImpact, methodCallees,
     formatCallGraph, formatCallGraphJSON,
@@ -18740,10 +18809,10 @@ __factories["./src/graph/centrality"] = function(module, exports) {
    * (see src/retrieval/ranker.js) — a principled deepening of the existing
    * graph-boost idea, not a replacement for query relevance.
    */
-  
+
   const DAMPING = 0.85;
   const ITERATIONS = 20;
-  
+
   /**
    * Compute a normalized centrality score for every file in a dependency graph.
    *
@@ -18754,7 +18823,7 @@ __factories["./src/graph/centrality"] = function(module, exports) {
    */
   function computeCentrality(graph) {
     if (!graph || !(graph.forward instanceof Map) || graph.forward.size === 0) return new Map();
-  
+
     const nodes = new Set(graph.forward.keys());
     for (const deps of graph.forward.values()) {
       for (const dep of deps || []) nodes.add(dep);
@@ -18764,7 +18833,7 @@ __factories["./src/graph/centrality"] = function(module, exports) {
     const indexOf = new Map(nodeList.map((file, i) => [file, i]));
     const outLinks = nodeList.map((file) =>
       (graph.forward.get(file) || []).map((dep) => indexOf.get(dep)).filter((i) => i !== undefined));
-  
+
     let ranks = new Array(n).fill(1 / n);
     for (let iter = 0; iter < ITERATIONS; iter++) {
       const next = new Array(n).fill((1 - DAMPING) / n);
@@ -18779,13 +18848,13 @@ __factories["./src/graph/centrality"] = function(module, exports) {
       for (let i = 0; i < n; i++) next[i] += danglingShare;
       ranks = next;
     }
-  
+
     const max = Math.max(...ranks) || 1;
     const result = new Map();
     for (let i = 0; i < n; i++) result.set(nodeList[i], ranks[i] / max);
     return result;
   }
-  
+
   module.exports = { computeCentrality, DAMPING, ITERATIONS };
   
 };
@@ -18801,20 +18870,20 @@ __factories["./src/graph/impact"] = function(module, exports) {
    *
    * @module src/graph/impact
    */
-  
+
   const path = require('path');
   const { buildFromCwd } = __require('./src/graph/builder');
   const { displayPath } = __require('./src/graph/path-key');
-  
+
   // Normalize paths for cross-platform consistency (same as in builder.js)
   function normalizePath(p) {
     return path.normalize(p).toLowerCase();
   }
-  
+
   // ---------------------------------------------------------------------------
   // Core BFS traversal
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Walk the reverse graph from `startFile` using BFS up to `maxDepth` levels.
    * Returns separate sets for direct and transitive dependents.
@@ -18828,7 +18897,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
     const direct     = new Set();
     const transitive = new Set();
     const visited    = new Set([startFile]);
-  
+
     // Level 1 — direct importers
     const firstLevel = reverseGraph.get(startFile) || [];
     for (const f of firstLevel) {
@@ -18837,13 +18906,13 @@ __factories["./src/graph/impact"] = function(module, exports) {
         visited.add(f);
       }
     }
-  
+
     if (maxDepth === 1) return { direct, transitive };
-  
+
     // BFS for deeper levels
     let frontier = [...direct];
     let depth = 1;
-  
+
     while (frontier.length > 0 && (maxDepth === 0 || depth < maxDepth)) {
       const nextFrontier = [];
       for (const node of frontier) {
@@ -18859,14 +18928,14 @@ __factories["./src/graph/impact"] = function(module, exports) {
       frontier = nextFrontier;
       depth++;
     }
-  
+
     return { direct, transitive };
   }
-  
+
   // ---------------------------------------------------------------------------
   // Helper: classify impacted files into tests / routes / other
   // ---------------------------------------------------------------------------
-  
+
   const TEST_PATTERNS = [
     /[./\\](test|tests|spec|__tests__)[./\\]/,
     /\.(test|spec)\.[jt]sx?$/,
@@ -18874,7 +18943,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
     /_test\.py$/,
     /test_[^/\\]+\.py$/,
   ];
-  
+
   const ROUTE_PATTERNS = [
     /router?\.[jt]sx?$/i,
     /routes?\.[jt]sx?$/i,
@@ -18882,14 +18951,14 @@ __factories["./src/graph/impact"] = function(module, exports) {
     /views?\.[jt]sx?$/i,
     /handlers?\.[jt]sx?$/i,
   ];
-  
+
   function isTestFile(f)  { return TEST_PATTERNS.some((re) => re.test(f.replace(/\\/g, '/'))); }
   function isRouteFile(f) { return ROUTE_PATTERNS.some((re) => re.test(f.replace(/\\/g, '/'))); }
-  
+
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Compute the impact of changing `changedFile`.
    *
@@ -18909,21 +18978,21 @@ __factories["./src/graph/impact"] = function(module, exports) {
    */
   function getImpact(changedFile, graph, opts) {
     const { depth = 0, cwd = process.cwd() } = opts || {};
-  
+
     const absChangedReal = path.resolve(cwd, changedFile);
     const absChanged = normalizePath(absChangedReal);
-  
+
     // Bail gracefully if file not in graph
     if (!graph || !graph.reverse) {
       return { changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 };
     }
-  
+
     const { direct, transitive } = bfs(absChanged, graph.reverse, depth);
-  
+
     const allImpacted = [...direct, ...transitive];
     const tests  = allImpacted.filter(isTestFile);
     const routes = allImpacted.filter(isRouteFile);
-  
+
     // BFS results are lowercased graph keys; render them through the graph's
     // original-case map so `/Users/...` checkouts do not climb out of cwd.
     // The changed file is caller-supplied, so its real spelling is known even
@@ -18931,7 +19000,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
     const realPaths = new Map(graph.realPaths || []);
     if (!realPaths.has(absChanged)) realPaths.set(absChanged, absChangedReal);
     const toRel = (f) => displayPath(f, cwd, realPaths);
-  
+
     return {
       changed:     toRel(absChanged),
       direct:      [...direct].map(toRel),
@@ -18941,7 +19010,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
       totalImpact: direct.size + transitive.size,
     };
   }
-  
+
   /**
    * Analyse the impact of one or more changed files, building the graph from cwd.
    * This is the high-level convenience function used by the CLI and MCP tool.
@@ -18957,24 +19026,24 @@ __factories["./src/graph/impact"] = function(module, exports) {
   function analyzeImpact(changedFiles, cwd, opts) {
     const { depth = 3 } = opts || {};
     const files = Array.isArray(changedFiles) ? changedFiles : [changedFiles];
-  
+
     let graph;
     try {
       graph = buildFromCwd(cwd, opts);
     } catch (_) {
       graph = { forward: new Map(), reverse: new Map() };
     }
-  
+
     return files.map((f) => ({
       file: f,
       impact: getImpact(f, graph, { depth, cwd }),
     }));
   }
-  
+
   // ---------------------------------------------------------------------------
   // Formatting helpers
   // ---------------------------------------------------------------------------
-  
+
   /**
    * Format an impact result as a readable markdown string.
    *
@@ -18985,42 +19054,42 @@ __factories["./src/graph/impact"] = function(module, exports) {
     const lines = [];
     lines.push(`## Impact: \`${result.changed}\``);
     lines.push('');
-  
+
     if (result.direct.length === 0 && result.transitive.length === 0) {
       lines.push('_No importers found via relative + aliased imports (lower bound — dynamic/computed imports are not tracked)._');
       return lines.join('\n');
     }
-  
+
     lines.push(`**Total impacted files:** ${result.totalImpact} _(lower bound — resolves relative + tsconfig/jsconfig-aliased imports)_`);
     lines.push('');
-  
+
     if (result.direct.length > 0) {
       lines.push('### Direct importers');
       for (const f of result.direct) lines.push(`- \`${f}\``);
       lines.push('');
     }
-  
+
     if (result.transitive.length > 0) {
       lines.push('### Transitive importers');
       for (const f of result.transitive) lines.push(`- \`${f}\``);
       lines.push('');
     }
-  
+
     if (result.tests.length > 0) {
       lines.push('### Affected tests');
       for (const f of result.tests) lines.push(`- \`${f}\``);
       lines.push('');
     }
-  
+
     if (result.routes.length > 0) {
       lines.push('### Affected routes / controllers');
       for (const f of result.routes) lines.push(`- \`${f}\``);
       lines.push('');
     }
-  
+
     return lines.join('\n');
   }
-  
+
   /**
    * Format an impact result as a JSON-serialisable object.
    *
@@ -19037,7 +19106,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
       totalImpact: result.totalImpact,
     };
   }
-  
+
   module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON, isTestFile, isRouteFile };
   
 };
@@ -19060,14 +19129,14 @@ __factories["./src/graph/path-key"] = function(module, exports) {
    *
    * Zero-dependency, pure, bundle-safe.
    */
-  
+
   const path = require('path');
-  
+
   /** Canonical key for a filesystem path used as a graph node. */
   function graphKey(p) {
     return path.normalize(String(p)).toLowerCase();
   }
-  
+
   /**
    * Render a graph node key as a repo-relative path in its ORIGINAL case.
    *
@@ -19097,7 +19166,7 @@ __factories["./src/graph/path-key"] = function(module, exports) {
     }
     return rel.replace(/\\/g, '/');
   }
-  
+
   module.exports = { graphKey, displayPath };
   
 };
@@ -19136,10 +19205,10 @@ __factories["./src/health/scorer"] = function(module, exports) {
    *   daysSinceRegen, strategyFreshnessDays, totalRuns, overBudgetRuns,
    *   overBudgetStreak, languageCoverage, extractorCoverage, diagnostics }
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   // Every path a SigMap adapter may write context to (freshness looks at the
   // freshest existing one). Mirrors the ranker's adapter-output probe order.
   const CONTEXT_FILES = [
@@ -19153,14 +19222,14 @@ __factories["./src/health/scorer"] = function(module, exports) {
     ['llm-full.txt'],
     ['llm.txt'],
   ];
-  
+
   function gradeFor(points) {
     if (points >= 90) return 'A';
     if (points >= 75) return 'B';
     if (points >= 60) return 'C';
     return 'D';
   }
-  
+
   /**
    * Pure scoring core. Given gathered signals, return the score, grade, and the
    * labeled list of deductions. No IO — unit-testable in isolation.
@@ -19174,7 +19243,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
       const p = Math.round(penalty);
       if (p > 0) components.push({ id, label, penalty: p, detail });
     };
-  
+
     // 1. Context never generated — a project with source files but no context of
     //    any kind is not "healthy"; it hasn't been set up. Gated on hasSource so
     //    an empty/new directory is not penalised for having nothing to index.
@@ -19182,13 +19251,13 @@ __factories["./src/health/scorer"] = function(module, exports) {
       add('not-generated', 'context never generated', 45,
         'no adapter output found — run `sigmap` to generate context');
     }
-  
+
     // 2. Staleness — freshest adapter output older than the 7-day window.
     if (s.daysSinceRegen !== null && s.daysSinceRegen > 7) {
       add('staleness', 'context stale', Math.min(30, Math.floor((s.daysSinceRegen - 7) * 4)),
         `${s.daysSinceRegen}d since last regen (>7d)`);
     }
-  
+
     // 3. Low token reduction — only meaningful for the 'full' strategy; hot-cold
     //    and per-module intentionally produce small/partial outputs.
     const reductionThreshold = s.strategy === 'full' ? 60 : 0;
@@ -19196,31 +19265,31 @@ __factories["./src/health/scorer"] = function(module, exports) {
       add('low-reduction', 'low token reduction', 20,
         `${s.tokenReductionPct}% avg reduction (<${reductionThreshold}%)`);
     }
-  
+
     // 4. Cold-context staleness (hot-cold only).
     if (s.strategy === 'hot-cold' && s.strategyFreshnessDays !== null && s.strategyFreshnessDays > 1) {
       add('cold-freshness', 'cold context stale', Math.min(10, Math.floor(s.strategyFreshnessDays - 1) * 3),
         `context-cold.md ${s.strategyFreshnessDays}d old`);
     }
-  
+
     // 5. Over-budget rate.
     if (s.overBudgetRuns > 0 && s.totalRuns > 0) {
       const rate = (s.overBudgetRuns / s.totalRuns) * 100;
       if (rate > 20) add('over-budget', 'runs over budget', 20,
         `${Math.round(rate)}% of runs exceeded budget (>20%)`);
     }
-  
+
     // 6. Sustained over-budget streak — previously computed but never scored.
     if (s.overBudgetStreak >= 3) {
       add('over-budget-streak', 'sustained over-budget', 5,
         `${s.overBudgetStreak} consecutive over-budget runs`);
     }
-  
+
     const penalty = components.reduce((sum, c) => sum + c.penalty, 0);
     const score = Math.max(0, Math.min(100, 100 - penalty));
     return { score, grade: gradeFor(score), components };
   }
-  
+
   /**
    * Gather health signals from disk and score them. Never throws.
    * @param {string} cwd
@@ -19233,7 +19302,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
         strategy = JSON.parse(fs.readFileSync(cfgPath, 'utf8')).strategy || 'full';
       }
     } catch (_) {}
-  
+
     // ── Usage-log signals (only present when tracking has recorded runs) ────────
     let tokenReductionPct = null;
     let overBudgetRuns = 0;
@@ -19261,7 +19330,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
       p95TokenCount = Math.round(percentile(finals, 95));
       overBudgetStreak = calcStreak(entries);
     } catch (_) {}
-  
+
     // ── Language coverage (DIAGNOSTIC — share of supported languages present,
     //    i.e. diversity, not extractor quality). Also yields hasSource. ──────────
     let languageCoverage = null;
@@ -19272,7 +19341,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
       languageCoverage = { covered: cov.covered, supported: cov.supported, pct: cov.pct };
       hasSource = Object.values(cov.perLanguage || {}).some((n) => n > 0);
     } catch (_) {}
-  
+
     // ── Freshness across ALL adapter outputs (freshest wins) ───────────────────
     let daysSinceRegen = null;
     try {
@@ -19290,7 +19359,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
         daysSinceRegen = parseFloat(((Date.now() - newest) / (1000 * 60 * 60 * 24)).toFixed(1));
       }
     } catch (_) {}
-  
+
     // ── Cold-context freshness (hot-cold strategy only) ────────────────────────
     let strategyFreshnessDays = null;
     if (strategy === 'hot-cold') {
@@ -19302,7 +19371,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
         }
       } catch (_) {}
     }
-  
+
     const { score: points, grade, components } = composeHealth({
       strategy,
       daysSinceRegen,
@@ -19313,7 +19382,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
       overBudgetStreak,
       hasSource,
     });
-  
+
     return {
       score: points,
       grade,
@@ -19335,7 +19404,7 @@ __factories["./src/health/scorer"] = function(module, exports) {
       diagnostics: { p50TokenCount, p95TokenCount, languageCoverage },
     };
   }
-  
+
   module.exports = { score, composeHealth };
   
 };
@@ -19353,10 +19422,10 @@ __factories["./src/init/creation-workflow"] = function(module, exports) {
    * auto-generated-signatures blocks. Pure string transforms; zero-dependency,
    * bundle-safe.
    */
-  
+
   const START = '<!-- sigmap-creation-workflow:start -->';
   const END = '<!-- sigmap-creation-workflow:end -->';
-  
+
   /** Render the Creation workflow block (including its start/end markers). */
   function renderCreationWorkflowBlock() {
     return [
@@ -19376,7 +19445,7 @@ __factories["./src/init/creation-workflow"] = function(module, exports) {
       END,
     ].join('\n');
   }
-  
+
   /**
    * Inject (or replace) the Creation workflow block in existing CLAUDE.md content.
    * Replaces an existing marked block in place; appends one when absent.
@@ -19398,7 +19467,7 @@ __factories["./src/init/creation-workflow"] = function(module, exports) {
     const sep = src.endsWith('\n') ? '\n' : '\n\n';
     return src + sep + block + '\n';
   }
-  
+
   module.exports = { renderCreationWorkflowBlock, injectCreationWorkflow, START, END };
   
 };
@@ -19418,10 +19487,10 @@ __factories["./src/judge/context-source"] = function(module, exports) {
    *
    * Zero dependencies, deterministic, filesystem-only.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   /**
    * Generated context files, in the order `judge` prefers them. Mirrors the list
    * `sigmap doctor` checks, so both commands agree on what "the repo's generated
@@ -19438,12 +19507,12 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     ['llm-full.txt'],
     ['llm.txt'],
   ];
-  
+
   const EXCLUDE_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', 'out', '__pycache__',
     '.next', 'coverage', 'target', 'vendor', '.context',
   ]);
-  
+
   /**
    * The repo's generated context file, or null when none has been generated.
    *
@@ -19457,7 +19526,7 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Newest source file under `srcDirs`, by mtime.
    *
@@ -19467,7 +19536,7 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     const { CODE_EXTS } = __require('./src/analysis/coverage-score');
     const exclude = new Set(EXCLUDE_DIRS);
     if (config && Array.isArray(config.exclude)) for (const x of config.exclude) exclude.add(String(x));
-  
+
     let newest = null;
     let seen = 0;
     const walk = (dir, depth) => {
@@ -19493,7 +19562,7 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     }
     return newest;
   }
-  
+
   /**
    * Whether a context file is older than the sources it describes.
    *
@@ -19506,13 +19575,13 @@ __factories["./src/judge/context-source"] = function(module, exports) {
   function contextStaleness(contextFile, cwd, config) {
     let ctxMtime;
     try { ctxMtime = fs.statSync(contextFile).mtimeMs; } catch (_) { return null; }
-  
+
     const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length)
       ? config.srcDirs
       : ['src', 'lib', 'app'];
     const newest = _newestSource(cwd, srcDirs, config);
     if (!newest) return null;
-  
+
     const gapMs = newest.mtimeMs - ctxMtime;
     return {
       stale: gapMs > 0,
@@ -19521,7 +19590,7 @@ __factories["./src/judge/context-source"] = function(module, exports) {
       newest: path.relative(cwd, newest.file) || newest.file,
     };
   }
-  
+
   /** Largest sensible unit for a gap, so a sub-hour drift never prints "0 hour(s)". */
   function _formatGap(ms) {
     const minutes = ms / 60000;
@@ -19530,7 +19599,7 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     if (hours < 24) return `${Math.round(hours * 10) / 10} hour(s)`;
     return `${Math.round((hours / 24) * 10) / 10} day(s)`;
   }
-  
+
   /**
    * Human one-liner for a stale context, or null when it is fresh.
    *
@@ -19549,7 +19618,7 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     const tail = opts.tail || 'the answer is being judged against stale ground';
     return `context is ${_formatGap(staleness.gapMs)} older than ${staleness.newest} — ${tail}`;
   }
-  
+
   /**
    * Consequence clauses for the surfaces that share the warning above, so the
    * CLI and the MCP server cannot drift into two phrasings of one condition.
@@ -19559,7 +19628,7 @@ __factories["./src/judge/context-source"] = function(module, exports) {
     ask:   'this answer is ranked against stale ground; re-run `sigmap` to refresh the index',
     mcp:   'this result is ranked against stale ground; re-run `sigmap` to refresh the index',
   };
-  
+
   module.exports = { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS, ADAPTER_OUTPUTS };
   
 };
@@ -19572,7 +19641,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
   const { boostFiles, normalizeFile, penalizeFiles } = __require('./src/learning/weights');
   const parsers = __require('./src/verify/parsers');
   const { tokenize: rankTokenize, stem } = __require('./src/retrieval/bm25');
-  
+
   /**
    * Ordinary-English vocabulary (#779).
    *
@@ -19622,9 +19691,9 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     'helpful easy hard difficult simple complex complicated general specific ' +
     'common possible sure able right wrong true false yes'
   ).split(/\s+/).filter(Boolean);
-  
+
   const PROSE_STOP = new Set(PROSE_WORDS.map(stem));
-  
+
   /**
    * The tokens a groundedness score is computed over.
    *
@@ -19640,7 +19709,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
   function scoreTokens(text) {
     return rankTokenize(text).filter((t) => !PROSE_STOP.has(t));
   }
-  
+
   function groundedness(response, context) {
     if (!response || !context) return 0;
     const ctxTokens = new Set(scoreTokens(context));
@@ -19650,7 +19719,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     const matched = respTokens.filter((t) => ctxTokens.has(t));
     return parseFloat((matched.length / respTokens.length).toFixed(3));
   }
-  
+
   /**
    * Claim-level grounding (v8.10) — the structural half of the judge.
    *
@@ -19682,12 +19751,12 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
   function claimGrounding(response, context, opts = {}) {
     if (!response || !context) return { total: 0, grounded: 0, ungrounded: [], structural: false, checked: [], coverage: 0 };
     const ctxLower = context.toLowerCase();
-  
+
     const raw = [];
     for (const s of parsers.extractSymbols(response)) raw.push({ kind: 'symbol', value: s.name });
     for (const f of parsers.extractFilePaths(response)) raw.push({ kind: 'file', value: f.path });
     for (const i of parsers.extractImports(response)) raw.push({ kind: 'import', value: i.module, relative: !!i.relative });
-  
+
     const seen = new Set();
     const claims = raw.filter((c) => {
       const key = `${c.kind}::${c.value}`;
@@ -19695,7 +19764,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       seen.add(key);
       return true;
     });
-  
+
     let flagged = null;
     let checks = null;
     if (opts && typeof opts.cwd === 'string') {
@@ -19720,7 +19789,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       if (c.kind === 'file') return !!checks.files;
       return c.relative ? !!checks.relativeImports : !!checks.bareImports;
     };
-  
+
     const ungrounded = [];
     const checked = [];
     let grounded = 0;
@@ -19741,7 +19810,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       if (via !== null) grounded++;
       else ungrounded.push({ kind: c.kind, value: c.value });
     }
-  
+
     return {
       total: claims.length,
       grounded,
@@ -19751,7 +19820,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       coverage: claims.length ? Math.round((grounded / claims.length) * 1000) / 1000 : 0,
     };
   }
-  
+
   /**
    * Hedging phrases that signal an answer is reasoning from general knowledge
    * rather than from the context. These are a *style* signal, never a grounding
@@ -19767,7 +19836,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     'usually,',
     'as a general rule',
   ];
-  
+
   /**
    * Word-boundary matcher for a generic marker.
    *
@@ -19779,36 +19848,36 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
   function markerRegex(marker) {
     return new RegExp(`\\b${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`, 'i');
   }
-  
+
   function extractContextFiles(context, cwd) {
     if (!context || !cwd) return [];
-  
+
     const seen = new Set();
     const files = [];
     const lines = context.split('\n');
-  
+
     for (const line of lines) {
       const match = line.match(/^#{2,3}\s+(.+?)\s*$/);
       if (!match) continue;
-  
+
       const normalized = normalizeFile(cwd, match[1]);
       if (!normalized) continue;
-  
+
       const abs = path.join(cwd, normalized);
       if (!fs.existsSync(abs) || seen.has(normalized)) continue;
-  
+
       seen.add(normalized);
       files.push(normalized);
     }
-  
+
     return files;
   }
-  
+
   /** Empty claim report, for a verdict reached without scoring anything. */
   function emptyClaims() {
     return { total: 0, grounded: 0, ungrounded: [], structural: false, checked: [], coverage: 0 };
   }
-  
+
   /**
    * Why this input cannot be judged at all, or null when it can (#766).
    *
@@ -19824,10 +19893,10 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     if (scoreTokens(response).length === 0) return 'response has no scoreable tokens — nothing to check against the context';
     return null;
   }
-  
+
   function judge(response, context, opts = {}) {
     const threshold = opts.threshold !== undefined ? opts.threshold : 0.25;
-  
+
     // Inconclusive short-circuit (#766): nothing was scored, so there is no
     // verdict to reach and no weights feedback to apply.
     const blocked = inconclusiveReason(response, context);
@@ -19845,14 +19914,14 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       }
       return result;
     }
-  
+
     const score = groundedness(response, context);
     const reasons = [];
-  
+
     if (score < threshold) {
       reasons.push(`score ${score} is below threshold ${threshold} — response may not be grounded in context`);
     }
-  
+
     // Style warnings (#765) — reported, never a verdict input.
     const warnings = [];
     for (const m of GENERIC_MARKERS) {
@@ -19860,7 +19929,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
         warnings.push(`response contains generic phrase: "${m}"`);
       }
     }
-  
+
     // Structural claim grounding: any concrete symbol/file/import the answer
     // states that neither the context nor (with a cwd) the repo/installed-lib
     // index grounds is a hallucination the lexical score above cannot detect.
@@ -19870,9 +19939,9 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     for (const c of claims.ungrounded) {
       reasons.push(`${c.kind} claim not grounded in ${where}: ${c.value}${c.kind === 'symbol' ? '()' : ''}`);
     }
-  
+
     const verdict = score >= threshold && claims.ungrounded.length === 0 ? 'pass' : 'fail';
-  
+
     // Confidence in the verdict (J4, #653) — a deterministic level with an
     // auditable basis, aligned with the Evidence Pack's confidence vocabulary:
     //   high   — the structural pass ran, every claim grounded, and the score
@@ -19898,31 +19967,31 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       basis.push('generic phrasing present');
     }
     const confidence = { level, basis };
-  
+
     const result = { score, verdict, reasons, warnings, claims, confidence };
-  
+
     if (opts.learn) {
       const learning = {
         applied: false,
         action: 'none',
         files: [],
       };
-  
+
       if (!opts.cwd) {
         learning.reason = 'cwd is required for learning';
         result.learning = learning;
         return result;
       }
-  
+
       const contextFiles = extractContextFiles(context, opts.cwd);
       learning.files = contextFiles;
-  
+
       if (contextFiles.length === 0) {
         learning.reason = 'no context files found in context headings';
         result.learning = learning;
         return result;
       }
-  
+
       const boostAbove = typeof opts.learnBoostAbove === 'number' ? opts.learnBoostAbove : 0.75;
       const penalizeBelow = typeof opts.learnPenalizeBelow === 'number' ? opts.learnPenalizeBelow : 0.40;
       if (score > boostAbove) {
@@ -19936,13 +20005,13 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
       } else {
         learning.reason = `groundedness in no-op band (${penalizeBelow}-${boostAbove})`;
       }
-  
+
       result.learning = learning;
     }
-  
+
     return result;
   }
-  
+
   module.exports = { groundedness, claimGrounding, judge, scoreTokens, markerRegex, GENERIC_MARKERS, PROSE_STOP };
   
 };
@@ -19952,7 +20021,7 @@ __factories["./src/learning/weights"] = function(module, exports) {
   
   const fs = require('fs');
   const path = require('path');
-  
+
   const DECAY = 0.95;
   const MAX_MULT = 3.0;
   const MIN_MULT = 0.30;
@@ -19960,33 +20029,33 @@ __factories["./src/learning/weights"] = function(module, exports) {
   // A multiplier this close to neutral changes no ranking; dropping it keeps
   // .context/weights.json from accumulating decayed-out noise forever.
   const NEUTRAL_EPSILON = 0.01;
-  
+
   function weightsPath(cwd) {
     return path.join(cwd, '.context', 'weights.json');
   }
-  
+
   function clampMultiplier(value) {
     if (!Number.isFinite(value)) return BASELINE;
     if (value > MAX_MULT) return MAX_MULT;
     if (value < MIN_MULT) return MIN_MULT;
     return parseFloat(value.toFixed(6));
   }
-  
+
   function normalizeFile(cwd, filePath) {
     if (!cwd || !filePath || typeof filePath !== 'string') return null;
     const cleaned = filePath.trim().replace(/\\/g, '/');
     if (!cleaned) return null;
-  
+
     const abs = path.resolve(cwd, cleaned);
     const rel = path.relative(cwd, abs);
     if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return null;
     return rel.split(path.sep).join('/');
   }
-  
+
   function sanitizeWeights(cwd, weights) {
     const out = {};
     const entries = weights && typeof weights === 'object' ? Object.entries(weights) : [];
-  
+
     for (const [filePath, raw] of entries) {
       const normalized = normalizeFile(cwd, filePath);
       if (!normalized) continue;
@@ -19994,10 +20063,10 @@ __factories["./src/learning/weights"] = function(module, exports) {
       if (Math.abs(mult - BASELINE) < NEUTRAL_EPSILON) continue;
       out[normalized] = mult;
     }
-  
+
     return out;
   }
-  
+
   function loadWeights(cwd) {
     try {
       const parsed = JSON.parse(fs.readFileSync(weightsPath(cwd), 'utf8'));
@@ -20006,18 +20075,18 @@ __factories["./src/learning/weights"] = function(module, exports) {
       return {};
     }
   }
-  
+
   function saveWeights(cwd, weights) {
     const cleaned = sanitizeWeights(cwd, weights);
     const outPath = weightsPath(cwd);
-  
+
     if (Object.keys(cleaned).length === 0) {
       try {
         if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
       } catch (_) {}
       return;
     }
-  
+
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     const sorted = Object.keys(cleaned)
       .sort()
@@ -20027,15 +20096,15 @@ __factories["./src/learning/weights"] = function(module, exports) {
       }, {});
     fs.writeFileSync(outPath, JSON.stringify(sorted, null, 2) + '\n', 'utf8');
   }
-  
+
   function updateWeights(cwd, opts = {}) {
     const goodAmount = Number.isFinite(opts.goodAmount) ? opts.goodAmount : 0.15;
     const badAmount = Number.isFinite(opts.badAmount) ? opts.badAmount : 0.10;
     const goodFiles = Array.isArray(opts.goodFiles) ? opts.goodFiles : [];
     const badFiles = Array.isArray(opts.badFiles) ? opts.badFiles : [];
-  
+
     const weights = loadWeights(cwd);
-  
+
     // Decay toward the NEUTRAL baseline, not toward zero. `w * DECAY` converges
     // on 0 (floor-clamped at MIN_MULT), so every unrelated `learn` call deepened
     // penalties forever and dragged boosts down through 1.0 into penalty
@@ -20043,41 +20112,41 @@ __factories["./src/learning/weights"] = function(module, exports) {
     for (const key of Object.keys(weights)) {
       weights[key] = clampMultiplier(BASELINE + (weights[key] - BASELINE) * DECAY);
     }
-  
+
     const good = [];
     const bad = [];
-  
+
     for (const filePath of goodFiles) {
       const normalized = normalizeFile(cwd, filePath);
       if (!normalized) continue;
       weights[normalized] = clampMultiplier((weights[normalized] || BASELINE) + goodAmount);
       good.push(normalized);
     }
-  
+
     for (const filePath of badFiles) {
       const normalized = normalizeFile(cwd, filePath);
       if (!normalized) continue;
       weights[normalized] = clampMultiplier((weights[normalized] || BASELINE) - badAmount);
       bad.push(normalized);
     }
-  
+
     saveWeights(cwd, weights);
     return { good, bad, weights: loadWeights(cwd) };
   }
-  
+
   function boostFiles(cwd, files, amount = 0.15) {
     return updateWeights(cwd, { goodFiles: files, goodAmount: amount });
   }
-  
+
   function penalizeFiles(cwd, files, amount = 0.10) {
     return updateWeights(cwd, { badFiles: files, badAmount: amount });
   }
-  
+
   function resetWeights(cwd) {
     const outPath = weightsPath(cwd);
     if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
   }
-  
+
   function exportWeights(cwd, outputPath) {
     const weights = loadWeights(cwd);
     const json = JSON.stringify(weights, null, 2) + '\n';
@@ -20089,7 +20158,7 @@ __factories["./src/learning/weights"] = function(module, exports) {
     }
     return weights;
   }
-  
+
   function importWeights(cwd, importPath, replace) {
     let incoming;
     try {
@@ -20107,7 +20176,7 @@ __factories["./src/learning/weights"] = function(module, exports) {
     saveWeights(cwd, merged);
     return merged;
   }
-  
+
   module.exports = {
     BASELINE,
     DECAY,
@@ -20134,7 +20203,7 @@ __factories["./src/lsp/client"] = function(module, exports) {
   
   const { spawnSync } = require('child_process');
   const path = require('path');
-  
+
   // Zero-dep synchronous LSP client (#612, tier T3 of #542). SigMap already
   // speaks JSON-RPC-over-stdio as an MCP *server*; this is the same wire
   // discipline run as a *client*, against a language server the machine
@@ -20148,15 +20217,15 @@ __factories["./src/lsp/client"] = function(module, exports) {
   // ~290ms with exact multiline ranges. Servers process framed messages in a
   // read loop, so pipelining holds; any server that objects simply produces
   // no matching response and the caller falls back to the regex tier.
-  
+
   const SESSION_TIMEOUT_MS = 10000;
   const MAX_BUFFER = 64 * 1024 * 1024;
-  
+
   function frame(obj) {
     const s = JSON.stringify(obj);
     return `Content-Length: ${Buffer.byteLength(s)}\r\n\r\n${s}`;
   }
-  
+
   /** Parse Content-Length-framed JSON-RPC messages from a captured stream. */
   function parseFrames(raw) {
     const msgs = [];
@@ -20172,7 +20241,7 @@ __factories["./src/lsp/client"] = function(module, exports) {
     }
     return msgs;
   }
-  
+
   /**
    * One-shot documentSymbol session against a language server.
    * @param {string[]} cmd - command + args (spawned directly, never a shell)
@@ -20198,7 +20267,7 @@ __factories["./src/lsp/client"] = function(module, exports) {
       frame({ jsonrpc: '2.0', id: 2, method: 'textDocument/documentSymbol', params: { textDocument: { uri } } }) +
       frame({ jsonrpc: '2.0', id: 3, method: 'shutdown' }) +
       frame({ jsonrpc: '2.0', method: 'exit' });
-  
+
     let r;
     try {
       r = spawnSync(cmd[0], cmd.slice(1), {
@@ -20215,7 +20284,7 @@ __factories["./src/lsp/client"] = function(module, exports) {
     // server for later files (a transient null once cost 12 of 19 files).
     if (r && r.error && r.error.code === 'ENOENT') return { missing: true };
     if (!r || r.error || !r.stdout) return null;
-  
+
     const msgs = parseFrames(r.stdout);
     const init = msgs.find((x) => x.id === 1 && x.result);
     const sym = msgs.find((x) => x.id === 2);
@@ -20230,7 +20299,7 @@ __factories["./src/lsp/client"] = function(module, exports) {
       serverVersion: vm ? vm[0] : '',
     };
   }
-  
+
   module.exports = { documentSymbols, parseFrames, frame, SESSION_TIMEOUT_MS };
   
 };
@@ -20249,16 +20318,16 @@ __factories["./src/map/build-ci"] = function(module, exports) {
    * @param {string}   cwd   — project root
    * @returns {string} formatted markdown table (empty string if none found)
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const MAX_ROWS = 120;
-  
+
   function readJson(p) {
     try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; }
   }
-  
+
   function npmScripts(cwd, rows) {
     const pkg = readJson(path.join(cwd, 'package.json'));
     if (!pkg || !pkg.scripts || typeof pkg.scripts !== 'object') return;
@@ -20266,7 +20335,7 @@ __factories["./src/map/build-ci"] = function(module, exports) {
       rows.push({ kind: 'script', name, detail: 'npm run ' + name });
     }
   }
-  
+
   function ciWorkflows(cwd, rows) {
     const dir = path.join(cwd, '.github', 'workflows');
     let entries;
@@ -20292,7 +20361,7 @@ __factories["./src/map/build-ci"] = function(module, exports) {
       rows.push({ kind: 'ci', name, detail: `${file}${triggers ? ' — ' + triggers : ''}` });
     }
   }
-  
+
   function makeTargets(cwd, rows) {
     let content;
     try { content = fs.readFileSync(path.join(cwd, 'Makefile'), 'utf8'); } catch (_) { return; }
@@ -20305,7 +20374,7 @@ __factories["./src/map/build-ci"] = function(module, exports) {
       rows.push({ kind: 'make', name: t, detail: 'make ' + t });
     }
   }
-  
+
   /**
    * Structured build/CI target rows (#629): npm scripts, workflow files, and
    * Makefile targets, each `{ kind: 'script'|'ci'|'make', name, detail }`.
@@ -20317,11 +20386,11 @@ __factories["./src/map/build-ci"] = function(module, exports) {
     makeTargets(cwd, rows);
     return rows;
   }
-  
+
   function analyze(files, cwd) {
     const rows = collectTargets(cwd);
     if (rows.length === 0) return '';
-  
+
     const lines = [
       '| Kind | Name | Detail |',
       '|------|------|--------|',
@@ -20334,7 +20403,7 @@ __factories["./src/map/build-ci"] = function(module, exports) {
     }
     return lines.join('\n');
   }
-  
+
   module.exports = { analyze, collectTargets };
   
 };
@@ -20351,19 +20420,19 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
    * @param {string}   cwd   — project root for relative path display
    * @returns {string} formatted section content (empty string if nothing found)
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   function analyze(files, cwd) {
     const entries = [];
-  
+
     for (const filePath of files) {
       const ext = path.extname(filePath).toLowerCase();
       const rel = path.relative(cwd, filePath).replace(/\\/g, '/');
       let content;
       try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
-  
+
       // TS / JS
       if (['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
         const re = /^\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)(?:\s+extends\s+([\w<>.]+?))?(?:\s+implements\s+([\w<>.,\s]+?))?\s*\{/gm;
@@ -20376,7 +20445,7 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
           entries.push({ name: m[1], parent, interfaces: ifaces, file: rel });
         }
       }
-  
+
       // Python
       if (['.py', '.pyw'].includes(ext)) {
         const re = /^\s*class\s+(\w+)\s*\(([^)]*)\)\s*:/gm;
@@ -20394,7 +20463,7 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
           });
         }
       }
-  
+
       // Java
       if (ext === '.java') {
         const re = /^\s*(?:(?:public|protected|private|static|abstract|final)\s+)*class\s+(\w+)(?:\s+extends\s+(\w+))?(?:\s+implements\s+([\w,\s<>]+?))?\s*\{/gm;
@@ -20406,7 +20475,7 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
           entries.push({ name: m[1], parent: m[2] || null, interfaces: ifaces, file: rel });
         }
       }
-  
+
       // Kotlin
       if (['.kt', '.kts'].includes(ext)) {
         const re = /^\s*(?:(?:data|sealed|abstract|open|inner)\s+)?class\s+(\w+)(?:\s*[^:\r\n]*)?\s*:\s*([\w<>(),.\s]+?)(?:\s*\{|$)/gm;
@@ -20424,7 +20493,7 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
           });
         }
       }
-  
+
       // C#
       if (ext === '.cs') {
         const re = /^\s*(?:(?:public|internal|protected|private|static|abstract|sealed|partial)\s+)*class\s+(\w+)(?:\s*:\s*([\w<>.,\s]+?))?\s*\{/gm;
@@ -20442,9 +20511,9 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
         }
       }
     }
-  
+
     if (entries.length === 0) return '';
-  
+
     return entries
       .map((e) => {
         let line = e.name;
@@ -20455,7 +20524,7 @@ __factories["./src/map/class-hierarchy"] = function(module, exports) {
       })
       .join('\n');
   }
-  
+
   module.exports = { analyze };
   
 };
@@ -20479,26 +20548,26 @@ __factories["./src/map/config-manifest"] = function(module, exports) {
    * @param {string}   cwd   — project root
    * @returns {string} formatted markdown table (empty string if none found)
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { collectDependencies, versionPins } = __require('./src/deps/inventory');
-  
+
   const CONFIG_FILES = [
     'tsconfig.json', 'jsconfig.json', '.eslintrc', '.eslintrc.json', '.eslintrc.js',
     '.prettierrc', 'babel.config.js', 'jest.config.js', 'vitest.config.ts',
     'webpack.config.js', 'vite.config.ts', 'rollup.config.js', 'tailwind.config.js',
     'docker-compose.yml', 'docker-compose.yaml', 'Dockerfile', '.editorconfig',
   ];
-  
+
   const PIN_LIMIT = 30;
-  
+
   /** Human ecosystem label for a manifest row. */
   const ECOSYSTEM_LABEL = {
     npm: 'npm', pypi: 'python', maven: 'maven', go: 'go', cargo: 'rust',
     rubygems: 'ruby', composer: 'php', nuget: 'dotnet', pub: 'dart',
   };
-  
+
   /** `12 runtime, 3 dev` — scope counts for one manifest, most-important first. */
   function scopeSummary(deps) {
     const order = ['runtime', 'dev', 'test', 'peer', 'optional', 'build', 'indirect'];
@@ -20513,7 +20582,7 @@ __factories["./src/map/config-manifest"] = function(module, exports) {
     }
     return parts.length ? parts.join(', ') : 'none declared';
   }
-  
+
   function configFiles(cwd) {
     const present = [];
     for (const f of CONFIG_FILES) {
@@ -20521,16 +20590,16 @@ __factories["./src/map/config-manifest"] = function(module, exports) {
     }
     return present;
   }
-  
+
   function analyze(files, cwd) {
     let inventory = { deps: [], manifests: [], ecosystems: [], truncated: 0 };
     try {
       inventory = collectDependencies(cwd);
     } catch (_) { /* a repo with no readable manifest still lists config files */ }
-  
+
     const configs = configFiles(cwd);
     if (inventory.manifests.length === 0 && configs.length === 0) return '';
-  
+
     const lines = [];
     if (inventory.manifests.length) {
       lines.push('| Manifest | Project | Dependencies |', '|----------|---------|--------------|');
@@ -20540,7 +20609,7 @@ __factories["./src/map/config-manifest"] = function(module, exports) {
         const mine = inventory.deps.filter((d) => d.file === m.file);
         lines.push(`| \`${m.file}\` (${label}) | ${id} | ${scopeSummary(mine)} |`);
       }
-  
+
       // Exact pins are the densest grounding available: a model that knows
       // express@5.1.4 stops writing Express 4 API.
       const { pins, total } = versionPins(inventory, { limit: PIN_LIMIT });
@@ -20554,14 +20623,14 @@ __factories["./src/map/config-manifest"] = function(module, exports) {
         lines.push(`> ${inventory.truncated} dependency row(s) omitted to stay within the per-manifest cap.`);
       }
     }
-  
+
     if (configs.length) {
       if (lines.length) lines.push('');
       lines.push(`**Config files:** ${configs.map((c) => '`' + c + '`').join(', ')}`);
     }
     return lines.join('\n');
   }
-  
+
   module.exports = { analyze };
   
 };
@@ -20580,22 +20649,22 @@ __factories["./src/map/env-schema"] = function(module, exports) {
    * @param {string}   cwd   — project root
    * @returns {string} formatted markdown table (empty string if none found)
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const SCAN_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.rb', '.go']);
   const EXAMPLE_FILES = ['.env.example', '.env.sample', '.env.template', '.env.dist'];
-  
+
   // process.env.X / process.env['X'] / import.meta.env.X / Deno.env.get('X')
   const JS_RE = /(?:process\.env|import\.meta\.env)(?:\.([A-Z_][A-Z0-9_]*)|\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\])|Deno\.env\.get\(\s*['"]([A-Z_][A-Z0-9_]*)['"]/g;
   // os.environ['X'] / os.environ.get('X') / os.getenv('X') / getenv('X')
   const PY_RE = /(?:os\.)?(?:environ(?:\.get)?\[?\s*['"]([A-Z_][A-Z0-9_]*)['"]|getenv\(\s*['"]([A-Z_][A-Z0-9_]*)['"])/g;
   const RB_RE = /ENV\[\s*['"]([A-Z_][A-Z0-9_]*)['"]\s*\]/g;
   const GO_RE = /os\.(?:Getenv|LookupEnv)\(\s*["`']([A-Z_][A-Z0-9_]*)["`']/g;
-  
+
   const MAX_ROWS = 200;
-  
+
   function collectMatches(re, content, into) {
     let m;
     re.lastIndex = 0;
@@ -20604,7 +20673,7 @@ __factories["./src/map/env-schema"] = function(module, exports) {
       if (name) into.add(name);
     }
   }
-  
+
   function readExampleKeys(cwd) {
     const keys = new Set();
     for (const name of EXAMPLE_FILES) {
@@ -20619,7 +20688,7 @@ __factories["./src/map/env-schema"] = function(module, exports) {
     }
     return keys;
   }
-  
+
   /**
    * Structured env reads with per-file attribution (#629): one row per variable,
    * reader files repo-relative and sorted, plus the committed-example flag.
@@ -20627,27 +20696,27 @@ __factories["./src/map/env-schema"] = function(module, exports) {
    */
   function collectEnvReads(files, cwd) {
     const readers = new Map(); // name → Set<rel file>
-  
+
     for (const filePath of files) {
       const ext = path.extname(filePath).toLowerCase();
       if (!SCAN_EXTS.has(ext)) continue;
       let content;
       try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
-  
+
       const found = new Set();
       if (ext === '.py') collectMatches(PY_RE, content, found);
       else if (ext === '.rb') collectMatches(RB_RE, content, found);
       else if (ext === '.go') collectMatches(GO_RE, content, found);
       else collectMatches(JS_RE, content, found);
       if (found.size === 0) continue;
-  
+
       const rel = path.relative(cwd, filePath).replace(/\\/g, '/');
       for (const name of found) {
         if (!readers.has(name)) readers.set(name, new Set());
         readers.get(name).add(rel);
       }
     }
-  
+
     const fromExample = readExampleKeys(cwd);
     const names = [...new Set([...readers.keys(), ...fromExample])].sort();
     return names.map((name) => ({
@@ -20656,11 +20725,11 @@ __factories["./src/map/env-schema"] = function(module, exports) {
       inExample: fromExample.has(name),
     }));
   }
-  
+
   function analyze(files, cwd) {
     const rows = collectEnvReads(files, cwd);
     if (rows.length === 0) return '';
-  
+
     const lines = [
       '| Variable | Source |',
       '|----------|--------|',
@@ -20676,7 +20745,7 @@ __factories["./src/map/env-schema"] = function(module, exports) {
     }
     return lines.join('\n');
   }
-  
+
   module.exports = { analyze, collectEnvReads };
   
 };
@@ -20693,13 +20762,13 @@ __factories["./src/map/import-graph"] = function(module, exports) {
    * @param {string}   cwd   — project root for relative path display
    * @returns {string} formatted section content (empty string if nothing found)
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
   const PY_EXTS = new Set(['.py', '.pyw']);
-  
+
   // ---------------------------------------------------------------------------
   // Import extraction per language
   // ---------------------------------------------------------------------------
@@ -20707,7 +20776,7 @@ __factories["./src/map/import-graph"] = function(module, exports) {
     const ext = path.extname(filePath).toLowerCase();
     const dir = path.dirname(filePath);
     const found = [];
-  
+
     if (JS_EXTS.has(ext)) {
       // ES: import ... from './foo'  or  import './side-effect'
       const re1 = /(?:^|[\r\n])\s*import\s+(?:[^'";\r\n]*?\s+from\s+)?['"](\.[^'"]+)['"]/g;
@@ -20723,7 +20792,7 @@ __factories["./src/map/import-graph"] = function(module, exports) {
         if (resolved) found.push(resolved);
       }
     }
-  
+
     if (PY_EXTS.has(ext)) {
       // Relative imports: from .module import ...  /  from ..pkg import ...
       const reRel = /^[ \t]*from\s+(\.+[\w.]*)\s+import/gm;
@@ -20736,7 +20805,7 @@ __factories["./src/map/import-graph"] = function(module, exports) {
         const candidate = modPart ? path.join(base, modPart + '.py') : null;
         if (candidate && fileSet.has(candidate)) found.push(candidate);
       }
-  
+
       // Absolute imports: from package.module import ... (infer from project structure)
       const reAbs = /^[ \t]*from\s+([\w.]+)\s+import/gm;
       while ((m = reAbs.exec(content)) !== null) {
@@ -20755,10 +20824,10 @@ __factories["./src/map/import-graph"] = function(module, exports) {
         }
       }
     }
-  
+
     return [...new Set(found)];
   }
-  
+
   function resolveJsPath(dir, importStr, fileSet) {
     const base = path.resolve(dir, importStr);
     const candidates = [
@@ -20771,13 +20840,13 @@ __factories["./src/map/import-graph"] = function(module, exports) {
     for (const c of candidates) {
       if (fileSet.has(c)) return c;
     }
-  
+
     // Fallback: check if base itself is already a valid file (handles .ts/.js already in path)
     if (fileSet.has(base)) return base;
-  
+
     return null;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Cycle detection (DFS with path tracking)
   // ---------------------------------------------------------------------------
@@ -20786,7 +20855,7 @@ __factories["./src/map/import-graph"] = function(module, exports) {
     const visited = new Set();
     const onStack = new Set();
     const stackArr = [];
-  
+
     function dfs(node) {
       if (onStack.has(node)) {
         const start = stackArr.indexOf(node);
@@ -20794,7 +20863,7 @@ __factories["./src/map/import-graph"] = function(module, exports) {
         return;
       }
       if (visited.has(node)) return;
-  
+
       onStack.add(node);
       stackArr.push(node);
       for (const dep of (graph.get(node) || [])) dfs(dep);
@@ -20802,13 +20871,13 @@ __factories["./src/map/import-graph"] = function(module, exports) {
       onStack.delete(node);
       visited.add(node);
     }
-  
+
     for (const node of graph.keys()) {
       if (!visited.has(node)) dfs(node);
     }
     return cycles;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Build reverse graph (for caller detection)
   // ---------------------------------------------------------------------------
@@ -20822,29 +20891,29 @@ __factories["./src/map/import-graph"] = function(module, exports) {
     }
     return reverse;
   }
-  
+
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
   function analyze(files, cwd) {
     const fileSet = new Set(files.map((f) => path.resolve(f)));
     const graph = new Map();
-  
+
     for (const filePath of files) {
       let content;
       try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
       const deps = extractImports(path.resolve(filePath), content, fileSet);
       if (deps.length > 0) graph.set(path.resolve(filePath), deps);
     }
-  
+
     if (graph.size === 0) return '';
-  
+
     const cycles = detectCycles(graph);
     const cycleNodeSet = new Set(cycles.flatMap((c) => c));
-  
+
     const lines = [];
     const sorted = [...graph.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  
+
     for (const [fp, deps] of sorted) {
       const rel = path.relative(cwd, fp).replace(/\\/g, '/');
       const depList = deps.map((d) => {
@@ -20853,7 +20922,7 @@ __factories["./src/map/import-graph"] = function(module, exports) {
       });
       lines.push(`${rel} → ${depList.join(', ')}`);
     }
-  
+
     if (cycles.length > 0) {
       lines.push('');
       lines.push('Circular dependencies detected:');
@@ -20862,10 +20931,10 @@ __factories["./src/map/import-graph"] = function(module, exports) {
         lines.push(`  ⚠ ${relPath}`);
       }
     }
-  
+
     return lines.join('\n');
   }
-  
+
   module.exports = { analyze, extractImports, buildReverseGraph, resolveJsPath, detectCycles };
   
 };
@@ -20884,7 +20953,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
   const { collectEnvReads } = __require('./src/map/env-schema');
   const { collectMigrations } = __require('./src/map/migrations');
   const { collectTargets } = __require('./src/map/build-ci');
-  
+
   // Unified knowledge map (#626, increment 1 of #543). SigMap already computes
   // the pieces — import graph, call-file graph, signature index, installed
   // library pins, route table, impl↔test discovery — but they live behind
@@ -20908,13 +20977,13 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
   // Serialization: nodes sorted by id, edges by (from, kind, to), keys sorted
   // recursively — two builds of the same tree are byte-identical. Symbol nodes
   // are capped per file and the cap is disclosed in `truncated`.
-  
+
   const SCHEMA_VERSION = 3;
   const MAX_SYMBOLS_PER_FILE = 50;
   const CACHE_FILE = 'knowledge-map.json';
-  
+
   const _rel = (cwd, f) => path.relative(cwd, f).replace(/\\/g, '/');
-  
+
   /** Stable stringify: object keys sorted recursively (evidence-pack pattern). */
   function _sortKeys(value) {
     if (Array.isArray(value)) return value.map(_sortKeys);
@@ -20928,7 +20997,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
   function canonicalJson(value) {
     return JSON.stringify(_sortKeys(value), null, 1);
   }
-  
+
   /** Bare (non-relative) import specifiers in a JS/TS source, root package only. */
   function _bareImports(src) {
     const out = new Set();
@@ -20940,7 +21009,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /**
    * Build the unified knowledge map for a repo from existing producers.
    * Deterministic: same tree in, byte-identical store out.
@@ -20957,7 +21026,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     const truncated = [];
     const addNode = (node) => { if (!nodes.has(node.id)) nodes.set(node.id, node); };
     const addEdge = (from, kind, to) => { edges.add(`${from}\u0000${kind}\u0000${to}`); };
-  
+
     // Files + symbols + defines — from the signature index (anchors included).
     const sigIndex = buildSigIndex(cwd);
     const relFiles = [...sigIndex.keys()].map((f) => f.replace(/\\/g, '/')).sort();
@@ -20976,7 +21045,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
         addEdge(`file:${rel}`, 'defines', id);
       }
     }
-  
+
     // Imports — the file dependency graph.
     const absToRel = new Map(relFiles.map((r) => [path.join(cwd, r).toLowerCase(), r]));
     const relOf = (abs) => absToRel.get(String(abs).toLowerCase());
@@ -21011,7 +21080,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
         addEdge(`file:${fromRel}`, 'imports', `file:${toRel}`);
       }
     }
-  
+
     // Calls — file-level call-graph edges (may be empty for uncovered languages).
     try {
       const callGraph = buildCallFileGraph(cwd);
@@ -21024,7 +21093,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
         }
       }
     } catch (_) {}
-  
+
     // Libraries + uses-lib — declared deps with installed versions, bound to
     // the files whose bare imports name them.
     const deps = new Set(directDeps(cwd));
@@ -21046,14 +21115,14 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
         }
       }
     }
-  
+
     // Tests — impl↔test discovery from the evidence pack.
     for (const rel of relFiles) {
       for (const t of findRelatedTests(rel, relFiles)) {
         addEdge(`file:${t}`, 'tests', `file:${rel}`);
       }
     }
-  
+
     // Routes.
     const absFiles = relFiles.map((r) => path.join(cwd, r));
     try {
@@ -21066,7 +21135,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
         if (routeRel) addEdge(`file:${routeRel}`, 'exposes-route', id);
       }
     } catch (_) {}
-  
+
     // Env vars + reads-env — per-file attribution from the env-schema collector.
     try {
       for (const row of collectEnvReads(absFiles, cwd) || []) {
@@ -21077,21 +21146,21 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
         }
       }
     } catch (_) {}
-  
+
     // Migrations — files outside srcDirs get nodes of their own.
     try {
       for (const m of collectMigrations(cwd) || []) {
         addNode({ id: `migration:${m.file}`, kind: 'migration', version: m.version, name: m.name });
       }
     } catch (_) {}
-  
+
     // Scripts — npm scripts, CI workflows, and Makefile targets.
     try {
       for (const t of collectTargets(cwd) || []) {
         addNode({ id: `script:${t.kind}:${t.name}`, kind: 'script', runner: t.kind, name: t.name, detail: t.detail });
       }
     } catch (_) {}
-  
+
     return {
       schema: SCHEMA_VERSION,
       nodes: [...nodes.values()].sort((a, b) => a.id.localeCompare(b.id)),
@@ -21102,7 +21171,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
       truncated: [...new Set(truncated)].sort(),
     };
   }
-  
+
   /** Load from .context cache (keyed by newest context mtime) or build fresh. */
   function loadOrBuild(cwd) {
     try { cwd = fs.realpathSync(cwd); } catch (_) {}
@@ -21127,7 +21196,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     } catch (_) {}
     return map;
   }
-  
+
   /**
    * Upgrade-impact walk: lib → importing files → their callers/importers →
    * the tests covering any file in the blast set.
@@ -21155,7 +21224,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
       tests: [...tests].sort(),
     };
   }
-  
+
   /**
    * Impact of changing one file, computed from the store's `imports` edges with
    * the same BFS semantics as src/graph/impact (direct = level 1, transitive =
@@ -21217,7 +21286,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
       totalImpact: direct.size + transitive.size,
     };
   }
-  
+
   /**
    * Architecture rollup from the store: module token table, hub files by
    * reverse-import degree, dependency-cycle count, and the route total.
@@ -21258,7 +21327,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     const routes = map.nodes.filter((n) => n.kind === 'route').length;
     return { totalFiles: files.length, totalTokens, modules, hubs, cycles, routes };
   }
-  
+
   /** Readers of one env var: the files that read it, and the committed-example flag. */
   function envReaders(map, name) {
     const id = `env:${name}`;
@@ -21267,7 +21336,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     const readers = map.edges.filter((e) => e.kind === 'reads-env' && e.to === id).map((e) => e.from).sort();
     return { env: id, inExample: !!node.inExample, readers };
   }
-  
+
   /**
    * Related tests per file, from the store's `tests` edges (test → impl) — the
    * evidence view (#635). One edge pass for a whole file list; keys are the
@@ -21295,7 +21364,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     for (const list of out.values()) list.sort();
     return out;
   }
-  
+
   /** Typed neighbors of one file node. */
   function fileNeighbors(map, rel) {
     const id = `file:${rel.replace(/\\/g, '/')}`;
@@ -21319,7 +21388,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     for (const k of Object.keys(out)) out[k].sort();
     return out;
   }
-  
+
   module.exports = { buildKnowledgeMap, loadOrBuild, upgradeImpact, fileNeighbors, envReaders, impactView, architectureView, relatedTestsView, canonicalJson, SCHEMA_VERSION };
   
 };
@@ -21339,31 +21408,31 @@ __factories["./src/map/migrations"] = function(module, exports) {
    * @param {string}   cwd   — project root
    * @returns {string} formatted markdown table (empty string if none found)
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const MAX_DEPTH = 6;
   const MAX_ROWS = 200;
   const SKIP_DIR = new Set(['.git', 'node_modules', 'vendor', 'dist', 'build', 'target', '.venv', 'venv', '__pycache__']);
   const MIG_EXT = new Set(['.sql', '.rb', '.py', '.js', '.ts']);
-  
+
   // A directory whose path marks its children as migrations.
   const MIG_DIR_RE = /(^|\/)(db\/migrate|migrations?|alembic\/versions|prisma\/migrations)$/i;
   // A filename that is itself a migration regardless of directory.
   const FLYWAY_RE = /^V\d+(?:[._]\d+)*__(.+)\.(sql|java)$/;
   const TIMESTAMP_RE = /^(\d{8,})[_-](.+)\.(sql|rb|py|js|ts)$/;
   const NAMED_RE = /[._-]migrations?[._-]/i;
-  
+
   function walk(dir, cwd, depth, out) {
     if (depth > MAX_DEPTH) return;
     let entries;
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
     entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  
+
     const relDir = path.relative(cwd, dir).replace(/\\/g, '/');
     const dirIsMigration = MIG_DIR_RE.test(relDir);
-  
+
     for (const e of entries) {
       if (e.isDirectory()) {
         if (SKIP_DIR.has(e.name)) continue;
@@ -21372,22 +21441,22 @@ __factories["./src/map/migrations"] = function(module, exports) {
       }
       const ext = path.extname(e.name).toLowerCase();
       if (!MIG_EXT.has(ext)) continue;
-  
+
       const rel = path.relative(cwd, path.join(dir, e.name)).replace(/\\/g, '/');
       let version = null;
       let name = null;
-  
+
       let m;
       if ((m = e.name.match(FLYWAY_RE))) { version = e.name.split('__')[0]; name = m[1].replace(/_/g, ' '); }
       else if ((m = e.name.match(TIMESTAMP_RE))) { version = m[1]; name = m[2].replace(/[_-]/g, ' '); }
       else if (dirIsMigration) { version = '—'; name = e.name.replace(ext, ''); }
       else if (NAMED_RE.test(e.name)) { version = '—'; name = e.name.replace(ext, ''); }
       else continue;
-  
+
       out.push({ version, name, file: rel });
     }
   }
-  
+
   /**
    * Structured migration rows (#629), sorted by repo-relative file path.
    * @returns {Array<{version: string, name: string, file: string}>}
@@ -21398,11 +21467,11 @@ __factories["./src/map/migrations"] = function(module, exports) {
     found.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
     return found;
   }
-  
+
   function analyze(files, cwd) {
     const found = collectMigrations(cwd);
     if (found.length === 0) return '';
-  
+
     const lines = [
       '| Version | Migration | File |',
       '|---------|-----------|------|',
@@ -21415,7 +21484,7 @@ __factories["./src/map/migrations"] = function(module, exports) {
     }
     return lines.join('\n');
   }
-  
+
   module.exports = { analyze, collectMigrations };
   
 };
@@ -21431,18 +21500,18 @@ __factories["./src/map/route-table"] = function(module, exports) {
    * @param {string}   cwd   — project root for relative path display
    * @returns {string} formatted markdown table (empty string if no routes found)
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
   const PY_EXTS = new Set(['.py', '.pyw']);
-  
+
   function shouldSkipFile(rel) {
     const normalized = rel.replace(/\\/g, '/').toLowerCase();
     return /(^|\/)(gen-context|gen-project-map)\.js$/.test(normalized);
   }
-  
+
   /**
    * Byte offsets and prefixes of every `@Controller(...)` in a file.
    * A file may declare several controllers, so each route is attributed to the
@@ -21459,7 +21528,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /** Prefix of the nearest `@Controller` above `index`, or '' when there is none. */
   function prefixBefore(controllers, index) {
     let prefix = '';
@@ -21469,7 +21538,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
     }
     return prefix;
   }
-  
+
   /**
    * Join a controller prefix and a method path into one route path.
    * Either side may be empty, absent, or carry its own slashes.
@@ -21481,7 +21550,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
       .filter(Boolean);
     return parts.length ? '/' + parts.join('/') : '/';
   }
-  
+
   /**
    * Structured route rows across the supported frameworks — the data behind
    * `analyze`, exposed for retrieval surface-enrichment (#488).
@@ -21491,14 +21560,14 @@ __factories["./src/map/route-table"] = function(module, exports) {
    */
   function collectRoutes(files, cwd) {
     const routes = [];
-  
+
     for (const filePath of files) {
       const ext = path.extname(filePath).toLowerCase();
       const rel = path.relative(cwd, filePath).replace(/\\/g, '/');
       if (shouldSkipFile(rel)) continue;
       let content;
       try { content = fs.readFileSync(filePath, 'utf8'); } catch (_) { continue; }
-  
+
       // -----------------------------------------------------------------------
       // Express / Fastify / Koa (JS/TS)
       // -----------------------------------------------------------------------
@@ -21509,7 +21578,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
         while ((m = re1.exec(content)) !== null) {
           routes.push({ method: m[1].toUpperCase(), path: m[2], file: rel });
         }
-  
+
         // NestJS: @Get(':id') / @Post() — composed with the enclosing
         // @Controller('prefix'). Without the prefix the emitted path matches
         // nothing real, which defeats the point of route pseudo-signatures (#585).
@@ -21520,7 +21589,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
           routes.push({ method: m[1].toUpperCase(), path: joinRoute(prefix, m[2]), file: rel });
         }
       }
-  
+
       // -----------------------------------------------------------------------
       // Flask / FastAPI (Python)
       // -----------------------------------------------------------------------
@@ -21540,14 +21609,14 @@ __factories["./src/map/route-table"] = function(module, exports) {
             routes.push({ method: 'GET', path: routePath, file: rel });
           }
         }
-  
+
         // @app.get('/path')  @router.post('/path')  FastAPI style
         const re2 = /@[\w.]+\.(get|post|put|patch|delete|head|options)\s*\(\s*['"]([^'"]+)['"]/g;
         while ((m = re2.exec(content)) !== null) {
           routes.push({ method: m[1].toUpperCase(), path: m[2], file: rel });
         }
       }
-  
+
       // -----------------------------------------------------------------------
       // Go — Gin / Echo / chi / net/http
       // -----------------------------------------------------------------------
@@ -21564,7 +21633,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
           routes.push({ method: 'ANY', path: m[1], file: rel });
         }
       }
-  
+
       // -----------------------------------------------------------------------
       // Spring (Java)
       // -----------------------------------------------------------------------
@@ -21578,14 +21647,14 @@ __factories["./src/map/route-table"] = function(module, exports) {
         }
       }
     }
-  
+
     return routes;
   }
-  
+
   function analyze(files, cwd) {
     const routes = collectRoutes(files, cwd);
     if (routes.length === 0) return '';
-  
+
     const lines = [
       '| Method | Path | File |',
       '|--------|------|------|',
@@ -21595,7 +21664,7 @@ __factories["./src/map/route-table"] = function(module, exports) {
     }
     return lines.join('\n');
   }
-  
+
   module.exports = { analyze, collectRoutes };
   
 };
@@ -21606,10 +21675,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   const fs   = require('fs');
   const path = require('path');
   const { git } = __require('./src/util/git');
-  
+
   const CONTEXT_FILE = path.join('.github', 'copilot-instructions.md');
   const CONTEXT_COLD_FILE = path.join('.github', 'context-cold.md');
-  
+
   function _readContextFiles(cwd) {
     const paths = [path.join(cwd, CONTEXT_FILE), path.join(cwd, CONTEXT_COLD_FILE)];
     const chunks = [];
@@ -21618,7 +21687,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     }
     return chunks.join('\n');
   }
-  
+
   /**
    * Stale-index banner for the MCP read tools (#815).
    *
@@ -21644,7 +21713,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return warning ? `> ⚠ ${warning}\n\n` : '';
     } catch (_) { return ''; }
   }
-  
+
   // Section header keywords in PROJECT_MAP.md
   const MAP_SECTIONS = {
     imports: '### Import graph',
@@ -21655,7 +21724,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     manifests: '### Config & manifests',
     migrations: '### Database migrations',
   };
-  
+
   /**
    * read_context({ module? }) → string
    *
@@ -21668,14 +21737,14 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return 'No context file found. Run: node gen-context.js';
     }
     const banner = _stalenessBanner(cwd);
-  
+
     if (!args || !args.module) return banner + content;
-  
+
     const mod = args.module.replace(/\\/g, '/').replace(/\/$/, '');
     const lines = content.split('\n');
     const result = [];
     let capturing = false;
-  
+
     for (const line of lines) {
       if (line.startsWith('### ')) {
         const filePath = line.slice(4).trim().replace(/\\/g, '/');
@@ -21690,11 +21759,11 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       }
       if (capturing) result.push(line);
     }
-  
+
     if (result.length === 0) return `No signatures found for module: ${mod}`;
     return banner + result.join('\n');
   }
-  
+
   /**
    * search_signatures({ query }) → string
    *
@@ -21703,7 +21772,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function searchSignatures(args, cwd) {
     if (!args || !args.query) return 'Missing required argument: query';
-  
+
     const query = args.query.toLowerCase();
     try {
       try { __require('./src/cache/freshen').freshen(cwd); } catch (_) {}
@@ -21712,7 +21781,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       if (index.size === 0) {
         return 'No context file found. Run: node gen-context.js';
       }
-  
+
       const result = [];
       for (const [file, sigs] of index.entries()) {
         const hits = sigs.filter((s) => s.toLowerCase().includes(query));
@@ -21721,14 +21790,14 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         result.push(`### ${file}`);
         result.push(...hits);
       }
-  
+
       if (result.length === 0) return `No signatures found matching: ${args.query}`;
       return _stalenessBanner(cwd) + result.join('\n');
     } catch (err) {
       return `_search_signatures failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * get_map({ type }) → string
    *
@@ -21737,29 +21806,29 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function getMap(args, cwd) {
     if (!args || !args.type) return 'Missing required argument: type';
-  
+
     const header = MAP_SECTIONS[args.type];
     if (!header) {
       return `Unknown map type: "${args.type}". Use: ${Object.keys(MAP_SECTIONS).join(', ')}`;
     }
-  
+
     const mapPath = path.join(cwd, 'PROJECT_MAP.md');
     if (!fs.existsSync(mapPath)) {
       return 'PROJECT_MAP.md not found. Run: node gen-project-map.js';
     }
-  
+
     const content = fs.readFileSync(mapPath, 'utf8');
     const idx = content.indexOf(header);
     if (idx === -1) {
       return `Section "${header}" not found in PROJECT_MAP.md`;
     }
-  
+
     // Extract from this header to the next ### header
     const after = content.slice(idx);
     const nextMatch = after.slice(header.length).search(/\n###\s/);
     return nextMatch === -1 ? after : after.slice(0, header.length + nextMatch);
   }
-  
+
   /**
    * create_checkpoint({ note? }) → string
    *
@@ -21777,10 +21846,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       '# SigMap Checkpoint',
       `**Created:** ${now}`,
     ];
-  
+
     if (note) lines.push(`**Note:** ${note}`);
     lines.push('');
-  
+
     // ── Git info ────────────────────────────────────────────────────────────
     lines.push('## Git state');
     try {
@@ -21789,7 +21858,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     } catch (_) {
       lines.push('**Branch:** (not a git repo)');
     }
-  
+
     try {
       const log = git(['log', '--oneline', '-5', '--no-decorate'], { cwd }).trim();
       if (log) {
@@ -21799,19 +21868,19 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       }
     } catch (_) {} // ignore — not every project uses git
     lines.push('');
-  
+
     // ── Context stats ────────────────────────────────────────────────────────
     lines.push('## Context snapshot');
     const contextPath = path.join(cwd, CONTEXT_FILE);
     if (fs.existsSync(contextPath)) {
       const content = fs.readFileSync(contextPath, 'utf8');
       const tokens = Math.ceil(content.length / 4);
-  
+
       // Count modules (### headers are file paths)
       const modules = content.split('\n').filter((l) => l.startsWith('### ')).map((l) => l.slice(4).trim());
       lines.push(`**Token count:** ~${tokens}`);
       lines.push(`**Modules in context:** ${modules.length}`);
-  
+
       if (modules.length > 0) {
         lines.push('');
         lines.push('**Modules:**');
@@ -21822,7 +21891,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       lines.push('_No context file found. Run: node gen-context.js_');
     }
     lines.push('');
-  
+
     // ── Route summary ────────────────────────────────────────────────────────
     const mapPath = path.join(cwd, 'PROJECT_MAP.md');
     if (fs.existsSync(mapPath)) {
@@ -21837,13 +21906,13 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         lines.push('');
       }
     }
-  
+
     lines.push('---');
     lines.push('_Generated by SigMap `create_checkpoint`_');
-  
+
     return lines.join('\n');
   }
-  
+
   /**
    * get_routing({}) → string
    *
@@ -21862,13 +21931,13 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         '- **powerful** (opus/gpt-4-turbo) — complex, security-critical, or large modules'
       );
     }
-  
+
     // Parse file list from context (### headings are file paths)
     const content = fs.readFileSync(contextPath, 'utf8');
     const fileRels = content.split('\n')
       .filter((l) => l.startsWith('### '))
       .map((l) => l.slice(4).trim());
-  
+
     // Build synthetic fileEntries for the classifier
     // We don't have live sig arrays here, so rebuild from the context blocks
     const entries = [];
@@ -21879,7 +21948,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       const sigs = codeBlock ? codeBlock[1].trim().split('\n').filter(Boolean) : [];
       entries.push({ filePath: path.join(cwd, firstLine), sigs });
     }
-  
+
     try {
       const { classifyAll } = __require('./src/routing/classifier');
       const { formatRoutingSection } = __require('./src/routing/hints');
@@ -21889,7 +21958,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_Routing classification failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * explain_file({ path }) → string
    *
@@ -21898,17 +21967,17 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function explainFile(args, cwd) {
     if (!args || !args.path) return 'Missing required argument: path';
-  
+
     const targetRel = args.path.replace(/\\/g, '/').replace(/^\//, '');
     const targetAbs = path.resolve(cwd, targetRel);
     const contextPath = path.join(cwd, CONTEXT_FILE);
-  
+
     const lines = ['# explain_file: ' + targetRel, ''];
-  
+
     // ── Signatures (hot + cold + cache via buildSigIndex) ───────────────────
     lines.push('## Signatures');
     let indexedFiles = [];
-  
+
     try {
       const { buildSigIndex } = __require('./src/retrieval/ranker');
       const index = buildSigIndex(cwd);
@@ -21930,15 +21999,15 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     } catch (_) {
       lines.push('_No context file found. Run: node gen-context.js_');
     }
-  
+
     if (!fs.existsSync(targetAbs)) {
       lines.push('');
       lines.push('> File not found on disk: ' + targetRel);
       return lines.join('\n');
     }
-  
+
     lines.push('');
-  
+
     // ── Direct imports ────────────────────────────────────────────────────────
     lines.push('## Imports (direct dependencies)');
     try {
@@ -21955,9 +22024,9 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     } catch (err) {
       lines.push('_Could not analyze imports: ' + err.message + '_');
     }
-  
+
     lines.push('');
-  
+
     // ── Callers (reverse-import lookup) ──────────────────────────────────────
     lines.push('## Callers (files that import this file)');
     try {
@@ -21981,10 +22050,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     } catch (err) {
       lines.push('_Could not analyze callers: ' + err.message + '_');
     }
-  
+
     return lines.join('\n');
   }
-  
+
   /**
    * list_modules({}) → string
    *
@@ -21998,7 +22067,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       if (index.size === 0) {
         return 'No context file found. Run: node gen-context.js';
       }
-  
+
       const groups = {};
       for (const [rel, sigs] of index.entries()) {
         const parts = rel.replace(/\\/g, '/').split('/');
@@ -22007,15 +22076,15 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         groups[mod].fileCount++;
         groups[mod].tokenCount += Math.ceil(sigs.join('\n').length / 4);
       }
-  
+
     const sorted = Object.entries(groups)
       .map(([mod, data]) => ({ module: mod, fileCount: data.fileCount, tokenCount: data.tokenCount }))
       .sort((a, b) => b.tokenCount - a.tokenCount);
-  
+
     if (sorted.length === 0) return 'No modules found in context file.';
-  
+
     const total = sorted.reduce((s, m) => s + m.tokenCount, 0);
-  
+
     return [
       '# Modules',
       '',
@@ -22031,7 +22100,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_list_modules failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * query_context({ query, topK? }) → string
    *
@@ -22040,13 +22109,13 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function queryContext(args, cwd) {
     if (!args || !args.query) return 'Missing required argument: query';
-  
+
     try {
       const { rank, buildSigIndex, formatRankTable } = __require('./src/retrieval/ranker');
       const { buildFromCwd } = __require('./src/graph/builder');
       const index = buildSigIndex(cwd);
       if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
-  
+
       const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
       // Build dependency graph for neighbor boost — non-fatal if it fails
       let graph = null;
@@ -22077,7 +22146,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_query_context failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * get_method_impact({ symbol, direction?, depth? }) → string
    *
@@ -22086,7 +22155,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function getMethodImpact(args, cwd) {
     if (!args || !args.symbol) return 'Missing required argument: symbol';
-  
+
     try {
       const { methodImpact, methodCallees, formatCallGraph } = __require('./src/graph/call-graph');
       const kind = args.direction === 'callees' ? 'callees' : 'callers';
@@ -22099,7 +22168,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_get_method_impact failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * get_impact({ file, depth? }) → string
    *
@@ -22108,7 +22177,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function getImpact(args, cwd) {
     if (!args || !args.file) return 'Missing required argument: file';
-  
+
     try {
       // View over the knowledge map (#632): cached store instead of a per-call
       // graph rebuild; same BFS semantics and rendering as the old path.
@@ -22122,7 +22191,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_get_impact failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * get_lines({ file, start, end }) → string
    *
@@ -22132,10 +22201,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function getLines(args, cwd) {
     if (!args || !args.file) return 'Missing required argument: file';
-  
+
     const rel = String(args.file).replace(/\\/g, '/').replace(/^\//, '');
     const abs = path.resolve(cwd, rel);
-  
+
     // Sandbox: refuse paths that resolve outside the project root.
     const root = path.resolve(cwd);
     if (abs !== root && !abs.startsWith(root + path.sep)) {
@@ -22144,34 +22213,34 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
       return `File not found: ${rel}`;
     }
-  
+
     const start = parseInt(args.start, 10);
     const end = parseInt(args.end, 10);
     if (!Number.isFinite(start) || !Number.isFinite(end)) {
       return 'Arguments "start" and "end" must be numbers (1-based line numbers).';
     }
-  
+
     let lines;
     try {
       lines = fs.readFileSync(abs, 'utf8').split('\n');
     } catch (err) {
       return `Could not read ${rel}: ${err.message}`;
     }
-  
+
     const total = lines.length;
     const from = Math.max(1, Math.min(start, end));
     const to = Math.min(total, Math.max(start, end));
     if (from > total) return `${rel} has only ${total} lines; requested ${start}-${end}`;
-  
+
     const slice = lines.slice(from - 1, to);
-  
+
     // Redaction scan: reuse the signature secret scanner line-by-line.
     let safeLines = slice;
     try {
       const { scan } = __require('./src/security/scanner');
       safeLines = scan(slice, rel).safe;
     } catch (_) {} // non-fatal: fall back to raw slice
-  
+
     return [
       `# ${rel}:${from}-${to}`,
       '```',
@@ -22179,7 +22248,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       '```',
     ].join('\n');
   }
-  
+
   /**
    * read_memory({ limit? }) → string
    *
@@ -22190,9 +22259,9 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     let limit = parseInt(args && args.limit, 10);
     if (!Number.isFinite(limit) || limit <= 0) limit = 10;
     limit = Math.min(limit, 50);
-  
+
     const out = ['# SigMap memory'];
-  
+
     let notes = [];
     try {
       const { readNotes, formatNotes } = __require('./src/session/notes');
@@ -22205,7 +22274,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       out.push('');
       out.push('_No notes available._');
     }
-  
+
     // Last ranking-session focus (if any) — extends src/session/memory.js.
     try {
       const { loadSession } = __require('./src/session/memory');
@@ -22219,10 +22288,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         }
       }
     } catch (_) { /* session optional */ }
-  
+
     return out.join('\n');
   }
-  
+
   /**
    * get_budget({ session?, budgetTokens? }) → string
    *
@@ -22238,7 +22307,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     if (args && args.session) opts.session = String(args.session);
     if (args && args.budgetTokens != null) opts.budgetTokens = Number(args.budgetTokens);
     const s = budgetStatus(cwd, opts);
-  
+
     const out = ['# SigMap session spend (estimates — chars/4; SigMap-emitted tokens only)'];
     out.push('');
     out.push(`Session   : ${s.session}`);
@@ -22257,7 +22326,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       : 'Context   : no generated context found — run sigmap first');
     return out.join('\n');
   }
-  
+
   /**
    * get_callee_signatures — return the exact defining signature(s) of named
    * symbols from the index, so an agent never guesses a callee's parameter types.
@@ -22272,14 +22341,14 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     if (!symbols || symbols.length === 0) {
       return 'Missing required argument: symbols (non-empty string[])';
     }
-  
+
     try {
       try { __require('./src/cache/freshen').freshen(cwd); } catch (_) {}
       const { buildSigIndex } = __require('./src/retrieval/ranker');
       const { buildSymbolCandidates, closestMatch, formatSuggestion } = __require('./src/verify/closest-match');
       const index = buildSigIndex(cwd);
       if (index.size === 0) return 'No context file found. Run: node gen-context.js';
-  
+
       // Extract the defining symbol name from a signature line (same rules as
       // buildSymbolCandidates) so we match definitions, not param occurrences.
       const defName = (sig) => {
@@ -22288,7 +22357,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
           || cleaned.match(/([A-Za-z_$][\w$]*)\s*\(/);
         return m ? m[1] : null;
       };
-  
+
       const candidates = buildSymbolCandidates(index);
       const blocks = [];
       for (const symbol of symbols) {
@@ -22311,18 +22380,18 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_get_callee_signatures failed: ${err.message}_`;
     }
   }
-  
+
   // ── Layer 1: live-index write hooks ────────────────────────────────────────
   // Keep the sig-cache fresh while an agent creates/modifies/deletes files, so
   // new code is discoverable in the same session. buildSigIndex already merges
   // the cache (_buildSigIndexFromCache), so updates are live on the next read.
-  
+
   function _pkgVersion(cwd) {
     try { return JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8')).version || '0.0.0'; }
     catch (_) { return '0.0.0'; }
   }
-  
-  
+
+
   /** notify_file_created — extract a file's signatures and index it live. */
   function notifyFileCreated(args, cwd) {
     const rel = args && args.path;
@@ -22347,7 +22416,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_notify_file_created failed: ${err.message}_`;
     }
   }
-  
+
   /** notify_symbol_added — append one signature to a file's live cache entry. */
   function notifySymbolAdded(args, cwd) {
     if (!args || !args.signature || !args.file) {
@@ -22370,7 +22439,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_notify_symbol_added failed: ${err.message}_`;
     }
   }
-  
+
   /** notify_file_deleted — drop a file's cache-overlay entry. */
   function notifyFileDeleted(args, cwd) {
     const rel = args && args.path;
@@ -22387,7 +22456,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       return `_notify_file_deleted failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * List the files changed in the working tree, staged area, or vs a base ref.
    * Shell-free (routes through src/util/git.js). Returns relative paths.
@@ -22398,7 +22467,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     const { changedFiles } = __require('./src/util/git');
     return changedFiles(cwd, { base: args.base, staged: args.staged });
   }
-  
+
   /**
    * get_diff_context({ base?, staged?, depth? }) → string
    *
@@ -22413,12 +22482,12 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       if (files.length === 0) {
         return '_No changed files detected._ (Outside a git repo, or the working tree / selected range is clean.)';
       }
-  
+
       const { extractFile, langFor } = __require('./src/extractors/dispatch');
       const { analyzeImpact } = __require('./src/graph/impact');
       let riskLabelFor;
       try { ({ riskLabelFor } = __require('./src/evidence/pack')); } catch (_) { riskLabelFor = () => 'source'; }
-  
+
       const depth = Math.max(0, parseInt(a.depth, 10) || 2);
       const srcFiles = files.filter((f) => langFor(f));
       let impactByFile = new Map();
@@ -22426,7 +22495,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         const impacts = analyzeImpact(srcFiles, cwd, { depth });
         impactByFile = new Map(impacts.map((r) => [r.file, r.impact]));
       } catch (_) { /* graph optional */ }
-  
+
       const scope = a.base ? `vs ${a.base}` : (a.staged ? 'staged' : 'working tree');
       const out = [
         `# Diff context (${scope})`,
@@ -22434,11 +22503,11 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         `**${files.length} changed file${files.length === 1 ? '' : 's'}** · ${srcFiles.length} with extractable signatures`,
         '',
       ];
-  
+
       for (const rel of files) {
         out.push(`## \`${rel}\``);
         if (!langFor(rel)) { out.push('_non-source file (no signatures)_', ''); continue; }
-  
+
         out.push(`_risk: ${riskLabelFor(rel)}_`);
         const impact = impactByFile.get(rel);
         if (impact) {
@@ -22458,7 +22527,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
           out.push('**Blast radius:** (not in dependency graph — new or leaf file)');
         }
         out.push('');
-  
+
         let src = '';
         try { src = fs.readFileSync(path.resolve(cwd, rel), 'utf8'); } catch (_) {}
         const sigs = src ? extractFile(rel, src) : [];
@@ -22472,13 +22541,13 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         }
         out.push('');
       }
-  
+
       return out.join('\n');
     } catch (err) {
       return `_get_diff_context failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * get_architecture_overview({}) → string
    *
@@ -22495,7 +22564,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       const map = km.loadOrBuild(cwd);
       const view = km.architectureView(map);
       const out = ['# Architecture overview', ''];
-  
+
       if (view.totalFiles === 0) {
         out.push('_No context file found. Run: node gen-context.js_', '');
       } else {
@@ -22504,26 +22573,26 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         for (const m of view.modules.slice(0, 20)) out.push(`| ${m.mod} | ${m.files} | ~${m.tokens} |`);
         out.push('');
       }
-  
+
       if (view.hubs.length) {
         out.push('## Hub files (most depended-on)', '| File | Importers |', '|------|-----------|');
         for (const h of view.hubs) out.push(`| \`${h.file}\` | ${h.in} |`);
         out.push('');
         out.push(`**Dependency cycles:** ${view.cycles}` + (view.cycles ? ' _(see import graph)_' : ' — none detected'), '');
       }
-  
+
       if (view.routes > 0) {
         out.push('## Project map', `Routes detected: ${view.routes} _(use get_map for imports/classes/routes detail)_`, '');
       } else {
         out.push('_Run `node gen-project-map.js` for routes / class-hierarchy detail (get_map)._');
       }
-  
+
       return out.join('\n');
     } catch (err) {
       return `_get_architecture_overview failed: ${err.message}_`;
     }
   }
-  
+
   /**
    * verify_suggestion({ code }) → string
    *
@@ -22537,7 +22606,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     if (!code.trim()) {
       return 'Usage: verify_suggestion({ code: "<AI-suggested code or answer>" }) — provide the snippet to verify against the repo + installed libraries.';
     }
-  
+
     let result;
     try {
       const { verify } = __require('./src/verify/hallucination-guard');
@@ -22545,7 +22614,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     } catch (err) {
       return `_verify_suggestion failed: ${err.message}_`;
     }
-  
+
     const { issues, summary } = result;
     const out = [];
     if (summary.clean) {
@@ -22557,7 +22626,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         if (i.suggestion) out.push(`         ↳ ${i.suggestion}`);
       }
     }
-  
+
     // D8: report the installed libraries the suggestion was verified against.
     const pins = (summary.libraries || []).filter((l) => l.version).map((l) => `${l.name}@${l.version}`);
     const n = summary.librariesIndexed || 0;
@@ -22568,7 +22637,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     );
     return out.join('\n');
   }
-  
+
   /**
    * squeeze_output({ content }) → string
    *
@@ -22582,7 +22651,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     if (!content.trim()) {
       return 'Usage: squeeze_output({ content: "<raw tool/log/JSON output>" }) — provide the output to compress.';
     }
-  
+
     let sq;
     try {
       const { squeeze } = __require('./src/squeeze/index');
@@ -22600,18 +22669,18 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     } catch (err) {
       return `_squeeze_output failed: ${err.message}_`;
     }
-  
+
     if (!sq.category || !sq.applies) {
       return `No squeezable structure detected — content unchanged (${sq.rawTokens} tokens).\n\n${content}`;
     }
-  
+
     const pct = Math.round(sq.reduction * 100);
     const header =
       `Squeezed ${sq.category} — ${sq.rawTokens} → ${sq.squeezedTokens} tokens ` +
       `(${pct}% smaller)${sq.enriched ? ' · signature-enriched' : ''}\n\n`;
     return header + sq.squeezed;
   }
-  
+
   // query_knowledge_map({ library | file }) → string (#626, increment 1 of #543)
   function queryKnowledgeMap(args, cwd) {
     const km = __require('./src/map/knowledge-map');
@@ -22650,7 +22719,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     }
     return `Knowledge map: schema v${map.schema} · ${map.nodes.length} nodes · ${map.edges.length} edges. Pass { library } for upgrade impact, { file } for neighbors, or { env } for readers of an environment variable.`;
   }
-  
+
   module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap };
   
 };
@@ -22668,11 +22737,11 @@ __factories["./src/mcp/install"] = function(module, exports) {
    * config dir/file if it is missing. Idempotent: re-running never duplicates the
    * entry. Zero dependencies; only `fs`/`path`/`os`.
    */
-  
+
   const fs   = require('fs');
   const path = require('path');
   const os   = require('os');
-  
+
   // Config shapes the supported clients use.
   //  - 'json'  → { mcpServers: { sigmap: { command, args } } }
   //  - 'vscode'→ { servers: { sigmap: { type: 'stdio', command, args } } }
@@ -22693,7 +22762,7 @@ __factories["./src/mcp/install"] = function(module, exports) {
     codex:    { label: 'Codex CLI',    format: 'yaml', scope: 'global', global: ['.codex', 'config.yaml'] },
     mcp:      { label: 'Portable (.mcp.json)', format: 'json', scope: 'project', project: ['.mcp.json'] },
   };
-  
+
   /** Resolve the absolute config path for a client, honoring `global`. */
   function resolveTarget(spec, cwd, home, useGlobal) {
     const wantGlobal = useGlobal || spec.scope === 'global';
@@ -22702,7 +22771,7 @@ __factories["./src/mcp/install"] = function(module, exports) {
     if (spec.global)  return path.join(home, ...spec.global);
     return null;
   }
-  
+
   /** List supported clients with their resolved target paths. */
   function listClients(opts = {}) {
     const cwd  = opts.cwd  || process.cwd();
@@ -22719,11 +22788,11 @@ __factories["./src/mcp/install"] = function(module, exports) {
       };
     });
   }
-  
+
   function serverArgs(scriptPath) {
     return [path.resolve(scriptPath), '--mcp'];
   }
-  
+
   /** Install into a JSON `mcpServers` config (create file/dir if absent). */
   function _installJson(filePath, scriptPath) {
     let settings = {};
@@ -22738,7 +22807,7 @@ __factories["./src/mcp/install"] = function(module, exports) {
     fs.writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
     return 'installed';
   }
-  
+
   /**
    * Install into VS Code's `.vscode/mcp.json`, which keys servers under `servers`
    * (not `mcpServers`) and expects an explicit transport `type`. A config written
@@ -22763,7 +22832,7 @@ __factories["./src/mcp/install"] = function(module, exports) {
     fs.writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
     return stale ? 'updated' : 'installed';
   }
-  
+
   /** Install into Zed's `context_servers` config (create file/dir if absent). */
   function _installZed(filePath, scriptPath) {
     let settings = {};
@@ -22778,7 +22847,7 @@ __factories["./src/mcp/install"] = function(module, exports) {
     fs.writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
     return 'installed';
   }
-  
+
   /** Install into Codex CLI YAML (append block; create file if absent). */
   function _installYaml(filePath, scriptPath) {
     let raw = '';
@@ -22799,7 +22868,7 @@ __factories["./src/mcp/install"] = function(module, exports) {
     fs.writeFileSync(filePath, next);
     return 'installed';
   }
-  
+
   /**
    * Install the sigmap MCP server for a single client.
    * @returns { client, label, path, status } where status is
@@ -22814,16 +22883,16 @@ __factories["./src/mcp/install"] = function(module, exports) {
     const home       = opts.home || os.homedir();
     const scriptPath = opts.scriptPath || path.join(cwd, 'gen-context.js');
     const filePath   = resolveTarget(spec, cwd, home, opts.global);
-  
+
     let status;
     if (spec.format === 'vscode')    status = _installVscode(filePath, scriptPath);
     else if (spec.format === 'zed')  status = _installZed(filePath, scriptPath);
     else if (spec.format === 'yaml') status = _installYaml(filePath, scriptPath);
     else                             status = _installJson(filePath, scriptPath);
-  
+
     return { client, label: spec.label, path: filePath, status };
   }
-  
+
   module.exports = { CLIENTS, listClients, installClient, resolveTarget };
   
 };
@@ -22842,17 +22911,17 @@ __factories["./src/mcp/server"] = function(module, exports) {
    *   tools/list        → 21 tool definitions
    *   tools/call        → dispatch to handler, return result
    */
-  
+
   const readline = require('readline');
   const { TOOLS } = __require('./src/mcp/tools');
   const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap } = __require('./src/mcp/handlers');
-  
+
   const SERVER_INFO = {
     name: 'sigmap',
     version: '8.61.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
-  
+
   // Protocol revisions this server actually speaks. The tools-only surface —
   // initialize / tools/list / tools/call plus the initialized/cancelled
   // notifications — is identical across these revisions, and the
@@ -22864,31 +22933,31 @@ __factories["./src/mcp/server"] = function(module, exports) {
   // made the conformance suite believe 2026-07-28 was supported, producing six
   // phantom server/discover failures on a revision never really offered (#545).
   const SUPPORTED_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-  
+
   // ---------------------------------------------------------------------------
   // JSON-RPC helpers
   // ---------------------------------------------------------------------------
   function respond(id, result) {
     process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
   }
-  
+
   function respondError(id, code, message) {
     process.stdout.write(
       JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n'
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // Method dispatcher
   // ---------------------------------------------------------------------------
   function dispatch(msg, cwd) {
     const { method, id, params } = msg;
-  
+
     // Notifications (no id) need no response
     if (method === 'notifications/initialized' || method === 'notifications/cancelled') {
       return;
     }
-  
+
     // server/discover (spec 2026-07-28) — session-less discovery, answerable
     // before any handshake, so a client can learn the honest version list
     // instead of offering versions and hoping. The response is a
@@ -22908,7 +22977,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
       });
       return;
     }
-  
+
     if (method === 'initialize') {
       const offered = params && params.protocolVersion;
       respond(id, {
@@ -22920,7 +22989,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
       });
       return;
     }
-  
+
     if (method === 'tools/list') {
       // No pagination: the full list fits one page, so any cursor a client
       // presents is one this server never issued — reject it (-32602, per the
@@ -22932,11 +23001,11 @@ __factories["./src/mcp/server"] = function(module, exports) {
       respond(id, { tools: TOOLS });
       return;
     }
-  
+
     if (method === 'tools/call') {
       const name = params && params.name;
       const args = (params && params.arguments) || {};
-  
+
       let text;
       try {
         if (name === 'read_context') text = readContext(args, cwd);
@@ -22969,29 +23038,29 @@ __factories["./src/mcp/server"] = function(module, exports) {
         respondError(id, -32603, `Tool error: ${err.message}`);
         return;
       }
-  
+
       respond(id, {
         content: [{ type: 'text', text: String(text) }],
       });
       return;
     }
-  
+
     // Unknown method
     if (id !== undefined && id !== null) {
       respondError(id, -32601, `Method not found: ${method}`);
     }
   }
-  
+
   // ---------------------------------------------------------------------------
   // Server entry point
   // ---------------------------------------------------------------------------
   function start(cwd) {
     const rl = readline.createInterface({ input: process.stdin, terminal: false });
-  
+
     rl.on('line', (line) => {
       const trimmed = line.trim();
       if (!trimmed) return;
-  
+
       let msg;
       try {
         msg = JSON.parse(trimmed);
@@ -22999,7 +23068,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
         // Cannot respond without a valid id — ignore malformed input
         return;
       }
-  
+
       try {
         dispatch(msg, cwd);
       } catch (err) {
@@ -23007,12 +23076,12 @@ __factories["./src/mcp/server"] = function(module, exports) {
         respondError(id, -32603, `Internal error: ${err.message}`);
       }
     });
-  
+
     rl.on('close', () => {
       process.exit(0);
     });
   }
-  
+
   module.exports = { start };
   
 };
@@ -23028,7 +23097,7 @@ __factories["./src/mcp/tools"] = function(module, exports) {
    * sigmap_notify_symbol_added, sigmap_notify_file_deleted, get_diff_context,
    * get_architecture_overview, verify_suggestion, squeeze_output.
    */
-  
+
   const TOOLS = [
     {
       name: 'read_context',
@@ -23453,7 +23522,7 @@ __factories["./src/mcp/tools"] = function(module, exports) {
       },
     },
   ];
-  
+
   module.exports = { TOOLS };
   
 };
@@ -23469,27 +23538,27 @@ __factories["./src/nudge"] = function(module, exports) {
    * Shown exactly once per machine — even under concurrent runs (an `wx` lock
    * file makes the show race-safe). Wired into `ask` (and the `squeeze` path).
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const RUN_THRESHOLD = 10;
   const SUCCESS_THRESHOLD = 8;
-  
+
   function usagePath(cwd) { return path.join(cwd, '.context', 'usage.json'); }
-  
+
   function defaultUsage() {
     return {
       totalRuns: 0, successfulRuns: 0, squeezeOffered: 0, squeezeAccepted: 0,
       starNudgeShown: false, firstRunDate: null, lastRunDate: null,
     };
   }
-  
+
   function readUsage(cwd) {
     try { return { ...defaultUsage(), ...JSON.parse(fs.readFileSync(usagePath(cwd), 'utf8')) }; }
     catch (_) { return defaultUsage(); }
   }
-  
+
   function writeUsageAtomic(cwd, usage) {
     const p = usagePath(cwd);
     fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -23497,7 +23566,7 @@ __factories["./src/nudge"] = function(module, exports) {
     fs.writeFileSync(tmp, JSON.stringify(usage, null, 2));
     fs.renameSync(tmp, p); // atomic on POSIX
   }
-  
+
   const STAR_MESSAGE = [
     '─────────────────────────────────────────────────────────',
     '  SigMap has helped you 10 times now.',
@@ -23509,11 +23578,11 @@ __factories["./src/nudge"] = function(module, exports) {
     "  (Won't ask again. Press Enter to continue.)",
     '─────────────────────────────────────────────────────────',
   ].join('\n');
-  
+
   function showStarNudge(write) {
     (write || ((s) => process.stderr.write(s)))('\n' + STAR_MESSAGE + '\n');
   }
-  
+
   /**
    * Record one run and, when the thresholds are first met, show the star nudge.
    * @param {string} cwd
@@ -23530,11 +23599,11 @@ __factories["./src/nudge"] = function(module, exports) {
     usage.totalRuns += 1;
     if (runSuccess) usage.successfulRuns += 1;
     if (opts.bump) for (const k of Object.keys(opts.bump)) usage[k] = (usage[k] || 0) + opts.bump[k];
-  
+
     const today = opts.today || new Date().toISOString().slice(0, 10);
     if (!usage.firstRunDate) usage.firstRunDate = today;
     usage.lastRunDate = today;
-  
+
     let nudged = false;
     if (!usage.starNudgeShown && usage.totalRuns >= RUN_THRESHOLD && usage.successfulRuns >= SUCCESS_THRESHOLD) {
       // Race-safe single-show: only the process that creates the lock prints.
@@ -23545,11 +23614,11 @@ __factories["./src/nudge"] = function(module, exports) {
       nudged = won;
       usage.starNudgeShown = true;
     }
-  
+
     writeUsageAtomic(cwd, usage);
     return { usage, nudged };
   }
-  
+
   module.exports = { checkStarNudge, readUsage, usagePath, showStarNudge, RUN_THRESHOLD, SUCCESS_THRESHOLD };
   
 };
@@ -23562,9 +23631,9 @@ __factories["./src/plan/planner"] = function(module, exports) {
   const { getImpact } = __require('./src/graph/impact');
   const { buildSigIndex, rank, detectIntent } = __require('./src/retrieval/ranker');
   const { buildTestIndex, isTested } = __require('./src/extractors/coverage');
-  
+
   module.exports = { createPlan };
-  
+
   function createPlan(goal, cwd, config = {}) {
     // Step 1: Detect intent and rank files for the goal
     const intent = detectIntent(goal);
@@ -23572,13 +23641,13 @@ __factories["./src/plan/planner"] = function(module, exports) {
     if (sigIndex.size === 0) {
       return { error: 'no context found' };
     }
-  
+
     const ranked = rank(goal, sigIndex, { topK: 15, cwd });
-  
+
     // Step 2: Separate into confidence levels
     const highConf = ranked.filter(r => r.confidence === 'high').slice(0, 5);
     const medConf = ranked.filter(r => r.confidence === 'medium').slice(0, 5);
-  
+
     // Step 3: Impact radius — union the reverse-dependency blast radius of EVERY
     // high-confidence file (not just the top one), bounded to 3 hops. Note the
     // dependency graph resolves relative imports only, so this is a *lower bound*
@@ -23610,7 +23679,7 @@ __factories["./src/plan/planner"] = function(module, exports) {
         // Graph build failed, continue without impact
       }
     }
-  
+
     // Step 4: Flag which files-to-inspect have detectable test coverage. The test
     // index maps test-*name tokens*, not test files, so `isTested` can only tell
     // us a source file is covered — it cannot name the test file. We therefore
@@ -23629,7 +23698,7 @@ __factories["./src/plan/planner"] = function(module, exports) {
     } catch (_) {
       // Coverage index failed, continue without test info
     }
-  
+
     return {
       goal,
       intent,
@@ -23664,17 +23733,17 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
    * REVERSE — they must NOT exist — and excluded from the reference checks. With
    * neither present, nothing changes: every name is a reference, as before.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { extractFilePaths, extractSymbols } = __require('./src/verify/parsers');
   const { buildSymbolSet } = __require('./src/verify/hallucination-guard');
   const { closestMatch } = __require('./src/verify/closest-match');
   const { analyzeImpact } = __require('./src/graph/impact');
-  
+
   const DEFAULT_BLAST_THRESHOLD = 20; // transitive+direct dependents → "high blast radius"
   const DEFAULT_SCOPE_THRESHOLD = 10; // distinct referenced files → "broad scope"
-  
+
   /**
    * Heading/label that opens an introductions block, e.g. `## Creates`,
    * `**Creates:**`, `Creates:` — the plan format documented in cli.md.
@@ -23682,7 +23751,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
   const CREATES_RE = /^\s*(#{1,6}\s+)?\*{0,2}creates(?:\s+new)?\*{0,2}\s*(:)?\*{0,2}\s*(.*)$/i;
   /** Any other heading/label line closes the block. */
   const SECTION_END_RE = /^\s*(?:#{1,6}\s|(?:\*\*)?[A-Za-z][\w \t-]{0,40}(?:\*\*)?\s*:\s*$)/;
-  
+
   /** Resolve a referenced path against cwd (handles a leading "./"). */
   function _fileExists(cwd, ref) {
     const clean = ref.replace(/^\.\//, '');
@@ -23691,7 +23760,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     }
     return false;
   }
-  
+
   /** Strip markdown list bullets, backticks, call parens and trailing prose. */
   function _cleanEntry(raw) {
     let s = String(raw || '').trim();
@@ -23702,7 +23771,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     s = s.trim().replace(/\s*\([^)]*\)\s*$/, '').replace(/[,;.]+$/, '');
     return s.trim();
   }
-  
+
   /**
    * Names a plan declares it will introduce.
    *
@@ -23719,7 +23788,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
       if (!name || /\s/.test(name) || !/[A-Za-z0-9]/.test(name)) return;  // prose, not a name
       if (!seen.has(name)) seen.set(name, line);
     };
-  
+
     for (let i = 0; i < lines.length; i++) {
       const m = CREATES_RE.exec(lines[i]);
       if (!m || (!m[1] && !m[2])) continue;   // a label or heading, never prose
@@ -23735,12 +23804,12 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     }
     return [...seen.entries()].map(([name, line]) => ({ name, line }));
   }
-  
+
   /** True when an introduction names a file rather than a symbol. */
   function _isPathLike(name) {
     return name.includes('/') || /\.[A-Za-z][A-Za-z0-9]*$/.test(name);
   }
-  
+
   /**
    * Verify a plan against the live index.
    * @param {string} planText the plan as markdown
@@ -23757,12 +23826,12 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     const blastThreshold = opts.blastThreshold != null ? opts.blastThreshold : DEFAULT_BLAST_THRESHOLD;
     const scopeThreshold = opts.scopeThreshold != null ? opts.scopeThreshold : DEFAULT_SCOPE_THRESHOLD;
     const fileExists = opts.fileExists || ((ref) => _fileExists(cwd, ref));
-  
+
     const text = String(planText || '');
     const filesRef = extractFilePaths(text);   // [{ path, line }]
     const symbolsRef = extractSymbols(text);   // [{ name, line }]
     const { set: symbolSet, symbolCandidates } = buildSymbolSet(cwd);
-  
+
     // Introductions: the `Creates:` section plus any `--creates` names. Both are
     // explicit author intent, so they are merged into one list.
     const intro = new Map();
@@ -23774,9 +23843,9 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     const introFiles = new Set();
     const introSymbols = new Set();
     for (const name of intro.keys()) (_isPathLike(name) ? introFiles : introSymbols).add(name);
-  
+
     const issues = [];
-  
+
     // 0. Introductions must NOT exist yet — the redefinition guard. Verified from
     // the declaration itself, so an introduction the plan never mentions again is
     // still checked.
@@ -23789,7 +23858,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
         issues.push({ type: 'redefines-existing', ref: name, kind, line, severity: 'error' });
       }
     }
-  
+
     // 1. Referenced files must exist — unless the plan says it creates them.
     const existingFiles = [];
     for (const f of filesRef) {
@@ -23797,7 +23866,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
       if (fileExists(f.path)) existingFiles.push(f.path);
       else issues.push({ type: 'missing-file', ref: f.path, line: f.line, severity: 'error' });
     }
-  
+
     // 2. Referenced symbols must exist in the live index (suggest a near match).
     for (const s of symbolsRef) {
       if (introSymbols.has(s.name)) continue;
@@ -23808,7 +23877,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
         suggestion: match ? match.name : null,
       });
     }
-  
+
     // 3. Blast radius for each existing referenced file (one graph build).
     const blast = [];
     if (existingFiles.length) {
@@ -23823,14 +23892,14 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
       }
       blast.sort((a, b) => b.totalImpact - a.totalImpact);
     }
-  
+
     // 4. Scope — counted over files the plan touches, introduced or referenced.
     const scopeFiles = new Set([...filesRef.map((f) => f.path), ...introFiles]);
     const scope = { files: scopeFiles.size, symbols: symbolsRef.length, threshold: scopeThreshold };
     if (scopeFiles.size > scopeThreshold) {
       issues.push({ type: 'broad-scope', count: scopeFiles.size, threshold: scopeThreshold, severity: 'warn' });
     }
-  
+
     const errors = issues.filter((i) => i.severity === 'error').length;
     const warnings = issues.filter((i) => i.severity === 'warn').length;
     return {
@@ -23849,7 +23918,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
       },
     };
   }
-  
+
   module.exports = { verifyPlan, extractIntroductions, DEFAULT_BLAST_THRESHOLD, DEFAULT_SCOPE_THRESHOLD };
   
 };
@@ -23873,7 +23942,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
    * On 85 curated tasks across 17 repos this lifted hit@5 from 75.3% → 82.4%
    * (MRR +16% relative). See issue #395.
    */
-  
+
   // Stop words: common English + low-signal code verbs/nouns that appear in
   // nearly every signature and so carry little retrieval signal.
   const STOP = new Set(
@@ -23881,7 +23950,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
      'into get set add new return value test')
       .split(' ')
   );
-  
+
   /**
    * Light suffix stemmer — conservative, tuned for code identifiers rather than
    * prose. Words of 3 chars or fewer pass through unchanged; a result shorter
@@ -23908,7 +23977,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
     if (s.length >= 3) return s;
     return folded.length >= 3 ? folded : w;
   }
-  
+
   /**
    * Split on non-alphanumeric characters AND camelCase / snake_case boundaries,
    * lowercase, drop stop words and single characters, then stem.
@@ -23928,11 +23997,11 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
       .map(stem)
       .filter(Boolean);
   }
-  
+
   // The file path / basename is highly indicative of relevance, so its tokens
   // are counted PATH_BOOST times when building the document term-frequency map.
   const PATH_BOOST = 3;
-  
+
   // Curated, high-precision code-domain synonym / abbreviation expansions. A query
   // for `authentication` should still surface a file whose signatures only say
   // `auth`. Kept deliberately tight — over-broad synonyms hurt precision. Groups
@@ -23968,17 +24037,17 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
     ['num', 'number'],
     ['str', 'string'],
   ];
-  
+
   // The weight applied to an expanded (synonym) query term, so an exact match on
   // the literal query token always outranks a synonym-only match.
   const EXPANSION_WEIGHT = 0.15;
-  
+
   // Module-doc prose is indexed as a `# module: ...` pseudo-signature (index-only,
   // see src/retrieval/module-doc.js). Per token it is a weaker relevance signal
   // than a real signature — descriptive rather than definitional — so it is scored
   // as its own BM25F field rather than pooled with the code terms.
   const MODULE_DOC_RE = /^#\s*(module|docs):/;
-  
+
   // Line anchors are metadata, not content, and this ranker is documented as
   // anchor-invariant. The previous strip was end-anchored, so it only fired when
   // the anchor was the last thing on the line — but extractors append a doc hint
@@ -23987,7 +24056,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
   // like "27" and "59": 840 junk terms, inflating document length for exactly the
   // well-documented files, which BM25 then penalised via length normalisation.
   const ANCHOR_RE = /\s*:\d+(?:-\d+)?(?=\s|$)/g;
-  
+
   function stripAnchor(line) {
     return String(line).replace(ANCHOR_RE, '');
   }
@@ -23999,7 +24068,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
   // a signature is definitional) and picking the argmax of a 30-task sweep is
   // how you overfit a benchmark.
   const DOC_WEIGHT = 0.6;
-  
+
   // Build a stemmed lookup: stem(member) → Set of the group's other stemmed members.
   const EXPANSIONS = (() => {
     const map = new Map();
@@ -24012,7 +24081,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
     }
     return map;
   })();
-  
+
   /**
    * Expand stemmed query tokens with curated synonyms. Returns a Map of
    * token → weight (1 for the original query tokens, EXPANSION_WEIGHT for
@@ -24050,7 +24119,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
     }
     return weights;
   }
-  
+
   /**
    * BM25 re-rank of candidates against a query. Each candidate is
    * `{ file, sigs }`; the returned objects preserve all original candidate
@@ -24064,12 +24133,12 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
    */
   function bm25rank(query, candidates, opts) {
     if (!Array.isArray(candidates) || candidates.length === 0) return [];
-  
+
     const k1 = 1.5;
     const b = 0.75;
-  
+
     const docWeight = (opts && typeof opts.docWeight === 'number') ? opts.docWeight : DOC_WEIGHT;
-  
+
     const docs = candidates.map((c) => {
       const pathToks = tokenize(c.file || '');
       // Ranking is anchor-invariant: `:start-end` line anchors are metadata,
@@ -24102,20 +24171,20 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
       const len = codeToks.length + (PATH_BOOST * pathToks.length) + (docWeight * docToks.length);
       return { cand: c, tf, len };
     });
-  
+
     const N = docs.length || 1;
     const avgdl = docs.reduce((s, d) => s + d.len, 0) / N || 1;
-  
+
     const df = new Map();
     for (const d of docs) {
       for (const t of d.tf.keys()) df.set(t, (df.get(t) || 0) + 1);
     }
-  
+
     const qToks = [...new Set(tokenize(query))];
     // token → weight (1 exact, <1 synonym); opts.expansions carries the opt-in
     // repo-mined map (B2) from callers that enabled retrieval.minedExpansions.
     const qWeights = expandQuery(qToks, opts && opts.expansions);
-  
+
     return docs
       .map((d) => {
         let score = 0;
@@ -24130,7 +24199,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
       })
       .sort((a, c) => c.score - a.score || String(a.file).localeCompare(String(c.file)));
   }
-  
+
   module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, MODULE_DOC_RE, stripAnchor };
   
 };
@@ -24151,9 +24220,9 @@ __factories["./src/retrieval/enrich-from-maps"] = function(module, exports) {
    * Deterministic: rows are deduped and sorted; entries are copy-on-write so
    * arrays shared with the signature cache are never mutated.
    */
-  
+
   const path = require('path');
-  
+
   /**
    * Enrich a signature index with route pseudo-signatures.
    * @param {Map<string,string[]>} index cwd-relative file → sigs (mutated: enriched entries are replaced with fresh arrays)
@@ -24162,22 +24231,22 @@ __factories["./src/retrieval/enrich-from-maps"] = function(module, exports) {
    */
   function enrichWithSurfaces(index, cwd) {
     if (!(index instanceof Map) || index.size === 0) return 0;
-  
+
     let collectRoutes;
     try { ({ collectRoutes } = __require('./src/map/route-table')); } catch (_) { return 0; }
-  
+
     const rels = [...index.keys()];
     const files = rels.map((rel) => path.join(cwd, rel));
     let routes = [];
     try { routes = collectRoutes(files, cwd) || []; } catch (_) { return 0; }
-  
+
     const byFile = new Map();
     for (const r of routes) {
       const rel = String(r.file).replace(/\\/g, '/');
       if (!byFile.has(rel)) byFile.set(rel, new Set());
       byFile.get(rel).add(`route ${r.method} ${r.path}`);
     }
-  
+
     let added = 0;
     for (const [rel, extras] of [...byFile.entries()].sort()) {
       const sigs = index.get(rel);
@@ -24189,7 +24258,7 @@ __factories["./src/retrieval/enrich-from-maps"] = function(module, exports) {
     }
     return added;
   }
-  
+
   module.exports = { enrichWithSurfaces };
   
 };
@@ -24200,7 +24269,7 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { tokenize, EXPANSIONS, stripAnchor } = __require('./src/retrieval/bm25');
-  
+
   /**
    * Repo-mined query expansion (B2, #649).
    *
@@ -24213,10 +24282,10 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
    * diffable. Consumption is opt-in via `retrieval.minedExpansions` and
    * measure-gated (`npm run benchmark:mined-expansions`).
    */
-  
+
   const SCHEMA_VERSION = 1;
   const CACHE_FILE = 'mined-expansions.json';
-  
+
   // Precision filters. A token present in most files discriminates nothing
   // (df ceiling); one seen in a single file has no co-occurrence evidence
   // (df floor); a pair must repeat across files to count as a repo convention
@@ -24226,7 +24295,7 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
   const MAX_DF_RATIO = 0.25;
   const MIN_COOC = 2;
   const TOP_K = 4;
-  
+
   /**
    * Mine per-repo expansion candidates from a signature index.
    * @param {Map<string, string[]>} sigIndex  file → signature lines
@@ -24235,7 +24304,7 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
   function mineExpansions(sigIndex) {
     const out = { schema: SCHEMA_VERSION, files: 0, expansions: {} };
     if (!(sigIndex instanceof Map) || sigIndex.size === 0) return out;
-  
+
     // Per-file deduped token sets over path + anchor-stripped signatures.
     const fileSets = [];
     for (const [file, sigs] of sigIndex.entries()) {
@@ -24247,14 +24316,14 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
     out.files = fileSets.length;
     const N = fileSets.length;
     if (N < MIN_DF) return out;
-  
+
     const df = new Map();
     for (const set of fileSets) {
       for (const t of set) df.set(t, (df.get(t) || 0) + 1);
     }
     const maxDf = Math.max(MIN_DF, Math.floor(N * MAX_DF_RATIO));
     const eligible = new Set([...df.keys()].filter((t) => df.get(t) >= MIN_DF && df.get(t) <= maxDf));
-  
+
     // Pairwise co-occurrence over eligible tokens only.
     const cooc = new Map(); // "a|b" (a < b) → count
     for (const set of fileSets) {
@@ -24266,7 +24335,7 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
         }
       }
     }
-  
+
     // token → [neighbor, conditional probability] candidates.
     const perToken = new Map();
     const add = (a, b, count) => {
@@ -24284,7 +24353,7 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
       add(a, b, count);
       add(b, a, count);
     }
-  
+
     for (const tok of [...perToken.keys()].sort()) {
       const list = perToken.get(tok)
         .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
@@ -24293,12 +24362,12 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /** Canonical rendering: stable key order comes from mineExpansions itself. */
   function canonicalJson(mined) {
     return JSON.stringify(mined, null, 1);
   }
-  
+
   /**
    * Load the mined map from `.context/` (keyed by newest context mtime, the
    * knowledge-map cache pattern) or mine it fresh from the repo's signature
@@ -24335,7 +24404,7 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
     } catch (_) {}
     return mined;
   }
-  
+
   module.exports = { mineExpansions, loadOrMine, canonicalJson, SCHEMA_VERSION, MIN_DF, MAX_DF_RATIO, MIN_COOC, TOP_K };
   
 };
@@ -24360,24 +24429,24 @@ __factories["./src/retrieval/module-doc"] = function(module, exports) {
    *
    * Zero-dependency, pure, bundle-safe.
    */
-  
+
   // Enough to characterise a module without letting one verbose header dominate
   // BM25 length normalisation for the whole corpus.
   const MAX_CHARS = 400;
   const MAX_SCAN_LINES = 60;
-  
+
   // Legal boilerplate is high-frequency noise: it appears in many files, shares no
   // vocabulary with real queries, and would flatten idf across the corpus.
   const BOILERPLATE = /\b(copyright|licensed under|SPDX-License|all rights reserved|permission is hereby granted)\b/i;
-  
+
   const BLOCK_LANGS = new Set(['js', 'jsx', 'ts', 'tsx', 'java', 'go', 'rs', 'kt', 'swift', 'scala', 'cs', 'php', 'dart', 'c', 'cpp', 'h']);
   const HASH_LANGS = new Set(['py', 'rb', 'r', 'sh', 'yml', 'yaml', 'toml']);
-  
+
   function _extOf(filePath) {
     const m = String(filePath).match(/\.([A-Za-z0-9]+)$/);
     return m ? m[1].toLowerCase() : '';
   }
-  
+
   /** Strip comment furniture, JSDoc tags, and markup from one raw comment line. */
   function _cleanLine(line) {
     return String(line)
@@ -24387,7 +24456,7 @@ __factories["./src/retrieval/module-doc"] = function(module, exports) {
       .replace(/[*_`]/g, '')               // markdown emphasis / code ticks
       .trim();
   }
-  
+
   /**
    * Extract a module's leading documentation prose.
    *
@@ -24399,11 +24468,11 @@ __factories["./src/retrieval/module-doc"] = function(module, exports) {
     if (!src || typeof src !== 'string') return '';
     const ext = _extOf(filePath);
     const lines = src.split('\n', MAX_SCAN_LINES);
-  
+
     const collected = [];
     let inBlock = false;
     let started = false;
-  
+
     for (const raw of lines) {
       const line = raw.trim();
       if (!started) {
@@ -24413,7 +24482,7 @@ __factories["./src/retrieval/module-doc"] = function(module, exports) {
         if (/^['"]use strict['"];?$/.test(line)) continue;
         if (/^(package|import|from|using|#include)\b/.test(line)) continue;
       }
-  
+
       if (BLOCK_LANGS.has(ext) || ext === '') {
         if (!inBlock && line.startsWith('/*')) { inBlock = true; started = true; }
         if (inBlock) {
@@ -24431,7 +24500,7 @@ __factories["./src/retrieval/module-doc"] = function(module, exports) {
         if (started || collected.length) break;
         break;                                                      // first real code — no header
       }
-  
+
       if (HASH_LANGS.has(ext)) {
         if (/^("""|''')/.test(line)) {                              // python docstring
           started = true; inBlock = !inBlock;
@@ -24447,19 +24516,19 @@ __factories["./src/retrieval/module-doc"] = function(module, exports) {
       }
       break;
     }
-  
+
     const text = collected.join(' ').replace(/\s+/g, ' ').trim();
     if (!text || BOILERPLATE.test(text)) return '';
     if (text.length <= MAX_CHARS) return text;
     return text.slice(0, MAX_CHARS).replace(/\s+\S*$/, '');        // never cut mid-word
   }
-  
+
   /** Render as an index-only pseudo-signature, or '' when there is no doc. */
   function moduleDocSig(src, filePath) {
     const doc = extractModuleDoc(src, filePath);
     return doc ? `# module: ${doc}` : '';
   }
-  
+
   module.exports = { extractModuleDoc, moduleDocSig, MAX_CHARS };
   
 };
@@ -24483,12 +24552,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    *   const results = rank(query, sigIndex, { topK: 10 });
    *   // results: [{ file, score, sigs, tokens }]
    */
-  
+
   const { loadWeights } = __require('./src/learning/weights');
   const { tokenize, STOP_WORDS } = __require('./src/retrieval/tokenizer');
   const { bm25rank, MODULE_DOC_RE, stem } = __require('./src/retrieval/bm25');
   const { isTestFile, isMockFile, isGeneratedDir, isDocsFile, isCiFile } = __require('./src/util/file-class');
-  
+
   // ---------------------------------------------------------------------------
   // Default weights
   // ---------------------------------------------------------------------------
@@ -24507,17 +24576,17 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     recencyBoost: 1.5,     // multiplier applied when file is in recencySet
     graphBoost: 0.4,       // additive bonus for 1-hop import neighbors of matching files
   };
-  
+
   // Graph boost amounts for 2-hop traversal with decay (v6.7)
   const GRAPH_BOOST_AMOUNTS = {
     hop1: 0.40,   // direct import neighbor of a file with score > 0
     hop2: 0.15,   // 2 hops away (transitive), with decay
     callHop: 0.30, // call-graph file neighbor (opt-in retrieval.callGraphBoost)
   };
-  
+
   // Max additive prior for import-graph centrality (opt-in retrieval.centralityBlend)
   const CENTRALITY_BLEND_WEIGHT = 0.3;
-  
+
   // Per-intent weight profiles were removed in favour of a single weight set.
   // They were provably inert: scoreFile's score was discarded by rank(), so the
   // profiles only ever reached the explain table. Once the signal WAS wired into
@@ -24526,21 +24595,21 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   // DEFAULT_WEIGHTS at every blend value — so they earn nothing and are gone.
   // `detectIntent` is retained: it is still reported to the user and is the right
   // hook for shaping OUTPUT depth later.
-  
+
   // How much the weighted keyword/symbol/path signal modulates the BM25 base.
   // Multiplicative and bounded, so it can only reorder files that already match —
   // it can never lift a zero-BM25 file into the results. Tuned on the leak-free
   // corpus: 0.5 gave hit@5 50.0% -> 56.7% and MRR 0.419 -> 0.447; higher values
   // held hit@5 but degraded MRR.
   const SIGNAL_BLEND = 0.5;
-  
+
   // TRIED AND REJECTED: a same-line co-occurrence bonus, on the theory that a file
   // declaring `parseAuthToken` should outrank one mentioning `parseAuth` and
   // `token` on separate lines. Swept 0.15-1.0: hit@5 did not move on either the
   // 90-task authored corpus or the 32-task mined one, and MRR degraded
   // monotonically as the weight rose. Signatures are short and dense enough that
   // BM25's bag already captures this. Not reinstated without new evidence.
-  
+
   // Penalty multipliers for negative signals
   const PENALTY_SIGNALS = {
     testFile:      0.4,    // every test convention, via util/file-class
@@ -24551,7 +24620,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     nodeModules:   0.0,    // node_modules (zero score)
     dataHolder:    0.3,    // generated POJO/entity: almost entirely accessors
   };
-  
+
   // A file whose members are overwhelmingly trivial accessors is a data holder,
   // not logic. Path-based detection cannot see these: generated JPA/MyBatis
   // entities live in ordinary source trees. They match a query on any column
@@ -24561,7 +24630,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   const ACCESSOR_RE = /^\s*(get|set|is)[A-Z]\w*\s*\(/;
   const DATA_HOLDER_RATIO = 0.8;
   const DATA_HOLDER_MIN_MEMBERS = 6;
-  
+
   // Query terms that mean the penalised category IS the target. Read from the
   // query tokens directly, NOT via detectIntent: that classifier is first-match-
   // wins over its pattern object, and `debug` precedes `test`, so "fix the failing
@@ -24570,7 +24639,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   const WANTS_DOCS = new Set(['doc', 'docs', 'documentation', 'readme', 'changelog', 'guide', 'tutorial']);
   const WANTS_CI = new Set(['ci', 'cd', 'pipeline', 'pipelines', 'workflow', 'workflows', 'actions', 'jenkins', 'travis', 'circleci', 'buildkite', 'deploy', 'deployment', 'release', 'publish']);
   const WANTS_MODELS = new Set(['entity', 'entities', 'model', 'models', 'pojo', 'dto', 'bean', 'getter', 'getters', 'setter', 'setters', 'accessor', 'accessors', 'field', 'fields', 'column', 'columns', 'schema']);
-  
+
   /** Which penalised categories the query is explicitly asking for. */
   function _queryWants(queryTokens) {
     const wants = { tests: false, docs: false, models: false, ci: false };
@@ -24582,7 +24651,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     return wants;
   }
-  
+
   /**
    * True when a file's members are overwhelmingly trivial accessors — a generated
    * entity or POJO rather than logic. Type declarations are excluded from the
@@ -24595,7 +24664,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     const accessors = members.filter((line) => ACCESSOR_RE.test(line)).length;
     return accessors / members.length >= DATA_HOLDER_RATIO;
   }
-  
+
   function _computePenalty(filePath, wants, sigs) {
     const pathLower = filePath.toLowerCase();
     if (pathLower.includes('node_modules')) return PENALTY_SIGNALS.nodeModules;
@@ -24627,7 +24696,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     return 1.0;
   }
-  
+
   // Detect hub files: those with fanout > 20% of all files in the graph
   function _computeHubs(graph) {
     if (!graph || !graph.reverse) return new Set();
@@ -24641,7 +24710,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     return hubs;
   }
-  
+
   // Common utility paths that should be treated as hubs regardless of fanout
   // The graph builders disagree on key case: src/graph/builder.js lowercases every
   // node (normalizePath), while src/graph/call-graph.js keys by a case-preserving
@@ -24662,13 +24731,13 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   function _registerKeys(map, absPath, value) {
     for (const k of _graphKeys(absPath)) if (!map.has(k)) map.set(k, value);
   }
-  
+
   function _isHub(filePath) {
     return /\/(utils|helpers|shared|common|constants|types|interfaces|index|zzz|globals)\.(ts|tsx|js|jsx|r|R)$/.test(filePath)
         || filePath.endsWith('/index.ts') || filePath.endsWith('/index.js')
         || filePath.endsWith('/R/utils.R') || filePath.endsWith('/R/zzz.R') || filePath.endsWith('/R/globals.R');
   }
-  
+
   /**
    * Per-token corpus coverage: how many indexed files carry each query token in
    * their signatures, and how many carry it in their path.
@@ -24703,7 +24772,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     return uniq.map((t) => ({ token: t, sigFiles: sigDf.get(t) || 0, pathFiles: pathDf.get(t) || 0 }));
   }
-  
+
   /**
    * Inverse document frequency of each query token across the corpus's PATH
    * tokens.
@@ -24729,7 +24798,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     if (n === 0) return idf;
     const uniq = [...new Set(queryTokens)].filter((t) => !STOP_WORDS.has(t));
     if (uniq.length === 0) return idf;
-  
+
     const df = new Map();
     for (const file of sigIndex.keys()) {
       const pathTokens = new Set(tokenize(file));
@@ -24742,7 +24811,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     return idf;
   }
-  
+
   /**
    * Score a single file against a query, returning detailed signal breakdown.
    *
@@ -24754,10 +24823,10 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    */
   function scoreFile(filePath, sigs, queryTokens, weights, wants, pathIdf) {
     if (!sigs || sigs.length === 0) return { score: 0, signals: { exactToken: 0, symbolMatch: 0, prefixMatch: 0, pathMatch: 0, penalty: 1.0 } };
-  
+
     const w = weights || DEFAULT_WEIGHTS;
     const signals = { exactToken: 0, symbolMatch: 0, prefixMatch: 0, pathMatch: 0, penalty: _computePenalty(filePath, wants, sigs) };
-  
+
     // Module-doc prose is excluded here on purpose. This signal measures overlap
     // with DECLARED IDENTIFIERS; prose relevance is BM25's job, where it is scored
     // as its own weighted field. Letting descriptive text inflate the identifier
@@ -24765,21 +24834,21 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     const codeSigs = sigs.filter((line) => !MODULE_DOC_RE.test(line));
     const sigText = codeSigs.join(' ');
     const sigTokenSet = new Set(tokenize(sigText));
-  
+
     // Build token set from the file path
     const pathTokenSet = new Set(tokenize(filePath));
-  
+
     let score = 0;
-  
+
     for (const qt of queryTokens) {
       if (STOP_WORDS.has(qt)) continue;
-  
+
       // Exact token match in sigs
       if (sigTokenSet.has(qt)) {
         const bonus = w.exactToken;
         score += bonus;
         signals.exactToken += bonus;
-  
+
         // Bonus: appears directly in a function/class/method name line
         const nameLineMatch = codeSigs.some((sig) => {
           const nt = tokenize(sig.replace(/[^a-zA-Z0-9_\s]/g, ' '));
@@ -24790,7 +24859,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
           signals.symbolMatch += w.symbolMatch;
         }
       }
-  
+
       // Prefix match (e.g. query "python" matches "pythonDeps")
       if (qt.length >= 4) {
         for (const st of sigTokenSet) {
@@ -24801,7 +24870,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
           }
         }
       }
-  
+
       // Path token match, scaled by how discriminating the token is across all
       // indexed paths. A direct caller that passes no index (tests, external
       // consumers of the exported scoreFile) keeps the unscaled behaviour.
@@ -24812,13 +24881,13 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         signals.pathMatch += bonus;
       }
     }
-  
+
     // Apply penalty multiplier
     score *= signals.penalty;
-  
+
     return { score, signals };
   }
-  
+
   /**
    * Rank all files in a signature index against a query.
    *
@@ -24846,13 +24915,13 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   function rank(query, sigIndex, opts) {
     if (!query || typeof query !== 'string') return [];
     if (!sigIndex || !(sigIndex instanceof Map) || sigIndex.size === 0) return [];
-  
+
     const topK = (opts && opts.topK) || 10;
     const recencyMultiplier = (opts && opts.recencyBoost) || DEFAULT_WEIGHTS.recencyBoost;
     const recencySet = (opts && opts.recencySet) || null;
     const graph = (opts && opts.graph && opts.graph.forward instanceof Map) ? opts.graph : null;
     const cwd = (opts && opts.cwd) || null;
-  
+
     // Intent is reported to the user and shapes output depth; it no longer
     // selects scoring weights (see SIGNAL_BLEND).
     const intent = detectIntent(query);
@@ -24862,7 +24931,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     // local learned state silently changes the score and CI stops being reproducible.
     const useLearned = !(opts && opts.learned === false);
     const learnedWeights = opts && opts.cwd && useLearned ? loadWeights(opts.cwd) : null;
-  
+
     const queryTokens = tokenize(query);
     const queryWants = _queryWants(queryTokens);
     if (queryTokens.length === 0) {
@@ -24874,7 +24943,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       all.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
       return all.slice(0, topK);
     }
-  
+
     // Identifier-aware BM25 base relevance over the whole index (#395). BM25
     // splits camelCase/snake_case, stems, and boosts path tokens, so queries
     // whose terms live inside identifiers (e.g. "component emit" → componentEmits)
@@ -24884,11 +24953,11 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     for (const c of bm25rank(query, [...sigIndex.entries()].map(([file, sigs]) => ({ file, sigs })), opts)) {
       bm25Scores.set(c.file, c.score);
     }
-  
+
     // Two passes: scoreFile's weighted signal needs the max across the corpus to
     // normalise against, so collect first, then combine.
     const pathIdf = _pathIdf(sigIndex, queryTokens);
-  
+
     const prescored = [];
     let maxSignal = 0;
     for (const [file, sigs] of sigIndex.entries()) {
@@ -24896,7 +24965,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       if (result.score > maxSignal) maxSignal = result.score;
       prescored.push({ file, sigs, result });
     }
-  
+
     const scored = [];
     for (const { file, sigs, result } of prescored) {
       const penalty = result.signals.penalty;
@@ -24909,19 +24978,19 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       const signals = result.signals;
       signals.bm25 = base;
       signals.signalBlend = signalNorm;
-  
+
       // Recency boost
       if (recencySet && recencySet.has(file) && score > 0) {
         score *= recencyMultiplier;
         signals.recencyBoost = recencyMultiplier;
       }
-  
+
       if (learnedWeights && score > 0) {
         const multiplier = learnedWeights[file] || 1.0;
         score *= multiplier;
         signals.learnedWeights = multiplier;
       }
-  
+
       scored.push({
         file,
         score,
@@ -24931,7 +25000,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         signals,
       });
     }
-  
+
     // Graph neighbor boost: 2-hop traversal with decay (v6.7)
     // Hop 1: add hop1 amount to direct import neighbors (score > 0)
     // Hop 2: add hop2 amount to neighbors of hop1 files (with decay)
@@ -24947,11 +25016,11 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       for (let i = 0; i < scored.length; i++) {
         _registerKeys(keyToIdx, path.resolve(cwd, scored[i].file), i);
       }
-  
+
       const hubs = _computeHubs(graph);
       const hop1Files = new Set(); // normalised keys that received a hop1 boost
       const hop1Seeds = [];        // original (un-normalised) paths, for hop-2 lookup
-  
+
       // Hop 1: direct neighbors of scored files. Seeds snapshotted BEFORE the
       // loop (as the call-graph block below already does) so boosts never
       // cascade: a file whose only score is a hop-1 boost must not become a seed
@@ -24974,7 +25043,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
           }
         }
       }
-  
+
       // Hop 2: neighbors of hop1 files (only if they didn't get a direct score).
       // Eligibility frozen after hop-1 for the same reason: a file whose first
       // score is a hop-2 boost must not become hop-2-eligible mid-loop (#596).
@@ -24995,7 +25064,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         }
       }
     }
-  
+
     // Call-graph neighbor boost (opt-in via retrieval.callGraphBoost): a file
     // whose functions call into — or are called by — a positively-scored file is
     // relevant even when no import edge exists (Go/Java same-package, dynamic
@@ -25021,7 +25090,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         }
       }
     }
-  
+
     // Centrality blend (opt-in via retrieval.centralityBlend): a small additive
     // prior from import-graph centrality so heavily-referenced files rank above
     // one-off helpers on ambiguous queries. Applied only to positively-scored
@@ -25041,14 +25110,14 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         }
       }
     }
-  
+
     // Compute confidence levels based on score distribution
     if (scored.length > 0) {
       const scores = scored.map(s => s.score);
       const maxScore = Math.max(...scores);
       const minScore = Math.min(...scores);
       const scoreRange = maxScore - minScore || 1;
-  
+
       // Confidence tiers: top 33% = high, next 33% = medium, rest = low
       for (const entry of scored) {
         if (entry.score <= 0) {
@@ -25059,9 +25128,9 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         }
       }
     }
-  
+
     scored.sort((a, b) => b.score - a.score || a.file.localeCompare(b.file));
-  
+
     // Zero-score suppression (#807). A rank is a claim of relevance, and 0.00 is
     // the absence of one — yet `slice(0, topK)` padded the table with whatever
     // sorted first among the files that matched nothing, so four
@@ -25076,7 +25145,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     const keepZero = !!(opts && opts.includeZeroScore);
     const ranked = keepZero ? scored : scored.filter((e) => e.score > 0);
     const out = ranked.slice(0, topK);
-  
+
     // Explain surfaces (#813), attached as ARRAY PROPERTIES so the return value
     // stays a plain array for every existing caller and `JSON.stringify` output
     // is byte-identical unless a caller opts in.
@@ -25090,7 +25159,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /**
    * All paths where sigmap adapters write their context files, in probe order.
    * The first existing file with a non-empty index wins when no explicit path
@@ -25107,7 +25176,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     ['llm-full.txt'],                        // llm-full
     ['llm.txt'],                             // llm
   ];
-  
+
   /**
    * Parse a single context file into a Map<filePath, string[]>.
    *
@@ -25121,20 +25190,20 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   function _parseContextFile(contextPath) {
     const fs = require('fs');
     const index = new Map();
-  
+
     if (!fs.existsSync(contextPath)) return index;
-  
+
     let content = fs.readFileSync(contextPath, 'utf8');
-  
+
     // Skip any human-written preamble that sits above the auto-generated block.
     const markerIdx = content.indexOf('## Auto-generated signatures');
     if (markerIdx !== -1) content = content.slice(markerIdx);
-  
+
     const lines = content.split('\n');
     let currentFile = null;
     let inBlock = false;
     let sigs = [];
-  
+
     for (const line of lines) {
       const headerMatch = line.match(/^###\s+(\S+)\s*$/);
       if (headerMatch) {
@@ -25148,10 +25217,10 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       if (inBlock && currentFile && line.trim()) sigs.push(line.trim());
     }
     if (currentFile !== null) index.set(currentFile, sigs);
-  
+
     return index;
   }
-  
+
   /** Merge source index into target; prefer non-empty sig lists. */
   function _mergeSigIndex(target, source) {
     for (const [file, sigs] of source.entries()) {
@@ -25162,7 +25231,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     }
     return target;
   }
-  
+
   /**
    * Load signatures from .sigmap-cache.json (absolute paths → repo-relative keys).
    * @param {string} cwd
@@ -25189,7 +25258,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     } catch (_) {}
     return index;
   }
-  
+
   /**
    * Hot-cold and per-module strategies store most signatures outside the primary
    * copilot-instructions.md file. MCP tools must merge all sources.
@@ -25214,7 +25283,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       }
     } catch (_) {}
     _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
-  
+
     // The complete retrieval index (written by generate before applyTokenBudget)
     // takes precedence: it is the only source containing files the budget dropped,
     // and full signatures for files the budget collapsed to line anchors. It is
@@ -25225,10 +25294,10 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       const full = __require('./src/retrieval/sig-index-store').readFullIndex(cwd);
       if (full.size > 0) return _mergeSigIndex(full, index);
     } catch (_) { /* absent → budgeted view is still served */ }
-  
+
     return index;
   }
-  
+
   /**
    * Build a signature index from the generated context file.
    * Returns Map<filePath, string[]> where filePath is the relative path
@@ -25247,13 +25316,13 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   function buildSigIndex(cwd, opts) {
     const fs   = require('fs');
     const path = require('path');
-  
+
     // 1. Caller supplied an explicit path — use it directly.
     if (opts && opts.contextPath) {
       const index = _parseContextFile(opts.contextPath);
       return _enrichSigIndexFromStrategy(cwd, index);
     }
-  
+
     // 2. Check gen-context.config.json for a persisted customOutput path.
     try {
       const cfgPath = path.join(cwd, 'gen-context.config.json');
@@ -25266,19 +25335,19 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         }
       }
     } catch (_) {}
-  
+
     // 3. Probe all known adapter output paths; return first non-empty index.
     for (const parts of ADAPTER_OUTPUT_PATHS) {
       const contextPath = path.join(cwd, ...parts);
       const index = _parseContextFile(contextPath);
       if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index);
     }
-  
+
     // 4. Primary file empty/missing (hot-cold) — still serve cold + cache.
     const fallback = new Map();
     return _enrichSigIndexFromStrategy(cwd, fallback);
   }
-  
+
   /**
    * Format ranked results as a markdown table string.
    *
@@ -25290,7 +25359,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     if (!results || results.length === 0) {
       return `No matching files found for query: "${query}"\n`;
     }
-  
+
     const intent = (results[0] && results[0].intent) || 'search';
     const lines = [
       `## Query: ${query}`,
@@ -25304,7 +25373,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       }),
       '',
     ];
-  
+
     // Add signature details for top results
     for (const r of results.slice(0, 3)) {
       if (r.sigs.length > 0) {
@@ -25320,10 +25389,10 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         lines.push('');
       }
     }
-  
+
     return lines.join('\n');
   }
-  
+
   /**
    * Format ranked results as a structured JSON-serialisable object.
    *
@@ -25347,7 +25416,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       totalResults: (results || []).length,
     };
   }
-  
+
   // ---------------------------------------------------------------------------
   // Intent detection — 7 intents
   // ---------------------------------------------------------------------------
@@ -25369,7 +25438,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     if (isDocsFile(filePath)) return 'documentation';
     return 'data holder (accessors only)';
   }
-  
+
   /**
    * Render the `--explain` diagnostic view (#813).
    *
@@ -25391,7 +25460,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     const lines = [`## Explain: ${query}`, ''];
     const coverage = (results && results.tokenCoverage) || [];
     const idf = (results && results.pathIdf) || new Map();
-  
+
     if (coverage.length > 0) {
       const dead = coverage.filter((c) => c.sigFiles === 0 && c.pathFiles === 0);
       lines.push(`Index: ${results.indexSize || 0} files · ${results.totalCandidates || 0} scored above zero`);
@@ -25408,13 +25477,13 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         lines.push('');
       }
     }
-  
+
     if (!results || results.length === 0) {
       lines.push('No file scored above zero for this query.');
       lines.push('');
       return lines.join('\n');
     }
-  
+
     lines.push('### Selected');
     lines.push('');
     lines.push('| Rank | File | Score | exact | symbol | prefix | path | bm25 | graph | call | central | learned | penalty | demoted for |');
@@ -25425,7 +25494,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       lines.push(`| ${i + 1} | ${r.file} | ${r.score.toFixed(2)} | ${n(g.exactToken)} | ${n(g.symbolMatch)} | ${n(g.prefixMatch)} | ${n(g.pathMatch)} | ${n(g.bm25)} | ${n(g.graphBoost)} | ${n(g.callGraphBoost)} | ${n(g.centrality)} | ${n(g.learnedWeights, 1)} | ${n(g.penalty, 1)} | ${_penaltyReason(r.file, g.penalty === undefined ? 1 : g.penalty) || '—'} |`);
     });
     lines.push('');
-  
+
     const nearMiss = (results && results.nearMiss) || [];
     if (nearMiss.length > 0) {
       const cutoff = results[results.length - 1].score;
@@ -25439,10 +25508,10 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       }
       lines.push('');
     }
-  
+
     return lines.join('\n');
   }
-  
+
   const INTENT_PATTERNS = {
     debug:    /\b(bugs?|fix(es|ed)?|errors?|crash(es)?|exceptions?|broken|failing|failures?|issues?|problems?|regressions?)\b/i,
     explain:  /\b(explain|how does|what is|understand|overview|architecture|describe|walk me|teach)\b/i,
@@ -25452,7 +25521,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     integrate:/\b(imports?|integrate|connect|wire|bind|requires?|exports?|depends?|dependenc(y|ies)|graph)\b/i,
     navigate: /\b(find|locate|where|search|look for|show me|navigate|browse|list)\b/i,
   };
-  
+
   /**
    * Every intent whose pattern matches, strongest first.
    *
@@ -25483,12 +25552,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     scored.sort((a, b) => (b.hits - a.hits) || (a.order - b.order));
     return scored.map((s) => s.intent);
   }
-  
+
   /** Primary intent. Kept for callers that want a single label. */
   function detectIntent(query) {
     return detectIntents(query)[0];
   }
-  
+
   module.exports = { rank, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
   
 };
@@ -25514,11 +25583,11 @@ __factories["./src/retrieval/selection-quality"] = function(module, exports) {
    *
    * Zero dependencies, pure, deterministic.
    */
-  
+
   const path = require('path');
   const { isTestFile, isMockFile, isGeneratedFile, isDocsFile, isCiFile } = __require('./src/util/file-class');
   const { CODE_EXTS } = __require('./src/analysis/coverage-score');
-  
+
   /**
    * Configuration and data files, by extension or by the `*.config.*` convention.
    * Deliberately narrower than `src/util/file-class.js`'s categories: those cover
@@ -25526,7 +25595,7 @@ __factories["./src/retrieval/selection-quality"] = function(module, exports) {
    * at full weight because "where is the build configured" is a real question.
    */
   const CONFIG_EXTS = new Set(['.json', '.yml', '.yaml', '.toml', '.ini', '.cfg', '.properties', '.lock', '.env']);
-  
+
   /** True when a selected path is configuration rather than implementation. */
   function isConfigPath(filePath) {
     const p = String(filePath).replace(/\\/g, '/');
@@ -25534,12 +25603,12 @@ __factories["./src/retrieval/selection-quality"] = function(module, exports) {
     if (/\.config\.[a-z]+$/i.test(base)) return true;
     return CONFIG_EXTS.has(path.extname(base).toLowerCase());
   }
-  
+
   /** Prose that is not under a docs/ root and carries no well-known doc name. */
   function isProsePath(filePath) {
     return /\.(md|mdx|rst|txt|adoc)$/i.test(String(filePath));
   }
-  
+
   /**
    * Split a selection into the implementation files an answer can be grounded in
    * and the support files it cannot.
@@ -25564,7 +25633,7 @@ __factories["./src/retrieval/selection-quality"] = function(module, exports) {
     }
     return { source, support, sourceFree: files.length > 0 && source.length === 0, total: files.length };
   }
-  
+
   /**
    * The composition of a selection, named — `3 source, 2 support (test, docs)`.
    * Printed next to the figures it qualifies so a reader can see at a glance what
@@ -25585,7 +25654,7 @@ __factories["./src/retrieval/selection-quality"] = function(module, exports) {
     const support = c.support.length > 0 ? `, ${c.support.length} support (${kinds.join(', ')})` : '';
     return `${c.source.length} source${support}`;
   }
-  
+
   /**
    * Warning for a selection with no implementation in it, or null when at least
    * one source file came back.
@@ -25596,7 +25665,7 @@ __factories["./src/retrieval/selection-quality"] = function(module, exports) {
     return `no source file in the selection — ${formatComposition(c)}; the query likely missed. `
       + `Re-run with --explain to see which tokens matched, or raise --top`;
   }
-  
+
   module.exports = { classifySelection, selectionWarning, formatComposition, isConfigPath, CONFIG_EXTS };
   
 };
@@ -25626,19 +25695,19 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    *
    * Zero-dependency, bundle-safe (fs + path only).
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const INDEX_DIR = '.context';
   const INDEX_FILE = 'sig-index.json';
   const SCHEMA = 1;
-  
+
   /** Absolute path to the retrieval index artifact. */
   function indexPath(cwd) {
     return path.join(cwd, INDEX_DIR, INDEX_FILE);
   }
-  
+
   /**
    * Persist the complete signature index.
    *
@@ -25658,7 +25727,7 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
       files[rel] = e.sigs;
       count++;
     }
-  
+
     const out = indexPath(cwd);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     // Write-then-rename so a concurrent `ask` never observes a half-written index.
@@ -25672,7 +25741,7 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
     fs.renameSync(tmp, out);
     return { path: out, files: count };
   }
-  
+
   /**
    * Load the complete signature index, or an empty Map when absent/unreadable.
    *
@@ -25695,7 +25764,7 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
     } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
     return index;
   }
-  
+
   module.exports = { writeFullIndex, readFullIndex, indexPath, SCHEMA, INDEX_FILE };
   
 };
@@ -25708,13 +25777,13 @@ __factories["./src/retrieval/tokenizer"] = function(module, exports) {
    * Splits code identifiers: camelCase, snake_case, kebab-case, PascalCase,
    * removes stop words, and returns lower-case tokens.
    */
-  
+
   const STOP_WORDS = new Set([
     'the', 'a', 'an', 'in', 'of', 'to', 'for', 'and', 'or', 'is', 'are',
     'that', 'this', 'it', 'with', 'from', 'by', 'be', 'as', 'on', 'at',
     'do', 'not', 'use', 'get', 'set', 'up', 'if', 'no', 'so', 'we',
   ]);
-  
+
   /**
    * Tokenize any text (query or code signature) into unique lower-case tokens.
    * Handles:
@@ -25735,7 +25804,7 @@ __factories["./src/retrieval/tokenizer"] = function(module, exports) {
     if (!text || typeof text !== 'string') return [];
     const removeStop = opts && opts.removeStopWords === false ? false : true;
     const minLen = (opts && opts.minLength) || 2;
-  
+
     const tokens = text
       // strip file extension (e.g. .js, .ts, .py)
       .replace(/\.\w{1,6}(?=\s|\/|$)/g, ' ')
@@ -25749,11 +25818,11 @@ __factories["./src/retrieval/tokenizer"] = function(module, exports) {
       .toLowerCase()
       .split(/\s+/)
       .filter((t) => t.length >= minLen);
-  
+
     if (!removeStop) return [...new Set(tokens)];
     return [...new Set(tokens.filter((t) => !STOP_WORDS.has(t)))];
   }
-  
+
   module.exports = { tokenize, STOP_WORDS };
   
 };
@@ -25778,13 +25847,13 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
    *
    * Zero dependencies, deterministic (ordered by rank, never by filesystem).
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   /** Token estimate; same chars/4 heuristic as the CLI's `estimateTokens`. */
   const estimateTokens = (s) => Math.ceil(String(s).length / 4);
-  
+
   /**
    * Declaration heads whose body is not worth a budget slot.
    *
@@ -25793,13 +25862,13 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
    * it competes for the same per-file slots as the functions being exported.
    */
   const NON_BODY_HEAD = /^(module\.exports|export\s+(default\s+)?\{|exports\.)/;
-  
+
   const DEFAULT_MAX_PER_FILE = 3;
   const DEFAULT_MAX_SYMBOLS = 12;
   const DEFAULT_BLAST_FILES = 5;
   /** A body longer than this is a module, not a symbol — pointer only. */
   const MAX_SYMBOL_LINES = 120;
-  
+
   /**
    * Parse a signature's trailing `:start-end` line anchor.
    *
@@ -25816,7 +25885,7 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
     if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
     return { head: sig.slice(0, m.index).trim(), start, end };
   }
-  
+
   /**
    * The anchored symbols worth slicing, in rank order.
    *
@@ -25848,7 +25917,7 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
     }
     return out.slice(0, maxSymbols);
   }
-  
+
   /**
    * Read one symbol's lines, clamped to the file and secret-scanned with the same
    * redactor `get_lines` and the signature pipeline use.
@@ -25874,7 +25943,7 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
     } catch (_) {} // non-fatal: a missing scanner must not drop the body
     return { lines, from, to };
   }
-  
+
   /**
    * Blast radius for the files a source section covers — what else imports them.
    *
@@ -25898,7 +25967,7 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
       total: (impact && typeof impact.totalImpact === 'number' ? impact.totalImpact : 0),
     }));
   }
-  
+
   /**
    * Render the `--with-source` addendum for a ranked selection.
    *
@@ -25920,7 +25989,7 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
     const covered = [];
     let spent = 0;
     let included = 0;
-  
+
     for (const sym of symbols) {
       const slice = sliceSymbol(cwd, sym);
       if (!slice) continue;
@@ -25940,9 +26009,9 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
       spent += cost;
       included++;
     }
-  
+
     const blast = blastRadius(cwd, covered, opts);
-  
+
     const skipped = symbols.length - included;
     const lines = [];
     if (blocks.length > 0) {
@@ -25966,7 +26035,7 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
         ''
       );
     }
-  
+
     return {
       text: lines.join('\n'),
       included,
@@ -25978,7 +26047,7 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
       blast,
     };
   }
-  
+
   module.exports = {
     parseAnchor, collectSymbols, sliceSymbol, blastRadius, buildSourceSection,
     DEFAULT_MAX_PER_FILE, DEFAULT_MAX_SYMBOLS, DEFAULT_BLAST_FILES, MAX_SYMBOL_LINES, NON_BODY_HEAD,
@@ -26004,11 +26073,11 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
    * timestamp, so the report is byte-stable given a fixed tree — diff-friendly
    * as a comment.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { reviewPr } = __require('./src/review/review-pr');
-  
+
   /**
    * Build the structured PR evidence for a changed-file list.
    * @param {Array<{path:string,status?:string}>|string[]} changedFiles
@@ -26021,17 +26090,17 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
   function buildPrEvidence(changedFiles, cwd, opts = {}) {
     const files = (changedFiles || []).map((f) =>
       typeof f === 'string' ? { path: f, status: 'M' } : { path: f.path, status: f.status || 'M' });
-  
+
     const review = reviewPr(files, cwd, opts);
-  
+
     let riskLabelFor = () => 'source';
     let findRelatedTests = () => [];
     try { ({ riskLabelFor, findRelatedTests } = __require('./src/evidence/pack')); } catch (_) { /* defaults */ }
     const { extractFile, langFor } = __require('./src/extractors/dispatch');
-  
+
     const depth = Number.isFinite(opts.depth) ? opts.depth : 2;
     const srcPaths = files.filter((f) => f.status !== 'D' && langFor(f.path)).map((f) => f.path);
-  
+
     // Blast radius + related tests are views over the knowledge-map store
     // (#635): cached typed edges instead of rebuilding the signature index and
     // import graph per call. The legacy rebuild remains the fallback.
@@ -26048,7 +26117,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
         impactByFile = new Map(analyzeImpact(srcPaths, cwd, { depth }).map((r) => [r.file, r.impact]));
       } catch (_) { /* graph optional */ }
     }
-  
+
     let allFiles = null; // built lazily, only when the store missed a file
     const relatedFor = (p) => {
       if (storeTests && storeTests.has(p)) return storeTests.get(p);
@@ -26057,13 +26126,13 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       }
       return findRelatedTests(p, allFiles);
     };
-  
+
     // GR2: method-level blast radius per changed file (reviewPr already computed
     // it when the call graph resolved — reuse, don't rebuild the graph).
     const methodBlastByFile = new Map(
       (review.methodBlast && review.methodBlast.files || []).map((m) => [m.file, m])
     );
-  
+
     const fileReports = files.map((f) => {
       const deleted = f.status === 'D';
       let signatures = [];
@@ -26087,18 +26156,18 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
         relatedTests: deleted ? [] : relatedFor(f.path),
       };
     });
-  
+
     return { scope: opts.scope || 'diff', files: fileReports, review };
   }
-  
+
   const STATUS_LABEL = { M: 'modified', A: 'added', D: 'deleted', R: 'renamed', C: 'copied' };
-  
+
   /** Render the branded, deterministic "PR Evidence Report" Markdown. */
   function formatPrEvidenceMarkdown(evidence, opts = {}) {
     const L = [];
     const s = evidence.review.summary;
     const maxSigs = Number.isFinite(opts.maxSignatures) ? opts.maxSignatures : 30;
-  
+
     L.push('## 🔍 PR Evidence Report');
     L.push('');
     L.push(
@@ -26107,7 +26176,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       ` · scope: ${evidence.scope}`
     );
     L.push('');
-  
+
     if (!s.ok) {
       L.push('### Review findings');
       for (const f of evidence.review.findings) {
@@ -26120,13 +26189,13 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       }
       L.push('');
     }
-  
+
     L.push('### Changed files');
     for (const f of evidence.files) {
       const st = STATUS_LABEL[f.status] || f.status;
       L.push(`#### \`${f.path}\`  _(${st} · risk: ${f.riskLabel})_`);
       if (f.status === 'D') { L.push('_deleted_', ''); continue; }
-  
+
       if (f.blast) {
         L.push(
           `**Blast radius:** ${f.blast.total} file(s) impacted — ${f.blast.direct.length} direct, ${f.blast.transitive} transitive` +
@@ -26147,7 +26216,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
         );
       }
       if (f.relatedTests.length) L.push(`Related tests: ${f.relatedTests.slice(0, 8).map((t) => '`' + t + '`').join(', ')}`);
-  
+
       if (f.signatures.length) {
         L.push('```');
         for (const sig of f.signatures.slice(0, maxSigs)) L.push(sig);
@@ -26156,12 +26225,12 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       }
       L.push('');
     }
-  
+
     L.push('---');
     L.push('_Deterministic PR Evidence Report — generated by [SigMap](https://sigmap.io). No LLM; byte-stable given a fixed tree._');
     return L.join('\n');
   }
-  
+
   module.exports = { buildPrEvidence, formatPrEvidenceMarkdown };
   
 };
@@ -26177,12 +26246,12 @@ __factories["./src/review/review-pr"] = function(module, exports) {
    * and changes to security-sensitive files. Pure (takes a changed-file list),
    * zero-dependency, bundle-safe; reuses the impact graph for blast radius.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { analyzeImpact } = __require('./src/graph/impact');
   const { PATTERNS } = __require('./src/security/patterns');
-  
+
   const SECURITY_PATTERNS = [
     /(^|\/)\.env(\.|$)/i,
     /(^|\/)(secrets?|credentials?)(\/|\.|$)/i,
@@ -26193,18 +26262,18 @@ __factories["./src/review/review-pr"] = function(module, exports) {
     /(^|\/)Dockerfile/i,
     /\.(pem|key|crt|p12)$/i,
   ];
-  
+
   const SRC_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.go', '.rs', '.java', '.rb', '.php']);
   const GOD_NODE_THRESHOLD = 15; // transitive dependents → high-fan-in "god node"
   const SCOPE_DIR_THRESHOLD = 5; // distinct top-level dirs → scope drift
-  
+
   function isTestFile(p) {
     return /\.(test|spec)\.[jt]sx?$|(^|\/)test_|_test\.(py|go)$|(^|\/)(tests?|__tests__|spec)\//.test(p);
   }
   function isSource(p) {
     return SRC_EXTS.has(path.extname(p).toLowerCase()) && !isTestFile(p);
   }
-  
+
   /**
    * Audit a changed-file list.
    * @param {Array<{path:string,status:string}>|string[]} changedFiles
@@ -26218,20 +26287,20 @@ __factories["./src/review/review-pr"] = function(module, exports) {
     const godThreshold = opts.godNodeThreshold != null ? opts.godNodeThreshold : GOD_NODE_THRESHOLD;
     const scopeThreshold = opts.scopeThreshold != null ? opts.scopeThreshold : SCOPE_DIR_THRESHOLD;
     const files = (changedFiles || []).map((f) => (typeof f === 'string' ? { path: f, status: 'M' } : f));
-  
+
     const findings = [];
     const paths = files.map((f) => f.path);
     const live = files.filter((f) => f.status !== 'D');
     const srcChanged = live.filter((f) => isSource(f.path)).map((f) => f.path);
     const testChanged = paths.filter(isTestFile);
-  
+
     // 1. Missing tests: a changed source file with no matching changed test file.
     for (const s of srcChanged) {
       const stem = path.basename(s).replace(/\.[^.]+$/, '');
       const covered = testChanged.some((t) => path.basename(t).includes(stem));
       if (!covered) findings.push({ type: 'missing-tests', file: s, severity: 'warn' });
     }
-  
+
     // 2a. Sensitive-path heuristic — flags files whose PATH looks security-relevant
     // (.env, auth/, lockfiles, workflows, key material). This is a path heuristic,
     // NOT a content scan: it flags touching the path regardless of what changed,
@@ -26242,7 +26311,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
         findings.push({ type: 'security-file', file: f.path, severity: 'warn', basis: 'path-heuristic' });
       }
     }
-  
+
     // 2b. Real secret scan — read each changed file's CONTENT and match known
     // secret patterns. This is the actual security check (content, not filename):
     // it catches a hardcoded key in a file the path heuristic would never flag.
@@ -26258,7 +26327,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
         }
       }
     }
-  
+
     // 3. God-node edits (high blast radius).
     const blast = [];
     if (srcChanged.length) {
@@ -26272,7 +26341,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
       }
       blast.sort((a, b) => b.totalImpact - a.totalImpact);
     }
-  
+
     // 3b. Method-level blast radius (GR2) — how many FUNCTIONS transitively call
     // into the change, scored deterministically. Graph optional, like 3.
     let methodBlast = null;
@@ -26293,13 +26362,13 @@ __factories["./src/review/review-pr"] = function(module, exports) {
         }
       } catch (_) { /* call graph optional */ }
     }
-  
+
     // 4. Scope drift: distinct top-level directories touched.
     const dirs = [...new Set(paths.map((p) => (p.includes('/') ? p.split('/')[0] : '.')))];
     if (dirs.length > scopeThreshold) {
       findings.push({ type: 'scope-drift', dirs, count: dirs.length, threshold: scopeThreshold, severity: 'warn' });
     }
-  
+
     const byType = findings.reduce((a, f) => { a[f.type] = (a[f.type] || 0) + 1; return a; }, {});
     return {
       findings,
@@ -26315,7 +26384,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
       },
     };
   }
-  
+
   module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD };
   
 };
@@ -26338,7 +26407,7 @@ __factories["./src/routing/classifier"] = function(module, exports) {
   function classify(filePath, sigs) {
     const lower = filePath.toLowerCase();
     const sigCount = sigs.length;
-  
+
     // ── Fast tier heuristics ────────────────────────────────────────────────
     // Configuration, markup, templates, and trivial utilities are small tasks
     if (
@@ -26361,7 +26430,7 @@ __factories["./src/routing/classifier"] = function(module, exports) {
     ) {
       return 'fast';
     }
-  
+
     // Config-like directories
     if (
       lower.includes('/config/') ||
@@ -26372,12 +26441,12 @@ __factories["./src/routing/classifier"] = function(module, exports) {
     ) {
       return sigCount > 4 ? 'balanced' : 'fast';
     }
-  
+
     // Test files — usually standard complexity
     if (/\.(test|spec)\.[a-z]+$/.test(lower) || /_test\.[a-z]+$/.test(lower)) {
       return 'balanced';
     }
-  
+
     // ── Powerful tier heuristics — high-signal keywords in the path ─────────
     if (
       lower.includes('/security/') ||
@@ -26392,19 +26461,19 @@ __factories["./src/routing/classifier"] = function(module, exports) {
     ) {
       return 'powerful';
     }
-  
+
     // Many exports → complex file
     if (sigCount >= 12) return 'powerful';
-  
+
     // Large number of class-level methods (indented 2-space sigs)
     const methodCount = sigs.filter((s) => s.startsWith('  ')).length;
     if (methodCount >= 8) return 'powerful';
-  
+
     // ── Balanced covers everything else ────────────────────────────────────
     if (sigCount <= 2) return 'fast';
     return 'balanced';
   }
-  
+
   /**
    * Classify all file entries and group them by tier.
    *
@@ -26421,7 +26490,7 @@ __factories["./src/routing/classifier"] = function(module, exports) {
     }
     return result;
   }
-  
+
   module.exports = { classify, classifyAll };
   
 };
@@ -26440,7 +26509,7 @@ __factories["./src/routing/hints"] = function(module, exports) {
    * These are embedded in the generated context file when `routing: true`
    * so that AI agents and developers know which model tier to invoke.
    */
-  
+
   const TIERS = {
     fast: {
       label: 'Fast (low-cost)',
@@ -26455,7 +26524,7 @@ __factories["./src/routing/hints"] = function(module, exports) {
       ],
       costHint: '~$0.0008 / 1K tokens',
     },
-  
+
     balanced: {
       label: 'Balanced (mid-tier)',
       examples: 'claude-sonnet-4-6, gpt-5-2, gemini-3-1-pro',
@@ -26469,7 +26538,7 @@ __factories["./src/routing/hints"] = function(module, exports) {
       ],
       costHint: '~$0.003 / 1K tokens',
     },
-  
+
     powerful: {
       label: 'Powerful (high-cost)',
       examples: 'claude-opus-4-6, gpt-5-4, gemini-2-5-pro',
@@ -26484,7 +26553,7 @@ __factories["./src/routing/hints"] = function(module, exports) {
       costHint: '~$0.015 / 1K tokens',
     },
   };
-  
+
   /**
    * Format the routing section as markdown to append to the context file.
    *
@@ -26503,7 +26572,7 @@ __factories["./src/routing/hints"] = function(module, exports) {
       'Select the model tier based on the task complexity and the files involved.',
       '',
     ];
-  
+
     for (const [tier, info] of Object.entries(TIERS)) {
       const files = groups[tier] || [];
       lines.push(`### ${info.label}`);
@@ -26522,13 +26591,13 @@ __factories["./src/routing/hints"] = function(module, exports) {
       }
       lines.push('');
     }
-  
+
     lines.push('> **Tip:** Run `node gen-context.js --routing` to regenerate routing hints.');
     lines.push('> See `docs/MODEL_ROUTING.md` for full routing guide and cost optimisation tips.');
-  
+
     return lines.join('\n');
   }
-  
+
   module.exports = { TIERS, formatRoutingSection };
   
 };
@@ -26544,14 +26613,14 @@ __factories["./src/scaffold/persist"] = function(module, exports) {
    * read back the convention-matched proposal. Pure render; zero-dependency,
    * bundle-safe.
    */
-  
+
   const path = require('path');
-  
+
   /** Path to the persisted scaffold record. */
   function scaffoldPath(cwd) {
     return path.join(cwd, '.context', 'scaffold', 'latest.md');
   }
-  
+
   /**
    * Render an accepted scaffold decision to a markdown record.
    * @param {object} decision a `proposeScaffold` result with `ok: true`
@@ -26577,7 +26646,7 @@ __factories["./src/scaffold/persist"] = function(module, exports) {
     lines.push('');
     return lines.join('\n');
   }
-  
+
   module.exports = { scaffoldPath, renderScaffoldMarkdown };
   
 };
@@ -26595,20 +26664,20 @@ __factories["./src/scaffold/propose"] = function(module, exports) {
    * systematizes bad code. Pure, zero-dependency, bundle-safe; reuses the
    * conventions primitives.
    */
-  
+
   const { toNamingStyle, analyzeConflicts } = __require('./src/conventions/conflicts');
-  
+
   // Soft threshold is configurable; the hard floor is not (IMPL.md §5.1).
   const DEFAULT_THRESHOLD = 0.7;
   const HARD_FLOOR = 0.5;
-  
+
   /** Tier for a consistency score (matches the conventions tiers). */
   function _tier(pct) {
     if (pct >= 0.9) return 'consistent';
     if (pct >= 0.7) return 'mostly';
     return 'inconsistent';
   }
-  
+
   /** Strip any extension/compound suffix from a requested name → bare stem. */
   function _stem(name) {
     const s = String(name || '').trim();
@@ -26617,7 +26686,7 @@ __factories["./src/scaffold/propose"] = function(module, exports) {
     const dot = base.indexOf('.');
     return dot > 0 ? base.slice(0, dot) : base;
   }
-  
+
   /** Test file path for a styled stem given the detected framework + ext. */
   function _testFile(styledStem, framework, ext) {
     if (framework === 'pytest' || framework === 'unittest') {
@@ -26625,7 +26694,7 @@ __factories["./src/scaffold/propose"] = function(module, exports) {
     }
     return `${styledStem}.test.${ext}`;
   }
-  
+
   /**
    * Propose a convention-matched scaffold, gated by a confidence floor.
    * @param {string} name desired module name (any casing; extension ignored)
@@ -26648,13 +26717,13 @@ __factories["./src/scaffold/propose"] = function(module, exports) {
     const confidence = fileNaming.dominantPct || 0;
     const tier = fileNaming.total > 0 ? _tier(confidence) : 'unknown';
     const conflicts = analyzeConflicts(conventions || {});
-  
+
     const base = {
       ok: false, refused: true, name: String(name || ''), tier, confidence,
       threshold, hardFloor: HARD_FLOOR, forced: false, warning: null,
       reason: '', proposal: null, conflicts,
     };
-  
+
     if (!fileNaming.dominant || fileNaming.total === 0) {
       return { ...base, reason: 'no file-naming convention detected — cannot propose a name' };
     }
@@ -26670,7 +26739,7 @@ __factories["./src/scaffold/propose"] = function(module, exports) {
         reason: `file-naming consistency ${(confidence * 100).toFixed(0)}% is below the threshold ${(threshold * 100).toFixed(0)}% — refusing (use --force to override above the ${(HARD_FLOOR * 100).toFixed(0)}% floor)`,
       };
     }
-  
+
     const styledStem = toNamingStyle(_stem(name), fileNaming.dominant);
     const forced = confidence < threshold && force;
     const proposal = {
@@ -26680,7 +26749,7 @@ __factories["./src/scaffold/propose"] = function(module, exports) {
       testFile: _testFile(styledStem, conventions.testFramework, ext),
       testFramework: conventions.testFramework || null,
     };
-  
+
     return {
       ...base,
       ok: true,
@@ -26693,7 +26762,7 @@ __factories["./src/scaffold/propose"] = function(module, exports) {
       proposal,
     };
   }
-  
+
   module.exports = { proposeScaffold, DEFAULT_THRESHOLD, HARD_FLOOR };
   
 };
@@ -26716,7 +26785,7 @@ __factories["./src/scip/reader"] = function(module, exports) {
   //   SymbolInformation symbol=1 · documentation=3
   //   Occurrence       range=1 (packed) · symbol=2 · symbol_roles=3 · enclosing_range=7
   // Anything unrecognized is skipped by wire type, so newer fields are inert.
-  
+
   function readVarint(buf, pos) {
     let v = 0n, shift = 0n, p = pos;
     for (;;) {
@@ -26727,7 +26796,7 @@ __factories["./src/scip/reader"] = function(module, exports) {
     }
     return [Number(v), p];
   }
-  
+
   /** Iterate [fieldNumber, value] pairs of one protobuf message. */
   function* fields(buf) {
     let p = 0;
@@ -26742,16 +26811,16 @@ __factories["./src/scip/reader"] = function(module, exports) {
       else throw new Error(`scip: unknown wire type ${wire}`);
     }
   }
-  
+
   function packedVarints(buf) {
     const out = [];
     let p = 0;
     while (p < buf.length) { let v; [v, p] = readVarint(buf, p); out.push(v); }
     return out;
   }
-  
+
   const DEFINITION_ROLE = 0x1;
-  
+
   /**
    * Parse a SCIP index buffer into a compact per-document structure.
    * Throws on malformed input — callers treat any throw as "no index".
@@ -26803,7 +26872,7 @@ __factories["./src/scip/reader"] = function(module, exports) {
     }
     return { tool, documents };
   }
-  
+
   module.exports = { parseIndex, fields, readVarint, packedVarints, DEFINITION_ROLE };
   
 };
@@ -26896,7 +26965,7 @@ __factories["./src/security/patterns"] = function(module, exports) {
       regex: /(secret|password|passwd|api_key|apikey|auth_token|access_token)\s*[:=]\s*[^\s'"]{8,}/i,
     },
   ];
-  
+
   module.exports = { PATTERNS };
   
 };
@@ -26913,15 +26982,15 @@ __factories["./src/security/redact"] = function(module, exports) {
    * Zero dependencies; never throws — on any error the original text is
    * returned unredacted.
    */
-  
+
   const { PATTERNS } = __require('./src/security/patterns');
-  
+
   // Global variants of the pattern regexes (needed for replace-all per line).
   const GLOBAL_PATTERNS = PATTERNS.map((p) => ({
     name: p.name,
     regex: new RegExp(p.regex.source, p.regex.flags.includes('g') ? p.regex.flags : p.regex.flags + 'g'),
   }));
-  
+
   /**
    * Redact secrets in arbitrary text.
    * @param {string} text
@@ -26956,7 +27025,7 @@ __factories["./src/security/redact"] = function(module, exports) {
       return { text, redacted: false, findings: [], counts: {} };
     }
   }
-  
+
   module.exports = { redactText };
   
 };
@@ -26965,7 +27034,7 @@ __factories["./src/security/redact"] = function(module, exports) {
 __factories["./src/security/scanner"] = function(module, exports) {
   
   const { PATTERNS } = __require('./src/security/patterns');
-  
+
   /**
    * Scan an array of signature strings for secrets.
    *
@@ -26977,7 +27046,7 @@ __factories["./src/security/scanner"] = function(module, exports) {
    */
   function scan(signatures, filePath) {
     if (!Array.isArray(signatures)) return { safe: [], redacted: false };
-  
+
     try {
       let redacted = false;
       const safe = signatures.map((sig) => {
@@ -27000,7 +27069,7 @@ __factories["./src/security/scanner"] = function(module, exports) {
       return { safe: signatures, redacted: false };
     }
   }
-  
+
   module.exports = { scan };
   
 };
@@ -27010,15 +27079,15 @@ __factories["./src/session/memory"] = function(module, exports) {
   
   const fs = require('fs');
   const path = require('path');
-  
+
   module.exports = { loadSession, saveSession, mergeSessionContext, clearSession };
-  
+
   const SESSION_TTL_MS = 4 * 60 * 60 * 1000;   // 4 hours — one coding session
-  
+
   function sessionPath(cwd) {
     return path.join(cwd, '.context', 'session.json');
   }
-  
+
   function loadSession(cwd) {
     const p = sessionPath(cwd);
     if (!fs.existsSync(p)) return null;
@@ -27030,7 +27099,7 @@ __factories["./src/session/memory"] = function(module, exports) {
       return null;
     }
   }
-  
+
   function saveSession(cwd, { intent, topFiles, query }) {
     const p = sessionPath(cwd);
     fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -27041,23 +27110,23 @@ __factories["./src/session/memory"] = function(module, exports) {
       lastQuery: query,
     }));
   }
-  
+
   // Merge session context as additional ranking signal:
   // any file that appeared in the previous session's top-5 gets a +0.2 boost
   // Reduce to +0.1 if the intent has changed (topic switch guard)
   function mergeSessionContext(scores, session, currentIntent) {
     if (!session) return scores;
-  
+
     const boostAmount = session.intent === currentIntent ? 0.20 : 0.10;
     const sessionBoost = new Map(session.topFiles.map(f => [f.file, boostAmount]));
-  
+
     return scores.map(r => ({
       ...r,
       // Additive boost — cannot reduce a score
       score: r.score + (sessionBoost.get(r.file) || 0),
     }));
   }
-  
+
   function clearSession(cwd) {
     const p = sessionPath(cwd);
     if (fs.existsSync(p)) fs.unlinkSync(p);
@@ -27073,10 +27142,10 @@ __factories["./src/session/memory-inspect"] = function(module, exports) {
    * No new storage: reads the JSON/NDJSON files the session, notes, weights,
    * evidence, and tracking modules already own under `.context/`.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   /** store name → { file, kind } (kind drives the entry count). */
   const STORES = {
     session: { file: 'session.json', kind: 'json' },
@@ -27086,14 +27155,14 @@ __factories["./src/session/memory-inspect"] = function(module, exports) {
     gain: { file: 'gain.ndjson', kind: 'ndjson' },
     usage: { file: 'usage.ndjson', kind: 'ndjson' },
   };
-  
+
   /** Stores `clearMemory` may delete ('gain'/'usage' have their own reset flows). */
   const CLEARABLE = ['session', 'notes', 'weights', 'evidence'];
-  
+
   function storePath(cwd, name) {
     return path.join(cwd, '.context', STORES[name].file);
   }
-  
+
   function countEntries(kind, filePath) {
     try {
       if (kind === 'ndjson') {
@@ -27108,7 +27177,7 @@ __factories["./src/session/memory-inspect"] = function(module, exports) {
       return 0;
     }
   }
-  
+
   /**
    * Describe every cross-session store.
    * @param {string} cwd
@@ -27130,7 +27199,7 @@ __factories["./src/session/memory-inspect"] = function(module, exports) {
       };
     });
   }
-  
+
   /**
    * Delete one clearable store (or 'all' clearable stores).
    * @param {string} cwd
@@ -27150,7 +27219,7 @@ __factories["./src/session/memory-inspect"] = function(module, exports) {
     }
     return removed;
   }
-  
+
   module.exports = { inspectMemory, clearMemory, STORES, CLEARABLE };
   
 };
@@ -27179,12 +27248,12 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
    * Deterministic, offline, zero dependencies. Reuses the ranker's tokenizer so
    * notes and queries are tokenized the same way the index is.
    */
-  
+
   const { tokenize } = __require('./src/retrieval/bm25');
-  
+
   /** Most recent notes considered for a single query. */
   const MAX_NOTES = 20;
-  
+
   /**
    * Minimum share of a note's tokens that must also appear in the query.
    *
@@ -27193,7 +27262,7 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
    * into unrelated queries.
    */
   const RELEVANCE_FLOOR = 0.2;
-  
+
   /**
    * Share of the query's own top score granted to a file a relevant note names.
    *
@@ -27209,10 +27278,10 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
    * `max(top, 1)` floor keeps that case working when every score is 0.
    */
   const NOTE_BOOST = 0.5;
-  
+
   /** Path-shaped tokens inside a note, e.g. `src/security/patterns.js`. */
   const PATH_RE = /\b[\w.@-]+(?:\/[\w.@-]+)+\.[A-Za-z0-9]+\b/g;
-  
+
   /**
    * Overlap between a note and a query, as a share of the note's own tokens.
    *
@@ -27228,12 +27297,12 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
     for (const t of noteTokens) if (queryTokens.has(t)) hits++;
     return Math.round((hits / noteTokens.length) * 1000) / 1000;
   }
-  
+
   /** Repo-relative paths a note mentions. */
   function pathsIn(noteText) {
     return [...new Set(String(noteText || '').match(PATH_RE) || [])];
   }
-  
+
   /**
    * Select the notes relevant to a query.
    *
@@ -27246,7 +27315,7 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
     if (!Array.isArray(notes) || notes.length === 0 || !query) return [];
     const queryTokens = new Set(tokenize(query));
     if (queryTokens.size === 0) return [];
-  
+
     const recent = notes.slice(-MAX_NOTES);
     const scored = [];
     for (const n of recent) {
@@ -27265,7 +27334,7 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
     scored.sort((a, b) => b.score - a.score || String(b.ts).localeCompare(String(a.ts)) || a.text.localeCompare(b.text));
     return scored;
   }
-  
+
   /**
    * Re-order ranked results so files named by a relevant note rise.
    *
@@ -27279,11 +27348,11 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
   function applyNoteBoost(ranked, relevantNotes) {
     if (!Array.isArray(ranked) || ranked.length === 0) return ranked;
     if (!Array.isArray(relevantNotes) || relevantNotes.length === 0) return ranked;
-  
+
     const named = new Set();
     for (const n of relevantNotes) for (const p of n.paths || []) named.add(p.replace(/^\.\//, ''));
     if (named.size === 0) return ranked;
-  
+
     const matches = (file) => {
       const f = String(file).replace(/\\/g, '/');
       for (const p of named) {
@@ -27291,7 +27360,7 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
       }
       return false;
     };
-  
+
     // Best note relevance per named path, so a strongly-matching note lifts more
     // than a marginal one.
     const weightFor = (file) => {
@@ -27307,10 +27376,10 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
       }
       return best;
     };
-  
+
     const top = ranked.reduce((m, r) => (typeof r.score === 'number' && r.score > m ? r.score : m), 0);
     const scale = Math.max(top, 1);
-  
+
     const out = ranked.map((r) => {
       if (!matches(r.file)) return r;
       const gain = scale * NOTE_BOOST * weightFor(r.file);
@@ -27322,7 +27391,7 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
     out.sort((a, b) => b.score - a.score || String(a.file).localeCompare(String(b.file)));
     return out;
   }
-  
+
   /** Render relevant notes as a `## Notes` context section, or '' when there are none. */
   function formatNotesSection(relevantNotes) {
     if (!Array.isArray(relevantNotes) || relevantNotes.length === 0) return '';
@@ -27335,7 +27404,7 @@ __factories["./src/session/note-relevance"] = function(module, exports) {
     lines.push('');
     return lines.join('\n');
   }
-  
+
   module.exports = {
     selectRelevant,
     applyNoteBoost,
@@ -27364,22 +27433,22 @@ __factories["./src/session/notes"] = function(module, exports) {
    * commands. Complements `src/session/memory.js` (ranking session) rather than
    * duplicating it.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { tryGit } = __require('./src/util/git');
-  
+
   const NOTES_FILE = path.join('.context', 'notes.ndjson');
   const MAX_TEXT = 2000;
-  
+
   function notesPath(cwd) {
     return path.join(cwd, NOTES_FILE);
   }
-  
+
   function _currentBranch(cwd) {
     return tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }) || null;
   }
-  
+
   /**
    * Append a note. Returns the stored entry.
    * @param {string} cwd
@@ -27402,7 +27471,7 @@ __factories["./src/session/notes"] = function(module, exports) {
     fs.appendFileSync(p, JSON.stringify(entry) + '\n');
     return entry;
   }
-  
+
   /**
    * Read notes in chronological order (oldest first).
    * @param {string} cwd
@@ -27422,7 +27491,7 @@ __factories["./src/session/notes"] = function(module, exports) {
     if (limit > 0 && out.length > limit) return out.slice(out.length - limit);
     return out;
   }
-  
+
   /** Format notes as a Markdown list (pass already-ordered notes). */
   function formatNotes(notes) {
     if (!notes || !notes.length) {
@@ -27435,13 +27504,13 @@ __factories["./src/session/notes"] = function(module, exports) {
       return `- [${when}${br}]${tag} ${n.text}`;
     }).join('\n');
   }
-  
+
   /** Delete the notes log. Returns true if a file was removed. */
   function clearNotes(cwd) {
     try { fs.unlinkSync(notesPath(cwd)); return true; }
     catch (_) { return false; }
   }
-  
+
   module.exports = { notesPath, addNote, readNotes, formatNotes, clearNotes };
   
 };
@@ -27460,14 +27529,14 @@ __factories["./src/skills/skills"] = function(module, exports) {
    * marker, since the codex adapter preserves content above it and replaces
    * everything below. Idempotent; human content is never touched.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const START = '<!-- sigmap-skills:start -->';
   const END = '<!-- sigmap-skills:end -->';
   const SIGNATURES_MARKER = '## Auto-generated signatures';
-  
+
   const SKILLS = {
     'sigmap-usage-maximizer': {
       title: 'SigMap usage maximizer',
@@ -27514,7 +27583,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
       ].join('\n'),
     },
   };
-  
+
   // Client registry — parent = artifact whose presence means "user uses this
   // client" (the `--setup` only-touch-existing rule for plain `skills install`).
   const SKILL_CLIENTS = {
@@ -27531,12 +27600,12 @@ __factories["./src/skills/skills"] = function(module, exports) {
     codex:    { label: 'Codex CLI (AGENTS.md)', parent: ['AGENTS.md'],
                 target: (cwd) => path.join(cwd, 'AGENTS.md'), inject: true },
   };
-  
+
   function _footer(version) {
     const ver = version ? ` v${version}` : '';
     return `<sub>Generated by SigMap${ver} · run \`sigmap skills install\` to refresh.</sub>`;
   }
-  
+
   /** Render one skill's client-specific file content. */
   function renderSkill(client, skillName, version) {
     const skill = SKILLS[skillName];
@@ -27556,7 +27625,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
     }
     return body; // windsurf: plain markdown
   }
-  
+
   /** Render the combined AGENTS.md block (both skills, marker-delimited). */
   function renderAgentsBlock(version) {
     const parts = [START, '## SigMap agent skills', ''];
@@ -27566,7 +27635,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
     parts.push(_footer(version), END);
     return parts.join('\n');
   }
-  
+
   /**
    * Inject (or replace) the skills block in AGENTS.md content.
    * A new block is inserted ABOVE the `## Auto-generated signatures` marker —
@@ -27589,7 +27658,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
     if (src.trim() === '') return block + '\n';
     return src + (src.endsWith('\n') ? '\n' : '\n\n') + block + '\n';
   }
-  
+
   function _writeIfChanged(filePath, content) {
     if (fs.existsSync(filePath)) {
       const existing = fs.readFileSync(filePath, 'utf8');
@@ -27601,7 +27670,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
     fs.writeFileSync(filePath, content);
     return 'installed';
   }
-  
+
   /**
    * Install both skills for one client.
    * @returns {{ client, label, results: Array<{skill, path, status}> }}
@@ -27613,7 +27682,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
     const cwd = opts.cwd || process.cwd();
     const version = opts.version || null;
     const results = [];
-  
+
     if (spec.inject) {
       const filePath = spec.target(cwd);
       const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
@@ -27630,13 +27699,13 @@ __factories["./src/skills/skills"] = function(module, exports) {
     }
     return { client, label: spec.label, results };
   }
-  
+
   /** True when the client's parent artifact exists (plain-install eligibility). */
   function clientPresent(client, cwd) {
     const spec = SKILL_CLIENTS[client];
     return !!spec && fs.existsSync(path.join(cwd, ...spec.parent));
   }
-  
+
   /** List clients with target paths, presence, and installed state. */
   function listSkillClients(opts = {}) {
     const cwd = opts.cwd || process.cwd();
@@ -27651,7 +27720,7 @@ __factories["./src/skills/skills"] = function(module, exports) {
       return { client, label: spec.label, present: clientPresent(client, cwd), installed, targets };
     });
   }
-  
+
   module.exports = { SKILLS, SKILL_CLIENTS, renderSkill, renderAgentsBlock, injectSkillsBlock, installSkills, listSkillClients, clientPresent, START, END };
   
 };
@@ -27667,16 +27736,16 @@ __factories["./src/squeeze/cilog"] = function(module, exports) {
    * no errors it falls back to a head/tail summary. Also reused by the stacktrace
    * squeezer to clean noise surrounding a trace.
    */
-  
+
   const TS_PREFIX_RE = /^\s*(?:\[?\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?Z?\]?\s*|\[?\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?\]?\s*)+/;
   const PROGRESS_LINE_RE = /(?:^|\s)(?:\d{1,3}%|Downloading|Receiving objects|Resolving deltas|Compressing objects|npm (?:WARN|notice|http|sill|verb)|##\[(?:group|endgroup|command|section)\]|\[\d+\/\d+\]|ETA[: ]|█|━|▕|⣿)/;
   const ERROR_RE = /\b(?:error|err!|fail(?:ed|ure)?|exception|panic|fatal|traceback|ERR_|E[A-Z]{3,})\b|✗|❌/i;
-  
+
   /** Remove a leading timestamp prefix from a single line. */
   function stripTimestamp(line) {
     return line.replace(TS_PREFIX_RE, '');
   }
-  
+
   /**
    * @param {string} input
    * @param {object} [opts]
@@ -27688,14 +27757,14 @@ __factories["./src/squeeze/cilog"] = function(module, exports) {
     const lines = input.split('\n');
     const keep = new Set();
     const errorIdx = [];
-  
+
     for (let i = 0; i < lines.length; i++) {
       if (ERROR_RE.test(lines[i])) {
         errorIdx.push(i);
         for (let j = Math.max(0, i - ctx); j <= Math.min(lines.length - 1, i + ctx); j++) keep.add(j);
       }
     }
-  
+
     let body;
     let keptDesc;
     if (errorIdx.length === 0) {
@@ -27719,14 +27788,14 @@ __factories["./src/squeeze/cilog"] = function(module, exports) {
       if (body.length === 0) body = errorIdx.map((i) => stripTimestamp(lines[i])); // safety net
       keptDesc = [`${errorIdx.length} error line(s) + ${ctx}-line context`];
     }
-  
+
     return {
       squeezed: body.join('\n'),
       kept: keptDesc,
       stripped: [`${Math.max(0, lines.length - body.length)} timestamp/progress/noise line(s)`],
     };
   }
-  
+
   module.exports = { squeezeCiLog, stripTimestamp, ERROR_RE };
   
 };
@@ -27744,7 +27813,7 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
    * Order matters: stack traces are highest value and a CI log often *contains*
    * a trace, so stacktrace is checked first, then cilog, then json.
    */
-  
+
   const FRAME_RE = [
     /^\s*at\s+.+\(.+:\d+:\d+\)\s*$/,          // JS: at fn (file:line:col)
     /^\s*at\s+.+:\d+:\d+\s*$/,                 // JS: at file:line:col
@@ -27753,7 +27822,7 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
     /^\s+\w+.*\([^)]*\.(go|rs):\d+\)/,         // Go/Rust frame with file:line
     /^\s*#\d+\s+0x[0-9a-f]+/,                  // native/gdb frame
   ];
-  
+
   const STACK_HEADER_RE = [
     /Traceback \(most recent call last\)/,
     /Exception in thread/,
@@ -27762,7 +27831,7 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
     /^panic:/m,
     /goroutine \d+ \[/,
   ];
-  
+
   function countFrames(lines) {
     let n = 0;
     for (const line of lines) {
@@ -27770,7 +27839,7 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
     }
     return n;
   }
-  
+
   function matchesStackTrace(input, lines) {
     const frames = countFrames(lines);
     const header = STACK_HEADER_RE.some((re) => re.test(input));
@@ -27782,10 +27851,10 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
     if (header) confidence = Math.max(confidence, 0.6 + Math.min(0.3, 0.05 * frames));
     return { match: true, confidence: Number(confidence.toFixed(2)), frames };
   }
-  
+
   const TS_RE = /(\b\d{1,2}:\d{2}:\d{2}\b)|(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/;
   const PROGRESS_RE = /(\d{1,3}%)|(\bDownloading\b)|(\bnpm (WARN|notice|http)\b)|(##\[(group|endgroup|command)\])|(\[\d+\/\d+\])|(▕|█|━|⠿)|(\bETA\b)|(\r$)/;
-  
+
   function matchesCiLog(input, lines) {
     if (lines.length < 8) return { match: false, confidence: 0 };
     let logish = 0;
@@ -27806,7 +27875,7 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
     const confidence = Math.min(0.95, Math.max(density, repeatRatio) + 0.15);
     return { match: true, confidence: Number(confidence.toFixed(2)) };
   }
-  
+
   function matchesJsonPayload(input) {
     const trimmed = input.trim();
     if (/^[[{]/.test(trimmed)) {
@@ -27825,7 +27894,7 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
     if (ratio < 0.6) return { match: false, confidence: 0 };
     return { match: true, confidence: Number(Math.min(0.9, ratio).toFixed(2)) };
   }
-  
+
   /**
    * @param {string} input
    * @returns {{ category: 'stacktrace'|'cilog'|'json'|null, confidence: number }}
@@ -27833,19 +27902,19 @@ __factories["./src/squeeze/classify"] = function(module, exports) {
   function classify(input) {
     if (typeof input !== 'string' || !input.trim()) return { category: null, confidence: 0 };
     const lines = input.split('\n');
-  
+
     const st = matchesStackTrace(input, lines);
     if (st.match) return { category: 'stacktrace', confidence: st.confidence };
-  
+
     const ci = matchesCiLog(input, lines);
     if (ci.match) return { category: 'cilog', confidence: ci.confidence };
-  
+
     const js = matchesJsonPayload(input);
     if (js.match) return { category: 'json', confidence: js.confidence };
-  
+
     return { category: null, confidence: 0 };
   }
-  
+
   module.exports = { classify, countFrames };
   
 };
@@ -27861,14 +27930,14 @@ __factories["./src/squeeze/index"] = function(module, exports) {
    * Everything is deterministic and offline; the symbol index for stack-trace
    * enrichment is passed through via `opts.symbolIndex`.
    */
-  
+
   const { classify } = __require('./src/squeeze/classify');
   const { squeezeStackTrace } = __require('./src/squeeze/stacktrace');
   const { squeezeCiLog } = __require('./src/squeeze/cilog');
   const { squeezeJsonPayload } = __require('./src/squeeze/jsonpayload');
-  
+
   function estimateTokens(s) { return Math.ceil(String(s || '').length / 4); }
-  
+
   /**
    * @param {string} input
    * @param {object} [opts]  forwarded to the category squeezer (srcDirs, symbolIndex, …)
@@ -27883,12 +27952,12 @@ __factories["./src/squeeze/index"] = function(module, exports) {
       kept: [], stripped: [], enriched: false, applies: false,
     };
     if (!category) return base;
-  
+
     let r;
     if (category === 'stacktrace') r = squeezeStackTrace(input, opts);
     else if (category === 'cilog') r = squeezeCiLog(input, opts);
     else r = squeezeJsonPayload(input, opts);
-  
+
     const squeezedTokens = estimateTokens(r.squeezed);
     const reduction = rawTokens > 0 ? (rawTokens - squeezedTokens) / rawTokens : 0;
     return {
@@ -27900,13 +27969,13 @@ __factories["./src/squeeze/index"] = function(module, exports) {
       applies: squeezedTokens < rawTokens,
     };
   }
-  
+
   /** True when the reduction clears the threshold (accepts 0–1 or 0–100). */
   function shouldPrompt(reduction, threshold) {
     const t = threshold > 1 ? threshold / 100 : threshold;
     return reduction >= t;
   }
-  
+
   /** A compact human summary of what squeeze would do (for the prompt). */
   function formatSummary(result) {
     const pct = Math.round(result.reduction * 100);
@@ -27918,7 +27987,7 @@ __factories["./src/squeeze/index"] = function(module, exports) {
     for (const s of result.stripped) lines.push(`  ✗ Stripped: ${s}`);
     return lines.join('\n');
   }
-  
+
   module.exports = { squeeze, shouldPrompt, formatSummary, estimateTokens };
   
 };
@@ -27933,10 +28002,10 @@ __factories["./src/squeeze/jsonpayload"] = function(module, exports) {
    * preserves the schema shape at every depth — so an LLM still sees the
    * structure of an API/GraphQL/validation error without the bulk.
    */
-  
+
   const MAX_STR = 500;
   const ARRAY_KEEP = 2;
-  
+
   function squeezeValue(v, opts) {
     const maxStr = opts.maxStr;
     const keep = opts.arrayKeep;
@@ -27956,7 +28025,7 @@ __factories["./src/squeeze/jsonpayload"] = function(module, exports) {
     }
     return v;
   }
-  
+
   /**
    * @param {string} input
    * @param {object} [opts]
@@ -27976,7 +28045,7 @@ __factories["./src/squeeze/jsonpayload"] = function(module, exports) {
       stripped: ['collapsed repeated array items; truncated long string values'],
     };
   }
-  
+
   module.exports = { squeezeJsonPayload, squeezeValue };
   
 };
@@ -27995,11 +28064,11 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
    * Pure/deterministic. The symbol index is injected via `opts.symbolIndex` so
    * the module is unit-testable without touching the filesystem.
    */
-  
+
   const path = require('path');
-  
+
   const VENDOR_RE = /(?:^|[\\/])(?:node_modules|vendor|site-packages|dist|build|\.venv|venv|third_party|external|\.cargo|go\/pkg\/mod)[\\/]/;
-  
+
   /** Parse a frame line across JS/TS, Python, Java/Kotlin, Go, Rust, native. */
   function parseFrame(line) {
     let m;
@@ -28010,9 +28079,9 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
     if ((m = line.match(/^\s*(.+\.(?:go|rs)):(\d+)/))) return { fn: '', file: m[1], line: +m[2], raw: line };
     return null;
   }
-  
+
   function isVendor(file) { return VENDOR_RE.test(String(file).replace(/\\/g, '/')); }
-  
+
   function inSrcDirs(file, srcDirs) {
     const f = String(file).replace(/\\/g, '/');
     return srcDirs.some((d) => {
@@ -28020,7 +28089,7 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
       return dd && (f === dd || f.startsWith(dd + '/') || f.includes('/' + dd + '/'));
     });
   }
-  
+
   /** Look up the real signature for a frame in the SigMap symbol index. */
   function enrichFrame(frame, symbolIndex) {
     if (!symbolIndex || !frame) return null;
@@ -28048,7 +28117,7 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
     const sig = byLine || byName;
     return sig ? { file: key, sig: sig.replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim() } : null;
   }
-  
+
   /**
    * @param {string} input
    * @param {object} [opts]
@@ -28061,7 +28130,7 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
     const srcDirs = (opts.srcDirs && opts.srcDirs.length) ? opts.srcDirs : ['src'];
     const maxFrames = opts.maxFrames != null ? opts.maxFrames : 8;
     const lines = input.split('\n');
-  
+
     const headerCount = new Map();
     const headerOrder = [];
     const frames = [];
@@ -28073,7 +28142,7 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
       if (!headerCount.has(t)) headerOrder.push(t);
       headerCount.set(t, (headerCount.get(t) || 0) + 1);
     }
-  
+
     const seen = new Set();
     let dupFrames = 0;
     const nonVendor = [];
@@ -28087,13 +28156,13 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
       nonVendor.push(f);
       if (inSrcDirs(f.file, srcDirs)) sourceFrames.push(f);
     }
-  
+
     // Prefer source frames; never return empty (fall back to top non-vendor, then raw).
     const shown = sourceFrames.length ? sourceFrames.slice(0, maxFrames)
       : (nonVendor.length ? nonVendor.slice(0, 3) : frames.slice(0, 3));
-  
+
     const enrichment = shown.length ? enrichFrame(shown[0], opts.symbolIndex) : null;
-  
+
     const out = [];
     for (const h of headerOrder) {
       const n = headerCount.get(h);
@@ -28103,7 +28172,7 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
       out.push('    ' + shown[i].raw.trim());
       if (i === 0 && enrichment) out.push(`      ↳ ${enrichment.sig}   [${enrichment.file}]`);
     }
-  
+
     return {
       squeezed: out.join('\n'),
       kept: [
@@ -28115,7 +28184,7 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
       enriched: !!enrichment,
     };
   }
-  
+
   module.exports = { squeezeStackTrace, parseFrame, isVendor, inSrcDirs, enrichFrame };
   
 };
@@ -28136,11 +28205,11 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
    * "saved" is a counterfactual estimate (baseline − actual), never a measured
    * delta. Callers are responsible for labeling it as such in the UI.
    */
-  
+
   const { resolvePrice } = __require('./src/tracking/pricing');
-  
+
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-  
+
   /**
    * Normalize one raw record into a canonical shape.
    * @param {object} rec
@@ -28165,17 +28234,17 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
       model: rec.model || null,
     };
   }
-  
+
   function normalizeOp(op) {
     if (!op) return 'generate';
     return String(op);
   }
-  
+
   function num(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   }
-  
+
   /**
    * Parse a --since value into a cutoff Date (or null for "all time").
    * Accepts: "7d", "30d", "12h", or an ISO date "2026-06-01".
@@ -28196,7 +28265,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
     const d = new Date(since);
     return Number.isNaN(d.getTime()) ? null : d;
   }
-  
+
   /**
    * Bucket records by calendar granularity.
    * @param {object[]} records - normalized records
@@ -28221,7 +28290,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
       .map((b) => ({ ...b, savedPct: b.baseline > 0 ? clamp((b.saved / b.baseline) * 100, 0, 100) : 0 }))
       .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   }
-  
+
   function bucketKey(ts, granularity) {
     const d = new Date(ts);
     if (Number.isNaN(d.getTime())) return null;
@@ -28238,7 +28307,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
     }
     return `${y}-${m}-${day}`;
   }
-  
+
   /**
    * Full aggregation for the `gain` dashboard.
    * @param {object[]} rawRecords
@@ -28252,10 +28321,10 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
   function aggregate(rawRecords, opts = {}) {
     const price = resolvePrice(opts.model);
     const cutoff = parseSince(opts.since, opts.nowMs);
-  
+
     let records = (rawRecords || []).map(normalize);
     if (cutoff) records = records.filter((r) => r.ts && new Date(r.ts) >= cutoff);
-  
+
     const totals = {
       count: records.length,
       baseline: 0,
@@ -28268,7 +28337,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
       firstTs: null,
       lastTs: null,
     };
-  
+
     const opMap = new Map();
     for (const r of records) {
       totals.baseline += r.baseline;
@@ -28286,11 +28355,11 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
       o.saved += r.saved;
       o.ms += r.durationMs;
     }
-  
+
     totals.savedPct = totals.baseline > 0 ? clamp((totals.saved / totals.baseline) * 100, 0, 100) : 0;
     totals.avgMs = totals.count > 0 ? Math.round(totals.totalMs / totals.count) : 0;
     totals.usdSaved = totals.saved * price.perToken;
-  
+
     let byOp = [...opMap.values()].map((o) => ({
       op: o.op,
       count: o.count,
@@ -28300,9 +28369,9 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
       usdSaved: o.saved * price.perToken,
       sharePct: totals.saved > 0 ? (o.saved / totals.saved) * 100 : 0,
     })).sort((a, b) => b.saved - a.saved);
-  
+
     if (opts.top && opts.top > 0) byOp = byOp.slice(0, opts.top);
-  
+
     return {
       price,
       totals,
@@ -28314,7 +28383,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
       },
     };
   }
-  
+
   module.exports = { aggregate, bucketBy, parseSince, normalize };
   
 };
@@ -28337,24 +28406,24 @@ __factories["./src/tracking/budget"] = function(module, exports) {
    *
    * Zero dependencies; local JSON only.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { readGainLog } = __require('./src/tracking/logger');
-  
+
   // Same generated-context surfaces cache/freshen.js watches.
   const CONTEXT_PATHS = [
     ['.github', 'copilot-instructions.md'],
     ['CLAUDE.md'], ['AGENTS.md'], ['.github', 'context-cold.md'],
   ];
-  
+
   /** Session key: SIGMAP_SESSION override, else UTC day bucket. */
   function sessionKey(env) {
     const e = env || process.env;
     if (e.SIGMAP_SESSION) return String(e.SIGMAP_SESSION);
     return new Date().toISOString().slice(0, 10);
   }
-  
+
   /** Newest mtime (ms) among generated context files, or 0 if none exist. */
   function contextMtime(cwd) {
     let newest = 0;
@@ -28363,14 +28432,14 @@ __factories["./src/tracking/budget"] = function(module, exports) {
     }
     return newest;
   }
-  
+
   /** Does a gain-log entry belong to this session? */
   function entryInSession(entry, session) {
     if (entry.session) return entry.session === session;
     // Legacy entry: match day-bucket sessions on the timestamp date.
     return /^\d{4}-\d{2}-\d{2}$/.test(session) && String(entry.ts || '').startsWith(session);
   }
-  
+
   /**
    * Session spend status.
    * @param {string} cwd
@@ -28397,7 +28466,7 @@ __factories["./src/tracking/budget"] = function(module, exports) {
     const ttlDays = opts.contextTtlDays != null ? Number(opts.contextTtlDays)
       : (Number.isFinite(cfg.contextTtlDays) ? cfg.contextTtlDays : null);
     const now = opts.now != null ? opts.now : Date.now();
-  
+
     let ops = 0, spent = 0, baseline = 0, saved = 0;
     for (const e of readGainLog(cwd)) {
       if (!entryInSession(e, session)) continue;
@@ -28406,11 +28475,11 @@ __factories["./src/tracking/budget"] = function(module, exports) {
       baseline += Number(e.baselineTokens) || 0;
       saved += Number(e.savedTokens) || 0;
     }
-  
+
     const mtime = contextMtime(cwd);
     const ageMs = mtime > 0 ? Math.max(0, now - mtime) : null;
     const ageDays = ageMs != null ? ageMs / 86400000 : null;
-  
+
     return {
       session,
       unit: 'estimated-tokens',
@@ -28431,7 +28500,7 @@ __factories["./src/tracking/budget"] = function(module, exports) {
       },
     };
   }
-  
+
   module.exports = { sessionKey, budgetStatus, contextMtime, entryInSession };
   
 };
@@ -28452,15 +28521,15 @@ __factories["./src/tracking/logger"] = function(module, exports) {
    *   config.tracking: true   (gen-context.config.json)
    *   --track CLI flag
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const LOG_FILE = path.join('.context', 'usage.ndjson');
   // Dedicated log for the `gain` dashboard (extended schema). Kept separate from
   // usage.ndjson so the legacy health/nudge history never collides with it.
   const GAIN_FILE = path.join('.context', 'gain.ndjson');
-  
+
   /**
    * Append one run entry to the usage log.
    * @param {object} entry - Run metrics from runGenerate()
@@ -28471,7 +28540,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
       const logPath = path.join(cwd, LOG_FILE);
       const dir = path.dirname(logPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  
+
       const record = {
         ts: new Date().toISOString(),
         version: entry.version || '0.9.0',
@@ -28485,14 +28554,14 @@ __factories["./src/tracking/logger"] = function(module, exports) {
         overBudget: entry.overBudget || false,
         budgetLimit: entry.budgetLimit || 6000,
       };
-  
+
       fs.appendFileSync(logPath, JSON.stringify(record) + '\n', 'utf8');
     } catch (err) {
       // Never crash the main process — tracking is optional
       process.stderr.write(`[sigmap] tracking: could not write log: ${err.message}\n`);
     }
   }
-  
+
   /**
    * Read and parse all usage log entries.
    * @param {string} cwd - Project root (absolute path)
@@ -28514,7 +28583,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
       return [];
     }
   }
-  
+
   /**
    * Read and parse all `gain` dashboard records (oldest first).
    * @param {string} cwd
@@ -28533,7 +28602,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
       return [];
     }
   }
-  
+
   /**
    * Compute summary statistics from an array of log records.
    * @param {object[]} entries
@@ -28553,13 +28622,13 @@ __factories["./src/tracking/logger"] = function(module, exports) {
         overBudgetRuns: 0,
       };
     }
-  
+
     const reductions = entries.map((e) => e.reductionPct || 0);
     const finals = entries.map((e) => e.finalTokens || 0);
     const raws = entries.map((e) => e.rawTokens || 0);
-  
+
     const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
-  
+
     return {
       totalRuns: entries.length,
       avgReductionPct: parseFloat(avg(reductions).toFixed(1)),
@@ -28572,7 +28641,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
       overBudgetRuns: entries.filter((e) => e.overBudget).length,
     };
   }
-  
+
   /**
    * Whether `gain` savings capture is enabled. Default: ON (privacy-safe,
    * local-only, counts only — no paths, source, or query text). This is
@@ -28590,7 +28659,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
     if (config && config.gainTracking === false) return false;
     return true;
   }
-  
+
   /**
    * Append one operation to the usage log using the extended `gain` schema.
    * Reuses the same NDJSON file as logRun and is tolerant of partial input.
@@ -28610,7 +28679,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
       const logPath = path.join(cwd, GAIN_FILE);
       const dir = path.dirname(logPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  
+
       const baseline = Math.max(0, Number(entry.baselineTokens) || 0);
       const actual = Math.max(0, Number(entry.actualTokens) || 0);
       const saved = Math.max(0, baseline - actual);
@@ -28634,7 +28703,7 @@ __factories["./src/tracking/logger"] = function(module, exports) {
       if (process.stderr) process.stderr.write(`[sigmap] tracking: could not write log: ${err.message}\n`);
     }
   }
-  
+
   module.exports = { logRun, recordUsage, readLog, readGainLog, summarize, isTrackingEnabled, GAIN_FILE };
   
 };
@@ -28651,7 +28720,7 @@ __factories["./src/tracking/pricing"] = function(module, exports) {
    * The `gain` views always print the model + rate inline so the $ is never
    * presented as exact. Zero npm dependencies.
    */
-  
+
   // USD per 1,000,000 input tokens. Claude rates verified 2026-07 against
   // platform.claude.com (Opus 4.8 $5, Sonnet 5/4.6 $3, Haiku 4.5 $1); GPT-4o $2.50.
   const PRICES = {
@@ -28665,9 +28734,9 @@ __factories["./src/tracking/pricing"] = function(module, exports) {
     'minimax-m3': 0.6,
     'minimax-m2.7': 0.3,
   };
-  
+
   const DEFAULT_MODEL = 'claude-sonnet';
-  
+
   /**
    * Resolve a price (USD per token) for a model name.
    *
@@ -28693,12 +28762,12 @@ __factories["./src/tracking/pricing"] = function(module, exports) {
       fallback: !known && requested !== '',
     };
   }
-  
+
   /** @returns {string[]} known model keys */
   function listModels() {
     return Object.keys(PRICES);
   }
-  
+
   module.exports = { PRICES, DEFAULT_MODEL, resolvePrice, listModels };
   
 };
@@ -28729,13 +28798,13 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
    * record shape and reports which contributed, so a caller can label what it is
    * showing rather than implying a population it does not have.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const USAGE_FILE = path.join('.context', 'usage.ndjson');
   const GAIN_FILE  = path.join('.context', 'gain.ndjson');
-  
+
   function readNdjson(file) {
     try {
       if (!fs.existsSync(file)) return [];
@@ -28746,7 +28815,7 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
         .filter(Boolean);
     } catch (_) { return []; }
   }
-  
+
   /**
    * Normalised run record. Only `generate` operations are runs — `gain` also
    * records `ask` queries, which are a different population and must not be
@@ -28758,7 +28827,7 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
    */
   function readRuns(cwd) {
     const out = [];
-  
+
     for (const e of readNdjson(path.join(cwd, USAGE_FILE))) {
       if (!e || typeof e.rawTokens !== 'number') continue;
       out.push({
@@ -28773,7 +28842,7 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
         source: 'usage',
       });
     }
-  
+
     for (const e of readNdjson(path.join(cwd, GAIN_FILE))) {
       if (!e || e.op !== 'generate' || typeof e.baselineTokens !== 'number') continue;
       out.push({
@@ -28785,7 +28854,7 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
         source: 'gain',
       });
     }
-  
+
     // A run logged to both stores appears twice; the timestamps are written in
     // the same call, so dedupe on the second.
     const seen = new Set();
@@ -28798,7 +28867,7 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
       })
       .sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
   }
-  
+
   /** Which stores actually hold data, for labelling the window a figure covers. */
   function describeSource(cwd) {
     const tracked = readNdjson(path.join(cwd, USAGE_FILE)).length;
@@ -28809,7 +28878,7 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
       stores: [tracked ? 'usage.ndjson' : null, gain ? 'gain.ndjson' : null].filter(Boolean),
     };
   }
-  
+
   /** Task-weighted reduction over the given runs, with the baseline named. */
   function summarizeRuns(runs) {
     if (!runs || runs.length === 0) {
@@ -28824,7 +28893,7 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
       rawTokens, finalTokens,
     };
   }
-  
+
   module.exports = { readRuns, describeSource, summarizeRuns, USAGE_FILE, GAIN_FILE };
   
 };
@@ -28850,12 +28919,12 @@ __factories["./src/util/file-class"] = function(module, exports) {
    * Zero dependencies. Pure string predicates — no fs access, so both the
    * bundled CLI core and every `src/` module can share them.
    */
-  
+
   /** Normalise to forward slashes so Windows paths classify identically. */
   function _norm(filePath) {
     return String(filePath || '').replace(/\\/g, '/');
   }
-  
+
   /**
    * Test files, across every convention the extractors support.
    *
@@ -28872,10 +28941,11 @@ __factories["./src/util/file-class"] = function(module, exports) {
     const p = _norm(filePath);
     if (/\.(test|spec)\.[a-z]+$/.test(p) || /_test\.[a-z]+$/.test(p)) return true;
     if (/(^|\/)test_[^/]+\.[a-z]+$/.test(p)) return true;
-    if (/[a-z0-9.](Test|Spec)s?\.(java|kt|kts|scala|groovy|cs|swift|ps1)$/.test(p)) return true;
+    if (/[a-z0-9](Test|Spec)s?\.(java|kt|kts|scala|groovy|cs|swift)$/.test(p)) return true;
+    if (/\.(Tests?|Specs?)\.ps1$/i.test(p)) return true;
     return /(^|\/)(test|tests|spec|specs|__tests__|e2e)(\/|$)/i.test(p);
   }
-  
+
   /** Mocks, stubs, fakes and fixtures — test scaffolding, not behaviour. */
   function isMockFile(filePath) {
     const p = _norm(filePath);
@@ -28884,17 +28954,17 @@ __factories["./src/util/file-class"] = function(module, exports) {
       /mock\.(ts|js|tsx|jsx)$/.test(p) ||
       /_mock\.[a-z]+$/i.test(p);
   }
-  
+
   /** Machine-emitted sources. */
   function isGeneratedFile(filePath) {
     return /(\.generated\.|\.pb\.|_pb\.)/.test(_norm(filePath));
   }
-  
+
   /** Build output and vendored trees. */
   function isGeneratedDir(filePath) {
     return /(^|\/)(dist|build|\.next|\.nuxt|out|\.venv|venv|vendor|target)(\/|$)/i.test(_norm(filePath));
   }
-  
+
   /**
    * Prose documentation.
    *
@@ -28914,7 +28984,7 @@ __factories["./src/util/file-class"] = function(module, exports) {
     const base = p.slice(p.lastIndexOf('/') + 1);
     return /^(README|CHANGELOG|CHANGES|CONTRIBUTING|CODE_OF_CONDUCT|SECURITY|LICENCE|LICENSE|AUTHORS|NOTICE|HISTORY|UPGRADING|MIGRATING|MAINTAINERS|GOVERNANCE)(\.[a-z]+)?$/i.test(base);
   }
-  
+
   /**
    * CI / pipeline definitions.
    *
@@ -28931,7 +29001,7 @@ __factories["./src/util/file-class"] = function(module, exports) {
     const base = p.slice(p.lastIndexOf('/') + 1);
     return /^(\.gitlab-ci\.ya?ml|\.travis\.ya?ml|\.drone\.ya?ml|appveyor\.ya?ml|bitbucket-pipelines\.ya?ml|azure-pipelines.*\.ya?ml|Jenkinsfile.*|cloudbuild\.ya?ml)$/i.test(base);
   }
-  
+
   module.exports = {
     isTestFile,
     isMockFile,
@@ -28957,9 +29027,9 @@ __factories["./src/util/git"] = function(module, exports) {
    *
    * stderr is discarded by default (replaces the old `2>/dev/null` redirects).
    */
-  
+
   const { execFileSync } = require('child_process');
-  
+
   function git(args, opts = {}) {
     return execFileSync('git', args, {
       encoding: 'utf8',
@@ -28967,19 +29037,19 @@ __factories["./src/util/git"] = function(module, exports) {
       ...opts,
     });
   }
-  
+
   // Convenience: run git and return trimmed stdout, or '' on any failure.
   function tryGit(args, opts = {}) {
     try { return git(args, opts).toString().trim(); }
     catch (_) { return ''; }
   }
-  
+
   /**
    * Git ref names this accepts as a diff base. Anything else is refused rather
    * than passed through, so a ref can never smuggle an option into the argv.
    */
   const REF_RE = /^[A-Za-z0-9._/\-~^]+$/;
-  
+
   /**
    * Files changed in one of the three diff modes, as repo-relative paths.
    *
@@ -29018,7 +29088,7 @@ __factories["./src/util/git"] = function(module, exports) {
     }
     return tryGit(args, { cwd }).split('\n').map((s) => s.trim()).filter(Boolean);
   }
-  
+
   module.exports = { git, tryGit, changedFiles, REF_RE };
   
 };
@@ -29037,7 +29107,7 @@ __factories["./src/util/truncate"] = function(module, exports) {
    *
    * Zero-dependency, bundle-safe.
    */
-  
+
   /**
    * Cap a string array, appending a `… +N more <label>` marker when items drop.
    * @param {string[]} items
@@ -29050,7 +29120,7 @@ __factories["./src/util/truncate"] = function(module, exports) {
     const dropped = items.length - limit;
     return items.slice(0, limit).concat(`… +${dropped} more ${label}`);
   }
-  
+
   /**
    * Cap an array of member objects ({ text, ... }), appending a marker member
    * when items drop so the class block discloses the omission.
@@ -29064,7 +29134,7 @@ __factories["./src/util/truncate"] = function(module, exports) {
     const dropped = members.length - limit;
     return members.slice(0, limit).concat({ text: `… +${dropped} more ${label}`, start: 0, end: 0 });
   }
-  
+
   module.exports = { capWithNotice, capMembersWithNotice };
   
 };
@@ -29082,23 +29152,23 @@ __factories["./src/verify/arity"] = function(module, exports) {
    * non-variadic, top-level functions from exact-param languages are checked,
    * and dotted method calls are never flagged.
    */
-  
+
   const path = require('path');
   const { maskCode, readBalanced } = __require('./src/extractors/scan');
-  
+
   // Files whose signature params are exact (JS/TS via scan.js, Python via AST,
   // Go via the balanced scanner — G4 #643). Java params are exact too (#646)
   // but `.java` is deliberately absent: Java has no top-level callables —
   // every method is an indented member and answer calls are dotted, both
   // excluded by design — so nothing from a .java file could ever be indexed.
   const EXACT_PARAM_EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.py', '.go']);
-  
+
   const CTRL_KEYWORDS = new Set([
     'if', 'for', 'while', 'switch', 'catch', 'return', 'typeof', 'await',
     'do', 'else', 'try', 'finally', 'new', 'in', 'of', 'not', 'and', 'or',
     'print', 'super', 'this',
   ]);
-  
+
   // Top-level callable sig shapes (indented member sigs are excluded on purpose
   // — method calls are dotted in answers and dotted calls are skipped anyway).
   const CALLABLE_RES = [
@@ -29109,12 +29179,12 @@ __factories["./src/verify/arity"] = function(module, exports) {
     // called dotted in answers, and dotted calls are never flagged.
     /^func\s+([A-Za-z_]\w*)\s*\(/,
   ];
-  
+
   /** Strip the `  :start-end` anchor and `  # hint` tail from a sig line. */
   function cleanSig(sig) {
     return String(sig).replace(/\s{2}#\s.*$/, '').replace(/\s*:\d+(?:-\d+)?\s*$/, '');
   }
-  
+
   /**
    * Parse a parameter-list string into an arity range.
    * Depth- and quote-aware top-level comma split; `=` defaults and trailing `?`
@@ -29137,7 +29207,7 @@ __factories["./src/verify/arity"] = function(module, exports) {
       else if (ch === ',' && depth === 0) { pieces.push({ raw: text.slice(start, i), masked: masked.slice(start, i) }); start = i + 1; }
     }
     pieces.push({ raw: text.slice(start), masked: masked.slice(start) });
-  
+
     let min = 0;
     let max = 0;
     let variadic = false;
@@ -29176,7 +29246,7 @@ __factories["./src/verify/arity"] = function(module, exports) {
     }
     return { min, max, variadic };
   }
-  
+
   /**
    * Build a per-name arity index from a SigMap signature index.
    * Only top-level callables from exact-param languages are included; a name
@@ -29214,7 +29284,7 @@ __factories["./src/verify/arity"] = function(module, exports) {
     }
     return index;
   }
-  
+
   /**
    * Extract call sites with argument counts from answer code.
    * Dotted/property calls and keyword-preceded definitions are skipped for
@@ -29258,7 +29328,7 @@ __factories["./src/verify/arity"] = function(module, exports) {
     }
     return calls;
   }
-  
+
   /**
    * Check one call against the arity index.
    * @returns {null | { min, max, variadic, file, sig }} the offended entry, or null when fine/unknowable
@@ -29270,7 +29340,7 @@ __factories["./src/verify/arity"] = function(module, exports) {
     if (argCount < entry.min || argCount > entry.max) return entry;
     return null;
   }
-  
+
   module.exports = { parseParams, buildArityIndex, extractCallArgCounts, checkArity, cleanSig, EXACT_PARAM_EXTS };
   
 };
@@ -29289,7 +29359,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
    * All inputs are passed in (symbol/file/script candidate lists) so this module
    * stays unit-testable without touching the filesystem or the SigMap index.
    */
-  
+
   /**
    * Levenshtein edit distance with an early-exit ceiling.
    * Returns `max + 1` as soon as the best achievable distance exceeds `max`,
@@ -29302,11 +29372,11 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     if (al === 0) return bl;
     if (bl === 0) return al;
     if (Math.abs(al - bl) > max) return max + 1;
-  
+
     let prev = new Array(bl + 1);
     let curr = new Array(bl + 1);
     for (let j = 0; j <= bl; j++) prev[j] = j;
-  
+
     for (let i = 1; i <= al; i++) {
       curr[0] = i;
       let rowMin = curr[0];
@@ -29323,7 +29393,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     }
     return prev[bl];
   }
-  
+
   /** Bucket a normalized edit distance into a confidence label (plan §5). */
   function suggestionConfidence(distance, targetLen) {
     const ratio = distance / Math.max(targetLen, 1);
@@ -29331,7 +29401,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     if (ratio <= 0.4) return 'medium';
     return 'low';
   }
-  
+
   /**
    * Find the nearest candidate name to `target`.
    *
@@ -29347,11 +29417,11 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     const minLen = opts.minLen != null ? opts.minLen : 3;
     if (!target || target.length < minLen) return null;
     if (!candidates || candidates.length === 0) return null;
-  
+
     const lower = target.toLowerCase();
     const cap = Math.max(1, Math.ceil(target.length * maxRatio));
     let best = null;
-  
+
     for (const c of candidates) {
       const name = typeof c === 'string' ? c : c && c.name;
       if (!name || name === target) continue;
@@ -29369,12 +29439,12 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
         if (d === 0) break; // case-only difference — can't beat it
       }
     }
-  
+
     if (!best) return null;
     best.confidence = suggestionConfidence(best.distance, target.length);
     return best;
   }
-  
+
   /**
    * File extensions whose symbols are worth suggesting.
    *
@@ -29391,7 +29461,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     '.c', '.cpp', '.h', '.hpp', '.lua', '.ex', '.exs', '.r', '.jl',
     '.sh', '.bash', '.zsh', '.ps1', '.psm1', '.psd1', '.vue', '.svelte',
   ]);
-  
+
   /**
    * Test and fixture paths, which must never source a suggestion (#777).
    *
@@ -29406,7 +29476,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     '_test\\.(?:py|go)$',
     '(?:Test|Tests|Spec|Specs)\\.(?:java|kt|scala|cs|swift)$',
   ].join('|'), 'i');
-  
+
   /** Whether a file may source a closest-match suggestion. */
   function isSuggestibleFile(file) {
     const f = String(file).replace(/\\/g, '/');
@@ -29415,7 +29485,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     if (dot < 0) return false;
     return SUGGESTIBLE_EXTS.has(f.slice(dot).toLowerCase());
   }
-  
+
   /**
    * Build `[{ name, file, line }]` symbol candidates from a SigMap signature
    * index (`Map<file, string[]>` whose entries may carry a `:start-end` anchor).
@@ -29450,7 +29520,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /** Format a suggestion object into a human one-liner for reports/CLI. */
   function formatSuggestion(match, asCall) {
     if (!match) return null;
@@ -29461,7 +29531,7 @@ __factories["./src/verify/closest-match"] = function(module, exports) {
     }
     return `Did you mean \`${sym}\`${where}?`;
   }
-  
+
   module.exports = {
     levenshtein,
     closestMatch,
@@ -29493,7 +29563,7 @@ __factories["./src/verify/globals"] = function(module, exports) {
    *
    * Zero dependencies, deterministic.
    */
-  
+
   /** ECMAScript built-ins available in every JS runtime. */
   const ES_GLOBALS = [
     'Object', 'Array', 'String', 'Number', 'Boolean', 'Symbol', 'BigInt',
@@ -29508,7 +29578,7 @@ __factories["./src/verify/globals"] = function(module, exports) {
     'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array',
     'BigInt64Array', 'BigUint64Array', 'Generator', 'AsyncGenerator',
   ];
-  
+
   /** Web/Node platform globals — available in browsers, Node, or both. */
   const WEB_GLOBALS = [
     'console', 'fetch', 'Request', 'Response', 'Headers', 'FormData',
@@ -29524,19 +29594,19 @@ __factories["./src/verify/globals"] = function(module, exports) {
     'cancelAnimationFrame', 'IntersectionObserver', 'ResizeObserver',
     'MutationObserver', 'DOMParser', 'XMLHttpRequest',
   ];
-  
+
   /** Node module-scope identifiers and globals. */
   const NODE_GLOBALS = [
     'require', 'module', 'exports', '__dirname', '__filename',
     'process', 'Buffer', 'global',
   ];
-  
+
   /** Test-runner globals — present via the runner, never defined in the repo. */
   const TEST_GLOBALS = [
     'describe', 'it', 'test', 'expect', 'beforeEach', 'afterEach',
     'beforeAll', 'afterAll', 'before', 'after', 'jest', 'vi', 'suite',
   ];
-  
+
   /** Python built-ins. */
   const PY_GLOBALS = [
     'print', 'len', 'range', 'str', 'int', 'float', 'dict', 'list', 'tuple',
@@ -29547,7 +29617,7 @@ __factories["./src/verify/globals"] = function(module, exports) {
     'next', 'any', 'all', 'callable', 'format', 'vars', 'dir', 'input',
     'staticmethod', 'classmethod', 'property', 'slice', 'complex', 'ord', 'chr',
   ];
-  
+
   const GROUPS = {
     es: ES_GLOBALS,
     web: WEB_GLOBALS,
@@ -29555,12 +29625,12 @@ __factories["./src/verify/globals"] = function(module, exports) {
     test: TEST_GLOBALS,
     python: PY_GLOBALS,
   };
-  
+
   /** Every global, flattened — the set the guard checks against. */
   const LANG_GLOBALS = new Set(
     Object.values(GROUPS).reduce((acc, g) => acc.concat(g), [])
   );
-  
+
   module.exports = { LANG_GLOBALS, GROUPS, ES_GLOBALS, WEB_GLOBALS, NODE_GLOBALS, TEST_GLOBALS, PY_GLOBALS };
   
 };
@@ -29584,19 +29654,19 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
    * LLM. Reuses SigMap primitives (buildSigIndex) but every external dependency
    * is injectable via `opts` so the core stays unit-testable.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const parsers = __require('./src/verify/parsers');
   const { closestMatch, buildSymbolCandidates, formatSuggestion } = __require('./src/verify/closest-match');
   const { buildLibraryIndex } = __require('./src/verify/lib-index');
   const { buildArityIndex, extractCallArgCounts, checkArity } = __require('./src/verify/arity');
-  
+
   // A path that looks like a test file (JS/TS spec/test, Python test_/_test, or
   // a tests/__tests__ directory). Used to flag fake-test-file separately.
   const TEST_PATH_RE = /(?:\.(?:test|spec)\.[mc]?[jt]sx?$)|(?:(?:^|\/)__tests__\/)|(?:(?:^|\/)test_[^/]+\.py$)|(?:_test\.py$)|(?:(?:^|\/)tests?\/)/i;
   function isTestPath(p) { return TEST_PATH_RE.test(p); }
-  
+
   const NODE_BUILTINS = new Set([
     'fs', 'path', 'os', 'util', 'events', 'stream', 'http', 'https', 'crypto',
     'child_process', 'url', 'querystring', 'assert', 'zlib', 'readline', 'net',
@@ -29604,22 +29674,22 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     'string_decoder', 'perf_hooks', 'worker_threads', 'cluster', 'dgram', 'v8',
     'tty', 'repl', 'async_hooks', 'inspector', 'fs/promises', 'path/posix',
   ]);
-  
+
   const PY_BUILTINS = new Set([
     'os', 'sys', 're', 'json', 'math', 'typing', 'collections', 'itertools',
     'functools', 'datetime', 'pathlib', 'subprocess', 'abc', 'dataclasses',
     'enum', 'io', 'time', 'random', 'logging', 'argparse', 'unittest', 'asyncio',
     'copy', 'hashlib', 'threading', 'string', 'csv', 'glob', 'shutil', 'tempfile',
   ]);
-  
+
   // Language globals live in ./globals as grouped data (#777). The inline list
   // this replaced stopped at `encodeURIComponent`, so `structuredClone` — a Node
   // and browser global since Node 17 — was reported as a hallucination.
   const { LANG_GLOBALS } = __require('./src/verify/globals');
-  
+
   const REL_EXTS = ['', '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs', '.json', '.py', '.r', '.R', '.vue'];
   const REL_INDEX = ['index.js', 'index.ts', 'index.tsx', 'index.jsx', '__init__.py'];
-  
+
   // Obvious documentation-placeholder imports the model writes in illustrative
   // snippets — not real dependency claims. e.g. @scope/utils, some-module, ./local-file.
   const PLACEHOLDER_IMPORT_RE = new RegExp([
@@ -29628,7 +29698,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     '(?:^|/)(?:local-file|your-file|my-file|module-name|package-name|your-package|example-package)(?:$|/)',
     '(?:^|/)path/to/', // ./path/to/x
   ].join('|'), 'i');
-  
+
   /**
    * Build the set of known symbol identifiers from the SigMap signature index,
    * plus `{ name, file, line }` candidates (for closest-match suggestions).
@@ -29654,7 +29724,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     } catch (_) {}
     return { set, fileKeys, symbolCandidates, sigIndex };
   }
-  
+
   /** Load declared dependency names from package.json. */
   function loadDeps(cwd) {
     const deps = new Set();
@@ -29670,7 +29740,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     } catch (_) {}
     return { deps, hasPkg };
   }
-  
+
   /** Load the set of npm script names declared in package.json. */
   function loadScripts(cwd) {
     const scripts = new Set();
@@ -29682,7 +29752,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     } catch (_) {}
     return scripts;
   }
-  
+
   /** Default file-existence check: resolve a referenced path against cwd. */
   function defaultFileExists(cwd, ref) {
     const clean = ref.replace(/^\.\//, '');
@@ -29693,7 +29763,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     }
     return false;
   }
-  
+
   /** Default relative-import resolver: fs candidates + basename match in index. */
   function defaultRelativeResolvable(cwd, mod, fileBasenames) {
     const base = path.resolve(cwd, mod);
@@ -29713,7 +29783,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     const wantBase = path.basename(mod).replace(/\.[^.]+$/, '').toLowerCase();
     return fileBasenames.has(wantBase);
   }
-  
+
   /**
    * Verify an AI answer against the repository.
    *
@@ -29755,7 +29825,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
       }
     }
     if (!fileBasenames) fileBasenames = new Set();
-  
+
     // Installed-library grounding (G5/D5, the moat): union the exported symbols of
     // the libraries actually installed in node_modules, so genuine library calls
     // stop false-flagging as fake-symbol and the summary can pin the versions the
@@ -29777,7 +29847,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
         symbolSet = merged;
       }
     }
-  
+
     let deps = opts.deps;
     let hasPkg = opts.hasPkg;
     if (!deps) {
@@ -29786,15 +29856,15 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
       if (hasPkg === undefined) hasPkg = loaded.hasPkg;
     }
     const scripts = opts.scripts || (hasPkg ? loadScripts(cwd) : new Set());
-  
+
     const fileExists = opts.fileExists || ((ref) => defaultFileExists(cwd, ref));
     const relativeResolvable = opts.relativeResolvable
       || ((mod) => defaultRelativeResolvable(cwd, mod, fileBasenames));
-  
+
     // Pre-derive basename candidates for file suggestions (compare on basename so
     // a wrong directory still surfaces the right file).
     const fileBasenameCandidates = fileCandidates.map((f) => ({ name: path.basename(f), file: f }));
-  
+
     const issues = [];
     const dedupe = new Set();
     const add = (issue) => {
@@ -29805,7 +29875,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
       issue.location = `L${issue.line}`;
       issues.push(issue);
     };
-  
+
     // 1. fake-file / fake-test-file
     for (const { path: p, line } of parsers.extractFilePaths(answerText)) {
       if (fileExists(p)) continue;
@@ -29820,7 +29890,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
         suggestion: match ? formatSuggestion(match, false) : null,
       });
     }
-  
+
     // 2. fake-import
     for (const imp of parsers.extractImports(answerText)) {
       if (PLACEHOLDER_IMPORT_RE.test(imp.module)) continue;
@@ -29853,7 +29923,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
       }
       // Python bare imports: stdlib is unbounded offline — skip to keep precision.
     }
-  
+
     // 3. fake-symbol
     if (symbolSet.size > 0) {
       for (const { name, line } of parsers.extractSymbols(answerText)) {
@@ -29875,7 +29945,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
         });
       }
     }
-  
+
     // 3b. arity-mismatch (D1, #529) — a call to a KNOWN repo function whose
     // argument count falls outside the signature's [min, max]. Conservative by
     // construction: only uniquely-resolved, top-level functions from
@@ -29901,7 +29971,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
         }
       }
     }
-  
+
     // 4. fake-npm-script
     if (hasPkg && scripts.size > 0) {
       for (const { name, line } of parsers.extractNpmScripts(answerText)) {
@@ -29917,15 +29987,15 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
         });
       }
     }
-  
+
     issues.sort((a, b) => a.line - b.line);
-  
+
     const byType = {
       'fake-file': 0, 'fake-test-file': 0, 'fake-import': 0,
       'fake-symbol': 0, 'fake-npm-script': 0,
     };
     for (const i of issues) byType[i.type] = (byType[i.type] || 0) + 1;
-  
+
     const summary = {
       total: issues.length,
       byType,
@@ -29945,10 +30015,10 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
         scripts: !!hasPkg && scripts.size > 0,
       },
     };
-  
+
     return { issues, summary };
   }
-  
+
   module.exports = { verify, buildSymbolSet, loadDeps, loadScripts, isTestPath };
   
 };
@@ -29976,16 +30046,16 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
    * tree. Bounded (per-file read cap + dep cap) and cached via
    * `src/cache/sig-cache.js` so repeat builds are near-free.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { loadCache, saveCache, getChangedFiles, updateCacheEntries } = __require('./src/cache/sig-cache');
-  
+
   const MAX_DTS_BYTES = 512 * 1024; // per-file read cap
   const MAX_DEPS = 1000;            // dep count cap
   const DEP_KEYS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
   const VENV_DIRS = ['.venv', 'venv', 'env', '.env'];
-  
+
   /**
    * Extract exported symbol names from a `.d.ts` declaration file. Deterministic,
    * regex-based (declaration files are already normalized, so this is robust
@@ -29996,12 +30066,12 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
   function extractDtsExports(src) {
     const names = new Set();
     if (!src) return [];
-  
+
     // export [declare] [default] function|const|let|var|class|interface|type|enum|namespace Name
     const declRe = /\bexport\s+(?:declare\s+)?(?:default\s+)?(?:abstract\s+)?(?:async\s+)?(?:function|const|let|var|class|interface|type|enum|namespace|module)\s+([A-Za-z_$][\w$]*)/g;
     let m;
     while ((m = declRe.exec(src)) !== null) names.add(m[1]);
-  
+
     // export { a, b as c, default as d }
     const listRe = /\bexport\s*(?:type\s*)?\{([^}]*)\}/g;
     while ((m = listRe.exec(src)) !== null) {
@@ -30010,16 +30080,16 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
         if (/^[A-Za-z_$][\w$]*$/.test(name) && name !== 'default') names.add(name);
       }
     }
-  
+
     // export as namespace Name  /  export = Name
     const nsRe = /\bexport\s+as\s+namespace\s+([A-Za-z_$][\w$]*)/g;
     while ((m = nsRe.exec(src)) !== null) names.add(m[1]);
     const assignRe = /\bexport\s*=\s*([A-Za-z_$][\w$]*)/g;
     while ((m = assignRe.exec(src)) !== null) names.add(m[1]);
-  
+
     return [...names].sort();
   }
-  
+
   /** Read direct dependency names declared in the project's package.json. */
   function directDeps(cwd) {
     const names = new Set();
@@ -30033,7 +30103,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     } catch (_) { /* no/invalid package.json → no deps */ }
     return [...names].sort();
   }
-  
+
   /**
    * Resolve an installed dependency's version + entry `.d.ts` path.
    * @returns {{ version: string|null, dtsPath: string|null }|null} null if not installed
@@ -30043,7 +30113,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     let pkg;
     try { pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf8')); } catch (_) { return null; }
     const version = typeof pkg.version === 'string' ? pkg.version : null;
-  
+
     const candidates = [];
     const typesField = pkg.types || pkg.typings;
     if (typeof typesField === 'string') {
@@ -30052,16 +30122,16 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     }
     candidates.push('index.d.ts');
     if (typeof pkg.main === 'string') candidates.push(pkg.main.replace(/\.(js|cjs|mjs)$/, '.d.ts'));
-  
+
     for (const c of candidates) {
       const p = path.join(pkgDir, c);
       try { if (fs.statSync(p).isFile()) return { version, dtsPath: p }; } catch (_) { /* next */ }
     }
     return { version, dtsPath: null }; // installed but untyped
   }
-  
+
   // ── Python ──────────────────────────────────────────────────────────────────
-  
+
   /**
    * Extract exported symbol names from a Python module's `__init__.py`/`.pyi`.
    * Deterministic, regex-based, top-level only: `__all__`, `def`/`class`, public
@@ -30074,22 +30144,22 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
   function extractPyExports(src) {
     const names = new Set();
     if (!src) return [];
-  
+
     // __all__ = [ 'a', 'b', ... ]  (authoritative when present; keeps privates)
     const allMatch = src.match(/^__all__\s*[:+]?=\s*[\[(]([\s\S]*?)[\])]/m);
     if (allMatch) {
       for (const m of allMatch[1].matchAll(/['"]([A-Za-z_]\w*)['"]/g)) names.add(m[1]);
     }
-  
+
     // top-level def / class (column 0)
     for (const m of src.matchAll(/^(?:async\s+)?def\s+([A-Za-z_]\w*)/gm)) if (!m[1].startsWith('_')) names.add(m[1]);
     for (const m of src.matchAll(/^class\s+([A-Za-z_]\w*)/gm)) if (!m[1].startsWith('_')) names.add(m[1]);
-  
+
     // top-level public assignments: NAME = …  /  NAME: type = …  (not ==, +=, etc.)
     for (const m of src.matchAll(/^([A-Za-z_]\w*)\s*(?::[^=\n]+)?=(?!=)/gm)) {
       if (!m[1].startsWith('_')) names.add(m[1]);
     }
-  
+
     // re-exports: from .mod import Name, Other as Alias
     for (const m of src.matchAll(/^from\s+[^\n]+?\s+import\s+([^\n#]+)/gm)) {
       for (const part of m[1].split(',')) {
@@ -30097,10 +30167,10 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
         if (/^[A-Za-z_]\w*$/.test(name) && !name.startsWith('_')) names.add(name);
       }
     }
-  
+
     return [...names].sort();
   }
-  
+
   /** Read direct Python dependency names from requirements.txt + pyproject.toml. */
   function pythonDirectDeps(cwd) {
     const names = new Set();
@@ -30126,7 +30196,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     } catch (_) { /* none */ }
     return [...names].sort();
   }
-  
+
   /** Locate the project's venv `site-packages` directories (no Python runtime). */
   function findSitePackages(cwd) {
     const out = [];
@@ -30144,12 +30214,12 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /** PEP 503 name normalization (case-insensitive, `-`/`_`/`.` collapsed). */
   function normalizePy(name) {
     return String(name).toLowerCase().replace(/[-_.]+/g, '-');
   }
-  
+
   /** Find an installed distribution's version from its `*.dist-info`/`*.egg-info`. */
   function findPyVersion(sitePkgsDir, dep) {
     const norm = normalizePy(dep);
@@ -30161,7 +30231,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Resolve a Python dependency to its installed module entry file + version.
    * @returns {{ version: string|null, sourcePath: string|null }|null} null if not installed
@@ -30183,7 +30253,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     }
     return null;
   }
-  
+
   /**
    * Build the installed-library signature index for `cwd`.
    *
@@ -30196,7 +30266,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
   function buildLibraryIndex(cwd, opts = {}) {
     const version = opts.version || '0';
     const useCache = opts.cache !== false;
-  
+
     // Collect entries from both ecosystems; each carries its extractor kind.
     const entries = []; // { name, version, sourcePath, kind: 'dts'|'py' }
     for (const dep of directDeps(cwd).slice(0, MAX_DEPS)) {
@@ -30210,16 +30280,16 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
         if (r) entries.push({ name: dep, version: r.version, sourcePath: r.sourcePath, kind: 'py' });
       }
     }
-  
+
     const cache = useCache ? loadCache(cwd, version) : new Map();
     const files = entries.filter((e) => e.sourcePath).map((e) => e.sourcePath);
     const { unchanged } = getChangedFiles(files, cache);
     const unchangedSet = new Set(unchanged);
-  
+
     const symbols = new Set();
     const libraries = [];
     const fresh = [];
-  
+
     for (const e of entries) {
       let names;
       if (!e.sourcePath) {
@@ -30237,23 +30307,23 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
       for (const n of names) symbols.add(n);
       libraries.push({ name: e.name, version: e.version, symbols: names.length, typed: !!e.sourcePath });
     }
-  
+
     if (useCache && fresh.length) {
       updateCacheEntries(cache, fresh);
       saveCache(cwd, version, cache);
     }
-  
+
     libraries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     return { symbols, libraries, count: symbols.size };
   }
-  
+
   /** D8: render `name@version` pins for the typed/installed libraries. */
   function formatVersionPins(libraries) {
     return (libraries || [])
       .filter((l) => l.version)
       .map((l) => `${l.name}@${l.version}`);
   }
-  
+
   /**
    * D8: collect `name@version` pins for direct dependencies — versions only, no
    * symbol extraction, no cache. Cheap enough to run on every context build so
@@ -30281,7 +30351,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     pins.sort();
     return { pins: limit ? pins.slice(0, limit) : pins, total: pins.length };
   }
-  
+
   module.exports = {
     buildLibraryIndex, extractDtsExports, directDeps, resolveEntry, formatVersionPins,
     collectVersionPins,
@@ -30304,7 +30374,7 @@ __factories["./src/verify/parsers"] = function(module, exports) {
    *
    * Everything here is deterministic and offline — pure string analysis.
    */
-  
+
   // Extensions we are confident name a source/code/config file (no slash required).
   const KNOWN_CODE_EXT = new Set([
     'js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'py', 'pyw', 'rb', 'go', 'rs',
@@ -30313,21 +30383,21 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     'toml', 'xml', 'sql', 'graphql', 'gql', 'proto', 'tf', 'md', 'sh',
     'gd', 'gdscript', 'ps1', 'psm1', 'psd1',
   ]);
-  
+
   // Well-known "X.js" runtime/library product names — never repo files.
   const LIBRARY_TOKENS = new Set([
     'node.js', 'next.js', 'nuxt.js', 'vue.js', 'react.js', 'express.js', 'koa.js',
     'nest.js', 'three.js', 'd3.js', 'chart.js', 'ember.js', 'backbone.js',
     'angular.js', 'meteor.js', 'moment.js', 'anime.js', 'p5.js', 'next.config.js',
   ]);
-  
+
   // Illustrative placeholder names the model writes in prose, not repo claims:
   // e.g. example.js, minimal-example.js, sample.ts, demo.js, placeholder.js.
   const PLACEHOLDER_RE = /(?:^|[-_.])(?:example|sample|demo|placeholder)(?:[-_.]|s?$)/i;
   // camelCase / Pascal placeholders: myExample.js, exampleConfig.js, fooSample.ts.
   // Requires a case boundary so ordinary words (resample.js) are NOT suppressed.
   const PLACEHOLDER_CAMEL_RE = /(?:^|[a-z])(?:Example|Sample|Demo|Placeholder)|(?:^|[-_.])(?:example|sample|demo|placeholder)(?=[A-Z])/;
-  
+
   /**
    * Extract fenced code blocks.
    * @param {string} text
@@ -30358,7 +30428,7 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     }
     return blocks;
   }
-  
+
   /**
    * Extract file-path references (deduped, first-seen line kept).
    * A token counts as a path when it has a `.<letter…>` extension AND
@@ -30388,7 +30458,7 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     }
     return [...seen.entries()].map(([p, line]) => ({ path: p, line }));
   }
-  
+
   /**
    * Extract import / require statements.
    * @param {string} text
@@ -30415,12 +30485,12 @@ __factories["./src/verify/parsers"] = function(module, exports) {
       const reqRe = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
       let r;
       while ((r = reqRe.exec(line)) !== null) push(r[1], 'js', i + 1, line);
-  
+
       // TS: import X = require('mod')
       if ((m = line.match(/\bimport\s+[A-Za-z_$][\w$]*\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)/))) {
         push(m[1], 'js', i + 1, line);
       }
-  
+
       // Python: from x import y  |  import x
       if ((m = line.match(/^\s*from\s+([.\w]+)\s+import\b/))) {
         push(m[1], 'py', i + 1, line);
@@ -30428,7 +30498,7 @@ __factories["./src/verify/parsers"] = function(module, exports) {
         push(m[1], 'py', i + 1, line);
       }
     }
-  
+
     // Multi-line JS/TS imports, e.g.
     //   import {
     //     A as B,
@@ -30450,7 +30520,7 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /**
    * Extract npm/pnpm/yarn script invocations (`npm run <name>`).
    * Only the explicit `run` form is matched, to avoid confusing package-manager
@@ -30475,7 +30545,7 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     }
     return out;
   }
-  
+
   /**
    * Extract function/class symbol references that look like calls.
    * Restricted to backtick-wrapped calls (`foo(...)`) for high precision.
@@ -30500,7 +30570,7 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     }
     return out;
   }
-  
+
   module.exports = {
     extractCodeBlocks,
     extractFilePaths,
@@ -30522,27 +30592,27 @@ __factories["./src/wiki/generate"] = function(module, exports) {
    * health score. Template prose only — no LLM, no network, no timestamps —
    * so two runs on an unchanged repo produce byte-identical markdown.
    */
-  
+
   const fs = require('fs');
   const path = require('path');
   const { displayPath } = __require('./src/graph/path-key');
-  
+
   const HUB_LIMIT = 8;
   const ENTRY_LIMIT = 8;
   const MODULE_LIMIT = 20;
   const KEY_FILE_LIMIT = 3;
-  
+
   // Graph keys come from src/graph/builder's normalizePath (normalized +
   // lowercased). `realPaths` (carried on the graph) restores the original case;
   // without it we still relativize case-insensitively rather than climbing out.
   function _rel(cwd, f, realPaths) {
     return displayPath(f, cwd, realPaths);
   }
-  
+
   function _pct(fraction) {
     return Math.round(fraction * 100);
   }
-  
+
   /** Project name + version from package.json, falling back to the dir name. */
   function _identity(cwd) {
     try {
@@ -30551,7 +30621,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
     } catch (_) {}
     return { name: path.basename(cwd), version: null };
   }
-  
+
   /** Module rollup from the signature index (keys are cwd-relative paths). */
   function _modules(index) {
     const groups = new Map();
@@ -30581,7 +30651,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       }));
     return { modules, totalTokens };
   }
-  
+
   /** Hubs, entry points, and cycle count from the dependency graph. */
   function _flow(cwd) {
     try {
@@ -30589,7 +30659,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       const { detectCycles } = __require('./src/map/import-graph');
       const graph = buildFromCwd(cwd);
       if (!graph || !graph.forward || graph.forward.size === 0) return null;
-  
+
       const importersOf = (f) => (graph.reverse.get(f) || []).length;
       const realPaths = graph.realPaths;
       const hubs = [...graph.reverse.entries()]
@@ -30597,22 +30667,22 @@ __factories["./src/wiki/generate"] = function(module, exports) {
         .filter((h) => h.importers > 0)
         .sort((a, b) => b.importers - a.importers || a.file.localeCompare(b.file))
         .slice(0, HUB_LIMIT);
-  
+
       const entryPoints = [...graph.forward.entries()]
         .filter(([f, deps]) => deps.length > 0 && importersOf(f) === 0)
         .map(([f, deps]) => ({ file: _rel(cwd, f, realPaths), imports: deps.length }))
         .sort((a, b) => b.imports - a.imports || a.file.localeCompare(b.file))
         .slice(0, ENTRY_LIMIT);
-  
+
       let cycles = 0;
       try { cycles = detectCycles(graph.forward).length; } catch (_) {}
-  
+
       return { hubs, entryPoints, cycles, edges: graph.forward.size };
     } catch (_) {
       return null;
     }
   }
-  
+
   /** Conventions summary; index keys are resolved back to absolute paths. */
   function _conventions(cwd, index) {
     try {
@@ -30632,7 +30702,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       return null;
     }
   }
-  
+
   function _health(cwd) {
     try {
       const { score } = __require('./src/health/scorer');
@@ -30642,7 +30712,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       return null;
     }
   }
-  
+
   /**
    * Build the wiki. Every data source is optional — a repo with no context file
    * or no resolvable graph still yields a valid document.
@@ -30657,13 +30727,13 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       const { buildSigIndex } = __require('./src/retrieval/ranker');
       index = buildSigIndex(cwd);
     } catch (_) {}
-  
+
     const identity = _identity(cwd);
     const { modules, totalTokens } = _modules(index);
     const flow = _flow(cwd);
     const conventions = index.size ? _conventions(cwd, index) : null;
     const health = _health(cwd);
-  
+
     const data = {
       name: identity.name,
       version: identity.version,
@@ -30674,10 +30744,10 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       conventions,
       health,
     };
-  
+
     return { data, markdown: renderWikiMarkdown(data, opts.version) };
   }
-  
+
   /**
    * Render the narrative markdown. Pure function of `data` — no clocks, no
    * randomness — so output is byte-stable for a fixed repo state.
@@ -30692,7 +30762,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
     L.push('');
     L.push(`_Deterministically generated from signatures + dependency graph by SigMap${sigmapVersion ? ` v${sigmapVersion}` : ''} — no LLM. Regenerate: \`sigmap wiki\`._`);
     L.push('');
-  
+
     L.push('## Overview');
     if (data.files === 0) {
       L.push('No signature index found yet — run `sigmap` (or `node gen-context.js`) to generate context, then regenerate this wiki.');
@@ -30705,7 +30775,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       }
     }
     L.push('');
-  
+
     if (data.modules.length) {
       L.push('## Modules');
       L.push('| Module | Files | Sig tokens | Key files |');
@@ -30718,7 +30788,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       L.push(`The largest module by signature volume is \`${top.name}\` (${top.files} files, ~${top.tokens} tokens) — start there for the core logic.`);
       L.push('');
     }
-  
+
     if (data.flow) {
       L.push('## Dependency flow');
       if (data.flow.hubs.length) {
@@ -30740,7 +30810,7 @@ __factories["./src/wiki/generate"] = function(module, exports) {
         : '**Dependency cycles:** none detected.');
       L.push('');
     }
-  
+
     if (data.conventions) {
       L.push('## Conventions');
       const c = data.conventions;
@@ -30753,17 +30823,17 @@ __factories["./src/wiki/generate"] = function(module, exports) {
         : 'No dominant conventions detected (repo too small or styles mixed).');
       L.push('');
     }
-  
+
     L.push('## Navigating');
     L.push('- `sigmap ask "<question>"` — ranked, budgeted mini-context for any task');
     L.push('- `sigmap --impact <file>` / `--callers <symbol>` — blast radius before you change something');
     L.push('- `sigmap evidence "<query>"` — machine-consumable Evidence Pack (JSON) for agents/CI');
     L.push('- MCP: `get_architecture_overview`, `get_map`, `get_callee_signatures` for live agent access');
     L.push('');
-  
+
     return L.join('\n');
   }
-  
+
   module.exports = { buildWiki, renderWikiMarkdown };
   
 };
@@ -30774,24 +30844,24 @@ __factories["./src/workspace/detector"] = function(module, exports) {
   const fs   = require('fs');
   const path = require('path');
   module.exports = { detectWorkspaces, inferPackage, scopeToPackage };
-  
+
   function detectWorkspaces(cwd) {
     const pkgPath = path.join(cwd, 'package.json');
     if (!fs.existsSync(pkgPath)) return [];
-  
+
     let pkg;
     try {
       pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     } catch {
       return [];
     }
-  
+
     const patterns = pkg.workspaces || [];
     const dirs = [];
-  
+
     // Handle both flat array and object with packages field (Yarn v2 format)
     const patternArray = Array.isArray(patterns) ? patterns : (patterns.packages || []);
-  
+
     for (const p of patternArray) {
       const base = p.replace(/\/\*\*?$/, '');
       const resolved = path.join(cwd, base);
@@ -30803,19 +30873,19 @@ __factories["./src/workspace/detector"] = function(module, exports) {
         } catch (_) {}
       }
     }
-  
+
     return dirs;
   }
-  
+
   // Infer package from query tokens: "add rate limiting to payments" → "packages/payments"
   function inferPackage(query, workspaceDirs, cwd) {
     const tokens = query.toLowerCase().split(/\W+/).filter(t => t.length > 2);
-  
+
     // Find longest matching package name
     let bestMatch = null;
     let bestLen = 0;
     let bestMatchLen = 0;
-  
+
     for (const dir of workspaceDirs) {
       const name = path.basename(dir).toLowerCase();
       for (const token of tokens) {
@@ -30828,22 +30898,22 @@ __factories["./src/workspace/detector"] = function(module, exports) {
         }
       }
     }
-  
+
     return bestMatch;
   }
-  
+
   function _getMatchLength(name, token) {
     if (name === token) return 1000 + name.length;  // Exact match is best
     if (name.startsWith(token) && token.length >= 3) return 100 + token.length;
     if (token.startsWith(name) && name.length >= 3) return name.length;
     return 0;
   }
-  
+
   // Return boost multiplier for files inside the inferred package
   function scopeToPackage(filePath, packageDir) {
     const normalized = filePath.replace(/\\/g, '/');
     const normalizedPkg = packageDir.replace(/\\/g, '/');
-  
+
     // Ensure we match the directory boundary, not just a prefix
     // e.g., packages/payment should not match packages/payment-old
     if (normalized.startsWith(normalizedPkg)) {

@@ -85,16 +85,15 @@ function maskPs(src) {
       while (k < n && (src[k] === ' ' || src[k] === '\t' || src[k] === '\r')) k++;
       if (k < n && src[k] === '\n') {
         let j = k + 1;
-        let closed = false;
         while (j < n) {
           // Terminator occurs at the beginning of a line (column 0, or right after \n)
           if ((j === 0 || src[j - 1] === '\n') && src[j] === quote && j + 1 < n && src[j + 1] === '@') {
             j += 2;
-            closed = true;
             break;
           }
           j++;
         }
+        // Unterminated here-strings safely blank to EOF
         blank(i, j);
         i = j;
         continue;
@@ -215,6 +214,7 @@ function extract(src, filePath) {
   }
 
   // 3. Functions, Filters, and Workflows
+  let lastDeclEnd = 0;
   const fnRe = /^[ \t]*(?:(?:\[[^\]]+\]\s*)*)(function|filter|workflow)\s+([A-Za-z0-9_:-]+)/gim;
   for (const m of masked.matchAll(fnRe)) {
     // Skip if inside a class body
@@ -288,7 +288,10 @@ function extract(src, filePath) {
     const paramStr = params !== null ? params.join(', ') : '';
 
     // Advanced function attribute: [CmdletBinding()]
-    const headerPrefix = src.slice(Math.max(0, m.index - 300), m.index);
+    // Scoped to the region between the end of the previous declaration (or previous block brace) and m.index
+    const lastBrace = src.lastIndexOf('}', m.index);
+    const lookbackStart = Math.max(lastDeclEnd, lastBrace >= 0 ? lastBrace + 1 : 0);
+    const headerPrefix = src.slice(lookbackStart, m.index);
     const bodyPrefix = bodySlice.slice(0, 1000);
     const hasCmdletBinding = /\[CmdletBinding\b/i.test(headerPrefix) || /\[CmdletBinding\b/i.test(bodyPrefix);
 
@@ -298,6 +301,8 @@ function extract(src, filePath) {
     if (otMatch) {
       returnType = otMatch[1] || otMatch[2] || '';
     }
+
+    lastDeclEnd = endIdx + 1;
 
     // Build signature string
     let sig = `${keyword} ${rawName}(${paramStr})`;
@@ -325,7 +330,7 @@ function extract(src, filePath) {
     // Normalise: Export-ModuleMember -Function a, b -> Export-ModuleMember a, b
     const rawArgs = m[1].trim();
     // Strip trailing other flags like -Variable, -Alias if present
-    const cleanArgs = rawArgs.replace(/-[A-Za-z]+\b.*$/, '').trim();
+    const cleanArgs = stripTrailingFlags(rawArgs);
     if (cleanArgs) {
       const text = `Export-ModuleMember ${cleanArgs.replace(/\s+/g, ' ')}`;
       sigs.push(withAnchor(text, lineAt(src, declStart), lineAt(src, declEnd)));
@@ -336,52 +341,83 @@ function extract(src, filePath) {
 }
 
 /**
- * Extract PS5 class constructors and methods.
+ * Strip trailing flags like -Alias or -Variable from an Export-ModuleMember argument string.
+ * Anchors on a whitespace-delimited flag token so a hyphen inside a Verb-Noun name is not stripped.
+ */
+function stripTrailingFlags(args) {
+  if (!args) return '';
+  return args.replace(/\s-[A-Za-z]+\b[\s\S]*$/, '').trim();
+}
+
+/**
+ * Extract PS5 class properties, constructors, and methods.
  */
 function extractClassMembers(body, maskedBody, offset, src, className) {
   const members = [];
+  const KEYWORDS = /^(if|elseif|else|while|for|foreach|switch|until|trap|catch|return|throw|do|try|in|exit|break|continue)$/i;
 
-  // Match method/constructor declarations:
-  //   [Type] Method($a)
-  //   Method($a)
-  //   static [Type] Method($a)
-  //   ClassName($a)   (Constructor)
-  const memberRe = /^[ \t]*(hidden\s+)?(static\s+)?(?:\[\s*([\w.\[\]]+)\s*\]\s+)?([A-Za-z_]\w*)\s*\(/gm;
+  const methodRe = /^[ \t]*(hidden\s+)?(static\s+)?(?:\[\s*([\w.\[\]]+)\s*\]\s+)?([A-Za-z_]\w*)\s*\(/gm;
 
-  for (const m of maskedBody.matchAll(memberRe)) {
+  // 1. Blank method bodies so statements inside methods (return, throw, calls)
+  // are never matched as members or properties.
+  const b = body.split('');
+  const mb = maskedBody.split('');
+
+  for (const m of maskedBody.matchAll(methodRe)) {
+    const name = m[4];
+    if (KEYWORDS.test(name)) continue;
+    const openParen = m.index + m[0].length - 1;
+    const closeParen = readBalanced(maskedBody, openParen, '(', ')', 2000);
+    if (closeParen < 0) continue;
+
+    let openBrace = -1;
+    for (let k = closeParen + 1; k < Math.min(maskedBody.length, closeParen + 500); k++) {
+      if (maskedBody[k] === '{') { openBrace = k; break; }
+    }
+    if (openBrace < 0) continue;
+    const closeBrace = readBalanced(maskedBody, openBrace, '{', '}', MAX_CLASS_BODY_CHARS);
+    if (closeBrace < 0) continue;
+
+    // Blank inside { ... }
+    for (let k = openBrace + 1; k < closeBrace; k++) {
+      if (b[k] !== '\n') b[k] = ' ';
+      if (mb[k] !== '\n') mb[k] = ' ';
+    }
+  }
+
+  const cleanBody = b.join('');
+  const cleanMasked = mb.join('');
+
+  // 2. Extract methods and constructors
+  for (const m of cleanMasked.matchAll(methodRe)) {
     const isHidden = Boolean(m[1]);
     if (isHidden) continue; // Skip private/hidden members
 
     const isStatic = Boolean(m[2]);
     const declaredType = m[3] || '';
     const name = m[4];
-
-    // Keywords to ignore
-    if (/^(if|elseif|else|while|for|foreach|switch|until|trap|catch)$/i.test(name)) {
-      continue;
-    }
+    if (KEYWORDS.test(name)) continue;
 
     const declStart = offset + m.index + (m[0].length - m[0].trimStart().length);
     const openParen = m.index + m[0].length - 1;
-    const closeParen = readBalanced(maskedBody, openParen, '(', ')', 2000);
+    const closeParen = readBalanced(cleanMasked, openParen, '(', ')', 2000);
     if (closeParen < 0) continue;
 
-    // Find opening { of method body
     let openBrace = -1;
-    for (let k = closeParen + 1; k < Math.min(maskedBody.length, closeParen + 500); k++) {
-      if (maskedBody[k] === '{') {
+    for (let k = closeParen + 1; k < Math.min(cleanMasked.length, closeParen + 500); k++) {
+      if (cleanMasked[k] === '{') {
         openBrace = k;
         break;
       }
     }
     const closeBrace = openBrace >= 0
-      ? readBalanced(maskedBody, openBrace, '{', '}', MAX_CLASS_BODY_CHARS)
+      ? readBalanced(cleanMasked, openBrace, '{', '}', MAX_CLASS_BODY_CHARS)
       : -1;
     const endIdx = offset + (closeBrace >= 0 ? closeBrace : closeParen);
 
     const paramList = parseParams(
-      body.slice(openParen + 1, closeParen),
-      maskedBody.slice(openParen + 1, closeParen)
+      cleanBody.slice(openParen + 1, closeParen),
+      cleanMasked.slice(openParen + 1, closeParen)
     );
     const paramStr = paramList.join(', ');
 
@@ -398,9 +434,41 @@ function extractClassMembers(body, maskedBody, offset, src, className) {
     members.push({
       text: withAnchor(sigText, lineAt(src, declStart), lineAt(src, endIdx)),
       declStart,
-      endIdx,
     });
   }
+
+  // 3. Extract PS5 class properties: [string]$BasePath, static [int]$Count, etc.
+  const propRe = /^[ \t]*(hidden\s+)?(static\s+)?((?:\[[^\]]+\]\s*)*)\$([A-Za-z_]\w*)(?:\s*=.*)?$/gm;
+  for (const m of cleanMasked.matchAll(propRe)) {
+    const isHidden = Boolean(m[1]);
+    if (isHidden) continue;
+    const isStatic = Boolean(m[2]);
+    const attrAndType = (m[3] || '').trim();
+    const name = m[4];
+
+    let declaredType = '';
+    if (attrAndType) {
+      const brackets = [...attrAndType.matchAll(/\[\s*([\w.\[\]]+)\s*\]/g)];
+      if (brackets.length > 0) {
+        declaredType = brackets[brackets.length - 1][1];
+      }
+    }
+
+    const declStart = offset + m.index + (m[0].length - m[0].trimStart().length);
+    const declEnd = offset + m.index + m[0].trimEnd().length;
+
+    const typePrefix = declaredType ? `[${declaredType}] ` : '';
+    const staticPrefix = isStatic ? 'static ' : '';
+    const sigText = `  ${staticPrefix}${typePrefix}$${name}`;
+
+    members.push({
+      text: withAnchor(sigText, lineAt(src, declStart), lineAt(src, declEnd)),
+      declStart,
+    });
+  }
+
+  // Sort members by declaration offset so they appear in document order
+  members.sort((m1, m2) => m1.declStart - m2.declStart);
 
   const capped = capMembersWithNotice(members, MEMBER_LIMIT, 'methods');
   return capped.map((m) => m.text);
@@ -522,7 +590,7 @@ function collectExportedFunctions(src, masked) {
   const emmRe = /^[ \t]*Export-ModuleMember\s+(?:-Function\s+)?([^\r\n;#]+)/gim;
   for (const m of src.matchAll(emmRe)) {
     if (masked[m.index] === ' ') continue;
-    const args = m[1].replace(/-[A-Za-z]+\b.*$/, '').trim();
+    const args = stripTrailingFlags(m[1]);
     if (args) {
       if (!exportSet) exportSet = new Set();
       const parts = args.split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '').toLowerCase());
@@ -565,10 +633,11 @@ function collectDocHints(src) {
 }
 
 /**
- * Extract synopsis inside a function's body if defined there.
+ * Extract synopsis inside a function's body if defined there (restricted to the body prefix).
  */
 function findBodySynopsis(bodySlice) {
-  const m = bodySlice.match(/<#([\s\S]*?)#>/);
+  const prefix = bodySlice.slice(0, 1500);
+  const m = prefix.match(/<#([\s\S]*?)#>/);
   if (!m) return '';
   return extractSynopsis(m[0]);
 }

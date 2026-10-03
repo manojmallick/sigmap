@@ -409,7 +409,7 @@ Not all 37 languages get the same depth — and we say so plainly:
 | Tier | Coverage | Depth |
 |------|----------|-------|
 | **AST** | Python (`python3` on PATH; regex fallback without) | Full parse |
-| **Anchored regex** | 12 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, PowerShell) | Declarations + `:start-end` line anchors; doc hints on 6 |
+| **Anchored regex** | 12 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, PowerShell) | Declarations + `:start-end` line anchors; doc hints on 7 |
 | **Pattern/heuristic** | Everything else + generic fallback | Line-oriented patterns |
 
 Caps: 25 signatures/file · 8 members/block. Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.

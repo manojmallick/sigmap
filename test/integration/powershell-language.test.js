@@ -172,20 +172,24 @@ test('extracts comment-based help .SYNOPSIS as doc hint', () => {
   assert.ok(sig.includes('# Retrieves system diagnostic metrics'), `doc hint missing: ${sig}`);
 });
 
-test('extracts PS5 classes, constructors, methods, and skips hidden methods', () => {
+test('extracts PS5 classes, constructors, methods, properties, and skips hidden members', () => {
   const src = [
     'class UserManager {',
     '    [string]$DatabaseUrl',
+    '    static [int]$InstanceCount = 0',
+    '    hidden [string]$SecretKey',
+    '    $UntypedProp',
     '',
     '    UserManager([string]$url) {',
     '        $this.DatabaseUrl = $url',
     '    }',
     '',
     '    [User] GetUser([string]$id) {',
-    '        return $null',
+    '        return ($this.DatabaseUrl + $id)',
     '    }',
     '',
     '    static [void] ClearCache() {',
+    '        throw ("cannot clear")',
     '    }',
     '',
     '    hidden [void] InternalSecretMethod() {',
@@ -195,10 +199,17 @@ test('extracts PS5 classes, constructors, methods, and skips hidden methods', ()
 
   const sigs = extract(src);
   assert.ok(sigs.some((s) => s.startsWith('class UserManager')), 'class UserManager missing');
+  assert.ok(sigs.some((s) => s.startsWith('  [string] $DatabaseUrl')), 'DatabaseUrl property missing');
+  assert.ok(sigs.some((s) => s.startsWith('  static [int] $InstanceCount')), 'static InstanceCount property missing');
+  assert.ok(sigs.some((s) => s.startsWith('  $UntypedProp')), 'UntypedProp missing');
+  assert.ok(!sigs.some((s) => s.includes('SecretKey')), 'hidden property must be skipped');
   assert.ok(sigs.some((s) => s.startsWith('  UserManager(url)')), 'constructor missing');
   assert.ok(sigs.some((s) => s.startsWith('  [User] GetUser(id)')), 'GetUser method missing');
   assert.ok(sigs.some((s) => s.startsWith('  static [void] ClearCache()')), 'static ClearCache missing');
   assert.ok(!sigs.some((s) => s.includes('InternalSecretMethod')), 'hidden method must be skipped');
+  // Statements inside method bodies must not be extracted as phantom members
+  assert.ok(!sigs.some((s) => s.includes('return(')), 'return statement must not be extracted as method');
+  assert.ok(!sigs.some((s) => s.includes('throw(')), 'throw statement must not be extracted as method');
 });
 
 test('discloses member cap when class exceeds 120 members', () => {
@@ -213,7 +224,7 @@ test('discloses member cap when class exceeds 120 members', () => {
   assert.ok(sigs.some((s) => s.includes('… +10 more methods')), `cap notice missing: ${sigs[sigs.length - 1]}`);
 });
 
-test('extracts enums and Export-ModuleMember', () => {
+test('extracts enums and Export-ModuleMember with idiomatic Verb-Noun names', () => {
   const src = [
     'enum Environment {',
     '    Development',
@@ -221,20 +232,60 @@ test('extracts enums and Export-ModuleMember', () => {
     '    Production',
     '}',
     '',
-    'function Public-Func1 { }',
-    'function Public-Func2 { }',
-    'function Private-Helper { }',
+    'function Get-Report { }',
+    'function Invoke-Thing { }',
+    'function Write-InternalLog { }',
     '',
-    'Export-ModuleMember -Function Public-Func1, Public-Func2',
+    'Export-ModuleMember -Function Get-Report, Invoke-Thing',
   ].join('\n');
 
   const sigs = extract(src);
   assert.ok(sigs.some((s) => s.startsWith('enum Environment')), 'enum Environment missing');
-  assert.ok(sigs.some((s) => s.startsWith('Export-ModuleMember Public-Func1, Public-Func2')), 'Export-ModuleMember missing');
-  assert.ok(sigs.some((s) => s.includes('Public-Func1')), 'Public-Func1 missing');
-  assert.ok(sigs.some((s) => s.includes('Public-Func2')), 'Public-Func2 missing');
+  assert.ok(sigs.some((s) => s.startsWith('Export-ModuleMember Get-Report, Invoke-Thing')), 'Export-ModuleMember missing');
+  assert.ok(sigs.some((s) => s.includes('Get-Report')), 'Get-Report missing');
+  assert.ok(sigs.some((s) => s.includes('Invoke-Thing')), 'Invoke-Thing missing');
   // Internal convention: unexported functions skipped when export list present
-  assert.ok(!sigs.some((s) => s.includes('Private-Helper')), 'Private-Helper must be omitted because export list exists');
+  assert.ok(!sigs.some((s) => s.includes('Write-InternalLog')), 'Write-InternalLog must be omitted because export list exists');
+});
+
+test('Export-ModuleMember strips trailing flags like -Alias correctly without truncating Verb-Noun names', () => {
+  const src = [
+    'function Get-Report { }',
+    'function Invoke-Thing { }',
+    'Export-ModuleMember -Function Get-Report, Invoke-Thing -Alias gr, it',
+  ].join('\n');
+
+  const sigs = extract(src);
+  assert.ok(sigs.some((s) => s.startsWith('Export-ModuleMember Get-Report, Invoke-Thing')), 'Export-ModuleMember should strip -Alias');
+  assert.ok(sigs.some((s) => s.includes('Get-Report')), 'Get-Report must be retained');
+  assert.ok(sigs.some((s) => s.includes('Invoke-Thing')), 'Invoke-Thing must be retained');
+});
+
+test('function attributes [CmdletBinding] and [OutputType] do not bleed into subsequent functions', () => {
+  const src = [
+    'function Get-Alpha {',
+    '    [CmdletBinding()]',
+    '    [OutputType([string])]',
+    '    param([string]$Name)',
+    '    $Name',
+    '}',
+    '',
+    'function Get-Beta {',
+    '    param([int]$Id)',
+    '    $Id',
+    '}',
+  ].join('\n');
+
+  const sigs = extract(src);
+  const alphaSig = sigs.find((s) => s.includes('Get-Alpha'));
+  const betaSig = sigs.find((s) => s.includes('Get-Beta'));
+
+  assert.ok(alphaSig, 'Get-Alpha missing');
+  assert.ok(betaSig, 'Get-Beta missing');
+  assert.ok(alphaSig.includes('[CmdletBinding]'), 'Get-Alpha should have [CmdletBinding]');
+  assert.ok(alphaSig.includes('→ string'), 'Get-Alpha should have → string');
+  assert.ok(!betaSig.includes('[CmdletBinding]'), 'Get-Beta must NOT inherit [CmdletBinding]');
+  assert.ok(!betaSig.includes('→ string'), 'Get-Beta must NOT inherit → string');
 });
 
 test('extracts .psd1 manifest metadata', () => {

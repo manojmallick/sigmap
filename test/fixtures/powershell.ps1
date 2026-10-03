@@ -1,5 +1,12 @@
 # PowerShell fixture for SigMap extractor testing
 
+<#
+Outer comment block <# nested block comment #> still in outer comment
+#>
+$hereString = @"
+function Ignored-InHereString { }
+"@
+
 enum Severity {
     Low
     Medium
@@ -14,10 +21,11 @@ class ReportService {
     }
 
     [string] GenerateReport([string]$format = 'json') {
-        return "report.$format"
+        return ($this.BasePath + '.' + $format)
     }
 
     static [void] ResetConfiguration() {
+        throw ("cannot reset")
     }
 
     hidden [void] LogInternal([string]$msg) {
@@ -62,6 +70,13 @@ workflow Deploy-StackWorkflow {
         InlineScript { Write-Output "Deploying to $ClusterName" }
     }
 }
+
+# Unexported function: should be omitted because Export-ModuleMember is present below
+function Get-InternalState {
+    return $script:cachedResult
+}
+
+Export-ModuleMember -Function Get-UserReport, Invoke-QuickCheck, Select-HealthyHost, Deploy-StackWorkflow -Alias gur
 
 # Constructs that should NOT be extracted:
 $global:config = @{ Key = 'Value' }
