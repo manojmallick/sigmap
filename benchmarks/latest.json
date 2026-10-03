@@ -31,23 +31,23 @@
   },
   "sources": {
     "benchmark-matrix.json": {
-      "version": "8.61.2",
+      "version": "8.61.3",
       "generated": "2026-10-03"
     },
     "honest-baseline.json": {
-      "version": "8.61.2",
+      "version": "8.61.3",
       "generated": "2026-10-03"
     },
     "task-benchmark.json": {
-      "version": "8.61.2",
+      "version": "8.61.3",
       "generated": "2026-10-03"
     },
     "test-discovery.json": {
-      "version": "8.61.2",
+      "version": "8.61.3",
       "generated": "2026-10-03"
     },
     "token-reduction.json": {
-      "version": "8.61.2",
+      "version": "8.61.3",
       "generated": "2026-10-03"
     }
   }

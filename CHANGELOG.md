@@ -10,6 +10,34 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.61.3] — 2026-10-03
+
+Patch. A published snapshot now carries, per source report, the release it was measured on — because the release that shipped yesterday published a figure measured by a run nobody made during it, and four gates passed without objecting.
+
+### Fixed
+- **A published metric could be carried from an earlier release and read as fresh** (#707, #854, PR #856) — v8.61.2 shipped `test_discovery: { f1: 0.98, hit_at_1: 0.974 }` stamped `sigmap-v8.61-main`, measured on 2026-10-01 from a run that was never invoked during that release; the 98.0% F1 went onto the roadmap Stats line as current. `check:metrics` passed **four times** across that release without objecting, because it verifies `latest.json` against the *saved* reports and never that a saved report belongs to the release being stamped. #707's original instance was worse: a v8.49 snapshot carrying a test-discovery number measured at **v8.8.0**, 41 minor versions earlier. Three structural causes, all live until now — no single target regenerated the five sources (`benchmark:matrix` produces four; `benchmark:honest` and `benchmark:test-discovery` are separate `--save` scripts no flow invoked, so running four of five looked identical to running all five), four of five reports carried no version at all so a version guard could not even be written, and `latest.json` misdeclared its own sources
+- **`latest.json` declared four sources while the generator read five** (#707, PR #856) — the one field whose job was provenance had the wrong provenance. `sources` is now derived from what the run actually read, so the declaration cannot drift from the reads again
+- **"95.8% token reduction" read as a per-call cost saving it does not support** (#811, PR #856) — it measures the generated map against *every source file in the repository*, which is a map-size measurement; an agent's context footprint is not the whole repo. Reworded in `sync-metrics.mjs` rather than in prose, because a prose-only fix is reverted by the next `sync-metrics` run
+- **`stamp()` kept a rewritten report's old date** (PR #856) — it set `generated` only when absent, so regenerating a report preserved the previous run's timestamp: exactly the confusion the module exists to remove. `generated` is now always overwritten
+- **A missing `latest.json` crashed instead of reporting "stale"** (PR #856) — computing the snapshot once (to stop a duplicated warning) dropped the `try/catch` the original `latestInSync` had, turning an absent file into an `ENOENT` trace
+
+### Added
+- **`scripts/lib/report-stamp.mjs` — the one provenance shape** (#854, PR #856) — every `--save` path stamps through `stamp()`, which records the version and always overwrites `generated`. Seven benchmark scripts now route through it instead of each writing its own metadata
+- **The snapshot refuses to mix release lines** (#854, PR #856) — `gen-benchmark-latest.mjs` hard-fails when a source report was produced on a different **minor** line, naming the report and the version that produced it. Scoped to the minor deliberately: `benchmark_id` is `sigmap-v8.61-main`, so a report measured at 8.61.0 is legitimately part of the v8.61 snapshot and a patch must not be forced to re-run every suite. Within-line differences are not failures, so they are made **visible** instead — each source publishes the version and date it was measured on
+- **`classifySources` separates two failure modes that are not the same** (#854, PR #856) — `drifted` says which release produced it and it is the wrong one (hard failure; this is #707), while `unstamped` predates stamping so provenance is genuinely unknown (published as `version: null` and warned about). Hard-failing on the second made `check:metrics` fail against the committed reports, breaking CI and `prepublishOnly`, and the only escapes were a flag day requiring every suite to re-run first or hand-writing versions into legacy reports — fabricating the exact fact being recorded. The snapshot says "unknown" out loud, and the state clears itself the first time each suite runs
+- **`npm run benchmark:all`** (#854, PR #856) — one target for all five sources, so "I ran the benchmarks" cannot mean four of them
+- **`metric-provenance.test.js`, 10 guards** (#854, PR #856) — three mutations each fail exactly one: disabling the drift guard, reinstating the hand-written `source` string, and reverting the cost-claim wording. The drift test is hermetic — it copies the reports into a temp root, ages one to 8.8.0, and asserts the generator exits non-zero naming it
+
+### Changed
+- **`benchmarks/latest.json` publishes a `sources` block** — five entries, each with the version and date its report was measured on. All five currently read `8.61.2 / 2026-10-03`, so the unknown-provenance warning is silent
+
+### Notes
+- **No published metric moved.** The fresh `benchmark:all` run reproduces 95.8% / 78.6% / 43.4% and 88.0% vs 40.0% exactly. `benchmark_date` advanced to 2026-10-03, which moved 12 snapshot-date labels across six `docs-vp` pages — **no guard checks those**, and they were corrected by hand. Roadmap release dates are deliberately untouched
+- The drift guard is retrospective only in what it can prove: it validates the reports present now. The `hard` corpus figure recorded for v8.61.1 still does not reproduce on a pristine tree, and this release does not fix that — it makes the next such divergence attributable instead of invisible
+- Full suite **202 integration + 26 unit, 0 failed** · `check:metrics`, `validate:llms`, `check:doc-counts` green · bundle reproducible from `src/` (177 modules) · supply-chain gate green (no shell spawns, no install scripts, `main` exports the API, no fingerprinting) · tarball unchanged at 967KB / 200 files — `scripts/` is not in `files[]`, so the new helper ships nothing
+
+---
+
 ## [8.61.2] — 2026-10-02
 
 Patch. One defect class, found at four surfaces: a canonical fact kept in a hand-maintained second copy, with nothing failing when the copies diverged. Plus the ranker bug that the first half of the work exposed by adding a single file.
