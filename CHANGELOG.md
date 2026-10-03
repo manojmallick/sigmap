@@ -10,6 +10,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ### Added
 - **PowerShell extractor (Tier 2)** (#840) — extracts `function`, `filter`, and `workflow` declarations with clean parameter names from inline or `param(...)` blocks, `[CmdletBinding()]` and `[OutputType]` attributes, doc-comment hints from `.SYNOPSIS`, PS5 classes, constructors, methods (with `hidden` filtering), enums, `Export-ModuleMember`, and `.psd1` manifest metadata. Test-file classification added for `*.Tests.ps1` (Pester)
+- **Objective-C Tier 2 extractor** (#841) — dedicated anchored extraction for Objective-C (`.m`, `.mm`) and Objective-C headers (`.h`):
+  - **Language constructs:** `@interface`, `@implementation`, `@protocol`, categories (`@interface Class (Category)`), `@property` declarations with attributes (`nonatomic, copy`), and instance/class methods (`-`/`+`) with multi-part selectors and balanced block argument types (`void (^)(NSError *)`). Top-level C functions and `typedef NS_ENUM`/`NS_OPTIONS` definitions are preserved with `:start-end` line anchors.
+  - **Header delegation (`.h`):** `.h` remains mapped to `cpp` for reachability, but `src/extractors/cpp.js` sniffs `@interface`, `@implementation`, `@protocol`, and `#import` to delegate to `objc.extract`.
+  - **MATLAB/Octave compatibility:** `.m` files with no Objective-C markers deterministically fall back to `src/extractors/generic.js`.
+  - **Deterministic limits & anchors:** Container `@end` anchoring, member-level balanced masking via `scan.js`, 120 members per container cap, and 200 signatures per file cap with visible disclosure markers.
+  - **Test file classification:** `src/util/file-class.js` recognizes PascalCase Objective-C test files (`FooTests.m`, `BarTestCase.mm`).
+  - **Secondary registries & standalone bundle:** registered across `packages/core`, discovery, verify, config loaders, and synced into standalone `gen-context.js`.
 
 ---
 
