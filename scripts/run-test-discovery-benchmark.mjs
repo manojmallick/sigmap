@@ -29,6 +29,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { stamp } from './lib/report-stamp.mjs';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -199,7 +200,7 @@ function main() {
 
   if (SAVE) {
     fs.mkdirSync(REPORTS_DIR, { recursive: true });
-    fs.writeFileSync(path.join(REPORTS_DIR, 'test-discovery.json'), JSON.stringify(report, null, 2) + '\n');
+    fs.writeFileSync(path.join(REPORTS_DIR, 'test-discovery.json'), JSON.stringify(stamp(report, ROOT), null, 2) + '\n');
     console.error(`✓ wrote benchmarks/reports/test-discovery.json`);
   }
 

@@ -59,7 +59,7 @@ export function renderTokens(root = ROOT) {
   const bullets = [
     `- **${pct(m.hit_at_5 * 100)} hit@5** — right file in top 5 results (retrieval corpus, ${latest.repos_retrieval} repos)`,
     ...(honestClause ? [honestClause] : []),
-    `- **${pct(m.overall_token_reduction_pct)} token reduction** — average across ${latest.repos_token} real repos`,
+    `- **${pct(m.overall_token_reduction_pct)} smaller than the full repository** — the generated map vs every source file, averaged across ${latest.repos_token} real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo`,
     `- **${pct(m.task_success_proxy_pct)} task-success proxy** — modeled from retrieval tiers, not measured LLM sessions`,
     `- **${m.prompts_per_task} prompts per task** — down from ${m.baseline_prompts_per_task} (${pct(m.prompt_reduction_pct)} fewer retries, modeled)`,
   ].join('\n');
@@ -75,7 +75,7 @@ export function renderTokens(root = ROOT) {
     ...(honest
       ? [`Honest vs grep : ${pct(honest.sigmap_hit_at_5 * 100)} vs ${pct(honest.grep_baseline_hit_at_5 * 100)} grep baseline — ${Number(honest.lift).toFixed(2)}× lift (${honest.tasks} tasks / ${honest.repos} repos)`]
       : []),
-    `Token reduction: ${pct(m.overall_token_reduction_pct)}   (across ${latest.repos_token} repos)`,
+    `Map vs repo    : ${pct(m.overall_token_reduction_pct)} smaller   (generated map vs all source files, ${latest.repos_token} repos — not a per-call cost saving)`,
     `Prompt reduction : ${pct(m.prompt_reduction_pct)} (${m.baseline_prompts_per_task} → ${m.prompts_per_task} prompts per task, modeled)`,
     `Task success   : ${pct(m.task_success_proxy_pct)}   (proxy — modeled from retrieval tiers)`,
     `Repos tested   : ${latest.repos_token} (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)`,

@@ -19,17 +19,29 @@ import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { provenanceOf, classifySources } from './lib/report-stamp.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
 
+/**
+ * Every report this run read, name -> parsed content (null when absent).
+ *
+ * Derived rather than restated: the `source` field used to be a hand-written
+ * string listing four reports while the generator read five, so the one field
+ * whose job was provenance had the wrong provenance (#707).
+ */
+let READ = {};
+
 function readReport(root, name) {
-  return JSON.parse(readFileSync(join(root, 'benchmarks', 'reports', name), 'utf8'));
+  const report = JSON.parse(readFileSync(join(root, 'benchmarks', 'reports', name), 'utf8'));
+  READ[name] = report;
+  return report;
 }
 
 /** Read a report that may not exist yet (returns null instead of throwing). */
 function readReportOptional(root, name) {
-  try { return readReport(root, name); } catch { return null; }
+  try { return readReport(root, name); } catch { READ[name] = null; return null; }
 }
 
 /** Round to `d` decimal places (deterministic). */
@@ -44,6 +56,7 @@ function round(n, d = 1) {
  * @returns {object}
  */
 export function computeLatest(root = ROOT) {
+  READ = {};
   const matrixReport = readReport(root, 'benchmark-matrix.json');
   const matrix = matrixReport.metrics;
   const task = readReport(root, 'task-benchmark.json').summary;
@@ -58,7 +71,6 @@ export function computeLatest(root = ROOT) {
   const out = {
     benchmark_id: `sigmap-v${maj}.${min}-main`,
     benchmark_date,
-    source: 'benchmarks/reports/{benchmark-matrix,task-benchmark,token-reduction,honest-baseline}.json',
     repos_token: matrix.reposToken,
     repos_retrieval: matrix.reposRetrieval,
     metrics: {
@@ -110,6 +122,44 @@ export function computeLatest(root = ROOT) {
     };
   }
 
+  // Provenance, derived from what was actually read (#854). A figure carried
+  // from an earlier release is now visible in the published snapshot instead of
+  // being indistinguishable from one measured today.
+  out.sources = {};
+  for (const name of Object.keys(READ).sort()) {
+    const prov = provenanceOf(READ[name]);
+    out.sources[name] = READ[name]
+      ? { version: prov.version, generated: prov.generated ? prov.generated.slice(0, 10) : null }
+      : null;
+  }
+
+  // Refuse to assemble a snapshot from a report produced on a DIFFERENT release
+  // line. `check:metrics` only ever verified latest.json against the SAVED
+  // reports, so a stale one passed every gate: v8.49 published a
+  // test-discovery F1 measured at v8.8.0 (#707).
+  //
+  // A report that predates stamping is a separate case and is NOT fatal: its
+  // provenance is unknown, it is published as `version: null` so the snapshot
+  // says so, and it is warned about. Refusing would mean this guard could not
+  // land until every suite had re-run; inventing a version would fabricate the
+  // fact being recorded.
+  const { drifted, unstamped } = classifySources(READ, pkg.version);
+  if (drifted.length) {
+    const lines = drifted.map((x) => `  ${x.name}: measured at v${x.version} (${x.generated || 'date unknown'})`);
+    throw new Error(
+      `benchmarks/latest.json would mix releases — these reports were produced on another release line, not v${pkg.version}:\n`
+      + lines.join('\n')
+      + `\nRun \`npm run benchmark:all\` to regenerate every source, then regenerate latest.json.`
+    );
+  }
+  if (unstamped.length) {
+    console.warn(
+      `WARNING: ${unstamped.length} source report(s) predate provenance stamping, so their release is unknown\n`
+      + unstamped.map((x) => `  ${x.name}: generated ${x.generated || '(unknown)'}`).join('\n')
+      + `\nPublished as "version": null. Run \`npm run benchmark:all\` to replace them with stamped runs.`
+    );
+  }
+
   return out;
 }
 
@@ -130,8 +180,21 @@ export function latestInSync(root = ROOT) {
 // ── CLI ──────────────────────────────────────────────────────────────────────
 function main() {
   const check = process.argv.includes('--check');
+  // A mixed-release snapshot is a refusal, not a crash: print the reason the
+  // guard gives and exit 1, so CI output names the stale report (#854).
+  // Computed once and reused — calling computeLatest twice printed the
+  // unknown-provenance warning twice.
+  let latest;
+  try { latest = computeLatest(); } catch (err) {
+    console.error('ERROR: ' + err.message);
+    return 1;
+  }
   if (check) {
-    if (latestInSync()) {
+    // A missing latest.json is "stale", not a crash — the original
+    // latestInSync() guarded this and the single-compute refactor dropped it.
+    let have = '';
+    try { have = readFileSync(LATEST, 'utf8'); } catch { have = ''; }
+    if (have === serialize(latest)) {
       console.log('✓ benchmarks/latest.json is in sync with benchmarks/reports/');
       return 0;
     }
@@ -139,7 +202,7 @@ function main() {
     console.error('Run `node scripts/gen-benchmark-latest.mjs` to regenerate, then commit it.');
     return 1;
   }
-  writeFileSync(LATEST, serialize(computeLatest()));
+  writeFileSync(LATEST, serialize(latest));
   console.log('✓ wrote benchmarks/latest.json from benchmarks/reports/');
   return 0;
 }

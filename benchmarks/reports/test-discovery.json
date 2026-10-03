@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-01T06:00:57.206Z",
+  "generated": "2026-10-03T07:50:12.775Z",
   "source": "benchmarks/repos/* (canonical impl↔test name oracle)",
   "repos": 28,
   "impls": 2377,
@@ -263,5 +263,6 @@
       "f1": 1,
       "hitAt1": 1
     }
-  ]
+  ],
+  "version": "8.61.2"
 }

@@ -31,6 +31,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { stamp } from './lib/report-stamp.mjs';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -281,6 +282,6 @@ if (JSON_OUT) {
 }
 
 if (SAVE) {
-  fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2) + '\n');
+  fs.writeFileSync(REPORT_PATH, JSON.stringify(stamp(report, ROOT), null, 2) + '\n');
   console.log(`\n  saved → ${path.relative(ROOT, REPORT_PATH)}`);
 }
