@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { stamp } from './lib/report-stamp.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -112,7 +113,7 @@ const summary = {
 
 if (SAVE) {
   const outPath = path.join(ROOT, 'benchmarks', 'reports', 'benchmark-matrix.json');
-  fs.writeFileSync(outPath, JSON.stringify(summary, null, 2) + '\n');
+  fs.writeFileSync(outPath, JSON.stringify(stamp(summary, ROOT), null, 2) + '\n');
   process.stderr.write(`[matrix] saved -> ${outPath}\n`);
   const html = writeBenchmarkReport(ROOT, { matrixSummary: summary });
   process.stderr.write(`[matrix] html report -> ${html.file}\n`);
