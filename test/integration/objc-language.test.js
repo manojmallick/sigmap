@@ -323,5 +323,210 @@ test('dispatch: Objective-C #import in header triggers delegation to objc', () =
   assert.ok(sigs.some((s) => s.includes('- (void)logMessage:(NSString *)msg')), 'Protocol method extracted');
 });
 
+// ── False-signature guards ────────────────────────────────────────────────
+// Each of these shipped a signature for something that is not a declaration.
+// Found by running the extractor over real Objective-C, not the fixture.
+
+test('forward @protocol / @class declarations open no container', () => {
+  const src = `#import <Foundation/Foundation.h>
+@class Bar;
+@protocol FooDelegate;
+@protocol A, B;
+
+@interface Foo : NSObject
+@property (nonatomic, weak) id<FooDelegate> delegate;
+- (void)run;
+@end
+`;
+  const sigs = objc.extract(src, 'Foo.h');
+  assert.deepStrictEqual(sigs, [
+    '@interface Foo : NSObject  :6-9',
+    '  @property (nonatomic, weak) id<FooDelegate> delegate  :7-7',
+    '  - (void)run  :8-8',
+  ]);
+});
+
+test('statements inside a method body are not C function prototypes', () => {
+  const src = `#import "Foo.h"
+@implementation Foo
+- (CGRect)frame {
+    return CGRectMake(0, 0, 10, 10);
+}
+- (NSString *)name {
+    if (x) return NSStringFromClass(cls);
+    else return MAX(a, b);
+}
+@end
+`;
+  assert.deepStrictEqual(objc.extract(src, 'Foo.m'), [
+    '@implementation Foo  :2-10',
+    '  - (CGRect)frame  :3-5',
+    '  - (NSString *)name  :6-9',
+  ]);
+});
+
+test('a minus or plus inside a body or initializer is not a method', () => {
+  const src = `#import "Foo.h"
+@implementation Foo
+static const NSInteger kNone = -1;
+static int diff(int a, int b) {
+    int r = a
+      - b;
+    return r;
+}
+- (void)go {
+    x = x
+      + offset;
+}
+@end
+`;
+  assert.deepStrictEqual(objc.extract(src, 'Foo.m'), [
+    '@implementation Foo  :2-13',
+    '  - (void)go  :9-12',
+    'static int diff(int a, int b)  :4-8',
+  ]);
+});
+
+test('a method body past 4KB keeps its end anchor and hides its statements', () => {
+  const body = Array.from({ length: 200 }, (_, i) => `    total = total\n        - delta${i};`).join('\n');
+  const src = `#import "Foo.h"\n@implementation Foo\n- (void)big {\n${body}\n}\n- (void)after {\n}\n@end\n`;
+  assert.ok(body.length > 4000, 'body exceeds the default balanced-read window');
+  assert.deepStrictEqual(objc.extract(src, 'Foo.m'), [
+    '@implementation Foo  :2-407',
+    '  - (void)big  :3-404',
+    '  - (void)after  :405-406',
+  ]);
+});
+
+test('#if / #else branches that each open a brace do not hide later methods', () => {
+  const src = `#import "Foo.h"
+@implementation Foo
+- (int)unregister:(id)touch
+{
+  for (int i = 0; i < 4; i++) {
+#if TARGET_OS_OSX
+    if (_tracked[i] != nil) {
+#else
+    if (_tracked[i] == touch) {
+#endif
+      return i;
+    }
+  }
+  return -1;
+}
+
+- (int)find:(id)touch
+{
+  return 0;
+}
+@end
+`;
+  assert.deepStrictEqual(objc.extract(src, 'Foo.m'), [
+    '@implementation Foo  :2-21',
+    '  - (int)unregister:(id)touch  :3-15',
+    '  - (int)find:(id)touch  :17-20',
+  ]);
+});
+
+test('braces left unbalanced cost one end anchor, not the rest of the container', () => {
+  const src = `#import "Foo.h"
+#define OPEN_SCOPE {
+@implementation Foo
+- (void)a {
+    OPEN_SCOPE
+        go();
+    }
+}
+- (void)b {
+}
+@end
+`;
+  const sigs = objc.extract(src, 'Foo.m');
+  assert.ok(sigs.includes('  - (void)b  :9-10'), `method after the imbalance survives: ${JSON.stringify(sigs)}`);
+  assert.strictEqual(sigs.filter((s) => /^\s+[-+] /.test(s)).length, 2, 'exactly the two real methods');
+});
+
+test('a multi-line macro body is not scanned for declarations', () => {
+  const src = `#import "Foo.h"
+#define RCT_GETTER(name, edge)                 \\
+  -(float)name                                 \\
+  {                                            \\
+    return YGNodeGet(_node, edge);             \\
+  }
+@implementation Foo
+- (void)real {
+}
+@end
+`;
+  assert.deepStrictEqual(objc.extract(src, 'Foo.m'), [
+    '@implementation Foo  :7-10',
+    '  - (void)real  :8-9',
+  ]);
+});
+
+test('a definition with a semicolon before its body anchors the whole body', () => {
+  const src = `#import "Foo.h"
+@implementation Foo
+- (void)run;
+{
+    go();
+}
+@end
+`;
+  assert.ok(objc.extract(src, 'Foo.m').includes('  - (void)run  :3-6'));
+});
+
+test('lightweight generics keep the superclass', () => {
+  const src = `#import <Foundation/Foundation.h>
+@interface Box<__covariant ObjectType> : NSObject {
+    NSInteger _count;
+}
+- (ObjectType)value;
+@end
+`;
+  assert.deepStrictEqual(objc.extract(src, 'Box.h'), [
+    '@interface Box : NSObject  :2-6',
+    '  - (ObjectType)value  :5-5',
+  ]);
+});
+
+test('declarations inside extern "C" are still top-level', () => {
+  const src = `#import <Foundation/Foundation.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+NSString *SMHash(NSString *input);
+#ifdef __cplusplus
+}
+#endif
+`;
+  assert.deepStrictEqual(dispatch.extractFile('SMHash.h', src), ['NSString *SMHash(NSString *input)  :5-5']);
+});
+
+test('dispatch: a C++ header that only mentions @interface in a comment stays C++', () => {
+  const src = `/*
+@interface is how the Objective-C side names this.
+*/
+class Widget {
+public:
+  int size() const;
+};
+int area(int w, int h) { return w * h; }
+`;
+  const sigs = dispatch.extractFile('Widget.h', src);
+  assert.ok(sigs.includes('class Widget'), `C++ class extracted: ${JSON.stringify(sigs)}`);
+  assert.ok(sigs.some((s) => s.startsWith('area(')), 'C++ function extracted');
+});
+
+test('dispatch: a delegated header keeps its plain struct', () => {
+  const src = `#import <stdio.h>
+struct Vec { int x; int y; };
+int add(int a, int b);
+`;
+  const sigs = dispatch.extractFile('vec.h', src);
+  assert.ok(sigs.includes('struct Vec  :2-2'), `struct kept: ${JSON.stringify(sigs)}`);
+  assert.ok(sigs.includes('int add(int a, int b)  :3-3'));
+});
+
 console.log(`\nobjc-language tests: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -29,6 +29,10 @@ const { stripComments, maskCode, readBalanced } = require('./scan');
 
 const MEMBER_LIMIT = 120;
 const PER_FILE_LIMIT = 200;
+// Method bodies are matched to this many characters. readBalanced's default
+// 4KB window is a parameter-list ceiling; a real method body runs past it, and
+// an unmatched body anchored the method to its first line (cpp parity, #576).
+const MAX_BODY_CHARS = 200000;
 
 // Suffix annotations to strip from method declarations
 const METHOD_ATTR_RE = /\b(?:NS_SWIFT_NAME|NS_SWIFT_ASYNC_NAME|NS_DESIGNATED_INITIALIZER|NS_UNAVAILABLE|__attribute__\s*\(\([^)]*\)\)|API_AVAILABLE|API_DEPRECATED|API_UNAVAILABLE)\b(?:\s*\([^)]*\))?/g;
@@ -45,6 +49,7 @@ function extract(src, filePath) {
 
   const stripped = stripComments(src);
   const masked = maskCode(src);
+  const top = topLevelSurface(masked);
 
   // Check whether file has any Objective-C markers.
   // If not, delegate to generic extractor so MATLAB .m files are preserved.
@@ -59,7 +64,9 @@ function extract(src, filePath) {
   const sigs = [];
 
   // 1. Scan @interface, @protocol, @implementation blocks
-  const containerRe = /^[ \t]*@(interface|protocol|implementation)\s+([A-Za-z0-9_]+)(?:[ \t]*\(([A-Za-z0-9_]*)\))?(?:[ \t]*:[ \t]*([A-Za-z0-9_]+))?(?:[ \t]*<[^>]*>)?/gm;
+  // The optional `<...>` after the name is a lightweight-generics parameter
+  // list (`@interface Box<ObjectType> : NSObject`) or a protocol list.
+  const containerRe = /^[ \t]*@(interface|protocol|implementation)\s+([A-Za-z0-9_]+)(?:[ \t]*<[^>\n]*>)?(?:[ \t]*\(([A-Za-z0-9_]*)\))?(?:[ \t]*:[ \t]*([A-Za-z0-9_]+))?(?:[ \t]*<[^>]*>)?/gm;
 
   for (const m of stripped.matchAll(containerRe)) {
     const declIdx = m.index + (m[0].length - m[0].trimStart().length);
@@ -67,6 +74,11 @@ function extract(src, filePath) {
     const name = m[2];
     const category = m[3];
     const superclass = m[4];
+
+    // A forward declaration (`@protocol FooDelegate;`, `@protocol A, B;`) opens
+    // no block. Read as a container it ran to the NEXT container's `@end` and
+    // re-emitted that container's members under the wrong name.
+    if (/^[ \t]*[;,]/.test(masked.slice(m.index + m[0].length, m.index + m[0].length + 40))) continue;
 
     // Find closing @end on masked surface
     const endMatch = findAtEnd(masked, declIdx + m[0].length);
@@ -90,7 +102,8 @@ function extract(src, filePath) {
     // Extract members inside this container
     const blockStripped = stripped.slice(blockStart, blockEnd);
     const blockMasked = masked.slice(blockStart, blockEnd);
-    const members = extractMembers(blockStripped, blockMasked, stripped, blockStart, kind === 'implementation');
+    const blockTop = top.slice(blockStart, blockEnd);
+    const members = extractMembers(blockStripped, blockMasked, blockTop, stripped, blockStart, kind === 'implementation');
 
     for (const mem of members) {
       sigs.push(mem);
@@ -101,10 +114,10 @@ function extract(src, filePath) {
   extractEnumsAndStructs(stripped, masked, sigs);
 
   // 3. Scan top-level C functions / static inline definitions
-  extractCFunctions(stripped, masked, sigs);
+  extractCFunctions(stripped, masked, top, sigs);
 
-  // 4. In ObjC++ (.mm), scan top-level C++ classes / structs
-  if (filePath && filePath.endsWith('.mm')) {
+  // 4. In ObjC++ (.mm, and a header cpp.js delegated here), scan C++ classes / structs
+  if (filePath && /\.(?:mm|h|hh|hpp)$/i.test(filePath)) {
     extractCppClasses(stripped, masked, sigs);
   }
 
@@ -138,44 +151,103 @@ function findAtEnd(masked, startIdx) {
 }
 
 /**
- * Extract members inside an @interface, @protocol, or @implementation block.
+ * Blank the interior of every `{...}` block, keeping the outermost braces —
+ * what remains is the declaration surface. A method or C function can only
+ * START at brace depth 0, so scanning this instead of the raw text is what
+ * stops `x = a - b;` or `return CGRectMake(...)` inside a body from reading as
+ * a method or a function prototype. Length- and newline-preserving.
+ *
+ * Depth has to survive real code, where braces do not always pair up textually:
+ *   - `#if` / `#else` branches are alternatives, each opening its own `if (...) {`
+ *     for one shared `}`. Every branch restarts from the depth at the `#if`.
+ *   - `#define` bodies are skipped — a macro may hold half a block.
+ *   - `extern "C" {` and `namespace x {` only group declarations: transparent.
+ *   - Depth resets at a container keyword and at a method head in column 0.
+ *     Neither can occur inside a block, so whatever imbalance is left costs one
+ *     method its end line rather than every member after it.
+ * @param {string} masked - output of maskCode
+ * @returns {string}
  */
-function extractMembers(blockStripped, blockMasked, fullStripped, offset, isImpl) {
+function topLevelSurface(masked) {
+  const out = masked.split('');
+  const n = masked.length;
+  const branchDepth = [];
+  let depth = 0;
+  let lineHead = true;
+  for (let i = 0; i < n; i++) {
+    const ch = masked[i];
+    if (ch === '\n') { lineHead = true; continue; }
+    if (ch === ' ' || ch === '\t') continue;
+
+    if (lineHead) {
+      lineHead = false;
+      if (ch === '#') {
+        const dir = /^#[ \t]*(if|ifdef|ifndef|elif|else|endif)\b/.exec(masked.slice(i, i + 16));
+        if (dir) {
+          if (dir[1] === 'endif') branchDepth.pop();
+          else if (dir[1] === 'else' || dir[1] === 'elif') {
+            if (branchDepth.length) depth = branchDepth[branchDepth.length - 1];
+          } else branchDepth.push(depth);
+        }
+        // Blank the directive's logical line, continuations included: a macro
+        // body is not a declaration, whatever depth it sits at.
+        for (; i < n; i++) {
+          if (masked[i] === '\n') {
+            if (masked[i - 1] !== '\\') break;
+          } else out[i] = ' ';
+        }
+        lineHead = true;
+        continue;
+      }
+      if (ch === '@' && /^@(?:end\b|(?:interface|implementation|protocol)\s+\w)/.test(masked.slice(i, i + 20))) depth = 0;
+      else if ((ch === '-' || ch === '+') && (i === 0 || masked[i - 1] === '\n') && /^[-+][ \t]*\(/.test(masked.slice(i, i + 8))) depth = 0;
+    }
+
+    if (ch === '{') {
+      if (depth === 0 && /\b(?:extern|namespace(?:[ \t]+[\w:]+)?)\s*$/.test(masked.slice(Math.max(0, i - 80), i))) continue;
+      if (depth > 0) out[i] = ' ';
+      depth++;
+    } else if (ch === '}') {
+      if (depth > 0) depth--;
+      if (depth > 0) out[i] = ' ';
+    } else if (depth > 0) {
+      out[i] = ' ';
+    }
+  }
+  return out.join('');
+}
+
+/**
+ * Extract members inside an @interface, @protocol, or @implementation block.
+ * A member starts at the head of a line on the top-level surface, so an ivar
+ * block and the bodies of methods and C helpers are never scanned for members.
+ */
+function extractMembers(blockStripped, blockMasked, blockTop, fullStripped, offset, isImpl) {
   const members = [];
-  const n = blockStripped.length;
-  let i = 0;
+  const heads = [];
+  for (const m of blockTop.matchAll(/^[ \t]*([-+]|@property\b)/gm)) {
+    heads.push({ idx: m.index + m[0].length - m[1].length, isProp: m[1] === '@property' });
+  }
+  let resumeAt = 0;
 
-  while (i < n) {
-    // Skip leading whitespace / newlines
-    while (i < n && /\s/.test(blockStripped[i])) i++;
-    if (i >= n) break;
+  for (let h = 0; h < heads.length; h++) {
+    const i = heads[h].idx;
+    if (i < resumeAt) continue;
 
-    // Check for @property
-    if (blockStripped.slice(i).startsWith('@property')) {
-      const propResult = parseProperty(blockStripped, blockMasked, i);
-      if (propResult) {
-        const startL = lineAt(fullStripped, offset + i);
-        const endL = lineAt(fullStripped, offset + propResult.endIdx);
-        members.push(withAnchor(`  ${propResult.sig}`, startL, endL));
-        i = propResult.endIdx + 1;
-        continue;
-      }
-    }
+    const result = heads[h].isProp
+      ? parseProperty(blockStripped, blockMasked, i)
+      : parseMethod(blockStripped, blockMasked, i, isImpl, blockTop);
+    if (!result) continue;
 
-    // Check for method declarations / definitions: `+` or `-`
-    const ch = blockStripped[i];
-    if (ch === '-' || ch === '+') {
-      const methResult = parseMethod(blockStripped, blockMasked, i, isImpl);
-      if (methResult) {
-        const startL = lineAt(fullStripped, offset + i);
-        const endL = lineAt(fullStripped, offset + methResult.endIdx);
-        members.push(withAnchor(`  ${methResult.sig}`, startL, endL));
-        i = methResult.endIdx + 1;
-        continue;
-      }
-    }
+    // Every head is at depth 0, so a body that reaches the next one was closed
+    // by a brace that is not its own — keep the start line, drop the bad end.
+    const next = h + 1 < heads.length ? heads[h + 1].idx : Infinity;
+    const endIdx = result.endIdx < next ? result.endIdx : result.bodyIdx;
 
-    i++;
+    const startL = lineAt(fullStripped, offset + i);
+    const endL = lineAt(fullStripped, offset + endIdx);
+    members.push(withAnchor(`  ${result.sig}`, startL, endL));
+    resumeAt = endIdx + 1;
   }
 
   return capWithNotice(members, MEMBER_LIMIT, 'methods');
@@ -216,7 +288,7 @@ function parseProperty(stripped, masked, startIdx) {
 /**
  * Parse a class (+) or instance (-) method.
  */
-function parseMethod(stripped, masked, startIdx, isImpl) {
+function parseMethod(stripped, masked, startIdx, isImpl, top) {
   const kind = stripped[startIdx]; // '-' or '+'
   let i = startIdx + 1;
   const n = stripped.length;
@@ -308,6 +380,7 @@ function parseMethod(stripped, masked, startIdx, isImpl) {
 
   // Find termination: `;` for declaration or `{ ... }` for definition
   let endIdx = -1;
+  let bodyIdx = -1;
   while (i < n && stripped[i] !== ';' && stripped[i] !== '{' && stripped[i] !== '@') {
     if (stripped[i] === '(') {
       const close = readBalanced(masked, i, '(', ')');
@@ -318,10 +391,20 @@ function parseMethod(stripped, masked, startIdx, isImpl) {
 
   if (i >= n || stripped[i] === '@') return null;
 
+  // A definition may legally carry a `;` before its body: `- (void)run;\n{ ... }`.
+  if (isImpl && stripped[i] === ';') {
+    let k = i + 1;
+    while (k < n && /\s/.test(masked[k])) k++;
+    if (masked[k] === '{') i = k;
+  }
+
   if (stripped[i] === ';') {
     endIdx = i;
   } else if (stripped[i] === '{') {
-    const closeBrace = readBalanced(masked, i, '{', '}');
+    // On the top-level surface the body interior is blank, so the next `}` is
+    // this body's own — with no scan ceiling, and correct across `#if` branches.
+    const closeBrace = top ? top.indexOf('}', i + 1) : readBalanced(masked, i, '{', '}', MAX_BODY_CHARS);
+    bodyIdx = i;
     endIdx = closeBrace > 0 ? closeBrace : i;
   } else {
     return null;
@@ -331,7 +414,7 @@ function parseMethod(stripped, masked, startIdx, isImpl) {
   if (!selectorStr) return null;
 
   const sig = returnType ? `${kind} ${returnType}${selectorStr}` : `${kind} ${selectorStr}`;
-  return { sig, endIdx };
+  return { sig, endIdx, bodyIdx: bodyIdx < 0 ? endIdx : bodyIdx };
 }
 
 /**
@@ -372,12 +455,14 @@ function extractEnumsAndStructs(stripped, masked, sigs) {
 }
 
 /**
- * Extract top-level C functions and static inline functions.
+ * Extract top-level C functions and static inline functions. Matched on the
+ * top-level surface: inside a body, `return CGRectMake(0, 0, w, h);` has the
+ * same `type name(...);` shape as a prototype.
  */
-function extractCFunctions(stripped, masked, sigs) {
+function extractCFunctions(stripped, masked, top, sigs) {
   const funcRe = /^[ \t]*(static[ \t]+inline[ \t]+|static[ \t]+|extern[ \t]+)?([A-Za-z0-9_]+(?:[ \t]+[A-Za-z0-9_]+)*[ \t*&]+)\s*([A-Za-z0-9_]+)[ \t]*\(/gm;
 
-  for (const m of stripped.matchAll(funcRe)) {
+  for (const m of top.matchAll(funcRe)) {
     const declIdx = m.index + (m[0].length - m[0].trimStart().length);
     const modifier = m[1] || '';
     const rawType = m[2].trim();
@@ -403,7 +488,7 @@ function extractCFunctions(stripped, masked, sigs) {
     }
 
     if (masked[k] === '{') {
-      const closeBrace = readBalanced(masked, k, '{', '}');
+      const closeBrace = top.indexOf('}', k + 1);
       const startLine = lineAt(stripped, declIdx);
       const endLine = closeBrace > 0 ? lineAt(stripped, closeBrace) : startLine;
       const params = stripped.slice(openParen + 1, closeParen).trim().replace(/\s+/g, ' ');
@@ -438,6 +523,7 @@ function extractCppClasses(stripped, masked, sigs) {
 module.exports = {
   extract,
   hasObjCMarkers,
+  topLevelSurface,
   parseMethod,
   parseProperty,
   MEMBER_LIMIT,

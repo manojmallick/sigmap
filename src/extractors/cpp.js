@@ -21,15 +21,17 @@ const PER_FILE_LIMIT = 200;
  */
 function extract(src, filePath) {
   if (!src || typeof src !== 'string') return [];
-  if (/^\s*@(?:interface|implementation|protocol)\b/m.test(src) || /^\s*#import\b/m.test(src)) {
-    return require('./objc').extract(src, filePath);
-  }
-  const sigs = [];
-
   // stripComments is length- AND newline-preserving; the previous strip DELETED
   // comment text, so offsets no longer aligned with the masked surface the
   // balanced reader walks (#695).
   const stripped = stripComments(src);
+
+  // `.h` is shared with Objective-C. Sniffed on the comment-stripped text: a
+  // C++ header that only MENTIONS `@interface` in a comment is still C++.
+  if (/^\s*@(?:interface|implementation|protocol)\b/m.test(stripped) || /^\s*#import\b/m.test(stripped)) {
+    return require('./objc').extract(src, filePath);
+  }
+  const sigs = [];
   const masked = maskCode(src);
 
   // Classes and structs
