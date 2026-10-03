@@ -80,7 +80,7 @@ const COMMON_CODE_DIRS = new Set([
 const SUPPORTED_CODE_EXTS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
   '.py', '.pyw', '.java', '.kt', '.kts', '.go', '.rs', '.cs',
-  '.cpp', '.c', '.h', '.hpp', '.cc', '.rb', '.rake', '.php',
+  '.cpp', '.c', '.h', '.hpp', '.cc', '.m', '.mm', '.rb', '.rake', '.php',
   '.swift', '.dart', '.scala', '.sc', '.lua', '.ex', '.exs', '.vue', '.svelte', '.astro',
   '.html', '.htm', '.css', '.scss', '.sass', '.less',
   '.yml', '.yaml', '.sh', '.bash', '.zsh', '.fish',

@@ -15,7 +15,7 @@
 // Extensions we are confident name a source/code/config file (no slash required).
 const KNOWN_CODE_EXT = new Set([
   'js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'py', 'pyw', 'rb', 'go', 'rs',
-  'java', 'kt', 'swift', 'c', 'h', 'cpp', 'hpp', 'cs', 'php', 'r',
+  'java', 'kt', 'swift', 'c', 'h', 'cpp', 'hpp', 'm', 'mm', 'cs', 'php', 'r',
   'vue', 'svelte', 'css', 'scss', 'less', 'html', 'json', 'yml', 'yaml',
   'toml', 'xml', 'sql', 'graphql', 'gql', 'proto', 'tf', 'md', 'sh',
   'gd', 'gdscript', 'ps1', 'psm1', 'psd1',
