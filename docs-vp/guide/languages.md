@@ -128,6 +128,7 @@ export class UserService
 | Elixir | `.ex` `.exs` | defmodule, def/defp/defmacro, @spec return hints, @doc hints, alias/import deps |
 | Astro | `.astro` | frontmatter via the TS extractor (Props, functions, consts), Astro.props destructure, component usages |
 | PowerShell | `.ps1` `.psm1` `.psd1` | function, filter, workflow, param blocks, [CmdletBinding], PS5 class, methods, enum, Export-ModuleMember, .psd1 manifest |
+| Objective-C | `.m` `.mm` | @interface, @protocol, @implementation, categories, @property, class/instance methods, typedef NS_ENUM / NS_OPTIONS, C functions |
 | CI / pipelines | `.github/workflows/*` `action.yml` `.gitlab-ci.yml` `.circleci/config.yml` `azure-pipelines.yml` `bitbucket-pipelines.yml` `.drone.yml` `Jenkinsfile` `docker-compose.yml` | workflow name and triggers, jobs with runner / `needs` / `if` / matrix / environment, steps as real commands, referenced secrets, compose services — **routed by path, not extension** |
 
 ## Extraction quality tiers

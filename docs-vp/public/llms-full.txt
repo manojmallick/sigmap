@@ -26,7 +26,7 @@ Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 | Token reduction | — | 95.8% average |
 | Task-success proxy (modeled) | — | 61.0% |
 | Prompts per task | 2.84 | 1.61 (43.4% fewer) |
-| Supported languages | — | 37 |
+| Supported languages | — | 38 |
 | MCP tools | — | 22 |
 | npm runtime dependencies | — | 0 |
 
@@ -404,9 +404,9 @@ impact = {"depth":3,"includeSigs":true}
 
 ---
 
-## Supported languages (37 extractors)
+## Supported languages (38 extractors)
 
-astro, cpp, csharp, css, dart, dockerfile, elixir, gdscript, go, graphql, html, java, javascript, kotlin, lua, markdown, php, pipeline, powershell, properties, protobuf, python, r, ruby, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue_sfc, xml, yaml
+astro, cpp, csharp, css, dart, dockerfile, elixir, gdscript, go, graphql, html, java, javascript, kotlin, lua, markdown, objc, php, pipeline, powershell, properties, protobuf, python, r, ruby, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue_sfc, xml, yaml
 
 ---
 

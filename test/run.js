@@ -38,6 +38,7 @@ const LANG_EXT = {
   rust: 'rs',
   csharp: 'cs',
   cpp: 'cpp',
+  objc: 'm',
   ruby: 'rb',
   php: 'php',
   swift: 'swift',

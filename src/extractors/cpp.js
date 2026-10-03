@@ -19,8 +19,11 @@ const PER_FILE_LIMIT = 200;
  * @param {string} src - Raw file content
  * @returns {string[]} Array of signature strings
  */
-function extract(src) {
+function extract(src, filePath) {
   if (!src || typeof src !== 'string') return [];
+  if (/^\s*@(?:interface|implementation|protocol)\b/m.test(src) || /^\s*#import\b/m.test(src)) {
+    return require('./objc').extract(src, filePath);
+  }
   const sigs = [];
 
   // stripComments is length- AND newline-preserving; the previous strip DELETED
