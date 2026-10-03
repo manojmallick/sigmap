@@ -37,6 +37,7 @@ const SOURCE_EXTS = new Set([
   '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.py', '.rb', '.go', '.rs',
   '.java', '.kt', '.cs', '.cpp', '.c', '.h', '.hpp', '.swift', '.dart',
   '.scala', '.php', '.lua', '.gd', '.r', '.R',
+  '.ps1', '.psm1', '.psd1',
 ]);
 
 /** Raw user config file content, or null when absent/unparsable. */

@@ -8,6 +8,9 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Added
+- **PowerShell extractor (Tier 2)** (#840) — extracts `function`, `filter`, and `workflow` declarations with clean parameter names from inline or `param(...)` blocks, `[CmdletBinding()]` and `[OutputType]` attributes, doc-comment hints from `.SYNOPSIS`, PS5 classes, constructors, methods (with `hidden` filtering), enums, `Export-ModuleMember`, and `.psd1` manifest metadata. Test-file classification added for `*.Tests.ps1` (Pester)
+
 ---
 
 ## [8.61.3] — 2026-10-03

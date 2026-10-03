@@ -18,7 +18,7 @@ const KNOWN_CODE_EXT = new Set([
   'java', 'kt', 'swift', 'c', 'h', 'cpp', 'hpp', 'cs', 'php', 'r',
   'vue', 'svelte', 'css', 'scss', 'less', 'html', 'json', 'yml', 'yaml',
   'toml', 'xml', 'sql', 'graphql', 'gql', 'proto', 'tf', 'md', 'sh',
-  'gd', 'gdscript',
+  'gd', 'gdscript', 'ps1', 'psm1', 'psd1',
 ]);
 
 // Well-known "X.js" runtime/library product names — never repo files.

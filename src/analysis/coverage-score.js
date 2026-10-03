@@ -35,7 +35,7 @@ const CODE_EXTS = new Set([
   '.vue', '.svelte', '.css', '.scss',
   '.sql', '.graphql', '.proto', '.tf',
   '.lua', '.r', '.jl', '.ex', '.exs',
-  '.sh', '.bash', '.zsh', '.ps1',
+  '.sh', '.bash', '.zsh', '.ps1', '.psm1', '.psd1',
 ]);
 
 /**

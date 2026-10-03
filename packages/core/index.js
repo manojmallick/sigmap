@@ -40,6 +40,7 @@ const EXT_MAP = {
   '.css': 'css',       '.scss': 'css', '.sass': 'css', '.less': 'css',
   '.yml': 'yaml',      '.yaml': 'yaml',
   '.sh': 'shell',      '.bash': 'shell', '.zsh': 'shell', '.fish': 'shell',
+  '.ps1': 'powershell', '.psm1': 'powershell', '.psd1': 'powershell',
   // P1 languages
   '.sql': 'sql',
   '.graphql': 'graphql', '.gql': 'graphql',

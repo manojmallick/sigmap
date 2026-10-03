@@ -22,7 +22,7 @@ head:
 
 Two hundred twenty-two versions shipped. MIT open source from day one.
 
-**Stats:** 95.8% overall token reduction · 78.6% retrieval hit@5 · 2.20× measured lift vs single-shot grep (88.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 36 languages · 17-language source resolver · 0 npm deps
+**Stats:** 95.8% overall token reduction · 78.6% retrieval hit@5 · 2.20× measured lift vs single-shot grep (88.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 37 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 

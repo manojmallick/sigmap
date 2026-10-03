@@ -24,6 +24,7 @@ const EXT_TO_LANG = {
   '.astro': 'astro',
   '.gd': 'gdscript',
   '.r': 'r', '.R': 'r',
+  '.ps1': 'powershell', '.psm1': 'powershell', '.psd1': 'powershell',
 };
 
 function detectLanguages(cwd) {
