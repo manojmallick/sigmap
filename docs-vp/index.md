@@ -1,7 +1,7 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 36 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 37 languages with R support.
 head:
   - - meta
     - property: og:title
@@ -60,7 +60,7 @@ features:
     link: /guide/judge
     linkText: Workflow docs →
   - icon: 🌐
-    title: 36 languages, zero native deps
+    title: 37 languages, zero native deps
     details: TypeScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, R, GDScript, and more.
     link: /guide/languages
     linkText: Language support →
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.61.2</span>
+  <span><strong>Release:</strong> v8.61.3</span>
   <span>·</span>
-  <span><strong>New — the documented contract was partly fiction:</strong> the CLI reference had described <code>ask --json</code> since before v8.54.2 as "a machine-readable object with <code>intent</code>, <code>coverage</code>, <code>cost</code>, <code>riskLevel</code>, and <code>rankedFiles</code>" — and two of those five keys did not exist. <code>rankedFiles</code> was <strong>never implemented</strong>, and no surface emits that name; there is no <code>cost</code> key either, the figure shipping as <code>costBefore</code>/<code>costAfter</code>/<code>savingsPct</code>, because a saving needs both sides of the comparison to mean anything. Anyone who wrote against the documented contract got <code>undefined</code> twice. It also left <code>ask</code> as the one command whose ranked selection could not be read back out of its own JSON, so an agent wanting the files and their scores had to re-query the index it had just ranked. <code>rankedFiles</code> now ships as <code>[{ rank, file, score, tokens }]</code>, with the last row's score rounded to equal <code>cutoffScore</code> exactly rather than differing in the fourth decimal. The wider gap was that <em>nothing pinned output keys at all</em> — <code>--help</code> had guards for commands and flags, but a key documented and never emitted could survive release after release. Every documented <code>--json</code> key is now read out of the docs and checked against the command's real output. 36 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — a published number now says which release measured it:</strong> the release that shipped the day before was the evidence. v8.61.2 published a test-discovery <code>F1</code> of 98.0% stamped <code>sigmap-v8.61-main</code> and dated 2026-10-02 — measured on 2026-10-01, by a run nobody made during that release, because <code>benchmark:test-discovery</code> was never invoked. <code>check:metrics</code> passed <strong>four times</strong> across that release without objecting, because it verifies <code>latest.json</code> against the <em>saved</em> reports and never that a saved report belongs to the release being stamped. Three structural causes: no single target regenerated all five sources, so running four of five looked identical to running all five; four of the five reports carried no version at all, so a version guard could not even be written; and <code>latest.json</code> misdeclared its own sources, listing four reports while the generator read five — the one field whose job was provenance had the wrong provenance. Every source report now publishes the version and date it was measured on, a report from a different minor line is a hard failure, and one whose provenance predates stamping publishes as <code>null</code> and says so rather than passing as fresh. The companion half: "95.8% token reduction" measures the generated map against <em>every source file in the repository</em>, so it is a map-size measurement, not a per-call cost saving — reworded in the generator, because a prose-only fix is reverted by the next sync. 37 languages, zero dependencies, offline, deterministic.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.61-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 95.8% token reduction · 2026-10-02</span>
+  <span>78.6% hit@5 · 95.8% token reduction · 2026-10-03</span>
 </div>
 </div>
 
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.8%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-02 (v8.61.2)**.
+Latest saved benchmark run: **2026-10-03 (v8.61.3)**.
 
 </div>
 

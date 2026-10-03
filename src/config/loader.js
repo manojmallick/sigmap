@@ -84,6 +84,7 @@ const SUPPORTED_CODE_EXTS = new Set([
   '.swift', '.dart', '.scala', '.sc', '.lua', '.ex', '.exs', '.vue', '.svelte', '.astro',
   '.html', '.htm', '.css', '.scss', '.sass', '.less',
   '.yml', '.yaml', '.sh', '.bash', '.zsh', '.fish',
+  '.ps1', '.psm1', '.psd1',
   '.sql', '.graphql', '.gql', '.tf', '.tfvars', '.proto',
   '.toml', '.properties', '.xml', '.md',
 ]);

@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.61.2. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.61.3. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.61.2 benchmark snapshot
-**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-02 (with R language)
+::: info Official v8.61.3 benchmark snapshot
+**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-03 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-02 (v8.61.2)**
+Latest saved run: **2026-10-03 (v8.61.3)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -143,10 +143,10 @@ It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
 = 1.1pp, three tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
-<!-- benchmark: re-measured at v8.61.2 — all four corpora present (43 cached repos); figures above are measured, not carried -->
+<!-- benchmark: re-measured at v8.61.3 — all four corpora present (43 cached repos); figures above are measured, not carried -->
 
-::: tip Re-measured at v8.61.2 — and self-repo drift finally showed up
-All four corpora were present in the v8.61.2 release run, so the figures above
+::: tip Re-measured at v8.61.3 — and self-repo drift finally showed up
+All four corpora were present in the v8.61.3 release run, so the figures above
 are **measured, not carried forward**. Every hit@5 is unchanged from v8.56.0 to
 the decimal: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%.
 
@@ -163,6 +163,7 @@ than assumed:
 | v8.61.0 | two modules + a test file | 73.3% (control 73.3%) | **0.582** (control 0.584) |
 | v8.61.1 | a test file + 15 lines in the CLI | 73.3% | 0.582 — **unmoved** |
 | v8.61.2 | 2 modules + 3 test files, and a ranker condition | 73.3% (control 73.3%) | **0.584** (control 0.586) |
+| v8.61.3 | a helper under `scripts/` (unindexed) + 1 test file | 73.3% | 0.584 — **unmoved** |
 
 v8.61.1 is the first release in the series to move **nothing**. Every gated
 corpus came back byte-identical to the v8.61.0 measurement — `hard` 73.3% /
@@ -181,6 +182,16 @@ than against a previous release. With the condition off, `mined` hit@5 reads
 56.5%; with it on, 60.9% — the 4.4pp is given back, not won, because adding the
 module is what exposed the bug ([#851](https://github.com/manojmallick/sigmap/issues/851)).
 `hard` MRR moves −0.002 and `easy` does not move at all.
+
+v8.61.3 is the second null result, and for a structurally cleaner reason than
+v8.61.1's: its new helper lives in `scripts/`, which is not in `srcDirs`
+(`["src", "packages"]`), so it is not indexed at all, and its one new test file
+is dropped first by the token budget. The indexed file set the `hard` corpus
+scores against did not change, and every gated corpus came back identical —
+`hard` 73.3% / 0.584, `mined` 60.9% / 0.389, `jvm` 29.5% / 0.195, `easy` 90.0% /
+0.792. This is also the first release whose reports carry the version that
+measured them, so the claim "measured, not carried" is now checkable in
+`benchmarks/latest.json` rather than taken on trust.
 
 Two MRR figures recorded for v8.61.1 above — `mined` 0.411 and `easy` 0.817 — do
 **not** reproduce on this release's tree, which measures 0.389 and 0.792 with the

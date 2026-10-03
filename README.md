@@ -63,11 +63,11 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 <!--SM:whyMetrics-->
 - **78.6% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
 - **88.0% vs 40.0% single-shot grep baseline** — 2.20× measured lift on the honest corpus (125 tasks / 19 repos)
-- **95.8% token reduction** — average across 21 real repos
+- **95.8% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **61.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.61 prompts per task** — down from 2.84 (43.4% fewer retries, modeled)
 <!--/SM:whyMetrics-->
-- **<!--SM:languages-->36<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
+- **<!--SM:languages-->37<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
@@ -126,11 +126,11 @@ Ask → Rank → Context → Validate → Judge → Learn
 <!--SM:benchmarkBlock-->
 ```
 Benchmark : sigmap-v8.61-main (21 repositories, including R language)
-Date      : 2026-10-02
+Date      : 2026-10-03
 
 Hit@5          : 78.6%   (retrieval corpus, 18 repos)
 Honest vs grep : 88.0% vs 40.0% grep baseline — 2.20× lift (125 tasks / 19 repos)
-Token reduction: 95.8%   (across 21 repos)
+Map vs repo    : 95.8% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 43.4% (2.84 → 1.61 prompts per task, modeled)
 Task success   : 61.0%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
@@ -337,7 +337,7 @@ sigmap --health
 | Benchmark methodology | [methodology.html](https://sigmap.io/guide/methodology.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
-| <!--SM:languages-->36<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
+| <!--SM:languages-->37<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
 
 ---
 
@@ -394,9 +394,9 @@ See [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the
 
 ---
 
-## <!--SM:languages-->36<!--/SM:languages--> languages
+## <!--SM:languages-->37<!--/SM:languages--> languages
 
-TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
+TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · PowerShell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
 
 All implemented with zero external dependencies.
 
@@ -404,12 +404,12 @@ All implemented with zero external dependencies.
 
 ### Extraction honesty
 
-Not all 36 languages get the same depth — and we say so plainly:
+Not all 37 languages get the same depth — and we say so plainly:
 
 | Tier | Coverage | Depth |
 |------|----------|-------|
 | **AST** | Python (`python3` on PATH; regex fallback without) | Full parse |
-| **Anchored regex** | 11 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#) | Declarations + `:start-end` line anchors; doc hints on 6 |
+| **Anchored regex** | 12 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, PowerShell) | Declarations + `:start-end` line anchors; doc hints on 7 |
 | **Pattern/heuristic** | Everything else + generic fallback | Line-oriented patterns |
 
 Caps: 25 signatures/file · 8 members/block. Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.

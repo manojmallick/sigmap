@@ -1,0 +1,11 @@
+class ReportService  :16-33
+  [string] $BasePath  :17-17
+  ReportService(path)  :19-21
+  [string] GenerateReport(format)  :23-25
+  static [void] ResetConfiguration()  :27-29
+enum Severity  :10-14
+function Get-UserReport(Path, RetryCount, Tags) [CmdletBinding] → PSCustomObject  :41-56  # Builds a user activity report from audit logs
+function Invoke-QuickCheck(Target, Timeout)  :58-60
+filter Select-HealthyHost(Strict)  :62-65
+workflow Deploy-StackWorkflow(ClusterName)  :67-72
+Export-ModuleMember Get-UserReport, Invoke-QuickCheck, Select-HealthyHost, Deploy-StackWorkflow  :79-79

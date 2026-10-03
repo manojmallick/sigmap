@@ -4,10 +4,10 @@ description: SigMap extracts signatures from 31 programming languages and format
 head:
   - - meta
     - property: og:title
-      content: "SigMap Language Support — 36 languages, zero Tree-sitter"
+      content: "SigMap Language Support — 37 languages, zero Tree-sitter"
   - - meta
     - property: og:description
-      content: "Pure regex AST extraction for 36 languages and formats. No compiler required, no binary dependencies."
+      content: "Pure regex AST extraction for 37 languages and formats. No compiler required, no binary dependencies."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/languages"
@@ -22,7 +22,7 @@ head:
 
 SigMap extracts signatures from 33 programming languages and formats using deterministic, zero-dependency extraction — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 36 languages · 25 max signatures per file · 0 npm packages
+**Stats:** 37 languages · 25 max signatures per file · 0 npm packages
 
 Not every language gets the same depth — the tiers (AST / anchored regex / pattern-heuristic), the truncation caps, and the known regex gaps are stated plainly in [KNOWN_LIMITATIONS.md](https://github.com/manojmallick/sigmap/blob/main/KNOWN_LIMITATIONS.md) (v8.26.1), drift-locked by a guard test.
 
@@ -89,7 +89,7 @@ export class UserService
 - Generated files (`*.pb.*`, `*.generated.*`)
 - Any credential, key, token, or secret pattern
 
-## All 36 languages
+## All 37 languages
 
 | Language | Extensions | Extracts |
 |----------|------------|----------|
@@ -127,6 +127,7 @@ export class UserService
 | Lua | `.lua` | function, module-table methods (M.name / M:name), local functions, require hints, LDoc hints |
 | Elixir | `.ex` `.exs` | defmodule, def/defp/defmacro, @spec return hints, @doc hints, alias/import deps |
 | Astro | `.astro` | frontmatter via the TS extractor (Props, functions, consts), Astro.props destructure, component usages |
+| PowerShell | `.ps1` `.psm1` `.psd1` | function, filter, workflow, param blocks, [CmdletBinding], PS5 class, methods, enum, Export-ModuleMember, .psd1 manifest |
 | CI / pipelines | `.github/workflows/*` `action.yml` `.gitlab-ci.yml` `.circleci/config.yml` `azure-pipelines.yml` `bitbucket-pipelines.yml` `.drone.yml` `Jenkinsfile` `docker-compose.yml` | workflow name and triggers, jobs with runner / `needs` / `if` / matrix / environment, steps as real commands, referenced secrets, compose services — **routed by path, not extension** |
 
 ## Extraction quality tiers

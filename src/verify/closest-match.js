@@ -111,7 +111,7 @@ const SUGGESTIBLE_EXTS = new Set([
   '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.py', '.go', '.rs',
   '.java', '.kt', '.scala', '.swift', '.rb', '.php', '.cs', '.dart',
   '.c', '.cpp', '.h', '.hpp', '.lua', '.ex', '.exs', '.r', '.jl',
-  '.sh', '.bash', '.zsh', '.ps1', '.vue', '.svelte',
+  '.sh', '.bash', '.zsh', '.ps1', '.psm1', '.psd1', '.vue', '.svelte',
 ]);
 
 /**

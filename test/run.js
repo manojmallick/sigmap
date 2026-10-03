@@ -54,6 +54,7 @@ const LANG_EXT = {
   yaml: 'yml',
   pipeline: 'yml',
   shell: 'sh',
+  powershell: 'ps1',
   dockerfile: 'Dockerfile',
   gdscript: 'gd',
 };

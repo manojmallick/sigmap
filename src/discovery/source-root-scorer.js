@@ -8,6 +8,7 @@ const CODE_EXTS = new Set([
   '.js','.mjs','.cjs','.ts','.tsx','.jsx',
   '.py','.rb','.go','.rs','.java','.kt',
   '.cs','.cpp','.c','.h','.swift','.dart','.scala','.php','.lua',
+  '.ps1','.psm1','.psd1',
 ]);
 
 const AUTO_SKIP = new Set([
