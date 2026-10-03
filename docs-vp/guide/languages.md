@@ -4,10 +4,10 @@ description: SigMap extracts signatures from 31 programming languages and format
 head:
   - - meta
     - property: og:title
-      content: "SigMap Language Support — 37 languages, zero Tree-sitter"
+      content: "SigMap Language Support — 38 languages, zero Tree-sitter"
   - - meta
     - property: og:description
-      content: "Pure regex AST extraction for 37 languages and formats. No compiler required, no binary dependencies."
+      content: "Pure regex AST extraction for 38 languages and formats. No compiler required, no binary dependencies."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/languages"
@@ -22,7 +22,7 @@ head:
 
 SigMap extracts signatures from 33 programming languages and formats using deterministic, zero-dependency extraction — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 37 languages · 25 max signatures per file · 0 npm packages
+**Stats:** 38 languages · 25 max signatures per file · 0 npm packages
 
 Not every language gets the same depth — the tiers (AST / anchored regex / pattern-heuristic), the truncation caps, and the known regex gaps are stated plainly in [KNOWN_LIMITATIONS.md](https://github.com/manojmallick/sigmap/blob/main/KNOWN_LIMITATIONS.md) (v8.26.1), drift-locked by a guard test.
 
@@ -89,7 +89,7 @@ export class UserService
 - Generated files (`*.pb.*`, `*.generated.*`)
 - Any credential, key, token, or secret pattern
 
-## All 37 languages
+## All 38 languages
 
 | Language | Extensions | Extracts |
 |----------|------------|----------|
