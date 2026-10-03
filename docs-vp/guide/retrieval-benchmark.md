@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.61.3. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.62.0. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.61.3 benchmark snapshot
-**Benchmark ID:** sigmap-v8.61-main &nbsp;·&nbsp; **Date:** 2026-10-03 (with R language)
+::: info Official v8.62.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.62-main &nbsp;·&nbsp; **Date:** 2026-10-03 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-03 (v8.61.3)**
+Latest saved run: **2026-10-03 (v8.62.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -143,16 +143,16 @@ It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
 = 1.1pp, three tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
-<!-- benchmark: re-measured at v8.61.3 — all four corpora present (43 cached repos); figures above are measured, not carried -->
+<!-- benchmark: re-measured at v8.62.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
 
-::: tip Re-measured at v8.61.3 — and self-repo drift finally showed up
-All four corpora were present in the v8.61.3 release run, so the figures above
+::: tip Re-measured at v8.62.0 — and self-repo drift finally showed up
+All four corpora were present in the v8.62.0 release run, so the figures above
 are **measured, not carried forward**. Every hit@5 is unchanged from v8.56.0 to
 the decimal: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%.
 
 `hard` scores against **SigMap's own source**, so anything that changes the
 indexed file set can shift its BM25 statistics whether or not ranking changed.
-Each of the last four releases was checked over the same cached corpus rather
+Each release since v8.58.0 was checked over the same cached corpus rather
 than assumed:
 
 | release | what it added to SigMap's own source | `hard` hit@5 | `hard` MRR |
@@ -164,6 +164,22 @@ than assumed:
 | v8.61.1 | a test file + 15 lines in the CLI | 73.3% | 0.582 — **unmoved** |
 | v8.61.2 | 2 modules + 3 test files, and a ranker condition | 73.3% (control 73.3%) | **0.584** (control 0.586) |
 | v8.61.3 | a helper under `scripts/` (unindexed) + 1 test file | 73.3% | 0.584 — **unmoved** |
+| v8.62.0 | two extractor modules (`powershell.js`, `objc.js`) + their tests | 73.3% (control 73.3%) | **0.578** (control 0.584) |
+
+v8.62.0 moved MRR and no hit@5, and two control trees say exactly which change
+did it. The tree v8.61.3 was *measured* on still reproduces its recorded figures
+— `hard` 73.3% / 0.584, `mined` 60.9% / 0.389, `easy` 90.0% / 0.792. The tree
+v8.61.3 was *tagged* on already reads `hard` 0.578, `mined` 0.411, `easy` 0.825,
+and this release reads the same three numbers to the digit. The difference
+between those two trees is one merge: the PowerShell extractor landed after the
+v8.61.3 benchmarks ran and before the tag, so v8.61.3 shipped a source tree its
+own row above does not describe. Adding `src/extractors/objc.js` on top moved
+nothing. `jvm`, the one gated corpus that scores against external repos, is
+29.5% / 0.195 on both sides — so this is corpus composition again, not ranking:
+one new 660-line module in `srcDirs` is enough to shift the IDF statistics of
+three corpora that score against SigMap's own source. Two of the three moved
+*up* (`mined` +0.022, `easy` +0.033) and `hard` moved down 0.006, which is the
+signature of reshuffled term weights rather than a better or worse ranker.
 
 v8.61.1 is the first release in the series to move **nothing**. Every gated
 corpus came back byte-identical to the v8.61.0 measurement — `hard` 73.3% /

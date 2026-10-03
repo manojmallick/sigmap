@@ -1,0 +1,23 @@
+@protocol Repository  :21-27
+  - (User *)findById:(NSString *)userId  :23-23
+  - (BOOL)saveUser:(User *)user error:(NSError **)error  :24-24
+  - (void)clearCache  :26-26
+@interface UserService : NSObject  :29-37
+  @property (nonatomic, strong) id<Repository> repo  :30-30
+  @property (nonatomic, copy, readonly) NSString *serviceName  :31-31
+  + (instancetype)serviceWithRepo:(id<Repository>)repo  :33-33
+  - (instancetype)initWithRepo:(id<Repository>)repo  :34-34
+  - (User *)getUser:(NSString *)userId  :35-35
+  - (void)createUser:(CreateUserDto *)dto completion:(void (^)(User *user, NSError *error))completion  :36-36
+@interface UserService (Logging)  :39-41
+  - (void)logServiceStatus  :40-40
+@implementation UserService  :43-64
+  + (instancetype)serviceWithRepo:(id<Repository>)repo  :45-47
+  - (instancetype)initWithRepo:(id<Repository>)repo  :49-54
+  - (User *)getUser:(NSString *)userId  :56-58
+  - (void)createUser:(CreateUserDto *)dto completion:(void (^)(User *user, NSError *error))completion  :60-62
+typedef NS_ENUM(NSInteger, UserRole)  :4-8
+typedef NS_OPTIONS(NSUInteger, UserPermissions)  :10-14
+typedef struct Point2D  :16-19
+NSString *hashPassword(NSString *password)  :66-68
+static inline BOOL isValidId(NSString *identifier)  :70-72

@@ -1,7 +1,7 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 37 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 38 languages with R support.
 head:
   - - meta
     - property: og:title
@@ -60,7 +60,7 @@ features:
     link: /guide/judge
     linkText: Workflow docs →
   - icon: 🌐
-    title: 37 languages, zero native deps
+    title: 38 languages, zero native deps
     details: TypeScript, Python, Go, Rust, Java, Kotlin, Ruby, PHP, Swift, C#, C++, Dart, Scala, Vue, Svelte, GraphQL, SQL, Terraform, R, GDScript, and more.
     link: /guide/languages
     linkText: Language support →
@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.61.3</span>
+  <span><strong>Release:</strong> v8.62.0</span>
   <span>·</span>
-  <span><strong>New — a published number now says which release measured it:</strong> the release that shipped the day before was the evidence. v8.61.2 published a test-discovery <code>F1</code> of 98.0% stamped <code>sigmap-v8.61-main</code> and dated 2026-10-02 — measured on 2026-10-01, by a run nobody made during that release, because <code>benchmark:test-discovery</code> was never invoked. <code>check:metrics</code> passed <strong>four times</strong> across that release without objecting, because it verifies <code>latest.json</code> against the <em>saved</em> reports and never that a saved report belongs to the release being stamped. Three structural causes: no single target regenerated all five sources, so running four of five looked identical to running all five; four of the five reports carried no version at all, so a version guard could not even be written; and <code>latest.json</code> misdeclared its own sources, listing four reports while the generator read five — the one field whose job was provenance had the wrong provenance. Every source report now publishes the version and date it was measured on, a report from a different minor line is a hard failure, and one whose provenance predates stamping publishes as <code>null</code> and says so rather than passing as fresh. The companion half: "95.8% token reduction" measures the generated map against <em>every source file in the repository</em>, so it is a map-size measurement, not a per-call cost saving — reworded in the generator, because a prose-only fix is reverted by the next sync. 37 languages, zero dependencies, offline, deterministic.</span>
+  <span><strong>New — Objective-C and PowerShell at Tier 2:</strong> both contributed by <a href="https://github.com/sujalmallick">@sujalmallick</a>. The Objective-C extractor arrived with a byte-exact fixture and green CI, and was then run over <strong>839 real <code>.m</code> / <code>.mm</code> files</strong> before release — where about 11% of what it emitted was not a declaration: <code>a - b</code> became a method named <code>- b</code> (805 of these), <code>return CGRectMake(...)</code> became a C function (335), and a forward <code>@protocol FooDelegate;</code> became a container that duplicated the next class&rsquo;s members. Declarations are now read only at brace depth 0, with depth that follows <code>#if</code> / <code>#else</code> branches. Same files after: <strong>0 fake signatures, 606 real methods newly found, none lost</strong>. <code>.m</code> files with no Objective-C markers are treated as MATLAB, and <code>.h</code> stays mapped to C/C++, which delegates when it sees Objective-C. <a href="/guide/languages">Language support →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.61-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.62-main</span>
   <span>·</span>
   <span>78.6% hit@5 · 95.8% token reduction · 2026-10-03</span>
 </div>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.8%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-03 (v8.61.3)**.
+Latest saved benchmark run: **2026-10-03 (v8.62.0)**.
 
 </div>
 

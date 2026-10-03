@@ -110,7 +110,7 @@ function closestMatch(target, candidates, opts = {}) {
 const SUGGESTIBLE_EXTS = new Set([
   '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.py', '.go', '.rs',
   '.java', '.kt', '.scala', '.swift', '.rb', '.php', '.cs', '.dart',
-  '.c', '.cpp', '.h', '.hpp', '.lua', '.ex', '.exs', '.r', '.jl',
+  '.c', '.cpp', '.h', '.hpp', '.m', '.mm', '.lua', '.ex', '.exs', '.r', '.jl',
   '.sh', '.bash', '.zsh', '.ps1', '.psm1', '.psd1', '.vue', '.svelte',
 ]);
 
@@ -126,7 +126,8 @@ const NON_SUGGESTIBLE_PATH_RE = new RegExp([
   '\\.(?:test|spec)\\.[mc]?[jt]sx?$',
   '(?:^|/)test_[^/]+\\.py$',
   '_test\\.(?:py|go)$',
-  '(?:Test|Tests|Spec|Specs)\\.(?:java|kt|scala|cs|swift)$',
+  '(?:Test|Tests|Spec|Specs)\\.(?:java|kt|scala|cs|swift|m|mm)$',
+  'TestCase\\.(?:m|mm)$',
 ].join('|'), 'i');
 
 /** Whether a file may source a closest-match suggestion. */

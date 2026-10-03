@@ -8,8 +8,44 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+---
+
+## [8.62.0] — 2026-10-03
+
+Minor. Two languages move to Tier 2 — Objective-C and PowerShell — both contributed by @sujalmallick. The Objective-C extractor passed its fixture and its 15 tests, and was then run over 839 real `.m` / `.mm` files before release. About 11% of what it emitted there was not a declaration, so this release ships the extractor together with the review that corpus forced.
+
 ### Added
-- **PowerShell extractor (Tier 2)** (#840) — extracts `function`, `filter`, and `workflow` declarations with clean parameter names from inline or `param(...)` blocks, `[CmdletBinding()]` and `[OutputType]` attributes, doc-comment hints from `.SYNOPSIS`, PS5 classes, constructors, methods (with `hidden` filtering), enums, `Export-ModuleMember`, and `.psd1` manifest metadata. Test-file classification added for `*.Tests.ps1` (Pester)
+- **Objective-C Tier 2 extractor** (#841, PR #852 integrated as PR #857) — thanks @sujalmallick — dedicated anchored extraction for Objective-C (`.m`, `.mm`) and Objective-C headers (`.h`):
+  - **Language constructs:** `@interface`, `@implementation`, `@protocol`, categories (`@interface Class (Category)`), `@property` declarations with attributes (`nonatomic, copy`), and instance/class methods (`-`/`+`) with multi-part selectors and balanced block argument types (`void (^)(NSError *)`). Top-level C functions and `typedef NS_ENUM`/`NS_OPTIONS` definitions are preserved with `:start-end` line anchors.
+  - **Header delegation (`.h`):** `.h` remains mapped to `cpp` for reachability, but `src/extractors/cpp.js` sniffs `@interface`, `@implementation`, `@protocol`, and `#import` to delegate to `objc.extract`.
+  - **MATLAB/Octave compatibility:** `.m` files with no Objective-C markers deterministically fall back to `src/extractors/generic.js`.
+  - **Declaration-surface scanning:** members and C functions are read only at brace depth 0, so a body statement (`return CGRectMake(...)`, `x = a - b;`) never surfaces as a signature. Depth follows `#if` / `#else` branches and resyncs at each container and method head; forward declarations (`@protocol FooDelegate;`) open no container; method bodies anchor to their real closing brace at any length.
+  - **Deterministic limits & anchors:** Container `@end` anchoring, member-level balanced masking via `scan.js`, 120 members per container cap, and 200 signatures per file cap with visible disclosure markers.
+  - **Test file classification:** `src/util/file-class.js` recognizes PascalCase Objective-C test files (`FooTests.m`, `BarTestCase.mm`).
+  - **Secondary registries & standalone bundle:** registered across `packages/core`, discovery, verify, config loaders, and synced into standalone `gen-context.js`.
+- **PowerShell extractor (Tier 2)** (#840, PR #850) — thanks @sujalmallick — extracts `function`, `filter`, and `workflow` declarations with clean parameter names from inline or `param(...)` blocks, `[CmdletBinding()]` and `[OutputType]` attributes, doc-comment hints from `.SYNOPSIS`, PS5 classes, constructors, methods (with `hidden` filtering), enums, `Export-ModuleMember`, and `.psd1` manifest metadata. Test-file classification added for `*.Tests.ps1` (Pester). The code is in the v8.61.3 package; that release's entry never recorded it, so it is recorded here
+
+### Fixed
+Found by running the new extractor over real Objective-C (a React Native dependency tree) rather than the fixture; none of these reached a release.
+- **A forward declaration was read as a container** (PR #857) — `@protocol FooDelegate;` opens no block, so it ran to the *next* container's `@end` and re-emitted that container's members under the wrong name. Forward protocol declarations sit above most real `@interface` blocks
+- **A statement in a method body was emitted as a C function** (PR #857) — `return CGRectMake(0, 0, w, h);` has the same `type name(...);` shape as a prototype. 335 of these in the corpus
+- **Any `-` or `+` inside `@implementation` could start a "method"** (PR #857) — `kNone = -1` became `- 1`, and `a - b` became `- b`. 805 of these in the corpus
+- **A method body past 4KB lost its end anchor** (PR #857) — the balanced reader's default window is a parameter-list ceiling. The method anchored to one line, and its body was then scanned for members, so a single long method could fill the 120-member cap with noise and crowd out the real ones
+- **`#if` / `#else` branches that each open a brace hid every later method** (PR #857) — found while verifying the fix above: depth tracking that ignores the preprocessor counts both branches' braces against one `}`. Each branch now restarts from the depth at the `#if`, and depth resyncs at every container keyword and column-0 method head, so a residual imbalance costs one end anchor rather than the rest of the container
+- **A C++ header that only mentions `@interface` in a comment lost its class members** (PR #857) — the `.h` sniff in `cpp.js` ran on raw text, delegated to the ObjC extractor, which found no markers once comments were stripped and fell through to the generic one. The sniff now runs on comment-stripped text
+- **A header delegated to the ObjC extractor dropped its plain `struct` / `class`** (PR #857) — C++ type extraction was gated to `.mm`; it now covers delegated headers too
+- **`@interface Box<ObjectType> : NSObject` lost its superclass** (PR #857) — a lightweight-generics parameter list sat where the pattern expected the category or superclass
+
+### Changed
+- **Published counts: 38 languages, 52 extractor modules** (was 37 / 51) — 15 surfaces across README, `docs-vp`, `llms*.txt` and KNOWN_LIMITATIONS followed, all through the drift guards rather than by hand. Tier 2 is now 13 languages; doc hints stay at 7 (PowerShell adds them, Objective-C does not)
+- **`.m` is now a recognised source extension** — in discovery, coverage, `tune`, closest-match suggestions and `verify` path parsing. A `.m` file with no Objective-C markers is treated as MATLAB/Octave and goes to the generic extractor
+
+### Notes
+- **No published metric moved.** A fresh `benchmark:all` on the release tree reproduces 95.8% / 78.6% / 43.4%, 88.0% vs 40.0%, and test-discovery F1 98.0% exactly; the report diffs are version stamps, timestamps and durations only. All five sources now read `8.62.0`, and `benchmark_id` moves to `sigmap-v8.62-main` — the first minor-line change since the provenance guard (#854) landed, so this is the first release where the 8.61-stamped reports would have been a hard failure had the run been skipped
+- **Self-repo retrieval MRR moved, hit@5 did not — and the cause is v8.61.3, not this release.** `hard` 73.3% / 0.584 → 0.578, `mined` 60.9% / 0.389 → 0.411, `easy` 90.0% / 0.792 → 0.825; `jvm` (external repos) unchanged at 29.5% / 0.195. Two control trees isolate it: the tree v8.61.3 was *measured* on reproduces the old figures, and the tree it was *tagged* on already reads the new ones. The PowerShell merge landed between the benchmark run and the tag. Adding the Objective-C module moved nothing
+- **12 regression tests** added to `objc-language.test.js` (15 → 27); 10 of them fail against the extractor as contributed. The `expected/objc.txt` fixture output is byte-identical before and after the fix
+- The corpus check drops two kinds of output that were never right: 53 `RCT_NOT_IMPLEMENTED(- (instancetype)init)` macro arguments, which had been anchored to the method following them, and C++ member functions defined inline in a `.mm` class body, which had been listed as top-level functions (the class itself is still listed)
+- Full suite **204 integration + 28 fixture, 0 failed** · `check:metrics`, `validate:llms`, `validate:retrieval` green · docs build clean · bundle reproducible from `src/` (179 modules)
 
 ---
 

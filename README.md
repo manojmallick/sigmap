@@ -67,7 +67,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 - **61.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.61 prompts per task** — down from 2.84 (43.4% fewer retries, modeled)
 <!--/SM:whyMetrics-->
-- **<!--SM:languages-->37<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
+- **<!--SM:languages-->38<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
 - **No API costs** — use local models (Ollama, llama.cpp, vLLM) with zero token fees
 - **Full privacy** — keep your code and context on your machine
@@ -125,7 +125,7 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.61-main (21 repositories, including R language)
+Benchmark : sigmap-v8.62-main (21 repositories, including R language)
 Date      : 2026-10-03
 
 Hit@5          : 78.6%   (retrieval corpus, 18 repos)
@@ -337,7 +337,7 @@ sigmap --health
 | Benchmark methodology | [methodology.html](https://sigmap.io/guide/methodology.html) |
 | Config reference | [config.html](https://sigmap.io/guide/config.html) |
 | Roadmap | [roadmap.html](https://sigmap.io/guide/roadmap.html) |
-| <!--SM:languages-->37<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
+| <!--SM:languages-->38<!--/SM:languages--> languages | [generalization.html](https://sigmap.io/guide/generalization.html) |
 
 ---
 
@@ -394,9 +394,9 @@ See [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) for the
 
 ---
 
-## <!--SM:languages-->37<!--/SM:languages--> languages
+## <!--SM:languages-->38<!--/SM:languages--> languages
 
-TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · PowerShell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
+TypeScript · JavaScript · Python · Java · Kotlin · Go · Rust · C# · C/C++ · Objective-C · Ruby · PHP · Swift · Dart · Scala · Vue · Svelte · HTML · CSS/SCSS · YAML · Shell · PowerShell · SQL · GraphQL · Terraform · Protobuf · Dockerfile · TOML · XML · Properties · Markdown · R · GDScript
 
 All implemented with zero external dependencies.
 
@@ -404,7 +404,7 @@ All implemented with zero external dependencies.
 
 ### Extraction honesty
 
-Not all 37 languages get the same depth — and we say so plainly:
+Not all 38 languages get the same depth — and we say so plainly:
 
 | Tier | Coverage | Depth |
 |------|----------|-------|
