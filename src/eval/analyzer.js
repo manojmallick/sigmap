@@ -144,8 +144,10 @@ function analyzeFiles(files, cwd, opts) {
 function formatAnalysisTable(stats, showSlow) {
   if (!stats || stats.length === 0) return '_(no files analyzed)_\n';
 
-  // Column widths
-  const maxFile = Math.max(4, ...stats.map((s) => s.file.length));
+  // Column widths. A loop, not `Math.max(4, ...lengths)`: one argument per
+  // file overflows the stack past ~125k files (#855).
+  let maxFile = 4;
+  for (const s of stats) if (s.file.length > maxFile) maxFile = s.file.length;
 
   const header = showSlow
     ? `| ${'File'.padEnd(maxFile)} | Sigs | Tokens | Extractor   | Coverage   | Elapsed  |`

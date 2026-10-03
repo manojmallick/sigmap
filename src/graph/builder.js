@@ -522,16 +522,18 @@ function buildFromCwd(cwd, opts) {
   } = opts || {};
   const excludeSet = new Set(exclude);
 
-  function walkDir(dir, depth) {
-    if (depth > maxDepth) return [];
+  // Collects into one shared array. Returning a list per directory and
+  // spreading it into the parent (`push(...walkDir())`) passes every path as a
+  // call argument, which overflows the stack past ~125k files (#855).
+  function walkDir(dir, depth, out) {
+    if (depth > maxDepth) return;
     let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return []; }
-    const out = [];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
     for (const e of entries) {
       if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) {
-        out.push(...walkDir(full, depth + 1));
+        walkDir(full, depth + 1, out);
       } else if (e.isFile()) {
         const ext = path.extname(e.name).toLowerCase();
         if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || GO_EXTS.has(ext) ||
@@ -541,13 +543,12 @@ function buildFromCwd(cwd, opts) {
         }
       }
     }
-    return out;
   }
 
   const files = [];
   for (const sd of srcDirs) {
     const absDir = path.resolve(cwd, sd);
-    if (fs.existsSync(absDir)) files.push(...walkDir(absDir, 0));
+    if (fs.existsSync(absDir)) walkDir(absDir, 0, files);
   }
   // Also include root-level entry files (R: app.R/server.R/ui.R/global.R for Shiny)
   for (const rootFile of ['gen-context.js', 'index.js', 'main.js', 'app.js',
