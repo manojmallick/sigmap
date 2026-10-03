@@ -51,17 +51,19 @@ function dispatchedCommands() {
   return [...out].sort();
 }
 
-/** The vocabulary the unknown-command guard accepts (KNOWN + flag-gated). */
+/**
+ * The vocabulary the unknown-command guard accepts (KNOWN + flag-gated).
+ *
+ * Both now derive from src/cli/command-table.js (#848) — the literal set this
+ * used to parse out of gen-context.js was the second copy that drifted.
+ */
 function guardVocabulary() {
-  const known = source.match(/const KNOWN_COMMANDS = new Set\(\[([\s\S]*?)\]\);/);
-  assert.ok(known, 'KNOWN_COMMANDS declaration not found in gen-context.js');
-  const gated = source.match(/const FLAG_GATED_COMMANDS = new Map\(\[([\s\S]*?)\]\);/);
-  assert.ok(gated, 'FLAG_GATED_COMMANDS declaration not found in gen-context.js');
-
-  const words = new Set();
-  for (const m of known[1].matchAll(/'([a-z][a-z-]*)'/g)) words.add(m[1]);
-  for (const m of gated[1].matchAll(/\['([a-z][a-z-]*)'/g)) words.add(m[1]);
-  return words;
+  assert.ok(/const KNOWN_COMMANDS = new Set\(CLI_TABLE\.commandNames\(\)\)/.test(source),
+    'KNOWN_COMMANDS must derive from the command table');
+  assert.ok(/const FLAG_GATED_COMMANDS = new Map\(CLI_TABLE\.flagGated\(\)\)/.test(source),
+    'FLAG_GATED_COMMANDS must derive from the command table');
+  const table = require(path.join(ROOT, 'src', 'cli', 'command-table'));
+  return new Set([...table.commandNames(), ...table.flagGated().map(([n]) => n)]);
 }
 
 const COMMANDS = dispatchedCommands();

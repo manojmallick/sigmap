@@ -990,6 +990,23 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     '.sh', '.bash', '.zsh', '.ps1',
   ]);
 
+  /**
+   * The one coverage ratio (#848).
+   *
+   * `validate` kept its own `Math.round((covered / total) * 100)`, which agreed
+   * with this module on every populated repo and disagreed on an empty one: the
+   * hand-rolled version read 0% where every other surface read 100%. An empty
+   * in-scope set has nothing left uncovered, so 100 is the convention — and it is
+   * now stated in exactly one place.
+   *
+   * @param {number} included
+   * @param {number} total
+   * @returns {number} whole percent
+   */
+  function coveragePct(included, total) {
+    return total > 0 ? Math.round((included / total) * 100) : 100;
+  }
+
   function coverageScore(cwd, fileEntries, config) {
     const fs   = require('fs');
     const path = require('path');
@@ -1023,7 +1040,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     const total    = allSource.length;
     const included = allSource.filter(f => includedSet.has(f)).length;
     const dropped  = total - included;
-    const pct      = total > 0 ? Math.round((included / total) * 100) : 100;
+    const pct      = coveragePct(included, total);
 
     const grade = pct >= 90 ? 'A' : pct >= 75 ? 'B' : pct >= 50 ? 'C' : 'D';
     const confidence = pct >= 90 ? 'HIGH' : pct >= 70 ? 'MEDIUM' : 'LOW';
@@ -1034,7 +1051,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
       const absDir   = path.resolve(cwd, relDir);
       const modFiles = allSource.filter(f => f.startsWith(absDir + path.sep) || f === absDir);
       const modIncl  = modFiles.filter(f => includedSet.has(f)).length;
-      const modPct   = modFiles.length > 0 ? Math.round((modIncl / modFiles.length) * 100) : 100;
+      const modPct   = coveragePct(modIncl, modFiles.length);
       perModule.set(relDir, { total: modFiles.length, included: modIncl, pct: modPct });
     }
 
@@ -1222,6 +1239,31 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
   }
 
   /**
+   * The `indexed` population: how much of the in-scope file list the retrieval
+   * index actually holds (#848).
+   *
+   * The naive form — `index.size / fileList.length` — is not a coverage ratio at
+   * all. The persisted index deliberately holds more than the current config
+   * scopes (declared entrypoints, test roots, CI definitions, files a srcDir
+   * change dropped), so the quotient runs past 100%: `validate` reported 218%
+   * before #770 replaced it with the INTERSECTION, and `--ci` was still gating
+   * releases on 241% until this became a shared function instead of a formula
+   * each surface kept its own copy of.
+   *
+   * @param {Set<string>|Iterable<string>} indexedRel - index keys, repo-relative
+   * @param {Iterable<string>} inScopeRel - the in-scope file list, repo-relative
+   * @returns {{score:number, included:number, total:number, grade:string}}
+   */
+  function indexedCoverage(indexedRel, inScopeRel) {
+    const indexed = indexedRel instanceof Set ? indexedRel : new Set(indexedRel);
+    let included = 0;
+    let total = 0;
+    for (const f of inScopeRel) { total++; if (indexed.has(f)) included++; }
+    const score = coveragePct(included, total);
+    return { score, included, total, grade: score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 50 ? 'C' : 'D' };
+  }
+
+  /**
    * The files actually present in the generated context file — the `in-context`
    * population. Parsed from the `### <relpath>` section headings rather than the
    * retrieval index, because the index deliberately holds more than the budget
@@ -1252,7 +1294,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     return [...out].map((filePath) => ({ filePath }));
   }
 
-  module.exports = { coverageScore, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
+  module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
   
 };
 
@@ -1941,6 +1983,300 @@ __factories["./src/cache/sig-cache"] = function(module, exports) {
   }
 
   module.exports = { loadCache, saveCache, getChangedFiles, updateCacheEntries, pruneMissing };
+  
+};
+
+// ── ./src/cli/command-table ──
+__factories["./src/cli/command-table"] = function(module, exports) {
+  
+  /**
+   * The canonical CLI vocabulary (#848, closes #817).
+   *
+   * `--help` used to be a 113-line template literal in `gen-context.js`, kept by
+   * hand alongside the `KNOWN_COMMANDS` set the dispatcher guards on — two copies
+   * of one fact. The comment above that set already claimed "`sigmap --help`
+   * renders from the same vocabulary"; it did not, and the copies drifted:
+   * #661 found twelve shipped commands missing from `--help`, #775 found a flag
+   * `--help` advertised that the command ignored, and the template itself carried
+   * a misaligned `gain --since` line, a literal `%%` left over from a `printf`
+   * escape that a template literal never needed, and an adapter list that had
+   * fallen a release behind `packages/adapters/`.
+   *
+   * `USAGE` below is now the only source. `--help` renders from it, the
+   * unknown-command guard derives its vocabulary from it, and the guards in
+   * `test/integration/command-table.test.js` fail when it and the dispatch chain
+   * disagree in either direction.
+   *
+   * Adding a command means adding a `USAGE` row — there is nowhere else to add it.
+   */
+
+  /** Column the description starts in, measured from the end of `${cmd}`. */
+  const DESC_COL = 35;
+
+  /**
+   * Every `--help` usage line, in display order.
+   *
+   * `argv` is the invocation after the program name (empty for a bare run);
+   * `desc` is the one-line description, in which `{cmd}` stands for the invocation
+   * name. The leading bare word of `argv` is the
+   * subcommand the line documents, and its `--flags` are the flags that
+   * subcommand is advertised as accepting — both are read back out by the guards,
+   * so the shape of these strings is a contract, not just presentation.
+   */
+  const USAGE = [
+    { argv: '', desc: 'Generate context once and exit' },
+    { argv: '--monorepo', desc: 'Generate per-package context (monorepo)' },
+    { argv: '--each', desc: 'Run for every repo in the current directory' },
+    { argv: '--routing', desc: 'Include model routing hints in output' },
+    { argv: '--terse', desc: 'Compact signature encoding (deterministic; line anchors preserved)' },
+    { argv: '--format cache', desc: 'Also write Anthropic prompt-cache JSON' },
+    { argv: '--track', desc: 'Append run metrics to .context/usage.ndjson' },
+    { argv: '--watch', desc: 'Generate + watch for file changes' },
+    { argv: '--setup', desc: 'Generate + install git hook + watch' },
+    { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon' },
+    { argv: '--mcp', desc: 'Start MCP server on stdio' },
+    { argv: '--report', desc: 'Token reduction stats to stdout (exits 1 if over budget)' },
+    { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },
+    { argv: '--report --history', desc: 'Print usage log summary from .context/usage.ndjson' },
+    { argv: '--report --history --chart', desc: 'Include inline SVG charts + Unicode sparklines' },
+    { argv: '--dashboard [--out <path>]', desc: 'Write .context/dashboard.html (HTML health dashboard)' },
+    { argv: '--suggest-tool "<task>"', desc: 'Recommend model tier for a task description' },
+    { argv: '--suggest-tool "<task>" --json', desc: 'Machine-readable tier recommendation' },
+    { argv: '--health', desc: 'Print composite health score' },
+    { argv: '--health --json', desc: 'Machine-readable health score' },
+    { argv: '--ci [--min-coverage N]', desc: 'CI exit gate — exits 1 when indexed coverage is below the threshold (default 80)' },
+    { argv: '--ci --json', desc: 'Gate verdict as JSON {pass, coverage, threshold}' },
+    { argv: 'gain', desc: 'Token-savings dashboard (totals + by-operation)' },
+    { argv: 'gain --all', desc: 'Add daily / weekly / monthly trend tables' },
+    { argv: 'gain --json', desc: 'Aggregate savings as JSON' },
+    { argv: 'gain --since 7d', desc: 'Window filter (7d, 30d, 12h, or ISO date)' },
+    { argv: 'gain --top <n> | --model <name>', desc: 'Limit rows / set $ pricing model' },
+    { argv: 'gain --reset', desc: 'Clear the local savings log (.context/gain.ndjson)' },
+    { argv: '... --no-track', desc: 'Disable gain savings capture for this run' },
+    { argv: '--diff', desc: 'Changed files: working tree vs HEAD' },
+    { argv: '--diff <base-ref>', desc: 'Changed files: working tree vs <base-ref> (incl. uncommitted)' },
+    { argv: '--diff --staged', desc: 'Changed files: index vs HEAD (staged only)' },
+    { argv: '--benchmark', desc: 'Run retrieval benchmark (benchmarks/tasks/retrieval.jsonl)' },
+    { argv: '--adapter <name>', desc: 'Generate for a specific adapter only (v3.0+)' },
+    { argv: '--adapter <name> --json', desc: 'Show adapter output path as JSON' },
+    { argv: '--benchmark --json', desc: 'Benchmark results as JSON' },
+    { argv: '--eval', desc: 'Alias for --benchmark' },
+    { argv: '--analyze', desc: 'Per-file breakdown: sigs, tokens, extractor, coverage' },
+    { argv: '--analyze --json', desc: 'Breakdown as JSON' },
+    { argv: '--analyze --slow', desc: 'Re-time each extractor; flag files >50ms' },
+    { argv: '--diagnose-extractors', desc: 'Run all 21 extractors vs fixtures; show pass/fail + diff' },
+    { argv: '--query "<text>"', desc: 'Rank files by relevance to a query' },
+    { argv: '--query "<text>" --json', desc: 'Ranked results as JSON' },
+    { argv: '--query "<text>" --top <n>', desc: 'Limit results to top N files (default 10)' },
+    { argv: '--query "<text>" --explain', desc: 'Per-file score signals, token coverage and near misses' },
+    { argv: 'ask "<query>"', desc: 'Ranked answer with signatures for a question (--json, --top <n>, --mode)' },
+    { argv: 'ask "<query>" --explain', desc: 'Diagnose a miss: which tokens matched, why files were demoted' },
+    { argv: 'ask "<query>" --with-source', desc: 'Add top-symbol bodies + blast radius (budgeted; --source-budget <n>)' },
+    { argv: 'plan "<goal>"', desc: 'Files to inspect, likely-to-change set, and impact radius (--json)' },
+    { argv: 'explain <file>', desc: 'Why a file is in or out of the generated context (--json)' },
+    { argv: 'run', desc: 'Alias for a bare generate ({cmd} run --report, etc.)' },
+    { argv: 'learn --good <files...>', desc: 'Boost files in .context/weights.json' },
+    { argv: 'learn --bad <files...>', desc: 'Penalize files in .context/weights.json' },
+    { argv: 'learn --reset', desc: 'Delete learned file weights' },
+    { argv: 'weights', desc: 'Show learned file multipliers' },
+    { argv: 'weights --json', desc: 'Learned weights as JSON' },
+    { argv: '--impact <file>', desc: 'Show every file impacted by changing <file>' },
+    { argv: '--impact <file> --json', desc: 'Impact as JSON {changed, direct, transitive, tests, routes}' },
+    { argv: '--impact <file> --depth <n>', desc: 'BFS depth limit (default 3, 0=unlimited)' },
+    { argv: '--callers <symbol>', desc: 'Method-level blast radius — every function that (transitively) calls <symbol> (JS/TS, Python, Java, Go, Rust)' },
+    { argv: '--callees <symbol>', desc: 'Every repo function that <symbol> (transitively) calls' },
+    { argv: '--callers <symbol> --json --depth <n>', desc: 'Call-graph edges as JSON (depth 0 = unlimited)' },
+    { argv: 'verify <answer.md>', desc: 'Flagship grounding guard — flag fake files/tests/imports/symbols/npm-scripts in an AI answer (alias of verify-ai-output)' },
+    { argv: 'verify <answer.md> --json', desc: 'Grounding report as JSON (exits 1 if issues)' },
+    { argv: 'verify <answer.md> --report', desc: 'Write a standalone HTML report (red/amber/green)' },
+    { argv: 'verify-ai-output <answer.md>', desc: 'Full command name for {cmd} verify' },
+    { argv: 'validate', desc: 'Check config + index coverage; --query "<text>" also probes retrieval (--json)' },
+    { argv: 'judge [--response <f>|-] [--context <f>]', desc: 'Score an AI answer\'s groundedness (stdin ok; --json, --threshold <n>, --learn)' },
+    { argv: 'conventions', desc: 'Extract repo file-naming/export/test conventions (--conflicts, --inject, --report, --fix)' },
+    { argv: 'scaffold "<name>"', desc: 'Propose a convention-matched file/dir scaffold (--ext, --threshold, --force, --json)' },
+    { argv: 'verify-plan <plan.md|->', desc: 'Check a plan vs the live index — files/symbols exist, blast radius, scope (--json)' },
+    { argv: 'verify-plan <plan.md> --creates <names>', desc: 'Mark names the plan INTRODUCES (comma-separated) — checked in reverse: they must not exist yet' },
+    { argv: 'review-pr', desc: 'Audit a diff — scope drift, god-node edits, missing tests, security files (--staged, --base, --json, --markdown)' },
+    { argv: 'review-pr --markdown', desc: 'PR Evidence Report — branded Markdown (signatures + blast radius + tests) to post as a PR comment' },
+    { argv: 'create "<task>"', desc: 'Grounded-creation pipeline: scaffold → verify-plan → verify-ai-output → review-pr (--staged, --creates)' },
+    { argv: 'wiki', desc: 'Deterministic architecture wiki from signatures + graph — no LLM (--json, --out <path>)' },
+    { argv: 'squeeze <file|->', desc: 'Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)' },
+    { argv: 'squeeze --response <file|->', desc: 'Minimize an agent/tool response (same engine; also exposed as the squeeze_output MCP tool)' },
+    { argv: 'ask "<query>" --squeeze', desc: 'Auto-accept input minimization (no prompt; for scripts/CI)' },
+    { argv: 'ask "<query>" --no-squeeze', desc: 'Disable input minimization entirely' },
+    { argv: 'ask "<query>" --squeeze-threshold N', desc: 'Min reduction % to prompt (default 30)' },
+    { argv: 'deps', desc: 'List declared dependencies across every manifest at the root' },
+    { argv: 'deps --json', desc: 'Same, as machine-readable JSON' },
+    { argv: 'sbom', desc: 'CycloneDX 1.5 SBOM on stdout (pipe to osv-scanner for CVEs)' },
+    { argv: 'sbom --out sbom.json', desc: 'Write the SBOM to a file (--exact-only, --no-dev)' },
+    { argv: 'evidence "<query>"', desc: 'Build a deterministic Evidence Pack (JSON) → .context/evidence-pack.json' },
+    { argv: 'evidence "<query>" --markdown', desc: 'Emit the Markdown handoff rendering to stdout' },
+    { argv: 'evidence "<query>" --top <n> --budget <n> --out <path>', desc: 'Tune ranked files / token budget / write rendered output' },
+    { argv: 'memory', desc: 'List cross-session stores (.context/) — entries, size, age' },
+    { argv: 'memory --clear <store>', desc: 'Clear one store: session|notes|weights|evidence|all (--json supported)' },
+    { argv: 'budget', desc: 'Session spend ledger — estimated SigMap-emitted tokens, budget, context age (--json)' },
+    { argv: 'budget --budget <tokens>', desc: 'One-off budget override (config: sessionBudgetTokens, contextTtlDays)' },
+    { argv: 'redact [file]', desc: 'Mask secrets in a file or stdin (10-pattern bank); redacted text to stdout (--json)' },
+    { argv: 'tune', desc: 'Recommend config from repo detection — srcDirs, monorepo, adapters, exclude, budget (--json)' },
+    { argv: 'tune --apply', desc: 'Write the recommendations into gen-context.config.json (merges; your keys preserved)' },
+    { argv: 'skills list', desc: 'List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)' },
+    { argv: 'skills install', desc: 'Install the SigMap agent playbooks for detected clients (--client <name> | --all)' },
+    { argv: 'lines <file> <start>-<end>', desc: 'Print an exact line range — CLI twin of get_lines (secrets redacted)' },
+    { argv: 'lines <file> :<line> --context <n>', desc: 'Window around one signature anchor (default ±10)' },
+    { argv: 'note "<text>"', desc: 'Append a note to the cross-session decision log' },
+    { argv: 'note', desc: 'List recent notes (also: note --list <N>)' },
+    { argv: 'history', desc: 'Recent usage-log entries with a sparkline (--last <n>, --json)' },
+    { argv: 'compare', desc: 'SigMap vs baseline benchmark; outside the source checkout shows local history (--run, --json)' },
+    { argv: 'share', desc: 'Shareable one-liner with your live numbers (copied to clipboard)' },
+    { argv: 'bench --submit', desc: 'Format local benchmark history as a shareable community block' },
+    { argv: 'roots', desc: 'Detect source roots for this repo (--fix, --json)' },
+    { argv: 'sync', desc: 'Write every adapter output + llms.txt and print a compact diff' },
+    { argv: 'suggest-profile', desc: 'Infer the task profile from staged changes (--short)' },
+    { argv: 'status', desc: 'Show repo state — branch, dirty files, index freshness, notes' },
+    { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
+    { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
+    { argv: 'mcp install <client>', desc: 'Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level' },
+    { argv: '--init', desc: 'Write example config + .contextignore scaffold' },
+    { argv: '--help', desc: 'Show this message' },
+    { argv: '--version', desc: 'Show version' },
+  ];
+
+  /**
+   * Subcommands that only dispatch when a required flag is present — without the
+   * flag they are not commands at all, so the guard must not accept them bare.
+   */
+  const FLAG_GATED = [
+    ['bench', '--submit'],
+  ];
+
+  /** The prose that follows the usage list. `{adapters}` is substituted at render time. */
+  const SECTIONS = `
+  Strategies (set via config "strategy" key):
+    "full"        Single file, all signatures. Works everywhere. (default)
+    "index"       Always-on file is a MAP only (~500 tokens): modules, entry
+                  points, versions, how to retrieve. Every signature stays in
+                  .context/sig-index.json and is pulled per question via
+                  "sigmap ask". Largest always-on saving; needs the agent to
+                  actually run "sigmap ask" (or the MCP tools).
+    "per-module"  One .github/context-<module>.md per srcDir + thin overview.
+                  ~70% fewer tokens per question. No MCP needed.
+    "hot-cold"    Hot (recently changed) auto-injected; cold in .github/context-cold.md
+                  ~90% fewer tokens. Best with MCP (Claude Code, Cursor).
+                  Set "hotCommits": N to control how many commits count as hot (default 10).
+
+  Adapters (v3.0+): {adapters}
+    Set "adapters": ["copilot","openai","codex"] in config to write multiple adapter outputs.
+    Old "outputs" config key is still accepted (maps to adapters automatically).
+
+  Config: gen-context.config.json
+  Ignore: .contextignore, .repomixignore
+  Output: .github/copilot-instructions.md (default)
+  `;
+
+  /** Bare-word tokens that lead a usage line but are not subcommands. */
+  const NOT_A_COMMAND = new Set(['...']);
+
+  /**
+   * The subcommand a usage line documents, or null for the flag forms and the
+   * bare generate.
+   * @param {string} argv
+   * @returns {string|null}
+   */
+  function commandOf(argv) {
+    const first = String(argv).trim().split(/\s+/)[0] || '';
+    if (!/^[a-z][a-z-]*$/.test(first) || NOT_A_COMMAND.has(first)) return null;
+    return first;
+  }
+
+  /**
+   * Long flags a usage line advertises. Short forms and `<n>`-style placeholders
+   * are not flags and are skipped.
+   * @param {string} argv
+   * @returns {string[]}
+   */
+  function flagsOf(argv) {
+    return String(argv).split(/\s+/).filter((t) => /^--[a-z][a-z-]*$/.test(t));
+  }
+
+  /**
+   * Every bare-word subcommand the CLI accepts bare, sorted — the vocabulary the
+   * unknown-command guard is built from (#655). Flag-gated names are excluded:
+   * they dispatch only with their flag, and the guard handles them separately.
+   * @returns {string[]}
+   */
+  function commandNames() {
+    const gated = new Set(FLAG_GATED.map(([name]) => name));
+    const out = new Set();
+    for (const row of USAGE) {
+      const c = commandOf(row.argv);
+      if (c && !gated.has(c)) out.add(c);
+    }
+    return [...out].sort();
+  }
+
+  /**
+   * The flag-gated subcommands as `Map` entries.
+   * @returns {Array<[string, string]>}
+   */
+  function flagGated() {
+    return FLAG_GATED.map(([name, flag]) => [name, flag]);
+  }
+
+  /**
+   * The flags advertised for one subcommand, or the global flags when `name` is
+   * null — the set the flag-acceptance guard checks against the dispatch chain.
+   * @param {string|null} name
+   * @returns {string[]}
+   */
+  function flagsFor(name) {
+    const out = new Set();
+    for (const row of USAGE) {
+      if (commandOf(row.argv) !== (name || null)) continue;
+      for (const f of flagsOf(row.argv)) out.add(f);
+    }
+    return [...out].sort();
+  }
+
+  /**
+   * One rendered usage line: `  <cmd> <argv>` with the description aligned to
+   * `DESC_COL`, falling back to a two-space gap when `argv` overflows the column.
+   * @param {string} cmd
+   * @param {{argv: string, desc: string}} row
+   * @returns {string}
+   */
+  function usageLine(cmd, row) {
+    const left = row.argv ? ` ${row.argv}` : '';
+    const pad = left.length >= DESC_COL ? `${left}  ` : left.padEnd(DESC_COL);
+    return `  ${cmd}${pad}${row.desc.split('{cmd}').join(cmd)}`;
+  }
+
+  /**
+   * Render the whole `--help` body from the table.
+   * @param {{cmd?: string, version?: string, adapters?: string[]}} [opts]
+   * @returns {string}
+   */
+  function renderHelp(opts = {}) {
+    const cmd = opts.cmd || 'node gen-context.js';
+    const version = opts.version || '';
+    const adapters = (opts.adapters && opts.adapters.length ? opts.adapters : ['copilot']).join(' | ');
+    const header = cmd === 'node gen-context.js'
+      ? `SigMap — gen-context.js v${version}`
+      : `SigMap v${version}  (${cmd})`;
+    return [
+      '',
+      header,
+      'Zero-dependency AI context engine',
+      '',
+      'Usage:',
+      ...USAGE.map((row) => usageLine(cmd, row)),
+      SECTIONS.replace('{adapters}', adapters),
+    ].join('\n');
+  }
+
+  module.exports = {
+    USAGE, FLAG_GATED, SECTIONS, DESC_COL,
+    commandOf, flagsOf, commandNames, flagGated, flagsFor, usageLine, renderHelp,
+  };
   
 };
 
@@ -22700,7 +23036,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.61.1',
+    version: '8.61.3',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -24811,13 +25147,31 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       // recent-commits hoist. That made gate scores differ between a shallow CI
       // checkout and a developer clone of the same commit (#596).
       const hop1SeedEntries = scored.filter((e) => e.score > 0);
+      // #851: a file may take ONE hop-1 bonus for free — that is the designed
+      // lift for a direct neighbour of a match, and #596 pins it — but it may
+      // only ACCUMULATE further bonuses if it matched the query on its own.
+      //
+      // Without that, hop1 was added once per importing seed, so popularity
+      // became relevance: a shared utility with 23 importing seeds and bm25 0
+      // collected 23 x 0.40 = 9.2 and ranked 3rd for a query it shares no token
+      // with — above every genuine match but the top two. Whether it happened at
+      // all turned on `_computeHubs`' threshold, `ceil(fileCount * 0.2)`, which
+      // any single added file can step past: that utility has exactly 36
+      // importers, so it was hub-suppressed at 180 graph nodes and not at 181.
+      //
+      // Capping everyone at one bonus instead was tried and is wrong: files that
+      // DO match legitimately accumulate, and flattening them reordered the
+      // matches among themselves, costing a real rank-5 answer its place.
+      const hop1Matched = scored.map((e) => e.score > 0);
+      const hop1Count = new Map();
       for (const entry of hop1SeedEntries) {
         const neighbors = _graphGet(graph.forward, path.resolve(cwd, entry.file)) || [];
         for (const neighborAbs of neighbors) {
           const nk = path.normalize(neighborAbs);
           if (_isHub(nk) || hubs.has(nk) || hubs.has(nk.toLowerCase())) continue;
           const idx = _graphGet(keyToIdx, nk);
-          if (idx !== undefined) {
+          if (idx !== undefined && (hop1Matched[idx] || !hop1Count.has(idx))) {
+            hop1Count.set(idx, (hop1Count.get(idx) || 0) + 1);
             scored[idx].score += GRAPH_BOOST_AMOUNTS.hop1;
             scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + GRAPH_BOOST_AMOUNTS.hop1;
             hop1Files.add(nk);
@@ -30729,7 +31083,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.61.1';
+const VERSION = '8.61.3';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -33252,21 +33606,18 @@ function detectInvokedAs() {
  * Without this, an unrecognized first argument fell through all 37 `args[0] ===`
  * branches onto the DEFAULT GENERATE path and silently rewrote AGENTS.md,
  * CLAUDE.md, .github/copilot-instructions.md and .github/gemini-context.md with
- * exit 0 — a typo became an unintended write. Keep this in sync with the
- * dispatch chain; `sigmap --help` renders from the same vocabulary.
+ * exit 0 — a typo became an unintended write.
+ *
+ * Both the vocabulary and `--help` now derive from one table (#848). A literal
+ * list here claimed to be in sync with help and was not: #661 found twelve
+ * shipped commands help never mentioned. Adding a command means adding a
+ * `USAGE` row in src/cli/command-table.js — there is nowhere else to add it.
  */
-const KNOWN_COMMANDS = new Set([
-  'ask', 'budget', 'compare', 'conventions', 'create', 'daemon', 'deps', 'doctor',
-  'evidence', 'explain', 'gain', 'history', 'judge', 'learn', 'lines', 'mcp',
-  'memory', 'note', 'plan', 'redact', 'review-pr', 'roots', 'run', 'scaffold',
-  'sbom', 'share', 'skills', 'squeeze', 'status', 'suggest-profile', 'sync', 'tune',
-  'validate', 'verify', 'verify-ai-output', 'verify-plan', 'weights', 'wiki',
-]);
+const CLI_TABLE = requireSourceOrBundled('./src/cli/command-table');
+const KNOWN_COMMANDS = new Set(CLI_TABLE.commandNames());
 
 /** Commands that only dispatch when a required flag is present. */
-const FLAG_GATED_COMMANDS = new Map([
-  ['bench', '--submit'],
-]);
+const FLAG_GATED_COMMANDS = new Map(CLI_TABLE.flagGated());
 
 /** Levenshtein distance, capped — used only to suggest a near-miss command. */
 function _editDistance(a, b) {
@@ -33316,151 +33667,20 @@ function unknownCommandError(args, cmd) {
   return `[sigmap] unknown command '${word}' — run ${cmd} --help${hint}`;
 }
 
+/**
+ * Print `--help`, rendered from the canonical command table (#848).
+ *
+ * The body used to be a template literal maintained alongside KNOWN_COMMANDS.
+ * The adapter line is read from packages/adapters/ for the same reason: the
+ * literal it replaced had fallen a release behind and omitted `willow`.
+ */
 function printHelp(cmd) {
-  cmd = cmd || 'node gen-context.js';
-  const header = cmd === 'node gen-context.js'
-    ? `SigMap — gen-context.js v${VERSION}`
-    : `SigMap v${VERSION}  (${cmd})`;
-  console.log(`
-${header}
-Zero-dependency AI context engine
-
-Usage:
-  ${cmd}                                   Generate context once and exit
-  ${cmd} --monorepo                        Generate per-package context (monorepo)
-  ${cmd} --each                            Run for every repo in the current directory
-  ${cmd} --routing                         Include model routing hints in output
-  ${cmd} --terse                           Compact signature encoding (deterministic; line anchors preserved)
-  ${cmd} --format cache                    Also write Anthropic prompt-cache JSON
-  ${cmd} --track                           Append run metrics to .context/usage.ndjson
-  ${cmd} --watch                           Generate + watch for file changes
-  ${cmd} --setup                           Generate + install git hook + watch
-  ${cmd} daemon start|stop|status          Run --watch as a detached background daemon
-  ${cmd} --mcp                             Start MCP server on stdio
-  ${cmd} --report                          Token reduction stats to stdout (exits 1 if over budget)
-  ${cmd} --report --json                   Token report as JSON (for CI; exits 1 if over budget)
-  ${cmd} --report --history                Print usage log summary from .context/usage.ndjson
-  ${cmd} --report --history --chart        Include inline SVG charts + Unicode sparklines
-  ${cmd} --dashboard [--out <path>]        Write .context/dashboard.html (HTML health dashboard)
-  ${cmd} --suggest-tool "<task>"           Recommend model tier for a task description
-  ${cmd} --suggest-tool "<task>" --json    Machine-readable tier recommendation
-  ${cmd} --health                          Print composite health score
-  ${cmd} --health --json                   Machine-readable health score
-  ${cmd} gain                              Token-savings dashboard (totals + by-operation)
-  ${cmd} gain --all                        Add daily / weekly / monthly trend tables
-  ${cmd} gain --json                       Aggregate savings as JSON
-  ${cmd} gain --since 7d                    Window filter (7d, 30d, 12h, or ISO date)
-  ${cmd} gain --top <n> | --model <name>   Limit rows / set $ pricing model
-  ${cmd} gain --reset                      Clear the local savings log (.context/gain.ndjson)
-  ${cmd} ... --no-track                    Disable gain savings capture for this run
-  ${cmd} --diff                            Changed files: working tree vs HEAD
-  ${cmd} --diff <base-ref>                 Changed files: working tree vs <base-ref> (incl. uncommitted)
-  ${cmd} --diff --staged                   Changed files: index vs HEAD (staged only)
-  ${cmd} --benchmark                       Run retrieval benchmark (benchmarks/tasks/retrieval.jsonl)
-  ${cmd} --adapter <name>                  Generate for a specific adapter only (v3.0+)
-  ${cmd} --adapter <name> --json           Show adapter output path as JSON
-  ${cmd} --benchmark --json                Benchmark results as JSON
-  ${cmd} --eval                            Alias for --benchmark
-  ${cmd} --analyze                         Per-file breakdown: sigs, tokens, extractor, coverage
-  ${cmd} --analyze --json                  Breakdown as JSON
-  ${cmd} --analyze --slow                  Re-time each extractor; flag files >50ms
-  ${cmd} --diagnose-extractors             Run all 21 extractors vs fixtures; show pass/fail + diff
-  ${cmd} --query "<text>"                  Rank files by relevance to a query
-  ${cmd} --query "<text>" --json           Ranked results as JSON
-  ${cmd} --query "<text>" --top <n>        Limit results to top N files (default 10)
-  ${cmd} --query "<text>" --explain        Per-file score signals, token coverage and near misses
-  ${cmd} ask "<query>"                     Ranked answer with signatures for a question (--json, --top <n>, --mode)
-  ${cmd} ask "<query>" --explain           Diagnose a miss: which tokens matched, why files were demoted
-  ${cmd} ask "<query>" --with-source       Add top-symbol bodies + blast radius (budgeted; --source-budget <n>)
-  ${cmd} plan "<goal>"                     Files to inspect, likely-to-change set, and impact radius (--json)
-  ${cmd} explain <file>                    Why a file is in or out of the generated context (--json)
-  ${cmd} run                               Alias for a bare generate (${cmd} run --report, etc.)
-  ${cmd} learn --good <files...>           Boost files in .context/weights.json
-  ${cmd} learn --bad <files...>            Penalize files in .context/weights.json
-  ${cmd} learn --reset                     Delete learned file weights
-  ${cmd} weights                           Show learned file multipliers
-  ${cmd} weights --json                    Learned weights as JSON
-  ${cmd} --impact <file>                   Show every file impacted by changing <file>
-  ${cmd} --impact <file> --json            Impact as JSON {changed, direct, transitive, tests, routes}
-  ${cmd} --impact <file> --depth <n>       BFS depth limit (default 3, 0=unlimited)
-  ${cmd} --callers <symbol>                Method-level blast radius — every function that (transitively) calls <symbol> (JS/TS, Python, Java, Go, Rust)
-  ${cmd} --callees <symbol>                Every repo function that <symbol> (transitively) calls
-  ${cmd} --callers <symbol> --json --depth <n>   Call-graph edges as JSON (depth 0 = unlimited)
-  ${cmd} verify <answer.md>                Flagship grounding guard — flag fake files/tests/imports/symbols/npm-scripts in an AI answer (alias of verify-ai-output)
-  ${cmd} verify <answer.md> --json         Grounding report as JSON (exits 1 if issues)
-  ${cmd} verify <answer.md> --report       Write a standalone HTML report (red/amber/green)
-  ${cmd} verify-ai-output <answer.md>      Full command name for ${cmd} verify
-  ${cmd} validate                          Check config + index coverage; --query "<text>" also probes retrieval (--json)
-  ${cmd} judge [--response <f>|-] [--context <f>]  Score an AI answer's groundedness (stdin ok; --json, --threshold <n>, --learn)
-  ${cmd} conventions                       Extract repo file-naming/export/test conventions (--conflicts, --inject, --report, --fix)
-  ${cmd} scaffold "<name>"                 Propose a convention-matched file/dir scaffold (--ext, --threshold, --force, --json)
-  ${cmd} verify-plan <plan.md|->           Check a plan vs the live index — files/symbols exist, blast radius, scope (--json)
-  ${cmd} verify-plan <plan.md> --creates <names>  Mark names the plan INTRODUCES (comma-separated) — checked in reverse: they must not exist yet
-  ${cmd} review-pr                         Audit a diff — scope drift, god-node edits, missing tests, security files (--staged, --base, --json, --markdown)
-  ${cmd} review-pr --markdown              PR Evidence Report — branded Markdown (signatures + blast radius + tests) to post as a PR comment
-  ${cmd} create "<task>"                   Grounded-creation pipeline: scaffold → verify-plan → verify-ai-output → review-pr (--staged, --creates)
-  ${cmd} wiki                              Deterministic architecture wiki from signatures + graph — no LLM (--json, --out <path>)
-  ${cmd} squeeze <file|->                  Minimize a pasted stacktrace/CI-log/JSON blob (--json for stats)
-  ${cmd} squeeze --response <file|->       Minimize an agent/tool response (same engine; also exposed as the squeeze_output MCP tool)
-  ${cmd} ask "<query>" --squeeze           Auto-accept input minimization (no prompt; for scripts/CI)
-  ${cmd} ask "<query>" --no-squeeze        Disable input minimization entirely
-  ${cmd} ask "<query>" --squeeze-threshold N  Min reduction %% to prompt (default 30)
-  ${cmd} deps                              List declared dependencies across every manifest at the root
-  ${cmd} deps --json                       Same, as machine-readable JSON
-  ${cmd} sbom                              CycloneDX 1.5 SBOM on stdout (pipe to osv-scanner for CVEs)
-  ${cmd} sbom --out sbom.json              Write the SBOM to a file (--exact-only, --no-dev)
-  ${cmd} evidence "<query>"                Build a deterministic Evidence Pack (JSON) → .context/evidence-pack.json
-  ${cmd} evidence "<query>" --markdown     Emit the Markdown handoff rendering to stdout
-  ${cmd} evidence "<query>" --top <n> --budget <n> --out <path>   Tune ranked files / token budget / write rendered output
-  ${cmd} memory                            List cross-session stores (.context/) — entries, size, age
-  ${cmd} memory --clear <store>            Clear one store: session|notes|weights|evidence|all (--json supported)
-  ${cmd} budget                            Session spend ledger — estimated SigMap-emitted tokens, budget, context age (--json)
-  ${cmd} budget --budget <tokens>          One-off budget override (config: sessionBudgetTokens, contextTtlDays)
-  ${cmd} redact [file]                     Mask secrets in a file or stdin (10-pattern bank); redacted text to stdout (--json)
-  ${cmd} tune                              Recommend config from repo detection — srcDirs, monorepo, adapters, exclude, budget (--json)
-  ${cmd} tune --apply                      Write the recommendations into gen-context.config.json (merges; your keys preserved)
-  ${cmd} skills list                       List skill clients (Claude/Cursor/Windsurf/Copilot/AGENTS.md) and install state (--json)
-  ${cmd} skills install                    Install the SigMap agent playbooks for detected clients (--client <name> | --all)
-  ${cmd} lines <file> <start>-<end>        Print an exact line range — CLI twin of get_lines (secrets redacted)
-  ${cmd} lines <file> :<line> --context <n>  Window around one signature anchor (default ±10)
-  ${cmd} note "<text>"                     Append a note to the cross-session decision log
-  ${cmd} note                              List recent notes (also: note --list <N>)
-  ${cmd} history                           Recent usage-log entries with a sparkline (--last <n>, --json)
-  ${cmd} compare                           SigMap vs baseline benchmark; outside the source checkout shows local history (--run, --json)
-  ${cmd} share                             Shareable one-liner with your live numbers (copied to clipboard)
-  ${cmd} bench --submit                    Format local benchmark history as a shareable community block
-  ${cmd} roots                             Detect source roots for this repo (--fix, --json)
-  ${cmd} sync                              Write every adapter output + llms.txt and print a compact diff
-  ${cmd} suggest-profile                   Infer the task profile from staged changes (--short)
-  ${cmd} status                            Show repo state — branch, dirty files, index freshness, notes
-  ${cmd} doctor                            Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)
-  ${cmd} mcp list                          List MCP clients and their config paths (--json)
-  ${cmd} mcp install <client>              Wire MCP for one client (claude|cursor|windsurf|vscode|zed|codex|gemini|opencode|mcp); --global for user-level
-  ${cmd} --init                            Write example config + .contextignore scaffold
-  ${cmd} --help                            Show this message
-  ${cmd} --version                         Show version
-
-Strategies (set via config "strategy" key):
-  "full"        Single file, all signatures. Works everywhere. (default)
-  "index"       Always-on file is a MAP only (~500 tokens): modules, entry
-                points, versions, how to retrieve. Every signature stays in
-                .context/sig-index.json and is pulled per question via
-                "sigmap ask". Largest always-on saving; needs the agent to
-                actually run "sigmap ask" (or the MCP tools).
-  "per-module"  One .github/context-<module>.md per srcDir + thin overview.
-                ~70% fewer tokens per question. No MCP needed.
-  "hot-cold"    Hot (recently changed) auto-injected; cold in .github/context-cold.md
-                ~90% fewer tokens. Best with MCP (Claude Code, Cursor).
-                Set "hotCommits": N to control how many commits count as hot (default 10).
-
-Adapters (v3.0+): copilot | claude | cursor | windsurf | openai | gemini | codex
-  Set "adapters": ["copilot","openai","codex"] in config to write multiple adapter outputs.
-  Old "outputs" config key is still accepted (maps to adapters automatically).
-
-Config: gen-context.config.json
-Ignore: .contextignore, .repomixignore
-Output: .github/copilot-instructions.md (default)
-`);
+  const { listAdapters } = requireSourceOrBundled('./packages/adapters/index');
+  console.log(CLI_TABLE.renderHelp({
+    cmd: cmd || 'node gen-context.js',
+    version: VERSION,
+    adapters: listAdapters(),
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -35044,8 +35264,9 @@ function main() {
     const valInScope   = new Set(valFiles.map(valRel));
     const valIndexed   = new Set([...valSigIndex.keys()].map(valRel));
 
-    let valCovered = 0;
-    for (const f of valInScope) if (valIndexed.has(f)) valCovered++;
+    const _covScore = __require('./src/analysis/coverage-score');
+    const valIdxCov = _covScore.indexedCoverage(valIndexed, valInScope);
+    const valCovered = valIdxCov.included;
 
     // #825: `generate` indexes an AUGMENTED population — srcDirs widened by the
     // declared entrypoints, every test root and every CI definition — so
@@ -35058,7 +35279,10 @@ function main() {
     const valStale = valClass.stale;
     const valAugmented = valClass.augmented.length;
 
-    const coveragePct  = valTotal > 0 ? Math.round((valCovered / valTotal) * 100) : 0;
+    // #848: the shared measurement, not a local copy. The hand-rolled ratio
+    // here agreed with `coverageScore` on every populated repo and read 0%
+    // where every other surface read 100% on an empty one.
+    const coveragePct  = valIdxCov.score;
     const valNotIndexed = valTotal - valCovered;
     if (coveragePct < 70)
       warnings.push(`coverage ${coveragePct}% is below recommended 70% — increase maxTokens or expand srcDirs`);
@@ -37348,20 +37572,27 @@ function main() {
     const minCovIdx = args.indexOf('--min-coverage');
     const minCoverage = minCovIdx !== -1 ? Math.max(0, Math.min(100, parseInt(args[minCovIdx + 1], 10) || 80)) : 80;
 
-    // Coverage = files actually in context / total source files
+    // #848: the `indexed` population, through the shared measurement.
+    // `index.size / fileList.length` is not a ratio — the index holds entries
+    // the current config no longer scopes, so this gate reported 241% coverage
+    // in this repo and would have passed a threshold of 200%. `validate` was
+    // fixed in #770; this surface kept the formula until it became a function.
     const { buildSigIndex: ciBuildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
-    const ciSigIndex  = ciBuildSigIndex(cwd);
-    const ciTotal     = buildFileList(cwd, config).length;
-    const coveragePct = ciTotal > 0 ? Math.round((ciSigIndex.size / ciTotal) * 100) : 0;
+    const _ciCov      = requireSourceOrBundled('./src/analysis/coverage-score');
+    const ciRel       = (f) => path.relative(cwd, path.resolve(cwd, f)).replace(/\\/g, '/');
+    const ciIndexed   = new Set([...ciBuildSigIndex(cwd).keys()].map(ciRel));
+    const ciInScope   = buildFileList(cwd, config).map(ciRel);
+    const ciCoverage  = _ciCov.indexedCoverage(ciIndexed, ciInScope);
+    const coveragePct = ciCoverage.score;
 
     const pass = coveragePct >= minCoverage;
 
     if (args.includes('--json')) {
       process.stdout.write(JSON.stringify({ pass, coverage: coveragePct, threshold: minCoverage }) + '\n');
     } else if (pass) {
-      console.log(`[sigmap] ✓ CI gate passed — coverage ${coveragePct}% ≥ ${minCoverage}%`);
+      console.log(`[sigmap] ✓ CI gate passed — coverage: ${_ciCov.formatCoverage(ciCoverage, 'indexed', { grade: false })} ≥ ${minCoverage}%`);
     } else {
-      console.error(`[sigmap] ✗ CI gate FAILED — coverage ${coveragePct}% < ${minCoverage}%`);
+      console.error(`[sigmap] ✗ CI gate FAILED — coverage: ${_ciCov.formatCoverage(ciCoverage, 'indexed', { grade: false })} < ${minCoverage}%`);
       console.error(`  Fix: increase maxTokens or expand srcDirs in gen-context.config.json`);
     }
     process.exit(pass ? 0 : 1);

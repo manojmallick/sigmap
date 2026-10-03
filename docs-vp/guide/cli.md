@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 103 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 115 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 101 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 115 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -123,7 +123,8 @@ If you are new to the product, start with the workflow pages first:
 | `--output <file>` | Write context to a custom path (persisted to config) |
 | `--cost [--model <name>]` | Per-model token/dollar cost comparison |
 | `--coverage` | Enable test coverage annotation (✓/✗ per function) without editing config |
-| `--ci [--min-coverage N]` | CI exit gate — exits 1 when coverage < threshold |
+| `--ci [--min-coverage N]` | CI exit gate — exits 1 when `indexed` coverage < threshold (default 80); same measurement as `validate` |
+| `--ci --json` | Gate verdict as JSON `{pass, coverage, threshold}` |
 | `--analyze` | Per-file breakdown of signatures, tokens, and extractor |
 | `--report` | Token reduction + coverage score + module heatmap |
 | `--report --json` | Machine-readable JSON report with coverage object |
@@ -195,7 +196,7 @@ With `--json` the output is a machine-readable object. The core keys are `intent
 ::: warning Two of these keys did not exist until v8.61.1
 This sentence promised `cost` and `rankedFiles` from before v8.54.2, and neither key was ever emitted — a consumer written against the documented contract got `undefined` twice ([#662](https://github.com/manojmallick/sigmap/issues/662)). `rankedFiles` had no implementation anywhere; `--query --json` calls its own array `results`.
 
-[#661](https://github.com/manojmallick/sigmap/issues/661) already guarded that every dispatchable *command* appears in `--help`, and [#817](https://github.com/manojmallick/sigmap/issues/817) asks for the same at *flag* level — neither covered **output keys**, which is how this survived several releases. Every documented `--json` key is now read out of this page and pinned against the command's real output, for `ask`, `--callers` and `judge`.
+[#661](https://github.com/manojmallick/sigmap/issues/661) already guarded that every dispatchable *command* appears in `--help`, and [#817](https://github.com/manojmallick/sigmap/issues/817) did the same at *flag* level in v8.61.2 — neither covered **output keys**, which is how this survived several releases. Every documented `--json` key is now read out of this page and pinned against the command's real output, for `ask`, `--callers` and `judge`.
 :::
 
 ### Every figure names its basis (v8.61.0)
@@ -1627,11 +1628,15 @@ sigmap validate --query "loginUser validateToken"
 ```
 
 ```
-[sigmap] ✓ config valid  coverage: indexed 97% (181/186 files)  — 5 not indexed, 268 beyond srcDirs (256 test, 10 CI, 2 entrypoint)
+[sigmap] ✓ config valid  coverage: indexed 98% (185/189 files)  — 4 not indexed, 276 beyond srcDirs (264 test, 10 CI, 2 entrypoint)
 [sigmap] ✓ query "login rate limit" → src/rate/limiter.js (score 8.42, confidence high)
 ```
 
 **Coverage is an intersection (v8.49.2).** It is `|indexed ∩ in-scope| / |in-scope|`, so it is bounded at 100% by construction. Earlier releases divided the persisted index size by the current file list — two different populations, since the index can still hold files the config no longer scopes (deletions, `srcDirs` changes, a strategy switch) — which produced impossible figures such as 218%.
+
+**One function, shared with `--ci` (v8.61.2).** The intersection above was fixed here in v8.49.2 and the old quotient survived in [`--ci`](#ci), which was still gating releases on 241%. Both now call `indexedCoverage` and report the same labelled figure for the same repo, and the guard that pins it is structural — a surface that recomputes the figure fails the suite even when today's number happens to match.
+
+A repo with an **empty in-scope set** now reports `100%`, not `0%`, and no longer warns that 0% is below the recommended 70%. Nothing in scope means nothing left uncovered; this is the convention [`doctor`](#doctor), [`--report`](#report) and [`--health`](#health) already used, and `validate` was the one surface disagreeing.
 
 The residuals are reported separately because they mean different things:
 
@@ -2191,7 +2196,9 @@ Supported models: `gpt-4`, `gpt-4o`, `gpt-4o-mini`, `claude-3-5-sonnet`, `claude
 
 ## --ci
 
-CI exit gate for coverage. Exits `0` when coverage ≥ threshold, exits `1` otherwise. Uses sig-index size vs total source file count — the same budget-aware metric as `sigmap validate`.
+CI exit gate for coverage. Exits `0` when coverage ≥ threshold, exits `1` otherwise.
+
+It measures the **`indexed`** population — how much of the in-scope file list the retrieval index actually holds — through the same function `sigmap validate` calls, so the two commands always report the same figure for the same repo.
 
 ```bash
 sigmap --ci                    # default threshold: 80%
@@ -2200,13 +2207,20 @@ sigmap --ci --json
 ```
 
 ```
-[sigmap] CI gate: coverage 97% ≥ 80% — PASS
+[sigmap] ✓ CI gate passed — coverage: indexed 98% (185/189 files) ≥ 80%
+```
+
+Below the threshold it names the same figure and says what to change:
+
+```
+[sigmap] ✗ CI gate FAILED — coverage: indexed 98% (185/189 files) < 99%
+  Fix: increase maxTokens or expand srcDirs in gen-context.config.json
 ```
 
 JSON output:
 
 ```json
-{ "pass": true, "coverage": 97, "threshold": 80 }
+{ "pass": true, "coverage": 98, "threshold": 80 }
 ```
 
 Add to `.github/workflows/ci.yml`:
@@ -2214,6 +2228,18 @@ Add to `.github/workflows/ci.yml`:
 ```yaml
 - run: npx sigmap --ci --min-coverage 80
 ```
+
+::: warning The figure this gate reports changed in v8.61.2
+Until v8.61.2 this gate computed `index.size / fileList.length`, which is not a
+ratio: the persisted index deliberately holds more than the current config
+scopes — declared entrypoints, test roots, CI definitions, files a `srcDirs`
+change dropped — so the quotient ran past 100%. It reported **241%** on this
+repo, and a gate set to `--min-coverage 200` would have passed.
+
+It now measures the intersection over the in-scope list, which cannot exceed
+100% by construction. **If you pinned `--min-coverage` above 100 to work around
+the old behaviour, lower it** — anything above 100 can no longer pass.
+:::
 
 ---
 
@@ -2862,9 +2888,29 @@ sigmap --version
 
 ## --help
 
+Print every command and flag, with a one-line description each.
+
 ```bash
 sigmap --help
 ```
+
+::: info Generated from one table (v8.61.2)
+`--help` renders from `src/cli/command-table.js`, the single CLI vocabulary the
+unknown-command guard also derives from, and the adapter list is read from
+`packages/adapters/` rather than restated.
+
+It used to be a 113-line literal maintained by hand beside that guard's command
+set — under a comment already claiming it "renders from the same vocabulary".
+Writing it out as a table surfaced four live drifts: a description one column
+off (which `llms.txt` carried too), a literal `%%` left from a `printf` escape
+a template literal never needed, an adapter list a release behind the directory
+(missing `willow`), and [`--ci`](#ci) — dispatchable and documented on this page
+but absent from `--help` entirely.
+
+Adding a command now means adding a row; there is nowhere else to add it, and
+the guards fail if the table and the dispatcher disagree in either direction or
+if a flag is advertised under a command that does not read it.
+:::
 
 ---
 

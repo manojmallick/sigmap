@@ -18,6 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { withSharedRepoContext, loadOverrides } from './lib/shared-repo-context.mjs';
+import { stamp } from './lib/report-stamp.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -588,7 +589,7 @@ if (SAVE) {
       savedPerDaySec: parseFloat((totalSavedColdSec * CALLS_PER_DAY).toFixed(2)),
     },
   };
-  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  fs.writeFileSync(reportPath, JSON.stringify(stamp(report, ROOT), null, 2));
   console.log(`\nReport saved → ${path.relative(ROOT, reportPath)}`);
 }
 

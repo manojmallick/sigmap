@@ -22,6 +22,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { stamp } from './lib/report-stamp.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT      = path.resolve(__dirname, '..');
@@ -170,7 +171,7 @@ const report = {
 // ---------------------------------------------------------------------------
 if (SAVE) {
   const outPath = path.join(REPORTS, 'task-benchmark.json');
-  fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
+  fs.writeFileSync(outPath, JSON.stringify(stamp(report, ROOT), null, 2));
   console.error(`[task-benchmark] saved → ${outPath}`);
 }
 

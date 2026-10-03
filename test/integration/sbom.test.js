@@ -253,10 +253,11 @@ test('`sigmap deps --json` emits the raw inventory', () => {
 });
 
 test('both commands are registered so a typo cannot trigger a write', () => {
-  const src = fs.readFileSync(CLI, 'utf8');
-  const block = src.slice(src.indexOf('const KNOWN_COMMANDS'), src.indexOf('FLAG_GATED_COMMANDS'));
-  assert.ok(/'sbom'/.test(block), 'sbom is not in KNOWN_COMMANDS');
-  assert.ok(/'deps'/.test(block), 'deps is not in KNOWN_COMMANDS');
+  // KNOWN_COMMANDS derives from the canonical table (#848), so registration is
+  // checked where it is now declared rather than in a literal set.
+  const vocab = require(path.resolve(__dirname, '../..', 'src', 'cli', 'command-table')).commandNames();
+  assert.ok(vocab.includes('sbom'), 'sbom is not in the command table');
+  assert.ok(vocab.includes('deps'), 'deps is not in the command table');
 });
 
 test('a repo with no manifests produces an empty BOM, not a crash', () => {
