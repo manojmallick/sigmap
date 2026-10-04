@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.65.0</span>
+  <span><strong>Release:</strong> v8.65.1</span>
   <span>·</span>
-  <span><strong>New — grounding accuracy, measured:</strong> how often <code>verify</code> and <code>judge</code> are right about whether a cited file, symbol or import is real is now scored on labelled good and bad answers in six languages — precision and recall per claim kind, offline, byte-identical across runs. The same release fixes a benchmark that compared two populations (clap printed 0/0, okhttp 0.1%), and records the detectors' current gaps in its floors instead of hiding them. <a href="/guide/benchmark">Benchmark overview →</a></span>
+  <span><strong>Fix — a file that quotes the marker keeps its text:</strong> SigMap appends its block under <code>## Auto-generated signatures</code> and promises never to overwrite what you wrote above it, but it matched the <em>first mention</em> of that heading anywhere and deleted everything after it. A <code>CLAUDE.md</code> that quoted the heading in a sentence or a code block lost every line that followed. One helper now finds the real section — outside code fences, the last one winning — and files already damaged repair in place. <a href="/guide/config#what-sigmap-writes-into-an-existing-file">What gets written →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.65-main</span>

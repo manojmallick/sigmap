@@ -10,6 +10,33 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.65.1] — 2026-10-04
+
+Patch. A fix for data loss. The writers found their generated block with `existing.indexOf('## Auto-generated signatures')` — the first occurrence anywhere in the file — and discarded everything after it. A context file that merely *mentioned* the marker, in prose, in a code block or in a doc about SigMap itself, lost every human line that followed the mention on the next run, silently, and unrecoverably when the file is untracked. This repository's own `CLAUDE.md` was truncated mid-sentence that way.
+
+### Fixed
+- **A file that quotes the marker no longer loses the text after the quote** (#873, PR #882) — the new `src/util/managed-section.js` decides what the managed section is: a heading immediately followed by the generator's `<!-- Updated by gen-context.js -->` stamp, never inside a fenced code block, the last one winning. CRLF files are matched, and an unterminated fence is not a fence — otherwise one stray ``` would hide the real marker and a fresh block would be appended on every run. Reproduced on `develop` for both the `claude` and `codex` outputs before the fix
+- **The CLI core's own writer had the same bug** (#873, PR #882) — `outputs: ["claude"]` writes `CLAUDE.md` through `writeClaude` in `gen-context.js`, not through the adapter, and the issue named only the four adapters. It now uses the same helper, and its private copy of the marker is gone
+- **A human file mentioning "Code signatures" was replaced whole** (#873, PR #882) — copilot, gemini and codex decided a file was a pre-marker generated block with `existing.includes('# Code signatures')`, a substring test with the same failure mode. A file is now replaced whole only when it *is* a generated block from its first line
+- **Injected blocks no longer land inside a prose line** (#873, PR #882) — the Bash allowlist block and the skills block were inserted above the first mention of the marker. They go above the real section, at the start of its line
+- **Files already damaged by the old bug repair in place** (#873, PR #882) — the old slice left the heading glued to the end of the prose line that had quoted it, inside a code fence the truncation never closed, which the generated block's own fences then mis-paired. That shape is recognised, so the next run replaces the stale body once and the file stays stable instead of gaining a second 60 KB block
+- **Readers took human text after a mention for signature sections** (#873, PR #882) — `ranker` and `coverage-score` sliced the file at the first mention of the marker
+
+### Added
+- **`src/util/managed-section.js`** (PR #882) — the one place that finds and replaces the managed section: `findManagedSection`, `replaceManagedSection`, `managedSectionLineStart`, `isEntirelyGenerated`. Pure string functions, no dependency, bundled into `gen-context.js`
+- **A warning when a human heading shares the marker's title** (PR #882) — a bare `## Auto-generated signatures` line is replaced only when a SigMap-generated block follows it. Otherwise the file is left alone, a new section is appended after it, and `[sigmap] <file>: found "## Auto-generated signatures" at line N but what follows it is not a SigMap-generated block` is printed
+- **`managed-section.test.js`, 45 guards** (PR #882) — the helper; every adapter against an inline mention, a fenced mention, a fenced two-line example, a real marker, a bare marker and a same-titled human section, each byte-stable on a second run; the CLI end to end; the repair of a damaged file with no growth; the readers; the skills injector; and a structural check that no writer or reader keeps its own lookup
+
+### Changed
+- **A file with generated content below an intro and no marker gets a new section appended** (PR #882) — it used to be replaced whole, taking the intro with it. The stale block stays above the new one. Losing nothing was preferred over de-duplicating a pre-marker format that no current version writes
+
+### Notes
+- **Text already lost cannot be restored.** A file the old bug truncated is untracked more often than not; the next `sigmap` run repairs its structure but cannot bring the text back
+- **No measured figure changes.** Retrieval is unaffected: the `hard` gate reads 73.3% on this tree before and after the change
+- **Not in this release:** #874 (about 4% of JS function anchors are wrong), #875 (stemmer conflation), and `coverage-score` looking for `GEMINI.md` while the gemini adapter writes `.github/gemini-context.md`
+
+---
+
 ## [8.65.0] — 2026-10-04
 
 Minor. Two measurement defects in the grounding benchmarks, fixed together because they share one harness and one gate. `benchmark:grounding` compared a universe built from a hard-coded source-directory list against an index built from the generator's own resolved roots, so it printed rows it had not measured (clap read 0/0) and charged the index for symbols it never covers. And grounding accuracy — how often `verify` and `judge` are right about whether a cited file, symbol or import is real — had never been measured on answers whose truth is known. Both now are, offline and deterministically.

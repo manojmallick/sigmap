@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.65.0, with the latest release measuring grounding accuracy on labelled good and bad answers and fixing a benchmark that compared two populations, and recent releases writing context files as a stable body then a volatile tail so a prefix cache keeps hitting, and putting every model name and price behind one dated, overridable profile (`--suggest-tool` had been naming models `gain --model` rejected), resting `--analyze` coverage and the `plan` change list on named evidence (5 of 182 files had been reported as tested), removing a stack overflow on trees past 125,000 files (the report named one frame; four more had the same defect), adding Objective-C and PowerShell at Tier 2 (the Objective-C extractor was run over 839 real files before release, and 11% of its output was not a declaration), giving the CLI one canonical command table and the coverage ratio one definition (a CI gate had been passing on 241%), pinning the documented JSON contract to what the CLI actually emits, closing the loop at the agent (ask --with-source returns symbol bodies, a stale index no longer answers silently, every ask figure names its basis), making every scope claim name its basis (--diff <ref> includes uncommitted work, --callers stops asserting a zero it cannot support), giving the dashboard one output path and one language list, giving the index population and its age one shared definition (validate, doctor and status can no longer contradict each other) and closing the create-pipeline guards (nothing-ran is not a pass, creation plans reach stage 2) and the project-shape cluster (flat-layout source roots, one monorepo verdict, srcDirs disclosure) and the retrieval-honesty cluster (one shared file-category definition, zero-score suppression, path IDF, ask --explain) and completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v8.65.1, with the latest release fixing a data-loss bug (a context file that quoted the generated-block marker lost every line after the quote) and recent releases measuring grounding accuracy on labelled good and bad answers and fixing a benchmark that compared two populations, writing context files as a stable body then a volatile tail so a prefix cache keeps hitting, and putting every model name and price behind one dated, overridable profile (`--suggest-tool` had been naming models `gain --model` rejected), resting `--analyze` coverage and the `plan` change list on named evidence (5 of 182 files had been reported as tested), removing a stack overflow on trees past 125,000 files (the report named one frame; four more had the same defect), adding Objective-C and PowerShell at Tier 2 (the Objective-C extractor was run over 839 real files before release, and 11% of its output was not a declaration), giving the CLI one canonical command table and the coverage ratio one definition (a CI gate had been passing on 241%), pinning the documented JSON contract to what the CLI actually emits, closing the loop at the agent (ask --with-source returns symbol bodies, a stale index no longer answers silently, every ask figure names its basis), making every scope claim name its basis (--diff <ref> includes uncommitted work, --callers stops asserting a zero it cannot support), giving the dashboard one output path and one language list, giving the index population and its age one shared definition (validate, doctor and status can no longer contradict each other) and closing the create-pipeline guards (nothing-ran is not a pass, creation plans reach stage 2) and the project-shape cluster (flat-layout source roots, one monorepo verdict, srcDirs disclosure) and the retrieval-honesty cluster (one shared file-category definition, zero-score suppression, path IDF, ask --explain) and completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "228 versions shipped. See what changed in each release and what is coming next."
+      content: "229 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Two hundred twenty-eight versions shipped. MIT open source from day one.
+Two hundred twenty-nine versions shipped. MIT open source from day one.
 
 **Stats:** 95.8% overall token reduction · 78.6% retrieval hit@5 · 2.20× measured lift vs single-shot grep (88.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
@@ -835,6 +835,24 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.65.1 — a file that quotes the marker keeps its text ✓ (2026-10-04)
+
+**Patch.** A fix for data loss. SigMap appends its generated block to `CLAUDE.md`, `AGENTS.md` and the other context files under a `## Auto-generated signatures` heading, and its contract is to never overwrite what a human wrote above it. The writers enforced that with `existing.indexOf('## Auto-generated signatures')` — the first occurrence anywhere in the file — and then discarded everything after it.
+
+So a file that merely *mentioned* the heading — in a sentence, in a code block, in a doc about SigMap itself — lost every line that followed the mention, on the next run, with no warning. When the file is untracked there is no way back. This repository's own `CLAUDE.md` was cut off mid-sentence at exactly such a quote. The bug was also wider than the four adapters the issue named: `outputs: ["claude"]` goes through the CLI core's own writer, and the Bash-allowlist and skills injectors and two readers all used the same first-occurrence lookup. A related substring test replaced a whole human file whenever it contained the text "# Code signatures".
+
+One helper now decides what the managed section is: the heading immediately followed by the generator's stamp comment, never inside a code fence, the last one winning. A heading someone typed without the stamp is replaced only when a SigMap block follows it; otherwise the section is appended after it and a warning is printed. Files already damaged by the old bug repair in place — the next run replaces the stale body once and the file stays stable instead of growing.
+
+```
+before:  [ your notes … "## Auto-generated signatures" in a code block … more notes ] → everything after the quote deleted
+after:   [ your notes … quote … more notes ] ## Auto-generated signatures <!-- Updated by gen-context.js --> [ generated block ]
+```
+
+**Tags:** `managed-section.js` · `findManagedSection` · `replaceManagedSection` · `outputs: ["claude"]` · `writeClaude` · `repair in place` · `#873`
+**Impact:** 45 new guards in `managed-section.test.js` — every adapter against an inline mention, a fenced mention, a real marker, a bare marker and a same-titled human section, each byte-stable on a second run; the CLI end to end; and the repair of a damaged file with no growth. No measured retrieval or token figure changes. Text already lost cannot be restored.
 
 ---
 
