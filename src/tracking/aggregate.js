@@ -15,6 +15,7 @@
  */
 
 const { resolvePrice } = require('./pricing');
+const { resolveProfile, tokenBasis } = require('../config/models');
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
@@ -121,13 +122,19 @@ function bucketKey(ts, granularity) {
  * @param {object[]} rawRecords
  * @param {object} [opts]
  * @param {string} [opts.model]   pricing model
+ * @param {object} [opts.profile] model profile from resolveProfile(config); shipped when omitted
  * @param {string} [opts.since]   window filter
  * @param {number} [opts.top]     limit byOp rows (0 = all)
  * @param {number} [opts.nowMs]   injectable clock
  * @returns {object}
  */
 function aggregate(rawRecords, opts = {}) {
-  const price = resolvePrice(opts.model);
+  const price = resolvePrice(opts.model, opts.profile);
+  // Logged counts are chars/4; a configured charsPerToken re-bases the dollar
+  // figure, and its absence is carried as `estimated` so the views say so.
+  const basis = tokenBasis(opts.profile || resolveProfile(), price.model);
+  price.tokenBasis = basis.label;
+  price.tokensEstimated = basis.estimated;
   const cutoff = parseSince(opts.since, opts.nowMs);
 
   let records = (rawRecords || []).map(normalize);
@@ -166,7 +173,7 @@ function aggregate(rawRecords, opts = {}) {
 
   totals.savedPct = totals.baseline > 0 ? clamp((totals.saved / totals.baseline) * 100, 0, 100) : 0;
   totals.avgMs = totals.count > 0 ? Math.round(totals.totalMs / totals.count) : 0;
-  totals.usdSaved = totals.saved * price.perToken;
+  totals.usdSaved = totals.saved * basis.scale * price.perToken;
 
   let byOp = [...opMap.values()].map((o) => ({
     op: o.op,
@@ -174,7 +181,7 @@ function aggregate(rawRecords, opts = {}) {
     saved: o.saved,
     avgPct: o.baseline > 0 ? clamp((o.saved / o.baseline) * 100, 0, 100) : 0,
     avgMs: o.count > 0 ? Math.round(o.ms / o.count) : 0,
-    usdSaved: o.saved * price.perToken,
+    usdSaved: o.saved * basis.scale * price.perToken,
     sharePct: totals.saved > 0 ? (o.saved / totals.saved) * 100 : 0,
   })).sort((a, b) => b.saved - a.saved);
 

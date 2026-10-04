@@ -147,7 +147,7 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 |-----|------|---------|-------------|
 | `autoMaxTokens` | `boolean` | `true` | Auto-scale the token budget based on repo size. Set `false` to use your pinned `maxTokens` — see [the interaction](#maxtokens-vs-automaxtokens) below. |
 | `coverageTarget` | `number` | `0.80` | Target fraction of source files to include (0.0–1.0). Default: 80%. |
-| `modelContextLimit` | `number` | `128000` | Model context window size in tokens. Hard cap = `modelContextLimit × maxTokensHeadroom`. |
+| `modelContextLimit` | `number` | `128000` | Model context window size in tokens. Hard cap = `modelContextLimit × maxTokensHeadroom`. Left unset, a declared [`models.roster`](#models) can lower it to the roster's smallest window. |
 | `maxTokensHeadroom` | `number` | `0.20` | Fraction of the model context reserved for SigMap output. Default 0.20 = 25 600-token cap for 128K models. |
 | `maxTokens` | `number` | `6000` | Used only when `autoMaxTokens: false`, or as a minimum floor. Pinning it while `autoMaxTokens` is on now prints a notice — see [the interaction](#maxtokens-vs-automaxtokens). |
 
@@ -178,6 +178,38 @@ The same fix removed a false positive in the other direction. The old check comp
 - **Nothing pinned** → budget auto-scales, **no notice** — nothing of yours was overridden.
 - **A pinned budget, auto-scaling on** (the default) → budget auto-scales, and the **notice prints**, naming your value.
 - **A pinned budget with `autoMaxTokens` set to `false`** → your value is the ceiling, **no notice**.
+
+## Models
+
+**v8.63.0.** SigMap ships one dated table of model names, input prices, context windows and cache minimums (`src/config/models.js`). It is the only source behind `--suggest-tool`, the routing section, `gain`, `--cost` and the cost line of `ask`, so a name one command prints is always a name another accepts. The `models` namespace lays your own values over it — **your value wins, per model and per field**, and everything you leave unset keeps the shipped figure.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `models.asOf` | `string\|null` | `null` | The `YYYY-MM-DD` date you verified your figures. Replaces the shipped profile date wherever it is printed, and is what `sigmap doctor` measures staleness from. |
+| `models.roster` | `string[]` | `[]` | The models you actually have (your Copilot picker, your API keys). When set, `--suggest-tool` and the routing section name **only** these. Aliases such as `claude-sonnet` are accepted. |
+| `models.prices` | `object` | `{}` | `{ "<model>": <USD per 1M input tokens> }`. Overrides a shipped price or prices a model SigMap does not ship. |
+| `models.windows` | `object` | `{}` | `{ "<model>": <context window in tokens> }`. |
+| `models.cacheMin` | `object` | `{}` | `{ "<model>": <minimum cacheable prefix in tokens> }`. |
+| `models.charsPerToken` | `object` | `{}` | `{ "<model>": <characters per token> }`. SigMap counts characters; without a factor a token count is the chars/4 estimate and is labelled `est.`. |
+| `models.tiers` | `object` | `{}` | `{ "<model>": "fast" \| "balanced" \| "powerful" }`. The tier a model is advised for. A model with no tier is priced but never named as advice. |
+
+```json
+{
+  "models": {
+    "asOf": "2026-10-04",
+    "roster": ["claude-sonnet-5-5", "claude-haiku-4-5", "house-coder"],
+    "prices": { "house-coder": 0.4 },
+    "windows": { "house-coder": 32000 },
+    "tiers": { "house-coder": "fast" }
+  }
+}
+```
+
+**The date is part of every answer.** Each output that prints a model name or a price also prints `as of <date>` and whether that date is the shipped profile's or yours. SigMap never fetches prices — not even opt-in — so the date is the only freshness signal there is. `sigmap doctor` warns once the profile in force is more than **90 days** old; clear it by checking your vendors' pricing pages ([Anthropic](https://platform.claude.com/docs/en/about-claude/pricing), [OpenAI](https://developers.openai.com/api/docs/pricing), [Google](https://ai.google.dev/gemini-api/docs/pricing)) and setting `models.asOf`, or by upgrading SigMap.
+
+**A figure SigMap did not verify is left unset, not guessed.** The shipped table carries a context window only where the vendor's own page stated one on the profile date; run `sigmap gain --models` to see what is priced.
+
+**Roster and the token budget.** With a roster declared and `modelContextLimit` not set, the auto-budget cap uses the smallest *known* roster window when that is **smaller** than the default limit — a context file has to fit the smallest model that will read it. A roster never raises the cap: declaring a 1M-window model is not a request for a larger always-on file. An explicit `modelContextLimit` always wins.
 
 ## Source scanning
 

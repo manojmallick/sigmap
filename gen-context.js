@@ -2528,6 +2528,28 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // Default: GPT-4o / Claude Sonnet (128K). Set higher for Gemini 1M etc.
     modelContextLimit: 128000,
 
+    // Model profile overrides (#688). SigMap ships a dated table of model names,
+    // input prices, context windows and cache minimums (src/config/models.js);
+    // every value here wins over the shipped one, per model and per field.
+    //   asOf          — "YYYY-MM-DD" you verified your figures; printed with them
+    //   roster        — the models you actually have; advice names only these,
+    //                   and (when modelContextLimit is unset) the budget cap drops
+    //                   to the smallest roster window if that is below the default
+    //   prices        — { "<model>": USD per 1M input tokens }
+    //   windows       — { "<model>": context window in tokens }
+    //   cacheMin      — { "<model>": minimum cacheable prefix in tokens }
+    //   charsPerToken — { "<model>": chars per token }; absent = chars/4, labelled est.
+    //   tiers         — { "<model>": "fast" | "balanced" | "powerful" }
+    models: {
+      asOf: null,
+      roster: [],
+      prices: {},
+      windows: {},
+      cacheMin: {},
+      charsPerToken: {},
+      tiers: {},
+    },
+
     // Fraction of the model context window reserved for SigMap output.
     // Leaves the remaining fraction for the conversation, system prompt, etc.
     // Default 0.20 = 20% of 128K = 25,600 token hard cap.
@@ -3055,6 +3077,285 @@ __factories["./src/config/loader"] = function(module, exports) {
   }
 
   module.exports = { loadConfig, loadBaseConfig };
+  
+};
+
+// ── ./src/config/models ──
+__factories["./src/config/models"] = function(module, exports) {
+  
+  /**
+   * The model profile — the one dated table behind every model name, price,
+   * context window and cache minimum SigMap prints (#688, #778).
+   *
+   * Before this module the routing hints and the pricing table were two unrelated
+   * literals: no name the first printed was a key of the second, neither said
+   * when it was true, and neither could be corrected from config. Both now derive
+   * from MODELS below and keep no model literal of their own (guard-tested).
+   *
+   * Every figure was read from the vendor's own pricing or models page on AS_OF.
+   * A figure that was not verified there is `null`, never a guess. This is not a
+   * mirror of any vendor's catalog — it is the handful of models the advice
+   * names by default, plus the keys older releases accepted. Anything else is
+   * declared by the user under the `models` config namespace, which wins over
+   * the shipped values field by field.
+   *
+   * There is no live fetch, opt-in or otherwise. Freshness is `sigmap doctor`
+   * warning once the profile is STALE_AFTER_DAYS old.
+   */
+
+  // The date the figures below were checked against each vendor's pages.
+  const AS_OF = '2026-10-04';
+
+  // `sigmap doctor` warns once the profile in force is older than this.
+  const STALE_AFTER_DAYS = 90;
+
+  // Lowest to highest. A vendor's higher tier never costs less than its lower.
+  const TIER_ORDER = ['fast', 'balanced', 'powerful'];
+
+  // What an estimate assumes when a model has no `charsPerToken` of its own.
+  const DEFAULT_CHARS_PER_TOKEN = 4;
+
+  // inputPerMtok: USD per 1,000,000 input tokens, standard (uncached, non-batch).
+  // window:       context window in tokens. cacheMin: minimum cacheable prefix.
+  // A model with no `tier` is priced but never named as advice.
+  const MODELS = {
+    'claude-fable-5-1':  { vendor: 'anthropic', tier: 'powerful', inputPerMtok: 10,   window: 1000000, cacheMin: 512 },
+    'claude-opus-5-5':   { vendor: 'anthropic', tier: 'powerful', inputPerMtok: 4,    window: 1000000, cacheMin: 512 },
+    'claude-sonnet-5-5': { vendor: 'anthropic', tier: 'balanced', inputPerMtok: 2,    window: 1000000, cacheMin: 512 },
+    'claude-haiku-4-5':  { vendor: 'anthropic', tier: 'fast',     inputPerMtok: 1,    window: 200000,  cacheMin: 4096 },
+
+    'gpt-6-astra':       { vendor: 'openai',    tier: 'powerful', inputPerMtok: 10,   window: 1050000, cacheMin: null },
+    'gpt-6.1-sol':       { vendor: 'openai',    tier: 'balanced', inputPerMtok: 2,    window: 1050000, cacheMin: null },
+    'gpt-6-luna':        { vendor: 'openai',    tier: 'fast',     inputPerMtok: 0.1,  window: 1050000, cacheMin: null },
+    'gpt-4o':            { vendor: 'openai',    tier: null,       inputPerMtok: 2.5,  window: null,    cacheMin: null },
+    'gpt-4o-mini':       { vendor: 'openai',    tier: null,       inputPerMtok: 0.15, window: null,    cacheMin: null },
+
+    // gemini-3.1-pro-preview: prompts up to 200K tokens; longer prompts cost more.
+    // gemini-3.8-flash: the vendor lists this rate as valid through 2026-12-31.
+    'gemini-3.1-pro-preview': { vendor: 'google', tier: 'powerful', inputPerMtok: 2,    window: null, cacheMin: null },
+    'gemini-3.8-flash':       { vendor: 'google', tier: 'balanced', inputPerMtok: 0.75, window: null, cacheMin: null },
+    'gemini-3.5-flash-lite':  { vendor: 'google', tier: 'fast',     inputPerMtok: 0.3,  window: null, cacheMin: null },
+
+    // minimax-m3: requests up to 512K input tokens; longer requests cost more.
+    'minimax-m3':        { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null },
+    'minimax-m2.7':      { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null },
+  };
+
+  // Family keys older releases accepted, kept valid as names for the current model.
+  const ALIASES = {
+    'claude-opus': 'claude-opus-5-5',
+    'claude-sonnet': 'claude-sonnet-5-5',
+    'claude-haiku': 'claude-haiku-4-5',
+  };
+
+  // Priced when no model is named.
+  const DEFAULT_MODEL = 'claude-sonnet';
+
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+  function _key(name) {
+    return String(name == null ? '' : name).trim().toLowerCase();
+  }
+
+  function _isMap(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function _positive(v) {
+    return typeof v === 'number' && Number.isFinite(v) && v > 0;
+  }
+
+  /**
+   * The profile in force: the shipped table with the project's `models` config
+   * laid over it, field by field.
+   *
+   * Precedence is config over shipped for every field. A config value of the
+   * wrong type is ignored rather than trusted, so a typo cannot blank a price.
+   *
+   * @param {object} [config] - merged SigMap config (or nothing for the shipped profile)
+   * @returns {{
+   *   asOf: string, asOfSource: 'shipped'|'config',
+   *   models: Object<string, {vendor:string|null, tier:string|null, inputPerMtok:number|null,
+   *     window:number|null, cacheMin:number|null, charsPerToken:number|null, source:'shipped'|'config'}>,
+   *   aliases: Object<string,string>, defaultModel: string,
+   *   roster: string[], rosterDeclared: boolean, rosterUnknown: string[]
+   * }}
+   */
+  function resolveProfile(config) {
+    const user = _isMap(config && config.models) ? config.models : {};
+    const models = {};
+    for (const [id, m] of Object.entries(MODELS)) {
+      models[id] = Object.assign({ charsPerToken: null, source: 'shipped' }, m);
+    }
+
+    const entry = (name) => {
+      const id = _key(name);
+      if (!id) return null;
+      if (!models[id]) {
+        models[id] = { vendor: null, tier: null, inputPerMtok: null, window: null, cacheMin: null, charsPerToken: null, source: 'config' };
+      }
+      return models[id];
+    };
+    const lay = (map, field, valid) => {
+      if (!_isMap(map)) return;
+      for (const [name, value] of Object.entries(map)) {
+        if (!valid(value)) continue;
+        const id = ALIASES[_key(name)] || _key(name);
+        const e = entry(id);
+        if (!e) continue;
+        e[field] = value;
+        e.source = 'config';
+      }
+    };
+    lay(user.prices, 'inputPerMtok', _positive);
+    lay(user.windows, 'window', _positive);
+    lay(user.cacheMin, 'cacheMin', _positive);
+    lay(user.charsPerToken, 'charsPerToken', _positive);
+    lay(user.tiers, 'tier', (v) => TIER_ORDER.includes(v));
+
+    const roster = [];
+    for (const name of Array.isArray(user.roster) ? user.roster : []) {
+      const id = ALIASES[_key(name)] || _key(name);
+      if (id && !roster.includes(id)) roster.push(id);
+    }
+    // A roster entry SigMap has no price for cannot be costed or tiered until
+    // the project supplies the figures; doctor reports these.
+    const rosterUnknown = roster.filter((id) => !models[id] || models[id].inputPerMtok == null);
+
+    const userAsOf = typeof user.asOf === 'string' && DATE_RE.test(user.asOf) && !Number.isNaN(Date.parse(user.asOf));
+    return {
+      asOf: userAsOf ? user.asOf : AS_OF,
+      asOfSource: userAsOf ? 'config' : 'shipped',
+      models,
+      aliases: Object.assign({}, ALIASES),
+      defaultModel: DEFAULT_MODEL,
+      roster,
+      rosterDeclared: roster.length > 0,
+      rosterUnknown,
+    };
+  }
+
+  /**
+   * Look a model name up in a profile, through aliases, ignoring case.
+   *
+   * @param {object} profile - from resolveProfile
+   * @param {string} name
+   * @returns {{ id: string, model: object }|null} null when the name is unknown
+   */
+  function lookup(profile, name) {
+    const key = _key(name);
+    const id = profile.aliases[key] || key;
+    const model = profile.models[id];
+    return model ? { id, model } : null;
+  }
+
+  /**
+   * The models advice names for a tier: the roster's, when one is declared;
+   * otherwise every tiered model in the profile. Only priced models qualify, so
+   * every name returned is one `gain --model` accepts.
+   *
+   * @param {object} profile
+   * @param {string} tier - one of TIER_ORDER
+   * @returns {string[]} model ids, in table order
+   */
+  function tierModels(profile, tier) {
+    const pool = profile.rosterDeclared ? profile.roster : Object.keys(profile.models);
+    return pool.filter((id) => {
+      const m = profile.models[id];
+      return m && m.tier === tier && m.inputPerMtok != null;
+    });
+  }
+
+  /**
+   * Input-price span of a tier's models, or null when the tier names none.
+   * @returns {{ min: number, max: number }|null}
+   */
+  function tierPriceRange(profile, tier) {
+    const prices = tierModels(profile, tier).map((id) => profile.models[id].inputPerMtok);
+    if (prices.length === 0) return null;
+    return { min: Math.min(...prices), max: Math.max(...prices) };
+  }
+
+  /**
+   * The smallest context window on the declared roster — the one a shared
+   * context file has to fit. Null when no roster is declared or none of its
+   * windows is known.
+   *
+   * @returns {{ window: number, model: string, unknown: string[] }|null}
+   */
+  function smallestRosterWindow(profile) {
+    if (!profile.rosterDeclared) return null;
+    let best = null;
+    const unknown = [];
+    for (const id of profile.roster) {
+      const m = profile.models[id];
+      if (!m || m.window == null) { unknown.push(id); continue; }
+      if (!best || m.window < best.window) best = { window: m.window, model: id };
+    }
+    return best ? Object.assign(best, { unknown }) : null;
+  }
+
+  /**
+   * The context limit the auto budget caps against.
+   *
+   * A `modelContextLimit` the project set always wins. Otherwise a declared
+   * roster can only LOWER the limit — to its smallest known window — never
+   * raise it: declaring a 1M-window model is not a request for a larger
+   * always-on context file, while declaring a small one is a hard constraint.
+   *
+   * @param {object} config - merged SigMap config
+   * @returns {{ limit: number, source: 'config'|'roster'|'default', model: string|null }}
+   */
+  function contextLimit(config) {
+    const configured = (config && config.modelContextLimit != null) ? config.modelContextLimit : 128000;
+    const userSet = !!(config && Array.isArray(config._userKeys) && config._userKeys.includes('modelContextLimit'));
+    if (userSet) return { limit: configured, source: 'config', model: null };
+    const smallest = smallestRosterWindow(resolveProfile(config));
+    if (smallest && smallest.window < configured) return { limit: smallest.window, source: 'roster', model: smallest.model };
+    return { limit: configured, source: 'default', model: null };
+  }
+
+  /**
+   * How a token count priced against a model was obtained. SigMap counts
+   * characters; without a per-model factor the count is the chars/4 estimate
+   * and must be labelled as one.
+   *
+   * @param {object} profile
+   * @param {string} name - model name or alias
+   * @returns {{ charsPerToken: number, estimated: boolean, scale: number, label: string }}
+   *   `scale` converts a chars/4 token count to this model's count.
+   */
+  function tokenBasis(profile, name) {
+    const hit = lookup(profile, name);
+    const factor = hit && hit.model.charsPerToken;
+    if (!_positive(factor)) {
+      return { charsPerToken: DEFAULT_CHARS_PER_TOKEN, estimated: true, scale: 1, label: `est. (chars/${DEFAULT_CHARS_PER_TOKEN})` };
+    }
+    return { charsPerToken: factor, estimated: false, scale: DEFAULT_CHARS_PER_TOKEN / factor, label: `chars/${factor} (models.charsPerToken)` };
+  }
+
+  /**
+   * Age of a profile against a clock.
+   * @param {object} profile
+   * @param {number} [nowMs] - injectable clock
+   * @returns {{ days: number, stale: boolean }}
+   */
+  function profileAge(profile, nowMs) {
+    const now = typeof nowMs === 'number' ? nowMs : Date.now();
+    const days = Math.max(0, Math.floor((now - Date.parse(profile.asOf)) / 86400000));
+    return { days, stale: days > STALE_AFTER_DAYS };
+  }
+
+  /** `as of 2026-10-04 (shipped profile)` — the provenance tag outputs carry. */
+  function asOfLabel(profile) {
+    return `as of ${profile.asOf} (${profile.asOfSource === 'config' ? 'your config' : 'shipped profile'})`;
+  }
+
+  module.exports = {
+    AS_OF, STALE_AFTER_DAYS, TIER_ORDER, DEFAULT_MODEL, DEFAULT_CHARS_PER_TOKEN, MODELS, ALIASES,
+    resolveProfile, lookup, tierModels, tierPriceRange, smallestRosterWindow, contextLimit,
+    tokenBasis, profileAge, asOfLabel,
+  };
   
 };
 
@@ -6698,7 +6999,31 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       }
     } catch (_) {}
 
-    // 7. MCP wiring
+    // 7. Model profile (#688)
+    //
+    // Every model name, price and window SigMap prints comes from one dated
+    // table. Nothing refreshes it — there is no live fetch — so its age is the
+    // only freshness signal there is, and a roster entry with no figures is
+    // advice that cannot be costed.
+    try {
+      const { resolveProfile, profileAge, asOfLabel, STALE_AFTER_DAYS } = __require('./src/config/models');
+      const profile = resolveProfile(config);
+      const age = profileAge(profile, opts.nowMs);
+      const roster = profile.rosterDeclared ? `roster: ${profile.roster.join(', ')}` : 'no roster declared — advice names the shipped defaults';
+      if (age.stale) {
+        add('models', 'Model profile', 'warn',
+          `${asOfLabel(profile)} is ${age.days} days old (limit ${STALE_AFTER_DAYS}) — model names, prices and windows may have changed`,
+          'check your vendors\' pricing pages, then set "models.asOf" and any changed figures in gen-context.config.json — or upgrade sigmap');
+      } else if (profile.rosterUnknown.length) {
+        add('models', 'Model profile', 'warn',
+          `roster names model(s) with no price on record: ${profile.rosterUnknown.join(', ')}`,
+          'add them under "models.prices" (and "models.windows", "models.tiers") in gen-context.config.json');
+      } else {
+        add('models', 'Model profile', 'ok', `${asOfLabel(profile)} · ${roster}`);
+      }
+    } catch (_) {}
+
+    // 8. MCP wiring
     try {
       let wired = null;
       for (const t of _mcpTargets(cwd)) {
@@ -17725,7 +18050,7 @@ __factories["./src/format/gain-terminal"] = function(module, exports) {
     L.push('  ' + label('Tokens saved') + ': ' + C.bold + humanTokens(t.saved) + C.reset +
       '  (' + colorPct(t.savedPct, fmtPct(t.savedPct)) + ')');
     L.push('  ' + label('Est. money saved') + ': ' + C.bold + C.green + fmtUSD(t.usdSaved) + C.reset +
-      `   ${C.dim}(${agg.price.model} input @ $${agg.price.perMtok}/M · --model to change)${C.reset}`);
+      `   ${C.dim}(${agg.price.model} input @ $${agg.price.perMtok}/M as of ${agg.price.asOf} · tokens ${agg.price.tokenBasis} · --model to change)${C.reset}`);
     L.push('  ' + label('Avg latency') + ': ' + fmtDuration(t.avgMs) + ' / op' +
       `   ${C.dim}(local, no API round-trip)${C.reset}`);
     L.push('');
@@ -22989,13 +23314,19 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    */
   function getRouting(args, cwd) {
     const contextPath = path.join(cwd, CONTEXT_FILE);
+    // Model names come from the dated profile, never a literal here (#778).
+    const { resolveProfile, asOfLabel } = __require('./src/config/models');
+    const { tierInfo } = __require('./src/routing/hints');
+    let profile = resolveProfile();
+    try { profile = resolveProfile(__require('./src/config/loader').loadConfig(cwd)); } catch (_) {}
     if (!fs.existsSync(contextPath)) {
       return (
         '_No context file found. Run `node gen-context.js --routing` first._\n\n' +
         'This generates routing hints that map each file to a model tier:\n' +
-        '- **fast** (haiku/gpt-4o-mini) — config, markup, trivial utilities\n' +
-        '- **balanced** (sonnet/gpt-4o) — standard application code\n' +
-        '- **powerful** (opus/gpt-4-turbo) — complex, security-critical, or large modules'
+        `- **fast** (${tierInfo('fast', profile).examples}) — config, markup, trivial utilities\n` +
+        `- **balanced** (${tierInfo('balanced', profile).examples}) — standard application code\n` +
+        `- **powerful** (${tierInfo('powerful', profile).examples}) — complex, security-critical, or large modules\n\n` +
+        `Model names: ${asOfLabel(profile)}.`
       );
     }
 
@@ -23020,7 +23351,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       const { classifyAll } = __require('./src/routing/classifier');
       const { formatRoutingSection } = __require('./src/routing/hints');
       const groups = classifyAll(entries, cwd);
-      return formatRoutingSection(groups);
+      return formatRoutingSection(groups, profile);
     } catch (err) {
       return `_Routing classification failed: ${err.message}_`;
     }
@@ -23985,7 +24316,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.62.2',
+    version: '8.63.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -27650,19 +27981,20 @@ __factories["./src/routing/hints"] = function(module, exports) {
   /**
    * Model routing hint definitions for SigMap.
    *
-   * Maps complexity tiers to:
-   *   - example model names (vendor-agnostic labels used as hints)
-   *   - task types that belong to each tier
-   *   - estimated per-1K-token API cost (USD, illustrative — update as needed)
+   * Maps complexity tiers to the task types that belong to each. The model names
+   * and prices a tier prints are NOT defined here: they come from the dated model
+   * profile (src/config/models.js), the same table `gain --model` prices from, so
+   * a name advised here is always one the pricing accepts (#778).
    *
    * These are embedded in the generated context file when `routing: true`
    * so that AI agents and developers know which model tier to invoke.
    */
 
-  const TIERS = {
+  const { resolveProfile, tierModels, tierPriceRange, asOfLabel, TIER_ORDER } = __require('./src/config/models');
+
+  const TIER_TASKS = {
     fast: {
       label: 'Fast (low-cost)',
-      examples: 'claude-haiku-4-5, gpt-5-1-codex-mini, gemini-3-flash',
       tasks: [
         'Autocomplete and inline suggestions',
         'Edit config or markup files',
@@ -27671,12 +28003,10 @@ __factories["./src/routing/hints"] = function(module, exports) {
         'Explain a short utility function',
         'Generate simple shell scripts or Dockerfiles',
       ],
-      costHint: '~$0.0008 / 1K tokens',
     },
 
     balanced: {
       label: 'Balanced (mid-tier)',
-      examples: 'claude-sonnet-4-6, gpt-5-2, gemini-3-1-pro',
       tasks: [
         'Write unit or integration tests',
         'Implement a well-scoped feature function',
@@ -27685,12 +28015,10 @@ __factories["./src/routing/hints"] = function(module, exports) {
         'Generate a PR description',
         'Explain a multi-function module',
       ],
-      costHint: '~$0.003 / 1K tokens',
     },
 
     powerful: {
       label: 'Powerful (high-cost)',
-      examples: 'claude-opus-4-6, gpt-5-4, gemini-2-5-pro',
       tasks: [
         'Cross-cutting architecture decisions',
         'Multi-file refactor spanning 5+ files',
@@ -27699,18 +28027,47 @@ __factories["./src/routing/hints"] = function(module, exports) {
         'Migration plan for a library/framework upgrade',
         'Designing a new module from requirements',
       ],
-      costHint: '~$0.015 / 1K tokens',
     },
   };
+
+  /**
+   * One tier as advice: its tasks plus the models and input-price span the
+   * profile in force gives it.
+   *
+   * @param {string} tier - 'fast' | 'balanced' | 'powerful'
+   * @param {object} [profile] - from resolveProfile(config); the shipped profile when omitted
+   * @returns {{ label: string, tasks: string[], models: string[], examples: string, costHint: string }}
+   */
+  function tierInfo(tier, profile) {
+    const p = profile || resolveProfile();
+    const models = tierModels(p, tier);
+    const range = tierPriceRange(p, tier);
+    const costHint = !range
+      ? 'no priced model in this tier'
+      : (range.min === range.max ? `$${range.min}` : `$${range.min}–$${range.max}`) + ' / MTok input';
+    return {
+      label: TIER_TASKS[tier].label,
+      tasks: TIER_TASKS[tier].tasks,
+      models,
+      examples: models.length ? models.join(', ') : (p.rosterDeclared ? '(none in your roster)' : '(none)'),
+      costHint,
+    };
+  }
+
+  /** The tiers under the shipped profile, for callers with no config in hand. */
+  const TIERS = {};
+  for (const tier of TIER_ORDER) TIERS[tier] = tierInfo(tier);
 
   /**
    * Format the routing section as markdown to append to the context file.
    *
    * @param {{ fast: string[], balanced: string[], powerful: string[] }} groups
    *   Relative file paths grouped by tier (from classifier.classifyAll).
+   * @param {object} [profile] - from resolveProfile(config); the shipped profile when omitted
    * @returns {string} Markdown block to embed in the context output.
    */
-  function formatRoutingSection(groups) {
+  function formatRoutingSection(groups, profile) {
+    const p = profile || resolveProfile();
     const lines = [
       '',
       '---',
@@ -27719,10 +28076,12 @@ __factories["./src/routing/hints"] = function(module, exports) {
       '<!-- Generated by SigMap routing module — update gen-context.config.json to disable -->',
       '',
       'Select the model tier based on the task complexity and the files involved.',
+      `Model names and prices: ${asOfLabel(p)} — a static table, not a live lookup.`,
       '',
     ];
 
-    for (const [tier, info] of Object.entries(TIERS)) {
+    for (const tier of TIER_ORDER) {
+      const info = tierInfo(tier, p);
       const files = groups[tier] || [];
       lines.push(`### ${info.label}`);
       lines.push(`**Examples:** ${info.examples}  `);
@@ -27747,7 +28106,7 @@ __factories["./src/routing/hints"] = function(module, exports) {
     return lines.join('\n');
   }
 
-  module.exports = { TIERS, formatRoutingSection };
+  module.exports = { TIERS, tierInfo, formatRoutingSection };
   
 };
 
@@ -29356,6 +29715,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
    */
 
   const { resolvePrice } = __require('./src/tracking/pricing');
+  const { resolveProfile, tokenBasis } = __require('./src/config/models');
 
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
@@ -29462,13 +29822,19 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
    * @param {object[]} rawRecords
    * @param {object} [opts]
    * @param {string} [opts.model]   pricing model
+   * @param {object} [opts.profile] model profile from resolveProfile(config); shipped when omitted
    * @param {string} [opts.since]   window filter
    * @param {number} [opts.top]     limit byOp rows (0 = all)
    * @param {number} [opts.nowMs]   injectable clock
    * @returns {object}
    */
   function aggregate(rawRecords, opts = {}) {
-    const price = resolvePrice(opts.model);
+    const price = resolvePrice(opts.model, opts.profile);
+    // Logged counts are chars/4; a configured charsPerToken re-bases the dollar
+    // figure, and its absence is carried as `estimated` so the views say so.
+    const basis = tokenBasis(opts.profile || resolveProfile(), price.model);
+    price.tokenBasis = basis.label;
+    price.tokensEstimated = basis.estimated;
     const cutoff = parseSince(opts.since, opts.nowMs);
 
     let records = (rawRecords || []).map(normalize);
@@ -29507,7 +29873,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
 
     totals.savedPct = totals.baseline > 0 ? clamp((totals.saved / totals.baseline) * 100, 0, 100) : 0;
     totals.avgMs = totals.count > 0 ? Math.round(totals.totalMs / totals.count) : 0;
-    totals.usdSaved = totals.saved * price.perToken;
+    totals.usdSaved = totals.saved * basis.scale * price.perToken;
 
     let byOp = [...opMap.values()].map((o) => ({
       op: o.op,
@@ -29515,7 +29881,7 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
       saved: o.saved,
       avgPct: o.baseline > 0 ? clamp((o.saved / o.baseline) * 100, 0, 100) : 0,
       avgMs: o.count > 0 ? Math.round(o.ms / o.count) : 0,
-      usdSaved: o.saved * price.perToken,
+      usdSaved: o.saved * basis.scale * price.perToken,
       sharePct: totals.saved > 0 ? (o.saved / totals.saved) * 100 : 0,
     })).sort((a, b) => b.saved - a.saved);
 
@@ -29861,30 +30227,35 @@ __factories["./src/tracking/logger"] = function(module, exports) {
 __factories["./src/tracking/pricing"] = function(module, exports) {
   
   /**
-   * SigMap pricing table — input-token $/Mtok assumptions for the `gain` dashboard.
+   * SigMap pricing — input-token $/Mtok assumptions for `gain`, `--cost` and `ask`.
    *
    * These are ASSUMPTIONS used only to translate "tokens saved" into an estimated
-   * dollar figure. They are deliberately conservative and configurable via
-   *   --model <name>   or   config.pricingModel
-   * The `gain` views always print the model + rate inline so the $ is never
-   * presented as exact. Zero npm dependencies.
+   * dollar figure. The figures themselves live in the dated model profile
+   * (src/config/models.js) — this module holds no price of its own, so the names
+   * the routing advice prints and the names priced here cannot drift apart
+   * (#688, #778). Override per project via the `models` config namespace, or pick
+   * a model with `--model <name>`. Every view prints the model, the rate and the
+   * profile date inline so the $ is never presented as exact. Zero npm dependencies.
    */
 
-  // USD per 1,000,000 input tokens. Claude rates verified 2026-07 against
-  // platform.claude.com (Opus 4.8 $5, Sonnet 5/4.6 $3, Haiku 4.5 $1); GPT-4o $2.50.
-  const PRICES = {
-    'claude-sonnet': 3.0,
-    'claude-opus': 5.0,
-    'claude-haiku': 1.0,
-    'gpt-4o': 2.5,
-    'gpt-4o-mini': 0.15,
-    'gemini-1.5-pro': 1.25,
-    'gemini-1.5-flash': 0.075,
-    'minimax-m3': 0.6,
-    'minimax-m2.7': 0.3,
-  };
+  const { resolveProfile, lookup, DEFAULT_MODEL } = __require('./src/config/models');
 
-  const DEFAULT_MODEL = 'claude-sonnet';
+  const SHIPPED = resolveProfile();
+
+  function _priceMap(profile) {
+    const out = {};
+    for (const [id, m] of Object.entries(profile.models)) {
+      if (m.inputPerMtok != null) out[id] = m.inputPerMtok;
+    }
+    for (const [alias, id] of Object.entries(profile.aliases)) {
+      if (out[id] != null) out[alias] = out[id];
+    }
+    return out;
+  }
+
+  // USD per 1,000,000 input tokens, keyed by every accepted name (ids + aliases)
+  // of the shipped profile.
+  const PRICES = _priceMap(SHIPPED);
 
   /**
    * Resolve a price (USD per token) for a model name.
@@ -29894,27 +30265,37 @@ __factories["./src/tracking/pricing"] = function(module, exports) {
    * (trimmed) input and `fallback` is true only when a non-empty, explicitly
    * requested key was unknown. A bare `resolvePrice()`/`resolvePrice('')` is the
    * documented default path, not a fallback.
+   *
+   * `model` is the profile's id for the name, so an alias (`claude-sonnet`)
+   * reports the model it currently stands for.
    * @param {string} [model]
-   * @returns {{ model: string, perMtok: number, perToken: number, requested: string|null, fallback: boolean }}
+   * @param {object} [profile] - from resolveProfile(config); the shipped profile when omitted
+   * @returns {{ model: string, perMtok: number, perToken: number, requested: string|null, fallback: boolean, asOf: string, asOfSource: string }}
    */
-  function resolvePrice(model) {
+  function resolvePrice(model, profile) {
+    const p = profile || SHIPPED;
     const requested = String(model == null ? '' : model).trim();
-    const key = (requested || DEFAULT_MODEL).toLowerCase();
-    const known = PRICES[key] != null;
-    const perMtok = known ? PRICES[key] : PRICES[DEFAULT_MODEL];
-    const resolved = known ? key : DEFAULT_MODEL;
+    const hit = lookup(p, requested || DEFAULT_MODEL);
+    const known = !!(hit && hit.model.inputPerMtok != null);
+    const used = known ? hit : lookup(p, DEFAULT_MODEL);
+    const perMtok = used.model.inputPerMtok;
     return {
-      model: resolved,
+      model: used.id,
       perMtok,
       perToken: perMtok / 1_000_000,
       requested: requested || null,
       fallback: !known && requested !== '',
+      asOf: p.asOf,
+      asOfSource: p.asOfSource,
     };
   }
 
-  /** @returns {string[]} known model keys */
-  function listModels() {
-    return Object.keys(PRICES);
+  /**
+   * @param {object} [profile] - from resolveProfile(config); the shipped profile when omitted
+   * @returns {string[]} every accepted model name (ids, then aliases)
+   */
+  function listModels(profile) {
+    return Object.keys(profile ? _priceMap(profile) : PRICES);
   }
 
   module.exports = { PRICES, DEFAULT_MODEL, resolvePrice, listModels };
@@ -32097,7 +32478,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.62.2';
+const VERSION = '8.63.0';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -32613,7 +32994,10 @@ function computeEffectiveMaxTokens(fileEntries, config) {
   if (config.autoMaxTokens === false) return config.maxTokens;
 
   const coverageTarget    = (config.coverageTarget    != null) ? config.coverageTarget    : 0.80;
-  const modelContextLimit = (config.modelContextLimit != null) ? config.modelContextLimit : 128000;
+  // #688: a declared model roster can lower the limit to its smallest window
+  // (never raise it); an explicit modelContextLimit always wins.
+  const __ctxLimit        = requireSourceOrBundled('./src/config/models').contextLimit(config);
+  const modelContextLimit = __ctxLimit.limit;
   const maxTokensHeadroom = (config.maxTokensHeadroom != null) ? config.maxTokensHeadroom : 0.20;
 
   const totalSigTokens = fileEntries.reduce(
@@ -32637,7 +33021,8 @@ function computeEffectiveMaxTokens(fileEntries, config) {
       );
       console.warn(
         `[sigmap] auto-budget: capped at ${hardCap} ` +
-        `(${Math.round(maxTokensHeadroom * 100)}% of ${Math.round(modelContextLimit / 1000)}K model limit) ` +
+        `(${Math.round(maxTokensHeadroom * 100)}% of ${Math.round(modelContextLimit / 1000)}K model limit` +
+        `${__ctxLimit.source === 'roster' ? ` — smallest roster window, ${__ctxLimit.model}` : ''}) ` +
         `→ est. ${estimatedCovPct}% coverage`
       );
       console.warn(
@@ -33196,7 +33581,8 @@ function formatOutput(fileEntries, cwd, routingEnabled, config, extras) {
       const { classifyAll } = requireSourceOrBundled('./src/routing/classifier');
       const { formatRoutingSection } = requireSourceOrBundled('./src/routing/hints');
       const groups = classifyAll(fileEntries, cwd);
-      lines.push(formatRoutingSection(groups));
+      const { resolveProfile: __resolveProfile } = requireSourceOrBundled('./src/config/models');
+      lines.push(formatRoutingSection(groups, __resolveProfile(config)));
     } catch (err) {
       console.warn(`[sigmap] routing hints skipped: ${err.message}`);
     }
@@ -34564,12 +34950,18 @@ function runEach(cwd, baseConfig, adapterOverride) {
  *  2. Match any 'fast' keyword     → 'fast'
  *  3. Default                      → 'balanced'
  *
+ * Model names and the price span come from the dated model profile, so every
+ * name returned is one `gain --model` accepts (#778).
+ *
  * @param {string} description - Natural-language task description
- * @returns {{ tier: string, label: string, models: string, costHint: string }}
+ * @param {object} [profile] - from resolveProfile(config); the shipped profile when omitted
+ * @returns {{ tier: string, label: string, models: string, modelIds: string[], costHint: string, asOf: string, asOfSource: string, roster: boolean, basis: string }}
  */
-function suggestTool(description) {
+function suggestTool(description, profile) {
   const lower = description.toLowerCase();
-  const { TIERS } = __require('./src/routing/hints');
+  const { tierInfo } = __require('./src/routing/hints');
+  const { resolveProfile } = __require('./src/config/models');
+  const p = profile || resolveProfile();
 
   const powerfulKeywords = [
     'architecture', 'cross-cutting', 'multi-file', 'security audit', 'owasp',
@@ -34588,8 +34980,12 @@ function suggestTool(description) {
   if (powerfulKeywords.some((kw) => lower.includes(kw))) tier = 'powerful';
   else if (fastKeywords.some((kw) => lower.includes(kw))) tier = 'fast';
 
-  const info = TIERS[tier];
-  return { tier, label: info.label, models: info.examples, costHint: info.costHint };
+  const info = tierInfo(tier, p);
+  return {
+    tier, label: info.label, models: info.examples, modelIds: info.models, costHint: info.costHint,
+    asOf: p.asOf, asOfSource: p.asOfSource, roster: p.rosterDeclared,
+    basis: 'static keyword rule + dated model profile — not a measurement',
+  };
 }
 
 function resolveProjectRoot(startDir) {
@@ -35337,8 +35733,13 @@ function main() {
     // with the `gain` dashboard (previously an inline MODEL_COSTS table disagreed
     // with it, e.g. gpt-4o priced at $5/Mtok here vs $2.50/Mtok there).
     const { resolvePrice: __resolvePrice } = requireSourceOrBundled('./src/tracking/pricing');
-    const __price = __resolvePrice(model);
-    const rateK = __price.perMtok / 1000; // USD per 1K tokens
+    const __askModels = requireSourceOrBundled('./src/config/models');
+    const __askProfile = __askModels.resolveProfile(config);
+    const __price = __resolvePrice(model, __askProfile);
+    // #688: the cost applies the priced model's charsPerToken when one is
+    // configured; without one it rests on the chars/4 count and says so.
+    const __tokBasis = __askModels.tokenBasis(__askProfile, __price.model);
+    const rateK = (__price.perMtok / 1000) * __tokBasis.scale; // USD per 1K chars/4 tokens
     const costRaw = ((rawTok / 1000) * rateK).toFixed(4);
     const costCtx = ((ctxTok / 1000) * rateK).toFixed(4);
 
@@ -35402,6 +35803,8 @@ function main() {
         coverageBasis: 'share of source files under srcDirs that are readable — NOT whether the query found the right files',
         costBefore: costRaw, costAfter: costCtx, savingsPct: savings,
         pricedModel: __price.model,
+        priceAsOf: __price.asOf,
+        tokenBasis: __tokBasis.label,
         costBasis: 'estimate — counterfactual = full content of ranked files; input tokens only',
         riskLevel, riskAssessed: __risk.assessed, riskChangedFiles: __risk.changed,
         riskBasis: 'files changed in the working tree vs HEAD',
@@ -35472,7 +35875,7 @@ function main() {
           ? ` Source    : none included — no anchored symbol fit the ${__sourceSection ? __sourceSection.budgetTokens.toLocaleString() : '0'}-token budget (raise maxTokens or pass --source-budget <n>)`
           : null,
         ` Cost      : $${costCtx}/query  (was $${costRaw} · saved ${savings}%)`,
-        ` ${' '.repeat(9)} est. @ ${__price.model} $${__price.perMtok}/Mtok input; "was" = full ranked files`,
+        ` ${' '.repeat(9)} est. @ ${__price.model} $${__price.perMtok}/Mtok input as of ${__price.asOf}; cost tokens ${__tokBasis.label}; "was" = full ranked files`,
         bar,
       ].filter(Boolean).join('\n'));
     }
@@ -35669,15 +36072,21 @@ function main() {
       process.exit(0);
     }
     try {
-      const { PRICES, DEFAULT_MODEL, resolvePrice } = requireSourceOrBundled('./src/tracking/pricing');
+      const { DEFAULT_MODEL, resolvePrice, listModels } = requireSourceOrBundled('./src/tracking/pricing');
+      const __models = requireSourceOrBundled('./src/config/models');
+      const __profile = __models.resolveProfile(config);
       if (args.includes('--models')) {
-        const lines = Object.entries(PRICES)
-          .map(([k, v]) => `  ${k.padEnd(18)} $${v}/MTok${k === DEFAULT_MODEL ? '  (default)' : ''}`);
-        process.stdout.write(`Known pricing models (sigmap gain --model <name>):\n${lines.join('\n')}\n`);
+        // One table (#688): the names listed here are the names --suggest-tool prints.
+        const lines = listModels(__profile).map((k) => {
+          const pr = resolvePrice(k, __profile);
+          const alias = pr.model !== k ? `  → ${pr.model}` : '';
+          return `  ${k.padEnd(24)} $${pr.perMtok}/MTok${alias}${k === DEFAULT_MODEL ? '  (default)' : ''}`;
+        });
+        process.stdout.write(`Known pricing models (sigmap gain --model <name>) — input prices ${__models.asOfLabel(__profile)}:\n${lines.join('\n')}\n`);
         process.exit(0);
       }
       if (args.indexOf('--model') >= 0) {
-        const p = resolvePrice(valOf('--model', ''));
+        const p = resolvePrice(valOf('--model', ''), __profile);
         if (p.fallback) {
           console.error(`[sigmap] unknown model '${p.requested}' — priced as ${p.model} ($${p.perMtok}/MTok); see: sigmap gain --models`);
         }
@@ -35687,7 +36096,8 @@ function main() {
       const { renderSummary, renderBreakdown } = requireSourceOrBundled('./src/format/gain-terminal');
       const records = readGainLog(cwd);
       const agg = aggregate(records, {
-        model: valOf('--model', 'claude-sonnet'),
+        model: valOf('--model', DEFAULT_MODEL),
+        profile: __profile,
         since: valOf('--since', null),
         top: parseInt(valOf('--top', args.includes('--all') ? '0' : '10'), 10),
       });
@@ -38076,7 +38486,9 @@ function main() {
       console.error('  Example: node gen-context.js --suggest-tool "refactor the auth module"');
       process.exit(1);
     }
-    const result = suggestTool(taskDesc);
+    const __models = requireSourceOrBundled('./src/config/models');
+    const __profile = __models.resolveProfile(config);
+    const result = suggestTool(taskDesc, __profile);
     if (args.includes('--json')) {
       process.stdout.write(JSON.stringify(result) + '\n');
     } else {
@@ -38085,6 +38497,8 @@ function main() {
       console.log(`  label  : ${result.label}`);
       console.log(`  models : ${result.models}`);
       console.log(`  cost   : ${result.costHint}`);
+      console.log(`  as of  : ${__models.asOfLabel(__profile).replace(/^as of /, '')} — ` +
+        (result.roster ? 'your models.roster' : 'set "models.roster" in gen-context.config.json to name the models you have'));
     }
     process.exit(0);
   }
@@ -38552,21 +38966,26 @@ function main() {
 
   // v4.2: `--cost` — show token/$ cost estimate before and after SigMap
   if (args.includes('--cost')) {
-    const rawTok = getRawTokenCount(cwd, config);
+    const __rawTok4 = getRawTokenCount(cwd, config);
     runGenerate(cwd, config, false);
 
     const __mIdxCost = args.indexOf('--model');
     const model = (__mIdxCost !== -1 && args[__mIdxCost + 1] && !args[__mIdxCost + 1].startsWith('--')) ? args[__mIdxCost + 1] : 'gpt-4o';
     // Single source of truth for pricing — shared with `gain` (pricing.js).
     const { resolvePrice: __resolvePriceCost } = requireSourceOrBundled('./src/tracking/pricing');
-    const __priceCost = __resolvePriceCost(model);
+    const __costModels = requireSourceOrBundled('./src/config/models');
+    const __costProfile = __costModels.resolveProfile(config);
+    const __priceCost = __resolvePriceCost(model, __costProfile);
+    // #688: counts are chars/4 unless the priced model has a charsPerToken.
+    const __costBasis = __costModels.tokenBasis(__costProfile, __priceCost.model);
     const rateK = __priceCost.perMtok / 1000; // USD per 1K tokens
+    const rawTok = Math.round(__rawTok4 * __costBasis.scale);
 
     const ctxPath = config.customOutput
       ? path.resolve(cwd, config.customOutput)
       : path.join(cwd, '.github', 'copilot-instructions.md');
     let outTok = 0;
-    try { outTok = estimateTokens(fs.readFileSync(ctxPath, 'utf8')); } catch (_) {}
+    try { outTok = Math.round(estimateTokens(fs.readFileSync(ctxPath, 'utf8')) * __costBasis.scale); } catch (_) {}
 
     const savings = rawTok > 0 ? Math.round((1 - outTok / rawTok) * 100) : 0;
     const costRaw = (rawTok / 1000) * rateK;
@@ -38574,6 +38993,8 @@ function main() {
 
     const out = {
       model:         __priceCost.model,
+      priceAsOf:     __priceCost.asOf,
+      tokenBasis:    __costBasis.label,
       rawTokens:     rawTok,
       contextTokens: outTok,
       costRaw:       costRaw.toFixed(4),
@@ -38585,7 +39006,7 @@ function main() {
     if (args.includes('--json')) {
       process.stdout.write(JSON.stringify(out) + '\n');
     } else {
-      console.log(`\n Cost estimate (${__priceCost.model} @ $${__priceCost.perMtok}/Mtok input, est.):`);
+      console.log(`\n Cost estimate (${__priceCost.model} @ $${__priceCost.perMtok}/Mtok input as of ${__priceCost.asOf}; tokens ${__costBasis.label}):`);
       console.log(` Without SigMap : ${rawTok.toLocaleString()} tok  $${out.costRaw}/query  (counterfactual: whole repo)`);
       console.log(` With SigMap    : ${outTok.toLocaleString()} tok  $${out.costContext}/query`);
       console.log(` Savings        : ${savings}%  ($${(costRaw - costCtx).toFixed(4)} saved per query)\n`);

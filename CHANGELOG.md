@@ -10,6 +10,41 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.63.0] — 2026-10-04
+
+Minor. SigMap held two model tables that had never met. `--suggest-tool` recommended `claude-sonnet-4-6` and `gpt-5-2`; `gain --model` rejected both. Neither table carried a date and neither could be corrected from config. There is now one dated table behind both, every output that prints a model or a price prints the date, and a `models` config block overrides any figure.
+
+### Added
+- **`src/config/models.js` — the one model table** (#688, #778, #865, PR #866) — model id → vendor, tier, input price, context window and cache minimum, under a single `asOf` date (2026-10-04). Each figure was read from the vendor's own pricing or models page on that date; a figure a page did not state is `null`, not a guess
+- **`models` config namespace** (#688, PR #866) — `asOf`, `roster`, `prices`, `windows`, `cacheMin`, `charsPerToken`, `tiers`. A config value wins over the shipped one per model and per field, and a value of the wrong type is ignored rather than trusted
+- **`models.roster`** (#688, PR #866) — declare the models you actually have and `--suggest-tool` and the routing section name only those. A tier the roster has no model for says so instead of suggesting one you cannot use
+- **The profile date on every consuming output** (#688, #778, PR #866) — `--suggest-tool`, the routing section (generate and MCP `get_routing`), `gain`, `gain --models`, `--cost` and `ask` print `as of <date>` and whether it is the shipped profile's or your config's
+- **`sigmap doctor`: a ninth check, `Model profile`** (#688, PR #866) — warns once the profile in force is more than 90 days old, or when the roster names a model with no price on record. There is no live price fetch, opt-in or otherwise, so the date is the only freshness signal
+- **`--suggest-tool --json`: `modelIds`, `asOf`, `asOfSource`, `roster`, `basis`** (PR #866) — `tier`, `label`, `models` and `costHint` are unchanged in shape. `--cost --json` and `ask --json` gain `priceAsOf` and `tokenBasis`
+- **`model-profile.test.js`, 23 guards** (PR #866) — including one that reads the source of `pricing.js` and `hints.js` and fails on a model name or a dollar figure
+
+### Changed
+- **`pricing.js` and `hints.js` derive from the profile** (#778, PR #866) — neither holds a model or price literal, so a name the advice prints is always one `gain --model` accepts
+- **Family keys are aliases for the current model** (PR #866) — `claude-sonnet`, `claude-opus` and `claude-haiku` are still accepted and now report the model they stand for (`claude-sonnet-5-5`, …)
+- **Dollar figures moved, because the old rates were wrong** (PR #866) — the `gain` default resolves to Sonnet 5.5 at **$2/MTok** (was $3), so "Est. money saved" reads a third lower for anyone on the default. `claude-opus` is $4 (was $5) and `minimax-m3` is $0.30 (was $0.60). Token counts and reduction percentages are not affected
+- **`gemini-1.5-pro` and `gemini-1.5-flash` are no longer priced** (PR #866) — the vendor publishes no rate for them. They fall back to the default with the existing unknown-model notice; add your own under `models.prices` to keep using one
+- **Within a vendor, a higher tier never costs less than a lower one** (#778, PR #866) — test-pinned. The old table put `gemini-2-5-pro` in *powerful* above `gemini-3-1-pro` in *balanced*
+- **A roster can lower the auto budget cap** (#688, PR #866) — with `modelContextLimit` unset, the cap uses the smallest known roster window when that is below the default. It never raises the cap, and an explicit `modelContextLimit` always wins
+- **Token counts priced against a model say how they were obtained** (#688, PR #866) — `est. (chars/4)` unless `models.charsPerToken` gives that model a factor, which is then applied and named
+- **`docs-vp/guide/cli.md`: the `--cost` section showed output the command never produced** — a five-model table and a "supported models" list naming `claude-3-haiku` and `gpt-4`. Rewritten from real output
+
+### Notes
+- **The quality benchmark still has a price table of its own.** `scripts/run-quality-benchmark.mjs` prices "Claude Sonnet" at $3.00 from a literal last verified in 2026-07, and that is where the published "$12,000+/month Sonnet" comes from. The profile says $2.00 for the current Sonnet. The benchmark was not re-priced in this release — the row is unchanged and now carries a note on the quality page saying which rate it uses. Nothing tracks unifying it yet
+- **The doctor warning is a clock.** On 2027-01-03 every install of this release starts warning until `models.asOf` is set or SigMap is upgraded. That is the behaviour #688 asks for; it also means the shipped date has to be re-verified in a release before then, and nothing enforces that
+- **What was verified, and how.** Anthropic's pricing and prompt-caching pages and MiniMax's pay-as-you-go page were read directly. The OpenAI and Gemini figures were read through a page summariser on the same day, so those rows are the ones worth a second look. Context windows are unset for the Gemini, MiniMax and `gpt-4o` entries and cache minimums for every non-Claude model, because the pages did not state them. Two prices carry a condition recorded in the source: `gemini-3.8-flash` is the vendor's rate through 2026-12-31, and `minimax-m3` is the rate for requests up to 512K input tokens
+- **Not in this release:** #689 (roster-resolved hints in `ask`, and the measured-basis path) and #683 (the cache-stable context layout and its fit-check, which will read `cacheMin` from this table)
+- **No published metric moved.** A fresh `benchmark:all` reproduces 95.8% / 78.6% / 43.4%, 88.0% vs 40.0% and test-discovery F1 98.0% exactly, and all five source reports are stamped `8.63.0 / 2026-10-04`. The benchmark id advances to `sigmap-v8.63-main`
+- **`hard` hit@5 moved for the first time since v8.56.0: 73.3% → 74.4%.** `ranker.js` is not modified. A per-task diff against a pristine v8.62.2 worktree accounts for it: h027 moved from rank 6 to rank 5, with its query, expected file and first three results unchanged. That is the indexed file set shifting term weights, not better ranking. `hard` MRR reads 0.577 against a 0.578 control because h025 and h087 each lost a rank
+- **Three tasks now rank the new module above the expected file** — h025 (`hard`), m015 and m016 (`mined`, MRR 0.411 → 0.401 at an unchanged 60.9%). For the two mined tasks the corpus is behind the code: those commits edited model names in `hints.js`, and this release moved the names into `models.js`. The labels were not changed. `easy` MRR 0.825 → 0.817 on one task (t011); `jvm` 29.5% / 0.195 did not move
+- Full suite **207 integration + 28 unit, 0 failed** · `check:metrics`, `validate:llms`, `check:doc-counts` green · docs build green · bundle reproducible from `src/` (181 modules) · supply-chain gate green (no shell spawns, no install scripts, `main` exports the API, no fingerprinting) · tarball 1019KB / 204 files
+
+---
+
 ## [8.62.2] — 2026-10-04
 
 Patch. `sigmap --analyze` and `sigmap plan` each stated things about a repo that the code behind them could not support. `--analyze` reported 5 of this repo's 182 source files as tested. `plan` left the file a task names off its "Likely to change" list while listing a CI fixture. Both now rest on evidence the output names.

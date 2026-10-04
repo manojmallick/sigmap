@@ -71,7 +71,7 @@ test('aggregate: usdSaved tracks the pricing model', () => {
   const sonnet = aggregate(sample, { model: 'claude-sonnet' }).totals.usdSaved;
   const opus = aggregate(sample, { model: 'claude-opus' }).totals.usdSaved;
   assert.ok(opus > sonnet, 'opus should cost more per token');
-  assert.ok(Math.abs(sonnet - 37500 * 3 / 1e6) < 1e-9);
+  assert.ok(Math.abs(sonnet - 37500 * resolvePrice('claude-sonnet').perMtok / 1e6) < 1e-9);
 });
 
 test('aggregate: top limits byOp rows', () => {
@@ -117,8 +117,9 @@ test('aggregate: --since filters records', () => {
 // ── pricing ──────────────────────────────────────────────────────────────
 test('resolvePrice: unknown model falls back to default, flagged', () => {
   const fb = resolvePrice('not-a-model');
-  assert.strictEqual(fb.model, 'claude-sonnet');
-  assert.strictEqual(fb.perMtok, 3);
+  // The default key is an alias; the price reports the model it stands for.
+  assert.strictEqual(fb.model, 'claude-sonnet-5-5');
+  assert.strictEqual(fb.perMtok, 2);
   assert.strictEqual(fb.fallback, true);
   assert.strictEqual(fb.requested, 'not-a-model');
   const ok = resolvePrice('gpt-4o');
@@ -203,9 +204,9 @@ test('CLI: --no-track suppresses gain capture', () => {
 test('CLI: gain --model <typo> prints a stderr notice, keeps exit 0', () => {
   const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain', '--model', 'gpt4o'], { cwd: ROOT, encoding: 'utf8' });
   assert.strictEqual(r.status, 0);
-  assert.match(r.stderr, /unknown model 'gpt4o' — priced as claude-sonnet \(\$3\/MTok\); see: sigmap gain --models/);
+  assert.match(r.stderr, /unknown model 'gpt4o' — priced as claude-sonnet-5-5 \(\$2\/MTok\); see: sigmap gain --models/);
   // fallback pricing still applied — header shows the default model
-  assert.match(r.stdout, /claude-sonnet input @ \$3\/M/);
+  assert.match(r.stdout, /claude-sonnet-5-5 input @ \$2\/M as of \d{4}-\d{2}-\d{2}/);
 });
 
 test('CLI: gain --model <valid> prints no notice', () => {
@@ -217,7 +218,7 @@ test('CLI: gain --model <valid> prints no notice', () => {
 test('CLI: gain --models lists known pricing models', () => {
   const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain', '--models'], { cwd: ROOT, encoding: 'utf8' });
   assert.strictEqual(r.status, 0);
-  for (const m of ['claude-sonnet', 'gpt-4o', 'gemini-1.5-flash']) {
+  for (const m of ['claude-sonnet', 'gpt-4o', 'gemini-3.8-flash']) {
     assert.ok(r.stdout.includes(m), `missing ${m} in --models output`);
   }
 });

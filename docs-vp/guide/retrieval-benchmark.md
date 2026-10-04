@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.62.2. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.63.0. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.62.2 benchmark snapshot
-**Benchmark ID:** sigmap-v8.62-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
+::: info Official v8.63.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.63-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-04 (v8.62.2)**
+Latest saved run: **2026-10-04 (v8.63.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -122,7 +122,7 @@ happen to share an adjective.
 
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
-| `hard` | 90 | **73.3%** | 70% floor | Leak-free tasks over **SigMap's own source** |
+| `hard` | 90 | **74.4%** | 70% floor | Leak-free tasks over **SigMap's own source** |
 | `mined` | 23 | **60.9%** | no-regress | Commit subjects + the files that commit touched |
 | `jvm` | 61 | **29.5%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
 | `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
@@ -139,16 +139,18 @@ containing one two-assertion test file and no source change scored 75.6% →
 74.4% and failed the gate. Enforcing `hard` against the previous run therefore
 fails honest work and, worse, trains you to ignore the gate.
 
-It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
-= 1.1pp, three tasks of headroom). The floor, the leak assertions, and
+It is now held to its **70% floor** instead (currently 67/90 tasks pass, 1 task
+= 1.1pp, four tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
-<!-- benchmark: re-measured at v8.62.2 — all four corpora present (43 cached repos); figures above are measured, not carried -->
+<!-- benchmark: re-measured at v8.63.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
 
-::: tip Re-measured at v8.62.2 — and self-repo drift finally showed up
-All four corpora were present in the v8.62.2 release run, so the figures above
-are **measured, not carried forward**. Every hit@5 is unchanged from v8.56.0 to
-the decimal: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%.
+::: tip Re-measured at v8.63.0 — the first release in the series to move a hit@5
+All four corpora were present in the v8.63.0 release run, so the figures above
+are **measured, not carried forward**. `mined` 60.9%, `jvm` 29.5% and `easy`
+90.0% are unchanged from v8.56.0 to the decimal. `hard` reads **74.4%**, after
+holding 73.3% from v8.56.0 through v8.62.2 — one task, and not a ranking change;
+the v8.63.0 note below accounts for it task by task.
 
 `hard` scores against **SigMap's own source**, so anything that changes the
 indexed file set can shift its BM25 statistics whether or not ranking changed.
@@ -167,6 +169,7 @@ than assumed:
 | v8.62.0 | two extractor modules (`powershell.js`, `objc.js`) + their tests | 73.3% (control 73.3%) | **0.578** (control 0.584) |
 | v8.62.1 | a test file + loop rewrites in four modules and the CLI core | 73.3% (control 73.3%) | **0.584** (control 0.578) |
 | v8.62.2 | one new module (`src/analysis/test-coverage.js`) + a test file, three modules edited | 73.3% (control 73.3%) | **0.578** (control 0.584) |
+| v8.63.0 | one new module (`src/config/models.js`) + a test file, seven modules edited | **74.4%** (control 73.3%) | **0.577** (control 0.578) |
 
 v8.62.0 moved MRR and no hit@5, and two control trees say exactly which change
 did it. The tree v8.61.3 was *measured* on still reproduces its recorded figures
@@ -202,6 +205,38 @@ task kept its rank, and `mined` 60.9% / 0.411, `jvm` 29.5% / 0.195 and `easy`
 first header was a paragraph of history, a module's leading comment is indexed as
 prose, and that put it in the top three for three unrelated `hard` tasks.
 Rewritten as a purpose statement, it stopped.
+
+v8.63.0 does not touch the ranker either, and it is the first release in this
+series to move a `hard` hit@5. It adds one module to `srcDirs`
+(`src/config/models.js`) and a test file, and edits seven modules. A per-task
+diff against a pristine v8.62.2 worktree accounts for every figure:
+
+| corpus | v8.62.2 control | v8.63.0 | tasks whose first-hit rank changed |
+|---|---|---|---|
+| `hard` | 73.3% / 0.578 | 74.4% / 0.577 | h027 6 → 5 · h025 2 → 3 · h087 3 → 4 · h020 9 → 8 · h042 18 → 19 |
+| `mined` | 60.9% / 0.411 | 60.9% / 0.401 | m015 2 → 3 · m016 4 → 5 |
+| `easy` | 90.0% / 0.825 | 90.0% / 0.817 | t011 2 → 3 |
+| `jvm` | 29.5% / 0.195 (the v8.62.2 release run — the external repos are not part of a worktree) | 29.5% / 0.195 | none |
+
+h027 crossing the cutoff is the whole of 73.3% → 74.4% (66 → 67 of 90). Its
+query, its expected file and the three files ranked first are the same on both
+trees; a file that had sat just ahead of it fell below as term weights shifted.
+That is corpus composition, not a better ranker, and the extra hit should not be
+read as an improvement. h025 and h087 each lost a rank inside the cutoff, which
+is why MRR reads 0.577 against 0.578 despite the extra hit. h020 and h042 moved
+outside the cutoff and count for nothing.
+
+Three of the movements share a cause: the new module now ranks above the
+expected file. h025 asks which model tier a task needs; m015 and m016 are commit
+subjects about correcting model names. For the two mined tasks the corpus is
+behind the code rather than the ranker being wrong — those commits edited model
+names in `src/routing/hints.js`, and this release moved the names out of that
+file into `src/config/models.js`, which is what the ranker now returns first for
+m016. The labels were left as mined; re-mining a corpus is its own change. For
+h025 the intrusion is real, one rank's worth: the expected file is the task
+classifier, and the model table is not it. The module appears in the top three
+for five `hard` tasks in all (h006, h011, h024, h025, h065) and changes the
+expected file's rank in that one.
 
 v8.61.1 is the first release in the series to move **nothing**. Every gated
 corpus came back byte-identical to the v8.61.0 measurement — `hard` 73.3% /

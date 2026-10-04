@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.63.0)
+- **@manojmallick** — feat(models): one dated, config-overridable model profile behind pricing and routing advice (#688, #778, #865, PR #866). `--suggest-tool` and `gain --model` used two unrelated, undated tables, so a name one printed was rejected by the other. Both now derive from `src/config/models.js`, every output that prints a model or a price prints the profile date, a `models` config namespace overrides any figure per model and per field, and `sigmap doctor` warns once the profile is more than 90 days old.
+
 ### Recent Contributors (v8.62.2)
 - **@manojmallick** — fix(plan,analyze): `--analyze` reported 5 of this repo's 182 files as tested and `plan` left the file a task names off its change list (#769, #774, #862, PR #863). One coverage index now serves both commands — a file is covered when a test targets its stem or loads it — and every "Likely to change" entry carries its score and the task words it matched. #769 proposed reusing `findRelatedTests` alone; it matches stems, and none of that issue's four examples shares a stem with its test.
 

@@ -159,7 +159,7 @@ test('aggregateRuns: single run mean equals that run', () => {
 test('MiniMax models: target input pricing is registered', () => {
   assert.ok(listModels().includes('minimax-m3'));
   assert.ok(listModels().includes('minimax-m2.7'));
-  assert.strictEqual(resolvePrice('MiniMax-M3').perMtok, 0.6);
+  assert.strictEqual(resolvePrice('MiniMax-M3').perMtok, 0.3);
   assert.strictEqual(resolvePrice('MiniMax-M2.7').perMtok, 0.3);
 });
 

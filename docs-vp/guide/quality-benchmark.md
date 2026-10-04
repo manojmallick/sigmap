@@ -1,6 +1,6 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v8.62.2. 14/21 repos overflow GPT-4o without SigMap, 5,294 files would be hidden, 16,661 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
+description: What token reduction means operationally in v8.63.0. 14/21 repos overflow GPT-4o without SigMap, 5,294 files would be hidden, 16,661 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Quality benchmark
 
-::: info Official v8.62.2 benchmark snapshot
-**Benchmark ID:** sigmap-v8.62-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
+::: info Official v8.63.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.63-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -35,7 +35,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-10-04 (v8.62.2)**
+Latest saved run: **2026-10-04 (v8.63.0)**
 
 How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
 
@@ -115,6 +115,14 @@ At 10 calls per day across the benchmark set. Token reduction is model-agnostic;
 | GPT-4o | $2.50 | **$335+** | **$10,000+** |
 | Claude Sonnet | $3.00 | **$400+** | **$12,000+** |
 | Claude Haiku | $1.00 | **$134+** | **$4,000+** |
+
+::: warning These rates are the benchmark's own, and one is out of date (v8.63.0)
+The table is priced from a literal inside `scripts/run-quality-benchmark.mjs`, last verified 2026-07 — not from the dated [model profile](/guide/config#models) that `gain`, `--cost` and `ask` price from since v8.63.0. The two disagree on Claude Sonnet. The profile, checked against Anthropic's pricing page on 2026-10-04, prices the current Sonnet (5.5) at **$2.00**, and that page lists Sonnet 5 at $2.00 as well; only Sonnet 4.6 is $3.00. Read the Sonnet row as a Sonnet 4.6 figure: at $2.00 it scales to two-thirds of what is shown. The GPT-4o and Haiku rates match the profile.
+
+The same script treats "Claude" as a 200K window in the context-fit section above. That holds for Haiku 4.5; Sonnet 4.6 and later carry 1M.
+
+The benchmark was not re-priced in this release, so the published figures are unchanged from v8.62.2.
+:::
 
 This is why the benchmark story is not just "smaller output." It directly affects the latency and cost profile of daily AI-assisted work — across whichever model you run.
 
