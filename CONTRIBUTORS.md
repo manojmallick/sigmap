@@ -39,6 +39,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.62.1)
+- **@manojmallick** — fix(scale): a tree past ~125,000 files no longer overflows the stack (#855, PR #860). Five places spread a per-file array as call arguments — the CLI file list, the dependency-graph walk, the ranker, centrality and the `--analyze` table — and each is now a loop. Reproduced and verified on a real 130,000-file tree; the ranker and `--analyze` sites were found only by running other commands there after the reported frame was fixed.
+- **@sidhunt** — reported #855 with the repro and the exact stack frame, which is what made the crash a one-step reproduction.
+
 ### Recent Contributors (v8.62.0)
 - **@sujalmallick** — feat(extractors): Objective-C Tier 2 extractor (#841, PR #852, landed via PR #857). `@interface` / `@implementation` / `@protocol`, categories, `@property` with attributes, instance and class methods with multi-part selectors and balanced block argument types, top-level C functions, `typedef NS_ENUM` / `NS_OPTIONS` — all with `:start-end` anchors. `.m` with no Objective-C markers falls back to the generic extractor (MATLAB), and `.h` stays mapped to `cpp`, which sniffs the markers and delegates.
 - **@sujalmallick** — feat(extractors): PowerShell Tier 2 extractor (#840, PR #850). `function` / `filter` / `workflow` with clean parameter names, `[CmdletBinding()]` and `[OutputType]`, `.SYNOPSIS` doc hints, PS5 classes and enums, `Export-ModuleMember`, `.psd1` manifest metadata, and Pester test-file classification. Shipped in the v8.61.3 package; first recorded in this release.

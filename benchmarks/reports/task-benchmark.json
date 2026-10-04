@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-03T19:23:34.175Z",
+  "generated": "2026-10-04T08:09:29.323Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -284,5 +284,5 @@
       "hallucinationRiskPct": 61.9
     }
   ],
-  "version": "8.62.0"
+  "version": "8.62.1"
 }
