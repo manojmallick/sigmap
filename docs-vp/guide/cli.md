@@ -2002,7 +2002,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  hit@5         88.0% vs 40.0%   (2.20× lift)
  Corpus        125 tasks · 19 repos (honest split)
- Token cut     95.8% average (saved benchmark, 21 repos)
+ Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
 ```
 
@@ -2027,7 +2027,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.8% fewer tokens · 78% retrieval accuracy (this repo) · 2.20× vs a grep agent (published)
+95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.20× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2158,7 +2158,7 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
  hit@5          : 78.6%
- token reduction: 95.8%
+ token reduction: 95.7%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
 ────────────────────────────────────────────────────────

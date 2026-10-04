@@ -7,7 +7,7 @@
     "hit_at_5": 0.786,
     "baseline_hit_at_5": 0.136,
     "retrieval_lift": 5.8,
-    "overall_token_reduction_pct": 95.8,
+    "overall_token_reduction_pct": 95.7,
     "task_success_proxy_pct": 61,
     "prompts_per_task": 1.61,
     "baseline_prompts_per_task": 2.84,
@@ -44,27 +44,27 @@
   },
   "sources": {
     "benchmark-matrix.json": {
-      "version": "8.65.1",
+      "version": "8.65.2",
       "generated": "2026-10-04"
     },
     "grounding-regression.json": {
-      "version": "8.65.1",
+      "version": "8.65.2",
       "generated": "2026-10-04"
     },
     "honest-baseline.json": {
-      "version": "8.65.1",
+      "version": "8.65.2",
       "generated": "2026-10-04"
     },
     "task-benchmark.json": {
-      "version": "8.65.1",
+      "version": "8.65.2",
       "generated": "2026-10-04"
     },
     "test-discovery.json": {
-      "version": "8.65.1",
+      "version": "8.65.2",
       "generated": "2026-10-04"
     },
     "token-reduction.json": {
-      "version": "8.65.1",
+      "version": "8.65.2",
       "generated": "2026-10-04"
     }
   }
