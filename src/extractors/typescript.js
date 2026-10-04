@@ -32,9 +32,10 @@ function extract(src) {
   // stripComments is string-aware (a `//` inside a string literal survives);
   // maskCode additionally blanks string/template contents so every delimiter
   // found on it is structural. Both are length- and newline-preserving, so
-  // offsets and line anchors align across all three views (#526).
-  const stripped = stripComments(src);
-  const masked = maskCode(src);
+  // offsets and line anchors align across all three views (#526). `js`
+  // makes a regex literal or nested template inert too (#874).
+  const stripped = stripComments(src, { js: true });
+  const masked = maskCode(src, { js: true });
 
   // Full params for a declaration whose `(` sits at openIdx (see javascript.js).
   const paramsFrom = (openIdx) => {
@@ -264,7 +265,7 @@ function extractBlock(src, startIndex) {
 // Returns members as { text, start, end } where start/end are char offsets
 // WITHIN `block`, so the caller can resolve member line anchors.
 function extractInterfaceMembers(block) {
-  const maskedBlock = maskCode(block);
+  const maskedBlock = maskCode(block, { js: true });
   const members = [];
   for (const m of block.matchAll(/^\s+(readonly\s+)?(\w+)(\??):\s*([^;]+);/gm)) {
     const readonly = m[1] ? 'readonly ' : '';
@@ -289,7 +290,7 @@ const _CTRL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'do', 'try', 'ca
 // WITHIN `block` (end = the method's closing brace), so the caller can resolve
 // per-method line anchors that span the method body.
 function extractClassMembers(block, maskedBlock) {
-  const masked = maskedBlock || maskCode(block);
+  const masked = maskedBlock || maskCode(block, { js: true });
   const members = [];
   // Public methods (skip private/protected/_ prefixed and control-flow keywords)
   // `get`/`set` are in the modifier list because an accessor is part of a
