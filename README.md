@@ -61,11 +61,11 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
-- **78.6% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **88.0% vs 40.0% single-shot grep baseline** — 2.20× measured lift on the honest corpus (125 tasks / 19 repos)
+- **79.7% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
+- **88.8% vs 40.0% single-shot grep baseline** — 2.22× measured lift on the honest corpus (125 tasks / 19 repos)
 - **95.7% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
-- **61.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
-- **1.61 prompts per task** — down from 2.84 (43.4% fewer retries, modeled)
+- **59.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
+- **1.62 prompts per task** — down from 2.84 (43.1% fewer retries, modeled)
 <!--/SM:whyMetrics-->
 - **<!--SM:languages-->38<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
@@ -101,7 +101,7 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
 | Without SigMap | With SigMap |
 |---|---|
 | ❌ Non-reproducible agent guesses | ✅ Deterministic map — same input, same output, every time |
-| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->79%<!--/SM:hitWhole--> of the time, anchored tiers on a real line anchor |
+| ❌ "Trust me" AI answers | ✅ Grounded — right file in context <!--SM:hitWhole-->80%<!--/SM:hitWhole--> of the time, anchored tiers on a real line anchor |
 | ❌ Embeddings / vector DB required | ✅ Zero deps, no infra, fully offline |
 
 ---
@@ -128,11 +128,11 @@ Ask → Rank → Context → Validate → Judge → Learn
 Benchmark : sigmap-v8.65-main (21 repositories, including R language)
 Date      : 2026-10-04
 
-Hit@5          : 78.6%   (retrieval corpus, 18 repos)
-Honest vs grep : 88.0% vs 40.0% grep baseline — 2.20× lift (125 tasks / 19 repos)
+Hit@5          : 79.7%   (retrieval corpus, 18 repos)
+Honest vs grep : 88.8% vs 40.0% grep baseline — 2.22× lift (125 tasks / 19 repos)
 Map vs repo    : 95.7% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
-Prompt reduction : 43.4% (2.84 → 1.61 prompts per task, modeled)
-Task success   : 61.0%   (proxy — modeled from retrieval tiers)
+Prompt reduction : 43.1% (2.84 → 1.62 prompts per task, modeled)
+Task success   : 59.0%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 <!--/SM:benchmarkBlock-->

@@ -1,6 +1,6 @@
 {
-  "version": "8.65.2",
-  "timestamp": "2026-10-04T21:40:45.628Z",
+  "version": "8.65.3",
+  "timestamp": "2026-10-04T22:59:12.855Z",
   "assumptions": {
     "tokensPerSecUncached": 2000,
     "cacheSpeedup": 10,
@@ -16,7 +16,7 @@
       "reductionPct": 95,
       "fileCount": 6,
       "droppedCount": 0,
-      "timestamp": "2026-10-04T21:40:06.985Z",
+      "timestamp": "2026-10-04T22:58:50.605Z",
       "timings": {
         "rawColdSec": 7.73,
         "sigColdSec": 0.39,
@@ -36,7 +36,7 @@
       "reductionPct": 94.7,
       "fileCount": 20,
       "droppedCount": 5,
-      "timestamp": "2026-10-04T21:40:08.798Z",
+      "timestamp": "2026-10-04T22:58:51.611Z",
       "timings": {
         "rawColdSec": 42.44,
         "sigColdSec": 2.23,
@@ -56,7 +56,7 @@
       "reductionPct": 94.8,
       "fileCount": 119,
       "droppedCount": 44,
-      "timestamp": "2026-10-04T21:40:09.441Z",
+      "timestamp": "2026-10-04T22:58:52.127Z",
       "timings": {
         "rawColdSec": 111.16,
         "sigColdSec": 5.81,
@@ -76,7 +76,7 @@
       "reductionPct": 96.2,
       "fileCount": 65,
       "droppedCount": 30,
-      "timestamp": "2026-10-04T21:40:09.903Z",
+      "timestamp": "2026-10-04T22:58:52.450Z",
       "timings": {
         "rawColdSec": 53.55,
         "sigColdSec": 2.03,
@@ -96,7 +96,7 @@
       "reductionPct": 98.7,
       "fileCount": 1193,
       "droppedCount": 931,
-      "timestamp": "2026-10-04T21:40:10.807Z",
+      "timestamp": "2026-10-04T22:58:53.048Z",
       "timings": {
         "rawColdSec": 749.53,
         "sigColdSec": 9.85,
@@ -116,7 +116,7 @@
       "reductionPct": 92.9,
       "fileCount": 29,
       "droppedCount": 0,
-      "timestamp": "2026-10-04T21:40:11.281Z",
+      "timestamp": "2026-10-04T22:58:53.349Z",
       "timings": {
         "rawColdSec": 16.07,
         "sigColdSec": 1.14,
@@ -136,7 +136,7 @@
       "reductionPct": 99.4,
       "fileCount": 675,
       "droppedCount": 533,
-      "timestamp": "2026-10-04T21:40:15.813Z",
+      "timestamp": "2026-10-04T22:58:56.068Z",
       "timings": {
         "rawColdSec": 1765.57,
         "sigColdSec": 10.79,
@@ -156,7 +156,7 @@
       "reductionPct": 99.1,
       "fileCount": 719,
       "droppedCount": 589,
-      "timestamp": "2026-10-04T21:40:30.718Z",
+      "timestamp": "2026-10-04T22:59:04.124Z",
       "timings": {
         "rawColdSec": 1181.62,
         "sigColdSec": 10.84,
@@ -176,7 +176,7 @@
       "reductionPct": 96,
       "fileCount": 100,
       "droppedCount": 52,
-      "timestamp": "2026-10-04T21:40:33.086Z",
+      "timestamp": "2026-10-04T22:59:05.281Z",
       "timings": {
         "rawColdSec": 56.91,
         "sigColdSec": 2.29,
@@ -196,7 +196,7 @@
       "reductionPct": 97.2,
       "fileCount": 465,
       "droppedCount": 279,
-      "timestamp": "2026-10-04T21:40:34.112Z",
+      "timestamp": "2026-10-04T22:59:05.898Z",
       "timings": {
         "rawColdSec": 373.61,
         "sigColdSec": 10.42,
@@ -216,7 +216,7 @@
       "reductionPct": 90.9,
       "fileCount": 18,
       "droppedCount": 0,
-      "timestamp": "2026-10-04T21:40:34.565Z",
+      "timestamp": "2026-10-04T22:59:06.189Z",
       "timings": {
         "rawColdSec": 15.64,
         "sigColdSec": 1.43,
@@ -236,7 +236,7 @@
       "reductionPct": 98.8,
       "fileCount": 1536,
       "droppedCount": 1365,
-      "timestamp": "2026-10-04T21:40:36.474Z",
+      "timestamp": "2026-10-04T22:59:07.308Z",
       "timings": {
         "rawColdSec": 839.75,
         "sigColdSec": 10.41,
@@ -256,7 +256,7 @@
       "reductionPct": 97.8,
       "fileCount": 307,
       "droppedCount": 182,
-      "timestamp": "2026-10-04T21:40:38.006Z",
+      "timestamp": "2026-10-04T22:59:08.232Z",
       "timings": {
         "rawColdSec": 512.35,
         "sigColdSec": 11.07,
@@ -276,7 +276,7 @@
       "reductionPct": 97.5,
       "fileCount": 192,
       "droppedCount": 100,
-      "timestamp": "2026-10-04T21:40:38.593Z",
+      "timestamp": "2026-10-04T22:59:08.597Z",
       "timings": {
         "rawColdSec": 110.29,
         "sigColdSec": 2.78,
@@ -296,7 +296,7 @@
       "reductionPct": 97.6,
       "fileCount": 271,
       "droppedCount": 141,
-      "timestamp": "2026-10-04T21:40:39.810Z",
+      "timestamp": "2026-10-04T22:59:09.354Z",
       "timings": {
         "rawColdSec": 258.75,
         "sigColdSec": 6.27,
@@ -316,7 +316,7 @@
       "reductionPct": 94.9,
       "fileCount": 371,
       "droppedCount": 230,
-      "timestamp": "2026-10-04T21:40:40.679Z",
+      "timestamp": "2026-10-04T22:59:09.909Z",
       "timings": {
         "rawColdSec": 219.56,
         "sigColdSec": 11.1,
@@ -336,7 +336,7 @@
       "reductionPct": 93.8,
       "fileCount": 29,
       "droppedCount": 0,
-      "timestamp": "2026-10-04T21:40:41.124Z",
+      "timestamp": "2026-10-04T22:59:10.180Z",
       "timings": {
         "rawColdSec": 31.39,
         "sigColdSec": 1.95,
@@ -356,7 +356,7 @@
       "reductionPct": 89.4,
       "fileCount": 32,
       "droppedCount": 1,
-      "timestamp": "2026-10-04T21:40:44.141Z",
+      "timestamp": "2026-10-04T22:59:11.895Z",
       "timings": {
         "rawColdSec": 89.19,
         "sigColdSec": 9.42,
@@ -376,7 +376,7 @@
       "reductionPct": 95.1,
       "fileCount": 189,
       "droppedCount": 75,
-      "timestamp": "2026-10-04T21:40:44.681Z",
+      "timestamp": "2026-10-04T22:59:12.207Z",
       "timings": {
         "rawColdSec": 190.73,
         "sigColdSec": 9.32,
@@ -396,7 +396,7 @@
       "reductionPct": 94.2,
       "fileCount": 97,
       "droppedCount": 38,
-      "timestamp": "2026-10-04T21:40:45.124Z",
+      "timestamp": "2026-10-04T22:59:12.508Z",
       "timings": {
         "rawColdSec": 72.54,
         "sigColdSec": 4.17,
@@ -416,7 +416,7 @@
       "reductionPct": 96.7,
       "fileCount": 93,
       "droppedCount": 39,
-      "timestamp": "2026-10-04T21:40:45.608Z",
+      "timestamp": "2026-10-04T22:59:12.844Z",
       "timings": {
         "rawColdSec": 132.3,
         "sigColdSec": 4.38,
@@ -438,5 +438,5 @@
     "totalSavedCachedSec": 670.26,
     "savedPerDaySec": 67025.65
   },
-  "generated": "2026-10-04T21:40:45.629Z"
+  "generated": "2026-10-04T22:59:12.856Z"
 }

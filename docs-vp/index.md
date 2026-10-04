@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.7% average token reduction, 38 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 79.7% hit@5, 43.1% fewer prompts, 95.7% average token reduction, 38 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.7% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 79.7% hit@5, 43.1% fewer prompts, 95.7% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.7% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 79.7% hit@5, 43.1% fewer prompts, 95.7% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Grounded context AI can trust. Deterministic. Verifiable.
-  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 95.7% token reduction · zero deps, fully offline."
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 79.7% hit@5 · 95.7% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,12 +46,12 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.61 with SigMap. That is a 43.4% reduction across 105 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.62 with SigMap. That is a 43.1% reduction across 105 real coding tasks."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 78.6% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 88.0% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.20× better.
+    details: 79.7% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 88.8% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.22× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.65.2</span>
+  <span><strong>Release:</strong> v8.65.3</span>
   <span>·</span>
-  <span><strong>Fix — a line anchor ends where the function ends:</strong> every symbol carries a <code>:start-end</code> range an agent reads with <code>sigmap lines</code>, and about 4% of JavaScript ones were wrong — a body that ran on to the next function, or stopped early. A regex literal's braces and a template nested inside another confused the block scanner. An independent check now finds none of 984 wrong (it found 75 of 979), other languages scan exactly as before, and retrieval is unchanged. <a href="/guide/surgical-context#how-accurate-are-anchors">How anchors are checked →</a></span>
+  <span><strong>Fix — a question finds code named with another form of the word:</strong> the ranker's stemmer left <code>classified</code> and <code>classify</code> as different words, so "how are test files classified" never met the code that classifies them (that file ranked 15th). <code>classify</code>/<code>classified</code>, <code>parse</code>/<code>parsing</code>, <code>apply</code>/<code>applied</code>, <code>order</code>/<code>ordering</code>, <code>register</code>/<code>registered</code> and more now reach one stem, and it ranks 4th. Against a same-tree control over 299 tasks hit@5 goes 209 → 212 and no corpus loses a task — but some rank-1 hits slip to rank 2, so the modeled task-success proxy reads 59.0% (was 61.0%). <a href="/guide/retrieval-benchmark#how-the-ranker-stems-words">How words are stemmed →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.65-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 95.7% token reduction · 2026-10-04</span>
+  <span>79.7% hit@5 · 95.7% token reduction · 2026-10-04</span>
 </div>
 </div>
 
@@ -170,14 +170,14 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Task success proxy | — (proxy, modeled from retrieval tiers) | **61.0%** |
-| Prompts per task | 2.84 | **1.61** |
-| Retrieval hit@5 (retrieval corpus) | — | **78.6%** |
-| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **88.0%** (2.20× lift) |
+| Task success proxy | — (proxy, modeled from retrieval tiers) | **59.0%** |
+| Prompts per task | 2.84 | **1.62** |
+| Retrieval hit@5 (retrieval corpus) | — | **79.7%** |
+| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **88.8%** (2.22× lift) |
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-04 (v8.65.2)**.
+Latest saved benchmark run: **2026-10-04 (v8.65.3)**.
 
 </div>
 

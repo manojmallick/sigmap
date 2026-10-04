@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-04T21:43:35.984Z",
+  "generated": "2026-10-04T23:00:47.337Z",
   "methodology": {
     "corpus": "benchmarks/tasks/*.jsonl",
     "scorer": "src/eval/scorer.js hitAtK/reciprocalRank, k=5",
@@ -11,21 +11,21 @@
     "tasks": 125,
     "repos": 19,
     "sigmap": {
-      "hitAt5": 0.88,
-      "mrr": 0.73
+      "hitAt5": 0.888,
+      "mrr": 0.719
     },
     "grepBaseline": {
       "hitAt5": 0.4,
       "mrr": 0.192
     },
-    "lift": 2.2,
-    "deltaPts": 48,
+    "lift": 2.22,
+    "deltaPts": 48.8,
     "splits": {
       "easy": {
         "tasks": 110,
         "sigmap": {
-          "hitAt5": 0.918,
-          "mrr": 0.753
+          "hitAt5": 0.927,
+          "mrr": 0.751
         },
         "grepBaseline": {
           "hitAt5": 0.382,
@@ -36,7 +36,7 @@
         "tasks": 15,
         "sigmap": {
           "hitAt5": 0.6,
-          "mrr": 0.556
+          "mrr": 0.489
         },
         "grepBaseline": {
           "hitAt5": 0.533,
@@ -59,8 +59,8 @@
       "medium": {
         "tasks": 52,
         "sigmap": {
-          "hitAt5": 0.808,
-          "mrr": 0.646
+          "hitAt5": 0.827,
+          "mrr": 0.616
         },
         "grepBaseline": {
           "hitAt5": 0.462,
@@ -71,7 +71,7 @@
         "tasks": 60,
         "sigmap": {
           "hitAt5": 0.917,
-          "mrr": 0.752
+          "mrr": 0.756
         },
         "grepBaseline": {
           "hitAt5": 0.3,
@@ -106,7 +106,7 @@
       "repo": "express",
       "tasks": 8,
       "bucket": "medium",
-      "sigmapHitAt5": 0.625,
+      "sigmapHitAt5": 0.75,
       "grepHitAt5": 0.875
     },
     {
@@ -234,5 +234,5 @@
       "reason": "repo not cloned"
     }
   ],
-  "version": "8.65.2"
+  "version": "8.65.3"
 }
