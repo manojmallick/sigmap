@@ -1,6 +1,6 @@
 ---
 title: Benchmark overview
-description: Official v8.64.0 benchmark snapshot. 95.8% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.4% fewer prompts, and R language support verified.
+description: Official v8.65.0 benchmark snapshot. 95.8% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.4% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.64.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.64-main &nbsp;·&nbsp; **Date:** 2026-10-04
+::: info Official v8.65.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.65-main &nbsp;·&nbsp; **Date:** 2026-10-04
 
 | Metric | Value |
 |---|---:|
@@ -39,7 +39,7 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.64.0 snapshot (with R language support)
+## Official v8.65.0 snapshot (with R language support)
 
 Latest saved benchmark run: **2026-10-04 (v8.63.0)**
 
@@ -73,8 +73,8 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 
 ### 1. Token reduction (21 repositories)
 
-- Raw source across benchmark set: **13,661,354** tokens (21 repos)
-- Final SigMap output: **255,972** tokens
+- Raw source across benchmark set: **13,661,361** tokens (21 repos)
+- Final SigMap output: **256,107** tokens
 - Pooled reduction across the whole corpus: **98.1%**
 - Average per-repo reduction — **the published figure**: **95.8%**
 - **New in v6.11.1:** R language support verified
@@ -121,6 +121,18 @@ This is the best benchmark when the question is: *"Why does token reduction matt
 - Reproduce: `npm run benchmark:test-discovery`
 
 This is the best benchmark when the question is: *"When SigMap points at a file, does it also find the tests that cover it?"*
+
+### 6. Grounding accuracy (labelled fixtures)
+
+- **Measured, not modelled:** `verify` and `judge` run over checked-in mini repos in six languages, each with a `good.md` (every claim real) and a `bad.md` (planted, labelled fakes)
+- Reports **precision and recall per claim kind** — file, symbol, import, npm script — plus the judge's pass/fail verdict accuracy; published as `grounding_regression` in `benchmarks/latest.json`
+- No LLM, no network, no clones: two runs are byte-identical, so `npm run validate:grounding` gates it in CI against floors in `benchmarks/grounding-regression-baseline.json`
+- The corpus includes cases the detectors currently get wrong (a real bare import the judge cannot clear without a `package.json`, a fake name that is a substring of a real one) — they are recorded in the floors, so a fix raises the number and a regression lowers it
+- Reproduce: `npm run benchmark:grounding-regression`
+
+The related `npm run benchmark:grounding` reports *ground-truth availability* — how many in-scope symbols the index surfaces, per repo. Its universe is the generator's own resolved scope, a repo that measures nothing fails the run instead of printing a row, and `npm run validate:grounding-coverage` gates each repo against its own recorded floor.
+
+This is the best benchmark when the question is: *"When an AI answer cites a file, symbol or import, how often is SigMap right about whether it is real?"*
 
 ## Open the HTML dashboard
 

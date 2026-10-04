@@ -1,0 +1,451 @@
+{
+  "benchmark": "grounding-regression",
+  "languages": [
+    "go",
+    "java",
+    "javascript",
+    "python",
+    "rust",
+    "typescript"
+  ],
+  "fixtures": [
+    {
+      "name": "go",
+      "language": "go",
+      "labelledFakes": 5,
+      "verify": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1,
+          "recall": 0
+        },
+        "script": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "judge": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.3333,
+          "recall": 1
+        }
+      },
+      "verdicts": {
+        "good": "fail",
+        "bad": "fail"
+      }
+    },
+    {
+      "name": "java",
+      "language": "java",
+      "labelledFakes": 4,
+      "verify": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        },
+        "script": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "judge": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "verdicts": {
+        "good": "pass",
+        "bad": "fail"
+      }
+    },
+    {
+      "name": "javascript",
+      "language": "javascript",
+      "labelledFakes": 9,
+      "verify": {
+        "file": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "script": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "judge": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1,
+          "recall": 0.6667
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1,
+          "recall": 0.6667
+        },
+        "import": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "verdicts": {
+        "good": "pass",
+        "bad": "fail"
+      }
+    },
+    {
+      "name": "python",
+      "language": "python",
+      "labelledFakes": 5,
+      "verify": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1,
+          "recall": 0
+        },
+        "script": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "judge": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1,
+          "recall": 0.5
+        },
+        "import": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.3333,
+          "recall": 1
+        }
+      },
+      "verdicts": {
+        "good": "fail",
+        "bad": "fail"
+      }
+    },
+    {
+      "name": "rust",
+      "language": "rust",
+      "labelledFakes": 4,
+      "verify": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        },
+        "script": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "judge": {
+        "file": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "verdicts": {
+        "good": "pass",
+        "bad": "fail"
+      }
+    },
+    {
+      "name": "typescript",
+      "language": "typescript",
+      "labelledFakes": 5,
+      "verify": {
+        "file": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "script": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "judge": {
+        "file": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "verdicts": {
+        "good": "pass",
+        "bad": "fail"
+      }
+    }
+  ],
+  "engines": {
+    "verify": {
+      "kinds": {
+        "file": {
+          "tp": 12,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 12,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1,
+          "recall": 0.6667
+        },
+        "script": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        }
+      }
+    },
+    "judge": {
+      "kinds": {
+        "file": {
+          "tp": 11,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1,
+          "recall": 0.9167
+        },
+        "symbol": {
+          "tp": 10,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1,
+          "recall": 0.8333
+        },
+        "import": {
+          "tp": 6,
+          "fp": 4,
+          "fn": 0,
+          "precision": 0.6,
+          "recall": 1
+        }
+      },
+      "verdicts": {
+        "correct": 10,
+        "total": 12,
+        "accuracy": 0.8333
+      }
+    }
+  },
+  "version": "8.65.0",
+  "generated": "2026-10-04T19:54:42.162Z"
+}

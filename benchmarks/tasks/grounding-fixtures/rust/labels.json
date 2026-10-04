@@ -1,0 +1,17 @@
+{
+  "language": "rust",
+  "fake": [
+    { "kind": "file", "value": "src/telemetry.rs" },
+    { "kind": "file", "value": "tests/telemetry.rs" },
+    { "kind": "symbol", "value": "load_confg" },
+    { "kind": "symbol", "value": "phantom_handler" }
+  ],
+  "real": [
+    { "kind": "file", "value": "src/lib.rs" },
+    { "kind": "file", "value": "src/util.rs" },
+    { "kind": "file", "value": "tests/integration.rs" },
+    { "kind": "symbol", "value": "load_config" },
+    { "kind": "symbol", "value": "rank_files" },
+    { "kind": "symbol", "value": "double" }
+  ]
+}

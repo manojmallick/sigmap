@@ -1,0 +1,57 @@
+{
+  "language": "python",
+  "fake": [
+    {
+      "kind": "file",
+      "value": "src/app/cache.py"
+    },
+    {
+      "kind": "file",
+      "value": "tests/test_cache.py"
+    },
+    {
+      "kind": "symbol",
+      "value": "load_confg"
+    },
+    {
+      "kind": "symbol",
+      "value": "merge_default"
+    },
+    {
+      "kind": "import",
+      "value": "app.cache",
+      "note": "verify skips non-JS bare imports by design (stdlib is unbounded offline); the judge catches it"
+    }
+  ],
+  "real": [
+    {
+      "kind": "file",
+      "value": "src/app/config.py"
+    },
+    {
+      "kind": "file",
+      "value": "src/app/ranker.py"
+    },
+    {
+      "kind": "file",
+      "value": "tests/test_config.py"
+    },
+    {
+      "kind": "symbol",
+      "value": "load_config"
+    },
+    {
+      "kind": "symbol",
+      "value": "merge_defaults"
+    },
+    {
+      "kind": "symbol",
+      "value": "rank_files"
+    },
+    {
+      "kind": "import",
+      "value": "app.config",
+      "note": "a real repo module; the judge cannot clear a bare import without a package.json, so it wrongly fails this answer"
+    }
+  ]
+}
