@@ -1,0 +1,44 @@
+{
+  "recordedBy": "run-grounding-regression.mjs",
+  "note": "Floors equal the measured value: the corpus is deterministic, so any drop is a regression. Re-record deliberately with --record-floors after adding fixtures.",
+  "floors": {
+    "minLanguages": 5,
+    "verify": {
+      "kinds": {
+        "file": {
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "precision": 1,
+          "recall": 0.6667
+        },
+        "script": {
+          "precision": 1,
+          "recall": 1
+        }
+      }
+    },
+    "judge": {
+      "kinds": {
+        "file": {
+          "precision": 1,
+          "recall": 0.9167
+        },
+        "symbol": {
+          "precision": 1,
+          "recall": 0.8333
+        },
+        "import": {
+          "precision": 0.6,
+          "recall": 1
+        }
+      },
+      "verdictAccuracy": 0.8333
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "language": "java",
+  "fake": [
+    { "kind": "file", "value": "src/main/java/com/acme/AuditLog.java" },
+    { "kind": "file", "value": "src/test/java/com/acme/AuditLogTest.java" },
+    { "kind": "symbol", "value": "loadConfg" },
+    { "kind": "symbol", "value": "phantomHandler" }
+  ],
+  "real": [
+    { "kind": "file", "value": "src/main/java/com/acme/Config.java" },
+    { "kind": "file", "value": "src/main/java/com/acme/Ranker.java" },
+    { "kind": "file", "value": "src/test/java/com/acme/ConfigTest.java" },
+    { "kind": "symbol", "value": "loadConfig" },
+    { "kind": "symbol", "value": "mergeDefaults" },
+    { "kind": "symbol", "value": "rankFiles" }
+  ]
+}

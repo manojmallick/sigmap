@@ -122,6 +122,28 @@ export function computeLatest(root = ROOT) {
     };
   }
 
+  // Grounding regression (#673) — measured precision/recall on labelled
+  // known-good / known-bad answers. Optional and top-level, like test_discovery,
+  // so version.json's metrics mirror is unaffected. Every figure is pooled over
+  // the report's own tallies, never averaged over per-kind percentages.
+  const gr = readReportOptional(root, 'grounding-regression.json');
+  if (gr && gr.engines) {
+    const pool = (engine) => {
+      const t = Object.values(gr.engines[engine].kinds).reduce(
+        (a, k) => ({ tp: a.tp + k.tp, fp: a.fp + k.fp, fn: a.fn + k.fn }), { tp: 0, fp: 0, fn: 0 });
+      return {
+        precision: round(t.tp + t.fp === 0 ? 1 : t.tp / (t.tp + t.fp), 3),
+        recall: round(t.tp + t.fn === 0 ? 0 : t.tp / (t.tp + t.fn), 3),
+      };
+    };
+    out.grounding_regression = {
+      fixtures: gr.fixtures.length,
+      languages: gr.languages.length,
+      verify: pool('verify'),
+      judge: { ...pool('judge'), verdict_accuracy: round(gr.engines.judge.verdicts.accuracy, 3) },
+    };
+  }
+
   // Provenance, derived from what was actually read (#854). A figure carried
   // from an earlier release is now visible in the published snapshot instead of
   // being indistinguishable from one measured today.

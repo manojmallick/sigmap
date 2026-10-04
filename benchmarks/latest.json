@@ -29,8 +29,25 @@
     "f1": 0.98,
     "hit_at_1": 0.974
   },
+  "grounding_regression": {
+    "fixtures": 6,
+    "languages": 6,
+    "verify": {
+      "precision": 1,
+      "recall": 0.938
+    },
+    "judge": {
+      "precision": 0.871,
+      "recall": 0.9,
+      "verdict_accuracy": 0.833
+    }
+  },
   "sources": {
     "benchmark-matrix.json": {
+      "version": "8.64.0",
+      "generated": "2026-10-04"
+    },
+    "grounding-regression.json": {
       "version": "8.64.0",
       "generated": "2026-10-04"
     },

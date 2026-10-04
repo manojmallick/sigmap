@@ -1,0 +1,399 @@
+{
+  "benchmark": "grounding-coverage",
+  "repos": [
+    {
+      "repo": "abseil-cpp",
+      "status": "measured",
+      "files": 590,
+      "total": 3281,
+      "grounded": 2170,
+      "dark": 1111,
+      "coverage": 0.6613837244742456
+    },
+    {
+      "repo": "akka",
+      "status": "measured",
+      "files": 398,
+      "total": 2399,
+      "grounded": 1583,
+      "dark": 816,
+      "coverage": 0.6598582742809503
+    },
+    {
+      "repo": "alamofire",
+      "status": "measured",
+      "files": 350,
+      "total": 149,
+      "grounded": 146,
+      "dark": 3,
+      "coverage": 0.9798657718120806
+    },
+    {
+      "repo": "axios",
+      "status": "measured",
+      "files": 67,
+      "total": 63,
+      "grounded": 63,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "clap",
+      "status": "measured",
+      "files": 141,
+      "total": 355,
+      "grounded": 128,
+      "dark": 227,
+      "coverage": 0.36056338028169016
+    },
+    {
+      "repo": "click",
+      "status": "measured",
+      "files": 41,
+      "total": 272,
+      "grounded": 257,
+      "dark": 15,
+      "coverage": 0.9448529411764706
+    },
+    {
+      "repo": "cobra",
+      "status": "measured",
+      "files": 42,
+      "total": 126,
+      "grounded": 114,
+      "dark": 12,
+      "coverage": 0.9047619047619048
+    },
+    {
+      "repo": "dio",
+      "status": "measured",
+      "files": 116,
+      "total": 181,
+      "grounded": 171,
+      "dark": 10,
+      "coverage": 0.9447513812154696
+    },
+    {
+      "repo": "dplyr",
+      "status": "measured",
+      "files": 106,
+      "total": 7,
+      "grounded": 7,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "echo",
+      "status": "measured",
+      "files": 63,
+      "total": 274,
+      "grounded": 262,
+      "dark": 12,
+      "coverage": 0.9562043795620438
+    },
+    {
+      "repo": "express",
+      "status": "measured",
+      "files": 6,
+      "total": 11,
+      "grounded": 11,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "fastapi",
+      "status": "measured",
+      "files": 52,
+      "total": 221,
+      "grounded": 216,
+      "dark": 5,
+      "coverage": 0.9773755656108597
+    },
+    {
+      "repo": "fastify",
+      "status": "measured",
+      "files": 31,
+      "total": 163,
+      "grounded": 163,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "flask",
+      "status": "measured",
+      "files": 25,
+      "total": 228,
+      "grounded": 211,
+      "dark": 17,
+      "coverage": 0.9254385964912281
+    },
+    {
+      "repo": "fmt",
+      "status": "measured",
+      "files": 23,
+      "total": 275,
+      "grounded": 159,
+      "dark": 116,
+      "coverage": 0.5781818181818181
+    },
+    {
+      "repo": "ggplot2",
+      "status": "measured",
+      "files": 201,
+      "total": 5,
+      "grounded": 5,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "gin",
+      "status": "measured",
+      "files": 79,
+      "total": 241,
+      "grounded": 225,
+      "dark": 16,
+      "coverage": 0.9336099585062241
+    },
+    {
+      "repo": "gorm",
+      "status": "measured",
+      "files": 80,
+      "total": 373,
+      "grounded": 303,
+      "dark": 70,
+      "coverage": 0.8123324396782842
+    },
+    {
+      "repo": "gson",
+      "status": "measured",
+      "files": 135,
+      "total": 423,
+      "grounded": 401,
+      "dark": 22,
+      "coverage": 0.9479905437352246
+    },
+    {
+      "repo": "guzzle",
+      "status": "measured",
+      "files": 46,
+      "total": 117,
+      "grounded": 117,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "httpx",
+      "status": "measured",
+      "files": 23,
+      "total": 197,
+      "grounded": 189,
+      "dark": 8,
+      "coverage": 0.9593908629441624
+    },
+    {
+      "repo": "kotlinx-coroutines",
+      "status": "measured",
+      "files": 81,
+      "total": 198,
+      "grounded": 198,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "laravel",
+      "status": "measured",
+      "files": 1652,
+      "total": 7617,
+      "grounded": 5981,
+      "dark": 1636,
+      "coverage": 0.7852172771432322
+    },
+    {
+      "repo": "libuv",
+      "status": "measured",
+      "files": 119,
+      "total": 799,
+      "grounded": 400,
+      "dark": 399,
+      "coverage": 0.5006257822277848
+    },
+    {
+      "repo": "okhttp",
+      "status": "measured",
+      "files": 19,
+      "total": 138,
+      "grounded": 124,
+      "dark": 14,
+      "coverage": 0.8985507246376812
+    },
+    {
+      "repo": "polly",
+      "status": "measured",
+      "files": 510,
+      "total": 642,
+      "grounded": 641,
+      "dark": 1,
+      "coverage": 0.9984423676012462
+    },
+    {
+      "repo": "rails",
+      "status": "measured",
+      "files": 1206,
+      "total": 6089,
+      "grounded": 4588,
+      "dark": 1501,
+      "coverage": 0.7534898998193463
+    },
+    {
+      "repo": "redux",
+      "status": "measured",
+      "files": 26,
+      "total": 28,
+      "grounded": 28,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "retrofit",
+      "status": "measured",
+      "files": 767,
+      "total": 412,
+      "grounded": 408,
+      "dark": 4,
+      "coverage": 0.9902912621359223
+    },
+    {
+      "repo": "rich",
+      "status": "measured",
+      "files": 144,
+      "total": 452,
+      "grounded": 424,
+      "dark": 28,
+      "coverage": 0.9380530973451328
+    },
+    {
+      "repo": "riverpod",
+      "status": "measured",
+      "files": 237,
+      "total": 367,
+      "grounded": 330,
+      "dark": 37,
+      "coverage": 0.8991825613079019
+    },
+    {
+      "repo": "rust-analyzer",
+      "status": "measured",
+      "files": 1391,
+      "total": 2810,
+      "grounded": 1733,
+      "dark": 1077,
+      "coverage": 0.6167259786476869
+    },
+    {
+      "repo": "serilog",
+      "status": "measured",
+      "files": 113,
+      "total": 209,
+      "grounded": 206,
+      "dark": 3,
+      "coverage": 0.9856459330143541
+    },
+    {
+      "repo": "shiny",
+      "status": "measured",
+      "files": 101,
+      "total": 9,
+      "grounded": 9,
+      "dark": 0,
+      "coverage": 1
+    },
+    {
+      "repo": "sidekiq",
+      "status": "measured",
+      "files": 108,
+      "total": 511,
+      "grounded": 427,
+      "dark": 84,
+      "coverage": 0.8356164383561644
+    },
+    {
+      "repo": "spdlog",
+      "status": "measured",
+      "files": 119,
+      "total": 407,
+      "grounded": 278,
+      "dark": 129,
+      "coverage": 0.683046683046683
+    },
+    {
+      "repo": "spring-petclinic",
+      "status": "measured",
+      "files": 68,
+      "total": 104,
+      "grounded": 103,
+      "dark": 1,
+      "coverage": 0.9903846153846154
+    },
+    {
+      "repo": "svelte",
+      "status": "measured",
+      "files": 401,
+      "total": 1549,
+      "grounded": 1219,
+      "dark": 330,
+      "coverage": 0.7869593285990962
+    },
+    {
+      "repo": "upickle",
+      "status": "measured",
+      "files": 31,
+      "total": 193,
+      "grounded": 127,
+      "dark": 66,
+      "coverage": 0.6580310880829016
+    },
+    {
+      "repo": "vapor",
+      "status": "measured",
+      "files": 244,
+      "total": 243,
+      "grounded": 242,
+      "dark": 1,
+      "coverage": 0.9958847736625515
+    },
+    {
+      "repo": "vue-core",
+      "status": "measured",
+      "files": 292,
+      "total": 1028,
+      "grounded": 912,
+      "dark": 116,
+      "coverage": 0.8871595330739299
+    },
+    {
+      "repo": "zod",
+      "status": "measured",
+      "files": 244,
+      "total": 773,
+      "grounded": 247,
+      "dark": 526,
+      "coverage": 0.31953428201811124
+    },
+    {
+      "repo": "zustand",
+      "status": "measured",
+      "files": 16,
+      "total": 20,
+      "grounded": 20,
+      "dark": 0,
+      "coverage": 1
+    }
+  ],
+  "aggregate": {
+    "total": 33959,
+    "grounded": 25546,
+    "coverage": 0.7522600783297506
+  },
+  "version": "8.64.0",
+  "generated": "2026-10-04T19:08:13.183Z"
+}

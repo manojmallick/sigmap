@@ -122,6 +122,18 @@ This is the best benchmark when the question is: *"Why does token reduction matt
 
 This is the best benchmark when the question is: *"When SigMap points at a file, does it also find the tests that cover it?"*
 
+### 6. Grounding accuracy (labelled fixtures)
+
+- **Measured, not modelled:** `verify` and `judge` run over checked-in mini repos in six languages, each with a `good.md` (every claim real) and a `bad.md` (planted, labelled fakes)
+- Reports **precision and recall per claim kind** — file, symbol, import, npm script — plus the judge's pass/fail verdict accuracy; published as `grounding_regression` in `benchmarks/latest.json`
+- No LLM, no network, no clones: two runs are byte-identical, so `npm run validate:grounding` gates it in CI against floors in `benchmarks/grounding-regression-baseline.json`
+- The corpus includes cases the detectors currently get wrong (a real bare import the judge cannot clear without a `package.json`, a fake name that is a substring of a real one) — they are recorded in the floors, so a fix raises the number and a regression lowers it
+- Reproduce: `npm run benchmark:grounding-regression`
+
+The related `npm run benchmark:grounding` reports *ground-truth availability* — how many in-scope symbols the index surfaces, per repo. Its universe is the generator's own resolved scope, a repo that measures nothing fails the run instead of printing a row, and `npm run validate:grounding-coverage` gates each repo against its own recorded floor.
+
+This is the best benchmark when the question is: *"When an AI answer cites a file, symbol or import, how often is SigMap right about whether it is real?"*
+
 ## Open the HTML dashboard
 
 The easiest way to inspect the latest benchmark run is the self-contained HTML report:

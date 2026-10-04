@@ -1,0 +1,6 @@
+{
+  "name": "fixture-js",
+  "version": "1.0.0",
+  "scripts": { "build": "tsc", "test": "node test/index.test.js", "lint": "eslint ." },
+  "dependencies": { "chalk": "^5.0.0" }
+}

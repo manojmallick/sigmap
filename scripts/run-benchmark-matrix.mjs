@@ -82,6 +82,11 @@ const steps = [
     path.join('scripts', 'run-task-benchmark.mjs'),
     commonArgs
   ),
+  runStep(
+    'grounding regression',
+    path.join('scripts', 'run-grounding-regression.mjs'),
+    commonArgs
+  ),
 ];
 
 const success = steps.every((s) => s.ok);

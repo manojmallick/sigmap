@@ -1,0 +1,85 @@
+{
+  "language": "javascript",
+  "note": "`rank` is a substring of the real `rankFiles`: verify's exact symbol set flags it, but the judge's lexical context match clears it (known judge limitation).",
+  "fake": [
+    {
+      "kind": "file",
+      "value": "src/ghost.js"
+    },
+    {
+      "kind": "file",
+      "value": "test/ghost.test.js"
+    },
+    {
+      "kind": "symbol",
+      "value": "loadConfg"
+    },
+    {
+      "kind": "symbol",
+      "value": "phantomFn"
+    },
+    {
+      "kind": "symbol",
+      "value": "rank"
+    },
+    {
+      "kind": "import",
+      "value": "ghost-pkg-9000"
+    },
+    {
+      "kind": "import",
+      "value": "./src/missing"
+    },
+    {
+      "kind": "script",
+      "value": "nope"
+    },
+    {
+      "kind": "file",
+      "value": "lib/index.js",
+      "note": "right basename, wrong directory: verify flags it, the judge clears it on basename match"
+    }
+  ],
+  "real": [
+    {
+      "kind": "file",
+      "value": "src/index.js"
+    },
+    {
+      "kind": "file",
+      "value": "src/format/table.js"
+    },
+    {
+      "kind": "file",
+      "value": "test/index.test.js"
+    },
+    {
+      "kind": "symbol",
+      "value": "loadConfig"
+    },
+    {
+      "kind": "symbol",
+      "value": "rankFiles"
+    },
+    {
+      "kind": "symbol",
+      "value": "renderTable"
+    },
+    {
+      "kind": "import",
+      "value": "./src/util"
+    },
+    {
+      "kind": "import",
+      "value": "chalk"
+    },
+    {
+      "kind": "script",
+      "value": "build"
+    },
+    {
+      "kind": "script",
+      "value": "test"
+    }
+  ]
+}
