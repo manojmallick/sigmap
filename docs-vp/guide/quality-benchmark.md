@@ -1,6 +1,6 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v8.65.2. 14/21 repos overflow GPT-4o without SigMap, 5,294 files would be hidden, 16,676 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
+description: What token reduction means operationally in v8.65.3. 14/21 repos overflow GPT-4o without SigMap, 5,294 files would be hidden, 16,676 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
 head:
   - - meta
     - property: og:title
@@ -15,16 +15,16 @@ head:
 
 # Quality benchmark
 
-::: info Official v8.65.2 benchmark snapshot
+::: info Official v8.65.3 benchmark snapshot
 **Benchmark ID:** sigmap-v8.65-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **78.6%** |
-| Honest grep comparison (125 tasks / 19 repos) | **88.0%** vs 40.0% single-shot grep — **2.20× lift** |
-| Honest lift (vs grep agent) | **2.20×** |
-| Prompt reduction | **43.4%** (2.84 → 1.6) |
-| Task success proxy | **61.0%** |
+| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **79.7%** |
+| Honest grep comparison (125 tasks / 19 repos) | **88.8%** vs 40.0% single-shot grep — **2.22× lift** |
+| Honest lift (vs grep agent) | **2.22×** |
+| Prompt reduction | **43.1%** (2.84 → 1.6) |
+| Task success proxy | **59.0%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
@@ -35,7 +35,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-10-04 (v8.65.2)**
+Latest saved run: **2026-10-04 (v8.65.3)**
 
 How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
 

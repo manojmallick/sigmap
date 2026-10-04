@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.65.2. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.65.3. 79.7% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.8% vs 40.0% (2.22× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 78.6% hit@5"
+      content: "SigMap retrieval benchmark — 79.7% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 78.6% hit@5 over 105 tasks on 18 repos; honest grep comparison 88.0% vs 40.0% (2.20x lift, 125 tasks, 19 repos)."
+      content: "Latest saved run: 79.7% hit@5 over 105 tasks on 18 repos; honest grep comparison 88.8% vs 40.0% (2.22x lift, 125 tasks, 19 repos)."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,31 +15,31 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.65.2 benchmark snapshot
+::: info Official v8.65.3 benchmark snapshot
 **Benchmark ID:** sigmap-v8.65-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **78.6%** |
-| Honest grep comparison (125 tasks / 19 repos) | **88.0%** vs 40.0% single-shot grep — **2.20× lift** |
-| Graph-boosted hit@5 | **78.6%** |
-| Honest lift (vs grep agent) | **2.20×** |
-| Prompt reduction | **43.4%** (2.84 → 1.6) |
-| Task success proxy | **61.0%** |
+| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **79.7%** |
+| Honest grep comparison (125 tasks / 19 repos) | **88.8%** vs 40.0% single-shot grep — **2.22× lift** |
+| Graph-boosted hit@5 | **79.7%** |
+| Honest lift (vs grep agent) | **2.22×** |
+| Prompt reduction | **43.1%** (2.84 → 1.6) |
+| Task success proxy | **59.0%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-04 (v8.65.2)**
+Latest saved run: **2026-10-04 (v8.65.3)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **78.6% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **79.7% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
 
 ::: tip Why this number dipped in v8.51.6 and recovered
 v8.51.6 made nine extractors resolve parameters correctly, which also made Scala extraction ~3× more complete (akka: 836 → 2,545 types). Under a fixed token budget that is a straight trade — more signatures per file means fewer files fit — and the budget spent itself strictly best-first across the whole repo. On akka, `akka-stream` took **all 128 surviving slots** while `akka-actor` (192 files) and `akka-cluster` (28 files) got **zero**: two of three configured source modules rendered invisible. akka fell 1.0 → 0.4 and the published figure dipped to 75.3%.
 
-The extraction was right; the budget's drop order was wrong. A module can now be thinned but never erased ([#743](https://github.com/manojmallick/sigmap/issues/743)), and hit@5 is back to **78.6%** with the extractor improvements kept. Equal round-robin and strictly proportional share were both measured and rejected — they recovered akka at the cost of rails and gin.
+The extraction was right; the budget's drop order was wrong. A module can now be thinned but never erased ([#743](https://github.com/manojmallick/sigmap/issues/743)), and hit@5 is back to **79.7%** with the extractor improvements kept. Equal round-robin and strictly proportional share were both measured and rejected — they recovered akka at the cost of rails and gin.
 
 Worth naming, because it will recur: this corpus scores the **budgeted context file**, so a completeness gain can lower the published number while improving the product. The [honest grep comparison](#the-honest-grep-comparison) was unaffected throughout at **86.4% vs 40.8%**.
 :::
@@ -58,21 +58,21 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **88.0%** |
-| Graph-boosted hit@5 | — | **78.6%** |
-| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.20x** |
+| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **88.8%** |
+| Graph-boosted hit@5 | — | **79.7%** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.22x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
-| Correct (rank 1) | ~1% | **61.0%** |
-| Partial (ranks 2–5) | ~13% | **17.1%** |
-| Wrong (not in top 5) | ~86% | **18.1%** |
+| Correct (rank 1) | ~1% | **59.0%** |
+| Partial (ranks 2–5) | ~13% | **20.0%** |
+| Wrong (not in top 5) | ~86% | **21.0%** |
 
 ## Quality tiers from the saved run
 
 | Tier | Tasks | Share |
 |---|---:|---:|
-| Correct | 65 / 105 | **61.0%** |
-| Partial | 18 / 105 | **17.1%** |
-| Wrong | 19 / 105 | **18.1%** |
+| Correct | 62 / 105 | **59.0%** |
+| Partial | 21 / 105 | **20.0%** |
+| Wrong | 22 / 105 | **21.0%** |
 
 ## Hard split and size buckets (new in v8.22)
 
@@ -112,6 +112,33 @@ also that the previously published 86.4% did not reproduce at v8.54.2 either —
 control measured 80.0% — which is the same provenance problem
 [#707](https://github.com/manojmallick/sigmap/issues/707) exists to close.
 
+## How the ranker stems words
+
+Query and index words are reduced to stems before they are compared, so a question phrased with one form of a word can find code named with another. Until v8.65.3 the stemmer left six of ten common pairs apart — `classify` stayed `classify` while `classified` became `classifi` — so "how are test files classified" ranked `src/util/file-class.js` 15th. A word and its inflections now reach one stem:
+
+| Rule | Example |
+|---|---|
+| `-ied` becomes `y` | `classified` → `classify` |
+| the silent `e` comes off the base — except that a stem ending in a lone `s` keeps it, and `-ing`/`-ed`/`-er` put it back | `cache`, `caching` → `cach`; `parse`, `parsing` → `parse` |
+| `-er` and derivational suffixes need a root of 5+ characters | `order` stays `order`; `normal` stays `normal` |
+| an `-er` under `-ed`/`-ing` comes off too | `registered` → `register` → `regist` |
+| doubled consonants collapse | `mapping` → `map` |
+| `-ify`, `-ifier`, `-ification` fold to the root (4+ characters left) | `classified` → `class`; `verify` is unchanged |
+
+Each rule was kept or dropped by measurement against a same-tree control — the unmodified tree, scored with the same harness over 299 tasks, never against the stored baseline. hit@5 counts, before → after:
+
+| Corpus | Tasks | hit@5 | MRR@30 |
+|---|---:|:---:|:---:|
+| `hard` | 90 | 66 → 66 | 0.581 → 0.596 |
+| `mined` | 23 | 14 → 14 | 0.411 → 0.411 |
+| `easy` | 20 | 18 → 18 | 0.819 → 0.853 |
+| `jvm` (`akka`) | 29 | 12 → 13 | 0.296 → 0.339 |
+| `jvm` (`spring-petclinic`) | 32 | 6 → 8 | 0.133 → 0.145 |
+| per-repo tasks (honest) | 105 | 93 → 93 | 0.721 → 0.703 |
+| **all** | **299** | **209 → 212** | **0.5576 → 0.5636** |
+
+No corpus loses a task at hit@5, and hit@3 rises 190 → 197. It is not a free win. On the per-repo tasks three rank-1 hits slip to rank 2 (none leaves the top 5), which is why the modeled task-success proxy reads 59.0% where it read 61.0%; four tasks fall from rank 5 to 6 while four enter the top 5. A stem can also be re-stemmed differently when it still ends in a removable suffix (`implemented` → `implement` → `impl`): merging those chains would make a verb like `implement` match every file that says "implementation", which cost a mined task and the `--no-regress` gate, so it is not done. Over 12,003 real identifiers the stems that change when re-stemmed fall from 322 to 152.
+
 ## The CI retrieval gate (v8.51.6)
 
 The split above comes from `benchmark:honest`, which scores **across repos**. A
@@ -122,9 +149,9 @@ happen to share an adjective.
 
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
-| `hard` | 90 | **74.4%** | 70% floor | Leak-free tasks over **SigMap's own source** |
+| `hard` | 90 | **73.3%** | 70% floor | Leak-free tasks over **SigMap's own source** |
 | `mined` | 23 | **60.9%** | no-regress | Commit subjects + the files that commit touched |
-| `jvm` | 61 | **29.5%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
+| `jvm` | 61 | **34.4%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
 | `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
 
 Every corpus is asserted leak-free: no query shares a stemmed token with its
@@ -139,8 +166,8 @@ containing one two-assertion test file and no source change scored 75.6% →
 74.4% and failed the gate. Enforcing `hard` against the previous run therefore
 fails honest work and, worse, trains you to ignore the gate.
 
-It is now held to its **70% floor** instead (currently 67/90 tasks pass, 1 task
-= 1.1pp, four tasks of headroom). The floor, the leak assertions, and
+It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
+= 1.1pp, three tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
 <!-- benchmark: re-measured at v8.63.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
@@ -326,11 +353,13 @@ document-length normalisation drops it from rank 5 to rank 6. A fix excluding
 markers from the scored term space did not move the number, so it was reverted
 rather than left in as unexplained complexity.
 
-At 29.5%, `jvm` is still the least flattering number SigMap publishes. It is here
+At 34.4%, `jvm` is still the least flattering number SigMap publishes. It is here
 for the same reason the hard split is: it is the one that moves when the
 vocabulary-mismatch problem gets solved — and in v8.55.0 it moved, from **21.3%
 to 29.5% (+8.2pp)**, when the ranker stopped ignoring Go and JVM test-file
-conventions. Its own design is what makes that credible: `jvm` scores against
+conventions, and again in v8.65.3, from **29.5% to 34.4% (+4.9pp, three more of 61
+tasks)**, when the stemmer began to conflate inflections (`calculating` with
+`calculate`, `naming` with `name`). Its own design is what makes that credible: `jvm` scores against
 repositories the change was not made in, so unlike `hard` it could not have
 absorbed the change as corpus drift.
 
@@ -338,23 +367,23 @@ absorbed the change as corpus drift.
 
 | Repo | Random hit@5 | SigMap hit@5 | Lift | Correct / Partial / Wrong |
 |---|:---:|:---:|:---:|---:|
-| express | 83.3% | 100% | 1.2x | 3 / 2 / 0 |
-| flask | 26.3% | 100% | 3.8x | 5 / 0 / 0 |
-| gin | 4.7% | 100% | 21.4x | 4 / 1 / 0 |
-| spring-petclinic | 38.5% | 100% | 2.6x | 5 / 0 / 0 |
+| express | 83.3% | 100% | 1.2x | 5 / 3 / 0 |
+| flask | 26.3% | 62.5% | 2.4x | 5 / 0 / 3 |
+| gin | 4.7% | 100% | 21.4x | 7 / 1 / 0 |
+| spring-petclinic | 38.5% | 80% | 2.1x | 4 / 0 / 1 |
 | rails | 0.4% | 100% | 235.8x | 3 / 2 / 0 |
-| axios | 20.0% | 80% | 4.0x | 1 / 3 / 1 |
+| axios | 20.0% | 50% | 2.5x | 1 / 3 / 4 |
 | rust-analyzer | 0.8% | 100% | 127.0x | 4 / 1 / 0 |
 | abseil-cpp | 0.7% | 100% | 140.0x | 5 / 0 / 0 |
 | serilog | 5.1% | 20% | 4.0x | 0 / 1 / 4 |
-| riverpod | 1.1% | 100% | 89.2x | 5 / 0 / 0 |
-| okhttp | 27.8% | 100% | 3.6x | 5 / 0 / 0 |
+| riverpod | 1.1% | 80% | 71.4x | 4 / 0 / 1 |
+| okhttp | 27.8% | 100% | 3.6x | 4 / 1 / 0 |
 | laravel | 0.3% | 100% | 306.6x | 4 / 1 / 0 |
-| akka | 2.4% | 100% | 42.2x | 3 / 2 / 0 |
-| vapor | 3.8% | 0% | 0.0x | 0 / 0 / 5 |
-| vue-core | 2.2% | 100% | 46.5x | 4 / 1 / 0 |
-| svelte | 1.4% | 100% | 74.0x | 3 / 2 / 0 |
-| fastify | 16.1% | 80% | 5.0x | 4 / 0 / 1 |
+| akka | 2.4% | 100% | 42.2x | 2 / 3 / 0 |
+| vapor | 3.8% | 20% | 5.2x | 0 / 1 / 4 |
+| vue-core | 2.2% | 100% | 46.4x | 4 / 1 / 0 |
+| svelte | 1.4% | 80% | 59.2x | 2 / 2 / 1 |
+| fastify | 16.1% | 62.5% | 3.9x | 5 / 0 / 3 |
 | fastapi | 10.4% | 80% | 7.7x | 3 / 1 / 1 |
 
 ## What the benchmark does not measure

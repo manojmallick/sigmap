@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.65.3)
+- **@manojmallick** — fix(retrieval): the stemmer did not give a word and its inflections one stem (#875, PR #889). `classify` stayed `classify` while `classified` became `classifi`, so a question phrased naturally never met the code that answered it; six of ten common pairs failed. The silent `e`, `-ied`, `-ify`, doubled consonants and an `-er` under `-ed` now fold, `-er` and the derivational suffixes need a root of five characters (`order` is no longer `ord`), and a stem never ends in a lone `s` the plural rule would eat. Measured against a same-tree control over 299 tasks: hit@5 209 → 212, hit@3 190 → 197, MRR@30 0.5576 → 0.5636, no corpus loses a task, and `validate:retrieval --no-regress` passes. Rank-1 hits on the per-repo tasks fall 63 → 60, which moves the modeled task-success proxy from 61.0% to 59.0%. One corpus task is relabelled from hard to easy because a better stemmer finds a leak the old one could not.
+
 ### Recent Contributors (v8.65.2)
 - **@manojmallick** — fix(extractors): about 4% of JavaScript function anchors were wrong (#874, PR #886). `maskCode` blanked comments and strings but not regular-expression literals, so the braces and quotes inside one unbalanced every block scan after it; a template literal nested inside another's `${ }` did the same. An opt-in `js` mode in `scan.js` — division versus regex by the token before the slash, escapes and classes, one token step shared with `${ }` expressions — fixes both, and the call graph's duplicate masker now uses it. An independent V8-based audit went from 75 of 979 anchors wrong to 0 of 984, other languages are byte-identical, and retrieval is unchanged.
 
