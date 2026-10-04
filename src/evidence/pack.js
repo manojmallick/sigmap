@@ -154,6 +154,30 @@ function findRelatedTests(relPath, allFiles) {
   return out.sort();
 }
 
+/**
+ * `findRelatedTests` for many lookups against one universe: the same stem rule,
+ * indexed once instead of rescanned per file. `lookup(relPath)` returns exactly
+ * what `findRelatedTests(relPath, allFiles)` would — pinned by a test over this
+ * repo's own files, so the two cannot drift.
+ * @param {string[]} allFiles - universe of files (relative paths)
+ * @returns {(relPath: string) => string[]}
+ */
+function relatedTestsIndex(allFiles) {
+  const byStem = new Map();
+  for (const f of allFiles) {
+    if (riskLabelFor(f) !== 'test') continue;
+    const key = testTargetStem(f).toLowerCase();
+    if (!byStem.has(key)) byStem.set(key, []);
+    byStem.get(key).push(f);
+  }
+  return function lookup(relPath) {
+    if (riskLabelFor(relPath) === 'test') return [];
+    const stem = stemOf(relPath).toLowerCase();
+    if (!stem) return [];
+    return (byStem.get(stem) || []).filter((f) => f !== relPath).sort();
+  };
+}
+
 /** Map a ranker `signals` object into a short human-readable reason string. */
 function reasonFor(signals) {
   if (!signals) return 'ranked match';
@@ -346,6 +370,7 @@ module.exports = {
   riskLabelFor,
   riskFactorsFor,
   findRelatedTests,
+  relatedTestsIndex,
   SCHEMA_VERSION,
   SCHEMA_URL,
   TEST_DISCOVERY,
