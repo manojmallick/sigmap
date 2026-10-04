@@ -10,6 +10,33 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.65.0] — 2026-10-04
+
+Minor. Two measurement defects in the grounding benchmarks, fixed together because they share one harness and one gate. `benchmark:grounding` compared a universe built from a hard-coded source-directory list against an index built from the generator's own resolved roots, so it printed rows it had not measured (clap read 0/0) and charged the index for symbols it never covers. And grounding accuracy — how often `verify` and `judge` are right about whether a cited file, symbol or import is real — had never been measured on answers whose truth is known. Both now are, offline and deterministically.
+
+### Added
+- **Labelled grounding regression corpus** (#673, PR #872) — `benchmarks/tasks/grounding-fixtures/` holds a small checked-in repo for each of go, java, javascript, python, rust and typescript, with a `good.md` (every claim real), a `bad.md` (planted, labelled fakes) and a `labels.json`. They are checked in, not cloned, so CI and third parties run them with no setup
+- **`scripts/run-grounding-regression.mjs`** (#673, PR #872) — indexes each fixture with the real generator in a temp copy, runs `verify` and `judge` over both answers, and reports precision and recall per claim kind (file, symbol, import, npm script) plus the judge's pass/fail verdict accuracy. A flagged value that is not a labelled fake counts as a false positive. No LLM, no network; two runs are byte-identical apart from the `generated` stamp
+- **`npm run validate:grounding`** (#673, PR #872) — gates the corpus against `benchmarks/grounding-regression-baseline.json`, in CI beside the retrieval gate. A kind with no labelled fake, or a corpus under five languages, fails rather than passing vacuously. `benchmark:grounding-regression` saves the stamped report, and the suite runs as a step of `benchmark:matrix`
+- **`grounding_regression` in `benchmarks/latest.json`** (#673, PR #872) — pooled verify and judge precision and recall, judge verdict accuracy, and the fixture and language counts. It sits beside `test_discovery`, outside `metrics`, so the `version.json` mirror is unchanged
+- **Per-repo coverage floors** (#704, PR #872) — `benchmarks/grounding-floors.json` records each benchmark repo's minimum, written by `run-hallucination-benchmark.mjs --save-floors` five points under the measured value. `--gate` fails a repo under its own floor, a repo with no floor, or an unmeasured repo; `npm run validate:grounding-coverage` runs it
+- **`grounding-regression.test.js`, 18 guards, and 7 new guards in `hallucination-benchmark.test.js`** (PR #872) — the scoring arithmetic, corpus integrity (every planted fake is in `bad.md`, none in `good.md`, none exists on disk), determinism, the committed baseline passing, and the gate failing on a recall drop, a precision drop, an unmeasured kind, a shrunken corpus and a verdict-accuracy drop; and for the harness, the in-scope universe, the unmeasured status, and the floor policy
+- **Docs: Grounding accuracy (labelled fixtures)** (PR #872) — section 6 of `docs-vp/guide/benchmark.md`
+
+### Fixed
+- **`benchmark:grounding` measured two populations as one ratio** (#704, PR #872) — the universe is now the generator's own scope: `loadConfig` plus the shared per-repo override, less the test, mock and generated files its drop order removes first. An empty universe is `unmeasured` with `coverage: null`, is left out of the aggregate, and fails the run with or without `--gate`. The Kotlin and Go collapse in the issue was this mismatch, not an extractor defect: okhttp 0.1% → 89.9%, kotlinx-coroutines 4.5% → 100%, cobra 14.8% → 90.5%, gin 27.8% → 93.4%, echo 39.0% → 95.6%, and clap's 0/0 → 36.1%
+
+### Changed
+- **`measureGrounding` returns `status` and `files`, and `coverage` is `null` when nothing was measured** (PR #872) — it was `0`. The saved `hallucination.json` is stamped like every other report
+- **The aggregate availability is 75.2%, over measured repos only** (PR #872) — the lowest repos are now visible and pinned by floors: zod 32.0%, clap 36.1%, libuv 50.1%, fmt 57.8%. No published page quoted the old figure
+
+### Notes
+- **The corpus records what the detectors get wrong today, deliberately.** The judge fails a good Python or Go answer that cites a real bare import of a repo module, because it can only clear a bare import when a `package.json` exists: judge import precision is 60% (4 false positives) and 10 of 12 verdicts are right. `verify` skips non-JS bare imports by design, so its import recall is 66.7%. The judge also clears a fake name that is a substring of a real one, and a real basename under the wrong directory. The floors hold these numbers, so a fix raises them and a regression lowers them
+- **`validate:grounding-coverage` is not in CI.** It needs the cloned benchmark repos, so it runs locally and at release time like `benchmark:honest`
+- **Not in this release:** a fix for the judge's bare-import false positives (related to #672)
+
+---
+
 ## [8.64.0] — 2026-10-04
 
 Minor. A provider's prompt cache matches on an exact prefix, so the first byte that differs ends the hit and everything after it is billed as new input. SigMap put a block that changes on every commit — headed by an age that changed on every run — ahead of the whole signature body, so the body could never be a cache hit. Every written context file is now a stable body, then a marker, then the volatile tail; `--format cache` writes the two as separate blocks; and `--report` says whether the stable prefix is long enough for each model to cache it at all.

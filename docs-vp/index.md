@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.64.0</span>
+  <span><strong>Release:</strong> v8.65.0</span>
   <span>·</span>
-  <span><strong>New — a prefix cache can finally hit:</strong> the context file opened with a per-commit block headed by "5 minutes ago", so the signature body behind it could never be a cache hit. Every file is now a stable body, then a marker, then the volatile tail; <code>--format cache</code> writes the two as separate blocks; and <code>--report</code> says whether the prefix is long enough for each model to cache it at all — "borderline" instead of a guess. <a href="/guide/config#prompt-cache-layout">Prompt-cache layout →</a></span>
+  <span><strong>New — grounding accuracy, measured:</strong> how often <code>verify</code> and <code>judge</code> are right about whether a cited file, symbol or import is real is now scored on labelled good and bad answers in six languages — precision and recall per claim kind, offline, byte-identical across runs. The same release fixes a benchmark that compared two populations (clap printed 0/0, okhttp 0.1%), and records the detectors' current gaps in its floors instead of hiding them. <a href="/guide/benchmark">Benchmark overview →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.64-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.65-main</span>
   <span>·</span>
   <span>78.6% hit@5 · 95.8% token reduction · 2026-10-04</span>
 </div>

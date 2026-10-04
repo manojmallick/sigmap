@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.64.0, with the latest release writing context files as a stable body then a volatile tail so a prefix cache keeps hitting, and recent releases putting every model name and price behind one dated, overridable profile (`--suggest-tool` had been naming models `gain --model` rejected), resting `--analyze` coverage and the `plan` change list on named evidence (5 of 182 files had been reported as tested), removing a stack overflow on trees past 125,000 files (the report named one frame; four more had the same defect), adding Objective-C and PowerShell at Tier 2 (the Objective-C extractor was run over 839 real files before release, and 11% of its output was not a declaration), giving the CLI one canonical command table and the coverage ratio one definition (a CI gate had been passing on 241%), pinning the documented JSON contract to what the CLI actually emits, closing the loop at the agent (ask --with-source returns symbol bodies, a stale index no longer answers silently, every ask figure names its basis), making every scope claim name its basis (--diff <ref> includes uncommitted work, --callers stops asserting a zero it cannot support), giving the dashboard one output path and one language list, giving the index population and its age one shared definition (validate, doctor and status can no longer contradict each other) and closing the create-pipeline guards (nothing-ran is not a pass, creation plans reach stage 2) and the project-shape cluster (flat-layout source roots, one monorepo verdict, srcDirs disclosure) and the retrieval-honesty cluster (one shared file-category definition, zero-score suppression, path IDF, ask --explain) and completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v8.65.0, with the latest release measuring grounding accuracy on labelled good and bad answers and fixing a benchmark that compared two populations, and recent releases writing context files as a stable body then a volatile tail so a prefix cache keeps hitting, and putting every model name and price behind one dated, overridable profile (`--suggest-tool` had been naming models `gain --model` rejected), resting `--analyze` coverage and the `plan` change list on named evidence (5 of 182 files had been reported as tested), removing a stack overflow on trees past 125,000 files (the report named one frame; four more had the same defect), adding Objective-C and PowerShell at Tier 2 (the Objective-C extractor was run over 839 real files before release, and 11% of its output was not a declaration), giving the CLI one canonical command table and the coverage ratio one definition (a CI gate had been passing on 241%), pinning the documented JSON contract to what the CLI actually emits, closing the loop at the agent (ask --with-source returns symbol bodies, a stale index no longer answers silently, every ask figure names its basis), making every scope claim name its basis (--diff <ref> includes uncommitted work, --callers stops asserting a zero it cannot support), giving the dashboard one output path and one language list, giving the index population and its age one shared definition (validate, doctor and status can no longer contradict each other) and closing the create-pipeline guards (nothing-ran is not a pass, creation plans reach stage 2) and the project-shape cluster (flat-layout source roots, one monorepo verdict, srcDirs disclosure) and the retrieval-honesty cluster (one shared file-category definition, zero-score suppression, path IDF, ask --explain) and completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "227 versions shipped. See what changed in each release and what is coming next."
+      content: "228 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Two hundred twenty-seven versions shipped. MIT open source from day one.
+Two hundred twenty-eight versions shipped. MIT open source from day one.
 
 **Stats:** 95.8% overall token reduction · 78.6% retrieval hit@5 · 2.20× measured lift vs single-shot grep (88.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
@@ -835,6 +835,26 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.65.0 — grounding accuracy, measured on answers whose truth is known ✓ (2026-10-04)
+
+**Minor.** Two defects in how SigMap measures its own grounding, fixed together because they share one harness and one gate.
+
+`benchmark:grounding` divided two numbers that described different things. Its *universe* — every symbol an agent might cite — came from a hard-coded list of source directories; the *index* it was compared against came from the generator's own resolved roots. clap's real code lives in `clap_builder/` and friends, so the harness scanned only its facade crate and printed **0/0** as an ordinary row. okhttp's universe included samples and `build-logic` that the index deliberately skips, so it read **0.1%**. The Kotlin and Go collapse in the issue was never an extractor defect; it was the harness. The universe is now the generator's own scope, less the test, mock and generated files its drop order removes first. A repo with an empty universe is *unmeasured*, not 0%, and fails the run. Re-measured: okhttp 0.1% → 89.9%, kotlinx-coroutines 4.5% → 100%, cobra 14.8% → 90.5%, gin 27.8% → 93.4%, echo 39.0% → 95.6%, clap 0/0 → 36.1%.
+
+The other half had no number at all: how often `verify` and `judge` are *right* about whether a cited file, symbol or import is real. A checked-in corpus now answers it — a small repo in each of go, java, javascript, python, rust and typescript, with a `good.md` where every claim is real and a `bad.md` with planted, labelled fakes. Each is indexed by the real generator in a temp copy, and both engines run over both answers: precision and recall per claim kind, plus the judge's pass/fail verdict accuracy. No LLM, no network, byte-identical across runs.
+
+```
+verify   file · symbol · script   precision 100%, recall 100%      import   precision 100%, recall 66.7%
+judge    import                   precision  60%                  verdicts 10 of 12 correct
+```
+
+The corpus keeps the cases the detectors get wrong, on purpose: the judge fails a good Python or Go answer that cites a real bare import of a repo module (it can only clear a bare import when a `package.json` exists), and `verify` skips non-JS bare imports by design. The floors hold those numbers, so a fix raises them and a regression lowers them. `npm run validate:grounding` gates the corpus in CI; each benchmark repo also has its own recorded coverage floor (`validate:grounding-coverage`, run locally and at release, since it needs the cloned repos).
+
+**Tags:** `run-grounding-regression.mjs` · `grounding-fixtures` · `validate:grounding` · `grounding_regression` · `grounding-floors.json` · `unmeasured` · `validate:grounding-coverage`
+**Impact:** 18 new guards in `grounding-regression.test.js` and 7 in `hallucination-benchmark.test.js`; six languages, precision and recall per claim kind published in `benchmarks/latest.json`. No retrieval or token figure changes; the published grounding-availability figure is the first one measured over a single population (75.2% across the repos that measured anything).
 
 ---
 
