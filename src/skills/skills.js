@@ -14,10 +14,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { managedSectionLineStart } = require('../util/managed-section');
 
 const START = '<!-- sigmap-skills:start -->';
 const END = '<!-- sigmap-skills:end -->';
-const SIGNATURES_MARKER = '## Auto-generated signatures';
 
 const SKILLS = {
   'sigmap-usage-maximizer': {
@@ -133,7 +133,9 @@ function injectSkillsBlock(existing, block) {
       return src.slice(0, startIdx) + block + src.slice(endIdx + END.length);
     }
   }
-  const sigIdx = src.indexOf(SIGNATURES_MARKER);
+  // The line the real managed section starts on, never a mention of the marker
+  // in prose or a code block — a block injected there would split a human line (#873).
+  const sigIdx = managedSectionLineStart(src);
   if (sigIdx !== -1) {
     return src.slice(0, sigIdx) + block + '\n\n' + src.slice(sigIdx);
   }

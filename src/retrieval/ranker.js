@@ -683,8 +683,8 @@ function _parseContextFile(contextPath) {
   let content = fs.readFileSync(contextPath, 'utf8');
 
   // Skip any human-written preamble that sits above the auto-generated block.
-  const markerIdx = content.indexOf('## Auto-generated signatures');
-  if (markerIdx !== -1) content = content.slice(markerIdx);
+  const section = require('../util/managed-section').findManagedSection(content);
+  if (section) content = content.slice(section.index);
 
   const lines = content.split('\n');
   let currentFile = null;

@@ -12,10 +12,10 @@
 
 const path = require('path');
 const fs = require('fs');
+const { replaceManagedSection, managedSectionLineStart } = require('../../src/util/managed-section');
 
 const name = 'claude';
 
-const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 const ALLOWLIST_MARKER = '<!-- sigmap-bash-allowlist -->';
 
 const ALLOWLIST_BLOCK = [
@@ -113,17 +113,15 @@ function write(context, cwd, opts = {}) {
     existing = fs.readFileSync(filePath, 'utf8');
   }
   const formatted = format(context, opts);
-  const markerIdx = existing.indexOf('## Auto-generated signatures');
-  let newContent;
-  if (markerIdx !== -1) {
-    newContent = existing.slice(0, markerIdx) + MARKER.trimStart() + formatted;
-  } else {
-    newContent = existing + MARKER + formatted;
-  }
+  // The marker is found by src/util/managed-section.js: a mention of it in prose
+  // or a code block is never the marker, so human content is never discarded (#873).
+  const placed = replaceManagedSection(existing, formatted);
+  if (placed.warning) console.warn(`[sigmap] CLAUDE.md: ${placed.warning}`);
+  let newContent = placed.content;
 
   // Inject ## Bash allowlist above the sig marker if not already present
   if (!newContent.includes(ALLOWLIST_MARKER)) {
-    const sigMarkerPos = newContent.indexOf('## Auto-generated signatures');
+    const sigMarkerPos = managedSectionLineStart(newContent);
     if (sigMarkerPos !== -1) {
       newContent = newContent.slice(0, sigMarkerPos) + ALLOWLIST_BLOCK + '\n' + newContent.slice(sigMarkerPos);
     } else {
