@@ -1,6 +1,6 @@
 ---
 title: Benchmark overview
-description: Official v8.64.0 benchmark snapshot. 95.8% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.4% fewer prompts, and R language support verified.
+description: Official v8.65.0 benchmark snapshot. 95.8% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.4% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.64.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.64-main &nbsp;·&nbsp; **Date:** 2026-10-04
+::: info Official v8.65.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.65-main &nbsp;·&nbsp; **Date:** 2026-10-04
 
 | Metric | Value |
 |---|---:|
@@ -39,7 +39,7 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.64.0 snapshot (with R language support)
+## Official v8.65.0 snapshot (with R language support)
 
 Latest saved benchmark run: **2026-10-04 (v8.63.0)**
 
@@ -73,8 +73,8 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 
 ### 1. Token reduction (21 repositories)
 
-- Raw source across benchmark set: **13,661,354** tokens (21 repos)
-- Final SigMap output: **255,972** tokens
+- Raw source across benchmark set: **13,661,361** tokens (21 repos)
+- Final SigMap output: **256,107** tokens
 - Pooled reduction across the whole corpus: **98.1%**
 - Average per-repo reduction — **the published figure**: **95.8%**
 - **New in v6.11.1:** R language support verified

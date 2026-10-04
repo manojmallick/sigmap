@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.65.0)
+- **@manojmallick** — feat(benchmark): one measured population for the grounding harness, and a labelled good/bad fixture corpus that measures grounding accuracy (#704, #673, #871, PR #872). `benchmark:grounding` compared symbols from a hard-coded source list against an index built from the generator's own roots, so clap printed 0/0 and Kotlin and Go looked broken when the harness was; it now measures the generator's scope, fails on an empty universe and gates each repo on its own floor. A six-language fixture corpus scores `verify` and `judge` for precision and recall per claim kind, offline and deterministically, and records the detectors' current gaps in its floors.
+
 ### Recent Contributors (v8.64.0)
 - **@manojmallick** — feat(context): cache-stable context layout, a two-block cache payload and a per-model fit-check (#683, PR #868). A provider prompt cache matches on an exact prefix, but the generated context put a per-commit block and a relative age ahead of the whole signature body, so the body could never be a cache hit. Every written file is now a stable body, an invisible marker, then the volatile tail; `--format cache` writes the two as separate blocks with a validated `cacheTtl`; and `--report` reports whether the stable prefix reaches each model's minimum cacheable length, saying "borderline" instead of guessing inside ±15%.
 
