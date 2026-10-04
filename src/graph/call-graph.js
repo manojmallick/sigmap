@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { build } = require('./builder');
+const { maskCode } = require('../extractors/scan');
 
 const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const PY_EXTS = new Set(['.py', '.pyw']);
@@ -49,22 +50,8 @@ function symId(cwd, absFile, name) { return `${toRel(cwd, absFile)}#${name}`; }
 // Replace comment / string bodies with spaces so their braces, parens, and
 // call-looking tokens never confuse structure detection. Offsets stay aligned.
 
-function maskJs(src) {
-  const out = src.split('');
-  const blank = (a, b) => { for (let k = a; k < b; k++) if (out[k] !== '\n') out[k] = ' '; };
-  let i = 0; const n = src.length;
-  while (i < n) {
-    const c = src[i], d = src[i + 1];
-    if (c === '/' && d === '/') { let j = i + 2; while (j < n && src[j] !== '\n') j++; blank(i, j); i = j; continue; }
-    if (c === '/' && d === '*') { let j = i + 2; while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j++; j = Math.min(n, j + 2); blank(i, j); i = j; continue; }
-    if (c === '"' || c === "'" || c === '`') {
-      let j = i + 1;
-      while (j < n) { if (src[j] === '\\') { j += 2; continue; } if (src[j] === c) break; if (c !== '`' && src[j] === '\n') break; j++; }
-      j = Math.min(n, j + 1); blank(i, j); i = j; continue;
-    }
-    i++;
-  }
-  return out.join('');
+function maskJs(src, opts) {
+  return maskCode(src, opts);
 }
 
 // Rust: `//`, `/* */`, and `"..."` mask like JS, but a bare `'` is usually a
@@ -430,12 +417,12 @@ function maskFor(filePath, src) {
   const ext = path.extname(filePath).toLowerCase();
   if (PY_EXTS.has(ext)) return maskPy(src);
   if (RS_EXTS.has(ext)) return maskRust(src);
-  return maskJs(src);
+  return maskJs(src, { js: JS_EXTS.has(ext) });
 }
 
 function extractDefs(filePath, src) {
   const ext = path.extname(filePath).toLowerCase();
-  if (JS_EXTS.has(ext)) return jsDefs(maskJs(src));
+  if (JS_EXTS.has(ext)) return jsDefs(maskJs(src, { js: true }));
   if (PY_EXTS.has(ext)) return pyDefs(maskPy(src));
   if (JAVA_EXTS.has(ext)) return javaDefs(maskJs(src));
   if (GO_EXTS.has(ext)) return goDefs(maskJs(src));

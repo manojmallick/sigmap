@@ -30,9 +30,10 @@ function extract(src) {
   // stripComments is string-aware (a `//` inside a string literal survives);
   // maskCode additionally blanks string/template contents so every delimiter
   // found on it is structural. Both are length- and newline-preserving, so
-  // offsets and line anchors align across all three views (#526).
-  const stripped = stripComments(src);
-  const masked = maskCode(src);
+  // offsets and line anchors align across all three views (#526). `js`
+  // makes a regex literal or nested template inert too (#874).
+  const stripped = stripComments(src, { js: true });
+  const masked = maskCode(src, { js: true });
 
   // Full params for a declaration whose `(` sits at openIdx: depth-matched
   // close over masked text; TEXT sliced from stripped so string defaults keep
