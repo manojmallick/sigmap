@@ -10,6 +10,28 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.62.1] — 2026-10-04
+
+Patch. SigMap crashed with `RangeError: Maximum call stack size exceeded` on any tree past roughly 125,000 files — a git root at the home directory was enough. The report named one frame. The same defect sat in four more places, and fixing only the reported one moved the crash from generation to `sigmap ask`.
+
+### Fixed
+- **Generation crashed on a tree past ~125,000 files** (#855, PR #860) — reported by @sidhunt — `buildFileList` appended each walk result with `files.push(...found)`. Spread passes every element as a separate call argument and V8 stops at roughly 125,000, so a large enough source dir was a `RangeError` before a single file had been read. It is now a loop
+- **`ask`, `--query` and `plan` crashed on the same tree** (PR #860) — the ranker computed its confidence range with `Math.max(...scores)` / `Math.min(...scores)`, one argument per indexed file. Nothing in the report pointed here: it was found by running `ask` on a real 130,000-file tree after the first fix, where the reported frame was gone and the next command died instead
+- **The dependency-graph walk had the same shape** (PR #860) — `src/graph/builder.js` returned a list per directory and spread it into its parent. It now collects into one shared array, the shape `call-graph.js` already used
+- **`--analyze` crashed in its table formatter** (PR #860) — `Math.max(4, ...lengths)` took one length per file to size a column
+- **Centrality normalisation had the same limit** (PR #860) — `Math.max(...ranks)` took one rank per graph node
+
+### Added
+- **`large-tree-spread.test.js`, 6 guards** (PR #860) — five fail on v8.62.0 and all six pass now. It creates no large tree on disk: the CLI case fakes one 150,000-entry directory through a `readdirSync` preload and the others build their inputs in memory, so the file runs in about 8 seconds — creating that many real files takes longer than that on macOS before the test has started
+
+### Notes
+- **No published metric moved.** A fresh `benchmark:all` reproduces 95.8% / 78.6% / 43.4%, 88.0% vs 40.0% and test-discovery F1 98.0% exactly, and all five source reports are now stamped `8.62.1 / 2026-10-04`. `benchmark_date` advanced to 2026-10-04, which moved 12 snapshot-date labels across six `docs-vp` pages by hand — no guard checks those
+- **Ranking is unchanged, and that was measured rather than assumed.** The retrieval gate scores identically with the original and the rewritten ranker over the same index. On the release tree the gated corpora read `hard` 73.3% / 0.584, `mined` 60.9% / 0.411, `jvm` 29.5% / 0.195 and `easy` 90.0% / 0.825. `hard` MRR is 0.006 above v8.62.0 (0.578); with the ranker ruled out, that is the indexed file set — one new test file and edits in four modules
+- **Verified on a real tree.** Generation completes on 130,000 files with real signatures in about 16 seconds, and 24 other commands run there without a stack overflow
+- **Not fixed.** `sigmap evidence` did not finish within nine minutes on that tree — slowness, not a crash. `call-graph.js` still spreads same-directory siblings, which is bounded by one directory's size. The two side notes in #855 (generated files written into the repo; the coverage grade next to the headline reduction) are separate from the crash
+- Full suite **205 integration + 28 unit, 0 failed** · `check:metrics`, `validate:llms`, `check:doc-counts` green · bundle reproducible from `src/` (179 modules) · supply-chain gate green (no shell spawns, no install scripts, `main` exports the API, no fingerprinting) · tarball 996KB / 202 files
+
+---
 ## [8.62.0] — 2026-10-03
 
 Minor. Two languages move to Tier 2 — Objective-C and PowerShell — both contributed by @sujalmallick. The Objective-C extractor passed its fixture and its 15 tests, and was then run over 839 real `.m` / `.mm` files before release. About 11% of what it emitted there was not a declaration, so this release ships the extractor together with the review that corpus forced.

@@ -6713,8 +6713,10 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
   function formatAnalysisTable(stats, showSlow) {
     if (!stats || stats.length === 0) return '_(no files analyzed)_\n';
 
-    // Column widths
-    const maxFile = Math.max(4, ...stats.map((s) => s.file.length));
+    // Column widths. A loop, not `Math.max(4, ...lengths)`: one argument per
+    // file overflows the stack past ~125k files (#855).
+    let maxFile = 4;
+    for (const s of stats) if (s.file.length > maxFile) maxFile = s.file.length;
 
     const header = showSlow
       ? `| ${'File'.padEnd(maxFile)} | Sigs | Tokens | Extractor   | Coverage   | Elapsed  |`
@@ -18700,16 +18702,18 @@ __factories["./src/graph/builder"] = function(module, exports) {
     } = opts || {};
     const excludeSet = new Set(exclude);
 
-    function walkDir(dir, depth) {
-      if (depth > maxDepth) return [];
+    // Collects into one shared array. Returning a list per directory and
+    // spreading it into the parent (`push(...walkDir())`) passes every path as a
+    // call argument, which overflows the stack past ~125k files (#855).
+    function walkDir(dir, depth, out) {
+      if (depth > maxDepth) return;
       let entries;
-      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return []; }
-      const out = [];
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
       for (const e of entries) {
         if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
         const full = path.join(dir, e.name);
         if (e.isDirectory()) {
-          out.push(...walkDir(full, depth + 1));
+          walkDir(full, depth + 1, out);
         } else if (e.isFile()) {
           const ext = path.extname(e.name).toLowerCase();
           if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || GO_EXTS.has(ext) ||
@@ -18719,13 +18723,12 @@ __factories["./src/graph/builder"] = function(module, exports) {
           }
         }
       }
-      return out;
     }
 
     const files = [];
     for (const sd of srcDirs) {
       const absDir = path.resolve(cwd, sd);
-      if (fs.existsSync(absDir)) files.push(...walkDir(absDir, 0));
+      if (fs.existsSync(absDir)) walkDir(absDir, 0, files);
     }
     // Also include root-level entry files (R: app.R/server.R/ui.R/global.R for Shiny)
     for (const rootFile of ['gen-context.js', 'index.js', 'main.js', 'app.js',
@@ -19727,7 +19730,11 @@ __factories["./src/graph/centrality"] = function(module, exports) {
       ranks = next;
     }
 
-    const max = Math.max(...ranks) || 1;
+    // A loop, not `Math.max(...ranks)`: one argument per file overflows the
+    // stack past ~125k files (#855).
+    let max = 0;
+    for (const r of ranks) if (r > max) max = r;
+    max = max || 1;
     const result = new Map();
     for (let i = 0; i < n; i++) result.set(nodeList[i], ranks[i] / max);
     return result;
@@ -23796,7 +23803,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.62.0',
+    version: '8.62.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -26009,9 +26016,14 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
 
     // Compute confidence levels based on score distribution
     if (scored.length > 0) {
-      const scores = scored.map(s => s.score);
-      const maxScore = Math.max(...scores);
-      const minScore = Math.min(...scores);
+      // A loop, not `Math.max(...scores)`: spread passes one argument per file,
+      // which overflows the stack past ~125k files (#855).
+      let maxScore = -Infinity;
+      let minScore = Infinity;
+      for (const { score } of scored) {
+        if (score > maxScore) maxScore = score;
+        if (score < minScore) minScore = score;
+      }
       const scoreRange = maxScore - minScore || 1;
 
       // Confidence tiers: top 33% = high, next 33% = medium, rest = low
@@ -31844,7 +31856,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.62.0';
+const VERSION = '8.62.1';
 const MARKER = '\n\n## Auto-generated signatures\n<!-- Updated by gen-context.js -->\n';
 
 function requireSourceOrBundled(key) {
@@ -31952,7 +31964,9 @@ function buildFileList(cwd, config) {
     const abs = path.join(cwd, srcDir);
     if (!fs.existsSync(abs)) continue;
     const found = walkDir(abs, config.exclude, config.maxDepth);
-    files.push(...found);
+    // A loop, not `push(...found)`: spread passes every path as a call
+    // argument, and past ~125k files that overflows the stack (#855).
+    for (const f of found) files.push(f);
   }
   files.push(...declaredEntrypoints(cwd, config, files));
   // Deduplicate

@@ -52,7 +52,11 @@ function computeCentrality(graph) {
     ranks = next;
   }
 
-  const max = Math.max(...ranks) || 1;
+  // A loop, not `Math.max(...ranks)`: one argument per file overflows the
+  // stack past ~125k files (#855).
+  let max = 0;
+  for (const r of ranks) if (r > max) max = r;
+  max = max || 1;
   const result = new Map();
   for (let i = 0; i < n; i++) result.set(nodeList[i], ranks[i] / max);
   return result;

@@ -595,9 +595,14 @@ function rank(query, sigIndex, opts) {
 
   // Compute confidence levels based on score distribution
   if (scored.length > 0) {
-    const scores = scored.map(s => s.score);
-    const maxScore = Math.max(...scores);
-    const minScore = Math.min(...scores);
+    // A loop, not `Math.max(...scores)`: spread passes one argument per file,
+    // which overflows the stack past ~125k files (#855).
+    let maxScore = -Infinity;
+    let minScore = Infinity;
+    for (const { score } of scored) {
+      if (score > maxScore) maxScore = score;
+      if (score < minScore) minScore = score;
+    }
     const scoreRange = maxScore - minScore || 1;
 
     // Confidence tiers: top 33% = high, next 33% = medium, rest = low
