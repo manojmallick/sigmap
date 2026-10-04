@@ -37,6 +37,7 @@ function test(name, fn) {
 }
 
 const corpus = require(path.join(ROOT, 'src', 'eval', 'corpus'));
+const { stem } = require(path.join(ROOT, 'src', 'retrieval', 'bm25'));
 const runner = require(path.join(ROOT, 'src', 'eval', 'runner'));
 
 console.log('[hard-corpus.test.js] A3 hard-corpus: leakage gate, splits, buckets');
@@ -45,7 +46,8 @@ console.log('');
 test('queryLeakage flags direct token overlap', () => {
   const r = corpus.queryLeakage('parse time zone offsets', ['absl/time/time.h']);
   assert.strictEqual(r.clean, false);
-  assert.ok(r.leaked.includes('time'), `leaked=${r.leaked}`);
+  // leaked tokens are reported as STEMS, so compare against the stem, not the surface word
+  assert.ok(r.leaked.includes(stem('time')), `leaked=${r.leaked}`);
 });
 
 test('queryLeakage flags stemmed overlap', () => {

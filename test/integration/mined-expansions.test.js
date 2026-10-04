@@ -40,8 +40,8 @@ function fixtureIndex() {
     ['f5.js', ['function gamma kappa  :1-2']],
     ['f6.js', ['function gamma alone  :1-2']],
     ['f7.js', ['function kappa alone  :1-2']],
-    ['f8.js', ['function hub pone ptwo pthree pfour pfive  :1-2']],
-    ['f9.js', ['function hub pone ptwo pthree pfour pfive  :1-2']],
+    ['f8.js', ['function hub pona ptwo pthree pfour pfiva  :1-2']],
+    ['f9.js', ['function hub pona ptwo pthree pfour pfiva  :1-2']],
     ['f10.js', ['function auth login session  :1-2']],
     ['f11.js', ['function auth login session  :1-2']],
     ['f12.js', ['function zzfiller  :1-2']],
@@ -78,7 +78,7 @@ test('top-K caps a token at its strongest neighbors, deterministically ordered',
   const hub = mined.expansions.hub;
   assert.ok(hub, 'hub missing');
   assert.strictEqual(hub.length, me.TOP_K, `expected ${me.TOP_K} neighbors, got ${hub.length}`);
-  assert.deepStrictEqual(hub.map((p) => p[0]), ['pfive', 'pfour', 'pone', 'pthree'],
+  assert.deepStrictEqual(hub.map((p) => p[0]), ['pfiva', 'pfour', 'pona', 'pthree'],
     'equal weights must tie-break alphabetically');
 });
 
