@@ -141,6 +141,20 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
 | `adapters` | `string[]\|null` | `null` | v3.0+ alias for `outputs`. `loadConfig` mirrors it into `outputs` for `"copilot"`, `"claude"`, `"cursor"` and `"windsurf"`; `"openai"`, `"gemini"` and `"codex"` are dropped by that mirror, so list those in `outputs` instead. |
 
+### What SigMap writes into an existing file
+
+`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md` and `.github/gemini-context.md` are yours first. SigMap appends its block under a `## Auto-generated signatures` heading followed by `<!-- Updated by gen-context.js -->`, and on every later run replaces **only** that block — everything above it is left byte for byte as you wrote it.
+
+| What the file contains | What a run does |
+|---|---|
+| No marker yet | Appends the block at the end |
+| The heading and stamp as two consecutive lines (outside any code fence) | Replaces from that heading to the end of the file. If it appears more than once, the last one is the section |
+| The marker mentioned in a sentence, or quoted in a fenced code block | Nothing special — a mention is not the marker, and the text after it is kept |
+| A heading with the same title but no stamp | Replaced only when a SigMap-generated block follows it. Otherwise your section is kept, a new one is appended after it, and a warning names the line |
+| A file that is a generated block from its first line, with no marker | Replaced whole (the pre-marker format) |
+
+Anything you add *below* the generated block is regenerated away; put your own notes above the marker. Releases before v8.65.1 matched the first mention of the marker anywhere in the file and discarded everything after it, so a file that had quoted the marker may have been cut short; the next run repairs its structure, but the lost text is not recoverable unless the file was tracked.
+
 ## Prompt-cache layout
 
 A provider's prompt cache matches on an exact prefix: the first byte that differs ends the hit, and everything after it is billed as new input. SigMap therefore writes every context file as a **stable body, then an invisible `<!-- sigmap:volatile -->` marker, then the volatile tail**:

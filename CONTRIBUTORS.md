@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.65.1)
+- **@manojmallick** — fix(adapters): a context file that quoted `## Auto-generated signatures` lost every line after the quote (#873, PR #882). The writers located their block with the first occurrence of the marker anywhere in the file and discarded the rest, silently and unrecoverably when the file is untracked; this repository's own `CLAUDE.md` was truncated that way. One helper now decides what the managed section is — a stamped heading outside any code fence, the last one winning — and is used by all four adapters, the CLI core writer the issue did not list, the allowlist and skills injectors and two readers. Files already damaged repair in place and stay stable, and the same substring-test failure that replaced a whole human file mentioning "Code signatures" is fixed too.
+
 ### Recent Contributors (v8.65.0)
 - **@manojmallick** — feat(benchmark): one measured population for the grounding harness, and a labelled good/bad fixture corpus that measures grounding accuracy (#704, #673, #871, PR #872). `benchmark:grounding` compared symbols from a hard-coded source list against an index built from the generator's own roots, so clap printed 0/0 and Kotlin and Go looked broken when the harness was; it now measures the generator's scope, fails on an empty universe and gates each repo on its own floor. A six-language fixture corpus scores `verify` and `judge` for precision and recall per claim kind, offline and deterministically, and records the detectors' current gaps in its floors.
 

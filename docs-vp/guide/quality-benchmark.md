@@ -15,7 +15,7 @@ head:
 
 # Quality benchmark
 
-::: info Official v8.65.0 benchmark snapshot
+::: info Official v8.65.1 benchmark snapshot
 **Benchmark ID:** sigmap-v8.65-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
 
 | Metric | Value |
