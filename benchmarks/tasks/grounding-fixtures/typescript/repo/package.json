@@ -1,0 +1,6 @@
+{
+  "name": "fixture-ts",
+  "version": "1.0.0",
+  "scripts": { "build": "tsc -p .", "test": "vitest run" },
+  "dependencies": { "zod": "^3.22.0" }
+}

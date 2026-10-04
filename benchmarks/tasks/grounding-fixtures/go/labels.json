@@ -1,0 +1,57 @@
+{
+  "language": "go",
+  "fake": [
+    {
+      "kind": "file",
+      "value": "internal/server/ghost.go"
+    },
+    {
+      "kind": "file",
+      "value": "internal/rank/ghost_test.go"
+    },
+    {
+      "kind": "symbol",
+      "value": "LoadConfg"
+    },
+    {
+      "kind": "symbol",
+      "value": "PhantomHandler"
+    },
+    {
+      "kind": "import",
+      "value": "example.com/fx/internal/ghost",
+      "note": "verify has no Go import parser; the judge catches it"
+    }
+  ],
+  "real": [
+    {
+      "kind": "file",
+      "value": "internal/config/config.go"
+    },
+    {
+      "kind": "file",
+      "value": "internal/rank/rank.go"
+    },
+    {
+      "kind": "file",
+      "value": "internal/rank/rank_test.go"
+    },
+    {
+      "kind": "symbol",
+      "value": "LoadConfig"
+    },
+    {
+      "kind": "symbol",
+      "value": "MergeDefaults"
+    },
+    {
+      "kind": "symbol",
+      "value": "RankFiles"
+    },
+    {
+      "kind": "import",
+      "value": "example.com/fx/internal/rank",
+      "note": "a real module path; the judge wrongly fails it for want of a package.json"
+    }
+  ]
+}

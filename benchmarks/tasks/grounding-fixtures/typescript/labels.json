@@ -1,0 +1,20 @@
+{
+  "language": "typescript",
+  "fake": [
+    { "kind": "file", "value": "src/retry.ts" },
+    { "kind": "symbol", "value": "fetchUsr" },
+    { "kind": "import", "value": "./gone" },
+    { "kind": "import", "value": "left-pad-9000" },
+    { "kind": "script", "value": "typecheck" }
+  ],
+  "real": [
+    { "kind": "file", "value": "src/api.ts" },
+    { "kind": "file", "value": "src/types.ts" },
+    { "kind": "symbol", "value": "createClient" },
+    { "kind": "symbol", "value": "fetchUser" },
+    { "kind": "import", "value": "./api" },
+    { "kind": "import", "value": "zod" },
+    { "kind": "script", "value": "build" },
+    { "kind": "script", "value": "test" }
+  ]
+}
