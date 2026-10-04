@@ -330,8 +330,8 @@ function inContextFiles(cwd) {
   for (const file of candidates) {
     let content;
     try { content = fs.readFileSync(file, 'utf8'); } catch (_) { continue; }
-    const markerIdx = content.indexOf('## Auto-generated signatures');
-    if (markerIdx !== -1) content = content.slice(markerIdx);
+    const section = require('../util/managed-section').findManagedSection(content);
+    if (section) content = content.slice(section.index);
     for (const m of content.matchAll(/^### (.+)$/gm)) {
       const rel = m[1].trim();
       if (!rel || rel.includes(' ')) continue;
