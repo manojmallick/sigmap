@@ -2000,7 +2000,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         88.0% vs 40.0%   (2.20× lift)
+ hit@5         88.8% vs 40.0%   (2.22× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2157,7 +2157,7 @@ sigmap bench --submit --json
  Submitted      : 2026-09-13
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 78.6%
+ hit@5          : 79.7%
  token reduction: 95.7%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs

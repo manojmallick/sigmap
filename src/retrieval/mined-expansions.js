@@ -17,7 +17,9 @@ const { tokenize, EXPANSIONS, stripAnchor } = require('./bm25');
  * measure-gated (`npm run benchmark:mined-expansions`).
  */
 
-const SCHEMA_VERSION = 1;
+// Keys are stems, so a cache written by a different stemmer matches nothing: bump
+// this whenever `stem()` changes (2: inflection-aware stemmer, #875).
+const SCHEMA_VERSION = 2;
 const CACHE_FILE = 'mined-expansions.json';
 
 // Precision filters. A token present in most files discriminates nothing
