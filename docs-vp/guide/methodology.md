@@ -102,7 +102,7 @@ Example tasks:
 **Metric:** Token count of final context
 - **Full repo signatures:** 12.8M tokens (before SigMap)
 - **SigMap output:** 241K tokens (after ranking/filtering)
-- **Reduction:** 95.8% average, 40–98% per repo
+- **Reduction:** 95.7% average, 40–98% per repo
 
 **Impact:** Without SigMap, 13 of 18 repos overflow GPT-4o's 128K context window. With SigMap, all 18 fit.
 

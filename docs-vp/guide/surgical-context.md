@@ -32,6 +32,25 @@ JavaScript class methods and interface members now carry their own range
 (spanning the member body), so `get_lines` can target an individual method.
 Remaining languages are being added in subsequent phases.
 
+### How accurate are anchors?
+
+An anchor is only useful if the range it names is the function it names. A
+wrong one sends an agent to the wrong code with full confidence, so for
+JavaScript and TypeScript this is checked rather than assumed: SigMap's own
+test suite takes every anchored column-0 function declaration in `src/` and
+`packages/` and requires that V8 compile the anchored slice as one complete
+function that closes on the anchored line — **0 of 984** are wrong as of
+v8.65.2.
+
+That check found a real defect. Before v8.65.2 about 4% of JavaScript anchors
+were wrong (75 of 979 on this repository): the block scanner mistook a
+regular-expression literal's braces and quotes, or a template literal nested
+inside another, for code structure, so a body ran on to the next function or
+stopped early. Both are now handled, in JavaScript and TypeScript only; every
+other language scans exactly as before. One residual ambiguity remains — a
+regex straight after a `)`, as in `if (x) /re/.test(y)`, reads as division —
+and it cannot move an anchor unless the regex itself holds a lone brace.
+
 ## `--mode index` — two-tier output
 
 `sigmap ask` normally writes ranked signature blocks. With `--mode index` it

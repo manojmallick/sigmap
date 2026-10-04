@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% average token reduction, 38 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.7% average token reduction, 38 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.7% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.8% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 78.6% hit@5, 43.4% fewer prompts, 95.7% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Grounded context AI can trust. Deterministic. Verifiable.
-  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 95.8% token reduction · zero deps, fully offline."
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 78.6% hit@5 · 95.7% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.65.1</span>
+  <span><strong>Release:</strong> v8.65.2</span>
   <span>·</span>
-  <span><strong>Fix — a file that quotes the marker keeps its text:</strong> SigMap appends its block under <code>## Auto-generated signatures</code> and promises never to overwrite what you wrote above it, but it matched the <em>first mention</em> of that heading anywhere and deleted everything after it. A <code>CLAUDE.md</code> that quoted the heading in a sentence or a code block lost every line that followed. One helper now finds the real section — outside code fences, the last one winning — and files already damaged repair in place. <a href="/guide/config#what-sigmap-writes-into-an-existing-file">What gets written →</a></span>
+  <span><strong>Fix — a line anchor ends where the function ends:</strong> every symbol carries a <code>:start-end</code> range an agent reads with <code>sigmap lines</code>, and about 4% of JavaScript ones were wrong — a body that ran on to the next function, or stopped early. A regex literal's braces and a template nested inside another confused the block scanner. An independent check now finds none of 984 wrong (it found 75 of 979), other languages scan exactly as before, and retrieval is unchanged. <a href="/guide/surgical-context#how-accurate-are-anchors">How anchors are checked →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.65-main</span>
   <span>·</span>
-  <span>78.6% hit@5 · 95.8% token reduction · 2026-10-04</span>
+  <span>78.6% hit@5 · 95.7% token reduction · 2026-10-04</span>
 </div>
 </div>
 
@@ -174,10 +174,10 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Prompts per task | 2.84 | **1.61** |
 | Retrieval hit@5 (retrieval corpus) | — | **78.6%** |
 | Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **88.0%** (2.20× lift) |
-| Overall token reduction | — | **95.8%** |
+| Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-04 (v8.63.0)**.
+Latest saved benchmark run: **2026-10-04 (v8.65.2)**.
 
 </div>
 
