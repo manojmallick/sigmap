@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.65.2)
+- **@manojmallick** — fix(extractors): about 4% of JavaScript function anchors were wrong (#874, PR #886). `maskCode` blanked comments and strings but not regular-expression literals, so the braces and quotes inside one unbalanced every block scan after it; a template literal nested inside another's `${ }` did the same. An opt-in `js` mode in `scan.js` — division versus regex by the token before the slash, escapes and classes, one token step shared with `${ }` expressions — fixes both, and the call graph's duplicate masker now uses it. An independent V8-based audit went from 75 of 979 anchors wrong to 0 of 984, other languages are byte-identical, and retrieval is unchanged.
+
 ### Recent Contributors (v8.65.1)
 - **@manojmallick** — fix(adapters): a context file that quoted `## Auto-generated signatures` lost every line after the quote (#873, PR #882). The writers located their block with the first occurrence of the marker anywhere in the file and discarded the rest, silently and unrecoverably when the file is untracked; this repository's own `CLAUDE.md` was truncated that way. One helper now decides what the managed section is — a stamped heading outside any code fence, the last one winning — and is used by all four adapters, the CLI core writer the issue did not list, the allowlist and skills injectors and two readers. Files already damaged repair in place and stay stable, and the same substring-test failure that replaced a whole human file mentioning "Code signatures" is fixed too.
 

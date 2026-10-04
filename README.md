@@ -63,7 +63,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 <!--SM:whyMetrics-->
 - **78.6% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
 - **88.0% vs 40.0% single-shot grep baseline** — 2.20× measured lift on the honest corpus (125 tasks / 19 repos)
-- **95.8% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
+- **95.7% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **61.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.61 prompts per task** — down from 2.84 (43.4% fewer retries, modeled)
 <!--/SM:whyMetrics-->
@@ -130,7 +130,7 @@ Date      : 2026-10-04
 
 Hit@5          : 78.6%   (retrieval corpus, 18 repos)
 Honest vs grep : 88.0% vs 40.0% grep baseline — 2.20× lift (125 tasks / 19 repos)
-Map vs repo    : 95.8% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
+Map vs repo    : 95.7% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 43.4% (2.84 → 1.61 prompts per task, modeled)
 Task success   : 61.0%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)

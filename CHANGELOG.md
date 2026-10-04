@@ -10,6 +10,30 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.65.2] — 2026-10-04
+
+Patch. About 4% of JavaScript function anchors were wrong: a body that ran on to a later function or the end of the file, or collapsed to one line. The `:start-end` anchor is the line range an agent reads through `sigmap lines`, `get_lines` and `--with-source`, so a wrong one sends it to the wrong code with full confidence. An independent check — V8 compiling each anchored slice, and the bare column-0 closing brace this repository writes — found 75 of 979 anchors wrong on `develop`; it finds none now.
+
+### Fixed
+- **Regex literals no longer unbalance the block scan** (#874, PR #886) — `maskCode` blanked comments and string contents but not regular-expression literals, so the braces, parens and quotes inside one (`/\{(\w+)\}/g`, `/['"]/g`) unbalanced every block scan after it, and a `//` inside one (`/\//g`) read as a comment. `scan.js` now has an opt-in `js` mode: a `/` divides after a value (an identifier, number, string, `)` or `]`, or a keyword-shaped word after a `.`) and starts a regex after an operator, an opening bracket or a word like `return`. Escapes and `[...]` classes are honoured, a regex never spans lines, and `</tag>` is never read as one
+- **A template literal nested in another's `${ }` no longer ends the outer one early** (#874, PR #886) — the issue did not name this second cause. `` `…${t.map((x) => `\`${x}\``)}…` `` closed at the inner backtick, which broke the scan after it, and it accounted for the last stubborn failure (`src/evidence/pack.js`). `${ }` expressions are now scanned with the same token step as the main loop, so a regex inside one is handled too
+- **The call graph had the same gap** (#874, PR #886) — `maskJs` in `call-graph.js` was a byte-for-byte copy of `maskCode`. It now delegates to the shared scanner, with the `js` mode for JS and TS files
+
+### Added
+- **`js-anchor-masking.test.js`, 55 guards** (PR #886) — regex content (braces, parens, both quote kinds, a backtick, `//`, `/*`, an escaped slash, a slash inside a class, flags), 14 prefixes after which a `/` starts a regex and 7 operands after which it divides, closing JSX tags, nested templates, a regex inside a `${ }`, the three extractors, the issue's seven examples, and a check that the oracle can fail. It includes the **self-audit**: every anchored column-0 function declaration in `src/` and `packages/` must end on the line V8 says it does — 0 of 984 are wrong, and 33 of the 55 tests fail on the previous release
+
+### Changed
+- **Two JS and TS files gain symbols the old scanner had swallowed** (PR #886) — axios `AxiosHeaders` and vue-core `stringifyExpression`. Across 5,618 JS and TS files in this repository and the benchmark corpora, 59 change in their output: 57 only in their anchors, 2 by gaining a symbol. Nothing is lost. The per-repo grounding gate's universe grows by 11 symbols (25,557 of 33,970 grounded; 75.2% as before), and the axios map is 123 tokens larger
+
+### Notes
+- **Other languages are untouched.** Without the option the scanner's output is byte-identical to the previous one across 16,898 real files (99 MB) of every language in this repository and the benchmark corpora
+- **One measured figure moves, by 0.1 points.** axios's generated map grows from 2,151 to 2,274 tokens (93.3% → 92.9% smaller than the source) because `AxiosHeaders` is now indexed, which takes the average token reduction across the 21 repos from 95.8% to 95.7%. The pooled reduction stays at 98.1%, and no other repository's output changes. It is the cost of a symbol the old scanner had been losing
+- **Retrieval does not move.** `validate:retrieval` reads hard 73.3% and mined 60.9% on this branch and on `develop`'s own HEAD in the same working tree, and the 18-repo retrieval benchmark has no per-repo difference
+- **Known limit:** a regex straight after a `)` (`if (x) /re/.test(y)`) still reads as division, the standard ambiguity of a one-token lookback. It cannot unbalance a block unless the regex itself holds a lone brace
+- **Not in this release:** #875 (stemmer conflation), #877 (the todos extractor matches `'## todos'` in a string — it needs the opposite mask, which keeps comments and hides strings) and #876 (the bundled entrypoint is indexed as source)
+
+---
+
 ## [8.65.1] — 2026-10-04
 
 Patch. A fix for data loss. The writers found their generated block with `existing.indexOf('## Auto-generated signatures')` — the first occurrence anywhere in the file — and discarded everything after it. A context file that merely *mentioned* the marker, in prose, in a code block or in a doc about SigMap itself, lost every human line that followed the mention on the next run, silently, and unrecoverably when the file is untracked. This repository's own `CLAUDE.md` was truncated mid-sentence that way.

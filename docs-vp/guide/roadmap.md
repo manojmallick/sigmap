@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.65.1, with the latest release fixing a data-loss bug (a context file that quoted the generated-block marker lost every line after the quote) and recent releases measuring grounding accuracy on labelled good and bad answers and fixing a benchmark that compared two populations, writing context files as a stable body then a volatile tail so a prefix cache keeps hitting, and putting every model name and price behind one dated, overridable profile (`--suggest-tool` had been naming models `gain --model` rejected), resting `--analyze` coverage and the `plan` change list on named evidence (5 of 182 files had been reported as tested), removing a stack overflow on trees past 125,000 files (the report named one frame; four more had the same defect), adding Objective-C and PowerShell at Tier 2 (the Objective-C extractor was run over 839 real files before release, and 11% of its output was not a declaration), giving the CLI one canonical command table and the coverage ratio one definition (a CI gate had been passing on 241%), pinning the documented JSON contract to what the CLI actually emits, closing the loop at the agent (ask --with-source returns symbol bodies, a stale index no longer answers silently, every ask figure names its basis), making every scope claim name its basis (--diff <ref> includes uncommitted work, --callers stops asserting a zero it cannot support), giving the dashboard one output path and one language list, giving the index population and its age one shared definition (validate, doctor and status can no longer contradict each other) and closing the create-pipeline guards (nothing-ran is not a pass, creation plans reach stage 2) and the project-shape cluster (flat-layout source roots, one monorepo verdict, srcDirs disclosure) and the retrieval-honesty cluster (one shared file-category definition, zero-score suppression, path IDF, ask --explain) and completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
+description: SigMap version history and roadmap. From v0.0 to v8.65.2, with the latest release making JavaScript line anchors end where the function ends (about 4% had been wrong) and recent releases fixing a data-loss bug (a context file that quoted the generated-block marker lost every line after the quote), measuring grounding accuracy on labelled good and bad answers and fixing a benchmark that compared two populations, writing context files as a stable body then a volatile tail so a prefix cache keeps hitting, and putting every model name and price behind one dated, overridable profile (`--suggest-tool` had been naming models `gain --model` rejected), resting `--analyze` coverage and the `plan` change list on named evidence (5 of 182 files had been reported as tested), removing a stack overflow on trees past 125,000 files (the report named one frame; four more had the same defect), adding Objective-C and PowerShell at Tier 2 (the Objective-C extractor was run over 839 real files before release, and 11% of its output was not a declaration), giving the CLI one canonical command table and the coverage ratio one definition (a CI gate had been passing on 241%), pinning the documented JSON contract to what the CLI actually emits, closing the loop at the agent (ask --with-source returns symbol bodies, a stale index no longer answers silently, every ask figure names its basis), making every scope claim name its basis (--diff <ref> includes uncommitted work, --callers stops asserting a zero it cannot support), giving the dashboard one output path and one language list, giving the index population and its age one shared definition (validate, doctor and status can no longer contradict each other) and closing the create-pipeline guards (nothing-ran is not a pass, creation plans reach stage 2) and the project-shape cluster (flat-layout source roots, one monorepo verdict, srcDirs disclosure) and the retrieval-honesty cluster (one shared file-category definition, zero-score suppression, path IDF, ask --explain) and completing the grounded-codegen plan — a realistic §9 ablation (real-symbol corpus, exact-signature grounding, --verbose), a Gemini (AI Studio) provider for the §9 ablation, the init Creation-workflow CLAUDE.md block, scaffold persistence, the LLM A/B hallucination ablation harness, the sigmap create orchestrator and its four guard stages (scaffold, verify-plan, verify-ai-output, review-pr), the conventions command with its full flag set (--conflicts, --inject, --report, --ci, --fix, --update), the grounding benchmark, read-time self-heal, live-index MCP write hooks, the get_callee_signatures MCP tool (exact callee signatures), realistic per-query savings, release-pipeline robustness (bundle integrity + version.json gates, standalone-bundle smoke test), the sigmap gain token-savings dashboard, supply-chain hardening (zero system-shell access), Squeeze input minimization with symbol enrichment, source-of-truth llms.txt, the verify-ai-output Hallucination Guard, and Memory tools (note, status, read_memory MCP tool).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "229 versions shipped. See what changed in each release and what is coming next."
+      content: "230 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,9 +20,9 @@ head:
 ---
 # Roadmap
 
-Two hundred twenty-nine versions shipped. MIT open source from day one.
+Two hundred thirty versions shipped. MIT open source from day one.
 
-**Stats:** 95.8% overall token reduction · 78.6% retrieval hit@5 · 2.20× measured lift vs single-shot grep (88.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
+**Stats:** 95.7% overall token reduction · 78.6% retrieval hit@5 · 2.20× measured lift vs single-shot grep (88.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,24 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.65.2 — a function anchor ends where the function ends ✓ (2026-10-04)
+
+**Patch.** A `:start-end` anchor is the line range an agent reads through `sigmap lines`, `get_lines` and `--with-source`, and it is the core of the claim that every symbol carries a real one. About 4% of JavaScript anchors were wrong: a body that ran on to a later function or the end of the file, or one that collapsed to a single line. An agent following one read the wrong code with full confidence.
+
+The block scanner found a function's end by matching braces over text in which comments and strings had been blanked — but not regular-expression literals. The braces, parens and quotes inside one (`/\{(\w+)\}/g`, `/['"]/g`) unbalanced every scan after it, and a `//` inside one (`/\//g`) read as a comment. A second cause the issue did not name: a template literal nested inside another's `${ }`, with its own backticks, ended the outer one early. An independent check that does not use the masker — V8 compiling each anchored slice, plus the bare column-0 closing brace this repository writes — found 75 of 979 anchors wrong; it finds none now.
+
+The scanner has an opt-in JavaScript/TypeScript mode. A `/` divides after a value (an identifier, number, string, `)` or `]`, or a keyword-shaped word after a `.`) and starts a regex after an operator, an opening bracket or a word like `return`; escapes and `[...]` classes are honoured; a regex never spans lines and `</tag>` is never one; and `${ }` expressions are scanned with the same token step as the main loop. The call graph carried a byte-for-byte copy of the old masker with the same gap; it now uses the shared scanner. Every other language scans exactly as before — the output is byte-identical across 16,898 real files.
+
+```
+before:  function _cleanEntry  :48-205     ← really 48-56      function verifyPlan  :108-108   ← really 108-203
+after:   function _cleanEntry  :48-56                          function verifyPlan  :108-203
+```
+
+**Tags:** `scan.js` · `js` mode · `jsToken` · `templateEnd` · `maskJs` · `anchor self-audit` · `#874`
+**Impact:** 55 new guards in `js-anchor-masking.test.js`, including a self-audit of every anchored function declaration in `src/` and `packages/` (0 of 984 wrong; 33 of the 55 fail on v8.65.1). Across 5,618 JS and TS files, 59 change — 57 only in their anchors, 2 gaining symbols the old scanner had swallowed. Retrieval does not change. One token figure moves by 0.1 points: axios's map grows by 123 tokens because `AxiosHeaders` is now indexed, so the average reduction reads 95.7% where it read 95.8%.
 
 ---
 
