@@ -54,7 +54,8 @@ function test(name, fn) {
 
   // ── generated factory is loadable + rewrites local requires (--fix output) ──
   test('generateFactory: produces a working factory with __require rewrites', () => {
-    // aggregate requires ./pricing — both must load via the bundle harness.
+    // aggregate requires ./pricing, and both read the model profile — all
+    // three must load via the bundle harness.
     const harness = `
       const __factories = {}; const __cache = {};
       function __require(key){
@@ -62,6 +63,7 @@ function test(name, fn) {
         const m = { exports: {} }; __cache[key] = m; __factories[key](m, m.exports);
         return m.exports;
       }
+      ${generateFactory('./src/config/models')}
       ${generateFactory('./src/tracking/pricing')}
       ${generateFactory('./src/tracking/aggregate')}
       module.exports = __require('./src/tracking/aggregate');

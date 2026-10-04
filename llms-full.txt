@@ -373,6 +373,7 @@ maxTokens = 6000
 autoMaxTokens = true
 coverageTarget = 0.8
 modelContextLimit = 128000
+models = {"asOf":null,"roster":[],"prices":{},"windows":{},"cacheMin":{},"charsPerToken":{},"tiers":{}}
 maxTokensHeadroom = 0.2
 secretScan = true
 monorepo = false

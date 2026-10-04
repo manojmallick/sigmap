@@ -250,13 +250,19 @@ function createCheckpoint(args, cwd) {
  */
 function getRouting(args, cwd) {
   const contextPath = path.join(cwd, CONTEXT_FILE);
+  // Model names come from the dated profile, never a literal here (#778).
+  const { resolveProfile, asOfLabel } = require('../config/models');
+  const { tierInfo } = require('../routing/hints');
+  let profile = resolveProfile();
+  try { profile = resolveProfile(require('../config/loader').loadConfig(cwd)); } catch (_) {}
   if (!fs.existsSync(contextPath)) {
     return (
       '_No context file found. Run `node gen-context.js --routing` first._\n\n' +
       'This generates routing hints that map each file to a model tier:\n' +
-      '- **fast** (haiku/gpt-4o-mini) — config, markup, trivial utilities\n' +
-      '- **balanced** (sonnet/gpt-4o) — standard application code\n' +
-      '- **powerful** (opus/gpt-4-turbo) — complex, security-critical, or large modules'
+      `- **fast** (${tierInfo('fast', profile).examples}) — config, markup, trivial utilities\n` +
+      `- **balanced** (${tierInfo('balanced', profile).examples}) — standard application code\n` +
+      `- **powerful** (${tierInfo('powerful', profile).examples}) — complex, security-critical, or large modules\n\n` +
+      `Model names: ${asOfLabel(profile)}.`
     );
   }
 
@@ -281,7 +287,7 @@ function getRouting(args, cwd) {
     const { classifyAll } = require('../../src/routing/classifier');
     const { formatRoutingSection } = require('../../src/routing/hints');
     const groups = classifyAll(entries, cwd);
-    return formatRoutingSection(groups);
+    return formatRoutingSection(groups, profile);
   } catch (err) {
     return `_Routing classification failed: ${err.message}_`;
   }

@@ -70,6 +70,28 @@ const DEFAULTS = {
   // Default: GPT-4o / Claude Sonnet (128K). Set higher for Gemini 1M etc.
   modelContextLimit: 128000,
 
+  // Model profile overrides (#688). SigMap ships a dated table of model names,
+  // input prices, context windows and cache minimums (src/config/models.js);
+  // every value here wins over the shipped one, per model and per field.
+  //   asOf          — "YYYY-MM-DD" you verified your figures; printed with them
+  //   roster        — the models you actually have; advice names only these,
+  //                   and (when modelContextLimit is unset) the budget cap drops
+  //                   to the smallest roster window if that is below the default
+  //   prices        — { "<model>": USD per 1M input tokens }
+  //   windows       — { "<model>": context window in tokens }
+  //   cacheMin      — { "<model>": minimum cacheable prefix in tokens }
+  //   charsPerToken — { "<model>": chars per token }; absent = chars/4, labelled est.
+  //   tiers         — { "<model>": "fast" | "balanced" | "powerful" }
+  models: {
+    asOf: null,
+    roster: [],
+    prices: {},
+    windows: {},
+    cacheMin: {},
+    charsPerToken: {},
+    tiers: {},
+  },
+
   // Fraction of the model context window reserved for SigMap output.
   // Leaves the remaining fraction for the conversation, system prompt, etc.
   // Default 0.20 = 20% of 128K = 25,600 token hard cap.

@@ -11,11 +11,18 @@ SigMap classifies every file in your codebase into one of three tiers.
 When you start a task, pick the tier that matches the *complexity of the task*,
 not just the file — see the decision flow below.
 
-| Tier | Label | Example models | Typical cost |
+| Tier | Label | Example models | Input price |
 |---|---|---|---|
-| `fast` | Fast (low-cost) | claude-haiku-4-5, gpt-5-1-codex-mini, gemini-3-flash | ~$0.0008 / 1K tokens |
-| `balanced` | Balanced (mid-tier) | claude-sonnet-4-6, gpt-5-2, gemini-3-1-pro | ~$0.003 / 1K tokens |
-| `powerful` | Powerful (high-cost) | claude-opus-4-6, gpt-5-4, gemini-2-5-pro | ~$0.015 / 1K tokens |
+| `fast` | Fast (low-cost) | claude-haiku-4-5, gpt-6-luna, gemini-3.5-flash-lite | $0.1–$1 / MTok |
+| `balanced` | Balanced (mid-tier) | claude-sonnet-5-5, gpt-6.1-sol, gemini-3.8-flash | $0.75–$2 / MTok |
+| `powerful` | Powerful (high-cost) | claude-fable-5-1, claude-opus-5-5, gpt-6-astra, gemini-3.1-pro-preview | $2–$10 / MTok |
+
+Names and prices are the shipped model profile **as of 2026-10-04**. They come from one
+dated table (`src/config/models.js`) that `gain --model` also prices from, and every
+output prints that date. Declare the models you actually have under `models.roster` in
+`gen-context.config.json` and the advice names only those; override any figure under
+`models.prices`. SigMap never fetches prices — `sigmap doctor` warns when the profile is
+more than 90 days old.
 
 ---
 
@@ -202,11 +209,12 @@ Instead of consulting the table manually, ask SigMap:
 ```bash
 node gen-context.js --suggest-tool "migrate from Passport.js v0.6 to v0.7"
 # tier   : powerful
-# models : claude-opus-4-6, gpt-5-4, gemini-2-5-pro
-# cost   : ~$0.015 / 1K tokens
+# models : claude-fable-5-1, claude-opus-5-5, gpt-6-astra, gemini-3.1-pro-preview
+# cost   : $2–$10 / MTok input
+# as of  : 2026-10-04 (shipped profile) — set "models.roster" in gen-context.config.json to name the models you have
 
 node gen-context.js --suggest-tool "fix the typo in the dockerfile" --json
-# {"tier":"fast","label":"Fast (low-cost)","models":"claude-haiku-4-5, gpt-5-1-codex-mini, gemini-3-flash","costHint":"~$0.0008 / 1K tokens"}
+# {"tier":"fast","label":"Fast (low-cost)","models":"claude-haiku-4-5, gpt-6-luna, gemini-3.5-flash-lite","modelIds":[…],"costHint":"$0.1–$1 / MTok input","asOf":"2026-10-04",…}
 ```
 
 Keyword matching covers the most common task patterns. When in doubt, start balanced and escalate.
