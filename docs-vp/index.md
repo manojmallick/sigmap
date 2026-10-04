@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.62.1</span>
+  <span><strong>Release:</strong> v8.62.2</span>
   <span>·</span>
-  <span><strong>New — large trees no longer crash:</strong> SigMap died with <code>Maximum call stack size exceeded</code> on any tree past roughly 125,000 files — a git root at the home directory was enough (reported by <a href="https://github.com/sidhunt">@sidhunt</a>). The report named one frame, <code>files.push(...found)</code>. Spreading a per-file array passes one call argument per file, and the same shape sat in four more places: with generation fixed, <code>sigmap ask</code> died in the ranker on the same tree, then <code>--analyze</code> in its table. All five are now loops, found by running commands on a real <strong>130,000-file tree</strong> rather than by reading the stack trace. Ranking is unchanged. <a href="/guide/roadmap">What changed →</a></span>
+  <span><strong>New — <code>--analyze</code> and <code>plan</code> name their evidence:</strong> <code>sigmap --analyze</code> reported <strong>5 of this repo&rsquo;s 182 files</strong> as tested, because it matched a basename as a substring one directory deep — so <code>fix</code> matched <code>fixtures</code> and every test under <code>test/integration/</code> was invisible. <code>sigmap plan</code> filled &ldquo;Likely to change&rdquo; with the ranker&rsquo;s <em>medium</em> band, which left out the file the task names and listed a CI fixture. A file is now covered when a test targets its name or actually loads it (137 of 182 here), and every change candidate shows its score and the task words it matched. <a href="/guide/cli#plan">How plan reads now →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.62-main</span>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.8%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-04 (v8.62.1)**.
+Latest saved benchmark run: **2026-10-04 (v8.62.2)**.
 
 </div>
 

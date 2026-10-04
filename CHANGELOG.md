@@ -10,6 +10,37 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.62.2] — 2026-10-04
+
+Patch. `sigmap --analyze` and `sigmap plan` each stated things about a repo that the code behind them could not support. `--analyze` reported 5 of this repo's 182 source files as tested. `plan` left the file a task names off its "Likely to change" list while listing a CI fixture. Both now rest on evidence the output names.
+
+### Fixed
+- **`--analyze` marked almost nothing as tested** (#769, #862, PR #863) — the check walked `test/` one level deep and matched a basename as a substring, so a test in `test/integration/` was invisible and `fix` matched the directory `fixtures`. A file is now covered when a test file targets its stem or loads it. On this repo: 5 → 137 of 182 files
+- **`plan` "Likely to change" was the wrong band** (#774, #862, PR #863) — it was the ranker's *medium* confidence band, which by construction leaves out the high-confidence files (the ones the task names) and admits anything scoring a third of the top match. It is now the `high` band, implementation files only: tests, fixtures, CI and docs stay off unless the task asks for them
+- **`plan` and `--analyze` could disagree about the same file** (#862, PR #863) — `plan` asked whether a function name appeared as a token in any test, a third heuristic that could not say which test it meant. Both commands now read one index, and `plan` prints the covering test files beside each covered file
+- **A same-named test was credited to every file of that stem** (PR #863) — `extractors/patterns.test.js` counted as a test of `security/patterns.js`. A same-named test now belongs to the file it loads
+
+### Added
+- **`src/analysis/test-coverage.js`** (#862, PR #863) — the shared coverage index. Two kinds of evidence: the naming rule `findRelatedTests` already used, and a load — a `require` / `import` that resolves to the file, or its path built with `path.join` / `path.resolve`. A path a test only mentions is not a load, and fixture directories hold no tests
+- **`relatedTestsIndex`** in `src/evidence/pack.js` (PR #863) — `findRelatedTests` indexed once for many lookups, pinned equal to it by a test
+- **Score and reason on every "Likely to change" entry** (#774, PR #863) — the score relative to the top match and the task words the file's path and signatures carry (`"pattern" in path and signatures`), so a weak match can be discounted rather than trusted
+- **`plan --json`: `likelyToChangeEvidence` and `relatedTests`** (PR #863) — `likelyToChange` stays a string array, so existing consumers are unaffected
+- **`plan-analyze-evidence.test.js`, 22 guards** (PR #863) — on fixture repos and on this repo
+
+### Changed
+- **`docs-vp/guide/cli.md`: the `plan` section described output the CLI never produced** — a "medium confidence" list in a layout the command does not print, and an `affectedTests` count that was never a key. Rewritten from real output, with the `--json` keys as a table
+
+### Notes
+- **The fix #769 proposed could not have worked.** `findRelatedTests` matches file-name stems, and none of the four files that issue lists shares a stem with its test (`judge-engine.js` ← `judge.test.js`, `orchestrate.js` ← `create.test.js`). The knowledge map's `tests` edges are built from the same helper and have the same gap; they are not changed here
+- **"Untested" still means no test file names or loads the file.** A module exercised only through the CLI is not detected — 45 files on this repo, mostly extractors loaded by name. The label was not changed
+- **Not changed: the `Intent : search` label for "add a new…" tasks** (the secondary note in #774). The intent list is part of the public Evidence Pack schema, so adding an intent is its own change, and nothing tracks it yet
+- **No published metric moved.** A fresh `benchmark:all` reproduces 95.8% / 78.6% / 43.4%, 88.0% vs 40.0% and test-discovery F1 98.0% exactly, and all five source reports are stamped `8.62.2 / 2026-10-04`. `findRelatedTests` itself is untouched, which is why the test-discovery figure did not move
+- **Ranking is untouched** — `ranker.js` is not modified — and every gated corpus holds its hit@5: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%. `hard` MRR reads 0.578 against 0.584 on a pristine v8.62.1 worktree, and a per-task diff accounts for all of it: one task (h034) moved from rank 1 to rank 2
+- **The new module was caught polluting the benchmark before it merged.** A module's leading comment is indexed as prose, and the first header — a paragraph of history — put `test-coverage.js` in the top three for three unrelated `hard` tasks. Cut to a purpose statement, it stopped
+- Full suite **206 integration + 28 unit, 0 failed** · `check:metrics`, `validate:llms`, `check:doc-counts` green · bundle reproducible from `src/` (180 modules) · supply-chain gate green (no shell spawns, no install scripts, `main` exports the API, no fingerprinting) · tarball 1003KB / 203 files
+
+---
+
 ## [8.62.1] — 2026-10-04
 
 Patch. SigMap crashed with `RangeError: Maximum call stack size exceeded` on any tree past roughly 125,000 files — a git root at the home directory was enough. The report named one frame. The same defect sat in four more places, and fixing only the reported one moved the crash from generation to `sigmap ask`.
