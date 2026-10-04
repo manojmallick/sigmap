@@ -141,6 +141,34 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
 | `adapters` | `string[]\|null` | `null` | v3.0+ alias for `outputs`. `loadConfig` mirrors it into `outputs` for `"copilot"`, `"claude"`, `"cursor"` and `"windsurf"`; `"openai"`, `"gemini"` and `"codex"` are dropped by that mirror, so list those in `outputs` instead. |
 
+## Prompt-cache layout
+
+A provider's prompt cache matches on an exact prefix: the first byte that differs ends the hit, and everything after it is billed as new input. SigMap therefore writes every context file as a **stable body, then an invisible `<!-- sigmap:volatile -->` marker, then the volatile tail**:
+
+| Stable (before the marker) | Volatile (after the marker) |
+|---|---|
+| usage guidance, `## deps`, version pins, `## todos`, the signature body, the omission notice | `## recent changes (<branch>@<commit>)`, `--diff` output, model-routing hints, the `Updated:` stamp |
+
+A new commit then changes only the tail, so the signature body stays a cache hit. This is on by default (`cacheLayout: "stable-prefix"`); set `"legacy"` to restore the old order. No written file carries a relative age ("5 minutes ago") in either layout — it is false the moment the file is written.
+
+`--format cache` writes `.github/copilot-instructions.cache.json` as an Anthropic `system` array: block 1 is the stable body carrying `cache_control` (with `"ttl": "1h"` when `cacheTtl` is `"1h"`), block 2 is the volatile tail with none.
+
+### Cache economics
+
+Verified against Anthropic's prompt-caching page on 2026-10-04:
+
+| | 5m TTL | 1h TTL |
+|---|---|---|
+| Cache write | 1.25× base input price | 2× base input price |
+| Cache read | 0.1× (lower on some models, e.g. 0.05× on Opus 5.5) | same |
+| Break-even | the 2nd request | the 3rd request |
+
+Caching is not free: a 1h write across only two requests costs 2 + 0.1 = 2.1× against 2× uncached. Anthropic honours up to four cache breakpoints per request, and a prefix below the model's minimum cacheable length is silently not cached. OpenAI and Gemini cache automatically on an exact-prefix match with no opt-in, so the same stable-first ordering helps them too; neither needs `--format cache`.
+
+### Fit check
+
+`sigmap --report` and `sigmap --format cache` compare the stable prefix against each model's minimum cacheable length, read from the [model profile](#models) (`cacheMin`; override it per model under `models.cacheMin`). SigMap counts characters, not tokens, so a prefix within ±15% of a minimum is reported as `borderline — verify with a provider token counter` rather than given a verdict. `--report --json` carries the same rows under `cacheFit`. Models with no verified `cacheMin` are left out, and the `legacy` layout has no stable prefix to measure, so it reports none.
+
 ## Token budget
 
 | Key | Type | Default | Description |
@@ -284,7 +312,9 @@ Before v8.51.0 these layouts were badly under-detected — the scan looked two d
 | `sigCache` | `boolean` | `false` | Enable incremental signature cache. When true, caches extracted signatures with mtime-based validation. Cache is automatically busted on version changes. Skips re-extraction of unchanged files for faster subsequent runs. |
 | `sessionBudgetTokens` | `number\|null` | `null` | Opt-in per-session budget for **estimated SigMap-emitted tokens** (chars/4). When set, [`sigmap budget`](/guide/cli#budget) and the MCP `get_budget` tool report remaining tokens, percent used, and an over-budget flag. Counts only what SigMap outputs — not the host chat's total spend. |
 | `contextTtlDays` | `number\|null` | `null` | Opt-in staleness threshold: when the newest generated context file is older than this many days, `budget`/`get_budget` flag it `STALE` and advise re-running sigmap. |
-| `format` | `"default"\|"cache"` | `"default"` | Output format. `"cache"` additionally writes an Anthropic prompt-cache JSON payload beside the markdown. |
+| `format` | `"default"\|"cache"` | `"default"` | Output format. `"cache"` additionally writes an Anthropic prompt-cache JSON payload beside the markdown — a `system` array of a cached stable block and an uncached volatile tail. See [Prompt-cache layout](#prompt-cache-layout). |
+| `cacheLayout` | `"stable-prefix"\|"legacy"` | `"stable-prefix"` | Where volatile content sits in every written context file. `"stable-prefix"` puts the signature body first and everything that changes per commit after it; `"legacy"` keeps the previous order (recent changes ahead of the signatures). See [Prompt-cache layout](#prompt-cache-layout). |
+| `cacheTtl` | `"5m"\|"1h"` | `"5m"` | TTL on the cached block `--format cache` writes. Exactly `"5m"` or `"1h"`; any other value warns and falls back to `"5m"`. |
 | `routing` | `boolean` | `false` | Append a model-routing hints section that groups files into fast / balanced / powerful tiers by complexity. |
 | `depMap` | `boolean` | `true` | Include a compact import dependency map (`## deps`) at the top of the output. |
 | `impactRadius` | `boolean` | `false` | Annotate file headings with reverse-dependency usage hints — the files that import them. |
@@ -311,7 +341,7 @@ Per-operation gain capture (`.context/gain.ndjson`, surfaced by [`sigmap gain`](
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `todos` | `boolean` | `true` | Append a TODO/FIXME/HACK/XXX section extracted from inline comments (max 20 entries). |
-| `changes` | `boolean` | `true` | Append a recent git log summary showing files changed in the last `changesCommits` commits. |
+| `changes` | `boolean` | `true` | Append a recent git summary, `## recent changes (<branch>@<commit>)`, showing files changed in the last `changesCommits` commits. Identified by commit, never by relative age. |
 | `changesCommits` | `number` | `10` | Number of recent commits analyzed for the `changes` section. |
 | `versionPins` | `boolean` | `true` | Append two dependency sections: `## versions (installed direct deps)` (JS from `node_modules`, Python from the venv `site-packages`) and, since v8.51.7, `## dependencies (declared — <ecosystems>)` read from the manifests, which covers every supported ecosystem and works with nothing installed. See [versionPins](#versionpins). |
 | `terse` | `boolean` | `false` | Deterministic terse encoding of the signature block (`function `→`fn `, tightened params/arrows/exports). Line anchors and doc hints are preserved byte-exactly. Measured −16.1% signature tokens on the SigMap repo (`npm run benchmark:terse`). Also available at runtime as the `--terse` flag. See [terse](#terse). |

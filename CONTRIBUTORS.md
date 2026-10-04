@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.64.0)
+- **@manojmallick** — feat(context): cache-stable context layout, a two-block cache payload and a per-model fit-check (#683, PR #868). A provider prompt cache matches on an exact prefix, but the generated context put a per-commit block and a relative age ahead of the whole signature body, so the body could never be a cache hit. Every written file is now a stable body, an invisible marker, then the volatile tail; `--format cache` writes the two as separate blocks with a validated `cacheTtl`; and `--report` reports whether the stable prefix reaches each model's minimum cacheable length, saying "borderline" instead of guessing inside ±15%.
+
 ### Recent Contributors (v8.63.0)
 - **@manojmallick** — feat(models): one dated, config-overridable model profile behind pricing and routing advice (#688, #778, #865, PR #866). `--suggest-tool` and `gain --model` used two unrelated, undated tables, so a name one printed was rejected by the other. Both now derive from `src/config/models.js`, every output that prints a model or a price prints the profile date, a `models` config namespace overrides any figure per model and per field, and `sigmap doctor` warns once the profile is more than 90 days old.
 

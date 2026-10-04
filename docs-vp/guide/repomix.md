@@ -124,36 +124,23 @@ Repomix becomes useful when you truly need a deep one-off session over the full 
 
 ## Prompt cache payload
 
-Use `node gen-context.js --format cache` to generate the Anthropic `cache_control` JSON structure. The stable signatures become a cached prefix — pay once, reuse across every request.
+Use `node gen-context.js --format cache` to generate the Anthropic `system` array. The stable signatures become a cached block; the volatile tail (recent commits) follows it uncached, so a new commit does not invalidate the cache.
 
 ```json
-{
-  "messages": [
-    {
-      "role": "user",
-      "content": [
-        {
-          "type": "text",
-          "text": "# Code signatures\n\n## src/api/users.ts\nexport class UserService\n  async findById(id: string): Promise<User>\n...",
-          "cache_control": { "type": "ephemeral" }
-        },
-        {
-          "type": "text",
-          "text": "Fix the race condition in UserService.findById"
-        }
-      ]
-    }
-  ]
-}
+[
+  {
+    "type": "text",
+    "text": "# Code signatures\n\n## src/api/users.ts\nexport class UserService\n  async findById(id: string): Promise<User>\n...",
+    "cache_control": { "type": "ephemeral" }
+  },
+  {
+    "type": "text",
+    "text": "## recent changes (main@3f2a9c1)\n..."
+  }
+]
 ```
 
-### Cache economics on a 100-request session
-
-| | Count | Cost |
-|-|-------|------|
-| Cache write | 1× | Full cost |
-| Cache reads | 99× | 10% cost |
-| **Session saving** | | **-60% API cost** |
+Whether this saves money depends on how many requests reuse the block inside its TTL: a 5m write costs 1.25× the input price, a 1h write 2×, and a read about 0.1×. See [cache economics](/guide/config#cache-economics) for the break-even and the per-model minimum prefix.
 
 ## One ignore file for both tools
 

@@ -7,15 +7,19 @@ function outputPath(cwd) { return path.join(cwd, 'llm-full.txt'); }
 
 function format(context, opts) {
   opts = opts || {};
+  // Stable-prefix layout (#683): the stamp trails the entries, not heads them.
+  const stampAtTail = opts.cacheLayout !== 'legacy';
+  const stamp = `Generated: ${new Date().toISOString()} | SigMap v${opts.version || ''}`;
   const lines = [
     `# ${context.projectName || 'Project'} — SigMap Context`,
-    `Generated: ${new Date().toISOString()} | SigMap v${opts.version || ''}`,
+    ...(stampAtTail ? [] : [stamp]),
     '',
   ];
   for (const entry of (context.fileEntries || [])) {
     const rel = path.relative(opts.cwd || '', entry.filePath);
     lines.push(`## ${rel}`, '```', ...(entry.sigs || []), '```', '');
   }
+  if (stampAtTail) lines.push(stamp);
   return lines.join('\n');
 }
 

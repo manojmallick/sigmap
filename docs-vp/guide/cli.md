@@ -126,8 +126,8 @@ If you are new to the product, start with the workflow pages first:
 | `--ci [--min-coverage N]` | CI exit gate — exits 1 when `indexed` coverage < threshold (default 80); same measurement as `validate` |
 | `--ci --json` | Gate verdict as JSON `{pass, coverage, threshold}` |
 | `--analyze` | Per-file breakdown of signatures, tokens, and extractor |
-| `--report` | Token reduction + coverage score + module heatmap |
-| `--report --json` | Machine-readable JSON report with coverage object |
+| `--report` | Token reduction + coverage score + module heatmap + per-model cache fit-check |
+| `--report --json` | Machine-readable JSON report with coverage object and `cacheFit` |
 | `--report --paper` | LaTeX/markdown tables for academic export |
 | `--health` | Composite 0–100 health score + coverage grade |
 | `--health --json` | Machine-readable health output with coverage fields |
@@ -2153,7 +2153,7 @@ sigmap bench --submit --json
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
  SigMap version : 8.51.2
- Benchmark ID   : sigmap-v8.63-main
+ Benchmark ID   : sigmap-v8.64-main
  Submitted      : 2026-09-13
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
@@ -2720,11 +2720,16 @@ sigmap --routing
 
 ## --format cache
 
-Wrap the output in Anthropic `cache_control` breakpoints so the stable signatures become a cached prefix.
+Write `.github/copilot-instructions.cache.json` as an Anthropic `system` array: the stable body carrying `cache_control`, then the volatile tail (recent commits, routing hints) without it — so a new commit re-bills only the tail. `cacheTtl` (`"5m"` or `"1h"`) sets the TTL, and the run prints a per-model [fit check](/guide/config#fit-check).
 
 ```bash
 sigmap --format cache
+# [sigmap] cache: wrote .github/copilot-instructions.cache.json (ttl 5m)
+# [sigmap] cache fit (stable prefix; minimums as of 2026-10-04):
+# [sigmap]   claude-sonnet-5-5  fits  ~9120 tokens (est. chars/4) — above the 512-token minimum
 ```
+
+See [Prompt-cache layout](/guide/config#prompt-cache-layout) for the layout, the economics and when caching does not pay.
 
 See [Repomix integration](/guide/repomix) for an example of using this with the two-layer strategy.
 
