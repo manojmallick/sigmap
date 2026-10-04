@@ -33,7 +33,7 @@ Two hundred twenty-six versions shipped. MIT open source from day one.
 | v0.2 | 3,000 | Smarter filtering |
 | v0.3 | 200–2,000 | Pull only what the task needs (MCP) |
 | v0.6 | −40% per conversation | Session discipline |
-| v0.8 | −60% API cost | Prompt cache breakpoints |
+| v0.8 | Cheaper repeated loads (depends on reuse within the cache TTL) | Prompt cache breakpoints |
 | v1.0 | 97% total | Full system — 80,000 → under 4,000 |
 | v1.1 | ~200 always-on | hot-cold + MCP: 99.75% reduction from baseline |
 | v1.3 | 50 diff-mode | Active PR work: 95%+ reduction for diffs |
@@ -123,7 +123,7 @@ The `--format cache` flag wraps context in Anthropic's `cache_control` breakpoin
 
 **Tags:** `cache_control breakpoints` · `--format cache` · `stable prefix` · `Anthropic API`
 
-**Impact: −60% API cost on repeated context loads**
+**Impact: repeated context loads are billed at the cache-read rate — whether that saves money depends on how many requests reuse the block inside its TTL (see [cache economics](/guide/config#cache-economics))**
 
 ---
 

@@ -37,9 +37,13 @@ function format(context, opts = {}) {
     : '';
 
   const meta = _confidenceMeta(opts);
+  // Stable-prefix layout (#683): the date trails the content, not heads it.
+  const stampAtTail = opts.cacheLayout !== 'legacy';
   return [
     `You are a coding assistant with complete knowledge of this codebase.`,
-    `The following code signatures were extracted by SigMap v${version} on ${timestamp}.`,
+    stampAtTail
+      ? `The following code signatures were extracted by SigMap v${version}.`
+      : `The following code signatures were extracted by SigMap v${version} on ${timestamp}.`,
     `<!-- ${meta} -->`,
     projectLine,
     `These signatures represent every public function, class, and type in the project.`,
@@ -47,6 +51,7 @@ function format(context, opts = {}) {
     `## Code Signatures`,
     ``,
     context,
+    ...(stampAtTail ? [`<!-- Updated: ${timestamp} -->`] : []),
   ].join('\n');
 }
 

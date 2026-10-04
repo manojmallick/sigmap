@@ -141,6 +141,18 @@ const DEFAULTS = {
   // Output format: 'default' (markdown only) | 'cache' (also write Anthropic prompt-cache JSON)
   format: 'default',
 
+  // Where volatile content sits in the generated context (#683).
+  //   'stable-prefix' — stable body first, then an invisible marker, then the
+  //                     blocks that change per commit (recent changes, routing
+  //                     hints, wall-clock stamps), so a prefix cache keeps
+  //                     hitting on the signature body across commits.
+  //   'legacy'        — the previous order, recent changes ahead of the signatures.
+  cacheLayout: 'stable-prefix',
+
+  // TTL on the cached block `--format cache` writes: exactly '5m' or '1h'.
+  // A 1h write costs 2x input (5m: 1.25x); reads are ~0.1x either way.
+  cacheTtl: '5m',
+
   // Append run metrics to .context/usage.ndjson after each generate
   tracking: false,
 

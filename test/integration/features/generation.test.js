@@ -62,7 +62,8 @@ test('includes todos and changes sections by default', () => {
   const out = readOutput(dir);
   assert.ok(out.includes('## todos'), 'expected todos section');
   assert.ok(out.includes('# TODO:'), 'expected TODO content line');
-  assert.ok(out.includes('## changes'), 'expected changes section');
+  assert.ok(/^## recent changes \(\S+@[0-9a-f]{7,}\)$/m.test(out), 'expected recent-changes section identified by branch@commit');
+  assert.ok(!/\d+ (second|minute|hour|day)s? ago/.test(out), 'no relative age in the written file (#683)');
 });
 
 test('adds coverage markers when enabled', () => {

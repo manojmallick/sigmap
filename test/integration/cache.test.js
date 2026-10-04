@@ -48,38 +48,59 @@ function seedSrc(dir) {
 
 console.log('\nUnit tests — formatCache()\n');
 
-test('returns valid JSON string', () => {
-  const result = formatCache('# Code signatures\n\nsome content');
-  const parsed = JSON.parse(result);
-  assert.ok(parsed, 'should parse as JSON');
+const MARK = '<!-- sigmap:volatile -->';
+const layoutContent = `# Code signatures\n\n## src\n\n### src/index.js\n\`\`\`\nfunction hello()\n\`\`\`\n\n${MARK}\n## recent changes (develop@abc1234)\n\`\`\`\nsrc/index.js  +hello\n\`\`\`\n`;
+
+test('returns a JSON array of system blocks', () => {
+  const parsed = JSON.parse(formatCache('# Code signatures\n\nsome content'));
+  assert.ok(Array.isArray(parsed), 'should be the Anthropic system array');
 });
 
-test('top-level type is "text"', () => {
-  const parsed = JSON.parse(formatCache('hello'));
-  assert.strictEqual(parsed.type, 'text');
-});
-
-test('text field contains the input content', () => {
-  const content = '# Code signatures\n\n## src\n\n### src/index.js\n```\nfunction hello()\n```\n';
+test('content with no volatile marker is one cached text block', () => {
+  const content = '# Code signatures\n\n## src\n';
   const parsed = JSON.parse(formatCache(content));
-  assert.strictEqual(parsed.text, content);
+  assert.strictEqual(parsed.length, 1);
+  assert.strictEqual(parsed[0].type, 'text');
+  assert.strictEqual(parsed[0].text, content);
+  assert.deepStrictEqual(parsed[0].cache_control, { type: 'ephemeral' });
 });
 
-test('cache_control is { type: "ephemeral" }', () => {
-  const parsed = JSON.parse(formatCache('hello'));
-  assert.deepStrictEqual(parsed.cache_control, { type: 'ephemeral' });
+test('stable-prefix content splits into a cached block then an uncached tail', () => {
+  const parsed = JSON.parse(formatCache(layoutContent));
+  assert.strictEqual(parsed.length, 2);
+  assert.deepStrictEqual(parsed[0].cache_control, { type: 'ephemeral' });
+  assert.ok(parsed[0].text.includes('function hello()'));
+  assert.ok(!parsed[0].text.includes('recent changes'), 'volatile content must not sit inside the cached block');
+  assert.strictEqual(parsed[1].cache_control, undefined, 'the volatile tail carries no cache_control');
+  assert.ok(parsed[1].text.startsWith('## recent changes'));
+  assert.ok(!parsed.some((b) => b.text.includes(MARK)), 'the marker is a boundary, not content');
+});
+
+test('an empty volatile tail is omitted, never sent as an empty block', () => {
+  const parsed = JSON.parse(formatCache(`# Code signatures\n\nbody\n\n${MARK}\n`));
+  assert.strictEqual(parsed.length, 1);
+});
+
+test('ttl "1h" is carried on the cached block only', () => {
+  const parsed = JSON.parse(formatCache(layoutContent, { ttl: '1h' }));
+  assert.deepStrictEqual(parsed[0].cache_control, { type: 'ephemeral', ttl: '1h' });
+  assert.strictEqual(parsed[1].cache_control, undefined);
+});
+
+test('ttl "5m" leaves the API default implicit', () => {
+  const parsed = JSON.parse(formatCache(layoutContent, { ttl: '5m' }));
+  assert.deepStrictEqual(parsed[0].cache_control, { type: 'ephemeral' });
 });
 
 test('handles empty string without throwing', () => {
-  const result = formatCache('');
-  const parsed = JSON.parse(result);
-  assert.strictEqual(parsed.text, '');
+  const parsed = JSON.parse(formatCache(''));
+  assert.strictEqual(parsed.length, 1);
+  assert.strictEqual(parsed[0].text, '');
 });
 
 test('handles null without throwing', () => {
-  const result = formatCache(null);
-  const parsed = JSON.parse(result);
-  assert.strictEqual(parsed.text, '');
+  const parsed = JSON.parse(formatCache(null));
+  assert.strictEqual(parsed[0].text, '');
 });
 
 // ---------------------------------------------------------------------------
@@ -167,9 +188,12 @@ test('cache JSON file is valid JSON', () => {
   });
 });
 
-test('cache JSON has type=text and cache_control.type=ephemeral', () => {
+test('cache JSON is a system array: cached stable block, then uncached volatile tail', () => {
   withTempProject((dir) => {
     seedSrc(dir);
+    execSync('git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm one', { cwd: dir, stdio: 'pipe' });
+    fs.appendFileSync(path.join(dir, 'src', 'index.js'), '\nfunction extra() {}\n');
+    execSync('git -c user.email=t@t -c user.name=t commit -qam two', { cwd: dir, stdio: 'pipe' });
     execSync(`node "${GEN_CONTEXT}" --format cache`, {
       cwd: dir,
       encoding: 'utf8',
@@ -178,23 +202,13 @@ test('cache JSON has type=text and cache_control.type=ephemeral', () => {
     });
     const cachePath = path.join(dir, '.github', 'copilot-instructions.cache.json');
     const parsed = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    assert.strictEqual(parsed.type, 'text');
-    assert.deepStrictEqual(parsed.cache_control, { type: 'ephemeral' });
-  });
-});
-
-test('cache JSON text field contains code signatures', () => {
-  withTempProject((dir) => {
-    seedSrc(dir);
-    execSync(`node "${GEN_CONTEXT}" --format cache`, {
-      cwd: dir,
-      encoding: 'utf8',
-      timeout: 15000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    const cachePath = path.join(dir, '.github', 'copilot-instructions.cache.json');
-    const parsed = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    assert.ok(parsed.text.includes('Code signatures'), 'text should contain signatures header');
+    assert.ok(Array.isArray(parsed));
+    assert.strictEqual(parsed[0].type, 'text');
+    assert.deepStrictEqual(parsed[0].cache_control, { type: 'ephemeral' });
+    assert.ok(parsed[0].text.includes('Code signatures'), 'cached block should carry the signatures');
+    assert.ok(!parsed[0].text.includes('recent changes'), 'recent changes must not be inside the cached block');
+    assert.strictEqual(parsed.length, 2, 'a repo with recent changes has a volatile tail block');
+    assert.strictEqual(parsed[1].cache_control, undefined);
   });
 });
 

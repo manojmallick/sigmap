@@ -81,6 +81,12 @@
   "_changesCommits_comment": "How many recent commits to analyze for the changes section",
   "changesCommits": 5,
 
+  "_cacheLayout_comment": "Where volatile content sits in written context files. 'stable-prefix' (default): signatures first, recent changes + stamps after a marker so a prefix cache keeps hitting. 'legacy': previous order.",
+  "cacheLayout": "stable-prefix",
+
+  "_cacheTtl_comment": "TTL for the cached block written by --format cache: exactly '5m' or '1h'",
+  "cacheTtl": "5m",
+
   "_testCoverage_comment": "Append function-level coverage hints (✓/✗) by scanning tests",
   "testCoverage": false,
 
