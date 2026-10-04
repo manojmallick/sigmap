@@ -181,7 +181,7 @@ The same fix removed a false positive in the other direction. The old check comp
 
 ## Models
 
-SigMap ships one dated table of model names, input prices, context windows and cache minimums (`src/config/models.js`). It is the only source behind `--suggest-tool`, the routing section, `gain`, `--cost` and the cost line of `ask`, so a name one command prints is always a name another accepts. The `models` namespace lays your own values over it — **your value wins, per model and per field**, and everything you leave unset keeps the shipped figure.
+**v8.63.0.** SigMap ships one dated table of model names, input prices, context windows and cache minimums (`src/config/models.js`). It is the only source behind `--suggest-tool`, the routing section, `gain`, `--cost` and the cost line of `ask`, so a name one command prints is always a name another accepts. The `models` namespace lays your own values over it — **your value wins, per model and per field**, and everything you leave unset keeps the shipped figure.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|

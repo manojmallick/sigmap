@@ -101,7 +101,7 @@ If you are new to the product, start with the workflow pages first:
 | `lines <file> <start>-<end>` | Print an exact line range — the CLI twin of the `get_lines` MCP tool; `:<line> --context <n>` for an anchor window |
 | `note "<text>"` | Append a note to the cross-session decision log (`note` alone lists recent) |
 | `status` | Repo state — branch, dirty files, index freshness, notes |
-| `doctor` | Diagnose config, index, freshness, coverage, and MCP wiring — with a fix per issue (`--json`; exits 1 on hard failure) |
+| `doctor` | Diagnose config, index, freshness, coverage, the model profile, and MCP wiring — with a fix per issue (`--json`; exits 1 on hard failure) |
 | `wiki` | Deterministic architecture narrative → `.context/WIKI.md` — modules, hubs, entry points, conventions, health; no LLM (`--json`, `--out`) |
 | `mcp list` | List supported MCP clients and their config paths (`--json`) |
 | `mcp install <client>` | Wire MCP for one client — `claude`/`cursor`/`windsurf`/`vscode`/`zed`/`codex`/`gemini`/`opencode`/`mcp`; creates the config if absent; `--global` for user-level |
@@ -143,7 +143,7 @@ If you are new to the product, start with the workflow pages first:
 | `gain --json` | Aggregate savings as JSON |
 | `gain --since <7d\|ISO>` | Window filter (`7d`, `30d`, `12h`, or ISO date) |
 | `gain --top <n> \| --model <name>` | Limit rows / set the $ pricing model (an unknown name is priced as the default and **says so** on stderr) |
-| `gain --models` | List the known pricing model keys and their per-MTok rates |
+| `gain --models` | List the accepted model names, their per-MTok input rates, and the date of the profile they come from |
 | `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
 | `--no-track` | Disable gain savings capture for a run |
 | `--init` | Scaffold `gen-context.config.json` and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
@@ -151,7 +151,7 @@ If you are new to the product, start with the workflow pages first:
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched |
 | `--callees <symbol>` | Every repo function that `<symbol>` transitively calls |
-| `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier |
+| `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier, naming models from the dated profile (or your roster) |
 | `--version` | Print version and exit |
 | `--help` | Print help and exit |
 
@@ -1512,7 +1512,7 @@ Equivalent to setting `testCoverage: true` in config, but applied only for the c
 
 ## doctor
 
-One-shot setup diagnostic. Runs eight resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, and MCP wiring — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
+One-shot setup diagnostic. Runs nine resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, the model profile, and MCP wiring — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
 
 ```bash
 sigmap doctor
@@ -1529,10 +1529,22 @@ sigmap doctor
 ⚠ Index freshness — 1 source file(s) changed since last generate (from .context/sig-index.json)
     ↳ run: sigmap   (or: sigmap --watch to auto-refresh)
 ✓ Coverage — in-context 71% (54/76 scoped source files) grade B
+✓ Model profile — as of 2026-10-04 (shipped profile) · no roster declared — advice names the shipped defaults
 ✓ MCP wiring — registered in .claude/settings.json
 
 0 error(s), 1 warning(s).
 ```
+
+::: tip The model profile check (v8.63.0)
+Every model name, price and context window SigMap prints comes from one dated table, and nothing refreshes it — there is no live fetch. Its age is therefore the only freshness signal there is. The check warns once the profile in force is more than **90 days** old, and when your [`models.roster`](/guide/config#models) names a model with no price on record:
+
+```text
+⚠ Model profile — as of 2026-10-04 (shipped profile) is 91 days old (limit 90) — model names, prices and windows may have changed
+    ↳ check your vendors' pricing pages, then set "models.asOf" and any changed figures in gen-context.config.json — or upgrade sigmap
+```
+
+Setting `models.asOf` to the date you verified your figures clears it; so does upgrading to a release with a newer shipped profile.
+:::
 
 ::: tip Source files in scope (v8.56.0)
 `Coverage` above is measured *over* `srcDirs`, so it cannot see a file the detector never selected — which is how a flat Go layout reported a healthy percentage while the codebase was invisible (#805). The `Source files in scope` check measures the **population itself**: implementation files that fall outside every `srcDir`.
@@ -2141,7 +2153,7 @@ sigmap bench --submit --json
  SigMap Community Benchmark Submission
 ────────────────────────────────────────────────────────
  SigMap version : 8.51.2
- Benchmark ID   : sigmap-v8.62-main
+ Benchmark ID   : sigmap-v8.63-main
  Submitted      : 2026-09-13
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
@@ -2219,7 +2231,7 @@ sigmap --cost --json
  Savings        : 99%  ($2.0207 saved per query)
 ```
 
-`--model` takes any name [`sigmap gain --models`](#gain) lists; the default is `gpt-4o`. The price and its date come from the [model profile](/guide/config#models). Token counts are the chars/4 estimate and say so; set `models.charsPerToken` for the priced model and the counts use your factor instead. `--json` adds `priceAsOf` and `tokenBasis`.
+`--model` takes any name [`sigmap gain --models`](#gain) lists; the default is `gpt-4o`. Since **v8.63.0** the header carries the price date and the token basis. The price and its date come from the [model profile](/guide/config#models). Token counts are the chars/4 estimate and say so; set `models.charsPerToken` for the priced model and the counts use your factor instead. `--json` adds `priceAsOf` and `tokenBasis`.
 
 ---
 
@@ -2627,7 +2639,7 @@ sigmap --suggest-tool "Fix the null pointer in UserService.findById"
   as of  : 2026-10-04 (shipped profile) — set "models.roster" in gen-context.config.json to name the models you have
 ```
 
-The tier comes from a keyword rule over your task description. The model names and the price span come from the dated [model profile](/guide/config#models) — the same table `gain --model` prices from, so **every name printed here is one `gain --model` accepts**. Declare `models.roster` and the line names only the models you have; a tier your roster has no model for says so instead of suggesting one you cannot use.
+The tier comes from a keyword rule over your task description. Since **v8.63.0** the model names and the price span come from the dated [model profile](/guide/config#models) — the same table `gain --model` prices from, so **every name printed here is one `gain --model` accepts**. Declare `models.roster` and the line names only the models you have; a tier your roster has no model for says so instead of suggesting one you cannot use.
 
 Add `--json` for the machine-readable form. It keeps `tier`, `label`, `models` and `costHint`, and adds `modelIds` (array), `asOf`, `asOfSource` (`shipped` or `config`), `roster` and `basis`. The advice is a static rule, not a measurement, and `basis` says so.
 
@@ -2793,7 +2805,7 @@ Known pricing models (sigmap gain --model <name>) — input prices as of 2026-10
   claude-haiku             $1/MTok  → claude-haiku-4-5
 ```
 
-This is the one model table SigMap has: [`--suggest-tool`](#suggest-tool) and the routing section name models from it, and `--cost` and `ask` price from it. The family keys (`claude-sonnet`, `claude-opus`, `claude-haiku`) are aliases for the current model of that family, so the rate they resolve to moves when the profile does. Prices you set under [`models.prices`](/guide/config#models) appear here and win over the shipped ones; the header then reads `(your config)` when you also set `models.asOf`. The `gemini-1.5-*` keys earlier releases listed are gone — the vendor no longer publishes a price for them; add your own under `models.prices` if you still use one.
+Since **v8.63.0** this is the one model table SigMap has: [`--suggest-tool`](#suggest-tool) and the routing section name models from it, and `--cost` and `ask` price from it. The family keys (`claude-sonnet`, `claude-opus`, `claude-haiku`) are aliases for the current model of that family, so the rate they resolve to moves when the profile does. Prices you set under [`models.prices`](/guide/config#models) appear here and win over the shipped ones; the header then reads `(your config)` when you also set `models.asOf`. The `gemini-1.5-*` keys earlier releases listed are gone — the vendor no longer publishes a price for them; add your own under `models.prices` if you still use one.
 
 The exit code and the dashboard itself are unchanged — the fallback is disclosed, not removed, because a figure someone is already quoting should not silently change shape.
 
