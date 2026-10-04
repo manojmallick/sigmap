@@ -44,27 +44,27 @@
   },
   "sources": {
     "benchmark-matrix.json": {
-      "version": "8.65.0",
+      "version": "8.65.1",
       "generated": "2026-10-04"
     },
     "grounding-regression.json": {
-      "version": "8.65.0",
+      "version": "8.65.1",
       "generated": "2026-10-04"
     },
     "honest-baseline.json": {
-      "version": "8.65.0",
+      "version": "8.65.1",
       "generated": "2026-10-04"
     },
     "task-benchmark.json": {
-      "version": "8.65.0",
+      "version": "8.65.1",
       "generated": "2026-10-04"
     },
     "test-discovery.json": {
-      "version": "8.65.0",
+      "version": "8.65.1",
       "generated": "2026-10-04"
     },
     "token-reduction.json": {
-      "version": "8.65.0",
+      "version": "8.65.1",
       "generated": "2026-10-04"
     }
   }
