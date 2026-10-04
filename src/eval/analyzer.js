@@ -18,6 +18,7 @@ const path = require('path');
 // truth (#591). This file previously kept its own copy, which had drifted to
 // a dead duplicate `.vue` key.
 const { langFor } = require('../extractors/dispatch');
+const { buildTestCoverageIndex } = require('../analysis/test-coverage');
 
 function getExtractorName(filePath) {
   return langFor(filePath);
@@ -26,27 +27,6 @@ function getExtractorName(filePath) {
 /** Rough token estimate: chars / 4 */
 function tokenCount(sigs) {
   return Math.ceil(sigs.reduce((sum, s) => sum + s.length, 0) / 4);
-}
-
-/**
- * Check whether a test file exists for this source file by looking for
- * *.test.* / *.spec.* patterns in the test/ directory tree.
- */
-function hasCoverage(filePath, cwd) {
-  const rel   = path.relative(cwd, filePath);
-  const base  = path.basename(rel, path.extname(rel));  // e.g. "python"
-  const testDirs = ['test', 'tests', '__tests__', 'spec'];
-  for (const d of testDirs) {
-    const abs = path.join(cwd, d);
-    if (!fs.existsSync(abs)) continue;
-    // Walk only one depth for speed
-    let entries;
-    try { entries = fs.readdirSync(abs, { withFileTypes: true }); } catch (_) { continue; }
-    for (const e of entries) {
-      if (e.name.includes(base)) return true;
-    }
-  }
-  return false;
 }
 
 /**
@@ -82,6 +62,8 @@ function analyzeFiles(files, cwd, opts) {
 
   const stats = [];
   const extractorCache = {};
+  // One index for the whole run, shared with `plan` (#862).
+  const coverage = buildTestCoverageIndex(cwd, { files });
 
   for (const filePath of files) {
     const extractorName = getExtractorName(filePath);
@@ -112,7 +94,7 @@ function analyzeFiles(files, cwd, opts) {
 
     const rel      = path.relative(cwd, filePath);
     const tokens   = tokenCount(sigs);
-    const covered  = hasCoverage(filePath, cwd);
+    const covered  = coverage.testsFor(rel).length > 0;
     const isSlow   = slow && elapsedMs > slowMs;
     // v4.0: signal quality = sigs per line-of-code (higher = more informative to LLMs)
     const linesOfCode    = content.split('\n').length;

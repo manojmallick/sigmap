@@ -1725,6 +1725,181 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
   
 };
 
+// ── ./src/analysis/test-coverage ──
+__factories["./src/analysis/test-coverage"] = function(module, exports) {
+  
+  /**
+   * Test coverage by evidence: which test files exercise a given source file.
+   * Shared by `--analyze` (its tested / untested column) and `plan` (the tests
+   * to re-run after a change), so the two commands cannot disagree (#862).
+   *
+   * "Not covered" means no test file targets or loads the source file. A module
+   * exercised only through the CLI is not detected, so the absence is not proof
+   * that nothing tests it.
+   *
+   * A source file is covered when a test file
+   *   name      — targets its stem (`findRelatedTests`: `foo.test.js`,
+   *               `test_foo.py`, `FooTest.java`), or
+   *   reference — loads it: a `require` / `import` that resolves to it, or
+   *               its path built with `path.join` / `path.resolve`
+   *               (`path.join(ROOT, 'src/x/y')`, `path.join(ROOT, 'src', 'x', 'y.js')`).
+   *               A path a test merely mentions — a fixture map key such as
+   *               `'src/auth.js': '…'` — is not a load.
+   *
+   * Name evidence alone misses every test named after a feature rather than a
+   * file — `judge.test.js` exercising `judge-engine.js` — which is most of an
+   * integration suite. Reference evidence is path-shaped, so it sees JS/TS
+   * `require` / `import` and joined paths; a Python or JVM import by package
+   * name is left to the naming rule.
+   *
+   * Each command used to keep its own heuristic, and they disagreed. `--analyze`
+   * looked for the basename as a substring of the entries directly under `test/`,
+   * so `fix` matched the directory `fixtures` and nothing one level down was
+   * seen. `plan` asked whether a function name appeared as a token in any test.
+   * Neither could say which test it meant.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { relatedTestsIndex } = __require('./src/evidence/pack');
+  const { TEST_ROOTS } = __require('./src/analysis/index-state');
+  const { CODE_EXTS } = __require('./src/analysis/coverage-score');
+  const { isTestFile, isMockFile } = __require('./src/util/file-class');
+
+  // Scaffolding under a test root: inputs and expected outputs, not tests. Matched
+  // as a prefix, so `fixtures-adversarial/` is recognised as well as `fixtures/`.
+  const NOT_TESTS_RE = /^(node_modules|_{0,2}(fixtures?|testdata|snapshots?|expected)(_{0,2}|[-_.].*))$/i;
+  const MAX_DEPTH = 8;
+  const MAX_BYTES = 512 * 1024;
+
+  // A path a test loads: the argument of require / import / from.
+  const LOAD_RE = /\b(?:require|import)\s*\(\s*(['"`])([^'"`\n]+)\1|\b(?:from|import)\s+(['"`])([^'"`\n]+)\3/g;
+  // A path it builds: `path.join(ROOT, 'src/x/y')` or `path.join(ROOT, 'src', 'x', 'y.js')`.
+  const JOIN_CALL_RE = /\b(?:join|resolve)\(([^()]*)\)/g;
+  const SEGMENT_ARG_RE = /^(['"`])([\w@./-]+)\1$/;
+
+  const _posix = (p) => String(p).replace(/\\/g, '/');
+
+  // Repo-relative, minus the code extension: the key both sides meet on.
+  function _key(rel) {
+    const ext = path.posix.extname(rel);
+    return ext && CODE_EXTS.has(ext.toLowerCase()) ? rel.slice(0, -ext.length) : rel;
+  }
+
+  // What one test file loads or builds, exactly as its source spells it.
+  function _pathsIn(src) {
+    const out = [];
+    let m;
+    LOAD_RE.lastIndex = 0;
+    while ((m = LOAD_RE.exec(src)) !== null) {
+      const lit = m[2] || m[4];
+      if (lit.includes('/')) out.push(lit);
+    }
+    JOIN_CALL_RE.lastIndex = 0;
+    while ((m = JOIN_CALL_RE.exec(src)) !== null) {
+      let run = [];
+      const flush = () => {
+        if (run.length > 1 || (run.length === 1 && run[0].includes('/'))) out.push(run.join('/'));
+        run = [];
+      };
+      for (const arg of m[1].split(',')) {
+        const lit = arg.trim().match(SEGMENT_ARG_RE);
+        if (lit) run.push(lit[2]); else flush();
+      }
+      flush();
+    }
+    return out;
+  }
+
+  function _isTest(rel) {
+    return CODE_EXTS.has(path.posix.extname(rel).toLowerCase()) && !isMockFile(rel);
+  }
+
+  function _walk(dir, rel, depth, exclude, out) {
+    if (depth > MAX_DEPTH) return;
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    for (const e of entries) {
+      if (e.name.startsWith('.') || NOT_TESTS_RE.test(e.name) || exclude.has(e.name)) continue;
+      const childRel = `${rel}/${e.name}`;
+      if (e.isDirectory()) _walk(path.join(dir, e.name), childRel, depth + 1, exclude, out);
+      else if (e.isFile() && _isTest(childRel)) out.push(childRel);
+    }
+  }
+
+  /**
+   * Index the repo's test files once, then look up the tests of each source file.
+   *
+   * @param {string} cwd
+   * @param {object} [opts]
+   * @param {string[]} [opts.files]   - files already known (repo-relative or
+   *        absolute); the test files among them are added, so tests that sit
+   *        beside their source are seen without a second walk
+   * @param {string[]} [opts.exclude] - directory names to skip
+   * @returns {{ testFiles: string[], testsFor: (relPath: string) => string[] }}
+   */
+  function buildTestCoverageIndex(cwd, opts = {}) {
+    const exclude = new Set(opts.exclude || []);
+    const found = [];
+    for (const root of TEST_ROOTS) _walk(path.join(cwd, root), root, 0, exclude, found);
+    for (const f of opts.files || []) {
+      const rel = _posix(path.isAbsolute(f) ? path.relative(cwd, f) : f);
+      if (isTestFile(rel) && _isTest(rel) && !rel.split('/').some((seg) => NOT_TESTS_RE.test(seg))) found.push(rel);
+    }
+    const testFiles = [...new Set(found)].sort();
+
+    const byName = relatedTestsIndex(testFiles);
+
+    const byReference = new Map();
+    const referencedBy = new Map();
+    for (const test of testFiles) {
+      let src;
+      try {
+        const abs = path.join(cwd, test);
+        if (fs.statSync(abs).size > MAX_BYTES) continue;
+        src = fs.readFileSync(abs, 'utf8');
+      } catch (_) { continue; }
+      const dir = path.posix.dirname(test);
+      for (const lit of _pathsIn(src)) {
+        const rel = path.posix.normalize(lit.startsWith('.') ? path.posix.join(dir, lit) : lit);
+        if (rel.startsWith('..')) continue;                                // outside the repo
+        const key = _key(rel);
+        if (!byReference.has(key)) byReference.set(key, new Set());
+        byReference.get(key).add(test);
+        if (!referencedBy.has(test)) referencedBy.set(test, new Set());
+        referencedBy.get(test).add(key);
+      }
+    }
+
+    // Two source files can share a stem (`security/patterns.js`,
+    // `extractors/patterns.js`), and the naming rule gives `patterns.test.js` to
+    // both. When that test loads one of them and not the other, it is the test of
+    // the one it loads.
+    function loadsNamesake(test, key) {
+      const base = path.posix.basename(key).toLowerCase();
+      for (const k of referencedBy.get(test) || []) {
+        if (k !== key && path.posix.basename(k).toLowerCase() === base) return true;
+      }
+      return false;
+    }
+
+    function testsFor(relPath) {
+      const rel = _posix(relPath);
+      if (isTestFile(rel)) return [];
+      const key = _key(rel);
+      const out = new Set(byName(rel).filter((t) => !loadsNamesake(t, key)));
+      const keys = path.posix.basename(key) === 'index' ? [key, path.posix.dirname(key)] : [key];
+      for (const k of keys) for (const t of byReference.get(k) || []) out.add(t);
+      return [...out].sort();
+    }
+
+    return { testFiles, testsFor };
+  }
+
+  module.exports = { buildTestCoverageIndex };
+  
+};
+
 // ── ./src/cache/freshen ──
 __factories["./src/cache/freshen"] = function(module, exports) {
   
@@ -6587,6 +6762,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
   // truth (#591). This file previously kept its own copy, which had drifted to
   // a dead duplicate `.vue` key.
   const { langFor } = __require('./src/extractors/dispatch');
+  const { buildTestCoverageIndex } = __require('./src/analysis/test-coverage');
 
   function getExtractorName(filePath) {
     return langFor(filePath);
@@ -6595,27 +6771,6 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
   /** Rough token estimate: chars / 4 */
   function tokenCount(sigs) {
     return Math.ceil(sigs.reduce((sum, s) => sum + s.length, 0) / 4);
-  }
-
-  /**
-   * Check whether a test file exists for this source file by looking for
-   * *.test.* / *.spec.* patterns in the test/ directory tree.
-   */
-  function hasCoverage(filePath, cwd) {
-    const rel   = path.relative(cwd, filePath);
-    const base  = path.basename(rel, path.extname(rel));  // e.g. "python"
-    const testDirs = ['test', 'tests', '__tests__', 'spec'];
-    for (const d of testDirs) {
-      const abs = path.join(cwd, d);
-      if (!fs.existsSync(abs)) continue;
-      // Walk only one depth for speed
-      let entries;
-      try { entries = fs.readdirSync(abs, { withFileTypes: true }); } catch (_) { continue; }
-      for (const e of entries) {
-        if (e.name.includes(base)) return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -6651,6 +6806,8 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
 
     const stats = [];
     const extractorCache = {};
+    // One index for the whole run, shared with `plan` (#862).
+    const coverage = buildTestCoverageIndex(cwd, { files });
 
     for (const filePath of files) {
       const extractorName = getExtractorName(filePath);
@@ -6681,7 +6838,7 @@ __factories["./src/eval/analyzer"] = function(module, exports) {
 
       const rel      = path.relative(cwd, filePath);
       const tokens   = tokenCount(sigs);
-      const covered  = hasCoverage(filePath, cwd);
+      const covered  = coverage.testsFor(rel).length > 0;
       const isSlow   = slow && elapsedMs > slowMs;
       // v4.0: signal quality = sigs per line-of-code (higher = more informative to LLMs)
       const linesOfCode    = content.split('\n').length;
@@ -7618,6 +7775,30 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     return out.sort();
   }
 
+  /**
+   * `findRelatedTests` for many lookups against one universe: the same stem rule,
+   * indexed once instead of rescanned per file. `lookup(relPath)` returns exactly
+   * what `findRelatedTests(relPath, allFiles)` would — pinned by a test over this
+   * repo's own files, so the two cannot drift.
+   * @param {string[]} allFiles - universe of files (relative paths)
+   * @returns {(relPath: string) => string[]}
+   */
+  function relatedTestsIndex(allFiles) {
+    const byStem = new Map();
+    for (const f of allFiles) {
+      if (riskLabelFor(f) !== 'test') continue;
+      const key = testTargetStem(f).toLowerCase();
+      if (!byStem.has(key)) byStem.set(key, []);
+      byStem.get(key).push(f);
+    }
+    return function lookup(relPath) {
+      if (riskLabelFor(relPath) === 'test') return [];
+      const stem = stemOf(relPath).toLowerCase();
+      if (!stem) return [];
+      return (byStem.get(stem) || []).filter((f) => f !== relPath).sort();
+    };
+  }
+
   /** Map a ranker `signals` object into a short human-readable reason string. */
   function reasonFor(signals) {
     if (!signals) return 'ranked match';
@@ -7810,6 +7991,7 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     riskLabelFor,
     riskFactorsFor,
     findRelatedTests,
+    relatedTestsIndex,
     SCHEMA_VERSION,
     SCHEMA_URL,
     TEST_DISCOVERY,
@@ -24514,10 +24696,58 @@ __factories["./src/plan/planner"] = function(module, exports) {
   const fs = require('fs');
   const { buildFromCwd } = __require('./src/graph/builder');
   const { getImpact } = __require('./src/graph/impact');
-  const { buildSigIndex, rank, detectIntent } = __require('./src/retrieval/ranker');
-  const { buildTestIndex, isTested } = __require('./src/extractors/coverage');
+  const { buildSigIndex, rank, detectIntent, _queryWants } = __require('./src/retrieval/ranker');
+  const { tokenize: queryTokens } = __require('./src/retrieval/tokenizer');
+  const { tokenize: stemTokens } = __require('./src/retrieval/bm25');
+  const { buildTestCoverageIndex } = __require('./src/analysis/test-coverage');
+  const { isTestFile, isMockFile, isCiFile, isDocsFile, isGeneratedFile, isGeneratedDir } = __require('./src/util/file-class');
 
-  module.exports = { createPlan };
+  // "Likely to change" is the ranker's `high` confidence band only — a normalised
+  // score above 0.66 of the corpus range (see rank()). The list used to be the
+  // `medium` band (0.33–0.66), which by construction left out the files the task
+  // names and let in anything scoring a third of the top match (#774).
+  const CHANGE_CONFIDENCE = 'high';
+  const MAX_ENTRIES = 5;
+  const MAX_REASON_TERMS = 3;
+
+  module.exports = { createPlan, isChangeCandidate, matchReason, CHANGE_CONFIDENCE };
+
+  /**
+   * Whether a ranked file can be something the task changes. Tests, fixtures, CI
+   * and docs rank on shared vocabulary, so they stay off the list unless the task
+   * asks for them — the same condition the ranker's own penalties use.
+   */
+  function isChangeCandidate(file, wants) {
+    if (isTestFile(file) || isMockFile(file)) return !!(wants && wants.tests);
+    if (isCiFile(file)) return !!(wants && wants.ci);
+    if (isDocsFile(file)) return !!(wants && wants.docs);
+    return !(isGeneratedFile(file) || isGeneratedDir(file));
+  }
+
+  /**
+   * Why a file is on the list, in the task's own words: which of them its path
+   * and its signatures carry. A bare score cannot be discounted — "pattern" in a
+   * path and "pattern" in an unrelated helper score alike — so each entry says
+   * what matched and where.
+   */
+  function matchReason(goal, file, sigs) {
+    const inPath = new Set(stemTokens(file));
+    const inSigs = new Set(stemTokens((sigs || []).join('\n')));
+    const parts = [];
+    const seen = new Set();
+    for (const word of String(goal).split(/[^A-Za-z0-9_]+/).filter(Boolean)) {
+      const key = word.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const stems = stemTokens(word);
+      const path = stems.some((t) => inPath.has(t));
+      const sig = stems.some((t) => inSigs.has(t));
+      if (!path && !sig) continue;
+      parts.push(`"${key}" in ${path && sig ? 'path and signatures' : path ? 'path' : 'signatures'}`);
+      if (parts.length === MAX_REASON_TERMS) break;
+    }
+    return parts.length ? parts.join('; ') : 'no task word in its path or signatures';
+  }
 
   function createPlan(goal, cwd, config = {}) {
     // Step 1: Detect intent and rank files for the goal
@@ -24529,9 +24759,20 @@ __factories["./src/plan/planner"] = function(module, exports) {
 
     const ranked = rank(goal, sigIndex, { topK: 15, cwd });
 
-    // Step 2: Separate into confidence levels
-    const highConf = ranked.filter(r => r.confidence === 'high').slice(0, 5);
-    const medConf = ranked.filter(r => r.confidence === 'medium').slice(0, 5);
+    // Step 2: what to read, and what the task is likely to edit. Both come from
+    // the high-confidence band; the change list keeps only implementation files
+    // and carries, per entry, its score relative to the top match and its reason.
+    const highConf = ranked.filter(r => r.confidence === 'high').slice(0, MAX_ENTRIES);
+    const wants = _queryWants(queryTokens(goal));
+    const topScore = ranked.length ? ranked[0].score : 0;
+    const change = ranked
+      .filter(r => r.confidence === CHANGE_CONFIDENCE && isChangeCandidate(r.file, wants))
+      .slice(0, MAX_ENTRIES)
+      .map(r => ({
+        file: r.file,
+        score: topScore > 0 ? Math.round((r.score / topScore) * 100) / 100 : 0,
+        reason: matchReason(goal, r.file, r.sigs),
+      }));
 
     // Step 3: Impact radius — union the reverse-dependency blast radius of EVERY
     // high-confidence file (not just the top one), bounded to 3 hops. Note the
@@ -24565,34 +24806,34 @@ __factories["./src/plan/planner"] = function(module, exports) {
       }
     }
 
-    // Step 4: Flag which files-to-inspect have detectable test coverage. The test
-    // index maps test-*name tokens*, not test files, so `isTested` can only tell
-    // us a source file is covered — it cannot name the test file. We therefore
-    // report the covered SOURCE files honestly rather than pretending to list the
-    // tests to run.
-    let coveredFiles = [];
+    // Step 4: which of the files to inspect a test exercises, and which tests.
+    // One index shared with `--analyze` (#862); it names the test files, which
+    // the function-name token index used here before could not.
+    const relatedTests = {};
     try {
-      const testIndex = buildTestIndex(cwd, config.testDirs || ['test', 'tests', '__tests__', 'spec']);
-      coveredFiles = highConf.filter(r => {
-        const fnNames = (r.sigs || []).map(s => {
-          const m = s.match(/(?:function|def|fn)\s+(\w+)/);
-          return m ? m[1] : null;
-        }).filter(Boolean);
-        return fnNames.some(fn => isTested(fn, testIndex));
-      }).map(r => r.file);
+      const coverage = buildTestCoverageIndex(cwd, { files: [...sigIndex.keys()], exclude: config.exclude });
+      for (const r of highConf) {
+        const tests = coverage.testsFor(r.file);
+        if (tests.length) relatedTests[r.file] = tests;
+      }
     } catch (_) {
       // Coverage index failed, continue without test info
     }
+    const coveredFiles = Object.keys(relatedTests);
 
     return {
       goal,
       intent,
       inspectFirst: highConf.map(r => r.file),
-      likelyToChange: medConf.map(r => r.file),
+      likelyToChange: change.map(c => c.file),
+      // Same order as `likelyToChange`: { file, score, reason } per entry.
+      likelyToChangeEvidence: change,
       impactRadius: impact,
       coveredFiles,
+      // Covered source file → the test files that name or load it.
+      relatedTests,
       // `testsAffected` retained for backward compatibility; it is the set of
-      // covered source files, NOT the test files (which the index cannot name).
+      // covered source files. The test files themselves are in `relatedTests`.
       testsAffected: coveredFiles,
     };
   }
@@ -35764,8 +36005,10 @@ function main() {
         intent: plan.intent,
         inspectFirst: plan.inspectFirst,
         likelyToChange: plan.likelyToChange,
+        likelyToChangeEvidence: plan.likelyToChangeEvidence,
         impactRadius: impact,
         coveredFiles: plan.coveredFiles,
+        relatedTests: plan.relatedTests,
         testsAffected: plan.testsAffected,
       }, null, 2) + '\n');
     } else {
@@ -35782,11 +36025,15 @@ function main() {
         plan.inspectFirst.forEach((f, i) => console.log(`   ${i + 1}. ${relOf(f)}`));
       }
       console.log('');
-      console.log(' Likely to change:');
-      if (plan.likelyToChange.length === 0) {
-        console.log('   (no files found)');
+      // #862: every entry names its basis — score relative to the top match,
+      // and the task words its path and signatures carry.
+      console.log(' Likely to change (high-confidence implementation files · score vs top match · why):');
+      const changes = plan.likelyToChangeEvidence || [];
+      if (changes.length === 0) {
+        console.log('   (no implementation file matched with high confidence)');
       } else {
-        plan.likelyToChange.forEach((f, i) => console.log(`   ${i + 1}. ${relOf(f)}`));
+        const width = changes.reduce((w, c) => Math.max(w, relOf(c.file).length), 0);
+        changes.forEach((c, i) => console.log(`   ${i + 1}. ${relOf(c.file).padEnd(width)}  ${c.score.toFixed(2)}  ${c.reason}`));
       }
       if (impact && (impact.direct.length || impact.transitive.length)) {
         console.log('');
@@ -35797,7 +36044,11 @@ function main() {
       if (plan.coveredFiles.length > 0) {
         console.log('');
         console.log(' Files with test coverage (re-run their suites after changing):');
-        plan.coveredFiles.forEach(f => console.log(`   • ${relOf(f)}`));
+        plan.coveredFiles.forEach(f => {
+          const tests = (plan.relatedTests && plan.relatedTests[f]) || [];
+          const more = tests.length > 3 ? ` (+${tests.length - 3} more)` : '';
+          console.log(`   • ${relOf(f)}  ←  ${tests.slice(0, 3).map(relOf).join(', ')}${more}`);
+        });
       }
       console.log('');
       console.log(bar);
