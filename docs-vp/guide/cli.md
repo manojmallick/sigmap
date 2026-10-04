@@ -71,7 +71,7 @@ If you are new to the product, start with the workflow pages first:
 | `conventions --fix` | Exhaustive rename checklist — every file not matching the dominant naming style, full from→to paths (`--json`) |
 | `conventions --update` | Incremental rescan — refresh `.context/conventions.json` only when source files changed (else "up to date") |
 | `scaffold <name>` | Propose a convention-matched structure (filename, export style, test file) for a new module — refuses below the confidence floor |
-| `plan "<goal>"` | Analyze change impact and plan modifications — returns files grouped by confidence |
+| `plan "<goal>"` | Plan a change — files to read first, files likely to change (with score and reason), impact radius, covering tests |
 | `judge [--response <f>\|-] [--context <f>]` | Rule-based groundedness scoring for LLM responses (stdin ok; `--context` defaults to the generated one) |
 | `verify-plan <plan.md>` | Check a plan against the live index before execution — referenced files/symbols exist, blast radius, scope; `Creates:` / `--creates` marks names the plan introduces (`--json`; stdin via `-`) |
 | `verify <answer.md>` | **Flagship** grounding guard — flag fake files, test files, imports, symbols, and npm scripts in an AI answer (deterministic, offline). Short alias of `verify-ai-output` |
@@ -558,36 +558,67 @@ Each `files[]` entry: `path`, the matched `symbols`, a human-readable `reason` (
 
 ## plan
 
-Analyze change impact and plan modifications to your codebase. Given a goal or change description, `sigmap plan` returns files grouped by confidence level (inspect-first vs likely-to-change), estimated impact radius, and tests affected by the change.
+Plan a change before making it. Given a goal, `sigmap plan` returns the files to read first, the implementation files the goal is likely to change, the blast radius of those files, and the tests that cover them.
 
 ```bash
-sigmap plan "add rate limiting to the API"
+sigmap plan "add a new secret detection pattern for Slack tokens"
 sigmap plan "refactor the auth middleware" --json
 ```
 
 ```
-────────────────────────────────────────────
- Goal: add rate limiting to the API
- Intent: integrate
-────────────────────────────────────────────
+──────────────────────────────────────────────────
+ sigmap plan  "add a new secret detection pattern for Slack tokens"
+ Intent     : search
+──────────────────────────────────────────────────
 
- Inspect first (high confidence):
-   → src/middleware/rate-limiter.js
-   → src/config/limits.json
-   → src/auth/service.js
+ Inspect first (highest relevance):
+   1. src/security/patterns.js
+   2. src/extractors/patterns.js
 
- Likely to change (medium confidence):
-   → src/routes/api.js
-   → src/utils/cache.js
-   → src/models/request-log.js
-────────────────────────────────────────────
+ Likely to change (high-confidence implementation files · score vs top match · why):
+   1. src/security/patterns.js    1.00  "secret" in signatures; "detection" in signatures; "pattern" in path and signatures
+   2. src/extractors/patterns.js  0.84  "detection" in signatures; "pattern" in path and signatures
+
+ Impact radius (relative-import dependents, ≤3 hops — lower bound):
+   • src/review/review-pr.js  (direct)
+   • src/security/redact.js  (direct)
+   • src/security/scanner.js  (direct)
+   • src/create/orchestrate.js  (transitive)
+   • src/review/pr-evidence.js  (transitive)
+   • src/evidence/pack.js  (transitive)
+   • src/mcp/handlers.js  (transitive)
+   • src/retrieval/with-source.js  (transitive)
+   • src/analysis/test-coverage.js  (transitive)
+   • src/map/knowledge-map.js  (transitive)
+   • src/mcp/server.js  (transitive)
+
+ Files with test coverage (re-run their suites after changing):
+   • src/security/patterns.js  ←  test/integration/impact.test.js, test/integration/redact.test.js, test/windows-path-normalization.test.js
+   • src/extractors/patterns.js  ←  test/integration/extractors/patterns.test.js
+
+──────────────────────────────────────────────────
 ```
 
-`--json` output includes `goal`, `intent`, `inspectFirst` array, `likelyToChange` array, and `affectedTests` count.
+**Likely to change** holds only files the ranker placed in its `high` confidence band, and only implementation files. Tests, fixtures, CI definitions and docs are left out unless the goal asks for them ("add tests for…", "fix the release workflow"). Each entry shows its score relative to the top match and the words of the goal that its path and signatures carry, so a weak match can be discounted rather than trusted. Until v8.62.2 this list was the *medium* band, which by construction left out the file the goal names.
+
+**Files with test coverage** lists, for each covered file, the test files that target it by name (`foo.test.js`, `test_foo.py`, `FooTest.java`) or load it (`require` / `import`, or a path built with `path.join` / `path.resolve`). A file missing from the list has no test that names or loads it. A module exercised only through the CLI is not detected, so the absence is not proof that nothing tests it. [`--analyze`](#analyze) reads the same index.
+
+`--json` emits:
+
+| Key | Type | Meaning |
+|-----|------|---------|
+| `goal`, `intent` | string | The goal as given, and the detected intent |
+| `inspectFirst` | string[] | High-confidence files of any kind, most relevant first |
+| `likelyToChange` | string[] | High-confidence implementation files |
+| `likelyToChangeEvidence` | object[] | Same order as `likelyToChange`: `{ file, score, reason }` |
+| `impactRadius` | object | `{ direct, transitive }` — files that import the ones above, up to 3 hops |
+| `coveredFiles` | string[] | Files from `inspectFirst` that a test covers |
+| `relatedTests` | object | Covered file → the test files that name or load it |
+| `testsAffected` | string[] | Same as `coveredFiles`; kept for compatibility |
 
 | Option | Description |
 |--------|-------------|
-| `--json` | Emit structured JSON with goal, intent, file arrays, and test impact |
+| `--json` | Emit the structured object above |
 
 ---
 
@@ -2468,6 +2499,8 @@ Per-file breakdown showing signatures extracted, token count, extractor language
 ```bash
 sigmap --analyze
 ```
+
+The coverage column reads `✓ tested` when a test file targets the file by name (`foo.test.js`, `test_foo.py`, `FooTest.java`) or loads it (`require` / `import`, or a path built with `path.join` / `path.resolve`). Test files are found recursively under `test/`, `tests/`, `__tests__/`, `spec/` and `e2e/`, plus tests that sit beside their source; fixture directories are not tests. `✗ untested` means no test file names or loads the file — a module exercised only through the CLI is not detected. [`plan`](#plan) reads the same index.
 
 Add `--slow` to re-time each extractor and flag files taking over 50ms:
 

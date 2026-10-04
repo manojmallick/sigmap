@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.62.2)
+- **@manojmallick** — fix(plan,analyze): `--analyze` reported 5 of this repo's 182 files as tested and `plan` left the file a task names off its change list (#769, #774, #862, PR #863). One coverage index now serves both commands — a file is covered when a test targets its stem or loads it — and every "Likely to change" entry carries its score and the task words it matched. #769 proposed reusing `findRelatedTests` alone; it matches stems, and none of that issue's four examples shares a stem with its test.
+
 ### Recent Contributors (v8.62.1)
 - **@manojmallick** — fix(scale): a tree past ~125,000 files no longer overflows the stack (#855, PR #860). Five places spread a per-file array as call arguments — the CLI file list, the dependency-graph walk, the ranker, centrality and the `--analyze` table — and each is now a loop. Reproduced and verified on a real 130,000-file tree; the ranker and `--analyze` sites were found only by running other commands there after the reported frame was fixed.
 - **@sidhunt** — reported #855 with the repro and the exact stack frame, which is what made the crash a one-step reproduction.

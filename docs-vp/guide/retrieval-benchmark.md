@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.62.1. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.62.2. 78.6% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.0% vs 40.0% (2.20× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,7 +15,7 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.62.1 benchmark snapshot
+::: info Official v8.62.2 benchmark snapshot
 **Benchmark ID:** sigmap-v8.62-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
 
 | Metric | Value |
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-04 (v8.62.1)**
+Latest saved run: **2026-10-04 (v8.62.2)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -143,10 +143,10 @@ It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
 = 1.1pp, three tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
-<!-- benchmark: re-measured at v8.62.1 — all four corpora present (43 cached repos); figures above are measured, not carried -->
+<!-- benchmark: re-measured at v8.62.2 — all four corpora present (43 cached repos); figures above are measured, not carried -->
 
-::: tip Re-measured at v8.62.1 — and self-repo drift finally showed up
-All four corpora were present in the v8.62.1 release run, so the figures above
+::: tip Re-measured at v8.62.2 — and self-repo drift finally showed up
+All four corpora were present in the v8.62.2 release run, so the figures above
 are **measured, not carried forward**. Every hit@5 is unchanged from v8.56.0 to
 the decimal: `hard` 73.3%, `mined` 60.9%, `jvm` 29.5%, `easy` 90.0%.
 
@@ -166,6 +166,7 @@ than assumed:
 | v8.61.3 | a helper under `scripts/` (unindexed) + 1 test file | 73.3% | 0.584 — **unmoved** |
 | v8.62.0 | two extractor modules (`powershell.js`, `objc.js`) + their tests | 73.3% (control 73.3%) | **0.578** (control 0.584) |
 | v8.62.1 | a test file + loop rewrites in four modules and the CLI core | 73.3% (control 73.3%) | **0.584** (control 0.578) |
+| v8.62.2 | one new module (`src/analysis/test-coverage.js`) + a test file, three modules edited | 73.3% (control 73.3%) | **0.578** (control 0.584) |
 
 v8.62.0 moved MRR and no hit@5, and two control trees say exactly which change
 did it. The tree v8.61.3 was *measured* on still reproduces its recorded figures
@@ -190,6 +191,17 @@ over the same index: `hard` 73.3% / 0.584, `mined` 60.9% / 0.411, `jvm` 29.5% /
 with the ranker ruled out that is corpus composition once more: the release adds
 a 176-line test file and rewrites a few lines in four indexed modules. `mined`,
 `easy` and `jvm` did not move from v8.62.0 at all.
+
+v8.62.2 does not touch the ranker. It adds one module to `srcDirs`
+(`src/analysis/test-coverage.js`) and a test file, and edits three modules. A
+pristine v8.62.1 worktree reproduces that release's 0.584 and the release tree
+reads 0.578 — a difference of exactly one task: h034 moved from rank 1 to rank 2,
+with `src/retrieval/ranker.js` now ahead of the expected file. Every other `hard`
+task kept its rank, and `mined` 60.9% / 0.411, `jvm` 29.5% / 0.195 and `easy`
+90.0% / 0.825 did not move. The module did more damage before it merged: its
+first header was a paragraph of history, a module's leading comment is indexed as
+prose, and that put it in the top three for three unrelated `hard` tasks.
+Rewritten as a purpose statement, it stopped.
 
 v8.61.1 is the first release in the series to move **nothing**. Every gated
 corpus came back byte-identical to the v8.61.0 measurement — `hard` 73.3% /
