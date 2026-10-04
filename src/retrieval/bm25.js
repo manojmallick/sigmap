@@ -9,7 +9,7 @@
  * query. This module fixes that with four small additions:
  *
  *   1. Identifier-aware tokenization — split camelCase and snake_case.
- *   2. Light stemming — plurals / common suffixes (`emits` → `emit`).
+ *   2. Light stemming — plurals / inflections (`emits` → `emit`, `classified` → `classify`).
  *   3. Path-token boost — file path / basename tokens weigh PATH_BOOST× more.
  *   4. BM25 scoring instead of raw TF-IDF (length-normalized).
  *
@@ -25,15 +25,47 @@ const STOP = new Set(
     .split(' ')
 );
 
+const SUFFIX = /(ing|edly|ed|er|ers|ation|ations|ment|ness|ity|ive|able|ible|ize|ise|al)$/;
+// Suffixes that inflect a word. They are the only ones that can take a final
+// `e` with them (`parse` -> `parsing`), so they are the only ones that put it back.
+const INFLECTION = new Set(['ing', 'edly', 'ed', 'er', 'ers']);
+// -ing/-ed may leave a short root (`mapping` -> `map`). Everything else needs a real
+// one: `order` is not `ord` + `er`, and `normal` is not `norm` + `al`.
+const MIN_ROOT = 5;
+// `classify`, `classifier`, `classification` -> `class`, so they meet a `file-class` path.
+// A root under 4 chars is left alone: `verify` is not `ver` + `ify`.
+const dropIfy = (s) => s.replace(/(ification|ifier|ify)$/, (m, _, at) => (at >= 4 ? '' : m));
+
 /**
- * Light suffix stemmer — conservative, tuned for code identifiers rather than
- * prose. Words of 3 chars or fewer pass through unchanged; a result shorter
- * than 3 chars reverts to the original token.
+ * Suffix stemmer, tuned for code identifiers rather than prose. Base and inflected
+ * forms of a word reach the same stem — `classify`/`classified`, `parse`/`parsing`,
+ * `order`/`ordering`, `register`/`registered` (#875) — and `classify` reaches
+ * `class`, so `classified` meets a `file-class` path. Words of 3 chars or fewer pass
+ * through unchanged; a result shorter than 3 chars reverts to the plural-folded token.
+ *
+ * Not idempotent for every word: a stem that still ends in a removable suffix
+ * (`implemented` -> `implement`, which stems on to `impl`) is left as it is, because
+ * merging those chains makes a verb like `implement` match every file that says
+ * "implementation" and costs ranking precision (measured; see the #875 tests).
  *
  * @param {string} w
  * @returns {string}
  */
 function stem(w) {
+  let s = STEMS.get(w);
+  if (s === undefined) {
+    s = stemWord(w);
+    if (STEMS.size >= STEM_CACHE_MAX) STEMS.clear();
+    STEMS.set(w, s);
+  }
+  return s;
+}
+
+// Pure, and a corpus repeats a small vocabulary across every query, so memoise.
+const STEMS = new Map();
+const STEM_CACHE_MAX = 50000;
+
+function stemWord(w) {
   if (w.length <= 3) return w;
   let s = w;
   s = s.replace(/ies$/, 'y');
@@ -46,8 +78,24 @@ function stem(w) {
   // unified. A query for "users" therefore scored 0 against `loginUser`, and
   // `ask "where do users log in"` matched nothing at all.
   const folded = s;
+  s = s.replace(/([^aeiou])ied$/, '$1y');                                       // classified -> classify
   s = s.replace(/(ization|izations)$/, 'ize');
-  s = s.replace(/(ing|edly|ed|er|ers|ation|ations|ment|ness|ity|ive|able|ible|ize|ise|al)$/, '');
+  s = dropIfy(s);
+  let suffix = null;
+  const m = SUFFIX.exec(s);
+  if (m) {
+    const root = s.slice(0, -m[1].length);
+    if (/^(ing|edly|ed)$/.test(m[1]) || root.length >= MIN_ROOT) { s = root; suffix = m[1]; }
+  }
+  // `registered` is `register` + ed, and `register` is `regist` + er: peel the -er too.
+  if (suffix && /^(ing|edly|ed)$/.test(suffix) && s.length - 2 >= MIN_ROOT && s.endsWith('er')) s = s.slice(0, -2);
+  if (suffix) s = dropIfy(s);                                                   // classifying -> classify -> class
+  if (suffix && s.length > 3 && /([bcdfghjkmnpqrtvwx])\1$/.test(s)) s = s.slice(0, -1);   // mapping -> map
+  // Base and inflected forms meet with the `e` off (`parse`/`parsing` -> `pars`) — except
+  // that a stem ending in a lone `s` is eaten by the plural rule when it is stemmed again
+  // (`pars` -> `par`). Those keep the `e` (`parse`), and the inflected form gets it back.
+  if (s.length > 3 && /[^aeiou]e$/.test(s) && !/[^s]se$/.test(s)) s = s.slice(0, -1);
+  if (suffix && INFLECTION.has(suffix) && /[^s]s$/.test(s) && !/[^aeiou]us$/.test(s)) s += 'e';
   if (s.length >= 3) return s;
   return folded.length >= 3 ? folded : w;
 }

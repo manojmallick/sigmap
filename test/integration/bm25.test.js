@@ -53,7 +53,7 @@ test('tokenize: splits snake_case into constituent tokens', () => {
 test('tokenize: splits ALLCAPS acronym boundaries', () => {
   const t = tokenize('HTTPServer');
   assert.ok(t.includes('http'), `expected "http" in ${t}`);
-  assert.ok(t.includes('serv'), `expected stemmed "serv" in ${t}`);
+  assert.ok(t.includes(stem('server')), `expected stemmed "server" in ${t}`);
 });
 
 test('tokenize: drops stop words and single chars', () => {
@@ -68,7 +68,7 @@ test('tokenize: drops stop words and single chars', () => {
 test('stem: collapses plurals and common suffixes', () => {
   assert.strictEqual(stem('emits'), 'emit');
   assert.strictEqual(stem('options'), 'option');
-  assert.strictEqual(stem('parsing'), 'pars');
+  assert.strictEqual(stem('parsing'), stem('parse'));
 });
 
 test('stem: leaves short words untouched', () => {
