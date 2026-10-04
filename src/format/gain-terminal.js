@@ -121,7 +121,7 @@ function renderSummary(agg, opts = {}) {
   L.push('  ' + label('Tokens saved') + ': ' + C.bold + humanTokens(t.saved) + C.reset +
     '  (' + colorPct(t.savedPct, fmtPct(t.savedPct)) + ')');
   L.push('  ' + label('Est. money saved') + ': ' + C.bold + C.green + fmtUSD(t.usdSaved) + C.reset +
-    `   ${C.dim}(${agg.price.model} input @ $${agg.price.perMtok}/M · --model to change)${C.reset}`);
+    `   ${C.dim}(${agg.price.model} input @ $${agg.price.perMtok}/M as of ${agg.price.asOf} · tokens ${agg.price.tokenBasis} · --model to change)${C.reset}`);
   L.push('  ' + label('Avg latency') + ': ' + fmtDuration(t.avgMs) + ' / op' +
     `   ${C.dim}(local, no API round-trip)${C.reset}`);
   L.push('');

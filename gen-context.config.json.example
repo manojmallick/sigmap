@@ -37,6 +37,19 @@
   "_maxTokensHeadroom_comment": "Fraction of model context reserved for SigMap output. 0.20 = 25,600 token hard cap.",
   "maxTokensHeadroom": 0.20,
 
+  "_models_comment": "Overrides for the shipped, dated model profile (names, input prices, windows). Your value wins per model and per field.",
+  "_models_roster": "roster = the models you actually have; --suggest-tool and routing hints then name only these.",
+  "_models_example": { "asOf": "2026-10-04", "roster": ["claude-sonnet-5-5", "house-coder"], "prices": { "house-coder": 0.4 }, "windows": { "house-coder": 32000 }, "tiers": { "house-coder": "fast" } },
+  "models": {
+    "asOf": null,
+    "roster": [],
+    "prices": {},
+    "windows": {},
+    "cacheMin": {},
+    "charsPerToken": {},
+    "tiers": {}
+  },
+
   "secretScan": true,
 
   "monorepo": false,

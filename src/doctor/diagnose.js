@@ -235,7 +235,31 @@ function diagnose(cwd, opts = {}) {
     }
   } catch (_) {}
 
-  // 7. MCP wiring
+  // 7. Model profile (#688)
+  //
+  // Every model name, price and window SigMap prints comes from one dated
+  // table. Nothing refreshes it — there is no live fetch — so its age is the
+  // only freshness signal there is, and a roster entry with no figures is
+  // advice that cannot be costed.
+  try {
+    const { resolveProfile, profileAge, asOfLabel, STALE_AFTER_DAYS } = require('../config/models');
+    const profile = resolveProfile(config);
+    const age = profileAge(profile, opts.nowMs);
+    const roster = profile.rosterDeclared ? `roster: ${profile.roster.join(', ')}` : 'no roster declared — advice names the shipped defaults';
+    if (age.stale) {
+      add('models', 'Model profile', 'warn',
+        `${asOfLabel(profile)} is ${age.days} days old (limit ${STALE_AFTER_DAYS}) — model names, prices and windows may have changed`,
+        'check your vendors\' pricing pages, then set "models.asOf" and any changed figures in gen-context.config.json — or upgrade sigmap');
+    } else if (profile.rosterUnknown.length) {
+      add('models', 'Model profile', 'warn',
+        `roster names model(s) with no price on record: ${profile.rosterUnknown.join(', ')}`,
+        'add them under "models.prices" (and "models.windows", "models.tiers") in gen-context.config.json');
+    } else {
+      add('models', 'Model profile', 'ok', `${asOfLabel(profile)} · ${roster}`);
+    }
+  } catch (_) {}
+
+  // 8. MCP wiring
   try {
     let wired = null;
     for (const t of _mcpTargets(cwd)) {

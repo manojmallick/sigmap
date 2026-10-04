@@ -181,7 +181,7 @@ sigmap ask "how are secrets redacted" --top 12
 ────────────────────────────────────────────
 ```
 
-With `--json` the output is a machine-readable object. The core keys are `intent`, `coverage`, `riskLevel`, `contextTokens`, `contextPath`, `contextHash` and `rankedFiles` — the ranked selection as `[{ rank, file, score, tokens }]`, in rank order, so the file list is readable without re-parsing the written context. Cost is reported as `costBefore`, `costAfter` and `savingsPct` rather than a single `cost` field, because a saving needs both sides of the comparison to mean anything.
+With `--json` the output is a machine-readable object. The core keys are `intent`, `coverage`, `riskLevel`, `contextTokens`, `contextPath`, `contextHash` and `rankedFiles` — the ranked selection as `[{ rank, file, score, tokens }]`, in rank order, so the file list is readable without re-parsing the written context. Cost is reported as `costBefore`, `costAfter` and `savingsPct` rather than a single `cost` field, because a saving needs both sides of the comparison to mean anything. The rate behind them is named by `pricedModel` and dated by `priceAsOf` (the [model profile](/guide/config#models) date), and `tokenBasis` says whether the cost rests on the chars/4 estimate or on a `models.charsPerToken` factor you configured.
 
 ```json
 "rankedFiles": [
@@ -2213,15 +2213,13 @@ sigmap --cost --json
 ```
 
 ```
-[sigmap] cost estimate (4,103 tokens after SigMap):
-  gpt-4o-mini    $0.000062  (was $0.012 · 99.5% saved)
-  claude-3-haiku $0.000103  (was $0.020 · 99.5% saved)
-  gpt-4o         $0.000205  (was $0.040 · 99.5% saved)
-  claude-sonnet  $0.000411  (was $0.080 · 99.5% saved)
-  claude-opus-4  $0.001236  (was $0.240 · 99.5% saved)
+ Cost estimate (gpt-4o @ $2.5/Mtok input as of 2026-10-04; tokens est. (chars/4)):
+ Without SigMap : 812,400 tok  $2.0310/query  (counterfactual: whole repo)
+ With SigMap    : 4,103 tok  $0.0103/query
+ Savings        : 99%  ($2.0207 saved per query)
 ```
 
-Supported models: `gpt-4`, `gpt-4o`, `gpt-4o-mini`, `claude-3-5-sonnet`, `claude-3-haiku`, `claude-opus-4`, `gemini-1.5-pro`.
+`--model` takes any name [`sigmap gain --models`](#gain) lists; the default is `gpt-4o`. The price and its date come from the [model profile](/guide/config#models). Token counts are the chars/4 estimate and say so; set `models.charsPerToken` for the priced model and the counts use your factor instead. `--json` adds `priceAsOf` and `tokenBasis`.
 
 ---
 
@@ -2624,11 +2622,14 @@ sigmap --suggest-tool "Fix the null pointer in UserService.findById"
 [sigmap] suggest-tool:
   tier   : balanced
   label  : Balanced (mid-tier)
-  models : claude-sonnet-4-6, gpt-5-2, gemini-3-1-pro
-  cost   : ~$0.003 / 1K tokens
+  models : claude-sonnet-5-5, gpt-6.1-sol, gemini-3.8-flash
+  cost   : $0.75–$2 / MTok input
+  as of  : 2026-10-04 (shipped profile) — set "models.roster" in gen-context.config.json to name the models you have
 ```
 
-Add `--json` for the machine-readable form.
+The tier comes from a keyword rule over your task description. The model names and the price span come from the dated [model profile](/guide/config#models) — the same table `gain --model` prices from, so **every name printed here is one `gain --model` accepts**. Declare `models.roster` and the line names only the models you have; a tier your roster has no model for says so instead of suggesting one you cannot use.
+
+Add `--json` for the machine-readable form. It keeps `tier`, `label`, `models` and `costHint`, and adds `modelIds` (array), `asOf`, `asOfSource` (`shipped` or `config`), `roster` and `basis`. The advice is a static rule, not a measurement, and `basis` says so.
 
 ---
 
@@ -2762,7 +2763,7 @@ sigmap gain --model gpt4o
 ```
 
 ```
-[sigmap] unknown model 'gpt4o' — priced as claude-sonnet ($3/MTok); see: sigmap gain --models
+[sigmap] unknown model 'gpt4o' — priced as claude-sonnet-5-5 ($2/MTok); see: sigmap gain --models
 ```
 
 `gain --models` lists what it will accept:
@@ -2772,15 +2773,27 @@ sigmap gain --models
 ```
 
 ```
-Known pricing models (sigmap gain --model <name>):
-  claude-sonnet      $3/MTok  (default)
-  claude-opus        $5/MTok
-  claude-haiku       $1/MTok
-  gpt-4o             $2.5/MTok
-  gpt-4o-mini        $0.15/MTok
-  gemini-1.5-pro     $1.25/MTok
-  gemini-1.5-flash   $0.075/MTok
+Known pricing models (sigmap gain --model <name>) — input prices as of 2026-10-04 (shipped profile):
+  claude-fable-5-1         $10/MTok
+  claude-opus-5-5          $4/MTok
+  claude-sonnet-5-5        $2/MTok
+  claude-haiku-4-5         $1/MTok
+  gpt-6-astra              $10/MTok
+  gpt-6.1-sol              $2/MTok
+  gpt-6-luna               $0.1/MTok
+  gpt-4o                   $2.5/MTok
+  gpt-4o-mini              $0.15/MTok
+  gemini-3.1-pro-preview   $2/MTok
+  gemini-3.8-flash         $0.75/MTok
+  gemini-3.5-flash-lite    $0.3/MTok
+  minimax-m3               $0.3/MTok
+  minimax-m2.7             $0.3/MTok
+  claude-opus              $4/MTok  → claude-opus-5-5
+  claude-sonnet            $2/MTok  → claude-sonnet-5-5  (default)
+  claude-haiku             $1/MTok  → claude-haiku-4-5
 ```
+
+This is the one model table SigMap has: [`--suggest-tool`](#suggest-tool) and the routing section name models from it, and `--cost` and `ask` price from it. The family keys (`claude-sonnet`, `claude-opus`, `claude-haiku`) are aliases for the current model of that family, so the rate they resolve to moves when the profile does. Prices you set under [`models.prices`](/guide/config#models) appear here and win over the shipped ones; the header then reads `(your config)` when you also set `models.asOf`. The `gemini-1.5-*` keys earlier releases listed are gone — the vendor no longer publishes a price for them; add your own under `models.prices` if you still use one.
 
 The exit code and the dashboard itself are unchanged — the fallback is disclosed, not removed, because a figure someone is already quoting should not silently change shape.
 
@@ -2795,7 +2808,7 @@ sigmap gain
   Whole-file baseline : 48.7M tok   ← est. cost of feeding full files
   SigMap context      :  2.9M tok
   Tokens saved        : 45.8M  (94.0%)
-  Est. money saved    : $137.40   (claude-sonnet input @ $3/M · --model to change)
+  Est. money saved    : $91.60   (claude-sonnet-5-5 input @ $2/M as of 2026-10-04 · tokens est. (chars/4) · --model to change)
   Avg latency         : 22 ms / op   (local, no API round-trip)
 
   Efficiency   ▕███████████████████████████░░▏  94.0%
@@ -2816,7 +2829,7 @@ sigmap gain
 | `--json` | Emit the aggregate as JSON (for badges, CI, dashboards) |
 | `--since <window>` | Filter to a window: `7d`, `30d`, `12h`, or an ISO date |
 | `--top <n>` | Limit the by-operation table to N rows (default 10) |
-| `--model <name>` | Pricing model for the `$` estimate (e.g. `gpt-4o`, `claude-opus`) |
+| `--model <name>` | Pricing model for the `$` estimate (e.g. `gpt-6.1-sol`, `claude-opus`) — any name `gain --models` lists |
 | `--reset` | Delete the local savings log (`.context/gain.ndjson`) |
 
 ```bash
