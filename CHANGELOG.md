@@ -10,6 +10,33 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [8.64.0] — 2026-10-04
+
+Minor. A provider's prompt cache matches on an exact prefix, so the first byte that differs ends the hit and everything after it is billed as new input. SigMap put a block that changes on every commit — headed by an age that changed on every run — ahead of the whole signature body, so the body could never be a cache hit. Every written context file is now a stable body, then a marker, then the volatile tail; `--format cache` writes the two as separate blocks; and `--report` says whether the stable prefix is long enough for each model to cache it at all.
+
+### Added
+- **`cacheLayout: "stable-prefix"` (default) | `"legacy"`** (#683, PR #868) — the stable body comes first, then an invisible `<!-- sigmap:volatile -->` marker, then `## recent changes`, `--diff` output, model-routing hints and the wall-clock stamp. A new commit changes only what follows the marker. `"legacy"` restores the previous order. An unrecognised value warns and falls back to the default
+- **`cacheTtl: "5m" | "1h"`** (#683, PR #868) — the TTL on the cached block `--format cache` writes. Exactly those two values; anything else warns and falls back to `"5m"`. `ttl` is emitted only for `"1h"`, since 5m is the API default
+- **Per-model cache fit-check** (#683, PR #868) — `--report`, `--report --json` (under `cacheFit`) and `--format cache` compare the stable prefix against each model's `cacheMin` from the model profile. A prefix within ±15% of a minimum is reported as `borderline — verify with a provider token counter` and never given a verdict, because SigMap counts characters and the provider counts tokens. A model with no verified `cacheMin` is left out, and the `legacy` layout reports none (it has no stable prefix to measure)
+- **`src/format/cache-layout.js`** (PR #868) — the one place that owns the marker, the two config enums, the stable/volatile split, the Anthropic system blocks and the fit-check. It holds no model literal; every minimum is read from the profile
+- **`cache-layout.test.js`, 46 guards** (PR #868) — the order in all seven written outputs, no timestamp ahead of the signature body, no relative age, byte-identical reruns apart from stamp lines, a new commit leaving the stable prefix untouched, the legacy opt-out, the TTL enum, the borderline band at both edges, and `--report --json`
+- **Docs: Prompt-cache layout, cache economics and fit check** (PR #868) — in `docs-vp/guide/config.md`. Verified against the vendor pages on 2026-10-04: a 5m write costs 1.25× the input price and a 1h write 2×; a read costs about 0.1× (0.05× on Opus 5.5); break-even is the 2nd request at 5m and the 3rd at 1h, and a 1h write across two requests costs 2.1× against 2× uncached. OpenAI and Gemini cache automatically on an exact-prefix match
+
+### Changed
+- **`## changes (last N commits — 5 minutes ago)` is now `## recent changes (<branch>@<commit>)`** (#683, PR #868) — in both layouts. The relative age was false the moment the file was written and differed on every regeneration, so it was a bug and not a layout choice. No written context file carries a relative age
+- **Adapters stamp their wall-clock time at the end** (#683, PR #868) — claude, copilot, cursor, windsurf, openai, gemini and llm-full each put an absolute timestamp at the top of the file, which busts a prefix cache just as the relative age did. It now trails the content; `"legacy"` keeps it in the header. The `--output` copy follows the same rule
+- **`--format cache` writes a `system` array, not one object** (#683, PR #868) — a cached block carrying `cache_control`, then the volatile tail without it. An empty tail is omitted, since the API rejects an empty text block. `formatCache(content, { ttl })` and `formatCachePayload(content, model, { ttl })` take the TTL
+- **`docs-vp/guide/repomix.md` and `roadmap.md` no longer claim "−60% API cost"** (PR #868) — the figure was never measured, and the repomix table said a cache write costs "full cost" when it costs 1.25× or 2×. Whether caching saves money depends on how many requests reuse the block inside its TTL
+
+### Notes
+- **Breaking for one kind of consumer.** Anything that parses `.github/copilot-instructions.cache.json` as a single `{ type, text, cache_control }` object now receives an array. It is the one change here that is not additive
+- **The byte layout of every committed `CLAUDE.md` / `AGENTS.md` changes on the next run.** The recent-changes block and the `Updated:` stamp move to the end, so the first regeneration after upgrading produces a large one-off diff
+- **The fit-check is Anthropic-only today.** The profile carries a verified `cacheMin` only for the Claude models; OpenAI and Gemini rows are `null`, so they get no verdict. Gemini's page lists minimums, but they were not entered into the profile in this release
+- **The fit-check is printed beside the cache payload, not inside it.** An extra field in an Anthropic `system` block is rejected by the API, so the payload stays a pure copy-paste
+- **Not in this release:** #689 (roster-resolved hints in `ask`, and the measured-basis path)
+
+---
+
 ## [8.63.0] — 2026-10-04
 
 Minor. SigMap held two model tables that had never met. `--suggest-tool` recommended `claude-sonnet-4-6` and `gpt-5-2`; `gain --model` rejected both. Neither table carried a date and neither could be corrected from config. There is now one dated table behind both, every output that prints a model or a price prints the date, and a `models` config block overrides any figure.

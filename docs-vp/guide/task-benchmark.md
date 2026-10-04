@@ -15,8 +15,8 @@ head:
 
 # Task benchmark
 
-::: info Official v8.63.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.63-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
+::: info Official v8.64.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.64-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
 
 | Metric | Value |
 |---|---:|

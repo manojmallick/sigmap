@@ -1,6 +1,6 @@
 ---
 title: Benchmark overview
-description: Official v8.63.0 benchmark snapshot. 95.8% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.4% fewer prompts, and R language support verified.
+description: Official v8.64.0 benchmark snapshot. 95.8% average token reduction across 21 repos, 78.6% retrieval hit@5, 43.4% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.63.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.63-main &nbsp;·&nbsp; **Date:** 2026-10-04
+::: info Official v8.64.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.64-main &nbsp;·&nbsp; **Date:** 2026-10-04
 
 | Metric | Value |
 |---|---:|
@@ -39,7 +39,7 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.63.0 snapshot (with R language support)
+## Official v8.64.0 snapshot (with R language support)
 
 Latest saved benchmark run: **2026-10-04 (v8.63.0)**
 
@@ -67,7 +67,7 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 | Random baseline hit@5 (data only, no longer quoted) | 13.6% |
 | Prompt reduction | **43.4%** (2.84 → 1.6 prompts) |
 | GPT-4o overflow repos without SigMap | **14 / 21** |
-| GPT-4o monthly input savings at 10 calls/day | **$10,054.04** |
+| GPT-4o monthly input savings at 10 calls/day | **$10,053.94** |
 
 ## What each benchmark proves
 

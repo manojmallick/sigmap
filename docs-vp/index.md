@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.63.0</span>
+  <span><strong>Release:</strong> v8.64.0</span>
   <span>·</span>
-  <span><strong>New — one dated model table:</strong> <code>--suggest-tool</code> recommended <code>claude-sonnet-4-6</code> and <code>gpt-5-2</code>, and <code>gain --model</code> rejected both — the routing advice and the pricing table were two unrelated literals, neither dated, neither overridable. They are now one profile: every name the advice prints is one the pricing accepts, every output that shows a model or a price shows <strong>as of 2026-10-04</strong>, and a <code>models</code> config block overrides any figure per model. Declare <code>models.roster</code> and the advice names only the models you have. There is no live price fetch; <code>sigmap doctor</code> warns when the profile is more than 90 days old. <a href="/guide/config#models">The model profile →</a></span>
+  <span><strong>New — a prefix cache can finally hit:</strong> the context file opened with a per-commit block headed by "5 minutes ago", so the signature body behind it could never be a cache hit. Every file is now a stable body, then a marker, then the volatile tail; <code>--format cache</code> writes the two as separate blocks; and <code>--report</code> says whether the prefix is long enough for each model to cache it at all — "borderline" instead of a guess. <a href="/guide/config#prompt-cache-layout">Prompt-cache layout →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.63-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.64-main</span>
   <span>·</span>
   <span>78.6% hit@5 · 95.8% token reduction · 2026-10-04</span>
 </div>
