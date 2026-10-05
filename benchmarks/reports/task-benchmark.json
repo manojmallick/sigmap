@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-04T23:00:24.663Z",
+  "generated": "2026-10-05T08:58:00.830Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,8 +26,8 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 79.7,
     "avgImprovement": 60.1,
-    "totalGroundedSymbols": 16676,
-    "totalDarkSymbols": 51729,
+    "totalGroundedSymbols": 16670,
+    "totalDarkSymbols": 51735,
     "hallucinationRiskPct": 75.6
   },
   "repos": [
@@ -167,9 +167,9 @@
       "promptsWith": 1.4,
       "promptsWithout": 2.99,
       "reductionPct": 53.1,
-      "groundedSymbols": 1596,
-      "darkSymbols": 2140,
-      "hallucinationRiskPct": 57.3
+      "groundedSymbols": 1591,
+      "darkSymbols": 2145,
+      "hallucinationRiskPct": 57.4
     },
     {
       "repo": "okhttp",
@@ -284,5 +284,5 @@
       "hallucinationRiskPct": 61.9
     }
   ],
-  "version": "8.65.3"
+  "version": "8.66.0"
 }

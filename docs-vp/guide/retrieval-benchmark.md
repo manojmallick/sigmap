@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.65.3. 79.7% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.8% vs 40.0% (2.22× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.66.0. 79.7% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.8% vs 40.0% (2.22× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.65.3 benchmark snapshot
-**Benchmark ID:** sigmap-v8.65-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
+::: info Official v8.66.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.66-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-04 (v8.65.3)**
+Latest saved run: **2026-10-05 (v8.66.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -150,12 +150,18 @@ happen to share an adjective.
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
 | `hard` | 90 | **73.3%** | 70% floor | Leak-free tasks over **SigMap's own source** |
-| `mined` | 23 | **60.9%** | no-regress | Commit subjects + the files that commit touched |
+| `mined` | 60 | **61.7%** | no-regress | Commit subjects + the files that commit touched, minus the generated outputs every commit also rewrites |
 | `jvm` | 61 | **34.4%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
 | `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
 
 Every corpus is asserted leak-free: no query shares a stemmed token with its
 expected file's basename. `hard` and `mined` are re-asserted on every run.
+
+::: tip The `mined` corpus was re-mined at v8.66.0 ([#883](https://github.com/manojmallick/sigmap/issues/883))
+Five of its 23 tasks (m001–m005) listed the bundled `gen-context.js` as their only expected file. Tooling rewrites that file on nearly every source commit, and the miner records the files a commit touched, so the bundle became "the answer" — unwinnable, although the ranker returned the real implementation first. The miner now removes generated outputs (the bundle, `.context/`, adapter outputs, `llms*.txt`) *before* it judges which file a commit was about, and its default window is the whole history: it had been 960 commits, which stopped covering the repository at 1,331.
+
+Re-mined, the corpus is **60 tasks** (17 kept, 1 relabelled, 5 dropped, 42 new), so one task is 1.7pp instead of 4.3pp, and its 95% interval is 49.0–72.9%. The headline barely moves — **60.9% → 61.7%** — and the 60-task corpus scores the same on the v8.65.3 tree (37 of 60), so none of that is a ranking change. Measured against a clean v8.65.3 worktree, the release moves one first-hit rank inside the top 5 (`mined` m003, 3 → 4, a 0.012-point tie) and three outside it (`hard` h020 9 → 10, h026 10 → beyond 30 and h067 13 → 14, because [#895](https://github.com/manojmallick/sigmap/pull/895) changed this repository's own index); `easy` does not move. Only the `mined` entry of `retrieval-baseline.json` was re-recorded; its stored `hard` (75.6%) and `jvm` (21.3%) still do not reproduce (73.3% and 34.4% measured) and are left as they are.
+:::
 
 ### Why `hard` is reported but not enforced
 
@@ -336,7 +342,8 @@ is re-recorded deliberately with the number-provenance work
 The same episode is why `jvm` matters more than `hard`: ranking weights changed in
 v8.55.0 and `hard` could not falsify them, because it scores SigMap against the
 repository the change was made in. A labelled third-party corpus
-([#810](https://github.com/manojmallick/sigmap/issues/810)) does not exist yet.
+([#810](https://github.com/manojmallick/sigmap/issues/810)) did not exist until
+v8.66.0 — it is [`xrepo`](#measured-on-repos-we-do-not-control-xrepo), below.
 :::
 
 ### Why the JVM corpus exists
@@ -362,6 +369,76 @@ tasks)**, when the stemmer began to conflate inflections (`calculating` with
 `calculate`, `naming` with `name`). Its own design is what makes that credible: `jvm` scores against
 repositories the change was not made in, so unlike `hard` it could not have
 absorbed the change as corpus drift.
+
+## Measured on repos we do not control (xrepo)
+
+Every other corpus on this page is one this project wrote or can influence: `hard` scores SigMap against its own source, `mined` is its own commit history, `jvm` covers two repositories. A ranking regression on a repository nobody here controls could therefore ship green — which is how [#805](https://github.com/manojmallick/sigmap/issues/805), [#807](https://github.com/manojmallick/sigmap/issues/807) and [#808](https://github.com/manojmallick/sigmap/issues/808) reached users. **xrepo** is the instrument for that gap: **83 questions across 16 third-party repositories** (Go, Kotlin, Swift, Rust, TypeScript, Python, JavaScript, PHP, C#, Dart, Elixir, Astro, Lua and GDScript), each repository pinned to an exact commit, each question labelled with the files that answer it and a written reason ([#892](https://github.com/manojmallick/sigmap/issues/892)).
+
+### How the labels were made
+
+- **Blind.** Every repo was labelled by reading its code. Nobody ran SigMap, the ranker or a `.context/` index first, and the baseline records whatever the ranker scored — including repos at 0%.
+- **Leak-free.** The two checks the `hard` split uses: no query word shares a stem with an expected file's *name*, and no four-word run of a query appears in its answer's signatures.
+- **Eligibility without the ranker's own classifiers.** What may be an answer is decided by conventional test, docs and example directories, language-specific test-file names and non-source extensions — never by `src/util/file-class.js`. Those predicates demote tests and docs at ranking time and misfire on real implementation (see the findings below); a corpus that excluded whatever the ranker already calls "not source" could never reveal that.
+- **Two annotators.** A second, independent annotator saw only the questions and named the files it would pick. **79 of 83 file sets matched exactly (95%), all 83 shared at least one file, and none were disjoint.** The label is what both named; the one task where the first annotator had listed an extra file was cut back to the shared set, and three tasks where the second annotator named more are marked `"audit": "partial"`. Both annotators were language models, so the agreement bounds labelling noise, not blind spots they share.
+- One question is the external audit's own, verbatim: *How does gin route requests through its middleware chain?* Its expected files omit `gin.go`, because the query names the project and would leak against that basename; omitting a file can only make a hit harder.
+
+### Reading it
+
+| Repo | Language | Layout | Indexed | Tasks | Hits | hit@5 | Unreachable |
+|---|---|---|---|---:|---:|---:|---:|
+| gin | go | flat-go | zero-config | 5 | 4 | 80.0% | — |
+| OkHttp | kotlin | gradle-multimodule | zero-config | 5 | 3 | 60.0% | — |
+| Alamofire | swift | swiftpm-sources | zero-config | 5 | 2 | 40.0% | 1 |
+| Tokio | rust | cargo-workspace | zero-config | 5 | 3 | 60.0% | — |
+| Excalidraw | typescript_react | yarn-workspaces | zero-config | 6 | 2 | 33.3% | — |
+| Django | python | package-beside-tests | zero-config | 5 | 3 | 60.0% | — |
+| Flask | python | src-layout | zero-config | 5 | 4 | 80.0% | — |
+| Express | javascript | lib | zero-config | 4 | 3 | 75.0% | — |
+| vue-core | typescript | pnpm-workspace | zero-config | 5 | 0 | 0.0% | 1 |
+| Laravel | php | composer-src | zero-config | 5 | 1 | 20.0% | — |
+| Serilog | csharp | dotnet-src | zero-config | 5 | 0 | 0.0% | 1 |
+| Riverpod | dart | dart-workspace | `srcDirs` | 5 | 1 | 20.0% | — |
+| Phoenix | elixir | mix-lib | `srcDirs` | 5 | 5 | 100.0% | — |
+| Astro | astro | pnpm-workspace-subtree | zero-config | 7 | 1 | 14.3% | 1 |
+| plenary.nvim | lua | lua-module | zero-config | 6 | 5 | 83.3% | — |
+| godot-demo-projects | gdscript | godot-projects | `srcDirs` | 5 | 3 | 60.0% | — |
+| **Overall** | | | | **83** | **40** | **48.2%** | **4** |
+
+**Read it as a band, not a point.** One task is 1.2pp, and the 95% interval over 83 tasks is **37.8–58.8%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, six tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. It scores far below `hard` and `mined` for the reason it exists: those corpora are easier because they are closer to home.
+
+**Zero-config.** Each repo is indexed the way a first-time user's `sigmap` run indexes it — auto-detected `srcDirs`, no config. Three repos could not be: with zero config the resolver never reaches Riverpod's `packages/*/lib`, Phoenix's `lib/` or the Godot demos, so every answer was unindexed (0/5 each). Their manifest entries pin `srcDirs` with the measured reason, which is why the table shows them as `srcDirs`.
+
+**Unreachable** means no expected file of the task is in the index, so it cannot be found at all: detection skipped its directory, or the extractor emitted no signature for it. Those tasks stay in the corpus and are recorded in the baseline; the gate fails when a task that *was* reachable becomes unreachable, not on the gaps themselves.
+
+**Python is indexed with the regex extractor.** The default Python extractor shells out to the host's `python3` once per file, so the same tree scores differently depending on which Python is installed (Flask moved 5/5 → 4/5) and a repo the size of Django takes minutes. A committed number cannot depend on that, so the gate runs generation with `python3` shadowed.
+
+### What the first run found
+
+Beyond the number, the corpus surfaced defects the self-scored corpora cannot see — all measured, none fixed by this change, and listed in [#893](https://github.com/manojmallick/sigmap/issues/893):
+
+- **Zero-config detection misses the source root** in Dart workspaces, Elixir mix projects and Godot repos.
+- **Real files never reach the index:** a TypeScript file that ends `export default <identifier>`, any C# `partial` type, a Swift class with `@unchecked` in its inheritance clause, and everything under a directory named `build/` (Astro's whole static-build pipeline).
+- **`isDocsFile` demotes real source by 80%:** excalidraw's `history.ts` has a raw BM25 of 29.4 and a penalty of 0.2, so the undo/redo question ranks it 20th instead of 1st.
+
+### Run it
+
+```bash
+npm run fetch:xrepo        # pinned shallow/sparse fetch of the 16 repos (about 380 MB, idempotent)
+npm run benchmark:xrepo    # the report; add --per-task for each task's rank and what moved
+npm run validate:xrepo     # the gate: floor + per-repo no-regress (CI adds --require-repos)
+```
+
+CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.json`, fetches only what is missing or off-pin, and runs the gate. The gate exits 0 when the repos are absent, so a fresh checkout is never broken by it.
+
+::: warning Set the seven new clones aside before a release benchmark run
+`fetch:xrepo` puts seven repositories that no other suite expects (tokio, excalidraw, django, phoenix, astro, plenary, godot-demo-projects) into `benchmarks/repos/`, and two suites enumerate that whole directory. With them present, `benchmark:test-discovery` reads **95.3% F1 over 33 repositories instead of 98.0% over 28**, and `validate:grounding-coverage` fails because each has no recorded floor. The published figures were measured with them moved aside; the cause is tracked in [#893](https://github.com/manojmallick/sigmap/issues/893).
+:::
+
+### Changing the corpus
+
+- **Re-pin a repo:** change its `commit` in `benchmarks/xrepo-repos.json`, run `npm run fetch:xrepo`, re-check every task that names a file in that repo, then `node scripts/run-xrepo-gate.mjs --save`. A pin that moves with the corpus unchanged is a measurement change; say so in the PR.
+- **Add a task:** read the code, never the ranker; write a question that shares no word stem with the answer's file name; record a `rationale` naming what the file does and which neighbours you ruled out; have a second annotator name files for the question alone; set `"audit"` to `agreed` or `partial`. `test/integration/xrepo-corpus.test.js` enforces the mechanical half.
+- **Never hand-edit the baseline.** `--save` merges, so a run on a machine that lacks some repos does not erase their entries.
 
 ## Per-repo results
 

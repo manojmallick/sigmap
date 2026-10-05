@@ -149,6 +149,40 @@ function treeOf(dir) {
     }
   });
 
+  await test('a hermetic regen removes a directory the generator created for an artifact', () => {
+    const dir = makeRepo();
+    try {
+      assert.ok(!fs.existsSync(path.join(dir, '.github')), 'fixture should start without .github');
+      shared.withSharedRepoContext(dir, {
+        generate: () => {
+          fs.mkdirSync(path.join(dir, '.github'));
+          fs.writeFileSync(path.join(dir, '.github', 'copilot-instructions.md'), 'generated');
+        },
+        measure: () => {},
+      });
+      assert.ok(!fs.existsSync(path.join(dir, '.github')), 'an empty .github/ was left behind');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  await test('a hermetic regen keeps a directory that already existed, and what lives in it', () => {
+    const dir = makeRepo();
+    try {
+      const wf = path.join(dir, '.github', 'workflows', 'ci.yml');
+      fs.mkdirSync(path.dirname(wf), { recursive: true });
+      fs.writeFileSync(wf, 'name: ci\n');
+      shared.withSharedRepoContext(dir, {
+        generate: () => fs.writeFileSync(path.join(dir, '.github', 'copilot-instructions.md'), 'generated'),
+        measure: () => {},
+      });
+      assert.strictEqual(fs.readFileSync(wf, 'utf8'), 'name: ci\n', 'a pre-existing workflow must survive');
+      assert.ok(!fs.existsSync(path.join(dir, '.github', 'copilot-instructions.md')), 'the generated file must go');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   await test('withSharedRepoContext restores on throw', () => {
     const dir = makeRepo();
     try {

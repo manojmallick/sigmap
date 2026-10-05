@@ -1,0 +1,279 @@
+{
+  "overall": {
+    "tasks": 83,
+    "hits": 40,
+    "hitAt5": 0.4819277108433735,
+    "mrr": 0.32955421686746983,
+    "precisionAt5": 0.10128915662650602
+  },
+  "repos": {
+    "alamofire": {
+      "language": "swift",
+      "tasks": 5,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.4,
+      "precisionAt5": 0.08,
+      "unreachable": [
+        "x012"
+      ],
+      "ranks": {
+        "x011": null,
+        "x012": null,
+        "x013": 1,
+        "x014": 1,
+        "x015": null
+      }
+    },
+    "astro": {
+      "language": "astro",
+      "tasks": 7,
+      "hits": 1,
+      "hitAt5": 0.143,
+      "mrr": 0.143,
+      "precisionAt5": 0.029,
+      "unreachable": [
+        "x071"
+      ],
+      "ranks": {
+        "x066": null,
+        "x067": null,
+        "x068": 1,
+        "x069": null,
+        "x070": null,
+        "x071": null,
+        "x072": null
+      }
+    },
+    "django": {
+      "language": "python",
+      "tasks": 5,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.29,
+      "precisionAt5": 0.12,
+      "unreachable": [],
+      "ranks": {
+        "x027": null,
+        "x028": 1,
+        "x029": 4,
+        "x030": 5,
+        "x031": null
+      }
+    },
+    "excalidraw": {
+      "language": "typescript_react",
+      "tasks": 6,
+      "hits": 2,
+      "hitAt5": 0.333,
+      "mrr": 0.222,
+      "precisionAt5": 0.067,
+      "unreachable": [],
+      "ranks": {
+        "x021": 3,
+        "x022": null,
+        "x023": null,
+        "x024": null,
+        "x025": 1,
+        "x026": null
+      }
+    },
+    "express": {
+      "language": "javascript",
+      "tasks": 4,
+      "hits": 3,
+      "hitAt5": 0.75,
+      "mrr": 0.383,
+      "precisionAt5": 0.15,
+      "unreachable": [],
+      "ranks": {
+        "x037": 5,
+        "x038": null,
+        "x039": 1,
+        "x040": 3
+      }
+    },
+    "flask": {
+      "language": "python",
+      "tasks": 5,
+      "hits": 4,
+      "hitAt5": 0.8,
+      "mrr": 0.65,
+      "precisionAt5": 0.16,
+      "unreachable": [],
+      "ranks": {
+        "x032": null,
+        "x033": 4,
+        "x034": 1,
+        "x035": 1,
+        "x036": 1
+      }
+    },
+    "gin": {
+      "language": "go",
+      "tasks": 5,
+      "hits": 4,
+      "hitAt5": 0.8,
+      "mrr": 0.567,
+      "precisionAt5": 0.16,
+      "unreachable": [],
+      "ranks": {
+        "x001": 1,
+        "x002": null,
+        "x003": 2,
+        "x004": 1,
+        "x005": 3
+      }
+    },
+    "godot-demo-projects": {
+      "language": "gdscript",
+      "tasks": 5,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.367,
+      "precisionAt5": 0.12,
+      "unreachable": [],
+      "ranks": {
+        "x079": 1,
+        "x080": null,
+        "x081": 2,
+        "x082": 3,
+        "x083": null
+      }
+    },
+    "laravel": {
+      "language": "php",
+      "tasks": 5,
+      "hits": 1,
+      "hitAt5": 0.2,
+      "mrr": 0.2,
+      "precisionAt5": 0.04,
+      "unreachable": [],
+      "ranks": {
+        "x046": null,
+        "x047": 1,
+        "x048": null,
+        "x049": null,
+        "x050": null
+      }
+    },
+    "okhttp": {
+      "language": "kotlin",
+      "tasks": 5,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.467,
+      "precisionAt5": 0.16,
+      "unreachable": [],
+      "ranks": {
+        "x006": 1,
+        "x007": 3,
+        "x008": null,
+        "x009": null,
+        "x010": 1
+      }
+    },
+    "phoenix": {
+      "language": "elixir",
+      "tasks": 5,
+      "hits": 5,
+      "hitAt5": 1,
+      "mrr": 0.69,
+      "precisionAt5": 0.24,
+      "unreachable": [],
+      "ranks": {
+        "x061": 1,
+        "x062": 5,
+        "x063": 1,
+        "x064": 4,
+        "x065": 1
+      }
+    },
+    "plenary": {
+      "language": "lua",
+      "tasks": 6,
+      "hits": 5,
+      "hitAt5": 0.833,
+      "mrr": 0.528,
+      "precisionAt5": 0.167,
+      "unreachable": [],
+      "ranks": {
+        "x073": 3,
+        "x074": 1,
+        "x075": null,
+        "x076": 1,
+        "x077": 2,
+        "x078": 3
+      }
+    },
+    "riverpod": {
+      "language": "dart",
+      "tasks": 5,
+      "hits": 1,
+      "hitAt5": 0.2,
+      "mrr": 0.2,
+      "precisionAt5": 0.04,
+      "unreachable": [],
+      "ranks": {
+        "x056": null,
+        "x057": null,
+        "x058": 1,
+        "x059": null,
+        "x060": null
+      }
+    },
+    "serilog": {
+      "language": "csharp",
+      "tasks": 5,
+      "hits": 0,
+      "hitAt5": 0,
+      "mrr": 0,
+      "precisionAt5": 0,
+      "unreachable": [
+        "x052"
+      ],
+      "ranks": {
+        "x051": null,
+        "x052": null,
+        "x053": null,
+        "x054": null,
+        "x055": null
+      }
+    },
+    "tokio": {
+      "language": "rust",
+      "tasks": 5,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.233,
+      "precisionAt5": 0.12,
+      "unreachable": [],
+      "ranks": {
+        "x016": 3,
+        "x017": null,
+        "x018": 3,
+        "x019": null,
+        "x020": 2
+      }
+    },
+    "vue-core": {
+      "language": "typescript",
+      "tasks": 5,
+      "hits": 0,
+      "hitAt5": 0,
+      "mrr": 0,
+      "precisionAt5": 0,
+      "unreachable": [
+        "x044"
+      ],
+      "ranks": {
+        "x041": null,
+        "x042": null,
+        "x043": null,
+        "x044": null,
+        "x045": null
+      }
+    }
+  },
+  "recordedBy": "run-xrepo-gate.mjs"
+}
