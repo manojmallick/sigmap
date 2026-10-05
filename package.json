@@ -68,6 +68,7 @@
     "benchmark:xrepo": "node scripts/run-xrepo-gate.mjs",
     "validate:xrepo": "node scripts/run-xrepo-gate.mjs --gate --no-regress",
     "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save",
+    "benchmark:signals": "node scripts/run-signal-verdicts.mjs --save",
     "fix:doc-counts": "node scripts/check-doc-counts.mjs --fix"
   },
   "files": [

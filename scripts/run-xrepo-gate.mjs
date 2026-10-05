@@ -8,6 +8,7 @@
  *   node scripts/run-xrepo-gate.mjs --save                   # record the baseline
  *   node scripts/run-xrepo-gate.mjs --per-task               # per-task ranks, and what moved vs the baseline
  *   node scripts/run-xrepo-gate.mjs --why                    # why every miss misses (#674): not indexed / penalty / ranking
+ *   node scripts/run-xrepo-gate.mjs --signals                # each opt-in ranking signal against plain, task by task (#703); records nothing
  *   node scripts/run-xrepo-gate.mjs --only gin,tokio --json
  *
  * WHY: every other retrieval gate scores a corpus this project wrote or can
@@ -44,7 +45,11 @@ import { createRequire } from 'module';
 import { band } from './lib/band.mjs';
 import { loadManifest, checkoutState, readTasks, withZeroConfigIndex, TASKS_REL, BASELINE_REL } from './lib/xrepo.mjs';
 import { staticProblems, repoProblems } from './lib/xrepo-hygiene.mjs';
-import { rankOf, totals, decide, EPS, attribute, summarizeWhy, whyLabel } from './lib/xrepo-gate.mjs';
+import { rankOf, totals, decide, EPS, summarizeWhy, whyLabel } from './lib/xrepo-gate.mjs';
+import { attributeTasks, formatGap, GAP_LABELS } from './lib/attribution.mjs';
+import { docStats, queryTermsOf, termsOf } from './lib/corpus-vocabulary.mjs';
+import { ARMS, compareArms, mergeArms, verdictOf } from './lib/signal-arms.mjs';
+import { buildArmRankers } from './lib/signal-rankers.mjs';
 
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XREPO_DATA) : CODE_ROOT;
@@ -63,6 +68,7 @@ const REQUIRE = has('--require-repos');
 const AS_JSON = has('--json');
 const PER_TASK = has('--per-task');
 const WHY = has('--why');
+const SIGNALS = has('--signals');
 const ONLY = val('--only', null) ? new Set(val('--only', '').split(',')) : null;
 
 // Overall hit@5 floor, enforced only on a COMPLETE run (every repo scored) —
@@ -93,6 +99,15 @@ const manifestNames = new Set(manifest.repos.map((r) => r.name));
 const problems = [];
 for (const t of allTasks) for (const p of staticProblems(t, manifestNames)) problems.push({ repo: t.repo, ...p });
 
+/**
+ * Rank every task under each opt-in signal, over the repo's one zero-config index
+ * and graph (see signal-rankers.mjs for how each arm is built).
+ */
+function scoreSignals({ tasks, index, dir, graph }) {
+  const { rankers, fellBack, stats } = buildArmRankers({ index, dir, graph, rankQuery });
+  return { arms: compareArms({ tasks, rankers }), fellBack, stats };
+}
+
 /** Score one repo's tasks against its pinned, zero-config-indexed checkout. */
 function scoreRepo(repo, tasks) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-xrepo-'));
@@ -119,20 +134,25 @@ function scoreRepo(repo, tasks) {
       // a miss can be placed — absent, buried by a penalty, or merely too low.
       // The graph is built exactly as `run()` builds it, so the ranking is the one
       // the table above scored.
+      let graph = null;
+      if (WHY || SIGNALS) {
+        try { graph = buildFromCwd(dir); } catch (_) { /* run() tolerates this too */ }
+      }
       let why = null;
       if (WHY) {
-        let graph = null;
-        try { graph = buildFromCwd(dir); } catch (_) { /* run() tolerates this too */ }
-        const indexed = new Set(index.keys());
+        const { docFreq, docCount } = docStats(index, dir);
+        const attributed = attributeTasks({
+          tasks: tasks.map((t) => ({ id: t.id, query: t.query, expected: t.expected_files })),
+          indexed: new Set(index.keys()),
+          rankFull: (q) => rankQuery(q, index, index.size, { cwd: dir, graph, learned: false })
+            .map((x) => ({ file: x.file, score: x.score, penalty: x.signals && typeof x.signals.penalty === 'number' ? x.signals.penalty : 1 })),
+          queryTerms: queryTermsOf,
+          termsOf: termsOf(index, dir),
+          docFreq,
+          docCount,
+        });
         why = {};
-        for (const t of tasks) {
-          const full = rankQuery(t.query, index, index.size, { cwd: dir, graph, learned: false });
-          why[t.id] = attribute({
-            ranked: full.map((x) => ({ file: x.file, score: x.score, penalty: x.signals && typeof x.signals.penalty === 'number' ? x.signals.penalty : 1 })),
-            expected: t.expected_files,
-            indexed,
-          });
-        }
+        for (const { id, query, expected, ...attribution } of attributed) why[id] = attribution;
       }
       const row = {
         repo: repo.name, language: repo.language, layout: repo.layout, config: repo.srcDirs ? 'srcDirs' : 'auto',
@@ -142,6 +162,13 @@ function scoreRepo(repo, tasks) {
       };
       // Only when asked for: the default report and `--json` shape stay as they were.
       if (why) row.why = why;
+      if (SIGNALS) {
+        row.signals = scoreSignals({ tasks, index, dir, graph });
+        // The plain arm IS the gate's ranking; if it scores differently the arms measure something else.
+        if (row.signals.arms.plain.hits !== row.hits) {
+          throw new Error(`${repo.name}: the plain arm scored ${row.signals.arms.plain.hits} hits and the gate ${row.hits}`);
+        }
+      }
       return { row, found: found.filter((p) => p.kind !== 'unindexed') };
     });
   } finally {
@@ -175,9 +202,19 @@ if (!rows.length && !REQUIRE && !AS_JSON) {
 
 const { reasons, complete } = decide({ rows, expectedRepos, offPin, prior, min: MIN, noRegress: NO_REGRESS, requireRepos: REQUIRE, problems });
 const whySummary = WHY ? summarizeWhy(rows.flatMap((r) => Object.values(r.why || {}))) : null;
+const signalsReport = SIGNALS && rows.length ? {
+  arms: mergeArms(rows.map((r) => ({ repo: r.repo, arms: r.signals.arms }))),
+  fellBack: Object.fromEntries(rows.filter((r) => r.signals.fellBack.length).map((r) => [r.repo, r.signals.fellBack])),
+  added: {
+    routeSigs: rows.reduce((n, r) => n + (r.signals.stats.routeSigs || 0), 0),
+    minedTokens: rows.reduce((n, r) => n + (r.signals.stats.minedTokens || 0), 0),
+    bodyWords: rows.reduce((n, r) => n + (r.signals.stats.bodyWords || 0), 0),
+    bodyFiles: rows.reduce((n, r) => n + (r.signals.stats.bodyFiles || 0), 0),
+  },
+} : null;
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined }, null, 2));
+  console.log(JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined, signals: signalsReport || undefined }, null, 2));
 } else if (rows.length) {
   console.log('\n[sigmap] xrepo — labelled third-party retrieval (zero-config)\n');
   console.log('  repo                  lang              cfg      tasks   hit@5     MRR    P@5   unreachable');
@@ -217,6 +254,12 @@ if (AS_JSON) {
     // ranking miss needs ranking work — the kind that trades one split for another.
     console.log(`\n  why the ${whySummary.misses} misses miss  (${whySummary.hits} of ${whySummary.tasks} hit)\n`);
     for (const [label, n] of whySummary.rows) console.log(`    ${label.padEnd(40)} ${String(n).padStart(3)}`);
+    // Whether the answer's own words could have served a question that shares none with the
+    // index entry: a distinctive word only the source holds is vocabulary a body index would
+    // add; common words cannot tell the file apart; no word at all is a paraphrase.
+    const noToken = rows.flatMap((r) => Object.values(r.why || {})).filter((a) => a.cls === 'no-overlap' && a.gapClass);
+    const noTokenAt = (k) => noToken.filter((a) => a.gapClass === k).length;
+    console.log(`\n    of the ${noToken.length} no-token misses, the answer holds: a distinctive word only in its source ${noTokenAt('distinctive')} · only common words ${noTokenAt('common-only')} · no word of the question ${noTokenAt('nowhere')}`);
     console.log('\n  per miss  (rank = best expected file in the WHOLE ranking; "without" = its rank were the path penalty undone)\n');
     for (const r of rows) {
       for (const [id, a] of Object.entries(r.why || {})) {
@@ -225,9 +268,33 @@ if (AS_JSON) {
           : a.cls === 'no-overlap' ? 'the answer scores zero for this question'
           : a.cls === 'penalty' ? `rank ${a.rank}, rank ${a.withoutPenalty} without the ${a.penalty} penalty`
           : `rank ${a.rank}`;
-        console.log(`  ${id}  ${r.repo.padEnd(20)} ${whyLabel(a).padEnd(40)} ${detail}`);
+        const evidence = a.gap ? ` — ${GAP_LABELS[a.gapClass]} — ${formatGap(a.gap)}` : '';
+        console.log(`  ${id}  ${r.repo.padEnd(20)} ${whyLabel(a).padEnd(40)} ${detail}${evidence}`);
       }
     }
+  }
+
+  if (signalsReport) {
+    // A signal is judged by the tasks it wins and loses against plain, never by a
+    // difference of rates: one task is worth about a point, and a signal that wins as
+    // many as it loses has moved the answers around, not improved them.
+    console.log('\n  signal arms  (zero-config, one index and graph per repo; measured here, never recorded)\n');
+    console.log(`    ${'arm'.padEnd(24)} ${'hit@5'.padStart(15)}   ${'MRR'.padStart(5)}   against plain`);
+    for (const a of ARMS) {
+      const m = signalsReport.arms[a.id];
+      if (!m) continue;
+      console.log(`    ${a.label.padEnd(24)} ${`${m.hits}/${m.tasks} ${pct(m.hits / m.tasks)}`.padStart(15)}   ${m.mrr.toFixed(3)}   ${a.id === 'plain' ? '' : verdictOf(m)}`);
+    }
+    const shift = (m, id) => { const mv = m.moves.find((x) => x.id === id); return mv ? ` (${mv.from === null ? '-' : mv.from} → ${mv.to === null ? '-' : mv.to})` : ''; };
+    for (const a of ARMS.slice(1)) {
+      const m = signalsReport.arms[a.id];
+      if (!m || (!m.gained.length && !m.lost.length)) continue;
+      console.log(`\n    ${a.label}`);
+      if (m.gained.length) console.log(`      won   ${m.gained.map((id) => id + shift(m, id)).join(', ')}`);
+      if (m.lost.length) console.log(`      lost  ${m.lost.map((id) => id + shift(m, id)).join(', ')}`);
+    }
+    console.log(`\n    cost: surface enrichment adds ${signalsReport.added.routeSigs} pseudo-signatures to the index; mined expansions hold ${signalsReport.added.minedTokens} tokens; body words add ${signalsReport.added.bodyWords} words over ${signalsReport.added.bodyFiles} files`);
+    for (const [repo, ids] of Object.entries(signalsReport.fellBack)) console.log(`    NOT RUN on ${repo}: ${ids.join(', ')} could not be built, so those arms equal plain there`);
   }
 }
 

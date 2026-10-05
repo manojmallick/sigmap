@@ -51,6 +51,17 @@ const TEST_NAME = [
   /_spec\.rb$/,
 ];
 
+// The narrower question a MINED corpus asks of its labels: is the answer test code?
+// Docs, examples and tooling are legitimate answers to some questions, and a broad
+// segment list misfires on real packages — `samples` is a Java package in
+// org.springframework.samples.petclinic — so only the unambiguous test names remain.
+const TEST_SEGMENT = /(^|\/)(tests?|__tests__|specs?|e2e|testdata|fixtures?|__fixtures__|mocks?|__mocks__)(\/|$)/i;
+
+/** Is this path test code — a test directory or a language's own test-file naming? */
+export function isTestAnswer(p) {
+  return TEST_SEGMENT.test(p) || TEST_NAME.some((re) => re.test(p));
+}
+
 /** Why a path cannot be a labelled answer, or null when it can. */
 export function whyNotAnAnswer(p) {
   if (NON_ANSWER_SEGMENT.test(p)) return 'in a test, docs, example or tooling directory';
