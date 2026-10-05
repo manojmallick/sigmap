@@ -7,6 +7,7 @@
  *   node scripts/run-xrepo-gate.mjs --gate --require-repos   # also exit 1 if a repo is absent (CI)
  *   node scripts/run-xrepo-gate.mjs --save                   # record the baseline
  *   node scripts/run-xrepo-gate.mjs --per-task               # per-task ranks, and what moved vs the baseline
+ *   node scripts/run-xrepo-gate.mjs --why                    # why every miss misses (#674): not indexed / penalty / ranking
  *   node scripts/run-xrepo-gate.mjs --only gin,tokio --json
  *
  * WHY: every other retrieval gate scores a corpus this project wrote or can
@@ -43,12 +44,13 @@ import { createRequire } from 'module';
 import { band } from './lib/band.mjs';
 import { loadManifest, checkoutState, readTasks, withZeroConfigIndex, TASKS_REL, BASELINE_REL } from './lib/xrepo.mjs';
 import { staticProblems, repoProblems } from './lib/xrepo-hygiene.mjs';
-import { rankOf, totals, decide, EPS } from './lib/xrepo-gate.mjs';
+import { rankOf, totals, decide, EPS, attribute, summarizeWhy, whyLabel } from './lib/xrepo-gate.mjs';
 
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XREPO_DATA) : CODE_ROOT;
 const require = createRequire(import.meta.url);
-const { run } = require(path.join(CODE_ROOT, 'src/eval/runner'));
+const { run, rank: rankQuery } = require(path.join(CODE_ROOT, 'src/eval/runner'));
+const { buildFromCwd } = require(path.join(CODE_ROOT, 'src/graph/builder'));
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -60,6 +62,7 @@ const SAVE = has('--save');
 const REQUIRE = has('--require-repos');
 const AS_JSON = has('--json');
 const PER_TASK = has('--per-task');
+const WHY = has('--why');
 const ONLY = val('--only', null) ? new Set(val('--only', '').split(',')) : null;
 
 // Overall hit@5 floor, enforced only on a COMPLETE run (every repo scored) —
@@ -111,15 +114,35 @@ function scoreRepo(repo, tasks) {
       const unreachable = tasks
         .filter((t) => t.expected_files.every((f) => unindexed.some((p) => p.id === t.id && p.file === f)))
         .map((t) => t.id);
-      return {
-        row: {
-          repo: repo.name, language: repo.language, layout: repo.layout, config: repo.srcDirs ? 'srcDirs' : 'auto',
-          tasks: r.tasks.length, hits: r.tasks.filter((t) => t.hit5).length,
-          hitAt5: r.metrics.hitAt5, mrr: r.metrics.mrr, precisionAt5: r.metrics.precisionAt5,
-          unindexed: unreachable.length, unreachable, ranks,
-        },
-        found: found.filter((p) => p.kind !== 'unindexed'),
+
+      // --why: rank each question against the WHOLE index, not just the top 5, so
+      // a miss can be placed — absent, buried by a penalty, or merely too low.
+      // The graph is built exactly as `run()` builds it, so the ranking is the one
+      // the table above scored.
+      let why = null;
+      if (WHY) {
+        let graph = null;
+        try { graph = buildFromCwd(dir); } catch (_) { /* run() tolerates this too */ }
+        const indexed = new Set(index.keys());
+        why = {};
+        for (const t of tasks) {
+          const full = rankQuery(t.query, index, index.size, { cwd: dir, graph, learned: false });
+          why[t.id] = attribute({
+            ranked: full.map((x) => ({ file: x.file, score: x.score, penalty: x.signals && typeof x.signals.penalty === 'number' ? x.signals.penalty : 1 })),
+            expected: t.expected_files,
+            indexed,
+          });
+        }
+      }
+      const row = {
+        repo: repo.name, language: repo.language, layout: repo.layout, config: repo.srcDirs ? 'srcDirs' : 'auto',
+        tasks: r.tasks.length, hits: r.tasks.filter((t) => t.hit5).length,
+        hitAt5: r.metrics.hitAt5, mrr: r.metrics.mrr, precisionAt5: r.metrics.precisionAt5,
+        unindexed: unreachable.length, unreachable, ranks,
       };
+      // Only when asked for: the default report and `--json` shape stay as they were.
+      if (why) row.why = why;
+      return { row, found: found.filter((p) => p.kind !== 'unindexed') };
     });
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -151,9 +174,10 @@ if (!rows.length && !REQUIRE && !AS_JSON) {
 }
 
 const { reasons, complete } = decide({ rows, expectedRepos, offPin, prior, min: MIN, noRegress: NO_REGRESS, requireRepos: REQUIRE, problems });
+const whySummary = WHY ? summarizeWhy(rows.flatMap((r) => Object.values(r.why || {}))) : null;
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons }, null, 2));
+  console.log(JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined }, null, 2));
 } else if (rows.length) {
   console.log('\n[sigmap] xrepo — labelled third-party retrieval (zero-config)\n');
   console.log('  repo                  lang              cfg      tasks   hit@5     MRR    P@5   unreachable');
@@ -183,6 +207,25 @@ if (AS_JSON) {
         const q = (byRepo.get(r.repo).find((t) => t.id === id) || {}).query || '';
         const mark = r.unreachable.includes(id) ? 'U' : rank === null ? '-' : String(rank);
         console.log(`  ${id}  ${r.repo.padEnd(20)} ${mark.padStart(2)}  ${q.slice(0, 64)}${moved}`);
+      }
+    }
+  }
+
+  if (WHY) {
+    // The fix for a miss depends on why it misses: an unindexed file needs
+    // detection or an extractor, a penalised one a classifier, and only a
+    // ranking miss needs ranking work — the kind that trades one split for another.
+    console.log(`\n  why the ${whySummary.misses} misses miss  (${whySummary.hits} of ${whySummary.tasks} hit)\n`);
+    for (const [label, n] of whySummary.rows) console.log(`    ${label.padEnd(40)} ${String(n).padStart(3)}`);
+    console.log('\n  per miss  (rank = best expected file in the WHOLE ranking; "without" = its rank were the path penalty undone)\n');
+    for (const r of rows) {
+      for (const [id, a] of Object.entries(r.why || {})) {
+        if (a.cls === 'hit') continue;
+        const detail = a.cls === 'unindexed' ? 'the answer is not in the index'
+          : a.cls === 'no-overlap' ? 'the answer scores zero for this question'
+          : a.cls === 'penalty' ? `rank ${a.rank}, rank ${a.withoutPenalty} without the ${a.penalty} penalty`
+          : `rank ${a.rank}`;
+        console.log(`  ${id}  ${r.repo.padEnd(20)} ${whyLabel(a).padEnd(40)} ${detail}`);
       }
     }
   }

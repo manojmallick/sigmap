@@ -127,27 +127,46 @@ function extract(src) {
     }
   }
 
-  // Exported named functions
-  for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
-    const asyncKw = /export\s+async/.test(m[0]) ? 'async ' : '';
-    const retStr = formatReturnHint(returnHints.get(m[1]));
+  // Exported named functions — `export function f` and `export default function f`
+  for (const m of stripped.matchAll(/^export\s+(default\s+)?(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
+    const asyncKw = /\basync\b/.test(m[0]) ? 'async ' : '';
+    const retStr = formatReturnHint(returnHints.get(m[2]));
     const startLn = lineAt(stripped, m.index);
     const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-    sigs.push(`export ${asyncKw}function ${m[1]}(${normalizeParams(params)})${retStr}`);
-    docHintFor[sigs.length - 1] = docHints.get(m[1]);
+    sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[2]}(${normalizeParams(params)})${retStr}`);
+    docHintFor[sigs.length - 1] = docHints.get(m[2]);
     anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
   }
 
+  // Arrow functions bound to a const — `export const f = (…) =>`, and the
+  // `const f = (…) =>` that an `export default f` names (see below).
+  const emittedArrows = new Set();
+  const pushArrow = (declIdx, openIdx, name, asyncKw, prefix) => {
+    const { params, closeIdx } = paramsFrom(openIdx);
+    if (closeIdx === -1 || !/^\s*=>/.test(masked.slice(closeIdx + 1, closeIdx + 40))) return;
+    const retStr = formatReturnHint(returnHints.get(name));
+    const startLn = lineAt(stripped, declIdx);
+    sigs.push(`${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
+    docHintFor[sigs.length - 1] = docHints.get(name);
+    anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+    emittedArrows.add(name);
+  };
+
   // Exported arrow functions
   for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/gm)) {
-    const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-    if (closeIdx === -1 || !/^\s*=>/.test(masked.slice(closeIdx + 1, closeIdx + 40))) continue;
-    const asyncKw = m[0].includes('async') ? 'async ' : '';
-    const retStr = formatReturnHint(returnHints.get(m[1]));
-    const startLn = lineAt(stripped, m.index);
-    sigs.push(`export const ${m[1]} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
-    docHintFor[sigs.length - 1] = docHints.get(m[1]);
-    anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+    pushArrow(m.index, m.index + m[0].length - 1, m[1], m[0].includes('async') ? 'async ' : '', 'export ');
+  }
+
+  // `export default <identifier>` over a const-bound arrow (#900). A function
+  // DECLARATION it names is already extracted below as a top-level function, so
+  // only the arrow form — which nothing else reaches — is resolved here. The
+  // identifier must be declared in this file: an imported one invents nothing.
+  // Matched on the masked surface so a line inside a template literal is inert.
+  for (const dm of masked.matchAll(/^export[ \t]+default[ \t]+([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/gm)) {
+    const name = dm[1];
+    if (emittedArrows.has(name)) continue;
+    const arrow = new RegExp(`^(?:const|let|var)\\s+${name.replace(/\$/g, '\\$')}\\s*=\\s*(async\\s+)?\\(`, 'm').exec(masked);
+    if (arrow) pushArrow(arrow.index, arrow.index + arrow[0].length - 1, name, arrow[1] ? 'async ' : '', 'export default ');
   }
 
   // module.exports = { ... }
@@ -228,7 +247,7 @@ function extractClassMembers(block, maskedBlock, returnHints) {
 // shape below is the one buildDocHints already uses, which profiles at ~0%.
 const RETURN_TAG = /@returns?\s+\{([^}]+)\}/;
 const RETURN_DECLS = [
-  /\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/y,
+  /\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+(\w+)\s*\(/y,
   /\s*export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/y,
   /\s*(?:static\s+|async\s+|get\s+|set\s+)*(\w+)\s*\(/y,
 ];
@@ -257,7 +276,7 @@ function buildDocHints(src) {
   // the match expand across a whole function to the next comment block and
   // misattribute the hint.
   const patterns = [
-    /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/g,
+    /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+(\w+)\s*\(/g,
     /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/g,
   ];
   for (const re of patterns) {

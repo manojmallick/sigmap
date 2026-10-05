@@ -19,6 +19,11 @@ const MAX_ROOTS = 6;
 const MAX_JVM_MODULE_ROOTS = 40;
 const JVM_SOURCE_LANGS = ['java', 'kotlin', 'scala'];
 
+// The same reasoning for a pub workspace or an Elixir umbrella project: one
+// source root per member package is the correct answer (riverpod has 12), not
+// over-detection.
+const MAX_PACKAGE_ROOTS = 40;
+
 /**
  * Build-file evidence of a multi-module JVM project.
  *
@@ -123,7 +128,11 @@ function resolveSourceRoots(cwd, opts = {}) {
   const context = { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties };
 
   // Enumerate candidates
-  const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || []);
+  const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || [], registry);
+
+  // A workspace whose language keeps each package's source in one directory
+  // (Dart and Elixir: `lib/`) — two or more members is what makes it one.
+  const isPackageWorkspace = candidates.filter((c) => c.packageSrc).length >= 2;
 
   // JVM source sets are discovered STRUCTURALLY — two or more module source
   // dirs on disk is what makes a build multi-module, whatever tool declares
@@ -141,12 +150,18 @@ function resolveSourceRoots(cwd, opts = {}) {
 
   // Score each candidate
   const scored = candidates
-    .map(({ name, full }) => ({
+    .map(({ name, full, packageSrc }) => ({
       dir:   name,
       full,
+      packageSrc,
       score: scoreCandidate(name, full, context),
     }))
     .filter(c => c.score > 0)
+    // In a package workspace the members' source directories ARE the source;
+    // whatever else sits at the top of the repo — a docs site, benchmarks,
+    // tooling — is not. Without this riverpod's `website/` (JavaScript) outranked
+    // all twelve Dart packages and was the only thing indexed (#900).
+    .filter(c => !isPackageWorkspace || c.packageSrc)
     // Final tie-break on dir keeps selection deterministic when scores tie — the
     // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
     // (candidate order comes from filesystem readdir), changing which files are
@@ -154,14 +169,14 @@ function resolveSourceRoots(cwd, opts = {}) {
     .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
 
   // Handle special rules
-  let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []));
+  let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []), registry);
 
   // Dedupe nested paths (prefer parent)
   roots = _dedupeNested(roots);
 
   // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
   // per module is the correct answer rather than over-detection.
-  const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : MAX_ROOTS;
+  const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : isPackageWorkspace ? MAX_PACKAGE_ROOTS : MAX_ROOTS;
   roots = roots.slice(0, cap).map(r => r.dir);
 
   // Fallback: if nothing scored, return empty (caller falls back to legacy)
@@ -180,11 +195,14 @@ function resolveSourceRoots(cwd, opts = {}) {
     isMonorepo,
     monorepo,
     isJvmMultiModule,
+    isPackageWorkspace,
   };
 }
 
-function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
+function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList, registry) {
   const candidates = [];
+  // Dart and Elixir keep a package's implementation in one named directory.
+  const packageSrcDir = registry && registry.packageSrcDir;
   const excSet     = new Set(excludeList);
 
   // Root-level dirs (sorted so candidate order — and downstream dedupe/selection
@@ -208,6 +226,16 @@ function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
       try {
         for (const pkg of fs.readdirSync(topFull, { withFileTypes: true })) {
           if (!pkg.isDirectory()) continue;
+          // A package of such a language contributes its source directory and
+          // nothing else. The package root would also pull in test/, example/
+          // and tool/ — in riverpod, a 244-file lint-fixture package among them.
+          if (packageSrcDir) {
+            const libFull = path.join(topFull, pkg.name, packageSrcDir);
+            if (fs.existsSync(libFull)) {
+              candidates.push({ name: `${top}/${pkg.name}/${packageSrcDir}`, full: libFull, packageSrc: true });
+            }
+            continue;
+          }
           const srcFull = path.join(topFull, pkg.name, 'src');
           if (fs.existsSync(srcFull)) {
             candidates.push({ name: `${top}/${pkg.name}/src`, full: srcFull });
@@ -295,7 +323,20 @@ function _treeCodeFiles(dir, excSet, depth = 0) {
  * Whether the repo root is itself a source root, and why.
  * @returns {{ score: number, reason: string }|null}
  */
-function _flatLayoutRoot(cwd, excSet) {
+function _flatLayoutRoot(cwd, excSet, registry) {
+  // C — a language that is rooted at the repo by construction. GDScript has no
+  // source directory: scripts sit next to the scenes they drive at any depth,
+  // and a collection of demos keeps every one in a subdirectory, so the root
+  // holds none directly and neither A nor B below can see it. Decided from the
+  // script files alone — never from `project.godot`, which a sparse checkout of
+  // a demo collection does not have.
+  if (registry && registry.rootedAtRepo) {
+    const total = _treeCodeFiles(cwd, excSet);
+    if (total >= ROOT_MIN_FILES) {
+      return { score: ROOT_SCORE, reason: `${total} code files below a root that holds none directly` };
+    }
+  }
+
   const rootFiles = _directCodeFiles(cwd);
   if (rootFiles === 0) return null;
 
@@ -322,13 +363,13 @@ function _flatLayoutRoot(cwd, excSet) {
   return null;
 }
 
-function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set()) {
+function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set(), registry = null) {
   let roots = [...scored];
 
   // Flat layout: the root is a source root. Added here rather than as an
   // ordinary candidate because `scoreCandidate` scores directory NAMES against
   // the framework registry, and `.` is not a name it can reason about.
-  const flatRoot = _flatLayoutRoot(cwd, excSet);
+  const flatRoot = _flatLayoutRoot(cwd, excSet, registry);
   if (flatRoot && !roots.find((r) => r.dir === '.')) {
     roots.push({ dir: '.', full: cwd, score: flatRoot.score, reason: flatRoot.reason });
     roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));

@@ -47,8 +47,11 @@ function extract(src) {
     return [line, line];
   };
 
-  // Classes, structs, protocols, enums
-  const typeRe = /^[ \t]*(?:public\s+|internal\s+|open\s+|private\s+|fileprivate\s+)?(?:final\s+)?(class|struct|protocol|enum|actor)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w, <>.]+)?\s*\{/gm;
+  // Classes, structs, protocols, enums. The inheritance clause admits `@` so an
+  // attributed conformance — `: @unchecked Sendable`, `: @retroactive Equatable`,
+  // both routine in Swift 5.5+ concurrency code — does not make the whole type
+  // extract as nothing (#900).
+  const typeRe = /^[ \t]*(?:public\s+|internal\s+|open\s+|private\s+|fileprivate\s+)?(?:final\s+)?(class|struct|protocol|enum|actor)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w, <>.@]+)?\s*\{/gm;
   for (const m of stripped.matchAll(typeRe)) {
     const declIdx = m.index + (m[0].length - m[0].trimStart().length);
     const bodyStart = m.index + m[0].length;
