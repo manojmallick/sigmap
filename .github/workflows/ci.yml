@@ -42,3 +42,30 @@ jobs:
         run: npm run validate:retrieval
       - name: Grounding regression gate (labelled good/bad fixtures)
         run: npm run validate:grounding
+
+  # Retrieval scored on third-party repositories pinned to exact commits, against
+  # a corpus labelled before any ranker run (#892). Every other retrieval gate
+  # scores a corpus this project wrote or can influence, so a regression on a
+  # repo we do not control could ship green. One Node version is enough: the gate
+  # measures ranking, not the runtime matrix.
+  xrepo:
+    name: Third-party retrieval gate (xrepo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # The pinned repos are gitignored. Keyed on the manifest, so a re-pin or a
+      # new repo invalidates it; fetch-xrepo-repos.mjs fetches only what is
+      # missing or off-pin, so a partial restore still saves most of the download.
+      - name: Cache pinned third-party repos
+        uses: actions/cache@v4
+        with:
+          path: benchmarks/repos
+          key: xrepo-repos-${{ hashFiles('benchmarks/xrepo-repos.json') }}
+          restore-keys: xrepo-repos-
+      - name: Fetch pinned repos
+        run: node scripts/fetch-xrepo-repos.mjs
+      - name: Third-party retrieval gate (zero-config, labelled corpus)
+        run: npm run validate:xrepo -- --require-repos
