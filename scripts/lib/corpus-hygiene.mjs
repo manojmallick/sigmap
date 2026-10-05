@@ -21,15 +21,22 @@
  *                      noise. A hand-labelled task may legitimately name it for
  *                      the CLI core (easy-corpus t006 does).
  *
+ * Self-contained on purpose: these predicates do NOT use the ranker's
+ * `src/util/file-class.js`. Its `isGeneratedDir` reads `build/`, `out/`, `target/`
+ * and `vendor/` as generated output at ANY depth, which flags real source such as
+ * Astro's `src/core/build/`; a corpus tool that borrowed it would inherit the
+ * misclassification and could never label a file the ranker misjudges. Build
+ * output is therefore recognised only as a TOP-LEVEL directory.
+ *
  * Zero-dependency; path predicates only, no fs access.
  */
 
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const { isGeneratedFile, isGeneratedDir } = require('../../src/util/file-class');
-
 const norm = (p) => String(p || '').replace(/\\/g, '/');
+
+// Build output and vendored trees only when they are a top-level directory.
+const TOP_LEVEL_OUTPUT = /^(dist|node_modules|vendor|target|build|out|\.next|\.nuxt|\.venv|venv|__pycache__)\//;
+// Machine-emitted sources, by file name.
+const GENERATED_NAME = /(\.generated\.|\.pb\.|_pb\.|\.min\.js$)/;
 
 // Adapter outputs by basename, anywhere in the tree: per-module strategies write
 // a CLAUDE.md beside each package (packages/cli/CLAUDE.md), not only at the root.
@@ -40,7 +47,7 @@ export function isGeneratedOutput(relPath) {
   const p = norm(relPath);
   if (/(^|\/)\.context(\/|$)/.test(p)) return true;
   if (ADAPTER_OUTPUT.test(p.slice(p.lastIndexOf('/') + 1))) return true;
-  return isGeneratedFile(p) || isGeneratedDir(p);
+  return GENERATED_NAME.test(p) || TOP_LEVEL_OUTPUT.test(p);
 }
 
 /** The standalone bundle: generated `src/` modules wrapped around a hand-written core. */
