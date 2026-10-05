@@ -400,7 +400,7 @@ testCoverage = false
 testDirs = ["tests","test","__tests__","spec"]
 sigCache = false
 impactRadius = false
-retrieval = {"topK":10,"recencyBoost":1.5,"callGraphBoost":false,"centralityBlend":false,"surfaceEnrichment":false,"minedExpansions":false}
+retrieval = {"topK":10,"recencyBoost":1.5,"callGraphBoost":false,"centralityBlend":false,"surfaceEnrichment":false,"minedExpansions":false,"bodyWords":false}
 exactness = {"typescript":false,"lsp":false,"lspServers":{},"scip":false}
 impact = {"depth":3,"includeSigs":true}
 ```
