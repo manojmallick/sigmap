@@ -49,16 +49,19 @@ sigmap ask "Where is route registration handled?"
 
 Output:
 
+````
+## router.go
 ```
-────────────────────────────────────────────────
- sigmap ask  "Where is route registration handled?"
- Intent    : explain
- Context   : 1,240 tokens  →  .context/query-context.md
- Coverage  : 94%
- Risk      : LOW
- Cost      : $0.006/query  (was $0.71 · saved 99%)
-────────────────────────────────────────────────
+func registerRoute(method, path string, h Handler)  :214-214
 ```
+...                        (one block per selected file, in rank order)
+5 of 474 files · 1,240 tokens · sha256:60c6f1a9d2b4
+````
+
+The answer comes first and the metadata after it: `sigmap ask` prints the ranked
+file blocks and their anchored signatures, then a one-line summary — selected
+files, context tokens, content hash. The old intent/coverage/risk/cost table is
+still there under `sigmap ask "…" --verbose`.
 
 SigMap detected intent `explain`, ranked the 5 most relevant files by TF-IDF over extracted signatures, and wrote a 1,240-token query context. The same query against raw source would cost $0.71 in GPT-4o input tokens.
 

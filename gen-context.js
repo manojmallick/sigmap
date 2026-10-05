@@ -35923,13 +35923,28 @@ function buildIndexContext(ranked, cwd) {
 // next to a coverage figure about an unrelated population. The level is now
 // returned with the evidence behind it, so the renderer can say `not assessed`
 // when nothing ran and name the basis when something did.
-function computeCurrentRisk(cwd) {
+function computeCurrentRisk(cwd, selectedFiles) {
   try {
     const out = __git(['diff', '--name-only', 'HEAD'], { cwd, timeout: 3000 });
-    const count = out.trim().split('\n').filter(Boolean).length;
+    const changed = out.trim().split('\n').map((f) => f.trim()).filter(Boolean);
+    const count = changed.length;
     const level = count === 0 ? 'NONE' : count <= 3 ? 'LOW' : count <= 10 ? 'MEDIUM' : 'HIGH';
-    return { level, assessed: true, changed: count };
-  } catch (_) { return { level: 'UNKNOWN', assessed: false, changed: null }; }
+    // #879: a dirty tree is not a property of this answer. What makes an answer
+    // risky is that the files it selected are themselves moving under the
+    // reader, so the changed set is intersected with the selection and the rest
+    // of the tree is left out of the render.
+    const selected = new Set((selectedFiles || []).map((f) => path.resolve(cwd, f)));
+    const selectedChanged = changed.filter((f) => selected.has(path.resolve(cwd, f)));
+    return { level, assessed: true, changed: count, selectedChanged };
+  } catch (_) { return { level: 'UNKNOWN', assessed: false, changed: null, selectedChanged: [] }; }
+}
+
+// `buildMiniContext`/`buildIndexContext` open with a title (the mini form adds a
+// `Generated:` stamp) so the file they are written to is self-describing. stdout
+// gets the ranked blocks instead (#879): the answer first, metadata behind it.
+function rankedBlocks(ctxText) {
+  const cut = String(ctxText || '').indexOf('\n\n');
+  return cut === -1 ? '' : ctxText.slice(cut + 2);
 }
 
 function getRawTokenCount(cwd, config) {
@@ -36404,7 +36419,7 @@ function main() {
     const costRaw = ((rawTok / 1000) * rateK).toFixed(4);
     const costCtx = ((ctxTok / 1000) * rateK).toFixed(4);
 
-    const __risk = computeCurrentRisk(cwd);
+    const __risk = computeCurrentRisk(cwd, ranked.map((r) => r.file));
     const riskLevel = __risk.level;
 
     // #806: did the selection contain any implementation at all? Neither the
@@ -36501,44 +36516,55 @@ function main() {
         contextHash: __selection.hash,
       }) + '\n');
     } else {
-      if (coveragePct < 70) {
-        process.stderr.write(`[sigmap] ⚠  coverage ${coveragePct}% — consider running: sigmap validate\n`);
+      // #879: the answer leads, and the metadata an agent pays for but rarely
+      // needs moves behind `--verbose`. The written context file keeps its full
+      // artifact (title + `Generated:` stamp); stdout gets the ranked blocks
+      // themselves, then at most two metadata lines — a summary, and Risk only
+      // when it is about *this* answer.
+      const __blocks = rankedBlocks(__fullCtx);
+      if (__blocks) process.stdout.write(__blocks.endsWith('\n') ? __blocks : __blocks + '\n');
+
+      const __riskRow = __risk.assessed
+        ? `${__risk.level} (${__risk.changed} file(s) changed vs HEAD)`
+        : 'not assessed (no git repo, or git unavailable)';
+      const __riskActionable = __risk.assessed && __risk.selectedChanged.length > 0;
+
+      if (args.includes('--verbose')) {
+        const bar = '─'.repeat(44);
+        console.log([
+          bar,
+          ` sigmap ask  "${query}"`,
+          ` Intent    : ${detectIntents(query).join(', ')}`,
+          ` Context   : ${ctxTok.toLocaleString()} tokens  →  ${path.relative(cwd, outPath)}`,
+          ` Selected  : ${__selection.count} of ${sigIndex.size} file(s) (--top ${askTopK})${__selection.cutoff !== null ? ` · cutoff score ${__selection.cutoff}` : ''}`,
+          ` Hash      : ${__selection.hash}`,
+          __relevantNotes.length > 0
+            ? ` Notes     : ${__relevantNotes.length} matching (${__relevantNotes.map((n) => n.text.slice(0, 48)).join(' · ')})`
+            : null,
+          ` Selection : ${formatComposition(__selectionClass)}`,
+          ` Coverage  : ${__cov ? formatCoverage(__cov, 'readable', { grade: false }) : 'not assessed'}`,
+          ` Risk      : ${__riskRow}`,
+          __sourceSection && __sourceSection.included > 0
+            ? ` Source    : ${__sourceSection.included} of ${__sourceSection.candidates} top symbol(s), ${__sourceSection.spentTokens.toLocaleString()} of ${__sourceSection.budgetTokens.toLocaleString()} budget token(s)${__sourceSection.truncated ? ` · ${__sourceSection.skipped} omitted (over budget)` : ''}`
+            : null,
+          __withSource && (!__sourceSection || __sourceSection.included === 0)
+            ? ` Source    : none included — no anchored symbol fit the ${__sourceSection ? __sourceSection.budgetTokens.toLocaleString() : '0'}-token budget (raise maxTokens or pass --source-budget <n>)`
+            : null,
+          ` Cost      : $${costCtx}/query  (was $${costRaw} · saved ${savings}%)`,
+          ` ${' '.repeat(9)} est. @ ${__price.model} $${__price.perMtok}/Mtok input as of ${__price.asOf}; cost tokens ${__tokBasis.label}; "was" = full ranked files`,
+          bar,
+        ].filter(Boolean).join('\n'));
+      } else {
+        console.log(`${__selection.count} of ${sigIndex.size} files · ${ctxTok.toLocaleString()} tokens · ${__selection.hash}`);
+        // A dirty tree on its own is not a risk to this answer — 19 unrelated
+        // edits are not worth a line. Files this query actually selected, and
+        // that are moving under the reader, are.
+        if (__riskActionable) {
+          const shown = __risk.selectedChanged.slice(0, 3).join(', ');
+          const more = __risk.selectedChanged.length > 3 ? ` +${__risk.selectedChanged.length - 3} more` : '';
+          console.log(`Risk    : ${__risk.level} — ${__risk.selectedChanged.length} selected file(s) changed vs HEAD: ${shown}${more}`);
+        }
       }
-      // Both warnings go to stderr so they cannot corrupt a piped context path,
-      // and both are printed BEFORE the table: a reader who stops at the first
-      // line still sees that the ground under it is in question.
-      if (__staleWarn) {
-        process.stderr.write(`[sigmap] ⚠  ${__staleWarn}\n`);
-      }
-      if (__selectionWarning) {
-        process.stderr.write(`[sigmap] ⚠  ${__selectionWarning}\n`);
-      }
-      const bar = '─'.repeat(44);
-      console.log([
-        bar,
-        ` sigmap ask  "${query}"`,
-        ` Intent    : ${detectIntents(query).join(', ')}`,
-        ` Context   : ${ctxTok.toLocaleString()} tokens  →  ${path.relative(cwd, outPath)}`,
-        ` Selected  : ${__selection.count} of ${sigIndex.size} file(s) (--top ${askTopK})${__selection.cutoff !== null ? ` · cutoff score ${__selection.cutoff}` : ''}`,
-        ` Hash      : ${__selection.hash}`,
-        __relevantNotes.length > 0
-          ? ` Notes     : ${__relevantNotes.length} matching (${__relevantNotes.map((n) => n.text.slice(0, 48)).join(' · ')})`
-          : null,
-        ` Selection : ${formatComposition(__selectionClass)}`,
-        ` Coverage  : ${__cov ? formatCoverage(__cov, 'readable', { grade: false }) : 'not assessed'}`,
-        ` Risk      : ${__risk.assessed
-            ? `${__risk.level} (${__risk.changed} file(s) changed vs HEAD)`
-            : 'not assessed (no git repo, or git unavailable)'}`,
-        __sourceSection && __sourceSection.included > 0
-          ? ` Source    : ${__sourceSection.included} of ${__sourceSection.candidates} top symbol(s), ${__sourceSection.spentTokens.toLocaleString()} of ${__sourceSection.budgetTokens.toLocaleString()} budget token(s)${__sourceSection.truncated ? ` · ${__sourceSection.skipped} omitted (over budget)` : ''}`
-          : null,
-        __withSource && (!__sourceSection || __sourceSection.included === 0)
-          ? ` Source    : none included — no anchored symbol fit the ${__sourceSection ? __sourceSection.budgetTokens.toLocaleString() : '0'}-token budget (raise maxTokens or pass --source-budget <n>)`
-          : null,
-        ` Cost      : $${costCtx}/query  (was $${costRaw} · saved ${savings}%)`,
-        ` ${' '.repeat(9)} est. @ ${__price.model} $${__price.perMtok}/Mtok input as of ${__price.asOf}; cost tokens ${__tokBasis.label}; "was" = full ranked files`,
-        bar,
-      ].filter(Boolean).join('\n'));
     }
     // gain: capture this query's savings for the `sigmap gain` dashboard.
     try {

@@ -8,7 +8,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
----
+Patch. `sigmap ask` printed a twelve-line metadata table — intent, context size, cutoff score, hash, selection, coverage, risk, cost at gpt-4o prices and a footnote — and no ranked files at all on stdout; the answer existed only in `.context/query-context.md`. The command now leads with the ranked file blocks and their anchored signatures, followed by one summary line (`5 of 474 files · 1,310 tokens · sha256:60c6…`). The table moved behind `--verbose`, and `Risk` is printed by default only when a file this query selected is itself changed vs `HEAD` — a dirty working tree is not a property of the answer.
+
+### Changed
+- **`sigmap ask` leads with the answer** (#879) — stdout carries the ranked blocks first, then one summary line. `--verbose` restores the full table (intent, context size and path, selection composition, coverage, cutoff, hash, risk, cost, footnote). `--json` is unchanged
+- **`Risk` is about the selection, not the tree** (#879) — the changed-file set from `git diff --name-only HEAD` is intersected with the files this query selected before it reaches the render, so unrelated edits no longer read as `Risk: HIGH` on an ordinary query
+
+### Added
+- **`ask-verbose.test.js`, 6 guards** (#879) — default output opens with a `## <file>` block and ends with the summary line; the header labels are absent by default and present under `--verbose`; `--json` still emits `rankedFiles` and `contextHash`; and a Risk line appears only when a selected file itself changed. Four of the six fail on v8.65.3
+
 
 ## [8.65.3] — 2026-10-05
 

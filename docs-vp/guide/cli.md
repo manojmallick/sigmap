@@ -168,6 +168,31 @@ sigmap ask "how are secrets redacted" --top 12
 ```
 
 ```
+## src/auth/session.js
+```
+function loginUser(name)  :12-12
+function verifyPassword(hash, plain)  :18-18
+```
+## src/auth/debug-log.js
+```
+function traceLogin(userId)  :7-7
+```
+...                        (one block per selected file, in rank order)
+5 of 441 files · 1,823 tokens · sha256:66de57f5b3a8
+```
+
+The answer leads and the metadata follows it: stdout carries the ranked file
+blocks and their anchored signatures, then at most two metadata lines — the
+one-line summary above (selected files, context tokens, content hash), and
+`Risk` only when a file this query selected is itself changed vs `HEAD`. A
+dirty working tree on its own is not a property of the answer, so 19 unrelated
+edits no longer read as `Risk: HIGH` on an ordinary query.
+
+`sigmap ask "fix the login bug" --verbose` restores the full table — intent,
+context size and path, selection composition, coverage, cutoff score, risk,
+cost at the priced model's rates and the footnote behind it:
+
+```
 ────────────────────────────────────────────
  sigmap ask  "fix the login bug"
  Intent    : debug
@@ -318,6 +343,10 @@ sigmap ask "how are secrets redacted" --with-source --source-budget 3000
 ```
 
 The written context gains two sections after the signatures — the bodies, each labelled with the anchor it was sliced from, and the blast radius so the agent sees what else a change there touches **without a second query**:
+
+The table above is what `--verbose` prints; add `--verbose` to the flags below to
+see it, since the default output carries the ranked blocks and the one-line
+summary only:
 
 ````markdown
 ## Source (top symbols)
