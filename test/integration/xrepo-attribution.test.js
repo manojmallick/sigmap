@@ -231,6 +231,26 @@ const names = (n) => new Set(Array.from({ length: n }, (_, i) => `f${String(i + 
     assert.ok(!('why' in j.rows[0]), 'no per-row attribution without --why');
   });
 
+  await test('--save records the account of the misses beside the numbers, and leaves every repo entry as it was', () => {
+    const data = dataRoot([
+      { id: 'x001', query: 'settle a payment for an open invoice', expected_files: ['src/ledger.js'] },    // hit
+      { id: 'x002', query: 'refund a payment against an invoice', expected_files: ['src/marshal.js'] },    // no word in common
+      { id: 'x003', query: 'charge a customer card for the order', expected_files: ['src/gateway.js'] },   // hit
+    ]);
+    const r = gate(data, ['--save']);
+    assert.strictEqual(r.status, 0, r.stderr);
+    const b = JSON.parse(fs.readFileSync(path.join(data, 'benchmarks/xrepo-baseline.json'), 'utf8'));
+    assert.strictEqual(b.why.hits, 2);
+    assert.strictEqual(b.why.misses['no token in common with the question'], 1);
+    assert.strictEqual(Object.values(b.why.misses).reduce((n, c) => n + c, 0), 1, 'the rows sum to the misses');
+    assert.deepStrictEqual({ reachable: b.why.reachable, reachableHits: b.why.reachableHits }, { reachable: 2, reachableHits: 2 });
+    assert.deepStrictEqual(b.why.noTokenWords, { distinctive: 0, commonOnly: 0, nowhere: 1, inIndex: 0 });
+    // the entries a gate compares against are what they always were
+    assert.deepStrictEqual(Object.keys(b.repos.shop).sort(), ['hitAt5', 'hits', 'language', 'mrr', 'precisionAt5', 'ranks', 'tasks', 'unreachable']);
+    assert.strictEqual(b.repos.shop.hits, 2);
+    assert.deepStrictEqual(Object.keys(b), ['overall', 'why', 'repos', 'recordedBy']);
+  });
+
   for (const d of tmpDirs) fs.rmSync(d, { recursive: true, force: true });
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed > 0 ? 1 : 0);

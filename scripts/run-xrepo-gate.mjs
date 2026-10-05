@@ -46,7 +46,7 @@ import { band } from './lib/band.mjs';
 import { loadManifest, checkoutState, readTasks, withZeroConfigIndex, TASKS_REL, BASELINE_REL } from './lib/xrepo.mjs';
 import { staticProblems, repoProblems } from './lib/xrepo-hygiene.mjs';
 import { rankOf, totals, decide, EPS, summarizeWhy, whyLabel } from './lib/xrepo-gate.mjs';
-import { attributeTasks, formatGap, GAP_LABELS } from './lib/attribution.mjs';
+import { attributeTasks, formatGap, GAP_LABELS, reachable } from './lib/attribution.mjs';
 import { docStats, queryTermsOf, termsOf } from './lib/corpus-vocabulary.mjs';
 import { ARMS, compareArms, mergeArms, verdictOf } from './lib/signal-arms.mjs';
 import { buildArmRankers } from './lib/signal-rankers.mjs';
@@ -70,6 +70,8 @@ const AS_JSON = has('--json');
 const PER_TASK = has('--per-task');
 const WHY = has('--why');
 const SIGNALS = has('--signals');
+// A saved baseline carries the account of its misses beside the number, so the page that quotes it can be held to it.
+const NEED_WHY = WHY || SAVE;
 const ONLY = val('--only', null) ? new Set(val('--only', '').split(',')) : null;
 
 // Overall hit@5 floor, enforced only on a COMPLETE run (every repo scored) —
@@ -136,11 +138,11 @@ function scoreRepo(repo, tasks) {
       // The graph is built exactly as `run()` builds it, so the ranking is the one
       // the table above scored.
       let graph = null;
-      if (WHY || SIGNALS) {
+      if (NEED_WHY || SIGNALS) {
         try { graph = buildFromCwd(dir); } catch (_) { /* run() tolerates this too */ }
       }
       let why = null;
-      if (WHY) {
+      if (NEED_WHY) {
         const { docFreq, docCount } = docStats(index, dir);
         const attributed = attributeTasks({
           tasks: tasks.map((t) => ({ id: t.id, query: t.query, expected: t.expected_files })),
@@ -310,7 +312,19 @@ if (SAVE) {
     repos[r.repo] = { language: r.language, tasks: r.tasks, hits: r.hits, hitAt5: r.hitAt5, mrr: r.mrr, precisionAt5: r.precisionAt5, unreachable: r.unreachable, ranks: r.ranks };
   }
   const merged = Object.fromEntries(Object.entries(repos).sort(([a], [b]) => (a < b ? -1 : 1)));
-  fs.writeFileSync(BASELINE, JSON.stringify({ overall: totals(Object.values(merged)), repos: merged, recordedBy: 'run-xrepo-gate.mjs' }, null, 2) + '\n');
+  // The account of the misses is of the whole corpus, so a partial run keeps the one already recorded.
+  const attributions = rows.flatMap((r) => Object.values(r.why || {}));
+  const noToken = attributions.filter((a) => a.cls === 'no-overlap' && a.gapClass);
+  const count = (k) => noToken.filter((a) => a.gapClass === k).length;
+  const reach = reachable(attributions);
+  const account = complete && attributions.length ? {
+    hits: summarizeWhy(attributions).hits,
+    misses: Object.fromEntries(summarizeWhy(attributions).rows),
+    reachable: reach.reachable,
+    reachableHits: reach.hits,
+    noTokenWords: { distinctive: count('distinctive'), commonOnly: count('common-only'), nowhere: count('nowhere'), inIndex: count('in-index') },
+  } : (prior && prior.why) || undefined;
+  fs.writeFileSync(BASELINE, JSON.stringify({ overall: totals(Object.values(merged)), ...(account ? { why: account } : {}), repos: merged, recordedBy: 'run-xrepo-gate.mjs' }, null, 2) + '\n');
   if (!AS_JSON) console.log(`\n[xrepo] baseline saved → ${path.relative(DATA, BASELINE)}`);
 }
 
