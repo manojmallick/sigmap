@@ -1796,7 +1796,7 @@ Monorepo: yes  (marker: pnpm-workspace.yaml)
 Monorepo: no   (no: 1 package under packages/ (needs 2))
 ```
 
-A layout match needs **two or more** sibling packages: one package under `packages/` is an ordinary single-package layout. Manifests counted are `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `build.gradle(.kts)`, `pom.xml` and `requirements.txt`, so a polyglot workspace is recognised. [`tune`](#tune) uses the same string as its recommendation reason.
+A layout match needs **two or more** sibling packages: one package under `packages/` is an ordinary single-package layout. Manifests counted are `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `build.gradle(.kts)`, `pom.xml`, `requirements.txt`, `pubspec.yaml` and `mix.exs`, so a polyglot workspace is recognised. A declared workspace is `pnpm-workspace.yaml`, `turbo.json`, `nx.json`, `lerna.json`, `melos.yaml`, `package.json` `workspaces`, a `workspace:` key in the root `pubspec.yaml` (a Dart pub workspace) or an `apps_path:` in the root `mix.exs` (an Elixir umbrella project); `melos.yaml` and the `pubspec.yaml` and `mix.exs` forms were added in v8.67.0, and a Dart or Elixir workspace is indexed as its members' `lib/` directories. [`tune`](#tune) uses the same string as its recommendation reason.
 
 **`--fix`**
 Interactive mode: prompts you to review and correct the detected roots, then writes the corrected list to `gen-context.config.json`:
@@ -1841,7 +1841,7 @@ Five rules, each deterministic:
 | Rule | Fires when | Reason names |
 |------|------------|--------------|
 | `srcDirs` | unpinned + detection confidence ≥ medium | the detected roots + confidence (pinned srcDirs are protected from token-budget drops) |
-| `monorepo` | a workspace marker exists and the mode is off | the marker found (`pnpm-workspace.yaml`, `turbo.json`, `nx.json`, `lerna.json`, package.json `workspaces`) |
+| `monorepo` | a workspace marker exists and the mode is off | the marker found (`pnpm-workspace.yaml`, `turbo.json`, `nx.json`, `lerna.json`, `melos.yaml`, package.json `workspaces`, `pubspec.yaml workspace`, `mix.exs apps_path`) |
 | `adapters` | a client artifact has no matching adapter | the files found (`CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `AGENTS.md`) — additive only |
 | `exclude` | a curated vendored/generated dir sits unexcluded at root | the dirs found (`third_party`, `external(s)`, `generated`, `testdata`, …) — defaults preserved |
 | `autoMaxTokens` | a pinned budget is below the repo's ~25-tokens/file estimate | the file count (labeled heuristic) |
@@ -2000,7 +2000,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         88.8% vs 40.0%   (2.22× lift)
+ hit@5         89.6% vs 40.0%   (2.24× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2157,7 +2157,7 @@ sigmap bench --submit --json
  Submitted      : 2026-09-13
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
- hit@5          : 79.7%
+ hit@5          : 80.4%
  token reduction: 95.7%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs

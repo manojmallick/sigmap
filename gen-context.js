@@ -10638,14 +10638,16 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       }
     }
 
-    // Exported named functions — `export function f` and `export default function f`
-    for (const m of stripped.matchAll(/^export\s+(default\s+)?(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
-      const asyncKw = /\basync\b/.test(m[0]) ? 'async ' : '';
-      const retStr = formatReturnHint(returnHints.get(m[2]));
+    // Exported named functions — `export function f` and `export default function f`.
+    // The modifiers are CAPTURED, never searched for in the whole match: `export
+    // function async(` must not read as an async function because of its NAME (#902).
+    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*\(/gm)) {
+      const asyncKw = m[2] ? 'async ' : '';
+      const retStr = formatReturnHint(returnHints.get(m[3]));
       const startLn = lineAt(stripped, m.index);
       const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-      sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[2]}(${normalizeParams(params)})${retStr}`);
-      docHintFor[sigs.length - 1] = docHints.get(m[2]);
+      sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[3]}(${normalizeParams(params)})${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(m[3]);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
 
@@ -16508,10 +16510,11 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     };
 
-    // Exported top-level functions (not methods)
-    for (const m of stripped.matchAll(/^export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
-      pushFunction(m.index, m.index + m[0].length - 1, m[1],
-        /\basync\b/.test(m[0]) ? 'async ' : '', /^export\s+default\b/.test(m[0]) ? 'export default ' : 'export ');
+    // Exported top-level functions (not methods). The modifiers are CAPTURED, never
+    // searched for in the whole match: `export function async(` must not read as an
+    // async function because of its NAME (#902 — svelte has exactly that function).
+    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+      pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
     }
 
     // Arrow-function counterpart of pushFunction: `export const f = (…) =>`, and
@@ -24834,7 +24837,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.66.0',
+    version: '8.67.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -33272,7 +33275,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.66.0';
+const VERSION = '8.67.0';
 function requireSourceOrBundled(key) {
   try {
     const rel = key.replace(/^\.\//, '') + '.js';

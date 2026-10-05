@@ -226,5 +226,37 @@ test('javascript: a default export of an imported identifier invents nothing', (
   assert.deepStrictEqual(sigs, [], JSON.stringify(sigs));
 });
 
+// ── #902: a function NAMED async is not an async function ──────────────────
+// The first version of the export loops searched the whole match for the word
+// `async`, so svelte's `export function async(node, …)` was listed as
+// `export async function async(…)`. An extraction diff of v8.66.0's extractors
+// against develop's over 9,512 files in the 50 benchmark clones found it: it was
+// the only file that lost a signature. The modifier is a captured group now.
+
+for (const [label, extract] of [['typescript', typescript.extract], ['javascript', javascript.extract]]) {
+  test(`${label}: a function merely NAMED async is not listed as async (#902)`, () => {
+    const sigs = extract('export function async(node, fn) {\n  return fn(node)\n}\n');
+    assert.ok(has(sigs, 'export function async(node, fn)'), JSON.stringify(sigs));
+    assert.ok(!heads(sigs).some((s) => /^export async function/.test(s)), `the name is not a modifier: ${JSON.stringify(sigs)}`);
+  });
+
+  test(`${label}: ...while the genuine modifier on a function of that name still counts (#902)`, () => {
+    const sigs = extract('export async function async(node) {\n  return node\n}\n');
+    assert.ok(has(sigs, 'export async function async(node)'), JSON.stringify(sigs));
+  });
+
+  test(`${label}: the default forms keep a function's name and its modifier apart (#902)`, () => {
+    assert.ok(has(extract('export default function async(n) {\n  return n\n}\n'), 'export default function async(n)'));
+    assert.ok(has(extract('export default async function async(n) {\n  return n\n}\n'), 'export default async function async(n)'));
+    assert.ok(has(extract('export default function load(n) {\n  return n\n}\n'), 'export default function load(n)'), 'a plain default is not async');
+  });
+
+  test(`${label}: a name that merely contains "async" is not a modifier either (#902)`, () => {
+    const sigs = extract('export function asyncMap(xs) {\n  return xs\n}\nexport async function loadAsync(a) {\n  return a\n}\n');
+    assert.ok(has(sigs, 'export function asyncMap(xs)'), JSON.stringify(sigs));
+    assert.ok(has(sigs, 'export async function loadAsync(a)'), JSON.stringify(sigs));
+  });
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

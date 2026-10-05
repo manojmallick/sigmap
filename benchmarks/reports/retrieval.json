@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-05T05:55:42.350Z",
+  "generated": "2026-10-05T11:52:02.910Z",
   "repos": [
     {
       "repo": "express",
@@ -450,16 +450,16 @@
     {
       "repo": "axios",
       "fileCount": 25,
-      "sigCount": 29,
+      "sigCount": 47,
       "tasks": 8,
-      "hitAt5": 0.5,
-      "mrr": 0.293,
+      "hitAt5": 0.625,
+      "mrr": 0.575,
       "randomBaseline": 0.2,
-      "improvement": 2.5,
+      "improvement": 3.1,
       "tiers": {
-        "correct": 1,
-        "partial": 3,
-        "wrong": 4
+        "correct": 4,
+        "partial": 1,
+        "wrong": 3
       },
       "taskDetails": [
         {
@@ -480,8 +480,8 @@
             "lib/core/InterceptorManager.js",
             "lib/core/Axios.js"
           ],
-          "top1": "lib/core/AxiosError.js",
-          "firstHitRank": 7,
+          "top1": "lib/core/transformData.js",
+          "firstHitRank": 10,
           "tier": "wrong"
         },
         {
@@ -491,9 +491,9 @@
             "lib/core/mergeConfig.js",
             "lib/defaults/index.js"
           ],
-          "top1": "lib/core/AxiosHeaders.js",
-          "firstHitRank": 5,
-          "tier": "partial"
+          "top1": "lib/core/mergeConfig.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "axios-t004",
@@ -513,9 +513,9 @@
             "lib/helpers/buildURL.js",
             "lib/core/buildFullPath.js"
           ],
-          "top1": "lib/helpers/AxiosURLSearchParams.js",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "lib/helpers/buildURL.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "axios-h001",
@@ -534,7 +534,7 @@
           "expected": [
             "lib/core/mergeConfig.js"
           ],
-          "top1": "lib/axios.js",
+          "top1": "lib/helpers/combineURLs.js",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -544,9 +544,9 @@
           "expected": [
             "lib/core/settle.js"
           ],
-          "top1": "lib/core/InterceptorManager.js",
-          "firstHitRank": null,
-          "tier": "wrong"
+          "top1": "lib/core/settle.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
@@ -701,7 +701,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 48,
+      "sigCount": 50,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -1194,7 +1194,7 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 141,
+      "sigCount": 142,
       "tasks": 5,
       "hitAt5": 0.8,
       "mrr": 0.589,

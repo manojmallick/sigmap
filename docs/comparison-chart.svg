@@ -30,15 +30,15 @@
   <!-- With row -->
   <text x="105" y="126" text-anchor="end" font-size="11" fill="#7c6af7">SigMap</text>
   <rect x="112" y="113" width="462" height="20" fill="#ede9fe" rx="4"/>
-  <!-- 88.8% of 462 = 410 (honest corpus; the lift divides these two numbers) -->
-  <rect x="112" y="113" width="410" height="20" fill="#7c6af7" rx="4"/>
-  <text x="502" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">88.8%</text>
+  <!-- 89.6% of 462 = 414 (honest corpus; the lift divides these two numbers) -->
+  <rect x="112" y="113" width="414" height="20" fill="#7c6af7" rx="4"/>
+  <text x="502" y="127" text-anchor="end" font-size="11" font-weight="700" fill="#fff">89.6%</text>
 
   <!-- Badge -->
   <rect x="588" y="95" width="94" height="32" fill="#7c6af7" rx="6"/>
-  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+2.22× lift</text>
+  <text x="635" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">+2.24× lift</text>
   <text x="635" y="121" text-anchor="middle" font-size="9" fill="#ded9ff">vs grep agent</text>
-  <text x="112" y="145" font-size="9" fill="#9ca3af">Retrieval corpus (105 tasks / 18 repos) scores 79.7% hit@5 and is reported separately.</text>
+  <text x="112" y="145" font-size="9" fill="#9ca3af">Retrieval corpus (105 tasks / 18 repos) scores 80.4% hit@5 and is reported separately.</text>
 
   <!-- ═══════════════════════════════════════════ -->
   <!-- METRIC 2: Answer correctness               -->
@@ -55,12 +55,12 @@
   <text x="105" y="196" text-anchor="end" font-size="11" fill="#22c55e">SigMap</text>
   <rect x="112" y="183" width="462" height="20" fill="#dcfce7" rx="4"/>
   <!-- 61.9% of 462 = 286 -->
-  <rect x="112" y="183" width="273" height="20" fill="#22c55e" rx="4"/>
-  <text x="419" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">59.0% (proxy)</text>
+  <rect x="112" y="183" width="286" height="20" fill="#22c55e" rx="4"/>
+  <text x="419" y="197" text-anchor="end" font-size="11" font-weight="700" fill="#fff">61.9% (proxy)</text>
 
   <!-- Badge -->
   <rect x="588" y="165" width="94" height="32" fill="#22c55e" rx="6"/>
-  <text x="635" y="178" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">×6.1 better</text>
+  <text x="635" y="178" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">×6.2 better</text>
   <text x="635" y="191" text-anchor="middle" font-size="9" fill="#bbf7d0">correctness</text>
 
   <!-- ═══════════════════════════════════════════ -->

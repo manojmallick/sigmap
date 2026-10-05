@@ -189,10 +189,11 @@ function extract(src) {
     }
   };
 
-  // Exported top-level functions (not methods)
-  for (const m of stripped.matchAll(/^export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
-    pushFunction(m.index, m.index + m[0].length - 1, m[1],
-      /\basync\b/.test(m[0]) ? 'async ' : '', /^export\s+default\b/.test(m[0]) ? 'export default ' : 'export ');
+  // Exported top-level functions (not methods). The modifiers are CAPTURED, never
+  // searched for in the whole match: `export function async(` must not read as an
+  // async function because of its NAME (#902 — svelte has exactly that function).
+  for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+    pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
   }
 
   // Arrow-function counterpart of pushFunction: `export const f = (…) =>`, and

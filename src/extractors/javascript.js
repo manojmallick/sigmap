@@ -127,14 +127,16 @@ function extract(src) {
     }
   }
 
-  // Exported named functions — `export function f` and `export default function f`
-  for (const m of stripped.matchAll(/^export\s+(default\s+)?(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
-    const asyncKw = /\basync\b/.test(m[0]) ? 'async ' : '';
-    const retStr = formatReturnHint(returnHints.get(m[2]));
+  // Exported named functions — `export function f` and `export default function f`.
+  // The modifiers are CAPTURED, never searched for in the whole match: `export
+  // function async(` must not read as an async function because of its NAME (#902).
+  for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*\(/gm)) {
+    const asyncKw = m[2] ? 'async ' : '';
+    const retStr = formatReturnHint(returnHints.get(m[3]));
     const startLn = lineAt(stripped, m.index);
     const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-    sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[2]}(${normalizeParams(params)})${retStr}`);
-    docHintFor[sigs.length - 1] = docHints.get(m[2]);
+    sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[3]}(${normalizeParams(params)})${retStr}`);
+    docHintFor[sigs.length - 1] = docHints.get(m[3]);
     anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
   }
 
