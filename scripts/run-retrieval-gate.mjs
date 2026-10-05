@@ -33,7 +33,7 @@
  * before scoring.
  */
 
-import { readFileSync, writeFileSync, writeSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { execFileSync, } from 'child_process';
@@ -44,6 +44,7 @@ import { isTestAnswer } from './lib/xrepo-hygiene.mjs';
 import { docStats, queryTermsOf, termsOf } from './lib/corpus-vocabulary.mjs';
 import { ARMS, compareArms, mergeArms, verdictOf } from './lib/signal-arms.mjs';
 import { buildArmRankers } from './lib/signal-rankers.mjs';
+import { writeAll } from './lib/write-sync.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -465,12 +466,8 @@ if (AS_JSON) {
       ...(signals && signals[s] ? { signals: signals[s] } : {}),
     };
   }
-  // Synchronous on purpose: this process exits right after, and an exit can cut off a
-  // piped asynchronous write.
-  const out = Buffer.from(JSON.stringify({ splits }, null, 2) + '\n');
-  for (let off = 0; off < out.length;) {
-    try { off += writeSync(1, out, off); } catch (e) { if (e.code !== 'EAGAIN') throw e; }
-  }
+  // Synchronous on purpose: this process exits right after, and an exit cuts off a piped write.
+  writeAll(1, JSON.stringify({ splits }, null, 2) + '\n');
 }
 
 if (!GATE) {

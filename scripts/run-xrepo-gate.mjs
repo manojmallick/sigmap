@@ -50,6 +50,7 @@ import { attributeTasks, formatGap, GAP_LABELS } from './lib/attribution.mjs';
 import { docStats, queryTermsOf, termsOf } from './lib/corpus-vocabulary.mjs';
 import { ARMS, compareArms, mergeArms, verdictOf } from './lib/signal-arms.mjs';
 import { buildArmRankers } from './lib/signal-rankers.mjs';
+import { writeAll } from './lib/write-sync.mjs';
 
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XREPO_DATA) : CODE_ROOT;
@@ -214,7 +215,8 @@ const signalsReport = SIGNALS && rows.length ? {
 } : null;
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined, signals: signalsReport || undefined }, null, 2));
+  // Written whole before the exits below: with --why or --signals the document is larger than a pipe buffer.
+  writeAll(1, JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined, signals: signalsReport || undefined }, null, 2) + '\n');
 } else if (rows.length) {
   console.log('\n[sigmap] xrepo — labelled third-party retrieval (zero-config)\n');
   console.log('  repo                  lang              cfg      tasks   hit@5     MRR    P@5   unreachable');

@@ -106,6 +106,18 @@ const at = (file, rank) => { const l = filler(60); l[rank - 1] = file; return l;
     assert.strictEqual(arms.verdictOf(arm(2, 2)), 'net zero (won 2, lost 2)', 'winning as many as it loses moved the answers around, not improved them');
   });
 
+  // ── writing a document whole ───────────────────────────────────────────────
+
+  await test('a document larger than a pipe buffer arrives whole when the process exits straight after writing it', () => {
+    // A gate prints one JSON document and exits. Through a pipe the exit cuts an asynchronous write off at the
+    // buffer size (65,536 bytes), which is how a --signals document reached its reader as truncated JSON.
+    const helper = require('url').pathToFileURL(path.join(ROOT, 'scripts/lib/write-sync.mjs')).href;
+    const script = `import(${JSON.stringify(helper)}).then(({ writeAll }) => { writeAll(1, 'x'.repeat(400000) + '\\n'); process.exit(0); })`;
+    const r = spawnSync('node', ['-e', script], { encoding: 'utf8', maxBuffer: 1 << 24 });
+    assert.strictEqual(r.status, 0, r.stderr);
+    assert.strictEqual(r.stdout.length, 400001);
+  });
+
   // ── the xrepo gate's --signals, on a throwaway pinned repository ───────────
 
   function git(dir, args) {
