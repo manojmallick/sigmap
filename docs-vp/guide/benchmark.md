@@ -74,7 +74,7 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 ### 1. Token reduction (21 repositories)
 
 - Raw source across benchmark set: **13,661,361** tokens (21 repos)
-- Final SigMap output: **256,230** tokens
+- Final SigMap output: **256,098** tokens
 - Pooled reduction across the whole corpus: **98.1%**
 - Average per-repo reduction — **the published figure**: **95.7%**
 - **New in v6.11.1:** R language support verified
