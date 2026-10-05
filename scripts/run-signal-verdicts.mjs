@@ -101,7 +101,7 @@ for (const a of ARMS) {
   console.log(`    ${a.label.padEnd(26)}${[...cells, allCell].map((c) => c.padStart(W)).join('')}`);
 }
 console.log(`\n    ranks moved (tasks whose rank changed, in the top 10 on either side):`);
-for (const a of ARMS.slice(1)) if (has(a.id)) console.log(`      ${a.label.padEnd(26)} ${String(total[a.id].moved).padStart(4)} of ${total.plain.tasks}`);
+for (const a of ARMS.slice(1)) if (has(a.id)) console.log(`      ${a.label.padEnd(26)} ${String(total[a.id].moved).padStart(4)} of ${total[a.id].tasks}`);
 
 if (SAVE) {
   const report = {
