@@ -1,13 +1,13 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v8.66.0. 14/21 repos overflow GPT-4o without SigMap, 5,294 files would be hidden, 16,676 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
+description: What token reduction means operationally in v8.67.0. 14/21 repos overflow GPT-4o without SigMap, 5,299 files would be hidden, 16,718 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
 head:
   - - meta
     - property: og:title
       content: "SigMap quality benchmark — overflow, hidden files, and cost"
   - - meta
     - property: og:description
-      content: "14/21 repos overflow GPT-4o without SigMap. 5,294 files would be hidden. 16,676 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $11,900+ Claude Sonnet, $3,900+ Claude Haiku at 10 calls/day."
+      content: "14/21 repos overflow GPT-4o without SigMap. 5,299 files would be hidden. 16,718 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $11,900+ Claude Sonnet, $3,900+ Claude Haiku at 10 calls/day."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/quality-benchmark"
@@ -15,16 +15,16 @@ head:
 
 # Quality benchmark
 
-::: info Official v8.66.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.66-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
+::: info Official v8.67.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.67-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **79.7%** |
-| Honest grep comparison (125 tasks / 19 repos) | **88.8%** vs 40.0% single-shot grep — **2.22× lift** |
-| Honest lift (vs grep agent) | **2.22×** |
-| Prompt reduction | **43.1%** (2.84 → 1.6) |
-| Task success proxy | **59.0%** |
+| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
+| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.0% single-shot grep — **2.24× lift** |
+| Honest lift (vs grep agent) | **2.24×** |
+| Prompt reduction | **44.4%** (2.84 → 1.6) |
+| Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
@@ -35,7 +35,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-10-05 (v8.66.0)**
+Latest saved run: **2026-10-05 (v8.67.0)**
 
 How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
 
@@ -45,7 +45,7 @@ How the repos and tasks are picked, and what the token numbers do and don't prov
 |---|:---:|:---:|
 | GPT-4o overflow repos | **14 / 21** | 0 / 21 |
 | Hidden files | **5,200+** | 0 |
-| Grounded symbols surfaced | 0 | **16,676** |
+| Grounded symbols surfaced | 0 | **16,718** |
 | Monthly input savings (10 calls/day) | — | **$10,000+** GPT-4o · **$12,000+** Sonnet · **$4,000+** Haiku |
 
 ## 1. Context window fit
@@ -62,7 +62,7 @@ That means a tool has to omit or truncate content before the model answers. SigM
 
 ## 2. Hidden-file risk
 
-Across the benchmark repos, **5,294** files would be hidden from the model in the raw-flow scenario.
+Across the benchmark repos, **5,299** files would be hidden from the model in the raw-flow scenario.
 
 This is the clearest explanation for why "just send the repo" is unreliable:
 
@@ -74,37 +74,37 @@ SigMap changes that by surfacing compact signatures for the project structure ah
 
 ## 3. Grounded symbols
 
-The latest saved run surfaced **16,676** grounded symbols across the benchmark repos, against **51,729** that stay dark without SigMap. That is the structural map the model can actually reason over.
+The latest saved run surfaced **16,718** grounded symbols across the benchmark repos, against **51,759** that stay dark without SigMap. That is the structural map the model can actually reason over.
 
 Counting is **structural** — non-empty lines inside the fenced blocks the generated context already delimits. Until v8.51.4 the counter matched each line against a keyword-prefix allowlist (`function `, `class `, `def `, …), so every language whose signature begins with the identifier read as zero. R was the worst case: `name <- function(args)` matched nothing, so ggplot2 reported **1** grounded symbol against 964 real ones and this page published **0% grounding for R**. See [#694](https://github.com/manojmallick/sigmap/issues/694).
 
 | Repo | Language | Grounded symbols | Grounding % |
 |---|---|---:|---:|
-| express | JavaScript | 11 | 14% |
-| flask | Python | 228 | 54% |
-| gin | Go | 651 | 59% |
-| spring-petclinic | Java | 361 | 67% |
-| rails | Ruby | 1,903 | 25% |
-| axios | TypeScript | 183 | ≥100%* |
-| rust-analyzer | Rust | 1,582 | 9% |
-| abseil-cpp | C++ | 1,726 | 15% |
-| serilog | C# | 174 | 31% |
-| riverpod | Dart | 1,627 | 44% |
-| okhttp | Kotlin | 179 | ≥100%* |
-| laravel | PHP | 1,451 | 17% |
-| akka | Scala | 1,052 | 27% |
-| vapor | Swift | 217 | 25% |
-| vue-core | Vue | 666 | 26% |
-| svelte | Svelte | 1,108 | 50% |
-| fastify | JavaScript | 191 | 61% |
-| fastapi | Python | 335 | 38% |
-| ggplot2 | R | 964 | 51% |
-| dplyr | R | 517 | 71% |
-| shiny | R | 548 | 41% |
+| express | JavaScript | 45 | 58% |
+| flask | Python | 255 | 60% |
+| gin | Go | 638 | 57% |
+| spring-petclinic | Java | 380 | 71% |
+| rails | Ruby | 2,010 | 27% |
+| axios | TypeScript | 235 | ≥100%* |
+| rust-analyzer | Rust | 1,610 | 9% |
+| abseil-cpp | C++ | 1,760 | 15% |
+| serilog | C# | 222 | 37% |
+| riverpod | Dart | 1,591 | 43% |
+| okhttp | Kotlin | 209 | ≥100%* |
+| laravel | PHP | 1,485 | 18% |
+| akka | Scala | 1,599 | 31% |
+| vapor | Swift | 392 | 36% |
+| vue-core | Vue | 692 | 27% |
+| svelte | Svelte | 1,132 | 51% |
+| fastify | JavaScript | 231 | 74% |
+| fastapi | Python | 340 | 38% |
+| ggplot2 | R | 882 | 46% |
+| dplyr | R | 483 | 67% |
+| shiny | R | 527 | 40% |
 
-Average across the **19 of 21** repos whose raw-symbol estimate held: **38%**.
+Average across the **19 of 21** repos whose raw-symbol estimate held: **42%**.
 
-\* `Grounding %` divides by `estimatedRawSymbols`, a `rawTokens / 200` heuristic. For **axios** (183 measured vs 161 estimated) and **okhttp** (179 measured vs 156 estimated) the measured count exceeds the estimate, so the ratio is not meaningful — the estimate is what is wrong there, not the measurement. Those rows are clamped, flagged, and excluded from the average rather than published as the impossible percentages they used to be (okhttp read 114%).
+\* `Grounding %` divides by `estimatedRawSymbols`, a `rawTokens / 200` heuristic. For **axios** (235 measured vs 182 estimated) and **okhttp** (209 measured vs 156 estimated) the measured count exceeds the estimate, so the ratio is not meaningful — the estimate is what is wrong there, not the measurement. Those rows are clamped, flagged, and excluded from the average rather than published as the impossible percentages they used to be (okhttp read 114%).
 
 ## 4. Cost impact
 
