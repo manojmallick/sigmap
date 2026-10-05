@@ -15,7 +15,7 @@ SigMap is built by a great community of contributors. Thank you to everyone who 
 - [Denis Solonenko](https://github.com/dsolonenko) — GDScript extractor (#146)
 - [Matt Van Horn](https://github.com/mvanhorn) — Testing, reliability improvements
 - [kumamaki](https://github.com/kumamaki) — Bug fixes, improvements
-- [Tung Lam](https://github.com/tunglambk) — Secret redaction (#668); docs-nav coverage guard (#700); config-reference drift gate (#708)
+- [Tung Lam](https://github.com/tunglambk) — Secret redaction (#668); docs-nav coverage guard (#700); config-reference drift gate (#708); todos marker masking (#877)
 - [rudi193-cmd](https://github.com/rudi193-cmd) — Hot-cold cold signatures in the bundled MCP server (#201); Python AST extractor wired into the shipped pipeline (#693)
 - [AJambla](https://github.com/AJambla) — Unknown `gain --model` fallback disclosure + `gain --models` listing (#665)
 - [Sujal Mallick](https://github.com/sujalmallick) — PowerShell Tier 2 extractor (#840); Objective-C Tier 2 extractor (#841)
@@ -40,6 +40,7 @@ To ensure proper attribution:
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
 ### Recent Contributors (v8.66.0)
+- **[@tunglambk](https://github.com/tunglambk)** (Tung Lam) — fix(extractors): the todos extractor listed string literals and ordinary words as TODOs — `lines.push('## todos')` in this repository's own generator was reported with the text `s');`, as were `# todos are cached here`, `// Todoist client` and `#hackathon`. Markers are now matched on masked source (`scan.js` gains `maskStrings`), uppercase and word-bounded, and `/*` is a third opener so `/* HACK */` is found instead of dropped; nine guards, six of which fail on the previous extractor (#877, PR #895)
 - **@manojmallick** — feat(benchmark): a labelled third-party retrieval corpus and gate, and a fix for the corpus beside it (#810, #883, #701, #892, PR #894). Every retrieval gate scored a corpus this project wrote or can influence, so a ranking regression on a repository nobody here controls could ship green. `xrepo` is 83 questions across 16 third-party repositories pinned to exact commits, each labelled with its answer files and a written reason before any ranker run, scored the way a first-time user's run indexes a repository, with an overall floor, per-repo no-regress and a CI job; a second, independent annotator matched 79 of 83 file sets exactly. It reads 40/83 (48.2%, 95% interval 37.8–58.8%) and found defects the self-scored corpora cannot see (#893), among them a path classifier that demotes real source named `history.ts` by 80%. The mined corpus had labelled the bundled `gen-context.js` as the only answer to five of its 23 tasks; the miner now drops generated outputs before it judges focus, and the corpus is re-mined to 60 tasks. A coverage guard fails when an extractor language has no corpus task, flat Go, Kotlin multi-module and SwiftPM layouts have retrieval fixtures, and no ranking, extractor or detection behaviour changes.
 
 ### Recent Contributors (v8.65.3)
