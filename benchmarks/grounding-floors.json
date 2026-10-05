@@ -3,7 +3,7 @@
   "repos": {
     "abseil-cpp": 0.61,
     "akka": 0.6,
-    "alamofire": 0.92,
+    "alamofire": 0.81,
     "axios": 0.95,
     "clap": 0.31,
     "click": 0.89,
