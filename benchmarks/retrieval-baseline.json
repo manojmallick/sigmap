@@ -18,14 +18,35 @@
     "tasks": 20
   },
   "jvm": {
-    "hitAt5": 0.2131967213114754,
-    "mrr": 0.1366393442622951,
-    "precisionAt5": 0.046081967213114756,
+    "hitAt5": 0.3441311475409836,
+    "mrr": 0.22927868852459019,
+    "precisionAt5": 0.07519672131147541,
     "tasks": 61,
     "repos": [
       "spring-petclinic",
       "akka"
-    ]
+    ],
+    "why": {
+      "hits": 21,
+      "misses": {
+        "answer not indexed": 0,
+        "demoted by a path penalty": 1,
+        "no token in common with the question": 24,
+        "ranked 6-10": 2,
+        "ranked 11-20": 0,
+        "ranked 21-50": 8,
+        "ranked beyond 50": 5
+      },
+      "reachable": 37,
+      "reachableHits": 21,
+      "noTokenWords": {
+        "distinctive": 6,
+        "commonOnly": 12,
+        "nowhere": 6,
+        "inIndex": 0
+      },
+      "answerIsTest": 5
+    }
   },
   "recordedBy": "run-retrieval-gate.mjs"
 }
