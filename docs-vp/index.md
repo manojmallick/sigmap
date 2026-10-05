@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.65.3</span>
+  <span><strong>Release:</strong> v8.66.0</span>
   <span>·</span>
-  <span><strong>Fix — a question finds code named with another form of the word:</strong> the ranker's stemmer left <code>classified</code> and <code>classify</code> as different words, so "how are test files classified" never met the code that classifies them (that file ranked 15th). <code>classify</code>/<code>classified</code>, <code>parse</code>/<code>parsing</code>, <code>apply</code>/<code>applied</code>, <code>order</code>/<code>ordering</code>, <code>register</code>/<code>registered</code> and more now reach one stem, and it ranks 4th. Against a same-tree control over 299 tasks hit@5 goes 209 → 212 and no corpus loses a task — but some rank-1 hits slip to rank 2, so the modeled task-success proxy reads 59.0% (was 61.0%). <a href="/guide/retrieval-benchmark#how-the-ranker-stems-words">How words are stemmed →</a></span>
+  <span><strong>New — retrieval measured on repositories we do not control:</strong> every retrieval gate scored a corpus this project wrote or can influence, so a ranking regression on someone else's repository could ship green. <code>xrepo</code> is 83 questions across 16 third-party repositories pinned to exact commits, labelled before any ranker run, scored the way a first-time user's run indexes a repo, with an enforced floor and a CI job. It reads <strong>40 of 83 (48.2%)</strong> — far below the self-scored corpora, as it should — and has already found a path classifier that demotes real source by 80%. No published metric moved. <a href="/guide/retrieval-benchmark#measured-on-repos-we-do-not-control-xrepo">How xrepo works →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.65-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.66-main</span>
   <span>·</span>
-  <span>79.7% hit@5 · 95.7% token reduction · 2026-10-04</span>
+  <span>79.7% hit@5 · 95.7% token reduction · 2026-10-05</span>
 </div>
 </div>
 
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-04 (v8.65.3)**.
+Latest saved benchmark run: **2026-10-05 (v8.66.0)**.
 
 </div>
 
