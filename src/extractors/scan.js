@@ -137,19 +137,23 @@ function exprEnd(src, j) {
  * opening bracket, `,` `;` `{` `}` or one of REGEX_AFTER_WORD it starts a regex.
  *
  * @param {string} src
- * @param {{ js?: boolean, strings?: boolean, regexes?: boolean }} opts
- *        strings/regexes: blank their contents (otherwise they are only skipped)
+ * @param {{ js?: boolean, strings?: boolean, regexes?: boolean, comments?: boolean }} opts
+ *        strings/regexes: blank their contents (otherwise they are only skipped).
+ *        comments: false (default true) keeps comment bytes and only steps over
+ *        them — for callers that READ comments but must not read them out of a
+ *        string literal (todos.js)
  */
 function scan(src, opts) {
   const out = src.split('');
   const blank = (a, b) => { for (let k = a; k < b; k++) if (out[k] !== '\n') out[k] = ' '; };
   const js = !!opts.js;
+  const comments = opts.comments !== false;
   let i = 0; const n = src.length;
   let operand = false; // the previous significant token is a value, so `/` divides
   while (i < n) {
     const c = src[i], d = src[i + 1];
-    if (c === '/' && d === '/') { let j = i + 2; while (j < n && src[j] !== '\n') j++; blank(i, j); i = j; continue; }
-    if (c === '/' && d === '*') { let j = i + 2; while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j++; j = Math.min(n, j + 2); blank(i, j); i = j; continue; }
+    if (c === '/' && d === '/') { let j = i + 2; while (j < n && src[j] !== '\n') j++; if (comments) blank(i, j); i = j; continue; }
+    if (c === '/' && d === '*') { let j = i + 2; while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j++; j = Math.min(n, j + 2); if (comments) blank(i, j); i = j; continue; }
     if (c === '"' || c === "'" || c === '`') {
       let j;
       if (js && c === '`') j = templateEnd(src, i);
@@ -198,6 +202,18 @@ function maskCode(src, opts = {}) {
 }
 
 /**
+ * Blank string/template contents only — comments survive verbatim, and `//`,
+ * `/*`, `#` bytes a caller finds here are real comment text, not a
+ * `'## todos'`-style literal (#877).
+ * @param {string} src
+ * @param {{ js?: boolean }} [opts] js: also blank regular-expression literals
+ * @returns {string} same length, string/regex contents blanked, comments intact
+ */
+function maskStrings(src, opts = {}) {
+  return scan(src, { js: opts.js, strings: true, regexes: true, comments: false });
+}
+
+/**
  * Index of the delimiter that closes the one open at `openIdx`, matched by
  * depth over MASKED text (strings/comments already blanked, so every
  * delimiter seen is structural). -1 when unbalanced within the cap.
@@ -223,4 +239,4 @@ function readBalanced(masked, openIdx, open = '(', close = ')', cap = 4000) {
   return -1;
 }
 
-module.exports = { stripComments, maskCode, readBalanced };
+module.exports = { stripComments, maskCode, maskStrings, readBalanced };
