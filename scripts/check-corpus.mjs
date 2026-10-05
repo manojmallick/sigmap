@@ -10,11 +10,17 @@
  * So this also checks VERBATIM OVERLAP: no 4-word run from a query may appear
  * in its expected file's indexed text. Shared vocabulary is legitimate and
  * necessary — BM25 cannot work without it. Copied phrasing is not.
+ *
+ * A third check: no expected file may be a generated output (#883). A mined
+ * task's "expected" is "touched by the commit", and tooling rewrites the bundle
+ * on nearly every one, so the bundle is rejected there too; a hand-labelled
+ * task may name it for the hand-written CLI core.
  */
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { isGeneratedOutput, isMinedNoise } from './lib/corpus-hygiene.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -23,7 +29,7 @@ const { readFullIndex } = require(join(ROOT, 'src/retrieval/sig-index-store'));
 
 const NGRAM = 4;
 const file = process.argv[2] || 'benchmarks/tasks/retrieval-hard.jsonl';
-const tasks = readFileSync(join(ROOT, file), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+const tasks = readFileSync(resolve(ROOT, file), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
 const index = readFullIndex(ROOT);
 
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -34,12 +40,17 @@ function ngrams(text, n) {
   return out;
 }
 
-let basenameLeaks = 0, verbatimLeaks = 0, missing = 0, unreachable = 0;
+let basenameLeaks = 0, verbatimLeaks = 0, missing = 0, unreachable = 0, generated = 0;
 const problems = [];
 for (const t of tasks) {
   const bl = queryLeakage(t.query, t.expected_files);
   if (!bl.clean) { basenameLeaks++; problems.push(`${t.id}  BASENAME LEAK ${JSON.stringify(bl.leaked)}`); }
   for (const f of t.expected_files) {
+    if (t.source === 'git' ? isMinedNoise(f) : isGeneratedOutput(f)) {
+      generated++;
+      problems.push(`${t.id}  GENERATED OUTPUT as expected file: ${f}`);
+      continue;
+    }
     if (!index.has(f)) {
       missing++;
       problems.push(`${t.id}  EXPECTED FILE NOT INDEXED: ${f}`);
@@ -60,6 +71,7 @@ console.log(`  tasks             : ${tasks.length}`);
 console.log(`  basename leaks    : ${basenameLeaks}`);
 console.log(`  verbatim ${NGRAM}-grams : ${verbatimLeaks}`);
 console.log(`  expected missing  : ${missing}`);
+console.log(`  generated outputs : ${generated}`);
 if (problems.length) {
   console.log('\nproblems:');
   for (const p of problems) console.log('  ✗ ' + p);

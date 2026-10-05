@@ -30,6 +30,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execFileSync, } from 'child_process';
 import { createRequire } from 'module';
+import { band } from './lib/band.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -44,9 +45,12 @@ const NO_REGRESS = has('--no-regress');
 const SAVE = has('--save');
 const MIN = parseFloat(val('--min', '0.70'));
 // The mined corpus is smaller and genuinely harder — no author bias propping it up.
-// Floor set below the whole sensitivity band (53.3%-73.1% across defensible
-// miner parameters) so the gate catches genuine regression rather than firing
-// on corpus-parameter noise.
+// Floor set below the whole sensitivity band measured on the ORIGINAL 23-task
+// corpus (53.3%-73.1% across defensible miner parameters) so the gate catches
+// genuine regression rather than firing on corpus-parameter noise. The corpus was
+// re-mined at 60 tasks once generated outputs stopped being labelled as answers
+// (#883) and scores 61.7% on pristine develop; the parameter sweep was not
+// repeated, so the floor is kept as it was — 7 tasks of headroom.
 const MIN_MINED = parseFloat(val('--min-mined', '0.50'));
 const BASELINE = join(ROOT, 'benchmarks', 'retrieval-baseline.json');
 const EPS = 1e-9;
@@ -137,8 +141,9 @@ if (jvm) {
 }
 console.log('\n  mined = commit subjects + the files that commit touched. Nobody tuning');
 console.log('  the ranker wrote them, so it is the only unbiased number here.');
-console.log('  It is also SMALL: 1 task = ' + (100 / mined.tasks).toFixed(1) + 'pp, and the defensible miner');
-console.log('  parameter range spans 53-73%. Read it as a band, not a point.');
+console.log('  It is also SMALL: 1 task = ' + (100 / mined.tasks).toFixed(1) + 'pp, and the 95% interval over '
+  + mined.tasks + ' tasks is ' + band(Math.round(mined.hitAt5 * mined.tasks), mined.tasks) + '.');
+console.log('  Read it as a band, not a point.');
 
 const prior = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : null;
 if (prior && prior.hard) {

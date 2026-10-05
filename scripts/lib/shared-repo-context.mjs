@@ -79,17 +79,23 @@ function restoreDir(absDir, tree) {
 /**
  * Capture every context artifact in a repo.
  * @param {string} repoDir
- * @returns {{ files: Map<string, Buffer|null>, dirs: Map<string, Map|null> }}
+ * @returns {{ files: Map<string, Buffer|null>, dirs: Map<string, Map|null>, parents: Map<string, boolean> }}
  */
 export function snapshotArtifacts(repoDir) {
   const files = new Map();
+  // Whether each artifact's PARENT directory existed: a generator that writes
+  // `.github/copilot-instructions.md` into a repo without `.github/` creates the
+  // directory too, and removing only the file leaves an empty one behind.
+  const parents = new Map();
   for (const rel of CONTEXT_ARTIFACTS) {
     const p = path.join(repoDir, rel);
     files.set(rel, fs.existsSync(p) ? fs.readFileSync(p) : null);
+    const parent = path.dirname(rel);
+    if (parent !== '.' && !parents.has(parent)) parents.set(parent, fs.existsSync(path.join(repoDir, parent)));
   }
   const dirs = new Map();
   for (const rel of CONTEXT_DIRS) dirs.set(rel, snapshotDir(path.join(repoDir, rel)));
-  return { files, dirs };
+  return { files, dirs, parents };
 }
 
 /**
@@ -110,6 +116,13 @@ export function restoreArtifacts(repoDir, snap) {
     } catch (_) { /* best-effort restore */ }
   }
   for (const [rel, tree] of snap.dirs) restoreDir(path.join(repoDir, rel), tree);
+  // Remove a parent directory the generator created. rmdir refuses a non-empty
+  // directory, so anything else living there is safe; one that existed before
+  // the run is left alone.
+  for (const [rel, existed] of snap.parents || []) {
+    if (existed) continue;
+    try { fs.rmdirSync(path.join(repoDir, rel)); } catch (_) { /* not empty, or already gone */ }
+  }
 }
 
 /**
