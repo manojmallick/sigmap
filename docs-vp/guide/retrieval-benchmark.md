@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.65.3. 79.7% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.8% vs 40.0% (2.22× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.66.0. 79.7% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.8% vs 40.0% (2.22× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.65.3 benchmark snapshot
-**Benchmark ID:** sigmap-v8.65-main &nbsp;·&nbsp; **Date:** 2026-10-04 (with R language)
+::: info Official v8.66.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.66-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-04 (v8.65.3)**
+Latest saved run: **2026-10-05 (v8.66.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -150,12 +150,18 @@ happen to share an adjective.
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
 | `hard` | 90 | **73.3%** | 70% floor | Leak-free tasks over **SigMap's own source** |
-| `mined` | 23 | **60.9%** | no-regress | Commit subjects + the files that commit touched |
+| `mined` | 60 | **61.7%** | no-regress | Commit subjects + the files that commit touched, minus the generated outputs every commit also rewrites |
 | `jvm` | 61 | **34.4%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
 | `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
 
 Every corpus is asserted leak-free: no query shares a stemmed token with its
 expected file's basename. `hard` and `mined` are re-asserted on every run.
+
+::: tip The `mined` corpus was re-mined at v8.66.0 ([#883](https://github.com/manojmallick/sigmap/issues/883))
+Five of its 23 tasks (m001–m005) listed the bundled `gen-context.js` as their only expected file. Tooling rewrites that file on nearly every source commit, and the miner records the files a commit touched, so the bundle became "the answer" — unwinnable, although the ranker returned the real implementation first. The miner now removes generated outputs (the bundle, `.context/`, adapter outputs, `llms*.txt`) *before* it judges which file a commit was about, and its default window is the whole history: it had been 960 commits, which stopped covering the repository at 1,331.
+
+Re-mined, the corpus is **60 tasks** (17 kept, 1 relabelled, 5 dropped, 42 new), so one task is 1.7pp instead of 4.3pp, and its 95% interval is 49.0–72.9%. The headline barely moves — **60.9% → 61.7%** — and the 60-task corpus scores the same on the v8.65.3 tree (37 of 60), so none of that is a ranking change. Measured against a clean v8.65.3 worktree, the release moves no `hard` or `easy` rank at all and exactly one `mined` first-hit rank (m003, 3 → 4, a 0.012-point tie inside the top 5). Only the `mined` entry of `retrieval-baseline.json` was re-recorded; its stored `hard` (75.6%) and `jvm` (21.3%) still do not reproduce (73.3% and 34.4% measured) and are left as they are.
+:::
 
 ### Why `hard` is reported but not enforced
 
@@ -336,7 +342,8 @@ is re-recorded deliberately with the number-provenance work
 The same episode is why `jvm` matters more than `hard`: ranking weights changed in
 v8.55.0 and `hard` could not falsify them, because it scores SigMap against the
 repository the change was made in. A labelled third-party corpus
-([#810](https://github.com/manojmallick/sigmap/issues/810)) does not exist yet.
+([#810](https://github.com/manojmallick/sigmap/issues/810)) did not exist until
+v8.66.0 — it is [`xrepo`](#measured-on-repos-we-do-not-control-xrepo), below.
 :::
 
 ### Why the JVM corpus exists
@@ -422,6 +429,10 @@ npm run validate:xrepo     # the gate: floor + per-repo no-regress (CI adds --re
 ```
 
 CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.json`, fetches only what is missing or off-pin, and runs the gate. The gate exits 0 when the repos are absent, so a fresh checkout is never broken by it.
+
+::: warning Set the seven new clones aside before a release benchmark run
+`fetch:xrepo` puts seven repositories that no other suite expects (tokio, excalidraw, django, phoenix, astro, plenary, godot-demo-projects) into `benchmarks/repos/`, and two suites enumerate that whole directory. With them present, `benchmark:test-discovery` reads **95.3% F1 over 33 repositories instead of 98.0% over 28**, and `validate:grounding-coverage` fails because each has no recorded floor. The published figures were measured with them moved aside; the cause is tracked in [#893](https://github.com/manojmallick/sigmap/issues/893).
+:::
 
 ### Changing the corpus
 
