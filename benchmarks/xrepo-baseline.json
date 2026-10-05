@@ -1,25 +1,23 @@
 {
   "overall": {
     "tasks": 83,
-    "hits": 40,
-    "hitAt5": 0.4819277108433735,
-    "mrr": 0.32955421686746983,
-    "precisionAt5": 0.10128915662650602
+    "hits": 42,
+    "hitAt5": 0.5060240963855421,
+    "mrr": 0.35427710843373494,
+    "precisionAt5": 0.10608433734939757
   },
   "repos": {
     "alamofire": {
       "language": "swift",
       "tasks": 5,
-      "hits": 2,
-      "hitAt5": 0.4,
-      "mrr": 0.4,
-      "precisionAt5": 0.08,
-      "unreachable": [
-        "x012"
-      ],
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.45,
+      "precisionAt5": 0.12,
+      "unreachable": [],
       "ranks": {
         "x011": null,
-        "x012": null,
+        "x012": 4,
         "x013": 1,
         "x014": 1,
         "x015": null
@@ -64,10 +62,10 @@
     "excalidraw": {
       "language": "typescript_react",
       "tasks": 6,
-      "hits": 2,
-      "hitAt5": 0.333,
-      "mrr": 0.222,
-      "precisionAt5": 0.067,
+      "hits": 3,
+      "hitAt5": 0.5,
+      "mrr": 0.389,
+      "precisionAt5": 0.1,
       "unreachable": [],
       "ranks": {
         "x021": 3,
@@ -75,7 +73,7 @@
         "x023": null,
         "x024": null,
         "x025": 1,
-        "x026": null
+        "x026": 1
       }
     },
     "express": {
@@ -176,14 +174,14 @@
     "phoenix": {
       "language": "elixir",
       "tasks": 5,
-      "hits": 5,
-      "hitAt5": 1,
-      "mrr": 0.69,
-      "precisionAt5": 0.24,
+      "hits": 4,
+      "hitAt5": 0.8,
+      "mrr": 0.65,
+      "precisionAt5": 0.2,
       "unreachable": [],
       "ranks": {
         "x061": 1,
-        "x062": 5,
+        "x062": null,
         "x063": 1,
         "x064": 4,
         "x065": 1
@@ -225,16 +223,14 @@
     "serilog": {
       "language": "csharp",
       "tasks": 5,
-      "hits": 0,
-      "hitAt5": 0,
-      "mrr": 0,
-      "precisionAt5": 0,
-      "unreachable": [
-        "x052"
-      ],
+      "hits": 1,
+      "hitAt5": 0.2,
+      "mrr": 0.2,
+      "precisionAt5": 0.04,
+      "unreachable": [],
       "ranks": {
         "x051": null,
-        "x052": null,
+        "x052": 1,
         "x053": null,
         "x054": null,
         "x055": null
@@ -263,9 +259,7 @@
       "hitAt5": 0,
       "mrr": 0,
       "precisionAt5": 0,
-      "unreachable": [
-        "x044"
-      ],
+      "unreachable": [],
       "ranks": {
         "x041": null,
         "x042": null,

@@ -83,22 +83,14 @@
       "url": "https://github.com/rrousselGit/riverpod.git",
       "commit": "7c6f94d7271bd0b02c3090175c75fb5c2a244034",
       "language": "dart",
-      "layout": "dart-workspace",
-      "srcDirs": [
-        "packages"
-      ],
-      "srcDirsWhy": "Zero-config resolves to [website, benchmarks] and never reaches packages/*/lib: a Dart workspace is not detected as a source layout, so every answer file is unindexed (measured at the pin)."
+      "layout": "dart-workspace"
     },
     {
       "name": "phoenix",
       "url": "https://github.com/phoenixframework/phoenix.git",
       "commit": "2ca60ffe811c0e585835cfc309b645c3a4190df1",
       "language": "elixir",
-      "layout": "mix-lib",
-      "srcDirs": [
-        "lib"
-      ],
-      "srcDirsWhy": "Zero-config resolves to [assets, priv] and never reaches lib/: an Elixir mix project's source root is not detected, so every answer file is unindexed (measured at the pin)."
+      "layout": "mix-lib"
     },
     {
       "name": "astro",
@@ -127,11 +119,7 @@
       "layout": "godot-projects",
       "sparse": [
         "*.gd"
-      ],
-      "srcDirs": [
-        "."
-      ],
-      "srcDirsWhy": "Zero-config resolves to no source root at all (confidence low): the demos sit in top-level category directories and no GDScript layout is recognised, so nothing under them is indexed (measured at the pin)."
+      ]
     }
   ]
 }
