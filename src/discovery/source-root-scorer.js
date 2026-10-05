@@ -9,6 +9,10 @@ const CODE_EXTS = new Set([
   '.py','.rb','.go','.rs','.java','.kt',
   '.cs','.cpp','.c','.h','.m','.mm','.swift','.dart','.scala','.php','.lua',
   '.ps1','.psm1','.psd1',
+  // Elixir and GDScript were detected as languages (`language-detector`) but not
+  // counted as code here, so a directory of nothing but `.ex` or `.gd` scored
+  // zero and was dropped: phoenix resolved to its JavaScript, godot to nothing (#900).
+  '.ex','.exs','.gd',
 ]);
 
 const AUTO_SKIP = new Set([

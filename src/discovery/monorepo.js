@@ -27,15 +27,20 @@ const fs = require('fs');
 const path = require('path');
 
 /** Files that DECLARE a workspace. */
-const MARKERS = ['pnpm-workspace.yaml', 'turbo.json', 'nx.json', 'lerna.json'];
+const MARKERS = ['pnpm-workspace.yaml', 'turbo.json', 'nx.json', 'lerna.json', 'melos.yaml'];
 
 /** Directories that conventionally hold sibling packages. */
 const MONO_ROOTS = ['packages', 'apps', 'services', 'libs', 'modules'];
 
-/** Any of these makes a directory a package. */
+/**
+ * Any of these makes a directory a package. `pubspec.yaml` (Dart) and `mix.exs`
+ * (Elixir) were missing, so a pub workspace or an umbrella project was not a
+ * monorepo and none of its packages was ever offered as a source root (#900).
+ */
 const PKG_MANIFESTS = [
   'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod',
   'build.gradle', 'build.gradle.kts', 'pom.xml', 'requirements.txt',
+  'pubspec.yaml', 'mix.exs',
 ];
 
 /** A layout match needs at least this many sibling packages to count. */
@@ -52,6 +57,14 @@ function workspaceMarker(cwd) {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
     if (pkg.workspaces) return 'package.json workspaces';
+  } catch (_) {}
+  // Dart 3.6+ pub workspaces declare their members in the root pubspec, and an
+  // Elixir umbrella project says where its apps live in the root mix.exs.
+  try {
+    if (/^workspace:/m.test(fs.readFileSync(path.join(cwd, 'pubspec.yaml'), 'utf8'))) return 'pubspec.yaml workspace';
+  } catch (_) {}
+  try {
+    if (/\bapps_path:/.test(fs.readFileSync(path.join(cwd, 'mix.exs'), 'utf8'))) return 'mix.exs apps_path';
   } catch (_) {}
   return null;
 }

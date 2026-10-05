@@ -5748,15 +5748,20 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
   const path = require('path');
 
   /** Files that DECLARE a workspace. */
-  const MARKERS = ['pnpm-workspace.yaml', 'turbo.json', 'nx.json', 'lerna.json'];
+  const MARKERS = ['pnpm-workspace.yaml', 'turbo.json', 'nx.json', 'lerna.json', 'melos.yaml'];
 
   /** Directories that conventionally hold sibling packages. */
   const MONO_ROOTS = ['packages', 'apps', 'services', 'libs', 'modules'];
 
-  /** Any of these makes a directory a package. */
+  /**
+   * Any of these makes a directory a package. `pubspec.yaml` (Dart) and `mix.exs`
+   * (Elixir) were missing, so a pub workspace or an umbrella project was not a
+   * monorepo and none of its packages was ever offered as a source root (#900).
+   */
   const PKG_MANIFESTS = [
     'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod',
     'build.gradle', 'build.gradle.kts', 'pom.xml', 'requirements.txt',
+    'pubspec.yaml', 'mix.exs',
   ];
 
   /** A layout match needs at least this many sibling packages to count. */
@@ -5773,6 +5778,14 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
     try {
       const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
       if (pkg.workspaces) return 'package.json workspaces';
+    } catch (_) {}
+    // Dart 3.6+ pub workspaces declare their members in the root pubspec, and an
+    // Elixir umbrella project says where its apps live in the root mix.exs.
+    try {
+      if (/^workspace:/m.test(fs.readFileSync(path.join(cwd, 'pubspec.yaml'), 'utf8'))) return 'pubspec.yaml workspace';
+    } catch (_) {}
+    try {
+      if (/\bapps_path:/.test(fs.readFileSync(path.join(cwd, 'mix.exs'), 'utf8'))) return 'mix.exs apps_path';
     } catch (_) {}
     return null;
   }
@@ -6222,7 +6235,34 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
         'dart-frog':{ detectionFiles: ['dart_frog.yaml'],   srcDirs: ['routes','lib'] },
       },
       srcDirs:  ['lib','lib/src'],
+      // A pub workspace is a set of packages, and a pub package keeps its
+      // implementation in `lib/` — `test/`, `example/` and `tool/` are siblings,
+      // not source. A package's source root is therefore `<package>/lib`.
+      packageSrcDir: 'lib',
       penalties: ['.dart_tool','build'],
+    },
+
+    // Elixir: a mix project's application is `lib/`; `assets/` and `priv/` are the
+    // front-end sources and compiled output Phoenix keeps beside it, and in an
+    // umbrella each app under `apps/` has its own `lib/`.
+    elixir: {
+      manifestFiles: ['mix.exs'],
+      frameworks: {},
+      srcDirs:  ['lib'],
+      packageSrcDir: 'lib',
+      penalties: ['deps','_build','cover','priv'],
+    },
+
+    // GDScript has no source directory: `res://` is the project root and a script
+    // sits next to the scene it drives, at any depth. The repo root IS the source
+    // root, even when it holds no script itself (a collection of demos keeps them
+    // all in subdirectories).
+    gdscript: {
+      manifestFiles: ['project.godot'],
+      frameworks: {},
+      srcDirs:  [],
+      rootedAtRepo: true,
+      penalties: ['.godot','.import'],
     },
 
     scala: {
@@ -6281,6 +6321,11 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   // discard most of the repo. Raised only for that case.
   const MAX_JVM_MODULE_ROOTS = 40;
   const JVM_SOURCE_LANGS = ['java', 'kotlin', 'scala'];
+
+  // The same reasoning for a pub workspace or an Elixir umbrella project: one
+  // source root per member package is the correct answer (riverpod has 12), not
+  // over-detection.
+  const MAX_PACKAGE_ROOTS = 40;
 
   /**
    * Build-file evidence of a multi-module JVM project.
@@ -6386,7 +6431,11 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     const context = { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties };
 
     // Enumerate candidates
-    const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || []);
+    const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || [], registry);
+
+    // A workspace whose language keeps each package's source in one directory
+    // (Dart and Elixir: `lib/`) — two or more members is what makes it one.
+    const isPackageWorkspace = candidates.filter((c) => c.packageSrc).length >= 2;
 
     // JVM source sets are discovered STRUCTURALLY — two or more module source
     // dirs on disk is what makes a build multi-module, whatever tool declares
@@ -6404,12 +6453,18 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
 
     // Score each candidate
     const scored = candidates
-      .map(({ name, full }) => ({
+      .map(({ name, full, packageSrc }) => ({
         dir:   name,
         full,
+        packageSrc,
         score: scoreCandidate(name, full, context),
       }))
       .filter(c => c.score > 0)
+      // In a package workspace the members' source directories ARE the source;
+      // whatever else sits at the top of the repo — a docs site, benchmarks,
+      // tooling — is not. Without this riverpod's `website/` (JavaScript) outranked
+      // all twelve Dart packages and was the only thing indexed (#900).
+      .filter(c => !isPackageWorkspace || c.packageSrc)
       // Final tie-break on dir keeps selection deterministic when scores tie — the
       // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
       // (candidate order comes from filesystem readdir), changing which files are
@@ -6417,14 +6472,14 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
 
     // Handle special rules
-    let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []));
+    let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []), registry);
 
     // Dedupe nested paths (prefer parent)
     roots = _dedupeNested(roots);
 
     // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
     // per module is the correct answer rather than over-detection.
-    const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : MAX_ROOTS;
+    const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : isPackageWorkspace ? MAX_PACKAGE_ROOTS : MAX_ROOTS;
     roots = roots.slice(0, cap).map(r => r.dir);
 
     // Fallback: if nothing scored, return empty (caller falls back to legacy)
@@ -6443,11 +6498,14 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       isMonorepo,
       monorepo,
       isJvmMultiModule,
+      isPackageWorkspace,
     };
   }
 
-  function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
+  function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList, registry) {
     const candidates = [];
+    // Dart and Elixir keep a package's implementation in one named directory.
+    const packageSrcDir = registry && registry.packageSrcDir;
     const excSet     = new Set(excludeList);
 
     // Root-level dirs (sorted so candidate order — and downstream dedupe/selection
@@ -6471,6 +6529,16 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         try {
           for (const pkg of fs.readdirSync(topFull, { withFileTypes: true })) {
             if (!pkg.isDirectory()) continue;
+            // A package of such a language contributes its source directory and
+            // nothing else. The package root would also pull in test/, example/
+            // and tool/ — in riverpod, a 244-file lint-fixture package among them.
+            if (packageSrcDir) {
+              const libFull = path.join(topFull, pkg.name, packageSrcDir);
+              if (fs.existsSync(libFull)) {
+                candidates.push({ name: `${top}/${pkg.name}/${packageSrcDir}`, full: libFull, packageSrc: true });
+              }
+              continue;
+            }
             const srcFull = path.join(topFull, pkg.name, 'src');
             if (fs.existsSync(srcFull)) {
               candidates.push({ name: `${top}/${pkg.name}/src`, full: srcFull });
@@ -6558,7 +6626,20 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
    * Whether the repo root is itself a source root, and why.
    * @returns {{ score: number, reason: string }|null}
    */
-  function _flatLayoutRoot(cwd, excSet) {
+  function _flatLayoutRoot(cwd, excSet, registry) {
+    // C — a language that is rooted at the repo by construction. GDScript has no
+    // source directory: scripts sit next to the scenes they drive at any depth,
+    // and a collection of demos keeps every one in a subdirectory, so the root
+    // holds none directly and neither A nor B below can see it. Decided from the
+    // script files alone — never from `project.godot`, which a sparse checkout of
+    // a demo collection does not have.
+    if (registry && registry.rootedAtRepo) {
+      const total = _treeCodeFiles(cwd, excSet);
+      if (total >= ROOT_MIN_FILES) {
+        return { score: ROOT_SCORE, reason: `${total} code files below a root that holds none directly` };
+      }
+    }
+
     const rootFiles = _directCodeFiles(cwd);
     if (rootFiles === 0) return null;
 
@@ -6585,13 +6666,13 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     return null;
   }
 
-  function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set()) {
+  function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set(), registry = null) {
     let roots = [...scored];
 
     // Flat layout: the root is a source root. Added here rather than as an
     // ordinary candidate because `scoreCandidate` scores directory NAMES against
     // the framework registry, and `.` is not a name it can reason about.
-    const flatRoot = _flatLayoutRoot(cwd, excSet);
+    const flatRoot = _flatLayoutRoot(cwd, excSet, registry);
     if (flatRoot && !roots.find((r) => r.dir === '.')) {
       roots.push({ dir: '.', full: cwd, score: flatRoot.score, reason: flatRoot.reason });
       roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
@@ -6668,6 +6749,10 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     '.py','.rb','.go','.rs','.java','.kt',
     '.cs','.cpp','.c','.h','.m','.mm','.swift','.dart','.scala','.php','.lua',
     '.ps1','.psm1','.psd1',
+    // Elixir and GDScript were detected as languages (`language-detector`) but not
+    // counted as code here, so a directory of nothing but `.ex` or `.gd` scored
+    // zero and was dropped: phoenix resolved to its JavaScript, godot to nothing (#900).
+    '.ex','.exs','.gd',
   ]);
 
   const AUTO_SKIP = new Set([

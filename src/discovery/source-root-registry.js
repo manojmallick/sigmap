@@ -147,7 +147,34 @@ const REGISTRY = {
       'dart-frog':{ detectionFiles: ['dart_frog.yaml'],   srcDirs: ['routes','lib'] },
     },
     srcDirs:  ['lib','lib/src'],
+    // A pub workspace is a set of packages, and a pub package keeps its
+    // implementation in `lib/` — `test/`, `example/` and `tool/` are siblings,
+    // not source. A package's source root is therefore `<package>/lib`.
+    packageSrcDir: 'lib',
     penalties: ['.dart_tool','build'],
+  },
+
+  // Elixir: a mix project's application is `lib/`; `assets/` and `priv/` are the
+  // front-end sources and compiled output Phoenix keeps beside it, and in an
+  // umbrella each app under `apps/` has its own `lib/`.
+  elixir: {
+    manifestFiles: ['mix.exs'],
+    frameworks: {},
+    srcDirs:  ['lib'],
+    packageSrcDir: 'lib',
+    penalties: ['deps','_build','cover','priv'],
+  },
+
+  // GDScript has no source directory: `res://` is the project root and a script
+  // sits next to the scene it drives, at any depth. The repo root IS the source
+  // root, even when it holds no script itself (a collection of demos keeps them
+  // all in subdirectories).
+  gdscript: {
+    manifestFiles: ['project.godot'],
+    frameworks: {},
+    srcDirs:  [],
+    rootedAtRepo: true,
+    penalties: ['.godot','.import'],
   },
 
   scala: {
