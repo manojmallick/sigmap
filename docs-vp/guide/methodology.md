@@ -64,7 +64,7 @@ Example tasks:
 
 **Baseline:** Single-shot grep agent = 40.0% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
 
-**SigMap score:** 88.8% on the same 125-task honest corpus — a measured **2.22× lift** over the grep baseline (88.8 ÷ 40.0). The retrieval corpus (105 tasks / 18 repos) is scored separately at 79.7% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
+**SigMap score:** 89.6% on the same 125-task honest corpus — a measured **2.24× lift** over the grep baseline (89.6 ÷ 40.0). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
 
 ### 2. Task success proxy (correct rank)
 
@@ -78,7 +78,7 @@ Example tasks:
 - **Wrong** (not in top 5) — likely multiple retries
 
 **SigMap breakdown:**
-- Correct: 59.0% of tasks
+- Correct: 61.9% of tasks
 - Partial: 20.0% of tasks
 - Wrong: 21.0% of tasks
 

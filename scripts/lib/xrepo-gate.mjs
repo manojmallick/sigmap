@@ -103,3 +103,89 @@ export function decide(i) {
   }
   return { reasons, complete };
 }
+
+// ── Attribution (--why, #674) ────────────────────────────────────────────────
+//
+// A hit rate says how many tasks miss, not WHY, and the why decides the remedy:
+// a file that is not indexed needs detection or an extractor, a file the path
+// penalty buries needs a classifier, and a file that is ranked below the top 5
+// on its merits needs ranking work — the only kind that trades one split against
+// another. Pure, like the rest of this module: the caller hands over the ranker's
+// complete result, so the classes can be tested with fake lists.
+
+/** Where a ranked miss sits relative to the top 5. */
+export function bucketOf(rank) {
+  return rank <= 10 ? '6-10' : rank <= 20 ? '11-20' : rank <= 50 ? '21-50' : 'beyond 50';
+}
+
+/**
+ * Why a task is or is not a hit, as exactly one class.
+ *
+ *   hit         an expected file is in the top 5
+ *   unindexed   no expected file is in the zero-config index, so the task is
+ *               unreachable — detection skipped it or the extractor emitted nothing
+ *   no-overlap  an expected file IS indexed but the ranker never returned it:
+ *               it shares no token with the question, so it scores zero
+ *   penalty     ranked below the top 5, and inside it were the path penalty
+ *               undone — the classifier lost it, not the question
+ *   ranking     ranked below the top 5 on its merits; `bucket` is how far down
+ *
+ * The penalty counterfactual divides the penalty out of the final score and
+ * re-sorts with the ranker's own tie-break (score, then path). Every other
+ * signal is held fixed, so it answers "would this file have made the top 5 had
+ * it not been demoted for its path" and nothing more.
+ *
+ * @param {object} i
+ * @param {Array<{file:string, score:number, penalty?:number}>} i.ranked the ranker's complete result, best first
+ * @param {string[]} i.expected the task's expected files
+ * @param {Set<string>} i.indexed files in the zero-config index that carry a signature
+ * @returns {{cls:'hit'|'unindexed'|'no-overlap'|'penalty'|'ranking', rank:number|null, bucket?:string, penalty?:number, withoutPenalty?:number}}
+ */
+export function attribute({ ranked, expected, indexed }) {
+  const files = ranked.map((r) => r.file);
+  const rank = rankOf(files, expected);
+  if (rank !== null && rank <= 5) return { cls: 'hit', rank };
+  if (!expected.some((f) => indexed.has(f))) return { cls: 'unindexed', rank: null };
+  if (rank === null) return { cls: 'no-overlap', rank: null };
+
+  const penalty = typeof ranked[rank - 1].penalty === 'number' ? ranked[rank - 1].penalty : 1;
+  if (penalty < 1) {
+    const undone = ranked
+      .map((r) => ({ file: r.file, score: r.penalty > 0 ? r.score / r.penalty : r.score }))
+      .sort((a, b) => (b.score - a.score) || (a.file < b.file ? -1 : 1));
+    const without = rankOf(undone.map((r) => r.file), expected);
+    if (without !== null && without <= 5) return { cls: 'penalty', rank, penalty, withoutPenalty: without };
+  }
+  return { cls: 'ranking', rank, bucket: bucketOf(rank) };
+}
+
+/** The label a class is reported under; a ranked miss is reported by distance. */
+export function whyLabel(a) {
+  switch (a.cls) {
+    case 'unindexed': return 'answer not indexed';
+    case 'penalty': return 'demoted by a path penalty';
+    case 'no-overlap': return 'no token in common with the question';
+    case 'ranking': return `ranked ${a.bucket}`;
+    default: return 'hit';
+  }
+}
+
+const WHY_ORDER = [
+  'answer not indexed', 'demoted by a path penalty', 'no token in common with the question',
+  'ranked 6-10', 'ranked 11-20', 'ranked 21-50', 'ranked beyond 50',
+];
+
+/**
+ * Counts per label, in a fixed order, so two runs print comparable tables.
+ * Every miss lands in exactly one row: the rows sum to `misses`.
+ */
+export function summarizeWhy(attributions) {
+  const counts = new Map(WHY_ORDER.map((l) => [l, 0]));
+  let hits = 0;
+  for (const a of attributions) {
+    if (a.cls === 'hit') { hits++; continue; }
+    const l = whyLabel(a);
+    counts.set(l, (counts.get(l) || 0) + 1);
+  }
+  return { tasks: attributions.length, hits, misses: attributions.length - hits, rows: [...counts.entries()] };
+}

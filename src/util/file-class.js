@@ -74,7 +74,21 @@ function isGeneratedDir(filePath) {
  * implementation files on "how does" questions (#808). Deliberately keyed on
  * the conventional names rather than "any `.md`", so a repo whose content is
  * genuinely markdown is not blanket-demoted.
+ *
+ * A well-known name is documentation only when it is not source code. The
+ * names double as ordinary domain nouns — `history.ts` is excalidraw's undo
+ * stack, `security.py` is django's SecurityMiddleware, `changes.rb` is Rails'
+ * attached-changes tracker — and matching them with ANY extension cost those
+ * files 80% of their score (rank 20 instead of 1 on the question about undo
+ * and redo; #900). The exception is a deny-list of programming-language
+ * extensions, not an allow-list of prose ones: `README.Rmd`, `LICENSE.python`
+ * and `Readme.scalatex` are real docs with extensions no prose list anticipates,
+ * and across 66,691 tracked files in 50 repos the deny-list moves exactly the 8
+ * source files and no document.
  */
+const DOC_BASENAME = /^(README|CHANGELOG|CHANGES|CONTRIBUTING|CODE_OF_CONDUCT|SECURITY|LICENCE|LICENSE|AUTHORS|NOTICE|HISTORY|UPGRADING|MIGRATING|MAINTAINERS|GOVERNANCE)(\.[a-z]+)?$/i;
+const SOURCE_EXT = /\.(?:[cm]?[jt]sx?|pyi?|rb|go|rs|java|kts?|scala|sc|groovy|cs|swift|php|lua|exs?|dart|c|h|cc|cpp|cxx|hpp|hh|mm?|r|sh|bash|zsh|ps1|psm1|pl|pm|gd|clj|cljs|erl|hs|fs|fsx|ml|vue|svelte|astro)$/i;
+
 function isDocsFile(filePath) {
   const p = _norm(filePath);
   // Deliberately NOT `wiki|man|website`: `src/wiki/generate.js` is the module
@@ -82,7 +96,7 @@ function isDocsFile(filePath) {
   // names that double as domain nouns do not belong here.
   if (/(^|\/)(docs|doc|documentation)(\/|$)/i.test(p)) return true;
   const base = p.slice(p.lastIndexOf('/') + 1);
-  return /^(README|CHANGELOG|CHANGES|CONTRIBUTING|CODE_OF_CONDUCT|SECURITY|LICENCE|LICENSE|AUTHORS|NOTICE|HISTORY|UPGRADING|MIGRATING|MAINTAINERS|GOVERNANCE)(\.[a-z]+)?$/i.test(base);
+  return DOC_BASENAME.test(base) && !SOURCE_EXT.test(base);
 }
 
 /**

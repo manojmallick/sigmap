@@ -1,6 +1,6 @@
 ---
 title: How I built SigMap
-description: How I fixed the LLM context problem — deterministic AI code retrieval without embeddings, vector databases, or external services. 79.7% hit@5, 95.7% token reduction.
+description: How I fixed the LLM context problem — deterministic AI code retrieval without embeddings, vector databases, or external services. 80.4% hit@5, 95.7% token reduction.
 head:
   - - meta
     - property: og:title
@@ -29,9 +29,9 @@ Before the story, the outcome — so you know what you're reading toward. These 
 
 | | Number |
 |---|---|
-| File retrieval accuracy | **79.7% hit@5** (vs 13.6% baseline — 5.9× lift) |
+| File retrieval accuracy | **80.4% hit@5** (vs 13.6% baseline — 5.9× lift) |
 | Token reduction | **40–98%** across 18 real open-source repos |
-| Task success rate | **59.0%** (vs 10% without context) |
+| Task success rate | **61.9%** (vs 10% without context) |
 | Prompts per task | **1.69** (down from 2.84) |
 | Dependencies | **Zero** |
 
@@ -292,7 +292,7 @@ Not hit@5, not token reduction — *how many prompts until the user got what the
 | Feature | What it does |
 |---|---|
 | **Signature extraction** | 29 languages, zero dependencies, milliseconds |
-| **Deterministic retrieval** | TF-IDF + graph boost, 79.7% hit@5 |
+| **Deterministic retrieval** | TF-IDF + graph boost, 80.4% hit@5 |
 | **Groundedness scoring** | Catch hallucinations before they reach production |
 | **Learned weights** | Files that helped rank higher next time |
 | **MCP server** | 9 on-demand tools for Claude Code, Cursor, Windsurf |

@@ -5748,15 +5748,20 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
   const path = require('path');
 
   /** Files that DECLARE a workspace. */
-  const MARKERS = ['pnpm-workspace.yaml', 'turbo.json', 'nx.json', 'lerna.json'];
+  const MARKERS = ['pnpm-workspace.yaml', 'turbo.json', 'nx.json', 'lerna.json', 'melos.yaml'];
 
   /** Directories that conventionally hold sibling packages. */
   const MONO_ROOTS = ['packages', 'apps', 'services', 'libs', 'modules'];
 
-  /** Any of these makes a directory a package. */
+  /**
+   * Any of these makes a directory a package. `pubspec.yaml` (Dart) and `mix.exs`
+   * (Elixir) were missing, so a pub workspace or an umbrella project was not a
+   * monorepo and none of its packages was ever offered as a source root (#900).
+   */
   const PKG_MANIFESTS = [
     'package.json', 'pyproject.toml', 'Cargo.toml', 'go.mod',
     'build.gradle', 'build.gradle.kts', 'pom.xml', 'requirements.txt',
+    'pubspec.yaml', 'mix.exs',
   ];
 
   /** A layout match needs at least this many sibling packages to count. */
@@ -5773,6 +5778,14 @@ __factories["./src/discovery/monorepo"] = function(module, exports) {
     try {
       const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
       if (pkg.workspaces) return 'package.json workspaces';
+    } catch (_) {}
+    // Dart 3.6+ pub workspaces declare their members in the root pubspec, and an
+    // Elixir umbrella project says where its apps live in the root mix.exs.
+    try {
+      if (/^workspace:/m.test(fs.readFileSync(path.join(cwd, 'pubspec.yaml'), 'utf8'))) return 'pubspec.yaml workspace';
+    } catch (_) {}
+    try {
+      if (/\bapps_path:/.test(fs.readFileSync(path.join(cwd, 'mix.exs'), 'utf8'))) return 'mix.exs apps_path';
     } catch (_) {}
     return null;
   }
@@ -6222,7 +6235,34 @@ __factories["./src/discovery/source-root-registry"] = function(module, exports) 
         'dart-frog':{ detectionFiles: ['dart_frog.yaml'],   srcDirs: ['routes','lib'] },
       },
       srcDirs:  ['lib','lib/src'],
+      // A pub workspace is a set of packages, and a pub package keeps its
+      // implementation in `lib/` — `test/`, `example/` and `tool/` are siblings,
+      // not source. A package's source root is therefore `<package>/lib`.
+      packageSrcDir: 'lib',
       penalties: ['.dart_tool','build'],
+    },
+
+    // Elixir: a mix project's application is `lib/`; `assets/` and `priv/` are the
+    // front-end sources and compiled output Phoenix keeps beside it, and in an
+    // umbrella each app under `apps/` has its own `lib/`.
+    elixir: {
+      manifestFiles: ['mix.exs'],
+      frameworks: {},
+      srcDirs:  ['lib'],
+      packageSrcDir: 'lib',
+      penalties: ['deps','_build','cover','priv'],
+    },
+
+    // GDScript has no source directory: `res://` is the project root and a script
+    // sits next to the scene it drives, at any depth. The repo root IS the source
+    // root, even when it holds no script itself (a collection of demos keeps them
+    // all in subdirectories).
+    gdscript: {
+      manifestFiles: ['project.godot'],
+      frameworks: {},
+      srcDirs:  [],
+      rootedAtRepo: true,
+      penalties: ['.godot','.import'],
     },
 
     scala: {
@@ -6281,6 +6321,11 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   // discard most of the repo. Raised only for that case.
   const MAX_JVM_MODULE_ROOTS = 40;
   const JVM_SOURCE_LANGS = ['java', 'kotlin', 'scala'];
+
+  // The same reasoning for a pub workspace or an Elixir umbrella project: one
+  // source root per member package is the correct answer (riverpod has 12), not
+  // over-detection.
+  const MAX_PACKAGE_ROOTS = 40;
 
   /**
    * Build-file evidence of a multi-module JVM project.
@@ -6386,7 +6431,11 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     const context = { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties };
 
     // Enumerate candidates
-    const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || []);
+    const candidates = _enumerateCandidates(cwd, isMonorepo, ignorePatterns, opts.exclude || [], registry);
+
+    // A workspace whose language keeps each package's source in one directory
+    // (Dart and Elixir: `lib/`) — two or more members is what makes it one.
+    const isPackageWorkspace = candidates.filter((c) => c.packageSrc).length >= 2;
 
     // JVM source sets are discovered STRUCTURALLY — two or more module source
     // dirs on disk is what makes a build multi-module, whatever tool declares
@@ -6404,12 +6453,18 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
 
     // Score each candidate
     const scored = candidates
-      .map(({ name, full }) => ({
+      .map(({ name, full, packageSrc }) => ({
         dir:   name,
         full,
+        packageSrc,
         score: scoreCandidate(name, full, context),
       }))
       .filter(c => c.score > 0)
+      // In a package workspace the members' source directories ARE the source;
+      // whatever else sits at the top of the repo — a docs site, benchmarks,
+      // tooling — is not. Without this riverpod's `website/` (JavaScript) outranked
+      // all twelve Dart packages and was the only thing indexed (#900).
+      .filter(c => !isPackageWorkspace || c.packageSrc)
       // Final tie-break on dir keeps selection deterministic when scores tie — the
       // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
       // (candidate order comes from filesystem readdir), changing which files are
@@ -6417,14 +6472,14 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
 
     // Handle special rules
-    let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []));
+    let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []), registry);
 
     // Dedupe nested paths (prefer parent)
     roots = _dedupeNested(roots);
 
     // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
     // per module is the correct answer rather than over-detection.
-    const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : MAX_ROOTS;
+    const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : isPackageWorkspace ? MAX_PACKAGE_ROOTS : MAX_ROOTS;
     roots = roots.slice(0, cap).map(r => r.dir);
 
     // Fallback: if nothing scored, return empty (caller falls back to legacy)
@@ -6443,11 +6498,14 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       isMonorepo,
       monorepo,
       isJvmMultiModule,
+      isPackageWorkspace,
     };
   }
 
-  function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList) {
+  function _enumerateCandidates(cwd, isMonorepo, ignorePatterns, excludeList, registry) {
     const candidates = [];
+    // Dart and Elixir keep a package's implementation in one named directory.
+    const packageSrcDir = registry && registry.packageSrcDir;
     const excSet     = new Set(excludeList);
 
     // Root-level dirs (sorted so candidate order — and downstream dedupe/selection
@@ -6471,6 +6529,16 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
         try {
           for (const pkg of fs.readdirSync(topFull, { withFileTypes: true })) {
             if (!pkg.isDirectory()) continue;
+            // A package of such a language contributes its source directory and
+            // nothing else. The package root would also pull in test/, example/
+            // and tool/ — in riverpod, a 244-file lint-fixture package among them.
+            if (packageSrcDir) {
+              const libFull = path.join(topFull, pkg.name, packageSrcDir);
+              if (fs.existsSync(libFull)) {
+                candidates.push({ name: `${top}/${pkg.name}/${packageSrcDir}`, full: libFull, packageSrc: true });
+              }
+              continue;
+            }
             const srcFull = path.join(topFull, pkg.name, 'src');
             if (fs.existsSync(srcFull)) {
               candidates.push({ name: `${top}/${pkg.name}/src`, full: srcFull });
@@ -6558,7 +6626,20 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
    * Whether the repo root is itself a source root, and why.
    * @returns {{ score: number, reason: string }|null}
    */
-  function _flatLayoutRoot(cwd, excSet) {
+  function _flatLayoutRoot(cwd, excSet, registry) {
+    // C — a language that is rooted at the repo by construction. GDScript has no
+    // source directory: scripts sit next to the scenes they drive at any depth,
+    // and a collection of demos keeps every one in a subdirectory, so the root
+    // holds none directly and neither A nor B below can see it. Decided from the
+    // script files alone — never from `project.godot`, which a sparse checkout of
+    // a demo collection does not have.
+    if (registry && registry.rootedAtRepo) {
+      const total = _treeCodeFiles(cwd, excSet);
+      if (total >= ROOT_MIN_FILES) {
+        return { score: ROOT_SCORE, reason: `${total} code files below a root that holds none directly` };
+      }
+    }
+
     const rootFiles = _directCodeFiles(cwd);
     if (rootFiles === 0) return null;
 
@@ -6585,13 +6666,13 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     return null;
   }
 
-  function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set()) {
+  function _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, excSet = new Set(), registry = null) {
     let roots = [...scored];
 
     // Flat layout: the root is a source root. Added here rather than as an
     // ordinary candidate because `scoreCandidate` scores directory NAMES against
     // the framework registry, and `.` is not a name it can reason about.
-    const flatRoot = _flatLayoutRoot(cwd, excSet);
+    const flatRoot = _flatLayoutRoot(cwd, excSet, registry);
     if (flatRoot && !roots.find((r) => r.dir === '.')) {
       roots.push({ dir: '.', full: cwd, score: flatRoot.score, reason: flatRoot.reason });
       roots.sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
@@ -6668,6 +6749,10 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     '.py','.rb','.go','.rs','.java','.kt',
     '.cs','.cpp','.c','.h','.m','.mm','.swift','.dart','.scala','.php','.lua',
     '.ps1','.psm1','.psd1',
+    // Elixir and GDScript were detected as languages (`language-detector`) but not
+    // counted as code here, so a directory of nothing but `.ex` or `.gd` scored
+    // zero and was dropped: phoenix resolved to its JavaScript, godot to nothing (#900).
+    '.ex','.exs','.gd',
   ]);
 
   const AUTO_SKIP = new Set([
@@ -8766,8 +8851,11 @@ __factories["./src/extractors/csharp"] = function(module, exports) {
     const stripped = stripComments(src);
     const masked = maskCode(src);
 
-    // Classes and interfaces
-    const typeRe = /^\s*(?:public\s+|internal\s+|protected\s+)?(?:abstract\s+|sealed\s+|static\s+)?(class|interface|enum|record|struct)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w<>, .]+)?\s*\{/gm;
+    // Classes and interfaces. `partial` must sit immediately before the type
+    // keyword, so it is one more optional token after the other modifiers; without
+    // it every `partial` type — ubiquitous in WinForms, Blazor, EF and source
+    // generators — extracted as nothing at all (#900).
+    const typeRe = /^\s*(?:public\s+|internal\s+|protected\s+)?(?:abstract\s+|sealed\s+|static\s+)?(?:partial\s+)?(class|interface|enum|record|struct)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w<>, .]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
       const declIdx = m.index + (m[0].length - m[0].trimStart().length);
       const bodyStart = m.index + m[0].length;
@@ -10550,27 +10638,48 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       }
     }
 
-    // Exported named functions
-    for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
-      const asyncKw = /export\s+async/.test(m[0]) ? 'async ' : '';
-      const retStr = formatReturnHint(returnHints.get(m[1]));
+    // Exported named functions — `export function f` and `export default function f`.
+    // The modifiers are CAPTURED, never searched for in the whole match: `export
+    // function async(` must not read as an async function because of its NAME (#902).
+    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*\(/gm)) {
+      const asyncKw = m[2] ? 'async ' : '';
+      const retStr = formatReturnHint(returnHints.get(m[3]));
       const startLn = lineAt(stripped, m.index);
       const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-      sigs.push(`export ${asyncKw}function ${m[1]}(${normalizeParams(params)})${retStr}`);
-      docHintFor[sigs.length - 1] = docHints.get(m[1]);
+      sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[3]}(${normalizeParams(params)})${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(m[3]);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
 
+    // Arrow functions bound to a const — `export const f = (…) =>`, and the
+    // `const f = (…) =>` that an `export default f` names (see below).
+    const emittedArrows = new Set();
+    const pushArrow = (declIdx, openIdx, name, asyncKw, prefix) => {
+      const { params, closeIdx } = paramsFrom(openIdx);
+      if (closeIdx === -1 || !/^\s*=>/.test(masked.slice(closeIdx + 1, closeIdx + 40))) return;
+      const retStr = formatReturnHint(returnHints.get(name));
+      const startLn = lineAt(stripped, declIdx);
+      sigs.push(`${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(name);
+      anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+      emittedArrows.add(name);
+    };
+
     // Exported arrow functions
     for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/gm)) {
-      const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-      if (closeIdx === -1 || !/^\s*=>/.test(masked.slice(closeIdx + 1, closeIdx + 40))) continue;
-      const asyncKw = m[0].includes('async') ? 'async ' : '';
-      const retStr = formatReturnHint(returnHints.get(m[1]));
-      const startLn = lineAt(stripped, m.index);
-      sigs.push(`export const ${m[1]} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
-      docHintFor[sigs.length - 1] = docHints.get(m[1]);
-      anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+      pushArrow(m.index, m.index + m[0].length - 1, m[1], m[0].includes('async') ? 'async ' : '', 'export ');
+    }
+
+    // `export default <identifier>` over a const-bound arrow (#900). A function
+    // DECLARATION it names is already extracted below as a top-level function, so
+    // only the arrow form — which nothing else reaches — is resolved here. The
+    // identifier must be declared in this file: an imported one invents nothing.
+    // Matched on the masked surface so a line inside a template literal is inert.
+    for (const dm of masked.matchAll(/^export[ \t]+default[ \t]+([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/gm)) {
+      const name = dm[1];
+      if (emittedArrows.has(name)) continue;
+      const arrow = new RegExp(`^(?:const|let|var)\\s+${name.replace(/\$/g, '\\$')}\\s*=\\s*(async\\s+)?\\(`, 'm').exec(masked);
+      if (arrow) pushArrow(arrow.index, arrow.index + arrow[0].length - 1, name, arrow[1] ? 'async ' : '', 'export default ');
     }
 
     // module.exports = { ... }
@@ -10651,7 +10760,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
   // shape below is the one buildDocHints already uses, which profiles at ~0%.
   const RETURN_TAG = /@returns?\s+\{([^}]+)\}/;
   const RETURN_DECLS = [
-    /\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/y,
+    /\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+(\w+)\s*\(/y,
     /\s*export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/y,
     /\s*(?:static\s+|async\s+|get\s+|set\s+)*(\w+)\s*\(/y,
   ];
@@ -10680,7 +10789,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     // the match expand across a whole function to the next comment block and
     // misattribute the hint.
     const patterns = [
-      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/g,
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+(\w+)\s*\(/g,
       /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/g,
     ];
     for (const re of patterns) {
@@ -15850,8 +15959,11 @@ __factories["./src/extractors/swift"] = function(module, exports) {
       return [line, line];
     };
 
-    // Classes, structs, protocols, enums
-    const typeRe = /^[ \t]*(?:public\s+|internal\s+|open\s+|private\s+|fileprivate\s+)?(?:final\s+)?(class|struct|protocol|enum|actor)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w, <>.]+)?\s*\{/gm;
+    // Classes, structs, protocols, enums. The inheritance clause admits `@` so an
+    // attributed conformance — `: @unchecked Sendable`, `: @retroactive Equatable`,
+    // both routine in Swift 5.5+ concurrency code — does not make the whole type
+    // extract as nothing (#900).
+    const typeRe = /^[ \t]*(?:public\s+|internal\s+|open\s+|private\s+|fileprivate\s+)?(?:final\s+)?(class|struct|protocol|enum|actor)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w, <>.@]+)?\s*\{/gm;
     for (const m of stripped.matchAll(typeRe)) {
       const declIdx = m.index + (m[0].length - m[0].trimStart().length);
       const bodyStart = m.index + m[0].length;
@@ -16292,7 +16404,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // never matched the old inline form, so the whole class was dropped:
     // no class line, no members. Leading whitespace is allowed so an indented
     // class expression — the mixin-factory form — is reachable too.
-    const classRegex = /^[ \t]*(export\s+)?(abstract\s+)?class\s+(\w+)\b/gm;
+    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?(abstract\s+)?class\s+(\w+)\b/gm;
 
     /**
      * Index of the `{` that opens a class body, or -1. Depth-aware so a
@@ -16316,7 +16428,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // stays byte-identical.
     const compMarkers = scanComponentMarkers(stripped);
     for (const m of stripped.matchAll(classRegex)) {
-      const prefix = m[1] ? 'export ' : '';
+      const prefix = m[1] ? m[1].trim().replace(/\s+/g, ' ') + ' ' : '';
       const abs = m[2] ? 'abstract ' : '';
       const bodyBrace = findClassBody(m.index + m[0].length);
       if (bodyBrace === -1) continue;
@@ -16356,26 +16468,33 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     }
 
-    // Exported top-level functions (not methods)
-    for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
-      const { params: rawParams, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-      if (closeIdx === -1) continue;
+    // Names already emitted by one of the export forms below, so
+    // `export const f = …` followed by `export default f` is not listed twice.
+    const emitted = new Set();
+
+    // One emitter for every function-shaped export: `export function f`,
+    // `export default function f`, and the declaration an `export default f`
+    // names elsewhere in the file (#900). `prefix` is the text ahead of the
+    // `function` keyword — 'export ' or 'export default '.
+    const pushFunction = (declIdx, openIdx, name, asyncKw, prefix) => {
+      const { params: rawParams, closeIdx } = paramsFrom(openIdx);
+      if (closeIdx === -1) return;
       // Declaration shape check + return-type capture, mirroring the old
       // `\)(?:\s*:\s*[^{]+)?\s*\{` tail against the text after the real close.
       const tail = masked.slice(closeIdx + 1, closeIdx + 200).match(/^(\s*:\s*[^{]+?)?\s*\{/);
-      if (!tail) continue;
-      const asyncKw = /export\s+async/.test(m[0]) ? 'async ' : '';
+      if (!tail) return;
       const params = normalizeParams(rawParams);
       const retRaw = tail[1] ? stripped.slice(closeIdx + 1, closeIdx + 1 + tail[1].length).replace(/^\s*:\s*/, '') : '';
       const retType = retRaw ? retRaw.trim().replace(/\s+/g, ' ').slice(0, 30) : '';
       const retStr = retType ? ` → ${retType}` : '';
       const bodyStart = closeIdx + 1 + tail[0].length;
-      sigs.push(`export ${asyncKw}function ${m[1]}(${params})${retStr}`);
-      docHintFor[sigs.length - 1] = docHints.get(m[1]);
-      anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
+      sigs.push(`${prefix}${asyncKw}function ${name}(${params})${retStr}`);
+      docHintFor[sigs.length - 1] = docHints.get(name);
+      anchors.push([lineAt(stripped, declIdx), lineAt(stripped, blockEndIdx(bodyStart))]);
+      emitted.add(name);
 
       // Hooks: capture compact return object shape for use* functions.
-      if (m[1].startsWith('use')) {
+      if (name.startsWith('use')) {
         const body = stripped.slice(bodyStart, bodyStart + 800);
         const ret = body.match(/return\s*\{([^}]{1,260})\}/);
         if (ret) {
@@ -16389,28 +16508,36 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
           }
         }
       }
+    };
+
+    // Exported top-level functions (not methods). The modifiers are CAPTURED, never
+    // searched for in the whole match: `export function async(` must not read as an
+    // async function because of its NAME (#902 — svelte has exactly that function).
+    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+      pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
     }
 
-    // Exported arrow functions / const functions
-    for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/gm)) {
-      const { params: rawParams, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-      if (closeIdx === -1) continue;
+    // Arrow-function counterpart of pushFunction: `export const f = (…) =>`, and
+    // the `const f = (…) =>` an `export default f` names.
+    const pushArrow = (declIdx, openIdx, name, asyncKw, prefix) => {
+      const { params: rawParams, closeIdx } = paramsFrom(openIdx);
+      if (closeIdx === -1) return;
       // Arrow shape check, mirroring the old `\)\s*(?::\s*[^=>{]+)?\s*=>` tail.
       const tail = masked.slice(closeIdx + 1, closeIdx + 200).match(/^\s*(?::\s*[^=>{]+)?\s*=>/);
-      if (!tail) continue;
-      const asyncKw = /=\s*async\s+/.test(m[0]) ? 'async ' : '';
+      if (!tail) return;
       const params = normalizeParams(rawParams);
-      sigs.push(`export const ${m[1]} = ${asyncKw}(${params}) =>`);
-      docHintFor[sigs.length - 1] = docHints.get(m[1]);
+      sigs.push(`${prefix}const ${name} = ${asyncKw}(${params}) =>`);
+      docHintFor[sigs.length - 1] = docHints.get(name);
       const matchEnd = closeIdx + 1 + tail[0].length;
       const bodyStart = masked.indexOf('{', matchEnd);
       const endLn = bodyStart !== -1
         ? lineAt(stripped, blockEndIdx(bodyStart + 1))
         : lineAt(stripped, matchEnd);
-      anchors.push([lineAt(stripped, m.index), endLn]);
+      anchors.push([lineAt(stripped, declIdx), endLn]);
+      emitted.add(name);
 
       // Hooks: capture compact return object shape for use* functions.
-      if (m[1].startsWith('use')) {
+      if (name.startsWith('use')) {
         if (bodyStart !== -1) {
           const body = stripped.slice(bodyStart, bodyStart + 800);
           const ret = body.match(/return\s*\{([^}]{1,260})\}/);
@@ -16426,6 +16553,28 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
           }
         }
       }
+    };
+
+    // Exported arrow functions / const functions
+    for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/gm)) {
+      pushArrow(m.index, m.index + m[0].length - 1, m[1], /=\s*async\s+/.test(m[0]) ? 'async ' : '', 'export ');
+    }
+
+    // `export default <identifier>` — the declaration it names is usually NOT
+    // itself exported (`const scopedPlugin: PluginCreator = (id) => {…}` then
+    // `export default scopedPlugin`), so none of the export forms above sees it
+    // and the whole file extracted as nothing (#900: vue-core's pluginScoped.ts).
+    // Resolved against a top-level declaration in the SAME file only; an imported
+    // identifier names no declaration here, so nothing is invented. Matched on the
+    // masked surface so an `export default x` line inside a template literal is inert.
+    for (const dm of masked.matchAll(/^export[ \t]+default[ \t]+([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/gm)) {
+      const name = dm[1];
+      if (emitted.has(name) || /^(?:function|class|async|abstract|interface|enum|type|new|await|typeof|void|null|undefined|true|false|this)$/.test(name)) continue;
+      const id = name.replace(/\$/g, '\\$');
+      const fn = new RegExp(`^(async\\s+)?function\\s+${id}\\s*(?:<[^(]*>)?\\s*\\(`, 'm').exec(masked);
+      if (fn) { pushFunction(fn.index, fn.index + fn[0].length - 1, name, fn[1] ? 'async ' : '', 'export default '); continue; }
+      const arrow = new RegExp(`^(?:const|let|var)\\s+${id}\\s*(?::\\s*[^=]+)?\\s*=\\s*(async\\s+)?\\(`, 'm').exec(masked);
+      if (arrow) pushArrow(arrow.index, arrow.index + arrow[0].length - 1, name, arrow[1] ? 'async ' : '', 'export default ');
     }
 
     // Zustand stores: export const useXxxStore = create<State>()(...)
@@ -16574,7 +16723,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // the match expand across a whole function to the next comment block and
     // misattribute the hint.
     const patterns = [
-      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+(?:async\s+)?function\s+(\w+)\s*[<(]/g,
+      /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*[<(]/g,
       /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+const\s+(\w+)\s*[:=]/g,
     ];
     for (const re of patterns) {
@@ -24688,7 +24837,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.66.0',
+    version: '8.67.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -30929,7 +31078,21 @@ __factories["./src/util/file-class"] = function(module, exports) {
    * implementation files on "how does" questions (#808). Deliberately keyed on
    * the conventional names rather than "any `.md`", so a repo whose content is
    * genuinely markdown is not blanket-demoted.
+   *
+   * A well-known name is documentation only when it is not source code. The
+   * names double as ordinary domain nouns — `history.ts` is excalidraw's undo
+   * stack, `security.py` is django's SecurityMiddleware, `changes.rb` is Rails'
+   * attached-changes tracker — and matching them with ANY extension cost those
+   * files 80% of their score (rank 20 instead of 1 on the question about undo
+   * and redo; #900). The exception is a deny-list of programming-language
+   * extensions, not an allow-list of prose ones: `README.Rmd`, `LICENSE.python`
+   * and `Readme.scalatex` are real docs with extensions no prose list anticipates,
+   * and across 66,691 tracked files in 50 repos the deny-list moves exactly the 8
+   * source files and no document.
    */
+  const DOC_BASENAME = /^(README|CHANGELOG|CHANGES|CONTRIBUTING|CODE_OF_CONDUCT|SECURITY|LICENCE|LICENSE|AUTHORS|NOTICE|HISTORY|UPGRADING|MIGRATING|MAINTAINERS|GOVERNANCE)(\.[a-z]+)?$/i;
+  const SOURCE_EXT = /\.(?:[cm]?[jt]sx?|pyi?|rb|go|rs|java|kts?|scala|sc|groovy|cs|swift|php|lua|exs?|dart|c|h|cc|cpp|cxx|hpp|hh|mm?|r|sh|bash|zsh|ps1|psm1|pl|pm|gd|clj|cljs|erl|hs|fs|fsx|ml|vue|svelte|astro)$/i;
+
   function isDocsFile(filePath) {
     const p = _norm(filePath);
     // Deliberately NOT `wiki|man|website`: `src/wiki/generate.js` is the module
@@ -30937,7 +31100,7 @@ __factories["./src/util/file-class"] = function(module, exports) {
     // names that double as domain nouns do not belong here.
     if (/(^|\/)(docs|doc|documentation)(\/|$)/i.test(p)) return true;
     const base = p.slice(p.lastIndexOf('/') + 1);
-    return /^(README|CHANGELOG|CHANGES|CONTRIBUTING|CODE_OF_CONDUCT|SECURITY|LICENCE|LICENSE|AUTHORS|NOTICE|HISTORY|UPGRADING|MIGRATING|MAINTAINERS|GOVERNANCE)(\.[a-z]+)?$/i.test(base);
+    return DOC_BASENAME.test(base) && !SOURCE_EXT.test(base);
   }
 
   /**
@@ -33112,7 +33275,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.66.0';
+const VERSION = '8.67.0';
 function requireSourceOrBundled(key) {
   try {
     const rel = key.replace(/^\.\//, '') + '.js';

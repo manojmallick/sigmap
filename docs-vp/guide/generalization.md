@@ -1,10 +1,10 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 38 languages, and multiple domains with 79.7% hit@5 in the latest saved v8.66.0 retrieval run.
+description: SigMap generalizes across 21 repos, 38 languages, and multiple domains with 80.4% hit@5 in the latest saved v8.67.0 retrieval run.
 head:
   - - meta
     - property: og:title
-      content: "SigMap Generalization — 79.7% hit@5 across 38 languages with R support"
+      content: "SigMap Generalization — 80.4% hit@5 across 38 languages with R support"
   - - meta
     - property: og:description
       content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
@@ -19,16 +19,16 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v8.66.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.66-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
+::: info Official v8.67.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.67-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **79.7%** |
-| Honest grep comparison (125 tasks / 19 repos) | **88.8%** vs 40.0% single-shot grep — **2.22× lift** |
-| Honest lift (vs grep agent) | **2.22×** |
-| Prompt reduction | **43.1%** (2.84 → 1.6) |
-| Task success proxy | **59.0%** |
+| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
+| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.0% single-shot grep — **2.24× lift** |
+| Honest lift (vs grep agent) | **2.24×** |
+| Prompt reduction | **44.4%** (2.84 → 1.6) |
+| Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
@@ -38,13 +38,13 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 105 tasks is yes — 79.7% hit@5 with no per-repo tuning in the latest saved v8.66.0 run.
+these 105 tasks is yes — 80.4% hit@5 with no per-repo tuning in the latest saved v8.67.0 run.
 :::
 
 - **21 repos** (including 3 R language repos)
 - **38 languages** (added R, GDScript, and CI/pipeline definitions)
 - **multiple domains**
-- **79.7%** overall hit@5
+- **80.4%** overall hit@5
 - **no per-repo tuning**
 
 That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
@@ -70,7 +70,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v8.66.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v8.67.0` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|
@@ -80,12 +80,12 @@ If you want one number to carry into launch messaging, use the shared `v8.66.0` 
 | Concurrency | 1 | **100%** | akka |
 | UI framework | 2 | **90%** | vue-core, svelte |
 | Web app | 1 | **80%** | spring-petclinic |
-| HTTP client | 2 | **75%** | axios, okhttp |
+| HTTP client | 2 | **81.3%** | axios, okhttp |
 | Web framework | 8 | **78.1%** | express, rails, gin, laravel, flask, vapor, fastify, fastapi |
 | Logging | 1 | **20%** | serilog |
 
 Three domains land at 100% and every other domain except logging is at 75% or above. The low outliers —
-`serilog` (logging, 20%), `vapor` (web framework, 20%) and `axios` (HTTP client, 50%) — are files
+`serilog` (logging, 20%) and `vapor` (web framework, 20%) — are files
 whose signatures genuinely lack the query vocabulary; those need semantic retrieval and are the
 known residual misses. The variation is explained by repo
 structure (fragmented vs modular signatures) rather than language or domain category.
@@ -96,7 +96,7 @@ structure (fragmented vs modular signatures) rather than language or domain cate
 
 | Size | File count | Repos | Avg hit@5 |
 |---|---|---|---|
-| Small | ≤25 files | 5 | 78.5% |
+| Small | ≤25 files | 5 | 81% |
 | Medium | 26–200 files | 5 | 56.5% |
 | Large | >200 files | 8 | **95%** |
 
@@ -116,8 +116,8 @@ Key signals that the results are not overfit:
 
 - **Zero per-repo tuning** — the same `gen-context.js` command with default config ran on all 18 repos
 - **Blind selection** — repos were chosen by GitHub star count and language diversity, not by testing which ones scored well
-- **Failure modes are honest** — C#/serilog 20%, Swift/vapor 20%, TypeScript/axios 50%, JS/fastify 62.5%, Python/flask 62.5% — genuine weak spots, not massaged away
-- **Large repos score *higher*** — if the extractor patterns were memorized, they'd degrade on unseen large codebases; instead they improve (95% vs 78.5% for small repos)
+- **Failure modes are honest** — C#/serilog 20%, Swift/vapor 20%, TypeScript/axios 62.5%, JS/fastify 62.5%, Python/flask 62.5% — genuine weak spots, not massaged away
+- **Large repos score *higher*** — if the extractor patterns were memorized, they'd degrade on unseen large codebases; instead they improve (95% vs 81% for small repos)
 
 ---
 
@@ -130,7 +130,7 @@ Key signals that the results are not overfit:
 | gin | Go | Web framework | 107 | 100% |
 | spring-petclinic | Java | Web app | 13 | 80% |
 | rails | Ruby | Web framework | 1,179 | 100% |
-| axios | TypeScript | HTTP client | 25 | 50% |
+| axios | TypeScript | HTTP client | 25 | 62.5% |
 | rust-analyzer | Rust | Dev tools | 635 | 100% |
 | abseil-cpp | C++ | Systems lib | 700 | 100% |
 | serilog | C# | Logging | 99 | 20% |

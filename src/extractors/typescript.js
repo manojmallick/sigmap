@@ -83,7 +83,7 @@ function extract(src) {
   // never matched the old inline form, so the whole class was dropped:
   // no class line, no members. Leading whitespace is allowed so an indented
   // class expression — the mixin-factory form — is reachable too.
-  const classRegex = /^[ \t]*(export\s+)?(abstract\s+)?class\s+(\w+)\b/gm;
+  const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?(abstract\s+)?class\s+(\w+)\b/gm;
 
   /**
    * Index of the `{` that opens a class body, or -1. Depth-aware so a
@@ -107,7 +107,7 @@ function extract(src) {
   // stays byte-identical.
   const compMarkers = scanComponentMarkers(stripped);
   for (const m of stripped.matchAll(classRegex)) {
-    const prefix = m[1] ? 'export ' : '';
+    const prefix = m[1] ? m[1].trim().replace(/\s+/g, ' ') + ' ' : '';
     const abs = m[2] ? 'abstract ' : '';
     const bodyBrace = findClassBody(m.index + m[0].length);
     if (bodyBrace === -1) continue;
@@ -147,26 +147,33 @@ function extract(src) {
     }
   }
 
-  // Exported top-level functions (not methods)
-  for (const m of stripped.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
-    const { params: rawParams, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-    if (closeIdx === -1) continue;
+  // Names already emitted by one of the export forms below, so
+  // `export const f = …` followed by `export default f` is not listed twice.
+  const emitted = new Set();
+
+  // One emitter for every function-shaped export: `export function f`,
+  // `export default function f`, and the declaration an `export default f`
+  // names elsewhere in the file (#900). `prefix` is the text ahead of the
+  // `function` keyword — 'export ' or 'export default '.
+  const pushFunction = (declIdx, openIdx, name, asyncKw, prefix) => {
+    const { params: rawParams, closeIdx } = paramsFrom(openIdx);
+    if (closeIdx === -1) return;
     // Declaration shape check + return-type capture, mirroring the old
     // `\)(?:\s*:\s*[^{]+)?\s*\{` tail against the text after the real close.
     const tail = masked.slice(closeIdx + 1, closeIdx + 200).match(/^(\s*:\s*[^{]+?)?\s*\{/);
-    if (!tail) continue;
-    const asyncKw = /export\s+async/.test(m[0]) ? 'async ' : '';
+    if (!tail) return;
     const params = normalizeParams(rawParams);
     const retRaw = tail[1] ? stripped.slice(closeIdx + 1, closeIdx + 1 + tail[1].length).replace(/^\s*:\s*/, '') : '';
     const retType = retRaw ? retRaw.trim().replace(/\s+/g, ' ').slice(0, 30) : '';
     const retStr = retType ? ` → ${retType}` : '';
     const bodyStart = closeIdx + 1 + tail[0].length;
-    sigs.push(`export ${asyncKw}function ${m[1]}(${params})${retStr}`);
-    docHintFor[sigs.length - 1] = docHints.get(m[1]);
-    anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
+    sigs.push(`${prefix}${asyncKw}function ${name}(${params})${retStr}`);
+    docHintFor[sigs.length - 1] = docHints.get(name);
+    anchors.push([lineAt(stripped, declIdx), lineAt(stripped, blockEndIdx(bodyStart))]);
+    emitted.add(name);
 
     // Hooks: capture compact return object shape for use* functions.
-    if (m[1].startsWith('use')) {
+    if (name.startsWith('use')) {
       const body = stripped.slice(bodyStart, bodyStart + 800);
       const ret = body.match(/return\s*\{([^}]{1,260})\}/);
       if (ret) {
@@ -180,28 +187,36 @@ function extract(src) {
         }
       }
     }
+  };
+
+  // Exported top-level functions (not methods). The modifiers are CAPTURED, never
+  // searched for in the whole match: `export function async(` must not read as an
+  // async function because of its NAME (#902 — svelte has exactly that function).
+  for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+    pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
   }
 
-  // Exported arrow functions / const functions
-  for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/gm)) {
-    const { params: rawParams, closeIdx } = paramsFrom(m.index + m[0].length - 1);
-    if (closeIdx === -1) continue;
+  // Arrow-function counterpart of pushFunction: `export const f = (…) =>`, and
+  // the `const f = (…) =>` an `export default f` names.
+  const pushArrow = (declIdx, openIdx, name, asyncKw, prefix) => {
+    const { params: rawParams, closeIdx } = paramsFrom(openIdx);
+    if (closeIdx === -1) return;
     // Arrow shape check, mirroring the old `\)\s*(?::\s*[^=>{]+)?\s*=>` tail.
     const tail = masked.slice(closeIdx + 1, closeIdx + 200).match(/^\s*(?::\s*[^=>{]+)?\s*=>/);
-    if (!tail) continue;
-    const asyncKw = /=\s*async\s+/.test(m[0]) ? 'async ' : '';
+    if (!tail) return;
     const params = normalizeParams(rawParams);
-    sigs.push(`export const ${m[1]} = ${asyncKw}(${params}) =>`);
-    docHintFor[sigs.length - 1] = docHints.get(m[1]);
+    sigs.push(`${prefix}const ${name} = ${asyncKw}(${params}) =>`);
+    docHintFor[sigs.length - 1] = docHints.get(name);
     const matchEnd = closeIdx + 1 + tail[0].length;
     const bodyStart = masked.indexOf('{', matchEnd);
     const endLn = bodyStart !== -1
       ? lineAt(stripped, blockEndIdx(bodyStart + 1))
       : lineAt(stripped, matchEnd);
-    anchors.push([lineAt(stripped, m.index), endLn]);
+    anchors.push([lineAt(stripped, declIdx), endLn]);
+    emitted.add(name);
 
     // Hooks: capture compact return object shape for use* functions.
-    if (m[1].startsWith('use')) {
+    if (name.startsWith('use')) {
       if (bodyStart !== -1) {
         const body = stripped.slice(bodyStart, bodyStart + 800);
         const ret = body.match(/return\s*\{([^}]{1,260})\}/);
@@ -217,6 +232,28 @@ function extract(src) {
         }
       }
     }
+  };
+
+  // Exported arrow functions / const functions
+  for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/gm)) {
+    pushArrow(m.index, m.index + m[0].length - 1, m[1], /=\s*async\s+/.test(m[0]) ? 'async ' : '', 'export ');
+  }
+
+  // `export default <identifier>` — the declaration it names is usually NOT
+  // itself exported (`const scopedPlugin: PluginCreator = (id) => {…}` then
+  // `export default scopedPlugin`), so none of the export forms above sees it
+  // and the whole file extracted as nothing (#900: vue-core's pluginScoped.ts).
+  // Resolved against a top-level declaration in the SAME file only; an imported
+  // identifier names no declaration here, so nothing is invented. Matched on the
+  // masked surface so an `export default x` line inside a template literal is inert.
+  for (const dm of masked.matchAll(/^export[ \t]+default[ \t]+([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/gm)) {
+    const name = dm[1];
+    if (emitted.has(name) || /^(?:function|class|async|abstract|interface|enum|type|new|await|typeof|void|null|undefined|true|false|this)$/.test(name)) continue;
+    const id = name.replace(/\$/g, '\\$');
+    const fn = new RegExp(`^(async\\s+)?function\\s+${id}\\s*(?:<[^(]*>)?\\s*\\(`, 'm').exec(masked);
+    if (fn) { pushFunction(fn.index, fn.index + fn[0].length - 1, name, fn[1] ? 'async ' : '', 'export default '); continue; }
+    const arrow = new RegExp(`^(?:const|let|var)\\s+${id}\\s*(?::\\s*[^=]+)?\\s*=\\s*(async\\s+)?\\(`, 'm').exec(masked);
+    if (arrow) pushArrow(arrow.index, arrow.index + arrow[0].length - 1, name, arrow[1] ? 'async ' : '', 'export default ');
   }
 
   // Zustand stores: export const useXxxStore = create<State>()(...)
@@ -365,7 +402,7 @@ function buildDocHints(src) {
   // the match expand across a whole function to the next comment block and
   // misattribute the hint.
   const patterns = [
-    /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+(?:async\s+)?function\s+(\w+)\s*[<(]/g,
+    /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*[<(]/g,
     /\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*export\s+const\s+(\w+)\s*[:=]/g,
   ];
   for (const re of patterns) {

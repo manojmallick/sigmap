@@ -188,10 +188,10 @@
     },
     {
       "repo": "riverpod",
-      "roots": 2,
-      "reached": 697,
+      "roots": 10,
+      "reached": 159,
       "present": 862,
-      "ratio": 0.809,
+      "ratio": 0.184,
       "jvmMultiModule": false
     },
     {

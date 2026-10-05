@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.66.0. 79.7% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 88.8% vs 40.0% (2.22× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.67.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.0% (2.24× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
-      content: "SigMap retrieval benchmark — 79.7% hit@5"
+      content: "SigMap retrieval benchmark — 80.4% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 79.7% hit@5 over 105 tasks on 18 repos; honest grep comparison 88.8% vs 40.0% (2.22x lift, 125 tasks, 19 repos)."
+      content: "Latest saved run: 80.4% hit@5 over 105 tasks on 18 repos; honest grep comparison 89.6% vs 40.0% (2.24x lift, 125 tasks, 19 repos)."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,26 +15,26 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.66.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.66-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
+::: info Official v8.67.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.67-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
 
 | Metric | Value |
 |---|---:|
-| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **79.7%** |
-| Honest grep comparison (125 tasks / 19 repos) | **88.8%** vs 40.0% single-shot grep — **2.22× lift** |
-| Graph-boosted hit@5 | **79.7%** |
-| Honest lift (vs grep agent) | **2.22×** |
-| Prompt reduction | **43.1%** (2.84 → 1.6) |
-| Task success proxy | **59.0%** |
+| Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
+| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.0% single-shot grep — **2.24× lift** |
+| Graph-boosted hit@5 | **80.4%** |
+| Honest lift (vs grep agent) | **2.24×** |
+| Prompt reduction | **44.4%** (2.84 → 1.6) |
+| Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-05 (v8.66.0)**
+Latest saved run: **2026-10-05 (v8.67.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
-**Result:** SigMap finds the right file in the top 5 far more often than chance — **79.7% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
+**Result:** SigMap finds the right file in the top 5 far more often than chance — **80.4% hit@5** vs **13.6%** random baseline across 105 tasks on 18 real repos.
 
 ::: tip Why this number dipped in v8.51.6 and recovered
 v8.51.6 made nine extractors resolve parameters correctly, which also made Scala extraction ~3× more complete (akka: 836 → 2,545 types). Under a fixed token budget that is a straight trade — more signatures per file means fewer files fit — and the budget spent itself strictly best-first across the whole repo. On akka, `akka-stream` took **all 128 surviving slots** while `akka-actor` (192 files) and `akka-cluster` (28 files) got **zero**: two of three configured source modules rendered invisible. akka fell 1.0 → 0.4 and the published figure dipped to 75.3%.
@@ -58,21 +58,21 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **88.8%** |
-| Graph-boosted hit@5 | — | **79.7%** |
-| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.22x** |
+| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **89.6%** |
+| Graph-boosted hit@5 | — | **80.4%** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.24x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
-| Correct (rank 1) | ~1% | **59.0%** |
-| Partial (ranks 2–5) | ~13% | **20.0%** |
-| Wrong (not in top 5) | ~86% | **21.0%** |
+| Correct (rank 1) | ~1% | **61.9%** |
+| Partial (ranks 2–5) | ~13% | **18.1%** |
+| Wrong (not in top 5) | ~86% | **20.0%** |
 
 ## Quality tiers from the saved run
 
 | Tier | Tasks | Share |
 |---|---:|---:|
-| Correct | 62 / 105 | **59.0%** |
-| Partial | 21 / 105 | **20.0%** |
-| Wrong | 22 / 105 | **21.0%** |
+| Correct | 65 / 105 | **61.9%** |
+| Partial | 19 / 105 | **18.1%** |
+| Wrong | 21 / 105 | **20.0%** |
 
 ## Hard split and size buckets (new in v8.22)
 
@@ -149,7 +149,7 @@ happen to share an adjective.
 
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
-| `hard` | 90 | **73.3%** | 70% floor | Leak-free tasks over **SigMap's own source** |
+| `hard` | 90 | **74.4%** | 70% floor | Leak-free tasks over **SigMap's own source** |
 | `mined` | 60 | **61.7%** | no-regress | Commit subjects + the files that commit touched, minus the generated outputs every commit also rewrites |
 | `jvm` | 61 | **34.4%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
 | `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
@@ -163,6 +163,10 @@ Five of its 23 tasks (m001–m005) listed the bundled `gen-context.js` as their 
 Re-mined, the corpus is **60 tasks** (17 kept, 1 relabelled, 5 dropped, 42 new), so one task is 1.7pp instead of 4.3pp, and its 95% interval is 49.0–72.9%. The headline barely moves — **60.9% → 61.7%** — and the 60-task corpus scores the same on the v8.65.3 tree (37 of 60), so none of that is a ranking change. Measured against a clean v8.65.3 worktree, the release moves one first-hit rank inside the top 5 (`mined` m003, 3 → 4, a 0.012-point tie) and three outside it (`hard` h020 9 → 10, h026 10 → beyond 30 and h067 13 → 14, because [#895](https://github.com/manojmallick/sigmap/pull/895) changed this repository's own index); `easy` does not move. Only the `mined` entry of `retrieval-baseline.json` was re-recorded; its stored `hard` (75.6%) and `jvm` (21.3%) still do not reproduce (73.3% and 34.4% measured) and are left as they are.
 :::
 
+::: tip Measured at v8.67.0 — `hard` reads 74.4%, and that is not a ranking change
+Against clean worktrees of v8.66.0 and of the release commit, with the index regenerated in each: `hard` 73.3% → **74.4%** (66 → 67 of 90, MRR 0.579 → 0.579), `mined` 61.7% → 61.7% (0.472 → 0.472), `easy` 90.0% → 90.0% (0.850 → 0.850) and `jvm` 34.4% → 34.4% (0.229 → 0.229). Four first-hit ranks move. `hard` h007 (17 → 18) and `mined` m009 (11 → 12) slip further outside the top 5: adding only the release's four new test files to a v8.66.0 tree reproduces both, because this repository indexes its own tests. `hard` h020 (9 → 2, the one new hit) and h032 (1 → 2) are a query about which package of a monorepo a question belongs to and one about emitting an editor rules file, and both vanish with `changes: false` in both trees: the generated `## recent changes` block is indexed as signatures of the repository's last file (`src/workspace/detector.js`), so a branch whose recent commits name `workspaceMarker` and `source-root-resolver` moves a query about monorepos. With the block off, two ranks move and no task changes hit/miss status, so the extra task is not claimed as an improvement. `retrieval-baseline.json` is not re-recorded; its stored `hard` (75.6%) and `jvm` (21.3%) still do not reproduce.
+:::
+
 ### Why `hard` is reported but not enforced
 
 `hard` scores SigMap against its own source, so its BM25 statistics shift
@@ -172,8 +176,8 @@ containing one two-assertion test file and no source change scored 75.6% →
 74.4% and failed the gate. Enforcing `hard` against the previous run therefore
 fails honest work and, worse, trains you to ignore the gate.
 
-It is now held to its **70% floor** instead (currently 66/90 tasks pass, 1 task
-= 1.1pp, three tasks of headroom). The floor, the leak assertions, and
+It is now held to its **70% floor** instead (currently 67/90 tasks pass, 1 task
+= 1.1pp, four tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
 <!-- benchmark: re-measured at v8.63.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
@@ -388,43 +392,70 @@ Every other corpus on this page is one this project wrote or can influence: `har
 |---|---|---|---|---:|---:|---:|---:|
 | gin | go | flat-go | zero-config | 5 | 4 | 80.0% | — |
 | OkHttp | kotlin | gradle-multimodule | zero-config | 5 | 3 | 60.0% | — |
-| Alamofire | swift | swiftpm-sources | zero-config | 5 | 2 | 40.0% | 1 |
+| Alamofire | swift | swiftpm-sources | zero-config | 5 | 3 | 60.0% | — |
 | Tokio | rust | cargo-workspace | zero-config | 5 | 3 | 60.0% | — |
-| Excalidraw | typescript_react | yarn-workspaces | zero-config | 6 | 2 | 33.3% | — |
+| Excalidraw | typescript_react | yarn-workspaces | zero-config | 6 | 3 | 50.0% | — |
 | Django | python | package-beside-tests | zero-config | 5 | 3 | 60.0% | — |
 | Flask | python | src-layout | zero-config | 5 | 4 | 80.0% | — |
 | Express | javascript | lib | zero-config | 4 | 3 | 75.0% | — |
-| vue-core | typescript | pnpm-workspace | zero-config | 5 | 0 | 0.0% | 1 |
+| vue-core | typescript | pnpm-workspace | zero-config | 5 | 0 | 0.0% | — |
 | Laravel | php | composer-src | zero-config | 5 | 1 | 20.0% | — |
-| Serilog | csharp | dotnet-src | zero-config | 5 | 0 | 0.0% | 1 |
-| Riverpod | dart | dart-workspace | `srcDirs` | 5 | 1 | 20.0% | — |
-| Phoenix | elixir | mix-lib | `srcDirs` | 5 | 5 | 100.0% | — |
+| Serilog | csharp | dotnet-src | zero-config | 5 | 1 | 20.0% | — |
+| Riverpod | dart | dart-workspace | zero-config | 5 | 1 | 20.0% | — |
+| Phoenix | elixir | mix-lib | zero-config | 5 | 4 | 80.0% | — |
 | Astro | astro | pnpm-workspace-subtree | zero-config | 7 | 1 | 14.3% | 1 |
 | plenary.nvim | lua | lua-module | zero-config | 6 | 5 | 83.3% | — |
-| godot-demo-projects | gdscript | godot-projects | `srcDirs` | 5 | 3 | 60.0% | — |
-| **Overall** | | | | **83** | **40** | **48.2%** | **4** |
+| godot-demo-projects | gdscript | godot-projects | zero-config | 5 | 3 | 60.0% | — |
+| **Overall** | | | | **83** | **42** | **50.6%** | **1** |
 
-**Read it as a band, not a point.** One task is 1.2pp, and the 95% interval over 83 tasks is **37.8–58.8%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, six tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. It scores far below `hard` and `mined` for the reason it exists: those corpora are easier because they are closer to home.
+**Read it as a band, not a point.** One task is 1.2pp, and the 95% interval over 83 tasks is **40.1–61.1%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, eight tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. It scores far below `hard` and `mined` for the reason it exists: those corpora are easier because they are closer to home.
 
-**Zero-config.** Each repo is indexed the way a first-time user's `sigmap` run indexes it — auto-detected `srcDirs`, no config. Three repos could not be: with zero config the resolver never reaches Riverpod's `packages/*/lib`, Phoenix's `lib/` or the Godot demos, so every answer was unindexed (0/5 each). Their manifest entries pin `srcDirs` with the measured reason, which is why the table shows them as `srcDirs`.
+**Zero-config.** Each repo is indexed the way a first-time user's `sigmap` run indexes it — auto-detected `srcDirs`, no config. When this corpus was first scored, three repos could not be: the resolver never reached Riverpod's `packages/*/lib`, Phoenix's `lib/` or the Godot demos, so every answer was unindexed (0/5 each) and their manifest entries pinned `srcDirs` to measure ranking regardless. Detection now reaches all three, the pins are gone, and the table is zero-config throughout ([#900](https://github.com/manojmallick/sigmap/issues/900)). A manifest entry may still pin `srcDirs` — with a `srcDirsWhy` recording the measured reason — if a future layout defeats detection; none does today.
+
+**Phoenix reads 4/5, not the 5/5 its pin scored.** That is a change of measurement path, not a regression. Zero-config scored 0/5 there before; the pinned 5/5 was measured through a config file, and with one present the import graph is built over the pinned roots. With none, the graph is built over `src`, `app`, `lib`, `R` and `inst` whatever roots detection chose (see [found while fixing it](#what-the-first-run-found-and-what-became-of-it)).
 
 **Unreachable** means no expected file of the task is in the index, so it cannot be found at all: detection skipped its directory, or the extractor emitted no signature for it. Those tasks stay in the corpus and are recorded in the baseline; the gate fails when a task that *was* reachable becomes unreachable, not on the gaps themselves.
 
 **Python is indexed with the regex extractor.** The default Python extractor shells out to the host's `python3` once per file, so the same tree scores differently depending on which Python is installed (Flask moved 5/5 → 4/5) and a repo the size of Django takes minutes. A committed number cannot depend on that, so the gate runs generation with `python3` shadowed.
 
-### What the first run found
+### What the first run found, and what became of it
 
-Beyond the number, the corpus surfaced defects the self-scored corpora cannot see — all measured, none fixed by this change, and listed in [#893](https://github.com/manojmallick/sigmap/issues/893):
+Beyond the number, the first run surfaced defects the self-scored corpora cannot see, all measured and listed in [#893](https://github.com/manojmallick/sigmap/issues/893). Most were fixed in [#900](https://github.com/manojmallick/sigmap/issues/900):
 
-- **Zero-config detection misses the source root** in Dart workspaces, Elixir mix projects and Godot repos.
-- **Real files never reach the index:** a TypeScript file that ends `export default <identifier>`, any C# `partial` type, a Swift class with `@unchecked` in its inheritance clause, and everything under a directory named `build/` (Astro's whole static-build pipeline).
-- **`isDocsFile` demotes real source by 80%:** excalidraw's `history.ts` has a raw BM25 of 29.4 and a penalty of 0.2, so the undo/redo question ranks it 20th instead of 1st.
+- **Zero-config detection missed the source root** in Dart workspaces, Elixir mix projects and Godot repos — **fixed.** A pub workspace is a monorepo whose packages contribute their `lib/`; an Elixir project's source is `lib/`; a GDScript tree is rooted at the repo. All 15 tasks went from unreachable to reachable.
+- **Real files never reached the index** — **fixed** for a TypeScript or JavaScript file that ends `export default <identifier>` or declares `export default function`, any C# `partial` type, and a Swift type whose inheritance clause carries an attribute (`: @unchecked Sendable`). **Still open:** everything under a directory named `build/` (Astro's whole static-build pipeline). About fourteen directory walkers each skip by name against one shared list, so changing the rule for one makes `validate`, `doctor` and coverage disagree with `generate`; it needs one shared skip primitive first.
+- **`isDocsFile` demoted real source by 80%** — **fixed.** A well-known doc name (`history`, `security`, `changes`, `license` …) is documentation only when it is not source code, so excalidraw's `history.ts` now ranks 1st for the undo/redo question instead of 20th. The rule is a deny-list of programming-language extensions: across 66,691 tracked files in 50 repos it changes exactly eight source files and no document, where an allow-list of prose extensions would also have released genuine docs (`README.Rmd`, `LICENSE.python`).
+- **Left alone on purpose:** `test_*` as the only test signal fires on 62 code files in those 50 repos, and every one is a test or testing-infrastructure file (Rails `test_case.rb`, abseil `test_helpers.cc`, fastapi `test_main.py`). Restricting it to Python, as #893 suggested, would un-demote 56 of them for no measured gain.
+
+Two more were found while fixing these, and are **not fixed here**:
+
+- **In zero-config the import graph is built over the wrong directories.** `buildFromCwd` falls back to `src`, `app`, `lib`, `R` and `inst` when there is no config file, whatever roots detection chose, and every product caller (`ask`, `plan`, `--impact`, the MCP tools) passes none. For Phoenix the graph holds 75 files against 224 when built over the six roots it indexes, and one task ranks 5th under one graph and misses under the other. It reaches ranking on every zero-config repo, so it needs its own measure-gated change.
+- **A repo's generated `## recent changes` block is indexed as signatures of its last file.** In this repository that file is `src/workspace/detector.js`, so every commit rewrites its index entry, and the self-scored corpora drift with it: a branch that edits `src/discovery/` made the monorepo question (`h020`) rank `detector.js` 2nd instead of 9th, and the gain disappears with `changes: false`. Read a movement on `hard` or `mined` against a pristine `develop` worktree *and* with that section disabled. Not measured on xrepo.
+
+### Why a task misses (`--why`)
+
+A hit rate says how many tasks miss and nothing about the remedy, and the remedy depends on the reason. `--why` places every miss in exactly one class. The table is the 41 misses behind the 42/83 above:
+
+| Why the task misses | Tasks | What it needs |
+|---|---:|---|
+| answer not indexed | 1 | detection or an extractor |
+| demoted by a path penalty | 0 | a path classifier |
+| no token in common with the question | 12 | a way across the vocabulary — not a re-weighting |
+| ranked 6–10 | 9 | ranking |
+| ranked 11–20 | 5 | ranking |
+| ranked 21–50 | 5 | ranking |
+| ranked beyond 50 | 9 | ranking |
+
+The first two rows are decided by code that is not the ranker, and fixing one never costs another split: at the first run they held 4 tasks (plus 15 hidden behind the pinned `srcDirs`) and 1, and they hold 1 and 0 now. The other 40 misses are the ranker's. Nine sit within five places of the top 5. The twelve that share no token with the question score zero: the question and the answer's index entry have no word in common, so a lexical ranker has nothing to compare, and no re-weighting changes that. Whether a zero-dependency lever reaches them is a measurement for [#674](https://github.com/manojmallick/sigmap/issues/674) and [#703](https://github.com/manojmallick/sigmap/issues/703) — repo-mined expansions measured +0 tasks on the earlier corpora and have not been tried on this one.
+
+The penalty row is a counterfactual: the path penalty is divided out of the file's final score and the list re-sorted with the ranker's own tie-break, so it answers "would this file have made the top 5 had its path not demoted it" and nothing more. It is report-only — `--why` records no baseline.
 
 ### Run it
 
 ```bash
 npm run fetch:xrepo        # pinned shallow/sparse fetch of the 16 repos (about 380 MB, idempotent)
 npm run benchmark:xrepo    # the report; add --per-task for each task's rank and what moved
+npm run benchmark:xrepo -- --why   # why each miss misses: not indexed / penalty / ranking, by distance
 npm run validate:xrepo     # the gate: floor + per-repo no-regress (CI adds --require-repos)
 ```
 
@@ -449,7 +480,7 @@ CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.jso
 | gin | 4.7% | 100% | 21.4x | 7 / 1 / 0 |
 | spring-petclinic | 38.5% | 80% | 2.1x | 4 / 0 / 1 |
 | rails | 0.4% | 100% | 235.8x | 3 / 2 / 0 |
-| axios | 20.0% | 50% | 2.5x | 1 / 3 / 4 |
+| axios | 20.0% | 62.5% | 3.1x | 4 / 1 / 3 |
 | rust-analyzer | 0.8% | 100% | 127.0x | 4 / 1 / 0 |
 | abseil-cpp | 0.7% | 100% | 140.0x | 5 / 0 / 0 |
 | serilog | 5.1% | 20% | 4.0x | 0 / 1 / 4 |

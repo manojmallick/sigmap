@@ -176,6 +176,84 @@ const byRepo = (n) => tasks.filter((t) => t.repo === n);
     assert.match(doc, /fetch:xrepo|fetch-xrepo-repos/);
   });
 
+  // ── the guide's numbers ARE the baseline (#900) ───────────────────────────
+  // The results table, the interval and the headroom were typed by hand, and the
+  // only guard on the page was three loose regexes — so the page could say 40/83
+  // while the baseline said 42/83 and nothing failed. These pin every figure to
+  // the committed baseline, row for row.
+
+  const guide = () => read('docs-vp/guide/retrieval-benchmark.md');
+  const baseline = () => JSON.parse(read('benchmarks/xrepo-baseline.json'));
+
+  /** The `Reading it` table as {language|layout -> cells}. */
+  function readingTable() {
+    const lines = guide().split('\n');
+    const start = lines.findIndex((l) => /^\| Repo \| Language \| Layout \| Indexed \|/.test(l));
+    assert.ok(start !== -1, 'the results table is missing from the guide');
+    const rows = new Map();
+    let overall = null;
+    for (const l of lines.slice(start + 2)) {
+      if (!l.startsWith('|')) break;
+      const c = l.split('|').slice(1, -1).map((s) => s.trim());
+      if (c[0] === '**Overall**') overall = c;
+      else rows.set(`${c[1]}|${c[2]}`, c);
+    }
+    return { rows, overall };
+  }
+
+  await test('every row of the guide\'s results table matches the baseline', () => {
+    const { rows } = readingTable();
+    const b = baseline();
+    assert.strictEqual(rows.size, manifest.repos.length, `the table has ${rows.size} rows, the manifest ${manifest.repos.length} repos`);
+    for (const r of manifest.repos) {
+      const c = rows.get(`${r.language}|${r.layout}`);
+      assert.ok(c, `${r.name}: no row for ${r.language}|${r.layout} in the guide`);
+      const e = b.repos[r.name];
+      const pct = (e.hits / e.tasks * 100).toFixed(1) + '%';
+      const unreachable = (e.unreachable || []).length;
+      assert.deepStrictEqual(
+        { indexed: c[3], tasks: c[4], hits: c[5], hit5: c[6], unreachable: c[7] },
+        { indexed: r.srcDirs ? '`srcDirs`' : 'zero-config', tasks: String(e.tasks), hits: String(e.hits), hit5: pct, unreachable: unreachable ? String(unreachable) : '—' },
+        `${r.name}: the guide's row disagrees with the baseline`,
+      );
+    }
+  });
+
+  await test('the guide\'s overall row, interval and headroom are the baseline\'s', async () => {
+    const { overall } = readingTable();
+    const b = baseline();
+    const t = totals(Object.values(b.repos));
+    const unreachable = Object.values(b.repos).reduce((n, e) => n + (e.unreachable || []).length, 0);
+    assert.deepStrictEqual(overall.slice(4), [`**${t.tasks}**`, `**${t.hits}**`, `**${(t.hitAt5 * 100).toFixed(1)}%**`, `**${unreachable}**`]);
+
+    const { wilson } = await import('../../scripts/lib/band.mjs');
+    const w = wilson(t.hits, t.tasks);
+    assert.ok(guide().includes(`**${(w.low * 100).toFixed(1)}–${(w.high * 100).toFixed(1)}%**`),
+      `the guide's 95% interval is not ${(w.low * 100).toFixed(1)}–${(w.high * 100).toFixed(1)}%`);
+
+    const floor = 0.40;
+    const headroom = t.hits - Math.ceil(floor * t.tasks - 1e-9);
+    const words = { six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+    const m = /\(40%, (\w+) tasks of headroom/.exec(guide());
+    assert.ok(m && words[m[1]] === headroom, `the guide says "${m && m[1]}" tasks of headroom; the baseline leaves ${headroom}`);
+  });
+
+  await test('the guide\'s --why table accounts for every miss behind the headline', () => {
+    const b = baseline();
+    const t = totals(Object.values(b.repos));
+    const doc = guide();
+    const at = doc.indexOf('| Why the task misses |');
+    assert.ok(at !== -1, 'the --why table is missing from the guide');
+    const rows = doc.slice(at).split('\n').slice(2).filter((l, i, a) => a.slice(0, i + 1).every((x) => x.startsWith('|')));
+    const counts = rows.map((l) => Number(l.split('|')[2].trim()));
+    assert.strictEqual(rows.length, 7, 'seven classes');
+    assert.strictEqual(counts.reduce((n, x) => n + x, 0), t.tasks - t.hits,
+      `the --why rows sum to ${counts.reduce((n, x) => n + x, 0)}, but the baseline has ${t.tasks - t.hits} misses`);
+    // The unindexed row is not a free number: it is the baseline's own unreachable list.
+    assert.strictEqual(counts[0], Object.values(b.repos).reduce((n, e) => n + (e.unreachable || []).length, 0));
+    assert.ok(doc.includes(`behind the ${t.hits}/${t.tasks} above`), 'the --why table names the headline it explains');
+  });
+
   console.log(`\n  ${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })();
