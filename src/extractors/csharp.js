@@ -35,8 +35,11 @@ function extract(src) {
   const stripped = stripComments(src);
   const masked = maskCode(src);
 
-  // Classes and interfaces
-  const typeRe = /^\s*(?:public\s+|internal\s+|protected\s+)?(?:abstract\s+|sealed\s+|static\s+)?(class|interface|enum|record|struct)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w<>, .]+)?\s*\{/gm;
+  // Classes and interfaces. `partial` must sit immediately before the type
+  // keyword, so it is one more optional token after the other modifiers; without
+  // it every `partial` type — ubiquitous in WinForms, Blazor, EF and source
+  // generators — extracted as nothing at all (#900).
+  const typeRe = /^\s*(?:public\s+|internal\s+|protected\s+)?(?:abstract\s+|sealed\s+|static\s+)?(?:partial\s+)?(class|interface|enum|record|struct)\s+(\w+)(?:<[^{]*>)?(?:\s*:\s*[\w<>, .]+)?\s*\{/gm;
   for (const m of stripped.matchAll(typeRe)) {
     const declIdx = m.index + (m[0].length - m[0].trimStart().length);
     const bodyStart = m.index + m[0].length;
