@@ -1,0 +1,28 @@
+{
+  "_comment": "Which extractor languages (src/extractors/dispatch.js LANGUAGES) are allowed to have fewer than `minTasks` labelled retrieval tasks whose expected file they extract. Coverage is DERIVED from every corpus under benchmarks/tasks/ — never declared here — so this file can only record exceptions, never claim coverage. test/integration/corpus-floor.test.js fails for a language with too few tasks and no entry below, and fails again when an entry has become unnecessary, so the lists can only shrink. An extractor with no corpus cannot regress-gate (#701).",
+  "minTasks": 3,
+  "exempt": {
+    "css": "styling — indexed as context, not the answer to a how-does question",
+    "dockerfile": "build recipe — indexed as context, not a retrieval answer",
+    "graphql": "schema definitions — context rather than the answer to a how-does question",
+    "html": "markup — indexed as context, not a retrieval answer",
+    "markdown": "prose — indexed as headings for context, never an implementation answer",
+    "pipeline": "CI definitions — indexed so `ask` can reach them, and deliberately demoted for every query that is not about CI",
+    "powershell": "shell scripting — indexed as context; no labelled answer language",
+    "properties": "configuration — context, not a retrieval answer",
+    "protobuf": "interface definitions — context, not a retrieval answer",
+    "shell": "shell scripting — indexed as context; no labelled answer language",
+    "sql": "schema/queries — context, not a retrieval answer",
+    "terraform": "infrastructure configuration — context, not a retrieval answer",
+    "toml": "configuration — context, not a retrieval answer",
+    "xml": "configuration/markup — context, not a retrieval answer",
+    "yaml": "configuration — context, not a retrieval answer"
+  },
+  "knownGaps": {
+    "objc": "answer language with no labelled task: no Objective-C repo in the corpus yet",
+    "r": "answer language with no labelled task: the R benchmark repos (ggplot2, dplyr, shiny) have no task corpus",
+    "svelte": "answer language with no labelled task whose answer is a .svelte file (the svelte repo's tasks point at .js)",
+    "typescript_react": "answer language with no labelled task whose answer is a .tsx file",
+    "vue_sfc": "answer language with no labelled task whose answer is a .vue file (the vue-core tasks point at .ts)"
+  }
+}
