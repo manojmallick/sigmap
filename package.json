@@ -64,6 +64,9 @@
     "validate:source-roots": "node scripts/run-source-root-gate.mjs --gate",
     "benchmark:retrieval": "node scripts/run-retrieval-gate.mjs",
     "validate:retrieval": "node scripts/check-corpus.mjs && node scripts/check-corpus.mjs benchmarks/tasks/retrieval-mined.jsonl && node scripts/run-retrieval-gate.mjs --gate --no-regress",
+    "fetch:xrepo": "node scripts/fetch-xrepo-repos.mjs",
+    "benchmark:xrepo": "node scripts/run-xrepo-gate.mjs",
+    "validate:xrepo": "node scripts/run-xrepo-gate.mjs --gate --no-regress",
     "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save",
     "fix:doc-counts": "node scripts/check-doc-counts.mjs --fix"
   },

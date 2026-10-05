@@ -17,18 +17,28 @@
  *  - Conventional-commit furniture is stripped so the query reads as a request.
  *  - A leaking query is DROPPED, never rewritten. Editing it to pass would put
  *    the tuner's words back in and defeat the entire point.
+ *  - Generated outputs (the bundle, `.context/`, adapter outputs, llms*.txt) are
+ *    removed from a commit's touched files BEFORE focus and share are judged —
+ *    tooling rewrites them on nearly every source commit, so left in they became
+ *    "the answer" (#883). A commit left with no source file drops as unfocused.
  *  - Expected files must still exist in today's index.
  *  - At most 2 tasks per file, so one hot file cannot dominate the corpus.
  *
  * PARAMETER SENSITIVITY — read before trusting any single number. This repo's
- * 960 commits yield only ~23 usable tasks, so one task is 4.3pp. Sweeping the
- * defensible parameter range (MIN_SHARE 0.10-0.25, per-file cap 5-12) moves
- * hit@5 across 53.3%-73.1%. Loosening the cap to admit MORE tasks lowers the
- * score, which means the small-corpus figures are optimistic, not pessimistic.
- * Defaults below are chosen for the least-skewed corpus (fewest repeats per
- * file), NOT the highest score. Treat the output as a band, not a point.
+ * history (960 commits when this was written) yielded only ~23 usable tasks, so
+ * one task was 4.3pp. Sweeping the defensible parameter range (MIN_SHARE
+ * 0.10-0.25, per-file cap 5-12) moved hit@5 across 53.3%-73.1% — measured on
+ * that 23-task corpus and not repeated since the #883 re-mine (60 tasks). Loosening the
+ * cap to admit MORE tasks lowers the score, which means the small-corpus
+ * figures are optimistic, not pessimistic. Defaults below are chosen for the
+ * least-skewed corpus (fewest repeats per file), NOT the highest score. Treat
+ * the output as a band, not a point.
  *
- * Usage: node scripts/mine-corpus.mjs [--limit 960] [--out <file>] [--repo <path>]
+ * Usage: node scripts/mine-corpus.mjs [--limit N] [--out <file>] [--repo <path>]
+ *
+ * --limit defaults to the WHOLE history. It used to default to 960, which was
+ * the whole history on the day it was written; once the history outgrew it a
+ * plain re-mine silently dropped the oldest tasks.
  *
  * --repo mines a checkout other than this one. The default invocation is
  * unchanged in every respect, so `retrieval-mined.jsonl` cannot drift: the
@@ -40,6 +50,7 @@ import { writeFileSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { isMinedNoise } from './lib/corpus-hygiene.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -48,7 +59,7 @@ const { readFullIndex } = require(join(ROOT, 'src/retrieval/sig-index-store'));
 
 const argv = process.argv.slice(2);
 const val = (f, d) => { const i = argv.indexOf(f); return i !== -1 && argv[i + 1] ? argv[i + 1] : d; };
-const LIMIT = parseInt(val('--limit', '960'), 10);
+const LIMIT = parseInt(val('--limit', '0'), 10); // 0 = the whole history
 const OUT = val('--out', 'benchmarks/tasks/retrieval-mined.jsonl');
 const REPO = resolve(val('--repo', ROOT));
 const SELF = REPO === ROOT;
@@ -102,11 +113,11 @@ function verbatimHit(query, files) {
   return false;
 }
 
-const log = git(['log', '--format=%H %s', `-n${LIMIT}`]).split('\n').filter(Boolean);
+const log = git(['log', '--format=%H %s', ...(LIMIT > 0 ? [`-n${LIMIT}`] : [])]).split('\n').filter(Boolean);
 const tasks = [];
 const seenFile = new Map();
 const seenQuery = new Set();
-const stats = { scanned: 0, unfocused: 0, tooShort: 0, notIndexed: 0, leaked: 0, verbatim: 0, dupe: 0 };
+const stats = { scanned: 0, unfocused: 0, tooShort: 0, notIndexed: 0, leaked: 0, verbatim: 0, dupe: 0, generated: 0 };
 
 for (const line of log) {
   const sha = line.slice(0, 40);
@@ -132,22 +143,26 @@ for (const line of log) {
     const del = m[2] === '-' ? 0 : parseInt(m[2], 10);
     churn.set(m[3], add + del);
   }
+  // Generated outputs go BEFORE the share is computed (#883): tooling rewrites
+  // the bundle, the adapter outputs and llms*.txt on nearly every source commit,
+  // so they otherwise dominate — and they inflate the denominator every real
+  // file's share is measured against, shrinking it below MIN_SHARE. The bundle
+  // is dropped even when its diff is large: that diff is mostly `src/` copied in,
+  // and a change confined to its hand-written core simply makes the commit
+  // unfocused (dropped), which is the conservative outcome.
+  for (const f of [...churn.keys()]) {
+    if (isMinedNoise(f)) { churn.delete(f); stats.generated++; }
+  }
   const files = [...churn.keys()];
   const totalChurn = [...churn.values()].reduce((x, y) => x + y, 0) || 1;
-  // MIN_SHARE drops collateral. gen-context.js is additionally required to be
-  // the DOMINANT file: build-bundle rewrites it on nearly every src change, so
-  // a small diff there is regeneration noise, while a large one is real work in
-  // its hand-written half (it holds the whole generator pipeline).
+  // MIN_SHARE drops collateral.
   const MIN_SHARE = 0.25;
-  const maxChurn = Math.max(...churn.values(), 0);
   const src = files.filter((f) => {
     if (!SRC_EXT.test(f)) return false;
     // sigmap's own layout: everything worth mining lives in src/ or packages/.
     // Another repo has its own conventions, so the share rule alone decides.
     if (SELF && !/^(src|packages)\//.test(f) && f.includes('/')) return false;
-    const share = (churn.get(f) || 0) / totalChurn;
-    if (SELF && f === 'gen-context.js') return churn.get(f) === maxChurn && share >= MIN_SHARE;
-    return share >= MIN_SHARE;
+    return (churn.get(f) || 0) / totalChurn >= MIN_SHARE;
   });
   // No file-count ceiling. It used to reject any commit touching >4 source
   // files, on the theory that a broad change has no single right answer — but
@@ -171,6 +186,7 @@ for (const line of log) {
   tasks.push({ id: `m${String(tasks.length + 1).padStart(3, '0')}`, split: 'hard', source: 'git', sha: sha.slice(0, 8), query, expected_files: expected, repo: '.' });
 }
 
-writeFileSync(join(ROOT, OUT), tasks.map((t) => JSON.stringify(t)).join('\n') + '\n');
+writeFileSync(resolve(ROOT, OUT), tasks.map((t) => JSON.stringify(t)).join('\n') + '\n');
 console.log(`\nmined ${tasks.length} tasks from ${stats.scanned} commits -> ${OUT}`);
 console.log(`  dropped: unfocused ${stats.unfocused} | not-indexed ${stats.notIndexed} | leaked ${stats.leaked} | verbatim ${stats.verbatim} | dupe ${stats.dupe} | too-short ${stats.tooShort}`);
+console.log(`  generated-output files removed from touched lists: ${stats.generated}`);

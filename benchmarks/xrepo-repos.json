@@ -1,0 +1,137 @@
+{
+  "_comment": "Third-party repositories the xrepo retrieval corpus (benchmarks/tasks/retrieval-xrepo.jsonl) is labelled against, each pinned to an exact commit so a labelled expected file can only stop existing when this manifest changes, never when upstream does. `name` is the directory under benchmarks/repos/. `language` is an extractor key (src/extractors/dispatch.js). `layout` is descriptive. `sparse` limits the checkout to gitignore-style patterns for repos whose full tree is mostly binary assets. `srcDirs` (with a `srcDirsWhy`) is set ONLY where zero-config detection cannot reach the code; the gate measures the zero-config path, so an entry here is a recorded detection gap, not a tuning knob. Fetch with `node scripts/fetch-xrepo-repos.mjs`.",
+  "repos": [
+    {
+      "name": "gin",
+      "url": "https://github.com/gin-gonic/gin.git",
+      "commit": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6",
+      "language": "go",
+      "layout": "flat-go"
+    },
+    {
+      "name": "okhttp",
+      "url": "https://github.com/square/okhttp.git",
+      "commit": "8a276b9dda950a52f6c0d88b15ed4a653623ae3e",
+      "language": "kotlin",
+      "layout": "gradle-multimodule"
+    },
+    {
+      "name": "alamofire",
+      "url": "https://github.com/Alamofire/Alamofire.git",
+      "commit": "903c53c710d1cbbac0b4b9c2527aefb791e1fee3",
+      "language": "swift",
+      "layout": "swiftpm-sources"
+    },
+    {
+      "name": "tokio",
+      "url": "https://github.com/tokio-rs/tokio.git",
+      "commit": "b2636752450484955e7ad334bac678424d51bc4a",
+      "language": "rust",
+      "layout": "cargo-workspace"
+    },
+    {
+      "name": "excalidraw",
+      "url": "https://github.com/excalidraw/excalidraw.git",
+      "commit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e",
+      "language": "typescript_react",
+      "layout": "yarn-workspaces"
+    },
+    {
+      "name": "django",
+      "url": "https://github.com/django/django.git",
+      "commit": "a461af8ce48762d7ec602260aaff81014ddccbcb",
+      "language": "python",
+      "layout": "package-beside-tests"
+    },
+    {
+      "name": "flask",
+      "url": "https://github.com/pallets/flask.git",
+      "commit": "2ac89889f4cc330eabd50f295dcef02828522c69",
+      "language": "python",
+      "layout": "src-layout"
+    },
+    {
+      "name": "express",
+      "url": "https://github.com/expressjs/express.git",
+      "commit": "8e022edc9185f540a3fcecaf5e56b850d919cdac",
+      "language": "javascript",
+      "layout": "lib"
+    },
+    {
+      "name": "vue-core",
+      "url": "https://github.com/vuejs/core.git",
+      "commit": "7df0edd46c1636751750588d8db2fafd2ef68443",
+      "language": "typescript",
+      "layout": "pnpm-workspace"
+    },
+    {
+      "name": "laravel",
+      "url": "https://github.com/laravel/framework.git",
+      "commit": "635129b24d0d6c5664e4b77f41b1297a2f74c91a",
+      "language": "php",
+      "layout": "composer-src"
+    },
+    {
+      "name": "serilog",
+      "url": "https://github.com/serilog/serilog.git",
+      "commit": "6c3fbcf636b0671bbd6f5032b61a2254937d8408",
+      "language": "csharp",
+      "layout": "dotnet-src"
+    },
+    {
+      "name": "riverpod",
+      "url": "https://github.com/rrousselGit/riverpod.git",
+      "commit": "7c6f94d7271bd0b02c3090175c75fb5c2a244034",
+      "language": "dart",
+      "layout": "dart-workspace",
+      "srcDirs": [
+        "packages"
+      ],
+      "srcDirsWhy": "Zero-config resolves to [website, benchmarks] and never reaches packages/*/lib: a Dart workspace is not detected as a source layout, so every answer file is unindexed (measured at the pin)."
+    },
+    {
+      "name": "phoenix",
+      "url": "https://github.com/phoenixframework/phoenix.git",
+      "commit": "2ca60ffe811c0e585835cfc309b645c3a4190df1",
+      "language": "elixir",
+      "layout": "mix-lib",
+      "srcDirs": [
+        "lib"
+      ],
+      "srcDirsWhy": "Zero-config resolves to [assets, priv] and never reaches lib/: an Elixir mix project's source root is not detected, so every answer file is unindexed (measured at the pin)."
+    },
+    {
+      "name": "astro",
+      "url": "https://github.com/withastro/astro.git",
+      "commit": "4c1470a7f907fe678ef5e7dceaa972ca83d297da",
+      "language": "astro",
+      "layout": "pnpm-workspace-subtree",
+      "sparse": [
+        "/*",
+        "!/*/",
+        "/packages/astro/"
+      ]
+    },
+    {
+      "name": "plenary",
+      "url": "https://github.com/nvim-lua/plenary.nvim.git",
+      "commit": "74b06c6c75e4eeb3108ec01852001636d85a932b",
+      "language": "lua",
+      "layout": "lua-module"
+    },
+    {
+      "name": "godot-demo-projects",
+      "url": "https://github.com/godotengine/godot-demo-projects.git",
+      "commit": "3e08537616661a5883831628decab4c526260289",
+      "language": "gdscript",
+      "layout": "godot-projects",
+      "sparse": [
+        "*.gd"
+      ],
+      "srcDirs": [
+        "."
+      ],
+      "srcDirsWhy": "Zero-config resolves to no source root at all (confidence low): the demos sit in top-level category directories and no GDScript layout is recognised, so nothing under them is indexed (measured at the pin)."
+    }
+  ]
+}
