@@ -8,6 +8,9 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Fixed
+- **The todos extractor no longer reads markers out of string literals** (#877) by @tunglambk — `src/extractors/todos.js` matched `/(?:\/\/|#)\s*(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)/i` against the raw line, so it was case-insensitive, had no word boundary, and never looked at whether the `#` or `//` it found was a comment at all. Every one of these was reported as a TODO on a real tree: `lines.push('## todos')`, `'# todo list'`, `# todos are cached here`, `// Todoist client`, `#hackathon`. Markers are now matched on masked source — the shared `scan.js` gains `maskStrings` (string, template and regex contents blanked, comments kept verbatim) — so only comment text is read; the marker is case-sensitive uppercase bounded by a word boundary, with the lowercase `todo:` shorthand accepted only because the colon makes it unambiguous, and `/*` joins `//` and `#` as a recognised opener so `/* HACK */` is found instead of being dropped
+
 ---
 
 ## [8.65.3] — 2026-10-05

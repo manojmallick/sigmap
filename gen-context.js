@@ -15358,19 +15358,23 @@ __factories["./src/extractors/scan"] = function(module, exports) {
    * opening bracket, `,` `;` `{` `}` or one of REGEX_AFTER_WORD it starts a regex.
    *
    * @param {string} src
-   * @param {{ js?: boolean, strings?: boolean, regexes?: boolean }} opts
-   *        strings/regexes: blank their contents (otherwise they are only skipped)
+   * @param {{ js?: boolean, strings?: boolean, regexes?: boolean, comments?: boolean }} opts
+   *        strings/regexes: blank their contents (otherwise they are only skipped).
+   *        comments: false (default true) keeps comment bytes and only steps over
+   *        them — for callers that READ comments but must not read them out of a
+   *        string literal (todos.js)
    */
   function scan(src, opts) {
     const out = src.split('');
     const blank = (a, b) => { for (let k = a; k < b; k++) if (out[k] !== '\n') out[k] = ' '; };
     const js = !!opts.js;
+    const comments = opts.comments !== false;
     let i = 0; const n = src.length;
     let operand = false; // the previous significant token is a value, so `/` divides
     while (i < n) {
       const c = src[i], d = src[i + 1];
-      if (c === '/' && d === '/') { let j = i + 2; while (j < n && src[j] !== '\n') j++; blank(i, j); i = j; continue; }
-      if (c === '/' && d === '*') { let j = i + 2; while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j++; j = Math.min(n, j + 2); blank(i, j); i = j; continue; }
+      if (c === '/' && d === '/') { let j = i + 2; while (j < n && src[j] !== '\n') j++; if (comments) blank(i, j); i = j; continue; }
+      if (c === '/' && d === '*') { let j = i + 2; while (j < n && !(src[j] === '*' && src[j + 1] === '/')) j++; j = Math.min(n, j + 2); if (comments) blank(i, j); i = j; continue; }
       if (c === '"' || c === "'" || c === '`') {
         let j;
         if (js && c === '`') j = templateEnd(src, i);
@@ -15419,6 +15423,18 @@ __factories["./src/extractors/scan"] = function(module, exports) {
   }
 
   /**
+   * Blank string/template contents only — comments survive verbatim, and `//`,
+   * `/*`, `#` bytes a caller finds here are real comment text, not a
+   * `'## todos'`-style literal (#877).
+   * @param {string} src
+   * @param {{ js?: boolean }} [opts] js: also blank regular-expression literals
+   * @returns {string} same length, string/regex contents blanked, comments intact
+   */
+  function maskStrings(src, opts = {}) {
+    return scan(src, { js: opts.js, strings: true, regexes: true, comments: false });
+  }
+
+  /**
    * Index of the delimiter that closes the one open at `openIdx`, matched by
    * depth over MASKED text (strings/comments already blanked, so every
    * delimiter seen is structural). -1 when unbalanced within the cap.
@@ -15444,7 +15460,7 @@ __factories["./src/extractors/scan"] = function(module, exports) {
     return -1;
   }
 
-  module.exports = { stripComments, maskCode, readBalanced };
+  module.exports = { stripComments, maskCode, maskStrings, readBalanced };
   
 };
 
@@ -16075,23 +16091,60 @@ __factories["./src/extractors/terraform"] = function(module, exports) {
 // ── ./src/extractors/todos ──
 __factories["./src/extractors/todos"] = function(module, exports) {
   
+  const { maskStrings } = __require('./src/extractors/scan');
+
   /**
    * Extract TODO/FIXME/HACK/XXX comments from source text.
+   *
+   * Markers are matched on MASKED source (string/template contents blanked:
+   * `maskStrings` in scan.js), so a marker spelled inside a string literal — a
+   * `'## todos'` heading pushed by a generator, an example embedded in a template
+   * string — is never read as a comment (#877).
+   *
+   * The marker itself is case-sensitive uppercase, the convention, and bounded by
+   * a word boundary, so `#hackathon`, `// Todoist` and `#FIXMEs` do not match. A
+   * lowercase marker is accepted only as its shorthand with a colon (`# todo: x`),
+   * where the colon makes the intent unambiguous.
+   *
    * @param {string} src - Raw file content
    * @returns {{line:number, tag:string, text:string}[]}
    */
+
+  // `//`, `#` and `/*` are the comment openers this extractor reads: the first two
+  // as before, `/*` because `/* HACK */` is a marker too. Masking is per line, so
+  // an unterminated quote cannot hide markers written on later lines.
+  const MARKER_RE = /(?:\/\/|#|\/\*)[ \t]*((?:TODO|FIXME|HACK|XXX)\b|(?:todo|fixme|hack|xxx)(?=[ \t]*:))/;
+
+  /** The optional `:` separator between the marker and its message. */
+  const SEP_RE = /^[ \t]*:?[ \t]*/;
+
   function extractTodos(src) {
     if (!src || typeof src !== 'string') return [];
     const todos = [];
     const lines = src.split('\n');
 
     for (let i = 0; i < lines.length; i++) {
-      const m = lines[i].match(/(?:\/\/|#)\s*(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)/i);
+      // Decide on masked text, read the message from the original line: masking
+      // must never truncate a message (`# HACK: don't` would otherwise stop at the
+      // apostrophe — the masker reads `#` as code, a private-field sigil in JS).
+      const masked = maskStrings(lines[i]);
+      const m = masked.match(MARKER_RE);
       if (!m) continue;
+
+      const afterTag = m.index + m[0].length;
+      const sep = masked.slice(afterTag).match(SEP_RE)[0];
+      let text = lines[i].slice(afterTag + sep.length).trim();
+
+      // In a block comment `*/` terminates the comment: it is not the message.
+      const inBlock = m[0].startsWith('/*');
+      if (inBlock) text = text.split('*/')[0].trim();
+      // `// TODO` alone is a flag, not a message — unchanged from before.
+      if (text === '' && !inBlock) continue;
+
       todos.push({
         line: i + 1,
         tag: m[1].toUpperCase(),
-        text: m[2].trim().slice(0, 70),
+        text: text.slice(0, 70),
       });
     }
 
