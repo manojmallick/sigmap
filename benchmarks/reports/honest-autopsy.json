@@ -1,0 +1,56 @@
+{
+  "benchmark": "honest-autopsy",
+  "method": "run-honest-benchmark.mjs --autopsy: SigMap scored without an import graph, against the published grep scan and against the same scan with the files SigMap itself writes left out",
+  "tasks": 125,
+  "sigmapHits": 112,
+  "grepHits": {
+    "published": 50,
+    "withoutSigmapFiles": 57
+  },
+  "sigmapFilesInGrepTop5": {
+    "places": 625,
+    "polluted": 126
+  },
+  "sigmapMisses": {
+    "no token in common with the question": 4,
+    "ranked 6-10": 5,
+    "ranked 11-20": 1,
+    "ranked 21-50": 3
+  },
+  "againstScanWithoutSigmapFiles": {
+    "allTasks": {
+      "both": 54,
+      "sigmapOnly": 58,
+      "grepOnly": 3,
+      "neither": 10
+    },
+    "hardSplit": {
+      "both": 7,
+      "sigmapOnly": 3,
+      "grepOnly": 1,
+      "neither": 4
+    }
+  },
+  "grepOnlyTasks": [
+    {
+      "task": "express/express-h003",
+      "split": "hard",
+      "sigmap": "no token in common with the question",
+      "grepRank": 3
+    },
+    {
+      "task": "fastapi/fastapi-t004",
+      "split": "easy",
+      "sigmap": "ranked 6-10",
+      "grepRank": 5
+    },
+    {
+      "task": "svelte/svelte-t002",
+      "split": "easy",
+      "sigmap": "ranked 6-10",
+      "grepRank": 2
+    }
+  ],
+  "version": "8.67.0",
+  "generated": "2026-10-05T22:22:37.272Z"
+}
