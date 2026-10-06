@@ -128,11 +128,12 @@ function hasStrongEvidence(kind, needle, ctxLower) {
  * Deterministic, offline, zero-dependency. Reuses `src/verify/parsers`.
  *
  * Structural half (J1, #640): when `opts.cwd` is provided, the verify engine —
- * the same `buildSymbolSet` + `buildLibraryIndex` map `sigmap verify` uses —
- * clears any claim whose check class ran and did not flag it, so a real repo
- * or installed-library symbol the context never quotes is grounded, while a
- * fabricated one still fails. One grounding engine, two commands. Without a
- * cwd, behavior is the original lexical context matching, byte-identical.
+ * the same `buildSymbolSet` + `buildLibraryIndex` map, and the same lookup of a
+ * name in the source (#914), that `sigmap verify` uses — clears any claim whose
+ * check class ran and did not flag it, so a real repo or installed-library
+ * symbol the context never quotes is grounded, while a fabricated one still
+ * fails. One grounding engine, two commands. Without a cwd, behavior is the
+ * original lexical context matching, byte-identical.
  *
  * The verdict runs both ways (#909): a claim verify has proved fake is no longer
  * grounded by a weak lexical match — a substring, a prose word, a basename —

@@ -348,10 +348,11 @@ function extractNpmScripts(text) {
 
 // `name(…)`, `name<T>(…)`, `name::<T>(…)` — a backticked call, optionally generic.
 // A declaration (`def f(`, `function f(`) is deliberately NOT read: it names an
-// existing symbol in an answer that describes code but proposes one in a plan,
-// and the symbol index keeps only `maxSigsPerFile` signatures per file, so a
-// reference doc's `def clear(domain)` for a real method past the cut would flag
-// as fake (measured on httpx: 3 of 3 such claims). #909.
+// existing symbol in an answer that describes code but proposes one in a plan.
+// It was also unsafe while a symbol was judged by a capped index — a reference
+// doc's `def clear(domain)` for a real method past the cut flagged as fake
+// (measured on httpx: 3 of 3, #909). #914 makes that verdict sound; reading
+// declarations stays a separate, measured widening of the claim set.
 const SYMBOL_RE = new RegExp('`(' + IDENT + ')(?:::<[^`<>()]*>|<[^`<>()]*>)?\\s*\\([^`]*\\)`', 'g');
 
 // Words that precede a parenthesis without naming a callee.

@@ -13,6 +13,8 @@
  *   - fake-import-name: a name imported from a repo module that resolves to one
  *                      file, and never occurs in it (#909)
  *   - fake-symbol    : a called function/class is absent from the symbol index
+ *                      and is neither called nor defined anywhere in the source
+ *                      (src/verify/source-confirm.js, #914)
  *   - fake-npm-script: `npm run X` where X is not a package.json script
  *
  * Each issue carries a `confidence` (detection certainty) and, where a near
@@ -28,6 +30,7 @@ const { closestMatch, buildSymbolCandidates, formatSuggestion } = require('./clo
 const { buildLibraryIndex } = require('./lib-index');
 const { buildArityIndex, extractCallArgCounts, checkArity } = require('./arity');
 const { buildImportContext, classifyImport, missingNames } = require('./imports');
+const { confirmSymbols } = require('./source-confirm');
 
 // A path that looks like a test file (JS/TS spec/test, Python test_/_test, or
 // a tests/__tests__ directory). Used to flag fake-test-file separately.
@@ -172,9 +175,13 @@ function defaultRelativeResolvable(cwd, mod, fileBasenames) {
  * @param {(ref: string) => boolean} [opts.fileExists]          override file check
  * @param {(mod: string) => boolean} [opts.relativeResolvable]  override rel-import check
  * @param {object}      [opts.importContext]  override the Python/Go/JS-name resolution context (src/verify/imports.js)
+ * @param {(names: string[]) => { has: (name: string) => boolean }} [opts.confirmSymbols]
+ *        override the source confirmation of a symbol the index lacks (#914)
+ * @param {boolean}     [opts.sourceConfirm]  false skips it; by default it runs only when verify built the symbol set itself
  * @returns {{ issues: object[], summary: object }}
  */
 function verify(answerText, cwd, opts = {}) {
+  const ownSymbols = !opts.symbolSet;
   let symbolSet = opts.symbolSet;
   let fileBasenames = opts.fileBasenames;
   let symbolCandidates = opts.symbolCandidates || [];
@@ -337,10 +344,28 @@ function verify(answerText, cwd, opts = {}) {
   }
 
   // 3. fake-symbol
+  //
+  // The symbol set is a summary — a file keeps `maxSigsPerFile` signatures, only
+  // the files under the detected roots are in it, an extractor lists only the
+  // constructs it knows — so a name it lacks is not yet fake (#914, #910). The
+  // names that would be flagged are looked up in the source, in one pass, and a
+  // name that is called or defined there is dropped. Skipped when the caller
+  // supplied its own symbol set: that set is then the whole truth.
+  const sourceConfirmed = new Set();
+  const confirmSource = opts.confirmSymbols
+    || (ownSymbols && opts.sourceConfirm !== false
+      ? (names) => confirmSymbols(cwd, names, { priority: fileCandidates }).confirmed
+      : null);
   if (symbolSet.size > 0) {
+    const pending = [];
     for (const { name, line } of parsers.extractSymbols(answerText)) {
       if (symbolSet.has(name)) continue;
       if (LANG_GLOBALS.has(name) || NODE_BUILTINS.has(name) || PY_BUILTINS.has(name)) continue;
+      pending.push({ name, line });
+    }
+    const confirmed = pending.length && confirmSource ? confirmSource([...new Set(pending.map((p) => p.name))]) : null;
+    for (const { name, line } of pending) {
+      if (confirmed && confirmed.has(name)) { sourceConfirmed.add(name); continue; }
       // Similarity floor (#777): the default 0.5 ratio let `low`-confidence
       // matches through, so `debounce()` was answered with `drone()` — a
       // suggestion that would corrupt the answer if applied. 0.34 keeps the
@@ -413,6 +438,8 @@ function verify(answerText, cwd, opts = {}) {
     byType,
     clean: issues.length === 0,
     symbolsIndexed: symbolSet.size,
+    // Names the index lacked that the source calls or defines (#914) — not findings.
+    symbolsConfirmed: sourceConfirmed.size,
     withSuggestion: issues.filter((i) => i.suggestion).length,
     librariesIndexed: libraries.length,
     libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed })),

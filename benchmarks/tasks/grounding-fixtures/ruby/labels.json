@@ -1,0 +1,68 @@
+{
+  "language": "ruby",
+  "fake": [
+    {
+      "kind": "file",
+      "value": "lib/shop/audit_log.rb"
+    },
+    {
+      "kind": "symbol",
+      "value": "apply_bulk_discounts",
+      "note": "a near miss of a real method"
+    },
+    {
+      "kind": "symbol",
+      "value": "export_reports",
+      "note": "a near miss of a real function"
+    },
+    {
+      "kind": "symbol",
+      "value": "purge_expired",
+      "note": "occurs only in a comment inside catalog.rb: a comment confirms nothing (#914)"
+    },
+    {
+      "kind": "symbol",
+      "value": "recount_stock",
+      "note": "occurs only in a string inside catalog.rb: a string confirms nothing (#914)"
+    }
+  ],
+  "real": [
+    {
+      "kind": "file",
+      "value": "lib/shop/catalog.rb"
+    },
+    {
+      "kind": "file",
+      "value": "scripts/export_report.rb"
+    },
+    {
+      "kind": "symbol",
+      "value": "add_item"
+    },
+    {
+      "kind": "symbol",
+      "value": "apply_bulk_discount",
+      "note": "the 27th signature of its file: past the 25-signature cut, so the index never holds it (#910)"
+    },
+    {
+      "kind": "symbol",
+      "value": "restock_warehouse",
+      "note": "past the cut (#910)"
+    },
+    {
+      "kind": "symbol",
+      "value": "archive_discontinued",
+      "note": "past the cut (#910)"
+    },
+    {
+      "kind": "symbol",
+      "value": "reserve_stock",
+      "note": "past the cut (#910)"
+    },
+    {
+      "kind": "symbol",
+      "value": "export_report",
+      "note": "defined in scripts/, outside the only indexed root (srcDirs: lib): in the source, not the index (#914)"
+    }
+  ]
+}
