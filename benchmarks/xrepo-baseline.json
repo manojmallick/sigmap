@@ -6,6 +6,26 @@
     "mrr": 0.35427710843373494,
     "precisionAt5": 0.10608433734939757
   },
+  "why": {
+    "hits": 42,
+    "misses": {
+      "answer not indexed": 1,
+      "demoted by a path penalty": 0,
+      "no token in common with the question": 12,
+      "ranked 6-10": 9,
+      "ranked 11-20": 5,
+      "ranked 21-50": 5,
+      "ranked beyond 50": 9
+    },
+    "reachable": 70,
+    "reachableHits": 42,
+    "noTokenWords": {
+      "distinctive": 11,
+      "commonOnly": 0,
+      "nowhere": 1,
+      "inIndex": 0
+    }
+  },
   "repos": {
     "alamofire": {
       "language": "swift",

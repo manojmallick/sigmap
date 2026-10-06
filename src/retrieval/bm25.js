@@ -251,6 +251,8 @@ function expandQuery(qToks, mined) {
  *
  * @param {string} query
  * @param {{ file: string, sigs: string[] }[]} candidates
+ * @param {object} [opts]
+ * @param {Map<string,string>} [opts.bodyWords] file -> body words (opt-in retrieval.bodyWords)
  * @returns {Array<object & { score: number }>}
  */
 function bm25rank(query, candidates, opts) {
@@ -260,6 +262,9 @@ function bm25rank(query, candidates, opts) {
   const b = 0.75;
 
   const docWeight = (opts && typeof opts.docWeight === 'number') ? opts.docWeight : DOC_WEIGHT;
+  // Opt-in body words (retrieval.bodyWords, src/retrieval/body-words.js): file -> the rare
+  // words of its source that its signatures lack. Absent, nothing below changes.
+  const bodyWords = (opts && opts.bodyWords instanceof Map) ? opts.bodyWords : null;
 
   const docs = candidates.map((c) => {
     const pathToks = tokenize(c.file || '');
@@ -283,6 +288,12 @@ function bm25rank(query, candidates, opts) {
     // past a cutoff. A hit@5-only view would have shipped this.
     const codeToks = tokenize(codeLines.map((x) => stripAnchor(x)).join(' '));
     const docToks = tokenize(docLines.join(' '));
+    // Body words are descriptive of the file, never definitional like a signature, so they
+    // join the prose field and carry its weight.
+    if (bodyWords) {
+      const extra = bodyWords.get(c.file);
+      if (extra) for (const t of tokenize(extra)) docToks.push(t);
+    }
     const tf = new Map();
     const addField = (toks, weight) => { for (const t of toks) tf.set(t, (tf.get(t) || 0) + weight); };
     addField(codeToks, 1);

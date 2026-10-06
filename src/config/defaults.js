@@ -214,6 +214,9 @@ const DEFAULTS = {
     // Repo-mined query expansion: per-repo co-occurrence synonyms cached in
     // .context/mined-expansions.json (B2, opt-in, measure-gated)
     minedExpansions: false,
+    // Index each file's rare body words — the words its signatures drop — into the ranking
+    // only, cached in .context/body-words.json (opt-in, measure-gated)
+    bodyWords: false,
   },
 
   // Host-toolchain exactness tiers (#542 T2, opt-in, silent regex fallback).

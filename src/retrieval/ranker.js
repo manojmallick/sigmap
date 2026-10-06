@@ -374,6 +374,8 @@ function scoreFile(filePath, sigs, queryTokens, weights, wants, pathIdf) {
  *        properties on the returned array.
  * @param {Map<string,number>} [opts.centrality] - absolute file → normalized
  *        centrality (from computeCentrality) for the opt-in centrality blend
+ * @param {Map<string,string>} [opts.bodyWords] - file → the rare words of its source
+ *        (from body-words.loadOrBuild) for the opt-in retrieval.bodyWords signal
  * @returns {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]}
  */
 function rank(query, sigIndex, opts) {

@@ -458,6 +458,7 @@ function queryContext(args, cwd) {
     let callGraph = null;
     let centrality = null;
     let expansions = null;
+    let bodyWords = null;
     try {
       const { loadConfig } = require('../config/loader');
       const retrieval = loadConfig(cwd).retrieval;
@@ -473,8 +474,11 @@ function queryContext(args, cwd) {
       if (retrieval && retrieval.minedExpansions) {
         expansions = require('../retrieval/mined-expansions').loadOrMine(cwd).expansions;
       }
+      if (retrieval && retrieval.bodyWords) {
+        bodyWords = require('../retrieval/body-words').loadOrBuild(cwd, index);
+      }
     } catch (_) {}
-    const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality, expansions });
+    const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality, expansions, bodyWords });
     return _stalenessBanner(cwd) + formatRankTable(results, args.query);
   } catch (err) {
     return `_query_context failed: ${err.message}_`;
