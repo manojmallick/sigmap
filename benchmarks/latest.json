@@ -1,6 +1,6 @@
 {
-  "benchmark_id": "sigmap-v8.67-main",
-  "benchmark_date": "2026-10-05",
+  "benchmark_id": "sigmap-v8.68-main",
+  "benchmark_date": "2026-10-06",
   "repos_token": 21,
   "repos_retrieval": 18,
   "metrics": {
@@ -44,28 +44,28 @@
   },
   "sources": {
     "benchmark-matrix.json": {
-      "version": "8.67.0",
-      "generated": "2026-10-05"
+      "version": "8.68.0",
+      "generated": "2026-10-06"
     },
     "grounding-regression.json": {
-      "version": "8.67.0",
-      "generated": "2026-10-05"
+      "version": "8.68.0",
+      "generated": "2026-10-06"
     },
     "honest-baseline.json": {
-      "version": "8.67.0",
-      "generated": "2026-10-05"
+      "version": "8.68.0",
+      "generated": "2026-10-06"
     },
     "task-benchmark.json": {
-      "version": "8.67.0",
-      "generated": "2026-10-05"
+      "version": "8.68.0",
+      "generated": "2026-10-06"
     },
     "test-discovery.json": {
-      "version": "8.67.0",
-      "generated": "2026-10-05"
+      "version": "8.68.0",
+      "generated": "2026-10-06"
     },
     "token-reduction.json": {
-      "version": "8.67.0",
-      "generated": "2026-10-05"
+      "version": "8.68.0",
+      "generated": "2026-10-06"
     }
   }
 }
