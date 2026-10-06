@@ -54,6 +54,23 @@ Since **v8.54.0** the score counts **technical** vocabulary, not English. `judge
 
 That fixed two reproducible false failures: an answer whose every claim was grounded used to fail at `0.212` simply for containing prose (it now scores `0.643`), and `buildEvidencePack` used to score `0.750` where `build evidence pack` — the same fact — scored `0.333` (they now score identically).
 
+## How a claim is grounded
+
+Each concrete claim — a `symbol()` call, a file path, an import — is grounded in one of two ways, and `Checked` says which (`context` or `repo`):
+
+- **The context quotes it.** A claim is grounded when its text appears anywhere in the context. This is all the library API does when it is called without a `cwd`, and nothing changed there.
+- **The repo proves it.** `sigmap judge` always passes the working tree, so the same engine as [`sigmap verify`](/guide/verify-ai-output) also checks the claim against the real index, the disk and the installed libraries. A claim it resolves is grounded whether or not the context mentions it.
+
+The two are not equal, and since #909 the verdict runs both ways. Once `verify` has *proved* a claim fake, a word that merely occurs in the context no longer grounds it — only evidence in the claim's own form does:
+
+| Claim | Not enough (once verify has proved it fake) | Enough |
+|---|---|---|
+| `rank()` | the word `rank` in "to rank files by topic", or inside `rankFiles` | `rank(` or a definition (`def rank`, `function rank`, `rank = (…) =>`) |
+| `lib/index.js` | the basename of `src/index.js` | a path ending in `lib/index.js`, such as `src/lib/index.js` |
+| `app.cache` | `app.cache_utils` | `app.cache` as a whole token |
+
+And an import `verify` *positively resolved* — a repo module, the standard library, a `go.mod` requirement — is grounded in any language, not only where a `package.json` exists. Before #909 a correct Go or Python answer failed for want of one: its module path (`example.com/fx/internal/rank`, `app.config`) is never quoted by a context, and the structural import check never ran. An import `verify` could not decide (a third-party Python package) is neither cleared nor flagged by the repo; it falls back to the context.
+
 ## Verdicts and exit codes
 
 | Exit | Verdict | Meaning |
