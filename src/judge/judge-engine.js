@@ -84,6 +84,34 @@ function groundedness(response, context) {
   return parseFloat((matched.length / respTokens.length).toFixed(3));
 }
 
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Evidence in a claim's own form, for a claim `verify` has proved fake (#909).
+ *
+ *   symbol  a call or definition — `name(`, `name = (…) =>`, `def name` — never
+ *           the bare word, which is how `rank` was "grounded" by prose
+ *   file    the claimed path as a path-aligned suffix of a path the context
+ *           names (`lib/index.js` inside `src/lib/index.js`, not `src/index.js`)
+ *   import  the module as a whole token, not a substring of a longer one
+ *
+ * @param {'symbol'|'file'|'import'} kind
+ * @param {string} needle  lower-cased claim value
+ * @param {string} ctxLower lower-cased context
+ * @returns {boolean}
+ */
+function hasStrongEvidence(kind, needle, ctxLower) {
+  const id = escapeRe(needle);
+  if (kind === 'symbol') {
+    return new RegExp(`(?<![\\w$])${id}\\s*\\(`).test(ctxLower)
+      || new RegExp(`(?<![\\w$])${id}\\s*[:=]\\s*(?:async\\s*)?(?:function\\b|\\()`).test(ctxLower)
+      || new RegExp(`\\b(?:def|function|func|fn|fun|class|struct|interface|trait|enum|type)\\s+${id}(?![\\w$])`).test(ctxLower);
+  }
+  // file and import share one shape: the claim bounded on both sides, with a
+  // `/` before it allowed — that is a longer path ending in the claim.
+  return new RegExp(`(?:^|[^\\w$.-])(?:[\\w$.-]+/)*${id}(?![\\w$-]|\\.[\\w])`).test(ctxLower);
+}
+
 /**
  * Claim-level grounding (v8.10) — the structural half of the judge.
  *
@@ -105,6 +133,12 @@ function groundedness(response, context) {
  * or installed-library symbol the context never quotes is grounded, while a
  * fabricated one still fails. One grounding engine, two commands. Without a
  * cwd, behavior is the original lexical context matching, byte-identical.
+ *
+ * The verdict runs both ways (#909): a claim verify has proved fake is no longer
+ * grounded by a weak lexical match — a substring, a prose word, a basename —
+ * only by evidence in its own form (`hasStrongEvidence`). And an import verify
+ * positively resolved (a repo module, the standard library, a go.mod
+ * requirement) is cleared in any language, not only where a package.json exists.
  *
  * @param {string} response
  * @param {string} context
@@ -131,26 +165,31 @@ function claimGrounding(response, context, opts = {}) {
 
   let flagged = null;
   let checks = null;
+  let verified = null;
   if (opts && typeof opts.cwd === 'string') {
     try {
       const { verify } = require('../verify/hallucination-guard');
       const v = verify(response, opts.cwd);
       checks = (v.summary && v.summary.checks) || null;
+      verified = new Set((v.summary && v.summary.verifiedImports) || []);
       flagged = new Set();
       for (const i of v.issues) {
         if (i.type === 'fake-symbol') flagged.add(`symbol::${i.value}`);
         else if (i.type === 'fake-file' || i.type === 'fake-test-file') flagged.add(`file::${i.value}`);
         else if (i.type === 'fake-import') flagged.add(`import::${i.value}`);
       }
-    } catch (_) { flagged = null; checks = null; }
+    } catch (_) { flagged = null; checks = null; verified = null; }
   }
   // A claim is only structurally clearable when its check class actually ran —
   // "not flagged" means nothing if the symbol index is empty or there is no
-  // package.json to check bare imports against.
+  // package.json to check bare imports against. An import verify positively
+  // resolved (a repo module, the standard library, a go.mod requirement) has
+  // been checked whatever its language; one it could not decide has not (#909).
   const structuralRan = (c) => {
     if (!checks) return false;
     if (c.kind === 'symbol') return !!checks.symbols;
     if (c.kind === 'file') return !!checks.files;
+    if (verified && verified.has(c.value)) return true;
     return c.relative ? !!checks.relativeImports : !!checks.bareImports;
   };
 
@@ -158,13 +197,22 @@ function claimGrounding(response, context, opts = {}) {
   const checked = [];
   let grounded = 0;
   for (const c of claims) {
+    const key = `${c.kind}::${c.value}`;
     // A file claim is grounded if its basename appears in context (the answer
     // may cite a different directory than the map records). Symbols and modules
     // are matched on the token itself.
     const needle = c.value.toLowerCase();
     const base = c.kind === 'file' ? (c.value.split('/').pop() || c.value).toLowerCase() : needle;
-    const lexical = ctxLower.includes(base) || ctxLower.includes(needle);
-    const structuralHit = flagged !== null && structuralRan(c) && !flagged.has(`${c.kind}::${c.value}`);
+    // Structure outranks weak text (#909): once verify has proved the claim
+    // fake, a word that merely occurs in the context — `rank` in "to rank files",
+    // `index.js` in `src/index.js` — no longer grounds it; only evidence in the
+    // claim's own form does. A claim can only be flagged if its check ran, so
+    // being flagged is the proof. Without a structural verdict the match is unchanged.
+    const proven = flagged !== null && flagged.has(key);
+    const lexical = proven
+      ? hasStrongEvidence(c.kind, needle, ctxLower)
+      : (ctxLower.includes(base) || ctxLower.includes(needle));
+    const structuralHit = flagged !== null && structuralRan(c) && !flagged.has(key);
     // Explainability (J4, #653): every claim reports its grounding route —
     // "context" (the context quotes it), "repo" (the structural pass cleared
     // it), or null (nothing grounds it). Context is reported first when both
@@ -376,4 +424,4 @@ function judge(response, context, opts = {}) {
   return result;
 }
 
-module.exports = { groundedness, claimGrounding, judge, scoreTokens, markerRegex, GENERIC_MARKERS, PROSE_STOP };
+module.exports = { groundedness, claimGrounding, hasStrongEvidence, judge, scoreTokens, markerRegex, GENERIC_MARKERS, PROSE_STOP };

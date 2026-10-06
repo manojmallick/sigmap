@@ -7,7 +7,11 @@
  *   - fake-file      : a referenced path is not on disk
  *   - fake-test-file : a referenced *test* path is not on disk (sub-type)
  *   - fake-import    : a relative import does not resolve; a bare import is
- *                      absent from package.json deps (builtins allow-listed)
+ *                      absent from package.json deps (builtins allow-listed); a
+ *                      Python or Go import of the repo's own package does not
+ *                      resolve (src/verify/imports.js, #909)
+ *   - fake-import-name: a name imported from a repo module that resolves to one
+ *                      file, and never occurs in it (#909)
  *   - fake-symbol    : a called function/class is absent from the symbol index
  *   - fake-npm-script: `npm run X` where X is not a package.json script
  *
@@ -23,6 +27,7 @@ const parsers = require('./parsers');
 const { closestMatch, buildSymbolCandidates, formatSuggestion } = require('./closest-match');
 const { buildLibraryIndex } = require('./lib-index');
 const { buildArityIndex, extractCallArgCounts, checkArity } = require('./arity');
+const { buildImportContext, classifyImport, missingNames } = require('./imports');
 
 // A path that looks like a test file (JS/TS spec/test, Python test_/_test, or
 // a tests/__tests__ directory). Used to flag fake-test-file separately.
@@ -166,6 +171,7 @@ function defaultRelativeResolvable(cwd, mod, fileBasenames) {
  * @param {boolean}     [opts.hasPkg]         whether a package.json exists
  * @param {(ref: string) => boolean} [opts.fileExists]          override file check
  * @param {(mod: string) => boolean} [opts.relativeResolvable]  override rel-import check
+ * @param {object}      [opts.importContext]  override the Python/Go/JS-name resolution context (src/verify/imports.js)
  * @returns {{ issues: object[], summary: object }}
  */
 function verify(answerText, cwd, opts = {}) {
@@ -253,24 +259,69 @@ function verify(answerText, cwd, opts = {}) {
     });
   }
 
-  // 2. fake-import
+  // 2. fake-import · fake-import-name
+  //
+  // `verifiedImports` records every import claim this pass positively resolved,
+  // so `judge` can clear it: "not flagged" is not "checked" for a Python import
+  // the repo cannot decide, and judge must tell the two apart (#909).
+  const importCtx = opts.importContext || buildImportContext(cwd, fileCandidates);
+  const verifiedImports = new Set();
+  const checkNames = (imp) => {
+    const miss = missingNames(imp, importCtx);
+    if (!miss) return;
+    const sameFile = symbolCandidates.filter((c) => c.file === miss.file);
+    for (const name of miss.missing) {
+      const match = sameFile.length ? closestMatch(name, sameFile, { minLen: 3, maxRatio: 0.34 }) : null;
+      add({
+        type: 'fake-import-name',
+        value: name,
+        line: imp.line,
+        message: `Not exported by ${imp.module} (${miss.file}): ${name}`,
+        confidence: 'medium',
+        suggestion: match ? formatSuggestion(match, false) : null,
+      });
+    }
+  };
   for (const imp of parsers.extractImports(answerText)) {
     if (PLACEHOLDER_IMPORT_RE.test(imp.module)) continue;
+
+    // Python and Go: decided from the repo alone. Only `unresolved` is a
+    // finding — a standard-library import is real, a third-party one is not
+    // ours to judge offline, and a layout we cannot read stays unknown.
+    if (imp.kind === 'py' || imp.kind === 'go') {
+      const r = classifyImport(imp, importCtx);
+      if (r.status === 'unresolved') {
+        add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });
+        continue;
+      }
+      if (r.status === 'resolved') {
+        verifiedImports.add(imp.module);
+        checkNames(imp);
+        continue;
+      }
+      // Unknown. A Python relative import in a repo with no Python to read
+      // falls through to the file-based resolver below; the rest is left alone.
+      if (!(imp.kind === 'py' && imp.relative)) continue;
+    }
     if (imp.relative) {
       if (!relativeResolvable(imp.module)) {
         add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });
+        continue;
       }
+      verifiedImports.add(imp.module);
+      checkNames(imp);
       continue;
     }
     // Bare module — only verifiable for JS when a package.json exists.
     const top = imp.module.split('/')[0];
     if (imp.kind === 'js') {
       if (!hasPkg) continue;
-      if (NODE_BUILTINS.has(imp.module) || NODE_BUILTINS.has(top)) continue;
+      if (NODE_BUILTINS.has(imp.module) || NODE_BUILTINS.has(top)) { verifiedImports.add(imp.module); continue; }
       if (top.startsWith('@')) {
         const scoped = imp.module.split('/').slice(0, 2).join('/');
-        if (deps.has(scoped) || deps.has(imp.module)) continue;
+        if (deps.has(scoped) || deps.has(imp.module)) { verifiedImports.add(imp.module); continue; }
       } else if (deps.has(top) || deps.has(imp.module)) {
+        verifiedImports.add(imp.module);
         continue;
       }
       const match = closestMatch(top, [...deps], { minLen: 3 });
@@ -283,7 +334,6 @@ function verify(answerText, cwd, opts = {}) {
         suggestion: match ? formatSuggestion({ name: match.name }, false) : null,
       });
     }
-    // Python bare imports: stdlib is unbounded offline — skip to keep precision.
   }
 
   // 3. fake-symbol
@@ -354,7 +404,7 @@ function verify(answerText, cwd, opts = {}) {
 
   const byType = {
     'fake-file': 0, 'fake-test-file': 0, 'fake-import': 0,
-    'fake-symbol': 0, 'fake-npm-script': 0,
+    'fake-import-name': 0, 'fake-symbol': 0, 'fake-npm-script': 0,
   };
   for (const i of issues) byType[i.type] = (byType[i.type] || 0) + 1;
 
@@ -376,6 +426,8 @@ function verify(answerText, cwd, opts = {}) {
       bareImports: !!hasPkg,
       scripts: !!hasPkg && scripts.size > 0,
     },
+    // Import claims this run positively resolved (#909) — what `judge` may clear.
+    verifiedImports: [...verifiedImports],
   };
 
   return { issues, summary };

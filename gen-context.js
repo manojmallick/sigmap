@@ -18959,6 +18959,7 @@ __factories["./src/format/verify-report"] = function(module, exports) {
     'fake-file': { label: 'Fake file', tone: 'red', icon: '✕' },
     'fake-test-file': { label: 'Fake test file', tone: 'red', icon: '✕' },
     'fake-import': { label: 'Fake import', tone: 'red', icon: '✕' },
+    'fake-import-name': { label: 'Fake imported name', tone: 'amber', icon: '!' },
     'fake-npm-script': { label: 'Fake npm script', tone: 'red', icon: '✕' },
     'fake-symbol': { label: 'Fake symbol', tone: 'amber', icon: '!' },
   };
@@ -21659,6 +21660,34 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     return parseFloat((matched.length / respTokens.length).toFixed(3));
   }
 
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  /**
+   * Evidence in a claim's own form, for a claim `verify` has proved fake (#909).
+   *
+   *   symbol  a call or definition — `name(`, `name = (…) =>`, `def name` — never
+   *           the bare word, which is how `rank` was "grounded" by prose
+   *   file    the claimed path as a path-aligned suffix of a path the context
+   *           names (`lib/index.js` inside `src/lib/index.js`, not `src/index.js`)
+   *   import  the module as a whole token, not a substring of a longer one
+   *
+   * @param {'symbol'|'file'|'import'} kind
+   * @param {string} needle  lower-cased claim value
+   * @param {string} ctxLower lower-cased context
+   * @returns {boolean}
+   */
+  function hasStrongEvidence(kind, needle, ctxLower) {
+    const id = escapeRe(needle);
+    if (kind === 'symbol') {
+      return new RegExp(`(?<![\\w$])${id}\\s*\\(`).test(ctxLower)
+        || new RegExp(`(?<![\\w$])${id}\\s*[:=]\\s*(?:async\\s*)?(?:function\\b|\\()`).test(ctxLower)
+        || new RegExp(`\\b(?:def|function|func|fn|fun|class|struct|interface|trait|enum|type)\\s+${id}(?![\\w$])`).test(ctxLower);
+    }
+    // file and import share one shape: the claim bounded on both sides, with a
+    // `/` before it allowed — that is a longer path ending in the claim.
+    return new RegExp(`(?:^|[^\\w$.-])(?:[\\w$.-]+/)*${id}(?![\\w$-]|\\.[\\w])`).test(ctxLower);
+  }
+
   /**
    * Claim-level grounding (v8.10) — the structural half of the judge.
    *
@@ -21680,6 +21709,12 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
    * or installed-library symbol the context never quotes is grounded, while a
    * fabricated one still fails. One grounding engine, two commands. Without a
    * cwd, behavior is the original lexical context matching, byte-identical.
+   *
+   * The verdict runs both ways (#909): a claim verify has proved fake is no longer
+   * grounded by a weak lexical match — a substring, a prose word, a basename —
+   * only by evidence in its own form (`hasStrongEvidence`). And an import verify
+   * positively resolved (a repo module, the standard library, a go.mod
+   * requirement) is cleared in any language, not only where a package.json exists.
    *
    * @param {string} response
    * @param {string} context
@@ -21706,26 +21741,31 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
 
     let flagged = null;
     let checks = null;
+    let verified = null;
     if (opts && typeof opts.cwd === 'string') {
       try {
         const { verify } = __require('./src/verify/hallucination-guard');
         const v = verify(response, opts.cwd);
         checks = (v.summary && v.summary.checks) || null;
+        verified = new Set((v.summary && v.summary.verifiedImports) || []);
         flagged = new Set();
         for (const i of v.issues) {
           if (i.type === 'fake-symbol') flagged.add(`symbol::${i.value}`);
           else if (i.type === 'fake-file' || i.type === 'fake-test-file') flagged.add(`file::${i.value}`);
           else if (i.type === 'fake-import') flagged.add(`import::${i.value}`);
         }
-      } catch (_) { flagged = null; checks = null; }
+      } catch (_) { flagged = null; checks = null; verified = null; }
     }
     // A claim is only structurally clearable when its check class actually ran —
     // "not flagged" means nothing if the symbol index is empty or there is no
-    // package.json to check bare imports against.
+    // package.json to check bare imports against. An import verify positively
+    // resolved (a repo module, the standard library, a go.mod requirement) has
+    // been checked whatever its language; one it could not decide has not (#909).
     const structuralRan = (c) => {
       if (!checks) return false;
       if (c.kind === 'symbol') return !!checks.symbols;
       if (c.kind === 'file') return !!checks.files;
+      if (verified && verified.has(c.value)) return true;
       return c.relative ? !!checks.relativeImports : !!checks.bareImports;
     };
 
@@ -21733,13 +21773,22 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     const checked = [];
     let grounded = 0;
     for (const c of claims) {
+      const key = `${c.kind}::${c.value}`;
       // A file claim is grounded if its basename appears in context (the answer
       // may cite a different directory than the map records). Symbols and modules
       // are matched on the token itself.
       const needle = c.value.toLowerCase();
       const base = c.kind === 'file' ? (c.value.split('/').pop() || c.value).toLowerCase() : needle;
-      const lexical = ctxLower.includes(base) || ctxLower.includes(needle);
-      const structuralHit = flagged !== null && structuralRan(c) && !flagged.has(`${c.kind}::${c.value}`);
+      // Structure outranks weak text (#909): once verify has proved the claim
+      // fake, a word that merely occurs in the context — `rank` in "to rank files",
+      // `index.js` in `src/index.js` — no longer grounds it; only evidence in the
+      // claim's own form does. A claim can only be flagged if its check ran, so
+      // being flagged is the proof. Without a structural verdict the match is unchanged.
+      const proven = flagged !== null && flagged.has(key);
+      const lexical = proven
+        ? hasStrongEvidence(c.kind, needle, ctxLower)
+        : (ctxLower.includes(base) || ctxLower.includes(needle));
+      const structuralHit = flagged !== null && structuralRan(c) && !flagged.has(key);
       // Explainability (J4, #653): every claim reports its grounding route —
       // "context" (the context quotes it), "repo" (the structural pass cleared
       // it), or null (nothing grounds it). Context is reported first when both
@@ -21951,7 +22000,7 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
     return result;
   }
 
-  module.exports = { groundedness, claimGrounding, judge, scoreTokens, markerRegex, GENERIC_MARKERS, PROSE_STOP };
+  module.exports = { groundedness, claimGrounding, hasStrongEvidence, judge, scoreTokens, markerRegex, GENERIC_MARKERS, PROSE_STOP };
   
 };
 
@@ -32161,6 +32210,66 @@ __factories["./src/verify/globals"] = function(module, exports) {
     'staticmethod', 'classmethod', 'property', 'slice', 'complex', 'ord', 'chr',
   ];
 
+  /**
+   * Python standard-library top-level modules (3.8 – 3.12, public names).
+   *
+   * Module names, not symbols — so deliberately NOT part of `GROUPS` (which
+   * flattens into `LANG_GLOBALS`, the names `fake-symbol` never flags). Used to
+   * recognise an `import os.path` as real without a package manifest, and to
+   * leave a repo package that shadows one (`queue/`, `types/`) undecided rather
+   * than flag a standard-library submodule it does not have (#909).
+   */
+  const PY_STDLIB = [
+    '__future__', '__main__', '_thread', 'abc', 'aifc', 'argparse', 'array',
+    'ast', 'asynchat', 'asyncio', 'asyncore', 'atexit', 'audioop', 'base64',
+    'bdb', 'binascii', 'binhex', 'bisect', 'builtins', 'bz2', 'cProfile',
+    'calendar', 'cgi', 'cgitb', 'chunk', 'cmath', 'cmd', 'code', 'codecs',
+    'codeop', 'collections', 'colorsys', 'compileall', 'concurrent',
+    'configparser', 'contextlib', 'contextvars', 'copy', 'copyreg', 'crypt',
+    'csv', 'ctypes', 'curses', 'dataclasses', 'datetime', 'dbm', 'decimal',
+    'difflib', 'dis', 'distutils', 'doctest', 'email', 'encodings', 'ensurepip',
+    'enum', 'errno', 'faulthandler', 'fcntl', 'filecmp', 'fileinput', 'fnmatch',
+    'fractions', 'ftplib', 'functools', 'gc', 'genericpath', 'getopt', 'getpass',
+    'gettext', 'glob', 'graphlib', 'grp', 'gzip', 'hashlib', 'heapq', 'hmac',
+    'html', 'http', 'idlelib', 'imaplib', 'imghdr', 'imp', 'importlib',
+    'inspect', 'io', 'ipaddress', 'itertools', 'json', 'keyword', 'lib2to3',
+    'linecache', 'locale', 'logging', 'lzma', 'mailbox', 'mailcap', 'marshal',
+    'math', 'mimetypes', 'mmap', 'modulefinder', 'msilib', 'msvcrt',
+    'multiprocessing', 'netrc', 'nis', 'nntplib', 'nt', 'ntpath', 'nturl2path',
+    'numbers', 'opcode', 'operator', 'optparse', 'os', 'ossaudiodev', 'pathlib',
+    'pdb', 'pickle', 'pickletools', 'pipes', 'pkgutil', 'platform', 'plistlib',
+    'poplib', 'posix', 'posixpath', 'pprint', 'profile', 'pstats', 'pty', 'pwd',
+    'py_compile', 'pyclbr', 'pydoc', 'pydoc_data', 'pyexpat', 'queue', 'quopri',
+    'random', 're', 'readline', 'reprlib', 'resource', 'rlcompleter', 'runpy',
+    'sched', 'secrets', 'select', 'selectors', 'shelve', 'shlex', 'shutil',
+    'signal', 'site', 'smtpd', 'smtplib', 'sndhdr', 'socket', 'socketserver',
+    'spwd', 'sqlite3', 'sre_compile', 'sre_constants', 'sre_parse', 'ssl', 'stat',
+    'statistics', 'string', 'stringprep', 'struct', 'subprocess', 'sunau',
+    'symtable', 'sys', 'sysconfig', 'syslog', 'tabnanny', 'tarfile', 'telnetlib',
+    'tempfile', 'termios', 'textwrap', 'this', 'threading', 'time', 'timeit',
+    'tkinter', 'token', 'tokenize', 'tomllib', 'trace', 'traceback',
+    'tracemalloc', 'tty', 'turtle', 'turtledemo', 'types', 'typing',
+    'unicodedata', 'unittest', 'urllib', 'uu', 'uuid', 'venv', 'warnings',
+    'wave', 'weakref', 'webbrowser', 'winreg', 'winsound', 'wsgiref', 'xdrlib',
+    'xml', 'xmlrpc', 'zipapp', 'zipfile', 'zipimport', 'zlib', 'zoneinfo',
+  ];
+
+  /**
+   * Go standard-library top-level package directories (1.21 – 1.23).
+   *
+   * An import whose first path element is one of these is the standard library,
+   * which needs no manifest to be real. A third-party module always starts with
+   * a domain, so this list never claims one (#909).
+   */
+  const GO_STDLIB = [
+    'archive', 'bufio', 'bytes', 'cmp', 'compress', 'container', 'context',
+    'crypto', 'database', 'debug', 'embed', 'encoding', 'errors', 'expvar',
+    'flag', 'fmt', 'go', 'hash', 'html', 'image', 'index', 'io', 'iter', 'log',
+    'maps', 'math', 'mime', 'net', 'os', 'path', 'plugin', 'reflect', 'regexp',
+    'runtime', 'slices', 'sort', 'strconv', 'strings', 'structs', 'sync',
+    'syscall', 'testing', 'text', 'time', 'unicode', 'unique', 'unsafe',
+  ];
+
   const GROUPS = {
     es: ES_GLOBALS,
     web: WEB_GLOBALS,
@@ -32174,7 +32283,7 @@ __factories["./src/verify/globals"] = function(module, exports) {
     Object.values(GROUPS).reduce((acc, g) => acc.concat(g), [])
   );
 
-  module.exports = { LANG_GLOBALS, GROUPS, ES_GLOBALS, WEB_GLOBALS, NODE_GLOBALS, TEST_GLOBALS, PY_GLOBALS };
+  module.exports = { LANG_GLOBALS, GROUPS, ES_GLOBALS, WEB_GLOBALS, NODE_GLOBALS, TEST_GLOBALS, PY_GLOBALS, PY_STDLIB, GO_STDLIB };
   
 };
 
@@ -32188,7 +32297,11 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
    *   - fake-file      : a referenced path is not on disk
    *   - fake-test-file : a referenced *test* path is not on disk (sub-type)
    *   - fake-import    : a relative import does not resolve; a bare import is
-   *                      absent from package.json deps (builtins allow-listed)
+   *                      absent from package.json deps (builtins allow-listed); a
+   *                      Python or Go import of the repo's own package does not
+   *                      resolve (src/verify/imports.js, #909)
+   *   - fake-import-name: a name imported from a repo module that resolves to one
+   *                      file, and never occurs in it (#909)
    *   - fake-symbol    : a called function/class is absent from the symbol index
    *   - fake-npm-script: `npm run X` where X is not a package.json script
    *
@@ -32204,6 +32317,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
   const { closestMatch, buildSymbolCandidates, formatSuggestion } = __require('./src/verify/closest-match');
   const { buildLibraryIndex } = __require('./src/verify/lib-index');
   const { buildArityIndex, extractCallArgCounts, checkArity } = __require('./src/verify/arity');
+  const { buildImportContext, classifyImport, missingNames } = __require('./src/verify/imports');
 
   // A path that looks like a test file (JS/TS spec/test, Python test_/_test, or
   // a tests/__tests__ directory). Used to flag fake-test-file separately.
@@ -32347,6 +32461,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
    * @param {boolean}     [opts.hasPkg]         whether a package.json exists
    * @param {(ref: string) => boolean} [opts.fileExists]          override file check
    * @param {(mod: string) => boolean} [opts.relativeResolvable]  override rel-import check
+   * @param {object}      [opts.importContext]  override the Python/Go/JS-name resolution context (src/verify/imports.js)
    * @returns {{ issues: object[], summary: object }}
    */
   function verify(answerText, cwd, opts = {}) {
@@ -32434,24 +32549,69 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
       });
     }
 
-    // 2. fake-import
+    // 2. fake-import · fake-import-name
+    //
+    // `verifiedImports` records every import claim this pass positively resolved,
+    // so `judge` can clear it: "not flagged" is not "checked" for a Python import
+    // the repo cannot decide, and judge must tell the two apart (#909).
+    const importCtx = opts.importContext || buildImportContext(cwd, fileCandidates);
+    const verifiedImports = new Set();
+    const checkNames = (imp) => {
+      const miss = missingNames(imp, importCtx);
+      if (!miss) return;
+      const sameFile = symbolCandidates.filter((c) => c.file === miss.file);
+      for (const name of miss.missing) {
+        const match = sameFile.length ? closestMatch(name, sameFile, { minLen: 3, maxRatio: 0.34 }) : null;
+        add({
+          type: 'fake-import-name',
+          value: name,
+          line: imp.line,
+          message: `Not exported by ${imp.module} (${miss.file}): ${name}`,
+          confidence: 'medium',
+          suggestion: match ? formatSuggestion(match, false) : null,
+        });
+      }
+    };
     for (const imp of parsers.extractImports(answerText)) {
       if (PLACEHOLDER_IMPORT_RE.test(imp.module)) continue;
+
+      // Python and Go: decided from the repo alone. Only `unresolved` is a
+      // finding — a standard-library import is real, a third-party one is not
+      // ours to judge offline, and a layout we cannot read stays unknown.
+      if (imp.kind === 'py' || imp.kind === 'go') {
+        const r = classifyImport(imp, importCtx);
+        if (r.status === 'unresolved') {
+          add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });
+          continue;
+        }
+        if (r.status === 'resolved') {
+          verifiedImports.add(imp.module);
+          checkNames(imp);
+          continue;
+        }
+        // Unknown. A Python relative import in a repo with no Python to read
+        // falls through to the file-based resolver below; the rest is left alone.
+        if (!(imp.kind === 'py' && imp.relative)) continue;
+      }
       if (imp.relative) {
         if (!relativeResolvable(imp.module)) {
           add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });
+          continue;
         }
+        verifiedImports.add(imp.module);
+        checkNames(imp);
         continue;
       }
       // Bare module — only verifiable for JS when a package.json exists.
       const top = imp.module.split('/')[0];
       if (imp.kind === 'js') {
         if (!hasPkg) continue;
-        if (NODE_BUILTINS.has(imp.module) || NODE_BUILTINS.has(top)) continue;
+        if (NODE_BUILTINS.has(imp.module) || NODE_BUILTINS.has(top)) { verifiedImports.add(imp.module); continue; }
         if (top.startsWith('@')) {
           const scoped = imp.module.split('/').slice(0, 2).join('/');
-          if (deps.has(scoped) || deps.has(imp.module)) continue;
+          if (deps.has(scoped) || deps.has(imp.module)) { verifiedImports.add(imp.module); continue; }
         } else if (deps.has(top) || deps.has(imp.module)) {
+          verifiedImports.add(imp.module);
           continue;
         }
         const match = closestMatch(top, [...deps], { minLen: 3 });
@@ -32464,7 +32624,6 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
           suggestion: match ? formatSuggestion({ name: match.name }, false) : null,
         });
       }
-      // Python bare imports: stdlib is unbounded offline — skip to keep precision.
     }
 
     // 3. fake-symbol
@@ -32535,7 +32694,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
 
     const byType = {
       'fake-file': 0, 'fake-test-file': 0, 'fake-import': 0,
-      'fake-symbol': 0, 'fake-npm-script': 0,
+      'fake-import-name': 0, 'fake-symbol': 0, 'fake-npm-script': 0,
     };
     for (const i of issues) byType[i.type] = (byType[i.type] || 0) + 1;
 
@@ -32557,12 +32716,398 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
         bareImports: !!hasPkg,
         scripts: !!hasPkg && scripts.size > 0,
       },
+      // Import claims this run positively resolved (#909) — what `judge` may clear.
+      verifiedImports: [...verifiedImports],
     };
 
     return { issues, summary };
   }
 
   module.exports = { verify, buildSymbolSet, loadDeps, loadScripts, isTestPath };
+  
+};
+
+// ── ./src/verify/imports ──
+__factories["./src/verify/imports"] = function(module, exports) {
+  
+  /**
+   * Local import resolution and named-import validity (J3 · D1, #909).
+   *
+   * `verify` has always asked of an import "does this module exist?" — for a JS
+   * path, a JS package, a relative file. This module answers it for the
+   * languages whose imports the repo alone can decide, and asks one question
+   * more: of a name taken from a module the repo owns, "does that module have it?"
+   *
+   *   Python  a dotted import whose first segment is a repo package or module
+   *           resolves to a file or a package — or it does not
+   *   Go      an import under a go.mod module path names a directory holding
+   *           Go files — or it does not
+   *   JS/TS   a name imported from a relative module that resolves to ONE file
+   *           occurs in that file
+   *   Python  likewise, for `from pkg.mod import name`
+   *
+   * Every answer is one of three: `resolved`, `unresolved`, `unknown`. Only
+   * `unresolved` is ever a finding. A standard-library import is `resolved`, a
+   * third-party one `unknown` (or `resolved` when a manifest names it), and a
+   * layout this module cannot read is `unknown` — a false "fake import" costs
+   * more than a missed one, so every doubt is an `unknown`.
+   *
+   * Deterministic, offline, zero dependencies. Reads the index keys it is given
+   * and, where an empty file leaves no index entry (`__init__.py`), the disk.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { PY_STDLIB, GO_STDLIB } = __require('./src/verify/globals');
+
+  const PY_STDLIB_SET = new Set(PY_STDLIB);
+  const GO_STDLIB_SET = new Set(GO_STDLIB);
+
+  const JS_EXTS = ['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts'];
+  const JS_FILE_RE = /\.(?:[mc]?[jt]sx?)$/;
+  const MAX_TEXT_BYTES = 1500000; // a module read to look for a name
+  const MAX_DIR_PROBES = 2000;    // directories probed for a base-less relative import
+  const MAX_GO_DIRS = 500;        // Go directories climbed looking for a go.mod
+
+  const norm = (p) => String(p).replace(/\\/g, '/');
+  const dirnameOf = (key) => (key.includes('/') ? key.slice(0, key.lastIndexOf('/')) : '');
+  const stripExt = (key) => key.replace(/\.[^./]+$/, '');
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  /** True when `text` mentions `name` as a whole identifier. */
+  function mentions(text, name) {
+    return new RegExp('(?<![\\w$])' + escapeRe(name) + '(?![\\w$])').test(text);
+  }
+
+  /**
+   * The shared, lazily-filled context one `verify()` call resolves against.
+   * @param {string} cwd
+   * @param {Iterable<string>} fileKeys  the indexed files (repo-relative or absolute)
+   */
+  function buildImportContext(cwd, fileKeys) {
+    let keys = null;
+    let keySet = null;
+    const load = () => {
+      keys = [];
+      for (const k of fileKeys || []) {
+        const rel = norm(path.isAbsolute(k) ? path.relative(cwd, k) : k).replace(/^\.\//, '');
+        if (rel && !rel.startsWith('..')) keys.push(rel);
+      }
+      keySet = new Set(keys);
+    };
+    const exists = new Map();
+    const texts = new Map();
+    return {
+      cwd,
+      _py: null,
+      _go: null,
+      _jsByStem: null,
+      // Normalised lazily: an answer with no Python or Go import never pays for it.
+      get keys() { if (!keys) load(); return keys; },
+      get keySet() { if (!keySet) load(); return keySet; },
+      /** An indexed file, or one on disk. */
+      exists(rel) {
+        if (this.keySet.has(rel)) return true;
+        if (!exists.has(rel)) {
+          let ok = false;
+          try { ok = fs.existsSync(path.join(cwd, rel)); } catch (_) {}
+          exists.set(rel, ok);
+        }
+        return exists.get(rel);
+      },
+      /** A regular file (an extension-less path may name a directory). */
+      isFile(rel) {
+        if (this.keySet.has(rel)) return true;
+        try { return fs.statSync(path.join(cwd, rel)).isFile(); } catch (_) { return false; }
+      },
+      readText(rel) {
+        if (!texts.has(rel)) {
+          let text = '';
+          try {
+            const abs = path.join(cwd, rel);
+            if (fs.statSync(abs).size <= MAX_TEXT_BYTES) text = fs.readFileSync(abs, 'utf8');
+          } catch (_) {}
+          texts.set(rel, text);
+        }
+        return texts.get(rel);
+      },
+    };
+  }
+
+  // ── Python ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Index the repo's Python: which names are importable at top level (and from
+   * which root), and every segment-aligned suffix of every module path.
+   *
+   * A top-level package is the highest directory in an unbroken chain of
+   * `__init__.py` — checked on disk, because an empty `__init__.py` carries no
+   * signature and so never reaches the index.
+   */
+  function pyIndex(ctx) {
+    if (ctx._py) return ctx._py;
+    const tops = new Map();     // 'app' -> Set(roots)  e.g. {'src'}
+    const suffixes = new Set(); // 'src/app/config', 'app/config', 'config'
+    const dirs = new Set();
+    const inits = new Map();
+    const hasInit = (dir) => {
+      if (!inits.has(dir)) inits.set(dir, ctx.exists((dir ? dir + '/' : '') + '__init__.py'));
+      return inits.get(dir);
+    };
+    let count = 0;
+    for (const key of ctx.keys) {
+      if (!/\.pyi?$/.test(key)) continue;
+      count++;
+      const parts = key.replace(/\.pyi?$/, '').split('/');
+      const file = parts.pop();
+      const modParts = file === '__init__' ? parts : parts.concat(file);
+      for (let i = 0; i < modParts.length; i++) suffixes.add(modParts.slice(i).join('/'));
+      for (let i = 0; i <= parts.length; i++) dirs.add(parts.slice(0, i).join('/'));
+      let d = parts.length;
+      while (d > 0 && hasInit(parts.slice(0, d).join('/'))) d--;
+      const top = d < parts.length ? parts[d] : (file === '__init__' ? null : file);
+      if (top) {
+        if (!tops.has(top)) tops.set(top, new Set());
+        tops.get(top).add(parts.slice(0, d).join('/'));
+      }
+    }
+    ctx._py = { count, tops, suffixes, dirs: [...dirs].sort() };
+    return ctx._py;
+  }
+
+  /** `import a.b.c` / `from a.b import x` — the module path, absolute. */
+  function resolvePyModule(ctx, dotted) {
+    const py = pyIndex(ctx);
+    const segs = dotted.split('.');
+    const roots = py.tops.get(segs[0]);
+    if (!roots) {
+      return PY_STDLIB_SET.has(segs[0]) ? { status: 'resolved', via: 'stdlib' } : { status: 'unknown' };
+    }
+    const rel = segs.join('/');
+    for (const root of roots) {
+      const base = (root ? root + '/' : '') + rel;
+      for (const cand of [base + '.py', base + '.pyi', base + '/__init__.py', base + '/__init__.pyi']) {
+        if (ctx.exists(cand)) return { status: 'resolved', via: 'repo', file: cand };
+      }
+    }
+    // A repo package that shadows a stdlib name (`queue/`, `types/`) is not
+    // evidence the answer's `queue.Queue` is fake.
+    if (PY_STDLIB_SET.has(segs[0])) return { status: 'unknown' };
+    return { status: 'unresolved' };
+  }
+
+  /** `from .x.y import z` / `from ..x import z` — relative to a file we cannot know. */
+  function resolvePyRelative(ctx, module) {
+    const rest = module.replace(/^\.+/, '');
+    if (!rest) return { status: 'resolved', via: 'package' };
+    const py = pyIndex(ctx);
+    if (py.count === 0) return { status: 'unknown' };
+    const suffix = rest.split('.').join('/');
+    if (py.suffixes.has(suffix)) return { status: 'resolved', via: 'repo' };
+    // A module with no signature (constants only) is not in the index — probe the
+    // directories that hold Python before calling it missing.
+    let probes = 0;
+    for (const dir of py.dirs) {
+      if (++probes > MAX_DIR_PROBES) return { status: 'unknown' };
+      const base = (dir ? dir + '/' : '') + suffix;
+      if (ctx.exists(base + '.py') || ctx.exists(base + '.pyi') || ctx.exists(base + '/__init__.py')) {
+        return { status: 'resolved', via: 'repo' };
+      }
+    }
+    return { status: 'unresolved' };
+  }
+
+  /** The one file a Python import names, or null when it is not exactly one. */
+  function pyModuleFile(ctx, imp) {
+    if (!imp.relative) {
+      const r = resolvePyModule(ctx, imp.module);
+      return r.status === 'resolved' && r.file ? r.file : null;
+    }
+    const rest = imp.module.replace(/^\.+/, '');
+    if (!rest) return null;
+    const suffix = rest.split('.').join('/');
+    const hits = [];
+    for (const key of ctx.keys) {
+      if (!/\.pyi?$/.test(key)) continue;
+      const parts = key.replace(/\.pyi?$/, '').split('/');
+      if (parts[parts.length - 1] === '__init__') parts.pop();
+      const mod = parts.join('/');
+      if (mod === suffix || mod.endsWith('/' + suffix)) hits.push(key);
+    }
+    return hits.length === 1 ? hits[0] : null;
+  }
+
+  // ── Go ──────────────────────────────────────────────────────────────────────
+
+  /** Parse a go.mod: the module path, and every module it requires. */
+  function parseGoMod(text) {
+    const mod = text.match(/^\s*module\s+"?([^\s"]+)"?/m);
+    if (!mod) return null;
+    const requires = [];
+    let inBlock = false;
+    for (const raw of text.split('\n')) {
+      const line = raw.replace(/\/\/.*$/, '').trim();
+      if (inBlock) {
+        if (line.startsWith(')')) { inBlock = false; continue; }
+        const m = line.match(/^(\S+)\s+v/);
+        if (m) requires.push(m[1]);
+        continue;
+      }
+      if (/^require\s*\(/.test(line)) { inBlock = true; continue; }
+      const one = line.match(/^require\s+(\S+)\s+v/);
+      if (one) requires.push(one[1]);
+    }
+    return { module: mod[1], requires };
+  }
+
+  /** Every go.mod the repo's Go files sit under (the repo root and nested modules). */
+  function goModules(ctx) {
+    if (ctx._go) return ctx._go;
+    const modules = [];
+    const tried = new Set();
+    const tryRoot = (root) => {
+      if (tried.has(root)) return;
+      tried.add(root);
+      const file = (root ? root + '/' : '') + 'go.mod';
+      if (!ctx.exists(file)) return;
+      const parsed = parseGoMod(ctx.readText(file));
+      if (parsed) modules.push({ root, module: parsed.module, requires: parsed.requires });
+    };
+    tryRoot('');
+    const dirs = new Set();
+    for (const key of ctx.keys) if (key.endsWith('.go')) dirs.add(dirnameOf(key));
+    let probed = 0;
+    for (const dir of [...dirs].sort()) {
+      if (++probed > MAX_GO_DIRS) break;
+      for (let d = dir; d; d = dirnameOf(d)) tryRoot(d);
+    }
+    ctx._go = modules;
+    return ctx._go;
+  }
+
+  function dirHasGo(ctx, dir) {
+    for (const key of ctx.keys) if (key.endsWith('.go') && dirnameOf(key) === dir) return true;
+    try {
+      return fs.readdirSync(path.join(ctx.cwd, dir)).some((f) => f.endsWith('.go'));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** A Go import path: local to a module, standard library, required, or unknown. */
+  function resolveGoImport(ctx, importPath) {
+    let best = null;
+    for (const m of goModules(ctx)) {
+      if (importPath === m.module || importPath.startsWith(m.module + '/')) {
+        if (!best || m.module.length > best.module.length) best = m;
+      }
+    }
+    if (best) {
+      const rel = importPath === best.module ? '' : importPath.slice(best.module.length + 1);
+      const dir = [best.root, rel].filter(Boolean).join('/');
+      return dirHasGo(ctx, dir) ? { status: 'resolved', via: 'repo' } : { status: 'unresolved' };
+    }
+    if (GO_STDLIB_SET.has(importPath.split('/')[0])) return { status: 'resolved', via: 'stdlib' };
+    for (const m of goModules(ctx)) {
+      if (m.requires.some((r) => importPath === r || importPath.startsWith(r + '/'))) {
+        return { status: 'resolved', via: 'go.mod' };
+      }
+    }
+    return { status: 'unknown' };
+  }
+
+  // ── JS / TS ─────────────────────────────────────────────────────────────────
+
+  function jsByStem(ctx) {
+    if (ctx._jsByStem) return ctx._jsByStem;
+    const map = new Map();
+    for (const key of ctx.keys) {
+      if (!JS_FILE_RE.test(key)) continue;
+      const stem = path.posix.basename(key).replace(/\.[^.]+$/, '').toLowerCase();
+      if (!map.has(stem)) map.set(stem, []);
+      map.get(stem).push(key);
+    }
+    ctx._jsByStem = map;
+    return map;
+  }
+
+  /**
+   * The one file a relative JS/TS import names, or null when it is not exactly
+   * one. The answer's import is relative to a file we cannot know, so it is read
+   * from the repo root first, then by module name — and only when that is unique.
+   */
+  function jsModuleFile(ctx, module) {
+    const base = path.posix.normalize(norm(module));
+    if (!base.startsWith('..')) {
+      for (const ext of [''].concat(JS_EXTS)) if (ctx.isFile(base + ext) && JS_FILE_RE.test(base + ext)) return base + ext;
+      for (const ext of JS_EXTS) if (ctx.isFile(`${base}/index${ext}`)) return `${base}/index${ext}`;
+    }
+    const stem = path.posix.basename(module).replace(/\.[^.]+$/, '').toLowerCase();
+    const cands = jsByStem(ctx).get(stem) || [];
+    if (cands.length === 1) return cands[0];
+    if (cands.length > 1) {
+      const tail = stripExt(module.replace(/^(?:\.{1,2}\/)+/, ''));
+      const narrowed = cands.filter((k) => stripExt(k) === tail || stripExt(k).endsWith('/' + tail));
+      if (narrowed.length === 1) return narrowed[0];
+    }
+    return null;
+  }
+
+  // A module that re-exports wholesale, or builds its exports at run time, has
+  // names the text does not show — never a finding.
+  const JS_DYNAMIC_EXPORT_RE = /\bexport\s*\*|\bmodule\.exports\s*=\s*require\s*\(|\bObject\.assign\s*\(\s*(?:module\.)?exports\b|__exportStar|\bexports\s*\[/;
+  const PY_DYNAMIC_EXPORT_RE = /^\s*from\s+[.\w]+\s+import\s+\*|^\s*def\s+__getattr__\s*\(|\bglobals\s*\(\s*\)\s*\[|\bimportlib\b|\b__import__\s*\(/m;
+
+  // ── Public ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Whether an import names something that exists.
+   * @param {{ module: string, kind: string, relative: boolean }} imp
+   * @param {object} ctx  from buildImportContext
+   * @returns {{ status: 'resolved'|'unresolved'|'unknown', via?: string, file?: string }}
+   */
+  function classifyImport(imp, ctx) {
+    if (imp.kind === 'py') return imp.relative ? resolvePyRelative(ctx, imp.module) : resolvePyModule(ctx, imp.module);
+    if (imp.kind === 'go') return resolveGoImport(ctx, imp.module);
+    return { status: 'unknown' };
+  }
+
+  /**
+   * The names an import takes by name that its module does not have — only when
+   * the module is a repo file that resolves uniquely and cannot re-export.
+   * @returns {{ file: string, missing: string[] } | null}
+   */
+  function missingNames(imp, ctx) {
+    if (!imp.names || imp.names.length === 0) return null;
+    if (imp.kind === 'js') {
+      if (!imp.relative) return null;
+      const file = jsModuleFile(ctx, imp.module);
+      if (!file || !JS_FILE_RE.test(file)) return null;
+      const text = ctx.readText(file);
+      if (!text || JS_DYNAMIC_EXPORT_RE.test(text)) return null;
+      const missing = imp.names.filter((n) => !mentions(text, n));
+      return missing.length ? { file, missing } : null;
+    }
+    if (imp.kind === 'py') {
+      const file = pyModuleFile(ctx, imp);
+      if (!file) return null;
+      const text = ctx.readText(file);
+      if (PY_DYNAMIC_EXPORT_RE.test(text)) return null;
+      const pkgDir = /(?:^|\/)__init__\.pyi?$/.test(file) ? file.replace(/\/?__init__\.pyi?$/, '') : null;
+      const submodule = (n) => pkgDir !== null && [`${n}.py`, `${n}.pyi`, `${n}/__init__.py`]
+        .some((tail) => ctx.exists((pkgDir ? pkgDir + '/' : '') + tail));
+      const missing = imp.names.filter((n) => !mentions(text, n) && !submodule(n));
+      return missing.length ? { file, missing } : null;
+    }
+    return null;
+  }
+
+  module.exports = {
+    buildImportContext,
+    classifyImport,
+    missingNames,
+    parseGoMod,
+  };
   
 };
 
@@ -32910,9 +33455,10 @@ __factories["./src/verify/parsers"] = function(module, exports) {
    * Parsers for the Hallucination Guard (verify-ai-output).
    *
    * Extract the verifiable claims an AI answer makes about a codebase:
-   *   - file paths it references
-   *   - import / require statements it shows
-   *   - function / class symbols it calls
+   *   - file paths it references (POSIX or Windows separators)
+   *   - import / require statements it shows — the module, and the names taken
+   *     from it — in JS/TS, Python and Go
+   *   - function / class symbols it calls or declares
    *   - fenced code blocks (so callers can scope checks to code vs prose)
    *
    * Everything here is deterministic and offline — pure string analysis.
@@ -32973,95 +33519,257 @@ __factories["./src/verify/parsers"] = function(module, exports) {
   }
 
   /**
+   * The fence language of every line: '' outside a fenced block, the lower-cased
+   * info-string language inside one ('' for a bare fence is reported as 'text').
+   * Lets a parser scope a claim shape to the block language that gives it meaning
+   * — a Go `import "x"` is a package, a JS `import 'x'` a side-effect import.
+   * @param {string[]} lines
+   * @returns {string[]}
+   */
+  function fenceLanguages(lines) {
+    const out = new Array(lines.length).fill('');
+    let lang = null;
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^\s*```+\s*([\w+#.-]*)/);
+      if (m) {
+        lang = lang === null ? (m[1] || 'text').toLowerCase() : null;
+        continue;
+      }
+      if (lang !== null) out[i] = lang;
+    }
+    return out;
+  }
+
+  /**
+   * 1-based line of a character offset, via a precomputed table of line starts.
+   * @param {string} text
+   * @returns {(offset: number) => number}
+   */
+  function lineLocator(text) {
+    const starts = [0];
+    for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) starts.push(i + 1);
+    return (offset) => {
+      let lo = 0;
+      let hi = starts.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1;
+        if (starts[mid] <= offset) lo = mid; else hi = mid - 1;
+      }
+      return lo + 1;
+    };
+  }
+
+  // Fence languages in which a backslash is a path separator, not a string escape.
+  const WINDOWS_FENCES = new Set(['bat', 'batch', 'cmd', 'dos', 'powershell', 'ps1', 'pwsh']);
+
+  // A Windows-style repo path: `src\retrieval\ranker.js`. Every directory segment
+  // needs two characters or more, which keeps a string escape (`a\nfile.txt`)
+  // from reading as `a/nfile.txt`; an escaped `\\` and a drive-letter absolute
+  // path never match, and neither can name a repo file. Like the POSIX form,
+  // a dot-relative `.\lib\a.py` is not read — it is relative to an unknown file.
+  const WINDOWS_PATH_RE = /(?:^|[\s`"'(\[<])([A-Za-z0-9_][\w.-]+(?:\\[A-Za-z0-9_.][\w.-]*)+\.[A-Za-z][A-Za-z0-9]*)(?![\w\\])/g;
+
+  /**
    * Extract file-path references (deduped, first-seen line kept).
    * A token counts as a path when it has a `.<letter…>` extension AND
-   * either contains a `/` or carries a known code/config extension.
+   * either contains a `/` or carries a known code/config extension. Windows
+   * separators (`src\a\b.js`) are read too and reported with `/`, so one file is
+   * one claim however the answer spells it.
    * @param {string} text
    * @returns {{ path: string, line: number }[]}
    */
   function extractFilePaths(text) {
     const lines = text.split('\n');
+    const fences = fenceLanguages(lines);
     const seen = new Map();
     const re = /(?:^|[\s`"'(\[<])([A-Za-z0-9_][\w./-]*\.[A-Za-z][A-Za-z0-9]*)/g;
+    const accept = (p, lineNo) => {
+      if (/^https?:/i.test(p)) return;
+      const ext = (p.split('.').pop() || '').toLowerCase();
+      const hasSlash = p.includes('/');
+      if (!hasSlash && !KNOWN_CODE_EXT.has(ext)) return;
+      if (LIBRARY_TOKENS.has(p.toLowerCase())) return;
+      const base = p.split('/').pop();
+      if (PLACEHOLDER_RE.test(base) || PLACEHOLDER_CAMEL_RE.test(base)) return;
+      if (!seen.has(p)) seen.set(p, lineNo);
+    };
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       let m;
       re.lastIndex = 0;
-      while ((m = re.exec(line)) !== null) {
-        const p = m[1];
-        if (/^https?:/i.test(p)) continue;
-        const ext = (p.split('.').pop() || '').toLowerCase();
-        const hasSlash = p.includes('/');
-        if (!hasSlash && !KNOWN_CODE_EXT.has(ext)) continue;
-        if (LIBRARY_TOKENS.has(p.toLowerCase())) continue;
-        const base = p.split('/').pop();
-        if (PLACEHOLDER_RE.test(base) || PLACEHOLDER_CAMEL_RE.test(base)) continue;
-        if (!seen.has(p)) seen.set(p, i + 1);
+      while ((m = re.exec(line)) !== null) accept(m[1], i + 1);
+
+      if (line.indexOf('\\') === -1) continue;
+      if (fences[i] && !WINDOWS_FENCES.has(fences[i])) continue; // a code string's escapes
+      WINDOWS_PATH_RE.lastIndex = 0;
+      while ((m = WINDOWS_PATH_RE.exec(line)) !== null) {
+        const parts = m[1].split('\\');
+        if (parts.slice(0, -1).some((seg) => seg.length < 2)) continue;
+        // `dir\file` where the file starts with an escape letter (`tab\tsep.log`,
+        // `line\nfile.txt`) is a string escape far more often than a path.
+        if (parts.length === 2 && /^[ntrbfva0exu]/.test(parts[1])) continue;
+        accept(parts.join('/'), i + 1);
       }
     }
     return [...seen.entries()].map(([p, line]) => ({ path: p, line }));
   }
 
+  const IDENT = '[A-Za-z_$][\\w$]*';
+
+  // import|export [type] <clause> from '<module>', where the clause is
+  //   `D` · `{ a, b as c }` · `* as ns` · `D, { a }` · `D, * as ns`.
+  // The braces may span lines (`[^{}]*` crosses newlines).
+  const ESM_FROM_RE = new RegExp(
+    '\\b(?:import|export)\\s+(?:type\\s+)?('
+    + '(?:' + IDENT + '\\s*,\\s*)?\\{[^{}]*\\}'
+    + '|(?:' + IDENT + '\\s*,\\s*)?\\*(?:\\s*as\\s+' + IDENT + ')?'
+    + '|' + IDENT
+    + ')\\s*from\\s*([\'"])([^\'"\\r\\n]+)\\2', 'g');
+
+  // import 'x' — a side-effect import (a Go package inside a ```go fence).
+  const SIDE_EFFECT_RE = /\bimport\s*(['"])([^'"\r\n]+)\1/g;
+
+  // [const|let|var <binding> =] require('x') | import('x'). `\s*` crosses
+  // newlines, so `require(\n  'x'\n)` and a destructuring split over lines read.
+  const REQUIRE_RE = new RegExp(
+    '(?:\\b(?:const|let|var)\\s+(\\{[^{}]*\\}|' + IDENT + ')\\s*=\\s*)?'
+    + '\\b(?:require|import)\\s*\\(\\s*([\'"])([^\'"\\r\\n]+)\\2\\s*\\)', 'g');
+
+  // Python: from x import y, z  |  from x import (\n y,\n z as w,\n)
+  const PY_FROM_RE = /^[ \t]*from[ \t]+([.\w]+)[ \t]+import[ \t]+(\([^)]*\)|[^\n#;]+)/gm;
+
+  // Python: import a.b as c, d — the WHOLE line, so a JS `import D, { a } from`
+  // can never read as the module `D`.
+  const PY_IMPORT_RE = /^[ \t]*import[ \t]+([A-Za-z_][\w.]*(?:[ \t]+as[ \t]+\w+)?(?:[ \t]*,[ \t]*[A-Za-z_][\w.]*(?:[ \t]+as[ \t]+\w+)?)*)[ \t]*(?:#.*)?$/gm;
+
+  /** The names inside `{ a, b as c, type d }` / a CJS `{ a: b }` — the source names. */
+  function braceNames(inner) {
+    const names = [];
+    const clean = inner.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    for (let part of clean.split(',')) {
+      part = part.trim().replace(/^(?:type|typeof)\s+/, '');
+      const left = part.split(/\s+as\s+|\s*:\s*/)[0].trim();
+      const id = left.match(/^[A-Za-z_$][\w$]*/);
+      if (id && id[0] !== 'default') names.push(id[0]);
+    }
+    return names;
+  }
+
+  /** The names of a Python `import` clause; `*` is a wildcard, not a name. */
+  function pyNames(clause) {
+    const names = [];
+    let wildcard = false;
+    const clean = clause.replace(/[()]/g, ' ').replace(/#[^\n]*/g, '');
+    for (const part of clean.split(/[,\n]/)) {
+      const left = part.trim().split(/\s+as\s+/)[0].trim();
+      if (left === '*') wildcard = true;
+      else if (/^[A-Za-z_]\w*$/.test(left)) names.push(left);
+    }
+    return { names, wildcard };
+  }
+
   /**
-   * Extract import / require statements.
+   * Extract import / require statements, with the names each takes from its
+   * module (#672, #909).
+   *
+   * Reads, per language:
+   *   JS/TS   `import D, { a, b as c } from 'x'` (braces may span lines),
+   *           `import type`, `export { a } from`, `export * from`, `import 'x'`,
+   *           `const { a, b } = require('x')` (and across lines), `require(\n'x'\n)`
+   *   Python  `from x import a, b`, `from x import (\n a,\n b as c,\n)`, `import a.b as c`
+   *   Go      `import "p"`, `import alias "p"` and `import ( … )` — inside a
+   *           ```go / ```golang fence only, so prose is never read as a package
+   *
+   * `names` lists the bindings taken by name — never a default, a namespace or a
+   * wildcard, which cannot be checked against a module's members (`wildcard`
+   * records that one was there).
+   *
    * @param {string} text
-   * @returns {{ module: string, kind: 'js'|'py', relative: boolean, line: number, raw: string }[]}
+   * @returns {{ module: string, kind: 'js'|'py'|'go', relative: boolean, line: number, raw: string, names: string[], wildcard: boolean }[]}
    */
   function extractImports(text) {
     const lines = text.split('\n');
-    const out = [];
-    const push = (module, kind, line, raw) => {
+    const fences = fenceLanguages(lines);
+    const lineOf = lineLocator(text);
+    const byKey = new Map();
+    const add = (module, kind, offsetOrLine, extra) => {
       if (!module) return;
-      out.push({ module, kind, relative: /^[./]/.test(module), line, raw: raw.trim() });
+      const line = extra && extra.atLine ? offsetOrLine : lineOf(offsetOrLine);
+      const key = `${kind}|${module}|${line}`;
+      const names = (extra && extra.names) || [];
+      const wildcard = !!(extra && extra.wildcard);
+      const prior = byKey.get(key);
+      if (prior) {
+        for (const n of names) if (!prior.names.includes(n)) prior.names.push(n);
+        prior.wildcard = prior.wildcard || wildcard;
+        return;
+      }
+      byKey.set(key, {
+        module,
+        kind,
+        relative: kind !== 'go' && /^[./]/.test(module),
+        line,
+        raw: (lines[line - 1] || '').trim(),
+        names: names.slice(),
+        wildcard,
+      });
     };
+    const langAt = (offset) => fences[lineOf(offset) - 1] || '';
+
+    let m;
+    // JS/TS: import|export … from 'x'
+    ESM_FROM_RE.lastIndex = 0;
+    while ((m = ESM_FROM_RE.exec(text)) !== null) {
+      const clause = m[1];
+      const braces = clause.match(/\{([^{}]*)\}/);
+      add(m[3], 'js', m.index, {
+        names: braces ? braceNames(braces[1]) : [],
+        wildcard: /\*/.test(clause),
+      });
+    }
+    // JS side-effect import 'x' — a Go package inside a ```go fence, handled below.
+    SIDE_EFFECT_RE.lastIndex = 0;
+    while ((m = SIDE_EFFECT_RE.exec(text)) !== null) {
+      if (/^(?:go|golang)$/.test(langAt(m.index))) continue;
+      add(m[2], 'js', m.index);
+    }
+    // require('x') / dynamic import('x'), with an optional destructuring binding.
+    REQUIRE_RE.lastIndex = 0;
+    while ((m = REQUIRE_RE.exec(text)) !== null) {
+      const binding = m[1];
+      add(m[3], 'js', m.index, { names: binding && binding.startsWith('{') ? braceNames(binding.slice(1, -1)) : [] });
+    }
+
+    // Python: from x import …  |  import x
+    PY_FROM_RE.lastIndex = 0;
+    while ((m = PY_FROM_RE.exec(text)) !== null) {
+      add(m[1], 'py', m.index, pyNames(m[2]));
+    }
+    PY_IMPORT_RE.lastIndex = 0;
+    while ((m = PY_IMPORT_RE.exec(text)) !== null) {
+      for (const part of m[1].split(',')) {
+        const mod = part.trim().split(/\s+as\s+/)[0].trim();
+        add(mod, 'py', m.index);
+      }
+    }
+
+    // Go: only inside a go fence — `import "p"`, `import a "p"`, `import ( … )`.
+    let inGoBlock = false;
     for (let i = 0; i < lines.length; i++) {
+      if (!/^(?:go|golang)$/.test(fences[i])) { inGoBlock = false; continue; }
       const line = lines[i];
-      let m;
-      // JS/TS: import ... from 'x'  |  export ... from 'x'
-      if ((m = line.match(/\b(?:import|export)\b[^'"]*\bfrom\s*['"]([^'"]+)['"]/))) {
-        push(m[1], 'js', i + 1, line);
-      } else if ((m = line.match(/\bimport\s*['"]([^'"]+)['"]/))) {
-        // side-effect import 'x'
-        push(m[1], 'js', i + 1, line);
+      if (inGoBlock) {
+        if (/^\s*\)/.test(line)) { inGoBlock = false; continue; }
+        const spec = line.match(/^\s*(?:[\w.]+\s+)?"([^"\n]+)"/);
+        if (spec) add(spec[1], 'go', i + 1, { atLine: true });
+        continue;
       }
-      // require('x') / dynamic import('x') — may co-occur, scan separately
-      const reqRe = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-      let r;
-      while ((r = reqRe.exec(line)) !== null) push(r[1], 'js', i + 1, line);
-
-      // TS: import X = require('mod')
-      if ((m = line.match(/\bimport\s+[A-Za-z_$][\w$]*\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)/))) {
-        push(m[1], 'js', i + 1, line);
-      }
-
-      // Python: from x import y  |  import x
-      if ((m = line.match(/^\s*from\s+([.\w]+)\s+import\b/))) {
-        push(m[1], 'py', i + 1, line);
-      } else if ((m = line.match(/^\s*import\s+([A-Za-z_][\w.]*)/))) {
-        push(m[1], 'py', i + 1, line);
-      }
+      if (/^\s*import\s*\(\s*(?:\/\/.*)?$/.test(line)) { inGoBlock = true; continue; }
+      const one = line.match(/^\s*import\s+(?:[\w.]+\s+)?"([^"\n]+)"/);
+      if (one) add(one[1], 'go', i + 1, { atLine: true });
     }
 
-    // Multi-line JS/TS imports, e.g.
-    //   import {
-    //     A as B,
-    //   } from './mod';
-    // The per-line pass above misses these because `from '…'` sits on a later
-    // line. Trigger only when the opening line has no quote and no `from` yet,
-    // then gather forward until the source string appears.
-    for (let i = 0; i < lines.length; i++) {
-      const start = lines[i];
-      if (!/^\s*(?:import|export)\b/.test(start)) continue;
-      if (/['"]/.test(start) || /\bfrom\b/.test(start)) continue; // single-line, already handled
-      let joined = start;
-      for (let j = i + 1; j < Math.min(lines.length, i + 12); j++) {
-        joined += ' ' + lines[j];
-        const fm = joined.match(/\bfrom\s*['"]([^'"]+)['"]/);
-        if (fm) { push(fm[1], 'js', i + 1, start.trim()); break; }
-        if (/['"]/.test(lines[j]) && !/\bfrom\b/.test(joined)) break; // a string that isn't a source — bail
-      }
-    }
-    return out;
+    return [...byKey.values()].sort((a, b) => a.line - b.line);
   }
 
   /**
@@ -33089,9 +33797,25 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     return out;
   }
 
+  // `name(…)`, `name<T>(…)`, `name::<T>(…)` — a backticked call, optionally generic.
+  // A declaration (`def f(`, `function f(`) is deliberately NOT read: it names an
+  // existing symbol in an answer that describes code but proposes one in a plan,
+  // and the symbol index keeps only `maxSigsPerFile` signatures per file, so a
+  // reference doc's `def clear(domain)` for a real method past the cut would flag
+  // as fake (measured on httpx: 3 of 3 such claims). #909.
+  const SYMBOL_RE = new RegExp('`(' + IDENT + ')(?:::<[^`<>()]*>|<[^`<>()]*>)?\\s*\\([^`]*\\)`', 'g');
+
+  // Words that precede a parenthesis without naming a callee.
+  const NOT_A_CALLEE = new Set([
+    'if', 'for', 'while', 'switch', 'catch', 'return', 'function', 'func', 'def',
+    'fn', 'fun', 'class', 'new', 'typeof', 'sizeof', 'await', 'yield', 'throw',
+    'else', 'do', 'with', 'elif', 'lambda', 'assert', 'sub',
+  ]);
+
   /**
-   * Extract function/class symbol references that look like calls.
-   * Restricted to backtick-wrapped calls (`foo(...)`) for high precision.
+   * Extract function/class symbol references that look like calls. Restricted to
+   * backtick-wrapped calls (`foo(...)`, `foo<T>(...)`) for high precision; a
+   * keyword before a parenthesis (`if (x)`, `func (r *T) F()`) is not a callee.
    * @param {string} text
    * @returns {{ name: string, line: number }[]}
    */
@@ -33099,12 +33823,12 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     const lines = text.split('\n');
     const out = [];
     const seen = new Set();
-    const re = /`([A-Za-z_$][\w$]*)\s*\([^`]*\)`/g;
     for (let i = 0; i < lines.length; i++) {
       let m;
-      re.lastIndex = 0;
-      while ((m = re.exec(lines[i])) !== null) {
+      SYMBOL_RE.lastIndex = 0;
+      while ((m = SYMBOL_RE.exec(lines[i])) !== null) {
         const name = m[1];
+        if (NOT_A_CALLEE.has(name)) continue;
         const key = name + '@' + (i + 1);
         if (seen.has(key)) continue;
         seen.add(key);
@@ -39192,12 +39916,12 @@ function main() {
 
     const labels = {
       'fake-file': 'Fake file', 'fake-test-file': 'Fake test file',
-      'fake-import': 'Fake import', 'fake-symbol': 'Fake symbol',
-      'fake-npm-script': 'Fake npm script',
+      'fake-import': 'Fake import', 'fake-import-name': 'Fake imported name',
+      'fake-symbol': 'Fake symbol', 'fake-npm-script': 'Fake npm script',
     };
     const bt = summary.byType;
     console.log(`[sigmap] ✗ ${rel} — ${summary.total} issue${summary.total === 1 ? '' : 's'} found`);
-    console.log(`  fake-file: ${bt['fake-file']}  fake-test-file: ${bt['fake-test-file']}  fake-import: ${bt['fake-import']}  fake-symbol: ${bt['fake-symbol']}  fake-npm-script: ${bt['fake-npm-script']}`);
+    console.log(`  fake-file: ${bt['fake-file']}  fake-test-file: ${bt['fake-test-file']}  fake-import: ${bt['fake-import']}  fake-import-name: ${bt['fake-import-name']}  fake-symbol: ${bt['fake-symbol']}  fake-npm-script: ${bt['fake-npm-script']}`);
     console.log('');
     for (const issue of issues) {
       console.log(`  L${issue.line}  [${labels[issue.type] || issue.type}]  ${issue.message}`);
