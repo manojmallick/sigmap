@@ -277,7 +277,7 @@ node scripts/run-verify-benchmark.mjs --manifest cases.json
 It emits a per-detector precision/recall CSV.
 
 The **grounding regression corpus** scores `verify` and `judge` on answers whose
-truth is known — six fixture repos (Go, Java, JavaScript, Python, Rust,
+truth is known — seven fixture repos (Go, Java, JavaScript, Python, Ruby, Rust,
 TypeScript), each with a `good.md` where every claim is real and a `bad.md` with
 labelled fakes — per claim kind (`file`, `symbol`, `import`, `import-name`,
 `script`), against floors recorded in `benchmarks/grounding-regression-baseline.json`:
