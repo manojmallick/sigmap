@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.67.0</span>
+  <span><strong>Release:</strong> v8.68.0</span>
   <span>·</span>
-  <span><strong>New — the gaps the third-party gate found, closed:</strong> v8.66.0's <code>xrepo</code> scored 40 of 83 questions on repositories we do not control, and attributing its misses showed the cheapest to fix were answers that never reached the index — Dart, Elixir and GDScript source roots detection could not find, C# <code>partial</code> types, Swift <code>@unchecked</code> conformances and TypeScript default exports that extracted as nothing, and real source named <code>history.ts</code> demoted as documentation. All fixed: <code>xrepo</code> now reads <strong>42 of 83 (50.6%)</strong> with no pinned <code>srcDirs</code>, and <code>xrepo --why</code> says how each remaining miss misses. <a href="/guide/retrieval-benchmark#measured-on-repos-we-do-not-control-xrepo">How xrepo works →</a></span>
+  <span><strong>New — why a question misses, and the lever for the biggest class:</strong> every retrieval split now says <em>why</em> each miss misses (<code>--why</code>), and the largest class — answers that share no word with the question — turned out to hold a rare word of it in their own source, which a signature map drops. <code>retrieval.bodyWords</code> (opt-in) indexes those words: on <code>xrepo</code> it takes 42 of 83 to <strong>57</strong> (50.6% → 68.7%), winning 16 tasks and losing 1, and no corpus loses net. <a href="/guide/retrieval-benchmark#where-the-misses-come-from">Where the misses come from →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.67-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.68-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-05</span>
+  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-06</span>
 </div>
 </div>
 
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-05 (v8.67.0)**.
+Latest saved benchmark run: **2026-10-06 (v8.68.0)**.
 
 </div>
 

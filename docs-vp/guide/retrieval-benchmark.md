@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.67.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.0% (2.24× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.68.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.0% (2.24× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.67.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.67-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
+::: info Official v8.68.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.68-main &nbsp;·&nbsp; **Date:** 2026-10-06 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-05 (v8.67.0)**
+Latest saved run: **2026-10-06 (v8.68.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -87,11 +87,13 @@ leak**). `benchmark:honest` reports both splits, plus per-repo-size buckets
 
 | Slice | Tasks | SigMap hit@5 | Grep baseline |
 |---|---:|:---:|:---:|
-| Easy split | 110 | **91.8%** | 39.1% |
-| **Hard split** | 15 | **60.0%** | **53.3%** |
+| Easy split | 110 | **92.7%** | 38.2% |
+| **Hard split** | 15 | **66.7%** | **53.3%** |
 | Small repos | 13 | 100.0% | 61.5% |
-| Medium repos | 52 | 80.8% | 46.2% |
-| Large repos | 60 | 91.7% | 31.7% |
+| Medium repos | 52 | 84.6% | 46.2% |
+| Large repos | 60 | 91.7% | 30.0% |
+
+These rows are the saved honest report's own (`benchmarks/reports/honest-baseline.json`). The table had drifted from it since v8.62.0 and is regenerated at v8.68.0; the hard split, for one, reads 10 of 15 where it read 9 until v8.66.0.
 
 The hard split is published deliberately: it is the measured vocabulary-mismatch
 ceiling, the number repo-mined query expansion (planned for v9.0) exists to move.
