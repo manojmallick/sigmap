@@ -790,7 +790,7 @@ It checks three things:
 
 | Check | Flags |
 |-------|-------|
-| **Existence** | referenced files that don't exist · symbols not in the live index (with a closest-match suggestion) — both **errors** |
+| **Existence** | referenced files that don't exist · symbols in neither the live index nor your source (with a closest-match suggestion) — both **errors** |
 | **Blast radius** | each referenced file's transitive dependents (via the impact graph); files above the threshold are a **warning** |
 | **Scope** | plans touching more distinct files than the scope threshold — a **warning** |
 
@@ -892,7 +892,7 @@ Six deterministic detectors:
 | `fake-test-file` | A referenced **test** path (`*.test`/`*.spec`/`__tests__`/`test_*.py`) absent on disk | High |
 | `fake-import` | A relative import that does not resolve, a bare package absent from `package.json` dependencies (Node/Python builtins and scoped packages are allow-listed), or a Python / Go import of the repo's own package that does not resolve | High |
 | `fake-import-name` | A name imported from a repo module that resolves to one file and occurs nowhere in it — see [Imports and the names they take](/guide/verify-ai-output#imports-and-the-names-they-take-909) | Medium |
-| `fake-symbol` | A called function/class (`` `name()` ``) absent from the SigMap symbol index (`buildSigIndex`) | Medium |
+| `fake-symbol` | A called function/class (`` `name()` ``) absent from the SigMap symbol index (`buildSigIndex`) **and** neither called nor defined in your source — see [Symbols are confirmed against your source](/guide/verify-ai-output#symbols-are-confirmed-against-your-source-914) | Medium |
 | `fake-npm-script` | An `npm run X` (or `pnpm`/`yarn run X`) where `X` is not a `package.json` script | High |
 
 To avoid false positives, the detectors ignore tokens that aren't real claims about the repo: well-known runtime/library product names (`Node.js`, `Next.js`, `Vue.js`, `Express.js`, `D3.js`, …); illustrative placeholder filenames the model writes in prose, including camelCase forms (`example.js`, `minimal-example.js`, `myExample.js`, `exampleConfig.ts`, `sample.ts`, `demo.py`, `placeholder.js`); and documentation-placeholder imports (`@scope/utils`, `some-module`, `./local-file`, `./path/to/…`). Genuine repo-shaped paths (`src/foo/bar.js`, `main.js`, `index.ts`), ordinary words (`resample.js`), and real missing packages/imports are still flagged, so real hallucinations are unaffected.
@@ -905,7 +905,7 @@ JSON output (`--json`) for CI:
   "issues": [
     { "type": "fake-symbol", "value": "loadConfg", "line": 4, "location": "L4", "message": "Symbol not found in repo index: loadConfg()", "confidence": "medium", "suggestion": "Did you mean `loadConfig()` in src/config/loader.js:42?" }
   ],
-  "summary": { "total": 1, "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-import-name": 0, "fake-symbol": 1, "fake-npm-script": 0 }, "clean": false, "symbolsIndexed": 288, "withSuggestion": 1 }
+  "summary": { "total": 1, "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-import-name": 0, "fake-symbol": 1, "fake-npm-script": 0 }, "clean": false, "symbolsIndexed": 288, "symbolsConfirmed": 0, "withSuggestion": 1 }
 }
 ```
 
