@@ -1,0 +1,440 @@
+{
+  "benchmark": "body-words-sweep",
+  "method": "run-body-words-sweep.mjs: each task ranked with the setting's body words, against plain, one index and import graph per repository (the honest corpus without a graph)",
+  "shipped": {
+    "share": 0.05,
+    "perFile": 200
+  },
+  "shares": [
+    0.02,
+    0.05,
+    0.1
+  ],
+  "perFile": [
+    50,
+    100,
+    200,
+    500,
+    5000
+  ],
+  "plain": {
+    "xrepo": {
+      "hits": 42,
+      "tasks": 83
+    },
+    "hard": {
+      "hits": 66,
+      "tasks": 90
+    },
+    "mined": {
+      "hits": 37,
+      "tasks": 60
+    },
+    "easy": {
+      "hits": 18,
+      "tasks": 20
+    },
+    "jvm": {
+      "hits": 21,
+      "tasks": 61
+    },
+    "honest": {
+      "hits": 112,
+      "tasks": 125
+    }
+  },
+  "grid": {
+    "s2-p50": {
+      "xrepo": {
+        "won": 9,
+        "lost": 2
+      },
+      "hard": {
+        "won": 2,
+        "lost": 1
+      },
+      "mined": {
+        "won": 3,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 0
+      },
+      "honest": {
+        "won": 3,
+        "lost": 0
+      }
+    },
+    "s2-p100": {
+      "xrepo": {
+        "won": 11,
+        "lost": 5
+      },
+      "hard": {
+        "won": 3,
+        "lost": 2
+      },
+      "mined": {
+        "won": 3,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 0
+      },
+      "honest": {
+        "won": 3,
+        "lost": 0
+      }
+    },
+    "s2-p200": {
+      "xrepo": {
+        "won": 11,
+        "lost": 5
+      },
+      "hard": {
+        "won": 2,
+        "lost": 1
+      },
+      "mined": {
+        "won": 3,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 0
+      },
+      "honest": {
+        "won": 3,
+        "lost": 0
+      }
+    },
+    "s2-p500": {
+      "xrepo": {
+        "won": 11,
+        "lost": 5
+      },
+      "hard": {
+        "won": 2,
+        "lost": 1
+      },
+      "mined": {
+        "won": 3,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 0
+      },
+      "honest": {
+        "won": 3,
+        "lost": 0
+      }
+    },
+    "s2-p5000": {
+      "xrepo": {
+        "won": 11,
+        "lost": 5
+      },
+      "hard": {
+        "won": 2,
+        "lost": 1
+      },
+      "mined": {
+        "won": 3,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 0
+      },
+      "honest": {
+        "won": 3,
+        "lost": 0
+      }
+    },
+    "s5-p50": {
+      "xrepo": {
+        "won": 12,
+        "lost": 0
+      },
+      "hard": {
+        "won": 4,
+        "lost": 2
+      },
+      "mined": {
+        "won": 4,
+        "lost": 1
+      },
+      "easy": {
+        "won": 1,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 2,
+        "lost": 0
+      },
+      "honest": {
+        "won": 5,
+        "lost": 0
+      }
+    },
+    "s5-p100": {
+      "xrepo": {
+        "won": 17,
+        "lost": 0
+      },
+      "hard": {
+        "won": 3,
+        "lost": 2
+      },
+      "mined": {
+        "won": 4,
+        "lost": 1
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 2,
+        "lost": 0
+      },
+      "honest": {
+        "won": 5,
+        "lost": 0
+      }
+    },
+    "s5-p200": {
+      "xrepo": {
+        "won": 16,
+        "lost": 1
+      },
+      "hard": {
+        "won": 2,
+        "lost": 1
+      },
+      "mined": {
+        "won": 4,
+        "lost": 1
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 0
+      },
+      "honest": {
+        "won": 4,
+        "lost": 0
+      }
+    },
+    "s5-p500": {
+      "xrepo": {
+        "won": 17,
+        "lost": 1
+      },
+      "hard": {
+        "won": 2,
+        "lost": 2
+      },
+      "mined": {
+        "won": 5,
+        "lost": 1
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 1
+      },
+      "honest": {
+        "won": 4,
+        "lost": 0
+      }
+    },
+    "s5-p5000": {
+      "xrepo": {
+        "won": 18,
+        "lost": 1
+      },
+      "hard": {
+        "won": 2,
+        "lost": 2
+      },
+      "mined": {
+        "won": 5,
+        "lost": 1
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 1,
+        "lost": 1
+      },
+      "honest": {
+        "won": 4,
+        "lost": 0
+      }
+    },
+    "s10-p50": {
+      "xrepo": {
+        "won": 15,
+        "lost": 1
+      },
+      "hard": {
+        "won": 4,
+        "lost": 4
+      },
+      "mined": {
+        "won": 3,
+        "lost": 1
+      },
+      "easy": {
+        "won": 1,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 5,
+        "lost": 0
+      },
+      "honest": {
+        "won": 6,
+        "lost": 0
+      }
+    },
+    "s10-p100": {
+      "xrepo": {
+        "won": 19,
+        "lost": 2
+      },
+      "hard": {
+        "won": 3,
+        "lost": 3
+      },
+      "mined": {
+        "won": 4,
+        "lost": 0
+      },
+      "easy": {
+        "won": 1,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 5,
+        "lost": 0
+      },
+      "honest": {
+        "won": 6,
+        "lost": 1
+      }
+    },
+    "s10-p200": {
+      "xrepo": {
+        "won": 20,
+        "lost": 3
+      },
+      "hard": {
+        "won": 3,
+        "lost": 2
+      },
+      "mined": {
+        "won": 4,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 5,
+        "lost": 0
+      },
+      "honest": {
+        "won": 6,
+        "lost": 3
+      }
+    },
+    "s10-p500": {
+      "xrepo": {
+        "won": 20,
+        "lost": 3
+      },
+      "hard": {
+        "won": 2,
+        "lost": 2
+      },
+      "mined": {
+        "won": 4,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 5,
+        "lost": 1
+      },
+      "honest": {
+        "won": 5,
+        "lost": 3
+      }
+    },
+    "s10-p5000": {
+      "xrepo": {
+        "won": 20,
+        "lost": 3
+      },
+      "hard": {
+        "won": 2,
+        "lost": 2
+      },
+      "mined": {
+        "won": 4,
+        "lost": 0
+      },
+      "easy": {
+        "won": 0,
+        "lost": 0
+      },
+      "jvm": {
+        "won": 5,
+        "lost": 2
+      },
+      "honest": {
+        "won": 5,
+        "lost": 3
+      }
+    }
+  },
+  "version": "8.67.0",
+  "generated": "2026-10-05T22:36:47.234Z"
+}

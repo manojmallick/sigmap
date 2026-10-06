@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.67.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.0% (2.24× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.68.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.0% (2.24× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.67.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.67-main &nbsp;·&nbsp; **Date:** 2026-10-05 (with R language)
+::: info Official v8.68.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.68-main &nbsp;·&nbsp; **Date:** 2026-10-06 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-05 (v8.67.0)**
+Latest saved run: **2026-10-06 (v8.68.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -87,11 +87,13 @@ leak**). `benchmark:honest` reports both splits, plus per-repo-size buckets
 
 | Slice | Tasks | SigMap hit@5 | Grep baseline |
 |---|---:|:---:|:---:|
-| Easy split | 110 | **91.8%** | 39.1% |
-| **Hard split** | 15 | **60.0%** | **53.3%** |
+| Easy split | 110 | **92.7%** | 38.2% |
+| **Hard split** | 15 | **66.7%** | **53.3%** |
 | Small repos | 13 | 100.0% | 61.5% |
-| Medium repos | 52 | 80.8% | 46.2% |
-| Large repos | 60 | 91.7% | 31.7% |
+| Medium repos | 52 | 84.6% | 46.2% |
+| Large repos | 60 | 91.7% | 30.0% |
+
+These rows are the saved honest report's own (`benchmarks/reports/honest-baseline.json`). The table had drifted from it since v8.62.0 and is regenerated at v8.68.0; the hard split, for one, reads 10 of 15 where it read 9 until v8.66.0.
 
 The hard split is published deliberately: it is the measured vocabulary-mismatch
 ceiling, the number repo-mined query expansion (planned for v9.0) exists to move.
@@ -470,6 +472,125 @@ CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.jso
 - **Re-pin a repo:** change its `commit` in `benchmarks/xrepo-repos.json`, run `npm run fetch:xrepo`, re-check every task that names a file in that repo, then `node scripts/run-xrepo-gate.mjs --save`. A pin that moves with the corpus unchanged is a measurement change; say so in the PR.
 - **Add a task:** read the code, never the ranker; write a question that shares no word stem with the answer's file name; record a `rationale` naming what the file does and which neighbours you ruled out; have a second annotator name files for the question alone; set `"audit"` to `agreed` or `partial`. `test/integration/xrepo-corpus.test.js` enforces the mechanical half.
 - **Never hand-edit the baseline.** `--save` merges, so a run on a machine that lacks some repos does not erase their entries.
+
+## Where the misses come from
+
+A hit rate says how many tasks miss and nothing about the remedy. Every gate can now say why — each miss in exactly one class, with the words that explain it — and compare each opt-in ranking signal with the shipped ranker, task by task. This section is what that found. Each figure in it is held to a saved report by a test, so none can drift; `hard`, `mined` and `easy` score this repository against itself, move with every commit, and are not quoted.
+
+### What the misses are made of
+
+| Why the task misses | xrepo | jvm |
+|---|---:|---:|
+| answer not indexed | 1 | 0 |
+| demoted by a path penalty | 0 | 1 |
+| no token in common with the question | **12** | **24** |
+| ranked 6–10 | 9 | 2 |
+| ranked 11–20 | 5 | 0 |
+| ranked 21–50 | 5 | 8 |
+| ranked beyond 50 | 9 | 5 |
+| **hits / tasks** | 42 / 83 | 21 / 61 |
+| **hit rate over the tasks a word can reach** | 60.0% (42 / 70) | 56.8% (21 / 37) |
+
+*A word can reach a task* when its answer is indexed and shares a word with the question. A task outside that set cannot be won by any method that matches words, so the rate over the set is the one a ranking change can move; the rate over every task also moves when the corpus does.
+
+The largest class on both corpora is the one no re-weighting touches: the answer shares no token with the question. What differs is why. On `xrepo`, whose questions were written by reading the code, **11 of the 12** hold a *distinctive* word of the question in their own source — a word held by no more than 5% of the files, which the file's signatures do not carry (okhttp `revalidated`, express `tls`, serilog `retrying`) — and the twelfth holds none. A signature map keeps a file's shape and drops what its body says, and a question about how something works is asked in the words the body uses. On `jvm` the same split reads **6 / 12 / 6**: six hold a distinctive word, twelve only common ones (`import`, `message`, `not`), six nothing. Those are commit subjects the miner took for questions, and most of them describe an edit, not a topic.
+
+### What the JVM split measures
+
+It reads **34.4%** (21 of 61) — not the 22.9% [#674](https://github.com/manojmallick/sigmap/issues/674) quoted, nor the 21.3% its baseline held until this release, which is why its no-regress check would have passed a drop of 13 points. Of its 40 misses **24** share no token with the question, almost all of them spring-petclinic commit subjects: "fix typo in confirmation message", "Make jar not war", "Add proxyBeanMethods = false". The miner took the subject as the question and the files the commit touched as the answer, and a subject that describes an edit names nothing the file is about. **5** tasks name only a test file as the answer, and none of them hits. This is the shape of [#883](https://github.com/manojmallick/sigmap/issues/883) — a mining artefact scored as a ranking miss — in a second corpus.
+
+Over the 37 tasks a word-matching ranker can reach, the hit rate is **56.8%**. What is left is 16 ranking misses (15 ranked below the top 5, one demoted by a path penalty), most of them in akka's large Scala files. The headline measures the corpus as much as the ranker: read the reachable rate when judging a ranking change, and keep the headline for comparing releases.
+
+### The hard split against grep
+
+[#674](https://github.com/manojmallick/sigmap/issues/674) called the honest benchmark's hard split "the one split where the baseline wins" (SigMap 46.7%, grep 53.3%). The saved report now reads SigMap **66.7%** (10 of 15) against grep **53.3%** (8 of 15). `--autopsy` asks which tasks each finds and the other does not — and in doing so found what the grep scan was counting.
+
+**The published scan counts SigMap's own files.** `.context/sig-index.json` and `.github/copilot-instructions.md` hold every identifier in a repository, so any question matches them first. In the layout the published figure is measured in, they took **126 of the 625** top-5 places the scan returned. They are not answers, and they push answers out.
+
+| grep scan | hit@5 | honest lift |
+|---|---:|---:|
+| as published | 40.0% (50 / 125) | 2.24× |
+| SigMap's own files left out | 45.6% (57 / 125) | 1.96× |
+
+**The published figure is unchanged**: `benchmark:honest` still scans what it always scanned, and this release only records the effect. Whether to restate the lift is a call for a release, not a side effect of a diagnosis.
+
+Against the scan without those files:
+
+| | tasks | both find it | only SigMap | only grep | neither |
+|---|---:|---:|---:|---:|---:|
+| every task | 125 | 54 | 58 | 3 | 10 |
+| hard split | 15 | 7 | 3 | 1 | 4 |
+
+The three tasks grep finds and SigMap does not show no systematic vocabulary advantage. One shares no token with the question and holds only common words in its source (`express-h003`, which grep ranks 3rd). Two are SigMap near-misses, ranked 6th–10th, that grep ranks 5th and 2nd (`fastapi-t004`, `svelte-t002`). SigMap's 13 misses on this corpus are **4** that share no word with their index entry and **9** ranked misses, **5** of them ranked 6th–10th.
+
+### The opt-in ranking signals
+
+Each signal against the shipped ranker, task by task. A cell is the net number of tasks it wins over plain, with won / lost beside it: a signal that wins as many as it loses has moved answers around, not improved them. The honest corpus is scored without an import graph, as its own table is, so the two arms that are about the graph do not apply to it (—).
+
+| signal | xrepo | hard | mined | easy | jvm | honest | all |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| plain (as shipped) | 42 / 83 | 66 / 90 | 37 / 60 | 18 / 20 | 21 / 61 | 112 / 125 | 296 / 439 |
+| centrality blend | -1 (0 / 1) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | — | -1 (0 / 1) |
+| surface enrichment | +0 (1 / 1) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (1 / 1) |
+| mined expansions | +3 (4 / 1) | +0 (1 / 1) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +1 (1 / 0) | +4 (6 / 2) |
+| call-graph boost | +0 (0 / 0) | -2 (1 / 3) | -2 (0 / 2) | -1 (0 / 1) | +1 (1 / 0) | +1 (1 / 0) | -3 (3 / 6) |
+| **body words** | +15 (16 / 1) | +1 (2 / 1) | +3 (4 / 1) | +0 (0 / 0) | +1 (1 / 0) | +4 (4 / 0) | +24 (27 / 3) |
+| no import graph (as `ask`) | +0 (0 / 0) | +2 (2 / 0) | -2 (1 / 3) | +0 (0 / 0) | -2 (0 / 2) | — | -2 (3 / 5) |
+
+- **Centrality blend: deprecated.** It moved the rank of 4 of 314 tasks and changed one hit, a loss (express `x037`).
+- **Surface enrichment: deprecated.** It changed two hits, one each way (express `x038` won, `x040` lost), and adds pseudo-signatures to the index. Its best case is a web framework asked a route-worded question, and across the corpora that case is net zero.
+- **Mined expansions: stays opt-in.** +3 on the third-party corpus (won 4, lost 1) and +1 on the honest corpus, nothing elsewhere. That is thin — five tasks changed on `xrepo`, which a sign test cannot tell from chance (p ≈ 0.19) — and the four it wins were already near-misses; it does not reach the no-token class.
+- **Call-graph boost: not decided here**, because [#703](https://github.com/manojmallick/sigmap/issues/703) does not cover it. Net −3 (won 3, lost 6), negative on three of the six corpora: it is the next decision.
+- **No import graph** is not a signal but a configuration. `sigmap ask` and `--query` call `rank()` without one, while the benchmark runner and the MCP tool pass one, so the neighbour boost the benchmarks include is not what `ask` runs. Removing it is net −2 over the five corpora it applies to (won 3, lost 5): the mismatch costs nothing a benchmark can see.
+
+**The rule a signal is held to.** A signal becomes a default when it wins at least five more tasks than it loses on the third-party corpus — a margin where a sign test starts to separate a win from chance — and loses net on no other corpus. It is deprecated when its net is not positive and it changes at most two hits. Anything else stays opt-in and measured. The rule was written with these numbers in hand, so it is a standard the next measurement is held to, not a result.
+
+### Body words
+
+`retrieval.bodyWords` is the lever the first section points at. It indexes each file's *body words* — the rare words of its source that its signatures drop — into BM25's prose field, so a question asked in the words the code uses to do something can reach the file that does it. A word counts when no more than 5% of the indexed files hold it, the file's own index entry lacks it, and it is not a number, a word under three characters, or one that only frames a question (`how`, `does`, `whether`); a file keeps its 200 best, ordered by the lines that hold them, so the result never depends on the order files arrive in.
+
+On `xrepo` it takes 42 of 83 to **57** (50.6% → 68.7%), winning **16** tasks and losing **1**, and lifts MRR from 0.354 to 0.483, so it is not a hit@5-only effect. It wins on corpora other people wrote about other code, too: `mined` +3, `jvm` +1, `hard` +1, and the honest corpus **112 → 116** of 125 (89.6% → **92.8%**) without losing a task. No corpus loses net. One caveat the corpus cannot remove: `xrepo`'s questions were written by reading the code, which favours a lever that indexes the code's own words, so its +15 is the upper end. The mined and JVM subjects, written by people describing a change, gain less, and none loses.
+
+The two constants were chosen from a sweep, not from a peak. Net tasks over plain, won / lost beside it, summed over the six corpora:
+
+| share of files | 50 words | 100 words | 200 words | 500 words | all words |
+|---|---:|---:|---:|---:|---:|
+| 2% | +15 (18 / 3) | +14 (21 / 7) | +14 (20 / 6) | +14 (20 / 6) | +14 (20 / 6) |
+| 5% | +25 (28 / 3) | +28 (31 / 3) | **+24 (27 / 3)** | +24 (29 / 5) | +25 (30 / 5) |
+| 10% | +28 (34 / 6) | +32 (38 / 6) | +30 (38 / 8) | +27 (36 / 9) | +26 (36 / 10) |
+
+Across all 15 settings and six corpora (90 cells) **none** is net-negative, and the third-party corpus is +6 or better at every one. The region is flat from a 5% share and 50 words up (**+24 to +32** over 439 tasks) and lower at 2%, which is too tight on a large repository. The shipped 5% / 200 is inside it, not at its peak (10% / 100 is +32): it is the smaller of the two shares on the plateau, so the smaller index, and it loses 3 tasks, as few as any setting in it. `npm run benchmark:body-words-sweep` reproduces the grid.
+
+It costs a little once per regeneration and a little per query: building takes about 0.7 ms per indexed file (1.9 s for laravel's 2,618 files), the cache is about 0.2 KB per file (509 KB for laravel, smaller than its signature index), and a query costs 6–23 ms more on the largest repositories (laravel 153 → 176 ms). That was measured once, on one laptop, and is not a recorded benchmark.
+
+The words reach the ranker only — never `.context/sig-index.json`, the generated context file or anything `ask` renders for an LLM; a test generates with the flag on and off and compares the context file and the signature index. With the flag off nothing changes. The cache at `.context/body-words.json` is keyed by the mtime of `sig-index.json`, so regenerating rebuilds it and `ask` rewriting `query-context.md` does not. Files edited after the last regeneration, and files the MCP `notify_*` tools add between regenerations, carry no body words until the next one.
+
+Turn it on in `gen-context.config.json`:
+
+```json
+{ "retrieval": { "bodyWords": true } }
+```
+
+It meets the rule above — +15 on the third-party corpus, no corpus net-negative — so it is eligible to become a default. Flipping it moves every published retrieval number, the baselines and the honest corpus among them, so it belongs with the release that re-records them. `src/eval/runner.js` and the honest benchmark rank without any signal, so they would need to read the flag to keep measuring what ships.
+
+### How far is 90%?
+
+[#674](https://github.com/manojmallick/sigmap/issues/674) asked for the honest corpus at 90%, or a statement of why not. It reads **89.6%** (112 of 125): one task short. Its 13 misses are the 4 that share no word with their index entry — which no method that matches words can win — and 9 ranking misses, 5 of them ranked 6th–10th. With `retrieval.bodyWords` on it reads **92.8%** (116 of 125). That clears 90%, but by a margin of a few tasks on a corpus where any signal that wins one task does so (mined expansions and the call-graph boost each reach 113 of 125, **90.4%**), so the third-party corpus is the figure to watch: 50.6% as shipped, 68.7% with the words.
+
+### Run it
+
+```bash
+npm run benchmark:retrieval -- --why        # why every miss of hard / mined / easy / jvm misses, one class each
+npm run benchmark:retrieval -- --per-task   # each task's class and rank, one line each (what a release diffs)
+npm run benchmark:xrepo -- --why            # the same for the third-party corpus
+npm run benchmark:signals                   # every opt-in signal against plain on all six corpora, and record it
+npm run benchmark:body-words-sweep          # the grid the body-words constants were chosen from, and record it
+node scripts/run-honest-benchmark.mjs --autopsy   # where SigMap and a whole-file grep scan disagree
+```
+
+::: warning Record the autopsy from the layout the published report uses
+`npm run benchmark:honest` saves, so run the script directly for the autopsy, and save it only from a working tree whose 50 clones are real directories inside it (`cp -cR`): there the grep baseline reads 40.0% and the saved report is the published one. In a clean checkout with symlinked clones the same scan reads 41.6%, because the self-repo task set's scan walks a different file set.
+:::
 
 ## Per-repo results
 

@@ -66,6 +66,26 @@ function loadBaseConfig(extendsVal, cwd) {
 // Keys that are valid in gen-context.config.json
 const KNOWN_KEYS = new Set(Object.keys(DEFAULTS));
 
+// Opt-in ranking signals that measured no net benefit on any corpus (#905). They still
+// work; setting one warns once per process, so a user hears it before v9.0 removes
+// the key rather than after. The figures are in docs-vp/guide/retrieval-benchmark.md.
+const DEPRECATED_SIGNALS = ['centralityBlend', 'surfaceEnrichment'];
+const _deprecationWarned = new Set();
+
+/**
+ * Warn, once per process, for each deprecated retrieval signal a config turns on.
+ * @param {object|undefined} source a config object (user config or an `extends` base)
+ */
+function warnDeprecatedSignals(source) {
+  const retrieval = source && source.retrieval;
+  if (!retrieval || typeof retrieval !== 'object') return;
+  for (const key of DEPRECATED_SIGNALS) {
+    if (retrieval[key] !== true || _deprecationWarned.has(key)) continue;
+    _deprecationWarned.add(key);
+    console.warn(`[sigmap] retrieval.${key} is deprecated and will be removed in v9.0: it measured no net benefit on any benchmark corpus (https://sigmap.io/guide/retrieval-benchmark). It still works until then.`);
+  }
+}
+
 // Common top-level folder names that reliably hold source code
 const COMMON_CODE_DIRS = new Set([
   'src', 'app', 'lib', 'packages', 'services', 'api', 'core', 'cmd',
@@ -317,6 +337,9 @@ function loadConfig(cwd) {
   // Deep merge: DEFAULTS → base (extends) → user config
   const baseConfig = loadBaseConfig(userConfig.extends, cwd);
   const merged = deepClone(DEFAULTS);
+
+  warnDeprecatedSignals(baseConfig);
+  warnDeprecatedSignals(userConfig);
 
   for (const key of Object.keys(baseConfig)) {
     if (key.startsWith('_') || key === 'extends') continue;
