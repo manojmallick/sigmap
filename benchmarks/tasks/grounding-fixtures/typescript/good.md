@@ -5,6 +5,7 @@ The option and result types are declared in `src/types.ts`.
 
 ```ts
 import { createClient, fetchUser } from './api';
+import type { ClientOptions, User } from './types';
 import { z } from 'zod';
 ```
 

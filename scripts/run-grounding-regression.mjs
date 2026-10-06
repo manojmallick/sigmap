@@ -15,7 +15,7 @@
  * Each fixture repo is copied to a temp dir, indexed by the real generator, and
  * both engines run over both answers:
  *
- *   verify  flags fake files / symbols / imports / npm scripts
+ *   verify  flags fake files / symbols / imports / imported names / npm scripts
  *   judge   reports claims its context and repo index do not ground, and a
  *           pass/fail verdict per answer
  *
@@ -52,15 +52,15 @@ const { verify } = require(path.join(ROOT, 'src/verify/hallucination-guard.js'))
 const { judge } = require(path.join(ROOT, 'src/judge/judge-engine.js'));
 const { resolveContextFile } = require(path.join(ROOT, 'src/judge/context-source.js'));
 
-/** Claim kinds, in report order. `script` is a verify-only kind. */
-export const KINDS = ['file', 'symbol', 'import', 'script'];
+/** Claim kinds, in report order. `import-name` and `script` are verify-only kinds. */
+export const KINDS = ['file', 'symbol', 'import', 'import-name', 'script'];
 const JUDGE_KINDS = ['file', 'symbol', 'import'];
 /** The corpus must span at least this many languages (#673). */
 export const MIN_LANGUAGES = 5;
 
 const VERIFY_KIND = {
   'fake-file': 'file', 'fake-test-file': 'file', 'fake-symbol': 'symbol',
-  'fake-import': 'import', 'fake-npm-script': 'script',
+  'fake-import': 'import', 'fake-import-name': 'import-name', 'fake-npm-script': 'script',
 };
 
 const round4 = (n) => (n === null ? null : Math.round(n * 10000) / 10000);
@@ -264,10 +264,10 @@ const pct = (n) => (n === null ? 'n/a' : (n * 100).toFixed(1) + '%');
 function printTable(report) {
   console.log('SigMap grounding regression corpus (labelled good/bad fixtures, offline)\n');
   console.log(`  fixtures: ${report.fixtures.length}  languages: ${report.languages.join(', ')}\n`);
-  console.log('  engine  kind     TP   FP   FN  precision  recall');
+  console.log('  engine  kind         TP   FP   FN  precision  recall');
   for (const [engine, body] of Object.entries(report.engines)) {
     for (const [kind, r] of Object.entries(body.kinds)) {
-      console.log(`  ${engine.padEnd(6)}  ${kind.padEnd(7)} ${String(r.tp).padStart(3)}  ${String(r.fp).padStart(3)}  ${String(r.fn).padStart(3)}  ${pct(r.precision).padStart(9)}  ${pct(r.recall).padStart(6)}`);
+      console.log(`  ${engine.padEnd(6)}  ${kind.padEnd(11)} ${String(r.tp).padStart(3)}  ${String(r.fp).padStart(3)}  ${String(r.fn).padStart(3)}  ${pct(r.precision).padStart(9)}  ${pct(r.recall).padStart(6)}`);
     }
   }
   const v = report.engines.judge.verdicts;

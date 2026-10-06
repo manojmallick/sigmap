@@ -73,10 +73,12 @@ function test(name, fn) {
   // How a claim is actually written: a symbol is a backtick call (`name(`), anything
   // else a whole token. Plain substring matching would see the shadow fake `rank`
   // inside the real `rankFiles`, and inside the word "rank" in a heading.
+  // A path claim may be written with Windows separators (`src\format\a.js`); it is
+  // one claim either way, so a file is looked for in its `/` spelling.
   const escapeRe = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const hasClaim = (text, { kind, value }) => (kind === 'symbol'
     ? text.includes('`' + value + '(')
-    : new RegExp(`(?<![\\w$])${escapeRe(value)}(?![\\w$])`).test(text));
+    : new RegExp(`(?<![\\w$])${escapeRe(value)}(?![\\w$])`).test(kind === 'file' ? text.replace(/\\/g, '/') : text));
 
   test('every planted fake appears in bad.md and never in good.md', () => {
     for (const fx of fixtures) {
