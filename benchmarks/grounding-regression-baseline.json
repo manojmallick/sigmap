@@ -15,7 +15,11 @@
         },
         "import": {
           "precision": 1,
-          "recall": 0.6667
+          "recall": 1
+        },
+        "import-name": {
+          "precision": 1,
+          "recall": 1
         },
         "script": {
           "precision": 1,
@@ -27,18 +31,18 @@
       "kinds": {
         "file": {
           "precision": 1,
-          "recall": 0.9167
+          "recall": 1
         },
         "symbol": {
           "precision": 1,
-          "recall": 0.8333
+          "recall": 1
         },
         "import": {
-          "precision": 0.6,
+          "precision": 1,
           "recall": 1
         }
       },
-      "verdictAccuracy": 0.8333
+      "verdictAccuracy": 1
     }
   }
 }

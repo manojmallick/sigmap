@@ -5,5 +5,9 @@ Ranking is in `src/app/ranker.py` through `rank_files(query, files)`.
 The existing test is `tests/test_config.py`.
 
 ```python
-from app.config import load_config
+import os.path
+from app.config import (
+    load_config,
+    merge_defaults as merge,
+)
 ```

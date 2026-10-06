@@ -4,5 +4,8 @@
 Candidate filtering is `RankFiles(query, files)` in `internal/rank/rank.go`, covered by `internal/rank/rank_test.go`.
 
 ```go
-import "example.com/fx/internal/rank"
+import (
+	"fmt"
+	"example.com/fx/internal/rank"
+)
 ```

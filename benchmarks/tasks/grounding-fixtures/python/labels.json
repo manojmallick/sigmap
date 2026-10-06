@@ -20,7 +20,12 @@
     {
       "kind": "import",
       "value": "app.cache",
-      "note": "verify skips non-JS bare imports by design (stdlib is unbounded offline); the judge catches it"
+      "note": "a dotted import of the repo's own package: verify resolves it against the disk and finds no module (#909)"
+    },
+    {
+      "kind": "import-name",
+      "value": "ghost_loader",
+      "note": "taken from app.config, which exists and defines no such name"
     }
   ],
   "real": [
@@ -51,7 +56,12 @@
     {
       "kind": "import",
       "value": "app.config",
-      "note": "a real repo module; the judge cannot clear a bare import without a package.json, so it wrongly fails this answer"
+      "note": "a real repo module: verify resolves it, so the judge clears it without a package.json (#909)"
+    },
+    {
+      "kind": "import",
+      "value": "os.path",
+      "note": "standard library: real without any manifest"
     }
   ]
 }

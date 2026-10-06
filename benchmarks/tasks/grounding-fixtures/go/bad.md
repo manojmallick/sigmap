@@ -5,6 +5,9 @@ Candidate filtering is `RankFiles(query, files)` in `internal/rank/rank.go`; wir
 Cover it with `internal/rank/ghost_test.go`.
 
 ```go
-import "example.com/fx/internal/rank"
-import "example.com/fx/internal/ghost"
+import (
+	"fmt"
+	"example.com/fx/internal/rank"
+	"example.com/fx/internal/ghost"
+)
 ```

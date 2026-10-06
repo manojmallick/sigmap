@@ -1,6 +1,6 @@
 {
   "language": "javascript",
-  "note": "`rank` is a substring of the real `rankFiles`: verify's exact symbol set flags it, but the judge's lexical context match clears it (known judge limitation).",
+  "note": "`rank` is a substring of the real `rankFiles` and a word in the context's own prose: verify's exact symbol set flags it, and the judge refuses a prose-word match for a claim verify proved fake (#909).",
   "fake": [
     {
       "kind": "file",
@@ -37,7 +37,22 @@
     {
       "kind": "file",
       "value": "lib/index.js",
-      "note": "right basename, wrong directory: verify flags it, the judge clears it on basename match"
+      "note": "right basename, wrong directory: verify flags it, and the judge needs the claimed path itself in the context, not just its basename (#909)"
+    },
+    {
+      "kind": "import-name",
+      "value": "ghostHelper",
+      "note": "taken from ./src/util, which exists and has no such name; written across lines"
+    },
+    {
+      "kind": "import-name",
+      "value": "vanishedFn",
+      "note": "destructured from require('./src/index'), which exists and has no such name"
+    },
+    {
+      "kind": "file",
+      "value": "src/format/ghost.js",
+      "note": "written with Windows separators (src\\format\\ghost.js); verify reads it as src/format/ghost.js"
     }
   ],
   "real": [
