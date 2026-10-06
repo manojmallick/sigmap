@@ -325,7 +325,7 @@ Input:  { } (no arguments)
 
 ### verify_suggestion
 
-Ground an AI code suggestion before writing it: verify a snippet or answer against the repository AND the libraries actually installed in node_modules (the grounding moat). Flags fake file paths, unresolvable imports, symbols absent from both the repo index and the installed libraries, and non-existent npm scripts — deterministic, offline, no LLM. Reports the installed libraries it verified against with pinned versions.
+Ground an AI code suggestion before writing it: verify a snippet or answer against the repository AND the libraries actually installed in node_modules (the grounding moat). Flags fake file paths, unresolvable imports, symbols that are in neither the repo (its index or its source) nor the installed libraries, and non-existent npm scripts — deterministic, offline, no LLM. Reports the installed libraries it verified against with pinned versions.
 
 ```
 Input:  { code: string }
