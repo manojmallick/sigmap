@@ -1,7 +1,7 @@
 # Hallucination Guard (`verify-ai-output`)
 
 `verify-ai-output` flags claims in an AI answer that don't match your real
-repository — fabricated files, imports, symbols, test paths, and npm scripts.
+repository — fabricated files, imports, imported names, symbols, test paths, and npm scripts.
 It is **deterministic and fully offline**: no network, no second LLM. It reuses
 SigMap's symbol index, file map, and import resolver, so every check is grounded
 in your actual code.
@@ -19,14 +19,16 @@ straight into CI.
 |---|---|---|
 | `fake-file` | A referenced path is not on disk | High |
 | `fake-test-file` | A referenced **test** path is not on disk | High |
-| `fake-import` | A relative import doesn't resolve, or a bare package isn't in `package.json` | High |
+| `fake-import` | A relative import doesn't resolve, a bare package isn't in `package.json`, or a **Python / Go** import of the repo's own package doesn't resolve (#909) | High |
+| `fake-import-name` | A name imported from a repo module that resolves to **one** file, and occurs nowhere in it (#909, D1) | Medium |
 | `fake-symbol` | A called function/class isn't in the repo index **or the installed libraries** | Medium |
 | `fake-npm-script` | `npm run X` where `X` isn't a `package.json` script | High |
 | `arity-mismatch` | A **known** repo function is called with an argument count outside its signature's `[min, max]` (v8.28.0, D1) | Medium |
 
 Node/Python builtins, scoped packages, and language globals are allow-listed to
-keep precision high. Python bare imports are intentionally **not** flagged
-(stdlib is unbounded offline).
+keep precision high. A **third-party** Python import is left alone — which
+distribution provides `import yaml` is not decidable offline — while one the repo
+can decide is checked (below).
 
 Since **v8.54.1** the globals allowlist lives in `src/verify/globals.js` as
 grouped data — 184 names across ECMAScript, Web/Node platform, Node module
@@ -35,6 +37,50 @@ literal that stopped at `encodeURIComponent`, so `structuredClone(obj)` — a No
 and browser global since Node 17 — was reported as fabricated at `high`
 confidence (#777). A missing global is now a one-line addition to the right
 group.
+
+### Imports and the names they take (#909)
+
+Before #909 an import was checked only as JS: a relative path against the disk, a
+bare package against `package.json`. A Python import was checked only when it was
+relative — by a resolver built for JS paths, which flagged real ones — and a Go
+import not at all. They are now decided from the repo itself, and every answer is
+one of three: **resolved**, **unresolved**, or **unknown**. Only *unresolved* is a
+finding, because a false "fake import" costs more than a missed one.
+
+| Language | Resolved | Unresolved (flagged) | Unknown (never flagged) |
+|---|---|---|---|
+| **Python** | a dotted import whose first segment is a repo package or module and which names a file or package; the standard library; a relative import naming any module the repo has | the first segment is a repo package, and no such module exists under it | a third-party package; a layout with no importable root; a repo package that shadows a stdlib name (`queue/`, `types/`) |
+| **Go** | an import under the `go.mod` module path whose directory holds Go files (nested modules too, longest path wins); the standard library; a module in `go.mod`'s `require` | under the module path, but no such directory | any other module path; no `go.mod` |
+
+A package is found through an **empty `__init__.py`** — it carries no signature, so
+the index never holds it, and the disk is read instead. A Go import block
+(`import ( … )`) and aliased or blank imports (`r "x"`, `_ "x"`) are read only
+inside a ```` ```go ```` fence, so prose is never read as a package.
+
+**Named imports.** For an import of a name from a module the repo owns —
+`import { helper } from './util'`, `const { a } = require('./x')`,
+`from app.config import load_config` — `fake-import-name` flags a name that occurs
+**nowhere** in the module's text. It is deliberately a *necessary-condition* check:
+a name the file never mentions cannot be exported by it. It never fires for a
+default or namespace import, a wildcard re-export (`export *`,
+`module.exports = require(…)`, `from x import *`), a computed export
+(`exports[k] = …`, `__getattr__`), a package submodule
+(`from app import config`), a bare package, or a module that does not resolve to
+exactly **one** file. Multi-line imports and destructuring are read, and the
+suggestion is the closest name the module actually has.
+
+**Windows paths.** `src\retrieval\ranker.js` is read as `src/retrieval/ranker.js` — one
+claim however it is spelled. A string escape (`"a\nfile.txt"`), a drive-letter
+path and an escaped `\\` are not paths, and neither is a one-separator path whose
+file starts with an escape letter (`lib\test.js` may be `lib<TAB>est.js`) — the
+price of precision. Backslashes inside a code fence are escapes, except in a
+`bat`/`cmd`/`powershell` fence.
+
+**Known limits.** A declaration in backticks (`` `def clear(domain)` ``) is not a
+symbol claim: the symbol index keeps `maxSigsPerFile` (25) signatures per file, so a
+real method past the cut would be flagged — measured on httpx, where all 3 such
+claims were. Java, Rust and C# imports are not resolved. Neither is a third-party
+Python import.
 
 ### Arity checks (v8.28.0)
 
@@ -131,18 +177,19 @@ sigmap verify-ai-output answer.md --json
   ],
   "summary": {
     "total": 1,
-    "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-symbol": 1, "fake-npm-script": 0 },
+    "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-import-name": 0, "fake-symbol": 1, "fake-npm-script": 0 },
     "clean": false,
     "symbolsIndexed": 1842,
     "withSuggestion": 1,
     "librariesIndexed": 12,
     "libraries": [{ "name": "express", "version": "4.19.2", "symbols": 41, "typed": true }],
-    "checks": { "symbols": true, "files": true, "relativeImports": true, "bareImports": true, "scripts": true }
+    "checks": { "symbols": true, "files": true, "relativeImports": true, "bareImports": true, "scripts": true },
+    "verifiedImports": ["./src/util", "fs", "app.config"]
   }
 }
 ```
 
-`checks` (v8.45.0, J1) states which claim classes actually ran — `symbols` is `false` when no signature index exists, `bareImports`/`scripts` when there is no `package.json` — so a consumer never mistakes "not flagged" for "verified". [`sigmap judge`](/guide/cli#judge) keys its structural claim grounding off this field.
+`checks` (v8.45.0, J1) states which claim classes actually ran — `symbols` is `false` when no signature index exists, `bareImports`/`scripts` when there is no `package.json` — so a consumer never mistakes "not flagged" for "verified". `verifiedImports` (#909) lists the import claims the run *positively resolved* — a repo module, the standard library, a `go.mod` requirement, a declared dependency — in any language; an import it could not decide is in neither list. [`sigmap judge`](/guide/cli#judge) keys its structural claim grounding off both fields.
 
 ### HTML report
 
@@ -178,3 +225,14 @@ node scripts/run-verify-benchmark.mjs --manifest cases.json
 ```
 
 It emits a per-detector precision/recall CSV.
+
+The **grounding regression corpus** scores `verify` and `judge` on answers whose
+truth is known — six fixture repos (Go, Java, JavaScript, Python, Rust,
+TypeScript), each with a `good.md` where every claim is real and a `bad.md` with
+labelled fakes — per claim kind (`file`, `symbol`, `import`, `import-name`,
+`script`), against floors recorded in `benchmarks/grounding-regression-baseline.json`:
+
+```bash
+npm run benchmark:grounding-regression     # the per-engine, per-kind table
+npm run validate:grounding                 # fail below a recorded floor
+```

@@ -5,6 +5,6 @@ Ranking is in `src/app/ranker.py` through `rank_files(query, files)`, with cachi
 Cover it with `tests/test_cache.py`.
 
 ```python
-from app.config import load_config
+from app.config import load_config, ghost_loader
 from app.cache import Cache
 ```

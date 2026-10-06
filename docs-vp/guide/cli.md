@@ -866,7 +866,7 @@ A symbol from a library the repo does **not** declare is reported as fake on pur
 
 ## verify-ai-output
 
-Hallucination Guard — the full command name for [`verify`](#verify). Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, fake test files, unresolvable imports, symbols not in the SigMap index, and `npm run` scripts that don't exist. Fully deterministic — runs offline, no LLM API. Where a flagged name is a near miss for something real, a heuristic closest-match suggestion is attached. **v8.1.0+:** symbol checks also ground against the libraries **actually installed** — JS/TS from `node_modules` (`.d.ts` exports) and, since **v8.3.0**, Python from the project's venv `site-packages` (`__init__.py`/`.pyi` exports) — each with its pinned version, so genuine library calls stop false-flagging — see [Installed-library grounding](/guide/verify-ai-output#installed-library-grounding-v8-1-0-v9-0-g5-d5-the-moat).
+Hallucination Guard — the full command name for [`verify`](#verify). Scans an AI answer (markdown or plain text) and flags claims that do not match the repository: fake file paths, fake test files, unresolvable imports (including Python and Go imports of the repo's own packages), names imported from a module that has no such name, symbols not in the SigMap index, and `npm run` scripts that don't exist. Fully deterministic — runs offline, no LLM API. Where a flagged name is a near miss for something real, a heuristic closest-match suggestion is attached. **v8.1.0+:** symbol checks also ground against the libraries **actually installed** — JS/TS from `node_modules` (`.d.ts` exports) and, since **v8.3.0**, Python from the project's venv `site-packages` (`__init__.py`/`.pyi` exports) — each with its pinned version, so genuine library calls stop false-flagging — see [Installed-library grounding](/guide/verify-ai-output#installed-library-grounding-v8-1-0-v9-0-g5-d5-the-moat).
 
 ```bash
 sigmap verify ai-answer.md                    # `verify` and `verify-ai-output` are interchangeable
@@ -876,7 +876,7 @@ sigmap verify-ai-output ai-answer.md --report report.html
 
 ```
 [sigmap] ✗ ai-answer.md — 3 issues found
-  fake-file: 0  fake-test-file: 1  fake-import: 1  fake-symbol: 1  fake-npm-script: 0
+  fake-file: 0  fake-test-file: 1  fake-import: 1  fake-import-name: 0  fake-symbol: 1  fake-npm-script: 0
 
   L4   [Fake symbol]     Symbol not found in repo index: loadConfg()
          ↳ Did you mean `loadConfig()` in src/config/loader.js:42?
@@ -884,13 +884,14 @@ sigmap verify-ai-output ai-answer.md --report report.html
   L10  [Fake import]     Import does not resolve: ./src/totally/madeup
 ```
 
-Five deterministic detectors:
+Six deterministic detectors:
 
 | Detector | Flags | Confidence |
 |----------|-------|------------|
 | `fake-file` | A referenced path that is not present on disk | High |
 | `fake-test-file` | A referenced **test** path (`*.test`/`*.spec`/`__tests__`/`test_*.py`) absent on disk | High |
-| `fake-import` | A relative import that does not resolve, or a bare package absent from `package.json` dependencies (Node/Python builtins and scoped packages are allow-listed) | High |
+| `fake-import` | A relative import that does not resolve, a bare package absent from `package.json` dependencies (Node/Python builtins and scoped packages are allow-listed), or a Python / Go import of the repo's own package that does not resolve | High |
+| `fake-import-name` | A name imported from a repo module that resolves to one file and occurs nowhere in it — see [Imports and the names they take](/guide/verify-ai-output#imports-and-the-names-they-take-909) | Medium |
 | `fake-symbol` | A called function/class (`` `name()` ``) absent from the SigMap symbol index (`buildSigIndex`) | Medium |
 | `fake-npm-script` | An `npm run X` (or `pnpm`/`yarn run X`) where `X` is not a `package.json` script | High |
 
@@ -904,7 +905,7 @@ JSON output (`--json`) for CI:
   "issues": [
     { "type": "fake-symbol", "value": "loadConfg", "line": 4, "location": "L4", "message": "Symbol not found in repo index: loadConfg()", "confidence": "medium", "suggestion": "Did you mean `loadConfig()` in src/config/loader.js:42?" }
   ],
-  "summary": { "total": 1, "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-symbol": 1, "fake-npm-script": 0 }, "clean": false, "symbolsIndexed": 288, "withSuggestion": 1 }
+  "summary": { "total": 1, "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-import-name": 0, "fake-symbol": 1, "fake-npm-script": 0 }, "clean": false, "symbolsIndexed": 288, "withSuggestion": 1 }
 }
 ```
 

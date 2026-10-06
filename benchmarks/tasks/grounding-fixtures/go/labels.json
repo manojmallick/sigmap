@@ -20,7 +20,7 @@
     {
       "kind": "import",
       "value": "example.com/fx/internal/ghost",
-      "note": "verify has no Go import parser; the judge catches it"
+      "note": "under the go.mod module path but no such directory: verify resolves it against the disk (#909)"
     }
   ],
   "real": [
@@ -51,7 +51,12 @@
     {
       "kind": "import",
       "value": "example.com/fx/internal/rank",
-      "note": "a real module path; the judge wrongly fails it for want of a package.json"
+      "note": "a real package under the go.mod module path: verify resolves it, so the judge clears it (#909)"
+    },
+    {
+      "kind": "import",
+      "value": "fmt",
+      "note": "standard library: real without any manifest"
     }
   ]
 }

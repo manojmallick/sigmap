@@ -29,11 +29,18 @@
           "recall": 1
         },
         "import": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import-name": {
           "tp": 0,
           "fp": 0,
-          "fn": 1,
+          "fn": 0,
           "precision": 1,
-          "recall": 0
+          "recall": null
         },
         "script": {
           "tp": 0,
@@ -60,14 +67,14 @@
         },
         "import": {
           "tp": 1,
-          "fp": 2,
+          "fp": 0,
           "fn": 0,
-          "precision": 0.3333,
+          "precision": 1,
           "recall": 1
         }
       },
       "verdicts": {
-        "good": "fail",
+        "good": "pass",
         "bad": "fail"
       }
     },
@@ -91,6 +98,13 @@
           "recall": 1
         },
         "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        },
+        "import-name": {
           "tp": 0,
           "fp": 0,
           "fn": 0,
@@ -136,10 +150,10 @@
     {
       "name": "javascript",
       "language": "javascript",
-      "labelledFakes": 9,
+      "labelledFakes": 12,
       "verify": {
         "file": {
-          "tp": 3,
+          "tp": 4,
           "fp": 0,
           "fn": 0,
           "precision": 1,
@@ -159,6 +173,13 @@
           "precision": 1,
           "recall": 1
         },
+        "import-name": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
         "script": {
           "tp": 1,
           "fp": 0,
@@ -169,18 +190,18 @@
       },
       "judge": {
         "file": {
-          "tp": 2,
+          "tp": 4,
           "fp": 0,
-          "fn": 1,
+          "fn": 0,
           "precision": 1,
-          "recall": 0.6667
+          "recall": 1
         },
         "symbol": {
-          "tp": 2,
+          "tp": 3,
           "fp": 0,
-          "fn": 1,
+          "fn": 0,
           "precision": 1,
-          "recall": 0.6667
+          "recall": 1
         },
         "import": {
           "tp": 2,
@@ -198,7 +219,7 @@
     {
       "name": "python",
       "language": "python",
-      "labelledFakes": 5,
+      "labelledFakes": 6,
       "verify": {
         "file": {
           "tp": 2,
@@ -215,11 +236,18 @@
           "recall": 1
         },
         "import": {
-          "tp": 0,
+          "tp": 1,
           "fp": 0,
-          "fn": 1,
+          "fn": 0,
           "precision": 1,
-          "recall": 0
+          "recall": 1
+        },
+        "import-name": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
         },
         "script": {
           "tp": 0,
@@ -238,22 +266,22 @@
           "recall": 1
         },
         "symbol": {
-          "tp": 1,
+          "tp": 2,
           "fp": 0,
-          "fn": 1,
+          "fn": 0,
           "precision": 1,
-          "recall": 0.5
+          "recall": 1
         },
         "import": {
           "tp": 1,
-          "fp": 2,
+          "fp": 0,
           "fn": 0,
-          "precision": 0.3333,
+          "precision": 1,
           "recall": 1
         }
       },
       "verdicts": {
-        "good": "fail",
+        "good": "pass",
         "bad": "fail"
       }
     },
@@ -277,6 +305,13 @@
           "recall": 1
         },
         "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        },
+        "import-name": {
           "tp": 0,
           "fp": 0,
           "fn": 0,
@@ -322,7 +357,7 @@
     {
       "name": "typescript",
       "language": "typescript",
-      "labelledFakes": 5,
+      "labelledFakes": 6,
       "verify": {
         "file": {
           "tp": 1,
@@ -340,6 +375,13 @@
         },
         "import": {
           "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import-name": {
+          "tp": 1,
           "fp": 0,
           "fn": 0,
           "precision": 1,
@@ -386,7 +428,7 @@
     "verify": {
       "kinds": {
         "file": {
-          "tp": 12,
+          "tp": 13,
           "fp": 0,
           "fn": 0,
           "precision": 1,
@@ -400,11 +442,18 @@
           "recall": 1
         },
         "import": {
+          "tp": 6,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import-name": {
           "tp": 4,
           "fp": 0,
-          "fn": 2,
+          "fn": 0,
           "precision": 1,
-          "recall": 0.6667
+          "recall": 1
         },
         "script": {
           "tp": 2,
@@ -418,34 +467,34 @@
     "judge": {
       "kinds": {
         "file": {
-          "tp": 11,
+          "tp": 13,
           "fp": 0,
-          "fn": 1,
+          "fn": 0,
           "precision": 1,
-          "recall": 0.9167
+          "recall": 1
         },
         "symbol": {
-          "tp": 10,
+          "tp": 12,
           "fp": 0,
-          "fn": 2,
+          "fn": 0,
           "precision": 1,
-          "recall": 0.8333
+          "recall": 1
         },
         "import": {
           "tp": 6,
-          "fp": 4,
+          "fp": 0,
           "fn": 0,
-          "precision": 0.6,
+          "precision": 1,
           "recall": 1
         }
       },
       "verdicts": {
-        "correct": 10,
+        "correct": 12,
         "total": 12,
-        "accuracy": 0.8333
+        "accuracy": 1
       }
     }
   },
-  "version": "8.68.0",
-  "generated": "2026-10-06T09:09:54.964Z"
+  "version": "8.69.0",
+  "generated": "2026-10-06T19:04:04.257Z"
 }

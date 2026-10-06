@@ -5,6 +5,7 @@ Retries are configured in `src/retry.ts`, and the option types live in `src/type
 
 ```ts
 import { createClient } from './api';
+import type { ClientOptions, GhostOptions } from './types';
 import { backoff } from './gone';
 import leftPad from 'left-pad-9000';
 ```

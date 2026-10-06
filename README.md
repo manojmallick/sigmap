@@ -76,7 +76,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 ## 🔒 `sigmap verify` — the grounding flagship
 
-The one thing no agentic-grep loop, and no competitor, gives you: **prove an AI answer is anchored to real signatures and line numbers before you trust it.** Deterministic, offline, no LLM — SigMap indexes your repo *plus the libraries actually installed here* and flags every fabricated file, import, symbol, test, or npm script.
+The one thing no agentic-grep loop, and no competitor, gives you: **prove an AI answer is anchored to real signatures and line numbers before you trust it.** Deterministic, offline, no LLM — SigMap indexes your repo *plus the libraries actually installed here* and flags every fabricated file, import, imported name, symbol, test, or npm script.
 
 ```bash
 sigmap verify answer.md                 # ✓ grounded, or a line-by-line list of fabrications
@@ -86,7 +86,7 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
 
 ```text
 [sigmap] ✗ answer.md — 2 issues found
-  fake-file: 1  fake-test-file: 0  fake-import: 0  fake-symbol: 1  fake-npm-script: 0
+  fake-file: 1  fake-test-file: 0  fake-import: 0  fake-import-name: 0  fake-symbol: 1  fake-npm-script: 0
 
   L12  [Fake file]    src/auth/session-store.js does not exist
   L27  [Fake symbol]  authorize() — did you mean authenticate()?
@@ -125,7 +125,7 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.68-main (21 repositories, including R language)
+Benchmark : sigmap-v8.69-main (21 repositories, including R language)
 Date      : 2026-10-06
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)

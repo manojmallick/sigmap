@@ -5,6 +5,7 @@
     { "kind": "symbol", "value": "fetchUsr" },
     { "kind": "import", "value": "./gone" },
     { "kind": "import", "value": "left-pad-9000" },
+    { "kind": "import-name", "value": "GhostOptions", "note": "a type imported from ./types, which exists and declares no such name" },
     { "kind": "script", "value": "typecheck" }
   ],
   "real": [

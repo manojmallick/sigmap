@@ -16,6 +16,7 @@ const TYPE_META = {
   'fake-file': { label: 'Fake file', tone: 'red', icon: '✕' },
   'fake-test-file': { label: 'Fake test file', tone: 'red', icon: '✕' },
   'fake-import': { label: 'Fake import', tone: 'red', icon: '✕' },
+  'fake-import-name': { label: 'Fake imported name', tone: 'amber', icon: '!' },
   'fake-npm-script': { label: 'Fake npm script', tone: 'red', icon: '✕' },
   'fake-symbol': { label: 'Fake symbol', tone: 'amber', icon: '!' },
 };
