@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { extractFilePaths, extractSymbols } = require('../verify/parsers');
 const { buildSymbolSet } = require('../verify/hallucination-guard');
+const { confirmSymbols } = require('../verify/source-confirm');
 const { closestMatch } = require('../verify/closest-match');
 const { analyzeImpact } = require('../graph/impact');
 
@@ -103,6 +104,8 @@ function _isPathLike(name) {
  * @param {string[]} [opts.creates] names the plan introduces, in addition to
  *   any `Creates:` section — files (by path) or symbols (bare names)
  * @param {(ref:string)=>boolean} [opts.fileExists] override for testing
+ * @param {(names: string[]) => { has: (name: string) => boolean }} [opts.confirmSymbols]
+ *   override the source confirmation of a referenced symbol the index lacks (#914)
  * @returns {{ issues: object[], blast: object[], scope: object, introduces: object[], summary: object }}
  */
 function verifyPlan(planText, cwd, opts = {}) {
@@ -113,7 +116,7 @@ function verifyPlan(planText, cwd, opts = {}) {
   const text = String(planText || '');
   const filesRef = extractFilePaths(text);   // [{ path, line }]
   const symbolsRef = extractSymbols(text);   // [{ name, line }]
-  const { set: symbolSet, symbolCandidates } = buildSymbolSet(cwd);
+  const { set: symbolSet, symbolCandidates, fileKeys } = buildSymbolSet(cwd);
 
   // Introductions: the `Creates:` section plus any `--creates` names. Both are
   // explicit author intent, so they are merged into one list.
@@ -150,10 +153,16 @@ function verifyPlan(planText, cwd, opts = {}) {
     else issues.push({ type: 'missing-file', ref: f.path, line: f.line, severity: 'error' });
   }
 
-  // 2. Referenced symbols must exist in the live index (suggest a near match).
-  for (const s of symbolsRef) {
-    if (introSymbols.has(s.name)) continue;
-    if (symbolSet.has(s.name)) continue;
+  // 2. Referenced symbols must exist in the live index (suggest a near match) —
+  // or in the source: the index keeps `maxSigsPerFile` signatures a file and only
+  // the files under the detected roots, and an `error` here blocks the plan on a
+  // symbol that is real (#914). Only the references the index lacks are looked up.
+  const missing = symbolsRef.filter((s) => !introSymbols.has(s.name) && !symbolSet.has(s.name));
+  const confirmSource = opts.confirmSymbols
+    || ((names) => confirmSymbols(cwd, names, { priority: fileKeys }).confirmed);
+  const confirmed = missing.length ? confirmSource([...new Set(missing.map((s) => s.name))]) : null;
+  for (const s of missing) {
+    if (confirmed && confirmed.has(s.name)) continue;
     const match = closestMatch(s.name, symbolCandidates);
     issues.push({
       type: 'unknown-symbol', ref: s.name, line: s.line, severity: 'error',

@@ -21704,11 +21704,12 @@ __factories["./src/judge/judge-engine"] = function(module, exports) {
    * Deterministic, offline, zero-dependency. Reuses `src/verify/parsers`.
    *
    * Structural half (J1, #640): when `opts.cwd` is provided, the verify engine —
-   * the same `buildSymbolSet` + `buildLibraryIndex` map `sigmap verify` uses —
-   * clears any claim whose check class ran and did not flag it, so a real repo
-   * or installed-library symbol the context never quotes is grounded, while a
-   * fabricated one still fails. One grounding engine, two commands. Without a
-   * cwd, behavior is the original lexical context matching, byte-identical.
+   * the same `buildSymbolSet` + `buildLibraryIndex` map, and the same lookup of a
+   * name in the source (#914), that `sigmap verify` uses — clears any claim whose
+   * check class ran and did not flag it, so a real repo or installed-library
+   * symbol the context never quotes is grounded, while a fabricated one still
+   * fails. One grounding engine, two commands. Without a cwd, behavior is the
+   * original lexical context matching, byte-identical.
    *
    * The verdict runs both ways (#909): a claim verify has proved fake is no longer
    * grounded by a weak lexical match — a substring, a prose word, a basename —
@@ -24916,7 +24917,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.69.0',
+    version: '8.70.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -25438,8 +25439,9 @@ __factories["./src/mcp/tools"] = function(module, exports) {
       description:
         'Ground an AI code suggestion before writing it: verify a snippet or answer against the ' +
         'repository AND the libraries actually installed in node_modules (the grounding moat). ' +
-        'Flags fake file paths, unresolvable imports, symbols absent from both the repo index and ' +
-        'the installed libraries, and non-existent npm scripts — deterministic, offline, no LLM. ' +
+        'Flags fake file paths, unresolvable imports, symbols that are in neither the repo (its index ' +
+        'or its source) nor the installed libraries, and non-existent npm scripts — deterministic, ' +
+        'offline, no LLM. ' +
         'Reports the installed libraries it verified against with pinned versions.',
       inputSchema: {
         type: 'object',
@@ -25795,6 +25797,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
   const path = require('path');
   const { extractFilePaths, extractSymbols } = __require('./src/verify/parsers');
   const { buildSymbolSet } = __require('./src/verify/hallucination-guard');
+  const { confirmSymbols } = __require('./src/verify/source-confirm');
   const { closestMatch } = __require('./src/verify/closest-match');
   const { analyzeImpact } = __require('./src/graph/impact');
 
@@ -25877,6 +25880,8 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
    * @param {string[]} [opts.creates] names the plan introduces, in addition to
    *   any `Creates:` section — files (by path) or symbols (bare names)
    * @param {(ref:string)=>boolean} [opts.fileExists] override for testing
+   * @param {(names: string[]) => { has: (name: string) => boolean }} [opts.confirmSymbols]
+   *   override the source confirmation of a referenced symbol the index lacks (#914)
    * @returns {{ issues: object[], blast: object[], scope: object, introduces: object[], summary: object }}
    */
   function verifyPlan(planText, cwd, opts = {}) {
@@ -25887,7 +25892,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     const text = String(planText || '');
     const filesRef = extractFilePaths(text);   // [{ path, line }]
     const symbolsRef = extractSymbols(text);   // [{ name, line }]
-    const { set: symbolSet, symbolCandidates } = buildSymbolSet(cwd);
+    const { set: symbolSet, symbolCandidates, fileKeys } = buildSymbolSet(cwd);
 
     // Introductions: the `Creates:` section plus any `--creates` names. Both are
     // explicit author intent, so they are merged into one list.
@@ -25924,10 +25929,16 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
       else issues.push({ type: 'missing-file', ref: f.path, line: f.line, severity: 'error' });
     }
 
-    // 2. Referenced symbols must exist in the live index (suggest a near match).
-    for (const s of symbolsRef) {
-      if (introSymbols.has(s.name)) continue;
-      if (symbolSet.has(s.name)) continue;
+    // 2. Referenced symbols must exist in the live index (suggest a near match) —
+    // or in the source: the index keeps `maxSigsPerFile` signatures a file and only
+    // the files under the detected roots, and an `error` here blocks the plan on a
+    // symbol that is real (#914). Only the references the index lacks are looked up.
+    const missing = symbolsRef.filter((s) => !introSymbols.has(s.name) && !symbolSet.has(s.name));
+    const confirmSource = opts.confirmSymbols
+      || ((names) => confirmSymbols(cwd, names, { priority: fileKeys }).confirmed);
+    const confirmed = missing.length ? confirmSource([...new Set(missing.map((s) => s.name))]) : null;
+    for (const s of missing) {
+      if (confirmed && confirmed.has(s.name)) continue;
       const match = closestMatch(s.name, symbolCandidates);
       issues.push({
         type: 'unknown-symbol', ref: s.name, line: s.line, severity: 'error',
@@ -32303,6 +32314,8 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
    *   - fake-import-name: a name imported from a repo module that resolves to one
    *                      file, and never occurs in it (#909)
    *   - fake-symbol    : a called function/class is absent from the symbol index
+   *                      and is neither called nor defined anywhere in the source
+   *                      (src/verify/source-confirm.js, #914)
    *   - fake-npm-script: `npm run X` where X is not a package.json script
    *
    * Each issue carries a `confidence` (detection certainty) and, where a near
@@ -32318,6 +32331,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
   const { buildLibraryIndex } = __require('./src/verify/lib-index');
   const { buildArityIndex, extractCallArgCounts, checkArity } = __require('./src/verify/arity');
   const { buildImportContext, classifyImport, missingNames } = __require('./src/verify/imports');
+  const { confirmSymbols } = __require('./src/verify/source-confirm');
 
   // A path that looks like a test file (JS/TS spec/test, Python test_/_test, or
   // a tests/__tests__ directory). Used to flag fake-test-file separately.
@@ -32462,9 +32476,13 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
    * @param {(ref: string) => boolean} [opts.fileExists]          override file check
    * @param {(mod: string) => boolean} [opts.relativeResolvable]  override rel-import check
    * @param {object}      [opts.importContext]  override the Python/Go/JS-name resolution context (src/verify/imports.js)
+   * @param {(names: string[]) => { has: (name: string) => boolean }} [opts.confirmSymbols]
+   *        override the source confirmation of a symbol the index lacks (#914)
+   * @param {boolean}     [opts.sourceConfirm]  false skips it; by default it runs only when verify built the symbol set itself
    * @returns {{ issues: object[], summary: object }}
    */
   function verify(answerText, cwd, opts = {}) {
+    const ownSymbols = !opts.symbolSet;
     let symbolSet = opts.symbolSet;
     let fileBasenames = opts.fileBasenames;
     let symbolCandidates = opts.symbolCandidates || [];
@@ -32627,10 +32645,28 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     }
 
     // 3. fake-symbol
+    //
+    // The symbol set is a summary — a file keeps `maxSigsPerFile` signatures, only
+    // the files under the detected roots are in it, an extractor lists only the
+    // constructs it knows — so a name it lacks is not yet fake (#914, #910). The
+    // names that would be flagged are looked up in the source, in one pass, and a
+    // name that is called or defined there is dropped. Skipped when the caller
+    // supplied its own symbol set: that set is then the whole truth.
+    const sourceConfirmed = new Set();
+    const confirmSource = opts.confirmSymbols
+      || (ownSymbols && opts.sourceConfirm !== false
+        ? (names) => confirmSymbols(cwd, names, { priority: fileCandidates }).confirmed
+        : null);
     if (symbolSet.size > 0) {
+      const pending = [];
       for (const { name, line } of parsers.extractSymbols(answerText)) {
         if (symbolSet.has(name)) continue;
         if (LANG_GLOBALS.has(name) || NODE_BUILTINS.has(name) || PY_BUILTINS.has(name)) continue;
+        pending.push({ name, line });
+      }
+      const confirmed = pending.length && confirmSource ? confirmSource([...new Set(pending.map((p) => p.name))]) : null;
+      for (const { name, line } of pending) {
+        if (confirmed && confirmed.has(name)) { sourceConfirmed.add(name); continue; }
         // Similarity floor (#777): the default 0.5 ratio let `low`-confidence
         // matches through, so `debounce()` was answered with `drone()` — a
         // suggestion that would corrupt the answer if applied. 0.34 keeps the
@@ -32703,6 +32739,8 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
       byType,
       clean: issues.length === 0,
       symbolsIndexed: symbolSet.size,
+      // Names the index lacked that the source calls or defines (#914) — not findings.
+      symbolsConfirmed: sourceConfirmed.size,
       withSuggestion: issues.filter((i) => i.suggestion).length,
       librariesIndexed: libraries.length,
       libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed })),
@@ -33799,10 +33837,11 @@ __factories["./src/verify/parsers"] = function(module, exports) {
 
   // `name(…)`, `name<T>(…)`, `name::<T>(…)` — a backticked call, optionally generic.
   // A declaration (`def f(`, `function f(`) is deliberately NOT read: it names an
-  // existing symbol in an answer that describes code but proposes one in a plan,
-  // and the symbol index keeps only `maxSigsPerFile` signatures per file, so a
-  // reference doc's `def clear(domain)` for a real method past the cut would flag
-  // as fake (measured on httpx: 3 of 3 such claims). #909.
+  // existing symbol in an answer that describes code but proposes one in a plan.
+  // It was also unsafe while a symbol was judged by a capped index — a reference
+  // doc's `def clear(domain)` for a real method past the cut flagged as fake
+  // (measured on httpx: 3 of 3, #909). #914 makes that verdict sound; reading
+  // declarations stays a separate, measured widening of the claim set.
   const SYMBOL_RE = new RegExp('`(' + IDENT + ')(?:::<[^`<>()]*>|<[^`<>()]*>)?\\s*\\([^`]*\\)`', 'g');
 
   // Words that precede a parenthesis without naming a callee.
@@ -33845,6 +33884,230 @@ __factories["./src/verify/parsers"] = function(module, exports) {
     extractSymbols,
     extractNpmScripts,
   };
+  
+};
+
+// ── ./src/verify/source-confirm ──
+__factories["./src/verify/source-confirm"] = function(module, exports) {
+  
+  /**
+   * Source-confirmed symbols (#914, closes #910).
+   *
+   * `fake-symbol` asked one question — "is this name in the symbol index?" — and the
+   * index is a lossy summary of the repository: a file keeps `maxSigsPerFile` (25)
+   * signatures, only the files under the detected source roots are in it, and an
+   * extractor lists only the constructs it knows. A real symbol outside it was
+   * reported as fabricated (#910: httpx's `Cookies.extract_cookies`, 1,100 lines into
+   * a file whose index entry stops at 25). Measured over 35 repositories' own docs,
+   * 42% of the names `verify` flagged were defined in the checkout: 32% in files the
+   * index does not hold, 7% in an indexed file the extractor did not list, 3% past
+   * the cap.
+   *
+   * This asks the question the index only approximates, of the source itself, and
+   * only of the names that would otherwise be flagged. A name is CONFIRMED when a
+   * call or a definition form of it occurs in the code of some file of the checkout
+   * — never the bare word, so prose cannot confirm it:
+   *
+   *   name(   name<T>(           a call, or a definition head
+   *   name = (…   name: function   a function-valued binding, typed or not
+   *   def|func|fn|fun|class|… [<T>] name   a keyword definition
+   *   export const name   exports.name =   an exported binding, function-shaped or not
+   *
+   * Comments and strings are blanked first (`scan.js` / `call-graph.js` maskers, by
+   * language family), so `// call clear() to reset`, a docstring or a SQL string
+   * confirms nothing. This is the standard `judge` already applies to the context
+   * (`hasStrongEvidence`, #909), turned on the source.
+   *
+   * It is a NECESSARY-condition check in the same spirit as #909's named-import
+   * check: a name that is called or defined nowhere cannot be a real symbol of the
+   * repository, so it stays flagged; a name that is called or defined somewhere is
+   * not a fabrication, whether the repo or a library it uses owns it. Measured on 20,171
+   * mutated names (a swapped letter, a suffix, a prefix) none was confirmed.
+   *
+   * Bounded and deterministic: nothing is read when there is nothing to confirm; the
+   * walk is sorted, the indexed files come first, and a budget on bytes and files —
+   * never a clock — ends it, so two runs agree. A name not confirmed within the
+   * budget stays flagged exactly as before. Languages whose comments the maskers do
+   * not read (Lua, PowerShell, SQL, markup) are not scanned.
+   *
+   * Zero dependencies, offline.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { DEFAULTS } = __require('./src/config/defaults');
+
+  /** A file larger than this is generated or vendored, never hand-written source. */
+  const MAX_FILE_BYTES = 1500000;
+  /** Total text read in one confirmation. The largest of 12 repositories measured held 27 MB of code. */
+  const MAX_SCAN_BYTES = 64 * 1024 * 1024;
+  /** Files read in one confirmation. */
+  const MAX_SCAN_FILES = 25000;
+  const MAX_DEPTH = 24;
+
+  /** Trees that are somebody else's code, on top of the generator's own `exclude`. */
+  const EXTRA_EXCLUDE = ['venv', 'site-packages', 'third_party', 'Pods', 'Carthage', 'bower_components'];
+
+  const JS_FAMILY = new Set(['javascript', 'typescript', 'typescript_react', 'vue_sfc', 'svelte', 'astro']);
+  const C_FAMILY = new Set(['java', 'kotlin', 'go', 'csharp', 'cpp', 'objc', 'php', 'swift', 'dart', 'scala']);
+  const HASH_FAMILY = new Set(['python', 'ruby', 'elixir', 'gdscript', 'r', 'shell']);
+  /** Languages with a multi-line `"""` text block (Dart also `'''`). */
+  const TEXT_BLOCK_FAMILY = new Set(['java', 'kotlin', 'csharp', 'swift', 'dart', 'scala']);
+
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  /**
+   * The patterns that confirm one name. Case-sensitive, whole-identifier.
+   * @param {string} name
+   * @returns {RegExp[]}
+   */
+  function symbolForms(name) {
+    const id = escapeRe(name);
+    const start = '(?<![\\w$])';
+    const end = '(?![\\w$])';
+    return [
+      new RegExp(start + id + '\\s*(?:<[^<>()\\n]{0,80}>)?\\s*\\('),
+      new RegExp(start + id + '\\s*(?::[^=;\\n]{1,80}=|<-|=|:)\\s*(?:async\\s+)?(?:function\\b|lambda\\b|\\\\?\\(|[\\w$]+\\s*=>)'),
+      new RegExp(start + '(?:def|defp|defmacro|defmodule|function\\*?|func|fn|fun|sub|class|struct|interface|trait|enum|type|object|module|protocol|record)\\s+(?:<[^>\\n]*>\\s*)?(?:\\([^)\\n]*\\)\\s*)?(?:[\\w$.]+\\.)?' + id + end),
+      new RegExp(start + '(?:export\\s+(?:default\\s+)?(?:declare\\s+)?(?:const|let|var)\\s+|(?:module\\.)?exports\\.)' + id + end),
+    ];
+  }
+
+  /** Directory and file names the walk never enters: the generator's `exclude`, its own additions, and the project's. */
+  function excludedNames(cwd) {
+    const names = new Set([...DEFAULTS.exclude, ...EXTRA_EXCLUDE]);
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
+      if (cfg && Array.isArray(cfg.exclude)) for (const n of cfg.exclude) if (typeof n === 'string') names.add(n);
+    } catch (_) { /* no project config, or an unreadable one: the defaults stand */ }
+    return names;
+  }
+
+  let _tools = null;
+  /** Loaded on first use: a `verify` with nothing to confirm never pays for the extractors or the maskers. */
+  function tools() {
+    if (!_tools) {
+      const { langFor } = __require('./src/extractors/dispatch');
+      const { maskCode } = __require('./src/extractors/scan');
+      const { maskPy, maskRust } = __require('./src/graph/call-graph');
+      _tools = { langFor, maskCode, maskPy, maskRust };
+    }
+    return _tools;
+  }
+
+  /**
+   * `maskCode` reads `"""` as an empty string and then a one-line one, which leaves
+   * the body of a text block to be searched as code. Blank the whole block first —
+   * length- and newline-preserving, like every masker here.
+   */
+  function blankTextBlocks(text, lang) {
+    const re = lang === 'dart' ? /"""[\s\S]*?"""|'''[\s\S]*?'''/g : /"""[\s\S]*?"""/g;
+    return text.replace(re, (block) => block.replace(/[^\n]/g, ' '));
+  }
+
+  /**
+   * The masker for a source file, or null when its language is not one whose
+   * comments and strings can be blanked (markup, data, Lua, PowerShell, SQL, …).
+   * @param {string} rel repo-relative path
+   * @returns {((text: string) => string)|null}
+   */
+  function maskerFor(rel) {
+    const { langFor, maskCode, maskPy, maskRust } = tools();
+    const lang = langFor(rel);
+    if (!lang) return null;
+    if (lang === 'rust') return maskRust;
+    if (JS_FAMILY.has(lang)) return (t) => maskCode(t, { js: true });
+    if (C_FAMILY.has(lang)) {
+      return TEXT_BLOCK_FAMILY.has(lang) ? (t) => maskCode(blankTextBlocks(t, lang)) : (t) => maskCode(t);
+    }
+    if (HASH_FAMILY.has(lang)) return maskPy;
+    return null;
+  }
+
+  /** A minified bundle defines and calls everything; it says nothing about the repository's own symbols. */
+  const MINIFIED_RE = /\.min\.[cm]?js$|\.generated\.|\.pb\.|_pb\./;
+
+  /**
+   * Every source file of the checkout, sorted, minus excluded and dot directories.
+   * Symlinks are not followed.
+   * @param {string} cwd
+   * @param {Set<string>} exclude
+   * @returns {string[]} repo-relative, forward-slashed
+   */
+  function listSourceFiles(cwd, exclude) {
+    const out = [];
+    const walk = (dirRel, depth) => {
+      if (depth > MAX_DEPTH) return;
+      let entries;
+      try { entries = fs.readdirSync(dirRel ? path.join(cwd, dirRel) : cwd, { withFileTypes: true }); } catch (_) { return; }
+      entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+      for (const e of entries) {
+        if (exclude.has(e.name)) continue;
+        const rel = dirRel ? dirRel + '/' + e.name : e.name;
+        if (e.isDirectory()) {
+          if (!e.name.startsWith('.')) walk(rel, depth + 1);
+        } else if (e.isFile() && !MINIFIED_RE.test(e.name) && maskerFor(rel)) {
+          out.push(rel);
+        }
+      }
+    };
+    walk('', 0);
+    return out;
+  }
+
+  /**
+   * Which of `names` are called or defined in the source.
+   *
+   * @param {string} cwd  repo root
+   * @param {Iterable<string>} names  identifiers an answer or a plan cites as symbols
+   * @param {object} [opts]
+   * @param {string[]} [opts.priority]  repo-relative files to read first — the indexed ones
+   * @param {Iterable<string>} [opts.exclude]  names the walk skips (default: the generator's `exclude` plus the project's)
+   * @param {number} [opts.maxBytes]
+   * @param {number} [opts.maxFiles]
+   * @returns {{ confirmed: Map<string, string>, files: number, bytes: number, truncated: boolean }}
+   *   `confirmed` maps each confirmed name to the first file that confirmed it
+   */
+  function confirmSymbols(cwd, names, opts = {}) {
+    const want = [...new Set(names || [])];
+    const result = { confirmed: new Map(), files: 0, bytes: 0, truncated: false };
+    if (!want.length) return result;
+
+    const maxBytes = opts.maxBytes != null ? opts.maxBytes : MAX_SCAN_BYTES;
+    const maxFiles = opts.maxFiles != null ? opts.maxFiles : MAX_SCAN_FILES;
+    const exclude = opts.exclude ? new Set(opts.exclude) : excludedNames(cwd);
+
+    // The indexed files first — they are where a name is most likely defined — then
+    // the rest of the checkout, in sorted order so the budget always ends in the same place.
+    const first = [...new Set(opts.priority || [])].filter((rel) => maskerFor(rel)).sort();
+    const seen = new Set(first);
+    const order = first.concat(listSourceFiles(cwd, exclude).filter((rel) => !seen.has(rel)));
+
+    const forms = new Map(want.map((n) => [n, symbolForms(n)]));
+    for (const rel of order) {
+      if (result.confirmed.size === want.length) break;
+      if (result.files >= maxFiles || result.bytes >= maxBytes) { result.truncated = true; break; }
+      let text;
+      try {
+        const abs = path.join(cwd, rel);
+        if (fs.statSync(abs).size > MAX_FILE_BYTES) continue;
+        text = fs.readFileSync(abs, 'utf8');
+      } catch (_) { continue; }
+      result.files++;
+      result.bytes += text.length;
+
+      // Cheap first: only a file that mentions a name still wanted is worth masking.
+      const pending = want.filter((n) => !result.confirmed.has(n) && text.includes(n));
+      if (!pending.length) continue;
+      const masked = maskerFor(rel)(text);
+      for (const n of pending) {
+        if (forms.get(n).some((re) => re.test(masked))) result.confirmed.set(n, rel);
+      }
+    }
+    return result;
+  }
+
+  module.exports = { confirmSymbols, symbolForms, listSourceFiles, excludedNames, MAX_FILE_BYTES, MAX_SCAN_BYTES, MAX_SCAN_FILES };
   
 };
 
@@ -34213,7 +34476,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.69.0';
+const VERSION = '8.70.0';
 function requireSourceOrBundled(key) {
   try {
     const rel = key.replace(/^\.\//, '') + '.js';

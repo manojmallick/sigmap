@@ -5,6 +5,7 @@
     "java",
     "javascript",
     "python",
+    "ruby",
     "rust",
     "typescript"
   ],
@@ -286,6 +287,75 @@
       }
     },
     {
+      "name": "ruby",
+      "language": "ruby",
+      "labelledFakes": 5,
+      "verify": {
+        "file": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        },
+        "import-name": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        },
+        "script": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "judge": {
+        "file": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "symbol": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1
+        },
+        "import": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": null
+        }
+      },
+      "verdicts": {
+        "good": "pass",
+        "bad": "fail"
+      }
+    },
+    {
       "name": "rust",
       "language": "rust",
       "labelledFakes": 4,
@@ -428,14 +498,14 @@
     "verify": {
       "kinds": {
         "file": {
-          "tp": 13,
+          "tp": 14,
           "fp": 0,
           "fn": 0,
           "precision": 1,
           "recall": 1
         },
         "symbol": {
-          "tp": 12,
+          "tp": 16,
           "fp": 0,
           "fn": 0,
           "precision": 1,
@@ -467,14 +537,14 @@
     "judge": {
       "kinds": {
         "file": {
-          "tp": 13,
+          "tp": 14,
           "fp": 0,
           "fn": 0,
           "precision": 1,
           "recall": 1
         },
         "symbol": {
-          "tp": 12,
+          "tp": 16,
           "fp": 0,
           "fn": 0,
           "precision": 1,
@@ -489,12 +559,12 @@
         }
       },
       "verdicts": {
-        "correct": 12,
-        "total": 12,
+        "correct": 14,
+        "total": 14,
         "accuracy": 1
       }
     }
   },
-  "version": "8.69.0",
-  "generated": "2026-10-06T19:04:04.257Z"
+  "version": "8.70.0",
+  "generated": "2026-10-06T22:42:25.368Z"
 }

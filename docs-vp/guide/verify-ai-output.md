@@ -21,7 +21,7 @@ straight into CI.
 | `fake-test-file` | A referenced **test** path is not on disk | High |
 | `fake-import` | A relative import doesn't resolve, a bare package isn't in `package.json`, or a **Python / Go** import of the repo's own package doesn't resolve (#909) | High |
 | `fake-import-name` | A name imported from a repo module that resolves to **one** file, and occurs nowhere in it (#909, D1) | Medium |
-| `fake-symbol` | A called function/class isn't in the repo index **or the installed libraries** | Medium |
+| `fake-symbol` | A called function/class isn't in the repo index **or the installed libraries**, and is neither called nor defined anywhere in your source (#914) | Medium |
 | `fake-npm-script` | `npm run X` where `X` isn't a `package.json` script | High |
 | `arity-mismatch` | A **known** repo function is called with an argument count outside its signature's `[min, max]` (v8.28.0, D1) | Medium |
 
@@ -77,10 +77,60 @@ price of precision. Backslashes inside a code fence are escapes, except in a
 `bat`/`cmd`/`powershell` fence.
 
 **Known limits.** A declaration in backticks (`` `def clear(domain)` ``) is not a
-symbol claim: the symbol index keeps `maxSigsPerFile` (25) signatures per file, so a
-real method past the cut would be flagged — measured on httpx, where all 3 such
-claims were. Java, Rust and C# imports are not resolved. Neither is a third-party
+symbol claim: a reference doc lists methods that way and a plan proposes them, so
+reading them is a separate, measured widening of the claim set. It was also unsafe
+while the index decided a symbol's fate — on httpx all 3 such claims were flagged
+(#909) — which [the next section](#symbols-are-confirmed-against-your-source-914)
+settles. Java, Rust and C# imports are not resolved. Neither is a third-party
 Python import.
+
+### Symbols are confirmed against your source (#914)
+
+`fake-symbol` used to ask one question — *is this name in the symbol index?* — and
+the index is a summary: a file keeps `maxSigsPerFile` (25) signatures, only the
+files under the detected source roots are in it, and an extractor lists only the
+constructs it knows. A real symbol outside it was reported as fabricated. Measured
+on the docs of 35 open-source repositories, **42% of the names `verify` flagged
+were defined in the checkout**: 32% in files the index does not hold (another
+root, `examples/`, tests), 7% in an indexed file the extractor did not list, and
+3% past the 25-signature cap (#910 — httpx's `Cookies.extract_cookies`).
+
+So before a symbol is reported, `verify` looks it up in the source — only the
+names that would be flagged, in one pass. A name is **confirmed**, and not
+reported, when one of these forms of it occurs in the *code* of a source file:
+
+| Form | Examples |
+|---|---|
+| a call, or a definition head, optionally generic | `clear(domain)` · `add<T>(x)` |
+| a binding to a function, typed or not | `handler = (req) => …` · `name: function` · `name <- function(x)` |
+| a keyword definition, with an optional generic or receiver | `def clear` · `fun <T> launch(` · `func (c *Client) Do(` · `class Cookies` |
+| an exported binding, function-shaped or not | `export const immer = impl as Immer` · `exports.clear = clear` |
+
+Comments, docstrings, strings, template literals and regex literals are blanked
+first, so `# call clear() to reset` or a SQL string confirms nothing, and the bare
+word never does. Like the named-import check above it is a *necessary-condition*
+check: a name that is called or defined nowhere in the repository's code cannot be
+a real symbol of it, so it is still reported — none of 20,171 mutated, fabricated
+names was confirmed when this was measured — while a name the code calls is not a
+fabrication, whether your repo or a library it uses owns it.
+
+- **Scope.** Every code file of the checkout — JS/TS and single-file components,
+  Python, Go, Rust, Java, Kotlin, Scala, C#, C/C++, Objective-C, Swift, Dart, PHP,
+  Ruby, Elixir, GDScript, R, shell — except the generator's `exclude` and the
+  project's own, dot directories, vendored and generated trees (`vendor`,
+  `third_party`, `venv`, `dist`, `*.min.js`, `*.generated.*`, `*.pb.*`), symlinks,
+  and files over 1.5 MB. The indexed files are read first. Lua, PowerShell, SQL and
+  markup are not read — their comments are not blanked — so a name defined only
+  there is reported as before.
+- **Bounded.** Nothing is read unless a symbol would be flagged. A deterministic
+  budget — 64 MB of text and 25,000 files, never a clock — ends the scan, so two
+  runs agree; a name not confirmed within it stays reported, exactly as before.
+- **Visible.** `summary.symbolsConfirmed` counts the names the source confirmed.
+  They are not findings.
+- **Everywhere the question is asked.** `verify-plan` (`unknown-symbol`), `judge`
+  and the MCP `verify_suggestion` tool inherit it. A plan's `Creates:`
+  introductions are *not* widened: a name that exists only past the cut is still
+  not caught by `redefines-existing`.
 
 ### Arity checks (v8.28.0)
 
@@ -227,7 +277,7 @@ node scripts/run-verify-benchmark.mjs --manifest cases.json
 It emits a per-detector precision/recall CSV.
 
 The **grounding regression corpus** scores `verify` and `judge` on answers whose
-truth is known — six fixture repos (Go, Java, JavaScript, Python, Rust,
+truth is known — seven fixture repos (Go, Java, JavaScript, Python, Ruby, Rust,
 TypeScript), each with a `good.md` where every claim is real and a `bad.md` with
 labelled fakes — per claim kind (`file`, `symbol`, `import`, `import-name`,
 `script`), against floors recorded in `benchmarks/grounding-regression-baseline.json`:
