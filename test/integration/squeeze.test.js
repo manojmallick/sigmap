@@ -16,7 +16,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const SCRIPT = path.join(ROOT, 'gen-context.js');
 const { classify } = require(path.join(ROOT, 'src/squeeze/classify'));
 const { squeezeCiLog } = require(path.join(ROOT, 'src/squeeze/cilog'));
-const { squeezeStackTrace } = require(path.join(ROOT, 'src/squeeze/stacktrace'));
+const { squeezeStackTrace, enrichFrame } = require(path.join(ROOT, 'src/squeeze/stacktrace'));
 const { squeezeJsonPayload } = require(path.join(ROOT, 'src/squeeze/jsonpayload'));
 const { squeeze, shouldPrompt } = require(path.join(ROOT, 'src/squeeze/index'));
 const nudge = require(path.join(ROOT, 'src/nudge'));
@@ -74,6 +74,60 @@ test('stacktrace: enriches top frame from symbol index', () => {
   assert.ok(r.enriched, 'not enriched');
   assert.ok(/validateToken\(token\)/.test(r.squeezed), r.squeezed);
 });
+// The real index appends a one-line doc hint AFTER the anchor (`  :9-11  # …`) on
+// 601 of 1,140 anchored signatures in this repo, and lists the export statement
+// beside the functions it exports (#918).
+const SIGS = [
+  'module.exports = { formatResults, other }  :20-20',
+  'function formatResults(rows)  :9-11  # Format result rows for display',
+  'function other(formatResults)  :13-15',
+];
+const sigOf = (frame, sigs = SIGS) => {
+  const r = enrichFrame(frame, new Map([['src/report.js', sigs]]));
+  return r && r.sig;
+};
+
+test('stacktrace: enrichment finds the enclosing function when a doc hint follows the anchor', () => {
+  assert.strictEqual(sigOf({ fn: 'formatResults', file: '/app/src/report.js', line: 10 }), 'function formatResults(rows)');
+});
+test('stacktrace: enrichment never answers with the export statement for a function it exports', () => {
+  // line 99 is outside every range, so only the by-name fallback can answer
+  assert.strictEqual(sigOf({ fn: 'formatResults', file: '/app/src/report.js', line: 99 }), 'function formatResults(rows)');
+  assert.strictEqual(sigOf({ fn: 'Module.other', file: '/app/src/report.js', line: 99 }), 'function other(formatResults)');
+});
+test('stacktrace: no export-list form is taken for the definition of what it exports', () => {
+  for (const list of [
+    'module.exports = { formatResults, other }  :20-20',
+    'module.exports = { formatResults }  :20-20  # exports',
+    'export { formatResults, other }  :20-20',
+    'export default { formatResults }  :20-20',
+  ]) {
+    const sigs = [list, 'function formatResults(rows)  :9-11'];
+    assert.strictEqual(sigOf({ fn: 'formatResults', file: '/app/src/report.js', line: 99 }, sigs), 'function formatResults(rows)', list);
+  }
+});
+test('stacktrace: the by-name fallback matches a declaration, not a parameter that shares the name', () => {
+  const sigs = ['function other(formatResults)  :13-15'];
+  assert.strictEqual(sigOf({ fn: 'formatResults', file: '/app/src/report.js', line: 99 }, sigs), null);
+});
+test('stacktrace: enrichment takes the narrowest range around the line (the method, not its class)', () => {
+  const frame = { fn: 'Report.render', file: '/app/src/report.js', line: 15 };
+  // either listing order: the answer must not depend on which range comes last
+  assert.strictEqual(sigOf(frame, ['class Report  :1-60  # A report', '  render(rows)  :10-20  # Render it']), 'render(rows)');
+  assert.strictEqual(sigOf(frame, ['  render(rows)  :10-20  # Render it', 'class Report  :1-60  # A report']), 'render(rows)');
+});
+test('stacktrace: a line number quoted inside the hint is not the anchor', () => {
+  const sigs = ['function a(x)  :5-6  # see :99'];
+  assert.strictEqual(sigOf({ fn: 'zzz', file: '/app/src/report.js', line: 99 }, sigs), null);
+  assert.strictEqual(sigOf({ fn: 'zzz', file: '/app/src/report.js', line: 5 }, sigs), 'function a(x)');
+});
+test('stacktrace: the squeezed output carries the enclosing signature, hint stripped', () => {
+  const t = 'Err: x\n    at formatResults (/app/src/report.js:10:3)';
+  const r = squeezeStackTrace(t, { srcDirs: ['src'], symbolIndex: new Map([['src/report.js', SIGS]]) });
+  assert.ok(/↳ function formatResults\(rows\)   \[src\/report\.js\]/.test(r.squeezed), r.squeezed);
+  assert.ok(!/module\.exports/.test(r.squeezed) && !/Format result rows/.test(r.squeezed), r.squeezed);
+});
+
 test('stacktrace: graceful fallback when symbol not indexed', () => {
   const t = 'Err: x\n    at ghost (/app/src/a.js:5:1)';
   const r = squeezeStackTrace(t, { srcDirs: ['src'], symbolIndex: new Map() });

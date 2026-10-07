@@ -37,6 +37,21 @@ function inSrcDirs(file, srcDirs) {
   });
 }
 
+// A signature's `:start-end` anchor. The one-line doc hint follows it
+// (`foo(a)  :10-20  # does x`), so the anchor is not always the last thing on the line.
+const ANCHOR_RE = /\s:(\d+)(?:-(\d+))?(?:\s{2,}#.*)?$/;
+
+/**
+ * Whether a signature DECLARES `name`, as opposed to merely mentioning it. An
+ * export list (`module.exports = { a, b }`) names every function it exports but
+ * defines none of them, and a parameter or a body can carry the name too, so the
+ * name must sit in the declarator — ahead of the first `(`, `{` or `=`.
+ */
+function declares(sig, name) {
+  const head = sig.replace(ANCHOR_RE, '');
+  return new RegExp('\\b' + name.replace(/[^\w$]/g, '') + '\\b').test(head.split(/[({=]/, 1)[0]);
+}
+
 /** Look up the real signature for a frame in the SigMap symbol index. */
 function enrichFrame(frame, symbolIndex) {
   if (!symbolIndex || !frame) return null;
@@ -51,18 +66,19 @@ function enrichFrame(frame, symbolIndex) {
   if (!key) return null;
   const sigs = symbolIndex.get(key) || [];
   const wantFn = frame.fn ? frame.fn.split('.').pop() : '';
-  let byLine = null, byName = null;
+  let byLine = null, byLineSpan = Infinity, byName = null;
   for (const sig of sigs) {
     const s = String(sig);
-    const mm = s.match(/:(\d+)(?:-(\d+))?\s*$/);
+    const mm = s.match(ANCHOR_RE);
     if (mm) {
       const a = +mm[1], b = mm[2] ? +mm[2] : a;
-      if (frame.line >= a && frame.line <= b) byLine = s;
+      // The narrowest range around the line: a method, not the class that holds it.
+      if (frame.line >= a && frame.line <= b && b - a < byLineSpan) { byLine = s; byLineSpan = b - a; }
     }
-    if (wantFn && new RegExp('\\b' + wantFn.replace(/[^\w$]/g, '') + '\\b').test(s)) byName = byName || s;
+    if (wantFn && !byName && declares(s, wantFn)) byName = s;
   }
   const sig = byLine || byName;
-  return sig ? { file: key, sig: sig.replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim() } : null;
+  return sig ? { file: key, sig: sig.replace(ANCHOR_RE, '').trim() } : null;
 }
 
 /**

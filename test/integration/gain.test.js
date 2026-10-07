@@ -200,18 +200,64 @@ test('CLI: --no-track suppresses gain capture', () => {
   }
 });
 
+/** A project with a seeded gain log, so `gain` has something to price whatever ran before this test. */
+function withSeededProject(fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-gain-seed-'));
+  try {
+    recordUsage({ op: 'ask', baselineTokens: 5000, actualTokens: 200, durationMs: 12 }, dir);
+    fn(dir);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // ── #665: unknown --model must be visible, not silent ─────────────────────
+// Seeded rather than run against the repo itself: the price line is only printed
+// once a log exists, and the repo's own log is whatever earlier tests left behind
+// (#918 — the test passed in the full suite and failed run on its own).
 test('CLI: gain --model <typo> prints a stderr notice, keeps exit 0', () => {
-  const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain', '--model', 'gpt4o'], { cwd: ROOT, encoding: 'utf8' });
-  assert.strictEqual(r.status, 0);
-  assert.match(r.stderr, /unknown model 'gpt4o' — priced as claude-sonnet-5-5 \(\$2\/MTok\); see: sigmap gain --models/);
-  // fallback pricing still applied — header shows the default model
-  assert.match(r.stdout, /claude-sonnet-5-5 input @ \$2\/M as of \d{4}-\d{2}-\d{2}/);
+  withSeededProject((dir) => {
+    const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain', '--model', 'gpt4o'], { cwd: dir, encoding: 'utf8' });
+    assert.strictEqual(r.status, 0);
+    assert.match(r.stderr, /unknown model 'gpt4o' — priced as claude-sonnet-5-5 \(\$2\/MTok\); see: sigmap gain --models/);
+    // fallback pricing still applied — header shows the default model
+    assert.match(r.stdout, /claude-sonnet-5-5 input @ \$2\/M as of \d{4}-\d{2}-\d{2}/);
+  });
+});
+
+// ── #816: the figures say they are estimates, in the JSON too ──────────────
+test('aggregate: carries a costBasis statement that says estimate and not billed', () => {
+  const a = aggregate(sample, { model: 'claude-sonnet' });
+  assert.match(a.costBasis, /^estimate/);
+  assert.match(a.costBasis, /not billed usage/);
+  assert.match(a.costBasis, /counterfactual/);
+});
+
+test('aggregate: costBasis is present on an empty log too', () => {
+  assert.match(aggregate([], {}).costBasis, /^estimate/);
+});
+
+test('CLI: gain --json states the estimate beside the numbers it describes', () => {
+  withSeededProject((dir) => {
+    const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain', '--json'], { cwd: dir, encoding: 'utf8' });
+    assert.strictEqual(r.status, 0, r.stderr);
+    const agg = JSON.parse(r.stdout);
+    assert.match(agg.costBasis, /^estimate/);
+    assert.ok(agg.totals.count === 1 && agg.price.asOf, 'the figures and their price date are still there');
+  });
+});
+
+test('CLI: gain (terminal) names the price date and calls the dollars an estimate', () => {
+  withSeededProject((dir) => {
+    const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain'], { cwd: dir, encoding: 'utf8' });
+    assert.match(r.stdout, /Est\. money saved/);
+    assert.match(r.stdout, /input @ \$[\d.]+\/M as of \d{4}-\d{2}-\d{2}/);
+    assert.match(r.stdout, /estimated vs whole-file reads/);
+  });
 });
 
 test('CLI: gain --model <valid> prints no notice', () => {
-  const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain', '--model', 'gpt-4o'], { cwd: ROOT, encoding: 'utf8' });
-  assert.strictEqual(r.status, 0);
+  const r = spawnSync(process.execPath, [GEN_CONTEXT, 'gain', '--model', 'gpt-4o'], { cwd: ROOT, encoding: 'utf8' });  assert.strictEqual(r.status, 0);
   assert.ok(!/unknown model/.test(r.stderr), `unexpected notice: ${r.stderr}`);
 });
 

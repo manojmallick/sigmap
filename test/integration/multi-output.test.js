@@ -295,6 +295,61 @@ test('codex output writes AGENTS.md and preserves human content above marker', (
   });
 });
 
+// ── the summary box names what the run wrote (#918) ─────────────────────────
+// It printed a literal `.github/copilot-instructions.md` for every run — wrong
+// in 12 of 16 real combinations of adapter and config.
+function summaryOutputLine(dir, config, args = []) {
+  fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ secretScan: false, ...config }));
+  const r = require('child_process').spawnSync(process.execPath, [GEN_CONTEXT, ...args], { cwd: dir, encoding: 'utf8' });
+  assert.strictEqual(r.status, 0, r.stderr);
+  const m = r.stderr.match(/^ Output {9}: (.*)$/m);
+  assert.ok(m, `no Output line in the summary:\n${r.stderr}`);
+  return { line: m[1] };
+}
+
+test('summary Output line: claude names CLAUDE.md, not the copilot file', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    const { line } = summaryOutputLine(dir, { outputs: ['claude'] });
+    assert.strictEqual(line, 'CLAUDE.md');
+    assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')) && !fs.existsSync(path.join(dir, '.github', 'copilot-instructions.md')));
+  });
+});
+
+test('summary Output line: --adapter claude names CLAUDE.md', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    const { line } = summaryOutputLine(dir, {}, ['--adapter', 'claude']);
+    assert.strictEqual(line, 'CLAUDE.md');
+  });
+});
+
+test('summary Output line: every output the run writes is named, and only those', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    const { line } = summaryOutputLine(dir, { outputs: ['copilot', 'claude', 'cursor'] });
+    assert.strictEqual(line, '.github/copilot-instructions.md, CLAUDE.md, .cursorrules');
+    for (const f of ['.github/copilot-instructions.md', 'CLAUDE.md', '.cursorrules']) assert.ok(fs.existsSync(path.join(dir, f)), f);
+  });
+});
+
+test('summary Output line: more than three outputs are counted, not listed', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    const { line } = summaryOutputLine(dir, { outputs: ['copilot', 'claude', 'cursor', 'windsurf', 'codex'] });
+    assert.strictEqual(line, '.github/copilot-instructions.md, CLAUDE.md, .cursorrules (+2 more)');
+  });
+});
+
+test('summary Output line: a custom copilot path and --output are what is named', () => {
+  withTempProject((dir) => {
+    seedProject(dir);
+    assert.strictEqual(summaryOutputLine(dir, { outputs: ['copilot'], output: 'docs/ai.md' }).line, 'docs/ai.md');
+    const withCopy = summaryOutputLine(dir, { outputs: ['claude'] }, ['--output', 'out/ctx.md']).line;
+    assert.strictEqual(withCopy, 'CLAUDE.md, out/ctx.md');
+  });
+});
+
 console.log('');
 console.log(`multi-output: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

@@ -171,6 +171,88 @@ test('--json emits a machine-readable status', () => {
   });
 });
 
+// ── exit codes and --json shapes, as documented (#918) ───────────────────────
+// `status` exits 1 when nothing runs (human AND --json form); start / stop exit 0.
+// The three subcommands print three different JSON shapes — only `status` has `running`.
+//
+// These pin the CLI's contract, not the watcher's lifetime, so they run against a
+// stand-in process whose PID is in the pid file. The real watcher cannot be relied
+// on to still be alive a few calls after `start`: on Linux with Node 18,
+// `fs.watch(dir, { recursive: true })` throws ERR_FEATURE_UNAVAILABLE_ON_PLATFORM
+// and the watcher exits right after its first generate (found by these tests in CI).
+const { spawn } = require('child_process');
+
+function withLiveStandIn(dir, fn) {
+  const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1e6)'], { stdio: 'ignore' });
+  try {
+    fs.mkdirSync(path.join(dir, '.context'), { recursive: true });
+    fs.writeFileSync(pidFilePath(dir), `${child.pid}\n`);
+    fn(child.pid);
+  } finally {
+    try { process.kill(child.pid, 'SIGKILL'); } catch (_) {}
+  }
+}
+
+test('status exits 1 when not running and 0 when running, in both output forms', () => {
+  withProject((dir) => {
+    assert.strictEqual(daemon(dir, 'status').code, 1);
+    assert.strictEqual(daemon(dir, 'status', '--json').code, 1, '--json must keep the exit code');
+    withLiveStandIn(dir, (pid) => {
+      const human = daemon(dir, 'status');
+      assert.strictEqual(human.code, 0);
+      assert.ok(new RegExp(`pid ${pid}`).test(human.stdout), human.stdout);
+      assert.strictEqual(daemon(dir, 'status', '--json').code, 0);
+      assert.strictEqual(daemon(dir, 'stop').code, 0);
+    });
+    assert.strictEqual(daemon(dir, 'status').code, 1, 'status exits 1 once stopped');
+    assert.strictEqual(daemon(dir, 'stop').code, 0, 'stop is a no-op when nothing runs');
+  });
+});
+
+test('start exits 0 and prints its result, whatever becomes of the watcher', () => {
+  withProject((dir) => {
+    const r = daemon(dir, 'start');
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.ok(/daemon started \(pid \d+\)/.test(r.stdout), r.stdout);
+  });
+});
+
+test('--json shapes: start and stop print { status, pid }, only status prints { running }', () => {
+  withProject((dir) => {
+    const started = JSON.parse(daemon(dir, 'start', '--json').stdout);
+    assert.strictEqual(started.status, 'started');
+    assert.ok(Number.isInteger(started.pid) && typeof started.logFile === 'string');
+    assert.ok(!('running' in started));
+  });
+  withProject((dir) => {
+    withLiveStandIn(dir, (pid) => {
+      const again = JSON.parse(daemon(dir, 'start', '--json').stdout);
+      assert.strictEqual(again.status, 'already');
+      assert.strictEqual(again.pid, pid);
+      const st = JSON.parse(daemon(dir, 'status', '--json').stdout);
+      assert.deepStrictEqual(Object.keys(st).sort(), ['logFile', 'pid', 'pidFile', 'running']);
+      assert.strictEqual(st.running, true);
+      const stopped = JSON.parse(daemon(dir, 'stop', '--json').stdout);
+      assert.strictEqual(stopped.status, 'stopped');
+      assert.strictEqual(stopped.pid, pid);
+      assert.ok(!('running' in stopped));
+    });
+    assert.strictEqual(JSON.parse(daemon(dir, 'stop', '--json').stdout).status, 'not-running');
+    const idle = JSON.parse(daemon(dir, 'status', '--json').stdout);
+    assert.strictEqual(idle.running, false);
+    assert.deepStrictEqual(Object.keys(idle).sort(), ['logFile', 'pid', 'pidFile', 'running']);
+  });
+});
+
+test('the help row and the quick reference both state the exit code (#918)', () => {
+  const row = require(path.resolve(__dirname, '../../src/cli/command-table')).USAGE
+    .find((r) => r.argv === 'daemon start|stop|status');
+  assert.ok(/status exits 1 when not running/.test(row.desc), row.desc);
+  const cli = fs.readFileSync(path.resolve(__dirname, '../../docs-vp/guide/cli.md'), 'utf8');
+  const quickRef = cli.split('\n').find((l) => l.startsWith('| `daemon start\\|stop\\|status`'));
+  assert.ok(quickRef && /exits 1 when not running/.test(quickRef), quickRef);
+});
+
 console.log('');
 console.log(`daemon: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

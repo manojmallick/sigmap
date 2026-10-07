@@ -1032,12 +1032,19 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
 
     const includedSet = new Set((fileEntries || []).map(f => f.filePath));
 
-    // Walk srcDirs: separate code files from non-code files
+    // Walk srcDirs: separate code files from non-code files. srcDirs can overlap —
+    // `--monorepo` hands every package ['src', 'lib', 'app', '.'], and `.` holds the
+    // others — so a file is counted once, however many roots reach it (#918): one
+    // file read "2 of 2 source files included".
     const allFiles  = [];
     const allSource = [];
+    const walked = new Set();
     for (const relDir of srcDirs) {
       const absDir = path.resolve(cwd, relDir);
-      if (fs.existsSync(absDir)) _walk(absDir, excludeSet, allFiles);
+      if (!fs.existsSync(absDir)) continue;
+      const found = [];
+      _walk(absDir, excludeSet, found);
+      for (const f of found) if (!walked.has(f)) { walked.add(f); allFiles.push(f); }
     }
     for (const f of allFiles) {
       if (CODE_EXTS.has(path.extname(f).toLowerCase())) allSource.push(f);
@@ -2215,7 +2222,8 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: '--track', desc: 'Append run metrics to .context/usage.ndjson' },
     { argv: '--watch', desc: 'Generate + watch for file changes' },
     { argv: '--setup', desc: 'Generate + install git hook + watch' },
-    { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon' },
+    { argv: '--generate', desc: 'Same as a bare run — the flag the installed post-commit hook passes' },
+    { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running)' },
     { argv: '--mcp', desc: 'Start MCP server on stdio' },
     { argv: '--report', desc: 'Token reduction stats to stdout (exits 1 if over budget)' },
     { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },
@@ -2355,6 +2363,18 @@ __factories["./src/cli/command-table"] = function(module, exports) {
   Output: .github/copilot-instructions.md (default)
   `;
 
+  /**
+   * Flags that mean "a bare run". Nothing in the dispatch chain reads them — they
+   * fall through to the default generate — so the guard that greps the CLI core for
+   * every advertised flag exempts exactly these, and command-table.test.js proves
+   * each one by running it against a bare run instead (#918).
+   *
+   * `--generate` is the flag the post-commit hook written by `--setup` passes. It
+   * is the v0.1.0 spelling (packages/core/README.md promises it unchanged), so
+   * every hook ever installed depends on it.
+   */
+  const BARE_RUN_ALIASES = ['--generate'];
+
   /** Bare-word tokens that lead a usage line but are not subcommands. */
   const NOT_A_COMMAND = new Set(['...']);
 
@@ -2456,7 +2476,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
   }
 
   module.exports = {
-    USAGE, FLAG_GATED, SECTIONS, DESC_COL,
+    USAGE, FLAG_GATED, SECTIONS, DESC_COL, BARE_RUN_ALIASES,
     commandOf, flagsOf, commandNames, flagGated, flagsFor, usageLine, renderHelp,
   };
   
@@ -7164,6 +7184,42 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       }
       if (wired) add('mcp', 'MCP wiring', 'ok', `registered in ${_short(wired, cwd)}`);
       else add('mcp', 'MCP wiring', 'warn', 'MCP server not registered in any editor config', 'run: sigmap --setup   (auto-wires Claude, Cursor, Windsurf, VS Code, …)');
+    } catch (_) {}
+
+    // 9. Git hook (#784)
+    //
+    // `--setup` installs a post-commit hook that regenerates context on every
+    // commit, and nothing afterwards said whether it was still there: a hook from
+    // months ago could point at a deleted install, run twice per commit, have lost
+    // its executable bit, or sit in a directory git no longer reads.
+    try {
+      const { inspectPostCommitHook } = __require('./src/util/post-commit-hook');
+      const { tryGit } = __require('./src/util/git');
+      const hook = inspectPostCommitHook(cwd);
+      const rel = _short(hook.path, cwd);
+      const setup = 'run: sigmap --setup   (installs it, or rewrites it to the current install)';
+      if (!hook.gitHooks) {
+        if (tryGit(['rev-parse', '--is-inside-work-tree'], { cwd }) === 'true') {
+          add('hook', 'Git hook', 'ok', 'no .git/hooks directory here (worktree or submodule) — the hook lives in the main checkout');
+        }
+      } else {
+        const hooksPath = tryGit(['config', '--get', 'core.hooksPath'], { cwd });
+        if (!hook.exists || hook.copies === 0) {
+          add('hook', 'Git hook', 'warn',
+            hook.exists ? `${rel} exists but does not run SigMap` : 'no post-commit hook — context is regenerated only when you run sigmap',
+            setup);
+        } else if (hook.copies > 1) {
+          add('hook', 'Git hook', 'warn', `${rel} runs SigMap ${hook.copies} times per commit`, setup + ' — collapses the copies to one');
+        } else if (!hook.scriptExists) {
+          add('hook', 'Git hook', 'warn', `${rel} runs ${_short(hook.script, cwd)}, which no longer exists`, setup);
+        } else if (hook.executable === false) {
+          add('hook', 'Git hook', 'warn', `${rel} is not executable — git skips it`, 'run: chmod +x ' + rel);
+        } else if (hooksPath && path.resolve(cwd, hooksPath) !== path.dirname(hook.path)) {
+          add('hook', 'Git hook', 'warn', `core.hooksPath is ${hooksPath}, so git does not run ${rel}`, `add the SigMap line from ${rel} to ${hooksPath}/post-commit`);
+        } else {
+          add('hook', 'Git hook', 'ok', `${rel} regenerates context after each commit (runs ${_short(hook.script, cwd)})`);
+        }
+      }
     } catch (_) {}
 
     const errors = checks.filter((c) => c.status === 'fail').length;
@@ -24907,7 +24963,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
    *
    * Supported methods:
    *   initialize        → serverInfo + capabilities + negotiated protocolVersion
-   *   tools/list        → 21 tool definitions
+   *   tools/list        → 22 tool definitions
    *   tools/call        → dispatch to handler, return result
    */
 
@@ -25089,12 +25145,13 @@ __factories["./src/mcp/server"] = function(module, exports) {
 __factories["./src/mcp/tools"] = function(module, exports) {
   
   /**
-   * MCP tool definitions for SigMap (20 tools).
+   * MCP tool definitions for SigMap (22 tools).
    * read_context, search_signatures, get_map, create_checkpoint, get_routing,
    * explain_file, list_modules, query_context, get_method_impact, get_impact,
    * get_lines, read_memory, get_callee_signatures, sigmap_notify_file_created,
    * sigmap_notify_symbol_added, sigmap_notify_file_deleted, get_diff_context,
-   * get_architecture_overview, verify_suggestion, squeeze_output.
+   * get_architecture_overview, verify_suggestion, squeeze_output, get_budget,
+   * query_knowledge_map.
    */
 
   const TOOLS = [
@@ -25531,12 +25588,16 @@ __factories["./src/mcp/tools"] = function(module, exports) {
 __factories["./src/nudge"] = function(module, exports) {
   
   /**
-   * Star nudge + usage tracking (v7.0.0).
+   * Star nudge + run counter (v7.0.0).
    *
    * Records run counts in `.context/usage.json` and shows a one-time GitHub-star
    * message after the tool has been genuinely useful (≥10 runs, ≥8 successes).
-   * Shown exactly once per machine — even under concurrent runs (an `wx` lock
-   * file makes the show race-safe). Wired into `ask` (and the `squeeze` path).
+   * The file lives in the project, so "once" means once per PROJECT, not per
+   * machine — even under concurrent runs (an `wx` lock file makes the show
+   * race-safe). Written by every generate, `ask` and `squeeze` run. Counts and
+   * dates only; `--track`, `--no-track` and SIGMAP_NO_TRACK govern the two run
+   * logs (`usage.ndjson`, `gain.ndjson`), not this counter (documented in
+   * docs-vp/guide/config.md).
    */
 
   const fs = require('fs');
@@ -28413,10 +28474,12 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
    * @returns {{ scope:string, files:object[], review:object }}
    */
   function buildPrEvidence(changedFiles, cwd, opts = {}) {
-    const files = (changedFiles || []).map((f) =>
+    const all = (changedFiles || []).map((f) =>
       typeof f === 'string' ? { path: f, status: 'M' } : { path: f.path, status: f.status || 'M' });
 
-    const review = reviewPr(files, cwd, opts);
+    const review = reviewPr(all, cwd, opts);
+    // SigMap's own generated outputs are not part of the change under review (#918).
+    const files = review.ignored.length ? all.filter((f) => !review.ignored.includes(f.path)) : all;
 
     let riskLabelFor = () => 'source';
     let findRelatedTests = () => [];
@@ -28500,6 +28563,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       (s.ok ? '✅ no review findings' : `⚠️ ${s.findings} finding(s)`) +
       ` · scope: ${evidence.scope}`
     );
+    if (s.generatedIgnored) L.push('', `_${s.generatedIgnored} SigMap-generated output(s) in the diff are not reviewed._`);
     L.push('');
 
     if (!s.ok) {
@@ -28576,6 +28640,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
   const path = require('path');
   const { analyzeImpact } = __require('./src/graph/impact');
   const { PATTERNS } = __require('./src/security/patterns');
+  const { findManagedSection, isEntirelyGenerated } = __require('./src/util/managed-section');
 
   const SECURITY_PATTERNS = [
     /(^|\/)\.env(\.|$)/i,
@@ -28599,6 +28664,67 @@ __factories["./src/review/review-pr"] = function(module, exports) {
     return SRC_EXTS.has(path.extname(p).toLowerCase()) && !isTestFile(p);
   }
 
+  // SigMap's own outputs (#918). A repo that commits what `sigmap` generates puts
+  // `.context/*` and the adapter files into every diff next to the real change, and
+  // they are not part of it: they inflated "files changed", added two top-level
+  // dirs to the scope-drift count (so 4 real dirs read as 6 > 5 and failed the
+  // review), and `.context/gain.ndjson` read as `risk: source`.
+  //
+  // `.context/` is SigMap's private directory, so it is recognised by path alone.
+  // The adapter files are only SigMap's when NOTHING human-written is in them:
+  // CLAUDE.md / AGENTS.md / copilot-instructions.md carry the generated block under
+  // a marker, below whatever the team wrote. A file with text above the marker is
+  // a file someone edits, so it stays in the review.
+  const OWN_DIR = /^\.context\//;
+  const OWN_JSON = '.github/copilot-instructions.cache.json';
+  // `llm.txt` is deliberately absent: it is a template the team fills in by hand.
+  const OWN_CONTEXT_FILES = new Set([
+    '.github/copilot-instructions.md', 'CLAUDE.md', 'AGENTS.md', '.cursorrules', '.windsurfrules',
+    '.github/openai-context.md', '.github/gemini-context.md', 'llms.txt', 'llm-full.txt',
+  ]);
+  // First lines of the outputs SigMap overwrites whole, which managed-section.js
+  // does not know: cursor / windsurf, openai, and the two text indexes
+  // (`# SigMap Context Index`, `# <name> — SigMap Context`).
+  const WHOLE_FILE_OPENERS = [
+    /^# Code signatures — generated by SigMap\b/,
+    /^You are a coding assistant with full knowledge of this codebase\./,
+    /^# (?:.* — )?SigMap Context(?: Index)?\s*$/,
+  ];
+  // The two blocks SigMap itself writes ABOVE the managed marker: the claude
+  // adapter's `## Bash allowlist` (packages/adapters/claude.js) and the skills
+  // block `sigmap skills` injects (src/skills/skills.js). The adapter sweep in
+  // review-pr.test.js fails if either stops matching.
+  const SKILLS_BLOCK = /<!-- sigmap-skills:start -->[\s\S]*?<!-- sigmap-skills:end -->/g;
+  const ALLOWLIST_BLOCK = /## Bash allowlist\s*\n\s*<!-- sigmap-bash-allowlist -->[\s\S]*?```json[\s\S]*?```[ \t]*\n?(?:\s*Add the `permissions\.allow`[^\n]*\n?)?/;
+
+  /** Whether a generated file's text is SigMap's from the first line (nothing human above the marker). */
+  function _entirelyGenerated(text) {
+    if (isEntirelyGenerated(text)) return true;
+    const first = text.replace(/^(?:[ \t]*\r?\n)+/, '').split('\n', 1)[0].replace(/\r$/, '');
+    if (WHOLE_FILE_OPENERS.some((re) => re.test(first))) return true;
+    const section = findManagedSection(text);
+    if (!section) return false;
+    return text.slice(0, section.index).replace(SKILLS_BLOCK, '').replace(ALLOWLIST_BLOCK, '').trim() === '';
+  }
+
+  /**
+   * Whether a changed path is a file SigMap wrote and no one edits.
+   * @param {string} rel repo-relative path
+   * @param {(rel:string)=>string} read returns the file's text; may throw
+   * @returns {boolean}
+   */
+  function isSigmapOutput(rel, read) {
+    const p = String(rel).replace(/\\/g, '/');
+    if (OWN_DIR.test(p) || p === OWN_JSON) return true;
+    if (!OWN_CONTEXT_FILES.has(p)) return false;
+    try {
+      const text = read(p);
+      return typeof text === 'string' && _entirelyGenerated(text);
+    } catch (_) {
+      return false; // deleted or unreadable: cannot show it is all generated, so it counts
+    }
+  }
+
   /**
    * Audit a changed-file list.
    * @param {Array<{path:string,status:string}>|string[]} changedFiles
@@ -28606,12 +28732,16 @@ __factories["./src/review/review-pr"] = function(module, exports) {
    * @param {object} [opts]
    * @param {number} [opts.godNodeThreshold=15]
    * @param {number} [opts.scopeThreshold=5]
-   * @returns {{ findings: object[], blast: object[], methodBlast: object|null, summary: object }}
+   * @returns {{ findings: object[], blast: object[], methodBlast: object|null, ignored: string[], summary: object }}
+   *   `ignored` lists the SigMap-generated outputs left out of the review (#918)
    */
   function reviewPr(changedFiles, cwd, opts = {}) {
     const godThreshold = opts.godNodeThreshold != null ? opts.godNodeThreshold : GOD_NODE_THRESHOLD;
     const scopeThreshold = opts.scopeThreshold != null ? opts.scopeThreshold : SCOPE_DIR_THRESHOLD;
-    const files = (changedFiles || []).map((f) => (typeof f === 'string' ? { path: f, status: 'M' } : f));
+    const readFile = opts.readFile || ((p) => fs.readFileSync(path.resolve(cwd, p), 'utf8'));
+    const all = (changedFiles || []).map((f) => (typeof f === 'string' ? { path: f, status: 'M' } : f));
+    const ignored = all.filter((f) => isSigmapOutput(f.path, readFile)).map((f) => f.path);
+    const files = ignored.length ? all.filter((f) => !ignored.includes(f.path)) : all;
 
     const findings = [];
     const paths = files.map((f) => f.path);
@@ -28640,7 +28770,6 @@ __factories["./src/review/review-pr"] = function(module, exports) {
     // 2b. Real secret scan — read each changed file's CONTENT and match known
     // secret patterns. This is the actual security check (content, not filename):
     // it catches a hardcoded key in a file the path heuristic would never flag.
-    const readFile = opts.readFile || ((p) => fs.readFileSync(path.resolve(cwd, p), 'utf8'));
     for (const f of live) {
       let content;
       try { content = readFile(f.path); } catch (_) { continue; } // absent/unreadable → skip
@@ -28699,8 +28828,10 @@ __factories["./src/review/review-pr"] = function(module, exports) {
       findings,
       blast,
       methodBlast,
+      ignored,
       summary: {
         filesChanged: files.length,
+        generatedIgnored: ignored.length,
         sourceChanged: srcChanged.length,
         testsChanged: testChanged.length,
         findings: findings.length,
@@ -28710,7 +28841,7 @@ __factories["./src/review/review-pr"] = function(module, exports) {
     };
   }
 
-  module.exports = { reviewPr, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD };
+  module.exports = { reviewPr, isSigmapOutput, SECURITY_PATTERNS, GOD_NODE_THRESHOLD, SCOPE_DIR_THRESHOLD };
   
 };
 
@@ -30445,6 +30576,21 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
     });
   }
 
+  // A signature's `:start-end` anchor. The one-line doc hint follows it
+  // (`foo(a)  :10-20  # does x`), so the anchor is not always the last thing on the line.
+  const ANCHOR_RE = /\s:(\d+)(?:-(\d+))?(?:\s{2,}#.*)?$/;
+
+  /**
+   * Whether a signature DECLARES `name`, as opposed to merely mentioning it. An
+   * export list (`module.exports = { a, b }`) names every function it exports but
+   * defines none of them, and a parameter or a body can carry the name too, so the
+   * name must sit in the declarator — ahead of the first `(`, `{` or `=`.
+   */
+  function declares(sig, name) {
+    const head = sig.replace(ANCHOR_RE, '');
+    return new RegExp('\\b' + name.replace(/[^\w$]/g, '') + '\\b').test(head.split(/[({=]/, 1)[0]);
+  }
+
   /** Look up the real signature for a frame in the SigMap symbol index. */
   function enrichFrame(frame, symbolIndex) {
     if (!symbolIndex || !frame) return null;
@@ -30459,18 +30605,19 @@ __factories["./src/squeeze/stacktrace"] = function(module, exports) {
     if (!key) return null;
     const sigs = symbolIndex.get(key) || [];
     const wantFn = frame.fn ? frame.fn.split('.').pop() : '';
-    let byLine = null, byName = null;
+    let byLine = null, byLineSpan = Infinity, byName = null;
     for (const sig of sigs) {
       const s = String(sig);
-      const mm = s.match(/:(\d+)(?:-(\d+))?\s*$/);
+      const mm = s.match(ANCHOR_RE);
       if (mm) {
         const a = +mm[1], b = mm[2] ? +mm[2] : a;
-        if (frame.line >= a && frame.line <= b) byLine = s;
+        // The narrowest range around the line: a method, not the class that holds it.
+        if (frame.line >= a && frame.line <= b && b - a < byLineSpan) { byLine = s; byLineSpan = b - a; }
       }
-      if (wantFn && new RegExp('\\b' + wantFn.replace(/[^\w$]/g, '') + '\\b').test(s)) byName = byName || s;
+      if (wantFn && !byName && declares(s, wantFn)) byName = s;
     }
     const sig = byLine || byName;
-    return sig ? { file: key, sig: sig.replace(/\s*:\d+(?:-\d+)?\s*$/, '').trim() } : null;
+    return sig ? { file: key, sig: sig.replace(ANCHOR_RE, '').trim() } : null;
   }
 
   /**
@@ -30735,6 +30882,10 @@ __factories["./src/tracking/aggregate"] = function(module, exports) {
     if (opts.top && opts.top > 0) byOp = byOp.slice(0, opts.top);
 
     return {
+      // The JSON consumer sees the same disclosure the terminal footer prints, and
+      // the one `ask --json` / `--cost --json` carry as `costBasis` (#816).
+      costBasis: 'estimate — saved = whole-file baseline minus SigMap context (a counterfactual); '
+        + 'dollars apply a dated input-token price table, not billed usage',
       price,
       totals,
       byOp,
@@ -31692,6 +31843,132 @@ __factories["./src/util/managed-section"] = function(module, exports) {
     HEADING, STAMP, MARKER, GENERATED_OPENERS,
     findManagedSection, managedSectionLineStart, isEntirelyGenerated, looksGenerated, replaceManagedSection,
   };
+  
+};
+
+// ── ./src/util/post-commit-hook ──
+__factories["./src/util/post-commit-hook"] = function(module, exports) {
+  
+  /**
+   * The git post-commit hook `sigmap --setup` installs (#784, #918).
+   *
+   * One module owns what a SigMap hook line looks like, so the installer, `doctor`
+   * and the tests cannot disagree about it. The installer used to find "its" line
+   * with `line.includes('gen-context.js')`, which went wrong both ways:
+   *
+   *   - a global install runs through the `sigmap` symlink, so the line it writes
+   *     never contains `gen-context.js` and re-running `--setup` appended another
+   *     copy — one more regeneration on every commit, each run;
+   *   - the rewrite dropped EVERY line containing the substring, including a
+   *     team's own `node scripts/gen-context.js …` step.
+   *
+   * A line is SigMap's when it has the shape SigMap writes: `node <sigmap entry>
+   * --generate …`. Anything else in the hook is left alone.
+   *
+   * `--generate` is the v0.1.0 spelling of a bare run and is promised unchanged
+   * (packages/core/README.md), so every hook already written keeps working.
+   *
+   * Zero dependencies; reads and writes only `.git/hooks/post-commit`.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  /** The flag the hook passes; a documented alias of a bare `sigmap` run. */
+  const HOOK_FLAG = '--generate';
+
+  // `node "<path>/gen-context.js" --generate …` (a local install, or the original
+  // `$(git rev-parse --show-toplevel)/gen-context.js` form) or
+  // `node "<bin>/sigmap" --generate …` (a global / npx install, quoted or not).
+  const OWN_LINE = /^\s*node\s+(?:"[^"\n]*(?:gen-context\.js|[/\\]sigmap)"|\S*(?:gen-context\.js|[/\\]sigmap))\s+--generate(?:\s|$)/;
+
+  /** The line `--setup` writes for a given entry script. */
+  function hookLine(scriptPath) {
+    return `node ${JSON.stringify(path.resolve(scriptPath))} ${HOOK_FLAG} 2>/dev/null || true`;
+  }
+
+  /** Whether a line of a hook file is one SigMap wrote. */
+  function isOwnLine(line) {
+    return OWN_LINE.test(line);
+  }
+
+  /** The entry script a SigMap hook line runs, resolved against `cwd`; null when unreadable. */
+  function scriptOf(line, cwd) {
+    const m = line.match(/^\s*node\s+("[^"\n]*"|\S+)/);
+    if (!m) return null;
+    let target = m[1];
+    if (target[0] === '"') {
+      try { target = JSON.parse(target); } catch (_) { target = target.slice(1, -1); }
+    }
+    target = target.replace('$(git rev-parse --show-toplevel)', cwd);
+    return path.resolve(cwd, target);
+  }
+
+  /**
+   * Install the hook, or bring an existing one up to date. Idempotent: running it
+   * again with the same entry changes nothing.
+   *
+   * @param {string} cwd
+   * @param {string} scriptPath the entry script the hook should run
+   * @returns {{ action: 'installed'|'updated'|'unchanged'|'skipped', path: string|null }}
+   */
+  function installPostCommitHook(cwd, scriptPath) {
+    const hookDir = path.join(cwd, '.git', 'hooks');
+    if (!fs.existsSync(hookDir)) return { action: 'skipped', path: null };
+    const hookPath = path.join(hookDir, 'post-commit');
+    const line = hookLine(scriptPath);
+
+    if (!fs.existsSync(hookPath)) {
+      fs.writeFileSync(hookPath, `#!/bin/sh\n${line}\n`);
+      fs.chmodSync(hookPath, '755');
+      return { action: 'installed', path: hookPath };
+    }
+
+    const existing = fs.readFileSync(hookPath, 'utf8');
+    const lines = existing.split('\n');
+    const own = lines.map((l, i) => (isOwnLine(l) ? i : -1)).filter((i) => i !== -1);
+
+    if (own.length === 0) {
+      fs.appendFileSync(hookPath, `\n${line}\n`);
+      return { action: 'installed', path: hookPath };
+    }
+    if (own.length === 1 && lines[own[0]] === line) return { action: 'unchanged', path: hookPath };
+
+    // Rewrite in place: the first SigMap line becomes the current one, any extra
+    // copies go, and every other line keeps its place.
+    const out = lines.map((l, i) => (i === own[0] ? line : l)).filter((l, i) => !own.slice(1).includes(i));
+    fs.writeFileSync(hookPath, out.join('\n'));
+    return { action: 'updated', path: hookPath };
+  }
+
+  /**
+   * What is in the hook now, for `doctor`.
+   *
+   * @param {string} cwd
+   * @returns {{ gitHooks: boolean, path: string, exists: boolean, copies: number,
+   *   script: string|null, scriptExists: boolean|null, executable: boolean|null }}
+   */
+  function inspectPostCommitHook(cwd) {
+    const hookDir = path.join(cwd, '.git', 'hooks');
+    const hookPath = path.join(hookDir, 'post-commit');
+    const res = { gitHooks: false, path: hookPath, exists: false, copies: 0, script: null, scriptExists: null, executable: null };
+    try { res.gitHooks = fs.statSync(hookDir).isDirectory(); } catch (_) { return res; }
+    let text;
+    try { text = fs.readFileSync(hookPath, 'utf8'); res.exists = true; } catch (_) { return res; }
+    const own = text.split('\n').filter(isOwnLine);
+    res.copies = own.length;
+    if (own.length) {
+      res.script = scriptOf(own[0], cwd);
+      res.scriptExists = res.script ? fs.existsSync(res.script) : false;
+    }
+    // Git runs a hook only when it is executable. Windows has no such bit.
+    if (process.platform !== 'win32') {
+      try { fs.accessSync(hookPath, fs.constants.X_OK); res.executable = true; } catch (_) { res.executable = false; }
+    }
+    return res;
+  }
+
+  module.exports = { HOOK_FLAG, hookLine, isOwnLine, scriptOf, installPostCommitHook, inspectPostCommitHook };
   
 };
 
@@ -35673,6 +35950,22 @@ function writeCacheOutput(content, cwd, config) {
   }
 }
 
+// The files `writeOutputs` writes for these targets, as repo-relative paths — what
+// the post-run summary names. It used to print a literal `.github/copilot-instructions.md`
+// whatever was written (#918).
+function outputPaths(targets, cwd, config) {
+  const rel = (p) => path.relative(cwd, p).split(path.sep).join('/');
+  const seen = new Set();
+  for (const t of targets || []) {
+    if (t === 'willow') continue; // posts atoms to a remote store; writes no file
+    let p = resolveAdapterPath(t, cwd, config);
+    if (!p) { try { p = __require('./packages/adapters/' + t).outputPath(cwd); } catch (_) { p = null; } }
+    if (p) seen.add(rel(p));
+  }
+  if (config && config.customOutput) seen.add(rel(path.resolve(cwd, config.customOutput)));
+  return [...seen];
+}
+
 function writeOutputs(content, targets, cwd, config) {
   config = config || {};
   // Adapters place their wall-clock stamp by layout (#683).
@@ -35951,38 +36244,17 @@ function watchMode(cwd, config) {
 // Git hook installer
 // ---------------------------------------------------------------------------
 function installHook(cwd, scriptPath) {
-  const hookDir = path.join(cwd, '.git', 'hooks');
-  if (!fs.existsSync(hookDir)) {
+  const { installPostCommitHook } = requireSourceOrBundled('./src/util/post-commit-hook');
+  const res = installPostCommitHook(cwd, scriptPath);
+  if (res.action === 'skipped') {
     console.warn('[sigmap] .git/hooks not found — skipping hook install');
     return;
   }
-  const hookPath = path.join(hookDir, 'post-commit');
-  const resolvedScript = path.resolve(scriptPath);
-  const hookLine = `\nnode ${JSON.stringify(resolvedScript)} --generate 2>/dev/null || true\n`;
-
-  if (fs.existsSync(hookPath)) {
-    const existing = fs.readFileSync(hookPath, 'utf8');
-    const existingHookLines = existing.split('\n').filter((line) => line.includes('gen-context.js'));
-    if (existing.includes(hookLine.trim()) && existingHookLines.length === 1) {
-      console.warn('[sigmap] post-commit hook already installed');
-      return;
-    }
-    if (existing.includes('gen-context.js')) {
-      const updated = existing
-        .split('\n')
-        .filter((line) => !line.includes('gen-context.js'))
-        .join('\n')
-        .replace(/\n+$/g, '\n');
-      fs.writeFileSync(hookPath, updated.replace(/\n?$/g, '') + hookLine);
-      console.warn('[sigmap] updated post-commit hook');
-      return;
-    }
-    fs.appendFileSync(hookPath, hookLine);
-  } else {
-    fs.writeFileSync(hookPath, `#!/bin/sh${hookLine}`);
-    fs.chmodSync(hookPath, '755');
-  }
-  console.warn('[sigmap] installed post-commit hook');
+  const shown = path.relative(cwd, res.path).split(path.sep).join('/');
+  console.warn(res.action === 'unchanged' ? `[sigmap] post-commit hook already installed (${shown})` : `[sigmap] ${res.action} ${shown}`);
+  // The hook above is only run if git is looking in this directory for hooks.
+  const hooksPath = __tryGit(['config', '--get', 'core.hooksPath'], { cwd });
+  if (hooksPath) console.warn(`[sigmap] warning: core.hooksPath is set to ${hooksPath} — git runs hooks from there, not ${path.dirname(shown)}/`);
 }
 
 // ---------------------------------------------------------------------------
@@ -36832,7 +37104,12 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       ` SigMap v${VERSION}`,
       ` Files scanned  : ${result.fileCount}`,
       ` Symbols found  : ${syms.toLocaleString()}`,
-      ` Token reduction: ${pct}%  (${result.inputTokenTotal.toLocaleString()} \u2192 ${result.finalTokens.toLocaleString()})`,
+      // A source smaller than the fixed context header produces MORE tokens than it
+      // read: `1 - final/raw` is then negative (\u2212872% on a one-file package), a number
+      // `gain` records as 0 saved. Say there is no reduction instead of printing it (#918).
+      result.finalTokens >= result.inputTokenTotal
+        ? ` Token reduction: none  (${result.inputTokenTotal.toLocaleString()} \u2192 ${result.finalTokens.toLocaleString()} \u2014 the fixed context header outweighs a source this small)`
+        : ` Token reduction: ${pct}%  (${result.inputTokenTotal.toLocaleString()} \u2192 ${result.finalTokens.toLocaleString()})`,
     ];
     // Under `index` the signatures are not gone, only moved out of the prompt.
     // Reporting the headline percentage without that caveat would overclaim.
@@ -36840,7 +37117,10 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       lines.push(' Always-on only : signatures live in .context/sig-index.json — pulled by `sigmap ask`');
     }
     if (coverageLine) lines.push(coverageLine);
-    lines.push(` Output         : .github/copilot-instructions.md`);
+    const __written = outputPaths(config.outputs, cwd, config);
+    if (__written.length) {
+      lines.push(` Output         : ${__written.slice(0, 3).join(', ')}${__written.length > 3 ? ` (+${__written.length - 3} more)` : ''}`);
+    }
     lines.push(bar);
     lines.push(` Try: "explain the architecture" \u00b7 "find the auth module"`);
     lines.push(bar, '');
@@ -40241,6 +40521,7 @@ function main() {
 
     const s = result.summary;
     console.log(`[sigmap] review-pr — ${s.filesChanged} file(s) changed (${s.sourceChanged} source, ${s.testsChanged} test)`);
+    if (s.generatedIgnored) console.log(`  (${s.generatedIgnored} SigMap-generated output(s) in the diff not reviewed)`);
     if (s.findings === 0) {
       console.log('  ✓ no findings — scope, tests, blast radius, and sensitive files all clear');
       process.exit(0);

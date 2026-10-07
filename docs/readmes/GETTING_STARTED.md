@@ -756,7 +756,7 @@ Best for: projects with MCP (Claude Code, Cursor) where you're focused on a spec
 
 ## 10. MCP server setup
 
-The MCP server exposes three tools to Claude Code, Cursor, and Windsurf:
+The MCP server exposes 22 tools to Claude Code, Cursor, and Windsurf (`tools/list` is the full reference). The three you reach for first:
 
 | Tool | What it does |
 |---|---|

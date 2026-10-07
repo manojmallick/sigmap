@@ -44,7 +44,8 @@ const USAGE = [
   { argv: '--track', desc: 'Append run metrics to .context/usage.ndjson' },
   { argv: '--watch', desc: 'Generate + watch for file changes' },
   { argv: '--setup', desc: 'Generate + install git hook + watch' },
-  { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon' },
+  { argv: '--generate', desc: 'Same as a bare run — the flag the installed post-commit hook passes' },
+  { argv: 'daemon start|stop|status', desc: 'Run --watch as a detached background daemon (status exits 1 when not running)' },
   { argv: '--mcp', desc: 'Start MCP server on stdio' },
   { argv: '--report', desc: 'Token reduction stats to stdout (exits 1 if over budget)' },
   { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },
@@ -184,6 +185,18 @@ Ignore: .contextignore, .repomixignore
 Output: .github/copilot-instructions.md (default)
 `;
 
+/**
+ * Flags that mean "a bare run". Nothing in the dispatch chain reads them — they
+ * fall through to the default generate — so the guard that greps the CLI core for
+ * every advertised flag exempts exactly these, and command-table.test.js proves
+ * each one by running it against a bare run instead (#918).
+ *
+ * `--generate` is the flag the post-commit hook written by `--setup` passes. It
+ * is the v0.1.0 spelling (packages/core/README.md promises it unchanged), so
+ * every hook ever installed depends on it.
+ */
+const BARE_RUN_ALIASES = ['--generate'];
+
 /** Bare-word tokens that lead a usage line but are not subcommands. */
 const NOT_A_COMMAND = new Set(['...']);
 
@@ -285,6 +298,6 @@ function renderHelp(opts = {}) {
 }
 
 module.exports = {
-  USAGE, FLAG_GATED, SECTIONS, DESC_COL,
+  USAGE, FLAG_GATED, SECTIONS, DESC_COL, BARE_RUN_ALIASES,
   commandOf, flagsOf, commandNames, flagGated, flagsFor, usageLine, renderHelp,
 };

@@ -101,7 +101,7 @@ If you are new to the product, start with the workflow pages first:
 | `lines <file> <start>-<end>` | Print an exact line range — the CLI twin of the `get_lines` MCP tool; `:<line> --context <n>` for an anchor window |
 | `note "<text>"` | Append a note to the cross-session decision log (`note` alone lists recent) |
 | `status` | Repo state — branch, dirty files, index freshness, notes |
-| `doctor` | Diagnose config, index, freshness, coverage, the model profile, and MCP wiring — with a fix per issue (`--json`; exits 1 on hard failure) |
+| `doctor` | Diagnose config, index, freshness, coverage, the model profile, MCP wiring, and the git post-commit hook — with a fix per issue (`--json`; exits 1 on hard failure) |
 | `wiki` | Deterministic architecture narrative → `.context/WIKI.md` — modules, hubs, entry points, conventions, health; no LLM (`--json`, `--out`) |
 | `mcp list` | List supported MCP clients and their config paths (`--json`) |
 | `mcp install <client>` | Wire MCP for one client — `claude`/`cursor`/`windsurf`/`vscode`/`zed`/`codex`/`gemini`/`opencode`/`mcp`; creates the config if absent; `--global` for user-level |
@@ -112,8 +112,9 @@ If you are new to the product, start with the workflow pages first:
 | `sync` | Write all adapter outputs + llm.txt + llms.txt |
 | `run` | Alias for a bare generate (`sigmap run --report`, etc.) |
 | `--watch` | Watch for file changes and regenerate incrementally |
-| `daemon start\|stop\|status` | Run `--watch` as a detached background daemon (PID + log in `.context/`) |
+| `daemon start\|stop\|status` | Run `--watch` as a detached background daemon (PID + log in `.context/`); `status` exits 1 when not running |
 | `--setup` | Auto-wire MCP for Claude, Cursor, Windsurf, Zed, VS Code, OpenCode, Gemini CLI, Codex CLI; install git hook; start watcher |
+| `--generate` | Same as a bare run — the flag the post-commit hook `--setup` installs passes (see [`--setup`](#setup)) |
 | `--diff` | Changed files: working tree vs HEAD (shows risk score per file) |
 | `--diff <ref>` | Changed files: working tree vs `<ref>` — includes uncommitted work |
 | `--diff --staged` | Changed files: index vs HEAD (staged only) |
@@ -147,7 +148,7 @@ If you are new to the product, start with the workflow pages first:
 | `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
 | `--no-track` | Disable gain savings capture for a run |
 | `--init` | Scaffold `gen-context.config.json` and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
-| `--benchmark` | Run retrieval evaluation tasks |
+| `--benchmark` (alias `--eval`) | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched |
 | `--callees <symbol>` | Every repo function that `<symbol>` transitively calls |
@@ -1513,7 +1514,7 @@ Equivalent to setting `testCoverage: true` in config, but applied only for the c
 
 ## doctor
 
-One-shot setup diagnostic. Runs nine resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, the model profile, and MCP wiring — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
+One-shot setup diagnostic. Runs ten resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, the model profile, MCP wiring, and the git post-commit hook — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
 
 ```bash
 sigmap doctor
@@ -1532,9 +1533,24 @@ sigmap doctor
 ✓ Coverage — in-context 71% (54/76 scoped source files) grade B
 ✓ Model profile — as of 2026-10-04 (shipped profile) · no roster declared — advice names the shipped defaults
 ✓ MCP wiring — registered in .claude/settings.json
+✓ Git hook — .git/hooks/post-commit regenerates context after each commit (runs ~/node_modules/sigmap/gen-context.js)
 
 0 error(s), 1 warning(s).
 ```
+
+::: tip The git hook check
+[`--setup`](#setup) installs a post-commit hook, and until now nothing said whether it was still there. The `Git hook` check reads `.git/hooks/post-commit` and warns, with the command that fixes it, when:
+
+| Finding | Detail line |
+|---|---|
+| no hook, or a hook that does not run SigMap | `no post-commit hook — context is regenerated only when you run sigmap` |
+| the hook runs SigMap more than once per commit | `.git/hooks/post-commit runs SigMap 2 times per commit` |
+| the hook points at an install that no longer exists | `… runs ~/old/gen-context.js, which no longer exists` |
+| the hook file is not executable (git skips it) | `… is not executable — git skips it` |
+| `core.hooksPath` sends git to another directory | `core.hooksPath is .husky, so git does not run .git/hooks/post-commit` |
+
+In a worktree or submodule there is no `.git/hooks` directory to inspect, and the check says so rather than warning. A hook is optional — `--watch` and `daemon` are the alternatives — so a missing one is a warning, never an error.
+:::
 
 ::: tip The model profile check (v8.63.0)
 Every model name, price and context window SigMap prints comes from one dated table, and nothing refreshes it — there is no live fetch. Its age is therefore the only freshness signal there is. The check warns once the profile in force is more than **90 days** old, and when your [`models.roster`](/guide/config#models) names a model with no price on record:
@@ -2316,7 +2332,7 @@ $ sigmap daemon start
 [sigmap] logs: .context/daemon.log   stop with: sigmap daemon stop
 ```
 
-`start` is idempotent — a second `start` reports `already running` and spawns no second process; a stale PID file (from a crashed watcher) is cleaned up automatically on `start`/`status`. `stop` is a no-op when nothing is running. Add `--json` to any subcommand for machine-readable output (`{ running, pid, pidFile, logFile }`).
+`start` is idempotent — a second `start` reports `already running` and spawns no second process; a stale PID file (from a crashed watcher) is cleaned up automatically on `start`/`status`. `stop` is a no-op when nothing is running. Add `--json` to any subcommand for machine-readable output. The shape differs by subcommand: `status` prints `{ running, pid, pidFile, logFile }` and keeps its exit code (1 when not running); `start` prints `{ status: "started" | "already", pid, logFile }` and `stop` prints `{ status: "stopped" | "stale" | "not-running", pid }`, both exiting 0.
 
 | Subcommand | Exit code | Behaviour |
 |-----------|-----------|-----------|
@@ -2365,6 +2381,20 @@ sigmap --setup
 [sigmap] installed .git/hooks/post-commit
 [sigmap] watching for changes (Ctrl+C to stop)…
 ```
+
+**The git hook.** `--setup` writes `.git/hooks/post-commit` with one line (a hook that already exists keeps its own lines):
+
+```sh
+node "<path to this install>" --generate 2>/dev/null || true
+```
+
+`--generate` is the original spelling of a bare run (`sigmap` with no arguments does the same thing) and is kept for every hook already written, so it stays supported. `--setup` says which file it touched — `installed`, `updated`, or `post-commit hook already installed (.git/hooks/post-commit)` — and:
+
+- is idempotent: running it again changes nothing, including for a global install (where the path is the `sigmap` binary, not `gen-context.js`);
+- replaces only the lines it recognises as its own (`node <sigmap> --generate …`), in place, and removes duplicates. A line of your own — even one that runs a different `gen-context.js` — is never touched;
+- warns when `core.hooksPath` is set, because git then runs hooks from that directory and not from `.git/hooks`.
+
+[`sigmap doctor`](#doctor) reports whether the hook is installed, duplicated, stale or bypassed.
 
 After registration `--setup` also prints manual snippets for all tools so you can configure any editor not listed above:
 

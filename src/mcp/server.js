@@ -8,7 +8,7 @@
  *
  * Supported methods:
  *   initialize        → serverInfo + capabilities + negotiated protocolVersion
- *   tools/list        → 21 tool definitions
+ *   tools/list        → 22 tool definitions
  *   tools/call        → dispatch to handler, return result
  */
 

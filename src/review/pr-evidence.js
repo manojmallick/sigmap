@@ -30,10 +30,12 @@ const { reviewPr } = require('./review-pr');
  * @returns {{ scope:string, files:object[], review:object }}
  */
 function buildPrEvidence(changedFiles, cwd, opts = {}) {
-  const files = (changedFiles || []).map((f) =>
+  const all = (changedFiles || []).map((f) =>
     typeof f === 'string' ? { path: f, status: 'M' } : { path: f.path, status: f.status || 'M' });
 
-  const review = reviewPr(files, cwd, opts);
+  const review = reviewPr(all, cwd, opts);
+  // SigMap's own generated outputs are not part of the change under review (#918).
+  const files = review.ignored.length ? all.filter((f) => !review.ignored.includes(f.path)) : all;
 
   let riskLabelFor = () => 'source';
   let findRelatedTests = () => [];
@@ -117,6 +119,7 @@ function formatPrEvidenceMarkdown(evidence, opts = {}) {
     (s.ok ? '✅ no review findings' : `⚠️ ${s.findings} finding(s)`) +
     ` · scope: ${evidence.scope}`
   );
+  if (s.generatedIgnored) L.push('', `_${s.generatedIgnored} SigMap-generated output(s) in the diff are not reviewed._`);
   L.push('');
 
   if (!s.ok) {

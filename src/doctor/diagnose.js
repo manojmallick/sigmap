@@ -272,6 +272,42 @@ function diagnose(cwd, opts = {}) {
     else add('mcp', 'MCP wiring', 'warn', 'MCP server not registered in any editor config', 'run: sigmap --setup   (auto-wires Claude, Cursor, Windsurf, VS Code, …)');
   } catch (_) {}
 
+  // 9. Git hook (#784)
+  //
+  // `--setup` installs a post-commit hook that regenerates context on every
+  // commit, and nothing afterwards said whether it was still there: a hook from
+  // months ago could point at a deleted install, run twice per commit, have lost
+  // its executable bit, or sit in a directory git no longer reads.
+  try {
+    const { inspectPostCommitHook } = require('../util/post-commit-hook');
+    const { tryGit } = require('../util/git');
+    const hook = inspectPostCommitHook(cwd);
+    const rel = _short(hook.path, cwd);
+    const setup = 'run: sigmap --setup   (installs it, or rewrites it to the current install)';
+    if (!hook.gitHooks) {
+      if (tryGit(['rev-parse', '--is-inside-work-tree'], { cwd }) === 'true') {
+        add('hook', 'Git hook', 'ok', 'no .git/hooks directory here (worktree or submodule) — the hook lives in the main checkout');
+      }
+    } else {
+      const hooksPath = tryGit(['config', '--get', 'core.hooksPath'], { cwd });
+      if (!hook.exists || hook.copies === 0) {
+        add('hook', 'Git hook', 'warn',
+          hook.exists ? `${rel} exists but does not run SigMap` : 'no post-commit hook — context is regenerated only when you run sigmap',
+          setup);
+      } else if (hook.copies > 1) {
+        add('hook', 'Git hook', 'warn', `${rel} runs SigMap ${hook.copies} times per commit`, setup + ' — collapses the copies to one');
+      } else if (!hook.scriptExists) {
+        add('hook', 'Git hook', 'warn', `${rel} runs ${_short(hook.script, cwd)}, which no longer exists`, setup);
+      } else if (hook.executable === false) {
+        add('hook', 'Git hook', 'warn', `${rel} is not executable — git skips it`, 'run: chmod +x ' + rel);
+      } else if (hooksPath && path.resolve(cwd, hooksPath) !== path.dirname(hook.path)) {
+        add('hook', 'Git hook', 'warn', `core.hooksPath is ${hooksPath}, so git does not run ${rel}`, `add the SigMap line from ${rel} to ${hooksPath}/post-commit`);
+      } else {
+        add('hook', 'Git hook', 'ok', `${rel} regenerates context after each commit (runs ${_short(hook.script, cwd)})`);
+      }
+    }
+  } catch (_) {}
+
   const errors = checks.filter((c) => c.status === 'fail').length;
   const warnings = checks.filter((c) => c.status === 'warn').length;
   return { checks, ok: errors === 0, errors, warnings };
