@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.69.0</span>
+  <span><strong>Release:</strong> v8.70.0</span>
   <span>·</span>
-  <span><strong>New — verify and judge agree about imports:</strong> <code>judge</code> used to fail fully correct Go and Python answers (their real imports were never groundable) and to ground a claim <code>verify</code> had proved fake on a prose word or a substring. Now <code>verify</code> decides Python and Go imports from the repo itself and flags a name imported from a module that never defines it (<code>fake-import-name</code>), and <code>judge</code> lets that verdict outrank weak text: on the grounding corpus verdict accuracy goes 10 → 12 of 12 and verify's import recall 66.7% → <strong>100%</strong>. <a href="/guide/verify-ai-output#imports-and-the-names-they-take-909">Imports and the names they take →</a></span>
+  <span><strong>New — verify checks your source, not just the index:</strong> <code>verify</code> used to report a real symbol as fabricated whenever the signature index lacked it — past a file's 25th signature, in a file outside the detected roots, or in a construct the extractor does not list. On the docs of 35 repositories 42% of the flagged names were real, and the cap was only 3% of them. Now a name is looked up in the source before it is reported (a call or definition in comment-masked code): 319 false findings drop, none appear, and none of 20,171 invented names is confirmed. <a href="/guide/verify-ai-output#symbols-are-confirmed-against-your-source-914">Symbols are confirmed against your source →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.69-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.70-main</span>
   <span>·</span>
   <span>80.4% hit@5 · 95.7% token reduction · 2026-10-06</span>
 </div>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-06 (v8.69.0)**.
+Latest saved benchmark run: **2026-10-06 (v8.70.0)**.
 
 </div>
 
