@@ -1,6 +1,6 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 38 languages, and multiple domains with 80.4% hit@5 in the latest saved v8.70.0 retrieval run.
+description: SigMap generalizes across 21 repos, 38 languages, and multiple domains with 80.4% hit@5 in the latest saved v8.70.1 retrieval run.
 head:
   - - meta
     - property: og:title
@@ -19,14 +19,14 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v8.70.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.70-main &nbsp;·&nbsp; **Date:** 2026-10-06 (with R language)
+::: info Official v8.70.1 benchmark snapshot
+**Benchmark ID:** sigmap-v8.70-main &nbsp;·&nbsp; **Date:** 2026-10-07 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.0% single-shot grep — **2.24× lift** |
-| Honest lift (vs grep agent) | **2.24×** |
+| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 39.2% single-shot grep — **2.29× lift** |
+| Honest lift (vs grep agent) | **2.29×** |
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
@@ -38,7 +38,7 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 105 tasks is yes — 80.4% hit@5 with no per-repo tuning in the latest saved v8.70.0 run.
+these 105 tasks is yes — 80.4% hit@5 with no per-repo tuning in the latest saved v8.70.1 run.
 :::
 
 - **21 repos** (including 3 R language repos)
@@ -70,7 +70,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v8.70.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v8.70.1` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|
