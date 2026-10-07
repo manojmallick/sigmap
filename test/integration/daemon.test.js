@@ -171,6 +171,46 @@ test('--json emits a machine-readable status', () => {
   });
 });
 
+// ── exit codes and --json shapes, as documented (#918) ───────────────────────
+// `status` exits 1 when nothing runs (human AND --json form); start / stop exit 0.
+// The three subcommands print three different JSON shapes — only `status` has `running`.
+test('status exits 1 when not running and 0 when running, in both output forms', () => {
+  withProject((dir) => {
+    assert.strictEqual(daemon(dir, 'status').code, 1);
+    assert.strictEqual(daemon(dir, 'status', '--json').code, 1, '--json must keep the exit code');
+    assert.strictEqual(daemon(dir, 'start').code, 0);
+    assert.strictEqual(daemon(dir, 'status').code, 0);
+    assert.strictEqual(daemon(dir, 'status', '--json').code, 0);
+    assert.strictEqual(daemon(dir, 'stop').code, 0);
+    assert.strictEqual(daemon(dir, 'stop').code, 0, 'stop is a no-op when nothing runs');
+  });
+});
+
+test('--json shapes: start and stop print { status, pid }, only status prints { running }', () => {
+  withProject((dir) => {
+    const started = JSON.parse(daemon(dir, 'start', '--json').stdout);
+    assert.strictEqual(started.status, 'started');
+    assert.ok(Number.isInteger(started.pid) && 'running' in started === false);
+    const again = JSON.parse(daemon(dir, 'start', '--json').stdout);
+    assert.strictEqual(again.status, 'already');
+    const stopped = JSON.parse(daemon(dir, 'stop', '--json').stdout);
+    assert.strictEqual(stopped.status, 'stopped');
+    assert.ok('running' in stopped === false);
+    assert.strictEqual(JSON.parse(daemon(dir, 'stop', '--json').stdout).status, 'not-running');
+    const st = JSON.parse(daemon(dir, 'status', '--json').stdout);
+    assert.deepStrictEqual(Object.keys(st).sort(), ['logFile', 'pid', 'pidFile', 'running']);
+  });
+});
+
+test('the help row and the quick reference both state the exit code (#918)', () => {
+  const row = require(path.resolve(__dirname, '../../src/cli/command-table')).USAGE
+    .find((r) => r.argv === 'daemon start|stop|status');
+  assert.ok(/status exits 1 when not running/.test(row.desc), row.desc);
+  const cli = fs.readFileSync(path.resolve(__dirname, '../../docs-vp/guide/cli.md'), 'utf8');
+  const quickRef = cli.split('\n').find((l) => l.startsWith('| `daemon start\\|stop\\|status`'));
+  assert.ok(quickRef && /exits 1 when not running/.test(quickRef), quickRef);
+});
+
 console.log('');
 console.log(`daemon: ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);

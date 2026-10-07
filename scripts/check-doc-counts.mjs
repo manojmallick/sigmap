@@ -64,6 +64,12 @@ const CANONICAL = [
   { file: 'docs-vp/guide/generalization.md', metric: 'languages', contains: 'hit@5 across' },
   { file: 'docs-vp/guide/generalization.md', metric: 'languages', contains: '(added R, GDScript' },
   { file: 'docs-vp/guide/mcp.md', metric: 'MCP tools', contains: 'on-demand access' },
+  // These four said "9 tools" for months (#918): the phrasing had no "MCP", so
+  // the guard never saw them. They now carry the noun it matches.
+  { file: 'docs-vp/guide/compare-alternatives.md', metric: 'MCP tools', contains: 'Works with MCP tools' },
+  { file: 'docs-vp/guide/compare-alternatives.md', metric: 'MCP tools', contains: 'MCP-native' },
+  { file: 'docs-vp/guide/troubleshooting.md', metric: 'MCP tools', contains: 'result":{"tools"' },
+  { file: 'docs-vp/guide/troubleshooting.md', metric: 'MCP tools', contains: "wire up sigmap's" },
   { file: 'docs-vp/index.md', metric: 'languages', contains: 'description: SigMap builds' },
   { file: 'docs-vp/index.md', metric: 'languages', contains: 'title:' },
   { file: 'docs-vp/index.md', metric: 'languages', contains: 'zero dependencies, offline, deterministic' },

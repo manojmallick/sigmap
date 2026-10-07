@@ -337,6 +337,8 @@ Before v8.51.0 these layouts were badly under-detected — the scan looked two d
 
 Per-operation gain capture (`.context/gain.ndjson`, surfaced by [`sigmap gain`](/guide/cli#gain)) is on by default; it stores counts only — no file paths, source, or query text — and never leaves the machine. Opt out with `--no-track` or `SIGMAP_NO_TRACK=1`. It is independent of the legacy `tracking` health log.
 
+A third file is written whatever you set: `.context/usage.json`, a run counter (`totalRuns`, `successfulRuns`, first and last run date, and whether the one-time GitHub-star message has been shown). Every generate, [`ask`](/guide/cli#ask) and [`squeeze`](/guide/cli#squeeze) run bumps it. It exists per project, not per machine, holds counts and dates only (no paths, source, or query text), and is not governed by `--track`, `--no-track` or `SIGMAP_NO_TRACK=1` — those control the two logs above. Delete the file to reset it.
+
 ## Watch
 
 | Key | Type | Default | Description |

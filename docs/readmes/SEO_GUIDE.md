@@ -61,7 +61,7 @@ Keep titles under 60 characters. Put the topic first, brand last.
 - Include the primary keyword in the first 10 words.
 - Do not duplicate the title word-for-word.
 
-Good: `"Set up SigMap MCP server with Claude Code, Cursor, and Windsurf. 19 on-demand tools. Zero-dependency stdio server."`  
+Good: `"Set up SigMap MCP server with Claude Code, Cursor, and Windsurf. 22 on-demand tools. Zero-dependency stdio server."`  
 Bad: `"This page is about the MCP server feature of SigMap."`
 
 ---
@@ -247,6 +247,6 @@ The honest competitive wedge: SigMap does not compete *with* an agent's live sea
 For the official Model Context Protocol registry and community `awesome-mcp` lists.
 
 - **Name:** SigMap
-- **One-liner:** Deterministic grounding + 19 code-context MCP tools — verify AI code against your repo and installed libraries, rank the right files, and compress tool output. Zero-dependency, offline, byte-stable.
-- **Longer:** SigMap's MCP server exposes 19 deterministic tools — `verify_suggestion` (ground an AI suggestion against repo + installed-library symbols), `query_context` (rank the files a task needs), `get_diff_context` / `get_impact` (blast radius), `get_callee_signatures` (exact signatures before a call is written), `squeeze_output` (compress noisy tool output), and more. No embeddings, no network, no API keys.
+- **One-liner:** Deterministic grounding + 22 code-context MCP tools — verify AI code against your repo and installed libraries, rank the right files, and compress tool output. Zero-dependency, offline, byte-stable.
+- **Longer:** SigMap's MCP server exposes 22 deterministic tools — `verify_suggestion` (ground an AI suggestion against repo + installed-library symbols), `query_context` (rank the files a task needs), `get_diff_context` / `get_impact` (blast radius), `get_callee_signatures` (exact signatures before a call is written), `squeeze_output` (compress noisy tool output), and more. No embeddings, no network, no API keys.
 - **Where to list:** official MCP registry · community MCP server directories · `awesome-mcp-servers` lists.

@@ -270,6 +270,46 @@ test('5-package monorepo produces 5 copilot-instructions.md files', () => {
   }
 });
 
+// ── 14. The per-package summary box tells the truth on a tiny package (#918) ─
+// A one-file package read "2 of 2 source files included" (its roots overlap) and
+// "Token reduction: -872%" (the fixed context header outweighs the source).
+test('a one-file package reports one file and no negative token reduction', () => {
+  const tmp = mkTmp();
+  try {
+    writeFixtures(tmp, {
+      'packages/tiny/package.json': '{"name":"tiny"}',
+      'packages/tiny/src/index.js': 'function hi() {}\nmodule.exports = { hi };\n',
+    });
+    const result = runMonorepo(tmp);
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.ok(/ Coverage {7}: \w \(\d+%\)\s+— 1 of 1 source files included/.test(result.stderr),
+      `expected "1 of 1 source files included":\n${result.stderr}`);
+    assert.ok(!/2 of 2 source files/.test(result.stderr), result.stderr);
+    const line = result.stderr.match(/^ Token reduction: (.*)$/m);
+    assert.ok(line, `no Token reduction line:\n${result.stderr}`);
+    assert.ok(!/-\d+%/.test(line[1]) && !/−\d+%/.test(line[1]), `a negative reduction was printed: ${line[1]}`);
+    assert.ok(/^none/.test(line[1]), `a context larger than its source must say so: ${line[1]}`);
+  } finally {
+    rmdir(tmp);
+  }
+});
+
+test('a package whose context IS smaller than its source still reports a percentage', () => {
+  const tmp = mkTmp();
+  try {
+    const big = Array.from({ length: 400 }, (_, i) => `function helper${i}(a, b) { const x = a + b + ${i}; return x * ${i} + a - b; }`).join('\n') + '\n';
+    writeFixtures(tmp, {
+      'packages/large/package.json': '{"name":"large"}',
+      'packages/large/src/big.js': big,
+    });
+    const result = runMonorepo(tmp);
+    const line = result.stderr.match(/^ Token reduction: (.*)$/m);
+    assert.ok(line && /^\d+%/.test(line[1]), `expected a percentage:\n${result.stderr}`);
+  } finally {
+    rmdir(tmp);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Results
 // ---------------------------------------------------------------------------

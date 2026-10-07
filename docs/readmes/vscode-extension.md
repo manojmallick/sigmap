@@ -76,7 +76,7 @@ Run `SigMap: Regenerate Context` from the Command Palette and watch the terminal
 SigMap scans every signature before writing. If an AWS key, GitHub token, DB connection string, or Stripe key is detected in a function signature, it's **automatically redacted** — never leaks into your context file.
 
 ### 🗺 MCP server support
-SigMap ships with a built-in **Model Context Protocol (MCP) server** for Claude and Cursor, exposing **7 tools**:
+SigMap ships with a built-in **Model Context Protocol (MCP) server** for Claude and Cursor, exposing **22 tools** (`tools/list` is the full reference). The first seven:
 - `read_context` — full or per-module signature map
 - `search_signatures` — keyword search across all signatures
 - `get_map` — import graph, class hierarchy, or route table
@@ -270,7 +270,7 @@ Add `.windsurfrules` output:
 ```bash
 node gen-context.js --mcp
 ```
-Exposes 7 tools over stdio JSON-RPC: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`.
+Exposes 22 tools over stdio JSON-RPC, among them `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`.
 
 ---
 
