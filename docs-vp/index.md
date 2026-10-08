@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.70.1</span>
+  <span><strong>Release:</strong> v8.71.0</span>
   <span>·</span>
-  <span><strong>New — the CLI says what it does:</strong> <code>sigmap create</code> no longer fails a diff that holds only your change and the files SigMap itself wrote; re-running <code>--setup</code> no longer stacks another post-commit hook line on a global install, or deletes one of yours; <code>doctor</code> now checks the hook; and the summary names the files it actually wrote. <a href="/guide/measure-ai-credits">Measure your own AI credits →</a></span>
+  <span><strong>New — sessions you can see:</strong> <code>sigmap hooks install claude</code> records what each Claude Code session was billed, read from its own transcript, counted once per message and labelled <em>measured</em> — never added to an estimate — and the next session opens with a 400-token summary of the last. <a href="/guide/cli#session">Session capture →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.70-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.71-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-07</span>
+  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-08</span>
 </div>
 </div>
 
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-07 (v8.70.1)**.
+Latest saved benchmark run: **2026-10-08 (v8.71.0)**.
 
 </div>
 

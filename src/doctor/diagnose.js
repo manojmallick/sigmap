@@ -308,6 +308,41 @@ function diagnose(cwd, opts = {}) {
     }
   } catch (_) {}
 
+  // 10. Session capture (#922). Optional: a repo that never captured a session gets no
+  // check at all, so this adds nothing for anyone who has not opted in.
+  try {
+    const sessions = require('../session/store').inspect(cwd);
+    const { inspectClaudeHooks } = require('../session/hooks-install');
+    const hooks = inspectClaudeHooks(cwd);
+    if (sessions.exists || hooks.files.length > 0) {
+      const store = path.relative(cwd, sessions.path) || sessions.path;
+      if (!sessions.exists) {
+        add('sessions', 'Session store', 'ok', 'no sessions recorded yet (hooks are wired; the store appears after the first session)');
+      } else if (sessions.corrupt > 0 || sessions.unsupported > 0) {
+        add('sessions', 'Session store', 'warn',
+          `${store}: ${sessions.corrupt} unreadable and ${sessions.unsupported} newer-schema line(s) skipped (${sessions.sessions} session(s) readable)`,
+          'the readable sessions are unaffected; compaction drops the damaged lines the next time it rewrites the file');
+      } else if (sessions.bytes > 5 * 1024 * 1024) {
+        add('sessions', 'Session store', 'warn', `${store} is ${(sessions.bytes / 1048576).toFixed(1)} MB`, 'run: sigmap session compact   (or lower session.retention.days)');
+      } else if (sessions.staleLock) {
+        add('sessions', 'Session store', 'warn', 'a compaction lock is older than 30s', 'delete .context/sessions.lock if no sigmap process is running');
+      } else {
+        add('sessions', 'Session store', 'ok', `${sessions.sessions} session(s), ${sessions.events} event(s), ${sessions.open} open${sessions.rollups ? `, ${sessions.rollups} monthly rollup(s)` : ''}`);
+      }
+      if (hooks.missingScript.length) {
+        add('session-hooks', 'Session hooks', 'warn', `a hook runs ${_short(hooks.missingScript[0], cwd)}, which no longer exists`, 'run: sigmap hooks install claude   (rewrites them to the current install)');
+      } else if (hooks.files.some((f) => f.error)) {
+        add('session-hooks', 'Session hooks', 'warn', hooks.files.find((f) => f.error).error, 'fix the JSON, then run: sigmap hooks install claude');
+      } else if (hooks.wired) {
+        add('session-hooks', 'Session hooks', 'ok', `Claude Code: ${hooks.events.join(', ')}`);
+      } else if (hooks.files.length > 0) {
+        add('session-hooks', 'Session hooks', 'warn', `only ${hooks.events.join(', ') || 'none'} wired — a session needs SessionStart and SessionEnd`, 'run: sigmap hooks install claude');
+      } else {
+        add('session-hooks', 'Session hooks', 'ok', 'not installed — sessions are only recorded by `sigmap session log` (optional: sigmap hooks install claude)');
+      }
+    }
+  } catch (_) {}
+
   const errors = checks.filter((c) => c.status === 'fail').length;
   const warnings = checks.filter((c) => c.status === 'warn').length;
   return { checks, ok: errors === 0, errors, warnings };
