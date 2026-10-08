@@ -2314,6 +2314,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'lines <file> <start>-<end>', desc: 'Print an exact line range — CLI twin of get_lines (secrets redacted)' },
     { argv: 'lines <file> :<line> --context <n>', desc: 'Window around one signature anchor (default ±10)' },
     { argv: 'note "<text>"', desc: 'Append a note to the cross-session decision log' },
+    { argv: 'note "<text>" --tag <name>', desc: 'Tag a note; todo | open | thread | next surface as open threads in the session summary' },
     { argv: 'note', desc: 'List recent notes (also: note --list <N>)' },
     { argv: 'history', desc: 'Recent usage-log entries with a sparkline (--last <n>, --json)' },
     { argv: 'compare', desc: 'SigMap vs baseline benchmark; outside the source checkout shows local history (--run, --json)' },
@@ -2322,6 +2323,16 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: 'roots', desc: 'Detect source roots for this repo (--fix, --json)' },
     { argv: 'sync', desc: 'Write every adapter output + llms.txt and print a compact diff' },
     { argv: 'suggest-profile', desc: 'Infer the task profile from staged changes (--short)' },
+    { argv: 'session [list]', desc: 'Captured agent sessions — billed tokens per request category, each labelled with its provenance (--json, --agent <name>, --limit <n>)' },
+    { argv: 'session show <id>', desc: 'One session in full; an unambiguous id prefix works (--json)' },
+    { argv: 'session log --transcript <file> --id <session_id>', desc: 'Record a Claude Code transcript\'s usage, counted once per message (--agent, --end, --reason <why>)' },
+    { argv: 'session log --from-json <file|->', desc: 'Record usage an agent reported itself: {id, agent, model, usage: {in, out, cacheRead, cacheWrite}}' },
+    { argv: 'session log --ci', desc: 'Append an agent:"ci" record for this pipeline run (usage is unavailable — a CI job has no transcript)' },
+    { argv: 'session summary', desc: 'Warm-start summary of the last session — deterministic, no LLM, ≤400 tokens (--json; `summary --last` is the same call)' },
+    { argv: 'session compact', desc: 'Fold sessions older than session.retention.days into monthly rollups (--json)' },
+    { argv: 'hooks install claude', desc: 'Wire session capture into Claude Code (--stop adds the per-turn hook; --shared writes the committed settings file)' },
+    { argv: 'hooks status', desc: 'Which session hooks are wired, and whether the script they run still exists (--json)' },
+    { argv: 'hooks remove claude', desc: 'Remove SigMap\'s session hooks from Claude Code settings' },
     { argv: 'status', desc: 'Show repo state — branch, dirty files, index freshness, notes' },
     { argv: 'doctor', desc: 'Diagnose config, index, freshness, coverage, MCP wiring — with fixes (--json; exits 1 on hard failure)' },
     { argv: 'mcp list', desc: 'List MCP clients and their config paths (--json)' },
@@ -2648,6 +2659,22 @@ __factories["./src/config/defaults"] = function(module, exports) {
 
     // Number of days before generated context counts as stale in budget output.
     contextTtlDays: null,
+
+    // Session capture + warm-start summary (#922, epic #682). Only active once
+    // `sigmap hooks install claude` (or `sigmap session log`) has written
+    // .context/sessions.ndjson — a repo that never captures a session is unaffected.
+    session: {
+      // Sessions older than `days` fold into monthly rollups (raw events dropped).
+      retention: { days: 90, compact: 'monthly' },
+      // What an `ask` query leaves in the session log: 'hashed' (12-hex digest),
+      // 'full' (redacted text) or 'off' (nothing).
+      logQueries: 'hashed',
+      // Write the warm-start summary into CLAUDE.md / AGENTS.md / copilot / gemini
+      // instruction files on generate. Off: those files are committed, and the
+      // summary carries personal session activity. The SessionStart hook delivers
+      // it locally regardless.
+      injectSummary: false,
+    },
 
     // MCP server configuration
     mcp: {
@@ -7218,6 +7245,41 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
           add('hook', 'Git hook', 'warn', `core.hooksPath is ${hooksPath}, so git does not run ${rel}`, `add the SigMap line from ${rel} to ${hooksPath}/post-commit`);
         } else {
           add('hook', 'Git hook', 'ok', `${rel} regenerates context after each commit (runs ${_short(hook.script, cwd)})`);
+        }
+      }
+    } catch (_) {}
+
+    // 10. Session capture (#922). Optional: a repo that never captured a session gets no
+    // check at all, so this adds nothing for anyone who has not opted in.
+    try {
+      const sessions = __require('./src/session/store').inspect(cwd);
+      const { inspectClaudeHooks } = __require('./src/session/hooks-install');
+      const hooks = inspectClaudeHooks(cwd);
+      if (sessions.exists || hooks.files.length > 0) {
+        const store = path.relative(cwd, sessions.path) || sessions.path;
+        if (!sessions.exists) {
+          add('sessions', 'Session store', 'ok', 'no sessions recorded yet (hooks are wired; the store appears after the first session)');
+        } else if (sessions.corrupt > 0 || sessions.unsupported > 0) {
+          add('sessions', 'Session store', 'warn',
+            `${store}: ${sessions.corrupt} unreadable and ${sessions.unsupported} newer-schema line(s) skipped (${sessions.sessions} session(s) readable)`,
+            'the readable sessions are unaffected; compaction drops the damaged lines the next time it rewrites the file');
+        } else if (sessions.bytes > 5 * 1024 * 1024) {
+          add('sessions', 'Session store', 'warn', `${store} is ${(sessions.bytes / 1048576).toFixed(1)} MB`, 'run: sigmap session compact   (or lower session.retention.days)');
+        } else if (sessions.staleLock) {
+          add('sessions', 'Session store', 'warn', 'a compaction lock is older than 30s', 'delete .context/sessions.lock if no sigmap process is running');
+        } else {
+          add('sessions', 'Session store', 'ok', `${sessions.sessions} session(s), ${sessions.events} event(s), ${sessions.open} open${sessions.rollups ? `, ${sessions.rollups} monthly rollup(s)` : ''}`);
+        }
+        if (hooks.missingScript.length) {
+          add('session-hooks', 'Session hooks', 'warn', `a hook runs ${_short(hooks.missingScript[0], cwd)}, which no longer exists`, 'run: sigmap hooks install claude   (rewrites them to the current install)');
+        } else if (hooks.files.some((f) => f.error)) {
+          add('session-hooks', 'Session hooks', 'warn', hooks.files.find((f) => f.error).error, 'fix the JSON, then run: sigmap hooks install claude');
+        } else if (hooks.wired) {
+          add('session-hooks', 'Session hooks', 'ok', `Claude Code: ${hooks.events.join(', ')}`);
+        } else if (hooks.files.length > 0) {
+          add('session-hooks', 'Session hooks', 'warn', `only ${hooks.events.join(', ') || 'none'} wired — a session needs SessionStart and SessionEnd`, 'run: sigmap hooks install claude');
+        } else {
+          add('session-hooks', 'Session hooks', 'ok', 'not installed — sessions are only recorded by `sigmap session log` (optional: sigmap hooks install claude)');
         }
       }
     } catch (_) {}
@@ -24379,6 +24441,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     out.push(s.context.exists
       ? `Context   : ${s.context.ageDays} day(s) old${s.context.stale ? ` — STALE (> ${s.context.ttlDays}d TTL); re-run sigmap` : ''}`
       : 'Context   : no generated context found — run sigmap first');
+    if (s.measured) {
+      const { formatUsage, NOTE } = __require('./src/session/render');
+      out.push(`Measured  : ${formatUsage(s.measured.usage)}  [${s.measured.provenance}] — ${NOTE}${s.measured.coverage === 'main' ? '; main conversation only' : ''}`);
+    }
     return out.join('\n');
   }
 
@@ -29558,6 +29624,645 @@ __factories["./src/security/scanner"] = function(module, exports) {
   
 };
 
+// ── ./src/session/capture ──
+__factories["./src/session/capture"] = function(module, exports) {
+  
+  /**
+   * Session capture (#922): the writers that feed `.context/sessions.ndjson`.
+   *
+   *   recordTranscript   parse a Claude Code transcript → one cumulative `usage` event
+   *   recordFromJson     the generic fallback for any agent that can report its own usage
+   *   recordCi           an `agent: "ci"` record for a pipeline run
+   *   handleHook         the Claude Code SessionStart / Stop / SessionEnd handler
+   *
+   * `handleHook` is the only code that runs inside a host agent's lifecycle, so it
+   * is built to be harmless: it never throws, never exits non-zero (the caller
+   * exits 0 unconditionally), and bounds its own work with a deadline rather than
+   * a timer — a synchronous parse cannot be interrupted by one. Each thing it
+   * records is attempted on its own: a usage event that cannot be written (a
+   * hostile transcript field, a full disk) never costs the session its `end`.
+   *
+   * Zero dependencies.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const store = __require('./src/session/store');
+  const { parseTranscript } = __require('./src/session/claude-transcript');
+  const { tryGit } = __require('./src/util/git');
+
+  const HOOK_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
+
+  function _branch(cwd) {
+    return store.cleanStr(tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }), 120);
+  }
+
+  /**
+   * Parse a Claude Code transcript and append a cumulative `usage` event.
+   * The transcript is untrusted; only an absolute `*.jsonl` regular file is read.
+   *
+   * @param {string} cwd
+   * @param {string} id          agent-prefixed session id
+   * @param {string} file        absolute transcript path
+   * @param {{ deadlineMs?: number, skipIfUnchanged?: boolean }} [opts]
+   * @returns {{ event: object|null, skipped?: boolean, error?: string, parsed?: object }}
+   */
+  function recordTranscript(cwd, id, file, opts = {}) {
+    if (typeof file !== 'string' || !path.isAbsolute(file) || !/\.jsonl$/i.test(file)) {
+      return { event: null, error: 'transcript must be an absolute path to a .jsonl file' };
+    }
+    if (opts.skipIfUnchanged) {
+      // Stop fires after every turn: don't re-parse a transcript that has not grown.
+      try {
+        const st = fs.statSync(file);
+        const prev = st.isFile() ? store.readSessions(cwd).sessions.find((s) => s.id === id) : null;
+        if (prev && prev.offset === st.size && !prev.partial && st.size > 0) return { event: null, skipped: true };
+      } catch (_) { /* fall through to a real parse */ }
+    }
+    const parsed = parseTranscript(file, { deadlineMs: opts.deadlineMs });
+    const ev = {
+      kind: 'usage', id, source: parsed.source, model: parsed.model,
+      offset: parsed.offset, size: parsed.size, partial: parsed.partial,
+      parseErrors: parsed.parseErrors, messages: parsed.messages, coverage: 'main',
+    };
+    if (parsed.usage) ev.usage = parsed.usage;
+    if (parsed.models) ev.models = parsed.models;
+    if (parsed.firstTs) ev.firstTs = parsed.firstTs;
+    if (parsed.skippedSidechain) ev.skippedSidechain = parsed.skippedSidechain;
+    if (parsed.cacheGaps) ev.cacheGaps = parsed.cacheGaps;
+    if (parsed.error) ev.note = store.cleanStr(String(parsed.error), 60);
+    return { event: store.appendEvent(cwd, ev), parsed };
+  }
+
+  function _count(v, name, optional) {
+    if (v === undefined || v === null) {
+      if (optional) return null;
+      throw new Error(`usage.${name} is required`);
+    }
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) throw new Error(`usage.${name} must be a non-negative number`);
+    return v;
+  }
+
+  /**
+   * Record a session an agent reported itself (`session log --from-json`).
+   * Expected shape: `{ id, agent?, model?, branch?, startedAt?, endedAt?, source?,
+   * usage: { in, out, cacheRead?, cacheWrite? } }`. `in` and `out` are required.
+   * A cache category the agent did not report is stored as `null` — unknown — and
+   * rendered as n/a: it is NOT recorded as 0, which would claim the agent used none.
+   * `source` may be `agent-reported` (default) or `estimate`.
+   */
+  function recordFromJson(cwd, obj, opts = {}) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('expected a JSON object');
+    if (typeof obj.id !== 'string' || !obj.id.trim()) throw new Error('"id" is required');
+    const agent = store.cleanStr(obj.agent, 20) || 'agent';
+    const id = store.sessionId(agent, obj.id);
+    const u = obj.usage;
+    if (!u || typeof u !== 'object') throw new Error('"usage" is required: { in, out, cacheRead?, cacheWrite? }');
+    const usage = {
+      in: _count(u.in, 'in'), out: _count(u.out, 'out'),
+      cacheRead: _count(u.cacheRead, 'cacheRead', true), cacheWrite: _count(u.cacheWrite, 'cacheWrite', true),
+    };
+    const source = obj.source === 'estimate' ? 'estimate' : 'agent-reported';
+    const startedAt = store.cleanIso(obj.startedAt) || new Date().toISOString();
+    const endedAt = store.cleanIso(obj.endedAt) || startedAt;
+    const branch = typeof obj.branch === 'string' ? store.cleanStr(obj.branch, 120) : _branch(cwd);
+    const model = store.cleanStr(obj.model, 80) || 'unknown';
+    store.appendEvent(cwd, { kind: 'start', id, ts: startedAt, agent, branch });
+    store.appendEvent(cwd, { kind: 'usage', id, ts: endedAt, source, model, usage, offset: 0 });
+    store.appendEvent(cwd, { kind: 'end', id, ts: endedAt, reason: 'reported' });
+    store.maybeCompact(cwd, opts.config);
+    return { id, source };
+  }
+
+  const CI_ENVS = [
+    { name: 'github-actions', test: 'GITHUB_ACTIONS', id: (e) => [e.GITHUB_RUN_ID, e.GITHUB_RUN_ATTEMPT].filter(Boolean).join('-'), branch: 'GITHUB_REF_NAME' },
+    { name: 'gitlab-ci', test: 'GITLAB_CI', id: (e) => e.CI_PIPELINE_ID, branch: 'CI_COMMIT_REF_NAME' },
+    { name: 'circleci', test: 'CIRCLECI', id: (e) => e.CIRCLE_WORKFLOW_ID, branch: 'CIRCLE_BRANCH' },
+    { name: 'buildkite', test: 'BUILDKITE', id: (e) => e.BUILDKITE_BUILD_ID, branch: 'BUILDKITE_BRANCH' },
+  ];
+
+  /**
+   * Append an `agent: "ci"` record for this pipeline run. Usage is `unavailable`
+   * unless `usage` is supplied (a CI job has no transcript to measure).
+   */
+  function recordCi(cwd, opts = {}) {
+    const env = opts.env || process.env;
+    const hit = CI_ENVS.find((c) => env[c.test]);
+    const runner = hit ? hit.name : 'ci';
+    const rawId = (hit && hit.id(env)) || opts.id || Date.now().toString(36);
+    const id = store.sessionId('ci', rawId);
+    const branch = (hit && store.cleanStr(env[hit.branch], 120)) || _branch(cwd);
+    const ts = new Date().toISOString();
+    store.appendEvent(cwd, { kind: 'start', id, ts, agent: 'ci', branch, ci: true, runner });
+    if (opts.usage) {
+      store.appendEvent(cwd, { kind: 'usage', id, ts, source: 'agent-reported', model: 'unknown', usage: opts.usage, offset: 0 });
+    } else {
+      store.appendEvent(cwd, { kind: 'usage', id, ts, source: 'unavailable', model: 'unknown', offset: 0, note: 'ci run: no usage surface' });
+    }
+    store.appendEvent(cwd, { kind: 'end', id, ts, reason: 'ci' });
+    store.maybeCompact(cwd, opts.config);
+    return { id, runner };
+  }
+
+  /** Run one step of the handler; a failure is noted and the next step still runs. */
+  function _attempt(out, label, fn) {
+    try {
+      return fn();
+    } catch (e) {
+      if (!out.error) out.error = `${label}: ${e && e.message ? e.message : String(e)}`;
+      return undefined;
+    }
+  }
+
+  /**
+   * Handle one Claude Code hook invocation. NEVER throws.
+   *
+   * Reads only the documented common payload fields (`session_id`,
+   * `transcript_path`) plus `source` / `reason`, and writes:
+   *   SessionStart → a `start` event, `export SIGMAP_SESSION=<id>` into
+   *                  $CLAUDE_ENV_FILE (so later `sigmap ask` calls join the session),
+   *                  and the warm-start summary as `additionalContext`
+   *   Stop         → a cumulative `usage` event (skipped when the transcript is unchanged)
+   *   SessionEnd   → the final `usage` event, then an `end` event, then retention
+   *
+   * It never writes the summary into a file: the block is rebuilt at generation
+   * time only (single-writer rule).
+   *
+   * @returns {{ stdout: string|null, id: string|null, actions: string[], error?: string }}
+   */
+  function handleHook(event, payload, cwd, opts = {}) {
+    const out = { stdout: null, id: null, actions: [] };
+    try {
+      if (!HOOK_EVENTS.includes(event)) return out;
+      if (!payload || typeof payload !== 'object' || typeof payload.session_id !== 'string' || !payload.session_id) return out;
+      const id = store.sessionId('claude-code', payload.session_id);
+      out.id = id;
+      const env = opts.env || process.env;
+      const config = opts.config || {};
+
+      if (event === 'SessionStart') {
+        _attempt(out, 'start', () => {
+          store.appendEvent(cwd, {
+            kind: 'start', id, agent: 'claude-code', branch: _branch(cwd),
+            startSource: store.cleanStr(payload.source, 20) || undefined,
+          });
+          out.actions.push('start');
+        });
+        const envFile = env.CLAUDE_ENV_FILE;
+        if (typeof envFile === 'string' && envFile) {
+          _attempt(out, 'env', () => { fs.appendFileSync(envFile, `export SIGMAP_SESSION=${id}\n`); out.actions.push('env'); });
+        }
+        _attempt(out, 'summary', () => {
+          const { buildSummary } = __require('./src/session/summary');
+          const sum = buildSummary(cwd, { config, exclude: id, now: opts.now });
+          if (sum && sum.text) {
+            out.stdout = JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: sum.text } });
+            out.actions.push('summary');
+          }
+        });
+        return out;
+      }
+
+      const tp = payload.transcript_path;
+      const r = _attempt(out, 'usage', () => recordTranscript(cwd, id, tp, {
+        deadlineMs: opts.deadlineMs, skipIfUnchanged: event === 'Stop',
+      })) || { event: null };
+      out.actions.push(r.skipped ? 'unchanged' : r.event ? 'usage' : 'no-usage');
+      if (r.error && !out.error) out.error = r.error;
+      if (event === 'Stop') return out;
+
+      // SessionEnd: the end is recorded whatever became of the usage.
+      _attempt(out, 'end', () => {
+        store.appendEvent(cwd, { kind: 'end', id, reason: store.cleanStr(payload.reason, 40) || undefined });
+        out.actions.push('end');
+      });
+      const c = store.maybeCompact(cwd, config, { now: opts.now });
+      if (c && c.action === 'compacted') out.actions.push('compact');
+    } catch (e) {
+      out.error = e && e.message ? e.message : String(e);
+    }
+    return out;
+  }
+
+  module.exports = { HOOK_EVENTS, recordTranscript, recordFromJson, recordCi, handleHook };
+  
+};
+
+// ── ./src/session/claude-transcript ──
+__factories["./src/session/claude-transcript"] = function(module, exports) {
+  
+  /**
+   * Claude Code transcript reader (#922).
+   *
+   * A Claude Code session transcript is a JSONL file the host agent writes. Its
+   * schema is NOT documented, so everything here treats it as untrusted input:
+   * a line that does not parse is skipped and counted, a message whose usage is not
+   * a set of finite non-negative numbers is skipped and counted, a transcript with
+   * no readable usage reports `source: 'unavailable'` — never zeros — and a string
+   * taken from it (model, timestamp) is stripped of control characters and capped
+   * before it can reach the store, a terminal or an instruction file.
+   *
+   * Measured on 36 local transcripts: the host repeats an assistant `message.id`
+   * across several lines (one per content block) with IDENTICAL usage, and the
+   * repeats are not adjacent (up to ~2,700 lines apart). So usage is counted ONCE
+   * per `message.id`, tracked with a seen-set over the whole file. A full parse of
+   * a 15.8 MB transcript takes ~120 ms, which is why the totals are cumulative and
+   * recomputed from byte 0 rather than resumed from a watermark.
+   *
+   * Coverage: the main conversation only. Sidechain (subagent) lines are skipped
+   * and counted in `skippedSidechain`; the event says `coverage: 'main'`.
+   *
+   * Only a regular file is opened: a FIFO named `*.jsonl` would block `open(2)`
+   * for ever, and this runs inside a host agent's hook.
+   *
+   * Zero dependencies.
+   */
+
+  const fs = require('fs');
+  const { cleanStr, cleanIso } = __require('./src/session/store');
+
+  const CHUNK = 1 << 20;
+  const DEFAULT_DEADLINE_MS = 1500;
+  const DEFAULT_MAX_BYTES = 512 * 1024 * 1024;
+  const MAX_MODELS = 8;
+  const NL = 10;
+
+  function _num(v) {
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+  }
+
+  function _zero() {
+    return { in: 0, out: 0, cacheRead: 0, cacheWrite: 0 };
+  }
+
+  /**
+   * Parse a transcript file.
+   *
+   * @param {string} file
+   * @param {{ deadlineMs?: number, maxBytes?: number, now?: () => number }} [opts]
+   * @returns {{
+   *   ok: boolean, error?: string, size: number, offset: number, partial: boolean,
+   *   parseErrors: number, skippedSidechain: number, unkeyed: number, messages: number,
+   *   cacheGaps: number,
+   *   usage: {in:number,out:number,cacheRead:number|null,cacheWrite:number|null}|null,
+   *   source: 'transcript'|'unavailable', model: string,
+   *   models: Object<string, object>|null, firstTs: string|null, lastTs: string|null
+   * }}
+   *   A cache category the host reported on NO message is `null`; one it reported on
+   *   some messages is summed over those, and `cacheGaps` counts the messages that omitted it.
+   */
+  function parseTranscript(file, opts = {}) {
+    const now = opts.now || Date.now;
+    const deadline = now() + (Number.isFinite(opts.deadlineMs) ? opts.deadlineMs : DEFAULT_DEADLINE_MS);
+    const maxBytes = Number.isFinite(opts.maxBytes) ? opts.maxBytes : DEFAULT_MAX_BYTES;
+    const res = {
+      ok: false, size: 0, offset: 0, partial: false, parseErrors: 0, skippedSidechain: 0, unkeyed: 0,
+      messages: 0, cacheGaps: 0, usage: null, source: 'unavailable', model: 'unknown', models: null, firstTs: null, lastTs: null,
+    };
+
+    let fd;
+    try {
+      // stat first: opening a FIFO or device would block before any check could run.
+      if (!fs.statSync(file).isFile()) { res.error = 'not a regular file'; return res; }
+      fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0));
+      const st = fs.fstatSync(fd);
+      if (!st.isFile()) { fs.closeSync(fd); res.error = 'not a regular file'; return res; }
+      res.size = st.size;
+    } catch (e) {
+      if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) { /* ignore */ } }
+      res.error = e.code || e.message;
+      return res;
+    }
+
+    const seen = new Set();
+    const total = _zero();
+    const byModel = new Map();
+    let unknownModelMessages = 0;
+    let missingCacheRead = 0;
+    let missingCacheWrite = 0;
+    let lines = 0;
+
+    /** Handle one complete line; mutates the accumulators. */
+    const onLine = (line) => {
+      if (!line) return;
+      if (line.indexOf('"usage"') === -1) {
+        // Not worth a JSON.parse, but a line that is not even brace-delimited is damage.
+        const t = line.trim();
+        if (t && (t.charCodeAt(0) !== 123 || t.charCodeAt(t.length - 1) !== 125)) res.parseErrors++;
+        return;
+      }
+      let o;
+      try { o = JSON.parse(line); } catch (_) { res.parseErrors++; return; }
+      if (!o || typeof o !== 'object' || o.type !== 'assistant') return;
+      const m = o.message;
+      if (!m || typeof m !== 'object' || !m.usage || typeof m.usage !== 'object') return;
+      if (o.isSidechain === true) { res.skippedSidechain++; return; }
+
+      const key = typeof m.id === 'string' && m.id ? m.id : null;
+      if (key && seen.has(key)) return;
+      const u = m.usage;
+      const crMissing = u.cache_read_input_tokens === undefined;
+      const cwMissing = u.cache_creation_input_tokens === undefined;
+      const inTok = _num(u.input_tokens);
+      const outTok = _num(u.output_tokens);
+      const cr = crMissing ? 0 : _num(u.cache_read_input_tokens);
+      const cw = cwMissing ? 0 : _num(u.cache_creation_input_tokens);
+      if (inTok === null || outTok === null || cr === null || cw === null) { res.parseErrors++; return; }
+      if (key) seen.add(key); else res.unkeyed++;
+
+      res.messages++;
+      if (crMissing) missingCacheRead++;
+      if (cwMissing) missingCacheWrite++;
+      total.in += inTok; total.out += outTok; total.cacheRead += cr; total.cacheWrite += cw;
+      // `<synthetic>` is the host's own placeholder for a message no model produced: it says
+      // nothing about which model ran, so it neither names one nor counts as an unnamed one.
+      const named = cleanStr(m.model, 80);
+      if (named === '<synthetic>') {
+        /* no model signal */
+      } else if (named) {
+        let b = byModel.get(named);
+        if (!b) { b = { ..._zero(), messages: 0 }; byModel.set(named, b); }
+        b.in += inTok; b.out += outTok; b.cacheRead += cr; b.cacheWrite += cw; b.messages++;
+      } else {
+        unknownModelMessages++;
+      }
+      const ts = cleanIso(o.timestamp);
+      if (ts) {
+        if (res.firstTs === null) res.firstTs = ts;
+        res.lastTs = ts;
+      }
+    };
+
+    try {
+      const buf = Buffer.allocUnsafe(CHUNK);
+      let carry = Buffer.alloc(0);
+      let pos = 0; // absolute offset of the first byte of `carry`
+      let read = 0;
+      let stop = false;
+      while (!stop && read < maxBytes) {
+        const n = fs.readSync(fd, buf, 0, Math.min(CHUNK, maxBytes - read), read);
+        if (n <= 0) break;
+        read += n;
+        const data = carry.length ? Buffer.concat([carry, buf.subarray(0, n)]) : Buffer.from(buf.subarray(0, n));
+        let start = 0;
+        let nl;
+        while ((nl = data.indexOf(NL, start)) !== -1) {
+          onLine(data.toString('utf8', start, nl));
+          start = nl + 1;
+          res.offset = pos + start;
+          if ((++lines & 1023) === 0 && now() > deadline) { res.partial = true; stop = true; break; }
+        }
+        carry = data.subarray(start);
+        pos += start;
+      }
+      if (!stop && carry.length && read >= res.size) {
+        // A final line with no newline: take it only if it is whole JSON. A half-written
+        // tail (the host is still appending) is left for the next parse, not counted as damage.
+        const tail = carry.toString('utf8');
+        let whole = false;
+        try { JSON.parse(tail); whole = true; } catch (_) { /* mid-write */ }
+        if (whole) { onLine(tail); res.offset = pos + carry.length; }
+      }
+      if (!res.partial && res.offset < res.size && read < res.size) res.partial = true; // stopped at maxBytes
+      res.ok = true;
+    } catch (e) {
+      res.error = e.code || e.message;
+    } finally {
+      try { fs.closeSync(fd); } catch (_) { /* ignore */ }
+    }
+
+    if (res.ok && res.messages > 0) {
+      res.usage = {
+        in: total.in,
+        out: total.out,
+        cacheRead: missingCacheRead === res.messages ? null : total.cacheRead,
+        cacheWrite: missingCacheWrite === res.messages ? null : total.cacheWrite,
+      };
+      const someMissing = (n) => n > 0 && n < res.messages;
+      res.cacheGaps = Math.max(someMissing(missingCacheRead) ? missingCacheRead : 0, someMissing(missingCacheWrite) ? missingCacheWrite : 0);
+      res.source = 'transcript';
+      if (byModel.size === 0) res.model = 'unknown';
+      else if (byModel.size === 1 && unknownModelMessages === 0) res.model = [...byModel.keys()][0];
+      else res.model = 'mixed';
+      if (byModel.size > 1 || (byModel.size === 1 && unknownModelMessages > 0)) {
+        const names = [...byModel.keys()].sort().slice(0, MAX_MODELS);
+        res.models = Object.create(null);
+        for (const n of names) res.models[n] = byModel.get(n);
+      }
+    }
+    return res;
+  }
+
+  module.exports = { parseTranscript, DEFAULT_DEADLINE_MS };
+  
+};
+
+// ── ./src/session/hooks-install ──
+__factories["./src/session/hooks-install"] = function(module, exports) {
+  
+  /**
+   * `sigmap hooks install claude` (#922): wire SigMap's session capture into
+   * Claude Code's hooks.
+   *
+   * Which file. The command embeds an ABSOLUTE path to this install, so by default
+   * it goes in `.claude/settings.local.json` — Claude Code's personal, uncommitted
+   * settings file — rather than the committed `.claude/settings.json`, where one
+   * machine's path would break every teammate's session. `shared: true` opts in to
+   * the committed file anyway.
+   *
+   * Merge, never replace. The file is parsed, SigMap's own entries are added or
+   * brought up to date, and every other key and hook is left exactly as found. A
+   * file that is not valid JSON is refused, not overwritten.
+   *
+   * An entry is SigMap's when its command has the shape SigMap writes:
+   * `node <entry> session hook <SessionStart|Stop|SessionEnd>`.
+   *
+   * Zero dependencies.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const EVENTS = ['SessionStart', 'SessionEnd'];
+  const OPTIONAL_EVENTS = ['Stop'];
+  // Documented SessionStart sources; the hook is useful on all of them.
+  const START_MATCHER = 'startup|resume|clear|compact';
+  // Seconds. The handler bounds its own work well inside this; it is the host's backstop.
+  const TIMEOUT_S = 10;
+
+  // The script path token: single-quoted (what we write; an embedded quote is `'\''`),
+  // double-quoted, or bare.
+  const OWN_COMMAND = /^\s*node\s+('(?:[^']|'\\'')*'|"[^"\n]*"|\S+)\s+session\s+hook\s+(SessionStart|Stop|SessionEnd)\s*$/;
+
+  /**
+   * POSIX single-quoting: nothing inside is expanded by the shell, so an install
+   * path with a space, `$HOME`, a backtick or a quote reaches `node` intact. (Claude
+   * Code runs hook commands through a POSIX shell, Git Bash on Windows.)
+   */
+  function shellQuote(text) {
+    return `'${String(text).replace(/'/g, "'\\''")}'`;
+  }
+
+  function shellUnquote(token) {
+    if (token[0] === "'") return token.slice(1, -1).replace(/'\\''/g, "'");
+    if (token[0] === '"') {
+      try { return JSON.parse(token); } catch (_) { return token.slice(1, -1); }
+    }
+    return token;
+  }
+
+  /** The command line registered for one event. */
+  function hookCommand(scriptPath, event) {
+    return `node ${shellQuote(path.resolve(scriptPath))} session hook ${event}`;
+  }
+
+  function isOwnCommand(cmd) {
+    return typeof cmd === 'string' && OWN_COMMAND.test(cmd);
+  }
+
+  /** The entry script an own command runs; null when unreadable. */
+  function scriptOf(cmd) {
+    const m = typeof cmd === 'string' ? OWN_COMMAND.exec(cmd) : null;
+    if (!m) return null;
+    return shellUnquote(m[1]);
+  }
+
+  function targetFile(cwd, shared) {
+    return path.join(cwd, '.claude', shared ? 'settings.json' : 'settings.local.json');
+  }
+
+  function _read(file) {
+    if (!fs.existsSync(file)) return { settings: {}, exists: false };
+    let settings;
+    try { settings = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return { error: `${file} is not valid JSON (${e.message}); fix or remove it first` }; }
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return { error: `${file} must contain a JSON object` };
+    if (settings.hooks !== undefined && (!settings.hooks || typeof settings.hooks !== 'object' || Array.isArray(settings.hooks))) {
+      return { error: `${file}: "hooks" must be an object` };
+    }
+    return { settings, exists: true };
+  }
+
+  /** Every `{group, hook}` own entry registered for an event. */
+  function _ownEntries(settings, event) {
+    const out = [];
+    const groups = settings.hooks && Array.isArray(settings.hooks[event]) ? settings.hooks[event] : [];
+    for (const group of groups) {
+      if (!group || !Array.isArray(group.hooks)) continue;
+      for (const hook of group.hooks) if (hook && isOwnCommand(hook.command)) out.push({ group, hook });
+    }
+    return out;
+  }
+
+  /**
+   * Add (or bring up to date) SigMap's hooks.
+   * @param {string} cwd
+   * @param {string} scriptPath entry script the hooks should run
+   * @param {{ stop?: boolean, shared?: boolean }} [opts]
+   * @returns {{ path: string, changes: Array<{event:string, action:'added'|'updated'|'unchanged'}>, error?: string }}
+   */
+  function installClaudeHooks(cwd, scriptPath, opts = {}) {
+    const file = targetFile(cwd, !!opts.shared);
+    const read = _read(file);
+    if (read.error) return { path: file, changes: [], error: read.error };
+    const settings = read.settings;
+    if (!settings.hooks) settings.hooks = {};
+    const events = opts.stop ? EVENTS.concat(OPTIONAL_EVENTS) : EVENTS;
+    const changes = [];
+    for (const event of events) {
+      const want = hookCommand(scriptPath, event);
+      const own = _ownEntries(settings, event);
+      if (own.length === 0) {
+        if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
+        const entry = { type: 'command', command: want, timeout: TIMEOUT_S };
+        settings.hooks[event].push(event === 'SessionStart' ? { matcher: START_MATCHER, hooks: [entry] } : { hooks: [entry] });
+        changes.push({ event, action: 'added' });
+      } else if (own.every((e) => e.hook.command === want) && own.length === 1) {
+        changes.push({ event, action: 'unchanged' });
+      } else {
+        // Bring the first up to date and drop any duplicate copies.
+        own[0].hook.command = want;
+        for (const dup of own.slice(1)) dup.group.hooks = dup.group.hooks.filter((h) => h !== dup.hook);
+        changes.push({ event, action: 'updated' });
+      }
+    }
+    if (changes.some((c) => c.action !== 'unchanged')) {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, JSON.stringify(settings, null, 2) + '\n');
+    }
+    return { path: file, changes };
+  }
+
+  /**
+   * Remove SigMap's hooks from both settings files, pruning only what becomes empty.
+   * @returns {{ files: Array<{ path: string, removed: number }>, error?: string }}
+   */
+  function removeClaudeHooks(cwd) {
+    const files = [];
+    for (const shared of [false, true]) {
+      const file = targetFile(cwd, shared);
+      const read = _read(file);
+      if (read.error) return { files, error: read.error };
+      if (!read.exists || !read.settings.hooks) continue;
+      const settings = read.settings;
+      let removed = 0;
+      for (const event of Object.keys(settings.hooks)) {
+        const groups = settings.hooks[event];
+        if (!Array.isArray(groups)) continue;
+        for (const group of groups) {
+          if (!group || !Array.isArray(group.hooks)) continue;
+          const before = group.hooks.length;
+          group.hooks = group.hooks.filter((h) => !(h && isOwnCommand(h.command)));
+          removed += before - group.hooks.length;
+        }
+        settings.hooks[event] = groups.filter((g) => !(g && Array.isArray(g.hooks) && g.hooks.length === 0));
+        if (settings.hooks[event].length === 0) delete settings.hooks[event];
+      }
+      if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+      if (removed > 0) {
+        fs.writeFileSync(file, JSON.stringify(settings, null, 2) + '\n');
+        files.push({ path: file, removed });
+      }
+    }
+    return { files };
+  }
+
+  /**
+   * What is wired, for `hooks status` and `doctor`.
+   * @returns {{ wired: boolean, events: string[], files: object[], missingScript: string[] }}
+   */
+  function inspectClaudeHooks(cwd) {
+    const files = [];
+    const events = new Set();
+    const missingScript = [];
+    for (const shared of [false, true]) {
+      const file = targetFile(cwd, shared);
+      const read = _read(file);
+      if (read.error) { files.push({ path: file, error: read.error }); continue; }
+      if (!read.exists) continue;
+      const found = [];
+      for (const event of EVENTS.concat(OPTIONAL_EVENTS)) {
+        for (const { hook } of _ownEntries(read.settings, event)) {
+          found.push(event);
+          events.add(event);
+          const script = scriptOf(hook.command);
+          if (script && !fs.existsSync(path.resolve(cwd, script))) missingScript.push(script);
+        }
+      }
+      if (found.length) files.push({ path: file, events: found });
+    }
+    return {
+      wired: events.has('SessionEnd') && events.has('SessionStart'),
+      events: [...events], files, missingScript: [...new Set(missingScript)],
+    };
+  }
+
+  module.exports = {
+    EVENTS, OPTIONAL_EVENTS, START_MATCHER, TIMEOUT_S,
+    hookCommand, shellQuote, shellUnquote, isOwnCommand, scriptOf, targetFile, installClaudeHooks, removeClaudeHooks, inspectClaudeHooks,
+  };
+  
+};
+
 // ── ./src/session/memory ──
 __factories["./src/session/memory"] = function(module, exports) {
   
@@ -29996,6 +30701,971 @@ __factories["./src/session/notes"] = function(module, exports) {
   }
 
   module.exports = { notesPath, addNote, readNotes, formatNotes, clearNotes };
+  
+};
+
+// ── ./src/session/render ──
+__factories["./src/session/render"] = function(module, exports) {
+  
+  /**
+   * Rendering for `sigmap session list|show` and the `budget` measured block (#922).
+   *
+   * Wording is part of the contract: the numbers are per-request BILLING
+   * categories (input, output, cache read, cache write). They are never called
+   * "context size", every row carries its provenance label, an unreadable usage
+   * prints as unavailable, a category the agent never reported prints as n/a (not
+   * 0), and totals are only summed within one provenance class — a partial sum is
+   * shown as a floor (`≥`). Measured rows cover the main conversation only, and
+   * the output says so wherever those numbers appear.
+   *
+   * Every string that came from a transcript or the store file is cleaned of
+   * control characters before it is printed.
+   */
+
+  const { PROVENANCE, cleanStr, cleanIso, mergeUsage, usageOf } = __require('./src/session/store');
+
+  const NOTE = 'billed tokens per request category — not context size';
+  const COVERAGE_NOTE = 'measured = read from the agent\'s own transcript, main conversation only (subagent transcripts are not read)';
+  const NA_NOTE = 'n/a = the agent did not report that category (it is not zero)';
+
+  function _n(v) {
+    return Number(v).toLocaleString('en-US');
+  }
+
+  function _when(ts) {
+    const t = cleanIso(ts);
+    return t ? t.slice(0, 16).replace('T', ' ') + 'Z' : 'unknown';
+  }
+
+  function _s(v, max) {
+    return cleanStr(v, max || 40) || 'unknown';
+  }
+
+  function _cat(label, v, floor) {
+    if (v === null || v === undefined) return `${label} n/a`;
+    return `${label} ${floor ? '≥' : ''}${_n(v)}`;
+  }
+
+  /**
+   * `in 1 · out 2 · cache read 3 · cache write 4`, or `unavailable`.
+   * `unreported` (from a sum) marks categories some contributor did not report,
+   * which makes that figure a floor.
+   */
+  function formatUsage(usage, unreported) {
+    if (!usage) return 'unavailable';
+    const part = new Set(unreported || []);
+    return [
+      _cat('in', usage.in, part.has('in')),
+      _cat('out', usage.out, part.has('out')),
+      _cat('cache read', usage.cacheRead, part.has('cacheRead')),
+      _cat('cache write', usage.cacheWrite, part.has('cacheWrite')),
+    ].join(' · ');
+  }
+
+  /**
+   * Sum sessions that HAVE usage, one bucket per provenance class.
+   * @returns {Object<string, { sessions: number, usage: object, unreported: string[] }>}
+   */
+  function totalsByProvenance(sessions) {
+    const acc = {};
+    for (const s of sessions) {
+      const u = usageOf(s);
+      if (!u) continue;
+      const label = PROVENANCE[s.source];
+      const b = acc[label] || (acc[label] = { sessions: 0, acc: null });
+      b.sessions++;
+      b.acc = mergeUsage(b.acc, u);
+    }
+    const out = {};
+    for (const [label, b] of Object.entries(acc)) out[label] = { sessions: b.sessions, usage: b.acc.usage, unreported: b.acc.unreported };
+    return out;
+  }
+
+  function _state(s) {
+    if (s.partial) return 'partial';
+    return s.ended ? 'ended' : 'open';
+  }
+
+  function renderList(sessions, rollups, info = {}) {
+    const lines = [`[sigmap] ${sessions.length} session${sessions.length === 1 ? '' : 's'} (${NOTE})`];
+    for (const s of sessions) {
+      lines.push(`  ${_s(s.id, 60)}  ${_s(s.agent, 20).padEnd(11)} ${_when(s.startedAt)}  ${_state(s).padEnd(7)} ${_s(s.model)}  [${s.provenance}]  ${formatUsage(s.usage)}`);
+    }
+    const totals = totalsByProvenance(sessions);
+    for (const [label, t] of Object.entries(totals)) {
+      lines.push(`  total [${label}] ${t.sessions} session${t.sessions === 1 ? '' : 's'}: ${formatUsage(t.usage, t.unreported)}`);
+    }
+    if (Object.keys(totals).length > 1) lines.push('  (provenance classes are never summed into one total)');
+    if (sessions.some((s) => s.source === 'transcript')) lines.push(`  ${COVERAGE_NOTE}`);
+    if (sessions.some((s) => s.usage && (s.usage.cacheRead === null || s.usage.cacheWrite === null))) lines.push(`  ${NA_NOTE}`);
+    if (rollups.length) lines.push(`  ${rollups.length} monthly rollup${rollups.length === 1 ? '' : 's'} of older sessions (see --json)`);
+    if (info.corrupt) lines.push(`  skipped ${info.corrupt} unreadable line${info.corrupt === 1 ? '' : 's'} in .context/sessions.ndjson`);
+    return lines.join('\n');
+  }
+
+  function renderShow(s) {
+    const lines = [
+      `[sigmap] session ${_s(s.id, 60)}`,
+      `  agent       ${_s(s.agent, 20)}${s.ci ? ' (ci)' : ''}`,
+      `  branch      ${_s(s.branch, 120)}`,
+      `  started     ${_when(s.startedAt)}`,
+      `  ended       ${s.ended ? `${_when(s.endedAt)}${s.endReason ? ` (${_s(s.endReason)})` : ''}` : 'not closed'}`,
+      `  model       ${_s(s.model, 80)}${s.models ? ` (${Object.keys(s.models).map((m) => _s(m, 80)).join(', ')})` : ''}`,
+      `  provenance  ${s.provenance}`,
+      `  usage       ${formatUsage(s.usage)}   (${NOTE})`,
+    ];
+    if (s.partial) lines.push('  note        the transcript read stopped early; totals cover what was read');
+    if (s.cacheGaps) lines.push(`  note        ${s.cacheGaps} message${s.cacheGaps === 1 ? '' : 's'} did not report a cache category; the figure sums the ones that did`);
+    if (s.parseErrors) lines.push(`  parse       ${s.parseErrors} unreadable transcript line${s.parseErrors === 1 ? '' : 's'} skipped`);
+    if (s.coverage) lines.push(`  coverage    ${_s(s.coverage, 20)} conversation only (subagent transcripts are not read)`);
+    lines.push(`  queries     ${s.queries.length}`);
+    lines.push(`  events      ${s.events}`);
+    return lines.join('\n');
+  }
+
+  /** The `measured` block `budget` adds for a session found in the store. */
+  function measuredBlock(session) {
+    return {
+      session: session.id,
+      provenance: session.provenance,
+      source: session.source,
+      model: session.model,
+      partial: session.partial,
+      coverage: session.coverage || null,
+      usage: session.usage,
+      note: session.coverage === 'main' ? `${NOTE}; main conversation only` : NOTE,
+    };
+  }
+
+  module.exports = { NOTE, COVERAGE_NOTE, NA_NOTE, formatUsage, totalsByProvenance, renderList, renderShow, measuredBlock };
+  
+};
+
+// ── ./src/session/store ──
+__factories["./src/session/store"] = function(module, exports) {
+  
+  /**
+   * Session store (#922, SI-2 of the Session Intelligence epic #682).
+   *
+   * `.context/sessions.ndjson` is an APPEND-ONLY, event-sourced log. Several agents
+   * (and a CI job) may write it at once, so an upsert-in-place record would race;
+   * instead every writer appends one self-contained line with a single O_APPEND
+   * write, and readers FOLD the lines by session id.
+   *
+   * Event kinds
+   *   start   a session began                       {agent, branch, source}
+   *   usage   billed token totals so far            {source, model, usage, offset, ...}
+   *   end     a session ended                       {reason}
+   *   query   one `sigmap ask` during the session   {q | qh, files}
+   *   rollup  written only by compaction            {month, agent, model, source, sessions, usage}
+   *
+   * Correctness contract (binding, from #682)
+   *   - every number carries a provenance (`source`); totals are only ever summed
+   *     within one provenance class, never blended;
+   *   - unknown stays unknown: a session whose usage could not be read has
+   *     `usage: null`, and a category an agent did not report is `null`, never 0;
+   *   - token sums are per-request BILLING categories (in / out / cache read /
+   *     cache write) — they are not "context size" and no output calls them that.
+   *
+   * A `usage` event carries CUMULATIVE totals (counted once per message) up to a
+   * transcript byte `offset`; the fold keeps the event with the highest offset.
+   * That makes a Stop + SessionEnd double-fire, or two parsers racing, idempotent:
+   * both write the same totals and the fold takes one of them.
+   *
+   * The fold is order-independent: every field that can differ between lines is
+   * decided by the event's own timestamp (ties: the later line), never by file order.
+   *
+   * Everything read back from the file is treated as untrusted text (a transcript
+   * field ends up in it): strings are stripped of control characters and capped
+   * before they reach a terminal, a summary, or an instruction file.
+   *
+   * Zero dependencies; local files only.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const { redactText } = __require('./src/security/redact');
+
+  const SCHEMA = 1;
+  const STORE_FILE = path.join('.context', 'sessions.ndjson');
+  const LOCK_FILE = path.join('.context', 'sessions.lock');
+  const LOCK_STALE_MS = 30000;
+  // A single write() of a short line is not interleaved with other appenders'.
+  // Keeping events small is what keeps that true, so oversize is refused.
+  const MAX_EVENT_BYTES = 4000;
+  const MAX_QUERY_CHARS = 200;
+  const MAX_TAIL_PASSES = 20;
+
+  const KINDS = ['start', 'usage', 'end', 'query', 'rollup'];
+  const CATEGORIES = ['in', 'out', 'cacheRead', 'cacheWrite'];
+  // A host that has no notion of caching may leave these unreported; in/out always count.
+  const OPTIONAL_CATEGORIES = ['cacheRead', 'cacheWrite'];
+  const SOURCES = ['transcript', 'agent-reported', 'estimate', 'unavailable'];
+  // Only used to break a tie between two usage events at the same offset.
+  const SOURCE_RANK = { transcript: 3, 'agent-reported': 2, estimate: 1, unavailable: 0 };
+  const PROVENANCE = {
+    transcript: 'measured',
+    'agent-reported': 'agent-reported',
+    estimate: 'estimated (chars/4 ±5%)',
+    unavailable: 'unavailable',
+  };
+  const PREFIXES = {
+    'claude-code': 'cc', cursor: 'cur', codex: 'cod', ci: 'ci',
+    copilot: 'cop', gemini: 'gem', windsurf: 'win', opencode: 'oc',
+  };
+
+  const DEFAULT_RETENTION_DAYS = 90;
+  const LOG_QUERY_MODES = ['full', 'hashed', 'off'];
+
+  function storePath(cwd) {
+    return path.join(cwd, STORE_FILE);
+  }
+
+  function tsMs(ts) {
+    const n = typeof ts === 'string' ? Date.parse(ts) : NaN;
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  /**
+   * A string safe to print, store and embed: control characters (including ESC and
+   * newlines) become spaces, whitespace collapses, and the length is capped.
+   * Returns null for anything that is not a non-empty string.
+   */
+  function cleanStr(v, max) {
+    if (typeof v !== 'string') return null;
+    const t = v.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/\s+/g, ' ').trim();
+    return t ? t.slice(0, max || 80) : null;
+  }
+
+  /** An ISO-8601 timestamp, or null — a transcript's `timestamp` is not trusted to be one. */
+  function cleanIso(v) {
+    if (typeof v !== 'string' || v.length > 40) return null;
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/.test(v)) return null;
+    return Number.isNaN(Date.parse(v)) ? null : v;
+  }
+
+  /**
+   * The `session` config block with every default applied and every bad value
+   * replaced by its default (a typo in config must not disable capture silently
+   * or crash a hook).
+   */
+  function sessionConfig(config) {
+    const raw = (config && config.session && typeof config.session === 'object') ? config.session : {};
+    const ret = (raw.retention && typeof raw.retention === 'object') ? raw.retention : {};
+    const days = Number.isFinite(ret.days) && ret.days > 0 ? ret.days : DEFAULT_RETENTION_DAYS;
+    const compact = ret.compact === 'off' ? 'off' : 'monthly';
+    const logQueries = LOG_QUERY_MODES.includes(raw.logQueries) ? raw.logQueries : 'hashed';
+    return { retention: { days, compact }, logQueries, injectSummary: raw.injectSummary === true };
+  }
+
+  /** The agent-prefixed id for a raw agent session id (`cc-<uuid>`). */
+  function sessionId(agent, raw) {
+    const prefix = PREFIXES[agent]
+      || String(agent || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8)
+      || 'x';
+    const clean = String(raw == null ? '' : raw).replace(/[^A-Za-z0-9._-]/g, '').slice(0, 80);
+    if (!clean) throw new Error('session id is empty');
+    return clean.startsWith(`${prefix}-`) ? clean : `${prefix}-${clean}`;
+  }
+
+  /** The agent an id belongs to, from its prefix; null when it has none we know. */
+  function agentOfId(id) {
+    const prefix = String(id || '').split('-')[0];
+    for (const [agent, p] of Object.entries(PREFIXES)) if (p === prefix) return agent;
+    return null;
+  }
+
+  /**
+   * Append one event. One `write(2)` on an O_APPEND descriptor, so concurrent
+   * writers interleave whole lines, never bytes.
+   * @returns {object} the stored event
+   */
+  function appendEvent(cwd, event) {
+    if (!event || !KINDS.includes(event.kind)) throw new Error(`unknown session event kind: ${event && event.kind}`);
+    if (typeof event.id !== 'string' || !event.id) throw new Error('session event needs an id');
+    const { kind, id, ts, ...rest } = event;
+    const rec = { schema: SCHEMA, kind, id, ts: cleanIso(ts) || new Date().toISOString(), ...rest };
+    const line = JSON.stringify(rec) + '\n';
+    if (Buffer.byteLength(line) > MAX_EVENT_BYTES) throw new Error(`session event is larger than ${MAX_EVENT_BYTES} bytes`);
+    const file = storePath(cwd);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const fd = fs.openSync(file, 'a');
+    try { fs.writeSync(fd, line); } finally { fs.closeSync(fd); }
+    return rec;
+  }
+
+  /**
+   * Read every event. Unparseable lines and lines of another schema version are
+   * skipped and COUNTED, never fatal — a half-written or future line must not
+   * hide the rest of the history.
+   * @returns {{ events: object[], corrupt: number, unsupported: number }}
+   */
+  function readEvents(cwd) {
+    let raw;
+    try { raw = fs.readFileSync(storePath(cwd), 'utf8'); } catch (_) { return { events: [], corrupt: 0, unsupported: 0 }; }
+    return parseEvents(raw);
+  }
+
+  /** How compaction and the reader see one line: an event, a line to carry through untouched, or damage. */
+  function classifyLine(line) {
+    const t = line.trim();
+    if (!t) return { type: 'blank' };
+    let e;
+    try { e = JSON.parse(t); } catch (_) { return { type: 'corrupt' }; }
+    if (!e || typeof e !== 'object' || Array.isArray(e)) return { type: 'corrupt' };
+    if (e.schema !== SCHEMA) return { type: 'foreign', line: t };           // another SigMap's schema: not ours to judge
+    if (typeof e.id !== 'string' || !e.id) return { type: 'corrupt' };
+    if (!KINDS.includes(e.kind)) return { type: 'foreign', line: t };       // a kind a newer minor added
+    return { type: 'event', event: e, line: t };
+  }
+
+  function parseEvents(raw) {
+    const events = [];
+    let corrupt = 0;
+    let unsupported = 0;
+    for (const line of raw.split('\n')) {
+      const c = classifyLine(line);
+      if (c.type === 'event') events.push(c.event);
+      else if (c.type === 'foreign') unsupported++;
+      else if (c.type === 'corrupt') corrupt++;
+    }
+    return { events, corrupt, unsupported };
+  }
+
+  /**
+   * A usage object with each category a finite non-negative number — or, for the
+   * cache categories only, an explicit `null` ("this agent did not report it").
+   * Anything else is not usage at all.
+   */
+  function _cats(u) {
+    if (!u || typeof u !== 'object') return null;
+    const out = {};
+    for (const c of CATEGORIES) {
+      const v = u[c];
+      if (v === null && OPTIONAL_CATEGORIES.includes(c)) { out[c] = null; continue; }
+      if (!Number.isFinite(v) || v < 0) return null;
+      out[c] = v;
+    }
+    return out;
+  }
+
+  /**
+   * Add two usage accumulators. A category is null only when NEITHER side reported
+   * it; `unreported` names every category at least one side did not report, so a
+   * sum that is a floor rather than a total can say so.
+   * An accumulator is `{ usage, unreported }`; `null` is the identity.
+   */
+  function mergeUsage(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const usage = {};
+    const unreported = new Set([...(a.unreported || []), ...(b.unreported || [])]);
+    for (const c of CATEGORIES) {
+      const av = a.usage[c];
+      const bv = b.usage[c];
+      if (av === null && bv === null) usage[c] = null;
+      else usage[c] = (av || 0) + (bv || 0);
+      if ((av === null) !== (bv === null)) unreported.add(c);
+      if (av === null && bv === null) unreported.add(c);
+    }
+    return { usage, unreported: [...unreported].sort() };
+  }
+
+  /** The accumulator for one folded session (`null` when its usage is unavailable). */
+  function usageOf(session) {
+    if (!session || !session.usage) return null;
+    return { usage: session.usage, unreported: CATEGORIES.filter((c) => session.usage[c] === null) };
+  }
+
+  function _usageTie(a, b) {
+    const at = tsMs(a.ts);
+    const bt = tsMs(b.ts);
+    if (Number.isNaN(at) !== Number.isNaN(bt)) return !Number.isNaN(at);   // a real timestamp beats a bad one, whatever the order
+    if (!Number.isNaN(at) && at !== bt) return at > bt;
+    return true;                                                          // equal in every respect: the later line wins
+  }
+
+  function _better(a, b) {
+    if (!b) return true;
+    const ao = Number.isFinite(a.offset) ? a.offset : 0;
+    const bo = Number.isFinite(b.offset) ? b.offset : 0;
+    if (ao !== bo) return ao > bo;
+    const ar = SOURCE_RANK[a.source] || 0;
+    const br = SOURCE_RANK[b.source] || 0;
+    if (ar !== br) return ar > br;
+    return _usageTie(a, b);
+  }
+
+  /** Should a value stamped `ts` replace one stamped `prev`? Latest timestamp wins; ties and unstamped: the later line. */
+  function _later(ts, prev) {
+    const t = tsMs(ts);
+    const p = tsMs(prev);
+    if (Number.isNaN(p)) return true;
+    if (Number.isNaN(t)) return false;
+    return t >= p;
+  }
+
+  /**
+   * Fold events into one record per session id, plus the compaction rollups.
+   * Deterministic and independent of line order: sessions come back ordered by
+   * start time, then id.
+   * @returns {{ sessions: object[], rollups: object[] }}
+   */
+  function foldSessions(events) {
+    const byId = new Map();
+    const rollups = [];
+    for (const e of events) {
+      if (e.kind === 'rollup') { rollups.push(e); continue; }
+      let s = byId.get(e.id);
+      if (!s) {
+        s = {
+          id: e.id, agent: agentOfId(e.id), startedAt: null, endedAt: null, lastTs: null, endReason: null,
+          branch: null, queries: [], events: 0, _best: null, _at: {},
+        };
+        byId.set(e.id, s);
+      }
+      s.events++;
+      const ts = cleanIso(e.ts);
+      const t = tsMs(ts);
+      if (!Number.isNaN(t) && (s.lastTs == null || t > tsMs(s.lastTs))) s.lastTs = ts;
+      const agent = cleanStr(e.agent, 20);
+      if (agent && _later(ts, s._at.agent)) { s.agent = agent; s._at.agent = ts; }
+      if (e.kind === 'start') {
+        if (!Number.isNaN(t) && (s.startedAt == null || t < tsMs(s.startedAt))) s.startedAt = ts;
+        if (!Number.isNaN(t) && (s.lastStartAt == null || t > tsMs(s.lastStartAt))) s.lastStartAt = ts;
+        if (typeof e.branch === 'string' && _later(ts, s._at.branch)) { s.branch = cleanStr(e.branch, 120); s._at.branch = ts; }
+        if (typeof e.startSource === 'string' && _later(ts, s._at.startSource)) { s.startSource = cleanStr(e.startSource, 20); s._at.startSource = ts; }
+        if (e.ci === true) s.ci = true;
+      } else if (e.kind === 'end') {
+        // The end time and its reason come from the same (latest) `end`, never one from each.
+        if (!Number.isNaN(t) && (s.endedAt == null || t >= tsMs(s.endedAt))) {
+          s.endedAt = ts;
+          s.endReason = cleanStr(e.reason, 40);
+        }
+      } else if (e.kind === 'query') {
+        s.queries.push({
+          ts, q: typeof e.q === 'string' ? cleanStr(e.q, MAX_QUERY_CHARS) : null,
+          qh: typeof e.qh === 'string' ? cleanStr(e.qh, 32) : null,
+          files: Array.isArray(e.files) ? e.files.map((f) => cleanStr(f, 200)).filter(Boolean) : [],
+        });
+      } else if (e.kind === 'usage') {
+        if (_better(e, s._best)) s._best = e;
+      }
+    }
+    const sessions = [];
+    for (const s of byId.values()) {
+      const b = s._best;
+      delete s._best;
+      delete s._at;
+      const usage = b && b.source !== 'unavailable' ? _cats(b.usage) : null;
+      s.usage = usage;
+      s.source = usage ? b.source : 'unavailable';
+      s.provenance = PROVENANCE[s.source];
+      s.model = (b && cleanStr(b.model, 80)) || 'unknown';
+      s.models = null;
+      if (b && b.models && typeof b.models === 'object' && !Array.isArray(b.models)) {
+        s.models = Object.create(null);
+        for (const [name, v] of Object.entries(b.models).slice(0, 8)) {
+          const n = cleanStr(name, 80);
+          if (n && v && typeof v === 'object') s.models[n] = v;
+        }
+      }
+      s.partial = !!(b && b.partial === true);
+      s.offset = b && Number.isFinite(b.offset) ? b.offset : 0;
+      s.parseErrors = b && Number.isFinite(b.parseErrors) ? b.parseErrors : 0;
+      s.messages = b && Number.isFinite(b.messages) ? b.messages : null;
+      s.cacheGaps = b && Number.isFinite(b.cacheGaps) ? b.cacheGaps : 0;
+      s.coverage = b && typeof b.coverage === 'string' ? cleanStr(b.coverage, 20) : null;
+      if (s.startedAt == null) s.startedAt = (b && cleanIso(b.firstTs)) || s.lastTs;
+      // A `start` after the last `end` is a resumed session: open again.
+      s.ended = s.endedAt != null && !(s.lastStartAt != null && tsMs(s.lastStartAt) > tsMs(s.endedAt));
+      delete s.lastStartAt;
+      sessions.push(s);
+    }
+    sessions.sort((a, b) => {
+      const at = tsMs(a.startedAt), bt = tsMs(b.startedAt);
+      if (at !== bt && !Number.isNaN(at) && !Number.isNaN(bt)) return at - bt;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
+    return { sessions, rollups };
+  }
+
+  /** Read + fold in one call. */
+  function readSessions(cwd) {
+    const { events, corrupt, unsupported } = readEvents(cwd);
+    return { ...foldSessions(events), corrupt, unsupported };
+  }
+
+  // ── privacy ──────────────────────────────────────────────────────────────
+
+  /**
+   * The query fields to store for a mode, redacted ON WRITE:
+   *   off    → null (nothing is logged)
+   *   hashed → { qh } a 12-hex sha256 prefix (counts and dedupe, not content)
+   *   full   → { q }  the redacted text, capped
+   */
+  function queryRecord(text, mode) {
+    if (mode === 'off') return null;
+    const clean = String(text == null ? '' : text).trim();
+    if (!clean) return null;
+    if (mode === 'full') {
+      let safe = clean;
+      try { safe = redactText(clean).text; } catch (_) { /* redactText never throws; belt and braces */ }
+      return { q: safe.slice(0, MAX_QUERY_CHARS) };
+    }
+    return { qh: crypto.createHash('sha256').update(clean).digest('hex').slice(0, 12) };
+  }
+
+  // ── retention ────────────────────────────────────────────────────────────
+
+  /**
+   * Run `fn` holding the compaction lock; `{locked:true}` when someone else has it.
+   *
+   * A lock is only ever stale after a crash. Two processes that find the same stale
+   * lock at the same instant may both proceed; that is tolerated because compaction
+   * is idempotent (each rewrites from what is on disk and copies the tail across),
+   * so the worst case is one redundant rewrite, not a double count.
+   */
+  function withLock(cwd, fn) {
+    const lock = path.join(cwd, LOCK_FILE);
+    fs.mkdirSync(path.dirname(lock), { recursive: true });
+    let fd;
+    for (let attempt = 0; attempt < 2 && fd === undefined; attempt++) {
+      try {
+        fd = fs.openSync(lock, 'wx');
+      } catch (e) {
+        if (e.code !== 'EEXIST') throw e;
+        let age = 0;
+        try { age = Date.now() - fs.statSync(lock).mtimeMs; } catch (_) { continue; } // vanished: retry
+        if (age <= LOCK_STALE_MS) return { locked: true };
+        try { fs.unlinkSync(lock); } catch (_) { /* someone else cleared it */ }
+      }
+    }
+    if (fd === undefined) return { locked: true };
+    try {
+      fs.writeSync(fd, String(process.pid));
+      return { locked: false, value: fn() };
+    } finally {
+      try { fs.closeSync(fd); } catch (_) { /* already closed */ }
+      try { fs.unlinkSync(lock); } catch (_) { /* already gone */ }
+    }
+  }
+
+  function _month(ts) {
+    return typeof ts === 'string' && /^\d{4}-\d{2}/.test(ts) ? ts.slice(0, 7) : 'unknown';
+  }
+
+  /**
+   * Fold sessions older than `days` into monthly rollups and drop their raw events.
+   * Rollups are keyed by (month, agent, model, source), so two provenance classes
+   * never merge. A rollup of sessions whose usage was unavailable carries
+   * `usage: null`; a category none of them reported is `null`, and `unreported`
+   * names the categories some did not. Idempotent, and a no-op (no rewrite) when
+   * nothing is old.
+   *
+   * Lines compaction does not understand are NOT its to delete: another schema
+   * version, or a kind a newer SigMap added, is carried through byte for byte.
+   * Only lines that are not JSON at all are dropped.
+   *
+   * The rewrite is tmp-file + rename. Appenders take no lock, so after the tmp
+   * file is written the live file is re-checked and whatever was appended in the
+   * meantime is copied across — repeatedly, until the size stops moving. What
+   * remains is the instant between the last size check and the rename.
+   *
+   * @param {string} cwd
+   * @param {{ days?: number, now?: number, _afterTmpWrite?: Function }} [opts]
+   *        `_afterTmpWrite` is a test seam: it runs right after the tmp file is written.
+   */
+  function compact(cwd, opts = {}) {
+    const days = Number.isFinite(opts.days) && opts.days > 0 ? opts.days : DEFAULT_RETENTION_DAYS;
+    const now = Number.isFinite(opts.now) ? opts.now : Date.now();
+    const file = storePath(cwd);
+    if (!fs.existsSync(file)) return { action: 'none', sessions: 0, removedEvents: 0 };
+    const res = withLock(cwd, () => {
+      const buf = fs.readFileSync(file);
+      const entries = [];
+      for (const line of buf.toString('utf8').split('\n')) {
+        const c = classifyLine(line);
+        if (c.type === 'event' || c.type === 'foreign') entries.push(c);
+      }
+      const events = entries.filter((c) => c.type === 'event').map((c) => c.event);
+      const { sessions } = foldSessions(events);
+      const cutoff = now - days * 86400000;
+      const old = new Set(sessions.filter((s) => {
+        const t = tsMs(s.lastTs);
+        return !Number.isNaN(t) && t < cutoff;
+      }).map((s) => s.id));
+      if (old.size === 0) return { action: 'none', sessions: 0, removedEvents: 0 };
+
+      const groups = new Map();
+      const group = (key, init) => {
+        if (!groups.has(key)) groups.set(key, init);
+        return groups.get(key);
+      };
+      for (const s of sessions) {
+        if (!old.has(s.id)) continue;
+        const m = _month(s.lastTs);
+        const g = group([m, s.agent || 'unknown', s.model, s.source].join('|'),
+          { month: m, agent: s.agent || 'unknown', model: s.model, source: s.source, sessions: 0, acc: null });
+        g.sessions++;
+        g.acc = mergeUsage(g.acc, usageOf(s));
+      }
+      for (const e of events) {
+        if (e.kind !== 'rollup') continue;
+        const g = group([e.month, e.agent, e.model, e.source].join('|'),
+          { month: e.month, agent: e.agent, model: e.model, source: e.source, sessions: 0, acc: null });
+        g.sessions += Number.isFinite(e.sessions) ? e.sessions : 0;
+        const u = _cats(e.usage);
+        if (u) g.acc = mergeUsage(g.acc, { usage: u, unreported: Array.isArray(e.unreported) ? e.unreported : [] });
+      }
+
+      const stamp = new Date(now).toISOString();
+      const out = [];
+      for (const key of [...groups.keys()].sort()) {
+        const g = groups.get(key);
+        const rec = {
+          schema: SCHEMA, kind: 'rollup', id: `rollup-${g.month}-${g.agent}-${g.model}-${g.source}`.replace(/[^A-Za-z0-9._-]/g, '_'),
+          ts: stamp, month: g.month, agent: g.agent, model: g.model, source: g.source, sessions: g.sessions,
+          usage: g.acc ? g.acc.usage : null,
+        };
+        if (g.acc && g.acc.unreported.length) rec.unreported = g.acc.unreported;
+        out.push(JSON.stringify(rec));
+      }
+      let kept = 0;
+      let removed = 0;
+      for (const c of entries) {
+        if (c.type === 'foreign') { out.push(c.line); continue; }
+        if (c.event.kind === 'rollup') continue;
+        if (old.has(c.event.id)) { removed++; continue; }
+        out.push(c.line);
+        kept++;
+      }
+      const tmp = `${file}.${process.pid}.tmp`;
+      try {
+        fs.writeFileSync(tmp, out.join('\n') + '\n');
+        if (typeof opts._afterTmpWrite === 'function') opts._afterTmpWrite();
+        let copied = buf.length;
+        for (let pass = 0; pass < MAX_TAIL_PASSES; pass++) {
+          const size = fs.statSync(file).size;
+          if (size <= copied) break;
+          const fd = fs.openSync(file, 'r');
+          const delta = Buffer.alloc(size - copied);
+          try { fs.readSync(fd, delta, 0, delta.length, copied); } finally { fs.closeSync(fd); }
+          fs.appendFileSync(tmp, delta);
+          copied = size;
+        }
+        fs.renameSync(tmp, file);
+      } finally {
+        try { fs.unlinkSync(tmp); } catch (_) { /* renamed away, or never written */ }
+      }
+      return { action: 'compacted', sessions: old.size, removedEvents: removed, rollups: groups.size, keptEvents: kept };
+    });
+    return res.locked ? { action: 'locked', sessions: 0, removedEvents: 0 } : res.value;
+  }
+
+  /**
+   * Compact when retention asks for it and the file is big enough to be worth a
+   * read. Never throws — a failed housekeeping pass must not fail a hook.
+   */
+  function maybeCompact(cwd, config, opts = {}) {
+    try {
+      const sc = sessionConfig(config);
+      if (sc.retention.compact === 'off') return { action: 'off' };
+      let size = 0;
+      try { size = fs.statSync(storePath(cwd)).size; } catch (_) { return { action: 'none' }; }
+      if (size < (opts.minBytes != null ? opts.minBytes : 65536)) return { action: 'none' };
+      return compact(cwd, { days: sc.retention.days, now: opts.now });
+    } catch (e) {
+      return { action: 'error', error: e.message };
+    }
+  }
+
+  /** Store health for `doctor`. */
+  function inspect(cwd) {
+    const file = storePath(cwd);
+    let bytes = 0;
+    try { bytes = fs.statSync(file).size; } catch (_) { return { exists: false, path: file, bytes: 0, events: 0, corrupt: 0, unsupported: 0, sessions: 0, open: 0, rollups: 0 }; }
+    const { sessions, rollups, corrupt, unsupported } = readSessions(cwd);
+    let locked = false;
+    try { locked = Date.now() - fs.statSync(path.join(cwd, LOCK_FILE)).mtimeMs > LOCK_STALE_MS; } catch (_) { /* no lock */ }
+    return {
+      exists: true, path: file, bytes, events: sessions.reduce((n, s) => n + s.events, 0),
+      corrupt, unsupported, sessions: sessions.length, open: sessions.filter((s) => !s.ended).length,
+      rollups: rollups.length, staleLock: locked,
+    };
+  }
+
+  module.exports = {
+    SCHEMA, STORE_FILE, KINDS, CATEGORIES, OPTIONAL_CATEGORIES, SOURCES, PROVENANCE, LOG_QUERY_MODES, DEFAULT_RETENTION_DAYS,
+    storePath, sessionConfig, sessionId, agentOfId, appendEvent, readEvents, parseEvents, classifyLine, foldSessions,
+    readSessions, queryRecord, compact, maybeCompact, inspect, tsMs, cleanStr, cleanIso, mergeUsage, usageOf,
+  };
+  
+};
+
+// ── ./src/session/summary ──
+__factories["./src/session/summary"] = function(module, exports) {
+  
+  /**
+   * Warm-start session summary (#922, SI-3 of #682).
+   *
+   * A deterministic, no-LLM rollup of the LAST session — what it spent, which
+   * files its queries surfaced, the notes written since, the open threads — so the
+   * next session on any agent starts warm.
+   *
+   * Contract
+   *   - Deterministic: the same store + notes + branch state give a byte-identical
+   *     block. The header carries the last session's own timestamp, never the
+   *     generation time, and nothing in the body is relative to "now".
+   *   - Hard budget of MAX_TOKENS (chars/4), enforced by dropping the least useful
+   *     lines first; the window is the last session plus open threads, nothing older.
+   *   - Stale collapse: past `contextTtlDays` (14 when unset) the block becomes one
+   *     line carrying the ABSOLUTE date, not "N days ago".
+   *   - Single writer: this module renders and, when asked, injects the block at
+   *     generation time. No agent hook writes it mid-session.
+   *   - Redaction: every free-text field passes through the secret redactor; query
+   *     text appears only when `session.logQueries` is `full`.
+   *   - Billed-token categories are labelled as such, with their provenance, and an
+   *     unreadable usage renders as unavailable, never as zero.
+   *
+   * Zero dependencies.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const store = __require('./src/session/store');
+  const { readNotes } = __require('./src/session/notes');
+  const { redactText } = __require('./src/security/redact');
+  const { tryGit } = __require('./src/util/git');
+  const { formatUsage } = __require('./src/session/render');
+  const { managedSectionLineStart } = __require('./src/util/managed-section');
+
+  const SUMMARY_VERSION = 1;
+  const MAX_TOKENS = 400;
+  const DEFAULT_TTL_DAYS = 14;
+  const MAX_NOTES = 5;
+  const MAX_THREADS = 5;
+  const MAX_FILES = 5;
+  const MAX_LINE = 160;
+  const THREAD_TAGS = new Set(['todo', 'open', 'thread', 'next']);
+
+  const OPEN = '<!-- sigmap:session-summary';
+  const CLOSE = '<!-- /sigmap:session-summary -->';
+
+  /** Instruction files the opt-in injection may update (never created). */
+  const TARGETS = [
+    ['CLAUDE.md'],
+    ['AGENTS.md'],
+    ['.github', 'copilot-instructions.md'],
+    ['.github', 'gemini-context.md'],
+  ];
+
+  function estimateTokens(s) {
+    return Math.ceil(String(s).length / 4);
+  }
+
+  /** Text that cannot close the block's own markers or open a comment inside it. */
+  function _neutral(text) {
+    return String(text == null ? '' : text).replace(/<!--|-->/g, ' ');
+  }
+
+  function _clean(text) {
+    let t = _neutral(text).replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim();
+    try { t = redactText(t).text; } catch (_) { /* redactText never throws */ }
+    return t.length > MAX_LINE ? t.slice(0, MAX_LINE - 1) + '…' : t;
+  }
+
+  /** A git ref (or short hash) as it appears in the header: nothing outside a ref's usual characters. */
+  function _ref(text, max) {
+    return String(text == null ? '' : text).replace(/[^A-Za-z0-9._/@+#-]/g, '_').slice(0, max);
+  }
+
+  function _utc(ts) {
+    const ms = store.tsMs(ts);
+    return Number.isNaN(ms) ? 'unknown' : new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + 'Z';
+  }
+
+  function _day(ts) {
+    const ms = store.tsMs(ts);
+    return Number.isNaN(ms) ? 'unknown' : new Date(ms).toISOString().slice(0, 10);
+  }
+
+  /** Top files surfaced by a session's queries, most-asked first, ties by path. */
+  function _topFiles(session) {
+    const counts = new Map();
+    for (const q of session.queries) for (const f of q.files) counts.set(f, (counts.get(f) || 0) + 1);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      .map(([f, n]) => `${_clean(f)} (${n})`);
+  }
+
+  function _header(branch, head, lastTs) {
+    const b = branch ? _ref(branch, 80) : '';
+    const h = head ? _ref(head, 40) : '';
+    const at = b ? `${b}${h ? '@' + h : ''}` : (h || 'no-git');
+    return `${OPEN} v${SUMMARY_VERSION} · ${at} · ${lastTs} -->`;
+  }
+
+  /**
+   * Build the summary for the most recent conversational session.
+   *
+   * @param {string} cwd
+   * @param {{ config?: object, exclude?: string, now?: number, branch?: string|null,
+   *           head?: string|null, notes?: object[] }} [opts]
+   * @returns {null | { text: string, stale: boolean, sessionId: string, lastTs: string,
+   *                    tokens: number, truncated: boolean }}
+   *   null when the store holds no eligible session.
+   */
+  function buildSummary(cwd, opts = {}) {
+    const config = opts.config || {};
+    const now = Number.isFinite(opts.now) ? opts.now : Date.now();
+    const cap = Number.isFinite(opts.maxTokens) && opts.maxTokens > 0 ? opts.maxTokens : MAX_TOKENS;
+    const sc = store.sessionConfig(config);
+    const { sessions } = store.readSessions(cwd);
+    const eligible = sessions.filter((s) => s.id !== opts.exclude && s.agent !== 'ci' && s.lastTs);
+    if (eligible.length === 0) return null;
+    const last = eligible.reduce((best, s) => (store.tsMs(s.lastTs) >= store.tsMs(best.lastTs) ? s : best));
+
+    const branch = opts.branch !== undefined ? opts.branch : (tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }) || null);
+    const head = opts.head !== undefined ? opts.head : (tryGit(['rev-parse', '--short', 'HEAD'], { cwd }) || null);
+    const header = _header(branch, head, last.lastTs);
+
+    const ttlDays = Number.isFinite(config.contextTtlDays) && config.contextTtlDays > 0 ? config.contextTtlDays : DEFAULT_TTL_DAYS;
+    if (now - store.tsMs(last.lastTs) > ttlDays * 86400000) {
+      const text = [
+        header,
+        `Session summary stale — the last recorded session ended ${_day(last.lastTs)} (past the ${ttlDays}-day TTL); nothing newer to carry over.`,
+        CLOSE,
+      ].join('\n');
+      return { text, stale: true, sessionId: last.id, lastTs: last.lastTs, tokens: estimateTokens(text), truncated: false };
+    }
+
+    const notes = Array.isArray(opts.notes) ? opts.notes : readNotes(cwd);
+    const startMs = store.tsMs(last.startedAt);
+    const since = notes.filter((n) => !THREAD_TAGS.has(String(n.tag || '').toLowerCase())
+      && !Number.isNaN(store.tsMs(n.ts)) && (Number.isNaN(startMs) || store.tsMs(n.ts) >= startMs));
+    const threads = notes.filter((n) => THREAD_TAGS.has(String(n.tag || '').toLowerCase()));
+    const noteLines = since.slice(-MAX_NOTES).map((n) => `- ${_clean(n.text)}`);
+    const threadLines = threads.slice(-MAX_THREADS).map((n) => `- ${_clean(n.text)}`);
+    const files = _topFiles(last).slice(0, MAX_FILES);
+
+    const when = last.ended
+      ? `${_utc(last.startedAt)} → ${_utc(last.endedAt)}${last.endReason ? ` (${_clean(last.endReason)})` : ''}`
+      : `${_utc(last.startedAt)} → still open or not closed cleanly`;
+    const basis = [last.provenance, last.coverage === 'main' ? 'main conversation' : null, last.partial ? 'partial read' : null].filter(Boolean);
+    const usageLine = last.usage
+      ? `- Billed tokens (${basis.join(', ')}): ${formatUsage(last.usage)} · model ${_clean(last.model)}`
+      : '- Billed tokens: unavailable (no usage was readable for this session)';
+    const mode = sc.logQueries;
+    const qCount = last.queries.length;
+    const render = (n, t, f) => {
+      const q = qCount === 0
+        ? '- Queries: none recorded'
+        : `- Queries: ${qCount} recorded${mode === 'full' ? '' : ' (' + mode + ')'}${f.length ? ' · files surfaced: ' + f.join(', ') : ''}`;
+      const out = [
+        header,
+        '## Last session (warm start)',
+        `- ${_clean(last.agent || 'agent')}${last.branch ? ' on ' + _clean(last.branch) : ''} · ${when}`,
+        usageLine,
+        q,
+      ];
+      if (n.length) out.push('### Notes since', ...n);
+      if (t.length) out.push('### Open threads', ...t);
+      out.push(CLOSE);
+      return out.join('\n');
+    };
+
+    let n = noteLines.slice();
+    let t = threadLines.slice();
+    let f = files.slice();
+    let text = render(n, t, f);
+    let truncated = false;
+    // Drop the least useful lines first: oldest notes, then surfaced files, then threads.
+    while (estimateTokens(text) > cap) {
+      truncated = true;
+      if (n.length) n.shift();
+      else if (f.length) f.pop();
+      else if (t.length) t.pop();
+      else break;
+      text = render(n, t, f);
+    }
+    if (estimateTokens(text) > cap) {
+      text = text.slice(0, Math.max(0, cap * 4 - CLOSE.length - 2)) + '…\n' + CLOSE;
+      truncated = true;
+    }
+    return { text, stale: false, sessionId: last.id, lastTs: last.lastTs, tokens: estimateTokens(text), truncated };
+  }
+
+  // ── instruction-file injection (opt-in: session.injectSummary) ───────────
+
+  function _find(src) {
+    const start = src.indexOf(OPEN);
+    if (start === -1) return null;
+    const close = src.indexOf(CLOSE, start);
+    return close === -1 ? null : { start, end: close + CLOSE.length };
+  }
+
+  /** Put the block into file content: replace in place, else above the managed section, else append. */
+  function injectBlock(existing, block) {
+    const src = String(existing || '');
+    const hit = _find(src);
+    if (hit) return src.slice(0, hit.start) + block + src.slice(hit.end);
+    const sigIdx = managedSectionLineStart(src);
+    if (sigIdx !== -1) return src.slice(0, sigIdx) + block + '\n\n' + src.slice(sigIdx);
+    if (src.trim() === '') return block + '\n';
+    return src + (src.endsWith('\n') ? '\n' : '\n\n') + block + '\n';
+  }
+
+  /** Remove the block (and the blank line that separated it), leaving everything else. */
+  function removeBlock(existing) {
+    const src = String(existing || '');
+    const hit = _find(src);
+    if (!hit) return src;
+    let end = hit.end;
+    if (src.slice(end, end + 2) === '\n\n') end += 2;
+    else if (src[end] === '\n') end += 1;
+    const head = src.slice(0, hit.start);
+    const tail = src.slice(end);
+    // A block appended to the end of a file was preceded by the blank line inject added.
+    if (tail === '' && head.endsWith('\n\n')) return head.slice(0, -1);
+    return head + tail;
+  }
+
+  /**
+   * Bring the instruction files in line with `session.injectSummary`:
+   *   on  → inject/refresh the block (or remove it when there is nothing to say)
+   *   off → remove a block an earlier run injected
+   * Only files that already exist are touched, and only inside the markers.
+   * Writes nothing when the content would not change, so a repo with no session
+   * store is left byte-identical.
+   *
+   * @returns {{ enabled: boolean, files: Array<{ file: string, action: 'injected'|'updated'|'removed'|'unchanged' }> }}
+   */
+  function syncSummaryBlocks(cwd, config, opts = {}) {
+    const sc = store.sessionConfig(config);
+    const res = { enabled: sc.injectSummary, files: [] };
+    let block = null;
+    if (sc.injectSummary) {
+      try { const s = buildSummary(cwd, { config, now: opts.now, branch: opts.branch, head: opts.head }); block = s ? s.text : null; } catch (_) { block = null; }
+    }
+    for (const parts of TARGETS) {
+      const file = path.join(cwd, ...parts);
+      let existing;
+      try { existing = fs.readFileSync(file, 'utf8'); } catch (_) { continue; }
+      const had = _find(existing) !== null;
+      const next = block ? injectBlock(existing, block) : removeBlock(existing);
+      if (next === existing) { if (had || block) res.files.push({ file: parts.join('/'), action: 'unchanged' }); continue; }
+      fs.writeFileSync(file, next);
+      res.files.push({ file: parts.join('/'), action: block ? (had ? 'updated' : 'injected') : 'removed' });
+    }
+    return res;
+  }
+
+  module.exports = {
+    SUMMARY_VERSION, MAX_TOKENS, DEFAULT_TTL_DAYS, OPEN, CLOSE, TARGETS,
+    buildSummary, injectBlock, removeBlock, syncSummaryBlocks, estimateTokens,
+  };
   
 };
 
@@ -30993,7 +32663,7 @@ __factories["./src/tracking/budget"] = function(module, exports) {
     const ageMs = mtime > 0 ? Math.max(0, now - mtime) : null;
     const ageDays = ageMs != null ? ageMs / 86400000 : null;
 
-    return {
+    const status = {
       session,
       unit: 'estimated-tokens',
       ops,
@@ -31012,6 +32682,20 @@ __factories["./src/tracking/budget"] = function(module, exports) {
         stale: ttlDays != null && ageDays != null && ageDays > ttlDays,
       },
     };
+
+    // #922: when this session is one the session store knows (a real agent session id,
+    // e.g. SIGMAP_SESSION=cc-<uuid> exported by the Claude Code SessionStart hook), add
+    // the host's billed tokens as a SEPARATE block. It is a different provenance class
+    // from the chars/4 SigMap-emitted figures above, so it is never added into them and
+    // nothing about the existing fields changes. Absent for day-bucket sessions.
+    try {
+      const { readSessions } = __require('./src/session/store');
+      const { measuredBlock } = __require('./src/session/render');
+      const found = readSessions(cwd).sessions.find((s) => s.id === session);
+      if (found) status.measured = measuredBlock(found);
+    } catch (_) { /* the ledger works without the session store */ }
+
+    return status;
   }
 
   module.exports = { sessionKey, budgetStatus, contextMtime, entryInSession };
@@ -36034,6 +37718,16 @@ function writeOutputs(content, targets, cwd, config) {
     fs.writeFileSync(outPath, content, 'utf8');
     console.warn(`[sigmap] wrote ${path.relative(cwd, outPath)}`);
   }
+
+  // #922: keep the warm-start session summary in step with `session.injectSummary`.
+  // Built here, at generation time, and nowhere else (single-writer rule). Writes
+  // nothing when there is no session store and the option is off.
+  try {
+    const sync = __require('./src/session/summary').syncSummaryBlocks(cwd, config);
+    for (const f of sync.files) {
+      if (f.action !== 'unchanged') console.warn(`[sigmap] session summary ${f.action} in ${f.file}`);
+    }
+  } catch (_) { /* the summary is an extra; it must never fail a generate */ }
 }
 
 // Strip the formatOutput() header block before passing content to adapters.
@@ -37692,6 +39386,56 @@ function main() {
 
   const invokedFrom = process.cwd();
 
+  // `sigmap session hook <event>` (#922) runs inside a host agent's lifecycle, so it is handled
+  // FIRST — before project-root resolution and before loadConfig. A malformed config, or an
+  // `extends` URL (which loadConfig fetches synchronously, with a 10 s timeout), must not be
+  // able to fail or stall it. It reads only the `session` and `contextTtlDays` keys straight
+  // from gen-context.config.json (an `extends` is not followed) and EVERY path exits 0.
+  // The destructuring keeps it out of the dispatch-region scan, which looks for `args[0] ===`.
+  const [__cmd, __sub, __event] = args;
+  if (__cmd === 'session' && __sub === 'hook') {
+    process.on('uncaughtException', () => process.exit(0));
+    let finished = false;
+    let raw = '';
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      let stdout = null;
+      try {
+        let payload = null;
+        try { payload = JSON.parse(raw); } catch (_) { /* a bad payload is a no-op */ }
+        const base = process.env.CLAUDE_PROJECT_DIR || (payload && typeof payload.cwd === 'string' ? payload.cwd : null) || invokedFrom;
+        let root = invokedFrom;
+        if (path.isAbsolute(base) && fs.existsSync(base) && fs.statSync(base).isDirectory()) {
+          root = base;
+          try { root = resolveProjectRoot(base); } catch (_) { /* keep the directory as given */ }
+        }
+        const hookConfig = {};
+        try {
+          const userConfig = JSON.parse(fs.readFileSync(path.join(root, 'gen-context.config.json'), 'utf8'));
+          if (userConfig && typeof userConfig === 'object') {
+            if (userConfig.session && typeof userConfig.session === 'object') hookConfig.session = userConfig.session;
+            if (Number.isFinite(userConfig.contextTtlDays)) hookConfig.contextTtlDays = userConfig.contextTtlDays;
+          }
+        } catch (_) { /* no config, or not JSON: defaults */ }
+        const { handleHook } = requireSourceOrBundled('./src/session/capture');
+        stdout = handleHook(__event, payload, root, { config: hookConfig }).stdout;
+      } catch (_) { /* never fail the host session */ }
+      if (stdout) process.stdout.write(stdout + '\n', () => process.exit(0));
+      else process.exit(0);
+    };
+    if (process.stdin.isTTY) {
+      finish();
+    } else {
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', (chunk) => { raw += chunk; if (raw.length > 1048576) finish(); });
+      process.stdin.on('end', finish);
+      process.stdin.on('error', finish);
+    }
+    setTimeout(finish, 1500); // a payload that never closes must not hang the host
+    return;
+  }
+
   // --cwd <dir>: restrict scanning to that directory instead of the project root
   const cwdFlagIdx = args.indexOf('--cwd');
   const cwdFlag = cwdFlagIdx !== -1 ? (args[cwdFlagIdx + 1] || '').trim() : null;
@@ -38254,6 +39998,19 @@ function main() {
           durationMs: Date.now() - __askT0,
           model,
         }, cwd);
+        // #922: leave the query in the active agent session (SIGMAP_SESSION is exported by the
+        // Claude Code SessionStart hook). Mode-gated and redacted on write; a no-op unless a
+        // session store already exists, so a repo that never captured sessions is untouched.
+        const __sid = process.env.SIGMAP_SESSION;
+        if (__sid && /^[a-z][a-z0-9]{0,7}-[A-Za-z0-9._-]+$/.test(__sid)) {
+          const _st = requireSourceOrBundled('./src/session/store');
+          // Only a session the store already knows: a stray SIGMAP_SESSION (a day bucket, a
+          // chat id) never gets queries attached to a record that does not exist.
+          if (fs.existsSync(_st.storePath(cwd)) && _st.readSessions(cwd).sessions.some((x) => x.id === __sid)) {
+            const qr = _st.queryRecord(query, _st.sessionConfig(config).logQueries);
+            if (qr) _st.appendEvent(cwd, { kind: 'query', id: __sid, ...qr, files: ranked.slice(0, 5).map((r) => r.file) });
+          }
+        }
       }
     } catch (_) { /* gain capture is best-effort */ }
 
@@ -39696,6 +41453,10 @@ function main() {
     console.log(st.context.exists
       ? `  context   ${st.context.ageDays} day(s) old${st.context.stale ? `  ⚠ STALE (> ${st.context.ttlDays}d TTL) — re-run sigmap` : ''}`
       : '  context   none generated yet — run sigmap first');
+    if (st.measured) {
+      const { formatUsage, NOTE } = requireSourceOrBundled('./src/session/render');
+      console.log(`  measured  ${formatUsage(st.measured.usage)}  [${st.measured.provenance}] — ${NOTE}${st.measured.coverage === 'main' ? '; main conversation only' : ''}`);
+    }
     process.exit(0);
   }
 
@@ -39790,7 +41551,7 @@ function main() {
     const listIdx = args.indexOf('--list');
     // Build positionals, skipping value-taking flags and their values
     // (e.g. `--cwd <dir>`, `--list <N>`) so they never leak into the note text.
-    const VALUE_FLAGS = new Set(['--cwd', '--list']);
+    const VALUE_FLAGS = new Set(['--cwd', '--list', '--tag']);
     const positional = [];
     for (let i = 1; i < args.length; i++) {
       const a = args[i];
@@ -39815,7 +41576,8 @@ function main() {
     const text = positional.join(' ');
     let entry;
     try {
-      entry = addNote(cwd, text);
+      const tagIdx = args.indexOf('--tag');
+      entry = addNote(cwd, text, tagIdx !== -1 && args[tagIdx + 1] && !args[tagIdx + 1].startsWith('--') ? { tag: args[tagIdx + 1] } : {});
     } catch (err) {
       console.error(`[sigmap] ${err.message}`);
       process.exit(1);
@@ -39826,6 +41588,156 @@ function main() {
       console.log(`[sigmap] noted${entry.branch ? ` (${entry.branch})` : ''}: ${entry.text}`);
     }
     process.exit(0);
+  }
+
+  // `sigmap session log|list|show|summary|compact|hook` — session capture (#922).
+  if (args[0] === 'session') {
+    const sub = args[1] && !args[1].startsWith('--') ? args[1] : 'list';
+    const jsonOut = args.includes('--json');
+    const val = (flag) => {
+      const i = args.indexOf(flag);
+      return i !== -1 && args[i + 1] !== undefined && !args[i + 1].startsWith('--') ? args[i + 1] : null;
+    };
+    const fail = (msg) => { console.error(`[sigmap] session: ${msg}`); process.exit(1); };
+    const _store = requireSourceOrBundled('./src/session/store');
+    const _render = requireSourceOrBundled('./src/session/render');
+
+    if (sub === 'log') {
+      const fromJson = val('--from-json');
+      const transcript = val('--transcript');
+      try {
+        const cap = requireSourceOrBundled('./src/session/capture');
+        let id;
+        if (args.includes('--ci')) {
+          if (fromJson || transcript) fail('--ci records a pipeline run and takes no usage input');
+          id = cap.recordCi(cwd, { config }).id;
+        } else if (fromJson) {
+          let text;
+          try { text = fromJson === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(path.resolve(invokedFrom, fromJson), 'utf8'); }
+          catch (e) { fail(`cannot read ${fromJson}: ${e.message}`); }
+          let obj;
+          try { obj = JSON.parse(text); } catch (e) { fail(`invalid JSON: ${e.message}`); }
+          id = cap.recordFromJson(cwd, obj, { config }).id;
+        } else if (transcript) {
+          const agent = val('--agent') || 'claude-code';
+          if (agent !== 'claude-code') fail(`no transcript adapter for "${agent}" — report its usage with --from-json instead`);
+          const rawId = val('--id');
+          if (!rawId) fail('--id <session_id> is required with --transcript');
+          id = _store.sessionId(agent, rawId);
+          const file = path.resolve(invokedFrom, transcript);
+          let isFile = false;
+          try { isFile = fs.statSync(file).isFile(); } catch (_) { /* reported below */ }
+          if (!isFile) fail(`cannot read transcript ${transcript}: not a readable file`);
+          const known = _store.readSessions(cwd).sessions.some((s) => s.id === id);
+          const r = cap.recordTranscript(cwd, id, file, {});
+          if (r.error) fail(r.error);
+          if (!known) _store.appendEvent(cwd, { kind: 'start', id, ts: (r.parsed && r.parsed.firstTs) || undefined, agent, branch: null });
+          if (args.includes('--end')) _store.appendEvent(cwd, { kind: 'end', id, reason: val('--reason') || 'manual' });
+          _store.maybeCompact(cwd, config);
+        } else {
+          fail('nothing to log: pass --transcript <file> --id <session_id>, --from-json <file|->, or --ci');
+        }
+        const rec = _store.readSessions(cwd).sessions.find((s) => s.id === id);
+        if (jsonOut) process.stdout.write(JSON.stringify({ logged: rec || { id } }) + '\n');
+        else console.log(`[sigmap] logged ${id} [${rec ? rec.provenance : 'unavailable'}] ${_render.formatUsage(rec ? rec.usage : null)}`);
+      } catch (err) {
+        fail(err.message);
+      }
+      process.exit(0);
+    }
+
+    if (sub === 'list') {
+      const agent = val('--agent');
+      const limArg = parseInt(val('--limit'), 10);
+      const limit = Number.isFinite(limArg) && limArg > 0 ? limArg : 20;
+      const all = _store.readSessions(cwd);
+      let sessions = agent ? all.sessions.filter((s) => s.agent === agent) : all.sessions;
+      sessions = sessions.slice(-limit);
+      if (jsonOut) {
+        process.stdout.write(JSON.stringify({ sessions, rollups: all.rollups, totals: _render.totalsByProvenance(sessions), corrupt: all.corrupt }) + '\n');
+      } else if (sessions.length === 0 && all.rollups.length === 0) {
+        console.log('[sigmap] no sessions recorded yet — capture them with: sigmap hooks install claude');
+      } else {
+        console.log(_render.renderList(sessions, all.rollups, { corrupt: all.corrupt }));
+      }
+      process.exit(0);
+    }
+
+    if (sub === 'show') {
+      const want = args[2] && !args[2].startsWith('--') ? args[2] : null;
+      if (!want) fail('usage: sigmap session show <id>');
+      const hits = _store.readSessions(cwd).sessions.filter((s) => s.id === want || s.id.startsWith(want));
+      const exact = hits.find((s) => s.id === want);
+      const hit = exact || (hits.length === 1 ? hits[0] : null);
+      if (!hit) fail(hits.length > 1 ? `"${want}" matches ${hits.length} sessions — give more of the id` : `no session "${want}" (see: sigmap session list)`);
+      if (jsonOut) process.stdout.write(JSON.stringify({ session: hit }) + '\n');
+      else console.log(_render.renderShow(hit));
+      process.exit(0);
+    }
+
+    if (sub === 'summary') {
+      // The last session is the only window there is, so `summary` and `summary --last` are the same call.
+      const sum = requireSourceOrBundled('./src/session/summary').buildSummary(cwd, { config });
+      if (jsonOut) process.stdout.write(JSON.stringify({ summary: sum, window: 'last-session' }) + '\n');
+      else if (!sum) console.log('[sigmap] no sessions recorded yet — capture them with: sigmap hooks install claude');
+      else process.stdout.write(sum.text + '\n');
+      process.exit(0);
+    }
+
+    if (sub === 'compact') {
+      const sc = _store.sessionConfig(config);
+      if (sc.retention.compact === 'off') {
+        if (jsonOut) process.stdout.write(JSON.stringify({ action: 'off', sessions: 0, removedEvents: 0 }) + '\n');
+        else console.log('[sigmap] session.retention.compact is "off" — compaction is disabled, every raw event is kept');
+        process.exit(0);
+      }
+      const res = _store.compact(cwd, { days: sc.retention.days });
+      if (jsonOut) process.stdout.write(JSON.stringify(res) + '\n');
+      else if (res.action === 'compacted') console.log(`[sigmap] compacted ${res.sessions} session(s) older than ${sc.retention.days}d into ${res.rollups} monthly rollup(s); dropped ${res.removedEvents} event(s)`);
+      else if (res.action === 'locked') console.log('[sigmap] another sigmap process is compacting; try again in a moment');
+      else console.log(`[sigmap] nothing older than ${sc.retention.days} day(s) to compact`);
+      process.exit(0);
+    }
+
+    fail(`unknown subcommand "${sub}" — expected list | show | log | summary | compact`);
+  }
+
+  // `sigmap hooks install|status|remove` — wire session capture into Claude Code (#922).
+  if (args[0] === 'hooks') {
+    const sub = args[1];
+    const jsonOut = args.includes('--json');
+    const hi = requireSourceOrBundled('./src/session/hooks-install');
+    const rel = (p) => path.relative(cwd, p) || p;
+    if (sub === 'status') {
+      const st = hi.inspectClaudeHooks(cwd);
+      if (jsonOut) { process.stdout.write(JSON.stringify(st) + '\n'); process.exit(0); }
+      console.log(st.wired ? '[sigmap] Claude Code session hooks: wired' : '[sigmap] Claude Code session hooks: not wired (install: sigmap hooks install claude)');
+      for (const f of st.files) console.log(`  ${rel(f.path)}  ${f.error ? 'unreadable: ' + f.error : f.events.join(', ')}`);
+      for (const s of st.missingScript) console.log(`  ⚠ a hook runs ${s}, which no longer exists — re-run: sigmap hooks install claude`);
+      process.exit(0);
+    }
+    if ((sub === 'install' || sub === 'remove') && args[2] === 'claude') {
+      if (sub === 'remove') {
+        const res = hi.removeClaudeHooks(cwd);
+        if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
+        if (jsonOut) process.stdout.write(JSON.stringify(res) + '\n');
+        else if (res.files.length === 0) console.log('[sigmap] no SigMap session hooks to remove');
+        else for (const f of res.files) console.log(`[sigmap] removed ${f.removed} hook(s) from ${rel(f.path)}`);
+        process.exit(0);
+      }
+      const res = hi.installClaudeHooks(cwd, scriptPath, { stop: args.includes('--stop'), shared: args.includes('--shared') });
+      if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
+      if (jsonOut) { process.stdout.write(JSON.stringify(res) + '\n'); process.exit(0); }
+      console.log(`[sigmap] Claude Code hooks → ${rel(res.path)}`);
+      for (const c of res.changes) console.log(`  ${c.event}: ${c.action}`);
+      if (/[\\/]_npx[\\/]/.test(path.resolve(scriptPath))) {
+        console.warn('[sigmap] ⚠ this ran from an npx cache, which is temporary — the hooks would point at a path that disappears. Install sigmap (global or devDependency) and re-run.');
+      }
+      console.log('  Restart Claude Code sessions to load them. Each hook exits 0 whatever happens.');
+      process.exit(0);
+    }
+    console.error('[sigmap] usage: sigmap hooks install claude [--stop] [--shared] | hooks status | hooks remove claude');
+    process.exit(1);
   }
 
   // `sigmap status` — environment / repo state at a glance.

@@ -1337,6 +1337,8 @@ SIGMAP_SESSION=chat-42 sigmap budget # explicit session key
 | `--session <key>` | Report on a specific session key instead of the current one |
 | `--budget <tokens>` | Budget override for this invocation (persistent: config `sessionBudgetTokens`) |
 
+When the session key is a session the [session store](#session) knows (a real agent session id such as `cc-…`), `--json` and the MCP tool add a separate `measured` block — the host's billed tokens, with their provenance — beside, never inside, the chars/4 SigMap-emitted figures. The two are different provenance classes and are not added together. The default session key is unchanged (the UTC day bucket), so existing output and JSON keys are identical.
+
 Config: `sessionBudgetTokens` (budget threshold) and `contextTtlDays` (marks context `STALE` past the TTL) — both opt-in, `null` by default.
 
 ---
@@ -1416,6 +1418,74 @@ Three properties keep it from becoming noise:
 The boost is **additive and scaled to the query's own top score**, not a multiplier and not a constant. A multiplier cannot lift a zero-scoring file, and zero is exactly the case a note is most valuable in: the ranker found no lexical overlap and a human already knew the answer. Scores span roughly 4–30 depending on query and repo, so an absolute constant would be decisive on one query and invisible on another.
 
 The ranking core is untouched — the boost is applied by `ask` after ranking, never inside `rank()`, so retrieval benchmarks are unaffected (`validate:retrieval` mined **+0.0pp**).
+
+---
+
+## session
+
+Bind "one agent, one sitting" into a record: what the host agent was **billed** for, which files your `ask` queries surfaced, and a deterministic warm-start summary the next session can open with. Capture is opt-in — nothing is written until you install the hooks or run `session log` — and everything stays in `.context/sessions.ndjson` on your machine.
+
+```bash
+sigmap hooks install claude                          # capture Claude Code sessions automatically
+sigmap session                                       # list sessions (same as `session list`)
+sigmap session show cc-8d0420c3                      # one session; an unambiguous prefix works
+sigmap session log --transcript ~/.claude/projects/x/<id>.jsonl --id <id> --end   # by hand
+echo '{"id":"run-7","agent":"aider","model":"gpt-x","usage":{"in":1200,"out":340}}' | sigmap session log --from-json -
+sigmap session log --ci                              # record this pipeline run
+sigmap session summary                               # the warm-start block (also: summary --last)
+sigmap session compact                               # fold sessions older than the retention window
+```
+
+```
+[sigmap] 2 sessions (billed tokens per request category — not context size)
+  cc-8d0420c3  claude-code  2026-10-04 23:24Z  ended   claude-sonnet-5-5  [measured]  in 814 · out 844,980 · cache read 206,335,054 · cache write 2,331,334
+  aider-run-7  aider        2026-10-05 09:00Z  ended   gpt-x  [agent-reported]  in 1,200 · out 340 · cache read n/a · cache write n/a
+  total [measured] 1 session: in 814 · out 844,980 · cache read 206,335,054 · cache write 2,331,334
+  total [agent-reported] 1 session: in 1,200 · out 340 · cache read n/a · cache write n/a
+  (provenance classes are never summed into one total)
+  measured = read from the agent's own transcript, main conversation only (subagent transcripts are not read)
+  n/a = the agent did not report that category (it is not zero)
+```
+
+**What the numbers are.** Per-request *billing* categories — input, output, cache read, cache write. They are not "context size" and are never described as such. Every row carries its provenance: `measured` (read from the agent's own transcript), `agent-reported` (the agent told us), `estimated (chars/4 ±5%)`, or `unavailable`. Totals are only ever added within one provenance class. A session whose usage could not be read prints `unavailable`, never zeros, and a model the transcript did not name stays `unknown`. A cache category the agent never reported is stored as `null` and prints `n/a` — not `0`, which would claim the agent used none — and a sum over sessions where only some reported it is shown as a floor (`≥7`). **Measured rows cover the main conversation only**: subagent (sidechain) transcripts are not read, so the figure understates what a session that used subagents was billed. The list footnote, `session show`, the `measured` block and the warm-start summary all say so.
+
+**How a Claude Code transcript is read.** The transcript format is undocumented, so it is treated as untrusted input: unparseable lines and malformed usage are skipped and counted (`parseErrors`), and a transcript with no readable usage is `unavailable`. The host repeats an assistant `message.id` across several lines — measured at up to ~2,700 lines apart — so usage is counted **once per message id**. Only the main conversation is read; subagent (sidechain) transcripts are out of scope and the record says `coverage: main`. A parse that hits its deadline stops on a line boundary and is flagged `partial`.
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | Sessions, newest last (`--json`, `--agent <name>`, `--limit <n>`, default 20) |
+| `show <id>` | One session in full (`--json`) |
+| `log --transcript <file> --id <session_id>` | Record a Claude Code transcript (`--agent claude-code` is the only transcript adapter; `--end`, `--reason <why>`) |
+| `log --from-json <file\|->` | Record usage an agent reported: `{id, agent?, model?, usage: {in, out, cacheRead?, cacheWrite?}, source?: "agent-reported"\|"estimate", startedAt?, endedAt?}`. `in` and `out` are required; an omitted cache category is stored as unknown (`n/a`), not 0 |
+| `log --ci` | Append an `agent: "ci"` record for this pipeline run (GitHub Actions, GitLab CI, CircleCI and Buildkite run ids are picked up; usage is `unavailable`) |
+| `summary` | The warm-start block for the last session (`--json`) |
+| `compact` | Fold sessions older than `session.retention.days` into monthly rollups (`--json`) |
+
+**Store format.** One JSON event per line, `schema: 1`, kinds `start` / `usage` / `end` / `query` / `rollup`. Writers only ever append (one `O_APPEND` write per line), so several agents and a CI job can write at once; readers fold the lines by session id. A `usage` event carries cumulative totals up to a transcript byte offset and the fold keeps the highest offset, so a double-fired hook, or two parsers racing, gives the same totals. Session ids are agent-prefixed (`cc-`, `ci-`, …). Unreadable and newer-schema lines are skipped and counted, never fatal. Every string read back from the file (a model name, a branch, a timestamp — some of them taken from a transcript) is stripped of control characters and capped before it reaches a terminal, a summary or an instruction file, and the fold gives the same answer whatever order the lines are in. Compaction only removes what it understands: a line from another schema version, or a kind a newer SigMap added, is carried through byte for byte (only lines that are not JSON at all are dropped), and events appended while it rewrites the file are copied across.
+
+**Warm-start summary.** `session summary` renders the last session — agent, branch, absolute start and end times, billed tokens with their provenance, the files its queries surfaced, the notes written since, and tagged open threads (`sigmap note --tag todo`) — under a hard **400-token** cap. It is deterministic (same store, notes and branch state give the same bytes; the header carries the session's own timestamp, never the generation time), redacted, and past `contextTtlDays` (14 when unset) it collapses to one line carrying the absolute date. The Claude Code `SessionStart` hook delivers it as `additionalContext`. Writing it into `CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md` / `.github/gemini-context.md` is opt-in (`session.injectSummary`) because those files are committed and the summary carries personal activity; it is only ever written when you run `sigmap`, never by a hook.
+
+**Queries.** While a session is active (`SIGMAP_SESSION` — exported by the `SessionStart` hook through `CLAUDE_ENV_FILE` — naming a session the store already holds), `ask` leaves the query in the session log: a 12-hex digest by default, the redacted text with `session.logQueries: "full"`, nothing with `"off"`. It rides on gain capture, so `--no-track`, `SIGMAP_NO_TRACK=1` and `gainTracking: false` suppress it too.
+
+Config: `session.retention.days`, `session.retention.compact`, `session.logQueries`, `session.injectSummary` — see [the config reference](/guide/config). `sigmap doctor` checks the store and the hooks.
+
+---
+
+## hooks
+
+Wire session capture into Claude Code. Three hooks run `sigmap session hook <event>`: `SessionStart` (records the start, exports `SIGMAP_SESSION`, and hands back the warm-start summary), `SessionEnd` (parses the transcript and records the end), and — with `--stop` — `Stop` (a cheap per-turn update that is skipped when the transcript has not grown, for sessions that may be killed before `SessionEnd`).
+
+```bash
+sigmap hooks install claude          # SessionStart + SessionEnd, in .claude/settings.local.json
+sigmap hooks install claude --stop   # also the per-turn Stop hook
+sigmap hooks install claude --shared # write the committed .claude/settings.json instead
+sigmap hooks status                  # what is wired; flags a hook whose script has moved
+sigmap hooks remove claude           # remove SigMap's hooks, leave everything else
+```
+
+The hook commands embed an **absolute path** to this SigMap install, so they go in `.claude/settings.local.json` — Claude Code's personal, uncommitted settings — by default; one machine's path in the committed file would break every teammate's session. Install merges into the file: every other key and hook is left as found, a second install changes nothing, and a file that is not valid JSON is refused rather than overwritten. Run it from a global or project install, not from `npx` (its cache path is temporary; the command warns).
+
+**The hooks cannot hurt a session.** The handler reads the documented common payload fields only and exits `0` on every path — a malformed payload, a missing or unreadable transcript (a pipe named `*.jsonl` is refused without being opened), an exception. It runs before SigMap loads your config: it reads just the `session` and `contextTtlDays` keys straight from `gen-context.config.json`, never follows an `extends` and never touches the network, so a broken or slow config cannot fail or stall it. Its work is bounded by a deadline checked per line (a timer cannot interrupt a synchronous parse), and each thing it records is attempted on its own — a usage event that cannot be written never costs the session its `end`. It never writes the summary into a file. The install path is POSIX single-quoted in the hook command, so a path containing spaces, `$`, backticks or quotes reaches `node` intact.
 
 ---
 

@@ -662,6 +662,10 @@ function getBudget(args, cwd) {
   out.push(s.context.exists
     ? `Context   : ${s.context.ageDays} day(s) old${s.context.stale ? ` — STALE (> ${s.context.ttlDays}d TTL); re-run sigmap` : ''}`
     : 'Context   : no generated context found — run sigmap first');
+  if (s.measured) {
+    const { formatUsage, NOTE } = require('../session/render');
+    out.push(`Measured  : ${formatUsage(s.measured.usage)}  [${s.measured.provenance}] — ${NOTE}${s.measured.coverage === 'main' ? '; main conversation only' : ''}`);
+  }
   return out.join('\n');
 }
 
