@@ -1691,9 +1691,12 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
    * @param {string} cwd
    * @param {{srcDirs?: string[], exclude?: string[]}} config
    * @param {number} sinceMs
+   * @param {Map<string,{at:number}>} [covered] - live overlay entries; a file whose
+   *        entry was stamped at or after its last write is already reflected in
+   *        queries, so it does not count as changed (#926)
    * @returns {number}
    */
-  function changedSince(cwd, config, sinceMs) {
+  function changedSince(cwd, config, sinceMs, covered) {
     const { CODE_EXTS } = __require('./src/analysis/coverage-score');
     const exclude = new Set(EXCLUDE_DIRS);
     if (config && Array.isArray(config.exclude)) for (const x of config.exclude) exclude.add(String(x));
@@ -1712,7 +1715,10 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
         if (e.isDirectory()) walk(full, depth + 1);
         else if (e.isFile() && CODE_EXTS.has(path.extname(e.name).toLowerCase())) {
           seen++;
-          try { if (fs.statSync(full).mtimeMs > sinceMs) changed++; } catch (_) {}
+          try {
+            const m = fs.statSync(full).mtimeMs;
+            if (m > sinceMs && !isCovered(covered, cwd, full, m)) changed++;
+          } catch (_) {}
         }
       }
     };
@@ -1721,6 +1727,75 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
       if (fs.existsSync(abs)) walk(abs, 0);
     }
     return changed;
+  }
+
+  /**
+   * Whether a live overlay entry already describes `fullPath` as of `mtimeMs`.
+   * An entry is stamped before the file is read, so an edit that lands during the
+   * read leaves the file's mtime ahead of the stamp and it stays uncovered.
+   */
+  function isCovered(covered, cwd, fullPath, mtimeMs) {
+    if (!covered || covered.size === 0) return false;
+    const rel = path.relative(cwd, fullPath).replace(/\\/g, '/');
+    const e = covered.get(rel);
+    // `at` comes from Date.now() (whole ms) and an mtime carries a fraction, so a
+    // write in the same millisecond as the stamp must still count as covered.
+    // An additive entry adds one symbol to a file it knows nothing else about, so
+    // it says nothing about the rest of the file and cannot vouch for it.
+    return !!e && !e.additive && e.at >= Math.floor(mtimeMs);
+  }
+
+  /**
+   * The live half of index freshness: what the overlay holds beyond the last full
+   * run, and what the watcher last measured. Everything derivable is derived here
+   * at read time; only the watcher's own measurements come from `.context/live.json`.
+   * A figure nobody measured is `null` — never `0`.
+   *
+   * @param {string} cwd
+   * @returns {{ overlayDepth: number, overlay: Map, watcher: {running:boolean, pid:number|null}|null,
+   *             lastLatencyMs: number|null, lastLatencyPath: string|null, lastPatchAt: string|null,
+   *             lastRegenAt: string|null, lastRegenMs: number|null, patches: number|null,
+   *             regens: number|null, settleMs: number|null, incremental: boolean|null,
+   *             measured: boolean }}
+   */
+  function liveIndexState(cwd) {
+    const overlay = __require('./src/cache/overlay');
+    const { readIndexStamp } = __require('./src/retrieval/sig-index-store');
+    const all = overlay.load(cwd);
+    let baseMs = readIndexStamp(cwd);
+    if (!Number.isFinite(baseMs)) baseMs = _contextMtime(cwd);
+    const pending = overlay.pending(all, baseMs);
+
+    const t = overlay.readLive(cwd);
+    let watcher = null;
+    if (t && Number.isFinite(t.pid)) {
+      let running = false;
+      try { process.kill(t.pid, 0); running = true; } catch (err) { running = err.code === 'EPERM'; }
+      // A live pid is necessary, not sufficient: a crashed watcher's number can be
+      // reused. A watcher that reports a heartbeat must have beaten recently (it
+      // beats every 20 s); one that predates the heartbeat is judged by pid alone.
+      if (running && t.heartbeatAt) {
+        const age = Date.now() - Date.parse(t.heartbeatAt);
+        if (Number.isFinite(age) && age > 90000) running = false;
+      }
+      watcher = { running, pid: running ? t.pid : null };
+    }
+    const num = (v) => (Number.isFinite(v) ? v : null);
+    return {
+      overlayDepth: pending.size,
+      overlay: all,
+      watcher,
+      lastLatencyMs: t ? num(t.lastLatencyMs) : null,
+      lastLatencyPath: t && typeof t.lastLatencyPath === 'string' ? t.lastLatencyPath : null,
+      lastPatchAt: t && t.lastPatchAt ? t.lastPatchAt : null,
+      lastRegenAt: t && t.lastRegenAt ? t.lastRegenAt : null,
+      lastRegenMs: t ? num(t.lastRegenMs) : null,
+      patches: t ? num(t.patches) : null,
+      regens: t ? num(t.regens) : null,
+      settleMs: t ? num(t.settleMs) : null,
+      incremental: t && typeof t.incremental === 'boolean' ? t.incremental : null,
+      measured: !!t && Number.isFinite(t.lastLatencyMs),
+    };
   }
 
   module.exports = {
@@ -1735,6 +1810,8 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     staleRemedies,
     indexFreshness,
     changedSince,
+    isCovered,
+    liveIndexState,
   };
   
 };
@@ -1914,28 +1991,172 @@ __factories["./src/analysis/test-coverage"] = function(module, exports) {
   
 };
 
+// ── ./src/cache/entry ──
+__factories["./src/cache/entry"] = function(module, exports) {
+  
+  /**
+   * The index form of one file's signatures — the stages every writer shares (#926).
+   *
+   * A full `generate`, the watcher's per-file patch, the read-time `freshen` and the
+   * MCP notify hooks all put a file's signatures into the index. They used to
+   * disagree: the hooks and `freshen` stored the raw extraction, so an edit that
+   * went through them replaced a redacted base entry with one carrying the secret,
+   * and dropped the module-doc line. Now the stages live here, once:
+   *
+   *   extract → cap at maxSigsPerFile → redact secrets → module-doc line / terse
+   *
+   * The CLI core's `detectAndExtract` stays the extractor for generate and the
+   * watcher (it owns the opt-in exactness tiers and the generic fallback); the
+   * stages after extraction are these.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  /**
+   * Redact secrets from a file's signatures. Fails CLOSED: a scanner that cannot
+   * run throws, and the caller records nothing rather than storing a raw entry.
+   *
+   * @param {string[]} sigs
+   * @param {string} filePath
+   * @param {{secretScan?: boolean}} config
+   * @returns {{ sigs: string[], redacted: boolean }}
+   */
+  function redactSecrets(sigs, filePath, config) {
+    if (!config || !config.secretScan) return { sigs, redacted: false };
+    const { scan } = __require('./src/security/scanner');
+    const result = scan(sigs, filePath);
+    return { sigs: result.safe, redacted: !!result.redacted };
+  }
+
+  /**
+   * The file as the retrieval index stores it: a leading module-doc line (the
+   * file's stated purpose, which is the vocabulary a behavioural query uses) and,
+   * with `terse`, the compact encoding. Index-only — the prompt artifact is
+   * token-budgeted, the index is not.
+   *
+   * @param {string} filePath
+   * @param {string} content
+   * @param {string[]} sigs
+   * @param {{terse?: boolean}} config
+   * @returns {string[]}
+   */
+  function indexSigsFor(filePath, content, sigs, config) {
+    let out = sigs;
+    try {
+      // TRIED AND REJECTED: also indexing every per-symbol doc sentence
+      // untruncated (src/retrieval/doc-text.js). 39% of extractor doc hints are
+      // cut at 60 chars, so recovering them looked like free vocabulary. It is
+      // not: train hit@5 fell 75.6% -> 73.3% at every docWeight from 0.2 to 1.0,
+      // and the mined corpus never moved off 62.5%. The MODULE HEADER is the
+      // high-signal prose — it states the file's purpose. Per-symbol sentences
+      // describe internal helpers, so they broaden what each file matches
+      // without making any file a better answer.
+      const { moduleDocSig } = __require('./src/retrieval/module-doc');
+      const doc = moduleDocSig(content, filePath);
+      // The header is prose lifted from the file, so it is scanned like a signature:
+      // a key pasted into a header comment must not reach the index. A scanner that
+      // cannot run throws into the catch below and the line is simply omitted.
+      if (doc) out = [redactSecrets([doc], filePath, config).sigs[0], ...sigs];
+    } catch (_) { /* enrichment is best-effort */ }
+    if (config && config.terse) {
+      try {
+        const { encodeTerseSigs } = __require('./src/format/terse');
+        out = encodeTerseSigs(sigs);
+      } catch (_) { /* terse unavailable → index full signatures */ }
+    }
+    return out;
+  }
+
+  /**
+   * The few settings the stages above read, from the project's own config file
+   * over the shipped defaults. Reading the raw file (not the full loader) keeps
+   * this cheap enough for a hook that runs on every agent write.
+   *
+   * @param {string} cwd
+   * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number }}
+   */
+  function entryConfig(cwd) {
+    const { DEFAULTS } = __require('./src/config/defaults');
+    let raw = {};
+    try {
+      const parsed = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
+      if (parsed && typeof parsed === 'object') raw = parsed;
+    } catch (_) { /* no project config → shipped defaults */ }
+    // A local `extends` supplies the base. A URL is not followed here: a hook that
+    // runs on every agent write never goes to the network.
+    if (typeof raw.extends === 'string' && !/^https?:\/\//.test(raw.extends)) {
+      try { raw = Object.assign({}, __require('./src/config/loader').loadBaseConfig(raw.extends, cwd), raw); } catch (_) { /* unreadable base → own keys only */ }
+    }
+    const pick = (k) => (raw[k] !== undefined ? raw[k] : DEFAULTS[k]);
+    return {
+      secretScan: !!pick('secretScan'),
+      terse: !!pick('terse'),
+      maxSigsPerFile: Number.isFinite(pick('maxSigsPerFile')) ? pick('maxSigsPerFile') : 25,
+    };
+  }
+
+  /**
+   * A file's signatures as the index would hold them, for writers that live in
+   * `src/` (freshen, the notify hooks) and so extract through the dispatch table.
+   *
+   * @param {string} filePath - absolute
+   * @param {string} content
+   * @param {string} cwd
+   * @param {object} [config] - from entryConfig(cwd)
+   * @returns {string[]} empty when the file yields no signatures
+   */
+  function entrySigs(filePath, content, cwd, config) {
+    const cfg = config || entryConfig(cwd);
+    const { extractFile, langFor } = __require('./src/extractors/dispatch');
+    let sigs = extractFile(filePath, content);
+    // A full run's generic tier indexes files the dispatch table has no extractor
+    // for (.zig, templates, ...). Without the same fallback an entry written here
+    // would be empty for them, and "empty" must never mean "remove".
+    if (sigs.length === 0 && !langFor(filePath)) {
+      try { sigs = __require('./src/extractors/generic').extract(content, filePath) || []; } catch (_) { sigs = []; }
+    }
+    sigs = sigs.slice(0, cfg.maxSigsPerFile);
+    if (sigs.length === 0) return [];
+    sigs = redactSecrets(sigs, filePath, cfg).sigs;
+    return indexSigsFor(filePath, content, sigs, cfg);
+  }
+
+  module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs };
+  
+};
+
 // ── ./src/cache/freshen ──
 __factories["./src/cache/freshen"] = function(module, exports) {
   
   /**
    * Read-time self-heal (IMPL.md Layer 1, "safety net" tier).
    *
-   * Keeps the sig-cache in line with the current source tree so the index reflects
-   * on-disk reality even when no write hook was called. Re-extracts files modified
-   * since the context file was generated (bounded to actual session edits, not the
-   * whole tree), drops cache entries for deleted files, and persists. buildSigIndex
-   * already merges the cache, so the next read is fresh.
+   * Keeps the live overlay (cache/overlay.js) in line with the current source tree
+   * so the index reflects on-disk reality even when no write hook was called.
+   * Re-extracts files modified since the index was built (bounded to actual
+   * session edits, not the whole tree) and records them as overlay entries.
+   * buildSigIndex applies the overlay over the base index and an entry REPLACES
+   * the file's base entry, so the next read is fresh — including a renamed or
+   * removed symbol, which the old additive cache merge could never show (#926).
    *
    * Throttled per cwd. Skips entirely when there is no generated index to heal
-   * (a cold repo should run `generate` or use the notify hooks).
+   * (a cold repo should run `generate` or use the notify hooks). Deleted files are
+   * not swept here (that is a stat per indexed file on every read): the watcher
+   * and `notify_file_deleted` record those as they happen.
    *
-   * Zero-dependency, bundle-safe (fs + dispatch + sig-cache).
+   * Zero-dependency, bundle-safe (fs + dispatch + overlay).
    */
 
   const fs = require('fs');
   const path = require('path');
-  const { loadCache, saveCache, getChangedFiles } = __require('./src/cache/sig-cache');
-  const { extractFile, langFor } = __require('./src/extractors/dispatch');
+  const overlay = __require('./src/cache/overlay');
+  const { readIndexStamp } = __require('./src/retrieval/sig-index-store');
+  const { entryConfig, entrySigs } = __require('./src/cache/entry');
+  const { langFor } = __require('./src/extractors/dispatch');
+  const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
 
   const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'packages', 'services', 'api'];
   const DEFAULT_EXCLUDE = [
@@ -1954,11 +2175,6 @@ __factories["./src/cache/freshen"] = function(module, exports) {
       const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
       return cfg && typeof cfg === 'object' ? cfg : {};
     } catch (_) { return {}; }
-  }
-
-  function _pkgVersion(cwd) {
-    try { return JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8')).version || '0.0.0'; }
-    catch (_) { return '0.0.0'; }
   }
 
   /** Newest mtime among existing generated context files, or 0 if none. */
@@ -1983,10 +2199,10 @@ __factories["./src/cache/freshen"] = function(module, exports) {
   }
 
   /**
-   * Re-extract source files changed since the last generate; drop deleted files.
+   * Re-extract source files changed since the last generate.
    * @param {string} cwd
    * @param {{force?:boolean, now?:number}} [opts]
-   * @returns {number} cache entries touched
+   * @returns {number} overlay entries written
    */
   function freshen(cwd, opts = {}) {
     const now = opts.now != null ? opts.now : Date.now();
@@ -1996,11 +2212,14 @@ __factories["./src/cache/freshen"] = function(module, exports) {
     _lastRun.set(cwd, now);
 
     try {
-      const version = _pkgVersion(cwd);
-      const cache = loadCache(cwd, version);
-      const ctxMtime = _contextMtime(cwd);
-      // Nothing to heal: no generated context AND no live cache overlay.
-      if (ctxMtime === 0 && cache.size === 0) return 0;
+      // When the base index began: the retrieval index knows exactly (read from its
+      // head, not parsed); a repo with only a context file falls back to that
+      // file's mtime.
+      const stamp = readIndexStamp(cwd);
+      const base = Number.isFinite(stamp) ? stamp : _contextMtime(cwd);
+      const entries = overlay.load(cwd);
+      // Nothing to heal: no generated context AND no live overlay.
+      if (base === 0 && entries.size === 0) return 0;
 
       const cfg = _readConfig(cwd);
       const srcDirs = Array.isArray(cfg.srcDirs) && cfg.srcDirs.length ? cfg.srcDirs : DEFAULT_SRC_DIRS;
@@ -2013,31 +2232,269 @@ __factories["./src/cache/freshen"] = function(module, exports) {
         if (fs.existsSync(abs)) _walk(abs, exclude, files, 0, maxDepth);
       }
 
-      // Candidates = files modified since the context was generated, or not yet cached.
-      const candidates = files.filter((f) => {
-        try { return fs.statSync(f).mtimeMs > ctxMtime || !cache.has(f); } catch (_) { return false; }
-      });
-      const { changed } = getChangedFiles(candidates, cache);
+      // Candidates = files changed after the index began that the overlay has not
+      // already described (an entry stamped at or after the change has). "Changed"
+      // is the later of mtime and ctime: `mv`, `git mv` and `cp -p` keep a file's
+      // mtime but move its ctime, and a moved file is new to the index.
+      const stale = [];
+      const ignore = loadIgnorePatterns(cwd); // the same filter a full run applies
+      for (const f of files) {
+        let changed;
+        try { const st = fs.statSync(f); changed = Math.max(st.mtimeMs, st.ctimeMs); } catch (_) { continue; }
+        if (changed <= base) continue;
+        const key = overlay.relKey(cwd, f);
+        if (!key || matchesIgnore(key, ignore)) continue;
+        const have = entries.get(key);
+        // An additive entry vouches only for the symbol it added, not the file.
+        // A timestamp in the future (clock skew, a restored file) cannot be ordered
+        // against any entry's stamp, so a whole-file entry that exists covers it —
+        // otherwise it would be read again on every call. Whole-ms stamp vs a
+        // fractional file time, hence the floor.
+        if (have && !have.additive && (have.at >= Math.floor(changed) || changed > Date.now())) continue;
+        stale.push({ f, key });
+      }
+      if (stale.length === 0) return 0;
 
-      let touched = 0;
-      for (const f of changed) {
+      const entryCfg = entryConfig(cwd);
+      const fresh = [];
+      for (const { f, key } of stale) {
         try {
-          const sigs = extractFile(f, fs.readFileSync(f, 'utf8'));
-          cache.set(f, { mtime: fs.statSync(f).mtimeMs, sigs });
-          touched++;
+          const at = Date.now(); // before the read: an edit during it stays uncovered
+          const sigs = entrySigs(f, fs.readFileSync(f, 'utf8'), cwd, entryCfg);
+          // An empty result is not recorded: this tier cannot tell a file with no
+          // signatures from an extractor that failed, and a wrong removal is worse
+          // than a stale entry the next full run replaces. A scanner that cannot
+          // run throws and lands here too — nothing unredacted is ever stored.
+          if (sigs.length > 0) fresh.push([key, { at, sigs }]);
         } catch (_) {}
       }
-      // Note: deletions are NOT swept here — a cache entry may be a `notify`
-      // overlay for a file not yet on disk. Explicit removal is `notify_file_deleted`.
-
-      if (touched > 0) saveCache(cwd, version, cache);
-      return touched;
+      if (fresh.length > 0) overlay.update(cwd, (m) => { for (const [k, e] of fresh) overlay.put(m, k, e); });
+      return fresh.length;
     } catch (_) {
       return 0;
     }
   }
 
   module.exports = { freshen };
+  
+};
+
+// ── ./src/cache/overlay ──
+__factories["./src/cache/overlay"] = function(module, exports) {
+  
+  /**
+   * Live overlay (#926): what changed since the last full index, applied at read time.
+   *
+   * WHY THIS EXISTS
+   * ---------------
+   * The retrieval index (`.context/sig-index.json`) is rewritten only by a full
+   * `generate`. Between two runs the code keeps changing, and three writers tried
+   * to keep queries honest — the MCP notify hooks, the read-time `freshen`, and
+   * (now) the watcher. They wrote into `.sigmap-cache.json`, which the reader then
+   * MERGED with the index under "the entry with more signatures wins". So an edit
+   * could only ever add: rename a function, drop one, or delete a file and the
+   * stale entry won, because the old list was as long or longer. Reproduced on
+   * v8.71.0: after `freshen()` a renamed symbol was still listed and its new name
+   * was not.
+   *
+   * This store is the authoritative half of that arrangement. An entry says "as of
+   * `at`, this file contributes exactly these signatures" (or: nothing, it is gone),
+   * and it REPLACES the base entry for as long as it is newer than the base index.
+   * Once a full run starts after `at`, the base has seen the change and the entry
+   * is simply ignored — no invalidation protocol, no version stamp to disagree about.
+   *
+   * It is a separate file from `.sigmap-cache.json` on purpose: that cache is
+   * version-stamped by SigMap's own VERSION when `generate` writes it and by the
+   * PROJECT's package.json version when the hooks write it, so two writers busted
+   * each other's entries. This store has no stamp to bust.
+   *
+   * Entry shapes (keys are repo-relative, forward slashes):
+   *   { at, sigs: string[] }                 replace the file's signatures
+   *   { at, deleted: true }                  the file contributes nothing now
+   *   { at, sigs: string[], additive: true } add these to whatever the file has
+   *
+   * Zero-dependency, bundle-safe (fs + path only).
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const DIR = '.context';
+  const OVERLAY_FILE = 'overlay.json';
+  const LIVE_FILE = 'live.json';
+  const SCHEMA = 1;
+
+  // An entry stamped further ahead than this is not a clock error SigMap can reason
+  // about (an NTP step backwards, a VM resume, a hand-edited file): it would outlive
+  // every full run and shadow the fresh base entry, so it is not trusted.
+  const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
+
+  function overlayPath(cwd) { return path.join(cwd, DIR, OVERLAY_FILE); }
+  function livePath(cwd) { return path.join(cwd, DIR, LIVE_FILE); }
+
+  /** Repo-relative key with forward slashes, or null for a path outside `cwd`. */
+  function relKey(cwd, p) {
+    const rel = path.relative(cwd, path.resolve(cwd, p)).replace(/\\/g, '/');
+    return !rel || rel.startsWith('..') ? null : rel;
+  }
+
+  /** Write-then-rename so a concurrent reader never sees half a file. */
+  function writeAtomic(file, text) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    try {
+      fs.writeFileSync(tmp, text, 'utf8');
+      fs.renameSync(tmp, file);
+    } catch (err) {
+      try { fs.unlinkSync(tmp); } catch (_) {}
+      throw err;
+    }
+  }
+
+  function _valid(e) {
+    return !!e && typeof e === 'object' && Number.isFinite(e.at)
+      && (e.deleted === true || (Array.isArray(e.sigs) && e.sigs.every((s) => typeof s === 'string')));
+  }
+
+  /**
+   * Every overlay entry, or an empty Map when the store is absent or unreadable.
+   * @param {string} cwd
+   * @returns {Map<string, {at:number, sigs?:string[], deleted?:boolean, additive?:boolean}>}
+   */
+  function load(cwd) {
+    const out = new Map();
+    try {
+      const data = JSON.parse(fs.readFileSync(overlayPath(cwd), 'utf8'));
+      if (!data || data.schema !== SCHEMA || !data.entries || typeof data.entries !== 'object') return out;
+      const horizon = Date.now() + MAX_FUTURE_SKEW_MS;
+      for (const [rel, e] of Object.entries(data.entries)) if (_valid(e) && e.at <= horizon) out.set(rel, e);
+    } catch (_) { /* absent or corrupt → nothing is overlaid, the base index stands */ }
+    return out;
+  }
+
+  function _save(cwd, entries) {
+    writeAtomic(overlayPath(cwd), JSON.stringify({ schema: SCHEMA, entries: Object.fromEntries(entries) }));
+  }
+
+  /**
+   * Read-modify-write the store in one step. The function receives the live Map.
+   * A failure to write is swallowed: the overlay is an accelerator, never a
+   * correctness dependency — the next full run supersedes whatever was lost.
+   *
+   * @param {string} cwd
+   * @param {(entries: Map) => void} fn
+   * @returns {boolean} whether the store was written
+   */
+  function update(cwd, fn) {
+    try {
+      const entries = load(cwd);
+      fn(entries);
+      _save(cwd, entries);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  /**
+   * Record one entry unless the store already holds a NEWER one for the file. Two
+   * writers can race (the watcher, the MCP server's freshen); the later `at` is
+   * the better description of the file, so a slow writer must not overwrite it.
+   *
+   * @returns {boolean} whether the entry was recorded
+   */
+  function put(entries, rel, entry) {
+    const cur = entries.get(rel);
+    if (cur && cur.at > entry.at) return false;
+    entries.set(rel, entry);
+    return true;
+  }
+
+  /**
+   * Apply the overlay to an index, in place. Entries not newer than the base are
+   * skipped — a full run has already seen them.
+   *
+   * @param {Map<string,string[]>} index
+   * @param {Map} entries
+   * @param {number|null} baseMs - when the base index began; null/0 → every entry is newer
+   * @returns {number} entries applied
+   */
+  function apply(index, entries, baseMs) {
+    // `at` is whole milliseconds and a base derived from a file mtime is fractional.
+    const since = Number.isFinite(baseMs) ? Math.floor(baseMs) : 0;
+    let applied = 0;
+    for (const [rel, e] of entries) {
+      if (e.at < since) continue;
+      if (e.deleted) { if (index.delete(rel)) applied++; continue; }
+      if (!e.sigs || e.sigs.length === 0) continue;
+      if (e.additive) {
+        const have = index.get(rel) || [];
+        const merged = have.slice();
+        for (const s of e.sigs) if (!merged.includes(s)) merged.push(s);
+        index.set(rel, merged);
+      } else {
+        index.set(rel, e.sigs);
+      }
+      applied++;
+    }
+    return applied;
+  }
+
+  /** Entries that are still newer than the base — the overlay's live depth. */
+  function pending(entries, baseMs) {
+    const since = Number.isFinite(baseMs) ? Math.floor(baseMs) : 0;
+    const out = new Map();
+    for (const [rel, e] of entries) if (e.at >= since) out.set(rel, e);
+    return out;
+  }
+
+  /**
+   * Drop entries a full run has superseded. Called after a full generate, with the
+   * instant that run began.
+   * @returns {number} entries removed
+   */
+  function prune(cwd, baseMs) {
+    let removed = 0;
+    // Nothing superseded → leave the store (and its mtime) alone, and never create it.
+    let any = false;
+    for (const e of load(cwd).values()) if (e.at < baseMs) { any = true; break; }
+    if (!any) return 0;
+    update(cwd, (entries) => {
+      for (const [rel, e] of [...entries]) {
+        if (e.at < baseMs) { entries.delete(rel); removed++; }
+      }
+    });
+    return removed;
+  }
+
+  // ── Live telemetry (.context/live.json) ──────────────────────────────────────
+  // Facts only the watcher can measure. Written by the watcher process alone;
+  // everything derivable (overlay depth, staleness) is computed at read time so it
+  // can never disagree with the overlay it describes.
+
+  /** @returns {object|null} the recorded watcher telemetry, or null when none */
+  function readLive(cwd) {
+    try {
+      const data = JSON.parse(fs.readFileSync(livePath(cwd), 'utf8'));
+      return data && data.schema === SCHEMA ? data : null;
+    } catch (_) { return null; }
+  }
+
+  /**
+   * Merge `patch` into the telemetry and persist it (`opts.replace` starts from
+   * nothing — a fresh watcher must not inherit a dead one's numbers). Never throws.
+   */
+  function writeLive(cwd, patch, opts = {}) {
+    try {
+      const cur = opts.replace ? {} : (readLive(cwd) || {});
+      writeAtomic(livePath(cwd), JSON.stringify(Object.assign({}, cur, patch, { schema: SCHEMA })));
+      return true;
+    } catch (_) { return false; }
+  }
+
+  module.exports = {
+    SCHEMA, overlayPath, livePath, relKey,
+    load, update, put, apply, pending, prune,
+    readLive, writeLive,
+  };
   
 };
 
@@ -2615,8 +3072,18 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // For hot-cold strategy: how many recent git commits count as "hot"
     hotCommits: 10,
 
-    // Debounce delay (ms) between file-system events and regeneration in watch mode
+    // Debounce delay (ms) between file-system events and the watcher acting on them
     watchDebounce: 300,
+
+    // Watch mode patches only the files that changed straight into the live overlay
+    // (queries see them at once) instead of regenerating everything per save.
+    // false restores the previous behaviour: one full regeneration per change burst.
+    watchIncremental: true,
+
+    // Quiet time (ms) after the last patch before ONE full regeneration refreshes
+    // the written context files (CLAUDE.md, copilot-instructions.md, ...). Queries
+    // never wait for it. Raise it to trade static-file freshness for CPU.
+    watchSettleMs: 5000,
 
     // Append model routing hints section to the context output
     // Routes files to fast/balanced/powerful model tiers based on complexity
@@ -7014,9 +7481,9 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
    * Delegates to the shared primitive so `status` counts the same population
    * against the same timestamp (#825).
    */
-  function _countChangedSince(cwd, srcDirs, config, ctxMtime) {
+  function _countChangedSince(cwd, srcDirs, config, ctxMtime, covered) {
     const { changedSince } = __require('./src/analysis/index-state');
-    return changedSince(cwd, Object.assign({}, config, { srcDirs }), ctxMtime);
+    return changedSince(cwd, Object.assign({}, config, { srcDirs }), ctxMtime, covered);
   }
 
   /**
@@ -7152,11 +7619,41 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
           ? sinceMs
           : Math.max(...ctxFiles.map((f) => { try { return fs.statSync(f).mtimeMs; } catch (_) { return 0; } }));
         const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length) ? config.srcDirs : ['src', 'app', 'lib'];
-        const changed = _countChangedSince(cwd, srcDirs, config, refMs);
+        // A file the live overlay already describes is reflected in queries, so it
+        // is not a change the index is missing (#926); the static files it leaves
+        // behind are reported by the "Live index" check below.
+        let covered = null;
+        try { covered = __require('./src/analysis/index-state').liveIndexState(cwd).overlay; } catch (_) {}
+        const changed = _countChangedSince(cwd, srcDirs, config, refMs, covered);
         const from = fresh.source ? ` (from ${fresh.source})` : '';
         if (changed > 0) add('freshness', 'Index freshness', 'warn', `${changed} source file(s) changed since last generate${from}`, 'run: sigmap   (or: sigmap --watch to auto-refresh)');
         else if (indexClass && indexClass.stale) add('freshness', 'Index freshness', 'warn', `sources unchanged${from}, but the index holds ${indexClass.stale} stale entry/entries`, 'run: sigmap   (prunes deleted files), then: sigmap validate');
         else add('freshness', 'Index freshness', 'ok', `index is up to date with sources${from}`);
+      }
+    } catch (_) {}
+
+    // 5b. Live index (#926)
+    //
+    // Only when there is something to say: an overlay holding changes the written
+    // context files do not yet reflect, or a watcher that has recorded how long a
+    // save takes to reach queries. A repo that has never used either gets no row.
+    try {
+      if (ctxFiles.length) {
+        const { liveIndexState } = __require('./src/analysis/index-state');
+        const live = liveIndexState(cwd);
+        if (live.overlayDepth > 0 || live.watcher) {
+          const parts = [];
+          if (live.overlayDepth > 0) parts.push(`${live.overlayDepth} file(s) served from the overlay, not yet in the written context files`);
+          if (live.watcher) parts.push(live.watcher.running ? `watcher running (pid ${live.watcher.pid})` : 'last watcher is not running');
+          if (live.measured) parts.push(`last save → index ${live.lastLatencyMs} ms (${live.lastLatencyPath})`);
+          else if (live.watcher) parts.push('save → index latency not measured yet');
+          const watching = live.watcher && live.watcher.running;
+          if (live.overlayDepth > 0 && !watching) {
+            add('live', 'Live index', 'warn', parts.join(' · '), 'run: sigmap   (regenerates the written files), or: sigmap daemon start');
+          } else {
+            add('live', 'Live index', 'ok', parts.join(' · '));
+          }
+        }
       }
     } catch (_) {}
 
@@ -21590,8 +22087,9 @@ __factories["./src/judge/context-source"] = function(module, exports) {
    *
    * @returns {{ file: string, mtimeMs: number }|null}
    */
-  function _newestSource(cwd, srcDirs, config) {
+  function _newestSource(cwd, srcDirs, config, covered) {
     const { CODE_EXTS } = __require('./src/analysis/coverage-score');
+    const { isCovered } = __require('./src/analysis/index-state');
     const exclude = new Set(EXCLUDE_DIRS);
     if (config && Array.isArray(config.exclude)) for (const x of config.exclude) exclude.add(String(x));
 
@@ -21609,6 +22107,9 @@ __factories["./src/judge/context-source"] = function(module, exports) {
           seen++;
           try {
             const m = fs.statSync(full).mtimeMs;
+            // The live overlay already reflects this write, so queries are not
+            // ranked against stale ground on its account (#926).
+            if (isCovered(covered, cwd, full, m)) continue;
             if (!newest || m > newest.mtimeMs) newest = { file: full, mtimeMs: m };
           } catch (_) {}
         }
@@ -21627,17 +22128,27 @@ __factories["./src/judge/context-source"] = function(module, exports) {
    * @param {string} contextFile absolute path to the context file
    * @param {string} cwd
    * @param {object} [config] loaded sigmap config (reads `srcDirs`, `exclude`)
+   * @param {{honorOverlay?: boolean}} [opts] count files the live overlay describes as fresh
    * @returns {{ stale: boolean, ageHours: number, newest: string }|null} null when
    *   freshness cannot be established (unreadable context, no source files found)
    */
-  function contextStaleness(contextFile, cwd, config) {
+  function contextStaleness(contextFile, cwd, config, opts) {
     let ctxMtime;
     try { ctxMtime = fs.statSync(contextFile).mtimeMs; } catch (_) { return null; }
 
     const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length)
       ? config.srcDirs
       : ['src', 'lib', 'app'];
-    const newest = _newestSource(cwd, srcDirs, config);
+    // Whether a write the live overlay already describes counts as fresh depends on
+    // WHAT is being read. A reader that ranks through the index (ask, the MCP search
+    // tools) sees the overlay, so it is fresh for them. A reader of the WRITTEN file
+    // (judge, read_context) does not, and for them the file is stale until the next
+    // full run — so this is opt-in, never the default (#926).
+    let covered = null;
+    if (opts && opts.honorOverlay) {
+      try { covered = __require('./src/cache/overlay').load(cwd); } catch (_) { /* no overlay → nothing is covered */ }
+    }
+    const newest = _newestSource(cwd, srcDirs, config, covered);
     if (!newest) return null;
 
     const gapMs = newest.mtimeMs - ctxMtime;
@@ -23286,7 +23797,8 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     let ctxMtime = 0;
     try {
       for (const f of fs.readdirSync(path.join(cwd, '.context'))) {
-        if (f === CACHE_FILE) continue;
+        // live.json is watcher telemetry and *.tmp is a write in flight: neither changes the index.
+        if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp')) continue;
         const st = fs.statSync(path.join(cwd, '.context', f));
         if (st.mtimeMs > ctxMtime) ctxMtime = st.mtimeMs;
       }
@@ -23809,14 +24321,14 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
    *
    * @returns {string} the banner plus a blank line, or '' when fresh/unknowable
    */
-  function _stalenessBanner(cwd) {
+  function _stalenessBanner(cwd, opts) {
     try {
       const { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS } = __require('./src/judge/context-source');
       const contextFile = resolveContextFile(cwd);
       if (!contextFile) return '';
       let config = {};
       try { config = __require('./src/config/loader').loadConfig(cwd); } catch (_) {}
-      const warning = stalenessWarning(contextStaleness(contextFile, cwd, config), { tail: STALE_TAILS.mcp });
+      const warning = stalenessWarning(contextStaleness(contextFile, cwd, config, opts), { tail: STALE_TAILS.mcp });
       return warning ? `> ⚠ ${warning}\n\n` : '';
     } catch (_) { return ''; }
   }
@@ -23899,7 +24411,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       }
 
       if (result.length === 0) return `No signatures found matching: ${args.query}`;
-      return _stalenessBanner(cwd) + result.join('\n');
+      return _stalenessBanner(cwd, { honorOverlay: true }) + result.join('\n');
     } catch (err) {
       return `_search_signatures failed: ${err.message}_`;
     }
@@ -24258,7 +24770,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         }
       } catch (_) {}
       const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality, expansions, bodyWords });
-      return _stalenessBanner(cwd) + formatRankTable(results, args.query);
+      return _stalenessBanner(cwd, { honorOverlay: true }) + formatRankTable(results, args.query);
     } catch (err) {
       return `_query_context failed: ${err.message}_`;
     }
@@ -24503,76 +25015,105 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   }
 
   // ── Layer 1: live-index write hooks ────────────────────────────────────────
-  // Keep the sig-cache fresh while an agent creates/modifies/deletes files, so
-  // new code is discoverable in the same session. buildSigIndex already merges
-  // the cache (_buildSigIndexFromCache), so updates are live on the next read.
-
-  function _pkgVersion(cwd) {
-    try { return JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8')).version || '0.0.0'; }
-    catch (_) { return '0.0.0'; }
-  }
-
+  // Keep the live overlay (cache/overlay.js) current while an agent creates,
+  // modifies or deletes files, so the change is visible in the same session.
+  // buildSigIndex applies the overlay over the base index, and an overlay entry
+  // REPLACES the file's base entry — so a rename, a removed symbol or a deletion
+  // shows up too, not only an addition (#926).
 
   /** notify_file_created — extract a file's signatures and index it live. */
   function notifyFileCreated(args, cwd) {
     const rel = args && args.path;
     if (!rel) return 'Missing required argument: path';
     try {
-      const { extractFile } = __require('./src/extractors/dispatch');
-      const { loadCache, saveCache } = __require('./src/cache/sig-cache');
+      const overlay = __require('./src/cache/overlay');
+      const { entrySigs } = __require('./src/cache/entry');
+      const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
       const abs = path.resolve(cwd, rel);
+      const key = overlay.relKey(cwd, abs);
+      if (!key) return `${rel} is outside the project.`;
+      // The filter a full run applies: an ignored file is not resurrected by a hook.
+      if (matchesIgnore(key, loadIgnorePatterns(cwd))) return `${rel} is excluded by .contextignore — not indexed.`;
+      const at = Date.now();
       let content = args.content;
       if (typeof content !== 'string') {
         try { content = fs.readFileSync(abs, 'utf8'); } catch (_) { content = ''; }
       }
-      const sigs = extractFile(abs, content);
-      const version = _pkgVersion(cwd);
-      const cache = loadCache(cwd, version);
-      if (sigs.length > 0) {
-        cache.set(abs, { mtime: Date.now(), sigs });
+      // The same stages a full run applies — a secret in the file is redacted here
+      // too, and the module-doc line is kept — so this entry cannot replace a
+      // redacted base entry with a leaky one.
+      const sigs = entrySigs(abs, content, cwd);
+      // An empty result is NOT a removal: this tier cannot tell a file with no
+      // signatures from one it cannot read or does not know, and a wrong removal is
+      // worse than a stale entry the next full run replaces. Use notify_file_deleted
+      // for a file that is gone.
+      if (sigs.length === 0) return `No signatures found in ${rel}; the index is unchanged.`;
+      if (!overlay.update(cwd, (entries) => overlay.put(entries, key, { at, sigs }))) {
+        return `_notify_file_created failed: could not write the live overlay_`;
       }
-      saveCache(cwd, version, cache);
       return `Indexed ${rel}: ${sigs.length} signature(s) now live.`;
     } catch (err) {
       return `_notify_file_created failed: ${err.message}_`;
     }
   }
 
-  /** notify_symbol_added — append one signature to a file's live cache entry. */
+  /** notify_symbol_added — add one signature to a file's live entry. */
   function notifySymbolAdded(args, cwd) {
     if (!args || !args.signature || !args.file) {
       return 'Missing required arguments: signature, file';
     }
     try {
-      const { loadCache, saveCache } = __require('./src/cache/sig-cache');
+      const overlay = __require('./src/cache/overlay');
+      const { entryConfig, redactSecrets } = __require('./src/cache/entry');
+      const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
       const abs = path.resolve(cwd, args.file);
-      const version = _pkgVersion(cwd);
-      const cache = loadCache(cwd, version);
-      const entry = cache.get(abs) || { mtime: Date.now(), sigs: [] };
+      const key = overlay.relKey(cwd, abs);
+      if (!key) return `${args.file} is outside the project.`;
+      if (matchesIgnore(key, loadIgnorePatterns(cwd))) return `${args.file} is excluded by .contextignore — not indexed.`;
       const line = Number.isFinite(Number(args.line)) ? `  :${args.line}` : '';
-      const sig = String(args.signature) + line;
-      if (!entry.sigs.includes(sig)) entry.sigs.push(sig);
-      entry.mtime = Date.now();
-      cache.set(abs, entry);
-      saveCache(cwd, version, cache);
-      return `Added signature to ${args.file} (${entry.sigs.length} total).`;
+      // A signature an agent hands over is scanned like any other.
+      const sig = redactSecrets([String(args.signature) + line], abs, entryConfig(cwd)).sigs[0];
+      let count = 1;
+      const wrote = overlay.update(cwd, (entries) => {
+        const cur = entries.get(key);
+        // Adding one symbol must never REPLACE the file's other symbols, so an
+        // entry that did not come from a whole-file extraction is additive.
+        const entry = cur && !cur.deleted ? cur : { at: Date.now(), sigs: [], additive: true };
+        if (!entry.sigs.includes(sig)) entry.sigs.push(sig);
+        // An additive entry's stamp only says when the symbol arrived. A whole-file
+        // entry keeps the time its file was READ: refreshing it here would claim
+        // coverage of edits that were never read (freshen would then skip them).
+        if (entry.additive) entry.at = Date.now();
+        entries.set(key, entry);
+        count = entry.sigs.length;
+      });
+      if (!wrote) return `_notify_symbol_added failed: could not write the live overlay_`;
+      try {
+        const total = __require('./src/retrieval/ranker').buildSigIndex(cwd).get(key);
+        if (total) count = total.length;
+      } catch (_) { /* the live-added count stands */ }
+      return `Added signature to ${args.file} (${count} total).`;
     } catch (err) {
       return `_notify_symbol_added failed: ${err.message}_`;
     }
   }
 
-  /** notify_file_deleted — drop a file's cache-overlay entry. */
+  /** notify_file_deleted — drop a file from the live index. */
   function notifyFileDeleted(args, cwd) {
     const rel = args && args.path;
     if (!rel) return 'Missing required argument: path';
     try {
-      const { loadCache, saveCache } = __require('./src/cache/sig-cache');
-      const abs = path.resolve(cwd, rel);
-      const version = _pkgVersion(cwd);
-      const cache = loadCache(cwd, version);
-      const had = cache.delete(abs);
-      saveCache(cwd, version, cache);
-      return had ? `Removed ${rel} from the live index.` : `${rel} was not in the live cache.`;
+      const overlay = __require('./src/cache/overlay');
+      const key = overlay.relKey(cwd, path.resolve(cwd, rel));
+      if (!key) return `${rel} is outside the project.`;
+      let had = false;
+      try { had = __require('./src/retrieval/ranker').buildSigIndex(cwd).has(key); } catch (_) {}
+      // A tombstone, not a dropped entry: the file may live in the base index,
+      // which only a full run rewrites.
+      if (!overlay.update(cwd, (entries) => overlay.put(entries, key, { at: Date.now(), deleted: true }))) {
+        return `_notify_file_deleted failed: could not write the live overlay_`;
+      }
+      return had ? `Removed ${rel} from the live index.` : `${rel} was not in the live index.`;
     } catch (err) {
       return `_notify_file_deleted failed: ${err.message}_`;
     }
@@ -26808,7 +27349,8 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
     let ctxMtime = 0;
     try {
       for (const f of fs.readdirSync(path.join(cwd, '.context'))) {
-        if (f === CACHE_FILE) continue;
+        // live.json is watcher telemetry and *.tmp is a write in flight: neither changes the index.
+        if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp')) continue;
         const st = fs.statSync(path.join(cwd, '.context', f));
         if (st.mtimeMs > ctxMtime) ctxMtime = st.mtimeMs;
       }
@@ -27742,11 +28284,42 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     // merged as the BASE rather than on top because _mergeSigIndex only replaces
     // when the source has MORE signatures — a collapsed entry has the same count
     // as its full form, so merging the other way would keep the anchors.
+    let merged = index;
+    let baseMs = null;
     try {
-      const full = __require('./src/retrieval/sig-index-store').readFullIndex(cwd);
-      if (full.size > 0) return _mergeSigIndex(full, index);
+      const full = __require('./src/retrieval/sig-index-store').readFullIndexMeta(cwd);
+      if (full.index.size > 0) { merged = _mergeSigIndex(full.index, index); baseMs = full.baseMs; }
     } catch (_) { /* absent → budgeted view is still served */ }
 
+    return _applyLiveOverlay(cwd, merged, baseMs);
+  }
+
+  /**
+   * Put the live overlay (cache/overlay.js) over a merged index. Unlike the merge
+   * above it REPLACES: an entry newer than the base index is the file's current
+   * truth, whatever its signature count — which is what lets a rename, a removed
+   * symbol or a deleted file show up before the next full run.
+   *
+   * "Base" is when the index began, or — with no retrieval index — when the newest
+   * generated context file was written, so a freshly generated repo is never
+   * overlaid with entries its own generation already saw.
+   */
+  function _applyLiveOverlay(cwd, index, baseMs) {
+    try {
+      const overlay = __require('./src/cache/overlay');
+      const entries = overlay.load(cwd);
+      if (entries.size === 0) return index;
+      let since = baseMs;
+      if (!Number.isFinite(since)) {
+        const fs = require('fs');
+        const path = require('path');
+        since = 0;
+        for (const parts of ADAPTER_OUTPUT_PATHS) {
+          try { since = Math.max(since, fs.statSync(path.join(cwd, ...parts)).mtimeMs); } catch (_) {}
+        }
+      }
+      overlay.apply(index, entries, since);
+    } catch (_) { /* the overlay is an accelerator; the base index stands without it */ }
     return index;
   }
 
@@ -28188,6 +28761,10 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
       schema: SCHEMA,
       sigmapVersion: opts.version || null,
       generated: new Date().toISOString(),
+      // When the run began reading files (`generated` is when it finished). The
+      // live overlay (cache/overlay.js) is measured against THIS: an overlay entry
+      // older than it describes a change the run has already seen.
+      startedAt: Number.isFinite(opts.startedAt) ? opts.startedAt : null,
       files,
     }), 'utf8');
     fs.renameSync(tmp, out);
@@ -28206,18 +28783,69 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    * @returns {Map<string, string[]>}
    */
   function readFullIndex(cwd) {
+    return readFullIndexMeta(cwd).index;
+  }
+
+  /**
+   * The index together with the instant its run began, from a single parse.
+   *
+   * `baseMs` is `startedAt` when the index carries it, else the `generated`
+   * stamp of an index written before `startedAt` existed (a few seconds late, so
+   * an overlay entry made during that run is conservatively treated as superseded),
+   * else null.
+   *
+   * @param {string} cwd
+   * @returns {{ index: Map<string, string[]>, baseMs: number|null }}
+   */
+  function readFullIndexMeta(cwd) {
     const index = new Map();
+    let baseMs = null;
     try {
       const data = JSON.parse(fs.readFileSync(indexPath(cwd), 'utf8'));
-      if (!data || data.schema !== SCHEMA || !data.files) return index;
+      if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs };
       for (const [rel, sigs] of Object.entries(data.files)) {
         if (Array.isArray(sigs) && sigs.length > 0) index.set(rel, sigs);
       }
+      if (Number.isFinite(data.startedAt)) baseMs = data.startedAt;
+      else if (data.generated && Number.isFinite(Date.parse(data.generated))) baseMs = Date.parse(data.generated);
     } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
-    return index;
+    return { index, baseMs };
   }
 
-  module.exports = { writeFullIndex, readFullIndex, indexPath, SCHEMA, INDEX_FILE };
+  /**
+   * When the index's run began, without parsing the index.
+   *
+   * `writeFullIndex` emits `generated` and `startedAt` BEFORE `files`, so both sit
+   * in the first few hundred bytes. Callers that run on every command (the `ask`
+   * staleness check, `status`) read only that head instead of the whole artifact.
+   * An index that does not carry the stamp in its head falls back to a full parse.
+   *
+   * @param {string} cwd
+   * @returns {number|null}
+   */
+  function readIndexStamp(cwd) {
+    let fd = null;
+    try {
+      fd = fs.openSync(indexPath(cwd), 'r');
+      const buf = Buffer.alloc(512);
+      const n = fs.readSync(fd, buf, 0, buf.length, 0);
+      const head = buf.toString('utf8', 0, n);
+      // An index the reader would not accept (another schema) has no usable stamp.
+      const schema = /"schema":(\d+)/.exec(head);
+      if (schema && Number(schema[1]) !== SCHEMA) return null;
+      const started = /"startedAt":(\d+)/.exec(head);
+      if (started) return Number(started[1]);
+      const gen = /"generated":"([^"]+)"/.exec(head);
+      if (gen && Number.isFinite(Date.parse(gen[1]))) return Date.parse(gen[1]);
+    } catch (_) {
+      return null; // absent
+    } finally {
+      if (fd !== null) { try { fs.closeSync(fd); } catch (_) {} }
+    }
+    return readFullIndexMeta(cwd).baseMs;
+  }
+
+  module.exports = { writeFullIndex, readFullIndex, readFullIndexMeta, readIndexStamp, indexPath, SCHEMA, INDEX_FILE };
   
 };
 
@@ -33320,6 +33948,77 @@ __factories["./src/util/git"] = function(module, exports) {
   
 };
 
+// ── ./src/util/ignore ──
+__factories["./src/util/ignore"] = function(module, exports) {
+  
+  /**
+   * `.contextignore` / `.repomixignore` — the one definition (#926).
+   *
+   * A full `generate` filters its file list through these patterns. The live
+   * writers (the watcher, `freshen`, the MCP notify hooks) must apply the SAME
+   * filter, or an overlay entry resurrects a file the full run deliberately
+   * omitted and `ask` serves it.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  /**
+   * Patterns from `.contextignore` then `.repomixignore`, comments and blanks
+   * dropped. An unreadable file contributes nothing: ignore rules are advisory,
+   * and a long-running watcher must not die over a permissions flip.
+   *
+   * @param {string} cwd
+   * @returns {string[]}
+   */
+  function loadIgnorePatterns(cwd) {
+    const patterns = [];
+    for (const name of ['.contextignore', '.repomixignore']) {
+      const p = path.join(cwd, name);
+      let text;
+      try { text = fs.readFileSync(p, 'utf8'); } catch (_) { continue; }
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) patterns.push(trimmed);
+      }
+    }
+    return patterns;
+  }
+
+  /**
+   * @param {string} relPath - repo-relative, forward slashes
+   * @param {string[]} patterns
+   * @returns {boolean}
+   */
+  function matchesIgnore(relPath, patterns) {
+    for (const pat of patterns) {
+      const normalized = pat.replace(/\\/g, '/');
+      // Strip trailing slash (gitignore style — directory patterns)
+      const patternToUse = normalized.endsWith('/')
+        ? normalized.slice(0, -1)
+        : normalized;
+      // Escape regex special chars but NOT brackets (keep them for character classes)
+      const regexStr = patternToUse
+        .replace(/[.+^${}()|\\]/g, '\\$&')
+        .replace(/\*\*/g, '___DOUBLE___')
+        .replace(/\*/g, '[^/]*')
+        .replace(/___DOUBLE___/g, '.*');
+      try {
+        const regex = new RegExp(`(^|/)${regexStr}($|/)`);
+        if (regex.test(relPath)) return true;
+      } catch (_) {
+        // Malformed bracket syntax or invalid regex — skip this pattern
+      }
+    }
+    return false;
+  }
+
+  module.exports = { loadIgnorePatterns, matchesIgnore };
+  
+};
+
 // ── ./src/util/managed-section ──
 __factories["./src/util/managed-section"] = function(module, exports) {
   
@@ -36471,42 +37170,14 @@ function isDockerfile(filename) {
 // ---------------------------------------------------------------------------
 // .contextignore parser (gitignore-style subset)
 // ---------------------------------------------------------------------------
+// One definition (src/util/ignore.js), shared with the watcher, freshen and the
+// notify hooks: they must apply the filter a full run applies.
 function loadIgnorePatterns(cwd) {
-  const patterns = [];
-  for (const name of ['.contextignore', '.repomixignore']) {
-    const p = path.join(cwd, name);
-    if (fs.existsSync(p)) {
-      const lines = fs.readFileSync(p, 'utf8').split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#')) patterns.push(trimmed);
-      }
-    }
-  }
-  return patterns;
+  return requireSourceOrBundled('./src/util/ignore').loadIgnorePatterns(cwd);
 }
 
 function matchesIgnore(relPath, patterns) {
-  for (const pat of patterns) {
-    const normalized = pat.replace(/\\/g, '/');
-    // Strip trailing slash (gitignore style — directory patterns)
-    const patternToUse = normalized.endsWith('/')
-      ? normalized.slice(0, -1)
-      : normalized;
-    // Escape regex special chars but NOT brackets (keep them for character classes)
-    const regexStr = patternToUse
-      .replace(/[.+^${}()|\\]/g, '\\$&')
-      .replace(/\*\*/g, '___DOUBLE___')
-      .replace(/\*/g, '[^/]*')
-      .replace(/___DOUBLE___/g, '.*');
-    try {
-      const regex = new RegExp(`(^|/)${regexStr}($|/)`);
-      if (regex.test(relPath)) return true;
-    } catch (_) {
-      // Malformed bracket syntax or invalid regex — skip this pattern
-    }
-  }
-  return false;
+  return requireSourceOrBundled('./src/util/ignore').matchesIgnore(relPath, patterns);
 }
 
 // ---------------------------------------------------------------------------
@@ -37918,20 +38589,277 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
 // ---------------------------------------------------------------------------
 // Watch mode
 // ---------------------------------------------------------------------------
+
+/**
+ * Files SigMap itself writes, repo-relative: every adapter's output, the
+ * single-file formats, a custom output, and the strategy split files. A watcher
+ * that reacted to these would be woken by its own regeneration — on a repo whose
+ * srcDir is the root, that is a loop (observed: one edit, eight regenerations in
+ * ten seconds, before #926).
+ */
+function generatedOutputPaths(cwd, config) {
+  const out = new Set(['llm.txt', 'llm-full.txt', 'llms.txt', '.sigmap-cache.json', '.github/copilot-instructions.cache.json']);
+  const add = (abs) => {
+    const rel = path.relative(cwd, abs).replace(/\\/g, '/');
+    if (rel && !rel.startsWith('..')) out.add(rel);
+  };
+  try {
+    const adapters = requireSourceOrBundled('./packages/adapters/index');
+    for (const name of adapters.listAdapters()) {
+      try { add(adapters.getAdapter(name).outputPath(cwd)); } catch (_) { /* no file path */ }
+    }
+  } catch (_) { /* best-effort */ }
+  if (config.customOutput) add(path.resolve(cwd, config.customOutput));
+  return out;
+}
+
+/**
+ * How the watcher should treat a changed path:
+ *   'file'    a full run would index it — patch it
+ *   'outside' it sits under a srcDir that lies outside the project root; those
+ *             files never reach the retrieval index, so only a full run (which
+ *             rewrites the written context) is useful
+ *   null      a full run would not index it — ignore the event
+ *
+ * It mirrors walkDir + buildFileList + runGenerate's ignore filter (no excluded
+ * name on the way down, within the depth cap, not matched by .contextignore)
+ * and additionally ignores what SigMap wrote itself. It looks at the PATH only,
+ * so a file that was just deleted is still recognised as one the index may hold.
+ *
+ * @param {{ ignorePatterns: string[], outputs: Set<string> }} ctx
+ * @returns {'file'|'outside'|null}
+ */
+function watchKind(cwd, config, abs, ctx) {
+  const rel = path.relative(cwd, abs).replace(/\\/g, '/');
+  if (!rel) return null;
+  if (rel === '.context' || rel.startsWith('.context/')) return null;
+  if (ctx.outputs.has(rel) || /^\.github\/context-[\w.-]+\.md$/.test(rel)) return null;
+  if (matchesIgnore(rel, ctx.ignorePatterns)) return null;
+  for (const srcDir of config.srcDirs) {
+    const root = path.relative(cwd, path.join(cwd, srcDir)).replace(/\\/g, '/');
+    const within = root === '' ? rel : (rel.startsWith(root + '/') ? rel.slice(root.length + 1) : null);
+    if (within === null) continue;
+    const parts = within.split('/');
+    if (parts.some((part) => config.exclude.includes(part))) continue;
+    if (parts.length - 1 > config.maxDepth) continue;
+    return rel.startsWith('..') ? 'outside' : 'file';
+  }
+  return null;
+}
+
+/**
+ * Re-index only `absFiles` into the live overlay: the single-file path the
+ * watcher takes instead of a full run (#926). Each file goes through the SAME
+ * stages a full run applies (extraction, secret redaction, coverage annotation,
+ * module-doc enrichment), so a patched entry equals the regenerated one. A file
+ * that is gone, or that now yields no signatures, is recorded as removed — a
+ * full run would not list it either.
+ *
+ * A DIRECTORY event (a directory created, moved or removed) cannot be patched
+ * file by file — the platform reports the directory, not its contents — so it
+ * is reported back as `full` and the caller regenerates.
+ *
+ * @returns {{ files: number, removed: number, full: boolean }}
+ */
+function patchLiveFiles(cwd, config, absFiles, ctx) {
+  const overlay = requireSourceOrBundled('./src/cache/overlay');
+  const updates = [];
+  let removed = 0;
+  let full = false;
+  for (const abs of absFiles) {
+    if (watchKind(cwd, config, abs, ctx) !== 'file') continue;
+    const key = overlay.relKey(cwd, abs);
+    if (!key) continue;
+    const at = Date.now(); // before the read: an edit during it stays uncovered
+    let content = null;
+    try {
+      // lstat, not stat: a full run lists regular files only (walkDir's
+      // Dirent.isFile() is false for a symlink), so a symlink is not indexed here either.
+      const st = fs.lstatSync(abs);
+      if (st.isDirectory()) { full = true; continue; }
+      if (st.isFile()) content = fs.readFileSync(abs, 'utf8');
+    } catch (_) {
+      // Gone. If the index holds files UNDER this path it was a directory that
+      // was removed or moved away; the platform will not name the files.
+      const under = key + '/';
+      for (const k of ctx.known()) if (k.startsWith(under)) { full = true; break; }
+    }
+    let sigs = content === null ? [] : detectAndExtract(abs, content, config.maxSigsPerFile, config.exactness, cwd);
+    if (sigs.length === 0) {
+      // A removal only means something for a path the index holds. An editor's
+      // swap or atomic-save temp file comes and goes without ever being indexed,
+      // and must not leave an entry behind.
+      if (ctx.known().has(key)) { updates.push([key, { at, deleted: true }]); ctx.known().delete(key); removed++; }
+      continue;
+    }
+    sigs = finishFileSigs(sigs, abs, cwd, config, ctx.testIndex());
+    updates.push([key, { at, sigs: indexSigsFor(abs, content, sigs, config) }]);
+    ctx.known().add(key);
+  }
+  if (updates.length > 0) {
+    // A patch that did not land is not a patch: let the caller regenerate.
+    const wrote = overlay.update(cwd, (entries) => { for (const [k, e] of updates) overlay.put(entries, k, e); });
+    if (!wrote) throw new Error('could not write .context/overlay.json');
+  }
+  return { files: updates.length, removed, full };
+}
+
 function watchMode(cwd, config) {
   console.warn('[sigmap] watching for changes (Ctrl+C to stop)…');
+  const overlay = requireSourceOrBundled('./src/cache/overlay');
+  const incremental = config.watchIncremental !== false;
+  const debounceMs = config.watchDebounce || 300;
+  const settleMs = Number.isFinite(config.watchSettleMs) && config.watchSettleMs >= 0 ? config.watchSettleMs : 5000;
+  // A burst this large (a branch switch, a formatter over the tree) is cheaper
+  // as one full run than as hundreds of single-file patches.
+  const BURST = 200;
+
+  const filterCtx = { ignorePatterns: loadIgnorePatterns(cwd), outputs: generatedOutputPaths(cwd, config) };
+  // Paths the index (base + overlay) holds — what a removal can refer to.
+  let known;
+  const getKnown = () => {
+    if (known) return known;
+    known = new Set();
+    try {
+      for (const k of requireSourceOrBundled('./src/retrieval/sig-index-store').readFullIndex(cwd).keys()) known.add(k);
+      for (const [k, e] of overlay.load(cwd)) { if (e.deleted) known.delete(k); else known.add(k); }
+    } catch (_) { /* an unreadable index leaves removals unrecorded until the next full run */ }
+    return known;
+  };
+  let testIndex;
+  const getTestIndex = () => {
+    if (testIndex !== undefined) return testIndex;
+    testIndex = null;
+    if (config.testCoverage) {
+      try {
+        testIndex = requireSourceOrBundled('./src/extractors/coverage').buildTestIndex(cwd, config.testDirs);
+      } catch (_) { /* annotation is best-effort, as in a full run */ }
+    }
+    return testIndex;
+  };
+
+  const stats = { patches: 0, regens: 0 };
+  let pending = new Set();
+  let firstAt = 0;
+  let wantFull = false;
   let debounce = null;
+  let settle = null;
+
+  const regenerate = (since) => {
+    // A full run supersedes whatever the quiet-window regeneration was waiting to do.
+    if (settle) { clearTimeout(settle); settle = null; }
+    const t0 = Date.now();
+    try {
+      runGenerate(cwd, config, false);
+    } catch (err) {
+      // A long-running watcher outlives one bad run; the next change tries again.
+      console.warn(`[sigmap] regeneration failed (${err.message}) — still watching`);
+      return;
+    }
+    const done = Date.now();
+    testIndex = undefined; // the tree it described has just been re-read
+    known = undefined;
+    stats.regens++;
+    const patch = { lastRegenAt: new Date(done).toISOString(), lastRegenMs: done - t0, regens: stats.regens };
+    if (since) { patch.lastLatencyMs = done - since; patch.lastLatencyPath = 'regen'; }
+    overlay.writeLive(cwd, patch);
+  };
+
+  const scheduleSettle = () => {
+    if (settle) clearTimeout(settle);
+    settle = setTimeout(() => {
+      settle = null;
+      console.warn('[sigmap] quiet — regenerating the context files…');
+      regenerate(0);
+    }, settleMs);
+  };
+
+  const flush = () => {
+    debounce = null;
+    const batch = [...pending];
+    pending = new Set();
+    const since = firstAt || Date.now();
+    firstAt = 0;
+    // Both are re-read per batch: a .contextignore edit applies from the next
+    // change, and coverage marks follow the tests that are on disk now.
+    try { filterCtx.ignorePatterns = loadIgnorePatterns(cwd); } catch (_) { /* keep the previous patterns */ }
+    testIndex = undefined;
+
+    if (!incremental || wantFull || batch.length > BURST) {
+      wantFull = false;
+      console.warn('[sigmap] change detected, regenerating…');
+      regenerate(since);
+      return;
+    }
+    if (batch.length === 0) return;
+    try {
+      const t0 = Date.now();
+      const r = patchLiveFiles(cwd, config, batch, Object.assign({ known: getKnown, testIndex: getTestIndex }, filterCtx));
+      if (r.full) {
+        console.warn('[sigmap] a directory changed, regenerating…');
+        regenerate(since);
+        return;
+      }
+      const done = Date.now();
+      // Nothing the index would hold changed. A quiet-window regeneration that
+      // an earlier patch armed stays armed — this event is not a reason to cancel it.
+      if (r.files === 0) return;
+      stats.patches++;
+      overlay.writeLive(cwd, {
+        lastPatchAt: new Date(done).toISOString(), lastPatchFiles: r.files, lastPatchMs: done - t0,
+        lastLatencyMs: done - since, lastLatencyPath: 'patch', patches: stats.patches,
+      });
+      console.warn(`[sigmap] patched ${r.files} file(s) in ${done - t0} ms (save → index ${done - since} ms)`);
+      scheduleSettle();
+    } catch (err) {
+      console.warn(`[sigmap] live patch failed (${err.message}) — regenerating…`);
+      regenerate(since);
+    }
+  };
+
   for (const srcDir of config.srcDirs) {
     const abs = path.join(cwd, srcDir);
     if (!fs.existsSync(abs)) continue;
-    fs.watch(abs, { recursive: true }, () => {
+    fs.watch(abs, { recursive: true }, (_event, filename) => {
+      if (!filename) {
+        if (incremental) wantFull = true; // the platform did not say which file
+      } else if (String(filename) === path.basename(abs) && !fs.existsSync(path.join(abs, String(filename)))) {
+        // The platform reports the watched root ITSELF (removed, moved away, or
+        // replaced) under its own name. Nothing under it can be patched file by
+        // file, and the root is not a path inside the root.
+        if (incremental) wantFull = true;
+      } else {
+        const changed = path.join(abs, String(filename));
+        // Unrelated events (excluded dirs, ignored paths, and above all our own
+        // output written under a root srcDir) must not wake the pipeline.
+        const kind = watchKind(cwd, config, changed, filterCtx);
+        if (!kind) return;
+        if (incremental) {
+          if (kind === 'outside') wantFull = true; else pending.add(changed);
+        }
+      }
+      if (!firstAt) firstAt = Date.now();
       if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        console.warn('[sigmap] change detected, regenerating…');
-        runGenerate(cwd, config, false);
-      }, config.watchDebounce || 300);
+      debounce = setTimeout(flush, debounceMs);
     });
   }
+
+  // A pid alone cannot say whether the watcher is alive: after a crash or a reboot
+  // the number is reused by an unrelated process. A heartbeat can.
+  // (SIGMAP_WATCH_HEARTBEAT_MS exists so a test can observe it in under 20 seconds.)
+  const heartbeatMs = Math.max(200, Number(process.env.SIGMAP_WATCH_HEARTBEAT_MS) || 20000);
+  const beat = setInterval(() => overlay.writeLive(cwd, { heartbeatAt: new Date().toISOString() }), heartbeatMs);
+  beat.unref();
+
+  // Written AFTER the watchers exist, so the file's presence means "watching" —
+  // and a fresh watcher starts from nothing rather than a dead one's numbers.
+  overlay.writeLive(cwd, {
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+    incremental, settleMs, debounceMs,
+    heartbeatAt: new Date().toISOString(),
+    patches: 0, regens: 0,
+  }, { replace: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -38366,16 +39294,7 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
 
     inputTokenTotal += estimateTokens(content);
 
-    if (config.secretScan) {
-      const { scan } = requireSourceOrBundled('./src/security/scanner');
-      const result = scan(sigs, filePath);
-      if (result.redacted) {
-        console.warn(`[sigmap] secrets redacted in ${path.relative(cwd, filePath)}`);
-      }
-      sigs = result.safe;
-    }
-
-    sigs = annotateCoverage(sigs, testIndex, !!config.testCoverage);
+    sigs = finishFileSigs(sigs, filePath, cwd, config, testIndex);
 
     fileEntries.push({ filePath, sigs, deps: extractFileDeps(filePath, content, config), content, mtime: nextRecentMtime() });
   }
@@ -38440,6 +39359,35 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
     console.log(`  full tokens     : ~${fullResult.finalTokens}`);
     console.log(`  savings         : ~${fullResult.finalTokens - finalTokens} tokens`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Per-file stages shared by the full run and the watcher's per-file patch (#926)
+// ---------------------------------------------------------------------------
+
+/**
+ * What one file contributes to the generated context once it has been
+ * extracted: secret redaction, then test-coverage annotation.
+ */
+function finishFileSigs(sigs, filePath, cwd, config, testIndex) {
+  const { redactSecrets } = requireSourceOrBundled('./src/cache/entry');
+  const result = redactSecrets(sigs, filePath, config);
+  if (result.redacted) {
+    console.warn(`[sigmap] secrets redacted in ${path.relative(cwd, filePath)}`);
+  }
+  return annotateCoverage(result.sigs, testIndex, !!config.testCoverage);
+}
+
+/**
+ * The same file as the retrieval index stores it: a leading module-doc line and,
+ * with `terse`, the compact encoding (src/cache/entry.js).
+ *
+ * ONE definition for the full run, the watcher's patch, freshen and the notify
+ * hooks: a patched entry and a regenerated one cannot disagree about a file,
+ * which is what lets the live overlay and a full run converge on the same index.
+ */
+function indexSigsFor(filePath, content, sigs, config) {
+  return requireSourceOrBundled('./src/cache/entry').indexSigsFor(filePath, content, sigs, config);
 }
 
 // ---------------------------------------------------------------------------
@@ -38509,16 +39457,7 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     // Baseline = estimated tokens of original source content for intuitive reduction stats.
     inputTokenTotal += estimateTokens(content);
 
-    if (config.secretScan) {
-      const { scan } = requireSourceOrBundled('./src/security/scanner');
-      const result = scan(sigs, filePath);
-      if (result.redacted) {
-        console.warn(`[sigmap] secrets redacted in ${path.relative(cwd, filePath)}`);
-      }
-      sigs = result.safe;
-    }
-
-    sigs = annotateCoverage(sigs, testIndex, !!config.testCoverage);
+    sigs = finishFileSigs(sigs, filePath, cwd, config, testIndex);
 
     let mtime = 0;
     try {
@@ -38582,30 +39521,13 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       // shares no token with "what fraction of the repo made it into the output",
       // but that file's header says exactly that. Added to the retrieval index
       // ONLY: the prompt artifact is token-budgeted, the index is not.
-      let __entries = fileEntries;
-      try {
-        // TRIED AND REJECTED: also indexing every per-symbol doc sentence
-        // untruncated (src/retrieval/doc-text.js). 39% of extractor doc hints are
-        // cut at 60 chars, so recovering them looked like free vocabulary. It is
-        // not: train hit@5 fell 75.6% -> 73.3% at every docWeight from 0.2 to 1.0,
-        // and the mined corpus never moved off 62.5%. The MODULE HEADER is the
-        // high-signal prose — it states the file's purpose. Per-symbol sentences
-        // describe internal helpers, so they broaden what each file matches
-        // without making any file a better answer.
-        const { moduleDocSig } = requireSourceOrBundled('./src/retrieval/module-doc');
-        __entries = __entries.map((e) => {
-          let src = e.content;
-          if (typeof src !== 'string') { try { src = fs.readFileSync(e.filePath, 'utf8'); } catch (_) { src = ''; } }
-          const doc = moduleDocSig(src, e.filePath);
-          return doc ? Object.assign({}, e, { sigs: [doc, ...e.sigs] }) : e;
-        });
-      } catch (_) { /* enrichment is best-effort */ }
-      if (config && config.terse) {
-        try {
-          const { encodeTerseSigs } = requireSourceOrBundled('./src/format/terse');
-          __entries = fileEntries.map((e) => Object.assign({}, e, { sigs: encodeTerseSigs(e.sigs) }));
-        } catch (_) { /* terse unavailable → index full signatures */ }
-      }
+      // Per-file enrichment lives in indexSigsFor (shared with the watcher's
+      // per-file patch, so a patch and this run cannot disagree about a file).
+      let __entries = fileEntries.map((e) => {
+        let src = e.content;
+        if (typeof src !== 'string') { try { src = fs.readFileSync(e.filePath, 'utf8'); } catch (_) { src = ''; } }
+        return Object.assign({}, e, { sigs: indexSigsFor(e.filePath, src, e.sigs, config) });
+      });
       // Test files: indexed, never rendered into the prompt. They were the one
       // whole category `sigmap ask` could not reach at all — srcDirs excludes
       // them, so "where are the tests for X" had no answer at any rank. The
@@ -38619,8 +39541,11 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       try {
         __entries = __entries.concat(collectPipelineEntries(cwd, config, __entries));
       } catch (_) { /* best-effort */ }
-      const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION });
+      const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION, startedAt: __genT0 });
       __indexWritten = __w.files > 0;
+      // The index now reflects every change up to the instant this run began, so any
+      // overlay entry older than that is superseded and is dropped.
+      try { requireSourceOrBundled('./src/cache/overlay').prune(cwd, __genT0); } catch (_) { /* best-effort */ }
       if (process.argv.includes('--verbose')) {
         console.warn(`[sigmap] retrieval index: ${__w.files} file(s) → ${path.relative(cwd, __w.path)}`);
       }
@@ -39870,7 +40795,7 @@ function main() {
       const __ctxFile = __cs.resolveContextFile(cwd);
       if (__ctxFile) {
         __staleWarn = __cs.stalenessWarning(
-          __cs.contextStaleness(__ctxFile, cwd, config),
+          __cs.contextStaleness(__ctxFile, cwd, config, { honorOverlay: true }),
           { tail: __cs.STALE_TAILS.ask }
         );
       }
@@ -41744,7 +42669,7 @@ function main() {
   if (args[0] === 'status') {
     const jsonOut = args.includes('--json');
     const gitOpts = { cwd };
-    const st = { branch: null, dirty: 0, lastIndex: null, indexSource: null, indexVersion: null, indexFiles: null, changedSinceIndex: null, notes: 0, lastNote: null };
+    const st = { branch: null, dirty: 0, lastIndex: null, indexSource: null, indexVersion: null, indexFiles: null, changedSinceIndex: null, live: null, notes: 0, lastNote: null };
 
     st.branch = __tryGit(['rev-parse', '--abbrev-ref', 'HEAD'], gitOpts) || null;
     // Fallback for an unborn branch (fresh repo, no commits yet).
@@ -41771,10 +42696,29 @@ function main() {
 
     // Index freshness: count source files modified after the last index run,
     // over the same population `doctor` walks so the two cannot disagree.
+    // The live overlay (#926): files it already describes are reflected in
+    // queries, so they are not "changed since" the index — they are overlay depth.
+    let __live = null;
+    try { __live = _idxState.liveIndexState(cwd); } catch (_) {}
     if (st.lastIndex) {
       try {
-        st.changedSinceIndex = _idxState.changedSince(cwd, config, Date.parse(st.lastIndex));
+        st.changedSinceIndex = _idxState.changedSince(cwd, config, Date.parse(st.lastIndex), __live ? __live.overlay : null);
       } catch (_) {}
+    }
+    if (__live) {
+      st.live = {
+        overlayDepth: __live.overlayDepth,
+        watcher: __live.watcher,
+        lastLatencyMs: __live.lastLatencyMs,
+        lastLatencyPath: __live.lastLatencyPath,
+        lastPatchAt: __live.lastPatchAt,
+        lastRegenAt: __live.lastRegenAt,
+        lastRegenMs: __live.lastRegenMs,
+        patches: __live.patches,
+        regens: __live.regens,
+        settleMs: __live.settleMs,
+        incremental: __live.incremental,
+      };
     }
 
     try {
@@ -41810,6 +42754,15 @@ function main() {
       console.log(`  Last index:    ${fresh}`);
     } else {
       console.log('  Last index:    never — run: sigmap');
+    }
+    if (st.live && (st.live.overlayDepth > 0 || st.live.watcher)) {
+      const l = st.live;
+      const bits = [];
+      if (l.watcher) bits.push(l.watcher.running ? `watcher running (pid ${l.watcher.pid})` : 'last watcher is not running');
+      bits.push(`${l.overlayDepth} file${l.overlayDepth === 1 ? '' : 's'} in the live overlay`);
+      bits.push(l.lastLatencyMs != null ? `last save → index ${l.lastLatencyMs} ms (${l.lastLatencyPath || 'unknown path'})` : 'save → index latency unknown');
+      if (l.watcher && l.watcher.running && l.incremental && l.settleMs != null) bits.push(`written files refresh after ${l.settleMs} ms quiet`);
+      console.log(`  Live index:    ${bits.join(' · ')}`);
     }
     if (st.notes > 0) {
       console.log(`  Notes:         ${st.notes} (latest: ${st.lastNote.text.slice(0, 60)}${st.lastNote.text.length > 60 ? '…' : ''})`);

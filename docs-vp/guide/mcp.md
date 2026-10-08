@@ -215,7 +215,7 @@ Expected output:
 
 The MCP server reads whatever context file is on disk. Keep that file up to date and every tool call reflects your latest code.
 
-**Option 1 — file watcher:** Run `sigmap --watch` in a terminal while you code. Every file save triggers an incremental regeneration. Best for active coding sessions.
+**Option 1 — file watcher:** Run `sigmap --watch` in a terminal while you code. Every file save is patched into the live index within a fraction of a second, so the tools that rank through the index (`search_signatures`, `query_context`, …) see it at once. `read_context` serves the written context file, which is regenerated after a short quiet window ([how it works](/guide/cli#watch)), so it lags by up to `watchSettleMs` and says so in its stale-index banner. Best for active coding sessions.
 
 **Option 2 — git hook (recommended):** Run `sigmap --setup` once. It installs a `.git/hooks/post-commit` hook that regenerates context automatically on every commit. More reliable than the watcher across sleep/wake cycles.
 

@@ -286,9 +286,12 @@ function indexFreshness(cwd) {
  * @param {string} cwd
  * @param {{srcDirs?: string[], exclude?: string[]}} config
  * @param {number} sinceMs
+ * @param {Map<string,{at:number}>} [covered] - live overlay entries; a file whose
+ *        entry was stamped at or after its last write is already reflected in
+ *        queries, so it does not count as changed (#926)
  * @returns {number}
  */
-function changedSince(cwd, config, sinceMs) {
+function changedSince(cwd, config, sinceMs, covered) {
   const { CODE_EXTS } = require('./coverage-score');
   const exclude = new Set(EXCLUDE_DIRS);
   if (config && Array.isArray(config.exclude)) for (const x of config.exclude) exclude.add(String(x));
@@ -307,7 +310,10 @@ function changedSince(cwd, config, sinceMs) {
       if (e.isDirectory()) walk(full, depth + 1);
       else if (e.isFile() && CODE_EXTS.has(path.extname(e.name).toLowerCase())) {
         seen++;
-        try { if (fs.statSync(full).mtimeMs > sinceMs) changed++; } catch (_) {}
+        try {
+          const m = fs.statSync(full).mtimeMs;
+          if (m > sinceMs && !isCovered(covered, cwd, full, m)) changed++;
+        } catch (_) {}
       }
     }
   };
@@ -316,6 +322,75 @@ function changedSince(cwd, config, sinceMs) {
     if (fs.existsSync(abs)) walk(abs, 0);
   }
   return changed;
+}
+
+/**
+ * Whether a live overlay entry already describes `fullPath` as of `mtimeMs`.
+ * An entry is stamped before the file is read, so an edit that lands during the
+ * read leaves the file's mtime ahead of the stamp and it stays uncovered.
+ */
+function isCovered(covered, cwd, fullPath, mtimeMs) {
+  if (!covered || covered.size === 0) return false;
+  const rel = path.relative(cwd, fullPath).replace(/\\/g, '/');
+  const e = covered.get(rel);
+  // `at` comes from Date.now() (whole ms) and an mtime carries a fraction, so a
+  // write in the same millisecond as the stamp must still count as covered.
+  // An additive entry adds one symbol to a file it knows nothing else about, so
+  // it says nothing about the rest of the file and cannot vouch for it.
+  return !!e && !e.additive && e.at >= Math.floor(mtimeMs);
+}
+
+/**
+ * The live half of index freshness: what the overlay holds beyond the last full
+ * run, and what the watcher last measured. Everything derivable is derived here
+ * at read time; only the watcher's own measurements come from `.context/live.json`.
+ * A figure nobody measured is `null` — never `0`.
+ *
+ * @param {string} cwd
+ * @returns {{ overlayDepth: number, overlay: Map, watcher: {running:boolean, pid:number|null}|null,
+ *             lastLatencyMs: number|null, lastLatencyPath: string|null, lastPatchAt: string|null,
+ *             lastRegenAt: string|null, lastRegenMs: number|null, patches: number|null,
+ *             regens: number|null, settleMs: number|null, incremental: boolean|null,
+ *             measured: boolean }}
+ */
+function liveIndexState(cwd) {
+  const overlay = require('../cache/overlay');
+  const { readIndexStamp } = require('../retrieval/sig-index-store');
+  const all = overlay.load(cwd);
+  let baseMs = readIndexStamp(cwd);
+  if (!Number.isFinite(baseMs)) baseMs = _contextMtime(cwd);
+  const pending = overlay.pending(all, baseMs);
+
+  const t = overlay.readLive(cwd);
+  let watcher = null;
+  if (t && Number.isFinite(t.pid)) {
+    let running = false;
+    try { process.kill(t.pid, 0); running = true; } catch (err) { running = err.code === 'EPERM'; }
+    // A live pid is necessary, not sufficient: a crashed watcher's number can be
+    // reused. A watcher that reports a heartbeat must have beaten recently (it
+    // beats every 20 s); one that predates the heartbeat is judged by pid alone.
+    if (running && t.heartbeatAt) {
+      const age = Date.now() - Date.parse(t.heartbeatAt);
+      if (Number.isFinite(age) && age > 90000) running = false;
+    }
+    watcher = { running, pid: running ? t.pid : null };
+  }
+  const num = (v) => (Number.isFinite(v) ? v : null);
+  return {
+    overlayDepth: pending.size,
+    overlay: all,
+    watcher,
+    lastLatencyMs: t ? num(t.lastLatencyMs) : null,
+    lastLatencyPath: t && typeof t.lastLatencyPath === 'string' ? t.lastLatencyPath : null,
+    lastPatchAt: t && t.lastPatchAt ? t.lastPatchAt : null,
+    lastRegenAt: t && t.lastRegenAt ? t.lastRegenAt : null,
+    lastRegenMs: t ? num(t.lastRegenMs) : null,
+    patches: t ? num(t.patches) : null,
+    regens: t ? num(t.regens) : null,
+    settleMs: t ? num(t.settleMs) : null,
+    incremental: t && typeof t.incremental === 'boolean' ? t.incremental : null,
+    measured: !!t && Number.isFinite(t.lastLatencyMs),
+  };
 }
 
 module.exports = {
@@ -330,4 +405,6 @@ module.exports = {
   staleRemedies,
   indexFreshness,
   changedSince,
+  isCovered,
+  liveIndexState,
 };

@@ -30,14 +30,14 @@ function _readContextFiles(cwd) {
  *
  * @returns {string} the banner plus a blank line, or '' when fresh/unknowable
  */
-function _stalenessBanner(cwd) {
+function _stalenessBanner(cwd, opts) {
   try {
     const { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS } = require('../judge/context-source');
     const contextFile = resolveContextFile(cwd);
     if (!contextFile) return '';
     let config = {};
     try { config = require('../config/loader').loadConfig(cwd); } catch (_) {}
-    const warning = stalenessWarning(contextStaleness(contextFile, cwd, config), { tail: STALE_TAILS.mcp });
+    const warning = stalenessWarning(contextStaleness(contextFile, cwd, config, opts), { tail: STALE_TAILS.mcp });
     return warning ? `> ⚠ ${warning}\n\n` : '';
   } catch (_) { return ''; }
 }
@@ -120,7 +120,7 @@ function searchSignatures(args, cwd) {
     }
 
     if (result.length === 0) return `No signatures found matching: ${args.query}`;
-    return _stalenessBanner(cwd) + result.join('\n');
+    return _stalenessBanner(cwd, { honorOverlay: true }) + result.join('\n');
   } catch (err) {
     return `_search_signatures failed: ${err.message}_`;
   }
@@ -479,7 +479,7 @@ function queryContext(args, cwd) {
       }
     } catch (_) {}
     const results = rank(args.query, index, { topK, cwd, graph, callGraph, centrality, expansions, bodyWords });
-    return _stalenessBanner(cwd) + formatRankTable(results, args.query);
+    return _stalenessBanner(cwd, { honorOverlay: true }) + formatRankTable(results, args.query);
   } catch (err) {
     return `_query_context failed: ${err.message}_`;
   }
@@ -724,76 +724,105 @@ function getCalleeSignatures(args, cwd) {
 }
 
 // ── Layer 1: live-index write hooks ────────────────────────────────────────
-// Keep the sig-cache fresh while an agent creates/modifies/deletes files, so
-// new code is discoverable in the same session. buildSigIndex already merges
-// the cache (_buildSigIndexFromCache), so updates are live on the next read.
-
-function _pkgVersion(cwd) {
-  try { return JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8')).version || '0.0.0'; }
-  catch (_) { return '0.0.0'; }
-}
-
+// Keep the live overlay (cache/overlay.js) current while an agent creates,
+// modifies or deletes files, so the change is visible in the same session.
+// buildSigIndex applies the overlay over the base index, and an overlay entry
+// REPLACES the file's base entry — so a rename, a removed symbol or a deletion
+// shows up too, not only an addition (#926).
 
 /** notify_file_created — extract a file's signatures and index it live. */
 function notifyFileCreated(args, cwd) {
   const rel = args && args.path;
   if (!rel) return 'Missing required argument: path';
   try {
-    const { extractFile } = require('../extractors/dispatch');
-    const { loadCache, saveCache } = require('../cache/sig-cache');
+    const overlay = require('../cache/overlay');
+    const { entrySigs } = require('../cache/entry');
+    const { loadIgnorePatterns, matchesIgnore } = require('../util/ignore');
     const abs = path.resolve(cwd, rel);
+    const key = overlay.relKey(cwd, abs);
+    if (!key) return `${rel} is outside the project.`;
+    // The filter a full run applies: an ignored file is not resurrected by a hook.
+    if (matchesIgnore(key, loadIgnorePatterns(cwd))) return `${rel} is excluded by .contextignore — not indexed.`;
+    const at = Date.now();
     let content = args.content;
     if (typeof content !== 'string') {
       try { content = fs.readFileSync(abs, 'utf8'); } catch (_) { content = ''; }
     }
-    const sigs = extractFile(abs, content);
-    const version = _pkgVersion(cwd);
-    const cache = loadCache(cwd, version);
-    if (sigs.length > 0) {
-      cache.set(abs, { mtime: Date.now(), sigs });
+    // The same stages a full run applies — a secret in the file is redacted here
+    // too, and the module-doc line is kept — so this entry cannot replace a
+    // redacted base entry with a leaky one.
+    const sigs = entrySigs(abs, content, cwd);
+    // An empty result is NOT a removal: this tier cannot tell a file with no
+    // signatures from one it cannot read or does not know, and a wrong removal is
+    // worse than a stale entry the next full run replaces. Use notify_file_deleted
+    // for a file that is gone.
+    if (sigs.length === 0) return `No signatures found in ${rel}; the index is unchanged.`;
+    if (!overlay.update(cwd, (entries) => overlay.put(entries, key, { at, sigs }))) {
+      return `_notify_file_created failed: could not write the live overlay_`;
     }
-    saveCache(cwd, version, cache);
     return `Indexed ${rel}: ${sigs.length} signature(s) now live.`;
   } catch (err) {
     return `_notify_file_created failed: ${err.message}_`;
   }
 }
 
-/** notify_symbol_added — append one signature to a file's live cache entry. */
+/** notify_symbol_added — add one signature to a file's live entry. */
 function notifySymbolAdded(args, cwd) {
   if (!args || !args.signature || !args.file) {
     return 'Missing required arguments: signature, file';
   }
   try {
-    const { loadCache, saveCache } = require('../cache/sig-cache');
+    const overlay = require('../cache/overlay');
+    const { entryConfig, redactSecrets } = require('../cache/entry');
+    const { loadIgnorePatterns, matchesIgnore } = require('../util/ignore');
     const abs = path.resolve(cwd, args.file);
-    const version = _pkgVersion(cwd);
-    const cache = loadCache(cwd, version);
-    const entry = cache.get(abs) || { mtime: Date.now(), sigs: [] };
+    const key = overlay.relKey(cwd, abs);
+    if (!key) return `${args.file} is outside the project.`;
+    if (matchesIgnore(key, loadIgnorePatterns(cwd))) return `${args.file} is excluded by .contextignore — not indexed.`;
     const line = Number.isFinite(Number(args.line)) ? `  :${args.line}` : '';
-    const sig = String(args.signature) + line;
-    if (!entry.sigs.includes(sig)) entry.sigs.push(sig);
-    entry.mtime = Date.now();
-    cache.set(abs, entry);
-    saveCache(cwd, version, cache);
-    return `Added signature to ${args.file} (${entry.sigs.length} total).`;
+    // A signature an agent hands over is scanned like any other.
+    const sig = redactSecrets([String(args.signature) + line], abs, entryConfig(cwd)).sigs[0];
+    let count = 1;
+    const wrote = overlay.update(cwd, (entries) => {
+      const cur = entries.get(key);
+      // Adding one symbol must never REPLACE the file's other symbols, so an
+      // entry that did not come from a whole-file extraction is additive.
+      const entry = cur && !cur.deleted ? cur : { at: Date.now(), sigs: [], additive: true };
+      if (!entry.sigs.includes(sig)) entry.sigs.push(sig);
+      // An additive entry's stamp only says when the symbol arrived. A whole-file
+      // entry keeps the time its file was READ: refreshing it here would claim
+      // coverage of edits that were never read (freshen would then skip them).
+      if (entry.additive) entry.at = Date.now();
+      entries.set(key, entry);
+      count = entry.sigs.length;
+    });
+    if (!wrote) return `_notify_symbol_added failed: could not write the live overlay_`;
+    try {
+      const total = require('../retrieval/ranker').buildSigIndex(cwd).get(key);
+      if (total) count = total.length;
+    } catch (_) { /* the live-added count stands */ }
+    return `Added signature to ${args.file} (${count} total).`;
   } catch (err) {
     return `_notify_symbol_added failed: ${err.message}_`;
   }
 }
 
-/** notify_file_deleted — drop a file's cache-overlay entry. */
+/** notify_file_deleted — drop a file from the live index. */
 function notifyFileDeleted(args, cwd) {
   const rel = args && args.path;
   if (!rel) return 'Missing required argument: path';
   try {
-    const { loadCache, saveCache } = require('../cache/sig-cache');
-    const abs = path.resolve(cwd, rel);
-    const version = _pkgVersion(cwd);
-    const cache = loadCache(cwd, version);
-    const had = cache.delete(abs);
-    saveCache(cwd, version, cache);
-    return had ? `Removed ${rel} from the live index.` : `${rel} was not in the live cache.`;
+    const overlay = require('../cache/overlay');
+    const key = overlay.relKey(cwd, path.resolve(cwd, rel));
+    if (!key) return `${rel} is outside the project.`;
+    let had = false;
+    try { had = require('../retrieval/ranker').buildSigIndex(cwd).has(key); } catch (_) {}
+    // A tombstone, not a dropped entry: the file may live in the base index,
+    // which only a full run rewrites.
+    if (!overlay.update(cwd, (entries) => overlay.put(entries, key, { at: Date.now(), deleted: true }))) {
+      return `_notify_file_deleted failed: could not write the live overlay_`;
+    }
+    return had ? `Removed ${rel} from the live index.` : `${rel} was not in the live index.`;
   } catch (err) {
     return `_notify_file_deleted failed: ${err.message}_`;
   }

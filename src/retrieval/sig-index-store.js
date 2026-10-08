@@ -63,6 +63,10 @@ function writeFullIndex(cwd, fileEntries, opts = {}) {
     schema: SCHEMA,
     sigmapVersion: opts.version || null,
     generated: new Date().toISOString(),
+    // When the run began reading files (`generated` is when it finished). The
+    // live overlay (cache/overlay.js) is measured against THIS: an overlay entry
+    // older than it describes a change the run has already seen.
+    startedAt: Number.isFinite(opts.startedAt) ? opts.startedAt : null,
     files,
   }), 'utf8');
   fs.renameSync(tmp, out);
@@ -81,15 +85,66 @@ function writeFullIndex(cwd, fileEntries, opts = {}) {
  * @returns {Map<string, string[]>}
  */
 function readFullIndex(cwd) {
+  return readFullIndexMeta(cwd).index;
+}
+
+/**
+ * The index together with the instant its run began, from a single parse.
+ *
+ * `baseMs` is `startedAt` when the index carries it, else the `generated`
+ * stamp of an index written before `startedAt` existed (a few seconds late, so
+ * an overlay entry made during that run is conservatively treated as superseded),
+ * else null.
+ *
+ * @param {string} cwd
+ * @returns {{ index: Map<string, string[]>, baseMs: number|null }}
+ */
+function readFullIndexMeta(cwd) {
   const index = new Map();
+  let baseMs = null;
   try {
     const data = JSON.parse(fs.readFileSync(indexPath(cwd), 'utf8'));
-    if (!data || data.schema !== SCHEMA || !data.files) return index;
+    if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs };
     for (const [rel, sigs] of Object.entries(data.files)) {
       if (Array.isArray(sigs) && sigs.length > 0) index.set(rel, sigs);
     }
+    if (Number.isFinite(data.startedAt)) baseMs = data.startedAt;
+    else if (data.generated && Number.isFinite(Date.parse(data.generated))) baseMs = Date.parse(data.generated);
   } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
-  return index;
+  return { index, baseMs };
 }
 
-module.exports = { writeFullIndex, readFullIndex, indexPath, SCHEMA, INDEX_FILE };
+/**
+ * When the index's run began, without parsing the index.
+ *
+ * `writeFullIndex` emits `generated` and `startedAt` BEFORE `files`, so both sit
+ * in the first few hundred bytes. Callers that run on every command (the `ask`
+ * staleness check, `status`) read only that head instead of the whole artifact.
+ * An index that does not carry the stamp in its head falls back to a full parse.
+ *
+ * @param {string} cwd
+ * @returns {number|null}
+ */
+function readIndexStamp(cwd) {
+  let fd = null;
+  try {
+    fd = fs.openSync(indexPath(cwd), 'r');
+    const buf = Buffer.alloc(512);
+    const n = fs.readSync(fd, buf, 0, buf.length, 0);
+    const head = buf.toString('utf8', 0, n);
+    // An index the reader would not accept (another schema) has no usable stamp.
+    const schema = /"schema":(\d+)/.exec(head);
+    if (schema && Number(schema[1]) !== SCHEMA) return null;
+    const started = /"startedAt":(\d+)/.exec(head);
+    if (started) return Number(started[1]);
+    const gen = /"generated":"([^"]+)"/.exec(head);
+    if (gen && Number.isFinite(Date.parse(gen[1]))) return Date.parse(gen[1]);
+  } catch (_) {
+    return null; // absent
+  } finally {
+    if (fd !== null) { try { fs.closeSync(fd); } catch (_) {} }
+  }
+  return readFullIndexMeta(cwd).baseMs;
+}
+
+module.exports = { writeFullIndex, readFullIndex, readFullIndexMeta, readIndexStamp, indexPath, SCHEMA, INDEX_FILE };
