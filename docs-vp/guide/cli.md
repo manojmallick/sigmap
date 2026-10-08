@@ -1,13 +1,13 @@
 ---
 title: CLI reference
-description: Complete SigMap CLI reference. All commands and flags with examples — ask, ask --with-source, evidence, deps, sbom, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
+description: Complete SigMap CLI reference. All commands and flags with examples — ask, ask --with-source, evidence, deps, sbom, budget, redact, tune, skills, squeeze, conventions, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, memory, lines, note, session, hooks, status, doctor, validate, roots, daemon, history, --package, --global, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more.
 head:
   - - meta
     - property: og:title
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 116 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 127 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 116 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 127 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -100,6 +100,16 @@ If you are new to the product, start with the workflow pages first:
 | `history` | Show usage log + benchmark trend sparklines (hit@5, token reduction) |
 | `lines <file> <start>-<end>` | Print an exact line range — the CLI twin of the `get_lines` MCP tool; `:<line> --context <n>` for an anchor window |
 | `note "<text>"` | Append a note to the cross-session decision log (`note` alone lists recent) |
+| `note "<text>" --tag <name>` | Tag a note; `todo` \| `open` \| `thread` \| `next` surface as open threads in the session summary |
+| `session [list]` | Captured agent sessions — billed tokens per request category, each labelled with its provenance; measured rows cover the main conversation only (`--json`, `--agent <name>`, `--limit <n>`) |
+| `session show <id>` | One session in full; an unambiguous id prefix works (`--json`) |
+| `session log --transcript <file> --id <session_id>` | Record a Claude Code transcript's usage, counted once per message (`--end`, `--reason <why>`) |
+| `session log --from-json <file\|->` | Record usage an agent reported itself — `{id, agent, model, usage: {in, out, cacheRead?, cacheWrite?}}`; an omitted cache category is stored as unknown, not 0 |
+| `session log --ci` | Append an `agent: "ci"` record for this pipeline run (usage unavailable) |
+| `session summary` | Deterministic warm-start summary of the last session, ≤400 tokens, no LLM (`--json`) |
+| `session compact` | Fold sessions older than `session.retention.days` into monthly rollups (`--json`) |
+| `hooks install claude` | Wire session capture into Claude Code — `SessionStart` + `SessionEnd`, in `.claude/settings.local.json` (`--stop` adds the per-turn hook, `--shared` writes the committed file) |
+| `hooks status` / `hooks remove claude` | Show which session hooks are wired (and whether the script they run still exists), or remove SigMap's hooks and nothing else |
 | `status` | Repo state — branch, dirty files, index freshness, notes |
 | `doctor` | Diagnose config, index, freshness, coverage, the model profile, MCP wiring, and the git post-commit hook — with a fix per issue (`--json`; exits 1 on hard failure) |
 | `wiki` | Deterministic architecture narrative → `.context/WIKI.md` — modules, hubs, entry points, conventions, health; no LLM (`--json`, `--out`) |

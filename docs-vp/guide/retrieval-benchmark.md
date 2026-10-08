@@ -1,6 +1,6 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.70.1. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 39.2% (2.29× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.71.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 39.2% (2.29× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.70.1 benchmark snapshot
-**Benchmark ID:** sigmap-v8.70-main &nbsp;·&nbsp; **Date:** 2026-10-07 (with R language)
+::: info Official v8.71.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.71-main &nbsp;·&nbsp; **Date:** 2026-10-08 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-07 (v8.70.1)**
+Latest saved run: **2026-10-08 (v8.71.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
