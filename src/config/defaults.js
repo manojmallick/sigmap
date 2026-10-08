@@ -119,8 +119,18 @@ const DEFAULTS = {
   // For hot-cold strategy: how many recent git commits count as "hot"
   hotCommits: 10,
 
-  // Debounce delay (ms) between file-system events and regeneration in watch mode
+  // Debounce delay (ms) between file-system events and the watcher acting on them
   watchDebounce: 300,
+
+  // Watch mode patches only the files that changed straight into the live overlay
+  // (queries see them at once) instead of regenerating everything per save.
+  // false restores the previous behaviour: one full regeneration per change burst.
+  watchIncremental: true,
+
+  // Quiet time (ms) after the last patch before ONE full regeneration refreshes
+  // the written context files (CLAUDE.md, copilot-instructions.md, ...). Queries
+  // never wait for it. Raise it to trade static-file freshness for CPU.
+  watchSettleMs: 5000,
 
   // Append model routing hints section to the context output
   // Routes files to fast/balanced/powerful model tiers based on complexity

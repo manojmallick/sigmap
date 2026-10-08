@@ -57,8 +57,9 @@ function resolveContextFile(cwd) {
  *
  * @returns {{ file: string, mtimeMs: number }|null}
  */
-function _newestSource(cwd, srcDirs, config) {
+function _newestSource(cwd, srcDirs, config, covered) {
   const { CODE_EXTS } = require('../analysis/coverage-score');
+  const { isCovered } = require('../analysis/index-state');
   const exclude = new Set(EXCLUDE_DIRS);
   if (config && Array.isArray(config.exclude)) for (const x of config.exclude) exclude.add(String(x));
 
@@ -76,6 +77,9 @@ function _newestSource(cwd, srcDirs, config) {
         seen++;
         try {
           const m = fs.statSync(full).mtimeMs;
+          // The live overlay already reflects this write, so queries are not
+          // ranked against stale ground on its account (#926).
+          if (isCovered(covered, cwd, full, m)) continue;
           if (!newest || m > newest.mtimeMs) newest = { file: full, mtimeMs: m };
         } catch (_) {}
       }
@@ -94,17 +98,27 @@ function _newestSource(cwd, srcDirs, config) {
  * @param {string} contextFile absolute path to the context file
  * @param {string} cwd
  * @param {object} [config] loaded sigmap config (reads `srcDirs`, `exclude`)
+ * @param {{honorOverlay?: boolean}} [opts] count files the live overlay describes as fresh
  * @returns {{ stale: boolean, ageHours: number, newest: string }|null} null when
  *   freshness cannot be established (unreadable context, no source files found)
  */
-function contextStaleness(contextFile, cwd, config) {
+function contextStaleness(contextFile, cwd, config, opts) {
   let ctxMtime;
   try { ctxMtime = fs.statSync(contextFile).mtimeMs; } catch (_) { return null; }
 
   const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length)
     ? config.srcDirs
     : ['src', 'lib', 'app'];
-  const newest = _newestSource(cwd, srcDirs, config);
+  // Whether a write the live overlay already describes counts as fresh depends on
+  // WHAT is being read. A reader that ranks through the index (ask, the MCP search
+  // tools) sees the overlay, so it is fresh for them. A reader of the WRITTEN file
+  // (judge, read_context) does not, and for them the file is stale until the next
+  // full run — so this is opt-in, never the default (#926).
+  let covered = null;
+  if (opts && opts.honorOverlay) {
+    try { covered = require('../cache/overlay').load(cwd); } catch (_) { /* no overlay → nothing is covered */ }
+  }
+  const newest = _newestSource(cwd, srcDirs, config, covered);
   if (!newest) return null;
 
   const gapMs = newest.mtimeMs - ctxMtime;

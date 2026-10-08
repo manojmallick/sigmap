@@ -1534,7 +1534,7 @@ It now resolves through three sources in order, and **says which one it used**:
 
 | Option | Description |
 |--------|-------------|
-| `--json` | Emit `{ branch, dirty, lastIndex, indexSource, indexVersion, indexFiles, changedSinceIndex, notes, lastNote }` |
+| `--json` | Emit `{ branch, dirty, lastIndex, indexSource, indexVersion, indexFiles, changedSinceIndex, live, notes, lastNote }`. `live` is `{ overlayDepth, watcher, lastLatencyMs, lastLatencyPath, lastPatchAt, lastRegenAt, lastRegenMs, patches, regens, settleMs, incremental }`; anything not measured is `null`. A file the [live overlay](#watch) already describes is not counted in `changedSinceIndex`. |
 
 ---
 
@@ -2383,16 +2383,56 @@ the old behaviour, lower it** — anything above 100 can no longer pass.
 
 ## --watch
 
-Start the file watcher. Every file save triggers an incremental regeneration. Press `Ctrl+C` to stop.
+Start the file watcher. A save is reflected in query results within a fraction of a second, without waiting for a full regeneration. Press `Ctrl+C` to stop.
 
 ```bash
 sigmap --watch
 ```
 
 ```
-[sigmap] watching src/ app/ lib/ ...
-[sigmap] ✓ regenerated in 43ms  (src/api/users.ts changed)
+[sigmap] watching for changes (Ctrl+C to stop)…
+[sigmap] patched 1 file(s) in 64 ms (save → index 366 ms)
+[sigmap] quiet — regenerating the context files…
 ```
+
+**How it works.** The watcher does one full generate at startup. After that, each burst of saves re-indexes **only the files that changed** into a small live overlay (`.context/overlay.json`). `sigmap ask`, `--query` and the MCP read tools apply that overlay over the index, so a renamed or removed symbol, a deleted file and a new file are all visible straight away — an overlay entry *replaces* the file's indexed entry, it is not merged under it. Each file goes through the same stages a full run applies (extraction, secret redaction, test-coverage annotation, module-doc enrichment), so a patched entry equals the regenerated one.
+
+The written context files (`CLAUDE.md`, `.github/copilot-instructions.md`, …) are refreshed by **one** full regeneration after `watchSettleMs` (default 5000 ms) of quiet, which also folds the overlay back into the index. Anything that reads those files directly lags by up to that window; queries never wait for it.
+
+- A burst of more than 200 files (a branch switch, a formatter over the tree), or an event the platform cannot attribute to a file, falls back to one full regeneration.
+- Paths a full run would not index — excluded directories, `.contextignore` matches, anything below `maxDepth` — never wake the watcher.
+- `"watchIncremental": false` restores the previous behaviour: one full regeneration per change burst.
+- Stopping the watcher inside the quiet window does not flush it: the overlay stays on disk and keeps serving queries, and the written files catch up on the next `sigmap` run. `sigmap doctor` flags this state.
+- A directory that is created, moved or removed is handled by one full regeneration (the platform reports the directory, not the files in it), and so is a watched root that is removed or moved away, and a change under a `srcDirs` entry outside the project root. The identity of each watched root is checked every 2 seconds, because on Linux the platform reports nothing when a root is *replaced* (`rm -rf src && mkdir src`, a `git checkout` that recreates it) and keeps watching the deleted directory: a replaced root is re-attached and re-indexed in full, and a `srcDirs` entry that appears later starts being watched.
+- The MCP `notify_*` tools and the read-time self-heal write to the same overlay through the same stages as a full run, so a secret in a file (or in its header comment) is redacted there too and the module-doc line is kept, and they skip what `.contextignore` excludes. A file moved with `mv` or `git mv` (which keep its modification time) is found by its change time. An empty extraction never removes a file from the index — only `notify_file_deleted`, the watcher, or the next full run does.
+- The overlay file has no cross-process lock. If the watcher and an MCP server write it in the same instant one entry can be lost; the file is still never torn (writes are atomic), a newer entry is never overwritten by an older one, and the loss is repaired by the next change to that file or by the quiet-window regeneration.
+- Needs a recursive `fs.watch`: macOS, Windows, and Linux with Node 20 or newer.
+
+### Live index — what "fresh" means here
+
+SigMap treats the index as **live** when *a file save is reflected in query results within a few seconds, without a full regeneration, and the staleness that remains is observable.* The first half is the per-file patch above. The second half is reported, never guessed:
+
+```
+$ sigmap status
+  Last index:    4m ago (v8.71.0, 508 files) — from .context/sig-index.json
+  Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 104 ms (patch) · written files refresh after 5000 ms quiet
+```
+
+`sigmap status --json` carries the same figures under `live`; `sigmap doctor` adds a **Live index** row, and warns when the overlay holds changes with no watcher running to regenerate the written files. A latency nobody measured prints as `unknown`, not `0`. A watcher counts as running only if its pid is alive **and** it has beaten within the last 90 seconds (it beats every 20), so a crashed watcher whose pid was reused is not mistaken for a live one. Files the overlay already describes are not counted as "changed since" the index, and `sigmap ask` (which ranks through the index) does not warn that its answer is ranked against stale ground on their account. `sigmap judge` and the MCP `read_context` score or serve the *written* file, so for them the same edit still counts as stale until the next full run. `sigmap status` prints the Live index line only when there is an overlay or a recorded watcher to report.
+
+**Measured save → visible-to-queries latency**, from outside the watcher (`node scripts/measure-live-latency.mjs`; opt-in, not part of the test suite or CI):
+
+Median (and maximum, since five saves cannot support a percentile) in milliseconds, 5 saves per cell, 2026-10-08, Apple M4 (10 cores), macOS, Node 25.6.0. **The machine was shared and busy (load average ≈ 12 on 10 cores), so read the shape rather than the digits.** Both columns include the 300 ms `watchDebounce`. "Full regeneration" is the previous behaviour (`watchIncremental: false`).
+
+| repo | indexed files | cold generate | per-file patch | full regeneration | speed-up |
+|---|---:|---:|---:|---:|---:|
+| click | 74 | 2.4 s | 346 (362) | 566 (742) | 1.6× |
+| gin | 119 | 2.0 s | 331 (376) | 736 (1904) | 2.2× |
+| express | 43 | 1.2 s | 318 (321) | 454 (485) | 1.4× |
+| vue-core | 282 | 1.1 s | 320 (323) | 1027 (1084) | 3.2× |
+| tokio | 427 | 1.5 s | 315 (322) | 1840 (2254) | 5.8× |
+
+On the repos measured (43–427 indexed files, default configuration) the patch path costs the debounce plus tens of milliseconds, while full regeneration grew with the repo. It is not size-independent in general: the first patch after a regeneration parses the whole index once to learn which paths it holds, and with `testCoverage` on, every batch walks the test directories again. On a small repo the debounce dominates and there is little to gain — the benefit is on large repos and on languages whose extractors are slow (the Python extractor's AST pass makes a full run of a Python repo several times slower than the file count suggests). The patch path defers work rather than removing it: the written context files still need one full regeneration, which now happens once per quiet window instead of once per save.
 
 ---
 

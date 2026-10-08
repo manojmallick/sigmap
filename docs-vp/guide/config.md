@@ -97,6 +97,8 @@ Or let detection write it for you: `sigmap tune` (v8.25.0) prints a recommended 
   "diffPriority": true,
   "monorepo": false,
   "watchDebounce": 300,
+  "watchIncremental": true,
+  "watchSettleMs": 5000,
   "secretScan": true,
   "todos": true,
   "changes": true,
@@ -347,7 +349,9 @@ A third file is written whatever you set: `.context/usage.json`, a run counter (
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `watchDebounce` | `number` | `300` | Debounce delay in milliseconds for file watcher events. Increase if you see multiple regenerations for a single save. |
+| `watchDebounce` | `number` | `300` | Debounce delay in milliseconds for file watcher events. Increase if one save is being processed as several. |
+| `watchIncremental` | `boolean` | `true` | Patch only the files that changed into the [live overlay](/guide/cli#watch) so queries see a save at once. `false` restores one full regeneration per change. |
+| `watchSettleMs` | `number` | `5000` | Quiet time in milliseconds after the last patch before one full regeneration refreshes the written context files (`CLAUDE.md`, `copilot-instructions.md`, …). Queries never wait for it; raise it to trade freshness of those files for CPU. |
 
 ## Impact
 
