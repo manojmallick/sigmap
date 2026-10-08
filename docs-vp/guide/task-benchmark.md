@@ -1,6 +1,6 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v8.70.1. 61.9% correct, 44.4% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
+description: Latest saved task benchmark for SigMap v8.71.0. 61.9% correct, 44.4% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,8 +15,8 @@ head:
 
 # Task benchmark
 
-::: info Official v8.70.1 benchmark snapshot
-**Benchmark ID:** sigmap-v8.70-main &nbsp;·&nbsp; **Date:** 2026-10-07 (with R language)
+::: info Official v8.71.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.71-main &nbsp;·&nbsp; **Date:** 2026-10-08 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -30,7 +30,7 @@ head:
 | GPT-4o overflow (without → with) | **16/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-07 (v8.70.1)** — includes R language support (ggplot2, dplyr, shiny)
+Latest saved run: **2026-10-08 (v8.71.0)** — includes R language support (ggplot2, dplyr, shiny)
 
 The success/proxy definitions and the task corpus are described in [benchmark methodology](/guide/methodology).
 
