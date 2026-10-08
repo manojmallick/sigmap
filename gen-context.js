@@ -38782,6 +38782,7 @@ function watchMode(cwd, config) {
     firstAt = 0;
     // Both are re-read per batch: a .contextignore edit applies from the next
     // change, and coverage marks follow the tests that are on disk now.
+    checkRoots();
     try { filterCtx.ignorePatterns = loadIgnorePatterns(cwd); } catch (_) { /* keep the previous patterns */ }
     testIndex = undefined;
 
@@ -38817,32 +38818,71 @@ function watchMode(cwd, config) {
     }
   };
 
-  for (const srcDir of config.srcDirs) {
-    const abs = path.join(cwd, srcDir);
-    if (!fs.existsSync(abs)) continue;
-    fs.watch(abs, { recursive: true }, (_event, filename) => {
-      if (!filename) {
-        if (incremental) wantFull = true; // the platform did not say which file
-      } else if (String(filename) === path.basename(abs) && !fs.existsSync(path.join(abs, String(filename)))) {
-        // The platform reports the watched root ITSELF (removed, moved away, or
-        // replaced) under its own name. Nothing under it can be patched file by
-        // file, and the root is not a path inside the root.
-        if (incremental) wantFull = true;
-      } else {
-        const changed = path.join(abs, String(filename));
-        // Unrelated events (excluded dirs, ignored paths, and above all our own
-        // output written under a root srcDir) must not wake the pipeline.
-        const kind = watchKind(cwd, config, changed, filterCtx);
-        if (!kind) return;
-        if (incremental) {
-          if (kind === 'outside') wantFull = true; else pending.add(changed);
-        }
+  const trigger = () => {
+    if (!firstAt) firstAt = Date.now();
+    if (debounce) clearTimeout(debounce);
+    debounce = setTimeout(flush, debounceMs);
+  };
+
+  const onEvent = (abs) => (_event, filename) => {
+    if (!filename) {
+      if (incremental) wantFull = true; // the platform did not say which file
+    } else if (String(filename) === path.basename(abs) && !fs.existsSync(path.join(abs, String(filename)))) {
+      // The platform reports the watched root ITSELF (removed, moved away, or
+      // replaced) under its own name. Nothing under it can be patched file by
+      // file, and the root is not a path inside the root.
+      if (incremental) wantFull = true;
+    } else {
+      const changed = path.join(abs, String(filename));
+      // Unrelated events (excluded dirs, ignored paths, and above all our own
+      // output written under a root srcDir) must not wake the pipeline.
+      const kind = watchKind(cwd, config, changed, filterCtx);
+      if (!kind) return;
+      if (incremental) {
+        if (kind === 'outside') wantFull = true; else pending.add(changed);
       }
-      if (!firstAt) firstAt = Date.now();
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(flush, debounceMs);
-    });
-  }
+    }
+    trigger();
+  };
+
+  // A recursive watch is bound to the root's INODE on some platforms (Linux). Move
+  // the root away and the platform says so; REPLACE it (`rm -rf src && mkdir src`,
+  // a `git checkout` that recreates it) and it says nothing at all and keeps
+  // watching the deleted directory — blind to the new one for good. So each root's
+  // identity is checked, and a changed one is re-attached and re-indexed in full.
+  const inodeOf = (abs) => { try { return fs.statSync(abs, { bigint: true }).ino; } catch (_) { return null; } };
+  const attach = (abs) => {
+    const handle = fs.watch(abs, { recursive: true }, onEvent(abs));
+    handle.on('error', () => { /* the next identity check re-attaches */ });
+    return handle;
+  };
+  const roots = config.srcDirs.map((srcDir) => {
+    const abs = path.join(cwd, srcDir);
+    const ino = inodeOf(abs);
+    // First attach throws as it always did where recursive watching is unsupported.
+    return { abs, ino, handle: ino === null ? null : attach(abs), retry: false };
+  });
+  const checkRoots = () => {
+    let changed = false;
+    for (const r of roots) {
+      const cur = inodeOf(r.abs);
+      if (cur === r.ino) {
+        if (r.retry && cur !== null) { try { r.handle = attach(r.abs); r.retry = false; } catch (_) { /* try again next tick */ } }
+        continue;
+      }
+      if (r.handle) { try { r.handle.close(); } catch (_) { /* already gone */ } r.handle = null; }
+      r.ino = cur;
+      r.retry = false;
+      if (cur !== null) {
+        try { r.handle = attach(r.abs); } catch (_) { r.retry = true; }
+      }
+      changed = true;
+    }
+    if (changed) wantFull = true;
+    return changed;
+  };
+  const rootPoll = setInterval(() => { if (checkRoots()) trigger(); }, Math.max(100, Number(process.env.SIGMAP_WATCH_ROOT_POLL_MS) || 2000));
+  rootPoll.unref();
 
   // A pid alone cannot say whether the watcher is alive: after a crash or a reboot
   // the number is reused by an unrelated process. A heartbeat can.

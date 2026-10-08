@@ -776,6 +776,14 @@ test('watcher: a watched root that is replaced leaves no stale file behind', asy
   fs.writeFileSync(path.join(dir, 'src/a.js'), A_V1 + 'function rebuilt() {}\n');
   // Whether the platform reports the files or only the root, the result must be the same.
   await waitFor(() => { const i = buildSigIndex(dir); return /rebuilt/.test((i.get('src/a.js') || []).join()) && !i.has('src/b.js'); }, 'the rebuilt root to be re-indexed', 30000);
+  // On Linux the platform says NOTHING when a root is replaced and keeps watching the
+  // deleted directory, so re-indexing is not enough: the watcher must be re-attached to
+  // the new one, or an edit made from now on is never seen.
+  const before = overlay.readLive(dir).patches;
+  await sleep(300);
+  fs.appendFileSync(path.join(dir, 'src/a.js'), 'function afterReplace() {}\n');
+  await waitFor(() => /afterReplace/.test((buildSigIndex(dir).get('src/a.js') || []).join()), 'an edit in the NEW root to be seen', 30000);
+  assert.ok(overlay.readLive(dir).patches > before, 'and it was patched, so the watcher is attached to the new root');
   stopWatcher(w);
 }, { needsWatch: true });
 
@@ -875,7 +883,10 @@ process.on('exit', cleanupAll);
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { cleanupAll(); process.exit(130); });
 
 (async () => {
+  // LIVE_OVERLAY_ONLY=<substring> runs just the matching tests (debugging aid).
+  const only = process.env.LIVE_OVERLAY_ONLY;
   for (const t of queue) {
+    if (only && !t.name.includes(only)) continue;
     if (t.opts.needsWatch && !RECURSIVE_WATCH) {
       console.log(`  SKIP  ${t.name} (no recursive fs.watch on this platform)`);
       skipped++;
