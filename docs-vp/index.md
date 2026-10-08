@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 89.6% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.24× better.
+    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 89.6% where a single-shot grep agent finds the right file 39.2% of the time — a measured 2.29× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.70.0</span>
+  <span><strong>Release:</strong> v8.70.1</span>
   <span>·</span>
-  <span><strong>New — verify checks your source, not just the index:</strong> <code>verify</code> used to report a real symbol as fabricated whenever the signature index lacked it — past a file's 25th signature, in a file outside the detected roots, or in a construct the extractor does not list. On the docs of 35 repositories 42% of the flagged names were real, and the cap was only 3% of them. Now a name is looked up in the source before it is reported (a call or definition in comment-masked code): 319 false findings drop, none appear, and none of 20,171 invented names is confirmed. <a href="/guide/verify-ai-output#symbols-are-confirmed-against-your-source-914">Symbols are confirmed against your source →</a></span>
+  <span><strong>New — the CLI says what it does:</strong> <code>sigmap create</code> no longer fails a diff that holds only your change and the files SigMap itself wrote; re-running <code>--setup</code> no longer stacks another post-commit hook line on a global install, or deletes one of yours; <code>doctor</code> now checks the hook; and the summary names the files it actually wrote. <a href="/guide/measure-ai-credits">Measure your own AI credits →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.70-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-06</span>
+  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-07</span>
 </div>
 </div>
 
@@ -173,11 +173,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.58** |
 | Retrieval hit@5 (retrieval corpus) | — | **80.4%** |
-| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **89.6%** (2.24× lift) |
+| Honest corpus hit@5 (125 tasks) | 39.2% (single-shot grep) | **89.6%** (2.29× lift) |
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-06 (v8.70.0)**.
+Latest saved benchmark run: **2026-10-07 (v8.70.1)**.
 
 </div>
 
