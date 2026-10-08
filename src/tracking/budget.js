@@ -89,7 +89,7 @@ function budgetStatus(cwd, opts = {}) {
   const ageMs = mtime > 0 ? Math.max(0, now - mtime) : null;
   const ageDays = ageMs != null ? ageMs / 86400000 : null;
 
-  return {
+  const status = {
     session,
     unit: 'estimated-tokens',
     ops,
@@ -108,6 +108,20 @@ function budgetStatus(cwd, opts = {}) {
       stale: ttlDays != null && ageDays != null && ageDays > ttlDays,
     },
   };
+
+  // #922: when this session is one the session store knows (a real agent session id,
+  // e.g. SIGMAP_SESSION=cc-<uuid> exported by the Claude Code SessionStart hook), add
+  // the host's billed tokens as a SEPARATE block. It is a different provenance class
+  // from the chars/4 SigMap-emitted figures above, so it is never added into them and
+  // nothing about the existing fields changes. Absent for day-bucket sessions.
+  try {
+    const { readSessions } = require('../session/store');
+    const { measuredBlock } = require('../session/render');
+    const found = readSessions(cwd).sessions.find((s) => s.id === session);
+    if (found) status.measured = measuredBlock(found);
+  } catch (_) { /* the ledger works without the session store */ }
+
+  return status;
 }
 
 module.exports = { sessionKey, budgetStatus, contextMtime, entryInSession };

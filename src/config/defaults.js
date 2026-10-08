@@ -164,6 +164,22 @@ const DEFAULTS = {
   // Number of days before generated context counts as stale in budget output.
   contextTtlDays: null,
 
+  // Session capture + warm-start summary (#922, epic #682). Only active once
+  // `sigmap hooks install claude` (or `sigmap session log`) has written
+  // .context/sessions.ndjson — a repo that never captures a session is unaffected.
+  session: {
+    // Sessions older than `days` fold into monthly rollups (raw events dropped).
+    retention: { days: 90, compact: 'monthly' },
+    // What an `ask` query leaves in the session log: 'hashed' (12-hex digest),
+    // 'full' (redacted text) or 'off' (nothing).
+    logQueries: 'hashed',
+    // Write the warm-start summary into CLAUDE.md / AGENTS.md / copilot / gemini
+    // instruction files on generate. Off: those files are committed, and the
+    // summary carries personal session activity. The SessionStart hook delivers
+    // it locally regardless.
+    injectSummary: false,
+  },
+
   // MCP server configuration
   mcp: {
     autoRegister: true,
