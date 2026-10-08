@@ -1,12 +1,16 @@
 'use strict';
 
 /**
- * Star nudge + usage tracking (v7.0.0).
+ * Star nudge + run counter (v7.0.0).
  *
  * Records run counts in `.context/usage.json` and shows a one-time GitHub-star
  * message after the tool has been genuinely useful (≥10 runs, ≥8 successes).
- * Shown exactly once per machine — even under concurrent runs (an `wx` lock
- * file makes the show race-safe). Wired into `ask` (and the `squeeze` path).
+ * The file lives in the project, so "once" means once per PROJECT, not per
+ * machine — even under concurrent runs (an `wx` lock file makes the show
+ * race-safe). Written by every generate, `ask` and `squeeze` run. Counts and
+ * dates only; `--track`, `--no-track` and SIGMAP_NO_TRACK govern the two run
+ * logs (`usage.ndjson`, `gain.ndjson`), not this counter (documented in
+ * docs-vp/guide/config.md).
  */
 
 const fs = require('fs');

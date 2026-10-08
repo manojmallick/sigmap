@@ -91,9 +91,10 @@ coverage/
 
 ```bash
 sigmap --setup
-# [sigmap] ✓ installed .git/hooks/post-commit
-# [sigmap] context will regenerate on every git commit
+# [sigmap] installed .git/hooks/post-commit
 ```
+
+Run `sigmap doctor` afterwards: its `Git hook` line tells you whether the hook is in place, and what to run if it is not.
 
 ---
 
@@ -143,7 +144,7 @@ node /path/to/gen-context.js --version
 # sigmap v5.5.0  ← must print a version
 
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
-# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 9 tools
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 22 MCP tools
 ```
 
 ---
@@ -315,7 +316,7 @@ Open an issue at [github.com/manojmallick/sigmap/issues](https://github.com/mano
 
 - [CLI reference](/guide/cli) — every flag with examples and expected output
 - [Config reference](/guide/config) — every field in gen-context.config.json with defaults
-- [MCP server setup](/guide/mcp) — wire up sigmap's 9 on-demand MCP tools
+- [MCP server setup](/guide/mcp) — wire up sigmap's 22 MCP tools
 
 
 ---

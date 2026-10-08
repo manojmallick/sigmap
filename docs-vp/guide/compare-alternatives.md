@@ -51,7 +51,7 @@ RepoMix compresses files. SigMap extracts what matters and ranks by relevance.
 | Learn from usage | **Yes** — `sigmap learn` | No |
 | Validate coverage | **Yes** — `sigmap validate` | No |
 | Judge answer groundedness | **Yes** — `sigmap judge` | No |
-| Works with MCP tools | **Yes** — 9 tools | No |
+| Works with MCP tools | **Yes** — 22 MCP tools | No |
 
 The key difference: RepoMix's output is the same regardless of what you ask. SigMap's output is ranked to the specific query, which is why retrieval accuracy is 6.5× higher.
 
@@ -67,7 +67,7 @@ Copilot and other AI IDEs send everything they can see in the open editors. SigM
 | Validates coverage | **Yes** | No |
 | Judges answer groundedness | **Yes** | No |
 | Reproducible | **Yes** | No — depends on open files |
-| MCP-native | **Yes** — 9 tools | Partial |
+| MCP-native | **Yes** — 22 MCP tools | Partial |
 
 Copilot and SigMap are complementary: Copilot sends the live editor context, SigMap sends the ranked codebase map. Many teams use both.
 
@@ -79,7 +79,7 @@ Some teams maintain a hand-written `AGENTS.md` or instructions file. SigMap gene
 |---|---|---|
 | Keeps up with code changes | **Yes** — regenerates on every commit | Manual update required |
 | Structured by module | **Yes** — per-module signature blocks | Usually flat text |
-| Benchmark-tested accuracy | **80.4% hit@5** (retrieval corpus); **2.24× vs grep** on the honest corpus (89.6% vs 40.0%) | Not measured |
+| Benchmark-tested accuracy | **80.4% hit@5** (retrieval corpus); **2.29× vs grep** on the honest corpus (89.6% vs 39.2%) | Not measured |
 | Time to set up | **30 seconds** | Hours |
 
 ## What SigMap does not replace

@@ -62,7 +62,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **89.6% vs 40.0% single-shot grep baseline** — 2.24× measured lift on the honest corpus (125 tasks / 19 repos)
+- **89.6% vs 39.2% single-shot grep baseline** — 2.29× measured lift on the honest corpus (125 tasks / 19 repos)
 - **95.7% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.58 prompts per task** — down from 2.84 (44.4% fewer retries, modeled)
@@ -126,10 +126,10 @@ Ask → Rank → Context → Validate → Judge → Learn
 <!--SM:benchmarkBlock-->
 ```
 Benchmark : sigmap-v8.70-main (21 repositories, including R language)
-Date      : 2026-10-06
+Date      : 2026-10-07
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
-Honest vs grep : 89.6% vs 40.0% grep baseline — 2.24× lift (125 tasks / 19 repos)
+Honest vs grep : 89.6% vs 39.2% grep baseline — 2.29× lift (125 tasks / 19 repos)
 Map vs repo    : 95.7% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
 Task success   : 61.9%   (proxy — modeled from retrieval tiers)
@@ -232,7 +232,7 @@ Use SigMap with open-source tools and fully self-hosted setups:
 sigmap --mcp
 ```
 
-Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), `get_budget` (what SigMap has emitted this session), `query_knowledge_map` (typed nodes and edges: a library's upgrade impact, a file's neighbors, who reads an env var), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
 
 SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**: grep finds the file; `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` prove the symbols, lines, calls, and blast radius — deterministically. See [the agent live-loop guide](https://sigmap.io/guide/mcp#your-agents-live-loop).
 

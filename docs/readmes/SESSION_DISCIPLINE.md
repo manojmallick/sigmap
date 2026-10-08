@@ -151,7 +151,8 @@ SigMap can regenerate context automatically on every commit:
 
 ```bash
 node gen-context.js --setup
-# Installs: .git/hooks/post-commit → runs gen-context.js --generate
+# Installs: .git/hooks/post-commit → runs gen-context.js --generate (the hook-facing alias of a bare run)
+# Check it any time with: sigmap doctor   (the "Git hook" line)
 ```
 
 With the hook in place, the context file is always in sync with HEAD. Context drift between commits becomes impossible.

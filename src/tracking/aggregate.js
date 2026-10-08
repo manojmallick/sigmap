@@ -188,6 +188,10 @@ function aggregate(rawRecords, opts = {}) {
   if (opts.top && opts.top > 0) byOp = byOp.slice(0, opts.top);
 
   return {
+    // The JSON consumer sees the same disclosure the terminal footer prints, and
+    // the one `ask --json` / `--cost --json` carry as `costBasis` (#816).
+    costBasis: 'estimate — saved = whole-file baseline minus SigMap context (a counterfactual); '
+      + 'dollars apply a dated input-token price table, not billed usage',
     price,
     totals,
     byOp,

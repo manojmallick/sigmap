@@ -8,7 +8,7 @@
  *
  * Supported methods:
  *   initialize        → serverInfo + capabilities + negotiated protocolVersion
- *   tools/list        → 21 tool definitions
+ *   tools/list        → 22 tool definitions
  *   tools/call        → dispatch to handler, return result
  */
 
@@ -18,7 +18,7 @@ const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, exp
 
 const SERVER_INFO = {
   name: 'sigmap',
-  version: '8.70.0',
+  version: '8.70.1',
   description: 'SigMap MCP server — code signatures on demand',
 };
 

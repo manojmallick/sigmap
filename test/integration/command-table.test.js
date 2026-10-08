@@ -139,9 +139,41 @@ test('every global flag --help advertises is read somewhere in the shipped sourc
   // Global flags may be honoured by a src/ module rather than the dispatch
   // chain — `--no-track` is read in src/tracking/logger.js.
   const shipped = CLI + fs.readFileSync(path.join(ROOT, 'src', 'tracking', 'logger.js'), 'utf8');
-  const broken = TABLE.flagsFor(null).filter((f) => !shipped.includes(`'${f}'`));
+  // A bare-run alias is read by nothing — it falls through to the default
+  // generate — and is proved by running it, in the next test (#918).
+  const broken = TABLE.flagsFor(null)
+    .filter((f) => !TABLE.BARE_RUN_ALIASES.includes(f))
+    .filter((f) => !shipped.includes(`'${f}'`));
   assert.deepStrictEqual(broken, [],
     `advertised but never read: ${broken.join(', ')}`);
+});
+
+test('every bare-run alias is advertised, and running it is the same run as a bare one', () => {
+  const { spawnSync } = require('child_process');
+  const os = require('os');
+  const generate = (args) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bare-alias-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'src'));
+      fs.writeFileSync(path.join(dir, 'src', 'a.js'), 'function a() { return 1; }\nmodule.exports = { a };\n');
+      fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ srcDirs: ['src'] }));
+      const r = spawnSync(process.execPath, [GEN, ...args], { cwd: dir, encoding: 'utf8' });
+      const out = path.join(dir, '.github', 'copilot-instructions.md');
+      return { status: r.status, out: fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : null };
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  };
+  // The only moving part in the output is the timestamp stamp line.
+  const stable = (s) => s.replace(/Updated: \S+/g, 'Updated: <t>').replace(/Generated: \S+/g, 'Generated: <t>');
+  const bare = generate([]);
+  assert.strictEqual(bare.status, 0);
+  assert.ok(bare.out && bare.out.includes('function a'), 'a bare run must generate');
+  assert.ok(TABLE.BARE_RUN_ALIASES.length >= 1);
+  for (const flag of TABLE.BARE_RUN_ALIASES) {
+    assert.ok(TABLE.flagsFor(null).includes(flag), `${flag} is a bare-run alias but --help does not advertise it`);
+    const aliased = generate([flag]);
+    assert.strictEqual(aliased.status, 0, flag);
+    assert.strictEqual(stable(aliased.out), stable(bare.out), `${flag} is not the same run as a bare one`);
+  }
 });
 
 // ── the derived lists stay derived ──────────────────────────────────────────

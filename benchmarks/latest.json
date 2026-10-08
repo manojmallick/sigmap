@@ -1,6 +1,6 @@
 {
   "benchmark_id": "sigmap-v8.70-main",
-  "benchmark_date": "2026-10-06",
+  "benchmark_date": "2026-10-07",
   "repos_token": 21,
   "repos_retrieval": 18,
   "metrics": {
@@ -13,13 +13,13 @@
     "baseline_prompts_per_task": 2.84,
     "prompt_reduction_pct": 44.4,
     "graph_boosted_hit_at_5": 0.804,
-    "grep_baseline_hit_at_5": 0.4,
-    "grep_lift": 2.24
+    "grep_baseline_hit_at_5": 0.392,
+    "grep_lift": 2.29
   },
   "honest": {
     "sigmap_hit_at_5": 0.896,
-    "grep_baseline_hit_at_5": 0.4,
-    "lift": 2.24,
+    "grep_baseline_hit_at_5": 0.392,
+    "lift": 2.29,
     "tasks": 125,
     "repos": 19
   },
@@ -44,28 +44,28 @@
   },
   "sources": {
     "benchmark-matrix.json": {
-      "version": "8.70.0",
-      "generated": "2026-10-06"
+      "version": "8.70.1",
+      "generated": "2026-10-07"
     },
     "grounding-regression.json": {
-      "version": "8.70.0",
-      "generated": "2026-10-06"
+      "version": "8.70.1",
+      "generated": "2026-10-07"
     },
     "honest-baseline.json": {
-      "version": "8.70.0",
-      "generated": "2026-10-06"
+      "version": "8.70.1",
+      "generated": "2026-10-07"
     },
     "task-benchmark.json": {
-      "version": "8.70.0",
-      "generated": "2026-10-06"
+      "version": "8.70.1",
+      "generated": "2026-10-07"
     },
     "test-discovery.json": {
-      "version": "8.70.0",
-      "generated": "2026-10-06"
+      "version": "8.70.1",
+      "generated": "2026-10-07"
     },
     "token-reduction.json": {
-      "version": "8.70.0",
-      "generated": "2026-10-06"
+      "version": "8.70.1",
+      "generated": "2026-10-07"
     }
   }
 }

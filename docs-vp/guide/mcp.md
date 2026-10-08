@@ -37,12 +37,10 @@ sigmap --setup
 `--setup` detects `.claude/settings.json` and `.cursor/mcp.json` automatically, then adds the sigmap MCP server entry to each one it finds. It also installs a git post-commit hook and starts the file watcher.
 
 ```
-[sigmap] ✓ detected .claude/settings.json
-[sigmap] ✓ added MCP server entry → .claude/settings.json
-[sigmap] ✓ detected .cursor/mcp.json
-[sigmap] ✓ added MCP server entry → .cursor/mcp.json
-[sigmap] ✓ installed .git/hooks/post-commit
-[sigmap] ✓ watcher started on src/ app/ lib/
+[sigmap] registered MCP server in .claude/settings.json
+[sigmap] registered MCP server in .cursor/mcp.json
+[sigmap] installed .git/hooks/post-commit
+[sigmap] watching for changes (Ctrl+C to stop)…
 ```
 
 ## Manual config — Claude Code

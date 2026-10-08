@@ -166,5 +166,26 @@ test('inContextFiles reads the context file, not the index', () => {
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
+// ── a file is counted once, however many source roots reach it (#918) ──────────
+test('overlapping srcDirs count a file once — one file is "1 of 1", not "2 of 2"', () => {
+  const { coverageScore } = require(path.join(ROOT, 'src', 'analysis', 'coverage-score'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-cov-dup-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'src'));
+    fs.writeFileSync(path.join(dir, 'src', 'a.js'), 'function a() {}\n');
+    const entries = [{ filePath: path.join(dir, 'src', 'a.js'), sigs: ['function a()'] }];
+    // what `--monorepo` hands every package: `.` contains the other three roots
+    const overlapping = coverageScore(dir, entries, { srcDirs: ['src', 'lib', 'app', '.'] });
+    assert.strictEqual(overlapping.total, 1, `counted ${overlapping.total} files for one file on disk`);
+    assert.strictEqual(overlapping.included, 1);
+    assert.strictEqual(overlapping.dropped, 0);
+    const plain = coverageScore(dir, entries, { srcDirs: ['src'] });
+    assert.deepStrictEqual([overlapping.total, overlapping.included, overlapping.score],
+      [plain.total, plain.included, plain.score], 'overlap must not change the figures');
+    // listing the same root twice is the same mistake
+    assert.strictEqual(coverageScore(dir, entries, { srcDirs: ['src', 'src'] }).total, 1);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 console.log(`\n  coverage-populations: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
