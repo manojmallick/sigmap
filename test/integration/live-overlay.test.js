@@ -100,6 +100,17 @@ function stopWatcher(child) {
 
 const symbols = (dir, rel) => (buildSigIndex(dir).get(rel) || []).join('\n');
 
+/** The timing facts a freshen assertion turns on, for a failure message. */
+function timing(dir, rel) {
+  let st = null;
+  try { st = fs.statSync(path.join(dir, rel)); } catch (_) {}
+  return JSON.stringify({
+    now: Date.now(), base: store.readIndexStamp(dir),
+    file: st && { mtimeMs: st.mtimeMs, ctimeMs: st.ctimeMs },
+    entries: [...overlay.load(dir)].map(([k, e]) => ({ k, at: e.at, additive: !!e.additive, deleted: !!e.deleted })),
+  });
+}
+
 const A_V1 = 'function alphaOne() {}\nfunction alphaTwo() {}\nfunction alphaThree() {}\nmodule.exports = { alphaOne, alphaTwo, alphaThree };\n';
 const B_V1 = 'function betaOnly() {}\nmodule.exports = { betaOnly };\n';
 
@@ -238,10 +249,10 @@ test('the index records when its run began, and the stamp reads without a full p
 
 test('an additive notify entry does not vouch for the rest of the file', async () => {
   const dir = mkProject({ 'src/a.js': 'function alphaOne() {}\nfunction alphaTwo() {}\nmodule.exports = { alphaOne, alphaTwo };\n' });
-  await sleep(40);
+  await sleep(1100);
   fs.writeFileSync(path.join(dir, 'src/a.js'), 'function alphaOne() {}\nfunction gammaNew() {}\nmodule.exports = { alphaOne, gammaNew };\n');
   handlers.notifySymbolAdded({ signature: 'function gammaNew()', file: 'src/a.js' }, dir);
-  assert.ok(freshen(dir, { force: true }) >= 1, 'freshen must still re-read a file that only has an additive entry');
+  assert.ok(freshen(dir, { force: true }) >= 1, `freshen must still re-read a file that only has an additive entry ${timing(dir, 'src/a.js')}`);
   const now = symbols(dir, 'src/a.js');
   assert.ok(!/alphaTwo/.test(now), `the removed symbol must be gone once freshen has read the file:\n${now}`);
   assert.ok(/gammaNew/.test(now) && /alphaOne/.test(now), now);
@@ -355,13 +366,15 @@ test('an entry stamped far in the future is not trusted, and does not block late
 
 test('notify_symbol_added does not make a whole-file entry claim edits it never read', async () => {
   const dir = mkProject({ 'src/a.js': A_V1 });
-  await sleep(40);
+  // A full second between the steps: the point is the ORDER of an entry's stamp and a file's
+  // timestamp, which must not depend on the filesystem's timestamp granularity or clock jitter.
+  await sleep(1100);
   fs.writeFileSync(path.join(dir, 'src/a.js'), A_V1 + 'function beta() {}\n');
-  assert.ok(freshen(dir, { force: true }) >= 1); // a whole-file entry now exists
-  await sleep(40);
+  assert.ok(freshen(dir, { force: true }) >= 1, `a whole-file entry now exists ${timing(dir, 'src/a.js')}`);
+  await sleep(1100);
   fs.writeFileSync(path.join(dir, 'src/a.js'), A_V1 + 'function beta() {}\nfunction gamma() {}\n'); // an edit nobody has read
   handlers.notifySymbolAdded({ signature: 'function delta()', file: 'src/a.js', line: 9 }, dir);
-  assert.ok(freshen(dir, { force: true }) >= 1, 'freshen must still read the file');
+  assert.ok(freshen(dir, { force: true }) >= 1, `freshen must still read the file ${timing(dir, 'src/a.js')}`);
   assert.ok(/gamma/.test(symbols(dir, 'src/a.js')), 'the unread edit is picked up');
 });
 

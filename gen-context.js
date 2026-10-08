@@ -2168,6 +2168,9 @@ __factories["./src/cache/freshen"] = function(module, exports) {
     ['CLAUDE.md'], ['AGENTS.md'], ['.github', 'context-cold.md'],
   ];
   const THROTTLE_MS = 1500;
+  // A file time this far ahead of the clock cannot be ordered against any entry's stamp. The slack
+  // keeps whole-millisecond clocks and filesystem timestamp granularity from tripping the rule.
+  const FUTURE_SLACK_MS = 1000;
   const _lastRun = new Map();
 
   function _readConfig(cwd) {
@@ -2250,7 +2253,7 @@ __factories["./src/cache/freshen"] = function(module, exports) {
         // against any entry's stamp, so a whole-file entry that exists covers it —
         // otherwise it would be read again on every call. Whole-ms stamp vs a
         // fractional file time, hence the floor.
-        if (have && !have.additive && (have.at >= Math.floor(changed) || changed > Date.now())) continue;
+        if (have && !have.additive && (have.at >= Math.floor(changed) || changed > Date.now() + FUTURE_SLACK_MS)) continue;
         stale.push({ f, key });
       }
       if (stale.length === 0) return 0;
