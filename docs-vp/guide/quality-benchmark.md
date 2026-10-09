@@ -1,13 +1,13 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v8.71.0. 14/21 repos overflow GPT-4o without SigMap, 5,299 files would be hidden, 16,718 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
+description: What token reduction means operationally in v8.72.0. 14/21 repos overflow GPT-4o without SigMap, 5,299 files would be hidden, 16,718 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
 head:
   - - meta
     - property: og:title
       content: "SigMap quality benchmark — overflow, hidden files, and cost"
   - - meta
     - property: og:description
-      content: "14/21 repos overflow GPT-4o without SigMap. 5,299 files would be hidden. 16,718 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $11,900+ Claude Sonnet, $3,900+ Claude Haiku at 10 calls/day."
+      content: "14/21 repos overflow GPT-4o without SigMap. 5,299 files would be hidden. 16,718 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $12,000+ Claude Sonnet, $4,000+ Claude Haiku at 10 calls/day."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/quality-benchmark"
@@ -15,8 +15,8 @@ head:
 
 # Quality benchmark
 
-::: info Official v8.71.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.71-main &nbsp;·&nbsp; **Date:** 2026-10-08 (with R language)
+::: info Official v8.72.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.72-main &nbsp;·&nbsp; **Date:** 2026-10-08 (with R language)
 
 | Metric | Value |
 |---|---:|
@@ -26,7 +26,7 @@ head:
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
-| GPT-4o overflow (without → with) | **16/21 → 0/21** |
+| GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
 Token reduction is the mechanism. This benchmark shows the operational consequence:
@@ -35,7 +35,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-10-08 (v8.71.0)**
+Latest saved run: **2026-10-08 (v8.72.0)**
 
 How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
 
@@ -50,7 +50,7 @@ How the repos and tasks are picked, and what the token numbers do and don't prov
 
 ## 1. Context window fit
 
-Raw repository content overflows GPT-4o's 128K window in **14 of 21** benchmark repos, and Claude's 200K window in **11 of 21**.
+Raw repository content overflows GPT-4o's 128K window in **14 of 21** benchmark repos, and Claude's 200K window in **12 of 21**.
 
 That means a tool has to omit or truncate content before the model answers. SigMap avoids this by staying inside the budgeted context envelope.
 

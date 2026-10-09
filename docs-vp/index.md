@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.71.0</span>
+  <span><strong>Release:</strong> v8.72.0</span>
   <span>·</span>
-  <span><strong>New — sessions you can see:</strong> <code>sigmap hooks install claude</code> records what each Claude Code session was billed, read from its own transcript, counted once per message and labelled <em>measured</em> — never added to an estimate — and the next session opens with a 400-token summary of the last. <a href="/guide/cli#session">Session capture →</a></span>
+  <span><strong>New — a save is visible in about 300 ms:</strong> <code>sigmap --watch</code> now re-indexes only the files that changed into a live overlay, so <code>ask</code> and the MCP search tools see an edit in about the debounce — and the MCP <code>freshen</code>/<code>notify_*</code> hooks now remove a renamed symbol, a removed one or a deleted file instead of leaving it listed. <a href="/guide/cli#watch">How the watcher works →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.71-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.72-main</span>
   <span>·</span>
   <span>80.4% hit@5 · 95.7% token reduction · 2026-10-08</span>
 </div>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-08 (v8.71.0)**.
+Latest saved benchmark run: **2026-10-08 (v8.72.0)**.
 
 </div>
 
