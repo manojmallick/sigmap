@@ -13,18 +13,18 @@ description: Why the import-graph centrality ranking prior shipped behind a flag
 
 ## Context
 
-Files that many others import are plausibly important, and graph centrality is a standard way to turn that into a ranking prior. It looked like a principled deepening of the import-graph boost SigMap already had. It was also unproven: the corpora of the time were this repository's own and lexical-favouring.
+Files that many others import are plausibly important, and graph centrality is a standard way to turn that into a ranking prior. It looked like a principled deepening of the import-graph boost SigMap already had. It was also unproven: the only corpus of the time was the project-written 90-task, 18-repository set, which the changelog calls lexical-favouring.
 
 ## Decision
 
 **In v8.21.0** the prior shipped — [`src/graph/centrality.js`](https://github.com/manojmallick/sigmap/blob/main/src/graph/centrality.js), power iteration with damping 0.85 and 20 iterations, deterministic — **off by default behind `retrieval.centralityBlend`**. A measure gate (an A/B over 90 tasks across 18 repositories) scored both arms at 77.8% hit@5, a difference of zero tasks: non-regressing, neutral, so it stayed opt-in.
 
-**In v8.68.0** it was re-measured against the shipped ranker, task by task, over the third-party corpus (which the project does not control), this repository's own splits, the JVM repositories and the honest corpus. It moved the rank of 4 of 314 tasks and changed one hit — a loss (express `x037`). It was **deprecated**: it still works, `loadConfig` warns once per process when a config turns it on, and the config reference marks the key. Nothing was deleted, because removing a config key is a breaking change.
+**In v8.68.0** it was re-measured against the shipped ranker, task by task, over the third-party corpus (which the project does not control), this repository's own splits and the JVM repositories — 314 tasks; the honest corpus is scored without an import graph, so centrality does not apply to it. It moved the rank of 4 of those 314 tasks and changed one hit — a loss (express `x037`). It was **deprecated**: it still works, `loadConfig` warns once per process when a config turns it on, and the config reference marks the key. Nothing was deleted, because removing a config key is a breaking change.
 
 ## Why
 
 1. **A flag lets an idea ship without becoming everyone's ranking.** The risk of an unproven signal falls on the people who turn it on.
-2. **A signal is judged on the corpus that can falsify it.** Centrality looked neutral on corpora the project controlled. The third-party corpus ([#892](https://github.com/manojmallick/sigmap/issues/892)) is what could see an effect, and it saw none worth keeping.
+2. **A signal is judged on the corpus that can falsify it.** Centrality looked neutral on corpora the project controlled. The third-party corpus ([#892](https://github.com/manojmallick/sigmap/issues/892)) was the first that did not come from the project; on it centrality was net −1 (no task won, one lost).
 3. **A rule, written down, so the next signal is not argued from scratch.** After the numbers were in hand, the [retrieval benchmark](/guide/retrieval-benchmark) stated:
    - a signal becomes a **default** when it wins at least five more tasks than it loses on the third-party corpus and loses net on no other corpus;
    - it is **deprecated** when its net is not positive and it changes at most two hits;
@@ -34,7 +34,7 @@ Files that many others import are plausibly important, and graph centrality is a
 
 ## Consequences
 
-- **A measured negative is a legitimate outcome.** Centrality was carried from v8.21.0 to v8.68.0 before a corpus that could judge it existed. An unmeasured flag is a liability, which is why the rule above exists.
+- **A measured negative is a legitimate outcome.** Centrality was carried from v8.21.0 to v8.68.0 before a corpus that could judge it existed. An unmeasured flag is a liability.
 - **Surface enrichment went the same way** (two hits changed, one each way). Mined expansions stayed opt-in (+3 on the third-party corpus, too thin for a sign test to separate from chance); the call-graph boost was net −3 and undecided when this was written.
 - **The deprecation has a window.** A user hears before v9.0 removes the key, not after.
 
