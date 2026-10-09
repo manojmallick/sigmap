@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v8.71.0 benchmark snapshot. 95.7% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
+description: Official v8.72.0 benchmark snapshot. 95.7% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v8.71.0 snapshot with R language"
+      content: "SigMap benchmark overview — v8.72.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.71.0 benchmark run (2026-10-08) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.72.0 benchmark run (2026-10-08) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.71.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.71-main &nbsp;·&nbsp; **Date:** 2026-10-08
+::: info Official v8.72.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.72-main &nbsp;·&nbsp; **Date:** 2026-10-08
 
 | Metric | Value |
 |---|---:|
@@ -27,7 +27,7 @@ head:
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Test discovery (impl→test) | **F1 98.0%** · hit@1 97.4% (28 repos) |
-| GPT-4o overflow (without → with) | **16/21 → 0/21** |
+| GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
 This is the landing page for the public benchmark story. It answers four different questions:
@@ -39,9 +39,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.71.0 snapshot (with R language support)
+## Official v8.72.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-10-08 (v8.71.0)**
+Latest saved benchmark run: **2026-10-08 (v8.72.0)**
 
 Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
 
@@ -104,7 +104,7 @@ This is the best benchmark when the question is: *"Does the developer need fewer
 
 ### 4. Quality and overflow
 
-- **16/21** repos overflow GPT-4o's 128K context window without SigMap
+- **14/21** repos overflow GPT-4o's 128K context window without SigMap
 - R repos add to overflow risk: ggplot2 and shiny both overflow without SigMap
 - **5,200+** files would be hidden from the model in the raw-flow scenario
 - **16,718** symbols are surfaced in SigMap output across all benchmark repos

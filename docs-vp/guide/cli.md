@@ -1618,6 +1618,10 @@ sigmap doctor
 0 error(s), 1 warning(s).
 ```
 
+::: tip The Live index row
+When the [live overlay](#watch) holds changes, or a watcher has recorded how long a save takes to reach queries, `doctor` adds an eleventh row, `Live index`: `ok` while a watcher is running, and a warning — with the command that fixes it — when files are being served from the overlay but nothing will regenerate the written context files (`sigmap`, or `sigmap daemon start`). A repository that has never used the overlay sees no new row. The `Index freshness` row no longer counts a file the overlay already describes as changed; the `Live index` row is where the written files lagging behind is reported.
+:::
+
 ::: tip The git hook check
 [`--setup`](#setup) installs a post-commit hook, and until now nothing said whether it was still there. The `Git hook` check reads `.git/hooks/post-commit` and warns, with the command that fixes it, when:
 
@@ -2395,9 +2399,9 @@ sigmap --watch
 [sigmap] quiet — regenerating the context files…
 ```
 
-**How it works.** The watcher does one full generate at startup. After that, each burst of saves re-indexes **only the files that changed** into a small live overlay (`.context/overlay.json`). `sigmap ask`, `--query` and the MCP read tools apply that overlay over the index, so a renamed or removed symbol, a deleted file and a new file are all visible straight away — an overlay entry *replaces* the file's indexed entry, it is not merged under it. Each file goes through the same stages a full run applies (extraction, secret redaction, test-coverage annotation, module-doc enrichment), so a patched entry equals the regenerated one.
+**How it works.** The watcher does one full generate at startup. After that, each burst of saves re-indexes **only the files that changed** into a small live overlay (`.context/overlay.json`). `sigmap ask`, `--query` and the MCP search tools (`search_signatures`, `query_context`, `get_callee_signatures`, …) apply that overlay over the index, so a renamed or removed symbol, a deleted file and a new file are all visible straight away — an overlay entry *replaces* the file's indexed entry, it is not merged under it. Each file goes through the same stages a full run applies (extraction, secret redaction, test-coverage annotation, module-doc enrichment), and a test compares a patched entry with the regenerated one (parity under `testCoverage` is not yet pinned by a test).
 
-The written context files (`CLAUDE.md`, `.github/copilot-instructions.md`, …) are refreshed by **one** full regeneration after `watchSettleMs` (default 5000 ms) of quiet, which also folds the overlay back into the index. Anything that reads those files directly lags by up to that window; queries never wait for it.
+The written context files (`CLAUDE.md`, `.github/copilot-instructions.md`, …) are refreshed by **one** full regeneration after `watchSettleMs` (default 5000 ms) of quiet, which also folds the overlay back into the index. Anything that reads those files directly keeps the old content until the watcher has been quiet for `watchSettleMs` (the timer restarts on every save) and that regeneration has finished; queries never wait for it.
 
 - A burst of more than 200 files (a branch switch, a formatter over the tree), or an event the platform cannot attribute to a file, falls back to one full regeneration.
 - Paths a full run would not index — excluded directories, `.contextignore` matches, anything below `maxDepth` — never wake the watcher.
@@ -2414,8 +2418,8 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.71.0, 508 files) — from .context/sig-index.json
-  Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 104 ms (patch) · written files refresh after 5000 ms quiet
+  Last index:    4m ago (v8.72.0, 508 files) — from .context/sig-index.json
+  Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
 `sigmap status --json` carries the same figures under `live`; `sigmap doctor` adds a **Live index** row, and warns when the overlay holds changes with no watcher running to regenerate the written files. A latency nobody measured prints as `unknown`, not `0`. A watcher counts as running only if its pid is alive **and** it has beaten within the last 90 seconds (it beats every 20), so a crashed watcher whose pid was reused is not mistaken for a live one. Files the overlay already describes are not counted as "changed since" the index, and `sigmap ask` (which ranks through the index) does not warn that its answer is ranked against stale ground on their account. `sigmap judge` and the MCP `read_context` score or serve the *written* file, so for them the same edit still counts as stale until the next full run. `sigmap status` prints the Live index line only when there is an overlay or a recorded watcher to report.
