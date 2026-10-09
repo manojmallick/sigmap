@@ -96,7 +96,7 @@ const EXEMPT = [
  * Files whose counts are point-in-time records. Only explicit CANONICAL entries
  * are enforced inside them; everything else is left frozen.
  */
-const HISTORICAL_FILES = new Set([
+export const HISTORICAL_FILES = new Set([
   'docs-vp/guide/roadmap.md',
   'docs-vp/guide/how-i-built-sigmap.md',
 ]);

@@ -5,7 +5,7 @@
  *  - .npmignore content validation
  *  - gen-context.js shebang line
  *  - VS Code extension manifest structure
- *  - docs search injection across all 6 HTML pages
+ *  - docs site search stays local (VitePress provider, no hosted service)
  *  - npx / bin entry validation via package.json
  */
 
@@ -102,68 +102,26 @@ test('gen-context.js second line is use strict', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Docs site search injection
+// Docs site search
 // ─────────────────────────────────────────────────────────────
+// This block used to assert that six legacy docs/*.html pages each carried a
+// hand-injected search overlay. Those pages no longer deploy (#930); the site is
+// VitePress, whose local provider builds its index in the browser — no external
+// script, no search service. The intent (docs search exists, depends on nothing
+// outside the page) is what is checked now.
 
-console.log('\nDocs search injection\n');
+console.log('\nDocs search\n');
 
-const DOC_PAGES = [
-  'docs/index.html',
-  'docs/quick-start.html',
-  'docs/strategies.html',
-  'docs/languages.html',
-  'docs/roadmap.html',
-  'docs/repomix.html',
-];
+const VP_CONFIG = fs.readFileSync(path.join(ROOT, 'docs-vp/.vitepress/config.mts'), 'utf8');
 
-DOC_PAGES.forEach((page) => {
-  test(`${path.basename(page)} has search overlay element`, () => {
-    const content = fs.readFileSync(path.join(ROOT, page), 'utf8');
-    assert.ok(content.includes('cf-search-overlay'), `${page} should contain cf-search-overlay`);
-  });
-
-  test(`${path.basename(page)} has search input`, () => {
-    const content = fs.readFileSync(path.join(ROOT, page), 'utf8');
-    assert.ok(content.includes('cf-search-input'), `${page} should contain cf-search-input`);
-  });
-
-  test(`${path.basename(page)} has search button injection script`, () => {
-    const content = fs.readFileSync(path.join(ROOT, page), 'utf8');
-    assert.ok(content.includes('cf-search-btn'), `${page} should contain cf-search-btn`);
-  });
-
-  test(`${path.basename(page)} opens search on / keypress`, () => {
-    const content = fs.readFileSync(path.join(ROOT, page), 'utf8');
-    assert.ok(content.includes("e.key==='/'"), `${page} should handle / keypress`);
-  });
-
-  test(`${path.basename(page)} closes search on Escape`, () => {
-    const content = fs.readFileSync(path.join(ROOT, page), 'utf8');
-    assert.ok(content.includes("'Escape'"), `${page} should handle Escape key`);
-  });
+test('docs site enables VitePress local search', () => {
+  assert.ok(/search:\s*\{\s*provider:\s*'local',?\s*\}/.test(VP_CONFIG),
+    "docs-vp/.vitepress/config.mts should set search: { provider: 'local' }");
 });
 
-test('all 6 docs pages have search injected', () => {
-  const patched = DOC_PAGES.filter((p) => {
-    const content = fs.readFileSync(path.join(ROOT, p), 'utf8');
-    return content.includes('cf-search-overlay');
-  });
-  assert.strictEqual(patched.length, 6, `Expected 6 pages with search, got ${patched.length}`);
-});
-
-test('docs search has highlight style', () => {
-  const content = fs.readFileSync(path.join(ROOT, 'docs/index.html'), 'utf8');
-  assert.ok(content.includes('cf-highlight'), 'Should have highlight CSS class');
-});
-
-test('docs search is zero external dependencies (no script src)', () => {
-  DOC_PAGES.forEach((page) => {
-    const content = fs.readFileSync(path.join(ROOT, page), 'utf8');
-    // The search block should not load any external JS
-    const searchBlock = content.split('SigMap docs search')[1] || '';
-    const externalSrc = searchBlock.match(/<script[^>]*src=/);
-    assert.ok(!externalSrc, `${page} search block should have no external script src`);
-  });
+test('docs search uses no external service', () => {
+  assert.ok(!/algolia|appId|apiKey|meilisearch|typesense/i.test(VP_CONFIG),
+    'docs search must not depend on a hosted search provider');
 });
 
 // ─────────────────────────────────────────────────────────────
