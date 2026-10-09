@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-08T13:42:37.139Z",
+  "generated": "2026-10-09T08:19:53.647Z",
   "methodology": {
     "corpus": "benchmarks/tasks/*.jsonl",
     "scorer": "src/eval/scorer.js hitAtK/reciprocalRank, k=5",
@@ -12,7 +12,7 @@
     "repos": 19,
     "sigmap": {
       "hitAt5": 0.896,
-      "mrr": 0.737
+      "mrr": 0.736
     },
     "grepBaseline": {
       "hitAt5": 0.392,
@@ -25,7 +25,7 @@
         "tasks": 110,
         "sigmap": {
           "hitAt5": 0.927,
-          "mrr": 0.762
+          "mrr": 0.761
         },
         "grepBaseline": {
           "hitAt5": 0.373,
@@ -53,7 +53,7 @@
         },
         "grepBaseline": {
           "hitAt5": 0.615,
-          "mrr": 0.295
+          "mrr": 0.299
         }
       },
       "medium": {
@@ -71,7 +71,7 @@
         "tasks": 60,
         "sigmap": {
           "hitAt5": 0.917,
-          "mrr": 0.756
+          "mrr": 0.754
         },
         "grepBaseline": {
           "hitAt5": 0.283,
@@ -238,5 +238,5 @@
       "reason": "repo not cloned"
     }
   ],
-  "version": "8.71.0"
+  "version": "8.72.0"
 }

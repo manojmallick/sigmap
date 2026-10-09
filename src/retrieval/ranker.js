@@ -779,11 +779,42 @@ function _enrichSigIndexFromStrategy(cwd, index) {
   // merged as the BASE rather than on top because _mergeSigIndex only replaces
   // when the source has MORE signatures — a collapsed entry has the same count
   // as its full form, so merging the other way would keep the anchors.
+  let merged = index;
+  let baseMs = null;
   try {
-    const full = require('./sig-index-store').readFullIndex(cwd);
-    if (full.size > 0) return _mergeSigIndex(full, index);
+    const full = require('./sig-index-store').readFullIndexMeta(cwd);
+    if (full.index.size > 0) { merged = _mergeSigIndex(full.index, index); baseMs = full.baseMs; }
   } catch (_) { /* absent → budgeted view is still served */ }
 
+  return _applyLiveOverlay(cwd, merged, baseMs);
+}
+
+/**
+ * Put the live overlay (cache/overlay.js) over a merged index. Unlike the merge
+ * above it REPLACES: an entry newer than the base index is the file's current
+ * truth, whatever its signature count — which is what lets a rename, a removed
+ * symbol or a deleted file show up before the next full run.
+ *
+ * "Base" is when the index began, or — with no retrieval index — when the newest
+ * generated context file was written, so a freshly generated repo is never
+ * overlaid with entries its own generation already saw.
+ */
+function _applyLiveOverlay(cwd, index, baseMs) {
+  try {
+    const overlay = require('../cache/overlay');
+    const entries = overlay.load(cwd);
+    if (entries.size === 0) return index;
+    let since = baseMs;
+    if (!Number.isFinite(since)) {
+      const fs = require('fs');
+      const path = require('path');
+      since = 0;
+      for (const parts of ADAPTER_OUTPUT_PATHS) {
+        try { since = Math.max(since, fs.statSync(path.join(cwd, ...parts)).mtimeMs); } catch (_) {}
+      }
+    }
+    overlay.apply(index, entries, since);
+  } catch (_) { /* the overlay is an accelerator; the base index stands without it */ }
   return index;
 }
 

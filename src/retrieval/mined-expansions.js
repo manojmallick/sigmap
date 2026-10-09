@@ -117,7 +117,8 @@ function loadOrMine(cwd) {
   let ctxMtime = 0;
   try {
     for (const f of fs.readdirSync(path.join(cwd, '.context'))) {
-      if (f === CACHE_FILE) continue;
+      // live.json is watcher telemetry and *.tmp is a write in flight: neither changes the index.
+      if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp')) continue;
       const st = fs.statSync(path.join(cwd, '.context', f));
       if (st.mtimeMs > ctxMtime) ctxMtime = st.mtimeMs;
     }

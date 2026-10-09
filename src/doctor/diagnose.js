@@ -73,9 +73,9 @@ function _mcpTargets(cwd) {
  * Delegates to the shared primitive so `status` counts the same population
  * against the same timestamp (#825).
  */
-function _countChangedSince(cwd, srcDirs, config, ctxMtime) {
+function _countChangedSince(cwd, srcDirs, config, ctxMtime, covered) {
   const { changedSince } = require('../analysis/index-state');
-  return changedSince(cwd, Object.assign({}, config, { srcDirs }), ctxMtime);
+  return changedSince(cwd, Object.assign({}, config, { srcDirs }), ctxMtime, covered);
 }
 
 /**
@@ -211,11 +211,41 @@ function diagnose(cwd, opts = {}) {
         ? sinceMs
         : Math.max(...ctxFiles.map((f) => { try { return fs.statSync(f).mtimeMs; } catch (_) { return 0; } }));
       const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length) ? config.srcDirs : ['src', 'app', 'lib'];
-      const changed = _countChangedSince(cwd, srcDirs, config, refMs);
+      // A file the live overlay already describes is reflected in queries, so it
+      // is not a change the index is missing (#926); the static files it leaves
+      // behind are reported by the "Live index" check below.
+      let covered = null;
+      try { covered = require('../analysis/index-state').liveIndexState(cwd).overlay; } catch (_) {}
+      const changed = _countChangedSince(cwd, srcDirs, config, refMs, covered);
       const from = fresh.source ? ` (from ${fresh.source})` : '';
       if (changed > 0) add('freshness', 'Index freshness', 'warn', `${changed} source file(s) changed since last generate${from}`, 'run: sigmap   (or: sigmap --watch to auto-refresh)');
       else if (indexClass && indexClass.stale) add('freshness', 'Index freshness', 'warn', `sources unchanged${from}, but the index holds ${indexClass.stale} stale entry/entries`, 'run: sigmap   (prunes deleted files), then: sigmap validate');
       else add('freshness', 'Index freshness', 'ok', `index is up to date with sources${from}`);
+    }
+  } catch (_) {}
+
+  // 5b. Live index (#926)
+  //
+  // Only when there is something to say: an overlay holding changes the written
+  // context files do not yet reflect, or a watcher that has recorded how long a
+  // save takes to reach queries. A repo that has never used either gets no row.
+  try {
+    if (ctxFiles.length) {
+      const { liveIndexState } = require('../analysis/index-state');
+      const live = liveIndexState(cwd);
+      if (live.overlayDepth > 0 || live.watcher) {
+        const parts = [];
+        if (live.overlayDepth > 0) parts.push(`${live.overlayDepth} file(s) served from the overlay, not yet in the written context files`);
+        if (live.watcher) parts.push(live.watcher.running ? `watcher running (pid ${live.watcher.pid})` : 'last watcher is not running');
+        if (live.measured) parts.push(`last save → index ${live.lastLatencyMs} ms (${live.lastLatencyPath})`);
+        else if (live.watcher) parts.push('save → index latency not measured yet');
+        const watching = live.watcher && live.watcher.running;
+        if (live.overlayDepth > 0 && !watching) {
+          add('live', 'Live index', 'warn', parts.join(' · '), 'run: sigmap   (regenerates the written files), or: sigmap daemon start');
+        } else {
+          add('live', 'Live index', 'ok', parts.join(' · '));
+        }
+      }
     }
   } catch (_) {}
 
