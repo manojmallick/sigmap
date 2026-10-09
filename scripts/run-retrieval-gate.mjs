@@ -89,7 +89,7 @@ execFileSync(process.execPath, [join(ROOT, 'gen-context.js')], { cwd: DATA, stdi
 
 const { run, rank: rankQuery, loadTasks, buildSigIndex } = require(join(ROOT, 'src/eval/runner'));
 const { queryLeakage } = require(join(ROOT, 'src/eval/corpus'));
-const { buildFromCwd } = require(join(ROOT, 'src/graph/builder'));
+const { buildRankingGraph } = require(join(ROOT, 'src/graph/builder'));
 
 /** What `--why` attributes: one entry per corpus scored this run. */
 const corpora = [];
@@ -204,7 +204,7 @@ function prepare(cwd) {
   if (!prepared.has(cwd)) {
     const index = buildSigIndex(cwd);
     let graph = null;
-    try { graph = buildFromCwd(cwd); } catch (_) { /* run() tolerates this too */ }
+    try { graph = buildRankingGraph(cwd); } catch (_) { /* run() tolerates this too */ }
     prepared.set(cwd, { index, graph, indexed: new Set(index.keys()) });
   }
   return prepared.get(cwd);

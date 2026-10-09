@@ -2157,6 +2157,7 @@ __factories["./src/cache/freshen"] = function(module, exports) {
   const { entryConfig, entrySigs } = __require('./src/cache/entry');
   const { langFor } = __require('./src/extractors/dispatch');
   const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
+  const { resolveGraphDirs } = __require('./src/graph/src-dirs');
 
   const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'packages', 'services', 'api'];
   const DEFAULT_EXCLUDE = [
@@ -2225,15 +2226,23 @@ __factories["./src/cache/freshen"] = function(module, exports) {
       if (base === 0 && entries.size === 0) return 0;
 
       const cfg = _readConfig(cwd);
-      const srcDirs = Array.isArray(cfg.srcDirs) && cfg.srcDirs.length ? cfg.srcDirs : DEFAULT_SRC_DIRS;
+      // A pin wins; without one, the roots detection chose (#934) — otherwise a
+      // zero-config repo whose code sits in `django/` or `internal/` never has an
+      // edit healed, and `ask` answers from the pre-edit index.
+      const srcDirs = Array.isArray(cfg.srcDirs) && cfg.srcDirs.length
+        ? cfg.srcDirs
+        : resolveGraphDirs(cwd, DEFAULT_SRC_DIRS).srcDirs;
       const exclude = new Set([...DEFAULT_EXCLUDE, ...(Array.isArray(cfg.exclude) ? cfg.exclude : [])]);
       const maxDepth = Number.isFinite(cfg.maxDepth) ? cfg.maxDepth : 8;
 
-      const files = [];
+      const walked = [];
       for (const d of srcDirs) {
         const abs = path.isAbsolute(d) ? d : path.join(cwd, d);
-        if (fs.existsSync(abs)) _walk(abs, exclude, files, 0, maxDepth);
+        if (fs.existsSync(abs)) _walk(abs, exclude, walked, 0, maxDepth);
       }
+      // Roots may nest (`.` beside `src`); a file is healed once however often the
+      // walk reached it.
+      const files = [...new Set(walked)];
 
       // Candidates = files changed after the index began that the overlay has not
       // already described (an entry stamped at or after the change has). "Changed"
@@ -8420,7 +8429,7 @@ __factories["./src/eval/runner"] = function(module, exports) {
     const index = buildSigIndex(cwd);
     // Import graph built once too — the hop-1/hop-2 boost is part of what ships.
     let graph = null;
-    try { graph = __require('./src/graph/builder').buildFromCwd(cwd); } catch (_) {}
+    try { graph = __require('./src/graph/builder').buildRankingGraph(cwd); } catch (_) {}
 
     const taskResults = [];
     for (const task of tasks) {
@@ -19881,6 +19890,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
   // Cross-platform node key. Delegates to the ONE shared definition so this graph
   // and the call-graph cannot drift apart again (see src/graph/path-key.js).
   const { graphKey } = __require('./src/graph/path-key');
+  const { resolveGraphDirs, configuredSrcDirs } = __require('./src/graph/src-dirs');
   function normalizePath(p) {
     return graphKey(p);
   }
@@ -19897,6 +19907,81 @@ __factories["./src/graph/builder"] = function(module, exports) {
   const RB_EXTS  = new Set(['.rb', '.rake']);
   const R_EXTS   = new Set(['.r', '.R']);
   const EX_EXTS  = new Set(['.ex', '.exs']);
+
+  // ---------------------------------------------------------------------------
+  // Per-build lookup tables
+  // ---------------------------------------------------------------------------
+  // Go, JVM and Elixir imports name a module, not a file, so each used to be
+  // resolved by scanning EVERY file in the set — normalising its path, twice for
+  // the JVM — per import: O(imports × files). Once the walk follows the detected
+  // roots a repo with a few thousand files spent most of its graph build inside
+  // path.normalize (akka: 24 of 30 s). These tables are built once per file set
+  // and answer the same questions by key, keeping the "first match in set order"
+  // the scans had, so the edge set does not change.
+
+  const _tables = new WeakMap();
+
+  function tablesFor(fileSet) {
+    let t = _tables.get(fileSet);
+    if (t && t.size === fileSet.size) return t;
+    const files = [...fileSet];
+    t = { size: fileSet.size, files, keys: files.map(normalizePath), byBase: null, byDir: null };
+    _tables.set(fileSet, t);
+    return t;
+  }
+
+  function _push(map, key, i) {
+    const a = map.get(key);
+    if (a) a.push(i); else map.set(key, [i]);
+  }
+
+  /** file name → indices of the files carrying it, in set order. */
+  function byBase(t) {
+    if (!t.byBase) {
+      t.byBase = new Map();
+      t.keys.forEach((k, i) => _push(t.byBase, k.slice(k.lastIndexOf(path.sep) + 1), i));
+    }
+    return t.byBase;
+  }
+
+  /** directory component → indices of the files below one, in set order. */
+  function byDir(t) {
+    if (!t.byDir) {
+      t.byDir = new Map();
+      t.keys.forEach((k, i) => {
+        const parts = k.split(path.sep);
+        parts.pop(); // the file name is not a directory
+        for (const p of new Set(parts)) _push(t.byDir, p, i);
+      });
+    }
+    return t.byDir;
+  }
+
+  /** First file (set order) whose key ends with `want` — a normalised relative tail. */
+  function firstEndingWith(t, want) {
+    const cut = want.lastIndexOf(path.sep);
+    if (cut === -1) {
+      // No directory part, so the file-name bucket cannot narrow it: a bare
+      // `Foo.java` is also the tail of `BarFoo.java`. Rare; scan.
+      for (const k of t.keys) if (k.endsWith(want)) return k;
+      return null;
+    }
+    const bucket = byBase(t).get(want.slice(cut + 1));
+    if (!bucket) return null;
+    for (const i of bucket) if (t.keys[i].endsWith(want)) return t.keys[i];
+    return null;
+  }
+
+  /**
+   * First file a Go import's last path segment names: `<suffix>.go`, or any file
+   * below a directory called `<suffix>`.
+   */
+  function firstGoMatch(t, suffix) {
+    const a = byBase(t).get(suffix + '.go');
+    const b = suffix ? byDir(t).get(suffix) : undefined;
+    const i = Math.min(a ? a[0] : Infinity, b ? b[0] : Infinity);
+    return i === Infinity ? null : t.keys[i];
+  }
 
   /**
    * Probe an absolute base path for a JS/TS module file in fileSet, trying the
@@ -20149,15 +20234,11 @@ __factories["./src/graph/builder"] = function(module, exports) {
       }
       while ((m = reInline.exec(content)) !== null) imports.push(m[1]);
 
-      for (const imp of imports) {
-        const suffix = imp.split('/').pop();
-        for (const f of fileSet) {
-          const normF = normalizePath(f);
-          if (normF.endsWith(path.sep + suffix + '.go') ||
-              normF.includes(path.sep + suffix + path.sep)) {
-            found.push(normF);
-            break;
-          }
+      if (imports.length > 0) {
+        const t = tablesFor(fileSet);
+        for (const imp of imports) {
+          const hit = firstGoMatch(t, imp.split('/').pop());
+          if (hit) found.push(hit);
         }
       }
     }
@@ -20186,11 +20267,10 @@ __factories["./src/graph/builder"] = function(module, exports) {
       while ((m = re.exec(content)) !== null) {
         // Convert com.example.utils.StringHelper → com/example/utils/StringHelper.java
         const asPath = m[1].replace(/\./g, path.sep);
+        const t = tablesFor(fileSet);
         for (const jvmExt of ['.java', '.kt', '.kts', '.scala', '.sc']) {
-          for (const f of fileSet) {
-            const normF = normalizePath(f);
-            if (normF.endsWith(normalizePath(asPath + jvmExt))) { found.push(normF); break; }
-          }
+          const hit = firstEndingWith(t, normalizePath(asPath + jvmExt));
+          if (hit) found.push(hit);
         }
       }
     }
@@ -20223,10 +20303,12 @@ __factories["./src/graph/builder"] = function(module, exports) {
         if (segs.length >= 2) suffixes.push(segs.slice(-2).join('/') + '.ex');
         suffixes.push(segs[segs.length - 1] + '.ex');
         let hit = null;
+        const t = tablesFor(fileSet);
         for (const suf of suffixes) {
-          for (const f of fileSet) {
-            if (f === filePath) continue;
-            if (normalizePath(f).endsWith('/' + suf)) { hit = f; break; }
+          const bucket = byBase(t).get(suf.slice(suf.lastIndexOf('/') + 1)) || [];
+          for (const i of bucket) {
+            if (t.files[i] === filePath) continue;
+            if (t.keys[i].endsWith('/' + suf)) { hit = t.files[i]; break; }
           }
           if (hit) break;
         }
@@ -20349,17 +20431,11 @@ __factories["./src/graph/builder"] = function(module, exports) {
 
   /**
    * Source directories declared in the project's own config, or null when there
-   * is no readable config. Read directly rather than through `loadConfig`, which
-   * can fetch `extends` over the network and spawn a child process — neither is
-   * acceptable inside a graph build.
+   * is no readable config. See src-dirs.js for why this does not go through
+   * `loadConfig`.
    */
   function _configuredSrcDirs(cwd) {
-    try {
-      const raw = fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8');
-      const cfg = JSON.parse(raw);
-      if (Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0) return cfg.srcDirs;
-    } catch (_) { /* absent or unparsable — fall back to the defaults */ }
-    return null;
+    return configuredSrcDirs(cwd);
   }
 
   /**
@@ -20367,8 +20443,10 @@ __factories["./src/graph/builder"] = function(module, exports) {
    * files under srcDirs. Useful for the MCP tool handler.
    *
    * srcDirs resolution order: explicit `opts.srcDirs` → `gen-context.config.json`
-   * → DEFAULT_SRC_DIRS. Without the config step the graph is empty on any repo
-   * whose sources do not sit under a conventionally-named directory.
+   * → the source roots detection chose, plus DEFAULT_SRC_DIRS (src-dirs.js). The
+   * config step keeps the graph from being empty on a Maven/Gradle layout; the
+   * detection step does the same for every repo that has no config at all, which
+   * is most of them (django/, packages/*, internal/, a flat Go module).
    *
    * @param {string} cwd
    * @param {object} [opts]
@@ -20381,11 +20459,15 @@ __factories["./src/graph/builder"] = function(module, exports) {
   function buildFromCwd(cwd, opts) {
     // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
     // The existence check below makes these no-ops in non-R projects.
-    const {
-      srcDirs = _configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS,
-      exclude = ['node_modules', '.git', 'dist', 'build'],
-      maxDepth = DEFAULT_WALK_DEPTH,
-    } = opts || {};
+    const o = opts || {};
+    const maxDepth = o.maxDepth === undefined ? DEFAULT_WALK_DEPTH : o.maxDepth;
+    let { srcDirs, exclude } = o;
+    if (srcDirs === undefined) {
+      const dirs = resolveGraphDirs(cwd, DEFAULT_SRC_DIRS);
+      srcDirs = dirs.srcDirs;
+      if (exclude === undefined && dirs.exclude) exclude = dirs.exclude;
+    }
+    if (exclude === undefined) exclude = ['node_modules', '.git', 'dist', 'build'];
     const excludeSet = new Set(exclude);
 
     // Collects into one shared array. Returning a list per directory and
@@ -20439,7 +20521,30 @@ __factories["./src/graph/builder"] = function(module, exports) {
     return build(files, cwd, ctx);
   }
 
-  module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };
+  /**
+   * The graph the RANKER is handed. Deliberately the walk `buildFromCwd` did
+   * before #934: the project's pinned srcDirs, else the conventional names.
+   *
+   * Why not the detected roots. The neighbour boost adds 0.40 per importing seed
+   * with no bound, and was calibrated on graphs of a few hundred files. Over the
+   * whole Django graph (2,971 files) one module that 180 matching files import
+   * collects +72 on a base score of 12 and the answer falls out of the top 5.
+   * Measured on xrepo that is net zero hits (+3 / -3) with django 3 -> 1, and the
+   * damping that fixes it moves the published self-corpus numbers — a measured
+   * change of its own (#935). Until then ranking, the benchmarks that score it
+   * and the product that ships it all see the same graph they always did, and
+   * only the surfaces that report a blast radius see the real one.
+   *
+   * @param {string} cwd
+   * @param {object} [opts] as buildFromCwd; an explicit `srcDirs` still wins
+   */
+  function buildRankingGraph(cwd, opts) {
+    const o = opts || {};
+    if (o.srcDirs !== undefined) return buildFromCwd(cwd, o);
+    return buildFromCwd(cwd, Object.assign({}, o, { srcDirs: configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS }));
+  }
+
+  module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };
   
 };
 
@@ -20466,6 +20571,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { build } = __require('./src/graph/builder');
+  const { resolveGraphDirs, configuredSrcDirs } = __require('./src/graph/src-dirs');
   const { maskCode } = __require('./src/extractors/scan');
 
   const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
@@ -20941,19 +21047,6 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   // previous ceiling of 8 never saw the classes that own the method bodies.
   const DEFAULT_WALK_DEPTH = 12;
 
-  /**
-   * Source directories declared in the project's own config, or null. Read
-   * directly rather than through `loadConfig`, which can fetch `extends` over the
-   * network and spawn a child process — neither belongs inside a graph build.
-   */
-  function _configuredSrcDirs(cwd) {
-    try {
-      const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
-      if (Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0) return cfg.srcDirs;
-    } catch (_) { /* absent or unparsable — fall back to the defaults */ }
-    return null;
-  }
-
   function _walk(dir, excludeSet, out, depth, maxDepth) {
     if (depth > (maxDepth === undefined ? DEFAULT_WALK_DEPTH : maxDepth)) return;
     let entries;
@@ -20985,17 +21078,29 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
    * }}
    */
   function buildCallGraph(cwd, opts = {}) {
-    const excludeSet = new Set(opts.exclude || ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor']);
     let files = opts.files ? opts.files.map((f) => path.resolve(f)) : [];
+    let srcDirs = opts.srcDirs;
+    let exclude = opts.exclude;
     if (!opts.files) {
-      // Same resolution order as the dependency graph (#560): explicit opts →
-      // the project's own config → the historical defaults. Without the config
-      // step this is empty on any repo whose sources are not under src/app/lib.
-      const srcDirs = opts.srcDirs || _configuredSrcDirs(cwd) || ['src', 'app', 'lib'];
+      // Same resolution as the dependency graph (#560, #934): explicit opts →
+      // the project's own config → the source roots detection chose plus the
+      // historical defaults. Without the last step this is empty on any repo
+      // whose sources are not under src/app/lib — and so is `--callers`.
+      if (srcDirs == null) {
+        const dirs = resolveGraphDirs(cwd, ['src', 'app', 'lib']);
+        srcDirs = dirs.srcDirs;
+        if (exclude == null && dirs.exclude) exclude = dirs.exclude;
+      }
+    }
+    const excludeSet = new Set(exclude || ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor']);
+    if (!opts.files) {
       for (const sd of srcDirs) {
         const abs = path.resolve(cwd, sd);
         if (fs.existsSync(abs)) _walk(abs, excludeSet, files, 0, opts.maxDepth);
       }
+      // Roots may nest (`.` beside `src`); a file is one node however often the
+      // walk reached it.
+      files = [...new Set(files)];
     }
 
     // File-level import graph (for precise call-site resolution). Keys normalized.
@@ -21164,9 +21269,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       for (const [k, set] of mapOfSets.entries()) out.set(k, [...set]);
       return out;
     };
-    const scopeRoots = opts.files
-      ? ['(explicit file list)']
-      : (opts.srcDirs || _configuredSrcDirs(cwd) || ['src', 'app', 'lib']);
+    const scopeRoots = opts.files ? ['(explicit file list)'] : srcDirs;
     return {
       forward: toArr(forward), reverse: toArr(reverse), defs, edgeConfidence,
       scope: { roots: scopeRoots, files: files.length, dynamicLoads },
@@ -21340,8 +21443,19 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     };
   }
 
+  /**
+   * `buildCallFileGraph` as the RANKER's opt-in call-neighbour boost has always
+   * seen it: the project's pinned srcDirs, else `src app lib`. The detected roots
+   * are for the blast-radius surfaces; what ranking is handed waits on #935 (see
+   * `buildRankingGraph` in builder.js for the measurement).
+   */
+  function buildRankingCallFileGraph(cwd, opts = {}) {
+    if (opts.srcDirs != null || opts.files) return buildCallFileGraph(cwd, opts);
+    return buildCallFileGraph(cwd, Object.assign({}, opts, { srcDirs: configuredSrcDirs(cwd) || ['src', 'app', 'lib'] }));
+  }
+
   module.exports = {
-    buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, methodImpact, methodCallees,
+    buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, buildRankingCallFileGraph, methodImpact, methodCallees,
     formatCallGraph, formatCallGraphJSON,
     extractDefs, maskJs, maskPy, maskRust,
   };
@@ -21726,6 +21840,143 @@ __factories["./src/graph/path-key"] = function(module, exports) {
   }
 
   module.exports = { graphKey, displayPath };
+  
+};
+
+// ── ./src/graph/src-dirs ──
+__factories["./src/graph/src-dirs"] = function(module, exports) {
+  
+  /**
+   * Which directories a graph walk starts from (#934).
+   *
+   * The import graph, the call graph and the live-overlay freshen each carried
+   * their own hard-coded directory list (`src app lib …`), so on any repo without
+   * a `srcDirs` pin they walked a different set of files than the index — and on
+   * a repo whose code sits in `django/`, `packages/*`, `internal/` or the repo
+   * root itself, none at all. This is the one answer they all ask instead.
+   *
+   * Resolution order, same as the index's own:
+   *
+   *   1. `gen-context.config.json` `srcDirs`        — the project's own pin
+   *   2. the source roots detection chose           — what `generate` walks
+   *      PLUS the conventional defaults the caller passes (union, so no repo ends
+   *      up with a smaller walk than it had before detection was consulted)
+   *
+   * An explicit `opts.srcDirs` from a caller is resolved by the caller and never
+   * reaches here.
+   *
+   * Reads the config file directly rather than through `loadConfig`, which can
+   * fetch `extends` over the network and spawn a child process — neither belongs
+   * inside a graph build. Detection failing for any reason degrades to the
+   * caller's defaults; it never throws into a graph build.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  // Never source, whatever a project's own `exclude` says: a config that lists
+  // only `["dist"]` still must not send a walk into node_modules or .git.
+  const ALWAYS_EXCLUDED = ['node_modules', '.git'];
+
+  function readConfig(cwd) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
+      return cfg && typeof cfg === 'object' ? cfg : null;
+    } catch (_) { return null; /* absent or unparsable — the caller falls back */ }
+  }
+
+  /**
+   * Source directories pinned in the project's own config, or null.
+   * @param {string} cwd
+   * @returns {string[]|null}
+   */
+  function configuredSrcDirs(cwd) {
+    const cfg = readConfig(cwd);
+    return cfg && Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0 ? cfg.srcDirs : null;
+  }
+
+  /**
+   * The exclude list the index walks with: the project's own `exclude` when it
+   * sets one (the loader replaces the default array, not merges it), else the
+   * shipped default. Always keeps node_modules and .git out.
+   */
+  function excludeList(cfg) {
+    let base;
+    if (cfg && Array.isArray(cfg.exclude)) base = cfg.exclude;
+    else base = __require('./src/config/defaults').DEFAULTS.exclude;
+    return [...new Set([...ALWAYS_EXCLUDED, ...base])];
+  }
+
+  // Detection walks the tree and asks git which directories changed recently —
+  // tens of milliseconds on a small repo, a few hundred on a large one — and a
+  // long-lived process (the MCP server, `watch`) asks on every read. A repo's
+  // roots do not change between two reads seconds apart, so one answer is reused
+  // briefly. The config file is NOT cached: a pin added a moment ago must win.
+  const DETECT_TTL_MS = 10000;
+  const _detected = new Map();
+
+  function detectedRoots(cwd, exclude) {
+    const key = cwd + '\0' + exclude.join('\n');
+    const now = Date.now();
+    const hit = _detected.get(key);
+    if (hit && now - hit.at < DETECT_TTL_MS) return hit.roots;
+
+    let roots = [];
+    try {
+      const { resolveSourceRoots } = __require('./src/discovery/source-root-resolver');
+      const result = resolveSourceRoots(cwd, { exclude });
+      if (Array.isArray(result.roots)) roots = result.roots;
+    } catch (_) { /* degrade to the caller's defaults */ }
+    _detected.set(key, { at: now, roots });
+    return roots;
+  }
+
+  /** Forget remembered detections — for tests that change a layout in place. */
+  function clearDetectionCache() { _detected.clear(); }
+
+  // Repo-relative, forward-slashed, no leading `./` or trailing `/` — the form
+  // two spellings of one directory compare equal in.
+  const norm = (d) => String(d).replace(/\\/g, '/').replace(/^(\.\/)+/, '').replace(/\/+$/, '') || '.';
+
+  /** Order-preserving union; a directory spelled twice is kept once. */
+  function mergeDirs(first, second) {
+    const seen = new Set();
+    const out = [];
+    for (const d of [...first, ...second]) {
+      const key = norm(d);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(d);
+    }
+    return out;
+  }
+
+  /**
+   * Resolve the directories a graph walk starts from.
+   *
+   * @param {string}   cwd
+   * @param {string[]} defaults  the conventional names the caller always tried
+   * @returns {{ srcDirs: string[], exclude: string[]|null, source: 'config'|'detected' }}
+   *   `exclude` is null for a pinned config — the caller keeps its own legacy
+   *   list there, so a pinned repo's graph is exactly what it was. It is the
+   *   index's list when the dirs came from detection, because a detected root can
+   *   be `.` (a flat Go module) and a walk from there must skip build output.
+   */
+  function resolveGraphDirs(cwd, defaults) {
+    const pinned = configuredSrcDirs(cwd);
+    if (pinned) return { srcDirs: pinned, exclude: null, source: 'config' };
+
+    const exclude = excludeList(readConfig(cwd));
+    return {
+      srcDirs: mergeDirs(detectedRoots(cwd, exclude), defaults || []),
+      exclude,
+      source: 'detected',
+    };
+  }
+
+  module.exports = { resolveGraphDirs, configuredSrcDirs, mergeDirs, clearDetectionCache, ALWAYS_EXCLUDED };
   
 };
 
@@ -23595,11 +23846,15 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
   //   reads-env      file → env          (per-file env reads, #629)
   // v3 (#632): file nodes carry a `tokens` estimate (chars/4 over signatures);
   // graph endpoints missing from the signature index still get file nodes.
+  // v4 (#934): the import graph follows the detected source roots. A v3 map of a
+  // zero-config repo holds an empty or partial graph, and its cache key (the
+  // newest `.context` mtime) does not move on upgrade — so the bump is what makes
+  // `get_impact` rebuild it once instead of answering from the old graph.
   // Serialization: nodes sorted by id, edges by (from, kind, to), keys sorted
   // recursively — two builds of the same tree are byte-identical. Symbol nodes
   // are capped per file and the cap is disclosed in `truncated`.
 
-  const SCHEMA_VERSION = 3;
+  const SCHEMA_VERSION = 4;
   const MAX_SYMBOLS_PER_FILE = 50;
   const CACHE_FILE = 'knowledge-map.json';
 
@@ -24740,14 +24995,14 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
 
     try {
       const { rank, buildSigIndex, formatRankTable } = __require('./src/retrieval/ranker');
-      const { buildFromCwd } = __require('./src/graph/builder');
+      const { buildRankingGraph } = __require('./src/graph/builder');
       const index = buildSigIndex(cwd);
       if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
 
       const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
       // Build dependency graph for neighbor boost — non-fatal if it fails
       let graph = null;
-      try { graph = buildFromCwd(cwd); } catch (_) {}
+      try { graph = buildRankingGraph(cwd); } catch (_) {}
       // Opt-in call-graph neighbor boost + surface enrichment + centrality blend — non-fatal
       let callGraph = null;
       let centrality = null;
@@ -24757,7 +25012,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
         const { loadConfig } = __require('./src/config/loader');
         const retrieval = loadConfig(cwd).retrieval;
         if (retrieval && retrieval.callGraphBoost) {
-          callGraph = __require('./src/graph/call-graph').buildCallFileGraph(cwd);
+          callGraph = __require('./src/graph/call-graph').buildRankingCallFileGraph(cwd);
         }
         if (retrieval && retrieval.surfaceEnrichment) {
           __require('./src/retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd);
@@ -40620,7 +40875,7 @@ function main() {
     // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
     let askCallGraph = null;
     if (config && config.retrieval && config.retrieval.callGraphBoost) {
-      try { askCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
+      try { askCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildRankingCallFileGraph(cwd); } catch (_) {}
     }
     // Opt-in route surface-enrichment (retrieval.surfaceEnrichment) — non-fatal
     if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
@@ -40630,7 +40885,7 @@ function main() {
     let askCentrality = null;
     if (config && config.retrieval && config.retrieval.centralityBlend) {
       try {
-        const askCentralityGraph = requireSourceOrBundled('./src/graph/builder').buildFromCwd(cwd);
+        const askCentralityGraph = requireSourceOrBundled('./src/graph/builder').buildRankingGraph(cwd);
         askCentrality = requireSourceOrBundled('./src/graph/centrality').computeCentrality(askCentralityGraph);
       } catch (_) {}
     }
@@ -44006,7 +44261,7 @@ function main() {
       // Opt-in call-graph neighbor boost (retrieval.callGraphBoost) — non-fatal
       let queryCallGraph = null;
       if (config && config.retrieval && config.retrieval.callGraphBoost) {
-        try { queryCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildCallFileGraph(cwd); } catch (_) {}
+        try { queryCallGraph = requireSourceOrBundled('./src/graph/call-graph').buildRankingCallFileGraph(cwd); } catch (_) {}
       }
       // Opt-in route surface-enrichment (retrieval.surfaceEnrichment) — non-fatal
       if (config && config.retrieval && config.retrieval.surfaceEnrichment) {
@@ -44016,7 +44271,7 @@ function main() {
       let queryCentrality = null;
       if (config && config.retrieval && config.retrieval.centralityBlend) {
         try {
-          const centralityGraph = requireSourceOrBundled('./src/graph/builder').buildFromCwd(cwd);
+          const centralityGraph = requireSourceOrBundled('./src/graph/builder').buildRankingGraph(cwd);
           queryCentrality = requireSourceOrBundled('./src/graph/centrality').computeCentrality(centralityGraph);
         } catch (_) {}
       }

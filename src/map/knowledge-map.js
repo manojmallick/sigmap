@@ -32,11 +32,15 @@ const { collectTargets } = require('./build-ci');
 //   reads-env      file → env          (per-file env reads, #629)
 // v3 (#632): file nodes carry a `tokens` estimate (chars/4 over signatures);
 // graph endpoints missing from the signature index still get file nodes.
+// v4 (#934): the import graph follows the detected source roots. A v3 map of a
+// zero-config repo holds an empty or partial graph, and its cache key (the
+// newest `.context` mtime) does not move on upgrade — so the bump is what makes
+// `get_impact` rebuild it once instead of answering from the old graph.
 // Serialization: nodes sorted by id, edges by (from, kind, to), keys sorted
 // recursively — two builds of the same tree are byte-identical. Symbol nodes
 // are capped per file and the cap is disclosed in `truncated`.
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const MAX_SYMBOLS_PER_FILE = 50;
 const CACHE_FILE = 'knowledge-map.json';
 
