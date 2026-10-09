@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Allow: /llms.txt
-Allow: /llms-full.txt
-
-Sitemap: https://sigmap.io/sitemap.xml

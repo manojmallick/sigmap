@@ -158,20 +158,21 @@ function testHealthJsonTokensReduction() {
 }
 
 // ---------------------------------------------------------------------------
-// Feature 6: docs/start.html exists and has key structure
+// Feature 6: the onboarding URL still leads somewhere useful
 // ---------------------------------------------------------------------------
+// This used to check the interactive wizard at docs/start.html. That page belonged
+// to the legacy site, which no longer deploys (#930); /start.html is now a redirect
+// stub to the quick start, like every other URL the legacy site served.
 function testOnboardingPage() {
-  const htmlPath = path.join(ROOT, 'docs', 'start.html');
-  assert('feature-6 start.html: file exists', fs.existsSync(htmlPath), 'file not found');
-  if (!fs.existsSync(htmlPath)) return;
-  const html = fs.readFileSync(htmlPath, 'utf8');
-  assert('feature-6 start.html: has step-0 (AI tool)', html.includes('id="step-0"'), 'no step-0');
-  assert('feature-6 start.html: has step-1 (structure)', html.includes('id="step-1"'), 'no step-1');
-  assert('feature-6 start.html: has step-2 (first time)', html.includes('id="step-2"'), 'no step-2');
-  assert('feature-6 start.html: has result block', html.includes('id="result"'), 'no result block');
-  assert('feature-6 start.html: has npx sigmap', html.includes('npx sigmap'), 'no npx sigmap');
-  assert('feature-6 start.html: has copy button logic', html.includes('Copy'), 'no copy button');
-  assert('feature-6 start.html: has restart function', html.includes('restart()'), 'no restart fn');
+  const stub = path.join(ROOT, 'docs-vp', 'public', 'start.html');
+  assert('feature-6 start.html: redirect stub exists', fs.existsSync(stub), 'file not found');
+  if (!fs.existsSync(stub)) return;
+  const html = fs.readFileSync(stub, 'utf8');
+  assert('feature-6 start.html: redirects to the quick start',
+    html.includes('url=/guide/quick-start'), 'no meta refresh to /guide/quick-start');
+  assert('feature-6 start.html: canonical points at the quick start',
+    html.includes('rel="canonical" href="https://sigmap.io/guide/quick-start"'), 'no canonical');
+  assert('feature-6 start.html: not indexed', html.includes('noindex'), 'no noindex');
 }
 
 // ---------------------------------------------------------------------------

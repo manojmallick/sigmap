@@ -33,6 +33,7 @@ function readGuide(file) {
   return fs.readFileSync(path.join(GUIDE_DIR, file), 'utf8');
 }
 
+// docs/ holds only the SVG assets the README embeds (the legacy HTML site was retired in #930).
 function readDocs(file) {
   return fs.readFileSync(path.join(DOCS_DIR, file), 'utf8');
 }
@@ -120,25 +121,27 @@ test('generalization.md: has "Why this matters" intro paragraph', () => {
 });
 
 // ── Fix 2: 30-second demo strip on homepage ───────────────────────────────────
+// Read from docs-vp/index.md — the homepage that deploys. The legacy docs/index.html
+// these assertions used to read was retired in #930.
 
-test('docs/index.html: contains demo-strip section', () => {
-  const src = readDocs('index.html');
-  assert.ok(src.includes('demo-strip'), 'missing demo-strip section in homepage');
+test('docs-vp/index.md: contains the 30-second start section', () => {
+  const src = readRoot('docs-vp/index.md');
+  assert.ok(src.includes('## 30-second start'), 'missing 30-second start section in homepage');
 });
 
-test('docs/index.html: demo strip contains sigmap ask command', () => {
-  const src = readDocs('index.html');
-  assert.ok(src.includes('sigmap ask'), 'missing "sigmap ask" in demo strip');
+test('docs-vp/index.md: 30-second start contains sigmap ask command', () => {
+  const src = readRoot('docs-vp/index.md');
+  assert.ok(src.includes('sigmap ask'), 'missing "sigmap ask" in 30-second start');
 });
 
-test('docs/index.html: demo strip contains sigmap validate command', () => {
-  const src = readDocs('index.html');
-  assert.ok(src.includes('sigmap validate'), 'missing "sigmap validate" in demo strip');
+test('docs-vp/index.md: 30-second start contains sigmap validate command', () => {
+  const src = readRoot('docs-vp/index.md');
+  assert.ok(src.includes('sigmap validate'), 'missing "sigmap validate" in 30-second start');
 });
 
-test('docs/index.html: demo strip contains sigmap judge command', () => {
-  const src = readDocs('index.html');
-  assert.ok(src.includes('sigmap judge'), 'missing "sigmap judge" in demo strip');
+test('docs-vp/index.md: 30-second start contains sigmap judge command', () => {
+  const src = readRoot('docs-vp/index.md');
+  assert.ok(src.includes('sigmap judge'), 'missing "sigmap judge" in 30-second start');
 });
 
 // ── Fix 3: user-type routing in docs landing ──────────────────────────────────
@@ -210,15 +213,10 @@ test('walkthrough.md: shows before/after token comparison', () => {
 
 // ── Fix 7: micro trust leak audit ─────────────────────────────────────────────
 
-test('docs/index.html: no stale "21 languages" in stats bar', () => {
-  const src = readDocs('index.html');
-  assert.ok(!src.includes('>21<'), 'found stale >21< stat in homepage');
-});
-
-test('docs/index.html: stats bar shows 29 languages', () => {
-  const src = readDocs('index.html');
-  assert.ok(src.includes('>29<'), 'missing >29< stat in homepage');
-});
+// The homepage language count is guarded against version.json by
+// scripts/check-doc-counts.mjs (test/integration/doc-counts.test.js) — for the page
+// that deploys. The two stats-bar assertions that were here read docs/index.html,
+// retired in #930, and one of them required the stale ">29<".
 
 test('docs/impact-banner.svg: no stale 80.0% hit@5', () => {
   const src = readDocs('impact-banner.svg');
@@ -254,11 +252,14 @@ test('docs/comparison-chart.svg: hit@5 matches version.json', () => {
   assert.ok(src.includes(expected), `missing ${expected} in comparison-chart.svg`);
 });
 
-test('docs/index.html: softwareVersion matches version.json', () => {
-  const src = readDocs('index.html');
+test('docs-vp/index.md: release banner matches version.json', () => {
+  // Replaces the softwareVersion check on docs/index.html (retired in #930), whose hand
+  // edit every release broke the suite twice. The homepage that deploys states the
+  // release in its banner, and /update-docs already syncs that line.
+  const src = readRoot('docs-vp/index.md');
   const v = JSON.parse(readRoot('version.json')).version;
-  assert.ok(src.includes(`"softwareVersion":"${v}"`),
-    `structured data softwareVersion should be "${v}" (from version.json)`);
+  assert.ok(src.includes(`<strong>Release:</strong> v${v}`),
+    `homepage release banner should read "Release: v${v}" (from version.json)`);
 });
 
 // ── Summary ───────────────────────────────────────────────────────────────────
