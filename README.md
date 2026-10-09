@@ -126,7 +126,7 @@ Ask → Rank → Context → Validate → Judge → Learn
 <!--SM:benchmarkBlock-->
 ```
 Benchmark : sigmap-v8.72-main (21 repositories, including R language)
-Date      : 2026-10-08
+Date      : 2026-10-09
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
 Honest vs grep : 89.6% vs 39.2% grep baseline — 2.29× lift (125 tasks / 19 repos)

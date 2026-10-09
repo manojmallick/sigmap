@@ -9,7 +9,7 @@ description: How SigMap scores the reach of a change, why it is a documented for
 |---|---|
 | **Status** | Accepted |
 | **Recorded** | 2026-10-09 ([#930](https://github.com/manojmallick/sigmap/issues/930)); the formula shipped in v8.13.0 ([#468](https://github.com/manojmallick/sigmap/issues/468)) |
-| **Applies to** | `review-pr` (`method-blast` finding), the PR Evidence report, MCP `get_method_impact` |
+| **Applies to** | `review-pr` (the `method-blast` finding) and the PR Evidence report. MCP `get_method_impact` lists a symbol's callers but does not compute this score |
 
 ## Context
 
@@ -36,17 +36,17 @@ There are two layers, and only the second weights anything.
 
 ## Why
 
-1. **A formula anyone can recompute.** Every number is arithmetic on two counts a reviewer can list; the report names up to 12 of the impacted functions. There are no learned weights and no run-to-run variance, so `review-pr` findings and PR Evidence lines are byte-stable for a fixed tree (the test asserts two runs deep-equal).
-2. **Direct callers are weighed above transitive ones** because they are the functions that call the changed code itself. How much more is the open question under Consequences.
+1. **A formula anyone can recompute.** Every number is arithmetic on two counts a reviewer can list; the PR Evidence report names the first 6 impacted functions and `review-pr --json` carries up to 12. There are no learned weights and no run-to-run variance, so `review-pr` findings and PR Evidence lines are byte-stable for a fixed tree (the test asserts two runs deep-equal).
+2. **Direct callers are weighed above transitive ones** — evidently because they are the functions that call the changed code itself, though the repository records no reason. How much more is the open question under Consequences.
 3. **A score that can be wrong in a known direction beats one that cannot be inspected.** A reviewer who disagrees with a tier can see exactly which callers produced it.
 
 ## Consequences
 
 - **The 4:1 ratio is a stated convention, not a fitted value.** Nothing in the repository records how 4 was chosen or checks it against real regressions. The tiers are labels on that convention, and a reader should treat them that way.
-- **It saturates.** Twenty-five direct callers already score 100, so a large reach and a very large one are indistinguishable.
+- **It saturates.** Twenty-five direct callers already score 100, so a large reach and a very large one are indistinguishable by score (the evidence line still prints the function count).
 - **It counts callers, not importance.** Test callers count toward the score and are also reported separately, so a heavily tested leaf can read higher than a barely tested hub.
-- **It is only as good as the call graph,** which is built from the same hand-written extractors as everything else ([ADR 0002](/adr/0002-hand-written-extractors-no-tree-sitter)). Dynamic dispatch, reflection and cross-language calls are invisible to it.
-- **Unknown stays unknown.** When no call graph can be built the result is `available: false`, not a score of zero.
+- **It is only as good as the call graph,** which is built by dependency-free regex and brace/indent matching in `src/graph/call-graph.js`, sharing the scanner's masking with the extractors ([ADR 0002](/adr/0002-hand-written-extractors-no-tree-sitter)). Dynamic dispatch, reflection and cross-language calls are invisible to it.
+- **Unknown is flagged, with a caveat.** When no call graph can be built, or no changed file defines a function in it, the result is `available: false`; its `aggregate` is zeroed, and `review-pr` ignores it rather than reporting a score.
 
 ## Evidence
 

@@ -1,9 +1,9 @@
 ---
 title: "ADR 0003 — No LLM in the deterministic core"
-description: Why nothing on the path that produces SigMap's output calls a model or the network, where a model is allowed, and what that rules out.
+description: Why nothing on the path that produces SigMap's output calls a model, why the network is limited to two opt-in paths, where a model is allowed, and what that rules out.
 ---
 
-# ADR 0003 — No LLM call, and no network, on the path that produces SigMap's output
+# ADR 0003 — No LLM call on the path that produces SigMap's output, and no network beyond two opt-in paths
 
 | | |
 |---|---|
@@ -17,15 +17,15 @@ AI-assisted code tools commonly put a model in the loop: to summarise files, to 
 
 ## Decision
 
-No code on the path that produces SigMap's output calls an LLM, an embedding service or the network. The same repository and the same question give a byte-identical result. A model appears only at the edge:
+No code on the path that produces SigMap's output calls an LLM or an embedding service, and none calls the network except two opt-in paths: a remote config `extends` URL and the Willow adapter (see Consequences). The same repository, configuration, local state and question give a byte-identical result. A model appears only at the edge:
 
 - the user's own agent, which reads SigMap's output;
-- opt-in scripts under `scripts/` that measure with a live model — `scripts/run-llm-ablation.mjs` says its own network access *"is confined to scripts/ (never the published library surface)"*. The published package (`files` in `package.json`) does not include `scripts/`.
+- an opt-in script, `scripts/run-llm-ablation.mjs`, that measures with a live model; it says its own network access *"is confined to scripts/ (never the published library surface)"*. The published package (`files` in `package.json`) does not include `scripts/`.
 
 ## Why
 
 1. **Reproducible, diffable, gateable.** A fixed input must give a fixed output, or CI cannot gate on it and a reviewer cannot tell a change in the code from a change in a model.
-2. **A checker should not share the checked thing's failure mode.** `verify` and `judge` exist to catch an AI answer that names a function that does not exist. A judge that is itself a model is checking a guess with a guess. Both are structural: they resolve claims against the symbol index, the source and the import graph.
+2. **A checker should not share the checked thing's failure mode.** `verify` and `judge` exist to catch an AI answer that names a function that does not exist. A judge that is itself a model would be checking a guess with a guess (this is the reasoning behind the decision, not a recorded quote). `verify` resolves claims against the symbol index, the source files, the checkout's manifests and installed libraries; `judge` adds a lexical overlap score to that claim check.
 3. **No key, no account, no data leaving the machine.** Nothing to configure and nothing to disclose.
 
 ## Consequences
