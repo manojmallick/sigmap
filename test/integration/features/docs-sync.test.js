@@ -13,7 +13,6 @@ const path   = require('path');
 
 const ROOT      = path.resolve(__dirname, '../../..');
 const GUIDE_DIR = path.join(ROOT, 'docs-vp', 'guide');
-const DOCS_DIR  = path.join(ROOT, 'docs');
 
 let passed = 0;
 let failed = 0;
@@ -31,10 +30,6 @@ function test(name, fn) {
 
 function readGuide(file) {
   return fs.readFileSync(path.join(GUIDE_DIR, file), 'utf8');
-}
-
-function readDocs(file) {
-  return fs.readFileSync(path.join(DOCS_DIR, file), 'utf8');
 }
 
 console.log('\nv5.6 docs sync tests\n');
@@ -109,17 +104,10 @@ test('cli.md: no raw "verdict" key in JSON example', () => {
 });
 
 // ── Language count ────────────────────────────────────────────────────────────
-
-test('docs/index.html: heading uses 29 languages (not 21)', () => {
-  const src = readDocs('index.html');
-  assert.ok(!src.includes('21 languages'), 'found "21 languages" in docs/index.html');
-  assert.ok(src.includes('29 languages'), 'missing "29 languages" in docs/index.html');
-});
-
-test('docs/index.html: structured-data description uses 29 languages', () => {
-  const src = readDocs('index.html');
-  assert.ok(!src.includes('Extracts signatures from 21'), 'found old "21" count in structured-data');
-});
+// The language count is guarded against version.json for every page that deploys
+// (scripts/check-doc-counts.mjs, test/integration/doc-counts.test.js). The two
+// assertions that used to live here read docs/index.html, the legacy site that
+// no longer deploys, and one of them required the stale "29 languages" (#930).
 
 // ── MCP tool count ────────────────────────────────────────────────────────────
 

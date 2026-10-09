@@ -91,6 +91,19 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Architecture decisions',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/adr/' },
+          { text: '0001 BM25, not embeddings', link: '/adr/0001-bm25-over-embeddings' },
+          { text: '0002 Hand-written extractors', link: '/adr/0002-hand-written-extractors-no-tree-sitter' },
+          { text: '0003 No LLM in the core', link: '/adr/0003-no-llm-in-the-deterministic-core' },
+          { text: '0004 Blast-radius score', link: '/adr/0004-blast-radius-is-a-closed-form-score' },
+          { text: '0005 Centrality, deprecated', link: '/adr/0005-centrality-flag-gated-then-deprecated' },
+          { text: '0006 Local NDJSON state', link: '/adr/0006-append-only-local-ndjson-for-shared-state' },
+        ],
+      },
+      {
         text: 'More',
         items: [
           { text: 'Troubleshooting', link: '/guide/troubleshooting' },

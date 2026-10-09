@@ -24,7 +24,9 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '../..');
 const README = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
 const LLMS = fs.readFileSync(path.join(ROOT, 'llms.txt'), 'utf8');
-const INDEX_HTML = fs.readFileSync(path.join(ROOT, 'docs/index.html'), 'utf8');
+// The homepage that deploys is docs-vp/index.md; its frontmatter `title:` is the page <title>.
+// (The legacy docs/index.html this used to read was retired in #930.)
+const HOME_MD = fs.readFileSync(path.join(ROOT, 'docs-vp/index.md'), 'utf8');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -62,7 +64,7 @@ test('no public surface frames SigMap as a "context engine"', () => {
   // is safe), the generated llms.txt header, and the docs <title>.
   assert.ok(!/context engine/i.test(README), 'README still says "context engine"');
   assert.ok(!/context engine/i.test(LLMS), 'llms.txt still says "context engine"');
-  const title = (INDEX_HTML.match(/<title>([^<]*)<\/title>/i) || [])[1] || '';
+  const title = (HOME_MD.match(/^title:\s*(.+)$/m) || [])[1] || '';
   assert.ok(/grounding layer/i.test(title), `docs <title> must use grounding framing, got: ${title}`);
   assert.ok(!/context engine/i.test(title), 'docs <title> still says "context engine"');
 });
