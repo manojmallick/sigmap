@@ -34,7 +34,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 const runner = require(path.join(ROOT, 'src/eval/runner'));
 const scorer = require(path.join(ROOT, 'src/eval/scorer'));
-const { buildFromCwd } = require(path.join(ROOT, 'src/graph/builder'));
+const { buildRankingGraph } = require(path.join(ROOT, 'src/graph/builder'));
 const bodyWordsLib = require(path.join(ROOT, 'src/retrieval/body-words'));
 
 // Where the corpora and the checkouts live: this checkout, unless a root is named (a test scores a throwaway repository).
@@ -83,7 +83,7 @@ function evaluate(corpus, index, dir, tasks, { graph }) {
   }
 }
 
-const graphOf = (dir) => { try { return buildFromCwd(dir); } catch (_) { return null; } };
+const graphOf = (dir) => { try { return buildRankingGraph(dir); } catch (_) { return null; } };
 
 // ── the corpora ──────────────────────────────────────────────────────────────
 

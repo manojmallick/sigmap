@@ -31,7 +31,7 @@ export const DEPTH = 50;
  * @param {object} i
  * @param {Map<string,string[]>} i.index the signature index
  * @param {string} i.dir the repository the index describes
- * @param {object|null} i.graph its import graph (`buildFromCwd`), or null when it could not be built
+ * @param {object|null} i.graph its import graph (`buildRankingGraph`), or null when it could not be built
  * @param {Function} i.rankQuery `rank(query, index, topK, opts)` from src/eval/runner
  * @returns {{rankers:Object<string,(query:string)=>string[]>, fellBack:string[], skipped:string[], stats:object}}
  *          an arm that cannot be built falls back to plain and is named in `fellBack`, so
@@ -43,7 +43,7 @@ export function buildArmRankers({ index, dir, graph, rankQuery }) {
   const { computeCentrality } = load('src/graph/centrality');
   const { enrichWithSurfaces } = load('src/retrieval/enrich-from-maps');
   const { mineExpansions } = load('src/retrieval/mined-expansions');
-  const { buildCallFileGraph } = load('src/graph/call-graph');
+  const { buildRankingCallFileGraph } = load('src/graph/call-graph');
   const { buildBodyWords } = load('src/retrieval/body-words');
 
   const base = { cwd: dir, graph, learned: false };
@@ -74,7 +74,7 @@ export function buildArmRankers({ index, dir, graph, rankQuery }) {
     return rankWith(index, { expansions });
   });
   arm('callgraph', () => {
-    const callGraph = buildCallFileGraph(dir);
+    const callGraph = buildRankingCallFileGraph(dir);
     stats.callEdges = callGraph.forward.size;
     return rankWith(index, { callGraph });
   });

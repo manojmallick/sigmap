@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 89.6% where a single-shot grep agent finds the right file 39.2% of the time — a measured 2.29× better.
+    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 89.6% where a single-shot grep agent finds the right file 40.8% of the time — a measured 2.20× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.72.1</span>
+  <span><strong>Release:</strong> v8.73.0</span>
   <span>·</span>
-  <span><strong>New — why SigMap is built this way:</strong> six architecture decision records — BM25 over embeddings, no tree-sitter, no LLM in the core, the blast-radius formula, the centrality prior and local append-only NDJSON — each with what it costs and the file or measurement behind each claim. The site also finally serves its favicon and logo. <a href="/adr/">Read the decisions →</a></span>
+  <span><strong>New — the blast radius now looks where SigMap indexes:</strong> <code>--impact</code>, <code>plan</code> and the MCP <code>get_impact</code> / <code>get_method_impact</code> walked a fixed <code>src app lib</code> list, so Django, Rails, Excalidraw, Tokio, Gin and 10 more repositories got an empty answer with no warning. Those 15 now have import edges, and no repository loses a node or an edge. <a href="/guide/retrieval-benchmark#the-import-graph-and-the-ranker-934-935">What changed, and what was held back →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.72-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.73-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-09</span>
+  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-10</span>
 </div>
 </div>
 
@@ -173,11 +173,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.58** |
 | Retrieval hit@5 (retrieval corpus) | — | **80.4%** |
-| Honest corpus hit@5 (125 tasks) | 39.2% (single-shot grep) | **89.6%** (2.29× lift) |
+| Honest corpus hit@5 (125 tasks) | 40.8% (single-shot grep) | **89.6%** (2.20× lift) |
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-09 (v8.72.1)**.
+Latest saved benchmark run: **2026-10-10 (v8.73.0)**.
 
 </div>
 

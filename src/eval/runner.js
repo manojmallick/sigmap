@@ -156,7 +156,7 @@ function run(tasksFile, cwd, opts = {}) {
   const index = buildSigIndex(cwd);
   // Import graph built once too — the hop-1/hop-2 boost is part of what ships.
   let graph = null;
-  try { graph = require('../graph/builder').buildFromCwd(cwd); } catch (_) {}
+  try { graph = require('../graph/builder').buildRankingGraph(cwd); } catch (_) {}
 
   const taskResults = [];
   for (const task of tasks) {

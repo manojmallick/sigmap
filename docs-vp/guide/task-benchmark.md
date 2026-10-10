@@ -1,6 +1,6 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v8.72.1. 61.9% correct, 44.4% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
+description: Latest saved task benchmark for SigMap v8.73.0. 61.9% correct, 44.4% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,22 +15,22 @@ head:
 
 # Task benchmark
 
-::: info Official v8.72.1 benchmark snapshot
-**Benchmark ID:** sigmap-v8.72-main &nbsp;·&nbsp; **Date:** 2026-10-09 (with R language)
+::: info Official v8.73.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.73-main &nbsp;·&nbsp; **Date:** 2026-10-10 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 39.2% single-shot grep — **2.29× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.8% single-shot grep — **2.20× lift** |
 | Graph-boosted hit@5 | **80.4%** |
-| Honest lift (vs grep agent) | **2.29×** |
+| Honest lift (vs grep agent) | **2.20×** |
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Token reduction (21 repos) | **95.7%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-09 (v8.72.1)** — includes R language support (ggplot2, dplyr, shiny)
+Latest saved run: **2026-10-10 (v8.73.0)** — includes R language support (ggplot2, dplyr, shiny)
 
 The success/proxy definitions and the task corpus are described in [benchmark methodology](/guide/methodology).
 
@@ -77,7 +77,7 @@ The task benchmark models that outcome from the ranked file quality tiers:
 | Average prompts without SigMap | 2.84 |
 | Average prompts with SigMap | **1.6** |
 | Reduction | **44.4%** |
-| Honest hit@5 lift | **2.29x** — 89.6% vs 39.2% on the honest corpus (125 tasks / 19 repos); per-repo random lifts remain in the report as data |
+| Honest hit@5 lift | **2.20x** — 89.6% vs 40.8% on the honest corpus (125 tasks / 19 repos); per-repo random lifts remain in the report as data |
 
 ## What changed in the v5 story
 
