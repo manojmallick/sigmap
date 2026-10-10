@@ -446,14 +446,14 @@ function queryContext(args, cwd) {
 
   try {
     const { rank, buildSigIndex, formatRankTable } = require('../retrieval/ranker');
-    const { buildFromCwd } = require('../graph/builder');
+    const { buildRankingGraph } = require('../graph/builder');
     const index = buildSigIndex(cwd);
     if (index.size === 0) return 'No signatures indexed. Run: node gen-context.js';
 
     const topK = Math.min(Math.max(1, parseInt(args.topK, 10) || 10), 25);
     // Build dependency graph for neighbor boost — non-fatal if it fails
     let graph = null;
-    try { graph = buildFromCwd(cwd); } catch (_) {}
+    try { graph = buildRankingGraph(cwd); } catch (_) {}
     // Opt-in call-graph neighbor boost + surface enrichment + centrality blend — non-fatal
     let callGraph = null;
     let centrality = null;
@@ -463,7 +463,7 @@ function queryContext(args, cwd) {
       const { loadConfig } = require('../config/loader');
       const retrieval = loadConfig(cwd).retrieval;
       if (retrieval && retrieval.callGraphBoost) {
-        callGraph = require('../graph/call-graph').buildCallFileGraph(cwd);
+        callGraph = require('../graph/call-graph').buildRankingCallFileGraph(cwd);
       }
       if (retrieval && retrieval.surfaceEnrichment) {
         require('../retrieval/enrich-from-maps').enrichWithSurfaces(index, cwd);

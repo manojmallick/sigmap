@@ -37,8 +37,8 @@ const JSON_OUT = process.argv.includes('--json');
 const SAVE = process.argv.includes('--save');
 
 const { rank, buildSigIndex } = require(path.join(ROOT, 'src/retrieval/ranker.js'));
-const { buildFromCwd } = require(path.join(ROOT, 'src/graph/builder.js'));
-const { buildCallFileGraph } = require(path.join(ROOT, 'src/graph/call-graph.js'));
+const { buildRankingGraph } = require(path.join(ROOT, 'src/graph/builder.js'));
+const { buildRankingCallFileGraph } = require(path.join(ROOT, 'src/graph/call-graph.js'));
 
 function loadTasks(repo) {
   const p = path.join(TASKS_DIR, `${repo}.jsonl`);
@@ -67,9 +67,9 @@ for (const repo of repos) {
   if (!index || index.size === 0) { skipped.push({ repo, reason: 'no context (run retrieval benchmark first)' }); continue; }
 
   let graph = null;
-  try { graph = buildFromCwd(dir); } catch { /* optional */ }
+  try { graph = buildRankingGraph(dir); } catch { /* optional */ }
   let callGraph = null;
-  try { callGraph = buildCallFileGraph(dir); } catch { /* optional */ }
+  try { callGraph = buildRankingCallFileGraph(dir); } catch { /* optional */ }
   const callEdges = callGraph ? callGraph.forward.size : 0;
 
   let a = 0, b = 0;

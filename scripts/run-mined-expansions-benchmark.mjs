@@ -38,7 +38,7 @@ const JSON_OUT = process.argv.includes('--json');
 const SAVE = process.argv.includes('--save');
 
 const { rank, buildSigIndex } = require(path.join(ROOT, 'src/retrieval/ranker.js'));
-const { buildFromCwd } = require(path.join(ROOT, 'src/graph/builder.js'));
+const { buildRankingGraph } = require(path.join(ROOT, 'src/graph/builder.js'));
 const { mineExpansions } = require(path.join(ROOT, 'src/retrieval/mined-expansions.js'));
 
 function loadTasks(repo) {
@@ -89,7 +89,7 @@ for (const repo of repos) {
   if (!index || index.size === 0) { skipped.push({ repo, reason: 'no context (run retrieval benchmark first)' }); continue; }
 
   let graph = null;
-  try { graph = buildFromCwd(dir); } catch { /* optional */ }
+  try { graph = buildRankingGraph(dir); } catch { /* optional */ }
   let expansions = null;
   let minedTokens = 0;
   try {

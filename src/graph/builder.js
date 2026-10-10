@@ -15,6 +15,7 @@ const path = require('path');
 // Cross-platform node key. Delegates to the ONE shared definition so this graph
 // and the call-graph cannot drift apart again (see src/graph/path-key.js).
 const { graphKey } = require('./path-key');
+const { resolveGraphDirs, configuredSrcDirs } = require('./src-dirs');
 function normalizePath(p) {
   return graphKey(p);
 }
@@ -31,6 +32,81 @@ const JVM_EXTS = new Set(['.java', '.kt', '.kts', '.scala', '.sc']);
 const RB_EXTS  = new Set(['.rb', '.rake']);
 const R_EXTS   = new Set(['.r', '.R']);
 const EX_EXTS  = new Set(['.ex', '.exs']);
+
+// ---------------------------------------------------------------------------
+// Per-build lookup tables
+// ---------------------------------------------------------------------------
+// Go, JVM and Elixir imports name a module, not a file, so each used to be
+// resolved by scanning EVERY file in the set — normalising its path, twice for
+// the JVM — per import: O(imports × files). Once the walk follows the detected
+// roots a repo with a few thousand files spent most of its graph build inside
+// path.normalize (akka: 24 of 30 s). These tables are built once per file set
+// and answer the same questions by key, keeping the "first match in set order"
+// the scans had, so the edge set does not change.
+
+const _tables = new WeakMap();
+
+function tablesFor(fileSet) {
+  let t = _tables.get(fileSet);
+  if (t && t.size === fileSet.size) return t;
+  const files = [...fileSet];
+  t = { size: fileSet.size, files, keys: files.map(normalizePath), byBase: null, byDir: null };
+  _tables.set(fileSet, t);
+  return t;
+}
+
+function _push(map, key, i) {
+  const a = map.get(key);
+  if (a) a.push(i); else map.set(key, [i]);
+}
+
+/** file name → indices of the files carrying it, in set order. */
+function byBase(t) {
+  if (!t.byBase) {
+    t.byBase = new Map();
+    t.keys.forEach((k, i) => _push(t.byBase, k.slice(k.lastIndexOf(path.sep) + 1), i));
+  }
+  return t.byBase;
+}
+
+/** directory component → indices of the files below one, in set order. */
+function byDir(t) {
+  if (!t.byDir) {
+    t.byDir = new Map();
+    t.keys.forEach((k, i) => {
+      const parts = k.split(path.sep);
+      parts.pop(); // the file name is not a directory
+      for (const p of new Set(parts)) _push(t.byDir, p, i);
+    });
+  }
+  return t.byDir;
+}
+
+/** First file (set order) whose key ends with `want` — a normalised relative tail. */
+function firstEndingWith(t, want) {
+  const cut = want.lastIndexOf(path.sep);
+  if (cut === -1) {
+    // No directory part, so the file-name bucket cannot narrow it: a bare
+    // `Foo.java` is also the tail of `BarFoo.java`. Rare; scan.
+    for (const k of t.keys) if (k.endsWith(want)) return k;
+    return null;
+  }
+  const bucket = byBase(t).get(want.slice(cut + 1));
+  if (!bucket) return null;
+  for (const i of bucket) if (t.keys[i].endsWith(want)) return t.keys[i];
+  return null;
+}
+
+/**
+ * First file a Go import's last path segment names: `<suffix>.go`, or any file
+ * below a directory called `<suffix>`.
+ */
+function firstGoMatch(t, suffix) {
+  const a = byBase(t).get(suffix + '.go');
+  const b = suffix ? byDir(t).get(suffix) : undefined;
+  const i = Math.min(a ? a[0] : Infinity, b ? b[0] : Infinity);
+  return i === Infinity ? null : t.keys[i];
+}
 
 /**
  * Probe an absolute base path for a JS/TS module file in fileSet, trying the
@@ -283,15 +359,11 @@ function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
     }
     while ((m = reInline.exec(content)) !== null) imports.push(m[1]);
 
-    for (const imp of imports) {
-      const suffix = imp.split('/').pop();
-      for (const f of fileSet) {
-        const normF = normalizePath(f);
-        if (normF.endsWith(path.sep + suffix + '.go') ||
-            normF.includes(path.sep + suffix + path.sep)) {
-          found.push(normF);
-          break;
-        }
+    if (imports.length > 0) {
+      const t = tablesFor(fileSet);
+      for (const imp of imports) {
+        const hit = firstGoMatch(t, imp.split('/').pop());
+        if (hit) found.push(hit);
       }
     }
   }
@@ -320,11 +392,10 @@ function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
     while ((m = re.exec(content)) !== null) {
       // Convert com.example.utils.StringHelper → com/example/utils/StringHelper.java
       const asPath = m[1].replace(/\./g, path.sep);
+      const t = tablesFor(fileSet);
       for (const jvmExt of ['.java', '.kt', '.kts', '.scala', '.sc']) {
-        for (const f of fileSet) {
-          const normF = normalizePath(f);
-          if (normF.endsWith(normalizePath(asPath + jvmExt))) { found.push(normF); break; }
-        }
+        const hit = firstEndingWith(t, normalizePath(asPath + jvmExt));
+        if (hit) found.push(hit);
       }
     }
   }
@@ -357,10 +428,12 @@ function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
       if (segs.length >= 2) suffixes.push(segs.slice(-2).join('/') + '.ex');
       suffixes.push(segs[segs.length - 1] + '.ex');
       let hit = null;
+      const t = tablesFor(fileSet);
       for (const suf of suffixes) {
-        for (const f of fileSet) {
-          if (f === filePath) continue;
-          if (normalizePath(f).endsWith('/' + suf)) { hit = f; break; }
+        const bucket = byBase(t).get(suf.slice(suf.lastIndexOf('/') + 1)) || [];
+        for (const i of bucket) {
+          if (t.files[i] === filePath) continue;
+          if (t.keys[i].endsWith('/' + suf)) { hit = t.files[i]; break; }
         }
         if (hit) break;
       }
@@ -483,17 +556,11 @@ const DEFAULT_WALK_DEPTH = 12;
 
 /**
  * Source directories declared in the project's own config, or null when there
- * is no readable config. Read directly rather than through `loadConfig`, which
- * can fetch `extends` over the network and spawn a child process — neither is
- * acceptable inside a graph build.
+ * is no readable config. See src-dirs.js for why this does not go through
+ * `loadConfig`.
  */
 function _configuredSrcDirs(cwd) {
-  try {
-    const raw = fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8');
-    const cfg = JSON.parse(raw);
-    if (Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0) return cfg.srcDirs;
-  } catch (_) { /* absent or unparsable — fall back to the defaults */ }
-  return null;
+  return configuredSrcDirs(cwd);
 }
 
 /**
@@ -501,8 +568,10 @@ function _configuredSrcDirs(cwd) {
  * files under srcDirs. Useful for the MCP tool handler.
  *
  * srcDirs resolution order: explicit `opts.srcDirs` → `gen-context.config.json`
- * → DEFAULT_SRC_DIRS. Without the config step the graph is empty on any repo
- * whose sources do not sit under a conventionally-named directory.
+ * → the source roots detection chose, plus DEFAULT_SRC_DIRS (src-dirs.js). The
+ * config step keeps the graph from being empty on a Maven/Gradle layout; the
+ * detection step does the same for every repo that has no config at all, which
+ * is most of them (django/, packages/*, internal/, a flat Go module).
  *
  * @param {string} cwd
  * @param {object} [opts]
@@ -515,11 +584,15 @@ function _configuredSrcDirs(cwd) {
 function buildFromCwd(cwd, opts) {
   // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
   // The existence check below makes these no-ops in non-R projects.
-  const {
-    srcDirs = _configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS,
-    exclude = ['node_modules', '.git', 'dist', 'build'],
-    maxDepth = DEFAULT_WALK_DEPTH,
-  } = opts || {};
+  const o = opts || {};
+  const maxDepth = o.maxDepth === undefined ? DEFAULT_WALK_DEPTH : o.maxDepth;
+  let { srcDirs, exclude } = o;
+  if (srcDirs === undefined) {
+    const dirs = resolveGraphDirs(cwd, DEFAULT_SRC_DIRS);
+    srcDirs = dirs.srcDirs;
+    if (exclude === undefined && dirs.exclude) exclude = dirs.exclude;
+  }
+  if (exclude === undefined) exclude = ['node_modules', '.git', 'dist', 'build'];
   const excludeSet = new Set(exclude);
 
   // Collects into one shared array. Returning a list per directory and
@@ -573,4 +646,27 @@ function buildFromCwd(cwd, opts) {
   return build(files, cwd, ctx);
 }
 
-module.exports = { build, buildFromCwd, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };
+/**
+ * The graph the RANKER is handed. Deliberately the walk `buildFromCwd` did
+ * before #934: the project's pinned srcDirs, else the conventional names.
+ *
+ * Why not the detected roots. The neighbour boost adds 0.40 per importing seed
+ * with no bound, and was calibrated on graphs of a few hundred files. Over the
+ * whole Django graph (2,971 files) one module that 180 matching files import
+ * collects +72 on a base score of 12 and the answer falls out of the top 5.
+ * Measured on xrepo that is net zero hits (+3 / -3) with django 3 -> 1, and the
+ * damping that fixes it moves the published self-corpus numbers — a measured
+ * change of its own (#935). Until then ranking, the benchmarks that score it
+ * and the product that ships it all see the same graph they always did, and
+ * only the surfaces that report a blast radius see the real one.
+ *
+ * @param {string} cwd
+ * @param {object} [opts] as buildFromCwd; an explicit `srcDirs` still wins
+ */
+function buildRankingGraph(cwd, opts) {
+  const o = opts || {};
+  if (o.srcDirs !== undefined) return buildFromCwd(cwd, o);
+  return buildFromCwd(cwd, Object.assign({}, o, { srcDirs: configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS }));
+}
+
+module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };

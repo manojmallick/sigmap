@@ -110,7 +110,7 @@ test('MCP handler renders the chain and the neighbors view', () => {
   const neighbors = queryKnowledgeMap({ file: 'src/pad.js' }, dir);
   assert.ok(neighbors.includes('importedBy') && neighbors.includes('usesLibs'), neighbors.slice(0, 160));
   const summary = queryKnowledgeMap({}, dir);
-  assert.ok(/schema v3 · \d+ nodes · \d+ edges/.test(summary), summary);
+  assert.ok(new RegExp(`schema v${km.SCHEMA_VERSION} · \\d+ nodes · \\d+ edges`).test(summary), summary);
 });
 
 test('env-var nodes carry the example flag and per-file reads-env edges', () => {
@@ -153,7 +153,7 @@ test('schema bump invalidates a v1 cache', () => {
   const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
   fs.writeFileSync(cachePath, JSON.stringify({ schema: 1, nodes: [], edges: [], truncated: [], builtFor: cached.builtFor }));
   const rebuilt = km.loadOrBuild(dir);
-  assert.strictEqual(rebuilt.schema, 3);
+  assert.strictEqual(rebuilt.schema, km.SCHEMA_VERSION);
   assert.ok(rebuilt.nodes.length > 0, 'stale v1 cache must be rebuilt, not served');
 });
 

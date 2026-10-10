@@ -56,7 +56,7 @@ const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const DATA = process.env.SIGMAP_XREPO_DATA ? path.resolve(process.env.SIGMAP_XREPO_DATA) : CODE_ROOT;
 const require = createRequire(import.meta.url);
 const { run, rank: rankQuery } = require(path.join(CODE_ROOT, 'src/eval/runner'));
-const { buildFromCwd } = require(path.join(CODE_ROOT, 'src/graph/builder'));
+const { buildRankingGraph } = require(path.join(CODE_ROOT, 'src/graph/builder'));
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -139,7 +139,7 @@ function scoreRepo(repo, tasks) {
       // the table above scored.
       let graph = null;
       if (NEED_WHY || SIGNALS) {
-        try { graph = buildFromCwd(dir); } catch (_) { /* run() tolerates this too */ }
+        try { graph = buildRankingGraph(dir); } catch (_) { /* run() tolerates this too */ }
       }
       let why = null;
       if (NEED_WHY) {

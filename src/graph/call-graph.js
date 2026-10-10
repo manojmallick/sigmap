@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { build } = require('./builder');
+const { resolveGraphDirs, configuredSrcDirs } = require('./src-dirs');
 const { maskCode } = require('../extractors/scan');
 
 const JS_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
@@ -495,19 +496,6 @@ const JVM_KEYWORDS = new Set([
 // previous ceiling of 8 never saw the classes that own the method bodies.
 const DEFAULT_WALK_DEPTH = 12;
 
-/**
- * Source directories declared in the project's own config, or null. Read
- * directly rather than through `loadConfig`, which can fetch `extends` over the
- * network and spawn a child process — neither belongs inside a graph build.
- */
-function _configuredSrcDirs(cwd) {
-  try {
-    const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
-    if (Array.isArray(cfg.srcDirs) && cfg.srcDirs.length > 0) return cfg.srcDirs;
-  } catch (_) { /* absent or unparsable — fall back to the defaults */ }
-  return null;
-}
-
 function _walk(dir, excludeSet, out, depth, maxDepth) {
   if (depth > (maxDepth === undefined ? DEFAULT_WALK_DEPTH : maxDepth)) return;
   let entries;
@@ -539,17 +527,29 @@ function _walk(dir, excludeSet, out, depth, maxDepth) {
  * }}
  */
 function buildCallGraph(cwd, opts = {}) {
-  const excludeSet = new Set(opts.exclude || ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor']);
   let files = opts.files ? opts.files.map((f) => path.resolve(f)) : [];
+  let srcDirs = opts.srcDirs;
+  let exclude = opts.exclude;
   if (!opts.files) {
-    // Same resolution order as the dependency graph (#560): explicit opts →
-    // the project's own config → the historical defaults. Without the config
-    // step this is empty on any repo whose sources are not under src/app/lib.
-    const srcDirs = opts.srcDirs || _configuredSrcDirs(cwd) || ['src', 'app', 'lib'];
+    // Same resolution as the dependency graph (#560, #934): explicit opts →
+    // the project's own config → the source roots detection chose plus the
+    // historical defaults. Without the last step this is empty on any repo
+    // whose sources are not under src/app/lib — and so is `--callers`.
+    if (srcDirs == null) {
+      const dirs = resolveGraphDirs(cwd, ['src', 'app', 'lib']);
+      srcDirs = dirs.srcDirs;
+      if (exclude == null && dirs.exclude) exclude = dirs.exclude;
+    }
+  }
+  const excludeSet = new Set(exclude || ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor']);
+  if (!opts.files) {
     for (const sd of srcDirs) {
       const abs = path.resolve(cwd, sd);
       if (fs.existsSync(abs)) _walk(abs, excludeSet, files, 0, opts.maxDepth);
     }
+    // Roots may nest (`.` beside `src`); a file is one node however often the
+    // walk reached it.
+    files = [...new Set(files)];
   }
 
   // File-level import graph (for precise call-site resolution). Keys normalized.
@@ -718,9 +718,7 @@ function buildCallGraph(cwd, opts = {}) {
     for (const [k, set] of mapOfSets.entries()) out.set(k, [...set]);
     return out;
   };
-  const scopeRoots = opts.files
-    ? ['(explicit file list)']
-    : (opts.srcDirs || _configuredSrcDirs(cwd) || ['src', 'app', 'lib']);
+  const scopeRoots = opts.files ? ['(explicit file list)'] : srcDirs;
   return {
     forward: toArr(forward), reverse: toArr(reverse), defs, edgeConfidence,
     scope: { roots: scopeRoots, files: files.length, dynamicLoads },
@@ -894,8 +892,19 @@ function formatCallGraphJSON(result, kind) {
   };
 }
 
+/**
+ * `buildCallFileGraph` as the RANKER's opt-in call-neighbour boost has always
+ * seen it: the project's pinned srcDirs, else `src app lib`. The detected roots
+ * are for the blast-radius surfaces; what ranking is handed waits on #935 (see
+ * `buildRankingGraph` in builder.js for the measurement).
+ */
+function buildRankingCallFileGraph(cwd, opts = {}) {
+  if (opts.srcDirs != null || opts.files) return buildCallFileGraph(cwd, opts);
+  return buildCallFileGraph(cwd, Object.assign({}, opts, { srcDirs: configuredSrcDirs(cwd) || ['src', 'app', 'lib'] }));
+}
+
 module.exports = {
-  buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, methodImpact, methodCallees,
+  buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, buildRankingCallFileGraph, methodImpact, methodCallees,
   formatCallGraph, formatCallGraphJSON,
   extractDefs, maskJs, maskPy, maskRust,
 };

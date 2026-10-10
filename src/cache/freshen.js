@@ -26,6 +26,7 @@ const { readIndexStamp } = require('../retrieval/sig-index-store');
 const { entryConfig, entrySigs } = require('./entry');
 const { langFor } = require('../extractors/dispatch');
 const { loadIgnorePatterns, matchesIgnore } = require('../util/ignore');
+const { resolveGraphDirs } = require('../graph/src-dirs');
 
 const DEFAULT_SRC_DIRS = ['src', 'app', 'lib', 'packages', 'services', 'api'];
 const DEFAULT_EXCLUDE = [
@@ -94,15 +95,23 @@ function freshen(cwd, opts = {}) {
     if (base === 0 && entries.size === 0) return 0;
 
     const cfg = _readConfig(cwd);
-    const srcDirs = Array.isArray(cfg.srcDirs) && cfg.srcDirs.length ? cfg.srcDirs : DEFAULT_SRC_DIRS;
+    // A pin wins; without one, the roots detection chose (#934) — otherwise a
+    // zero-config repo whose code sits in `django/` or `internal/` never has an
+    // edit healed, and `ask` answers from the pre-edit index.
+    const srcDirs = Array.isArray(cfg.srcDirs) && cfg.srcDirs.length
+      ? cfg.srcDirs
+      : resolveGraphDirs(cwd, DEFAULT_SRC_DIRS).srcDirs;
     const exclude = new Set([...DEFAULT_EXCLUDE, ...(Array.isArray(cfg.exclude) ? cfg.exclude : [])]);
     const maxDepth = Number.isFinite(cfg.maxDepth) ? cfg.maxDepth : 8;
 
-    const files = [];
+    const walked = [];
     for (const d of srcDirs) {
       const abs = path.isAbsolute(d) ? d : path.join(cwd, d);
-      if (fs.existsSync(abs)) _walk(abs, exclude, files, 0, maxDepth);
+      if (fs.existsSync(abs)) _walk(abs, exclude, walked, 0, maxDepth);
     }
+    // Roots may nest (`.` beside `src`); a file is healed once however often the
+    // walk reached it.
+    const files = [...new Set(walked)];
 
     // Candidates = files changed after the index began that the overlay has not
     // already described (an entry stamped at or after the change has). "Changed"
