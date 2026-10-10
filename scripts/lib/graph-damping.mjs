@@ -15,8 +15,11 @@
  */
 
 /**
- * The rule family, declared before any measurement, mildest first. Order is the
- * tie-break: among rules that score the same on the tuning half, the earlier
+ * The rule family, fixed before the held-out run and mildest first. Most of the
+ * shapes come from the lead in #935, which was scored on the corpora it was
+ * picked from; this file is what makes the second look a different measurement
+ * (see the folds below), not a claim that the family was never seen. Order is
+ * the tie-break: among rules that score the same on the tuning half, the earlier
  * (milder) one is chosen, so a rule has to earn its extra bite.
  *
  * `damping` is the ranker's `graphDamping` option.
