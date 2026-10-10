@@ -63,6 +63,46 @@ const byRepo = (n) => tasks.filter((t) => t.repo === n);
     }
   });
 
+  await test('xrepo-only checkouts are flagged in the manifest and named by no other suite (#893 §7)', () => {
+    const flagged = manifest.repos.filter((r) => r.xrepoOnly === true).map((r) => r.name).sort();
+    assert.deepStrictEqual(flagged,
+      ['astro', 'django', 'excalidraw', 'godot-demo-projects', 'phoenix', 'plenary', 'tokio']);
+    const pinned = new Set([...read('scripts/run-benchmark.mjs').matchAll(/name:\s*'([^']+)'/g)].map((m) => m[1]));
+    for (const n of flagged) assert.ok(!pinned.has(n), `${n} is flagged xrepoOnly but run-benchmark.mjs pins it`);
+    for (const r of manifest.repos) assert.ok(r.xrepoOnly === undefined || r.xrepoOnly === true, `${r.name}: xrepoOnly is true or absent`);
+  });
+
+  await test('benchmarkRepoNames skips flagged clones, follows symlinks, and tolerates a missing manifest', async () => {
+    const os = require('os');
+    const { benchmarkRepoNames, xrepoOnlyNames } = await import('../../scripts/lib/benchmark-repos.mjs');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-benchrepos-'));
+    const repos = path.join(root, 'benchmarks', 'repos');
+    fs.mkdirSync(path.join(root, 'benchmarks', 'borrowed', 'gin'), { recursive: true });
+    for (const d of ['express', 'tokio', 'django']) fs.mkdirSync(path.join(repos, d), { recursive: true });
+    fs.writeFileSync(path.join(repos, 'README'), 'a file is not a checkout');
+    fs.symlinkSync(path.join(root, 'benchmarks', 'borrowed', 'gin'), path.join(repos, 'gin'));
+    assert.deepStrictEqual(benchmarkRepoNames(repos, root), ['django', 'express', 'gin', 'tokio'], 'no manifest: nothing skipped');
+    fs.writeFileSync(path.join(root, 'benchmarks', 'xrepo-repos.json'),
+      JSON.stringify({ repos: [{ name: 'tokio', xrepoOnly: true }, { name: 'django', xrepoOnly: true }, { name: 'gin' }] }));
+    assert.deepStrictEqual([...xrepoOnlyNames(root)].sort(), ['django', 'tokio']);
+    assert.deepStrictEqual(benchmarkRepoNames(repos, root), ['express', 'gin']);
+    assert.throws(() => benchmarkRepoNames(path.join(root, 'missing'), root), 'a missing corpus must reach the caller');
+  });
+
+  await test('the suites that walk benchmarks/repos whole take their names from the shared helper', () => {
+    for (const rel of ['scripts/run-test-discovery-benchmark.mjs', 'scripts/run-hallucination-benchmark.mjs']) {
+      const src = read(rel);
+      assert.ok(/benchmarkRepoNames\(REPOS_DIR/.test(src), `${rel} must enumerate through benchmarkRepoNames`);
+      assert.ok(!/readdirSync\(REPOS_DIR/.test(src), `${rel} must not keep a private directory walk`);
+    }
+  });
+
+  await test('the guide no longer tells a releaser to move the clones aside', () => {
+    const doc = read('docs-vp/guide/retrieval-benchmark.md');
+    assert.ok(!/Set the seven new clones aside/.test(doc), 'the warning is obsolete once the suites skip the clones');
+    assert.ok(/xrepoOnly/.test(doc), 'the guide must name the flag');
+  });
+
   // ── the labelled corpus ───────────────────────────────────────────────────
 
   await test('every manifest repo is a row of its own, with enough tasks to mean something', () => {

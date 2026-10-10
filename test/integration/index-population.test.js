@@ -90,8 +90,8 @@ test('generate collects test entries from the exported TEST_ROOTS, not a literal
   const src = fs.readFileSync(GEN, 'utf8');
   const fn = src.slice(src.indexOf('function collectTestEntries('));
   const body = fn.slice(0, fn.indexOf('\n}\n'));
-  assert.ok(/TEST_ROOTS\s*\}\s*=\s*requireSourceOrBundled\('\.\/src\/analysis\/index-state'\)/.test(body),
-    'collectTestEntries must import TEST_ROOTS from src/analysis/index-state');
+  assert.ok(/testRootDirs\s*\}\s*=\s*requireSourceOrBundled\('\.\/src\/analysis\/index-state'\)/.test(body),
+    'collectTestEntries must import testRootDirs (built on TEST_ROOTS) from src/analysis/index-state');
   assert.ok(!/const\s+TEST_ROOTS\s*=\s*\[/.test(body),
     'collectTestEntries must not redeclare TEST_ROOTS as a local literal');
 });
@@ -270,6 +270,49 @@ test('tracking-on status still reports the usage log as its source', () => {
   const st = json(dir, ['status', '--json']);
   assert.strictEqual(st.indexSource, 'usage log', `tracking-on must prefer the log, got ${st.indexSource}`);
   assert.ok(st.lastIndex, 'the log must supply a timestamp');
+});
+
+// ---------------------------------------------------------------------------
+// Behavioural: a test root is spelled as it is on disk (#893 §5)
+// ---------------------------------------------------------------------------
+
+/** A repo whose only test root is SwiftPM's capitalised `Tests/`. */
+function makeSwiftPmRepo() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-idxpop-case-'));
+  fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'Tests', 'NetworkingTests'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'src', 'alpha.js'), 'function alpha(a, b) { return a + b; }\nmodule.exports = { alpha };\n');
+  fs.writeFileSync(path.join(dir, 'Tests', 'NetworkingTests', 'PacerTests.swift'),
+    'final class PacerTests {\n    func testPacing() -> Bool { return true }\n}\n');
+  fs.writeFileSync(path.join(dir, 'gen-context.config.json'),
+    JSON.stringify({ srcDirs: ['src'], maxTokens: 6000, outputs: ['copilot'] }));
+  run(dir, []);
+  return dir;
+}
+
+test('testRootDirs matches a root case-insensitively and keeps the on-disk spelling', () => {
+  const { testRootDirs } = require(STATE);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-idxpop-roots-'));
+  for (const d of ['Tests', 'e2e', 'testament', 'src']) fs.mkdirSync(path.join(dir, d));
+  fs.writeFileSync(path.join(dir, 'spec'), 'a file named like a root is not a root');
+  assert.deepStrictEqual(testRootDirs(dir), ['Tests', 'e2e']);
+  assert.deepStrictEqual(testRootDirs(path.join(dir, 'missing')), []);
+});
+
+test('a capitalised Tests/ is indexed under its on-disk key on every filesystem', () => {
+  const keys = indexKeys(makeSwiftPmRepo());
+  assert.ok(keys.includes('Tests/NetworkingTests/PacerTests.swift'),
+    `Tests/ must be indexed with its own spelling, got: ${keys.join(', ')}`);
+  assert.ok(!keys.includes('tests/NetworkingTests/PacerTests.swift'),
+    'the lowercased key is the macOS-only artefact this guards against');
+});
+
+test('the classifier calls a capitalised Tests/ entry a test, not stale', () => {
+  const { augmentedReason } = require(STATE);
+  assert.strictEqual(augmentedReason('Tests/NetworkingTests/PacerTests.swift'), 'test');
+  const v = json(makeSwiftPmRepo(), ['validate', '--json']);
+  assert.strictEqual(v.staleEntries, 0, `expected 0 stale, got ${v.staleEntries}`);
+  assert.deepStrictEqual(v.augmentedByReason.test, 1);
 });
 
 // ---------------------------------------------------------------------------

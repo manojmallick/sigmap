@@ -34,7 +34,7 @@
 const fs = require('fs');
 const path = require('path');
 const { relatedTestsIndex } = require('../evidence/pack');
-const { TEST_ROOTS } = require('./index-state');
+const { testRootDirs } = require('./index-state');
 const { CODE_EXTS } = require('./coverage-score');
 const { isTestFile, isMockFile } = require('../util/file-class');
 
@@ -113,7 +113,7 @@ function _walk(dir, rel, depth, exclude, out) {
 function buildTestCoverageIndex(cwd, opts = {}) {
   const exclude = new Set(opts.exclude || []);
   const found = [];
-  for (const root of TEST_ROOTS) _walk(path.join(cwd, root), root, 0, exclude, found);
+  for (const root of testRootDirs(cwd)) _walk(path.join(cwd, root), root, 0, exclude, found);
   for (const f of opts.files || []) {
     const rel = _posix(path.isAbsolute(f) ? path.relative(cwd, f) : f);
     if (isTestFile(rel) && _isTest(rel) && !rel.split('/').some((seg) => NOT_TESTS_RE.test(seg))) found.push(rel);
