@@ -1,5 +1,5 @@
 {
-  "_comment": "Third-party repositories the xrepo retrieval corpus (benchmarks/tasks/retrieval-xrepo.jsonl) is labelled against, each pinned to an exact commit so a labelled expected file can only stop existing when this manifest changes, never when upstream does. `name` is the directory under benchmarks/repos/. `language` is an extractor key (src/extractors/dispatch.js). `layout` is descriptive. `sparse` limits the checkout to gitignore-style patterns for repos whose full tree is mostly binary assets. `srcDirs` (with a `srcDirsWhy`) is set ONLY where zero-config detection cannot reach the code; the gate measures the zero-config path, so an entry here is a recorded detection gap, not a tuning knob. Fetch with `node scripts/fetch-xrepo-repos.mjs`.",
+  "_comment": "Third-party repositories the xrepo retrieval corpus (benchmarks/tasks/retrieval-xrepo.jsonl) is labelled against, each pinned to an exact commit so a labelled expected file can only stop existing when this manifest changes, never when upstream does. `name` is the directory under benchmarks/repos/. `language` is an extractor key (src/extractors/dispatch.js). `layout` is descriptive. `sparse` limits the checkout to gitignore-style patterns for repos whose full tree is mostly binary assets. `srcDirs` (with a `srcDirsWhy`) is set ONLY where zero-config detection cannot reach the code; the gate measures the zero-config path, so an entry here is a recorded detection gap, not a tuning knob. `xrepoOnly` marks a checkout no other suite expects: the suites that walk benchmarks/repos whole (test-discovery, grounding coverage) skip it via scripts/lib/benchmark-repos.mjs. Fetch with `node scripts/fetch-xrepo-repos.mjs`.",
   "repos": [
     {
       "name": "gin",
@@ -27,21 +27,24 @@
       "url": "https://github.com/tokio-rs/tokio.git",
       "commit": "b2636752450484955e7ad334bac678424d51bc4a",
       "language": "rust",
-      "layout": "cargo-workspace"
+      "layout": "cargo-workspace",
+      "xrepoOnly": true
     },
     {
       "name": "excalidraw",
       "url": "https://github.com/excalidraw/excalidraw.git",
       "commit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e",
       "language": "typescript_react",
-      "layout": "yarn-workspaces"
+      "layout": "yarn-workspaces",
+      "xrepoOnly": true
     },
     {
       "name": "django",
       "url": "https://github.com/django/django.git",
       "commit": "a461af8ce48762d7ec602260aaff81014ddccbcb",
       "language": "python",
-      "layout": "package-beside-tests"
+      "layout": "package-beside-tests",
+      "xrepoOnly": true
     },
     {
       "name": "flask",
@@ -90,7 +93,8 @@
       "url": "https://github.com/phoenixframework/phoenix.git",
       "commit": "2ca60ffe811c0e585835cfc309b645c3a4190df1",
       "language": "elixir",
-      "layout": "mix-lib"
+      "layout": "mix-lib",
+      "xrepoOnly": true
     },
     {
       "name": "astro",
@@ -98,6 +102,7 @@
       "commit": "4c1470a7f907fe678ef5e7dceaa972ca83d297da",
       "language": "astro",
       "layout": "pnpm-workspace-subtree",
+      "xrepoOnly": true,
       "sparse": [
         "/*",
         "!/*/",
@@ -109,7 +114,8 @@
       "url": "https://github.com/nvim-lua/plenary.nvim.git",
       "commit": "74b06c6c75e4eeb3108ec01852001636d85a932b",
       "language": "lua",
-      "layout": "lua-module"
+      "layout": "lua-module",
+      "xrepoOnly": true
     },
     {
       "name": "godot-demo-projects",
@@ -117,6 +123,7 @@
       "commit": "3e08537616661a5883831628decab4c526260289",
       "language": "gdscript",
       "layout": "godot-projects",
+      "xrepoOnly": true,
       "sparse": [
         "*.gd"
       ]

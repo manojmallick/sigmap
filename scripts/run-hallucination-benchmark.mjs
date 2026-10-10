@@ -46,6 +46,7 @@ import { createRequire } from 'module';
 import { spawnSync } from 'child_process';
 import { loadOverrides, withSharedRepoContext } from './lib/shared-repo-context.mjs';
 import { stamp } from './lib/report-stamp.mjs';
+import { benchmarkRepoNames } from './lib/benchmark-repos.mjs';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -249,8 +250,7 @@ function main() {
 
   let repos = [];
   try {
-    repos = fs.readdirSync(REPOS_DIR, { withFileTypes: true })
-      .filter((e) => e.isDirectory()).map((e) => e.name).sort();
+    repos = benchmarkRepoNames(REPOS_DIR, ROOT);
   } catch (_) {}
   if (repos.length === 0) {
     console.error('No corpus repos in benchmarks/repos. Clone them first (see run-benchmark-matrix.mjs).');

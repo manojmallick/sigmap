@@ -35,6 +35,33 @@ const path = require('path');
 const TEST_ROOTS = ['test', 'tests', '__tests__', 'spec', 'e2e'];
 
 /**
+ * The test-root directories of a repo, spelled as they are ON DISK.
+ *
+ * `TEST_ROOTS` is lowercase, and `path.join(cwd, 'tests')` resolves a SwiftPM
+ * `Tests/` on a case-insensitive filesystem (macOS) but not on a case-sensitive
+ * one (Linux): the same checkout was indexed under the lowercased key
+ * `tests/...` on one and not at all on the other (#893 §5). Matching the
+ * directory NAME case-insensitively and keeping the on-disk spelling gives
+ * one population and one key everywhere.
+ *
+ * @param {string} cwd
+ * @returns {string[]} root-level directory names, `TEST_ROOTS` order first
+ */
+function testRootDirs(cwd) {
+  let names;
+  try { names = fs.readdirSync(cwd); } catch (_) { return []; }
+  const out = [];
+  for (const root of TEST_ROOTS) {
+    for (const name of names.filter((n) => n.toLowerCase() === root).sort()) {
+      let isDir = false;
+      try { isDir = fs.statSync(path.join(cwd, name)).isDirectory(); } catch (_) { /* dangling link */ }
+      if (isDir) out.push(name);
+    }
+  }
+  return out;
+}
+
+/**
  * Directories holding CI / pipeline definitions. `.` covers the single-file
  * forms (.gitlab-ci.yml, Jenkinsfile, compose files, …). Imported by
  * `collectPipelineEntries` for the same reason as TEST_ROOTS.
@@ -108,7 +135,7 @@ function augmentedReason(rel, ctx = {}) {
   if (ctx.entrypoints && ctx.entrypoints.has(r)) return 'entrypoint';
 
   const first = r.split('/')[0];
-  if (r.includes('/') && TEST_ROOTS.includes(first)) return 'test';
+  if (r.includes('/') && TEST_ROOTS.includes(first.toLowerCase())) return 'test';
 
   const dir = r.includes('/') ? r.slice(0, r.lastIndexOf('/')) : '.';
   if (CI_DIRS.includes(dir)) {
@@ -395,6 +422,7 @@ function liveIndexState(cwd) {
 
 module.exports = {
   TEST_ROOTS,
+  testRootDirs,
   CI_DIRS,
   INDEX_REL,
   ADAPTER_OUTPUTS,

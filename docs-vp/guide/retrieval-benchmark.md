@@ -438,7 +438,48 @@ Two more were found while fixing these and were **not fixed in #900**. The first
 
 Until #934 a repo with no `srcDirs` pin got an import graph over `src`, `app`, `lib`, `R` and `inst` only. Of the 50 pinned clones, **29 had an empty graph** (26 with no `srcDirs` pin; 12 are written in languages the graph does not read), so `--impact`, `plan`'s blast radius and the MCP `get_impact` / `get_method_impact` tools answered "nothing depends on this" (`get_method_impact`: "symbol not found in the call-graph") for Django, Rails, Excalidraw, Tokio, Gin and 10 more. The graph now walks the roots detection chose **plus** those conventional names — a conventional directory the walk reached before is still reached, and no clone lost a node or an edge — and the live overlay and the call graph resolve their directories the same way. 21 repos go from an empty graph to one with files in it, 15 of them with resolved import edges (Django 0 → 2,971 files, Astro 0 → 1,890, Rails 0 → 1,234; the other six — Zod, whose TypeScript imports `./x.js` for `x.ts`, and five small repositories in languages the graph does not read — gain files and no edges), and the repositories with no import edge at all go from 30 to 15; a pinned `srcDirs` still wins, with its own exclude list.
 
-**What ranking is handed did not change, and that is measured, not assumed.** The neighbour boost adds 0.40 per importing seed to a file that itself matched, was calibrated on graphs of a few hundred files, and is bounded only by a hub cutoff of 20% of the graph — 595 importers on Django's 2,971 files. Fed the full Django graph, `core/exceptions.py`, with 180 importers, collects +72 on a pre-boost score of 12 and ranks first; the answers to x029 and x030 fall from 4th and 5th to 11th. Over the whole corpus that is **42 → 42** hits (won 3, lost 3, MRR 0.3543 → 0.3520) with **django 3 → 1** — a per-repo regression an average would hide. So `rank()` is still handed `buildRankingGraph` (the pre-#934 walk), the benchmarks that score it call the same function, and no published number or baseline moved. Calibrating the boost for large graphs — one sweep of twelve candidate rules already shows ones worth +2 on xrepo and +3 on `hard`, and −1 on `jvm` — is [#935](https://github.com/manojmallick/sigmap/issues/935), to be decided on data it is not scored on.
+**What ranking is handed did not change, and that is measured, not assumed.** The neighbour boost adds 0.40 per importing seed to a file that itself matched, was calibrated on graphs of a few hundred files, and is bounded only by a hub cutoff of 20% of the graph — 595 importers on Django's 2,971 files. Fed the full Django graph, `core/exceptions.py`, with 180 importers, collects +72 on a pre-boost score of 12 and ranks first; the answers to x029 and x030 fall from 4th and 5th to 11th. Over the whole corpus that is **42 → 42** hits (won 3, lost 3, MRR 0.3543 → 0.3520) with **django 3 → 1** — a per-repo regression an average would hide. So `rank()` is still handed `buildRankingGraph` (the pre-#934 walk), the benchmarks that score it call the same function, and no published number or baseline moved. Calibrating the boost for large graphs was then measured on data the rule is not chosen on, and no rule earned the change ([below](#calibrating-the-neighbour-boost-935)).
+
+### Calibrating the neighbour boost (#935)
+
+The question #934 left open is whether the hop-1 boost can be bounded so that `rank()` can be handed the complete graph. On this corpus **no rule earns it**, so nothing changed: `rank()` is still handed `buildRankingGraph`, and no published number or baseline moved.
+
+**Method.** Ten rules were declared before any was scored (`scripts/lib/graph-damping.mjs`): a file may take at most 24, 16, 12, 8 or 4 hop-1 bonuses (`cap`), at most 2, 1 or 0.5 times its own score in total (`share`), or each successive bonus is scaled by 0.9 or 0.8 (`decay`). The first bonus is never damped — it is the designed lift for a direct neighbour of a match — so a rule can reorder files that matched on their own and can never hide a neighbour. Every task is ranked with the graph `rank()` is handed today and with the complete graph under each rule; a cell counts the tasks the setting wins and loses against the former.
+
+| Rule | xrepo 42/83 | hard 65/90 | mined 37/60 | easy 18/20 | jvm 21/61 | all |
+|------|------------:|-----------:|------------:|-----------:|----------:|----:|
+| `complete graph, no rule` | +0 (3/3) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +0 (3/3) |
+| `cap24` | +1 (3/2) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +1 (3/2) |
+| `cap16` | +1 (3/2) | +1 (1/0) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +2 (4/2) |
+| `cap12` | +2 (3/1) | +1 (1/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +2 (4/2) |
+| `cap8` | +2 (3/1) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +4 (6/2) |
+| `cap4` | +2 (2/0) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -2 (0/2) | +3 (5/2) |
+| `share2` | +1 (3/2) | +2 (2/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +2 (5/3) |
+| `share1` | +1 (3/2) | +2 (2/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +2 (5/3) |
+| `share0.5` | +2 (3/1) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +4 (6/2) |
+| `decay0.9` | +3 (3/0) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -2 (0/2) | +4 (6/2) |
+| `decay0.8` | +2 (2/0) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -2 (0/2) | +3 (5/2) |
+
+**What it says.**
+
+- The complete graph with no rule is net zero on xrepo: it wins phoenix x062, vue-core x041 and flask x032 and loses django x029, x030 and flask x033. Damping gets the three losses back and little more — the best xrepo reading is +3 (`decay0.9`), against the +5 the default rule asks for.
+- Every rule that helps `hard` costs `jvm` one or two tasks. The only ones that cost it nothing, `cap24` and `cap16`, are worth +1 on xrepo.
+- `mined` and `easy` do not move under any rule, and the honest corpus is scored without an import graph, as its table is, so no rule can move it. `ask` and `--query` hand the ranker no graph either: only the MCP `query_context` tool and the benchmark harnesses are affected by anything on this page.
+
+**Chosen on one half, scored on the other.** A table of ten rules over 314 tasks is partly noise, so a rule was also chosen on one half of xrepo (by repository) and of `mined` (by task) and scored on the other half and on `hard`, `easy` and `jvm`, which tuning never touches, and the folds were swapped:
+
+| Tuned on | Chose | Held out: xrepo | mined | hard | easy | jvm |
+|----------|-------|----------------:|------:|-----:|-----:|----:|
+| fold 0 (69 tasks) | `cap12` | +1 | +0 | +1 | +0 | -1 |
+| fold 1 (74 tasks) | `cap4` | +0 | +0 | +3 | +0 | -2 |
+
+The two folds do not agree on a rule, and on both the held-out reading is one task or none on xrepo against a loss on `jvm`. The lead in #935 — `cap8` at +2 on xrepo, +3 on `hard`, −1 on `jvm` — reproduces row for row above, and it was a lead rather than a result: the best cell of a table scored on the data it was picked from.
+
+**The call.** The default rule in this guide asks for at least five more wins than losses on xrepo and no corpus net-negative. No row meets it, so nothing is switched on and `buildRankingGraph` keeps the walk it had before #934. The option the sweep turns, `graphDamping` on `rank()`, is not wired to any config. One xrepo task is 1.2 points and the best rule's whole lead is three tasks: a larger labelled corpus is the lever, not another rule. An earlier run also tried letting a boosted file seed hop 2 once instead of once per bonus; it changed nothing, because a hop-2 neighbour is by construction a file that no matched file imports, and the option was removed.
+
+```bash
+npm run benchmark:graph-damping-sweep      # the table and the folds above, recorded to benchmarks/reports/graph-damping-sweep.json
+```
 
 ### Why a task misses (`--why`)
 
@@ -469,8 +510,8 @@ npm run validate:xrepo     # the gate: floor + per-repo no-regress (CI adds --re
 
 CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.json`, fetches only what is missing or off-pin, and runs the gate. The gate exits 0 when the repos are absent, so a fresh checkout is never broken by it.
 
-::: warning Set the seven new clones aside before a release benchmark run
-`fetch:xrepo` puts seven repositories that no other suite expects (tokio, excalidraw, django, phoenix, astro, plenary, godot-demo-projects) into `benchmarks/repos/`, and two suites enumerate that whole directory. With them present, `benchmark:test-discovery` reads **95.3% F1 over 33 repositories instead of 98.0% over 28**, and `validate:grounding-coverage` fails because each has no recorded floor. The published figures were measured with them moved aside; the cause is tracked in [#893](https://github.com/manojmallick/sigmap/issues/893).
+:::tip The seven xrepo-only clones are skipped by the suites that walk `benchmarks/repos`
+`fetch:xrepo` puts seven repositories that no other suite expects (tokio, excalidraw, django, phoenix, astro, plenary, godot-demo-projects) into `benchmarks/repos/`. The manifest flags them `xrepoOnly`, and the two suites that enumerate that whole directory — `benchmark:test-discovery` and `validate:grounding-coverage` — skip them through `scripts/lib/benchmark-repos.mjs`, so a machine that has run `fetch:xrepo` reads the same figures as one that has not ([#893](https://github.com/manojmallick/sigmap/issues/893) §7). The nine repositories xrepo shares with other suites are measured by both.
 :::
 
 ### Changing the corpus

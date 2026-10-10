@@ -7,7 +7,8 @@
  * The CHANGELOG deferred a *measured* impl→test discovery number to v8.5. This
  * harness produces it, reproducibly and with zero LLM calls:
  *
- *   1. Walk every repo under benchmarks/repos/.
+ *   1. Walk every repo under benchmarks/repos/ (minus the xrepo-only clones,
+ *      which no other suite expects — scripts/lib/benchmark-repos.mjs).
  *   2. Build an INDEPENDENT gold standard: a test file is a gold match for an
  *      implementation file iff its basename equals an EXACT canonical form of
  *      the impl stem — `X.test.js`, `X.spec.ts`, `test_X.py`, `X_test.go`,
@@ -30,6 +31,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { stamp } from './lib/report-stamp.mjs';
+import { benchmarkRepoNames } from './lib/benchmark-repos.mjs';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -138,10 +140,7 @@ function round(n, d = 3) {
 function main() {
   let repos;
   try {
-    repos = fs.readdirSync(REPOS_DIR, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name)
-      .sort();
+    repos = benchmarkRepoNames(REPOS_DIR, ROOT);
   } catch {
     console.error(`No benchmark repos at ${REPOS_DIR}. Nothing to measure.`);
     return 1;
