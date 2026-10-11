@@ -241,8 +241,9 @@ const DEFAULTS = {
     // .context/mined-expansions.json (B2, opt-in, measure-gated)
     minedExpansions: false,
     // Index each file's rare body words — the words its signatures drop — into the ranking
-    // only, cached in .context/body-words.json (opt-in, measure-gated)
-    bodyWords: false,
+    // only, cached in .context/body-words.json. On by default since v8.75.0 (#943, #674): it won
+    // +17 on the third-party corpus with no corpus net-negative. `false` turns it off.
+    bodyWords: true,
   },
 
   // Host-toolchain exactness tiers (#542 T2, opt-in, silent regex fallback).

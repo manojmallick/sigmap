@@ -262,7 +262,7 @@ function expandQuery(qToks, mined) {
  * @param {string} query
  * @param {{ file: string, sigs: string[] }[]} candidates
  * @param {object} [opts]
- * @param {Map<string,string>} [opts.bodyWords] file -> body words (opt-in retrieval.bodyWords)
+ * @param {Map<string,string>} [opts.bodyWords] file -> body words (retrieval.bodyWords, on by default)
  * @param {'prose'|'own'} [opts.bodyField] where body words go: `prose` joins the prose field,
  *        weight and length alike; `own` gives them a field of their own (default BODY_FIELD, #943)
  * @param {number} [opts.bodyWeight] with `own`: the field's weight (default BODY_WEIGHT)
@@ -277,7 +277,7 @@ function bm25rank(query, candidates, opts) {
   const b = 0.75;
 
   const docWeight = (opts && typeof opts.docWeight === 'number') ? opts.docWeight : DOC_WEIGHT;
-  // Opt-in body words (retrieval.bodyWords, src/retrieval/body-words.js): file -> the rare
+  // Body words (retrieval.bodyWords, on by default; src/retrieval/body-words.js): file -> the rare
   // words of its source that its signatures lack. Absent, nothing below changes.
   const bodyWords = (opts && opts.bodyWords instanceof Map) ? opts.bodyWords : null;
   // Where body words go (#943): into the prose field, weight and length alike, or into a

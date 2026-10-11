@@ -224,9 +224,10 @@ const scoreOf = (opts, file) => bm25rank(QUERY, CANDIDATES, Object.assign({ body
     try { return fn(); } finally { DEFAULTS.retrieval.bodyWords = before; }
   };
 
-  await test('the runner ranks without body words while the flag is off, and the flag is off in this repository', () => {
-    assert.strictEqual(DEFAULTS.retrieval.bodyWords, false, 'a default flip is a release decision: it moves every published figure');
-    assert.deepStrictEqual(found(repo()), []);
+  await test('the runner ranks with body words by default, and a repository can turn them off', () => {
+    assert.strictEqual(DEFAULTS.retrieval.bodyWords, true, 'the flag ships on (#943)');
+    assert.deepStrictEqual(found(repo()), ['src/herald.js']);
+    assert.deepStrictEqual(found(repo({ retrieval: { bodyWords: false } })), []);
   });
 
   await test('a repository that turns the flag on is benchmarked with its body words, and nothing is written into it', () => {
@@ -242,11 +243,26 @@ const scoreOf = (opts, file) => bm25rank(QUERY, CANDIDATES, Object.assign({ body
     assert.deepStrictEqual(found(r, { bodyWords: new Map([['src/ledger.js', 'nightly reminders']]) }), ['src/ledger.js']);
   });
 
-  await test('with the flag the default, an unconfigured repository is benchmarked with them and a configured one can opt out', () => {
-    withDefault(true, () => {
-      assert.deepStrictEqual(found(repo()), ['src/herald.js']);
-      assert.deepStrictEqual(found(repo({ retrieval: { bodyWords: false } })), []);
+  await test('with the flag off by default an unconfigured repository is benchmarked without them, and a configured one can opt in', () => {
+    withDefault(false, () => {
+      assert.deepStrictEqual(found(repo()), []);
+      assert.deepStrictEqual(found(repo({ retrieval: { bodyWords: true } })), ['src/herald.js']);
     });
+  });
+
+  await test('a repository\'s flag resolves the way ask resolves it: through `extends`, and a non-boolean is off', () => {
+    const { bodyWordsOn } = runner;
+    const fix = (config, base) => {
+      const r = repo(config);
+      if (base) fs.writeFileSync(path.join(r.dir, 'base.json'), JSON.stringify(base));
+      return r;
+    };
+    const viaExtends = fix({ extends: './base.json' }, { retrieval: { bodyWords: false } });
+    assert.strictEqual(bodyWordsOn(viaExtends.dir), false, 'the base file turns it off, as it does for ask');
+    assert.deepStrictEqual(found(viaExtends), []);
+    assert.strictEqual(bodyWordsOn(fix({ retrieval: null }).dir), false, 'a null retrieval block is what the loader hands every reader');
+    assert.strictEqual(bodyWordsOn(fix({ retrieval: { bodyWords: 0 } }).dir), false);
+    assert.strictEqual(bodyWordsOn(fix({ retrieval: { topK: 5 } }).dir), true, 'a block that does not name the flag keeps the default');
   });
 
   await test('an index scored over many tasks reads its sources once', () => {
@@ -269,6 +285,22 @@ const scoreOf = (opts, file) => bm25rank(QUERY, CANDIDATES, Object.assign({ body
     assert.deepStrictEqual([off.on, off.plain, off.body], [false, [], ['src/herald.js']], 'off: the arm adds the words');
     const on = arms(true);
     assert.deepStrictEqual([on.on, on.plain, on.body], [true, ['src/herald.js'], []], 'on: plain carries them and the arm is the ablation');
+  });
+
+  await test('each repository\'s arm follows its own setting, not the default\'s', async () => {
+    const { buildArmRankers } = await import('../../scripts/lib/signal-rankers.mjs');
+    const armsOf = (config) => {
+      const r = repo(config);
+      const { rankers } = buildArmRankers({ index: r.index, dir: r.dir, graph: null, rankQuery: runner.rank });
+      return { plain: rankers.plain(NIGHTLY), body: rankers.body(NIGHTLY) };
+    };
+    withDefault(true, () => {
+      assert.deepStrictEqual(armsOf({ retrieval: { bodyWords: false } }), { plain: [], body: ['src/herald.js'] }, 'pinned off: the arm adds the words');
+      assert.deepStrictEqual(armsOf(), { plain: ['src/herald.js'], body: [] }, 'on by default: the arm removes them');
+    });
+    withDefault(false, () => {
+      assert.deepStrictEqual(armsOf({ retrieval: { bodyWords: true } }), { plain: ['src/herald.js'], body: [] }, 'pinned on: the arm removes them');
+    });
   });
 
   // ── the recorded measurement and the guide that reports it ─────────────────

@@ -38,10 +38,16 @@ const FILES = {
 
 const task = (id, query, file, extra) => JSON.stringify(Object.assign({ id, query, expected_files: [file], repo: '.' }, extra));
 
-/** A data root: the eight files and the three corpora the gate scores. `hard` has one answer labelled with a file that shares no word with its question; `mined` has one whose words live only in a function body. */
-function dataRoot() {
+/**
+ * A data root: the eight files and the three corpora the gate scores. `hard` has one answer labelled with a file that shares no word with its question; `mined` has one whose words live only in a function body.
+ * It pins `retrieval.bodyWords: false`, so the classes below are those of the ranking without body words,
+ * which is the case that has a "distinctive word only in its source" miss to classify; `{ shipped: true }`
+ * leaves the default alone (body words on) and is what the last test of the gate's own default reads.
+ */
+function dataRoot(opts) {
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-retrieval-why-'));
   tmpDirs.push(data);
+  if (!(opts && opts.shipped)) fs.writeFileSync(path.join(data, 'gen-context.config.json'), JSON.stringify({ retrieval: { bodyWords: false } }));
   for (const [rel, body] of Object.entries(FILES)) {
     fs.mkdirSync(path.dirname(path.join(data, rel)), { recursive: true });
     fs.writeFileSync(path.join(data, rel), body);
@@ -132,7 +138,7 @@ const gate = (data, args) => spawnSync('node', [GATE, ...args], {
     assert.strictEqual(r.status, 0, r.stderr);
     assert.match(r.stdout, /signal arms: each opt-in signal against plain/);
     assert.match(r.stdout, /plain \(as shipped\)\s+2\/3\s+1\/2\s+2\/2/);
-    for (const label of ['+ centrality blend', '+ surface enrichment', '+ mined expansions', '+ call-graph boost', '+ body words', '- import graph (as `ask`)']) {
+    for (const label of ['+ centrality blend', '+ surface enrichment', '+ mined expansions', '+ call-graph boost', '- body words (flag off)', '- import graph (as `ask`)']) {
       assert.ok(r.stdout.includes(label), `a row for ${label}`);
     }
     assert.ok(!/why the misses miss/.test(r.stdout), '--signals alone prints no attribution');
@@ -152,6 +158,14 @@ const gate = (data, args) => spawnSync('node', [GATE, ...args], {
     assert.strictEqual(b.jvm, undefined, 'no jvm repos, so no jvm entry');
     assert.strictEqual(b.recordedBy, 'run-retrieval-gate.mjs');
     assert.strictEqual(fs.statSync(path.join(ROOT, 'benchmarks/retrieval-baseline.json')).mtimeMs, before, 'this checkout\'s own baseline is never touched');
+  });
+
+  await test('with the default config the gate scores what ships: the question held only in a function body is a hit', () => {
+    const d = dataRoot({ shipped: true });
+    const r = gate(d, ['--why', '--per-task']);
+    assert.strictEqual(r.status, 0, r.stderr);
+    assert.match(r.stdout, /mined\s+m001\s+hit\s+1\b/, 'body words are on by default, so the words in the function body are found');
+    assert.match(r.stdout, /hits \/ tasks\s+2\/3\s+2\/2\s+2\/2/, 'mined reads 2/2 where the pinned fixture reads 1/2');
   });
 
   await test('a save from a machine without the jvm repos keeps the jvm entry already recorded', () => {

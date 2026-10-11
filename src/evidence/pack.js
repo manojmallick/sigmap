@@ -236,7 +236,9 @@ function buildEvidencePack(query, cwd, opts = {}) {
   const intent = detectIntent(query);
   const allFiles = Array.from(sigIndex.keys());
 
-  const ranked = rank(query, sigIndex, { topK: top, cwd })
+  // An injected index is not this repository's: its words are not built from `cwd` (as the map below is not).
+  const bodyWords = opts.sigIndex instanceof Map ? null : require('../retrieval/body-words').forRepo(cwd, sigIndex);
+  const ranked = rank(query, sigIndex, { topK: top, cwd, bodyWords })
     .filter((r) => r.score > 0 || ranked0Empty(query));
   const maxScore = ranked.reduce((m, r) => Math.max(m, r.score), 0);
 

@@ -273,9 +273,16 @@ const byRepo = (n) => tasks.filter((t) => t.repo === n);
 
     const floor = 0.40;
     const headroom = t.hits - Math.ceil(floor * t.tasks - 1e-9);
-    const words = { six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
-    const m = /\(40%, (\w+) tasks of headroom/.exec(guide());
-    assert.ok(m && words[m[1]] === headroom, `the guide says "${m && m[1]}" tasks of headroom; the baseline leaves ${headroom}`);
+    // The headroom is spelled out in words by the guide ("eight", "twenty-five"), so read the words back to a number.
+    const ones = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+    const tens = { twenty: 20, thirty: 30, forty: 40, fifty: 50 };
+    const toNumber = (w) => {
+      if (ones.includes(w)) return ones.indexOf(w);
+      const [t, o] = String(w).split('-');
+      return tens[t] !== undefined ? tens[t] + (o ? ones.indexOf(o) : 0) : NaN;
+    };
+    const m = /\(40%, ([\w-]+) tasks of headroom/.exec(guide());
+    assert.ok(m && toNumber(m[1]) === headroom, `the guide says "${m && m[1]}" tasks of headroom; the baseline leaves ${headroom}`);
   });
 
   await test('the guide\'s --why table accounts for every miss behind the headline', () => {

@@ -19,7 +19,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { readSource } from './corpus-vocabulary.mjs';
-import { bodyDefault } from './signal-arms.mjs';
 
 const require = createRequire(import.meta.url);
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -79,14 +78,14 @@ export function buildArmRankers({ index, dir, graph, rankQuery }) {
     stats.callEdges = callGraph.forward.size;
     return rankWith(index, { callGraph });
   });
-  // `plain` is what ships. While retrieval.bodyWords is off the arm adds the words; once it is the
-  // default `plain` already carries them and the arm is the ablation, so it turns them off. The
-  // arm's cost is the size of what the flag builds either way.
+  // `plain` is what ships. Where retrieval.bodyWords is on (the default, or the repository's own
+  // config) `plain` already carries the words and the arm is the ablation, so it turns them off;
+  // where it is off the arm adds them. The arm's cost is the size of what the flag builds.
   arm('body', () => {
     const bodyWords = buildBodyWords(index, (file) => readSource(dir, file));
     stats.bodyFiles = bodyWords.size;
     stats.bodyWords = [...bodyWords.values()].reduce((n, w) => n + w.split(' ').length, 0);
-    return rankWith(index, { bodyWords: bodyDefault() ? null : bodyWords });
+    return rankWith(index, { bodyWords: load('src/eval/runner').bodyWordsOn(dir) ? null : bodyWords });
   });
   // Not a signal but a configuration: `sigmap ask` and `--query` call `rank()` with no import
   // graph, so the neighbour boost the benchmarks and the MCP tool include never applies there.

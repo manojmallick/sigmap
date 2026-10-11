@@ -64,7 +64,9 @@ function createPlan(goal, cwd, config = {}) {
     return { error: 'no context found' };
   }
 
-  const ranked = rank(goal, sigIndex, { topK: 15, cwd });
+  // The same words `ask` ranks with: a plan that could not find what `ask` finds would contradict it.
+  const bodyWords = require('../retrieval/body-words').forRepo(cwd, sigIndex, config);
+  const ranked = rank(goal, sigIndex, { topK: 15, cwd, bodyWords });
 
   // Step 2: what to read, and what the task is likely to edit. Both come from
   // the high-confidence band; the change list keeps only implementation files

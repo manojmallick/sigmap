@@ -83,10 +83,38 @@ function rank(query, index, topK = 10, opts = {}) {
 /** `index` -> its body words, so one index scored over many tasks reads its sources once. */
 const _bodyWordsOf = new WeakMap();
 
+/** `{repository, config file mtime, the default}` -> whether it ships body words; the config is read once. */
+const _flagOf = new Map();
+
+/**
+ * Whether the repository at `cwd` ships body words, resolved the way `ask` resolves it: the
+ * default in src/config/defaults.js, merged with the repository's `gen-context.config.json` and
+ * whatever it `extends`, through the config loader. A repository with no config file skips the
+ * loader (which would walk it to detect source roots) and takes the default.
+ *
+ * @param {string} cwd
+ * @returns {boolean}
+ */
+function bodyWordsOn(cwd) {
+  const dflt = require('../config/defaults').DEFAULTS.retrieval.bodyWords === true;
+  let mtime = 0;
+  try { mtime = fs.statSync(path.join(cwd, 'gen-context.config.json')).mtimeMs; } catch (_) { /* no config file */ }
+  const key = `${path.resolve(cwd)}\0${mtime}\0${dflt}`;
+  if (_flagOf.has(key)) return _flagOf.get(key);
+  let on = dflt;
+  if (mtime) {
+    try {
+      const cfg = require('../config/loader').loadConfig(cwd);
+      on = !!(cfg && cfg.retrieval && cfg.retrieval.bodyWords);
+    } catch (_) { /* keep the default */ }
+  }
+  _flagOf.set(key, on);
+  return on;
+}
+
 /**
  * The body words the shipped ranker would use for the repository at `cwd`, or null when the
- * repository switches them off. Reads only the repository's own `gen-context.config.json`
- * for `retrieval.bodyWords`; the default is the one in src/config/defaults.js.
+ * repository switches them off.
  *
  * @param {Map<string, string[]>} index
  * @param {string} cwd
@@ -94,12 +122,7 @@ const _bodyWordsOf = new WeakMap();
  */
 function defaultBodyWords(index, cwd) {
   if (!(index instanceof Map) || index.size === 0) return null;
-  let on = require('../config/defaults').DEFAULTS.retrieval.bodyWords;
-  try {
-    const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
-    if (cfg && cfg.retrieval && typeof cfg.retrieval.bodyWords === 'boolean') on = cfg.retrieval.bodyWords;
-  } catch (_) { /* no config, or not JSON: the default stands */ }
-  if (!on) return null;
+  if (!bodyWordsOn(cwd)) return null;
   const known = _bodyWordsOf.get(index);
   if (known && known.cwd === cwd) return known.words;
   let words = null;
@@ -261,4 +284,4 @@ function formatMetrics(metrics) {
   ].join('\n');
 }
 
-module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize };
+module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize, bodyWordsOn };
