@@ -126,6 +126,37 @@ const index = (entries) => new Map(Object.entries(entries));
     assert.strictEqual(bw.MIN_WORD_LENGTH, 3);
   });
 
+  // ── a credential is a rare word too (#943) ─────────────────────────────────
+
+  await test('a line the secret scanner flags contributes no word, and a clean line beside it keeps its words', () => {
+    const out = bw.buildBodyWords(
+      index({ 'src/cfg.js': ['function load()'] }),
+      reader({ 'src/cfg.js': 'const key = "AKIAIOSFODNN7EXAMPLE"; // frobnicate\nconst note = pelican;\nconst password = "hunter2hunter2";\n' }),
+    );
+    const words = (out.get('src/cfg.js') || '').split(' ');
+    assert.ok(words.includes('pelican'), 'a clean line keeps its words');
+    for (const w of ['akiaiosfodnn7example', 'frobnicate', 'hunter2hunter2']) assert.ok(!words.includes(w), `${w} came from a line the scanner flags`);
+  });
+
+  await test('a word that is long and holds a digit is never kept, and an equally long word without one is', () => {
+    assert.strictEqual(bw.OPAQUE_WORD_LENGTH, 20);
+    const opaque = 'a1b2c3d4e5f6a7b8c9d0e1f2';
+    const long = 'internationalizations';
+    assert.ok(opaque.length >= bw.OPAQUE_WORD_LENGTH && long.length >= bw.OPAQUE_WORD_LENGTH);
+    const out = bw.buildBodyWords(index({ 'src/a.js': ['function a()'] }), reader({ 'src/a.js': `const t = '${opaque}';\nconst u = '${long}';\n` }));
+    const words = (out.get('src/a.js') || '').split(' ');
+    assert.ok(!words.includes(opaque), 'a key-shaped word is dropped');
+    assert.ok(words.includes(long), 'a long word of letters is an ordinary word');
+  });
+
+  await test('a flagged line is dropped on the line, not the word: the word survives on a clean line', () => {
+    const out = bw.buildBodyWords(
+      index({ 'src/a.js': ['function a()'] }),
+      reader({ 'src/a.js': 'const k = "AKIAIOSFODNN7EXAMPLE"; // kestrel\nconst other = kestrel;\n' }),
+    );
+    assert.ok((out.get('src/a.js') || '').split(' ').includes('kestrel'));
+  });
+
   // ── how BM25 uses them ─────────────────────────────────────────────────────
 
   const CANDIDATES = [
@@ -181,12 +212,22 @@ const index = (entries) => new Map(Object.entries(entries));
     const built = bw.loadOrBuild(dir);
     assert.match(built.get('src/herald.js'), /\bnightly\b/);
     const cache = JSON.parse(fs.readFileSync(cacheOf(dir), 'utf8'));
-    assert.deepStrictEqual({ schema: cache.schema, share: cache.share, perFile: cache.perFile, files: cache.files }, { schema: 1, share: 0.05, perFile: 200, files: built.size });
+    assert.deepStrictEqual({ schema: cache.schema, share: cache.share, perFile: cache.perFile, files: cache.files }, { schema: bw.SCHEMA_VERSION, share: 0.05, perFile: 200, files: built.size });
     assert.strictEqual(cache.builtFor, fs.statSync(indexFile(dir)).mtimeMs, 'keyed by the complete index');
     // prove the second call reads the cache: change what it holds
     cache.words = { 'src/herald.js': 'sentinel' };
     fs.writeFileSync(cacheOf(dir), JSON.stringify(cache));
     assert.strictEqual(bw.loadOrBuild(dir).get('src/herald.js'), 'sentinel');
+  });
+
+  await test('the cache on disk holds no word of a line the scanner flags', () => {
+    const dir = repo();
+    fs.writeFileSync(path.join(dir, 'src/secrets.js'), 'const key = "AKIAIOSFODNN7EXAMPLE"; // wombat\nfunction mountVolume() {}\nmodule.exports = { mountVolume };\n');
+    generate(dir);
+    bw.loadOrBuild(dir);
+    const raw = fs.readFileSync(cacheOf(dir), 'utf8');
+    assert.ok(!/akiaiosfodnn7example/.test(raw) && !/wombat/.test(raw), 'a key and the words beside it stay out of the cache');
+    assert.ok(/nightly/.test(raw), 'while an ordinary file keeps its words');
   });
 
   await test('regenerating the index rebuilds the cache, but an ask rewriting query-context.md does not', () => {

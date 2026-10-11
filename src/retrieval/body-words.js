@@ -19,8 +19,10 @@
 const fs = require('fs');
 const path = require('path');
 const { tokenize } = require('./tokenizer');
+const { scan } = require('../security/scanner');
 
-const SCHEMA_VERSION = 1;
+// 2: a word is never taken from a line the secret scanner flags, nor is a long word that holds a digit (#943).
+const SCHEMA_VERSION = 2;
 const CACHE_FILE = 'body-words.json';
 
 // A word is rare when no more than this share of the indexed files hold it (and never
@@ -30,6 +32,10 @@ const DISTINCTIVE_SHARE = 0.05;
 // every benchmark corpus, was flat from about 200 up; below 100 it began to lose gains.
 const PER_FILE = 200;
 const MIN_WORD_LENGTH = 3;
+// A word this long that holds a digit is a key, a hash or an identifier no question is written in
+// (an AWS access key id is 20 characters). The scanner's patterns are tried first; this is for
+// whatever they do not name.
+const OPAQUE_WORD_LENGTH = 20;
 // A whole-file scan skips files over this size, as the grep baseline does.
 const MAX_SOURCE_BYTES = 1024 * 1024;
 
@@ -43,12 +49,33 @@ const FRAMING_WORDS = new Set((
   + 'been being have has had was were are is be not but and for the you your its it our we can cannot'
 ).split(/\s+/));
 
+/**
+ * The lines of a source with every line the secret scanner flags blanked.
+ *
+ * Body words are the rare words of raw source, and a rare word is exactly what a credential is, so
+ * unlike a signature they must pass the scanner too: a cache that held `akiaiosfodnn7example` would
+ * carry the key's id into a file that is not the source and is not redacted.
+ */
+function _safeLines(source, file) {
+  const lines = source.split('\n');
+  try {
+    const { safe, redacted } = scan(lines, file);
+    if (!redacted) return lines;
+    return lines.map((l, i) => (safe[i] === l ? l : ''));
+  } catch (_) {
+    return [];
+  }
+}
+
 /** Words of one file's source, with the number of its lines that hold each. */
-function _lineFrequency(source) {
+function _lineFrequency(source, file) {
   const freq = new Map();
-  for (const line of source.split('\n')) {
+  for (const line of _safeLines(source, file)) {
     if (!line) continue;
-    for (const w of tokenize(line)) freq.set(w, (freq.get(w) || 0) + 1);
+    for (const w of tokenize(line)) {
+      if (w.length >= OPAQUE_WORD_LENGTH && /\d/.test(w)) continue;
+      freq.set(w, (freq.get(w) || 0) + 1);
+    }
   }
   return freq;
 }
@@ -94,7 +121,7 @@ function buildBodyWords(index, readSource, opts) {
     if (typeof source !== 'string') continue;
     const have = new Set(tokenize(`${file}\n${(index.get(file) || []).join('\n')}`));
     const picks = [];
-    for (const [w, lines] of _lineFrequency(source)) {
+    for (const [w, lines] of _lineFrequency(source, file)) {
       if (w.length < MIN_WORD_LENGTH || have.has(w) || FRAMING_WORDS.has(w) || /^\d+$/.test(w)) continue;
       if ((df.get(w) || 0) > cap) continue;
       picks.push([w, lines]);
@@ -164,4 +191,4 @@ function loadOrBuild(cwd, index) {
   return built;
 }
 
-module.exports = { buildBodyWords, loadOrBuild, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };
+module.exports = { buildBodyWords, loadOrBuild, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, OPAQUE_WORD_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };
