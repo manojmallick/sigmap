@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Body words (retrieval only, opt-in via retrieval.bodyWords): for each indexed file, the rare words of its source that its signature entry does not carry. Fed to BM25's prose field so a question in the words a file's body uses can reach a file whose signatures never say them. Zero-dependency, deterministic, bundle-safe.
+ * Body words (retrieval only, opt-in via retrieval.bodyWords): for each indexed file, the rare words of its source that its signature entry does not carry. Fed to BM25 in a field of their own (weight and length: BODY_WEIGHT and BODY_LENGTH in bm25.js) so a question in the words a file's body uses can reach a file whose signatures never say them. Zero-dependency, deterministic, bundle-safe.
  *
  * A signature map keeps a file's shape — names, parameters — and drops what the
  * body says. A person asking how something works describes it in the words the
@@ -145,6 +145,18 @@ function _readUnder(cwd, file) {
 }
 
 /**
+ * The body words of the files of `index`, read under `cwd`, with nothing written: for a benchmark
+ * that scores a pinned checkout and must leave it untouched.
+ *
+ * @param {string} cwd
+ * @param {Map<string, string[]>} index
+ * @returns {Map<string, string>}
+ */
+function buildFor(cwd, index) {
+  return buildBodyWords(index, (file) => _readUnder(cwd, file));
+}
+
+/**
  * The body words of a repository, from the cache in `.context/body-words.json` when it is
  * current, otherwise built from its index and written back. The cache is keyed by the mtime
  * of the complete index (`.context/sig-index.json`), which every `generate` rewrites, and by
@@ -174,8 +186,7 @@ function loadOrBuild(cwd, index) {
 
   let built = new Map();
   try {
-    const idx = index instanceof Map ? index : require('./ranker').buildSigIndex(cwd);
-    built = buildBodyWords(idx, (file) => _readUnder(cwd, file));
+    built = buildFor(cwd, index instanceof Map ? index : require('./ranker').buildSigIndex(cwd));
   } catch (_) { built = new Map(); }
 
   if (!stamp) return built;
@@ -191,4 +202,4 @@ function loadOrBuild(cwd, index) {
   return built;
 }
 
-module.exports = { buildBodyWords, loadOrBuild, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, OPAQUE_WORD_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };
+module.exports = { buildBodyWords, buildFor, loadOrBuild, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, OPAQUE_WORD_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };

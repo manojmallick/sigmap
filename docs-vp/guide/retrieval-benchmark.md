@@ -618,7 +618,48 @@ Turn it on in `gen-context.config.json`:
 { "retrieval": { "bodyWords": true } }
 ```
 
-It meets the rule above — +15 on the third-party corpus, no corpus net-negative — so it is eligible to become a default. Flipping it moves every published retrieval number, the baselines and the honest corpus among them, so it belongs with the release that re-records them. `src/eval/runner.js` and the honest benchmark rank without any signal, so they would need to read the flag to keep measuring what ships.
+On the v8.67.0 recording above it met the rule — +15 on the third-party corpus, no corpus net-negative — and was eligible to become a default; on the v8.74.0 tree the placement described here no longer does, and the next section is what was done about that.
+
+### Weighting the body words (#943)
+
+Everything above measured the words as they joined BM25's prose field, so they carried its weight (0.6) and were counted into a document's length. [#943](https://github.com/manojmallick/sigmap/issues/943) asked what a field of their own would do, because the rule above turned on one task. On the v8.74.0 tree (develop at f33510f) that placement read **−1** on `hard` — 4 won, 5 lost, where the v8.67.0 recording above read +1 — and so did not meet the rule. On the tree of this change it reads **+0** (4 / 4): `h087`, "the built-in settings applied before any overrides", is a hit again, with no change to the file it names. `hard` is 90 tasks scored against this repository, one task is 1.1 points, and it moves with edits unrelated to its answer — adding the test that pins this section moved one cell of the table below — so it cannot carry a placement on its own.
+
+The sweep puts the words in a field of their own and varies both things the 90-cell grid above left alone. The family was fixed before the run — eleven cells, a weight from 0.2 to 0.8, the words counted into a document's length (`count`) or not (`ignore`), mildest first — and a variant is judged against plain by the rule above applied one step more strictly: xrepo at least +5, no corpus net-negative, and neither half of xrepo (by repository) or of `mined` (by task) net-negative. Net tasks over plain, won / lost beside it:
+
+| Placement | xrepo | hard | mined | easy | jvm | honest | all |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| plain | 42 / 83 | 65 / 90 | 37 / 60 | 18 / 20 | 21 / 61 | 112 / 125 | 295 / 439 |
+| prose field (through v8.74) | +15 (16/1) | +0 (4/4) | +3 (3/0) | +0 (0/0) | +1 (1/0) | +4 (4/0) | +23 (28/5) |
+| `w0.2-count` | +9 (9/0) | +0 (2/2) | +1 (2/1) | +0 (0/0) | +1 (1/0) | +3 (3/0) | +14 (17/3) |
+| `w0.2-ignore` | +11 (11/0) | +0 (2/2) | +1 (2/1) | +1 (1/0) | +1 (1/0) | +3 (3/0) | +17 (20/3) |
+| `w0.3-count` | +12 (12/0) | +1 (3/2) | +1 (2/1) | +0 (0/0) | +1 (1/0) | +3 (3/0) | +18 (21/3) |
+| `w0.3-ignore` | +15 (15/0) | +0 (2/2) | +3 (4/1) | +1 (1/0) | +1 (1/0) | +3 (3/0) | +23 (26/3) |
+| `w0.4-count` | +14 (14/0) | +2 (4/2) | +3 (3/0) | +0 (0/0) | +1 (1/0) | +4 (4/0) | +24 (26/2) |
+| `w0.4-ignore` | +16 (17/1) | +0 (3/3) | +4 (4/0) | +1 (1/0) | +2 (2/0) | +3 (3/0) | +26 (30/4) |
+| `w0.5-count` | +14 (15/1) | +1 (4/3) | +3 (3/0) | +0 (0/0) | +1 (1/0) | +4 (4/0) | +23 (27/4) |
+| `w0.5-ignore` | +17 (18/1) | +0 (3/3) | +4 (4/0) | +1 (1/0) | +3 (3/0) | +4 (4/0) | +29 (33/4) |
+| **`w0.6-ignore`** | +17 (18/1) | +0 (3/3) | +4 (4/0) | +1 (1/0) | +4 (4/0) | +4 (4/0) | +30 (34/4) |
+| `w0.8-count` | +16 (18/2) | +0 (4/4) | +3 (3/0) | +0 (0/0) | +4 (4/0) | +2 (3/1) | +25 (32/7) |
+| `w0.8-ignore` | +18 (19/1) | -2 (3/5) | +7 (7/0) | +1 (1/0) | +4 (4/0) | +3 (3/0) | +31 (37/6) |
+
+- **The placement through v8.74 meets the rule here, by zero, and so do seven of the eleven cells**: ignoring the length from weight 0.3 to 0.6, counting it at 0.4, 0.5 and 0.8. The cells that fail do so at the edges — weight 0.2, and 0.3 counted, lose one task on one half of `mined`; `w0.8-ignore` loses `hard` by two.
+- **The rule as written names `w0.3-ignore`**, the mildest cell that meets it, and it does not ship. On this tree the placement it would replace meets the rule too, and `w0.3-ignore` does not beat that placement on a corpus that does not move with this repository: xrepo +15 against +15, `jvm` +1 against +1, the honest corpus +3 against +4, `easy` +1 against +0.
+- **What is reproducible is the length treatment.** Not counting the words into a document's length beats counting them by +2 or +3 on xrepo at every weight tried, and by one on `easy` at every weight; on `jvm` it is never worse (0 to +2) and on `mined` never worse (0 to +4). It never helps `hard`: nothing at weight 0.2, one or two tasks at the other four. That was read off the table after the rule had named its cell, and it is the one reason a different cell ships.
+- **What ships is `w0.6-ignore`**: the weight the words already carried and no contribution to the length, so there is no new constant and one factor separates it from the placement it replaces. Against that placement xrepo reads +17 (18 / 1) against +15 (16 / 1), `jvm` +4 (4 / 0) against +1 (1 / 0), `mined` +4 against +3, `easy` +1 against +0, the honest corpus +4 against +4 and `hard` +0 (3 / 3) against +0 (4 / 4) — **+30 (34 / 4)** against +23 (28 / 5), and worse on no corpus.
+
+**What it does not show.**
+
+- It is not the cell the rule named and it was chosen after the table was seen. What supports it is a sign that holds across five weights, not a best-of-eleven cell; a reader who prefers `w0.3-ignore` is choosing between two placements that tie on every corpus that does not move.
+- The strong end of the family trades `hard` for the third-party corpora. Chosen on one half of xrepo and `mined`, without ever seeing `hard`, `easy`, `jvm` or the honest corpus, the argmax is `w0.8-ignore` on both folds (+11 and +14 on the tuning half) and reads `hard` −2 on the held-out one, beside +10 and +8 on xrepo, +4 and +3 on `mined` and +4 on `jvm`. Which end is right depends on whose questions are trusted: `hard`'s are paraphrases written to avoid the code's own words, and xrepo's were written by reading the code, so its +17 is the upper end here as it was above.
+- The report is the tree of this change. `hard` and `mined` move with every commit, so `npm run benchmark:body-weight-sweep` belongs on the release tree before anything is flipped.
+
+**What changed in the code.** `retrieval.bodyWords` places the words as `w0.6-ignore` (`BODY_FIELD`, `BODY_WEIGHT` and `BODY_LENGTH` in `src/retrieval/bm25.js`, which a test holds to `ADOPTED` in `scripts/lib/body-weight.mjs`); `bodyField: 'prose'` selects the placement through v8.74. Three more things were done to make the flag safe to leave on:
+
+- **A rare word is what a credential is.** Signatures pass the secret scanner; body words did not, so a repository holding `AKIAIOSFODNN7EXAMPLE` wrote `akiaiosfodnn7example` into `.context/body-words.json`. A line the scanner flags now contributes no word (the line, not the file), nor does a word of 20 or more characters that holds a digit — an AWS access key id is 20 — and the cache's schema moved to 2, so an older cache is rebuilt rather than trusted.
+- **The benchmarks read the flag.** `src/eval/runner.js` builds a repository's body words in memory when its `gen-context.config.json` or the default turns them on, so `--benchmark`, the gates and the honest benchmark measure what that repository ships and leave a pinned checkout untouched. The signal arms are flag-aware: `plain` is what ships, and the `body words` row flips the flag relative to it.
+- **It is cheap to build.** On the machine this was measured on, building takes 1.6 s for Django's 2,086 indexed files and 1.2 s for Laravel's 2,618, with the scanner pass included, once per regeneration.
+
+**The default stays off, on purpose.** By the rule above the flag is eligible to become one — +15 or better on the third-party corpus, no corpus net-negative — and flipping it is one line, `bodyWords: true` in `src/config/defaults.js`. It also moves every published retrieval number, every baseline and the sense of the `body words` row of the signals table (it becomes the ablation), so it belongs with the release that re-records them.
 
 ### How far is 90%?
 
@@ -632,6 +673,7 @@ npm run benchmark:retrieval -- --per-task   # each task's class and rank, one li
 npm run benchmark:xrepo -- --why            # the same for the third-party corpus
 npm run benchmark:signals                   # every opt-in signal against plain on all six corpora, and record it
 npm run benchmark:body-words-sweep          # the grid the body-words constants were chosen from, and record it
+npm run benchmark:body-weight-sweep         # the weight and length of the body-words field, held out, and record it
 node scripts/run-honest-benchmark.mjs --autopsy   # where SigMap and a whole-file grep scan disagree
 ```
 

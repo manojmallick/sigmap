@@ -40,7 +40,7 @@ import { spawnSync } from 'child_process';
 import { stamp } from './lib/report-stamp.mjs';
 import { readSource } from './lib/corpus-vocabulary.mjs';
 import { loadManifest, checkoutState, readTasks, withZeroConfigIndex, TASKS_REL } from './lib/xrepo.mjs';
-import { VARIANTS, SPLIT_CORPORA, HELD_OUT_CORPORA, XREPO_MIN_NET, foldsOf, netOf, judge, verdict, chooseOnTuning } from './lib/body-weight.mjs';
+import { VARIANTS, ADOPTED, SPLIT_CORPORA, HELD_OUT_CORPORA, XREPO_MIN_NET, foldsOf, netOf, judge, verdict, chooseOnTuning } from './lib/body-weight.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -81,7 +81,7 @@ function evaluate(corpus, unit, index, dir, tasks, graph) {
   for (const t of tasks) {
     const arms = { shipped: hit(t, { bodyWords, bodyField: 'prose' }) };
     for (const v of variants) arms[v.id] = hit(t, Object.assign({ bodyWords }, v.options));
-    rows.push({ corpus, unit, id: t.id, plain: hit(t, {}), arms });
+    rows.push({ corpus, unit, id: t.id, plain: hit(t, { bodyWords: null }), arms });
   }
 }
 
@@ -200,7 +200,7 @@ for (const id of armIds) {
   console.log(`    ${id.padEnd(13)}${cells.join('')}${cellOf(rows, id).padStart(W)}   ${j.meets ? 'MEETS' : j.failures[0]}`);
 }
 console.log(`\n  the rule: xrepo >= +${XREPO_MIN_NET}, no corpus net-negative, neither half of xrepo or mined net-negative`);
-console.log(`  mildest variant that meets it: ${verdictAll.choice === null ? 'none — the default stays off' : verdictAll.choice}`);
+console.log(`  mildest variant that meets it: ${verdictAll.choice === null ? 'none' : verdictAll.choice}   the control ${control.meets ? 'meets it too' : 'does not'}   adopted: ${ADOPTED}`);
 
 console.log('\n  chosen on one half (xrepo by repository, mined by task), scored on the other half and on the corpora never tuned on\n');
 for (const cv of crossValidation) {
@@ -229,7 +229,7 @@ if (SAVE) {
     folds: Object.fromEntries([...foldOf.entries()]),
     shipped: { corpora: tally('shipped'), meets: control.meets, failures: control.failures, halves: control.halves },
     grid,
-    verdict: { choice: verdictAll.choice },
+    verdict: { choice: verdictAll.choice, controlMeets: control.meets, adopted: ADOPTED },
     crossValidation,
   };
   fs.mkdirSync(path.dirname(REPORT), { recursive: true });

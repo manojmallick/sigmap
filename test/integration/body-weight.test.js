@@ -18,10 +18,16 @@
  */
 
 const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../..');
 const { bm25rank, BODY_FIELD, BODY_WEIGHT, BODY_LENGTH } = require(path.join(ROOT, 'src/retrieval/bm25'));
+const runner = require(path.join(ROOT, 'src/eval/runner'));
+const { DEFAULTS } = require(path.join(ROOT, 'src/config/defaults'));
+const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+const tmpDirs = [];
 
 let passed = 0;
 let failed = 0;
@@ -49,7 +55,7 @@ const QUERY = 'pelican';
 const scoreOf = (opts, file) => bm25rank(QUERY, CANDIDATES, Object.assign({ bodyWords: WORDS }, opts)).find((r) => r.file === file).score;
 
 (async () => {
-  const { VARIANTS, XREPO_MIN_NET, netOf, judge, verdict, chooseOnTuning, foldsOf } = await import('../../scripts/lib/body-weight.mjs');
+  const { VARIANTS, ADOPTED, STABLE_CORPORA, XREPO_MIN_NET, netOf, judge, verdict, chooseOnTuning, foldsOf } = await import('../../scripts/lib/body-weight.mjs');
 
   // ── the knob ───────────────────────────────────────────────────────────────
 
@@ -193,6 +199,195 @@ const scoreOf = (opts, file) => bm25rank(QUERY, CANDIDATES, Object.assign({ body
     assert.strictEqual(chooseOnTuning([row('xrepo', 'a', 'x', 1, { flat: 1 })], ['flat']), null, 'a flat table picks nothing');
   });
 
+  // ── the benchmarks read the flag, so they measure what ships ───────────────
+
+  /** A repository whose only answer to the question lives in a function body: no signature says it. */
+  function repo(config) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-body-weight-'));
+    tmpDirs.push(dir);
+    fs.mkdirSync(path.join(dir, 'src'));
+    const files = {
+      'src/herald.js': 'function notifyCustomer(customer) {\n  // sends nightly reminders\n  return customer;\n}\n',
+      'src/ledger.js': 'function settlePayment(invoice) {}\n',
+      'src/vault.js': 'function refundPayment(invoice) {}\n',
+    };
+    for (const [rel, body] of Object.entries(files)) fs.writeFileSync(path.join(dir, rel), body);
+    if (config) fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify(config));
+    const index = new Map(Object.keys(files).map((f) => [f, [f.includes('herald') ? 'function notifyCustomer(customer)' : f.includes('ledger') ? 'function settlePayment(invoice)' : 'function refundPayment(invoice)']]));
+    return { dir, index };
+  }
+  const NIGHTLY = 'send nightly reminders';
+  const found = (r, opts) => runner.rank(NIGHTLY, r.index, 5, Object.assign({ cwd: r.dir, learned: false }, opts)).map((x) => x.file);
+  const withDefault = (on, fn) => {
+    const before = DEFAULTS.retrieval.bodyWords;
+    DEFAULTS.retrieval.bodyWords = on;
+    try { return fn(); } finally { DEFAULTS.retrieval.bodyWords = before; }
+  };
+
+  await test('the runner ranks without body words while the flag is off, and the flag is off in this repository', () => {
+    assert.strictEqual(DEFAULTS.retrieval.bodyWords, false, 'a default flip is a release decision: it moves every published figure');
+    assert.deepStrictEqual(found(repo()), []);
+  });
+
+  await test('a repository that turns the flag on is benchmarked with its body words, and nothing is written into it', () => {
+    const r = repo({ retrieval: { bodyWords: true } });
+    assert.deepStrictEqual(found(r), ['src/herald.js']);
+    assert.ok(!fs.existsSync(path.join(r.dir, '.context')), 'a benchmark leaves a pinned checkout untouched');
+  });
+
+  await test('a caller that names the option is left alone: null is no body words, whatever the repository says', () => {
+    const r = repo({ retrieval: { bodyWords: true } });
+    assert.deepStrictEqual(found(r, { bodyWords: null }), []);
+    assert.deepStrictEqual(found(r, { bodyWords: undefined }), []);
+    assert.deepStrictEqual(found(r, { bodyWords: new Map([['src/ledger.js', 'nightly reminders']]) }), ['src/ledger.js']);
+  });
+
+  await test('with the flag the default, an unconfigured repository is benchmarked with them and a configured one can opt out', () => {
+    withDefault(true, () => {
+      assert.deepStrictEqual(found(repo()), ['src/herald.js']);
+      assert.deepStrictEqual(found(repo({ retrieval: { bodyWords: false } })), []);
+    });
+  });
+
+  await test('an index scored over many tasks reads its sources once', () => {
+    const r = repo({ retrieval: { bodyWords: true } });
+    found(r);
+    fs.writeFileSync(path.join(r.dir, 'src/herald.js'), 'function notifyCustomer(customer) {}\n');
+    assert.deepStrictEqual(found(r), ['src/herald.js'], 'the words built for this index are reused, not re-read per question');
+  });
+
+  await test('the arms are flag-aware: plain is what ships, and the body arm flips the flag relative to it', async () => {
+    const { buildArmRankers } = await import('../../scripts/lib/signal-rankers.mjs');
+    const { bodyDefault } = await import('../../scripts/lib/signal-arms.mjs');
+    const arms = (on) => withDefault(on, () => {
+      const r = repo();
+      const { rankers } = buildArmRankers({ index: r.index, dir: r.dir, graph: null, rankQuery: runner.rank });
+      return { plain: rankersOut(rankers.plain), body: rankersOut(rankers.body), on: bodyDefault() };
+    });
+    function rankersOut(rank) { return rank(NIGHTLY); }
+    const off = arms(false);
+    assert.deepStrictEqual([off.on, off.plain, off.body], [false, [], ['src/herald.js']], 'off: the arm adds the words');
+    const on = arms(true);
+    assert.deepStrictEqual([on.on, on.plain, on.body], [true, ['src/herald.js'], []], 'on: plain carries them and the arm is the ablation');
+  });
+
+  // ── the recorded measurement and the guide that reports it ─────────────────
+
+  const REPORT = 'benchmarks/reports/body-weight-sweep.json';
+  const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
+  const cell = (won, lost) => `${signed(won - lost)} (${won}/${lost})`;
+  const CORPORA = ['xrepo', 'hard', 'mined', 'easy', 'jvm', 'honest'];
+  const guideSection = () => {
+    const guide = read('docs-vp/guide/retrieval-benchmark.md');
+    const at = guide.indexOf('\n### Weighting the body words (#943)\n');
+    assert.ok(at !== -1, 'the guide has no "Weighting the body words (#943)" section');
+    const next = guide.indexOf('\n### ', at + 10);
+    return guide.slice(at, next === -1 ? undefined : next).replace(/\u2212/g, '-');
+  };
+
+  await test('the report holds exactly the declared family, each scored on all six corpora', () => {
+    const report = JSON.parse(read(REPORT));
+    assert.deepStrictEqual(Object.keys(report.grid), VARIANTS.map((v) => v.id));
+    for (const v of VARIANTS) {
+      assert.deepStrictEqual(report.grid[v.id].options, v.options, `${v.id}: the report records another variant than the code declares`);
+      assert.deepStrictEqual(Object.keys(report.grid[v.id].corpora), CORPORA);
+    }
+    assert.deepStrictEqual(Object.keys(report.shipped.corpora), CORPORA);
+    assert.strictEqual(report.rule.xrepoMinNet, XREPO_MIN_NET);
+  });
+
+  await test('every verdict in the report is the rule applied to its own counts', () => {
+    const report = JSON.parse(read(REPORT));
+    for (const [id, g] of Object.entries({ shipped: report.shipped, ...report.grid })) {
+      const nets = Object.fromEntries(CORPORA.map((c) => [c, g.corpora[c].won - g.corpora[c].lost]));
+      const halves = Object.values(g.halves).flat();
+      const meets = nets.xrepo >= XREPO_MIN_NET && Object.values(nets).every((n) => n >= 0) && halves.every((n) => n >= 0);
+      assert.strictEqual(g.meets, meets, `${id}: the report says ${g.meets}, its own counts say ${meets}`);
+      assert.strictEqual(g.failures.length === 0, g.meets, `${id}: failures and verdict disagree`);
+    }
+  });
+
+  await test('the code ships the adopted variant, and it is one of the family', () => {
+    const adopted = VARIANTS.find((v) => v.id === ADOPTED);
+    assert.ok(adopted, `${ADOPTED} is not in the family`);
+    assert.deepStrictEqual(
+      { field: BODY_FIELD, weight: BODY_WEIGHT, length: BODY_LENGTH },
+      { field: adopted.options.bodyField, weight: adopted.options.bodyWeight, length: adopted.options.bodyLength },
+      'src/retrieval/bm25.js must ship the variant scripts/lib/body-weight.mjs adopts; change both together',
+    );
+  });
+
+  await test('the adopted variant meets the rule on the recorded counts, and is worse than the control on no stable corpus', () => {
+    const report = JSON.parse(read(REPORT));
+    const net = (g, c) => g.corpora[c].won - g.corpora[c].lost;
+    const adopted = report.grid[ADOPTED];
+    assert.strictEqual(adopted.meets, true, `${ADOPTED} fails the rule: ${adopted.failures.join('; ')}`);
+    for (const c of STABLE_CORPORA) {
+      assert.ok(net(adopted, c) >= net(report.shipped, c), `${ADOPTED} is worse than the placement it replaces on ${c} (${net(adopted, c)} against ${net(report.shipped, c)})`);
+    }
+    assert.ok(net(adopted, 'xrepo') > net(report.shipped, 'xrepo'), 'the length treatment is adopted for what it does on the third-party corpus');
+  });
+
+  await test('the report records the rule\'s own verdict beside the adopted variant and says whether the control met it', () => {
+    const report = JSON.parse(read(REPORT));
+    const meeting = VARIANTS.filter((v) => report.grid[v.id].meets).map((v) => v.id);
+    assert.strictEqual(report.verdict.choice, meeting.length ? meeting[0] : null, 'the verdict is the mildest variant that meets the rule');
+    assert.strictEqual(report.verdict.adopted, ADOPTED);
+    assert.strictEqual(report.verdict.controlMeets, report.shipped.meets);
+  });
+
+  await test('the length treatment is the reproducible effect: not counting the words beats counting them on xrepo at every weight, and never helps hard', () => {
+    const report = JSON.parse(read(REPORT));
+    const net = (g, c) => g.corpora[c].won - g.corpora[c].lost;
+    const weights = [...new Set(VARIANTS.map((v) => v.options.bodyWeight))].filter((w) => report.grid[`w${w}-count`] && report.grid[`w${w}-ignore`]);
+    assert.ok(weights.length >= 4, 'the pairs that differ only in the length treatment');
+    const dx = weights.map((w) => net(report.grid[`w${w}-ignore`], 'xrepo') - net(report.grid[`w${w}-count`], 'xrepo'));
+    assert.ok(dx.every((d) => d >= 2), `xrepo gains from ignoring length at every weight: ${dx.join(', ')}`);
+    for (const w of weights) {
+      assert.ok(net(report.grid[`w${w}-ignore`], 'hard') <= net(report.grid[`w${w}-count`], 'hard'), `w${w}: ignoring length helps hard, which the guide says it never does`);
+    }
+    const text = guideSection();
+    assert.match(text, new RegExp(`by \\+${Math.min(...dx)} or \\+${Math.max(...dx)} on xrepo`), 'the guide states the range this test measures');
+  });
+
+  await test('the guide\'s table is the saved report, row for row', () => {
+    const report = JSON.parse(read(REPORT));
+    const lines = guideSection().split('\n');
+    const i = lines.findIndex((l) => l.startsWith('| Placement'));
+    assert.ok(i !== -1, 'the results table is missing');
+    const rows = [];
+    for (let j = i + 2; j < lines.length && lines[j].startsWith('|'); j++) {
+      rows.push(lines[j].split('|').slice(1, -1).map((c) => c.trim().replace(/\*\*/g, '').replace(/`/g, '')));
+    }
+    assert.deepStrictEqual(rows.map((r) => r[0]), ['plain', 'prose field (through v8.74)', ...VARIANTS.map((v) => v.id)]);
+    const plain = rows[0].slice(1);
+    assert.deepStrictEqual(plain, [...CORPORA.map((c) => `${report.plain[c].hits} / ${report.plain[c].tasks}`), `${CORPORA.reduce((n, c) => n + report.plain[c].hits, 0)} / ${CORPORA.reduce((n, c) => n + report.plain[c].tasks, 0)}`]);
+    for (const row of rows.slice(1)) {
+      const g = row[0].startsWith('prose') ? report.shipped : report.grid[row[0]];
+      let won = 0;
+      let lost = 0;
+      CORPORA.forEach((c, k) => {
+        assert.strictEqual(row[k + 1], cell(g.corpora[c].won, g.corpora[c].lost), `${row[0]} on ${c}`);
+        won += g.corpora[c].won;
+        lost += g.corpora[c].lost;
+      });
+      assert.strictEqual(row[7], cell(won, lost), `${row[0]} over every corpus`);
+    }
+  });
+
+  await test('the guide names the variant that ships, the one the rule chose, and what each fold chose on one half', () => {
+    const report = JSON.parse(read(REPORT));
+    const text = guideSection();
+    assert.ok(text.includes(`\`${ADOPTED}\``), 'the guide does not name the variant that ships');
+    assert.ok(report.verdict.choice === null || text.includes(`\`${report.verdict.choice}\``), 'the guide does not name the variant the rule chose');
+    for (const cv of report.crossValidation) {
+      const want = cv.chosen === null ? 'no variant' : `\`${cv.chosen}\``;
+      assert.ok(text.includes(want), `the guide does not name fold ${cv.tuneFold}'s choice (${want})`);
+    }
+    assert.match(text, /neither half of xrepo \(by repository\) or of `mined` \(by task\) net-negative/);
+  });
+
+  for (const d of tmpDirs) fs.rmSync(d, { recursive: true, force: true });
   console.log(`\n  ${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);
 })();

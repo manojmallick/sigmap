@@ -193,11 +193,12 @@ const DOC_WEIGHT = 0.6;
 
 // Body words (retrieval.bodyWords, #905): the rare words of a file's source. Through v8.74 they
 // joined the prose field and carried its weight AND its length (`prose`). The sweep behind #943
-// (docs-vp/guide/retrieval-benchmark.md, "Weighting the body words") measured a field of their
-// own, and the weight and length treatment below are the mildest cell that met the guide's
-// default rule: a lower weight than prose, and no contribution to the document's length.
-const BODY_FIELD = 'prose';
-const BODY_WEIGHT = 0.3;
+// (docs-vp/guide/retrieval-benchmark.md, "Weighting the body words") put them in a field of their
+// own: the weight stays prose's 0.6, and they add no length. Counting them lengthened exactly the
+// files with the most source to say, so every match on such a file scored less — and leaving them
+// out of the length was worth +2 or +3 on the third-party corpus at every weight tried.
+const BODY_FIELD = 'own';
+const BODY_WEIGHT = 0.6;
 const BODY_LENGTH = 'ignore';
 
 // Build a stemmed lookup: stem(member) → Set of the group's other stemmed members.
@@ -263,7 +264,7 @@ function expandQuery(qToks, mined) {
  * @param {object} [opts]
  * @param {Map<string,string>} [opts.bodyWords] file -> body words (opt-in retrieval.bodyWords)
  * @param {'prose'|'own'} [opts.bodyField] where body words go: `prose` joins the prose field,
- *        weight and length alike; `own` gives them a field of their own (#943)
+ *        weight and length alike; `own` gives them a field of their own (default BODY_FIELD, #943)
  * @param {number} [opts.bodyWeight] with `own`: the field's weight (default BODY_WEIGHT)
  * @param {'count'|'ignore'} [opts.bodyLength] with `own`: whether body words lengthen the
  *        document for BM25's length normalisation (default BODY_LENGTH)
@@ -307,9 +308,9 @@ function bm25rank(query, candidates, opts) {
     // past a cutoff. A hit@5-only view would have shipped this.
     const codeToks = tokenize(codeLines.map((x) => stripAnchor(x)).join(' '));
     const docToks = tokenize(docLines.join(' '));
-    // Body words are descriptive of the file, never definitional like a signature. By default
-    // they join the prose field and carry its weight and length; `bodyField: 'own'` keeps them
-    // in a field of their own, at its own weight and with its own length treatment (#943).
+    // Body words are descriptive of the file, never definitional like a signature. They sit in
+    // a field of their own at BODY_WEIGHT and add no length (`bodyField: 'prose'` is the
+    // placement through v8.74: the prose field's weight and length) (#943).
     let bodyToks = null;
     if (bodyWords) {
       const extra = bodyWords.get(c.file);

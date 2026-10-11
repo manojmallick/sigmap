@@ -27,9 +27,9 @@ export { foldsOf, SPLIT_CORPORA, HELD_OUT_CORPORA };
  *
  * Order is the tie-break and the selection: weight ascending, `count` before `ignore` — a
  * lower weight departs less from plain, and counting length damps what body words add. The
- * mildest variant that meets the rule is the one that would ship, so a variant has to earn
- * every extra bit of bite. The shipped weighting is `shipped` and is not in the family: it
- * is the control the variants are compared with.
+ * mildest variant that meets the rule is what `verdict()` names, so a variant has to earn every
+ * extra bit of bite. The placement through v8.74 is `shipped` and is not in the family: it is
+ * the control the variants are compared with.
  */
 export const VARIANTS = [
   { id: 'w0.2-count',  options: { bodyField: 'own', bodyWeight: 0.2, bodyLength: 'count' } },
@@ -44,6 +44,27 @@ export const VARIANTS = [
   { id: 'w0.8-count',  options: { bodyField: 'own', bodyWeight: 0.8, bodyLength: 'count' } },
   { id: 'w0.8-ignore', options: { bodyField: 'own', bodyWeight: 0.8, bodyLength: 'ignore' } },
 ];
+
+/**
+ * The variant the code ships, and why it is not the one `verdict()` names.
+ *
+ * `verdict()` is the rule as it was written before the first run: the mildest variant that meets
+ * the guide's default rule. On the tree it was first run on (develop at f33510f) that was
+ * `w0.3-ignore`, because the control failed the rule by one task on `hard`. By the time the report
+ * was recorded the control met it — `hard` h087 names `src/config/defaults.js` and is decided by
+ * the words in that file, so it moved with an edit to a comment in it — and a rule whose premise is
+ * a one-task knife-edge on the one corpus that moves with this repository is not a reason to change
+ * a placement. What is reproducible on the corpora that do not move with it (xrepo, jvm, honest,
+ * easy) is the length treatment: leaving the words out of a document's length beats counting them
+ * on xrepo at every weight tried, by +2 or +3. The code ships that, at the weight the words
+ * already carried, so no new constant is introduced and the comparison with the control is one
+ * factor. `ADOPTED` is held to the report by test: it must meet the rule and must not be worse
+ * than the control on a stable corpus.
+ */
+export const ADOPTED = 'w0.6-ignore';
+
+/** The corpora that do not move with this repository's own files. */
+export const STABLE_CORPORA = ['xrepo', 'jvm', 'honest', 'easy'];
 
 /** The default rule of the guide: xrepo wins at least this many more than it loses. */
 export const XREPO_MIN_NET = 5;
