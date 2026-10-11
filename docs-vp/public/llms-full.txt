@@ -6,23 +6,23 @@
 SigMap is the deterministic, verifiable grounding layer for AI code work. It
 extracts function and class signatures from a codebase and builds a byte-stable
 signature-and-evidence map that agents, CI, and reviewers can trust and audit —
-proving which files and symbols are real before acting. Deterministic TF-IDF
+proving which files and symbols are real before acting. Deterministic BM25
 ranking keeps the relevant context in scope (cutting tokens ~97% as a side
 effect), with no LLM calls, embeddings, or vector database. Works with Claude,
 Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 
-# Version: 8.74.0 | Benchmark: sigmap-v8.74-main (2026-10-10)
+# Version: 8.75.0 | Benchmark: sigmap-v8.75-main (2026-10-11)
 # Source: auto-generated from package.json, version.json, benchmarks/latest.json, src/mcp/tools.js, src/config/defaults.js
 # Regenerate: npm run generate:llms   |   Validate: npm run validate:llms
 
 ---
 
-## Core metrics (benchmark: sigmap-v8.74-main, 2026-10-10)
+## Core metrics (benchmark: sigmap-v8.75-main, 2026-10-11)
 
 | Metric | Without SigMap | With SigMap |
 |--------|----------------|-------------|
 | Retrieval hit@5 (retrieval corpus) | — | 80.4% |
-| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | 89.6% (2.24× lift) |
+| Honest corpus hit@5 (125 tasks) | 39.2% (single-shot grep) | 92.8% (2.37× lift) |
 | Token reduction | — | 95.7% average |
 | Task-success proxy (modeled) | — | 61.9% |
 | Prompts per task | 2.84 | 1.58 (44.4% fewer) |
@@ -415,7 +415,7 @@ testCoverage = false
 testDirs = ["tests","test","__tests__","spec"]
 sigCache = false
 impactRadius = false
-retrieval = {"topK":10,"recencyBoost":1.5,"callGraphBoost":false,"centralityBlend":false,"surfaceEnrichment":false,"minedExpansions":false,"bodyWords":false}
+retrieval = {"topK":10,"recencyBoost":1.5,"callGraphBoost":false,"centralityBlend":false,"surfaceEnrichment":false,"minedExpansions":false,"bodyWords":true}
 exactness = {"typescript":false,"lsp":false,"lspServers":{},"scip":false}
 impact = {"depth":3,"includeSigs":true}
 ```
@@ -458,8 +458,9 @@ the relevant regulation before publication; SigMap makes no legal claims.
 
 ## What SigMap does not do
 
-- **No embeddings / vector database.** Ranking is deterministic TF-IDF over
-  extracted signatures — reproducible and offline, not a semantic vector search.
+- **No embeddings / vector database.** Ranking is deterministic BM25 over
+  extracted signatures and each file's rare source words — reproducible and offline,
+  not a semantic vector search.
 - **No code execution.** SigMap reads source statically; it never runs your code.
 - **No network calls** on the core generate/ask/verify paths. Nothing is uploaded;
   generation works fully offline.

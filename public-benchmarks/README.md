@@ -31,8 +31,12 @@ For each repo in [`repos.csv`](repos.csv) the harness:
 3. **Parses** the generated `.github/copilot-instructions.md` into a
    `file → signatures` index.
 4. **Ranks** every query in [`queries.json`](queries.json) against that index
-   using SigMap's shipped identifier-aware BM25 ranker (`src/retrieval/bm25.js`)
-   — the exact ranker the product ships, not a benchmark-only copy.
+   using SigMap's shipped identifier-aware BM25 scoring (`bm25rank` in `src/retrieval/bm25.js`)
+   — the same function the product ships, not a benchmark-only copy. It scores with
+   `bm25rank` alone: no path penalties, import-graph boost, recency or body words
+   (`retrieval.bodyWords`, on by default in the product since v8.75.0), so this number
+   does not move when those ship; the honest, third-party and gate figures are scored
+   through the full `rank()`.
 5. **Scores** each query by the rank of the first expected file:
    - **hit@1** — expected file is the top result
    - **hit@5** — expected file is in the top 5
