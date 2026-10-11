@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.73.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.8% (2.20× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.74.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.0% (2.24× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
       content: "SigMap retrieval benchmark — 80.4% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 80.4% hit@5 over 105 tasks on 18 repos; honest grep comparison 89.6% vs 40.8% (2.20x lift, 125 tasks, 19 repos)."
+      content: "Latest saved run: 80.4% hit@5 over 105 tasks on 18 repos; honest grep comparison 89.6% vs 40.0% (2.24x lift, 125 tasks, 19 repos)."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,22 +15,22 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.73.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.73-main &nbsp;·&nbsp; **Date:** 2026-10-10 (with R language)
+::: info Official v8.74.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.74-main &nbsp;·&nbsp; **Date:** 2026-10-10 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.8% single-shot grep — **2.20× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.0% single-shot grep — **2.24× lift** |
 | Graph-boosted hit@5 | **80.4%** |
-| Honest lift (vs grep agent) | **2.20×** |
+| Honest lift (vs grep agent) | **2.24×** |
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-10 (v8.73.0)**
+Latest saved run: **2026-10-10 (v8.74.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -58,9 +58,9 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 (honest corpus, 125 tasks) | 40.8% | **89.6%** |
+| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **89.6%** |
 | Graph-boosted hit@5 | — | **80.4%** |
-| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.20x** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.24x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
 | Correct (rank 1) | ~1% | **61.9%** |
 | Partial (ranks 2–5) | ~13% | **18.1%** |
@@ -151,7 +151,7 @@ happen to share an adjective.
 
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
-| `hard` | 90 | **74.4%** | 70% floor | Leak-free tasks over **SigMap's own source** |
+| `hard` | 90 | **72.2%** | 70% floor | Leak-free tasks over **SigMap's own source** |
 | `mined` | 60 | **61.7%** | no-regress | Commit subjects + the files that commit touched, minus the generated outputs every commit also rewrites |
 | `jvm` | 61 | **34.4%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
 | `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
@@ -178,8 +178,8 @@ containing one two-assertion test file and no source change scored 75.6% →
 74.4% and failed the gate. Enforcing `hard` against the previous run therefore
 fails honest work and, worse, trains you to ignore the gate.
 
-It is now held to its **70% floor** instead (currently 67/90 tasks pass, 1 task
-= 1.1pp, four tasks of headroom). The floor, the leak assertions, and
+It is now held to its **70% floor** instead (currently 65/90 tasks pass, 1 task
+= 1.1pp, two tasks of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
 <!-- benchmark: re-measured at v8.63.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
@@ -438,7 +438,48 @@ Two more were found while fixing these and were **not fixed in #900**. The first
 
 Until #934 a repo with no `srcDirs` pin got an import graph over `src`, `app`, `lib`, `R` and `inst` only. Of the 50 pinned clones, **29 had an empty graph** (26 with no `srcDirs` pin; 12 are written in languages the graph does not read), so `--impact`, `plan`'s blast radius and the MCP `get_impact` / `get_method_impact` tools answered "nothing depends on this" (`get_method_impact`: "symbol not found in the call-graph") for Django, Rails, Excalidraw, Tokio, Gin and 10 more. The graph now walks the roots detection chose **plus** those conventional names — a conventional directory the walk reached before is still reached, and no clone lost a node or an edge — and the live overlay and the call graph resolve their directories the same way. 21 repos go from an empty graph to one with files in it, 15 of them with resolved import edges (Django 0 → 2,971 files, Astro 0 → 1,890, Rails 0 → 1,234; the other six — Zod, whose TypeScript imports `./x.js` for `x.ts`, and five small repositories in languages the graph does not read — gain files and no edges), and the repositories with no import edge at all go from 30 to 15; a pinned `srcDirs` still wins, with its own exclude list.
 
-**What ranking is handed did not change, and that is measured, not assumed.** The neighbour boost adds 0.40 per importing seed to a file that itself matched, was calibrated on graphs of a few hundred files, and is bounded only by a hub cutoff of 20% of the graph — 595 importers on Django's 2,971 files. Fed the full Django graph, `core/exceptions.py`, with 180 importers, collects +72 on a pre-boost score of 12 and ranks first; the answers to x029 and x030 fall from 4th and 5th to 11th. Over the whole corpus that is **42 → 42** hits (won 3, lost 3, MRR 0.3543 → 0.3520) with **django 3 → 1** — a per-repo regression an average would hide. So `rank()` is still handed `buildRankingGraph` (the pre-#934 walk), the benchmarks that score it call the same function, and no published number or baseline moved. Calibrating the boost for large graphs — one sweep of twelve candidate rules already shows ones worth +2 on xrepo and +3 on `hard`, and −1 on `jvm` — is [#935](https://github.com/manojmallick/sigmap/issues/935), to be decided on data it is not scored on.
+**What ranking is handed did not change, and that is measured, not assumed.** The neighbour boost adds 0.40 per importing seed to a file that itself matched, was calibrated on graphs of a few hundred files, and is bounded only by a hub cutoff of 20% of the graph — 595 importers on Django's 2,971 files. Fed the full Django graph, `core/exceptions.py`, with 180 importers, collects +72 on a pre-boost score of 12 and ranks first; the answers to x029 and x030 fall from 4th and 5th to 11th. Over the whole corpus that is **42 → 42** hits (won 3, lost 3, MRR 0.3543 → 0.3520) with **django 3 → 1** — a per-repo regression an average would hide. So `rank()` is still handed `buildRankingGraph` (the pre-#934 walk), the benchmarks that score it call the same function, and in v8.73.0 no published number or baseline moved. Calibrating the boost for large graphs was then measured with a rule chosen on one half of the data and scored on the other, and no rule earned the change ([below](#calibrating-the-neighbour-boost-935)).
+
+### Calibrating the neighbour boost (#935)
+
+The question #934 left open is whether the hop-1 boost can be bounded so that `rank()` can be handed the complete graph. On this corpus **no rule earns it**, so nothing changed: `rank()` is still handed `buildRankingGraph`, and the calibration moved no published number or baseline.
+
+**Method.** Ten rules were fixed in `scripts/lib/graph-damping.mjs` before this run, after an exploratory one, most of them the shapes #935's own lead suggested: a file may take at most 24, 16, 12, 8 or 4 hop-1 bonuses (`cap`), at most 2, 1 or 0.5 times its own score in total beyond its first bonus (`share`), or each successive bonus is scaled by 0.9 or 0.8 (`decay`). The first bonus is never damped — it is the designed lift for a direct neighbour of a match — so a rule can reorder files that matched on their own and can never hide a neighbour. Every task is ranked with the graph `rank()` is handed today and with the complete graph under each rule; a cell counts the tasks the setting wins and loses against the former.
+
+| Rule | xrepo 42/83 | hard 65/90 | mined 37/60 | easy 18/20 | jvm 21/61 | all |
+|------|------------:|-----------:|------------:|-----------:|----------:|----:|
+| `complete graph, no rule` | +0 (3/3) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +0 (3/3) |
+| `cap24` | +1 (3/2) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +1 (3/2) |
+| `cap16` | +1 (3/2) | +1 (1/0) | +0 (0/0) | +0 (0/0) | +0 (0/0) | +2 (4/2) |
+| `cap12` | +2 (3/1) | +1 (1/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +2 (4/2) |
+| `cap8` | +2 (3/1) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +4 (6/2) |
+| `cap4` | +2 (2/0) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -2 (0/2) | +3 (5/2) |
+| `share2` | +1 (3/2) | +2 (2/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +2 (5/3) |
+| `share1` | +1 (3/2) | +2 (2/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +2 (5/3) |
+| `share0.5` | +2 (3/1) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -1 (0/1) | +4 (6/2) |
+| `decay0.9` | +3 (3/0) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -2 (0/2) | +4 (6/2) |
+| `decay0.8` | +2 (2/0) | +3 (3/0) | +0 (0/0) | +0 (0/0) | -2 (0/2) | +3 (5/2) |
+
+**What it says.**
+
+- The complete graph with no rule is net zero on xrepo: it wins phoenix x062, vue-core x041 and flask x032 and loses django x029, x030 and flask x033. Damping removes the three losses only at its strongest settings (`decay0.9` is 3 won / 0 lost; `cap4` and `decay0.8` 2 / 0), while `cap24` and `cap16` still lose two and `cap12`, `cap8` and `share0.5` one — the best xrepo reading is +3 (`decay0.9`), against the +5 the default rule asks for.
+- Every rule that helps `hard` by two or more tasks costs `jvm` one or two. The only ones that cost it nothing, `cap24` and `cap16`, are worth +1 on xrepo (`cap16` also +1 on `hard`).
+- `mined` and `easy` do not move under any rule, and the honest corpus is scored without an import graph, as its table is, so no rule can move it. `ask` and `--query` hand the ranker no graph either: only the MCP `query_context` tool, `sigmap --benchmark` / `--eval`, the benchmark harnesses and a library caller of `rank()` are affected by anything in this section.
+
+**Chosen on one half, scored on the other.** A table of ten rules over 314 tasks is partly noise, so a rule was also chosen on one half of xrepo (by repository) and of `mined` (by task) and scored on the other half and on `hard`, `easy` and `jvm`, which tuning never touches, and the folds were swapped:
+
+| Tuned on | Chose | Held out: xrepo | mined | hard | easy | jvm |
+|----------|-------|----------------:|------:|-----:|-----:|----:|
+| fold 0 (69 tasks) | `cap12` | +1 | +0 | +1 | +0 | -1 |
+| fold 1 (74 tasks) | `cap4` | +0 | +0 | +3 | +0 | -2 |
+
+The two folds do not agree on a rule, and on both the held-out reading is one task or none on xrepo against a loss on `jvm`. The lead in #935 — `cap8` at +2 on xrepo, +3 on `hard`, −1 on `jvm` — reproduces row for row above, and it was a lead rather than a result: the best cell of a table scored on the data it was picked from.
+
+**The call.** The default rule in this guide asks for at least five more wins than losses on xrepo and no corpus net-negative. No row meets it, so nothing is switched on and `buildRankingGraph` keeps the walk it had before #934. The option the sweep turns, `graphDamping` on `rank()`, is not wired to any config. One xrepo task is 1.2 points and the best rule's whole lead is three tasks: a larger labelled corpus is the lever, not another rule. An earlier run also tried letting a boosted file seed hop 2 once instead of once per bonus; it changed nothing, because a hop-2 neighbour is by construction a file that no matched file imports, and the option was removed.
+
+```bash
+npm run benchmark:graph-damping-sweep      # the table and the folds above, recorded to benchmarks/reports/graph-damping-sweep.json
+```
 
 ### Why a task misses (`--why`)
 
@@ -469,8 +510,8 @@ npm run validate:xrepo     # the gate: floor + per-repo no-regress (CI adds --re
 
 CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.json`, fetches only what is missing or off-pin, and runs the gate. The gate exits 0 when the repos are absent, so a fresh checkout is never broken by it.
 
-::: warning Set the seven new clones aside before a release benchmark run
-`fetch:xrepo` puts seven repositories that no other suite expects (tokio, excalidraw, django, phoenix, astro, plenary, godot-demo-projects) into `benchmarks/repos/`, and two suites enumerate that whole directory. With them present, `benchmark:test-discovery` reads **95.3% F1 over 33 repositories instead of 98.0% over 28**, and `validate:grounding-coverage` fails because each has no recorded floor. The published figures were measured with them moved aside; the cause is tracked in [#893](https://github.com/manojmallick/sigmap/issues/893).
+:::tip The seven xrepo-only clones are skipped by the suites that walk `benchmarks/repos`
+`fetch:xrepo` puts seven repositories that no other suite expects (tokio, excalidraw, django, phoenix, astro, plenary, godot-demo-projects) into `benchmarks/repos/`. The manifest flags them `xrepoOnly`, and the two suites whose published figure or gate depends on the exact set of clones — `benchmark:test-discovery` and `validate:grounding-coverage` — skip them through `scripts/lib/benchmark-repos.mjs`, so a machine that has run `fetch:xrepo` reads the same figures on those two as one that has not (`validate:source-roots` and `validate:benchmark-determinism` also read the directory and were left as they were) ([#893](https://github.com/manojmallick/sigmap/issues/893) §7). The nine repositories xrepo shares with other suites are measured by both.
 :::
 
 ### Changing the corpus
@@ -511,14 +552,14 @@ Over the 37 tasks a word-matching ranker can reach, the hit rate is **56.8%**. W
 
 [#674](https://github.com/manojmallick/sigmap/issues/674) called the honest benchmark's hard split "the one split where the baseline wins" (SigMap 46.7%, grep 53.3%). The saved report now reads SigMap **66.7%** (10 of 15) against grep **53.3%** (8 of 15). `--autopsy` asks which tasks each finds and the other does not — and in doing so found what the grep scan was counting.
 
-**The published scan counts SigMap's own files.** `.context/sig-index.json` and `.github/copilot-instructions.md` hold every identifier in a repository, so any question matches them first. In the layout the published figure is measured in, they took **126 of the 625** top-5 places the scan returned. They are not answers, and they push answers out.
+**The published scan counts SigMap's own files.** `.context/sig-index.json` and `.github/copilot-instructions.md` hold every identifier in a repository, so any question matches them first. In the layout the published figure is measured in, they took **127 of the 625** top-5 places the scan returned. They are not answers, and they push answers out.
 
 | grep scan | hit@5 | honest lift |
 |---|---:|---:|
-| as published | 40.8% (51 / 125) | 2.20× |
+| as published | 40.0% (50 / 125) | 2.24× |
 | SigMap's own files left out | 45.6% (57 / 125) | 1.96× |
 
-**The scan is unchanged**: `benchmark:honest` still scans what it always scanned, and this section only records the effect. Whether to restate the lift is a call for a release, not a side effect of a diagnosis. Because the scan includes those files, the published figure moves with the repository: v8.70.1 reads 49 / 125 where v8.70.0 read 50 / 125, one more of the 625 top-5 places taken by SigMap's own generated files (127 against 126) — on a control run of the untouched v8.70.0 tree, in the same layout, the scan reproduces 50 / 125. v8.72.0 keeps 49 / 125 while that count of places moves the other way, 127 → 126, with the same scan. v8.72.1 keeps 49 / 125 again while the count moves back, 126 → 127, with the same scan; the two trees differ only in documentation (a legacy site deleted, six decision records added), which the scan reads, but the cause is not isolated. v8.73.0 reads 51 / 125 with 126 of the 625 places, the same scan on a clean checkout of the release: two more answers than v8.72.1 published — `src/tracking/logger.js` for "usage log tracking NDJSON runs" (t018) and `src/mcp/handlers.js` for t020 — each the answer that SigMap's own generated files had been displacing from the fifth place. The v8.72.1 tag, run through the same recipe on the same day, reads 50 / 125 (t020 only), so 39.2% did not reproduce from its own tag and one task of the movement is the environment, not the tree. Cause not isolated beyond that contested fifth place.
+**The scan is unchanged**: `benchmark:honest` still scans what it always scanned, and this section only records the effect. Whether to restate the lift is a call for a release, not a side effect of a diagnosis. Because the scan includes those files, the published figure moves with the repository: v8.70.1 reads 49 / 125 where v8.70.0 read 50 / 125, one more of the 625 top-5 places taken by SigMap's own generated files (127 against 126) — on a control run of the untouched v8.70.0 tree, in the same layout, the scan reproduces 50 / 125. v8.72.0 keeps 49 / 125 while that count of places moves the other way, 127 → 126, with the same scan. v8.72.1 keeps 49 / 125 again while the count moves back, 126 → 127, with the same scan; the two trees differ only in documentation (a legacy site deleted, six decision records added), which the scan reads, but the cause is not isolated. v8.73.0 reads 51 / 125 with 126 of the 625 places, the same scan on a clean checkout of the release: two more answers than v8.72.1 published — `src/tracking/logger.js` for "usage log tracking NDJSON runs" (t018) and `src/mcp/handlers.js` for t020 — each the answer that SigMap's own generated files had been displacing from the fifth place. The v8.72.1 tag, run through the same recipe on the same day, reads 50 / 125 (t020 only), so 39.2% did not reproduce from its own tag and one task of the movement is the environment, not the tree. Cause not isolated beyond that contested fifth place. v8.74.0 reads 50 / 125 with 127 of the 625 places on a clean checkout of the release, the same scan: `src/tracking/logger.js` (t018) is displaced from the fifth place by one generated file again and only `src/mcp/handlers.js` (t020) keeps its answer, which is the 50 / 125 the v8.72.1 tag reads by this recipe. The figure therefore moves down by one, and the lift up from 2.20× to 2.24×, with no change to the scan — the release adds text, and the scan reads it; `rank()` is unchanged with `graphDamping` absent.
 
 Against the scan without those files:
 
@@ -595,7 +636,7 @@ node scripts/run-honest-benchmark.mjs --autopsy   # where SigMap and a whole-fil
 ```
 
 ::: warning Record the autopsy from the layout the published report uses
-`npm run benchmark:honest` saves, so run the script directly for the autopsy, and save it only from a working tree whose 50 clones are real directories inside it (`cp -cR`): there the grep baseline reads 40.8% and the saved report is the published one. In a checkout with symlinked clones the same scan walks a different file set for the self-repo task set and reads a different number — 41.6% when that was measured at v8.67.0, 40.0% (2.24×) on the v8.70.1 tree — so the figure is only comparable to the published one in the layout described here.
+`npm run benchmark:honest` saves, so run the script directly for the autopsy, and save it only from a working tree whose 50 clones are real directories inside it (`cp -cR`): there the grep baseline reads 40.0% and the saved report is the published one. In a checkout with symlinked clones the same scan walks a different file set for the self-repo task set and can read a different number — 41.6% when that was measured at v8.67.0, and on the v8.70.1 tree 40.0% (2.24×) against 39.2% (2.29×) in real directories — so the figure is only comparable to the published one in the layout described here.
 :::
 
 ## Per-repo results

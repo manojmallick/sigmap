@@ -1440,6 +1440,33 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
   const TEST_ROOTS = ['test', 'tests', '__tests__', 'spec', 'e2e'];
 
   /**
+   * The test-root directories of a repo, spelled as they are ON DISK.
+   *
+   * `TEST_ROOTS` is lowercase, and `path.join(cwd, 'tests')` resolves a SwiftPM
+   * `Tests/` on a case-insensitive filesystem (macOS) but not on a case-sensitive
+   * one (Linux): the same checkout was indexed under the lowercased key
+   * `tests/...` on one and not at all on the other (#893 §5). Matching the
+   * directory NAME case-insensitively and keeping the on-disk spelling gives
+   * one population and one key everywhere.
+   *
+   * @param {string} cwd
+   * @returns {string[]} root-level directory names, `TEST_ROOTS` order first
+   */
+  function testRootDirs(cwd) {
+    let names;
+    try { names = fs.readdirSync(cwd); } catch (_) { return []; }
+    const out = [];
+    for (const root of TEST_ROOTS) {
+      for (const name of names.filter((n) => n.toLowerCase() === root).sort()) {
+        let isDir = false;
+        try { isDir = fs.statSync(path.join(cwd, name)).isDirectory(); } catch (_) { /* dangling link */ }
+        if (isDir) out.push(name);
+      }
+    }
+    return out;
+  }
+
+  /**
    * Directories holding CI / pipeline definitions. `.` covers the single-file
    * forms (.gitlab-ci.yml, Jenkinsfile, compose files, …). Imported by
    * `collectPipelineEntries` for the same reason as TEST_ROOTS.
@@ -1513,7 +1540,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
     if (ctx.entrypoints && ctx.entrypoints.has(r)) return 'entrypoint';
 
     const first = r.split('/')[0];
-    if (r.includes('/') && TEST_ROOTS.includes(first)) return 'test';
+    if (r.includes('/') && TEST_ROOTS.includes(first.toLowerCase())) return 'test';
 
     const dir = r.includes('/') ? r.slice(0, r.lastIndexOf('/')) : '.';
     if (CI_DIRS.includes(dir)) {
@@ -1800,6 +1827,7 @@ __factories["./src/analysis/index-state"] = function(module, exports) {
 
   module.exports = {
     TEST_ROOTS,
+    testRootDirs,
     CI_DIRS,
     INDEX_REL,
     ADAPTER_OUTPUTS,
@@ -1853,7 +1881,7 @@ __factories["./src/analysis/test-coverage"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { relatedTestsIndex } = __require('./src/evidence/pack');
-  const { TEST_ROOTS } = __require('./src/analysis/index-state');
+  const { testRootDirs } = __require('./src/analysis/index-state');
   const { CODE_EXTS } = __require('./src/analysis/coverage-score');
   const { isTestFile, isMockFile } = __require('./src/util/file-class');
 
@@ -1932,7 +1960,7 @@ __factories["./src/analysis/test-coverage"] = function(module, exports) {
   function buildTestCoverageIndex(cwd, opts = {}) {
     const exclude = new Set(opts.exclude || []);
     const found = [];
-    for (const root of TEST_ROOTS) _walk(path.join(cwd, root), root, 0, exclude, found);
+    for (const root of testRootDirs(cwd)) _walk(path.join(cwd, root), root, 0, exclude, found);
     for (const f of opts.files || []) {
       const rel = _posix(path.isAbsolute(f) ? path.relative(cwd, f) : f);
       if (isTestFile(rel) && _isTest(rel) && !rel.split('/').some((seg) => NOT_TESTS_RE.test(seg))) found.push(rel);
@@ -25838,7 +25866,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.73.0',
+    version: '8.74.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -27938,6 +27966,29 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     return hubs;
   }
 
+  /**
+   * The hop-1 bonus a file takes for its (count + 1)-th importing seed (#935).
+   *
+   * Undamped it is `GRAPH_BOOST_AMOUNTS.hop1` every time — the behaviour that was
+   * calibrated on graphs of a few hundred files and that grows with a complete
+   * graph. A damping rule bounds the ACCUMULATION only: the first bonus is the
+   * designed lift for a direct neighbour of a match and is never damped, so a
+   * rule can reorder files that matched on their own but never hide a neighbour.
+   *
+   * @param {{maxBonuses?:number, maxShare?:number, decay?:number}|null} damping
+   * @param {number} base the file's score before any graph boost
+   * @param {number} count hop-1 bonuses the file has already taken
+   * @returns {number} the bonus to add; 0 means the seed adds nothing
+   */
+  function _hop1Bonus(damping, base, count) {
+    const amount = GRAPH_BOOST_AMOUNTS.hop1;
+    if (!damping || count === 0) return amount;
+    if (damping.maxBonuses !== undefined && count >= damping.maxBonuses) return 0;
+    if (damping.maxShare !== undefined && (count + 1) * amount > damping.maxShare * base) return 0;
+    if (damping.decay !== undefined) return amount * Math.pow(damping.decay, count);
+    return amount;
+  }
+
   // Common utility paths that should be treated as hubs regardless of fanout
   // The graph builders disagree on key case: src/graph/builder.js lowercases every
   // node (normalizePath), while src/graph/call-graph.js keys by a case-preserving
@@ -28139,6 +28190,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    *        centrality (from computeCentrality) for the opt-in centrality blend
    * @param {Map<string,string>} [opts.bodyWords] - file → the rare words of its source
    *        (from body-words.loadOrBuild) for the opt-in retrieval.bodyWords signal
+   * @param {{maxBonuses?:number, maxShare?:number, decay?:number}} [opts.graphDamping]
+   *        bounds how much hop-1 boost one file may ACCUMULATE from the import graph (#935):
+   *        at most `maxBonuses` bonuses, at most `maxShare` x its own score in total, or each
+   *        successive bonus scaled by `decay`. The first bonus is never damped. No rule is
+   *        switched on by any config: the option exists so `run-graph-damping-sweep.mjs` can
+   *        measure one, and the measured result is in docs-vp/guide/retrieval-benchmark.md.
    * @returns {{ file: string, score: number, sigs: string[], tokens: number, intent: string, signals: object }[]}
    */
   function rank(query, sigIndex, opts) {
@@ -28274,7 +28331,9 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
       // DO match legitimately accumulate, and flattening them reordered the
       // matches among themselves, costing a real rank-5 answer its place.
       const hop1Matched = scored.map((e) => e.score > 0);
+      const hop1Base = scored.map((e) => e.score);
       const hop1Count = new Map();
+      const damping = (opts && opts.graphDamping) || null;
       for (const entry of hop1SeedEntries) {
         const neighbors = _graphGet(graph.forward, path.resolve(cwd, entry.file)) || [];
         for (const neighborAbs of neighbors) {
@@ -28282,9 +28341,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
           if (_isHub(nk) || hubs.has(nk) || hubs.has(nk.toLowerCase())) continue;
           const idx = _graphGet(keyToIdx, nk);
           if (idx !== undefined && (hop1Matched[idx] || !hop1Count.has(idx))) {
-            hop1Count.set(idx, (hop1Count.get(idx) || 0) + 1);
-            scored[idx].score += GRAPH_BOOST_AMOUNTS.hop1;
-            scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + GRAPH_BOOST_AMOUNTS.hop1;
+            const taken = hop1Count.get(idx) || 0;
+            const bonus = _hop1Bonus(damping, hop1Base[idx], taken);
+            if (bonus <= 0) continue;
+            hop1Count.set(idx, taken + 1);
+            scored[idx].score += bonus;
+            scored[idx].signals.graphBoost = (scored[idx].signals.graphBoost || 0) + bonus;
             hop1Files.add(nk);
             hop1Seeds.push(neighborAbs);
           }
@@ -37394,7 +37456,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.73.0';
+const VERSION = '8.74.0';
 function requireSourceOrBundled(key) {
   try {
     const rel = key.replace(/^\.\//, '') + '.js';
@@ -37493,12 +37555,12 @@ function buildFileList(cwd, config) {
 function collectTestEntries(cwd, config, existing) {
   // #825: the roots come from the shared primitive, so `validate`/`doctor`
   // cannot classify as stale a file this collector deliberately indexed.
-  const { TEST_ROOTS } = requireSourceOrBundled('./src/analysis/index-state');
+  const { testRootDirs } = requireSourceOrBundled('./src/analysis/index-state');
   const have = new Set((existing || []).map((e) => e.filePath));
   const out = [];
   let moduleDocSig = null;
   try { ({ moduleDocSig } = requireSourceOrBundled('./src/retrieval/module-doc')); } catch (_) {}
-  for (const root of TEST_ROOTS) {
+  for (const root of testRootDirs(cwd)) {
     const abs = path.join(cwd, root);
     if (!fs.existsSync(abs)) continue;
     let files = [];

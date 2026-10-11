@@ -1,0 +1,833 @@
+{
+  "benchmark": "graph-damping-sweep",
+  "method": "run-graph-damping-sweep.mjs: each task ranked with the shipped graph, the complete graph, and the complete graph under each damping rule; a rule is chosen on one half of xrepo (by repository) and mined (by task) and scored on the other half and on hard, easy and jvm; honest is scored without an import graph and cannot move",
+  "plain": {
+    "xrepo": {
+      "shipped": 42,
+      "full": 42,
+      "tasks": 83
+    },
+    "hard": {
+      "shipped": 65,
+      "full": 65,
+      "tasks": 90
+    },
+    "mined": {
+      "shipped": 37,
+      "full": 37,
+      "tasks": 60
+    },
+    "easy": {
+      "shipped": 18,
+      "full": 18,
+      "tasks": 20
+    },
+    "jvm": {
+      "shipped": 21,
+      "full": 21,
+      "tasks": 61
+    }
+  },
+  "folds": {
+    "xrepo:alamofire": 0,
+    "xrepo:astro": 1,
+    "xrepo:django": 0,
+    "xrepo:excalidraw": 1,
+    "xrepo:express": 0,
+    "xrepo:flask": 1,
+    "xrepo:gin": 0,
+    "xrepo:godot-demo-projects": 1,
+    "xrepo:laravel": 0,
+    "xrepo:okhttp": 1,
+    "xrepo:phoenix": 0,
+    "xrepo:plenary": 1,
+    "xrepo:riverpod": 0,
+    "xrepo:serilog": 1,
+    "xrepo:tokio": 0,
+    "xrepo:vue-core": 1,
+    "mined:m001": 0,
+    "mined:m002": 1,
+    "mined:m003": 0,
+    "mined:m004": 1,
+    "mined:m005": 0,
+    "mined:m006": 1,
+    "mined:m007": 0,
+    "mined:m008": 1,
+    "mined:m009": 0,
+    "mined:m010": 1,
+    "mined:m011": 0,
+    "mined:m012": 1,
+    "mined:m013": 0,
+    "mined:m014": 1,
+    "mined:m015": 0,
+    "mined:m016": 1,
+    "mined:m017": 0,
+    "mined:m018": 1,
+    "mined:m019": 0,
+    "mined:m020": 1,
+    "mined:m021": 0,
+    "mined:m022": 1,
+    "mined:m023": 0,
+    "mined:m024": 1,
+    "mined:m025": 0,
+    "mined:m026": 1,
+    "mined:m027": 0,
+    "mined:m028": 1,
+    "mined:m029": 0,
+    "mined:m030": 1,
+    "mined:m031": 0,
+    "mined:m032": 1,
+    "mined:m033": 0,
+    "mined:m034": 1,
+    "mined:m035": 0,
+    "mined:m036": 1,
+    "mined:m037": 0,
+    "mined:m038": 1,
+    "mined:m039": 0,
+    "mined:m040": 1,
+    "mined:m041": 0,
+    "mined:m042": 1,
+    "mined:m043": 0,
+    "mined:m044": 1,
+    "mined:m045": 0,
+    "mined:m046": 1,
+    "mined:m047": 0,
+    "mined:m048": 1,
+    "mined:m049": 0,
+    "mined:m050": 1,
+    "mined:m051": 0,
+    "mined:m052": 1,
+    "mined:m053": 0,
+    "mined:m054": 1,
+    "mined:m055": 0,
+    "mined:m056": 1,
+    "mined:m057": 0,
+    "mined:m058": 1,
+    "mined:m059": 0,
+    "mined:m060": 1
+  },
+  "full": {
+    "corpora": {
+      "xrepo": {
+        "hits": 42,
+        "won": 3,
+        "lost": 3,
+        "flipped": {
+          "won": [
+            "flask/x032",
+            "vue-core/x041",
+            "phoenix/x062"
+          ],
+          "lost": [
+            "django/x029",
+            "django/x030",
+            "flask/x033"
+          ]
+        }
+      },
+      "hard": {
+        "hits": 65,
+        "won": 0,
+        "lost": 0,
+        "flipped": {
+          "won": [],
+          "lost": []
+        }
+      },
+      "mined": {
+        "hits": 37,
+        "won": 0,
+        "lost": 0,
+        "flipped": {
+          "won": [],
+          "lost": []
+        }
+      },
+      "easy": {
+        "hits": 18,
+        "won": 0,
+        "lost": 0,
+        "flipped": {
+          "won": [],
+          "lost": []
+        }
+      },
+      "jvm": {
+        "hits": 21,
+        "won": 0,
+        "lost": 0,
+        "flipped": {
+          "won": [],
+          "lost": []
+        }
+      }
+    }
+  },
+  "grid": {
+    "cap24": {
+      "damping": {
+        "maxBonuses": 24
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 43,
+          "won": 3,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": [
+              "django/x029",
+              "flask/x033"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 21,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        }
+      }
+    },
+    "cap16": {
+      "damping": {
+        "maxBonuses": 16
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 43,
+          "won": 3,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": [
+              "django/x029",
+              "flask/x033"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 66,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 21,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        }
+      }
+    },
+    "cap12": {
+      "damping": {
+        "maxBonuses": 12
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 44,
+          "won": 3,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": [
+              "flask/x033"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 66,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 20,
+          "won": 0,
+          "lost": 1,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    },
+    "cap8": {
+      "damping": {
+        "maxBonuses": 8
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 44,
+          "won": 3,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": [
+              "flask/x033"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 68,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h027",
+              "self/h081"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 20,
+          "won": 0,
+          "lost": 1,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    },
+    "cap4": {
+      "damping": {
+        "maxBonuses": 4
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 44,
+          "won": 2,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 68,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h027",
+              "self/h081"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 19,
+          "won": 0,
+          "lost": 2,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m018",
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    },
+    "share2": {
+      "damping": {
+        "maxShare": 2
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 43,
+          "won": 3,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": [
+              "django/x029",
+              "flask/x033"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 67,
+          "won": 2,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h027"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 20,
+          "won": 0,
+          "lost": 1,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    },
+    "share1": {
+      "damping": {
+        "maxShare": 1
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 43,
+          "won": 3,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": [
+              "django/x029",
+              "flask/x033"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 67,
+          "won": 2,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h027"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 20,
+          "won": 0,
+          "lost": 1,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    },
+    "share0.5": {
+      "damping": {
+        "maxShare": 0.5
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 44,
+          "won": 3,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": [
+              "django/x029"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 68,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h027",
+              "self/h081"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 20,
+          "won": 0,
+          "lost": 1,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    },
+    "decay0.9": {
+      "damping": {
+        "decay": 0.9
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 45,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041",
+              "phoenix/x062"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 68,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h027",
+              "self/h081"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 19,
+          "won": 0,
+          "lost": 2,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m018",
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    },
+    "decay0.8": {
+      "damping": {
+        "decay": 0.8
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 44,
+          "won": 2,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "flask/x032",
+              "vue-core/x041"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 68,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h027",
+              "self/h081"
+            ],
+            "lost": []
+          }
+        },
+        "mined": {
+          "hits": 37,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 19,
+          "won": 0,
+          "lost": 2,
+          "flipped": {
+            "won": [],
+            "lost": [
+              "akka/m018",
+              "akka/m029"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "crossValidation": [
+    {
+      "tuneFold": 0,
+      "tuningTasks": 69,
+      "heldTasks": 74,
+      "chosen": "cap12",
+      "tuningNet": 1,
+      "heldOut": {
+        "xrepo": 1,
+        "mined": 0,
+        "hard": 1,
+        "easy": 0,
+        "jvm": -1
+      },
+      "heldOutFullGraphNet": {
+        "xrepo": 1,
+        "mined": 0
+      }
+    },
+    {
+      "tuneFold": 1,
+      "tuningTasks": 74,
+      "heldTasks": 69,
+      "chosen": "cap4",
+      "tuningNet": 2,
+      "heldOut": {
+        "xrepo": 0,
+        "mined": 0,
+        "hard": 3,
+        "easy": 0,
+        "jvm": -2
+      },
+      "heldOutFullGraphNet": {
+        "xrepo": -1,
+        "mined": 0
+      }
+    }
+  ],
+  "version": "8.73.0",
+  "generated": "2026-10-10T23:14:42.853Z"
+}
