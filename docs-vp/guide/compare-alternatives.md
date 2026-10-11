@@ -1,13 +1,13 @@
 ---
 title: SigMap vs alternatives
-description: How SigMap compares to embeddings, RAG, RepoMix, and Copilot context. Zero infra, deterministic, 6.5× better retrieval than sending everything.
+description: How SigMap compares to embeddings, RAG, RepoMix, and Copilot context. Zero infra, deterministic, 5.9× better retrieval than sending everything.
 head:
   - - meta
     - property: og:title
       content: "SigMap vs embeddings, RAG, RepoMix, and Copilot context"
   - - meta
     - property: og:description
-      content: "Side-by-side comparison: SigMap vs RAG, embeddings, RepoMix, and Copilot context. Zero infra, deterministic, 6.5× retrieval lift."
+      content: "Side-by-side comparison: SigMap vs RAG, embeddings, RepoMix, and Copilot context. Zero infra, deterministic, 5.9× retrieval lift."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/compare-alternatives"
@@ -44,7 +44,7 @@ RepoMix compresses files. SigMap extracts what matters and ranks by relevance.
 
 | | SigMap | RepoMix |
 |---|---|---|
-| Token reduction | **97–98%** | ~90% |
+| Token reduction | **95.7%** average | ~90% |
 | Retrieval accuracy (hit@5) | **80.4%** | n/a — no ranking (packs everything) |
 | Query-aware context | **Yes** — ranked per query | No — same output every time |
 | Dependency graph | **Yes** — import-aware BFS | No |
@@ -53,7 +53,7 @@ RepoMix compresses files. SigMap extracts what matters and ranks by relevance.
 | Judge answer groundedness | **Yes** — `sigmap judge` | No |
 | Works with MCP tools | **Yes** — 22 MCP tools | No |
 
-The key difference: RepoMix's output is the same regardless of what you ask. SigMap's output is ranked to the specific query, which is why retrieval accuracy is 6.5× higher.
+The key difference: RepoMix's output is the same regardless of what you ask. SigMap's output is ranked to the specific query, which is why retrieval accuracy is 5.9× higher.
 
 ## SigMap vs Copilot / IDE context window
 
@@ -79,7 +79,7 @@ Some teams maintain a hand-written `AGENTS.md` or instructions file. SigMap gene
 |---|---|---|
 | Keeps up with code changes | **Yes** — regenerates on every commit | Manual update required |
 | Structured by module | **Yes** — per-module signature blocks | Usually flat text |
-| Benchmark-tested accuracy | **80.4% hit@5** (retrieval corpus); **2.20× vs grep** on the honest corpus (89.6% vs 40.8%) | Not measured |
+| Benchmark-tested accuracy | **80.4% hit@5** (retrieval corpus); **2.24× vs grep** on the honest corpus (89.6% vs 40.0%) | Not measured |
 | Time to set up | **30 seconds** | Hours |
 
 ## What SigMap does not replace

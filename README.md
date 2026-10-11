@@ -62,7 +62,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **89.6% vs 40.8% single-shot grep baseline** — 2.20× measured lift on the honest corpus (125 tasks / 19 repos)
+- **89.6% vs 40.0% single-shot grep baseline** — 2.24× measured lift on the honest corpus (125 tasks / 19 repos)
 - **95.7% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.58 prompts per task** — down from 2.84 (44.4% fewer retries, modeled)
@@ -125,11 +125,11 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.73-main (21 repositories, including R language)
+Benchmark : sigmap-v8.74-main (21 repositories, including R language)
 Date      : 2026-10-10
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
-Honest vs grep : 89.6% vs 40.8% grep baseline — 2.20× lift (125 tasks / 19 repos)
+Honest vs grep : 89.6% vs 40.0% grep baseline — 2.24× lift (125 tasks / 19 repos)
 Map vs repo    : 95.7% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
 Task success   : 61.9%   (proxy — modeled from retrieval tiers)
@@ -139,7 +139,7 @@ Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift
 
 <sub>All numbers above are generated from `benchmarks/latest.json` (`npm run metrics:sync`) — never hand-typed.</sub>
 
-Measured on 90 coding tasks across 18 real public repos. No LLM API — fully reproducible.
+Measured on 105 coding tasks across 18 real public repos. No LLM API — fully reproducible.
 
 **Resources:**
 - [Full methodology →](https://sigmap.io/guide/methodology.html)

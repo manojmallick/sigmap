@@ -1,6 +1,6 @@
 ---
 title: Benchmark methodology
-description: How SigMap benchmarks are designed, what we measure, and why. 90 real-world tasks, 18 repos, reproducible results.
+description: How SigMap benchmarks are designed, what we measure, and why. 105 real-world tasks, 18 repos, reproducible results.
 head:
   - - meta
     - property: og:title
@@ -19,24 +19,24 @@ This page explains what we measure, how we measure it, and why we chose these me
 
 ## Overview
 
-SigMap is evaluated on **90 real-world coding tasks** across **18 open-source repositories** spanning **8 programming languages**. The benchmark answers: "Does SigMap help developers finish coding tasks with fewer retries?"
+SigMap is evaluated on **105 real-world coding tasks** across **18 open-source repositories** in a dozen or so programming languages (table below). The benchmark answers: "Does SigMap help developers finish coding tasks with fewer retries?"
 
 ## Test set: 105 tasks across 18 repos
 
-The benchmark includes 5 tasks per repository, distributed across multiple languages and project types:
+The benchmark includes 5 or 8 tasks per repository, distributed across multiple languages and project types:
 
 | Language | Repos | Example projects | Tasks |
 |----------|-------|------------------|-------|
-| Python | 2 | Flask, FastAPI | 10 |
-| JavaScript | 4 | Express, Axios, Fastify, Vue | 20 |
+| Python | 2 | Flask, FastAPI | 13 |
+| JavaScript | 4 | Express, Axios, Fastify, Vue | 29 |
 | Java | 3 | Spring, OkHttp, Akka | 15 |
-| Go | 1 | Gin | 5 |
+| Go | 1 | Gin | 8 |
 | Ruby | 1 | Rails | 5 |
 | Rust | 1 | rust-analyzer | 5 |
 | C++ | 1 | abseil-cpp | 5 |
 | PHP | 1 | Laravel | 5 |
 | Other | 4 | Serilog (C#), Riverpod (Dart), Vapor (Swift), Svelte (TS/JS) | 20 |
-| **Total** | **18** | — | **90** |
+| **Total** | **18** | — | **105** |
 
 ### Task selection criteria
 
@@ -62,9 +62,9 @@ Example tasks:
 
 **Metric:** Hit@5 — the right file appears in the top 5 ranked results
 
-**Baseline:** Single-shot grep agent = 40.8% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
+**Baseline:** Single-shot grep agent = 40.0% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
 
-**SigMap score:** 89.6% on the same 125-task honest corpus — a measured **2.20× lift** over the grep baseline (89.6 ÷ 40.8). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
+**SigMap score:** 89.6% on the same 125-task honest corpus — a measured **2.24× lift** over the grep baseline (89.6 ÷ 40.0). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
 
 ### 2. Task success proxy (correct rank)
 
@@ -79,8 +79,8 @@ Example tasks:
 
 **SigMap breakdown:**
 - Correct: 61.9% of tasks
-- Partial: 20.0% of tasks
-- Wrong: 21.0% of tasks
+- Partial: 18.1% of tasks
+- Wrong: 20.0% of tasks
 
 ### 3. Prompt reduction
 
@@ -90,8 +90,8 @@ Example tasks:
 
 **Metric:** Average prompts per task
 - **Without SigMap:** 2.84 prompts/task (cold start, no context)
-- **With SigMap:** 1.53 prompts/task
-- **Reduction:** 41.0%
+- **With SigMap:** 1.58 prompts/task
+- **Reduction:** 44.4%
 
 ### 4. Token reduction
 
@@ -100,11 +100,11 @@ Example tasks:
 **Why:** Token limits constrain what we can include. SigMap keeps answers grounded by sending less.
 
 **Metric:** Token count of final context
-- **Full repo signatures:** 12.8M tokens (before SigMap)
-- **SigMap output:** 241K tokens (after ranking/filtering)
-- **Reduction:** 95.7% average, 40–98% per repo
+- **Full repo signatures:** 13.7M tokens (before SigMap)
+- **SigMap output:** 257K tokens (after ranking/filtering)
+- **Reduction:** 95.7% average, 89–99% per repo
 
-**Impact:** Without SigMap, 13 of 18 repos overflow GPT-4o's 128K context window. With SigMap, all 18 fit.
+**Impact:** Without SigMap, 14 of 21 repos overflow GPT-4o's 128K context window. With SigMap, all 21 fit.
 
 ### 5. Answer usefulness (v6.9+)
 
@@ -142,9 +142,9 @@ Metrics vary significantly by repository type:
 
 | Dimension | Range | Meaning |
 |-----------|-------|---------|
-| Hit@5 by language | 60–100% | Python/Java typically higher, JS lower due to naming variance |
-| Prompt reduction | 17–65% | Larger repos need more context reduction |
-| Token reduction | 40–98% | Enterprise frameworks reduce more than utilities |
+| Hit@5 per repository | 20–100% | 13 of 18 repositories read 80% or more; the weakest read 20% (serilog, vapor) |
+| Prompt reduction per repository | 4.7–66.6% | Lowest on serilog, highest on abseil-cpp |
+| Token reduction per repository | 89.4–99.4% | Lowest on fastapi, highest on rust-analyzer (21 repositories) |
 
 See [per-repo breakdown](retrieval-benchmark.md#per-repo-results) for details.
 
