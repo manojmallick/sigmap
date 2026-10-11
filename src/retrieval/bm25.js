@@ -191,6 +191,15 @@ function stripAnchor(line) {
 // how you overfit a benchmark.
 const DOC_WEIGHT = 0.6;
 
+// Body words (retrieval.bodyWords, #905): the rare words of a file's source. Through v8.74 they
+// joined the prose field and carried its weight AND its length (`prose`). The sweep behind #943
+// (docs-vp/guide/retrieval-benchmark.md, "Weighting the body words") measured a field of their
+// own, and the weight and length treatment below are the mildest cell that met the guide's
+// default rule: a lower weight than prose, and no contribution to the document's length.
+const BODY_FIELD = 'prose';
+const BODY_WEIGHT = 0.3;
+const BODY_LENGTH = 'ignore';
+
 // Build a stemmed lookup: stem(member) → Set of the group's other stemmed members.
 const EXPANSIONS = (() => {
   const map = new Map();
@@ -253,6 +262,11 @@ function expandQuery(qToks, mined) {
  * @param {{ file: string, sigs: string[] }[]} candidates
  * @param {object} [opts]
  * @param {Map<string,string>} [opts.bodyWords] file -> body words (opt-in retrieval.bodyWords)
+ * @param {'prose'|'own'} [opts.bodyField] where body words go: `prose` joins the prose field,
+ *        weight and length alike; `own` gives them a field of their own (#943)
+ * @param {number} [opts.bodyWeight] with `own`: the field's weight (default BODY_WEIGHT)
+ * @param {'count'|'ignore'} [opts.bodyLength] with `own`: whether body words lengthen the
+ *        document for BM25's length normalisation (default BODY_LENGTH)
  * @returns {Array<object & { score: number }>}
  */
 function bm25rank(query, candidates, opts) {
@@ -265,6 +279,11 @@ function bm25rank(query, candidates, opts) {
   // Opt-in body words (retrieval.bodyWords, src/retrieval/body-words.js): file -> the rare
   // words of its source that its signatures lack. Absent, nothing below changes.
   const bodyWords = (opts && opts.bodyWords instanceof Map) ? opts.bodyWords : null;
+  // Where body words go (#943): into the prose field, weight and length alike, or into a
+  // field of their own with a weight and a length treatment.
+  const bodyOwn = ((opts && (opts.bodyField === 'own' || opts.bodyField === 'prose')) ? opts.bodyField : BODY_FIELD) === 'own';
+  const bodyWeight = (opts && typeof opts.bodyWeight === 'number' && opts.bodyWeight >= 0) ? opts.bodyWeight : BODY_WEIGHT;
+  const bodyInLength = ((opts && (opts.bodyLength === 'count' || opts.bodyLength === 'ignore')) ? opts.bodyLength : BODY_LENGTH) !== 'ignore';
 
   const docs = candidates.map((c) => {
     const pathToks = tokenize(c.file || '');
@@ -288,20 +307,27 @@ function bm25rank(query, candidates, opts) {
     // past a cutoff. A hit@5-only view would have shipped this.
     const codeToks = tokenize(codeLines.map((x) => stripAnchor(x)).join(' '));
     const docToks = tokenize(docLines.join(' '));
-    // Body words are descriptive of the file, never definitional like a signature, so they
-    // join the prose field and carry its weight.
+    // Body words are descriptive of the file, never definitional like a signature. By default
+    // they join the prose field and carry its weight and length; `bodyField: 'own'` keeps them
+    // in a field of their own, at its own weight and with its own length treatment (#943).
+    let bodyToks = null;
     if (bodyWords) {
       const extra = bodyWords.get(c.file);
-      if (extra) for (const t of tokenize(extra)) docToks.push(t);
+      if (extra) {
+        if (!bodyOwn) for (const t of tokenize(extra)) docToks.push(t);
+        else bodyToks = tokenize(extra);
+      }
     }
     const tf = new Map();
     const addField = (toks, weight) => { for (const t of toks) tf.set(t, (tf.get(t) || 0) + weight); };
     addField(codeToks, 1);
     addField(pathToks, PATH_BOOST);
     addField(docToks, docWeight);
+    if (bodyToks) addField(bodyToks, bodyWeight);
     // Length accumulates with the SAME weights, or a field's influence leaks
     // back in through the normalisation term.
-    const len = codeToks.length + (PATH_BOOST * pathToks.length) + (docWeight * docToks.length);
+    const len = codeToks.length + (PATH_BOOST * pathToks.length) + (docWeight * docToks.length)
+      + (bodyToks && bodyInLength ? bodyWeight * bodyToks.length : 0);
     return { cand: c, tf, len };
   });
 
@@ -333,4 +359,4 @@ function bm25rank(query, candidates, opts) {
     .sort((a, c) => c.score - a.score || String(a.file).localeCompare(String(c.file)));
 }
 
-module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, MODULE_DOC_RE, stripAnchor };
+module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, BODY_FIELD, BODY_WEIGHT, BODY_LENGTH, MODULE_DOC_RE, stripAnchor };

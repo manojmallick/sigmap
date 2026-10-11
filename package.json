@@ -70,6 +70,7 @@
     "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save",
     "benchmark:signals": "node scripts/run-signal-verdicts.mjs --save",
     "benchmark:body-words-sweep": "node scripts/run-body-words-sweep.mjs --save",
+    "benchmark:body-weight-sweep": "node scripts/run-body-weight-sweep.mjs --save",
     "benchmark:graph-damping-sweep": "node scripts/run-graph-damping-sweep.mjs --save",
     "fix:doc-counts": "node scripts/check-doc-counts.mjs --fix"
   },
