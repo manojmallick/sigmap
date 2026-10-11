@@ -114,7 +114,7 @@ for (const f of taskFiles) {
     const attributed = attributeTasks({
       tasks: tasks.map((t) => ({ id: t.id, query: t.query, expected: t.expected_files || [] })),
       indexed: new Set(sigIndex.keys()),
-      rankFull: (q) => runner.rank(q, sigIndex, sigIndex.size)
+      rankFull: (q) => runner.rank(q, sigIndex, sigIndex.size, { cwd: repoPath, learned: false })
         .map((r) => ({ file: r.file, score: r.score, penalty: r.signals && typeof r.signals.penalty === 'number' ? r.signals.penalty : 1 })),
       queryTerms: queryTermsOf,
       termsOf: termsOf(sigIndex, repoPath),
@@ -146,7 +146,7 @@ for (const f of taskFiles) {
   for (const t of tasks) {
     const expected = t.expected_files || [];
     const split = t.split === 'hard' ? 'hard' : 'easy';
-    const sig = runner.rank(t.query, sigIndex, 10).map((r) => r.file);
+    const sig = runner.rank(t.query, sigIndex, 10, { cwd: repoPath, learned: false }).map((r) => r.file);
     const grep = grepRanked.get(t.id) || [];
     const sigH = scorer.hitAtK(sig, expected, 5);
     const grepH = scorer.hitAtK(grep, expected, 5);

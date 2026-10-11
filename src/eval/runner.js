@@ -67,7 +67,45 @@ function rank(query, index, topK = 10, opts = {}) {
   // graph boost, recency or learned weights — so no ranking regression in
   // src/retrieval/ranker.js could ever show up in the benchmark numbers.
   const { rank: prodRank } = require('../retrieval/ranker');
-  return prodRank(query, index, Object.assign({ topK }, opts)).slice(0, topK);
+  const o = Object.assign({ topK }, opts);
+  // What ships includes body words whenever retrieval.bodyWords is on (the default, or the
+  // repository's own gen-context.config.json), so a caller that names none gets them: built in
+  // memory from the sources under `cwd`, never cached, so a pinned checkout is left as it was.
+  // A caller that names the option — a Map to use, or null or undefined for none — is scoring
+  // something else on purpose and is left alone.
+  if (!Object.prototype.hasOwnProperty.call(o, 'bodyWords') && o.cwd) {
+    const bodyWords = defaultBodyWords(index, o.cwd);
+    if (bodyWords) o.bodyWords = bodyWords;
+  }
+  return prodRank(query, index, o).slice(0, topK);
+}
+
+/** `index` -> its body words, so one index scored over many tasks reads its sources once. */
+const _bodyWordsOf = new WeakMap();
+
+/**
+ * The body words the shipped ranker would use for the repository at `cwd`, or null when the
+ * repository switches them off. Reads only the repository's own `gen-context.config.json`
+ * for `retrieval.bodyWords`; the default is the one in src/config/defaults.js.
+ *
+ * @param {Map<string, string[]>} index
+ * @param {string} cwd
+ * @returns {Map<string, string>|null}
+ */
+function defaultBodyWords(index, cwd) {
+  if (!(index instanceof Map) || index.size === 0) return null;
+  let on = require('../config/defaults').DEFAULTS.retrieval.bodyWords;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
+    if (cfg && cfg.retrieval && typeof cfg.retrieval.bodyWords === 'boolean') on = cfg.retrieval.bodyWords;
+  } catch (_) { /* no config, or not JSON: the default stands */ }
+  if (!on) return null;
+  const known = _bodyWordsOf.get(index);
+  if (known && known.cwd === cwd) return known.words;
+  let words = null;
+  try { words = require('../retrieval/body-words').buildFor(cwd, index); } catch (_) { words = null; }
+  _bodyWordsOf.set(index, { cwd, words });
+  return words;
 }
 
 // ---------------------------------------------------------------------------

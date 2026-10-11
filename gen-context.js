@@ -8368,7 +8368,45 @@ __factories["./src/eval/runner"] = function(module, exports) {
     // graph boost, recency or learned weights — so no ranking regression in
     // src/retrieval/ranker.js could ever show up in the benchmark numbers.
     const { rank: prodRank } = __require('./src/retrieval/ranker');
-    return prodRank(query, index, Object.assign({ topK }, opts)).slice(0, topK);
+    const o = Object.assign({ topK }, opts);
+    // What ships includes body words whenever retrieval.bodyWords is on (the default, or the
+    // repository's own gen-context.config.json), so a caller that names none gets them: built in
+    // memory from the sources under `cwd`, never cached, so a pinned checkout is left as it was.
+    // A caller that names the option — a Map to use, or null or undefined for none — is scoring
+    // something else on purpose and is left alone.
+    if (!Object.prototype.hasOwnProperty.call(o, 'bodyWords') && o.cwd) {
+      const bodyWords = defaultBodyWords(index, o.cwd);
+      if (bodyWords) o.bodyWords = bodyWords;
+    }
+    return prodRank(query, index, o).slice(0, topK);
+  }
+
+  /** `index` -> its body words, so one index scored over many tasks reads its sources once. */
+  const _bodyWordsOf = new WeakMap();
+
+  /**
+   * The body words the shipped ranker would use for the repository at `cwd`, or null when the
+   * repository switches them off. Reads only the repository's own `gen-context.config.json`
+   * for `retrieval.bodyWords`; the default is the one in src/config/defaults.js.
+   *
+   * @param {Map<string, string[]>} index
+   * @param {string} cwd
+   * @returns {Map<string, string>|null}
+   */
+  function defaultBodyWords(index, cwd) {
+    if (!(index instanceof Map) || index.size === 0) return null;
+    let on = __require('./src/config/defaults').DEFAULTS.retrieval.bodyWords;
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path.join(cwd, 'gen-context.config.json'), 'utf8'));
+      if (cfg && cfg.retrieval && typeof cfg.retrieval.bodyWords === 'boolean') on = cfg.retrieval.bodyWords;
+    } catch (_) { /* no config, or not JSON: the default stands */ }
+    if (!on) return null;
+    const known = _bodyWordsOf.get(index);
+    if (known && known.cwd === cwd) return known.words;
+    let words = null;
+    try { words = __require('./src/retrieval/body-words').buildFor(cwd, index); } catch (_) { words = null; }
+    _bodyWordsOf.set(index, { cwd, words });
+    return words;
   }
 
   // ---------------------------------------------------------------------------
@@ -27139,6 +27177,16 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
   // how you overfit a benchmark.
   const DOC_WEIGHT = 0.6;
 
+  // Body words (retrieval.bodyWords, #905): the rare words of a file's source. Through v8.74 they
+  // joined the prose field and carried its weight AND its length (`prose`). The sweep behind #943
+  // (docs-vp/guide/retrieval-benchmark.md, "Weighting the body words") put them in a field of their
+  // own: the weight stays prose's 0.6, and they add no length. Counting them lengthened exactly the
+  // files with the most source to say, so every match on such a file scored less — and leaving them
+  // out of the length was worth +2 or +3 on the third-party corpus at every weight tried.
+  const BODY_FIELD = 'own';
+  const BODY_WEIGHT = 0.6;
+  const BODY_LENGTH = 'ignore';
+
   // Build a stemmed lookup: stem(member) → Set of the group's other stemmed members.
   const EXPANSIONS = (() => {
     const map = new Map();
@@ -27201,6 +27249,11 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
    * @param {{ file: string, sigs: string[] }[]} candidates
    * @param {object} [opts]
    * @param {Map<string,string>} [opts.bodyWords] file -> body words (opt-in retrieval.bodyWords)
+   * @param {'prose'|'own'} [opts.bodyField] where body words go: `prose` joins the prose field,
+   *        weight and length alike; `own` gives them a field of their own (default BODY_FIELD, #943)
+   * @param {number} [opts.bodyWeight] with `own`: the field's weight (default BODY_WEIGHT)
+   * @param {'count'|'ignore'} [opts.bodyLength] with `own`: whether body words lengthen the
+   *        document for BM25's length normalisation (default BODY_LENGTH)
    * @returns {Array<object & { score: number }>}
    */
   function bm25rank(query, candidates, opts) {
@@ -27213,6 +27266,11 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
     // Opt-in body words (retrieval.bodyWords, src/retrieval/body-words.js): file -> the rare
     // words of its source that its signatures lack. Absent, nothing below changes.
     const bodyWords = (opts && opts.bodyWords instanceof Map) ? opts.bodyWords : null;
+    // Where body words go (#943): into the prose field, weight and length alike, or into a
+    // field of their own with a weight and a length treatment.
+    const bodyOwn = ((opts && (opts.bodyField === 'own' || opts.bodyField === 'prose')) ? opts.bodyField : BODY_FIELD) === 'own';
+    const bodyWeight = (opts && typeof opts.bodyWeight === 'number' && opts.bodyWeight >= 0) ? opts.bodyWeight : BODY_WEIGHT;
+    const bodyInLength = ((opts && (opts.bodyLength === 'count' || opts.bodyLength === 'ignore')) ? opts.bodyLength : BODY_LENGTH) !== 'ignore';
 
     const docs = candidates.map((c) => {
       const pathToks = tokenize(c.file || '');
@@ -27236,20 +27294,27 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
       // past a cutoff. A hit@5-only view would have shipped this.
       const codeToks = tokenize(codeLines.map((x) => stripAnchor(x)).join(' '));
       const docToks = tokenize(docLines.join(' '));
-      // Body words are descriptive of the file, never definitional like a signature, so they
-      // join the prose field and carry its weight.
+      // Body words are descriptive of the file, never definitional like a signature. They sit in
+      // a field of their own at BODY_WEIGHT and add no length (`bodyField: 'prose'` is the
+      // placement through v8.74: the prose field's weight and length) (#943).
+      let bodyToks = null;
       if (bodyWords) {
         const extra = bodyWords.get(c.file);
-        if (extra) for (const t of tokenize(extra)) docToks.push(t);
+        if (extra) {
+          if (!bodyOwn) for (const t of tokenize(extra)) docToks.push(t);
+          else bodyToks = tokenize(extra);
+        }
       }
       const tf = new Map();
       const addField = (toks, weight) => { for (const t of toks) tf.set(t, (tf.get(t) || 0) + weight); };
       addField(codeToks, 1);
       addField(pathToks, PATH_BOOST);
       addField(docToks, docWeight);
+      if (bodyToks) addField(bodyToks, bodyWeight);
       // Length accumulates with the SAME weights, or a field's influence leaks
       // back in through the normalisation term.
-      const len = codeToks.length + (PATH_BOOST * pathToks.length) + (docWeight * docToks.length);
+      const len = codeToks.length + (PATH_BOOST * pathToks.length) + (docWeight * docToks.length)
+        + (bodyToks && bodyInLength ? bodyWeight * bodyToks.length : 0);
       return { cand: c, tf, len };
     });
 
@@ -27281,7 +27346,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
       .sort((a, c) => c.score - a.score || String(a.file).localeCompare(String(c.file)));
   }
 
-  module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, MODULE_DOC_RE, stripAnchor };
+  module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, BODY_FIELD, BODY_WEIGHT, BODY_LENGTH, MODULE_DOC_RE, stripAnchor };
   
 };
 
@@ -27289,7 +27354,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
 __factories["./src/retrieval/body-words"] = function(module, exports) {
   
   /**
-   * Body words (retrieval only, opt-in via retrieval.bodyWords): for each indexed file, the rare words of its source that its signature entry does not carry. Fed to BM25's prose field so a question in the words a file's body uses can reach a file whose signatures never say them. Zero-dependency, deterministic, bundle-safe.
+   * Body words (retrieval only, opt-in via retrieval.bodyWords): for each indexed file, the rare words of its source that its signature entry does not carry. Fed to BM25 in a field of their own (weight and length: BODY_WEIGHT and BODY_LENGTH in bm25.js) so a question in the words a file's body uses can reach a file whose signatures never say them. Zero-dependency, deterministic, bundle-safe.
    *
    * A signature map keeps a file's shape — names, parameters — and drops what the
    * body says. A person asking how something works describes it in the words the
@@ -27307,8 +27372,10 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { tokenize } = __require('./src/retrieval/tokenizer');
+  const { scan } = __require('./src/security/scanner');
 
-  const SCHEMA_VERSION = 1;
+  // 2: a word is never taken from a line the secret scanner flags, nor is a long word that holds a digit (#943).
+  const SCHEMA_VERSION = 2;
   const CACHE_FILE = 'body-words.json';
 
   // A word is rare when no more than this share of the indexed files hold it (and never
@@ -27318,6 +27385,10 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
   // every benchmark corpus, was flat from about 200 up; below 100 it began to lose gains.
   const PER_FILE = 200;
   const MIN_WORD_LENGTH = 3;
+  // A word this long that holds a digit is a key, a hash or an identifier no question is written in
+  // (an AWS access key id is 20 characters). The scanner's patterns are tried first; this is for
+  // whatever they do not name.
+  const OPAQUE_WORD_LENGTH = 20;
   // A whole-file scan skips files over this size, as the grep baseline does.
   const MAX_SOURCE_BYTES = 1024 * 1024;
 
@@ -27331,12 +27402,33 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     + 'been being have has had was were are is be not but and for the you your its it our we can cannot'
   ).split(/\s+/));
 
+  /**
+   * The lines of a source with every line the secret scanner flags blanked.
+   *
+   * Body words are the rare words of raw source, and a rare word is exactly what a credential is, so
+   * unlike a signature they must pass the scanner too: a cache that held `akiaiosfodnn7example` would
+   * carry the key's id into a file that is not the source and is not redacted.
+   */
+  function _safeLines(source, file) {
+    const lines = source.split('\n');
+    try {
+      const { safe, redacted } = scan(lines, file);
+      if (!redacted) return lines;
+      return lines.map((l, i) => (safe[i] === l ? l : ''));
+    } catch (_) {
+      return [];
+    }
+  }
+
   /** Words of one file's source, with the number of its lines that hold each. */
-  function _lineFrequency(source) {
+  function _lineFrequency(source, file) {
     const freq = new Map();
-    for (const line of source.split('\n')) {
+    for (const line of _safeLines(source, file)) {
       if (!line) continue;
-      for (const w of tokenize(line)) freq.set(w, (freq.get(w) || 0) + 1);
+      for (const w of tokenize(line)) {
+        if (w.length >= OPAQUE_WORD_LENGTH && /\d/.test(w)) continue;
+        freq.set(w, (freq.get(w) || 0) + 1);
+      }
     }
     return freq;
   }
@@ -27382,7 +27474,7 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
       if (typeof source !== 'string') continue;
       const have = new Set(tokenize(`${file}\n${(index.get(file) || []).join('\n')}`));
       const picks = [];
-      for (const [w, lines] of _lineFrequency(source)) {
+      for (const [w, lines] of _lineFrequency(source, file)) {
         if (w.length < MIN_WORD_LENGTH || have.has(w) || FRAMING_WORDS.has(w) || /^\d+$/.test(w)) continue;
         if ((df.get(w) || 0) > cap) continue;
         picks.push([w, lines]);
@@ -27403,6 +27495,18 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     } catch (_) {
       return null;
     }
+  }
+
+  /**
+   * The body words of the files of `index`, read under `cwd`, with nothing written: for a benchmark
+   * that scores a pinned checkout and must leave it untouched.
+   *
+   * @param {string} cwd
+   * @param {Map<string, string[]>} index
+   * @returns {Map<string, string>}
+   */
+  function buildFor(cwd, index) {
+    return buildBodyWords(index, (file) => _readUnder(cwd, file));
   }
 
   /**
@@ -27435,8 +27539,7 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
 
     let built = new Map();
     try {
-      const idx = index instanceof Map ? index : __require('./src/retrieval/ranker').buildSigIndex(cwd);
-      built = buildBodyWords(idx, (file) => _readUnder(cwd, file));
+      built = buildFor(cwd, index instanceof Map ? index : __require('./src/retrieval/ranker').buildSigIndex(cwd));
     } catch (_) { built = new Map(); }
 
     if (!stamp) return built;
@@ -27452,7 +27555,7 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     return built;
   }
 
-  module.exports = { buildBodyWords, loadOrBuild, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };
+  module.exports = { buildBodyWords, buildFor, loadOrBuild, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, OPAQUE_WORD_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };
   
 };
 

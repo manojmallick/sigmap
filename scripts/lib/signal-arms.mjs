@@ -11,7 +11,19 @@
  * with fake rankings and no repository.
  */
 
+import { createRequire } from 'module';
 import { rankOf } from './attribution.mjs';
+
+/**
+ * Whether body words ship on. The `body` arm flips the flag relative to what ships: while the flag
+ * is off the arm adds the words (`+ body words`); once it is the default the arm is the ablation
+ * (`- body words`), so `plain` is always what the gate scores.
+ */
+export function bodyDefault() {
+  try {
+    return createRequire(import.meta.url)('../../src/config/defaults').DEFAULTS.retrieval.bodyWords === true;
+  } catch (_) { return false; }
+}
 
 /** The arms, in report order. `plain` is the reference every other arm is compared with. */
 export const ARMS = [
@@ -20,7 +32,7 @@ export const ARMS = [
   { id: 'surface', label: '+ surface enrichment', flag: 'retrieval.surfaceEnrichment' },
   { id: 'mined', label: '+ mined expansions', flag: 'retrieval.minedExpansions' },
   { id: 'callgraph', label: '+ call-graph boost', flag: 'retrieval.callGraphBoost' },
-  { id: 'body', label: '+ body words', flag: 'retrieval.bodyWords' },
+  { id: 'body', label: bodyDefault() ? '- body words (flag off)' : '+ body words', flag: 'retrieval.bodyWords' },
   { id: 'nograph', label: '- import graph (as `ask`)' },
 ];
 
