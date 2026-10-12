@@ -135,6 +135,16 @@ All tools are available on-demand — your AI agent calls only what it needs.
 | `sigmap_notify_file_deleted` | Live-index write hook: drops a deleted file’s symbols from the live index. New in v7.21. | `path` (required string) | `sigmap_notify_file_deleted(path="src/old.js")` |
 | `query_knowledge_map` | **Unified knowledge map** — typed nodes (file, symbol, library@version, route, env-var, migration, script) and edges (imports, calls, defines, tests, uses-lib, exposes-route, reads-env) assembled from SigMap’s existing graphs. `library` answers upgrade impact (lib → importing files → their dependents → covering tests); `file` returns every typed edge touching one file; `env` (v8.42) returns the files reading an environment variable and whether a committed `.env.example` declares it; no args returns the node/edge summary. New in v8.41. | `library` · `file` · `env` (all optional strings) | `query_knowledge_map(env="DATABASE_URL")` |
 
+### Opt-in: `log_session_usage`
+
+One more tool exists, and it is **not** among the 22. It lets an agent SigMap has no hook integration for — Cursor, Windsurf, Codex CLI, Gemini CLI, OpenCode — report its own token usage so the session shows up in [`sigmap --report --sessions`](/guide/cli#sessions-report). It is listed in `tools/list` (and answers `tools/call`) only when the project sets `session.mcpCapture: true`; otherwise it is absent, so you pay none of its definition tokens and the default surface is the 22 above.
+
+| Tool | Returns | Parameters |
+|---|---|---|
+| `log_session_usage` | The session as the store now holds it, with its provenance label. Recorded as `agent-reported`: SigMap cannot verify it, and it is never merged into `measured` totals. | `id` (optional string — omit for one id per MCP connection) · `model` (optional string) · `usage` (optional object `{ in, out, cacheRead?, cacheWrite? }` — `in` and `out` required) |
+
+Send the session's **running totals** at the end of a task; a later call for the same session replaces the earlier one. An omitted cache category is stored as unknown (`n/a`), not `0`. Missing or invalid `usage` is recorded as `unavailable` with the reason returned — never as zeros, and never over a usable earlier report. A measured transcript of the same session (Claude Code hooks) outranks a self-report.
+
 ## Your agent's live loop
 
 SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**. Agentic grep is superb at *finding* a file and terrible at *proving* anything about it: it can't tell you a symbol's exact signature, what breaks if you change it, or whether the call your model is about to write actually exists. Five tools cover that gap, and each is deterministic, byte-stable, and auditable — the same inputs return the same bytes, every time:

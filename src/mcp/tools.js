@@ -436,4 +436,38 @@ const TOOLS = [
   },
 ];
 
-module.exports = { TOOLS };
+/**
+ * The capture tool (#951, SI-2b). Deliberately NOT in TOOLS: it is advertised
+ * only when `session.mcpCapture` is on, so a project that does not capture
+ * sessions pays none of its definition tokens (#878) and the 22-tool surface
+ * every client sees by default does not move.
+ */
+const LOG_SESSION_USAGE = {
+  name: 'log_session_usage',
+  description:
+    "Record this session's own token usage in SigMap's session store, labelled " +
+    'agent-reported (SigMap cannot verify it). Call at the end of a task with the ' +
+    'running session totals; a later call for the same session replaces the earlier ' +
+    'one. Omit usage when unknown: it is recorded as unavailable, never as zero.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', description: 'Session id. Omit to use one id for this MCP connection.' },
+      model: { type: 'string', description: 'Model name as the host reports it.' },
+      usage: {
+        type: 'object',
+        description: 'Billed tokens so far, per request category.',
+        properties: {
+          in: { type: 'number' },
+          out: { type: 'number' },
+          cacheRead: { type: 'number', description: 'Omit if the host does not report it.' },
+          cacheWrite: { type: 'number', description: 'Omit if the host does not report it.' },
+        },
+        required: ['in', 'out'],
+      },
+    },
+    required: [],
+  },
+};
+
+module.exports = { TOOLS, LOG_SESSION_USAGE };

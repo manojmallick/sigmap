@@ -39,6 +39,11 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.76.0)
+- **@manojmallick** — feat(mcp): the `log_session_usage` tool, so an agent SigMap has no hook integration for can report its own usage as `agent-reported` (#685, #951, PR #952). Opt-in with `session.mcpCapture`, so the default surface stays 22 tools; reports are cumulative, a measured transcript outranks a self-report, and an unusable `usage` is recorded `unavailable` with the reason, never as zeros.
+- **@manojmallick** — feat(session): `sigmap --report --sessions` and the dashboard's sessions and capture-coverage panels (#687, #951, PR #952). Totals per provenance class and never across them, a per-branch rollup, an input-priced cost floor that cites the pricing table's date, and a coverage block read from one declaration table.
+- **@manojmallick** — test(session): 33 cases in `session-mcp-capture.test.js` and `session-report.test.js`, with seventeen mutants of the wiring all caught (PR #952).
+
 ### Recent Contributors (v8.75.1)
 - **@manojmallick** — fix(context): `.context/` keeps itself out of git (#947, PR #948). Published pages said `sigmap --init` gitignores it; nothing did, so `git add .` committed the signature index, the run telemetry, the words cache and the session records. The directory now carries its own `.gitignore` holding `*`, written at the points commands pass through (CLI start and exit, the end of a generation, the MCP server after each tool call that returns, the session hook); it never creates `.context/`, never overwrites an existing file there and never edits the repository's own `.gitignore`.
 - **@manojmallick** — feat(doctor): the `Local state in git` row — files under `.context/` that git tracks warn with `git rm -r --cached .context`, since an ignore rule never untracks (#947, PR #948).

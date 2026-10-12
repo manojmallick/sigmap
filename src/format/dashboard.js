@@ -405,6 +405,69 @@ function tokenReductionPanelHtml(tr) {
   ].join('');
 }
 
+// Sessions (#951, SI-4). Every string here came from `.context/sessions.ndjson`, which a
+// repository can ship, so each goes through escapeAttr — the file is opened in a browser.
+function sessionsPanelHtml(report) {
+  const render = require('../session/render');
+  const e = escapeAttr;
+  const asOf = report.pricing.asOf;
+  const head = '<div class="label">Sessions — billed tokens per request category, not context size</div>';
+  const coverage = [
+    '<div class="panel">',
+    '<div class="label">Capture coverage — what each agent can report (declared, not inferred)</div>',
+    '<ul style="margin:8px 0 0 16px;padding:0;font-size:12px;line-height:1.7">',
+    report.coverage.map((c) => `<li>${e(c.text)}${c.sessions ? ` <span style="color:#8ea0d9">[${c.sessions} here]</span>` : ''}</li>`).join(''),
+    '</ul>',
+    '</div>',
+  ].join('');
+
+  if (report.sessions.length === 0) {
+    return '<div class="panel">' + head +
+      '<div class="value" style="font-size:13px;margin-top:8px">No sessions recorded yet — capture them with: sigmap hooks install claude</div></div>' +
+      coverage;
+  }
+
+  const rows = report.sessions.map((s) =>
+    `<tr><td>${e(render.when(s.startedAt))}</td><td>${e(s.agent || 'unknown')}</td><td>${e(s.branch || 'unknown')}</td>` +
+    `<td style="text-align:right">${e(render.duration(s.durationMs))}</td><td>${e(s.provenance)}</td>` +
+    `<td>${e(render.formatUsage(s.usage))}</td><td>${e(render.costText(s.cost, asOf))}</td></tr>`
+  ).join('');
+
+  const classLine = (label, t) => {
+    const usage = t.usage ? render.formatUsage(t.usage, t.unreported) : 'unavailable';
+    return `<div style="margin:4px 0;font-size:12px">[${e(label)}] ${t.sessions} session${t.sessions === 1 ? '' : 's'}: ` +
+      `${e(usage)} · cost ${e(render.classCostText(t, asOf))}</div>`;
+  };
+  const totals = Object.entries(report.totals).map(([label, t]) => classLine(label, t)).join('');
+  const branches = report.branches.map((b) =>
+    `<div style="margin:8px 0 2px 0;font-size:12px;color:#8ea0d9">${e(b.branch)}</div>` +
+    Object.entries(b.classes).map(([label, t]) => classLine(label, t)).join('')
+  ).join('');
+  const savings = report.savings
+    ? `<div style="margin-top:8px;font-size:12px">SigMap savings [${e(report.savings.provenance)}]: ${report.savings.runs} logged run${report.savings.runs === 1 ? '' : 's'} ` +
+      `since ${e(render.when(report.savings.since))} saved ~${Number(report.savings.savedTokens).toLocaleString('en-US')} tokens — not attributed to a session</div>`
+    : '';
+
+  return [
+    '<div class="panel">',
+    head,
+    '<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:12px">',
+    '<thead><tr style="color:#8ea0d9;text-align:left"><th>When</th><th>Agent</th><th>Branch</th>' +
+      '<th style="text-align:right">Duration</th><th>Provenance</th><th>Tokens</th><th>Cost</th></tr></thead>',
+    `<tbody>${rows}</tbody>`,
+    '</table>',
+    '<div class="label" style="margin-top:12px">Totals — one line per provenance class; classes are never summed together</div>',
+    totals,
+    '<div class="label" style="margin-top:12px">By branch</div>',
+    branches,
+    savings,
+    `<div style="margin-top:10px;font-size:11px;color:#8ea0d9">pricing ${e(report.pricing.label)}` +
+      `${report.pricing.stale ? ` — ${report.pricing.days} days old` : ''}. ${e(report.notes.cost)}</div>`,
+    '</div>',
+    coverage,
+  ].join('');
+}
+
 function buildDashboardData(cwd, health) {
   // #773: one read path — usage.ndjson alone is empty whenever tracking is off.
   const entries = require('../tracking/usage-source').readRuns(cwd);
@@ -430,6 +493,17 @@ function buildDashboardData(cwd, health) {
 
   const tokenReduction = readTokenReduction(cwd);
 
+  // The sessions panel must never take the dashboard down: a store that cannot be read
+  // is reported as an empty one, which the panel words as "no sessions recorded".
+  let sessions;
+  try {
+    let config = {};
+    try { config = require('../config/loader').loadConfig(cwd) || {}; } catch (_) { /* shipped profile */ }
+    sessions = require('../session/report').buildReport(cwd, { config, limit: 20 });
+  } catch (_) {
+    sessions = null;
+  }
+
   return {
     summary,
     tokenReductionTrend,
@@ -442,6 +516,8 @@ function buildDashboardData(cwd, health) {
       coverageSvg: barChartSvg(coverage.perLanguage),
       tokenSavingsPanel: tokenReductionPanelHtml(tokenReduction),
     },
+    sessions,
+    sessionsPanel: sessions ? sessionsPanelHtml(sessions) : '',
   };
 }
 
@@ -486,6 +562,7 @@ function generateDashboardHtml(cwd, health) {
     '<div class="sub">Self-contained report. No external scripts, styles, or network calls.</div>',
     `<div class="grid">${cardHtml}</div>`,
     data.charts.tokenSavingsPanel,
+    data.sessionsPanel,
     `<div class="panel">${data.charts.tokenReductionSvg}</div>`,
     `<div class="panel">${data.charts.hitAt5Svg}</div>`,
     `<div class="panel">${data.charts.coverageSvg}</div>`,

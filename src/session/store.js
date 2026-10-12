@@ -112,7 +112,7 @@ function sessionConfig(config) {
   const days = Number.isFinite(ret.days) && ret.days > 0 ? ret.days : DEFAULT_RETENTION_DAYS;
   const compact = ret.compact === 'off' ? 'off' : 'monthly';
   const logQueries = LOG_QUERY_MODES.includes(raw.logQueries) ? raw.logQueries : 'hashed';
-  return { retention: { days, compact }, logQueries, injectSummary: raw.injectSummary === true };
+  return { retention: { days, compact }, logQueries, injectSummary: raw.injectSummary === true, mcpCapture: raw.mcpCapture === true };
 }
 
 /** The agent-prefixed id for a raw agent session id (`cc-<uuid>`). */

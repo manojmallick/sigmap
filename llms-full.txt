@@ -11,18 +11,18 @@ ranking keeps the relevant context in scope (cutting tokens ~97% as a side
 effect), with no LLM calls, embeddings, or vector database. Works with Claude,
 Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 
-# Version: 8.75.1 | Benchmark: sigmap-v8.75-main (2026-10-12)
+# Version: 8.76.0 | Benchmark: sigmap-v8.76-main (2026-10-12)
 # Source: auto-generated from package.json, version.json, benchmarks/latest.json, src/mcp/tools.js, src/config/defaults.js
 # Regenerate: npm run generate:llms   |   Validate: npm run validate:llms
 
 ---
 
-## Core metrics (benchmark: sigmap-v8.75-main, 2026-10-12)
+## Core metrics (benchmark: sigmap-v8.76-main, 2026-10-12)
 
 | Metric | Without SigMap | With SigMap |
 |--------|----------------|-------------|
 | Retrieval hit@5 (retrieval corpus) | — | 80.4% |
-| Honest corpus hit@5 (125 tasks) | 40.8% (single-shot grep) | 92.8% (2.27× lift) |
+| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | 92.8% (2.32× lift) |
 | Token reduction | — | 95.7% average |
 | Task-success proxy (modeled) | — | 61.9% |
 | Prompts per task | 2.84 | 1.58 (44.4% fewer) |
@@ -68,6 +68,7 @@ sigmap --report                          Token reduction stats to stdout (exits 
 sigmap --report --json                   Token report as JSON (for CI; exits 1 if over budget)
 sigmap --report --history                Print usage log summary from .context/usage.ndjson
 sigmap --report --history --chart        Include inline SVG charts + Unicode sparklines
+sigmap --report --sessions               Captured agent sessions: provenance-labelled figures, per-class totals, branch rollup, coverage (--json, --agent <name>, --limit <n>)
 sigmap --dashboard [--out <path>]        Write .context/dashboard.html (HTML health dashboard)
 sigmap --suggest-tool "<task>"           Recommend model tier for a task description
 sigmap --suggest-tool "<task>" --json    Machine-readable tier recommendation
@@ -403,7 +404,7 @@ cacheTtl = 5m
 tracking = false
 sessionBudgetTokens = null
 contextTtlDays = null
-session = {"retention":{"days":90,"compact":"monthly"},"logQueries":"hashed","injectSummary":false}
+session = {"retention":{"days":90,"compact":"monthly"},"logQueries":"hashed","injectSummary":false,"mcpCapture":false}
 mcp = {"autoRegister":true}
 depMap = true
 versionPins = true
