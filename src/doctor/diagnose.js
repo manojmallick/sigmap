@@ -373,6 +373,29 @@ function diagnose(cwd, opts = {}) {
     }
   } catch (_) {}
 
+  // 11. Local state stays out of git (#947). `.context/` holds derived indexes, run telemetry
+  // and session records. SigMap now writes `.context/.gitignore` itself, but a repo that
+  // committed the directory under an earlier version keeps tracking it — ignore rules never
+  // untrack — so the check looks at what git does, not at what SigMap wrote. Silent when there
+  // is no `.context/` or no git: nothing to commit, nothing to say.
+  try {
+    const { tryGit } = require('../util/git');
+    if (fs.statSync(path.join(cwd, '.context')).isDirectory()
+        && tryGit(['rev-parse', '--is-inside-work-tree'], { cwd }) === 'true') {
+      const tracked = tryGit(['ls-files', '-z', '--', '.context'], { cwd }).split('\0').filter(Boolean);
+      if (tracked.length > 0) {
+        add('context-git', 'Local state in git', 'warn',
+          `${tracked.length} file(s) under .context/ are tracked by git (indexes, telemetry, session records)`,
+          'run: git rm -r --cached .context   (the files stay on disk and are ignored from then on)');
+      } else if (tryGit(['check-ignore', '--', '.context/sig-index.json'], { cwd })) {
+        add('context-git', 'Local state in git', 'ok', '.context/ is ignored by git');
+      } else {
+        add('context-git', 'Local state in git', 'warn', '.context/ is not ignored — `git add .` would commit it',
+          'run: sigmap   (writes .context/.gitignore), or add ".context/" to your .gitignore');
+      }
+    }
+  } catch (_) {}
+
   const errors = checks.filter((c) => c.status === 'fail').length;
   const warnings = checks.filter((c) => c.status === 'warn').length;
   return { checks, ok: errors === 0, errors, warnings };

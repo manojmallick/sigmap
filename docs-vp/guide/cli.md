@@ -1614,12 +1614,25 @@ sigmap doctor
 ✓ Model profile — as of 2026-10-04 (shipped profile) · no roster declared — advice names the shipped defaults
 ✓ MCP wiring — registered in .claude/settings.json
 ✓ Git hook — .git/hooks/post-commit regenerates context after each commit (runs ~/node_modules/sigmap/gen-context.js)
+✓ Local state in git — .context/ is ignored by git
 
 0 error(s), 1 warning(s).
 ```
 
 ::: tip The Live index row
-When the [live overlay](#watch) holds changes, or a watcher has recorded how long a save takes to reach queries, `doctor` adds an eleventh row, `Live index`: `ok` while a watcher is running, and a warning — with the command that fixes it — when files are being served from the overlay but nothing will regenerate the written context files (`sigmap`, or `sigmap daemon start`). A repository that has never used the overlay sees no new row. The `Index freshness` row no longer counts a file the overlay already describes as changed; the `Live index` row is where the written files lagging behind is reported.
+When the [live overlay](#watch) holds changes, or a watcher has recorded how long a save takes to reach queries, `doctor` adds a `Live index` row: `ok` while a watcher is running, and a warning — with the command that fixes it — when files are being served from the overlay but nothing will regenerate the written context files (`sigmap`, or `sigmap daemon start`). A repository that has never used the overlay sees no new row. The `Index freshness` row no longer counts a file the overlay already describes as changed; the `Live index` row is where the written files lagging behind is reported.
+:::
+
+::: tip The local-state check (#947)
+`.context/` holds derived indexes, run telemetry and session records, none of which belongs in a commit. SigMap [keeps the directory out of git](#init) itself, and the `Local state in git` check looks at what git actually does:
+
+| Finding | Detail line |
+|---|---|
+| files under `.context/` are tracked (committed under an earlier version) | `2 file(s) under .context/ are tracked by git …` — fix: `git rm -r --cached .context` |
+| `.context/` is not ignored (an unwritable directory, say) | `.context/ is not ignored — git add . would commit it` |
+| ignored and untracked | `.context/ is ignored by git` |
+
+The row is absent when there is no `.context/` or the directory is not in a git repository. It cannot tell intent: files a repository tracks on purpose are listed too, so a team that commits part of the directory (through an edited `.context/.gitignore`) will see the warning.
 :::
 
 ::: tip The git hook check
@@ -2101,7 +2114,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.8% vs 39.2%   (2.37× lift)
+ hit@5         92.8% vs 40.8%   (2.27× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2128,7 +2141,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.37× vs a grep agent (published)
+95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.27× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2138,7 +2151,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.37× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.27× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2418,7 +2431,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.75.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.75.1, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -2820,7 +2833,7 @@ sigmap --dashboard --json
 | `--json` | Emit `{ ok, file, summary }` — `file` is the path actually written |
 
 ::: warning It used to write outside `.context/` (v8.59.0)
-Until v8.59.0 this wrote `benchmarks/reports/dashboard.html` — a directory SigMap does not own. In a consumer repo that path either does not exist, so SigMap created it, or it means something else entirely; either way the file landed outside the `.context/` line [`--init`](#init) adds to `.gitignore` ([#782](https://github.com/manojmallick/sigmap/issues/782)).
+Until v8.59.0 this wrote `benchmarks/reports/dashboard.html` — a directory SigMap does not own. In a consumer repo that path either does not exist, so SigMap created it, or it means something else entirely; either way the file landed outside `.context/`, the directory SigMap [keeps out of git](#init) ([#782](https://github.com/manojmallick/sigmap/issues/782)).
 
 **Migration:** if you referenced `benchmarks/reports/dashboard.html`, use `.context/dashboard.html` or pass `--out`. This was the only SigMap command that wrote outside `.context/`; every other `benchmarks/` reference is an optional *read* with a graceful fallback.
 :::
@@ -3019,6 +3032,14 @@ Scaffold a starter `gen-context.config.json` and `.contextignore` in the current
 ```bash
 sigmap --init
 ```
+
+::: tip `.context/` keeps itself out of git
+`--init` writes those two files (and a creation-workflow block in `CLAUDE.md`) — it does not touch your `.gitignore`. The `.context/` directory (signature index, words cache, run telemetry, session records) carries its own `.gitignore` containing `*`, which SigMap writes the first time any command uses the directory. `git add .` therefore stages nothing there, with or without `--init`, and your own `.gitignore` is never edited.
+
+- An existing `.context/.gitignore` is never overwritten — edit it to track part of the directory (`sigmap doctor` will still list files you track on purpose; it cannot tell intent).
+- Ignore rules do not untrack: a repo that committed `.context/` under an earlier version keeps tracking it until `git rm -r --cached .context`. [`sigmap doctor`](#doctor) says so.
+- Before this was fixed ([#947](https://github.com/manojmallick/sigmap/issues/947)) these pages said `--init` did it. It did not.
+:::
 
 ---
 
