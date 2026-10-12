@@ -168,7 +168,10 @@ test('H1: compare writes nothing outside cwd', () => {
 
   const before = listTree(dir);
   run(cli, dir, ['compare']);
-  assert.deepStrictEqual(listTree(dir), before, 'compare must not create files');
+  // .context/ now ignores itself (#947): the one file any command may add there is its own
+  // .gitignore, written once. Everything else stays byte-for-byte what it was.
+  assert.deepStrictEqual(listTree(dir).filter((p) => p !== '.context/.gitignore'), before,
+    'compare must not create files');
 
   fs.rmSync(dir, { recursive: true });
 });

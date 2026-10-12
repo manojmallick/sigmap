@@ -1622,6 +1622,18 @@ sigmap doctor
 When the [live overlay](#watch) holds changes, or a watcher has recorded how long a save takes to reach queries, `doctor` adds an eleventh row, `Live index`: `ok` while a watcher is running, and a warning — with the command that fixes it — when files are being served from the overlay but nothing will regenerate the written context files (`sigmap`, or `sigmap daemon start`). A repository that has never used the overlay sees no new row. The `Index freshness` row no longer counts a file the overlay already describes as changed; the `Live index` row is where the written files lagging behind is reported.
 :::
 
+::: tip The local-state check (#947)
+`.context/` holds derived indexes, run telemetry and session records, none of which belongs in a commit. SigMap [keeps the directory out of git](#init) itself, and the `Local state in git` check looks at what git actually does:
+
+| Finding | Detail line |
+|---|---|
+| files under `.context/` are tracked (committed under an earlier version) | `2 file(s) under .context/ are tracked by git …` — fix: `git rm -r --cached .context` |
+| `.context/` is not ignored (an unwritable directory, say) | `.context/ is not ignored — git add . would commit it` |
+| ignored and untracked | `.context/ is ignored by git` |
+
+The row is absent when there is no `.context/` or the directory is not in a git repository.
+:::
+
 ::: tip The git hook check
 [`--setup`](#setup) installs a post-commit hook, and until now nothing said whether it was still there. The `Git hook` check reads `.git/hooks/post-commit` and warns, with the command that fixes it, when:
 
@@ -2820,7 +2832,7 @@ sigmap --dashboard --json
 | `--json` | Emit `{ ok, file, summary }` — `file` is the path actually written |
 
 ::: warning It used to write outside `.context/` (v8.59.0)
-Until v8.59.0 this wrote `benchmarks/reports/dashboard.html` — a directory SigMap does not own. In a consumer repo that path either does not exist, so SigMap created it, or it means something else entirely; either way the file landed outside the `.context/` line [`--init`](#init) adds to `.gitignore` ([#782](https://github.com/manojmallick/sigmap/issues/782)).
+Until v8.59.0 this wrote `benchmarks/reports/dashboard.html` — a directory SigMap does not own. In a consumer repo that path either does not exist, so SigMap created it, or it means something else entirely; either way the file landed outside `.context/`, the directory SigMap [keeps out of git](#init) ([#782](https://github.com/manojmallick/sigmap/issues/782)).
 
 **Migration:** if you referenced `benchmarks/reports/dashboard.html`, use `.context/dashboard.html` or pass `--out`. This was the only SigMap command that wrote outside `.context/`; every other `benchmarks/` reference is an optional *read* with a graceful fallback.
 :::
@@ -3019,6 +3031,14 @@ Scaffold a starter `gen-context.config.json` and `.contextignore` in the current
 ```bash
 sigmap --init
 ```
+
+::: tip `.context/` keeps itself out of git
+`--init` writes those two files and nothing else — it does not touch your `.gitignore`. The `.context/` directory (signature index, words cache, run telemetry, session records) carries its own `.gitignore` containing `*`, which SigMap writes the first time any command uses the directory. `git add .` therefore stages nothing there, with or without `--init`, and your own `.gitignore` is never edited.
+
+- An existing `.context/.gitignore` is never overwritten — edit it to track part of the directory.
+- Ignore rules do not untrack: a repo that committed `.context/` under an earlier version keeps tracking it until `git rm -r --cached .context`. [`sigmap doctor`](#doctor) says so.
+- Before this was fixed ([#947](https://github.com/manojmallick/sigmap/issues/947)) these pages said `--init` did it. It did not.
+:::
 
 ---
 

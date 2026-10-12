@@ -7822,6 +7822,29 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       }
     } catch (_) {}
 
+    // 11. Local state stays out of git (#947). `.context/` holds derived indexes, run telemetry
+    // and session records. SigMap now writes `.context/.gitignore` itself, but a repo that
+    // committed the directory under an earlier version keeps tracking it — ignore rules never
+    // untrack — so the check looks at what git does, not at what SigMap wrote. Silent when there
+    // is no `.context/` or no git: nothing to commit, nothing to say.
+    try {
+      const { tryGit } = __require('./src/util/git');
+      if (fs.statSync(path.join(cwd, '.context')).isDirectory()
+          && tryGit(['rev-parse', '--is-inside-work-tree'], { cwd }) === 'true') {
+        const tracked = tryGit(['ls-files', '-z', '--', '.context'], { cwd }).split('\0').filter(Boolean);
+        if (tracked.length > 0) {
+          add('context-git', 'Local state in git', 'warn',
+            `${tracked.length} file(s) under .context/ are tracked by git (indexes, telemetry, session records)`,
+            'run: git rm -r --cached .context   (the files stay on disk and are ignored from then on)');
+        } else if (tryGit(['check-ignore', '--', '.context/sig-index.json'], { cwd })) {
+          add('context-git', 'Local state in git', 'ok', '.context/ is ignored by git');
+        } else {
+          add('context-git', 'Local state in git', 'warn', '.context/ is not ignored — `git add .` would commit it',
+            'run: sigmap   (writes .context/.gitignore), or add ".context/" to your .gitignore');
+        }
+      }
+    } catch (_) {}
+
     const errors = checks.filter((c) => c.status === 'fail').length;
     const warnings = checks.filter((c) => c.status === 'warn').length;
     return { checks, ok: errors === 0, errors, warnings };
@@ -23917,6 +23940,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
   const { collectEnvReads } = __require('./src/map/env-schema');
   const { collectMigrations } = __require('./src/map/migrations');
   const { collectTargets } = __require('./src/map/build-ci');
+  const { isSelfIgnore } = __require('./src/util/context-dir');
 
   // Unified knowledge map (#626, increment 1 of #543). SigMap already computes
   // the pieces — import graph, call-file graph, signature index, installed
@@ -24147,8 +24171,9 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     let ctxMtime = 0;
     try {
       for (const f of fs.readdirSync(path.join(cwd, '.context'))) {
-        // live.json is watcher telemetry and *.tmp is a write in flight: neither changes the index.
-        if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp')) continue;
+        // live.json is watcher telemetry, *.tmp is a write in flight and .gitignore is the
+        // directory's own ignore file (#947): none of them changes the index.
+        if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp') || isSelfIgnore(f)) continue;
         const st = fs.statSync(path.join(cwd, '.context', f));
         if (st.mtimeMs > ctxMtime) ctxMtime = st.mtimeMs;
       }
@@ -25926,6 +25951,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const readline = require('readline');
   const { TOOLS } = __require('./src/mcp/tools');
+  const { ensureSelfIgnore } = __require('./src/util/context-dir');
   const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap } = __require('./src/mcp/handlers');
 
   const SERVER_INFO = {
@@ -26050,6 +26076,10 @@ __factories["./src/mcp/server"] = function(module, exports) {
         respondError(id, -32603, `Tool error: ${err.message}`);
         return;
       }
+
+      // A long-lived server has no exit to hook, and a tool may just have created
+      // `.context/` (overlay, checkpoint, caches): keep it out of git (#947).
+      ensureSelfIgnore(cwd);
 
       respond(id, {
         content: [{ type: 'text', text: String(text) }],
@@ -27745,6 +27775,7 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { tokenize, EXPANSIONS, stripAnchor } = __require('./src/retrieval/bm25');
+  const { isSelfIgnore } = __require('./src/util/context-dir');
 
   /**
    * Repo-mined query expansion (B2, #649).
@@ -27859,8 +27890,9 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
     let ctxMtime = 0;
     try {
       for (const f of fs.readdirSync(path.join(cwd, '.context'))) {
-        // live.json is watcher telemetry and *.tmp is a write in flight: neither changes the index.
-        if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp')) continue;
+        // live.json is watcher telemetry, *.tmp is a write in flight and .gitignore is the
+        // directory's own ignore file (#947): none of them changes the index.
+        if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp') || isSelfIgnore(f)) continue;
         const st = fs.statSync(path.join(cwd, '.context', f));
         if (st.mtimeMs > ctxMtime) ctxMtime = st.mtimeMs;
       }
@@ -34282,6 +34314,91 @@ __factories["./src/tracking/usage-source"] = function(module, exports) {
   
 };
 
+// ── ./src/util/context-dir ──
+__factories["./src/util/context-dir"] = function(module, exports) {
+  
+  /**
+   * `.context/` — SigMap's own state directory — keeps itself out of git.
+   *
+   * It holds derived indexes (`sig-index.json`, `body-words.json`), run telemetry
+   * (`gain.ndjson`, `usage.json`) and session records (`sessions.ndjson`, which
+   * carry the questions asked). None of it is source, and the user's own
+   * `.gitignore` is not ours to edit.
+   *
+   * Several published pages said `sigmap --init` gitignores the directory. Nothing
+   * did: `--init` writes a config and a `.contextignore`, and every other command
+   * wrote into `.context/` and left `git add .` to commit it (#947). The words
+   * cache turning on by default in v8.75.0 raised the stakes.
+   *
+   * The fix is the one `.pytest_cache`, `.ruff_cache` and `.mypy_cache` use: the
+   * directory carries its own `.gitignore` holding `*`. That works on the first
+   * run, with or without `--init`, in a repo that has no root `.gitignore`, and
+   * the pattern ignores the file that holds it, so no stray untracked file
+   * replaces the one it hides.
+   *
+   * Deliberately NOT done:
+   *   - creating `.context/` — a command that wrote nothing there gets nothing;
+   *   - overwriting an existing `.context/.gitignore` — a user who wants some of
+   *     the directory tracked edits it and is left alone;
+   *   - untracking — ignore rules never touch files git already tracks, so a repo
+   *     that committed `.context/` under an earlier version keeps tracking it
+   *     until `git rm -r --cached .context` (`sigmap doctor` says so).
+   *
+   * Zero dependencies, synchronous, never throws.
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+
+  const CONTEXT_DIR = '.context';
+  const SELF_IGNORE = '.gitignore';
+
+  const BODY = [
+    '# SigMap local state: derived indexes, caches, run telemetry and session records.',
+    '# None of it is source, so nothing in this directory is committed.',
+    '# SigMap writes this file only when it is absent; edit it to track part of the directory.',
+    '*',
+    '',
+  ].join('\n');
+
+  /**
+   * Make `<cwd>/.context/` ignore itself.
+   *
+   * @param {string} cwd project root
+   * @returns {'created'|'present'|'absent'|'unwritable'}
+   *   `absent` when there is no `.context/` directory (nothing is created),
+   *   `present` when a `.context/.gitignore` already exists (left byte-for-byte),
+   *   `unwritable` when the directory cannot take the file (read-only checkout).
+   */
+  function ensureSelfIgnore(cwd) {
+    const dir = path.join(cwd, CONTEXT_DIR);
+    try {
+      if (!fs.statSync(dir).isDirectory()) return 'absent';
+    } catch (_) { return 'absent'; }
+    const file = path.join(dir, SELF_IGNORE);
+    try {
+      if (fs.existsSync(file)) return 'present';
+      // `wx`: fail rather than overwrite if another process won the race.
+      fs.writeFileSync(file, BODY, { flag: 'wx' });
+      return 'created';
+    } catch (e) {
+      return e && e.code === 'EEXIST' ? 'present' : 'unwritable';
+    }
+  }
+
+  /**
+   * Whether a directory-entry name under `.context/` is the self-ignore file.
+   * The scans that key a cache on the newest mtime in `.context/` skip it, so
+   * creating it never invalidates a cache.
+   */
+  function isSelfIgnore(name) {
+    return name === SELF_IGNORE;
+  }
+
+  module.exports = { ensureSelfIgnore, isSelfIgnore, CONTEXT_DIR, SELF_IGNORE };
+  
+};
+
 // ── ./src/util/file-class ──
 __factories["./src/util/file-class"] = function(module, exports) {
   
@@ -40360,6 +40477,9 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     } catch (_) {}
   }
 
+  // Each run may be the one that created `.context/`; --watch and the daemon never reach an exit (#947).
+  try { requireSourceOrBundled('./src/util/context-dir').ensureSelfIgnore(cwd); } catch (_) {}
+
   return result;
 }
 
@@ -40929,6 +41049,8 @@ function main() {
         } catch (_) { /* no config, or not JSON: defaults */ }
         const { handleHook } = requireSourceOrBundled('./src/session/capture');
         stdout = handleHook(__event, payload, root, { config: hookConfig }).stdout;
+        // The session store lives in .context/ and can be the first thing written there (#947).
+        requireSourceOrBundled('./src/util/context-dir').ensureSelfIgnore(root);
       } catch (_) { /* never fail the host session */ }
       if (stdout) process.stdout.write(stdout + '\n', () => process.exit(0));
       else process.exit(0);
@@ -40959,6 +41081,16 @@ function main() {
   // usage at the repo root, even when runGenerate is called per-package (monorepo).
   global.__sigmapRootCwd = cwd;
   const scriptPath = process.argv[1] || path.join(invokedFrom, 'gen-context.js');
+
+  // `.context/` keeps itself out of git (#947): now, in case it already exists, and again at
+  // exit, by when a command that created it has finished. Every command path ends in
+  // process.exit(), which runs 'exit' listeners; the MCP server and runGenerate (the --watch
+  // and daemon loops, which a SIGINT ends without one) call it themselves.
+  try {
+    const { ensureSelfIgnore } = requireSourceOrBundled('./src/util/context-dir');
+    ensureSelfIgnore(cwd);
+    process.on('exit', () => { try { ensureSelfIgnore(cwd); } catch (_) {} });
+  } catch (_) {}
 
   if (cwdFlag) {
     if (!fs.existsSync(cwd)) {
@@ -44273,8 +44405,8 @@ function main() {
       const out = generateDashboardHtml(cwd, health);
       // #782: this wrote into benchmarks/reports/, a directory SigMap does not
       // own and which in a consumer repo either does not exist or means
-      // something else — leaving an untracked file outside the `.context/`
-      // line `--init` gitignores. Every other artifact lives under `.context/`.
+      // something else — leaving an untracked file outside `.context/`, the
+      // directory SigMap keeps out of git (#947). Every other artifact lives under it.
       const _outIdx = args.indexOf('--out');
       const _outArg = _outIdx !== -1 ? (args[_outIdx + 1] || '').trim() : '';
       const outPath = _outArg && !_outArg.startsWith('--')

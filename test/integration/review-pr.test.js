@@ -267,6 +267,10 @@ function withGeneratedRepo(fn) {
     const gen = spawnSync('node', [SCRIPT], { cwd: dir, encoding: 'utf8' });
     assert.strictEqual(gen.status, 0, gen.stderr);
     g(['add', '-A']);
+    // `.context/` ignores itself now (#947), so `add -A` no longer stages it — the exact trap this
+    // repro was written for. A repo that committed it under an earlier version still carries it
+    // in every diff, so stage it by force and keep proving review-pr leaves it out.
+    g(['add', '-f', '--', '.context']);
     fn(dir, g);
   });
 }

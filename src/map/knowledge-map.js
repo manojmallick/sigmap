@@ -11,6 +11,7 @@ const { collectRoutes } = require('./route-table');
 const { collectEnvReads } = require('./env-schema');
 const { collectMigrations } = require('./migrations');
 const { collectTargets } = require('./build-ci');
+const { isSelfIgnore } = require('../util/context-dir');
 
 // Unified knowledge map (#626, increment 1 of #543). SigMap already computes
 // the pieces — import graph, call-file graph, signature index, installed
@@ -241,8 +242,9 @@ function loadOrBuild(cwd) {
   let ctxMtime = 0;
   try {
     for (const f of fs.readdirSync(path.join(cwd, '.context'))) {
-      // live.json is watcher telemetry and *.tmp is a write in flight: neither changes the index.
-      if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp')) continue;
+      // live.json is watcher telemetry, *.tmp is a write in flight and .gitignore is the
+      // directory's own ignore file (#947): none of them changes the index.
+      if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp') || isSelfIgnore(f)) continue;
       const st = fs.statSync(path.join(cwd, '.context', f));
       if (st.mtimeMs > ctxMtime) ctxMtime = st.mtimeMs;
     }
