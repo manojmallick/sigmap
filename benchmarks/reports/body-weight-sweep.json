@@ -1,0 +1,1526 @@
+{
+  "benchmark": "body-weight-sweep",
+  "method": "run-body-weight-sweep.mjs: each task ranked with no body words (plain), with body words as they ship (shipped) and with each weighting of a field of their own; a variant is judged against plain by the guide's default rule applied to the whole table and to each half of xrepo and mined; chosen-on-one-half readings are cross-validation only (the honest corpus is scored without an import graph)",
+  "rule": {
+    "xrepoMinNet": 5,
+    "noNegativeCorpus": true,
+    "noNegativeHalf": true
+  },
+  "plain": {
+    "xrepo": {
+      "hits": 42,
+      "tasks": 83
+    },
+    "hard": {
+      "hits": 65,
+      "tasks": 90
+    },
+    "mined": {
+      "hits": 37,
+      "tasks": 60
+    },
+    "easy": {
+      "hits": 18,
+      "tasks": 20
+    },
+    "jvm": {
+      "hits": 21,
+      "tasks": 61
+    },
+    "honest": {
+      "hits": 112,
+      "tasks": 125
+    }
+  },
+  "folds": {
+    "xrepo:alamofire": 0,
+    "xrepo:astro": 1,
+    "xrepo:django": 0,
+    "xrepo:excalidraw": 1,
+    "xrepo:express": 0,
+    "xrepo:flask": 1,
+    "xrepo:gin": 0,
+    "xrepo:godot-demo-projects": 1,
+    "xrepo:laravel": 0,
+    "xrepo:okhttp": 1,
+    "xrepo:phoenix": 0,
+    "xrepo:plenary": 1,
+    "xrepo:riverpod": 0,
+    "xrepo:serilog": 1,
+    "xrepo:tokio": 0,
+    "xrepo:vue-core": 1,
+    "mined:m001": 0,
+    "mined:m002": 1,
+    "mined:m003": 0,
+    "mined:m004": 1,
+    "mined:m005": 0,
+    "mined:m006": 1,
+    "mined:m007": 0,
+    "mined:m008": 1,
+    "mined:m009": 0,
+    "mined:m010": 1,
+    "mined:m011": 0,
+    "mined:m012": 1,
+    "mined:m013": 0,
+    "mined:m014": 1,
+    "mined:m015": 0,
+    "mined:m016": 1,
+    "mined:m017": 0,
+    "mined:m018": 1,
+    "mined:m019": 0,
+    "mined:m020": 1,
+    "mined:m021": 0,
+    "mined:m022": 1,
+    "mined:m023": 0,
+    "mined:m024": 1,
+    "mined:m025": 0,
+    "mined:m026": 1,
+    "mined:m027": 0,
+    "mined:m028": 1,
+    "mined:m029": 0,
+    "mined:m030": 1,
+    "mined:m031": 0,
+    "mined:m032": 1,
+    "mined:m033": 0,
+    "mined:m034": 1,
+    "mined:m035": 0,
+    "mined:m036": 1,
+    "mined:m037": 0,
+    "mined:m038": 1,
+    "mined:m039": 0,
+    "mined:m040": 1,
+    "mined:m041": 0,
+    "mined:m042": 1,
+    "mined:m043": 0,
+    "mined:m044": 1,
+    "mined:m045": 0,
+    "mined:m046": 1,
+    "mined:m047": 0,
+    "mined:m048": 1,
+    "mined:m049": 0,
+    "mined:m050": 1,
+    "mined:m051": 0,
+    "mined:m052": 1,
+    "mined:m053": 0,
+    "mined:m054": 1,
+    "mined:m055": 0,
+    "mined:m056": 1,
+    "mined:m057": 0,
+    "mined:m058": 1,
+    "mined:m059": 0,
+    "mined:m060": 1
+  },
+  "shipped": {
+    "corpora": {
+      "xrepo": {
+        "hits": 57,
+        "won": 16,
+        "lost": 1,
+        "flipped": {
+          "won": [
+            "okhttp/x008",
+            "alamofire/x011",
+            "alamofire/x015",
+            "tokio/x017",
+            "django/x031",
+            "flask/x032",
+            "express/x038",
+            "vue-core/x041",
+            "vue-core/x044",
+            "laravel/x049",
+            "serilog/x054",
+            "riverpod/x057",
+            "riverpod/x060",
+            "astro/x066",
+            "astro/x067",
+            "astro/x070"
+          ],
+          "lost": [
+            "express/x039"
+          ]
+        }
+      },
+      "hard": {
+        "hits": 65,
+        "won": 4,
+        "lost": 4,
+        "flipped": {
+          "won": [
+            "self/h023",
+            "self/h043",
+            "self/h067",
+            "self/h081"
+          ],
+          "lost": [
+            "self/h031",
+            "self/h045",
+            "self/h064",
+            "self/h077"
+          ]
+        }
+      },
+      "mined": {
+        "hits": 40,
+        "won": 3,
+        "lost": 0,
+        "flipped": {
+          "won": [
+            "self/m009",
+            "self/m024",
+            "self/m038"
+          ],
+          "lost": []
+        }
+      },
+      "easy": {
+        "hits": 18,
+        "won": 0,
+        "lost": 0,
+        "flipped": {
+          "won": [],
+          "lost": []
+        }
+      },
+      "jvm": {
+        "hits": 22,
+        "won": 1,
+        "lost": 0,
+        "flipped": {
+          "won": [
+            "spring-petclinic/m032"
+          ],
+          "lost": []
+        }
+      },
+      "honest": {
+        "hits": 116,
+        "won": 4,
+        "lost": 0,
+        "flipped": {
+          "won": [
+            "axios/axios-t002",
+            "express/express-h001",
+            "riverpod/riverpod-t005",
+            "svelte/svelte-t002"
+          ],
+          "lost": []
+        }
+      }
+    },
+    "meets": true,
+    "failures": [],
+    "halves": {
+      "xrepo": [
+        7,
+        8
+      ],
+      "mined": [
+        1,
+        2
+      ]
+    }
+  },
+  "grid": {
+    "w0.2-count": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.2,
+        "bodyLength": "count"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 51,
+          "won": 9,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "alamofire/x015",
+              "django/x031",
+              "express/x038",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 2,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h064",
+              "self/h077"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 38,
+          "won": 2,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": [
+              "self/m003"
+            ]
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 22,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 115,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "express/express-h001",
+              "riverpod/riverpod-t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": false,
+      "failures": [
+        "mined half 0 is net-negative (-1)"
+      ],
+      "halves": {
+        "xrepo": [
+          6,
+          3
+        ],
+        "mined": [
+          -1,
+          2
+        ]
+      }
+    },
+    "w0.2-ignore": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.2,
+        "bodyLength": "ignore"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 53,
+          "won": 11,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "alamofire/x015",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 2,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 38,
+          "won": 2,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": [
+              "self/m003"
+            ]
+          }
+        },
+        "easy": {
+          "hits": 19,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/t005"
+            ],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 22,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 115,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "express/express-h001",
+              "retrieval/t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": false,
+      "failures": [
+        "mined half 0 is net-negative (-1)"
+      ],
+      "halves": {
+        "xrepo": [
+          6,
+          5
+        ],
+        "mined": [
+          -1,
+          2
+        ]
+      }
+    },
+    "w0.3-count": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.3,
+        "bodyLength": "count"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 54,
+          "won": 12,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "alamofire/x011",
+              "alamofire/x015",
+              "tokio/x017",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "astro/x066",
+              "astro/x067"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 66,
+          "won": 3,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 38,
+          "won": 2,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": [
+              "self/m003"
+            ]
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 22,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 115,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "axios/axios-t002",
+              "express/express-h001",
+              "riverpod/riverpod-t005"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": false,
+      "failures": [
+        "mined half 0 is net-negative (-1)"
+      ],
+      "halves": {
+        "xrepo": [
+          7,
+          5
+        ],
+        "mined": [
+          -1,
+          2
+        ]
+      }
+    },
+    "w0.3-ignore": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.3,
+        "bodyLength": "ignore"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 57,
+          "won": 15,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "riverpod/x059",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 2,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 40,
+          "won": 4,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m018",
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": [
+              "self/m003"
+            ]
+          }
+        },
+        "easy": {
+          "hits": 19,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/t005"
+            ],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 22,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 115,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "express/express-h001",
+              "retrieval/t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": true,
+      "failures": [],
+      "halves": {
+        "xrepo": [
+          8,
+          7
+        ],
+        "mined": [
+          0,
+          3
+        ]
+      }
+    },
+    "w0.4-count": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.4,
+        "bodyLength": "count"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 56,
+          "won": 14,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "tokio/x017",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "astro/x066",
+              "astro/x067"
+            ],
+            "lost": []
+          }
+        },
+        "hard": {
+          "hits": 67,
+          "won": 4,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 40,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 22,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 116,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "axios/axios-t002",
+              "express/express-h001",
+              "riverpod/riverpod-t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": true,
+      "failures": [],
+      "halves": {
+        "xrepo": [
+          7,
+          7
+        ],
+        "mined": [
+          1,
+          2
+        ]
+      }
+    },
+    "w0.4-ignore": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.4,
+        "bodyLength": "ignore"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 58,
+          "won": 17,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "riverpod/x059",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067",
+              "astro/x070",
+              "plenary/x075"
+            ],
+            "lost": [
+              "express/x040"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 3,
+          "lost": 3,
+          "flipped": {
+            "won": [
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h045",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 41,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m018",
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 19,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/t005"
+            ],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 23,
+          "won": 2,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032",
+              "akka/m024"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 115,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "express/express-h001",
+              "retrieval/t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": true,
+      "failures": [],
+      "halves": {
+        "xrepo": [
+          7,
+          9
+        ],
+        "mined": [
+          1,
+          3
+        ]
+      }
+    },
+    "w0.5-count": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.5,
+        "bodyLength": "count"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 56,
+          "won": 15,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "tokio/x017",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "astro/x066",
+              "astro/x067",
+              "astro/x070"
+            ],
+            "lost": [
+              "express/x039"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 66,
+          "won": 4,
+          "lost": 3,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h045",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 40,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 22,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 116,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "axios/axios-t002",
+              "express/express-h001",
+              "riverpod/riverpod-t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": true,
+      "failures": [],
+      "halves": {
+        "xrepo": [
+          6,
+          8
+        ],
+        "mined": [
+          1,
+          2
+        ]
+      }
+    },
+    "w0.5-ignore": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.5,
+        "bodyLength": "ignore"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 59,
+          "won": 18,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "tokio/x017",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "riverpod/x059",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067",
+              "astro/x070",
+              "plenary/x075"
+            ],
+            "lost": [
+              "express/x040"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 3,
+          "lost": 3,
+          "flipped": {
+            "won": [
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h045",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 41,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m018",
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 19,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/t005"
+            ],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 24,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m032",
+              "akka/m005",
+              "akka/m024"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 116,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "axios/axios-t002",
+              "express/express-h001",
+              "retrieval/t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": true,
+      "failures": [],
+      "halves": {
+        "xrepo": [
+          8,
+          9
+        ],
+        "mined": [
+          1,
+          3
+        ]
+      }
+    },
+    "w0.6-ignore": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.6,
+        "bodyLength": "ignore"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 59,
+          "won": 18,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "tokio/x017",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "riverpod/x059",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067",
+              "astro/x070",
+              "plenary/x075"
+            ],
+            "lost": [
+              "express/x040"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 3,
+          "lost": 3,
+          "flipped": {
+            "won": [
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h045",
+              "self/h064"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 41,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m018",
+              "self/m024",
+              "self/m038"
+            ],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 19,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/t005"
+            ],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 25,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m026",
+              "spring-petclinic/m032",
+              "akka/m005",
+              "akka/m024"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 116,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "axios/axios-t002",
+              "express/express-h001",
+              "retrieval/t005",
+              "svelte/svelte-t002"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": true,
+      "failures": [],
+      "halves": {
+        "xrepo": [
+          8,
+          9
+        ],
+        "mined": [
+          1,
+          3
+        ]
+      }
+    },
+    "w0.8-count": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.8,
+        "bodyLength": "count"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 58,
+          "won": 18,
+          "lost": 2,
+          "flipped": {
+            "won": [
+              "gin/x002",
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "tokio/x017",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x054",
+              "riverpod/x057",
+              "riverpod/x060",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067",
+              "astro/x070"
+            ],
+            "lost": [
+              "tokio/x016",
+              "express/x039"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 65,
+          "won": 4,
+          "lost": 4,
+          "flipped": {
+            "won": [
+              "self/h023",
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h031",
+              "self/h045",
+              "self/h064",
+              "self/h089"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 40,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m033",
+              "self/m038"
+            ],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 18,
+          "won": 0,
+          "lost": 0,
+          "flipped": {
+            "won": [],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 25,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m026",
+              "spring-petclinic/m032",
+              "akka/m005",
+              "akka/m024"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 114,
+          "won": 3,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "axios/axios-t002",
+              "express/express-h001",
+              "riverpod/riverpod-t005"
+            ],
+            "lost": [
+              "laravel/laravel-t002"
+            ]
+          }
+        }
+      },
+      "meets": true,
+      "failures": [],
+      "halves": {
+        "xrepo": [
+          8,
+          8
+        ],
+        "mined": [
+          2,
+          1
+        ]
+      }
+    },
+    "w0.8-ignore": {
+      "options": {
+        "bodyField": "own",
+        "bodyWeight": 0.8,
+        "bodyLength": "ignore"
+      },
+      "corpora": {
+        "xrepo": {
+          "hits": 60,
+          "won": 19,
+          "lost": 1,
+          "flipped": {
+            "won": [
+              "okhttp/x008",
+              "alamofire/x011",
+              "alamofire/x015",
+              "tokio/x017",
+              "django/x031",
+              "flask/x032",
+              "express/x038",
+              "vue-core/x041",
+              "vue-core/x044",
+              "laravel/x049",
+              "serilog/x053",
+              "serilog/x054",
+              "riverpod/x057",
+              "riverpod/x059",
+              "phoenix/x062",
+              "astro/x066",
+              "astro/x067",
+              "astro/x070",
+              "plenary/x075"
+            ],
+            "lost": [
+              "express/x040"
+            ]
+          }
+        },
+        "hard": {
+          "hits": 63,
+          "won": 3,
+          "lost": 5,
+          "flipped": {
+            "won": [
+              "self/h043",
+              "self/h067",
+              "self/h081"
+            ],
+            "lost": [
+              "self/h006",
+              "self/h031",
+              "self/h045",
+              "self/h064",
+              "self/h089"
+            ]
+          }
+        },
+        "mined": {
+          "hits": 44,
+          "won": 7,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/m009",
+              "self/m013",
+              "self/m014",
+              "self/m018",
+              "self/m024",
+              "self/m033",
+              "self/m038"
+            ],
+            "lost": []
+          }
+        },
+        "easy": {
+          "hits": 19,
+          "won": 1,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "self/t005"
+            ],
+            "lost": []
+          }
+        },
+        "jvm": {
+          "hits": 25,
+          "won": 4,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "spring-petclinic/m026",
+              "spring-petclinic/m032",
+              "akka/m005",
+              "akka/m024"
+            ],
+            "lost": []
+          }
+        },
+        "honest": {
+          "hits": 115,
+          "won": 3,
+          "lost": 0,
+          "flipped": {
+            "won": [
+              "axios/axios-t002",
+              "express/express-h001",
+              "retrieval/t005"
+            ],
+            "lost": []
+          }
+        }
+      },
+      "meets": false,
+      "failures": [
+        "hard is net-negative (-2)"
+      ],
+      "halves": {
+        "xrepo": [
+          8,
+          10
+        ],
+        "mined": [
+          3,
+          4
+        ]
+      }
+    }
+  },
+  "verdict": {
+    "choice": "w0.3-ignore",
+    "controlMeets": true,
+    "adopted": "w0.6-ignore"
+  },
+  "crossValidation": [
+    {
+      "tuneFold": 0,
+      "tuningTasks": 69,
+      "heldTasks": 74,
+      "chosen": "w0.8-ignore",
+      "tuningNet": 11,
+      "heldOut": {
+        "xrepo": 10,
+        "mined": 4,
+        "hard": -2,
+        "easy": 1,
+        "jvm": 4,
+        "honest": 3
+      }
+    },
+    {
+      "tuneFold": 1,
+      "tuningTasks": 74,
+      "heldTasks": 69,
+      "chosen": "w0.8-ignore",
+      "tuningNet": 14,
+      "heldOut": {
+        "xrepo": 8,
+        "mined": 3,
+        "hard": -2,
+        "easy": 1,
+        "jvm": 4,
+        "honest": 3
+      }
+    }
+  ],
+  "version": "8.74.0",
+  "generated": "2026-10-11T01:29:27.983Z"
+}

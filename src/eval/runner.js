@@ -67,7 +67,68 @@ function rank(query, index, topK = 10, opts = {}) {
   // graph boost, recency or learned weights — so no ranking regression in
   // src/retrieval/ranker.js could ever show up in the benchmark numbers.
   const { rank: prodRank } = require('../retrieval/ranker');
-  return prodRank(query, index, Object.assign({ topK }, opts)).slice(0, topK);
+  const o = Object.assign({ topK }, opts);
+  // What ships includes body words whenever retrieval.bodyWords is on (the default, or the
+  // repository's own gen-context.config.json), so a caller that names none gets them: built in
+  // memory from the sources under `cwd`, never cached, so a pinned checkout is left as it was.
+  // A caller that names the option — a Map to use, or null or undefined for none — is scoring
+  // something else on purpose and is left alone.
+  if (!Object.prototype.hasOwnProperty.call(o, 'bodyWords') && o.cwd) {
+    const bodyWords = defaultBodyWords(index, o.cwd);
+    if (bodyWords) o.bodyWords = bodyWords;
+  }
+  return prodRank(query, index, o).slice(0, topK);
+}
+
+/** `index` -> its body words, so one index scored over many tasks reads its sources once. */
+const _bodyWordsOf = new WeakMap();
+
+/** `{repository, config file mtime, the default}` -> whether it ships body words; the config is read once. */
+const _flagOf = new Map();
+
+/**
+ * Whether the repository at `cwd` ships body words, resolved the way `ask` resolves it: the
+ * default in src/config/defaults.js, merged with the repository's `gen-context.config.json` and
+ * whatever it `extends`, through the config loader. A repository with no config file skips the
+ * loader (which would walk it to detect source roots) and takes the default.
+ *
+ * @param {string} cwd
+ * @returns {boolean}
+ */
+function bodyWordsOn(cwd) {
+  const dflt = require('../config/defaults').DEFAULTS.retrieval.bodyWords === true;
+  let mtime = 0;
+  try { mtime = fs.statSync(path.join(cwd, 'gen-context.config.json')).mtimeMs; } catch (_) { /* no config file */ }
+  const key = `${path.resolve(cwd)}\0${mtime}\0${dflt}`;
+  if (_flagOf.has(key)) return _flagOf.get(key);
+  let on = dflt;
+  if (mtime) {
+    try {
+      const cfg = require('../config/loader').loadConfig(cwd);
+      on = !!(cfg && cfg.retrieval && cfg.retrieval.bodyWords);
+    } catch (_) { /* keep the default */ }
+  }
+  _flagOf.set(key, on);
+  return on;
+}
+
+/**
+ * The body words the shipped ranker would use for the repository at `cwd`, or null when the
+ * repository switches them off.
+ *
+ * @param {Map<string, string[]>} index
+ * @param {string} cwd
+ * @returns {Map<string, string>|null}
+ */
+function defaultBodyWords(index, cwd) {
+  if (!(index instanceof Map) || index.size === 0) return null;
+  if (!bodyWordsOn(cwd)) return null;
+  const known = _bodyWordsOf.get(index);
+  if (known && known.cwd === cwd) return known.words;
+  let words = null;
+  try { words = require('../retrieval/body-words').buildFor(cwd, index); } catch (_) { words = null; }
+  _bodyWordsOf.set(index, { cwd, words });
+  return words;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,4 +284,4 @@ function formatMetrics(metrics) {
   ].join('\n');
 }
 
-module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize };
+module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize, bodyWordsOn };

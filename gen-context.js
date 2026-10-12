@@ -3234,8 +3234,9 @@ __factories["./src/config/defaults"] = function(module, exports) {
       // .context/mined-expansions.json (B2, opt-in, measure-gated)
       minedExpansions: false,
       // Index each file's rare body words — the words its signatures drop — into the ranking
-      // only, cached in .context/body-words.json (opt-in, measure-gated)
-      bodyWords: false,
+      // only, cached in .context/body-words.json. On by default since v8.75.0 (#943, #674): it won
+      // +17 on the third-party corpus with no corpus net-negative. `false` turns it off.
+      bodyWords: true,
     },
 
     // Host-toolchain exactness tiers (#542 T2, opt-in, silent regex fallback).
@@ -8368,7 +8369,68 @@ __factories["./src/eval/runner"] = function(module, exports) {
     // graph boost, recency or learned weights — so no ranking regression in
     // src/retrieval/ranker.js could ever show up in the benchmark numbers.
     const { rank: prodRank } = __require('./src/retrieval/ranker');
-    return prodRank(query, index, Object.assign({ topK }, opts)).slice(0, topK);
+    const o = Object.assign({ topK }, opts);
+    // What ships includes body words whenever retrieval.bodyWords is on (the default, or the
+    // repository's own gen-context.config.json), so a caller that names none gets them: built in
+    // memory from the sources under `cwd`, never cached, so a pinned checkout is left as it was.
+    // A caller that names the option — a Map to use, or null or undefined for none — is scoring
+    // something else on purpose and is left alone.
+    if (!Object.prototype.hasOwnProperty.call(o, 'bodyWords') && o.cwd) {
+      const bodyWords = defaultBodyWords(index, o.cwd);
+      if (bodyWords) o.bodyWords = bodyWords;
+    }
+    return prodRank(query, index, o).slice(0, topK);
+  }
+
+  /** `index` -> its body words, so one index scored over many tasks reads its sources once. */
+  const _bodyWordsOf = new WeakMap();
+
+  /** `{repository, config file mtime, the default}` -> whether it ships body words; the config is read once. */
+  const _flagOf = new Map();
+
+  /**
+   * Whether the repository at `cwd` ships body words, resolved the way `ask` resolves it: the
+   * default in src/config/defaults.js, merged with the repository's `gen-context.config.json` and
+   * whatever it `extends`, through the config loader. A repository with no config file skips the
+   * loader (which would walk it to detect source roots) and takes the default.
+   *
+   * @param {string} cwd
+   * @returns {boolean}
+   */
+  function bodyWordsOn(cwd) {
+    const dflt = __require('./src/config/defaults').DEFAULTS.retrieval.bodyWords === true;
+    let mtime = 0;
+    try { mtime = fs.statSync(path.join(cwd, 'gen-context.config.json')).mtimeMs; } catch (_) { /* no config file */ }
+    const key = `${path.resolve(cwd)}\0${mtime}\0${dflt}`;
+    if (_flagOf.has(key)) return _flagOf.get(key);
+    let on = dflt;
+    if (mtime) {
+      try {
+        const cfg = __require('./src/config/loader').loadConfig(cwd);
+        on = !!(cfg && cfg.retrieval && cfg.retrieval.bodyWords);
+      } catch (_) { /* keep the default */ }
+    }
+    _flagOf.set(key, on);
+    return on;
+  }
+
+  /**
+   * The body words the shipped ranker would use for the repository at `cwd`, or null when the
+   * repository switches them off.
+   *
+   * @param {Map<string, string[]>} index
+   * @param {string} cwd
+   * @returns {Map<string, string>|null}
+   */
+  function defaultBodyWords(index, cwd) {
+    if (!(index instanceof Map) || index.size === 0) return null;
+    if (!bodyWordsOn(cwd)) return null;
+    const known = _bodyWordsOf.get(index);
+    if (known && known.cwd === cwd) return known.words;
+    let words = null;
+    try { words = __require('./src/retrieval/body-words').buildFor(cwd, index); } catch (_) { words = null; }
+    _bodyWordsOf.set(index, { cwd, words });
+    return words;
   }
 
   // ---------------------------------------------------------------------------
@@ -8524,7 +8586,7 @@ __factories["./src/eval/runner"] = function(module, exports) {
     ].join('\n');
   }
 
-  module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize };
+  module.exports = { run, rank, loadTasks, buildSigIndex, formatTable, formatMetrics, tokenize, bodyWordsOn };
   
 };
 
@@ -8967,7 +9029,9 @@ __factories["./src/evidence/pack"] = function(module, exports) {
     const intent = detectIntent(query);
     const allFiles = Array.from(sigIndex.keys());
 
-    const ranked = rank(query, sigIndex, { topK: top, cwd })
+    // An injected index is not this repository's: its words are not built from `cwd` (as the map below is not).
+    const bodyWords = opts.sigIndex instanceof Map ? null : __require('./src/retrieval/body-words').forRepo(cwd, sigIndex);
+    const ranked = rank(query, sigIndex, { topK: top, cwd, bodyWords })
       .filter((r) => r.score > 0 || ranked0Empty(query));
     const maxScore = ranked.reduce((m, r) => Math.max(m, r.score), 0);
 
@@ -25866,7 +25930,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.74.0',
+    version: '8.75.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -26644,7 +26708,9 @@ __factories["./src/plan/planner"] = function(module, exports) {
       return { error: 'no context found' };
     }
 
-    const ranked = rank(goal, sigIndex, { topK: 15, cwd });
+    // The same words `ask` ranks with: a plan that could not find what `ask` finds would contradict it.
+    const bodyWords = __require('./src/retrieval/body-words').forRepo(cwd, sigIndex, config);
+    const ranked = rank(goal, sigIndex, { topK: 15, cwd, bodyWords });
 
     // Step 2: what to read, and what the task is likely to edit. Both come from
     // the high-confidence band; the change list keeps only implementation files
@@ -27139,6 +27205,16 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
   // how you overfit a benchmark.
   const DOC_WEIGHT = 0.6;
 
+  // Body words (retrieval.bodyWords, #905): the rare words of a file's source. Through v8.74 they
+  // joined the prose field and carried its weight AND its length (`prose`). The sweep behind #943
+  // (docs-vp/guide/retrieval-benchmark.md, "Weighting the body words") put them in a field of their
+  // own: the weight stays prose's 0.6, and they add no length. Counting them lengthened exactly the
+  // files with the most source to say, so every match on such a file scored less — and leaving them
+  // out of the length was worth +2 or +3 on the third-party corpus at every weight tried.
+  const BODY_FIELD = 'own';
+  const BODY_WEIGHT = 0.6;
+  const BODY_LENGTH = 'ignore';
+
   // Build a stemmed lookup: stem(member) → Set of the group's other stemmed members.
   const EXPANSIONS = (() => {
     const map = new Map();
@@ -27200,7 +27276,12 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
    * @param {string} query
    * @param {{ file: string, sigs: string[] }[]} candidates
    * @param {object} [opts]
-   * @param {Map<string,string>} [opts.bodyWords] file -> body words (opt-in retrieval.bodyWords)
+   * @param {Map<string,string>} [opts.bodyWords] file -> body words (retrieval.bodyWords, on by default)
+   * @param {'prose'|'own'} [opts.bodyField] where body words go: `prose` joins the prose field,
+   *        weight and length alike; `own` gives them a field of their own (default BODY_FIELD, #943)
+   * @param {number} [opts.bodyWeight] with `own`: the field's weight (default BODY_WEIGHT)
+   * @param {'count'|'ignore'} [opts.bodyLength] with `own`: whether body words lengthen the
+   *        document for BM25's length normalisation (default BODY_LENGTH)
    * @returns {Array<object & { score: number }>}
    */
   function bm25rank(query, candidates, opts) {
@@ -27210,9 +27291,14 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
     const b = 0.75;
 
     const docWeight = (opts && typeof opts.docWeight === 'number') ? opts.docWeight : DOC_WEIGHT;
-    // Opt-in body words (retrieval.bodyWords, src/retrieval/body-words.js): file -> the rare
+    // Body words (retrieval.bodyWords, on by default; src/retrieval/body-words.js): file -> the rare
     // words of its source that its signatures lack. Absent, nothing below changes.
     const bodyWords = (opts && opts.bodyWords instanceof Map) ? opts.bodyWords : null;
+    // Where body words go (#943): into the prose field, weight and length alike, or into a
+    // field of their own with a weight and a length treatment.
+    const bodyOwn = ((opts && (opts.bodyField === 'own' || opts.bodyField === 'prose')) ? opts.bodyField : BODY_FIELD) === 'own';
+    const bodyWeight = (opts && typeof opts.bodyWeight === 'number' && opts.bodyWeight >= 0) ? opts.bodyWeight : BODY_WEIGHT;
+    const bodyInLength = ((opts && (opts.bodyLength === 'count' || opts.bodyLength === 'ignore')) ? opts.bodyLength : BODY_LENGTH) !== 'ignore';
 
     const docs = candidates.map((c) => {
       const pathToks = tokenize(c.file || '');
@@ -27236,20 +27322,27 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
       // past a cutoff. A hit@5-only view would have shipped this.
       const codeToks = tokenize(codeLines.map((x) => stripAnchor(x)).join(' '));
       const docToks = tokenize(docLines.join(' '));
-      // Body words are descriptive of the file, never definitional like a signature, so they
-      // join the prose field and carry its weight.
+      // Body words are descriptive of the file, never definitional like a signature. They sit in
+      // a field of their own at BODY_WEIGHT and add no length (`bodyField: 'prose'` is the
+      // placement through v8.74: the prose field's weight and length) (#943).
+      let bodyToks = null;
       if (bodyWords) {
         const extra = bodyWords.get(c.file);
-        if (extra) for (const t of tokenize(extra)) docToks.push(t);
+        if (extra) {
+          if (!bodyOwn) for (const t of tokenize(extra)) docToks.push(t);
+          else bodyToks = tokenize(extra);
+        }
       }
       const tf = new Map();
       const addField = (toks, weight) => { for (const t of toks) tf.set(t, (tf.get(t) || 0) + weight); };
       addField(codeToks, 1);
       addField(pathToks, PATH_BOOST);
       addField(docToks, docWeight);
+      if (bodyToks) addField(bodyToks, bodyWeight);
       // Length accumulates with the SAME weights, or a field's influence leaks
       // back in through the normalisation term.
-      const len = codeToks.length + (PATH_BOOST * pathToks.length) + (docWeight * docToks.length);
+      const len = codeToks.length + (PATH_BOOST * pathToks.length) + (docWeight * docToks.length)
+        + (bodyToks && bodyInLength ? bodyWeight * bodyToks.length : 0);
       return { cand: c, tf, len };
     });
 
@@ -27281,7 +27374,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
       .sort((a, c) => c.score - a.score || String(a.file).localeCompare(String(c.file)));
   }
 
-  module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, MODULE_DOC_RE, stripAnchor };
+  module.exports = { tokenize, stem, bm25rank, PATH_BOOST, STOP, expandQuery, EXPANSIONS, EXPANSION_WEIGHT, DOC_WEIGHT, BODY_FIELD, BODY_WEIGHT, BODY_LENGTH, MODULE_DOC_RE, stripAnchor };
   
 };
 
@@ -27289,7 +27382,7 @@ __factories["./src/retrieval/bm25"] = function(module, exports) {
 __factories["./src/retrieval/body-words"] = function(module, exports) {
   
   /**
-   * Body words (retrieval only, opt-in via retrieval.bodyWords): for each indexed file, the rare words of its source that its signature entry does not carry. Fed to BM25's prose field so a question in the words a file's body uses can reach a file whose signatures never say them. Zero-dependency, deterministic, bundle-safe.
+   * Body words (retrieval only, retrieval.bodyWords — on by default since v8.75.0): for each indexed file, the rare words of its source that its signature entry does not carry. Fed to BM25 in a field of their own (weight and length: BODY_WEIGHT and BODY_LENGTH in bm25.js) so a question in the words a file's body uses can reach a file whose signatures never say them. Zero-dependency, deterministic, bundle-safe.
    *
    * A signature map keeps a file's shape — names, parameters — and drops what the
    * body says. A person asking how something works describes it in the words the
@@ -27307,8 +27400,10 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
   const fs = require('fs');
   const path = require('path');
   const { tokenize } = __require('./src/retrieval/tokenizer');
+  const { PATTERNS } = __require('./src/security/patterns');
 
-  const SCHEMA_VERSION = 1;
+  // 3: the line filter below (2 was the scanner's patterns and a 20-character digit rule alone), so an older cache is rebuilt.
+  const SCHEMA_VERSION = 3;
   const CACHE_FILE = 'body-words.json';
 
   // A word is rare when no more than this share of the indexed files hold it (and never
@@ -27318,6 +27413,13 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
   // every benchmark corpus, was flat from about 200 up; below 100 it began to lose gains.
   const PER_FILE = 200;
   const MIN_WORD_LENGTH = 3;
+  // A word this long that holds a digit is a key, a hash or an identifier no question is written in
+  // (an AWS access key id is 20 characters). `_isSecretLine` tests the raw tokens of a line before
+  // tokenizing splits them; this is the same test on what is left.
+  const OPAQUE_WORD_LENGTH = 20;
+  // A line longer than this is a bundle, a data blob or a minified file: it carries no words a question
+  // is asked in, and a pattern run over one long line is quadratic.
+  const MAX_LINE_LENGTH = 2000;
   // A whole-file scan skips files over this size, as the grep baseline does.
   const MAX_SOURCE_BYTES = 1024 * 1024;
 
@@ -27331,12 +27433,76 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     + 'been being have has had was were are is be not but and for the you your its it our we can cannot'
   ).split(/\s+/));
 
+  // Credential shapes the scanner's own patterns (src/security/patterns.js) do not name. They are kept
+  // here, and not added there, because widening that list would change which SIGNATURES are redacted
+  // and so the bytes of every generated context file; body words are free text and may be stricter.
+  const EXTRA_SECRET_SHAPES = [
+    // a credential-named key assigned anything, quoted or not, in JSON, YAML, .env, INI, Python or JS
+    /\b(?:secret|password|passwd|passphrase|api[_-]?key|apikey|auth[_-]?token|access[_-]?token|secret[_-]?key|private[_-]?key|client[_-]?secret)\b["']?\s*[:=]\s*\S/i,
+    /\bAuthorization\b["']?\s*[:=]\s*["']?(?:Bearer|Basic|Token)\s+\S/i,
+    // a password in the userinfo of any URL (postgres://, mongodb+srv://, amqp://, https://user:pw@host)
+    /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]+@/i,
+    // token families by prefix
+    /\bgithub_pat_[A-Za-z0-9_]{20,}/,
+    /\bnpm_[A-Za-z0-9]{20,}/,
+    /\bya29\.[A-Za-z0-9_-]{10,}/,
+    /\bSG\.[A-Za-z0-9_-]{16,}/,
+  ];
+  // A run of token characters this long that holds both a letter and a digit is a key, a hash or a
+  // token — tested on the RAW line, because tokenize() would split `npm_aB3d…` at its underscores and
+  // camelCase humps into pieces shorter than any length rule. `/` and `.` are not token characters,
+  // so a path or a dotted name is not one run.
+  const OPAQUE_RUN = /[A-Za-z0-9+_=-]{20,}/g;
+  const PEM_BEGIN = /-----BEGIN [A-Z0-9 ]+-----/;
+  const PEM_END = /-----END [A-Z0-9 ]+-----/;
+
+  /** Whether one line of source may hold a credential. */
+  function _isSecretLine(line) {
+    for (const p of PATTERNS) if (p.regex.test(line)) return true; // textOnly included: body text is free text
+    for (const re of EXTRA_SECRET_SHAPES) if (re.test(line)) return true;
+    for (const m of line.matchAll(OPAQUE_RUN)) {
+      if (/\d/.test(m[0]) && /[A-Za-z]/.test(m[0])) return true;
+    }
+    return false;
+  }
+
+  /**
+   * The lines of a source with every line that may hold a credential blanked.
+   *
+   * Body words are the rare words of raw source, and a rare word is exactly what a credential is, so
+   * unlike a signature they must be filtered: a cache that held `akiaiosfodnn7example` would carry the
+   * key's id into a file that is not the source and is not redacted. This is a filter, not a guarantee —
+   * a secret in a shape none of the rules names stays, and `.context/` is local.
+   *
+   * A PEM block is blanked from its BEGIN line to its END line, and so is any line over MAX_LINE_LENGTH.
+   */
+  function _safeLines(source) {
+    const lines = source.split('\n');
+    let inPem = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (inPem) {
+        if (PEM_END.test(line)) inPem = false;
+        lines[i] = '';
+      } else if (PEM_BEGIN.test(line)) {
+        inPem = !PEM_END.test(line);
+        lines[i] = '';
+      } else if (line.length > MAX_LINE_LENGTH || _isSecretLine(line)) {
+        lines[i] = '';
+      }
+    }
+    return lines;
+  }
+
   /** Words of one file's source, with the number of its lines that hold each. */
   function _lineFrequency(source) {
     const freq = new Map();
-    for (const line of source.split('\n')) {
+    for (const line of _safeLines(source)) {
       if (!line) continue;
-      for (const w of tokenize(line)) freq.set(w, (freq.get(w) || 0) + 1);
+      for (const w of tokenize(line)) {
+        if (w.length >= OPAQUE_WORD_LENGTH && /\d/.test(w)) continue;
+        freq.set(w, (freq.get(w) || 0) + 1);
+      }
     }
     return freq;
   }
@@ -27394,15 +27560,41 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     return out;
   }
 
-  /** A file's text under `cwd`, or null when it cannot be read or is too large for a whole-file scan. */
-  function _readUnder(cwd, file) {
+  /**
+   * A file's text under `root` (a real path), or null when it cannot be read, is too large for a
+   * whole-file scan, is not a regular file, or lies outside `root`.
+   *
+   * Index keys are not trusted: a committed context file can name `../x`, an absolute path or a link
+   * to anywhere, and a device such as /dev/zero reports size 0 and reads without end.
+   */
+  function _readUnder(root, file) {
     try {
-      const abs = path.join(cwd, file);
-      if (fs.statSync(abs).size > MAX_SOURCE_BYTES) return null;
-      return fs.readFileSync(abs, 'utf8');
+      if (typeof file !== 'string' || file === '' || path.isAbsolute(file)) return null;
+      const abs = path.resolve(root, file);
+      const inside = (p) => p === root || p.startsWith(root + path.sep);
+      if (!inside(abs)) return null;
+      const real = fs.realpathSync(abs);
+      if (!inside(real)) return null;
+      const st = fs.statSync(real);
+      if (!st.isFile() || st.size > MAX_SOURCE_BYTES) return null;
+      return fs.readFileSync(real, 'utf8');
     } catch (_) {
       return null;
     }
+  }
+
+  /**
+   * The body words of the files of `index`, read under `cwd`, with nothing written: for a benchmark
+   * that scores a pinned checkout and must leave it untouched.
+   *
+   * @param {string} cwd
+   * @param {Map<string, string[]>} index
+   * @returns {Map<string, string>}
+   */
+  function buildFor(cwd, index) {
+    let root = path.resolve(cwd);
+    try { root = fs.realpathSync(root); } catch (_) { /* keep the resolved path */ }
+    return buildBodyWords(index, (file) => _readUnder(root, file));
   }
 
   /**
@@ -27425,6 +27617,11 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
     const cachePath = path.join(cwd, '.context', CACHE_FILE);
     let stamp = 0;
     try { stamp = fs.statSync(__require('./src/retrieval/sig-index-store').indexPath(cwd)).mtimeMs; } catch (_) { /* no complete index */ }
+    // A cache that cannot be written (a read-only checkout, a sandbox) would be rebuilt by every query
+    // of a long-lived process (the MCP server). The words of such a repository are kept for the life of
+    // the process, per index stamp; where the cache can be written the file is the source of truth.
+    const memoKey = stamp ? `${cwd}\0${stamp}\0${SCHEMA_VERSION}` : null;
+    if (memoKey && _unwritable.has(memoKey)) return _unwritable.get(memoKey);
     try {
       const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
       if (cached.schema === SCHEMA_VERSION && cached.builtFor === stamp && cached.share === DISTINCTIVE_SHARE
@@ -27435,24 +27632,51 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
 
     let built = new Map();
     try {
-      const idx = index instanceof Map ? index : __require('./src/retrieval/ranker').buildSigIndex(cwd);
-      built = buildBodyWords(idx, (file) => _readUnder(cwd, file));
+      built = buildFor(cwd, index instanceof Map ? index : __require('./src/retrieval/ranker').buildSigIndex(cwd));
     } catch (_) { built = new Map(); }
 
     if (!stamp) return built;
     try {
-      // Sorted so the same repository always writes the same bytes.
+      // Sorted so the same repository always writes the same bytes; written beside and renamed, so a
+      // reader never sees half a file.
       const words = {};
       for (const file of [...built.keys()].sort()) words[file] = built.get(file);
       fs.mkdirSync(path.dirname(cachePath), { recursive: true });
-      fs.writeFileSync(cachePath, JSON.stringify({
+      const tmp = `${cachePath}.${process.pid}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify({
         schema: SCHEMA_VERSION, builtFor: stamp, share: DISTINCTIVE_SHARE, perFile: PER_FILE, files: built.size, words,
       }), 'utf8');
-    } catch (_) { /* a cache that cannot be written is only slower */ }
+      try { fs.renameSync(tmp, cachePath); } catch (e) { try { fs.unlinkSync(tmp); } catch (_) { /* gone */ } throw e; }
+    } catch (_) {
+      // a cache that cannot be written is only slower — once per index stamp, not once per query
+      if (_unwritable.size >= 8) _unwritable.delete(_unwritable.keys().next().value);
+      _unwritable.set(memoKey, built);
+    }
     return built;
   }
 
-  module.exports = { buildBodyWords, loadOrBuild, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };
+  /** `{repository, index stamp}` -> the words of a repository whose cache could not be written. */
+  const _unwritable = new Map();
+
+  /**
+   * The words the shipped ranker is handed for the repository at `cwd`: from the cache when its
+   * `retrieval.bodyWords` is on, null when it is off. One answer for every command that ranks, so
+   * `ask`, `--query`, `plan`, `evidence`, `validate --query` and the MCP tool cannot disagree.
+   *
+   * @param {string} cwd
+   * @param {Map<string, string[]>} index
+   * @param {object} [config] an already-loaded config; read from `cwd` when it names no `retrieval`
+   * @returns {Map<string, string>|null}
+   */
+  function forRepo(cwd, index, config) {
+    try {
+      const cfg = config && config.retrieval ? config : __require('./src/config/loader').loadConfig(cwd);
+      if (cfg && cfg.retrieval && cfg.retrieval.bodyWords) return loadOrBuild(cwd, index);
+    } catch (_) { /* never fatal: ranking without the signal is the fallback */ }
+    return null;
+  }
+
+  module.exports = { buildBodyWords, buildFor, loadOrBuild, forRepo, DISTINCTIVE_SHARE, PER_FILE, MIN_WORD_LENGTH, OPAQUE_WORD_LENGTH, MAX_LINE_LENGTH, MAX_SOURCE_BYTES, FRAMING_WORDS, SCHEMA_VERSION, CACHE_FILE };
   
 };
 
@@ -28189,7 +28413,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    * @param {Map<string,number>} [opts.centrality] - absolute file → normalized
    *        centrality (from computeCentrality) for the opt-in centrality blend
    * @param {Map<string,string>} [opts.bodyWords] - file → the rare words of its source
-   *        (from body-words.loadOrBuild) for the opt-in retrieval.bodyWords signal
+   *        (from body-words.loadOrBuild) for the retrieval.bodyWords signal (on by default)
    * @param {{maxBonuses?:number, maxShare?:number, decay?:number}} [opts.graphDamping]
    *        bounds how much hop-1 boost one file may ACCUMULATE from the import graph (#935):
    *        at most `maxBonuses` bonuses, at most `maxShare` x its own score in total, or each
@@ -37456,7 +37680,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.74.0';
+const VERSION = '8.75.0';
 function requireSourceOrBundled(key) {
   try {
     const rel = key.replace(/^\.\//, '') + '.js';
@@ -40957,7 +41181,7 @@ function main() {
     if (config && config.retrieval && config.retrieval.minedExpansions) {
       try { askExpansions = requireSourceOrBundled('./src/retrieval/mined-expansions').loadOrMine(cwd).expansions; } catch (_) {}
     }
-    // Opt-in body words (retrieval.bodyWords) — non-fatal
+    // Body words (retrieval.bodyWords, on by default) — non-fatal
     let askBodyWords = null;
     if (config && config.retrieval && config.retrieval.bodyWords) {
       try { askBodyWords = requireSourceOrBundled('./src/retrieval/body-words').loadOrBuild(cwd, sigIndex); } catch (_) {}
@@ -42147,7 +42371,10 @@ function main() {
       if (q && !q.startsWith('--')) {
         try {
           const { rank, buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
-          const ranked = rank(q, buildSigIndex(cwd), { topK: 5, cwd });
+          const valIndex = buildSigIndex(cwd);
+          // the words `ask` ranks with, so `validate` and `ask` cannot disagree about a query
+          const valWords = requireSourceOrBundled('./src/retrieval/body-words').forRepo(cwd, valIndex, config);
+          const ranked = rank(q, valIndex, { topK: 5, cwd, bodyWords: valWords });
 
           // (a) cased-symbol coverage
           const symbols = extractQuerySymbols(q);
@@ -44342,7 +44569,7 @@ function main() {
       if (config && config.retrieval && config.retrieval.minedExpansions) {
         try { queryExpansions = requireSourceOrBundled('./src/retrieval/mined-expansions').loadOrMine(cwd).expansions; } catch (_) {}
       }
-      // Opt-in body words (retrieval.bodyWords) — non-fatal
+      // Body words (retrieval.bodyWords, on by default) — non-fatal
       let queryBodyWords = null;
       if (config && config.retrieval && config.retrieval.bodyWords) {
         try { queryBodyWords = requireSourceOrBundled('./src/retrieval/body-words').loadOrBuild(cwd, index); } catch (_) {}

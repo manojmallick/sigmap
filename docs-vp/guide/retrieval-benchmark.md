@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.74.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 89.6% vs 40.0% (2.24× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.75.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 92.8% vs 39.2% (2.37× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
       content: "SigMap retrieval benchmark — 80.4% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 80.4% hit@5 over 105 tasks on 18 repos; honest grep comparison 89.6% vs 40.0% (2.24x lift, 125 tasks, 19 repos)."
+      content: "Latest saved run: 80.4% hit@5 over 105 tasks on 18 repos; honest grep comparison 92.8% vs 39.2% (2.37x lift, 125 tasks, 19 repos)."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,22 +15,22 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.74.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.74-main &nbsp;·&nbsp; **Date:** 2026-10-10 (with R language)
+::: info Official v8.75.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.75-main &nbsp;·&nbsp; **Date:** 2026-10-11 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **89.6%** vs 40.0% single-shot grep — **2.24× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 39.2% single-shot grep — **2.37× lift** |
 | Graph-boosted hit@5 | **80.4%** |
-| Honest lift (vs grep agent) | **2.24×** |
+| Honest lift (vs grep agent) | **2.37×** |
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-10 (v8.74.0)**
+Latest saved run: **2026-10-11 (v8.75.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -58,13 +58,15 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **89.6%** |
+| Average hit@5 (honest corpus, 125 tasks) | 39.2% | **92.8%** |
 | Graph-boosted hit@5 | — | **80.4%** |
-| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.24x** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.37x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
 | Correct (rank 1) | ~1% | **61.9%** |
 | Partial (ranks 2–5) | ~13% | **18.1%** |
 | Wrong (not in top 5) | ~86% | **20.0%** |
+
+The 80.4% hit@5 on the retrieval corpus (105 tasks / 18 repos) is scored with bare `bm25rank` — BM25 over the context file's signatures, with no path penalties, import-graph boost, recency or body words — so it does not move when `retrieval.bodyWords` ships. The honest corpus above, the [third-party corpus](#measured-on-repos-we-do-not-control-xrepo) and the [CI gate](#the-ci-retrieval-gate-v8-51-6) corpora are scored through the full `rank()`, which is why they did.
 
 ## Quality tiers from the saved run
 
@@ -87,13 +89,13 @@ leak**). `benchmark:honest` reports both splits, plus per-repo-size buckets
 
 | Slice | Tasks | SigMap hit@5 | Grep baseline |
 |---|---:|:---:|:---:|
-| Easy split | 110 | **92.7%** | 38.2% |
-| **Hard split** | 15 | **66.7%** | **53.3%** |
+| Easy split | 110 | **95.5%** | 37.3% |
+| **Hard split** | 15 | **73.3%** | **53.3%** |
 | Small repos | 13 | 100.0% | 61.5% |
-| Medium repos | 52 | 84.6% | 46.2% |
-| Large repos | 60 | 91.7% | 30.0% |
+| Medium repos | 52 | 88.5% | 46.2% |
+| Large repos | 60 | 95.0% | 28.3% |
 
-These rows are the saved honest report's own (`benchmarks/reports/honest-baseline.json`). The table had drifted from it since v8.62.0 and is regenerated at v8.68.0; the hard split, for one, reads 10 of 15 where it read 9 until v8.66.0.
+These rows are the saved honest report's own (`benchmarks/reports/honest-baseline.json`). The table had drifted from it since v8.62.0 and was regenerated at v8.68.0, and again at v8.75.0, when body words became the default: the hard split reads 11 of 15 where it read 10 until v8.74.0, and the easy split 95.5% where it read 92.7%.
 
 The hard split is published deliberately: it is the measured vocabulary-mismatch
 ceiling, the number repo-mined query expansion (planned for v9.0) exists to move.
@@ -152,12 +154,19 @@ happen to share an adjective.
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
 | `hard` | 90 | **72.2%** | 70% floor | Leak-free tasks over **SigMap's own source** |
-| `mined` | 60 | **61.7%** | no-regress | Commit subjects + the files that commit touched, minus the generated outputs every commit also rewrites |
-| `jvm` | 61 | **34.4%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
-| `easy` | 20 | 90.0% | reference only | Leaky by construction; published for contrast |
+| `mined` | 60 | **68.3%** | no-regress | Commit subjects + the files that commit touched, minus the generated outputs every commit also rewrites |
+| `jvm` | 61 | **41.0%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
+| `easy` | 20 | 95.0% | reference only | Leaky by construction; published for contrast |
 
 Every corpus is asserted leak-free: no query shares a stemmed token with its
 expected file's basename. `hard` and `mined` are re-asserted on every run.
+
+These are the figures of the ranker as it ships. v8.75.0 made [body words](#body-words)
+the default, which is the whole of the movement since v8.74.0: `mined` 61.7% → 68.3%
+(37 → 41 of 60), `jvm` 34.4% → 41.0% (21 → 25 of 61), `easy` 90.0% → 95.0% (18 → 19 of 20)
+and `hard` unchanged at 72.2% (65 of 90, three won and three lost). `retrieval-baseline.json`
+was re-recorded with them, and the `hard` it held (75.6%) had not reproduced since
+v8.55.0 — it reads what the gate measures now.
 
 ::: tip The `mined` corpus was re-mined at v8.66.0 ([#883](https://github.com/manojmallick/sigmap/issues/883))
 Five of its 23 tasks (m001–m005) listed the bundled `gen-context.js` as their only expected file. Tooling rewrites that file on nearly every source commit, and the miner records the files a commit touched, so the bundle became "the answer" — unwinnable, although the ranker returned the real implementation first. The miner now removes generated outputs (the bundle, `.context/`, adapter outputs, `llms*.txt`) *before* it judges which file a commit was about, and its default window is the whole history: it had been 960 commits, which stopped covering the repository at 1,331.
@@ -336,8 +345,8 @@ that becomes a mystery if nobody writes down when it started.
 :::
 
 ::: warning The committed `hard` baseline does not reproduce (v8.55.0)
-`benchmarks/retrieval-baseline.json` records `hard = 75.6%`, and that figure does
-not reproduce on `develop` today — a **pristine worktree with no changes applied**
+`benchmarks/retrieval-baseline.json` recorded `hard = 75.6%` (re-recorded at v8.75.0 as 72.2%), and that figure did
+not reproduce on `develop` at the time — a **pristine worktree with no changes applied**
 measured 72.2% at v8.55.0, and the corpus reads 73.3% at v8.56.0. This is the drift the floor exists to tolerate, and it is
 disclosed here rather than silently re-recorded: refreshing a baseline as a side
 effect of an unrelated change is how a stale number becomes a published one. It
@@ -366,7 +375,8 @@ document-length normalisation drops it from rank 5 to rank 6. A fix excluding
 markers from the scored term space did not move the number, so it was reverted
 rather than left in as unexplained complexity.
 
-At 34.4%, `jvm` is still the least flattering number SigMap publishes. It is here
+At 41.0% (34.4% until body words became the default in v8.75.0, +6.6pp, four more of 61
+tasks), `jvm` is still the least flattering number SigMap publishes. It is here
 for the same reason the hard split is: it is the one that moves when the
 vocabulary-mismatch problem gets solved — and in v8.55.0 it moved, from **21.3%
 to 29.5% (+8.2pp)**, when the ranker stopped ignoring Go and JVM test-file
@@ -393,28 +403,28 @@ Every other corpus on this page is one this project wrote or can influence: `har
 | Repo | Language | Layout | Indexed | Tasks | Hits | hit@5 | Unreachable |
 |---|---|---|---|---:|---:|---:|---:|
 | gin | go | flat-go | zero-config | 5 | 4 | 80.0% | — |
-| OkHttp | kotlin | gradle-multimodule | zero-config | 5 | 3 | 60.0% | — |
-| Alamofire | swift | swiftpm-sources | zero-config | 5 | 3 | 60.0% | — |
-| Tokio | rust | cargo-workspace | zero-config | 5 | 3 | 60.0% | — |
+| OkHttp | kotlin | gradle-multimodule | zero-config | 5 | 4 | 80.0% | — |
+| Alamofire | swift | swiftpm-sources | zero-config | 5 | 5 | 100.0% | — |
+| Tokio | rust | cargo-workspace | zero-config | 5 | 4 | 80.0% | — |
 | Excalidraw | typescript_react | yarn-workspaces | zero-config | 6 | 3 | 50.0% | — |
-| Django | python | package-beside-tests | zero-config | 5 | 3 | 60.0% | — |
-| Flask | python | src-layout | zero-config | 5 | 4 | 80.0% | — |
+| Django | python | package-beside-tests | zero-config | 5 | 4 | 80.0% | — |
+| Flask | python | src-layout | zero-config | 5 | 5 | 100.0% | — |
 | Express | javascript | lib | zero-config | 4 | 3 | 75.0% | — |
-| vue-core | typescript | pnpm-workspace | zero-config | 5 | 0 | 0.0% | — |
-| Laravel | php | composer-src | zero-config | 5 | 1 | 20.0% | — |
-| Serilog | csharp | dotnet-src | zero-config | 5 | 1 | 20.0% | — |
-| Riverpod | dart | dart-workspace | zero-config | 5 | 1 | 20.0% | — |
-| Phoenix | elixir | mix-lib | zero-config | 5 | 4 | 80.0% | — |
-| Astro | astro | pnpm-workspace-subtree | zero-config | 7 | 1 | 14.3% | 1 |
-| plenary.nvim | lua | lua-module | zero-config | 6 | 5 | 83.3% | — |
+| vue-core | typescript | pnpm-workspace | zero-config | 5 | 2 | 40.0% | — |
+| Laravel | php | composer-src | zero-config | 5 | 2 | 40.0% | — |
+| Serilog | csharp | dotnet-src | zero-config | 5 | 2 | 40.0% | — |
+| Riverpod | dart | dart-workspace | zero-config | 5 | 3 | 60.0% | — |
+| Phoenix | elixir | mix-lib | zero-config | 5 | 5 | 100.0% | — |
+| Astro | astro | pnpm-workspace-subtree | zero-config | 7 | 4 | 57.1% | 1 |
+| plenary.nvim | lua | lua-module | zero-config | 6 | 6 | 100.0% | — |
 | godot-demo-projects | gdscript | godot-projects | zero-config | 5 | 3 | 60.0% | — |
-| **Overall** | | | | **83** | **42** | **50.6%** | **1** |
+| **Overall** | | | | **83** | **59** | **71.1%** | **1** |
 
-**Read it as a band, not a point.** One task is 1.2pp, and the 95% interval over 83 tasks is **40.1–61.1%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, eight tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. It scores far below `hard` and `mined` for the reason it exists: those corpora are easier because they are closer to home.
+**Read it as a band, not a point.** One task is 1.2pp, and the 95% interval over 83 tasks is **60.6–79.7%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, twenty-five tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. Until v8.74.0 it scored far below `hard` and `mined` (42 of 83, 50.6%, 40.1–61.1%) for the reason it exists: those corpora are easier because they are closer to home. With body words on by default it sits level with them — 59 of 83, 71.1% — because the largest class of its misses was the one body words reach ([below](#why-a-task-misses-why)). That is a level of agreement with the self-scored corpora, not a claim that SigMap now finds the right file for seven questions in ten on any repository: its questions were written by reading the code, which favours a lever that indexes the code's own words.
 
 **Zero-config.** Each repo is indexed the way a first-time user's `sigmap` run indexes it — auto-detected `srcDirs`, no config. When this corpus was first scored, three repos could not be: the resolver never reached Riverpod's `packages/*/lib`, Phoenix's `lib/` or the Godot demos, so every answer was unindexed (0/5 each) and their manifest entries pinned `srcDirs` to measure ranking regardless. Detection now reaches all three, the pins are gone, and the table is zero-config throughout ([#900](https://github.com/manojmallick/sigmap/issues/900)). A manifest entry may still pin `srcDirs` — with a `srcDirsWhy` recording the measured reason — if a future layout defeats detection; none does today.
 
-**Phoenix reads 4/5, not the 5/5 its pin scored.** That is a change of measurement path, not a regression. Zero-config scored 0/5 there before; the pinned 5/5 was measured through a config file, and with one present the import graph is built over the pinned roots. With none, the graph the ranker is handed is built over `src`, `app`, `lib`, `R` and `inst` whatever roots detection chose — on purpose, see [the import graph](#the-import-graph-and-the-ranker-934-935).
+**Phoenix read 4/5 zero-config at v8.74.0, not the 5/5 its pin scored, and reads 5/5 again with body words on.** The difference was a change of measurement path, not a regression. Zero-config scored 0/5 there before; the pinned 5/5 was measured through a config file, and with one present the import graph is built over the pinned roots. With none, the graph the ranker is handed is built over `src`, `app`, `lib`, `R` and `inst` whatever roots detection chose — on purpose, see [the import graph](#the-import-graph-and-the-ranker-934-935).
 
 **Unreachable** means no expected file of the task is in the index, so it cannot be found at all: detection skipped its directory, or the extractor emitted no signature for it. Those tasks stay in the corpus and are recorded in the baseline; the gate fails when a task that *was* reachable becomes unreachable, not on the gaps themselves.
 
@@ -438,11 +448,11 @@ Two more were found while fixing these and were **not fixed in #900**. The first
 
 Until #934 a repo with no `srcDirs` pin got an import graph over `src`, `app`, `lib`, `R` and `inst` only. Of the 50 pinned clones, **29 had an empty graph** (26 with no `srcDirs` pin; 12 are written in languages the graph does not read), so `--impact`, `plan`'s blast radius and the MCP `get_impact` / `get_method_impact` tools answered "nothing depends on this" (`get_method_impact`: "symbol not found in the call-graph") for Django, Rails, Excalidraw, Tokio, Gin and 10 more. The graph now walks the roots detection chose **plus** those conventional names — a conventional directory the walk reached before is still reached, and no clone lost a node or an edge — and the live overlay and the call graph resolve their directories the same way. 21 repos go from an empty graph to one with files in it, 15 of them with resolved import edges (Django 0 → 2,971 files, Astro 0 → 1,890, Rails 0 → 1,234; the other six — Zod, whose TypeScript imports `./x.js` for `x.ts`, and five small repositories in languages the graph does not read — gain files and no edges), and the repositories with no import edge at all go from 30 to 15; a pinned `srcDirs` still wins, with its own exclude list.
 
-**What ranking is handed did not change, and that is measured, not assumed.** The neighbour boost adds 0.40 per importing seed to a file that itself matched, was calibrated on graphs of a few hundred files, and is bounded only by a hub cutoff of 20% of the graph — 595 importers on Django's 2,971 files. Fed the full Django graph, `core/exceptions.py`, with 180 importers, collects +72 on a pre-boost score of 12 and ranks first; the answers to x029 and x030 fall from 4th and 5th to 11th. Over the whole corpus that is **42 → 42** hits (won 3, lost 3, MRR 0.3543 → 0.3520) with **django 3 → 1** — a per-repo regression an average would hide. So `rank()` is still handed `buildRankingGraph` (the pre-#934 walk), the benchmarks that score it call the same function, and in v8.73.0 no published number or baseline moved. Calibrating the boost for large graphs was then measured with a rule chosen on one half of the data and scored on the other, and no rule earned the change ([below](#calibrating-the-neighbour-boost-935)).
+**What ranking is handed did not change, and that is measured, not assumed.** The neighbour boost adds 0.40 per importing seed to a file that itself matched, was calibrated on graphs of a few hundred files, and is bounded only by a hub cutoff of 20% of the graph — 595 importers on Django's 2,971 files. Fed the full Django graph, `core/exceptions.py`, with 180 importers, collects +72 on a pre-boost score of 12 and ranks first; the answers to x029 and x030 fall from 4th and 5th to 11th. Over the whole corpus that was **42 → 42** hits at v8.73.0, before body words (won 3, lost 3, MRR 0.3543 → 0.3520), with **django 3 → 1** — a per-repo regression an average would hide. So `rank()` is still handed `buildRankingGraph` (the pre-#934 walk), the benchmarks that score it call the same function, and in v8.73.0 no published number or baseline moved. Calibrating the boost for large graphs was then measured with a rule chosen on one half of the data and scored on the other, and no rule earned the change ([below](#calibrating-the-neighbour-boost-935)).
 
 ### Calibrating the neighbour boost (#935)
 
-The question #934 left open is whether the hop-1 boost can be bounded so that `rank()` can be handed the complete graph. On this corpus **no rule earns it**, so nothing changed: `rank()` is still handed `buildRankingGraph`, and the calibration moved no published number or baseline.
+The question #934 left open is whether the hop-1 boost can be bounded so that `rank()` can be handed the complete graph. On this corpus **no rule earns it**, so nothing changed: `rank()` is still handed `buildRankingGraph`, and the calibration moved no published number or baseline. Every figure in this section was measured on the ranker as it shipped through v8.74.0 — without body words — and is recorded as such: the sweep ranks with whatever the runner is handed, so re-running it now measures the rules on top of them.
 
 **Method.** Ten rules were fixed in `scripts/lib/graph-damping.mjs` before this run, after an exploratory one, most of them the shapes #935's own lead suggested: a file may take at most 24, 16, 12, 8 or 4 hop-1 bonuses (`cap`), at most 2, 1 or 0.5 times its own score in total beyond its first bonus (`share`), or each successive bonus is scaled by 0.9 or 0.8 (`decay`). The first bonus is never damped — it is the designed lift for a direct neighbour of a match — so a rule can reorder files that matched on their own and can never hide a neighbour. Every task is ranked with the graph `rank()` is handed today and with the complete graph under each rule; a cell counts the tasks the setting wins and loses against the former.
 
@@ -483,21 +493,21 @@ npm run benchmark:graph-damping-sweep      # the table and the folds above, reco
 
 ### Why a task misses (`--why`)
 
-A hit rate says how many tasks miss and nothing about the remedy, and the remedy depends on the reason. `--why` places every miss in exactly one class. The table is the 41 misses behind the 42/83 above:
+A hit rate says how many tasks miss and nothing about the remedy, and the remedy depends on the reason. `--why` places every miss in exactly one class. The table is the 24 misses behind the 59/83 above (the shipped ranker — body words on):
 
 | Why the task misses | Tasks | What it needs |
 |---|---:|---|
 | answer not indexed | 1 | detection or an extractor |
 | demoted by a path penalty | 0 | a path classifier |
-| no token in common with the question | 12 | a way across the vocabulary — not a re-weighting |
-| ranked 6–10 | 9 | ranking |
+| no token in common with the question | 1 | a way across the vocabulary — not a re-weighting |
+| ranked 6–10 | 6 | ranking |
 | ranked 11–20 | 5 | ranking |
 | ranked 21–50 | 5 | ranking |
-| ranked beyond 50 | 9 | ranking |
+| ranked beyond 50 | 6 | ranking |
 
-The first two rows are decided by code that is not the ranker, and fixing one never costs another split: at the first run they held 4 tasks (plus 15 hidden behind the pinned `srcDirs`) and 1, and they hold 1 and 0 now. The other 40 misses are the ranker's. Nine sit within five places of the top 5. The twelve that share no token with the question score zero: the question and the answer's index entry have no word in common, so a lexical ranker has nothing to compare, and no re-weighting changes that. Whether a zero-dependency lever reaches them is a measurement for [#674](https://github.com/manojmallick/sigmap/issues/674) and [#703](https://github.com/manojmallick/sigmap/issues/703) — repo-mined expansions measured +0 tasks on the earlier corpora and have not been tried on this one.
+The first two rows are decided by code that is not the ranker, and fixing one never costs another split: at the first run they held 4 tasks (plus 15 hidden behind the pinned `srcDirs`) and 1, and they hold 1 and 0 now. The other 23 misses are the ranker's. Six sit within five places of the top 5. The class that share no token with the question scored zero at v8.74.0 — the question and the answer's index entry have no word in common, so a lexical ranker has nothing to compare, and no re-weighting changes that — and held 12 of the 41 misses; the lever that reached them was not a re-weighting but the answer's *own* words, which [body words](#body-words) add, and one task is left in it. Repo-mined expansions, the other lever [#674](https://github.com/manojmallick/sigmap/issues/674) and [#703](https://github.com/manojmallick/sigmap/issues/703) asked about, are net negative on this corpus with body words on (−1).
 
-The penalty row is a counterfactual: the path penalty is divided out of the file's final score and the list re-sorted with the ranker's own tie-break, so it answers "would this file have made the top 5 had its path not demoted it" and nothing more. It is report-only — `--why` records no baseline.
+The penalty row is a counterfactual: the path penalty is divided out of the file's final score and the list re-sorted with the ranker's own tie-break, so it answers "would this file have made the top 5 had its path not demoted it" and nothing more. The row is the baseline's own account (`--save` records it beside the hit count); it is not a gate.
 
 ### Run it
 
@@ -522,83 +532,84 @@ CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.jso
 
 ## Where the misses come from
 
-A hit rate says how many tasks miss and nothing about the remedy. Every gate can now say why — each miss in exactly one class, with the words that explain it — and compare each opt-in ranking signal with the shipped ranker, task by task. This section is what that found. Each figure in it is held to a saved report by a test, so none can drift; `hard`, `mined` and `easy` score this repository against itself, move with every commit, and are not quoted.
+A hit rate says how many tasks miss and nothing about the remedy. Every gate can now say why — each miss in exactly one class, with the words that explain it — and compare each ranking signal with the shipped ranker, task by task. This section is what that found, measured on the ranker as v8.75.0 ships it, body words included. Each figure in it is held to a saved report by a test, so none can drift; `hard`, `mined` and `easy` score this repository against itself and move with every commit, so they appear only as columns of the signals table below.
 
 ### What the misses are made of
 
 | Why the task misses | xrepo | jvm |
 |---|---:|---:|
 | answer not indexed | 1 | 0 |
-| demoted by a path penalty | 0 | 1 |
-| no token in common with the question | **12** | **24** |
-| ranked 6–10 | 9 | 2 |
-| ranked 11–20 | 5 | 0 |
-| ranked 21–50 | 5 | 8 |
-| ranked beyond 50 | 9 | 5 |
-| **hits / tasks** | 42 / 83 | 21 / 61 |
-| **hit rate over the tasks a word can reach** | 60.0% (42 / 70) | 56.8% (21 / 37) |
+| demoted by a path penalty | 0 | 2 |
+| no token in common with the question | 1 | **16** |
+| ranked 6–10 | 6 | 6 |
+| ranked 11–20 | 5 | 3 |
+| ranked 21–50 | 5 | 6 |
+| ranked beyond 50 | 6 | 3 |
+| **hits / tasks** | 59 / 83 | 25 / 61 |
+| **hit rate over the tasks a word can reach** | 72.8% (59 / 81) | 55.6% (25 / 45) |
 
 *A word can reach a task* when its answer is indexed and shares a word with the question. A task outside that set cannot be won by any method that matches words, so the rate over the set is the one a ranking change can move; the rate over every task also moves when the corpus does.
 
-The largest class on both corpora is the one no re-weighting touches: the answer shares no token with the question. What differs is why. On `xrepo`, whose questions were written by reading the code, **11 of the 12** hold a *distinctive* word of the question in their own source — a word held by no more than 5% of the files, which the file's signatures do not carry (okhttp `revalidated`, express `tls`, serilog `retrying`) — and the twelfth holds none. A signature map keeps a file's shape and drops what its body says, and a question about how something works is asked in the words the body uses. On `jvm` the same split reads **6 / 12 / 6**: six hold a distinctive word, twelve only common ones (`import`, `message`, `not`), six nothing. Those are commit subjects the miner took for questions, and most of them describe an edit, not a topic.
+The largest class used to be the one no re-weighting touches: the answer shares no token with the question. On `xrepo`, whose questions were written by reading the code, it held 12 of the 41 misses at v8.74.0 and **11 of the 12** held a *distinctive* word of the question in their own source — a word held by no more than 5% of the files, which the file's signatures do not carry (okhttp `revalidated`, express `tls`, serilog `retrying`). A signature map keeps a file's shape and drops what its body says, and a question about how something works is asked in the words the body uses. [Body words](#body-words) index exactly those words and are on by default since v8.75.0, so the class is **1** now: the one task that holds none of the question's words anywhere. On `jvm` it is still the largest, 16 of 36 misses, and reads **1 / 9 / 6**: one holds a distinctive word, nine only common ones (`import`, `message`, `not`), six nothing. Those are commit subjects the miner took for questions, and most of them describe an edit, not a topic.
 
 ### What the JVM split measures
 
-It reads **34.4%** (21 of 61) — not the 22.9% [#674](https://github.com/manojmallick/sigmap/issues/674) quoted, nor the 21.3% its baseline held until this release, which is why its no-regress check would have passed a drop of 13 points. Of its 40 misses **24** share no token with the question, almost all of them spring-petclinic commit subjects: "fix typo in confirmation message", "Make jar not war", "Add proxyBeanMethods = false". The miner took the subject as the question and the files the commit touched as the answer, and a subject that describes an edit names nothing the file is about. **5** tasks name only a test file as the answer, and none of them hits. This is the shape of [#883](https://github.com/manojmallick/sigmap/issues/883) — a mining artefact scored as a ranking miss — in a second corpus.
+It reads **41.0%** (25 of 61) — 34.4% at v8.74.0, before body words were on by default, and not the 22.9% [#674](https://github.com/manojmallick/sigmap/issues/674) quoted. Of its 36 misses **16** share no token with the question, all of them spring-petclinic commit subjects: "fix typo in confirmation message", "Make jar not war", "Add proxyBeanMethods = false". The miner took the subject as the question and the files the commit touched as the answer, and a subject that describes an edit names nothing the file is about. **5** tasks name only a test file as the answer, and none of them hits. This is the shape of [#883](https://github.com/manojmallick/sigmap/issues/883) — a mining artefact scored as a ranking miss — in a second corpus.
 
-Over the 37 tasks a word-matching ranker can reach, the hit rate is **56.8%**. What is left is 16 ranking misses (15 ranked below the top 5, one demoted by a path penalty), most of them in akka's large Scala files. The headline measures the corpus as much as the ranker: read the reachable rate when judging a ranking change, and keep the headline for comparing releases.
+Over the 45 tasks a word-matching ranker can reach, the hit rate is **55.6%**. What is left is 20 ranking misses (18 ranked below the top 5, two demoted by a path penalty), most of them in akka's large Scala files. The headline measures the corpus as much as the ranker: read the reachable rate when judging a ranking change, and keep the headline for comparing releases.
 
 ### The hard split against grep
 
-[#674](https://github.com/manojmallick/sigmap/issues/674) called the honest benchmark's hard split "the one split where the baseline wins" (SigMap 46.7%, grep 53.3%). The saved report now reads SigMap **66.7%** (10 of 15) against grep **53.3%** (8 of 15). `--autopsy` asks which tasks each finds and the other does not — and in doing so found what the grep scan was counting.
+[#674](https://github.com/manojmallick/sigmap/issues/674) called the honest benchmark's hard split "the one split where the baseline wins" (SigMap 46.7%, grep 53.3%). The saved report now reads SigMap **73.3%** (11 of 15) against grep **53.3%** (8 of 15). `--autopsy` asks which tasks each finds and the other does not — and in doing so found what the grep scan was counting.
 
-**The published scan counts SigMap's own files.** `.context/sig-index.json` and `.github/copilot-instructions.md` hold every identifier in a repository, so any question matches them first. In the layout the published figure is measured in, they took **127 of the 625** top-5 places the scan returned. They are not answers, and they push answers out.
+**The published scan counts SigMap's own files.** `.context/sig-index.json` and `.github/copilot-instructions.md` hold every identifier in a repository, so any question matches them first. In the layout the published figure is measured in, they took **128 of the 625** top-5 places the scan returned. They are not answers, and they push answers out.
 
 | grep scan | hit@5 | honest lift |
 |---|---:|---:|
-| as published | 40.0% (50 / 125) | 2.24× |
-| SigMap's own files left out | 45.6% (57 / 125) | 1.96× |
+| as published | 39.2% (49 / 125) | 2.37× |
+| SigMap's own files left out | 45.6% (57 / 125) | 2.04× |
 
-**The scan is unchanged**: `benchmark:honest` still scans what it always scanned, and this section only records the effect. Whether to restate the lift is a call for a release, not a side effect of a diagnosis. Because the scan includes those files, the published figure moves with the repository: v8.70.1 reads 49 / 125 where v8.70.0 read 50 / 125, one more of the 625 top-5 places taken by SigMap's own generated files (127 against 126) — on a control run of the untouched v8.70.0 tree, in the same layout, the scan reproduces 50 / 125. v8.72.0 keeps 49 / 125 while that count of places moves the other way, 127 → 126, with the same scan. v8.72.1 keeps 49 / 125 again while the count moves back, 126 → 127, with the same scan; the two trees differ only in documentation (a legacy site deleted, six decision records added), which the scan reads, but the cause is not isolated. v8.73.0 reads 51 / 125 with 126 of the 625 places, the same scan on a clean checkout of the release: two more answers than v8.72.1 published — `src/tracking/logger.js` for "usage log tracking NDJSON runs" (t018) and `src/mcp/handlers.js` for t020 — each the answer that SigMap's own generated files had been displacing from the fifth place. The v8.72.1 tag, run through the same recipe on the same day, reads 50 / 125 (t020 only), so 39.2% did not reproduce from its own tag and one task of the movement is the environment, not the tree. Cause not isolated beyond that contested fifth place. v8.74.0 reads 50 / 125 with 127 of the 625 places on a clean checkout of the release, the same scan: `src/tracking/logger.js` (t018) is displaced from the fifth place by one generated file again and only `src/mcp/handlers.js` (t020) keeps its answer, which is the 50 / 125 the v8.72.1 tag reads by this recipe. The figure therefore moves down by one, and the lift up from 2.20× to 2.24×, with no change to the scan — the release adds text, and the scan reads it; `rank()` is unchanged with `graphDamping` absent.
+**The scan is unchanged**: `benchmark:honest` still scans what it always scanned, and this section only records the effect. Whether to restate the lift is a call for a release, not a side effect of a diagnosis. Because the scan includes those files, the published figure moves with the repository: v8.70.1 reads 49 / 125 where v8.70.0 read 50 / 125, one more of the 625 top-5 places taken by SigMap's own generated files (127 against 126) — on a control run of the untouched v8.70.0 tree, in the same layout, the scan reproduces 50 / 125. v8.72.0 keeps 49 / 125 while that count of places moves the other way, 127 → 126, with the same scan. v8.72.1 keeps 49 / 125 again while the count moves back, 126 → 127, with the same scan; the two trees differ only in documentation (a legacy site deleted, six decision records added), which the scan reads, but the cause is not isolated. v8.73.0 reads 51 / 125 with 126 of the 625 places, the same scan on a clean checkout of the release: two more answers than v8.72.1 published — `src/tracking/logger.js` for "usage log tracking NDJSON runs" (t018) and `src/mcp/handlers.js` for t020 — each the answer that SigMap's own generated files had been displacing from the fifth place. The v8.72.1 tag, run through the same recipe on the same day, reads 50 / 125 (t020 only), so 39.2% did not reproduce from its own tag and one task of the movement is the environment, not the tree. Cause not isolated beyond that contested fifth place. v8.74.0 reads 50 / 125 with 127 of the 625 places on a clean checkout of the release, the same scan: `src/tracking/logger.js` (t018) is displaced from the fifth place by one generated file again and only `src/mcp/handlers.js` (t020) keeps its answer, which is the 50 / 125 the v8.72.1 tag reads by this recipe. The figure therefore moves down by one, and the lift up from 2.20× to 2.24×, with no change to the scan — the release adds text, and the scan reads it; `rank()` is unchanged with `graphDamping` absent. v8.75.0 reads 49 / 125 with 128 of the 625 places on a clean checkout of the release, the same scan: one answer fewer than v8.74.0, from the release's own text again, and the lift moves up from 2.24× to 2.37×: 0.08 of the 0.13 because SigMap's side moved (112 → 116 of 125), the rest because the scan, unchanged, finds one answer fewer (50 → 49).
 
 Against the scan without those files:
 
 | | tasks | both find it | only SigMap | only grep | neither |
 |---|---:|---:|---:|---:|---:|
-| every task | 125 | 54 | 58 | 3 | 10 |
-| hard split | 15 | 7 | 3 | 1 | 4 |
+| every task | 125 | 55 | 61 | 2 | 7 |
+| hard split | 15 | 7 | 4 | 1 | 3 |
 
-The three tasks grep finds and SigMap does not show no systematic vocabulary advantage. One shares no token with the question and holds only common words in its source (`express-h003`, which grep ranks 3rd). Two are SigMap near-misses, ranked 6th–10th, that grep ranks 5th and 2nd (`fastapi-t004`, `svelte-t002`). SigMap's 13 misses on this corpus are **4** that share no word with their index entry and **9** ranked misses, **5** of them ranked 6th–10th.
+The two tasks grep finds and SigMap does not show no systematic vocabulary advantage. One shares no token with the question and holds only common words in its source (`express-h003`, which grep ranks 3rd). The other is a SigMap near-miss, ranked 6th–10th, that grep ranks 5th (`fastapi-t004`). SigMap's 9 misses on this corpus are **3** that share no word with their index entry and **6** ranked misses, **4** of them ranked 6th–10th.
 
 ### The opt-in ranking signals
 
-Each signal against the shipped ranker, task by task. A cell is the net number of tasks it wins over plain, with won / lost beside it: a signal that wins as many as it loses has moved answers around, not improved them. The honest corpus is scored without an import graph, as its own table is, so the two arms that are about the graph do not apply to it (—).
+Each signal against the shipped ranker, task by task. A cell is the net number of tasks it wins over plain, with won / lost beside it: a signal that wins as many as it loses has moved answers around, not improved them. The honest corpus is scored without an import graph, as its own table is, so the two arms that are about the graph do not apply to it (—). Body words ship on, so `plain` already carries them and their row is the ablation: the flag turned off, a cell that counts what the words win — a negative number there is the cost of switching them off.
 
 | signal | xrepo | hard | mined | easy | jvm | honest | all |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| plain (as shipped) | 42 / 83 | 66 / 90 | 37 / 60 | 18 / 20 | 21 / 61 | 112 / 125 | 296 / 439 |
-| centrality blend | -1 (0 / 1) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | — | -1 (0 / 1) |
-| surface enrichment | +0 (1 / 1) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (1 / 1) |
-| mined expansions | +3 (4 / 1) | +0 (1 / 1) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +1 (1 / 0) | +4 (6 / 2) |
-| call-graph boost | +0 (0 / 0) | -2 (1 / 3) | -2 (0 / 2) | -1 (0 / 1) | +1 (1 / 0) | +1 (1 / 0) | -3 (3 / 6) |
-| **body words** | +15 (16 / 1) | +1 (2 / 1) | +3 (4 / 1) | +0 (0 / 0) | +1 (1 / 0) | +4 (4 / 0) | +24 (27 / 3) |
-| no import graph (as `ask`) | +0 (0 / 0) | +2 (2 / 0) | -2 (1 / 3) | +0 (0 / 0) | -2 (0 / 2) | — | -2 (3 / 5) |
+| plain (as shipped) | 59 / 83 | 65 / 90 | 41 / 60 | 19 / 20 | 25 / 61 | 116 / 125 | 325 / 439 |
+| centrality blend | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | — | +0 (0 / 0) |
+| surface enrichment | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) |
+| mined expansions | -1 (0 / 1) | -3 (1 / 4) | -1 (0 / 1) | +0 (0 / 0) | +1 (2 / 1) | +0 (0 / 0) | -4 (3 / 7) |
+| call-graph boost | -1 (0 / 1) | -4 (0 / 4) | -3 (1 / 4) | -2 (0 / 2) | +2 (2 / 0) | +0 (0 / 0) | -8 (3 / 11) |
+| **body words (flag off)** | -17 (1 / 18) | +0 (3 / 3) | -4 (0 / 4) | -1 (0 / 1) | -4 (0 / 4) | -4 (0 / 4) | -30 (4 / 34) |
+| no import graph (as `ask`) | -1 (0 / 1) | +3 (3 / 0) | -4 (0 / 4) | +0 (0 / 0) | -1 (1 / 2) | — | -3 (4 / 7) |
 
-- **Centrality blend: deprecated.** It moved the rank of 4 of 314 tasks and changed one hit, a loss (express `x037`).
-- **Surface enrichment: deprecated.** It changed two hits, one each way (express `x038` won, `x040` lost), and adds pseudo-signatures to the index. Its best case is a web framework asked a route-worded question, and across the corpora that case is net zero.
-- **Mined expansions: stays opt-in.** +3 on the third-party corpus (won 4, lost 1) and +1 on the honest corpus, nothing elsewhere. That is thin — five tasks changed on `xrepo`, which a sign test cannot tell from chance (p ≈ 0.19) — and the four it wins were already near-misses; it does not reach the no-token class.
-- **Call-graph boost: not decided here**, because [#703](https://github.com/manojmallick/sigmap/issues/703) does not cover it. Net −3 (won 3, lost 6), negative on three of the six corpora: it is the next decision.
-- **No import graph** is not a signal but a configuration. `sigmap ask` and `--query` call `rank()` without one, while the benchmark runner and the MCP tool pass one, so the neighbour boost the benchmarks include is not what `ask` runs. Removing it is net −2 over the five corpora it applies to (won 3, lost 5): the mismatch costs nothing a benchmark can see.
+- **Centrality blend: deprecated.** It moved the rank of 6 of 314 tasks and changed no hit.
+- **Surface enrichment: deprecated.** It changed no hit, and adds pseudo-signatures to the index. Its best case is a web framework asked a route-worded question, and across the corpora that case is net zero.
+- **Mined expansions: stays opt-in.** Net −4 (won 3, lost 7), negative on three of the six corpora: −1 on the third-party corpus, −3 on `hard`, −1 on `mined`, and +1 on `jvm`. With body words on it no longer wins where it was +3 with the words off (the v8.67.0 recording), and 10 tasks changed hit, so it is neither a default nor deprecated; it does not reach the no-token class.
+- **Call-graph boost: not decided here**, because [#703](https://github.com/manojmallick/sigmap/issues/703) does not cover it. Net −8 (won 3, lost 11), negative on four of the six corpora: it is the next decision.
+- **No import graph** is not a signal but a configuration. `sigmap ask` and `--query` call `rank()` without one, while the benchmark runner and the MCP tool pass one, so the neighbour boost the benchmarks include is not what `ask` runs. Removing it is net −3 over the five corpora it applies to (won 4, lost 7), and it is not a loss everywhere: `hard` reads +3 without it and `mined` −4. One `mined` task moves with the commit the index was generated at — the generated recent-changes block is indexed — so a re-run on another history reads −2.
+- **Body words: the default.** Switching the flag off costs **17** tasks on the third-party corpus (won 1, lost 18), 4 each on `mined`, `jvm` and the honest corpus and 1 on `easy`, and is level on `hard` (3 won, 3 lost).
 
-**The rule a signal is held to.** A signal becomes a default when it wins at least five more tasks than it loses on the third-party corpus — a margin where a sign test starts to separate a win from chance — and loses net on no other corpus. It is deprecated when its net is not positive and it changes at most two hits. Anything else stays opt-in and measured. The rule was written with these numbers in hand, so it is a standard the next measurement is held to, not a result.
+**The rule a signal is held to.** A signal becomes a default when it wins at least five more tasks than it loses on the third-party corpus — a margin where a sign test starts to separate a win from chance — and loses net on no other corpus. It is deprecated when its net is not positive and it changes at most two hits. Anything else stays opt-in and measured. The rule was written with the v8.67.0 numbers in hand, so it is a standard the next measurement is held to, not a result — and it was held to: body words met it as an addition at v8.67.0 and meet it as the ablation now, where switching them off is −17 on the third-party corpus and level or worse on every other.
 
 ### Body words
 
-`retrieval.bodyWords` is the lever the first section points at. It indexes each file's *body words* — the rare words of its source that its signatures drop — into BM25's prose field, so a question asked in the words the code uses to do something can reach the file that does it. A word counts when no more than 5% of the indexed files hold it, the file's own index entry lacks it, and it is not a number, a word under three characters, or one that only frames a question (`how`, `does`, `whether`); a file keeps its 200 best, ordered by the lines that hold them, so the result never depends on the order files arrive in.
+`retrieval.bodyWords` is the lever the first section points at, and it ships on since v8.75.0. It indexes each file's *body words* — the rare words of its source that its signatures drop — into a field of their own at BM25's prose weight that adds nothing to a document's length, so a question asked in the words the code uses to do something can reach the file that does it. A word counts when no more than 5% of the indexed files hold it, the file's own index entry lacks it, and it is not a number, a word under three characters, or one that only frames a question (`how`, `does`, `whether`); a file keeps its 200 best, ordered by the lines that hold them, so the result never depends on the order files arrive in.
 
-On `xrepo` it takes 42 of 83 to **57** (50.6% → 68.7%), winning **16** tasks and losing **1**, and lifts MRR from 0.354 to 0.483, so it is not a hit@5-only effect. It wins on corpora other people wrote about other code, too: `mined` +3, `jvm` +1, `hard` +1, and the honest corpus **112 → 116** of 125 (89.6% → **92.8%**) without losing a task. No corpus loses net. One caveat the corpus cannot remove: `xrepo`'s questions were written by reading the code, which favours a lever that indexes the code's own words, so its +15 is the upper end. The mined and JVM subjects, written by people describing a change, gain less, and none loses.
+On `xrepo` switching it off takes 59 of 83 to **42** (71.1% → 50.6%): it wins **18** tasks and loses **1**, and lifts MRR from 0.354 to 0.496, so it is not a hit@5-only effect. It wins on corpora it was not chosen on, too: `mined` +4, `jvm` +4, `easy` +1 and the honest corpus **112 → 116** of 125 (89.6% → **92.8%**) without losing a task, and `hard` is level (3 won, 3 lost). No corpus is worse off with them. One caveat the corpus cannot remove: `xrepo`'s questions were written by reading the code, which favours a lever that indexes the code's own words, so its +17 is the upper end. The mined and JVM subjects, written by people describing a change, gain less, and none loses.
 
-The two constants were chosen from a sweep, not from a peak. Net tasks over plain, won / lost beside it, summed over the six corpora:
+The two constants were chosen from a sweep, not from a peak (measured at v8.67.0, with the words in the prose field; the placement's own sweep is [below](#weighting-the-body-words-943)). Net tasks over plain, won / lost beside it, summed over the six corpora:
 
 | share of files | 50 words | 100 words | 200 words | 500 words | all words |
 |---|---:|---:|---:|---:|---:|
@@ -606,23 +617,66 @@ The two constants were chosen from a sweep, not from a peak. Net tasks over plai
 | 5% | +25 (28 / 3) | +28 (31 / 3) | **+24 (27 / 3)** | +24 (29 / 5) | +25 (30 / 5) |
 | 10% | +28 (34 / 6) | +32 (38 / 6) | +30 (38 / 8) | +27 (36 / 9) | +26 (36 / 10) |
 
-Across all 15 settings and six corpora (90 cells) **none** is net-negative, and the third-party corpus is +6 or better at every one. The region is flat from a 5% share and 50 words up (**+24 to +32** over 439 tasks) and lower at 2%, which is too tight on a large repository. The shipped 5% / 200 is inside it, not at its peak (10% / 100 is +32): it is the smaller of the two shares on the plateau, so the smaller index, and it loses 3 tasks, as few as any setting in it. `npm run benchmark:body-words-sweep` reproduces the grid.
+Across all 15 settings and six corpora (90 cells) **none** is net-negative, and the third-party corpus is +6 or better at every one. The region is flat from a 5% share and 50 words up (**+24 to +32** over 439 tasks) and lower at 2%, which is too tight on a large repository. The shipped 5% / 200 is inside it, not at its peak (10% / 100 is +32): it is the smaller of the two shares on the plateau, so the smaller index, and it loses 3 tasks, as few as any setting in it. `npm run benchmark:body-words-sweep` runs the same grid and now scores it in the shipped placement, so a re-run no longer reproduces the table above.
 
-It costs a little once per regeneration and a little per query: building takes about 0.7 ms per indexed file (1.9 s for laravel's 2,618 files), the cache is about 0.2 KB per file (509 KB for laravel, smaller than its signature index), and a query costs 6–23 ms more on the largest repositories (laravel 153 → 176 ms). That was measured once, on one laptop, and is not a recorded benchmark.
+It costs a little once per regeneration and a little per query: building takes about 0.6–0.85 ms per indexed file (1.9 s for laravel's 2,618 files when it was measured at v8.67.0 with the words in the prose field; 1.7 s for Django's 2,086 and 1.5 s for laravel at v8.75.0, the line filter included), the cache is about 0.2 KB per file (509 KB for laravel, smaller than its signature index), and a query costs 6–23 ms more on the largest repositories (laravel 153 → 176 ms). That was measured on one laptop, and is not a recorded benchmark.
 
 The words reach the ranker only — never `.context/sig-index.json`, the generated context file or anything `ask` renders for an LLM; a test generates with the flag on and off and compares the context file and the signature index. With the flag off nothing changes. The cache at `.context/body-words.json` is keyed by the mtime of `sig-index.json`, so regenerating rebuilds it and `ask` rewriting `query-context.md` does not. Files edited after the last regeneration, and files the MCP `notify_*` tools add between regenerations, carry no body words until the next one.
 
-Turn it on in `gen-context.config.json`:
+Turn it off in `gen-context.config.json`:
 
 ```json
-{ "retrieval": { "bodyWords": true } }
+{ "retrieval": { "bodyWords": false } }
 ```
 
-It meets the rule above — +15 on the third-party corpus, no corpus net-negative — so it is eligible to become a default. Flipping it moves every published retrieval number, the baselines and the honest corpus among them, so it belongs with the release that re-records them. `src/eval/runner.js` and the honest benchmark rank without any signal, so they would need to read the flag to keep measuring what ships.
+It met the rule above as an addition at v8.67.0 — +15 on the third-party corpus, no corpus net-negative — and was eligible to become a default; on the v8.74.0 tree the placement described here no longer did, by one task of `hard`, and the next section is what was done about that. It has shipped on since v8.75.0.
+
+### Weighting the body words (#943)
+
+Everything above measured the words as they joined BM25's prose field, so they carried its weight (0.6) and were counted into a document's length. [#943](https://github.com/manojmallick/sigmap/issues/943) asked what a field of their own would do, because the rule above turned on one task. On the v8.74.0 tree (f33510f) that placement read **−1** on `hard` — 4 won, 5 lost, where the v8.67.0 recording above read +1 — and so did not meet the rule. On the tree of this change it reads **+0** (4 / 4): `h087`, "the built-in settings applied before any overrides", is a hit again, with no change to the file it names. `hard` is 90 tasks scored against this repository, one task is 1.1 points, and it moves with edits unrelated to its answer — adding the test that pins this section moved one cell of the table below — so it cannot carry a placement on its own.
+
+The sweep puts the words in a field of their own and varies both things the 90-cell grid above left alone. The family was fixed before the run — eleven cells, a weight from 0.2 to 0.8, the words counted into a document's length (`count`) or not (`ignore`), mildest first — and a variant is judged against plain by the rule above applied one step more strictly: xrepo at least +5, no corpus net-negative, and neither half of xrepo (by repository) or of `mined` (by task) net-negative. Net tasks over plain, won / lost beside it:
+
+| Placement | xrepo | hard | mined | easy | jvm | honest | all |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| plain | 42 / 83 | 65 / 90 | 37 / 60 | 18 / 20 | 21 / 61 | 112 / 125 | 295 / 439 |
+| prose field (through v8.74) | +15 (16/1) | +0 (4/4) | +3 (3/0) | +0 (0/0) | +1 (1/0) | +4 (4/0) | +23 (28/5) |
+| `w0.2-count` | +9 (9/0) | +0 (2/2) | +1 (2/1) | +0 (0/0) | +1 (1/0) | +3 (3/0) | +14 (17/3) |
+| `w0.2-ignore` | +11 (11/0) | +0 (2/2) | +1 (2/1) | +1 (1/0) | +1 (1/0) | +3 (3/0) | +17 (20/3) |
+| `w0.3-count` | +12 (12/0) | +1 (3/2) | +1 (2/1) | +0 (0/0) | +1 (1/0) | +3 (3/0) | +18 (21/3) |
+| `w0.3-ignore` | +15 (15/0) | +0 (2/2) | +3 (4/1) | +1 (1/0) | +1 (1/0) | +3 (3/0) | +23 (26/3) |
+| `w0.4-count` | +14 (14/0) | +2 (4/2) | +3 (3/0) | +0 (0/0) | +1 (1/0) | +4 (4/0) | +24 (26/2) |
+| `w0.4-ignore` | +16 (17/1) | +0 (3/3) | +4 (4/0) | +1 (1/0) | +2 (2/0) | +3 (3/0) | +26 (30/4) |
+| `w0.5-count` | +14 (15/1) | +1 (4/3) | +3 (3/0) | +0 (0/0) | +1 (1/0) | +4 (4/0) | +23 (27/4) |
+| `w0.5-ignore` | +17 (18/1) | +0 (3/3) | +4 (4/0) | +1 (1/0) | +3 (3/0) | +4 (4/0) | +29 (33/4) |
+| **`w0.6-ignore`** | +17 (18/1) | +0 (3/3) | +4 (4/0) | +1 (1/0) | +4 (4/0) | +4 (4/0) | +30 (34/4) |
+| `w0.8-count` | +16 (18/2) | +0 (4/4) | +3 (3/0) | +0 (0/0) | +4 (4/0) | +2 (3/1) | +25 (32/7) |
+| `w0.8-ignore` | +18 (19/1) | -2 (3/5) | +7 (7/0) | +1 (1/0) | +4 (4/0) | +3 (3/0) | +31 (37/6) |
+
+- **The placement through v8.74 meets the rule here, by zero, and so do seven of the eleven cells**: ignoring the length from weight 0.3 to 0.6, counting it at 0.4, 0.5 and 0.8. The cells that fail do so at the edges — weight 0.2, and 0.3 counted, lose one task on one half of `mined`; `w0.8-ignore` loses `hard` by two.
+- **The rule as written names `w0.3-ignore`**, the mildest cell that meets it, and it does not ship. On this tree the placement it would replace meets the rule too, and `w0.3-ignore` does not beat it on the corpora that do not move with this repository: level on xrepo (+15 against +15) and `jvm` (+1 against +1), one task behind on the honest corpus (+3 against +4) and one ahead on `easy` (+1 against +0).
+- **What is reproducible is the length treatment.** Not counting the words into a document's length beats counting them by +2 or +3 on xrepo at every weight tried, and by one on `easy` at every weight; on `jvm` it is never worse (0 to +2 across the five weights) and on `mined` never worse (0 to +4). It never helps `hard`: nothing at weight 0.2, one or two tasks at the other four. That was read off the table after the rule had named its cell, and it is the one reason a different cell ships.
+- **What ships is `w0.6-ignore`**: the weight the words already carried and no contribution to the length, so there is no new constant and one factor separates it from the placement it replaces. Against that placement xrepo reads +17 (18 / 1) against +15 (16 / 1), `jvm` +4 (4 / 0) against +1 (1 / 0), `mined` +4 against +3, `easy` +1 against +0, the honest corpus +4 against +4 and `hard` +0 (3 / 3) against +0 (4 / 4) — **+30 (34 / 4)** against +23 (28 / 5), and worse on no corpus.
+
+**What it does not show.**
+
+- It is not the cell the rule named and it was chosen after the table was seen. What supports it is a sign that holds across five weights, not a best-of-eleven cell; a reader who prefers `w0.3-ignore` is choosing between two placements that are level on xrepo and `jvm` and differ by one task on the honest corpus and on `easy`.
+- The strong end of the family trades `hard` for the third-party corpora. Chosen on one half of xrepo and `mined`, without ever seeing `hard`, `easy`, `jvm` or the honest corpus, the argmax is `w0.8-ignore` on both folds (+11 and +14 on the tuning half) and reads `hard` −2 on the held-out one, beside +10 and +8 on xrepo, +4 and +3 on `mined` and +4 on `jvm`. Which end is right depends on whose questions are trusted: `hard`'s are paraphrases written to avoid the code's own words, and xrepo's were written by reading the code, so its +17 is the upper end here as it was above.
+- The report is the tree of this change. `hard` and `mined` move with every commit, so `npm run benchmark:body-weight-sweep` belongs on the release tree before anything is flipped.
+
+**What changed in the code.** `retrieval.bodyWords` places the words as `w0.6-ignore` (`BODY_FIELD`, `BODY_WEIGHT` and `BODY_LENGTH` in `src/retrieval/bm25.js`, which a test holds to `ADOPTED` in `scripts/lib/body-weight.mjs`); `bodyField: 'prose'` selects the placement through v8.74. Three more things were done to make the flag safe to leave on:
+
+- **A rare word is what a credential is.** Signatures pass the secret scanner; body words did not, so a repository holding `AKIAIOSFODNN7EXAMPLE` wrote `akiaiosfodnn7example` into `.context/body-words.json`. [#944](https://github.com/manojmallick/sigmap/pull/944) blanked the lines the scanner's patterns flag, and a review before the default flipped found what that left: unquoted `api_key: …` values, JSON-style `"password": …`, `mongodb+srv://` userinfo, a token that tokenizing splits below any length rule, and the body of a PEM block. A line is blanked, not just its word, when it holds a pattern of the secret scanner (the free-text ones `sigmap redact` uses included), assigns any credential-named key (quoted or not, in JSON, YAML, `.env` or code), carries a password in the userinfo of a URL, holds a bearer or token-family value, sits inside a PEM block, is longer than 2,000 characters, or holds a 20-character run of letters and digits. The cache schema moved to 3, so an older cache is rebuilt rather than trusted. It is a filter, not a guarantee — a secret in a shape none of those names stays — and the cache is local, in `.context/`, which `sigmap --init` gitignores; `retrieval.bodyWords: false` turns the words off where that is not enough.
+- **An index key is not trusted.** A committed context file can name any path, so a key that is absolute, climbs out of the repository, links out of it or is not a regular file is never read.
+- **Every command that ranks reads the same words.** `plan`, `evidence` and `validate --query` ranked without them while `ask`, `--query` and the MCP tool used them, so a plan could find nothing where `ask` found the file; they now take the words from one place.
+- **The benchmarks read the flag.** `src/eval/runner.js` builds a repository's body words in memory when its `gen-context.config.json` or the default turns them on, so `--benchmark`, the gates and the honest benchmark measure what that repository ships and leave a pinned checkout untouched. The signal arms are flag-aware: `plain` is what ships, and the `body words` row flips the flag relative to it.
+- **It is cheap to build.** On the machine this was measured on, building takes 1.7 s for Django's 2,086 indexed files and 1.5 s for Laravel's 2,618, with the line filter included, once per regeneration.
+
+**It ships on (v8.75.0).** By the rule above the flag was eligible — +15 or better on the third-party corpus, no corpus net-negative — and flipping it was one line, `bodyWords: true` in `src/config/defaults.js`. It moved every published retrieval number, every baseline and the sense of the `body words` row of the signals table, which is the ablation now. The report above is the tree of [#944](https://github.com/manojmallick/sigmap/pull/944); re-running `npm run benchmark:body-weight-sweep` on the merged `develop` reproduced its table cell for cell, and `hard` and `mined` move with every commit.
 
 ### How far is 90%?
 
-[#674](https://github.com/manojmallick/sigmap/issues/674) asked for the honest corpus at 90%, or a statement of why not. It reads **89.6%** (112 of 125): one task short. Its 13 misses are the 4 that share no word with their index entry — which no method that matches words can win — and 9 ranking misses, 5 of them ranked 6th–10th. With `retrieval.bodyWords` on it reads **92.8%** (116 of 125). That clears 90%, but by a margin of a few tasks on a corpus where any signal that wins one task does so (mined expansions and the call-graph boost each reach 113 of 125, **90.4%**), so the third-party corpus is the figure to watch: 50.6% as shipped, 68.7% with the words.
+[#674](https://github.com/manojmallick/sigmap/issues/674) asked for the honest corpus at 90%, or a statement of why not. As shipped it reads **92.8%** (116 of 125); it read 89.6% (112 of 125) before body words were the default, one task short. That clears 90% by three tasks, on a corpus where any signal that wins one task does so, so the third-party corpus is the figure to watch: 71.1% as shipped, 50.6% without the words. Its 9 misses are the 3 that share no word with their index entry — which no method that matches words can win — and 6 ranking misses, 4 of them ranked 6th–10th.
 
 ### Run it
 
@@ -630,13 +684,14 @@ It meets the rule above — +15 on the third-party corpus, no corpus net-negativ
 npm run benchmark:retrieval -- --why        # why every miss of hard / mined / easy / jvm misses, one class each
 npm run benchmark:retrieval -- --per-task   # each task's class and rank, one line each (what a release diffs)
 npm run benchmark:xrepo -- --why            # the same for the third-party corpus
-npm run benchmark:signals                   # every opt-in signal against plain on all six corpora, and record it
+npm run benchmark:signals                   # every ranking signal against what ships on all six corpora, and record it
 npm run benchmark:body-words-sweep          # the grid the body-words constants were chosen from, and record it
+npm run benchmark:body-weight-sweep         # the weight and length of the body-words field, held out, and record it
 node scripts/run-honest-benchmark.mjs --autopsy   # where SigMap and a whole-file grep scan disagree
 ```
 
 ::: warning Record the autopsy from the layout the published report uses
-`npm run benchmark:honest` saves, so run the script directly for the autopsy, and save it only from a working tree whose 50 clones are real directories inside it (`cp -cR`): there the grep baseline reads 40.0% and the saved report is the published one. In a checkout with symlinked clones the same scan walks a different file set for the self-repo task set and can read a different number — 41.6% when that was measured at v8.67.0, and on the v8.70.1 tree 40.0% (2.24×) against 39.2% (2.29×) in real directories — so the figure is only comparable to the published one in the layout described here.
+`npm run benchmark:honest` saves, so run the script directly for the autopsy, and save it only from a working tree whose 50 clones are real directories inside it (`cp -cR`): there the grep baseline reads 39.2% (49 of 125, at v8.75.0) and the saved report is the published one. In a checkout with symlinked clones the same scan walks a different file set for the self-repo task set and can read a different number — 41.6% when that was measured at v8.67.0, and on the v8.70.1 tree 40.0% (2.24×) against 39.2% (2.29×) in real directories — so the figure is only comparable to the published one in the layout described here.
 :::
 
 ## Per-repo results

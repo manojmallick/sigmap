@@ -28,14 +28,14 @@ SigMap ranks with BM25 over identifiers ([`src/retrieval/bm25.js`](https://githu
 
 ## Consequences
 
-- **A question that shares no word with its answer cannot be found by any method that matches words.** The records show how often: on the third-party corpus, 12 of the 41 misses at the last baseline share no token with the question; on the honest corpus, 4 of 13. This is the cost of the decision, and it is not hidden — the [retrieval benchmark](/guide/retrieval-benchmark) places every miss in exactly one class.
-- **The semantic gap is attacked with deterministic means instead.** Curated query expansion (`expandQuery` in `bm25.js`), mined expansions and body words ([`retrieval.bodyWords`](/guide/config), opt-in; +15 tasks on the third-party corpus) all add vocabulary without a model. Mined expansions and body words (both opt-in) are held to the rule in [ADR 0005](/adr/0005-centrality-flag-gated-then-deprecated); the curated synonym groups in `bm25.js` are fixed and ship on.
+- **A question that shares no word with its answer cannot be found by any method that matches words.** The records show how often: on the third-party corpus, 1 of the 24 misses of the shipped ranker shares no token with the question (12 of 41 before body words became the default); on the honest corpus, 3 of 9 (4 of 13). This is the cost of the decision, and it is not hidden — the [retrieval benchmark](/guide/retrieval-benchmark) places every miss in exactly one class.
+- **The semantic gap is attacked with deterministic means instead.** Curated query expansion (`expandQuery` in `bm25.js`), mined expansions and body words ([`retrieval.bodyWords`](/guide/config), on by default since v8.75.0; +17 tasks on the third-party corpus) all add vocabulary without a model. Mined expansions (opt-in) and body words (a default since they met it) are held to the rule in [ADR 0005](/adr/0005-centrality-flag-gated-then-deprecated); the curated synonym groups in `bm25.js` are fixed and ship on.
 - **No claim of semantic understanding.** SigMap does not paraphrase, and its documentation does not say it does.
 
 ## Evidence
 
 - `src/retrieval/bm25.js` header: the four additions and the 75.3% → 82.4% result.
-- [Retrieval benchmark](/guide/retrieval-benchmark): the `--why` miss classes, and "How far is 90%?" for the honest corpus (89.6%, 112 of 125) and the third-party corpus (50.6% as shipped, 42 of 83).
+- [Retrieval benchmark](/guide/retrieval-benchmark): the `--why` miss classes, and "How far is 90%?" for the honest corpus (92.8%, 116 of 125) and the third-party corpus (71.1% as shipped, 59 of 83).
 - `scripts/check-benchmark-determinism.mjs` ([#522](https://github.com/manojmallick/sigmap/issues/522)): runs a benchmark twice and fails on any difference in the reports.
 
 ## Revisit when

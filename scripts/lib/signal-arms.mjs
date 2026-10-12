@@ -4,14 +4,28 @@
 /**
  * signal-arms.mjs — compare opt-in ranking signals on one set of tasks (#703).
  *
- * Each arm is the shipped ranker plus ONE signal. The comparison is task by
- * task against the plain arm, so a signal's verdict is a count — tasks it won,
- * tasks it lost — rather than a rate whose small difference could be noise.
+ * Each arm is the shipped ranker with ONE signal changed: plus it, or — for a signal
+ * that ships on — minus it. The comparison is task by task against the plain arm, so a
+ * signal's verdict is a count — tasks it won, tasks it lost — rather than a rate whose
+ * small difference could be noise.
  * Pure: the caller hands over a ranker per arm, so the arithmetic is tested
  * with fake rankings and no repository.
  */
 
+import { createRequire } from 'module';
 import { rankOf } from './attribution.mjs';
+
+/**
+ * Whether body words ship on by default. The `body` arm flips the flag relative to what ships: while
+ * the flag is off the arm adds the words (`+ body words`); once it is the default the arm is the
+ * ablation (`- body words`), so `plain` is always what the gate scores. The label is the default's;
+ * each repository's arm follows that repository's own setting (scripts/lib/signal-rankers.mjs).
+ */
+export function bodyDefault() {
+  try {
+    return createRequire(import.meta.url)('../../src/config/defaults').DEFAULTS.retrieval.bodyWords === true;
+  } catch (_) { return false; }
+}
 
 /** The arms, in report order. `plain` is the reference every other arm is compared with. */
 export const ARMS = [
@@ -20,7 +34,7 @@ export const ARMS = [
   { id: 'surface', label: '+ surface enrichment', flag: 'retrieval.surfaceEnrichment' },
   { id: 'mined', label: '+ mined expansions', flag: 'retrieval.minedExpansions' },
   { id: 'callgraph', label: '+ call-graph boost', flag: 'retrieval.callGraphBoost' },
-  { id: 'body', label: '+ body words', flag: 'retrieval.bodyWords' },
+  { id: 'body', label: bodyDefault() ? '- body words (flag off)' : '+ body words', flag: 'retrieval.bodyWords' },
   { id: 'nograph', label: '- import graph (as `ask`)' },
 ];
 

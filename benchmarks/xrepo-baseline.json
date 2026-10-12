@@ -1,26 +1,26 @@
 {
   "overall": {
     "tasks": 83,
-    "hits": 42,
-    "hitAt5": 0.5060240963855421,
-    "mrr": 0.35427710843373494,
-    "precisionAt5": 0.10608433734939757
+    "hits": 59,
+    "hitAt5": 0.7108433734939759,
+    "mrr": 0.4958915662650603,
+    "precisionAt5": 0.14696385542168677
   },
   "why": {
-    "hits": 42,
+    "hits": 59,
     "misses": {
       "answer not indexed": 1,
       "demoted by a path penalty": 0,
-      "no token in common with the question": 12,
-      "ranked 6-10": 9,
+      "no token in common with the question": 1,
+      "ranked 6-10": 6,
       "ranked 11-20": 5,
       "ranked 21-50": 5,
-      "ranked beyond 50": 9
+      "ranked beyond 50": 6
     },
-    "reachable": 70,
-    "reachableHits": 42,
+    "reachable": 81,
+    "reachableHits": 59,
     "noTokenWords": {
-      "distinctive": 11,
+      "distinctive": 0,
       "commonOnly": 0,
       "nowhere": 1,
       "inIndex": 0
@@ -30,35 +30,35 @@
     "alamofire": {
       "language": "swift",
       "tasks": 5,
-      "hits": 3,
-      "hitAt5": 0.6,
-      "mrr": 0.45,
-      "precisionAt5": 0.12,
+      "hits": 5,
+      "hitAt5": 1,
+      "mrr": 0.8,
+      "precisionAt5": 0.2,
       "unreachable": [],
       "ranks": {
-        "x011": null,
-        "x012": 4,
+        "x011": 2,
+        "x012": 2,
         "x013": 1,
         "x014": 1,
-        "x015": null
+        "x015": 1
       }
     },
     "astro": {
       "language": "astro",
       "tasks": 7,
-      "hits": 1,
-      "hitAt5": 0.143,
-      "mrr": 0.143,
-      "precisionAt5": 0.029,
+      "hits": 4,
+      "hitAt5": 0.571,
+      "mrr": 0.476,
+      "precisionAt5": 0.114,
       "unreachable": [
         "x071"
       ],
       "ranks": {
-        "x066": null,
-        "x067": null,
+        "x066": 1,
+        "x067": 1,
         "x068": 1,
         "x069": null,
-        "x070": null,
+        "x070": 3,
         "x071": null,
         "x072": null
       }
@@ -66,17 +66,17 @@
     "django": {
       "language": "python",
       "tasks": 5,
-      "hits": 3,
-      "hitAt5": 0.6,
-      "mrr": 0.29,
-      "precisionAt5": 0.12,
+      "hits": 4,
+      "hitAt5": 0.8,
+      "mrr": 0.383,
+      "precisionAt5": 0.16,
       "unreachable": [],
       "ranks": {
         "x027": null,
         "x028": 1,
-        "x029": 4,
-        "x030": 5,
-        "x031": null
+        "x029": 3,
+        "x030": 3,
+        "x031": 4
       }
     },
     "excalidraw": {
@@ -101,27 +101,27 @@
       "tasks": 4,
       "hits": 3,
       "hitAt5": 0.75,
-      "mrr": 0.383,
+      "mrr": 0.438,
       "precisionAt5": 0.15,
       "unreachable": [],
       "ranks": {
-        "x037": 5,
-        "x038": null,
-        "x039": 1,
-        "x040": 3
+        "x037": 1,
+        "x038": 2,
+        "x039": 4,
+        "x040": null
       }
     },
     "flask": {
       "language": "python",
       "tasks": 5,
-      "hits": 4,
-      "hitAt5": 0.8,
-      "mrr": 0.65,
-      "precisionAt5": 0.16,
+      "hits": 5,
+      "hitAt5": 1,
+      "mrr": 0.69,
+      "precisionAt5": 0.2,
       "unreachable": [],
       "ranks": {
-        "x032": null,
-        "x033": 4,
+        "x032": 4,
+        "x033": 5,
         "x034": 1,
         "x035": 1,
         "x036": 1
@@ -132,13 +132,13 @@
       "tasks": 5,
       "hits": 4,
       "hitAt5": 0.8,
-      "mrr": 0.567,
+      "mrr": 0.667,
       "precisionAt5": 0.16,
       "unreachable": [],
       "ranks": {
         "x001": 1,
         "x002": null,
-        "x003": 2,
+        "x003": 1,
         "x004": 1,
         "x005": 3
       }
@@ -148,45 +148,45 @@
       "tasks": 5,
       "hits": 3,
       "hitAt5": 0.6,
-      "mrr": 0.367,
+      "mrr": 0.5,
       "precisionAt5": 0.12,
       "unreachable": [],
       "ranks": {
         "x079": 1,
         "x080": null,
-        "x081": 2,
-        "x082": 3,
+        "x081": 1,
+        "x082": 2,
         "x083": null
       }
     },
     "laravel": {
       "language": "php",
       "tasks": 5,
-      "hits": 1,
-      "hitAt5": 0.2,
-      "mrr": 0.2,
-      "precisionAt5": 0.04,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.3,
+      "precisionAt5": 0.08,
       "unreachable": [],
       "ranks": {
         "x046": null,
         "x047": 1,
         "x048": null,
-        "x049": null,
+        "x049": 2,
         "x050": null
       }
     },
     "okhttp": {
       "language": "kotlin",
       "tasks": 5,
-      "hits": 3,
-      "hitAt5": 0.6,
-      "mrr": 0.467,
-      "precisionAt5": 0.16,
+      "hits": 4,
+      "hitAt5": 0.8,
+      "mrr": 0.567,
+      "precisionAt5": 0.2,
       "unreachable": [],
       "ranks": {
         "x006": 1,
         "x007": 3,
-        "x008": null,
+        "x008": 2,
         "x009": null,
         "x010": 1
       }
@@ -194,15 +194,15 @@
     "phoenix": {
       "language": "elixir",
       "tasks": 5,
-      "hits": 4,
-      "hitAt5": 0.8,
-      "mrr": 0.65,
-      "precisionAt5": 0.2,
+      "hits": 5,
+      "hitAt5": 1,
+      "mrr": 0.617,
+      "precisionAt5": 0.24,
       "unreachable": [],
       "ranks": {
         "x061": 1,
-        "x062": null,
-        "x063": 1,
+        "x062": 2,
+        "x063": 3,
         "x064": 4,
         "x065": 1
       }
@@ -210,63 +210,63 @@
     "plenary": {
       "language": "lua",
       "tasks": 6,
-      "hits": 5,
-      "hitAt5": 0.833,
-      "mrr": 0.528,
-      "precisionAt5": 0.167,
+      "hits": 6,
+      "hitAt5": 1,
+      "mrr": 0.806,
+      "precisionAt5": 0.2,
       "unreachable": [],
       "ranks": {
-        "x073": 3,
+        "x073": 2,
         "x074": 1,
-        "x075": null,
+        "x075": 3,
         "x076": 1,
-        "x077": 2,
-        "x078": 3
+        "x077": 1,
+        "x078": 1
       }
     },
     "riverpod": {
       "language": "dart",
       "tasks": 5,
-      "hits": 1,
-      "hitAt5": 0.2,
-      "mrr": 0.2,
-      "precisionAt5": 0.04,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.45,
+      "precisionAt5": 0.12,
       "unreachable": [],
       "ranks": {
         "x056": null,
-        "x057": null,
+        "x057": 1,
         "x058": 1,
-        "x059": null,
+        "x059": 4,
         "x060": null
       }
     },
     "serilog": {
       "language": "csharp",
       "tasks": 5,
-      "hits": 1,
-      "hitAt5": 0.2,
-      "mrr": 0.2,
-      "precisionAt5": 0.04,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.4,
+      "precisionAt5": 0.08,
       "unreachable": [],
       "ranks": {
         "x051": null,
         "x052": 1,
         "x053": null,
-        "x054": null,
+        "x054": 1,
         "x055": null
       }
     },
     "tokio": {
       "language": "rust",
       "tasks": 5,
-      "hits": 3,
-      "hitAt5": 0.6,
-      "mrr": 0.233,
-      "precisionAt5": 0.12,
+      "hits": 4,
+      "hitAt5": 0.8,
+      "mrr": 0.267,
+      "precisionAt5": 0.16,
       "unreachable": [],
       "ranks": {
-        "x016": 3,
-        "x017": null,
+        "x016": 4,
+        "x017": 4,
         "x018": 3,
         "x019": null,
         "x020": 2
@@ -275,16 +275,16 @@
     "vue-core": {
       "language": "typescript",
       "tasks": 5,
-      "hits": 0,
-      "hitAt5": 0,
-      "mrr": 0,
-      "precisionAt5": 0,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.14,
+      "precisionAt5": 0.08,
       "unreachable": [],
       "ranks": {
-        "x041": null,
+        "x041": 5,
         "x042": null,
         "x043": null,
-        "x044": null,
+        "x044": 2,
         "x045": null
       }
     }

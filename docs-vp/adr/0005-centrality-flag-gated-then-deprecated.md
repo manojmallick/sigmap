@@ -42,7 +42,7 @@ Files that many others import are plausibly important, and graph centrality is a
 
 - `src/graph/centrality.js`; `src/config/loader.js` (`DEPRECATED_SIGNALS`, `warnDeprecatedSignals`).
 - `test/integration/signal-deprecation.test.js`: a deprecated signal warns once per process and still works; a signal that is off, or one that earns its keep, never warns; the config reference marks the deprecated keys and only those.
-- [Retrieval benchmark](/guide/retrieval-benchmark), "The opt-in ranking signals" — the per-corpus table behind the verdict — and [config reference](/guide/config).
+- [Retrieval benchmark](/guide/retrieval-benchmark), "The opt-in ranking signals" — the per-corpus table behind the verdict, as recorded at v8.68.0; it has since been re-measured on the ranker as shipped with body words on, where centrality changes no hit — and [config reference](/guide/config).
 - `CHANGELOG.md`, v8.21.0 (introduction, 77.8% / +0) and v8.68.0 (deprecation).
 
 ## Revisit when

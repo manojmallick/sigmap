@@ -126,6 +126,37 @@ const index = (entries) => new Map(Object.entries(entries));
     assert.strictEqual(bw.MIN_WORD_LENGTH, 3);
   });
 
+  // ── a credential is a rare word too (#943) ─────────────────────────────────
+
+  await test('a line the secret scanner flags contributes no word, and a clean line beside it keeps its words', () => {
+    const out = bw.buildBodyWords(
+      index({ 'src/cfg.js': ['function load()'] }),
+      reader({ 'src/cfg.js': 'const key = "AKIAIOSFODNN7EXAMPLE"; // frobnicate\nconst note = pelican;\nconst password = "hunter2hunter2";\n' }),
+    );
+    const words = (out.get('src/cfg.js') || '').split(' ');
+    assert.ok(words.includes('pelican'), 'a clean line keeps its words');
+    for (const w of ['akiaiosfodnn7example', 'frobnicate', 'hunter2hunter2']) assert.ok(!words.includes(w), `${w} came from a line the scanner flags`);
+  });
+
+  await test('a word that is long and holds a digit is never kept, and an equally long word without one is', () => {
+    assert.strictEqual(bw.OPAQUE_WORD_LENGTH, 20);
+    const opaque = 'a1b2c3d4e5f6a7b8c9d0e1f2';
+    const long = 'internationalizations';
+    assert.ok(opaque.length >= bw.OPAQUE_WORD_LENGTH && long.length >= bw.OPAQUE_WORD_LENGTH);
+    const out = bw.buildBodyWords(index({ 'src/a.js': ['function a()'] }), reader({ 'src/a.js': `const t = '${opaque}';\nconst u = '${long}';\n` }));
+    const words = (out.get('src/a.js') || '').split(' ');
+    assert.ok(!words.includes(opaque), 'a key-shaped word is dropped');
+    assert.ok(words.includes(long), 'a long word of letters is an ordinary word');
+  });
+
+  await test('a flagged line is dropped on the line, not the word: the word survives on a clean line', () => {
+    const out = bw.buildBodyWords(
+      index({ 'src/a.js': ['function a()'] }),
+      reader({ 'src/a.js': 'const k = "AKIAIOSFODNN7EXAMPLE"; // kestrel\nconst other = kestrel;\n' }),
+    );
+    assert.ok((out.get('src/a.js') || '').split(' ').includes('kestrel'));
+  });
+
   // ── how BM25 uses them ─────────────────────────────────────────────────────
 
   const CANDIDATES = [
@@ -177,16 +208,26 @@ const index = (entries) => new Map(Object.entries(entries));
 
   await test('the words are built from the index, cached beside it, and read back from the cache', () => {
     const dir = repo();
-    assert.ok(!fs.existsSync(cacheOf(dir)), 'generating writes no cache: the signal is opt-in');
+    assert.ok(!fs.existsSync(cacheOf(dir)), 'generating writes no cache: the words are built on the first query');
     const built = bw.loadOrBuild(dir);
     assert.match(built.get('src/herald.js'), /\bnightly\b/);
     const cache = JSON.parse(fs.readFileSync(cacheOf(dir), 'utf8'));
-    assert.deepStrictEqual({ schema: cache.schema, share: cache.share, perFile: cache.perFile, files: cache.files }, { schema: 1, share: 0.05, perFile: 200, files: built.size });
+    assert.deepStrictEqual({ schema: cache.schema, share: cache.share, perFile: cache.perFile, files: cache.files }, { schema: bw.SCHEMA_VERSION, share: 0.05, perFile: 200, files: built.size });
     assert.strictEqual(cache.builtFor, fs.statSync(indexFile(dir)).mtimeMs, 'keyed by the complete index');
     // prove the second call reads the cache: change what it holds
     cache.words = { 'src/herald.js': 'sentinel' };
     fs.writeFileSync(cacheOf(dir), JSON.stringify(cache));
     assert.strictEqual(bw.loadOrBuild(dir).get('src/herald.js'), 'sentinel');
+  });
+
+  await test('the cache on disk holds no word of a line the scanner flags', () => {
+    const dir = repo();
+    fs.writeFileSync(path.join(dir, 'src/secrets.js'), 'const key = "AKIAIOSFODNN7EXAMPLE"; // wombat\nfunction mountVolume() {}\nmodule.exports = { mountVolume };\n');
+    generate(dir);
+    bw.loadOrBuild(dir);
+    const raw = fs.readFileSync(cacheOf(dir), 'utf8');
+    assert.ok(!/akiaiosfodnn7example/.test(raw) && !/wombat/.test(raw), 'a key and the words beside it stay out of the cache');
+    assert.ok(/nightly/.test(raw), 'while an ordinary file keeps its words');
   });
 
   await test('regenerating the index rebuilds the cache, but an ask rewriting query-context.md does not', () => {
@@ -240,29 +281,28 @@ const index = (entries) => new Map(Object.entries(entries));
   };
   const setFlag = (dir, on) => fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ retrieval: { bodyWords: on } }));
 
-  await test('ask finds a file by the words of its body only when the flag is on', () => {
+  await test('ask finds a file by the words of its body unless the flag is off', () => {
     const dir = repo();
+    assert.strictEqual(JSON.parse(run(dir, ASK)).rankedFiles[0].file, 'src/herald.js', 'on by default: the question is in the file\'s body');
+    setFlag(dir, false);
     assert.deepStrictEqual(JSON.parse(run(dir, ASK)).rankedFiles, [], 'off: no signature says any of these words');
     setFlag(dir, true);
-    const on = JSON.parse(run(dir, ASK)).rankedFiles;
-    assert.strictEqual(on[0].file, 'src/herald.js');
-    setFlag(dir, false);
-    assert.deepStrictEqual(JSON.parse(run(dir, ASK)).rankedFiles, [], 'off again: the option leaves nothing behind');
+    assert.strictEqual(JSON.parse(run(dir, ASK)).rankedFiles[0].file, 'src/herald.js', 'on again: the option leaves nothing behind');
   });
 
   await test('--query reads the flag too', () => {
     const dir = repo();
     const QUERY = ['--query', 'send nightly reminders', '--json'];
-    assert.strictEqual(JSON.parse(run(dir, QUERY)).totalResults, 0);
-    setFlag(dir, true);
     assert.strictEqual(JSON.parse(run(dir, QUERY)).results[0].file, 'src/herald.js');
+    setFlag(dir, false);
+    assert.strictEqual(JSON.parse(run(dir, QUERY)).totalResults, 0);
   });
 
   await test('the MCP query_context tool reads it', () => {
     const dir = repo();
-    assert.ok(!/src\/herald\.js/.test(queryContext({ query: 'send nightly reminders' }, dir)));
-    setFlag(dir, true);
     assert.match(queryContext({ query: 'send nightly reminders' }, dir), /\| 1 \| src\/herald\.js \|/);
+    setFlag(dir, false);
+    assert.ok(!/src\/herald\.js/.test(queryContext({ query: 'send nightly reminders' }, dir)));
   });
 
   await test('turning the flag on changes no generated artifact and puts no body word in a prompt', () => {
@@ -276,6 +316,146 @@ const index = (entries) => new Map(Object.entries(entries));
     const prompt = fs.readFileSync(path.join(on, '.context', 'query-context.md'), 'utf8');
     assert.ok(!/nightly|reminders/.test(prompt), 'what ask hands an LLM carries signatures only');
     assert.ok(!/nightly|reminders/.test(fs.readFileSync(path.join(on, '.github/copilot-instructions.md'), 'utf8')));
+  });
+
+  // ── what a line may hold: the filter is the whole reason the flag can ship on ──────────────
+
+  /** The words one source file contributes, with a sibling file to keep a few rare words honest. */
+  const wordsOf = (text) => bw.buildBodyWords(index({ 'src/a.js': ['function a()'] }), reader({ 'src/a.js': text })).get('src/a.js') || '';
+
+  await test('a credential-named key assigned anything, quoted or not, in any file type, contributes no word', () => {
+    const shapes = [
+      'api_key: zq8f3kd9wm2p',
+      'export DB_PASSWORD=zorkplatzquux92',
+      '{"password": "zorkplatzquux99"}',
+      "{'api_key': 'zorkplatzquux98'}",
+      "SECRET_KEY = 'zorkplatzquux97'",
+      'private_key = zorkplatzquux96',
+      "password = 'hunter2'",
+      'Password=zorkplatzquux95;Server=db',
+    ];
+    for (const shape of shapes) {
+      const words = wordsOf(`${shape}\nconst fine = lapwingnest;\n`);
+      assert.ok(/lapwingnest/.test(words), `${shape}: the clean line beside it keeps its words`);
+      assert.ok(!/zorkplatz|zq8f3kd9wm2p|hunter2|password|secret|private/.test(words), `${shape} reached the words: ${words}`);
+    }
+  });
+
+  await test('a password in the userinfo of any URL, and a bearer or token-family value, contribute no word', () => {
+    const shapes = [
+      'const u = "mongodb+srv://admin:zorkplatzquux94@cluster0.mongodb.net/db";',
+      'const u = "amqp://guest:zorkplatzquux93@broker";',
+      'curl -H "Authorization: Bearer ya29.a0AfH6SMBx0123456789abcdef"',
+      'const t = "github_pat_11ABCDEFG0xyzzorkplatzquux92abc";',
+      'const t = "npm_aB3dEfGh1JkLmN0pQrStUvWxYz12345678Ab";',
+    ];
+    for (const shape of shapes) {
+      const words = wordsOf(`${shape}\nconst fine = lapwingnest;\n`);
+      assert.ok(/lapwingnest/.test(words), `${shape}: the clean line beside it keeps its words`);
+      assert.ok(!/zorkplatz|admin|guest|ya29|a0af|npm|github|b3d|n0p|authorization/.test(words), `${shape} reached the words: ${words}`);
+    }
+  });
+
+  await test('a token that tokenizing would split below any length rule is caught on the raw line', () => {
+    // npm_aB3d... is 40 characters; tokenize() cuts it at `_` and at every camelCase hump into pieces under 20
+    const words = wordsOf('const t = "npm_aB3dEfGh1JkLmN0pQrStUvWxYz12345678Ab"; // plover\nconst fine = lapwingnest;\n');
+    assert.ok(!/b3d|n0p|yz12345678ab|plover/.test(words), `a fragment of the token reached the words: ${words}`);
+    assert.ok(/lapwingnest/.test(words));
+  });
+
+  await test('a PEM block is blanked from its BEGIN line to its END line, and the code after it is not', () => {
+    const text = [
+      'const k = `',
+      '-----BEGIN RSA PRIVATE KEY-----',
+      'MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKj',
+      'zorkplatzquux91fragmentbody',
+      '-----END RSA PRIVATE KEY-----',
+      '`;',
+      'const after = heronpond;',
+    ].join('\n');
+    const words = wordsOf(text);
+    assert.ok(/heronpond/.test(words), 'what follows the block survives');
+    assert.ok(!/mii|qibadan|zorkplatz|g9w0|rsa/.test(words), `the key body reached the words: ${words}`);
+  });
+
+  await test('a line longer than the cap is a bundle or a blob and contributes nothing, and the cap is what bounds the patterns', () => {
+    assert.strictEqual(bw.MAX_LINE_LENGTH, 2000);
+    const longLine = `var x = "${'zorkplatzquux '.repeat(400)}";`;
+    assert.ok(longLine.length > bw.MAX_LINE_LENGTH);
+    const words = wordsOf(`${longLine}\nconst fine = lapwingnest;\n`);
+    assert.ok(/lapwingnest/.test(words) && !/zorkplatz/.test(words));
+    // a pathological line for the connection-string pattern is skipped before any pattern runs
+    const t0 = Date.now();
+    wordsOf(`${'postgres://host:5432/db '.repeat(40000)}\nconst fine = lapwingnest;\n`);
+    assert.ok(Date.now() - t0 < 3000, 'one huge line must not cost seconds');
+  });
+
+  await test('an index key is never read from outside the repository: `..`, an absolute path, a link out and a directory', () => {
+    const dir = tmp('sigmap-body-words-confine-');
+    const repoDir = path.join(dir, 'repo');
+    fs.mkdirSync(path.join(repoDir, 'src', 'adir'), { recursive: true });
+    fs.writeFileSync(path.join(repoDir, 'src', 'a.js'), '// pelicanwatching\nfunction a() {}\n');
+    // every escape holds words of its own, so a read of any of them would show as a key of the result
+    fs.writeFileSync(path.join(dir, 'up.txt'), 'quixoticallyrare zebrafishsecretphrase\n');
+    fs.writeFileSync(path.join(dir, 'abs.txt'), 'overwroughtmarmoset ostentatiousnarwhal\n');
+    fs.writeFileSync(path.join(dir, 'link-target.txt'), 'perfunctorylemur capriciousokapi\n');
+    fs.symlinkSync(path.join(dir, 'link-target.txt'), path.join(repoDir, 'src', 'link.txt'));
+    fs.writeFileSync(path.join(repoDir, 'src', 'other.js'), '// tamarinscurrying\nfunction o() {}\n');
+    const idx = index({
+      '../up.txt': ['x'], 'src/a.js': ['y'], 'src/other.js': ['o'], [path.join(dir, 'abs.txt')]: ['z'],
+      'src/link.txt': ['w'], 'src/adir': ['d'], '': ['e'],
+    });
+    const built = bw.buildFor(repoDir, idx);
+    assert.deepStrictEqual([...built.keys()].sort(), ['src/a.js', 'src/other.js']);
+    assert.ok(/pelicanwatching/.test(built.get('src/a.js')));
+  });
+
+  await test('a cache is written whole, with no temporary file left beside it', () => {
+    const dir = repo();
+    bw.loadOrBuild(dir);
+    assert.ok(fs.existsSync(cacheOf(dir)));
+    const left = fs.readdirSync(path.join(dir, '.context')).filter((f) => f.endsWith('.tmp'));
+    assert.deepStrictEqual(left, [], 'written beside and renamed: no temporary file is left');
+  });
+
+  await test('where the cache cannot be written the words are built once per index stamp, not once per query', () => {
+    if (typeof process.getuid === 'function' && process.getuid() === 0) return; // root writes anywhere: the case cannot be made
+    const dir = repo();
+    const ctx = path.join(dir, '.context');
+    const mode = fs.statSync(ctx).mode & 0o777;
+    fs.chmodSync(ctx, 0o555);
+    try {
+      const first = bw.loadOrBuild(dir);
+      assert.match(first.get('src/herald.js'), /\bnightly\b/);
+      assert.ok(!fs.existsSync(cacheOf(dir)), 'nothing could be written');
+      // the source changes, the index stamp does not: the process answers from what it built
+      fs.writeFileSync(path.join(dir, 'src/herald.js'), 'function notifyCustomer(customer) { return customer; }\n');
+      assert.match(bw.loadOrBuild(dir).get('src/herald.js'), /\bnightly\b/);
+    } finally {
+      fs.chmodSync(ctx, mode);
+    }
+  });
+
+  await test('forRepo hands back the words when the repository ships them, and null when it does not', () => {
+    const on = repo();
+    const off = repo({ retrieval: { bodyWords: false } });
+    assert.ok(bw.forRepo(on, bw.buildFor(on, new Map([['src/herald.js', ['function notifyCustomer(customer)']]]))) instanceof Map);
+    assert.strictEqual(bw.forRepo(off, new Map([['src/herald.js', ['function notifyCustomer(customer)']]])), null);
+    assert.strictEqual(bw.forRepo(on, new Map(), { retrieval: { bodyWords: false } }), null, 'a config passed in wins');
+  });
+
+  await test('plan, evidence and validate --query rank with the same words as ask, and without them when the flag is off', () => {
+    const dir = repo();
+    const QUERY = 'send nightly reminders';
+    assert.match(run(dir, ['plan', QUERY]), /1\. src\/herald\.js/, 'plan finds what ask finds');
+    assert.match(spawnSync('node', [GEN, 'evidence', QUERY], { cwd: dir, encoding: 'utf8' }).stderr, /\(1 files/, 'evidence pack holds the file');
+    const v = spawnSync('node', [GEN, 'validate', '--query', QUERY], { cwd: dir, encoding: 'utf8' });
+    assert.match(v.stdout + v.stderr, /→ src\/herald\.js/, 'validate --query sees the match');
+    setFlag(dir, false);
+    assert.match(run(dir, ['plan', QUERY]), /\(no files found\)/);
+    assert.match(spawnSync('node', [GEN, 'evidence', QUERY], { cwd: dir, encoding: 'utf8' }).stderr, /no matching files indexed/);
+    const v2 = spawnSync('node', [GEN, 'validate', '--query', QUERY], { cwd: dir, encoding: 'utf8' });
+    assert.match(v2.stdout + v2.stderr, /no lexical match/);
   });
 
   for (const d of tmpDirs) fs.rmSync(d, { recursive: true, force: true });
