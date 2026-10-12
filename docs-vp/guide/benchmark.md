@@ -134,6 +134,19 @@ The related `npm run benchmark:grounding` reports *ground-truth availability* �
 
 This is the best benchmark when the question is: *"When an AI answer cites a file, symbol or import, how often is SigMap right about whether it is real?"*
 
+### 7. Agent-level A/B (opt-in — a live agent, your API key)
+
+- **Measured, not modelled:** a real coding agent (Claude Code, `--bare`) answers the same labelled third-party question with and without SigMap, and the harness records what it did — **tool calls, tokens per billing category, cost, wall time, and whether the answer named the right file** (hit@5 on the paths it names, the retrieval corpora's own definition)
+- Questions are the first K tasks by id per repo of the xrepo corpus, each in a throwaway copy of the pinned commit. Both arms get the byte-identical prompt, model, budget cap and read-only tools (`Read`, `Grep`, `Glob` and a `Bash` limited to `grep`/`ls`/`cat`/`head`/`tail`/`wc`); only the SigMap arm gets SigMap's generated section, the `sigmap` CLI and its MCP server
+- Each run's own `init` event must match its arm, or the plan aborts and records nothing. Median of **≥ 4** runs per arm per task, arms interleaved and counterbalanced; spread reported; repo rows are paired per task (with fewer / tie / more)
+- Provenance on every figure (`agent-reported`, `table (as of …)`, `measured`); an unknown is `n/a`, never `0`; a timeout is a failed run with unknown usage
+- It costs real money and is never part of the default suite or CI: `npm run benchmark:agent-ab -- --dry-run` prints the plan and the worst-case spend (`runs × --max-budget-usd`) and starts nothing; without `ANTHROPIC_API_KEY` it explains and exits 0
+- Reproduce: `ANTHROPIC_API_KEY=… npm run benchmark:agent-ab -- --save` (writes `benchmarks/reports/agent-ab.json` and `.md`)
+
+No figure from it is published yet — the harness ships ready, the numbers come from a live run. Until then every tool-call, token-cost and task-success claim elsewhere on this page remains what it says it is: modelled.
+
+This is the best benchmark when the question is: *"Does an agent with SigMap actually use fewer tool calls and tokens, and still find the right file?"*
+
 ## Open the HTML dashboard
 
 The easiest way to inspect the latest benchmark run is the self-contained HTML report:
