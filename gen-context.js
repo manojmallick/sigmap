@@ -2726,6 +2726,7 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },
     { argv: '--report --history', desc: 'Print usage log summary from .context/usage.ndjson' },
     { argv: '--report --history --chart', desc: 'Include inline SVG charts + Unicode sparklines' },
+    { argv: '--report --sessions', desc: 'Captured agent sessions: provenance-labelled figures, per-class totals, branch rollup, coverage (--json, --agent <name>, --limit <n>)' },
     { argv: '--dashboard [--out <path>]', desc: 'Write .context/dashboard.html (HTML health dashboard)' },
     { argv: '--suggest-tool "<task>"', desc: 'Recommend model tier for a task description' },
     { argv: '--suggest-tool "<task>" --json', desc: 'Machine-readable tier recommendation' },
@@ -3181,6 +3182,10 @@ __factories["./src/config/defaults"] = function(module, exports) {
       // summary carries personal session activity. The SessionStart hook delivers
       // it locally regardless.
       injectSummary: false,
+      // Advertise (and accept) the `log_session_usage` MCP tool, so an agent with no
+      // hooks can report its own usage. Off: the tool is not in `tools/list`, so a
+      // project that does not capture sessions pays none of its definition tokens.
+      mcpCapture: false,
     },
 
     // MCP server configuration
@@ -19105,6 +19110,69 @@ __factories["./src/format/dashboard"] = function(module, exports) {
     ].join('');
   }
 
+  // Sessions (#951, SI-4). Every string here came from `.context/sessions.ndjson`, which a
+  // repository can ship, so each goes through escapeAttr — the file is opened in a browser.
+  function sessionsPanelHtml(report) {
+    const render = __require('./src/session/render');
+    const e = escapeAttr;
+    const asOf = report.pricing.asOf;
+    const head = '<div class="label">Sessions — billed tokens per request category, not context size</div>';
+    const coverage = [
+      '<div class="panel">',
+      '<div class="label">Capture coverage — what each agent can report (declared, not inferred)</div>',
+      '<ul style="margin:8px 0 0 16px;padding:0;font-size:12px;line-height:1.7">',
+      report.coverage.map((c) => `<li>${e(c.text)}${c.sessions ? ` <span style="color:#8ea0d9">[${c.sessions} here]</span>` : ''}</li>`).join(''),
+      '</ul>',
+      '</div>',
+    ].join('');
+
+    if (report.sessions.length === 0) {
+      return '<div class="panel">' + head +
+        '<div class="value" style="font-size:13px;margin-top:8px">No sessions recorded yet — capture them with: sigmap hooks install claude</div></div>' +
+        coverage;
+    }
+
+    const rows = report.sessions.map((s) =>
+      `<tr><td>${e(render.when(s.startedAt))}</td><td>${e(s.agent || 'unknown')}</td><td>${e(s.branch || 'unknown')}</td>` +
+      `<td style="text-align:right">${e(render.duration(s.durationMs))}</td><td>${e(s.provenance)}</td>` +
+      `<td>${e(render.formatUsage(s.usage))}</td><td>${e(render.costText(s.cost, asOf))}</td></tr>`
+    ).join('');
+
+    const classLine = (label, t) => {
+      const usage = t.usage ? render.formatUsage(t.usage, t.unreported) : 'unavailable';
+      return `<div style="margin:4px 0;font-size:12px">[${e(label)}] ${t.sessions} session${t.sessions === 1 ? '' : 's'}: ` +
+        `${e(usage)} · cost ${e(render.classCostText(t, asOf))}</div>`;
+    };
+    const totals = Object.entries(report.totals).map(([label, t]) => classLine(label, t)).join('');
+    const branches = report.branches.map((b) =>
+      `<div style="margin:8px 0 2px 0;font-size:12px;color:#8ea0d9">${e(b.branch)}</div>` +
+      Object.entries(b.classes).map(([label, t]) => classLine(label, t)).join('')
+    ).join('');
+    const savings = report.savings
+      ? `<div style="margin-top:8px;font-size:12px">SigMap savings [${e(report.savings.provenance)}]: ${report.savings.runs} logged run${report.savings.runs === 1 ? '' : 's'} ` +
+        `since ${e(render.when(report.savings.since))} saved ~${Number(report.savings.savedTokens).toLocaleString('en-US')} tokens — not attributed to a session</div>`
+      : '';
+
+    return [
+      '<div class="panel">',
+      head,
+      '<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:12px">',
+      '<thead><tr style="color:#8ea0d9;text-align:left"><th>When</th><th>Agent</th><th>Branch</th>' +
+        '<th style="text-align:right">Duration</th><th>Provenance</th><th>Tokens</th><th>Cost</th></tr></thead>',
+      `<tbody>${rows}</tbody>`,
+      '</table>',
+      '<div class="label" style="margin-top:12px">Totals — one line per provenance class; classes are never summed together</div>',
+      totals,
+      '<div class="label" style="margin-top:12px">By branch</div>',
+      branches,
+      savings,
+      `<div style="margin-top:10px;font-size:11px;color:#8ea0d9">pricing ${e(report.pricing.label)}` +
+        `${report.pricing.stale ? ` — ${report.pricing.days} days old` : ''}. ${e(report.notes.cost)}</div>`,
+      '</div>',
+      coverage,
+    ].join('');
+  }
+
   function buildDashboardData(cwd, health) {
     // #773: one read path — usage.ndjson alone is empty whenever tracking is off.
     const entries = __require('./src/tracking/usage-source').readRuns(cwd);
@@ -19130,6 +19198,17 @@ __factories["./src/format/dashboard"] = function(module, exports) {
 
     const tokenReduction = readTokenReduction(cwd);
 
+    // The sessions panel must never take the dashboard down: a store that cannot be read
+    // is reported as an empty one, which the panel words as "no sessions recorded".
+    let sessions;
+    try {
+      let config = {};
+      try { config = __require('./src/config/loader').loadConfig(cwd) || {}; } catch (_) { /* shipped profile */ }
+      sessions = __require('./src/session/report').buildReport(cwd, { config, limit: 20 });
+    } catch (_) {
+      sessions = null;
+    }
+
     return {
       summary,
       tokenReductionTrend,
@@ -19142,6 +19221,8 @@ __factories["./src/format/dashboard"] = function(module, exports) {
         coverageSvg: barChartSvg(coverage.perLanguage),
         tokenSavingsPanel: tokenReductionPanelHtml(tokenReduction),
       },
+      sessions,
+      sessionsPanel: sessions ? sessionsPanelHtml(sessions) : '',
     };
   }
 
@@ -19186,6 +19267,7 @@ __factories["./src/format/dashboard"] = function(module, exports) {
       '<div class="sub">Self-contained report. No external scripts, styles, or network calls.</div>',
       `<div class="grid">${cardHtml}</div>`,
       data.charts.tokenSavingsPanel,
+      data.sessionsPanel,
       `<div class="panel">${data.charts.tokenReductionSvg}</div>`,
       `<div class="panel">${data.charts.hitAt5Svg}</div>`,
       `<div class="panel">${data.charts.coverageSvg}</div>`,
@@ -25336,6 +25418,32 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   }
 
   /**
+   * log_session_usage({ id?, model?, usage? }) → string
+   *
+   * Record the calling agent's own usage as an `agent-reported` session (#951).
+   * Never throws for bad input: a malformed `usage` is stored as `unavailable` and
+   * the reason is returned, so the agent can correct it. What it prints is what
+   * the store now holds for the id, which is not always this call's report — a
+   * measured transcript of the same session outranks a self-report.
+   *
+   * @param {object} args
+   * @param {string} cwd
+   * @param {{ client?: string, token: string }} [conn] the MCP connection (client name, per-connection token)
+   */
+  function logSessionUsage(args, cwd, conn) {
+    const { recordFromMcp } = __require('./src/session/capture');
+    const store = __require('./src/session/store');
+    const { formatUsage } = __require('./src/session/render');
+    let config = {};
+    try { config = __require('./src/config/loader').loadConfig(cwd) || {}; } catch (_) {}
+    const r = recordFromMcp(cwd, args, conn, { config });
+    const rec = store.readSessions(cwd).sessions.find((s) => s.id === r.id);
+    const out = [`logged ${r.id} [${rec ? rec.provenance : 'unavailable'}] ${formatUsage(rec ? rec.usage : null)}`];
+    if (r.reason) out.push(`usage recorded as unavailable: ${r.reason}`);
+    return out.join('\n');
+  }
+
+  /**
    * get_callee_signatures — return the exact defining signature(s) of named
    * symbols from the index, so an agent never guesses a callee's parameter types.
    * Unknown names get a closest-match suggestion.
@@ -25757,7 +25865,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     return `Knowledge map: schema v${map.schema} · ${map.nodes.length} nodes · ${map.edges.length} edges. Pass { library } for upgrade impact, { file } for neighbors, or { env } for readers of an environment variable.`;
   }
 
-  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap };
+  module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap, logSessionUsage };
   
 };
 
@@ -25945,14 +26053,15 @@ __factories["./src/mcp/server"] = function(module, exports) {
    *
    * Supported methods:
    *   initialize        → serverInfo + capabilities + negotiated protocolVersion
-   *   tools/list        → 22 tool definitions
+   *   tools/list        → 22 tool definitions (23 with session.mcpCapture on)
    *   tools/call        → dispatch to handler, return result
    */
 
   const readline = require('readline');
-  const { TOOLS } = __require('./src/mcp/tools');
+  const crypto = require('crypto');
+  const { TOOLS, LOG_SESSION_USAGE } = __require('./src/mcp/tools');
   const { ensureSelfIgnore } = __require('./src/util/context-dir');
-  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap } = __require('./src/mcp/handlers');
+  const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap, logSessionUsage } = __require('./src/mcp/handlers');
 
   const SERVER_INFO = {
     name: 'sigmap',
@@ -25983,6 +26092,30 @@ __factories["./src/mcp/server"] = function(module, exports) {
     process.stdout.write(
       JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n'
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Connection identity (#951)
+  // ---------------------------------------------------------------------------
+  // One stdio server is one client connection. `log_session_usage` needs to tell
+  // connections apart (an agent that sends no session id still gets exactly one)
+  // and to name the agent, which only `initialize` knows. The token is random, so
+  // two connections never share a session id.
+  const connection = { client: null, token: null };
+
+  function _connection() {
+    if (!connection.token) connection.token = crypto.randomBytes(6).toString('hex');
+    return connection;
+  }
+
+  /** Whether this project has opted in to the session-capture tool. Never throws. */
+  function _sessionCaptureOn(cwd) {
+    try {
+      const cfg = __require('./src/config/loader').loadConfig(cwd) || {};
+      return __require('./src/session/store').sessionConfig(cfg).mcpCapture === true;
+    } catch (_) {
+      return false;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -26018,6 +26151,8 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
     if (method === 'initialize') {
       const offered = params && params.protocolVersion;
+      const info = params && params.clientInfo;
+      if (info && typeof info.name === 'string') _connection().client = info.name.slice(0, 80);
       respond(id, {
         protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(offered)
           ? offered
@@ -26036,7 +26171,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
         respondError(id, -32602, `Invalid cursor: ${String(params.cursor)}`);
         return;
       }
-      respond(id, { tools: TOOLS });
+      respond(id, { tools: _sessionCaptureOn(cwd) ? TOOLS.concat([LOG_SESSION_USAGE]) : TOOLS });
       return;
     }
 
@@ -26068,6 +26203,9 @@ __factories["./src/mcp/server"] = function(module, exports) {
         else if (name === 'squeeze_output') text = squeezeOutput(args, cwd);
         else if (name === 'get_budget') text = getBudget(args, cwd);
         else if (name === 'query_knowledge_map') text = queryKnowledgeMap(args, cwd);
+        // Not listed unless the project opted in, so not callable either: an unlisted
+        // tool answering would make the opt-in a suggestion rather than a switch.
+        else if (name === 'log_session_usage' && _sessionCaptureOn(cwd)) text = logSessionUsage(args, cwd, _connection());
         else {
           respondError(id, -32601, `Unknown tool: ${name}`);
           return;
@@ -26567,7 +26705,41 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     },
   ];
 
-  module.exports = { TOOLS };
+  /**
+   * The capture tool (#951, SI-2b). Deliberately NOT in TOOLS: it is advertised
+   * only when `session.mcpCapture` is on, so a project that does not capture
+   * sessions pays none of its definition tokens (#878) and the 22-tool surface
+   * every client sees by default does not move.
+   */
+  const LOG_SESSION_USAGE = {
+    name: 'log_session_usage',
+    description:
+      "Record this session's own token usage in SigMap's session store, labelled " +
+      'agent-reported (SigMap cannot verify it). Call at the end of a task with the ' +
+      'running session totals; a later call for the same session replaces the earlier ' +
+      'one. Omit usage when unknown: it is recorded as unavailable, never as zero.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Session id. Omit to use one id for this MCP connection.' },
+        model: { type: 'string', description: 'Model name as the host reports it.' },
+        usage: {
+          type: 'object',
+          description: 'Billed tokens so far, per request category.',
+          properties: {
+            in: { type: 'number' },
+            out: { type: 'number' },
+            cacheRead: { type: 'number', description: 'Omit if the host does not report it.' },
+            cacheWrite: { type: 'number', description: 'Omit if the host does not report it.' },
+          },
+          required: ['in', 'out'],
+        },
+      },
+      required: [],
+    },
+  };
+
+  module.exports = { TOOLS, LOG_SESSION_USAGE };
   
 };
 
@@ -30828,6 +31000,100 @@ __factories["./src/security/scanner"] = function(module, exports) {
   
 };
 
+// ── ./src/session/capabilities ──
+__factories["./src/session/capabilities"] = function(module, exports) {
+  
+  /**
+   * What each agent can tell SigMap about its own usage (#951, SI-4).
+   *
+   * The one place an agent's capture capability is written down. The sessions
+   * report, its coverage panel and the dashboard read these declarations and keep
+   * no prose of their own (guard-tested), so a capability that changes is changed
+   * here once.
+   *
+   * A capability is the list of `store.SOURCES` an agent can produce, each with the
+   * way it arrives. It is a statement about what SigMap can RECEIVE, never about
+   * what a model spent: an agent that can report is still unverifiable, and one
+   * that cannot is not zero.
+   */
+
+  const { PROVENANCE } = __require('./src/session/store');
+
+  const MCP_VIA = 'the log_session_usage MCP tool (session.mcpCapture) or `sigmap session log --from-json`';
+  const HOOKS_VIA = 'hooks that read its transcript (`sigmap hooks install claude`)';
+
+  /**
+   * `agent` is the store's agent name (a key of its id prefixes). `match` are
+   * lowercase fragments of an MCP client's `clientInfo.name` that identify it.
+   * `capture` lists each way usage can reach the store, as a `store.SOURCES` value
+   * and how; an empty list means the agent exposes no usage surface, and `note`
+   * then says so.
+   */
+  const DECLARATIONS = [
+    {
+      agent: 'claude-code', name: 'Claude Code', match: ['claude'],
+      capture: [{ source: 'transcript', via: HOOKS_VIA }, { source: 'agent-reported', via: MCP_VIA }],
+      note: 'measured covers the main conversation only — subagent transcripts are not read',
+    },
+    { agent: 'cursor', name: 'Cursor', match: ['cursor'], capture: [{ source: 'agent-reported', via: MCP_VIA }], note: null },
+    { agent: 'windsurf', name: 'Windsurf', match: ['windsurf'], capture: [{ source: 'agent-reported', via: MCP_VIA }], note: null },
+    { agent: 'opencode', name: 'OpenCode', match: ['opencode'], capture: [{ source: 'agent-reported', via: MCP_VIA }], note: null },
+    {
+      agent: 'codex', name: 'Codex CLI', match: ['codex'], capture: [{ source: 'agent-reported', via: MCP_VIA }],
+      note: 'no session-log ingester yet (spike #690)',
+    },
+    {
+      agent: 'gemini', name: 'Gemini CLI', match: ['gemini'], capture: [{ source: 'agent-reported', via: MCP_VIA }],
+      note: 'no session-log ingester yet (spike #691)',
+    },
+    {
+      agent: 'copilot', name: 'GitHub Copilot', match: ['copilot'], capture: [],
+      note: 'context-size estimate only — Copilot exposes no usage surface',
+    },
+    {
+      agent: 'ci', name: 'CI', match: [], capture: [],
+      note: 'a pipeline run has no transcript, so its usage is recorded as unavailable',
+    },
+  ];
+
+  /** The declaration for a store agent name, or null when it is not declared. */
+  function forAgent(agent) {
+    return DECLARATIONS.find((d) => d.agent === agent) || null;
+  }
+
+  /**
+   * The store agent name for an MCP client's `clientInfo.name`, or null when no
+   * declaration claims it. Matching is by lowercase fragment; the first
+   * declaration that matches wins, in declaration order.
+   */
+  function agentFromClient(clientName) {
+    const n = String(clientName == null ? '' : clientName).toLowerCase();
+    if (!n) return null;
+    const hit = DECLARATIONS.find((d) => d.match.some((m) => n.includes(m)));
+    return hit ? hit.agent : null;
+  }
+
+  /** The provenance labels an agent can produce, in declaration order. */
+  function labelsOf(decl) {
+    return decl.capture.map((c) => PROVENANCE[c.source]).filter(Boolean);
+  }
+
+  /** One line of prose for a declaration, built only from its fields. */
+  function describe(decl) {
+    if (decl.capture.length === 0) return `${decl.name}: ${decl.note || 'no usage surface'}`;
+    const ways = decl.capture.map((c) => `${PROVENANCE[c.source]} via ${c.via}`).join('; or ');
+    return `${decl.name}: ${ways}${decl.note ? `; ${decl.note}` : ''}`;
+  }
+
+  /** An agent that appears in the store with no declaration: SigMap claims nothing about it. */
+  function describeUndeclared(agent) {
+    return `${agent}: not declared — SigMap states no capture capability for it; its figures are whatever each record carries`;
+  }
+
+  module.exports = { DECLARATIONS, MCP_VIA, forAgent, agentFromClient, labelsOf, describe, describeUndeclared };
+  
+};
+
 // ── ./src/session/capture ──
 __factories["./src/session/capture"] = function(module, exports) {
   
@@ -30836,6 +31102,7 @@ __factories["./src/session/capture"] = function(module, exports) {
    *
    *   recordTranscript   parse a Claude Code transcript → one cumulative `usage` event
    *   recordFromJson     the generic fallback for any agent that can report its own usage
+   *   recordFromMcp      the same, for an agent calling the `log_session_usage` MCP tool (#951)
    *   recordCi           an `agent: "ci"` record for a pipeline run
    *   handleHook         the Claude Code SessionStart / Stop / SessionEnd handler
    *
@@ -30936,6 +31203,71 @@ __factories["./src/session/capture"] = function(module, exports) {
     store.appendEvent(cwd, { kind: 'end', id, ts: endedAt, reason: 'reported' });
     store.maybeCompact(cwd, opts.config);
     return { id, source };
+  }
+
+  /**
+   * Record usage an MCP agent reported through `log_session_usage` (#951).
+   *
+   * The same events `recordFromJson` writes, with two differences that follow from
+   * who is calling. A tool call is made by a model, so a malformed `usage` is
+   * recorded as `unavailable` with the reason returned — it is never thrown at the
+   * agent and never coerced into numbers. And the caller may not know its own
+   * session id, so one is derived per MCP connection: every call from a
+   * connection lands in one session, and two connections never share one.
+   *
+   * Reports are cumulative. The agent sends its running total and the latest
+   * report for an id replaces the earlier one (the fold orders by offset, then
+   * source, then time); a measured transcript record of the same id outranks it,
+   * and an `unavailable` report never replaces a usable one.
+   *
+   * @param {string} cwd
+   * @param {{ id?: string, model?: string, usage?: object }} args  the tool call's arguments
+   * @param {{ client?: string, token: string }} conn  the connection: the client's name and a token unique to it
+   * @param {{ config?: object }} [opts]
+   * @returns {{ id: string, source: 'agent-reported'|'unavailable', reason: string|null, agent: string }}
+   */
+  function recordFromMcp(cwd, args, conn, opts = {}) {
+    const a = args && typeof args === 'object' && !Array.isArray(args) ? args : {};
+    const c = conn || {};
+    const { agentFromClient } = __require('./src/session/capabilities');
+    const agent = agentFromClient(c.client) || store.cleanStr(c.client, 20) || 'agent';
+
+    const generated = `mcp-${store.cleanStr(c.token, 24) || Date.now().toString(36)}`;
+    let id;
+    if (typeof a.id === 'string' && a.id.trim()) {
+      try { id = store.sessionId(agent, a.id); } catch (_) { id = null; }
+    }
+    if (!id) id = store.sessionId(agent, generated);
+
+    let usage = null;
+    let reason = null;
+    const u = a.usage;
+    if (u === undefined || u === null) {
+      reason = 'no usage was supplied';
+    } else if (typeof u !== 'object' || Array.isArray(u)) {
+      reason = '"usage" must be an object: { in, out, cacheRead?, cacheWrite? }';
+    } else {
+      try {
+        usage = {
+          in: _count(u.in, 'in'), out: _count(u.out, 'out'),
+          cacheRead: _count(u.cacheRead, 'cacheRead', true), cacheWrite: _count(u.cacheWrite, 'cacheWrite', true),
+        };
+      } catch (e) {
+        reason = e.message;
+      }
+    }
+
+    const ts = new Date().toISOString();
+    const model = store.cleanStr(a.model, 80) || 'unknown';
+    store.appendEvent(cwd, { kind: 'start', id, ts, agent, branch: _branch(cwd) });
+    if (usage) {
+      store.appendEvent(cwd, { kind: 'usage', id, ts, source: 'agent-reported', model, usage, offset: 0 });
+    } else {
+      store.appendEvent(cwd, { kind: 'usage', id, ts, source: 'unavailable', model, offset: 0, note: store.cleanStr(reason, 60) });
+    }
+    store.appendEvent(cwd, { kind: 'end', id, ts, reason: 'reported' });
+    store.maybeCompact(cwd, opts.config);
+    return { id, source: usage ? 'agent-reported' : 'unavailable', reason, agent };
   }
 
   const CI_ENVS = [
@@ -31048,7 +31380,7 @@ __factories["./src/session/capture"] = function(module, exports) {
     return out;
   }
 
-  module.exports = { HOOK_EVENTS, recordTranscript, recordFromJson, recordCi, handleHook };
+  module.exports = { HOOK_EVENTS, recordTranscript, recordFromJson, recordFromMcp, recordCi, handleHook };
   
 };
 
@@ -31912,7 +32244,8 @@ __factories["./src/session/notes"] = function(module, exports) {
 __factories["./src/session/render"] = function(module, exports) {
   
   /**
-   * Rendering for `sigmap session list|show` and the `budget` measured block (#922).
+   * Rendering for `sigmap session list|show`, the `budget` measured block (#922) and
+   * the sessions report (#951).
    *
    * Wording is part of the contract: the numbers are per-request BILLING
    * categories (input, output, cache read, cache write). They are never called
@@ -32027,6 +32360,92 @@ __factories["./src/session/render"] = function(module, exports) {
     return lines.join('\n');
   }
 
+  function _pl(n, word) {
+    return `${_n(n)} ${word}${n === 1 ? '' : 's'}`;
+  }
+
+  function _dur(ms) {
+    if (ms === null || ms === undefined || !Number.isFinite(ms)) return '—';
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m`;
+    return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`;
+  }
+
+  function _usd(n) {
+    return n < 0.01 ? n.toFixed(4) : n.toFixed(2);
+  }
+
+  /** A session's cost: a floor that cites the table's date, or `n/a` with the reason. */
+  function costText(cost, asOf) {
+    if (!cost || cost.usd === null) return `n/a${cost && cost.why ? ` (${_s(cost.why, 80)})` : ''}`;
+    return `≥ $${_usd(cost.usd)} (table as of ${_s(asOf, 12)})`;
+  }
+
+  /** A provenance class's cost: the priced sessions' floor, saying how many were priced. */
+  function classCostText(t, asOf) {
+    if (t.withUsage === 0) return 'n/a (no usage)';
+    if (t.cost.usd === null) return `n/a (no priced session of ${t.withUsage})`;
+    const part = t.cost.unpriced ? `${t.cost.priced} of ${t.withUsage} sessions priced; ` : '';
+    return `≥ $${_usd(t.cost.usd)} (${part}table as of ${_s(asOf, 12)})`;
+  }
+
+  function _classLine(label, t, asOf) {
+    const usage = t.usage ? formatUsage(t.usage, t.unreported) : 'unavailable';
+    const withUsage = t.withUsage < t.sessions ? ` (${t.withUsage} with usage)` : '';
+    return `[${label}] ${_pl(t.sessions, 'session')}${withUsage}: ${usage} · cost ${classCostText(t, asOf)}`;
+  }
+
+  /**
+   * Render a `session/report.buildReport` result for the terminal.
+   *
+   * One line of totals per provenance class and no line that adds classes
+   * together. Every dollar figure cites the pricing table's date, and every cost
+   * is a floor (the table prices input tokens only).
+   */
+  function renderReport(r) {
+    const n = r.sessions.length;
+    const asOf = r.pricing.asOf;
+    const lines = [`[sigmap] sessions report — ${_pl(n, 'session')} (${NOTE})`];
+    if (n === 0) lines.push('  no sessions recorded yet — capture them with: sigmap hooks install claude');
+
+    for (const s of r.sessions) {
+      lines.push(`  ${_s(s.id, 60)}  ${_s(s.agent, 20)}  ${_when(s.startedAt)}  ${_dur(s.durationMs)}  ${_s(s.branch, 60)}  ${_s(s.model)}`);
+      lines.push(`    [${s.provenance}] ${formatUsage(s.usage)}`);
+      lines.push(`    cost ${costText(s.cost, asOf)}`);
+    }
+
+    if (n > 0) {
+      lines.push('', '  totals — one line per provenance class; classes are never summed together');
+      for (const [label, t] of Object.entries(r.totals)) lines.push(`    ${_classLine(label, t, asOf)}`);
+      lines.push('', '  by branch');
+      for (const b of r.branches) {
+        lines.push(`    ${_s(b.branch, 60)}`);
+        for (const [label, t] of Object.entries(b.classes)) lines.push(`      ${_classLine(label, t, asOf)}`);
+      }
+    }
+
+    if (r.savings) {
+      lines.push('', `  SigMap savings [${r.savings.provenance}]: ${_pl(r.savings.runs, 'logged run')} since ${_when(r.savings.since)} `
+        + `saved ~${_n(r.savings.savedTokens)} tokens — not attributed to a session`);
+    }
+
+    lines.push('', '  coverage — what each agent can report (declared, not inferred)');
+    for (const c of r.coverage) {
+      lines.push(`    ${_s(c.text, 600)}${c.sessions ? `  [${_pl(c.sessions, 'session')} here]` : ''}`);
+    }
+
+    lines.push('', `  pricing ${_s(r.pricing.label, 80)}${r.pricing.stale ? ` — ⚠ ${r.pricing.days} days old; correct it under \`models\` in the config` : ''}`);
+    lines.push(`  ${r.notes.cost}`);
+    if (r.savings) lines.push(`  ${r.savings.note}`);
+    if (r.sessions.some((s) => s.source === 'transcript')) lines.push(`  ${COVERAGE_NOTE}`);
+    if (r.sessions.some((s) => s.usage && (s.usage.cacheRead === null || s.usage.cacheWrite === null))) lines.push(`  ${NA_NOTE}`);
+    if (r.rollups) lines.push(`  ${_pl(r.rollups, 'monthly rollup')} of older sessions are not in this report`);
+    if (r.corrupt) lines.push(`  skipped ${_pl(r.corrupt, 'unreadable line')} in .context/sessions.ndjson`);
+    return lines.join('\n');
+  }
+
   /** The `measured` block `budget` adds for a session found in the store. */
   function measuredBlock(session) {
     return {
@@ -32041,7 +32460,220 @@ __factories["./src/session/render"] = function(module, exports) {
     };
   }
 
-  module.exports = { NOTE, COVERAGE_NOTE, NA_NOTE, formatUsage, totalsByProvenance, renderList, renderShow, measuredBlock };
+  module.exports = { NOTE, COVERAGE_NOTE, NA_NOTE, formatUsage, totalsByProvenance, renderList, renderShow, renderReport, costText, classCostText, when: _when, duration: _dur, measuredBlock };
+  
+};
+
+// ── ./src/session/report ──
+__factories["./src/session/report"] = function(module, exports) {
+  
+  /**
+   * The sessions report (#951, SI-4): the data behind `sigmap --report --sessions`
+   * and the dashboard's sessions panel. Pure — it reads the store, the pricing
+   * profile and the gain log, and returns plain data; `render.renderReport` and the
+   * dashboard turn it into text and HTML.
+   *
+   * The epic's correctness contract (#682) is enforced here, not described:
+   *
+   *   - Usage is only ever merged by `sumClass`, which takes ONE provenance class
+   *     and throws on a row of another. There is no grand total anywhere in the
+   *     result, so no renderer can print one by accident (guard-tested: this file
+   *     calls `mergeUsage` in exactly one place).
+   *   - Cost is a FLOOR. The pricing profile carries a verified standard INPUT
+   *     price per model and nothing else — no output or cache price — so only the
+   *     `in` category is priced and every figure says so. A model that is not in
+   *     the table is "unpriced", never $0.
+   *   - SigMap's own savings are `modeled` and are not attributed to a session:
+   *     the gain log keys a run by a day bucket or SIGMAP_SESSION, never by an
+   *     agent's session id, so a time-window join would credit every overlapping
+   *     session with the same savings.
+   *   - Unknown is unknown: a session with no usage has no cost, a duration of an
+   *     unclosed session is `null`, and nothing is rendered as zero.
+   *
+   * Zero dependencies.
+   */
+
+  const store = __require('./src/session/store');
+  const capabilities = __require('./src/session/capabilities');
+
+  const COST_NOTE = 'cost = input tokens × the pricing table\'s standard input price; output and cache tokens are not priced '
+    + '(the profile carries no verified price for them), so every cost is a floor';
+  const SAVINGS_NOTE = 'SigMap savings are modeled (baseline − emitted, chars/4) and are not attributable to a session: '
+    + 'the gain log carries no agent session id';
+
+  // A duration is only known when the record's start is the session's start. A transcript
+  // carries that (the SessionStart hook, or its first message). An agent-reported or CI
+  // record's "start" is the moment of the first report, so its span is not the session's
+  // length — unknown, never `0s`.
+  function _durationMs(s) {
+    if (s.source !== 'transcript' || !s.ended) return null;
+    const a = store.tsMs(s.startedAt);
+    const b = store.tsMs(s.endedAt);
+    if (Number.isNaN(a) || Number.isNaN(b) || b < a) return null;
+    return b - a;
+  }
+
+  /**
+   * The input-priced floor of one session, or why there is none.
+   * A mixed-model session prices each named model's own input tokens; tokens of a
+   * message that named no model stay unpriced, so the figure remains a floor.
+   *
+   * @returns {{ usd: number|null, pricedIn: number, partial: boolean, why: string|null }}
+   */
+  function costOf(session, profile, models) {
+    const u = session.usage;
+    if (!u) return { usd: null, pricedIn: 0, partial: false, why: 'usage unavailable' };
+    const parts = session.model === 'mixed' && session.models
+      ? Object.entries(session.models).map(([name, m]) => [name, m && m.in])
+      : [[session.model, u.in]];
+    let usd = 0;
+    let pricedIn = 0;
+    let any = false;
+    const missing = [];
+    for (const [name, tokens] of parts) {
+      const hit = models.lookup(profile, name);
+      if (!hit || hit.model.inputPerMtok == null || !Number.isFinite(tokens)) { missing.push(name); continue; }
+      usd += tokens * hit.model.inputPerMtok / 1e6;
+      pricedIn += tokens;
+      any = true;
+    }
+    if (!any) {
+      const named = missing.filter((n) => n && n !== 'unknown' && n !== 'mixed');
+      return {
+        usd: null, pricedIn: 0, partial: false,
+        why: named.length ? `${named.join(', ')} is not in the pricing table` : 'the model is not known',
+      };
+    }
+    return { usd, pricedIn, partial: pricedIn < u.in, why: null };
+  }
+
+  /**
+   * Sum one provenance class. The ONLY place usage is merged: a row of another
+   * class is an error, never a quiet addition.
+   */
+  function sumClass(label, rows) {
+    let acc = null;
+    let usd = 0;
+    let priced = 0;
+    let unpriced = 0;
+    let withUsage = 0;
+    for (const r of rows) {
+      if (r.provenance !== label) {
+        throw new Error(`cannot sum a "${r.provenance}" session into the "${label}" class`);
+      }
+      const u = store.usageOf(r);
+      if (!u) continue;
+      withUsage++;
+      acc = store.mergeUsage(acc, u);
+      if (r.cost.usd === null) unpriced++;
+      else { usd += r.cost.usd; priced++; }
+    }
+    return {
+      provenance: label,
+      sessions: rows.length,
+      withUsage,
+      usage: acc ? acc.usage : null,
+      unreported: acc ? acc.unreported : [],
+      cost: { usd: priced ? usd : null, priced, unpriced },
+    };
+  }
+
+  /** One bucket per provenance class present in `rows`, keys in sorted order. */
+  function perClass(rows) {
+    const groups = new Map();
+    for (const r of rows) {
+      if (!groups.has(r.provenance)) groups.set(r.provenance, []);
+      groups.get(r.provenance).push(r);
+    }
+    const out = {};
+    for (const label of [...groups.keys()].sort()) out[label] = sumClass(label, groups.get(label));
+    return out;
+  }
+
+  function _savings(cwd, rows, readGain) {
+    const starts = rows.map((r) => store.tsMs(r.startedAt)).filter((t) => !Number.isNaN(t));
+    if (starts.length === 0) return null;
+    const since = Math.min(...starts);
+    let runs = 0;
+    let saved = 0;
+    for (const e of readGain(cwd)) {
+      const t = Date.parse(e && e.ts);
+      if (!Number.isFinite(t) || t < since) continue;
+      if (!Number.isFinite(e.savedTokens) || e.savedTokens < 0) continue;
+      runs++;
+      saved += e.savedTokens;
+    }
+    if (runs === 0) return null;
+    return { provenance: 'modeled', runs, savedTokens: saved, since: new Date(since).toISOString(), note: SAVINGS_NOTE };
+  }
+
+  /**
+   * Build the report.
+   *
+   * @param {string} cwd
+   * @param {{ config?: object, limit?: number, agent?: string|null, now?: number }} [opts]
+   * @returns {{
+   *   sessions: object[], totals: object, branches: object[], savings: object|null,
+   *   coverage: object[], pricing: object, notes: object, rollups: number, corrupt: number
+   * }}
+   */
+  function buildReport(cwd, opts = {}) {
+    const models = __require('./src/config/models');
+    const profile = models.resolveProfile(opts.config || {});
+    const limit = Number.isFinite(opts.limit) && opts.limit > 0 ? opts.limit : 20;
+    const all = store.readSessions(cwd);
+    const picked = opts.agent ? all.sessions.filter((s) => s.agent === opts.agent) : all.sessions;
+
+    const rows = picked.slice(-limit).map((s) => ({
+      id: s.id,
+      agent: s.agent,
+      branch: s.branch || null,
+      startedAt: s.startedAt,
+      durationMs: _durationMs(s),
+      state: s.partial ? 'partial' : (s.ended ? 'ended' : 'open'),
+      model: s.model,
+      provenance: s.provenance,
+      source: s.source,
+      usage: s.usage,
+      cost: costOf(s, profile, models),
+    }));
+
+    const byBranch = new Map();
+    for (const r of rows) {
+      const key = r.branch || 'unknown';
+      if (!byBranch.has(key)) byBranch.set(key, []);
+      byBranch.get(key).push(r);
+    }
+    const branches = [...byBranch.keys()].sort().map((branch) => ({
+      branch, sessions: byBranch.get(branch).length, classes: perClass(byBranch.get(branch)),
+    }));
+
+    const seen = new Map();
+    for (const r of rows) seen.set(r.agent, (seen.get(r.agent) || 0) + 1);
+    const coverage = capabilities.DECLARATIONS.map((d) => ({
+      agent: d.agent, name: d.name, text: capabilities.describe(d), can: capabilities.labelsOf(d), sessions: seen.get(d.agent) || 0,
+    }));
+    for (const [agent, n] of [...seen.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+      if (!agent || capabilities.forAgent(agent)) continue;
+      coverage.push({ agent, name: agent, text: capabilities.describeUndeclared(agent), can: [], sessions: n });
+    }
+
+    const age = models.profileAge(profile, opts.now);
+    const readGain = typeof opts.readGain === 'function' ? opts.readGain : __require('./src/tracking/logger').readGainLog;
+    return {
+      sessions: rows,
+      totals: perClass(rows),
+      branches,
+      savings: _savings(cwd, rows, readGain),
+      coverage,
+      pricing: { asOf: profile.asOf, asOfSource: profile.asOfSource, label: models.asOfLabel(profile), days: age.days, stale: age.stale },
+      notes: { usage: __require('./src/session/render').NOTE, cost: COST_NOTE },
+      rollups: all.rollups.length,
+      corrupt: all.corrupt || 0,
+    };
+  }
+
+  module.exports = { buildReport, sumClass, perClass, costOf, COST_NOTE, SAVINGS_NOTE };
   
 };
 
@@ -32160,7 +32792,7 @@ __factories["./src/session/store"] = function(module, exports) {
     const days = Number.isFinite(ret.days) && ret.days > 0 ? ret.days : DEFAULT_RETENTION_DAYS;
     const compact = ret.compact === 'off' ? 'off' : 'monthly';
     const logQueries = LOG_QUERY_MODES.includes(raw.logQueries) ? raw.logQueries : 'hashed';
-    return { retention: { days, compact }, logQueries, injectSummary: raw.injectSummary === true };
+    return { retention: { days, compact }, logQueries, injectSummary: raw.injectSummary === true, mcpCapture: raw.mcpCapture === true };
   }
 
   /** The agent-prefixed id for a raw agent session id (`cc-<uuid>`). */
@@ -44844,6 +45476,30 @@ function main() {
   }
 
   if (args.includes('--report')) {
+    // #951: `--report --sessions` is the captured-sessions report. It reads the
+    // session store and the pricing profile and generates nothing, so it is
+    // answered before `runGenerate` and has no over-budget exit code.
+    if (args.includes('--sessions')) {
+      const _sval = (flag) => {
+        const i = args.indexOf(flag);
+        return i !== -1 && args[i + 1] !== undefined && !args[i + 1].startsWith('--') ? args[i + 1] : null;
+      };
+      try {
+        const limArg = parseInt(_sval('--limit'), 10);
+        const sessionsReport = requireSourceOrBundled('./src/session/report').buildReport(cwd, {
+          config, agent: _sval('--agent'), limit: Number.isFinite(limArg) && limArg > 0 ? limArg : 20,
+        });
+        if (args.includes('--json')) {
+          process.stdout.write(JSON.stringify(sessionsReport) + '\n');
+        } else {
+          console.log(requireSourceOrBundled('./src/session/render').renderReport(sessionsReport));
+        }
+      } catch (err) {
+        console.error(`[sigmap] sessions report: ${err.message}`);
+        process.exit(1);
+      }
+      process.exit(0);
+    }
     if (args.includes('--history')) {
       try {
         const { readLog, summarize } = __require('./src/tracking/logger');

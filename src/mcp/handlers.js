@@ -670,6 +670,32 @@ function getBudget(args, cwd) {
 }
 
 /**
+ * log_session_usage({ id?, model?, usage? }) → string
+ *
+ * Record the calling agent's own usage as an `agent-reported` session (#951).
+ * Never throws for bad input: a malformed `usage` is stored as `unavailable` and
+ * the reason is returned, so the agent can correct it. What it prints is what
+ * the store now holds for the id, which is not always this call's report — a
+ * measured transcript of the same session outranks a self-report.
+ *
+ * @param {object} args
+ * @param {string} cwd
+ * @param {{ client?: string, token: string }} [conn] the MCP connection (client name, per-connection token)
+ */
+function logSessionUsage(args, cwd, conn) {
+  const { recordFromMcp } = require('../session/capture');
+  const store = require('../session/store');
+  const { formatUsage } = require('../session/render');
+  let config = {};
+  try { config = require('../config/loader').loadConfig(cwd) || {}; } catch (_) {}
+  const r = recordFromMcp(cwd, args, conn, { config });
+  const rec = store.readSessions(cwd).sessions.find((s) => s.id === r.id);
+  const out = [`logged ${r.id} [${rec ? rec.provenance : 'unavailable'}] ${formatUsage(rec ? rec.usage : null)}`];
+  if (r.reason) out.push(`usage recorded as unavailable: ${r.reason}`);
+  return out.join('\n');
+}
+
+/**
  * get_callee_signatures — return the exact defining signature(s) of named
  * symbols from the index, so an agent never guesses a callee's parameter types.
  * Unknown names get a closest-match suggestion.
@@ -1091,4 +1117,4 @@ function queryKnowledgeMap(args, cwd) {
   return `Knowledge map: schema v${map.schema} · ${map.nodes.length} nodes · ${map.edges.length} edges. Pass { library } for upgrade impact, { file } for neighbors, or { env } for readers of an environment variable.`;
 }
 
-module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap };
+module.exports = { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap, logSessionUsage };

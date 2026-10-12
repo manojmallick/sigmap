@@ -8,14 +8,15 @@
  *
  * Supported methods:
  *   initialize        → serverInfo + capabilities + negotiated protocolVersion
- *   tools/list        → 22 tool definitions
+ *   tools/list        → 22 tool definitions (23 with session.mcpCapture on)
  *   tools/call        → dispatch to handler, return result
  */
 
 const readline = require('readline');
-const { TOOLS } = require('./tools');
+const crypto = require('crypto');
+const { TOOLS, LOG_SESSION_USAGE } = require('./tools');
 const { ensureSelfIgnore } = require('../util/context-dir');
-const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap } = require('./handlers');
+const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap, logSessionUsage } = require('./handlers');
 
 const SERVER_INFO = {
   name: 'sigmap',
@@ -46,6 +47,30 @@ function respondError(id, code, message) {
   process.stdout.write(
     JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n'
   );
+}
+
+// ---------------------------------------------------------------------------
+// Connection identity (#951)
+// ---------------------------------------------------------------------------
+// One stdio server is one client connection. `log_session_usage` needs to tell
+// connections apart (an agent that sends no session id still gets exactly one)
+// and to name the agent, which only `initialize` knows. The token is random, so
+// two connections never share a session id.
+const connection = { client: null, token: null };
+
+function _connection() {
+  if (!connection.token) connection.token = crypto.randomBytes(6).toString('hex');
+  return connection;
+}
+
+/** Whether this project has opted in to the session-capture tool. Never throws. */
+function _sessionCaptureOn(cwd) {
+  try {
+    const cfg = require('../config/loader').loadConfig(cwd) || {};
+    return require('../session/store').sessionConfig(cfg).mcpCapture === true;
+  } catch (_) {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +106,8 @@ function dispatch(msg, cwd) {
 
   if (method === 'initialize') {
     const offered = params && params.protocolVersion;
+    const info = params && params.clientInfo;
+    if (info && typeof info.name === 'string') _connection().client = info.name.slice(0, 80);
     respond(id, {
       protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(offered)
         ? offered
@@ -99,7 +126,7 @@ function dispatch(msg, cwd) {
       respondError(id, -32602, `Invalid cursor: ${String(params.cursor)}`);
       return;
     }
-    respond(id, { tools: TOOLS });
+    respond(id, { tools: _sessionCaptureOn(cwd) ? TOOLS.concat([LOG_SESSION_USAGE]) : TOOLS });
     return;
   }
 
@@ -131,6 +158,9 @@ function dispatch(msg, cwd) {
       else if (name === 'squeeze_output') text = squeezeOutput(args, cwd);
       else if (name === 'get_budget') text = getBudget(args, cwd);
       else if (name === 'query_knowledge_map') text = queryKnowledgeMap(args, cwd);
+      // Not listed unless the project opted in, so not callable either: an unlisted
+      // tool answering would make the opt-in a suggestion rather than a switch.
+      else if (name === 'log_session_usage' && _sessionCaptureOn(cwd)) text = logSessionUsage(args, cwd, _connection());
       else {
         respondError(id, -32601, `Unknown tool: ${name}`);
         return;
