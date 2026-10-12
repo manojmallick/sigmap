@@ -1,47 +1,110 @@
 {
   "hard": {
-    "hitAt5": 0.756,
-    "mrr": 0.638,
-    "precisionAt5": 0.151,
-    "tasks": 90
+    "hitAt5": 0.722,
+    "mrr": 0.547,
+    "precisionAt5": 0.147,
+    "tasks": 90,
+    "why": {
+      "hits": 65,
+      "misses": {
+        "answer not indexed": 0,
+        "demoted by a path penalty": 0,
+        "no token in common with the question": 2,
+        "ranked 6-10": 5,
+        "ranked 11-20": 7,
+        "ranked 21-50": 4,
+        "ranked beyond 50": 7
+      },
+      "reachable": 88,
+      "reachableHits": 65,
+      "noTokenWords": {
+        "distinctive": 0,
+        "commonOnly": 1,
+        "nowhere": 1,
+        "inIndex": 0
+      },
+      "answerIsTest": 0
+    }
   },
   "mined": {
-    "hitAt5": 0.617,
-    "mrr": 0.473,
-    "precisionAt5": 0.13,
-    "tasks": 60
+    "hitAt5": 0.683,
+    "mrr": 0.471,
+    "precisionAt5": 0.147,
+    "tasks": 60,
+    "why": {
+      "hits": 41,
+      "misses": {
+        "answer not indexed": 0,
+        "demoted by a path penalty": 0,
+        "no token in common with the question": 2,
+        "ranked 6-10": 5,
+        "ranked 11-20": 2,
+        "ranked 21-50": 2,
+        "ranked beyond 50": 8
+      },
+      "reachable": 58,
+      "reachableHits": 41,
+      "noTokenWords": {
+        "distinctive": 0,
+        "commonOnly": 1,
+        "nowhere": 1,
+        "inIndex": 0
+      },
+      "answerIsTest": 0
+    }
   },
   "easy": {
-    "hitAt5": 0.9,
-    "mrr": 0.813,
-    "precisionAt5": 0.22,
-    "tasks": 20
+    "hitAt5": 0.95,
+    "mrr": 0.829,
+    "precisionAt5": 0.23,
+    "tasks": 20,
+    "why": {
+      "hits": 19,
+      "misses": {
+        "answer not indexed": 0,
+        "demoted by a path penalty": 0,
+        "no token in common with the question": 0,
+        "ranked 6-10": 0,
+        "ranked 11-20": 1,
+        "ranked 21-50": 0,
+        "ranked beyond 50": 0
+      },
+      "reachable": 20,
+      "reachableHits": 19,
+      "noTokenWords": {
+        "distinctive": 0,
+        "commonOnly": 0,
+        "nowhere": 0,
+        "inIndex": 0
+      },
+      "answerIsTest": 0
+    }
   },
   "jvm": {
-    "hitAt5": 0.3441311475409836,
-    "mrr": 0.22927868852459019,
-    "precisionAt5": 0.07519672131147541,
+    "hitAt5": 0.40998360655737703,
+    "mrr": 0.24772131147540985,
+    "precisionAt5": 0.09181967213114756,
     "tasks": 61,
     "repos": [
       "spring-petclinic",
       "akka"
     ],
     "why": {
-      "hits": 21,
+      "hits": 25,
       "misses": {
         "answer not indexed": 0,
-        "demoted by a path penalty": 1,
-        "no token in common with the question": 24,
-        "ranked 6-10": 2,
-        "ranked 11-20": 0,
-        "ranked 21-50": 8,
-        "ranked beyond 50": 5
+        "demoted by a path penalty": 2,
+        "no token in common with the question": 16,
+        "ranked 6-10": 6,
+        "ranked 11-20": 3,
+        "ranked 21-50": 6,
+        "ranked beyond 50": 3
       },
-      "reachable": 37,
-      "reachableHits": 21,
+      "reachable": 45,
+      "reachableHits": 25,
       "noTokenWords": {
-        "distinctive": 6,
-        "commonOnly": 12,
+        "distinctive": 1,
+        "commonOnly": 9,
         "nowhere": 6,
         "inIndex": 0
       },

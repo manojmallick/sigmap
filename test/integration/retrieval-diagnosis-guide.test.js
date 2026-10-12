@@ -38,6 +38,7 @@ const match = (re, what) => { const m = re.exec(section); assert.ok(m, `the sect
 const pct = (n, d) => ((100 * n) / d).toFixed(1) + '%';
 const ordinal = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th'}`;
 const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
+const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
 
 (async () => {
   const xb = json('benchmarks/xrepo-baseline.json');
@@ -71,15 +72,14 @@ const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
   });
 
   await test('the words behind the no-token misses are the baselines\'', () => {
-    const x = match(/\*\*(\d+) of the (\d+)\*\* hold a \*distinctive\* word/, 'how many xrepo no-token misses hold a distinctive word');
-    assert.deepStrictEqual([Number(x[1]), Number(x[2])], [X.noTokenWords.distinctive, X.misses[NT]]);
-    assert.strictEqual(X.noTokenWords.commonOnly, 0, 'the section says the twelfth holds none: no common-only answers');
-    assert.strictEqual(X.noTokenWords.nowhere, 1);
-    const j = match(/\*\*(\d+) \/ (\d+) \/ (\d+)\*\*: six hold|reads \*\*(\d+) \/ (\d+) \/ (\d+)\*\*/, 'the JVM split of the no-token misses');
-    const triple = j.slice(1).filter(Boolean).map(Number);
+    // body words are on by default, so the third-party corpus has one such task left: it holds none of the question's words
+    const x = match(/the class is \*\*(\d+)\*\* now: the one task that holds none of the question's words anywhere/, 'what is left of the xrepo no-token class');
+    assert.strictEqual(Number(x[1]), X.misses[NT]);
+    assert.deepStrictEqual(X.noTokenWords, { distinctive: 0, commonOnly: 0, nowhere: 1, inIndex: 0 }, 'the section says the one that is left holds none of the question\'s words');
+    const j = match(/reads \*\*(\d+) \/ (\d+) \/ (\d+)\*\*: (\w+) holds? a distinctive word, (\w+) only common ones[^.]*, (\w+) nothing/, 'the JVM split of the no-token misses');
+    const triple = [1, 2, 3].map((i) => Number(j[i]));
     assert.deepStrictEqual(triple, [J.noTokenWords.distinctive, J.noTokenWords.commonOnly, J.noTokenWords.nowhere]);
-    assert.match(section, /six hold a distinctive word, twelve only common ones[^.]*, six nothing/, 'the words for 6 / 12 / 6');
-    assert.deepStrictEqual([J.noTokenWords.distinctive, J.noTokenWords.commonOnly, J.noTokenWords.nowhere], [6, 12, 6]);
+    assert.deepStrictEqual([j[4], j[5], j[6]], triple.map((n) => WORDS[n]), 'the words spell the numbers');
   });
 
   await test('the JVM figures are the jvm baseline\'s', () => {
@@ -91,8 +91,8 @@ const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
     assert.strictEqual(match(/hit rate is \*\*(\d+\.\d)%\*\*/, 'the rate over reachable tasks')[1], (100 * J.reachableHits / J.reachable).toFixed(1));
     assert.match(section, new RegExp(`Over the ${J.reachable} tasks a word-matching ranker can reach`));
     const ranked = J.misses['ranked 6-10'] + J.misses['ranked 11-20'] + J.misses['ranked 21-50'] + J.misses['ranked beyond 50'];
-    assert.match(section, new RegExp(`What is left is ${ranked + J.misses['demoted by a path penalty']} ranking misses \\(${ranked} ranked below the top 5, one demoted by a path penalty\\)`));
-    assert.strictEqual(J.misses['demoted by a path penalty'], 1);
+    const penalty = J.misses['demoted by a path penalty'];
+    assert.match(section, new RegExp(`What is left is ${ranked + penalty} ranking misses \\(${ranked} ranked below the top 5, ${WORDS[penalty]} demoted by a path penalty\\)`));
   });
 
   await test('the hard split and the grep scan are the saved honest reports\'', () => {
@@ -113,30 +113,30 @@ const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
     assert.strictEqual(au.tasks, hb.summary.tasks);
   });
 
-  await test('who finds what, and the three tasks grep finds, are the autopsy\'s', () => {
+  await test('who finds what, and the tasks grep finds, are the autopsy\'s', () => {
     const c = au.againstScanWithoutSigmapFiles;
     const rows = table('| | tasks | both find it');
     assert.deepStrictEqual(rows[0], ['every task', String(au.tasks), ...[c.allTasks.both, c.allTasks.sigmapOnly, c.allTasks.grepOnly, c.allTasks.neither].map(String)]);
     assert.deepStrictEqual(rows[1], ['hard split', String(hb.summary.splits.hard.tasks), ...[c.hardSplit.both, c.hardSplit.sigmapOnly, c.hardSplit.grepOnly, c.hardSplit.neither].map(String)]);
-    const only = Object.fromEntries(au.grepOnlyTasks.map((t) => [t.task.split('/')[1], t]));
     assert.strictEqual(au.grepOnlyTasks.length, c.allTasks.grepOnly);
-    assert.match(section, new RegExp(`\`express-h003\`, which grep ranks ${ordinal(only['express-h003'].grepRank)}`));
-    assert.match(section, new RegExp(`that grep ranks ${ordinal(only['fastapi-t004'].grepRank)} and ${ordinal(only['svelte-t002'].grepRank)} \\(\`fastapi-t004\`, \`svelte-t002\``));
-    assert.strictEqual(only['express-h003'].sigmap, NT);
-    assert.strictEqual(only['fastapi-t004'].sigmap, 'ranked 6-10');
-    assert.strictEqual(only['svelte-t002'].sigmap, 'ranked 6-10');
+    assert.match(section, new RegExp(`The ${WORDS[au.grepOnlyTasks.length]} tasks grep finds and SigMap does not`));
+    for (const t of au.grepOnlyTasks) {
+      const name = t.task.split('/')[1];
+      assert.match(section, new RegExp(`\`${name}\`[^.]*grep ranks ${ordinal(t.grepRank)}|grep ranks ${ordinal(t.grepRank)}[^.]*\`${name}\``), `${name}: the section names the task and where grep ranks it`);
+    }
     const m = au.sigmapMisses;
     const ranked = m['ranked 6-10'] + (m['ranked 11-20'] || 0) + (m['ranked 21-50'] || 0) + (m['ranked beyond 50'] || 0);
     const t = match(/are \*\*(\d+)\*\* that share no word with their index entry and \*\*(\d+)\*\* ranked misses, \*\*(\d+)\*\* of them ranked/, 'the honest corpus\'s misses');
     assert.deepStrictEqual(t.slice(1).map(Number), [m[NT], ranked, m['ranked 6-10']]);
     assert.strictEqual(m[NT] + ranked, au.tasks - au.sigmapHits);
+    assert.match(section, new RegExp(`SigMap's ${au.tasks - au.sigmapHits} misses on this corpus`));
   });
 
   await test('the signals table is the saved arms report', () => {
     const cs = ['xrepo', 'hard', 'mined', 'easy', 'jvm', 'honest'];
     assert.deepStrictEqual(Object.keys(sa.corpora), cs);
     const cell = (a, plain) => (!a ? '—' : a === plain ? `${a.hits} / ${a.tasks}` : `${signed(a.gained.length - a.lost.length)} (${a.gained.length} / ${a.lost.length})`);
-    const labels = { plain: 'plain (as shipped)', centrality: 'centrality blend', surface: 'surface enrichment', mined: 'mined expansions', callgraph: 'call-graph boost', body: 'body words', nograph: 'no import graph (as `ask`)' };
+    const labels = { plain: 'plain (as shipped)', centrality: 'centrality blend', surface: 'surface enrichment', mined: 'mined expansions', callgraph: 'call-graph boost', body: 'body words (flag off)', nograph: 'no import graph (as `ask`)' };
     const rows = table('| signal');
     assert.deepStrictEqual(rows.map((r) => r[0]), Object.values(labels));
     for (const [i, arm] of Object.keys(labels).entries()) {
@@ -149,37 +149,36 @@ const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
   await test('what the section says of each signal is what the table says', () => {
     const net = (a) => a.gained - a.lost;
     const T = sa.total;
-    const cen = match(/moved the rank of (\d+) of (\d+) tasks and changed one hit, a loss/, 'centrality');
+    const negative = (arm) => Object.values(sa.corpora).filter((c) => c[arm] && c[arm].gained.length < c[arm].lost.length).length;
+    const cen = match(/moved the rank of (\d+) of (\d+) tasks and changed no hit/, 'centrality');
     assert.deepStrictEqual([Number(cen[1]), Number(cen[2])], [T.centrality.moved, T.centrality.tasks]);
-    assert.deepStrictEqual([T.centrality.gained, T.centrality.lost], [0, 1]);
-    assert.deepStrictEqual([T.surface.gained, T.surface.lost], [1, 1], 'surface enrichment changed two hits, one each way');
-    assert.match(section, /It changed two hits, one each way/);
-    const mined = match(/\+(\d+) on the third-party corpus \(won (\d+), lost (\d+)\) and \+(\d+) on the honest corpus/, 'mined expansions');
-    const xm = sa.corpora.xrepo.mined, hm = sa.corpora.honest.mined;
-    assert.deepStrictEqual(mined.slice(1).map(Number), [xm.gained.length - xm.lost.length, xm.gained.length, xm.lost.length, hm.gained.length - hm.lost.length]);
-    // a sign test over the tasks mined expansions changed on xrepo: P(at least `won` of won+lost)
-    const n = xm.gained.length + xm.lost.length;
-    let p = 0;
-    for (let k = xm.gained.length; k <= n; k++) { let c = 1; for (let i = 0; i < k; i++) c = (c * (n - i)) / (i + 1); p += c / 2 ** n; }
-    assert.match(section, new RegExp(`five tasks changed on \`xrepo\`[^(]*\\(p ≈ ${p.toFixed(2)}\\)`), `a sign test of ${xm.gained.length} to ${xm.lost.length} is p ≈ ${p.toFixed(2)}`);
-    assert.strictEqual(n, 5);
-    const cg = match(/Net -(\d+) \(won (\d+), lost (\d+)\), negative on (\w+) of the six corpora/, 'call-graph boost');
+    assert.deepStrictEqual([T.centrality.gained, T.centrality.lost], [0, 0]);
+    assert.deepStrictEqual([T.surface.gained, T.surface.lost], [0, 0], 'surface enrichment changed no hit');
+    assert.match(section, /It changed no hit/);
+    const mined = match(/Mined expansions: stays opt-in\.\*\* Net -(\d+) \(won (\d+), lost (\d+)\), negative on (\w+) of the six corpora/, 'mined expansions');
+    assert.deepStrictEqual([Number(mined[1]), Number(mined[2]), Number(mined[3])], [-net(T.mined), T.mined.gained, T.mined.lost]);
+    assert.strictEqual(mined[4], WORDS[negative('mined')], `mined expansions are net-negative on ${negative('mined')} corpora`);
+    const xm = sa.corpora.xrepo.mined;
+    assert.ok(xm.gained.length - xm.lost.length < 5, 'mined expansions do not meet the default rule on the third-party corpus');
+    const cg = match(/Call-graph boost: not decided here\*\*[\s\S]*?\. Net -(\d+) \(won (\d+), lost (\d+)\), negative on (\w+) of the six corpora/, 'call-graph boost');
     assert.deepStrictEqual([Number(cg[1]), Number(cg[2]), Number(cg[3])], [-net(T.callgraph), T.callgraph.gained, T.callgraph.lost]);
-    const negative = Object.values(sa.corpora).filter((c) => c.callgraph && c.callgraph.gained.length < c.callgraph.lost.length).length;
-    assert.strictEqual(cg[4], ({ 3: 'three' })[negative], `the call-graph boost is net-negative on ${negative} corpora`);
+    assert.strictEqual(cg[4], WORDS[negative('callgraph')], `the call-graph boost is net-negative on ${negative('callgraph')} corpora`);
     const ng = match(/Removing it is net -(\d+) over the five corpora it applies to \(won (\d+), lost (\d+)\)/, 'no import graph');
     assert.deepStrictEqual([Number(ng[1]), Number(ng[2]), Number(ng[3])], [-net(T.nograph), T.nograph.gained, T.nograph.lost]);
     assert.strictEqual(T.nograph.tasks, 314);
   });
 
   await test('the rule a signal is held to puts each signal where the section says', () => {
-    // default: wins >= 5 more than it loses on xrepo and loses net on no other corpus; deprecated: net not positive and at most two hits changed
+    // default: wins >= 5 more than it loses on xrepo and loses net on no other corpus; deprecated: net not positive and at most two hits changed.
+    // The `body` arm is the ablation (the flag off), so what the SIGNAL wins is what the arm loses.
+    const n = (v) => (Array.isArray(v) ? v.length : v); // a corpus holds task lists, the total holds counts
+    const effect = (arm, a) => (arm === 'body' ? { won: n(a.lost), lost: n(a.gained) } : { won: n(a.gained), lost: n(a.lost) });
     const verdict = (arm) => {
-      const x = sa.corpora.xrepo[arm];
-      const others = Object.entries(sa.corpora).filter(([c]) => c !== 'xrepo' && sa.corpora[c][arm]).map(([, c]) => c[arm].gained.length - c[arm].lost.length);
-      const t = sa.total[arm];
-      if (x.gained.length - x.lost.length >= 5 && others.every((n) => n >= 0)) return 'default';
-      if (t.gained - t.lost <= 0 && t.gained + t.lost <= 2) return 'deprecated';
+      const x = effect(arm, sa.corpora.xrepo[arm]);
+      const others = Object.entries(sa.corpora).filter(([c]) => c !== 'xrepo' && sa.corpora[c][arm]).map(([, c]) => { const e = effect(arm, c[arm]); return e.won - e.lost; });
+      const t = effect(arm, sa.total[arm]);
+      if (x.won - x.lost >= 5 && others.every((n) => n >= 0)) return 'default';
+      if (t.won - t.lost <= 0 && t.won + t.lost <= 2) return 'deprecated';
       return 'opt-in';
     };
     assert.deepStrictEqual(Object.fromEntries(['centrality', 'surface', 'mined', 'callgraph', 'body'].map((a) => [a, verdict(a)])), {
@@ -188,21 +187,29 @@ const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
     assert.match(section, /Centrality blend: deprecated/);
     assert.match(section, /Surface enrichment: deprecated/);
     assert.match(section, /Mined expansions: stays opt-in/);
+    assert.match(section, /Body words: the default/);
     assert.match(section, /at least five more tasks than it loses/);
   });
 
   await test('the body-words results are the arms report\'s', () => {
+    // the arm is the flag turned OFF: its hits are what the ranker reads without the words, and what it "gains" are tasks the words lose
     const x = sa.corpora.xrepo, h = sa.corpora.honest;
-    const m = match(/42 of 83 to \*\*(\d+)\*\* \((\d+\.\d)% → (\d+\.\d)%\), winning \*\*(\d+)\*\* tasks and losing \*\*(\d+)\*\*, and lifts MRR from (\d\.\d+) to (\d\.\d+)/, 'the xrepo result');
-    assert.deepStrictEqual(m.slice(1), [String(x.body.hits), pct(x.plain.hits, x.plain.tasks).replace('%', ''), pct(x.body.hits, x.body.tasks).replace('%', ''), String(x.body.gained.length), String(x.body.lost.length), x.plain.mrr.toFixed(3), x.body.mrr.toFixed(3)]);
+    const m = match(/switching it off takes (\d+) of (\d+) to \*\*(\d+)\*\* \((\d+\.\d)% → (\d+\.\d)%\): it wins \*\*(\d+)\*\* tasks and loses \*\*(\d+)\*\*, and lifts MRR from (\d\.\d+) to (\d\.\d+)/, 'the xrepo result');
+    assert.deepStrictEqual(m.slice(1), [
+      String(x.plain.hits), String(x.plain.tasks), String(x.body.hits), pct(x.plain.hits, x.plain.tasks).replace('%', ''), pct(x.body.hits, x.body.tasks).replace('%', ''),
+      String(x.body.lost.length), String(x.body.gained.length), x.body.mrr.toFixed(3), x.plain.mrr.toFixed(3),
+    ]);
     assert.strictEqual(x.plain.hits, xb.overall.hits, 'plain on xrepo is the baseline');
+    assert.ok(x.plain.mrr > x.body.mrr, 'the words lift MRR: it is not a hit@5-only effect');
     const hm = match(/honest corpus \*\*(\d+) → (\d+)\*\* of (\d+) \((\d+\.\d)% → \*\*(\d+\.\d)%\*\*\) without losing a task/, 'the honest result');
-    assert.deepStrictEqual(hm.slice(1), [String(h.plain.hits), String(h.body.hits), String(h.plain.tasks), pct(h.plain.hits, h.plain.tasks).replace('%', ''), pct(h.body.hits, h.body.tasks).replace('%', '')]);
-    assert.strictEqual(h.body.lost.length, 0);
-    const nets = Object.fromEntries(['mined', 'jvm', 'hard'].map((c) => [c, sa.corpora[c].body.gained.length - sa.corpora[c].body.lost.length]));
-    assert.match(section, new RegExp(`\`mined\` \\+${nets.mined}, \`jvm\` \\+${nets.jvm}, \`hard\` \\+${nets.hard}`));
-    for (const c of Object.values(sa.corpora)) assert.ok(c.body.gained.length >= c.body.lost.length, 'no corpus loses net');
-    assert.match(section, /No corpus loses net/);
+    assert.deepStrictEqual(hm.slice(1), [String(h.body.hits), String(h.plain.hits), String(h.plain.tasks), pct(h.body.hits, h.body.tasks).replace('%', ''), pct(h.plain.hits, h.plain.tasks).replace('%', '')]);
+    assert.strictEqual(h.body.gained.length, 0, 'the words lose no honest task');
+    const effect = (c) => sa.corpora[c].body.lost.length - sa.corpora[c].body.gained.length;
+    assert.match(section, new RegExp(`\`mined\` \\+${effect('mined')}, \`jvm\` \\+${effect('jvm')}, \`easy\` \\+${effect('easy')}`));
+    assert.strictEqual(effect('hard'), 0);
+    assert.match(section, new RegExp(`\`hard\` is level \\(${sa.corpora.hard.body.lost.length} won, ${sa.corpora.hard.body.gained.length} lost\\)`));
+    for (const c of Object.values(sa.corpora)) assert.ok(c.body.lost.length >= c.body.gained.length, 'no corpus is worse off with the words');
+    assert.match(section, /No corpus is worse off with them/);
   });
 
   await test('the sweep table, and what is said of it, are the recorded grid', () => {
@@ -243,17 +250,15 @@ const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
 
   await test('the ninety-percent question is answered from the honest corpus\'s own numbers', () => {
     const h = sa.corpora.honest;
-    const m = match(/It reads \*\*(\d+\.\d)%\*\* \((\d+) of (\d+)\): one task short/, 'the honest corpus as shipped');
-    assert.deepStrictEqual([m[1], Number(m[2]), Number(m[3])], [pct(h.plain.hits, h.plain.tasks).replace('%', ''), h.plain.hits, h.plain.tasks]);
-    assert.strictEqual(Math.ceil(0.9 * h.plain.tasks) - h.plain.hits, 1, 'one more task would clear 90%');
-    const w = match(/reads \*\*(\d+\.\d)%\*\* \((\d+) of (\d+)\)\. That clears 90%/, 'the honest corpus with body words');
-    assert.deepStrictEqual([w[1], Number(w[2])], [pct(h.body.hits, h.body.tasks).replace('%', ''), h.body.hits]);
-    assert.ok(h.body.hits / h.body.tasks >= 0.9);
-    const k = match(/each reach (\d+) of (\d+), \*\*(\d+\.\d)%\*\*/, 'what one extra task is');
-    assert.strictEqual(h.mined.hits, Number(k[1]));
-    assert.strictEqual(h.callgraph.hits, Number(k[1]));
-    assert.strictEqual(k[3], pct(h.mined.hits, h.mined.tasks).replace('%', ''));
-    assert.match(section, new RegExp(`${pct(sa.corpora.xrepo.plain.hits, sa.corpora.xrepo.plain.tasks)} as shipped, ${pct(sa.corpora.xrepo.body.hits, sa.corpora.xrepo.body.tasks)} with the words`));
+    const as = match(/As shipped it reads \*\*(\d+\.\d)%\*\* \((\d+) of (\d+)\)/, 'the honest corpus as shipped');
+    assert.deepStrictEqual([as[1], Number(as[2]), Number(as[3])], [pct(h.plain.hits, h.plain.tasks).replace('%', ''), h.plain.hits, h.plain.tasks]);
+    assert.ok(h.plain.hits / h.plain.tasks >= 0.9, 'as shipped it clears 90%');
+    const before = match(/(\d+\.\d)% \((\d+) of (\d+)\) before body words were the default, one task short/, 'the honest corpus without the words');
+    assert.deepStrictEqual([before[1], Number(before[2]), Number(before[3])], [pct(h.body.hits, h.body.tasks).replace('%', ''), h.body.hits, h.body.tasks]);
+    assert.strictEqual(Math.ceil(0.9 * h.body.tasks) - h.body.hits, 1, 'one more task would have cleared 90%');
+    const margin = h.plain.hits - Math.ceil(0.9 * h.plain.tasks);
+    assert.match(section, new RegExp(`clears 90% by ${WORDS[margin]} tasks`));
+    assert.match(section, new RegExp(`${pct(sa.corpora.xrepo.plain.hits, sa.corpora.xrepo.plain.tasks)} as shipped, ${pct(sa.corpora.xrepo.body.hits, sa.corpora.xrepo.body.tasks)} without the words`));
   });
 
   await test('every command the section tells a reader to run exists', () => {

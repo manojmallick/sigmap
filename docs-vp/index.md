@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 89.6% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.24× better.
+    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 92.8% where a single-shot grep agent finds the right file 39.2% of the time — a measured 2.37× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.74.0</span>
+  <span><strong>Release:</strong> v8.75.0</span>
   <span>·</span>
-  <span><strong>New — the neighbour boost, chosen on one half and scored on the other:</strong> no damping rule earned the change — the best reading was +3 hits on 83 third-party questions against the +5 the default rule asks for, with a loss on the JVM split — so ranking is unchanged and the sweep ships as a reproducible instrument. A SwiftPM <code>Tests/</code> directory outside <code>srcDirs</code> is now indexed under one key on every filesystem. <a href="/guide/retrieval-benchmark#calibrating-the-neighbour-boost-935">What was measured, and what it would take →</a></span>
+  <span><strong>New — body words are on by default:</strong> the rare words of a file's source, which its signatures drop, now take part in ranking in a field of their own. On the 83 questions about repositories nobody here controls SigMap finds the right file in the top five for 59, where it found 42; the honest corpus reads 92.8%, up from 89.6%. Lines that may hold a credential never contribute a word. <a href="/guide/retrieval-benchmark#body-words">What was measured, and what it costs →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.74-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.75-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-10</span>
+  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-11</span>
 </div>
 </div>
 
@@ -173,11 +173,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.58** |
 | Retrieval hit@5 (retrieval corpus) | — | **80.4%** |
-| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **89.6%** (2.24× lift) |
+| Honest corpus hit@5 (125 tasks) | 39.2% (single-shot grep) | **92.8%** (2.37× lift) |
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-10 (v8.74.0)**.
+Latest saved benchmark run: **2026-10-11 (v8.75.0)**.
 
 </div>
 

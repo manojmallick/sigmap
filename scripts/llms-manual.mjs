@@ -19,15 +19,16 @@ export const solves = `## What SigMap solves
 export const projectDescription = `SigMap is the deterministic, verifiable grounding layer for AI code work. It
 extracts function and class signatures from a codebase and builds a byte-stable
 signature-and-evidence map that agents, CI, and reviewers can trust and audit —
-proving which files and symbols are real before acting. Deterministic TF-IDF
+proving which files and symbols are real before acting. Deterministic BM25
 ranking keeps the relevant context in scope (cutting tokens ~97% as a side
 effect), with no LLM calls, embeddings, or vector database. Works with Claude,
 Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.`;
 
 export const doesNotDo = `## What SigMap does not do
 
-- **No embeddings / vector database.** Ranking is deterministic TF-IDF over
-  extracted signatures — reproducible and offline, not a semantic vector search.
+- **No embeddings / vector database.** Ranking is deterministic BM25 over
+  extracted signatures and each file's rare source words — reproducible and offline,
+  not a semantic vector search.
 - **No code execution.** SigMap reads source statically; it never runs your code.
 - **No network calls** on the core generate/ask/verify paths. Nothing is uploaded;
   generation works fully offline.
