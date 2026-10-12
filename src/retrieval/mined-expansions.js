@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { tokenize, EXPANSIONS, stripAnchor } = require('./bm25');
+const { isSelfIgnore } = require('../util/context-dir');
 
 /**
  * Repo-mined query expansion (B2, #649).
@@ -117,8 +118,9 @@ function loadOrMine(cwd) {
   let ctxMtime = 0;
   try {
     for (const f of fs.readdirSync(path.join(cwd, '.context'))) {
-      // live.json is watcher telemetry and *.tmp is a write in flight: neither changes the index.
-      if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp')) continue;
+      // live.json is watcher telemetry, *.tmp is a write in flight and .gitignore is the
+      // directory's own ignore file (#947): none of them changes the index.
+      if (f === CACHE_FILE || f === 'live.json' || f.endsWith('.tmp') || isSelfIgnore(f)) continue;
       const st = fs.statSync(path.join(cwd, '.context', f));
       if (st.mtimeMs > ctxMtime) ctxMtime = st.mtimeMs;
     }

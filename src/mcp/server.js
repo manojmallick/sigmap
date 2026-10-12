@@ -14,6 +14,7 @@
 
 const readline = require('readline');
 const { TOOLS } = require('./tools');
+const { ensureSelfIgnore } = require('../util/context-dir');
 const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap } = require('./handlers');
 
 const SERVER_INFO = {
@@ -138,6 +139,10 @@ function dispatch(msg, cwd) {
       respondError(id, -32603, `Tool error: ${err.message}`);
       return;
     }
+
+    // A long-lived server has no exit to hook, and a tool may just have created
+    // `.context/` (overlay, checkpoint, caches): keep it out of git (#947).
+    ensureSelfIgnore(cwd);
 
     respond(id, {
       content: [{ type: 'text', text: String(text) }],
