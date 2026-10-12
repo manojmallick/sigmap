@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 127 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 128 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 127 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 128 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -140,7 +140,7 @@ If you are new to the product, start with the workflow pages first:
 | `--report` | Token reduction + coverage score + module heatmap + per-model cache fit-check |
 | `--report --json` | Machine-readable JSON report with coverage object and `cacheFit` |
 | `--report --paper` | LaTeX/markdown tables for academic export |
-| `--report --sessions` | Captured agent sessions — provenance-labelled figures, per-class totals, per-branch rollup, per-agent capture coverage, and an input-priced cost floor that cites the pricing table's date (`--json`, `--agent <name>`, `--limit <n>`; generates nothing, exits 0) |
+| `--report --sessions` | Captured agent sessions — provenance-labelled figures, per-class totals, per-branch rollup, per-agent capture coverage, and an input-priced cost floor that cites the pricing table's date (`--json`, `--agent <name>`, `--limit <n>`, 20 sessions by default; generates nothing and has no over-budget exit code) |
 | `--health` | Composite 0–100 health score + coverage grade |
 | `--health --json` | Machine-readable health output with coverage fields |
 | `--dashboard [--out <path>]` | Self-contained HTML health dashboard → `.context/dashboard.html`, with a sessions panel and a capture-coverage panel (`--json`) |
@@ -1434,7 +1434,7 @@ The ranking core is untouched — the boost is applied by `ask` after ranking, n
 
 ## session
 
-Bind "one agent, one sitting" into a record: what the host agent was **billed** for, which files your `ask` queries surfaced, and a deterministic warm-start summary the next session can open with. Capture is opt-in — nothing is written until you install the hooks or run `session log` — and everything stays in `.context/sessions.ndjson` on your machine.
+Bind "one agent, one sitting" into a record: what the host agent was **billed** for, which files your `ask` queries surfaced, and a deterministic warm-start summary the next session can open with. Capture is opt-in — nothing is written until you install the hooks, run `session log` or enable `session.mcpCapture` — and everything stays in `.context/sessions.ndjson` on your machine.
 
 ```bash
 sigmap hooks install claude                          # capture Claude Code sessions automatically
@@ -1519,7 +1519,7 @@ sigmap session compact                               # fold sessions older than 
 
 ### Capturing from an MCP agent
 
-Agents with no hooks (Cursor, Windsurf, Codex CLI, Gemini CLI, OpenCode) can report their own usage through one MCP tool, `log_session_usage`. It is **off by default** — a project that does not capture sessions pays none of its definition tokens, and `tools/list` stays at 22 tools. Turn it on with `session.mcpCapture: true`; the tool is then listed (23 tools) and callable.
+An agent SigMap has no hook integration for (Cursor, Windsurf, Codex CLI, Gemini CLI, OpenCode) can report its own usage through one MCP tool, `log_session_usage`. It is **off by default** — a project that does not capture sessions pays none of its definition tokens, and `tools/list` stays at 22 tools. Turn it on with `session.mcpCapture: true`; the tool is then listed (23 tools) and callable.
 
 The agent sends its running session totals, `{ id?, model?, usage?: { in, out, cacheRead?, cacheWrite? } }`; the latest report for a session replaces the earlier one. It is recorded as `agent-reported` — SigMap cannot verify it, and it never enters a `measured` total. Omit `id` and one id is generated per MCP connection. A report with no usable `usage` is recorded as `unavailable` and the reason is returned; it is never stored as zeros and never replaces a usable report. A measured transcript of the same session outranks a self-report.
 
@@ -2160,7 +2160,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.8% vs 40.8%   (2.27× lift)
+ hit@5         92.8% vs 40.0%   (2.32× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2187,7 +2187,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.27× vs a grep agent (published)
+95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.32× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2197,7 +2197,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.27× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.32× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2477,7 +2477,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.75.1, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.76.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 

@@ -51,7 +51,7 @@ features:
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 92.8% where a single-shot grep agent finds the right file 40.8% of the time — a measured 2.27× better.
+    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 92.8% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.32× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,12 +78,12 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.75.1</span>
+  <span><strong>Release:</strong> v8.76.0</span>
   <span>·</span>
-  <span><strong>New — <code>.context/</code> keeps itself out of git:</strong> the signature index, the words cache, run telemetry and session records now sit in a directory that carries its own <code>.gitignore</code>, so <code>git add .</code> stages none of it. Pages had said <code>sigmap --init</code> did this; it never did. <code>sigmap doctor</code> warns when a repository already committed the directory. <a href="/guide/cli#init">What changed →</a></span>
+  <span><strong>New — session usage from any MCP agent:</strong> an agent SigMap has no hook integration for (Cursor, Windsurf, Codex CLI, Gemini CLI, OpenCode) can report its own usage through one opt-in tool, <code>log_session_usage</code>, and <code>sigmap --report --sessions</code> shows the latest sessions with their provenance, a cost floor and totals per provenance class — never one blended total. <a href="/guide/cli#sessions-report">What changed →</a></span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.75-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.76-main</span>
   <span>·</span>
   <span>80.4% hit@5 · 95.7% token reduction · 2026-10-12</span>
 </div>
@@ -173,11 +173,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **61.9%** |
 | Prompts per task | 2.84 | **1.58** |
 | Retrieval hit@5 (retrieval corpus) | — | **80.4%** |
-| Honest corpus hit@5 (125 tasks) | 40.8% (single-shot grep) | **92.8%** (2.27× lift) |
+| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **92.8%** (2.32× lift) |
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-12 (v8.75.1)**.
+Latest saved benchmark run: **2026-10-12 (v8.76.0)**.
 
 </div>
 

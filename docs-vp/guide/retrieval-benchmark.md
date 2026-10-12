@@ -1,13 +1,13 @@
 ---
 title: Retrieval benchmark
-description: Latest saved retrieval benchmark for SigMap v8.75.1. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 92.8% vs 40.8% (2.27× lift) on its own 125-task corpus.
+description: Latest saved retrieval benchmark for SigMap v8.76.0. 80.4% hit@5 across 105 tasks on 18 repos; the honest grep comparison scores 92.8% vs 40.0% (2.32× lift) on its own 125-task corpus.
 head:
   - - meta
     - property: og:title
       content: "SigMap retrieval benchmark — 80.4% hit@5"
   - - meta
     - property: og:description
-      content: "Latest saved run: 80.4% hit@5 over 105 tasks on 18 repos; honest grep comparison 92.8% vs 40.8% (2.27x lift, 125 tasks, 19 repos)."
+      content: "Latest saved run: 80.4% hit@5 over 105 tasks on 18 repos; honest grep comparison 92.8% vs 40.0% (2.32x lift, 125 tasks, 19 repos)."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/retrieval-benchmark"
@@ -15,22 +15,22 @@ head:
 
 # Retrieval benchmark
 
-::: info Official v8.75.1 benchmark snapshot
-**Benchmark ID:** sigmap-v8.75-main &nbsp;·&nbsp; **Date:** 2026-10-12 (with R language)
+::: info Official v8.76.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.76-main &nbsp;·&nbsp; **Date:** 2026-10-12 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 40.8% single-shot grep — **2.27× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 40.0% single-shot grep — **2.32× lift** |
 | Graph-boosted hit@5 | **80.4%** |
-| Honest lift (vs grep agent) | **2.27×** |
+| Honest lift (vs grep agent) | **2.32×** |
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Overall token reduction | **95.7%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-12 (v8.75.1)**
+Latest saved run: **2026-10-12 (v8.76.0)**
 
 The task set, baselines, and the hit@5 definition are documented in [benchmark methodology](/guide/methodology).
 
@@ -58,9 +58,9 @@ This benchmark isolates that first question: *did the right file appear in conte
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Average hit@5 (honest corpus, 125 tasks) | 40.8% | **92.8%** |
+| Average hit@5 (honest corpus, 125 tasks) | 40.0% | **92.8%** |
 | Graph-boosted hit@5 | — | **80.4%** |
-| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.27x** |
+| Honest lift (vs single-shot grep, `benchmark:honest`) | — | **2.32x** |
 | Random-selection hit@5 (data only, no longer quoted) | 13.6% | — |
 | Correct (rank 1) | ~1% | **61.9%** |
 | Partial (ranks 2–5) | ~13% | **18.1%** |
@@ -89,13 +89,13 @@ leak**). `benchmark:honest` reports both splits, plus per-repo-size buckets
 
 | Slice | Tasks | SigMap hit@5 | Grep baseline |
 |---|---:|:---:|:---:|
-| Easy split | 110 | **95.5%** | 39.1% |
+| Easy split | 110 | **95.5%** | 38.2% |
 | **Hard split** | 15 | **73.3%** | **53.3%** |
 | Small repos | 13 | 100.0% | 61.5% |
 | Medium repos | 52 | 88.5% | 46.2% |
-| Large repos | 60 | 95.0% | 31.7% |
+| Large repos | 60 | 95.0% | 30.0% |
 
-These rows are the saved honest report's own (`benchmarks/reports/honest-baseline.json`). The table had drifted from it since v8.62.0 and was regenerated at v8.68.0, and again at v8.75.0, when body words became the default: the hard split reads 11 of 15 where it read 10 until v8.74.0, and the easy split 95.5% where it read 92.7%. The grep column was regenerated again at v8.75.1 (easy 39.1%, large 31.7%; the autopsy section below says why).
+These rows are the saved honest report's own (`benchmarks/reports/honest-baseline.json`). The table had drifted from it since v8.62.0 and was regenerated at v8.68.0, and again at v8.75.0, when body words became the default: the hard split reads 11 of 15 where it read 10 until v8.74.0, and the easy split 95.5% where it read 92.7%. The grep column was regenerated again at v8.75.1 (easy 39.1%, large 31.7%) and at v8.76.0 (easy 38.2%, large 30.0%; the autopsy section below says why).
 
 The hard split is published deliberately: it is the measured vocabulary-mismatch
 ceiling, the number repo-mined query expansion (planned for v9.0) exists to move.
@@ -153,7 +153,7 @@ happen to share an adjective.
 
 | Corpus | Tasks | hit@5 | Gated on | What it measures |
 |---|---:|:---:|---|---|
-| `hard` | 90 | **72.2%** | 70% floor | Leak-free tasks over **SigMap's own source** |
+| `hard` | 90 | **71.1%** | 70% floor | Leak-free tasks over **SigMap's own source** |
 | `mined` | 60 | **68.3%** | no-regress | Commit subjects + the files that commit touched, minus the generated outputs every commit also rewrites |
 | `jvm` | 61 | **41.0%** | no-regress | Mined from `spring-petclinic` (32) + `akka` (29) |
 | `easy` | 20 | 95.0% | reference only | Leaky by construction; published for contrast |
@@ -166,7 +166,8 @@ the default, which is the whole of the movement since v8.74.0: `mined` 61.7% →
 (37 → 41 of 60), `jvm` 34.4% → 41.0% (21 → 25 of 61), `easy` 90.0% → 95.0% (18 → 19 of 20)
 and `hard` unchanged at 72.2% (65 of 90, three won and three lost). `retrieval-baseline.json`
 was re-recorded with them, and the `hard` it held (75.6%) had not reproduced since
-v8.55.0 — it reads what the gate measures now.
+v8.55.0 — it read what the gate measured then. v8.76.0 reads 71.1% (64 of 90); the note
+below says why, and the baseline file was not re-recorded for it.
 
 ::: tip The `mined` corpus was re-mined at v8.66.0 ([#883](https://github.com/manojmallick/sigmap/issues/883))
 Five of its 23 tasks (m001–m005) listed the bundled `gen-context.js` as their only expected file. Tooling rewrites that file on nearly every source commit, and the miner records the files a commit touched, so the bundle became "the answer" — unwinnable, although the ranker returned the real implementation first. The miner now removes generated outputs (the bundle, `.context/`, adapter outputs, `llms*.txt`) *before* it judges which file a commit was about, and its default window is the whole history: it had been 960 commits, which stopped covering the repository at 1,331.
@@ -178,6 +179,10 @@ Re-mined, the corpus is **60 tasks** (17 kept, 1 relabelled, 5 dropped, 42 new),
 Against clean worktrees of v8.66.0 and of the release commit, with the index regenerated in each: `hard` 73.3% → **74.4%** (66 → 67 of 90, MRR 0.579 → 0.579), `mined` 61.7% → 61.7% (0.472 → 0.472), `easy` 90.0% → 90.0% (0.850 → 0.850) and `jvm` 34.4% → 34.4% (0.229 → 0.229). Four first-hit ranks move. `hard` h007 (17 → 18) and `mined` m009 (11 → 12) slip further outside the top 5: adding only the release's four new test files to a v8.66.0 tree reproduces both, because this repository indexes its own tests. `hard` h020 (9 → 2, the one new hit) and h032 (1 → 2) are a query about which package of a monorepo a question belongs to and one about emitting an editor rules file, and both vanish with `changes: false` in both trees: the generated `## recent changes` block is indexed as signatures of the repository's last file (`src/workspace/detector.js`), so a branch whose recent commits name `workspaceMarker` and `source-root-resolver` moves a query about monorepos. With the block off, two ranks move and no task changes hit/miss status, so the extra task is not claimed as an improvement. `retrieval-baseline.json` is not re-recorded; its stored `hard` (75.6%) and `jvm` (21.3%) still do not reproduce.
 :::
 
+::: tip Measured at v8.76.0 — `hard` reads 71.1%, and that is not a ranking change
+Against clean worktrees of the v8.75.1 tag and of develop with the index regenerated in each: `hard` 72.2% → **71.1%** (65 → 64 of 90), `mined` 68.3% → 68.3%, `easy` 95.0% → 95.0% and `jvm` 41.0% → 41.0%. One first hit leaves the top 5 — `hard` h006, "how much money does one query cost for a given model" (answer `src/tracking/pricing.js`), 5 → 7, behind the new `src/session/report.js` and `render.js`, which are about cost per model. With the generated recent-changes block on, 25 of the 170 self-scored ranks move (median 1, maximum 6; the 61 JVM tasks, which score third-party clones, do not move) and 22 with it off, and `hard` reads 64 of 90 either way. Scoring this release's ranker over the v8.75.1 tree's index ranks all 170 tasks of `hard`, `mined` and `easy` exactly as v8.75.1's own does, and the other way round, while the two trees' own indexes differ on 22; copying only the release's `src/` changes onto the v8.75.1 tree reproduces h006 and copying only its three new or changed test files does not. `retrieval-baseline.json` still holds 72.2%: `hard` is reported, not enforced, and the headroom to the floor is now one task.
+:::
+
 ### Why `hard` is reported but not enforced
 
 `hard` scores SigMap against its own source, so its BM25 statistics shift
@@ -187,8 +192,8 @@ containing one two-assertion test file and no source change scored 75.6% →
 74.4% and failed the gate. Enforcing `hard` against the previous run therefore
 fails honest work and, worse, trains you to ignore the gate.
 
-It is now held to its **70% floor** instead (currently 65/90 tasks pass, 1 task
-= 1.1pp, two tasks of headroom). The floor, the leak assertions, and
+It is now held to its **70% floor** instead (currently 64/90 tasks pass, 1 task
+= 1.1pp, one task of headroom). The floor, the leak assertions, and
 `--no-regress` on `mined` and `jvm` are the enforced checks.
 
 <!-- benchmark: re-measured at v8.63.0 — all four corpora present (43 cached repos); figures above are measured, not carried -->
@@ -562,14 +567,14 @@ Over the 45 tasks a word-matching ranker can reach, the hit rate is **55.6%**. W
 
 [#674](https://github.com/manojmallick/sigmap/issues/674) called the honest benchmark's hard split "the one split where the baseline wins" (SigMap 46.7%, grep 53.3%). The saved report now reads SigMap **73.3%** (11 of 15) against grep **53.3%** (8 of 15). `--autopsy` asks which tasks each finds and the other does not — and in doing so found what the grep scan was counting.
 
-**The published scan counts SigMap's own files.** `.context/sig-index.json` and `.github/copilot-instructions.md` hold every identifier in a repository, so any question matches them first. In the layout the published figure is measured in, they took **125 of the 625** top-5 places the scan returned. They are not answers, and they push answers out.
+**The published scan counts SigMap's own files.** `.context/sig-index.json` and `.github/copilot-instructions.md` hold every identifier in a repository, so any question matches them first. In the layout the published figure is measured in, they took **126 of the 625** top-5 places the scan returned. They are not answers, and they push answers out.
 
 | grep scan | hit@5 | honest lift |
 |---|---:|---:|
-| as published | 40.8% (51 / 125) | 2.27× |
+| as published | 40.0% (50 / 125) | 2.32× |
 | SigMap's own files left out | 45.6% (57 / 125) | 2.04× |
 
-**The scan is unchanged**: `benchmark:honest` still scans what it always scanned, and this section only records the effect. Whether to restate the lift is a call for a release, not a side effect of a diagnosis. Because the scan includes those files, the published figure moves with the repository: v8.70.1 reads 49 / 125 where v8.70.0 read 50 / 125, one more of the 625 top-5 places taken by SigMap's own generated files (127 against 126) — on a control run of the untouched v8.70.0 tree, in the same layout, the scan reproduces 50 / 125. v8.72.0 keeps 49 / 125 while that count of places moves the other way, 127 → 126, with the same scan. v8.72.1 keeps 49 / 125 again while the count moves back, 126 → 127, with the same scan; the two trees differ only in documentation (a legacy site deleted, six decision records added), which the scan reads, but the cause is not isolated. v8.73.0 reads 51 / 125 with 126 of the 625 places, the same scan on a clean checkout of the release: two more answers than v8.72.1 published — `src/tracking/logger.js` for "usage log tracking NDJSON runs" (t018) and `src/mcp/handlers.js` for t020 — each the answer that SigMap's own generated files had been displacing from the fifth place. The v8.72.1 tag, run through the same recipe on the same day, reads 50 / 125 (t020 only), so 39.2% did not reproduce from its own tag and one task of the movement is the environment, not the tree. Cause not isolated beyond that contested fifth place. v8.74.0 reads 50 / 125 with 127 of the 625 places on a clean checkout of the release, the same scan: `src/tracking/logger.js` (t018) is displaced from the fifth place by one generated file again and only `src/mcp/handlers.js` (t020) keeps its answer, which is the 50 / 125 the v8.72.1 tag reads by this recipe. The figure therefore moves down by one, and the lift up from 2.20× to 2.24×, with no change to the scan — the release adds text, and the scan reads it; `rank()` is unchanged with `graphDamping` absent. v8.75.0 reads 49 / 125 with 128 of the 625 places on a clean checkout of the release, the same scan: one answer fewer than v8.74.0, from the release's own text again, and the lift moves up from 2.24× to 2.37×: 0.08 of the 0.13 because SigMap's side moved (112 → 116 of 125), the rest because the scan, unchanged, finds one answer fewer (50 → 49). v8.75.1 reads 51 / 125 with 125 of the 625 places on a clean checkout of the release, the same scan: two answers more than v8.75.0 published — `src/tracking/logger.js` (t018, fifth) and `src/mcp/handlers.js` (t020, fourth) are in grep's top five again — and the lift moves down from 2.37× to 2.27× with SigMap's side unchanged at 116 of 125. The v8.75.0 tag, run through the same recipe on the same clones, reads 51 / 125 too, so 39.2% did not reproduce from its own tag and the movement is not this release's. The release adds one file to each clone's `.context/` (`.context/.gitignore`); the scan was measured with and without it and reads the same either way. Cause not isolated beyond the environment.
+**The scan is unchanged**: `benchmark:honest` still scans what it always scanned, and this section only records the effect. Whether to restate the lift is a call for a release, not a side effect of a diagnosis. Because the scan includes those files, the published figure moves with the repository: v8.70.1 reads 49 / 125 where v8.70.0 read 50 / 125, one more of the 625 top-5 places taken by SigMap's own generated files (127 against 126) — on a control run of the untouched v8.70.0 tree, in the same layout, the scan reproduces 50 / 125. v8.72.0 keeps 49 / 125 while that count of places moves the other way, 127 → 126, with the same scan. v8.72.1 keeps 49 / 125 again while the count moves back, 126 → 127, with the same scan; the two trees differ only in documentation (a legacy site deleted, six decision records added), which the scan reads, but the cause is not isolated. v8.73.0 reads 51 / 125 with 126 of the 625 places, the same scan on a clean checkout of the release: two more answers than v8.72.1 published — `src/tracking/logger.js` for "usage log tracking NDJSON runs" (t018) and `src/mcp/handlers.js` for t020 — each the answer that SigMap's own generated files had been displacing from the fifth place. The v8.72.1 tag, run through the same recipe on the same day, reads 50 / 125 (t020 only), so 39.2% did not reproduce from its own tag and one task of the movement is the environment, not the tree. Cause not isolated beyond that contested fifth place. v8.74.0 reads 50 / 125 with 127 of the 625 places on a clean checkout of the release, the same scan: `src/tracking/logger.js` (t018) is displaced from the fifth place by one generated file again and only `src/mcp/handlers.js` (t020) keeps its answer, which is the 50 / 125 the v8.72.1 tag reads by this recipe. The figure therefore moves down by one, and the lift up from 2.20× to 2.24×, with no change to the scan — the release adds text, and the scan reads it; `rank()` is unchanged with `graphDamping` absent. v8.75.0 reads 49 / 125 with 128 of the 625 places on a clean checkout of the release, the same scan: one answer fewer than v8.74.0, from the release's own text again, and the lift moves up from 2.24× to 2.37×: 0.08 of the 0.13 because SigMap's side moved (112 → 116 of 125), the rest because the scan, unchanged, finds one answer fewer (50 → 49). v8.75.1 reads 51 / 125 with 125 of the 625 places on a clean checkout of the release, the same scan: two answers more than v8.75.0 published — `src/tracking/logger.js` (t018, fifth) and `src/mcp/handlers.js` (t020, fourth) are in grep's top five again — and the lift moves down from 2.37× to 2.27× with SigMap's side unchanged at 116 of 125. The v8.75.0 tag, run through the same recipe on the same clones, reads 51 / 125 too, so 39.2% did not reproduce from its own tag and the movement is not this release's. The release adds one file to each clone's `.context/` (`.context/.gitignore`); the scan was measured with and without it and reads the same either way. Cause not isolated beyond the environment. v8.76.0 reads 50 / 125 with 126 of the 625 places on a clean checkout of the release, the same scan: one answer fewer than v8.75.1 published — `src/tracking/logger.js` (t018) is fifth in grep's scan on the v8.75.1 tag and ninth on the release tree, where SigMap's own generated `.github/copilot-instructions.md` holds that place — and the lift moves up from 2.27× to 2.32× with SigMap's side unchanged at 116 of 125. The v8.75.1 tag, run through the same recipe on the same clones in a clean worktree, reproduces 51 / 125, so this movement is the tree's: the release adds two modules, three new or changed test files and their documentation, and the scan reads them. Which of them moved t018 is not isolated.
 
 Against the scan without those files:
 
@@ -691,7 +696,7 @@ node scripts/run-honest-benchmark.mjs --autopsy   # where SigMap and a whole-fil
 ```
 
 ::: warning Record the autopsy from the layout the published report uses
-`npm run benchmark:honest` saves, so run the script directly for the autopsy, and save it only from a working tree whose 50 clones are real directories inside it (`cp -cR`): there the grep baseline reads 40.8% (51 of 125, at v8.75.1) and the saved report is the published one. In a checkout with symlinked clones the same scan walks a different file set for the self-repo task set and can read a different number — 41.6% when that was measured at v8.67.0, and on the v8.70.1 tree 40.0% (2.24×) against 39.2% (2.29×) in real directories — so the figure is only comparable to the published one in the layout described here.
+`npm run benchmark:honest` saves, so run the script directly for the autopsy, and save it only from a working tree whose 50 clones are real directories inside it (`cp -cR`): there the grep baseline reads 40.0% (50 of 125, at v8.76.0) and the saved report is the published one. In a checkout with symlinked clones the same scan walks a different file set for the self-repo task set and can read a different number — 41.6% when that was measured at v8.67.0, and on the v8.70.1 tree 40.0% (2.24×) against 39.2% (2.29×) in real directories — so the figure is only comparable to the published one in the layout described here.
 :::
 
 ## Per-repo results
