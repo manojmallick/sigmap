@@ -68,6 +68,7 @@ sigmap --report                          Token reduction stats to stdout (exits 
 sigmap --report --json                   Token report as JSON (for CI; exits 1 if over budget)
 sigmap --report --history                Print usage log summary from .context/usage.ndjson
 sigmap --report --history --chart        Include inline SVG charts + Unicode sparklines
+sigmap --report --sessions               Captured agent sessions: provenance-labelled figures, per-class totals, branch rollup, coverage (--json, --agent <name>, --limit <n>)
 sigmap --dashboard [--out <path>]        Write .context/dashboard.html (HTML health dashboard)
 sigmap --suggest-tool "<task>"           Recommend model tier for a task description
 sigmap --suggest-tool "<task>" --json    Machine-readable tier recommendation
@@ -403,7 +404,7 @@ cacheTtl = 5m
 tracking = false
 sessionBudgetTokens = null
 contextTtlDays = null
-session = {"retention":{"days":90,"compact":"monthly"},"logQueries":"hashed","injectSummary":false}
+session = {"retention":{"days":90,"compact":"monthly"},"logQueries":"hashed","injectSummary":false,"mcpCapture":false}
 mcp = {"autoRegister":true}
 depMap = true
 versionPins = true

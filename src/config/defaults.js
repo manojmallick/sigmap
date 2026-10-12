@@ -188,6 +188,10 @@ const DEFAULTS = {
     // summary carries personal session activity. The SessionStart hook delivers
     // it locally regardless.
     injectSummary: false,
+    // Advertise (and accept) the `log_session_usage` MCP tool, so an agent with no
+    // hooks can report its own usage. Off: the tool is not in `tools/list`, so a
+    // project that does not capture sessions pays none of its definition tokens.
+    mcpCapture: false,
   },
 
   // MCP server configuration

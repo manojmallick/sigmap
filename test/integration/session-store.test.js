@@ -190,11 +190,12 @@ test('queryRecord: off logs nothing, hashed keeps no text, full redacts', () => 
 });
 
 test('sessionConfig defaults and rejects bad values', () => {
-  assert.deepStrictEqual(store.sessionConfig({}), { retention: { days: 90, compact: 'monthly' }, logQueries: 'hashed', injectSummary: false });
-  const bad = store.sessionConfig({ session: { retention: { days: -5, compact: 'weekly' }, logQueries: 'everything', injectSummary: 'yes' } });
-  assert.deepStrictEqual(bad, { retention: { days: 90, compact: 'monthly' }, logQueries: 'hashed', injectSummary: false });
-  const ok = store.sessionConfig({ session: { retention: { days: 7, compact: 'off' }, logQueries: 'off', injectSummary: true } });
-  assert.deepStrictEqual(ok, { retention: { days: 7, compact: 'off' }, logQueries: 'off', injectSummary: true });
+  assert.deepStrictEqual(store.sessionConfig({}), { retention: { days: 90, compact: 'monthly' }, logQueries: 'hashed', injectSummary: false, mcpCapture: false });
+  const bad = store.sessionConfig({ session: { retention: { days: -5, compact: 'weekly' }, logQueries: 'everything', injectSummary: 'yes', mcpCapture: 'yes' } });
+  assert.deepStrictEqual(bad, { retention: { days: 90, compact: 'monthly' }, logQueries: 'hashed', injectSummary: false, mcpCapture: false });
+  const ok = store.sessionConfig({ session: { retention: { days: 7, compact: 'off' }, logQueries: 'off', injectSummary: true, mcpCapture: true } });
+  assert.deepStrictEqual(ok, { retention: { days: 7, compact: 'off' }, logQueries: 'off', injectSummary: true, mcpCapture: true });
+  assert.strictEqual(store.sessionConfig({ session: { mcpCapture: 1 } }).mcpCapture, false, 'only the boolean true enables the MCP capture tool');
   assert.strictEqual(store.sessionConfig({ session: { retention: { days: 30 } } }).retention.compact, 'monthly', 'a partial retention block keeps the other default');
 });
 

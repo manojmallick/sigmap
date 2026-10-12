@@ -140,9 +140,10 @@ If you are new to the product, start with the workflow pages first:
 | `--report` | Token reduction + coverage score + module heatmap + per-model cache fit-check |
 | `--report --json` | Machine-readable JSON report with coverage object and `cacheFit` |
 | `--report --paper` | LaTeX/markdown tables for academic export |
+| `--report --sessions` | Captured agent sessions — provenance-labelled figures, per-class totals, per-branch rollup, per-agent capture coverage, and an input-priced cost floor that cites the pricing table's date (`--json`, `--agent <name>`, `--limit <n>`; generates nothing, exits 0) |
 | `--health` | Composite 0–100 health score + coverage grade |
 | `--health --json` | Machine-readable health output with coverage fields |
-| `--dashboard [--out <path>]` | Self-contained HTML health dashboard → `.context/dashboard.html` (`--json`) |
+| `--dashboard [--out <path>]` | Self-contained HTML health dashboard → `.context/dashboard.html`, with a sessions panel and a capture-coverage panel (`--json`) |
 | `--monorepo` | Generate a separate context section per package |
 | `--each` | Run a command in each monorepo package |
 | `--routing` | Regenerate with model routing hints embedded in the output |
@@ -1477,7 +1478,52 @@ sigmap session compact                               # fold sessions older than 
 
 **Queries.** While a session is active (`SIGMAP_SESSION` — exported by the `SessionStart` hook through `CLAUDE_ENV_FILE` — naming a session the store already holds), `ask` leaves the query in the session log: a 12-hex digest by default, the redacted text with `session.logQueries: "full"`, nothing with `"off"`. It rides on gain capture, so `--no-track`, `SIGMAP_NO_TRACK=1` and `gainTracking: false` suppress it too.
 
-Config: `session.retention.days`, `session.retention.compact`, `session.logQueries`, `session.injectSummary` — see [the config reference](/guide/config). `sigmap doctor` checks the store and the hooks.
+### Sessions report
+
+`sigmap --report --sessions` turns the store into one view: each session with its provenance, a **cost floor**, totals **per provenance class**, a per-branch rollup, and what each agent is able to report at all.
+
+```
+[sigmap] sessions report — 2 sessions (billed tokens per request category — not context size)
+  cc-8d0420c3  claude-code  2026-10-04 23:24Z  1h12m  main  claude-sonnet-5-5
+    [measured] in 814 · out 844,980 · cache read 206,335,054 · cache write 2,331,334
+    cost ≥ $0.0016 (table as of 2026-10-04)
+  cur-mcp-1f3a9c2e44b0  cursor  2026-10-05 09:00Z  —  main  claude-sonnet-5-5
+    [agent-reported] in 1,200 · out 340 · cache read n/a · cache write n/a
+    cost ≥ $0.0024 (table as of 2026-10-04)
+
+  totals — one line per provenance class; classes are never summed together
+    [agent-reported] 1 session: in 1,200 · out 340 · cache read n/a · cache write n/a · cost ≥ $0.0024 (table as of 2026-10-04)
+    [measured] 1 session: in 814 · out 844,980 · cache read 206,335,054 · cache write 2,331,334 · cost ≥ $0.0016 (table as of 2026-10-04)
+
+  by branch
+    main
+      [agent-reported] 1 session: in 1,200 · out 340 · cache read n/a · cache write n/a · cost ≥ $0.0024 (table as of 2026-10-04)
+      [measured] 1 session: in 814 · out 844,980 · cache read 206,335,054 · cache write 2,331,334 · cost ≥ $0.0016 (table as of 2026-10-04)
+
+  coverage — what each agent can report (declared, not inferred)
+    Cursor: agent-reported via the log_session_usage MCP tool (session.mcpCapture) or `sigmap session log --from-json`  [1 session here]
+    …
+    GitHub Copilot: context-size estimate only — Copilot exposes no usage surface
+
+  pricing as of 2026-10-04 (shipped profile)
+  cost = input tokens × the pricing table's standard input price; output and cache tokens are not priced (the profile carries no verified price for them), so every cost is a floor
+  measured = read from the agent's own transcript, main conversation only (subagent transcripts are not read)
+  n/a = the agent did not report that category (it is not zero)
+```
+
+- **No blended total.** Measured, agent-reported and estimated figures are different kinds of number; each class gets its own line and no line adds them. A sum is a floor (`≥`) when any contributor left a category unreported.
+- **Cost is a floor, and says so.** The shipped pricing profile carries a verified standard *input* price per model and nothing else, so only the input category is priced; output and cache tokens are not. Every dollar figure cites the table's date (your `models.asOf` when you set one), and a model that is not in the table is `n/a`, never `$0`. Add your own prices under `models` in the config.
+- **Duration** is shown only for a measured session, whose start is the session's start. An agent-reported record starts at its first report, so its span is not the session's length: it prints `—`.
+- **SigMap's savings** are printed once per report as `modeled` and are not attributed to a session — the gain log carries no agent session id, so any per-session figure would credit overlapping sessions with the same savings.
+- **Coverage** is read from one declaration table, not inferred from what happened to be recorded: an agent with no usage surface (GitHub Copilot) is stated as such, not shown as a row of zeros.
+
+### Capturing from an MCP agent
+
+Agents with no hooks (Cursor, Windsurf, Codex CLI, Gemini CLI, OpenCode) can report their own usage through one MCP tool, `log_session_usage`. It is **off by default** — a project that does not capture sessions pays none of its definition tokens, and `tools/list` stays at 22 tools. Turn it on with `session.mcpCapture: true`; the tool is then listed (23 tools) and callable.
+
+The agent sends its running session totals, `{ id?, model?, usage?: { in, out, cacheRead?, cacheWrite? } }`; the latest report for a session replaces the earlier one. It is recorded as `agent-reported` — SigMap cannot verify it, and it never enters a `measured` total. Omit `id` and one id is generated per MCP connection. A report with no usable `usage` is recorded as `unavailable` and the reason is returned; it is never stored as zeros and never replaces a usable report. A measured transcript of the same session outranks a self-report.
+
+Config: `session.retention.days`, `session.retention.compact`, `session.logQueries`, `session.injectSummary`, `session.mcpCapture` — see [the config reference](/guide/config). `sigmap doctor` checks the store and the hooks.
 
 ---
 

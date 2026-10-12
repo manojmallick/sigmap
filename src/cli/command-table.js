@@ -51,6 +51,7 @@ const USAGE = [
   { argv: '--report --json', desc: 'Token report as JSON (for CI; exits 1 if over budget)' },
   { argv: '--report --history', desc: 'Print usage log summary from .context/usage.ndjson' },
   { argv: '--report --history --chart', desc: 'Include inline SVG charts + Unicode sparklines' },
+  { argv: '--report --sessions', desc: 'Captured agent sessions: provenance-labelled figures, per-class totals, branch rollup, coverage (--json, --agent <name>, --limit <n>)' },
   { argv: '--dashboard [--out <path>]', desc: 'Write .context/dashboard.html (HTML health dashboard)' },
   { argv: '--suggest-tool "<task>"', desc: 'Recommend model tier for a task description' },
   { argv: '--suggest-tool "<task>" --json', desc: 'Machine-readable tier recommendation' },

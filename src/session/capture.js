@@ -5,6 +5,7 @@
  *
  *   recordTranscript   parse a Claude Code transcript → one cumulative `usage` event
  *   recordFromJson     the generic fallback for any agent that can report its own usage
+ *   recordFromMcp      the same, for an agent calling the `log_session_usage` MCP tool (#951)
  *   recordCi           an `agent: "ci"` record for a pipeline run
  *   handleHook         the Claude Code SessionStart / Stop / SessionEnd handler
  *
@@ -105,6 +106,71 @@ function recordFromJson(cwd, obj, opts = {}) {
   store.appendEvent(cwd, { kind: 'end', id, ts: endedAt, reason: 'reported' });
   store.maybeCompact(cwd, opts.config);
   return { id, source };
+}
+
+/**
+ * Record usage an MCP agent reported through `log_session_usage` (#951).
+ *
+ * The same events `recordFromJson` writes, with two differences that follow from
+ * who is calling. A tool call is made by a model, so a malformed `usage` is
+ * recorded as `unavailable` with the reason returned — it is never thrown at the
+ * agent and never coerced into numbers. And the caller may not know its own
+ * session id, so one is derived per MCP connection: every call from a
+ * connection lands in one session, and two connections never share one.
+ *
+ * Reports are cumulative. The agent sends its running total and the latest
+ * report for an id replaces the earlier one (the fold orders by offset, then
+ * source, then time); a measured transcript record of the same id outranks it,
+ * and an `unavailable` report never replaces a usable one.
+ *
+ * @param {string} cwd
+ * @param {{ id?: string, model?: string, usage?: object }} args  the tool call's arguments
+ * @param {{ client?: string, token: string }} conn  the connection: the client's name and a token unique to it
+ * @param {{ config?: object }} [opts]
+ * @returns {{ id: string, source: 'agent-reported'|'unavailable', reason: string|null, agent: string }}
+ */
+function recordFromMcp(cwd, args, conn, opts = {}) {
+  const a = args && typeof args === 'object' && !Array.isArray(args) ? args : {};
+  const c = conn || {};
+  const { agentFromClient } = require('./capabilities');
+  const agent = agentFromClient(c.client) || store.cleanStr(c.client, 20) || 'agent';
+
+  const generated = `mcp-${store.cleanStr(c.token, 24) || Date.now().toString(36)}`;
+  let id;
+  if (typeof a.id === 'string' && a.id.trim()) {
+    try { id = store.sessionId(agent, a.id); } catch (_) { id = null; }
+  }
+  if (!id) id = store.sessionId(agent, generated);
+
+  let usage = null;
+  let reason = null;
+  const u = a.usage;
+  if (u === undefined || u === null) {
+    reason = 'no usage was supplied';
+  } else if (typeof u !== 'object' || Array.isArray(u)) {
+    reason = '"usage" must be an object: { in, out, cacheRead?, cacheWrite? }';
+  } else {
+    try {
+      usage = {
+        in: _count(u.in, 'in'), out: _count(u.out, 'out'),
+        cacheRead: _count(u.cacheRead, 'cacheRead', true), cacheWrite: _count(u.cacheWrite, 'cacheWrite', true),
+      };
+    } catch (e) {
+      reason = e.message;
+    }
+  }
+
+  const ts = new Date().toISOString();
+  const model = store.cleanStr(a.model, 80) || 'unknown';
+  store.appendEvent(cwd, { kind: 'start', id, ts, agent, branch: _branch(cwd) });
+  if (usage) {
+    store.appendEvent(cwd, { kind: 'usage', id, ts, source: 'agent-reported', model, usage, offset: 0 });
+  } else {
+    store.appendEvent(cwd, { kind: 'usage', id, ts, source: 'unavailable', model, offset: 0, note: store.cleanStr(reason, 60) });
+  }
+  store.appendEvent(cwd, { kind: 'end', id, ts, reason: 'reported' });
+  store.maybeCompact(cwd, opts.config);
+  return { id, source: usage ? 'agent-reported' : 'unavailable', reason, agent };
 }
 
 const CI_ENVS = [
@@ -217,4 +283,4 @@ function handleHook(event, payload, cwd, opts = {}) {
   return out;
 }
 
-module.exports = { HOOK_EVENTS, recordTranscript, recordFromJson, recordCi, handleHook };
+module.exports = { HOOK_EVENTS, recordTranscript, recordFromJson, recordFromMcp, recordCi, handleHook };
