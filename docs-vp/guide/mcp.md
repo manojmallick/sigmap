@@ -137,7 +137,7 @@ All tools are available on-demand — your AI agent calls only what it needs.
 
 ### Opt-in: `log_session_usage`
 
-One more tool exists, and it is **not** among the 22. It lets an agent that has no hooks — Cursor, Windsurf, Codex CLI, Gemini CLI, OpenCode — report its own token usage so the session shows up in [`sigmap --report --sessions`](/guide/cli#sessions-report). It is listed in `tools/list` (and answers `tools/call`) only when the project sets `session.mcpCapture: true`; otherwise it is absent, so you pay none of its definition tokens and the default surface is the 22 above.
+One more tool exists, and it is **not** among the 22. It lets an agent SigMap has no hook integration for — Cursor, Windsurf, Codex CLI, Gemini CLI, OpenCode — report its own token usage so the session shows up in [`sigmap --report --sessions`](/guide/cli#sessions-report). It is listed in `tools/list` (and answers `tools/call`) only when the project sets `session.mcpCapture: true`; otherwise it is absent, so you pay none of its definition tokens and the default surface is the 22 above.
 
 | Tool | Returns | Parameters |
 |---|---|---|
