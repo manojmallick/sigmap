@@ -39,6 +39,11 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.75.1)
+- **@manojmallick** — fix(context): `.context/` keeps itself out of git (#947, PR #948). Published pages said `sigmap --init` gitignores it; nothing did, so `git add .` committed the signature index, the run telemetry, the words cache and the session records. The directory now carries its own `.gitignore` holding `*`, written at the points commands pass through (CLI start and exit, the end of a generation, the MCP server after each tool call that returns, the session hook); it never creates `.context/`, never overwrites an existing file there and never edits the repository's own `.gitignore`.
+- **@manojmallick** — feat(doctor): the `Local state in git` row — files under `.context/` that git tracks warn with `git rm -r --cached .context`, since an ignore rule never untracks (#947, PR #948).
+- **@manojmallick** — test(context): 15 cases in `context-dir-self-ignore.test.js`, each wiring point mutation-checked (ten mutants, all caught); `audit-high` H1 allows the one new file, and `review-pr`'s generated-output repro stages `.context/` by force because `git add -A` no longer does (#947, PR #948).
+
 ### Recent Contributors (v8.75.0)
 - **@manojmallick** — feat(retrieval): body words are on by default, in a field of their own that adds no length (#674, #943; the weight and length work is PR #944, the flip is this release's). `retrieval.bodyWords` takes the third-party corpus from 42 to 59 of 83 and the honest corpus from 89.6% to 92.8%; the length treatment was chosen from a held-out sweep of eleven weight × length cells (`npm run benchmark:body-weight-sweep`), and the guide records that the cell the pre-registered rule named was not the one shipped.
 - **@manojmallick** — fix(retrieval): body words are filtered for credentials, confined to the repository and read by every command that ranks (PR #944 and this release). Lines holding a scanner pattern, a credential-named assignment, a URL password, a bearer value, a PEM block or a 20-character run of letters and digits are blanked, an index key outside the repository is never read, `plan`, `evidence` and `validate --query` rank with the same words as `ask`, and the cache schema is 3.
