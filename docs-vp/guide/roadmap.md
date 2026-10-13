@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.76.0, with the latest release letting any MCP agent report its own usage and showing the captured sessions with their provenance, after v8.75.1 kept the .context/ directory out of git and v8.75.0 turned body words on by default (the third-party corpus reads 59 of 83 where it read 42, the honest corpus 92.8% where it read 89.6%).
+description: SigMap version history and roadmap. From v0.0 to v8.77.0, with the latest release adding an agent-level A/B harness that measures tool calls, tokens and cost against a real coding agent, after v8.76.0 let any MCP agent report its own usage, v8.75.1 kept the .context/ directory out of git and v8.75.0 turned body words on by default (the third-party corpus reads 59 of 83 where it read 42, the honest corpus 92.8% where it read 89.6%).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "245 versions shipped. See what changed in each release and what is coming next."
+      content: "246 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Two hundred forty-five versions shipped. MIT open source from day one.
+Two hundred forty-six versions shipped. MIT open source from day one.
 
 **Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.32× measured lift vs single-shot grep (92.8% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
@@ -835,6 +835,27 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.77.0 — an agent with tools, with and without SigMap: measured ✓ (2026-10-13)
+
+**Minor.** Every published efficiency figure was modeled, and the one measured agent-side number was a single completion with no tools. Nothing had watched a real coding agent do the same work with and without SigMap, so a retrieval change could not be connected to a tool call, a token or a dollar ([#955](https://github.com/manojmallick/sigmap/issues/955), closing [#812](https://github.com/manojmallick/sigmap/issues/812)). `npm run benchmark:agent-ab` runs Claude Code on the labelled third-party questions of the xrepo corpus, each arm in a hard-reset, cleaned copy of the pinned commit, and records tool calls, tokens per billing category, cost, wall time and whether the answer named the right file.
+
+What makes the comparison fair is most of the work. Both arms get the byte-identical prompt, model, built-in tools and budget cap; the SigMap arm alone gets SigMap's generated section, a `sigmap` shim for this checkout and its MCP server, and an allowlist that adds only those. The agent runs with `--bare`, so the operator's own CLAUDE.md, hooks and memory cannot reach the no-SigMap arm — which also means it authenticates with `ANTHROPIC_API_KEY` or an `apiKeyHelper`, never a login. Each run's own `init` event must match its arm, or the plan aborts before any report is written. The result is the median over the completed runs of at least four requested per arm per task, arms interleaved and counterbalanced, with spread, and the repo rows are paired per task rather than pooled.
+
+```
+efficiency claims          modeled (retrieval tiers, chars/4)  ->  observed per run: tool calls, tokens by category, cost, hit@5
+agent-side measurement     one tool-less completion            ->  a real agent, same question, with and without SigMap
+a number from a bad arm    could not be told apart             ->  each run's init event checked against its arm, or nothing is recorded
+```
+
+The correctness contract of the session epic carries over unchanged: provenance on every figure, nothing summed across provenance classes, an unreported metric is `n/a`, not `0`, and a failed run is left out of every series. The instructive finding is one the first version got wrong. It gave both arms read-only tools and no shell; running it against a real clone showed that SigMap's own generated section tells an agent to *run these yourself in the terminal* — an arm with no terminal would have been handed instructions it cannot follow, which biases the result against SigMap. Both arms now have a shell restricted to `grep`, `ls`, `cat`, `head`, `tail` and `wc`, and the SigMap arm alone may run `sigmap`.
+
+**No figure is published by this release.** The harness was exercised end to end offline, against a fake agent, with 38 tests and 28 mutants all caught — and not against a live one: that needs an API key and a budget, and the first live run is the real check of the agent's event stream, which the parser treats as untrusted: a missing result is a failed run and a missing init stops the plan. Its own review found one hazard that is a code change and so not in this release's commit: where `benchmarks/repos/<name>` is a symlink — the borrowed-clone worktree layout — the arm is built by resetting and cleaning the shared clone in place, so run it against real directories until that is fixed (the CHANGELOG lists the other gaps).
+
+**Tags:** `benchmark:agent-ab` · `agent-ab.mjs` · `agent-ab-arms.mjs` · `agent-ab-claude.mjs` · `--bare` · `stream-json` · `hit@5` · `provenance` · `agent-ab.test.js` · `#955` · `#812` · `PR #956`
+**Impact:** every published figure holds — token reduction 95.7%, hit@5 80.4%, task success 61.9%, test-discovery F1 98.0%, the grounding corpus, the third-party corpus (59 of 83), `hard` 71.1% (64 of 90, one task of headroom) and the honest comparison (92.8% against grep's 40.0%, 2.32×) all hold on a fresh `benchmark:all` run on the shipping tree. The release adds no ranking, extraction or detection code; the only change to the index is its new test file.
 
 ---
 

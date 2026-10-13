@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v8.76.0 benchmark snapshot. 95.7% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
+description: Official v8.77.0 benchmark snapshot. 95.7% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v8.76.0 snapshot with R language"
+      content: "SigMap benchmark overview — v8.77.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.76.0 benchmark run (2026-10-12) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.77.0 benchmark run (2026-10-13) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,8 +15,8 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.76.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.76-main &nbsp;·&nbsp; **Date:** 2026-10-12
+::: info Official v8.77.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.77-main &nbsp;·&nbsp; **Date:** 2026-10-13
 
 | Metric | Value |
 |---|---:|
@@ -39,9 +39,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.76.0 snapshot (with R language support)
+## Official v8.77.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-10-12 (v8.76.0)**
+Latest saved benchmark run: **2026-10-13 (v8.77.0)**
 
 Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
 
@@ -138,9 +138,10 @@ This is the best benchmark when the question is: *"When an AI answer cites a fil
 
 - **Measured, not modelled:** a real coding agent (Claude Code, `--bare`) answers the same labelled third-party question with and without SigMap, and the harness records what it did — **tool calls, tokens per billing category, cost, wall time, and whether the answer named the right file** (hit@5 on the paths it names, the retrieval corpora's own definition)
 - Questions are the first K tasks by id per repo of the xrepo corpus, each in a throwaway copy of the pinned commit. Both arms get the byte-identical prompt, model, budget cap and read-only tools (`Read`, `Grep`, `Glob` and a `Bash` limited to `grep`/`ls`/`cat`/`head`/`tail`/`wc`); only the SigMap arm gets SigMap's generated section, the `sigmap` CLI and its MCP server
-- Each run's own `init` event must match its arm, or the plan aborts and records nothing. Median of **≥ 4** runs per arm per task, arms interleaved and counterbalanced; spread reported; repo rows are paired per task (with fewer / tie / more)
-- Provenance on every figure (`agent-reported`, `table (as of …)`, `measured`); an unknown is `n/a`, never `0`; a timeout is a failed run with unknown usage
-- It costs real money and is never part of the default suite or CI: `npm run benchmark:agent-ab -- --dry-run` prints the plan and the worst-case spend (`runs × --max-budget-usd`) and starts nothing; without `ANTHROPIC_API_KEY` it explains and exits 0
+- Each run's own `init` event must match its arm, or the plan aborts before any report is written. Median over the completed runs of **≥ 4** requested per arm per task, arms interleaved and counterbalanced; min and max reported (the JSON adds the standard deviation); repo rows are paired per task (with fewer / tie / more)
+- Provenance on every figure (`agent-reported`, `table (as of …)`, `measured`); an unreported metric is `n/a`, not `0`; a failed run is left out of every series
+- It costs real money and is never part of the default suite or CI: `npm run benchmark:agent-ab -- --dry-run` prints the plan and the spend if every run reaches its cap (`runs × --max-budget-usd`) and starts nothing; without `ANTHROPIC_API_KEY` it explains and exits 0
+- Run it against real directories under `benchmarks/repos`: a symlinked clone is reset and cleaned in place (a known gap, listed in the CHANGELOG)
 - Reproduce: `ANTHROPIC_API_KEY=… npm run benchmark:agent-ab -- --save` (writes `benchmarks/reports/agent-ab.json` and `.md`)
 
 No figure from it is published yet — the harness ships ready, the numbers come from a live run. Until then every tool-call, token-cost and task-success claim elsewhere on this page remains what it says it is: modelled.

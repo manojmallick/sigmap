@@ -39,6 +39,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.77.0)
+- **@manojmallick** — feat(benchmark): `npm run benchmark:agent-ab`, the agent-level A/B harness — the same labelled question with and without SigMap against a real coding agent, measuring tool calls, tokens per billing category, cost, wall time and hit@5 (#812, #955, PR #956). Opt-in and keyed (`--bare` takes `ANTHROPIC_API_KEY` or an `apiKeyHelper`, never a login), each run's own init event checked against its arm, at least four runs per arm, provenance on every figure, and no report written from a contaminated arm.
+- **@manojmallick** — test(benchmark): 38 cases in `agent-ab.test.js` — the method, the Claude Code adapter, arm preparation on a throwaway git repo and the CLI against a fake agent — with 28 mutants of the harness all caught (PR #956).
+
 ### Recent Contributors (v8.76.0)
 - **@manojmallick** — feat(mcp): the `log_session_usage` tool, so an agent SigMap has no hook integration for can report its own usage as `agent-reported` (#685, #951, PR #952). Opt-in with `session.mcpCapture`, so the default surface stays 22 tools; reports are cumulative, a measured transcript outranks a self-report, and an unusable `usage` is recorded `unavailable` with the reason, never as zeros.
 - **@manojmallick** — feat(session): `sigmap --report --sessions` and the dashboard's sessions and capture-coverage panels (#687, #951, PR #952). Totals per provenance class and never across them, a per-branch rollup, an input-priced cost floor that cites the pricing table's date, and a coverage block read from one declaration table.
