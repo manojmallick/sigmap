@@ -19,7 +19,9 @@
  *     per repo. A rule, not a hand-pick. The self repo is excluded — its tree
  *     holds its own answer key and its own generated context.
  *   - Arms: a throwaway copy of the pinned clone, hard-reset and cleaned, per
- *     arm. Both get the identical prompt, model, read-only tool allowlist
+ *     arm — resolved through any symlink first, so an arm is always its own real
+ *     directory and the shared clone is never reset, cleaned or written. Both
+ *     get the identical prompt, model, read-only tool allowlist
  *     (Read, Grep, Glob, and a Bash limited to grep/ls/cat/head/tail/wc), budget
  *     cap and timeout. Only the SigMap arm gets SigMap's generated CLAUDE.md
  *     section (system prompt), the `sigmap` CLI and its MCP server.
@@ -27,8 +29,11 @@
  *     and memory cannot reach the no-SigMap arm. --bare is ANTHROPIC_API_KEY-only.
  *   - Integrity: each run's own init event must match its arm, or the plan
  *     aborts and records nothing.
- *   - Statistics: median of N >= 4 runs per arm per task, arms interleaved and
- *     counterbalanced; spread reported; per-repo rows are paired per task.
+ *   - Statistics: median over the COMPLETED runs per arm per task, arms
+ *     interleaved and counterbalanced; spread reported; per-repo rows are paired
+ *     per task. A cell with fewer than 4 completed runs makes the report NOT
+ *     PUBLISHABLE, however many were requested — ask for more than 4 to leave
+ *     room for a failed run. The spend section counts every run, failed or not.
  *   - Provenance on every figure; unknown is n/a, never 0.
  *
  * Opt-in: not in the default suite, not in CI. Without a key it prints guidance
@@ -67,7 +72,16 @@ const fail = (s, code = 1) => { say(`[agent-ab] ${s}`); process.exit(code); };
 
 for (const a of argv) if (a.startsWith('--') && !KNOWN.has(a)) fail(`unknown flag ${a}`, 2);
 const has = (f) => argv.includes(f);
-const val = (f, d) => { const i = argv.indexOf(f); return i !== -1 && argv[i + 1] !== undefined && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
+// Every flag read through `val` takes a value. One given without — `--runs --save`, or
+// as the last argument — is an error, never the default: `--model --save` would
+// otherwise spend money on a model nobody chose.
+const val = (f, d) => {
+  const i = argv.indexOf(f);
+  if (i === -1) return d;
+  const next = argv[i + 1];
+  if (next === undefined || next === '' || next.startsWith('--')) fail(`${f} needs a value`, 2);
+  return next;
+};
 const intArg = (f, d) => {
   const v = val(f, null);
   if (v === null) return d;
@@ -201,7 +215,8 @@ async function main() {
   if (RAW_OUT) {
     const raw = entries.map(({ task, arm, run, record }) => ({
       repo: task.repo, task: task.id, arm, run, ok: record.ok, error: record.error, pass: record.score.pass,
-      named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, cost: record.cost,
+      named: record.score.named, toolCalls: record.toolCalls, usage: record.usage, usageSource: record.usageSource,
+      cacheGaps: record.cacheGaps, cost: record.cost,
       turns: record.turns, durationMs: record.durationMs, answer: record.answer,
     }));
     fs.writeFileSync(RAW_OUT, `${JSON.stringify(raw, null, 2)}\n`);

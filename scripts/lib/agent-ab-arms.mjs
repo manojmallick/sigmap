@@ -13,7 +13,8 @@
  * first-time user's `sigmap --adapter claude` run writes, generated the way the
  * xrepo gate generates (zero-config, plus the manifest's recorded `srcDirs`).
  *
- * The shared clone under benchmarks/repos is only ever read.
+ * The shared clone under benchmarks/repos is only ever read — including when it
+ * is reached through a symlink, which is resolved before anything is copied.
  *
  * Zero dependencies.
  */
@@ -35,6 +36,20 @@ function aliases(p) {
   const out = [p];
   try { const r = fs.realpathSync(p); if (r !== p) out.push(r); } catch (_) { /* gone */ }
   return out;
+}
+
+/**
+ * The copy's `.git` must be a directory of its own. Resolving the clone's path
+ * makes the arm itself a real directory, but a `.git` that is a symlink (or a
+ * gitfile pointing at a shared gitdir) is copied as the link it is, and `git
+ * reset --hard` would then write into the repository it points at.
+ */
+function assertOwnGit({ dest, label }) {
+  let st = null;
+  try { st = fs.lstatSync(path.join(dest, '.git')); } catch (_) { /* absent: reported below */ }
+  if (!st || st.isSymbolicLink() || !st.isDirectory()) {
+    throw new Error(`${label}: the copy's .git is not a directory of its own, so git would write into another repository`);
+  }
 }
 
 /** The MCP config JSON the SigMap arm hands the agent: the server `--setup` registers. */
@@ -71,11 +86,16 @@ export function sigmapShimDir(tmpRoot, codeRoot = CODE_ROOT) {
  * @returns {{ cwd: string, cwds: string[], sigmapContext?: string, mcpConfig?: string, binDir?: string }}
  */
 export function prepareArm({ root, repo, arm, tmpRoot, codeRoot = CODE_ROOT }) {
-  const src = repoDir(root, repo.name);
+  // `benchmarks/repos/<name>` may be a symlink (a worktree that borrows the shared
+  // clones). `cpSync` with `verbatimSymlinks` copies a link AS a link, so the arm
+  // would BE the shared clone: reset and clean would run in it, and both arms
+  // would share one directory. Copy what the link points at.
+  const src = fs.realpathSync(repoDir(root, repo.name));
   const dest = path.join(tmpRoot, `${repo.name}-${arm}`);
   fs.rmSync(dest, { recursive: true, force: true });
   fs.mkdirSync(tmpRoot, { recursive: true });
   fs.cpSync(src, dest, { recursive: true, verbatimSymlinks: true, mode: fs.constants.COPYFILE_FICLONE });
+  assertOwnGit({ dest, label: `${repo.name} (${arm})` });
 
   const reset = git(dest, ['reset', '--hard', '--quiet', repo.commit]);
   if (!reset.ok) throw new Error(`${repo.name}: cannot reset the copy to ${repo.commit}: ${reset.err}`);
