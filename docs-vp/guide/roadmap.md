@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.77.0, with the latest release adding an agent-level A/B harness that measures tool calls, tokens and cost against a real coding agent, after v8.76.0 let any MCP agent report its own usage, v8.75.1 kept the .context/ directory out of git and v8.75.0 turned body words on by default (the third-party corpus reads 59 of 83 where it read 42, the honest corpus 92.8% where it read 89.6%).
+description: SigMap version history and roadmap. From v0.0 to v8.77.1, with the latest release stopping the agent-level A/B harness resetting a symlinked clone in place and making its report count every run's spend, after v8.77.0 added that harness (it measures tool calls, tokens and cost against a real coding agent), v8.76.0 let any MCP agent report its own usage, v8.75.1 kept the .context/ directory out of git and v8.75.0 turned body words on by default (the third-party corpus reads 59 of 83 where it read 42, the honest corpus 92.8% where it read 89.6%).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "246 versions shipped. See what changed in each release and what is coming next."
+      content: "247 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Two hundred forty-six versions shipped. MIT open source from day one.
+Two hundred forty-seven versions shipped. MIT open source from day one.
 
 **Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.32× measured lift vs single-shot grep (92.8% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
@@ -838,6 +838,27 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 
 ---
 
+### v8.77.1 — a symlinked clone is no longer the arm, and the report says what was spent ✓ (2026-10-13)
+
+**Patch.** The agent-level A/B harness shipped in v8.77.0 with five defects its own release review had found, listed as known gaps because fixing them was a code change ([#959](https://github.com/manojmallick/sigmap/issues/959), PR [#960](https://github.com/manojmallick/sigmap/pull/960)). One was worse than the note said. Where `benchmarks/repos/<name>` is a symlink — the borrowed-clone worktree layout — the harness copied the link as a link, so the arm *was* the shared clone: `git reset --hard` and `git clean` ran in it and deleted its untracked files and edits, and both arms resolved to one directory, so the SigMap arm's generated `CLAUDE.md` section and `.context/` were visible to the no-SigMap arm. The check that guards the comparison reads each run's tool list and cannot see a file tree, so the contamination would have produced a number.
+
+The clone is now resolved before it is copied, and an arm whose `.git` is a link is refused before git can write through it. Four more are about what the report and the command line say. The 4-run minimum counts runs that *completed* — with the default of four, one failed run makes a report not publishable, so a plan that wants slack asks for more. Every run's cost is counted, one sum per provenance class with the failed runs' share beside it, where a failed run's spend had been in no series. A cache category some messages omitted is `null` rather than the sum of the rest, which in a lower-is-better comparison favours the arm whose messages omit more. And a flag that takes a value, given none, is an error: `--model --save` had been running on the default model where one was asked for.
+
+```
+symlinked clone           arm = the shared clone, reset in place; both arms one dir  ->  two real directories, clone untouched
+the 4-run minimum         counted requested runs                                     ->  counts completed runs, names the short cells
+a failed run's spend      on the progress line and --raw-out, in no total            ->  in the report, per provenance class
+a partly-reported cache   summed over the messages that reported it                  ->  null, the gap counted
+--model --save            the default model                                          ->  exit 2, "--model needs a value"
+```
+
+The instructive part is how the second consequence was found. Reproducing the destruction again to write the fix showed that both arms were symlinks with one real path — which no test of the first version could have caught, because every one of them used real directories. The new test is that reproduction; it and seven other new tests, and the two it extended, fail on v8.77.0's scripts, and twenty-one one-line mutants of the fix points are all caught (the first pass left one — the write side of the cache category, whose fixture had omitted only the read side).
+
+**Tags:** `benchmark:agent-ab` · `agent-ab-arms.mjs` · `prepareArm` · `publishability` · `spendOf` · `cacheGaps` · `agent-ab.test.js` · `#959` · `PR #960`
+**Impact:** no published figure moves. Token reduction 95.7%, hit@5 80.4%, task success 61.9%, test-discovery F1 98.0%, the grounding corpus, the third-party corpus (59 of 83), `hard` 71.1% (64 of 90, one task of headroom) and the honest comparison (92.8% against grep's 40.0%, 2.32×) reproduce v8.77.0's reports leaf for leaf apart from stamps; on the grep side SigMap's own files hold 126 of the 625 top-5 places where they held 127, and one unpublished grep-MRR leaf moves in the third decimal. The release changes no ranking, extraction or detection code and adds no file to the index; the package it ships is v8.77.0's with a new version string.
+
+---
+
 ### v8.77.0 — an agent with tools, with and without SigMap: measured ✓ (2026-10-13)
 
 **Minor.** Every published efficiency figure was modeled, and the one measured agent-side number was a single completion with no tools. Nothing had watched a real coding agent do the same work with and without SigMap, so a retrieval change could not be connected to a tool call, a token or a dollar ([#955](https://github.com/manojmallick/sigmap/issues/955), closing [#812](https://github.com/manojmallick/sigmap/issues/812)). `npm run benchmark:agent-ab` runs Claude Code on the labelled third-party questions of the xrepo corpus, each arm in a hard-reset, cleaned copy of the pinned commit, and records tool calls, tokens per billing category, cost, wall time and whether the answer named the right file.
@@ -852,7 +873,7 @@ a number from a bad arm    could not be told apart             ->  each run's in
 
 The correctness contract of the session epic carries over unchanged: provenance on every figure, nothing summed across provenance classes, an unreported metric is `n/a`, not `0`, and a failed run is left out of every series. The instructive finding is one the first version got wrong. It gave both arms read-only tools and no shell; running it against a real clone showed that SigMap's own generated section tells an agent to *run these yourself in the terminal* — an arm with no terminal would have been handed instructions it cannot follow, which biases the result against SigMap. Both arms now have a shell restricted to `grep`, `ls`, `cat`, `head`, `tail` and `wc`, and the SigMap arm alone may run `sigmap`.
 
-**No figure is published by this release.** The harness was exercised end to end offline, against a fake agent, with 38 tests and 28 mutants all caught — and not against a live one: that needs an API key and a budget, and the first live run is the real check of the agent's event stream, which the parser treats as untrusted: a missing result is a failed run and a missing init stops the plan. Its own review found one hazard that is a code change and so not in this release's commit: where `benchmarks/repos/<name>` is a symlink — the borrowed-clone worktree layout — the arm is built by resetting and cleaning the shared clone in place, so run it against real directories until that is fixed (the CHANGELOG lists the other gaps).
+**No figure is published by this release.** The harness was exercised end to end offline, against a fake agent, with 38 tests and 28 mutants all caught — and not against a live one: that needs an API key and a budget, and the first live run is the real check of the agent's event stream, which the parser treats as untrusted: a missing result is a failed run and a missing init stops the plan. Its own review found one hazard that is a code change and so not in this release's commit: where `benchmarks/repos/<name>` is a symlink — the borrowed-clone worktree layout — the arm is built by resetting and cleaning the shared clone in place, so run it against real directories until that is fixed (the CHANGELOG lists the other gaps) — fixed in v8.77.1, which also closes the other four.
 
 **Tags:** `benchmark:agent-ab` · `agent-ab.mjs` · `agent-ab-arms.mjs` · `agent-ab-claude.mjs` · `--bare` · `stream-json` · `hit@5` · `provenance` · `agent-ab.test.js` · `#955` · `#812` · `PR #956`
 **Impact:** every published figure holds — token reduction 95.7%, hit@5 80.4%, task success 61.9%, test-discovery F1 98.0%, the grounding corpus, the third-party corpus (59 of 83), `hard` 71.1% (64 of 90, one task of headroom) and the honest comparison (92.8% against grep's 40.0%, 2.32×) all hold on a fresh `benchmark:all` run on the shipping tree. The release adds no ranking, extraction or detection code; the only change to the index is its new test file.
