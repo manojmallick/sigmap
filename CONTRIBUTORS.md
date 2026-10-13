@@ -39,6 +39,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.77.1)
+- **@manojmallick** — fix(benchmark): the agent-level A/B harness no longer resets a symlinked clone in place or lets its arms share one directory, and its report says what was spent (#959, PR #960). A symlinked clone is resolved before it is copied, so the shared clone is never reset or written and the two arms are two directories; an arm whose `.git` is a link is refused. The 4-run minimum counts completed runs, every run's cost is counted (one sum per provenance class), a cache category some messages omitted is unknown rather than a partial sum, and a value flag given no value is an error.
+- **@manojmallick** — test(benchmark): eight new and two extended cases in `agent-ab.test.js` (46 in all) — each fails on the v8.77.0 scripts — with 21 one-line mutants of the fix points all caught (PR #960).
+
 ### Recent Contributors (v8.77.0)
 - **@manojmallick** — feat(benchmark): `npm run benchmark:agent-ab`, the agent-level A/B harness — the same labelled question with and without SigMap against a real coding agent, measuring tool calls, tokens per billing category, cost, wall time and hit@5 (#812, #955, PR #956). Opt-in and keyed (`--bare` takes `ANTHROPIC_API_KEY` or an `apiKeyHelper`, never a login), each run's own init event checked against its arm, at least four runs per arm, provenance on every figure, and no report written from a contaminated arm.
 - **@manojmallick** — test(benchmark): 38 cases in `agent-ab.test.js` — the method, the Claude Code adapter, arm preparation on a throwaway git repo and the CLI against a fake agent — with 28 mutants of the harness all caught (PR #956).

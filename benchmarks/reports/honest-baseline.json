@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-13T00:09:36.966Z",
+  "generated": "2026-10-13T15:20:03.688Z",
   "methodology": {
     "corpus": "benchmarks/tasks/*.jsonl",
     "scorer": "src/eval/scorer.js hitAtK/reciprocalRank, k=5",
@@ -75,7 +75,7 @@
         },
         "grepBaseline": {
           "hitAt5": 0.3,
-          "mrr": 0.139
+          "mrr": 0.138
         }
       }
     }
@@ -238,5 +238,5 @@
       "reason": "repo not cloned"
     }
   ],
-  "version": "8.77.0"
+  "version": "8.77.1"
 }
