@@ -25,6 +25,8 @@
  *     shortfall, never as a zero; a timed-out run is a failed run with unknown
  *     usage.
  *   - Token sums are per-request billing categories, never "context size".
+ *   - The minimum run count is of COMPLETED runs, and the spend figure counts
+ *     every run — a failed one was billed even though no series holds it.
  *
  * Zero dependencies. Node built-ins and src/config/models.js only.
  */
@@ -341,9 +343,51 @@ export const METRICS = Object.freeze([
   { key: 'durationMs', label: 'Wall time', unit: 'ms', provenance: 'measured (wall clock of the agent process)', pick: (r) => r.durationMs },
 ]);
 
+const EMPTY_SPEND = Object.freeze({ runs: 0, agentReportedUsd: null, agentReportedRuns: 0, floorUsd: null, floorRuns: 0, unknownRuns: 0 });
+
+/**
+ * What a set of runs cost, counted over EVERY run — completed or not. A timed-out
+ * or errored run was still billed, and the series above leave it out on purpose
+ * (its usage is partial, so it is not a sample of what a completed run costs);
+ * this is the figure that says what the plan spent.
+ *
+ * One sum per provenance class — the agent's own `total_cost_usd`, and the table
+ * floor (uncached input only) for a run that reported none — and a count of runs
+ * with neither. The classes are never added to each other.
+ *
+ * @param {Array<{cost?: {usd: number|null, source: string}}>} records
+ */
+export function spendOf(records) {
+  const s = { runs: 0, agentReportedUsd: null, agentReportedRuns: 0, floorUsd: null, floorRuns: 0, unknownRuns: 0 };
+  for (const r of records) {
+    s.runs++;
+    const c = r && r.cost;
+    const usd = c && typeof c.usd === 'number' && Number.isFinite(c.usd) && c.usd >= 0 ? c.usd : null;
+    if (usd !== null && c.source === 'agent-reported') { s.agentReportedUsd = (s.agentReportedUsd || 0) + usd; s.agentReportedRuns++; }
+    else if (usd !== null && c.source === 'table') { s.floorUsd = (s.floorUsd || 0) + usd; s.floorRuns++; }
+    else s.unknownRuns++;
+  }
+  return s;
+}
+
+/** Field-wise sum of spends — within a class only, so no class is ever blended. */
+function addSpend(list) {
+  const out = Object.assign({}, EMPTY_SPEND);
+  for (const s of list) {
+    out.runs += s.runs;
+    out.agentReportedRuns += s.agentReportedRuns;
+    out.floorRuns += s.floorRuns;
+    out.unknownRuns += s.unknownRuns;
+    if (s.agentReportedUsd !== null) out.agentReportedUsd = (out.agentReportedUsd || 0) + s.agentReportedUsd;
+    if (s.floorUsd !== null) out.floorUsd = (out.floorUsd || 0) + s.floorUsd;
+  }
+  return out;
+}
+
 /**
  * One cell per (task, arm): pass count and, per metric, the summary over the
- * runs that completed AND reported it.
+ * runs that completed AND reported it. `spend` is the exception: it covers every
+ * run, with `failed` the part of it that came from runs that did not complete.
  */
 export function buildCells(entries, tasks) {
   const cells = [];
@@ -363,6 +407,10 @@ export function buildCells(entries, tasks) {
         pass: mine.filter((e) => e.record.score.pass).length,
         errors: [...new Set(mine.filter((e) => !e.record.ok).map((e) => e.record.error || 'failed'))].sort(),
         named: mine.map((e) => e.record.score.named),
+        // Completed runs whose cache figure was dropped because some of their
+        // messages omitted it — the reason an `n=` is short on a cache series.
+        cacheGapRuns: done.filter((e) => e.record.cacheGaps > 0).length,
+        spend: { all: spendOf(mine.map((e) => e.record)), failed: spendOf(mine.filter((e) => !e.record.ok).map((e) => e.record)) },
         metrics,
       });
     }
@@ -402,10 +450,16 @@ function rollupCells(cells) {
     };
   }
   const sum = (arm, f) => cells.filter((c) => c.arm === arm).reduce((s, c) => s + c[f], 0);
+  const spendOfArm = (arm, part) => addSpend(cells.filter((c) => c.arm === arm).map((c) => c.spend[part]));
   return {
     tasks: pairs.length,
     pass: { without: { pass: sum('without', 'pass'), runs: sum('without', 'runs') }, with: { pass: sum('with', 'pass'), runs: sum('with', 'runs') } },
     failedRuns: { without: sum('without', 'runs') - sum('without', 'completed'), with: sum('with', 'runs') - sum('with', 'completed') },
+    cacheGapRuns: sum('without', 'cacheGapRuns') + sum('with', 'cacheGapRuns'),
+    spend: {
+      without: { all: spendOfArm('without', 'all'), failed: spendOfArm('without', 'failed') },
+      with: { all: spendOfArm('with', 'all'), failed: spendOfArm('with', 'failed') },
+    },
     metrics,
   };
 }
@@ -421,14 +475,26 @@ export function rollup(cells) {
 }
 
 /**
- * Why a report may or may not be published as a result. Fewer than MIN_RUNS runs
- * per arm is a smoke test; a cell with no completed run has no number.
+ * Why a report may or may not be published as a result. The minimum counts
+ * COMPLETED runs: fewer than MIN_RUNS requested per arm is a smoke test, and so
+ * is a plan that asked for enough but lost some — a cell whose median rests on
+ * three runs is below the method's own minimum, however many were requested.
+ * (Request more than MIN_RUNS to leave room for a failed run.)
  */
 export function publishability({ runs, cells }) {
   const reasons = [];
   if (runs < MIN_RUNS) reasons.push(`${runs} run${runs === 1 ? '' : 's'} per arm (the minimum is ${MIN_RUNS})`);
   const empty = cells.filter((c) => c.completed === 0).length;
   if (empty) reasons.push(`${empty} cell${empty === 1 ? '' : 's'} with no completed run`);
+  // With too few requested every cell is short, and the line above already says so.
+  if (runs >= MIN_RUNS) {
+    const short = cells.filter((c) => c.completed > 0 && c.completed < MIN_RUNS);
+    if (short.length) {
+      const named = short.slice(0, 5).map((c) => `${c.repo}/${c.task} ${c.arm} ${c.completed} of ${c.runs}`);
+      const more = short.length > named.length ? `, +${short.length - named.length} more` : '';
+      reasons.push(`${short.length} cell${short.length === 1 ? '' : 's'} with fewer than ${MIN_RUNS} completed runs (${named.join(', ')}${more})`);
+    }
+  }
   return { publishable: reasons.length === 0, reasons };
 }
 
@@ -546,6 +612,32 @@ export function renderMarkdown(report) {
     lines.push('');
   }
 
+  // What the plan spent. The medians above leave a failed run out; this does not.
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const fmtSpend = (s, none) => {
+    if (!s.runs) return none;
+    const parts = [];
+    if (s.agentReportedRuns) parts.push(`${fmt('usd', s.agentReportedUsd)} (${plural(s.agentReportedRuns, 'run')})`);
+    if (s.floorRuns) parts.push(`${fmt('usd', s.floorUsd, true)} floor (${plural(s.floorRuns, 'run')})`);
+    if (s.unknownRuns) parts.push(`${plural(s.unknownRuns, 'run')} unreported`);
+    return parts.join(' · ');
+  };
+  const spendRows = [...report.repos, Object.assign({ repo: 'all' }, report.total)].map((r) => [
+    r.repo,
+    fmtSpend(r.spend.without.all, NA), fmtSpend(r.spend.with.all, NA),
+    fmtSpend(r.spend.without.failed, 'none'), fmtSpend(r.spend.with.failed, 'none'),
+  ]);
+  if (report.total.spend.without.all.agentReportedRuns + report.total.spend.with.all.agentReportedRuns
+      + report.total.spend.without.all.floorRuns + report.total.spend.with.all.floorRuns > 0) {
+    lines.push('## Spend');
+    lines.push('');
+    lines.push(`Provenance: agent-reported (the agent's own \`total_cost_usd\`), or the table floor (as of ${m.priceAsOf}: uncached input only) for a run that reported none. `
+      + 'Every run counts, completed or not — the medians above leave a failed run out, this does not — and the classes are never added together.');
+    lines.push('');
+    lines.push(mdTable(['repo', 'without', 'with', 'of which failed runs, without', 'of which failed runs, with'], spendRows));
+    lines.push('');
+  }
+
   lines.push('## Per task');
   lines.push('');
   const cellRow = (c) => {
@@ -558,7 +650,10 @@ export function renderMarkdown(report) {
     };
     return [`${c.repo}/${c.task}`, c.arm, `${c.pass}/${c.runs}`, cell('toolCalls'), cell('in'), cell('out'), cell('cacheRead'), cell('cacheWrite'), cell('costUsd') === NA ? cell('costFloorUsd') : cell('costUsd'), cell('durationMs')];
   };
-  lines.push('Each figure is `median [min–max]` over the runs that completed and reported it; `n=` marks a shortfall.');
+  lines.push('Each figure is `median [min–max]` over the runs that completed and reported it; `n=` marks a shortfall.'
+    + (report.total.cacheGapRuns > 0
+      ? ` ${plural(report.total.cacheGapRuns, 'completed run')} dropped a cache figure because some of ${report.total.cacheGapRuns === 1 ? 'its' : 'their'} messages omitted that category.`
+      : ''));
   lines.push('');
   lines.push(mdTable(['task', 'arm', 'pass', 'tool calls', 'input', 'output', 'cache read', 'cache write', 'cost', 'time'], report.cells.map(cellRow)));
   lines.push('');

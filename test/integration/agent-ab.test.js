@@ -322,6 +322,109 @@ const treeHash = (dir) => {
     assert.match(ab.renderMarkdown(rep), /NOT PUBLISHABLE/);
   });
 
+  await test('a cell that completed fewer than the minimum is not publishable, however many runs were requested (#959)', async () => {
+    const meth = (runs) => ({ agent: 'claude-code', agentVersion: '1', model: 'm', runs, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-10-13' });
+    const lose = (n) => async (job) => (job.arm === 'with' && job.run <= n
+      ? { ok: false, error: 'timeout', init: null, cwds: [], usage: null, toolCalls: null, cost: { usd: null, source: 'unavailable' }, durationMs: 1 }
+      : stub()(job));
+    const report = async (runs, lost) => ab.buildReport({
+      entries: await ab.runPlan({ tasks: [TASKS[0]], runs, runner: lose(lost) }), tasks: [TASKS[0]], method: meth(runs),
+    });
+
+    // Four requested, three completed: the median rests on three, below the method's own minimum.
+    const three = await report(4, 1);
+    assert.strictEqual(three.method.publishable, false);
+    assert.deepStrictEqual(three.method.notPublishableBecause, ['1 cell with fewer than 4 completed runs (r1/x001 with 3 of 4)']);
+    assert.match(ab.renderMarkdown(three), /NOT PUBLISHABLE — 1 cell with fewer than 4 completed runs/);
+
+    // Nothing completed: that cell keeps its own reason and is not counted twice.
+    assert.deepStrictEqual((await report(4, 4)).method.notPublishableBecause, ['1 cell with no completed run']);
+
+    // Six requested, four completed: enough, and a lost run no longer decides it.
+    const six = await report(6, 2);
+    assert.strictEqual(six.method.publishable, true);
+    assert.deepStrictEqual(six.method.notPublishableBecause, []);
+
+    // Too few requested says so once, not once per cell.
+    assert.deepStrictEqual((await report(2, 0)).method.notPublishableBecause, ['2 runs per arm (the minimum is 4)']);
+
+    // Many short cells: the first five are named, the rest are counted.
+    const tasks = ['x001', 'x002', 'x003'].map((id) => ({ id, repo: 'r1', query: 'q', expected_files: ['a.js'] }));
+    const lossy = async (job) => (job.run <= 2 // five requested, two lost: three completed
+      ? { ok: false, error: 'timeout', init: null, cwds: [], usage: null, toolCalls: null, cost: { usd: null, source: 'unavailable' }, durationMs: 1 }
+      : stub()(job));
+    const many = ab.buildReport({
+      entries: await ab.runPlan({ tasks, runs: 5, runner: lossy, maxConsecutiveFailures: 99 }), tasks, method: meth(5),
+    });
+    assert.strictEqual(many.method.notPublishableBecause.length, 1);
+    const line = many.method.notPublishableBecause[0];
+    assert.match(line, /^6 cells with fewer than 4 completed runs \(/);
+    assert.strictEqual(line.split(' of 5').length - 1, 5, 'five cells named');
+    assert.match(line, /, \+1 more\)$/);
+  });
+
+  await test('spend counts every run: a failed run that reported a cost is in it, and no median moves (#959)', async () => {
+    const runner = async (job) => (job.arm === 'with' && job.run === 1
+      ? { ok: false, error: 'agent error: error_max_turns', init: okInit('with'), cwds: [], usage: { in: 400, out: 50, cacheRead: null, cacheWrite: null }, toolCalls: null, cost: { usd: 0.07, source: 'agent-reported' }, durationMs: 9000 }
+      : stub()(job));
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 4, runner });
+    const meth = { agent: 'claude-code', agentVersion: '1', model: 'm', runs: 4, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-10-13' };
+    const rep = ab.buildReport({ entries, tasks: [TASKS[0]], method: meth });
+    const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} !== ${b}`);
+
+    const withCell = rep.cells.find((c) => c.arm === 'with');
+    assert.strictEqual(withCell.metrics.costUsd.n, 3, 'the failed run is still not a sample of what a run costs');
+    assert.strictEqual(withCell.metrics.costUsd.median, 0.01);
+    assert.strictEqual(withCell.spend.all.runs, 4);
+    assert.strictEqual(withCell.spend.all.agentReportedRuns, 4);
+    near(withCell.spend.all.agentReportedUsd, 0.1);
+    assert.strictEqual(withCell.spend.failed.runs, 1);
+    near(withCell.spend.failed.agentReportedUsd, 0.07);
+
+    const without = rep.cells.find((c) => c.arm === 'without');
+    near(without.spend.all.agentReportedUsd, 0.12);
+    assert.deepStrictEqual([without.spend.failed.runs, without.spend.failed.agentReportedUsd], [0, null]);
+
+    near(rep.total.spend.with.all.agentReportedUsd, 0.1);
+    near(rep.repos[0].spend.with.failed.agentReportedUsd, 0.07);
+    const md = ab.renderMarkdown(rep);
+    assert.match(md, /## Spend/);
+    assert.ok(md.includes('$0.1000 (4 runs)') && md.includes('$0.0700 (1 run)'), md);
+    assert.ok(!/NaN|undefined|null/.test(md));
+  });
+
+  await test('spend is one figure per provenance class and a count of unreported runs, never a blended total (#959)', async () => {
+    const costs = [{ usd: 0.02, source: 'agent-reported' }, { usd: 0.5, source: 'table' }, { usd: null, source: 'unavailable' }, { usd: 0.04, source: 'agent-reported' }];
+    const runner = async (job) => stub({ cost: costs[(job.run - 1) % 4] })(job);
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 4, runner });
+    const meth = { agent: 'claude-code', agentVersion: '1', model: 'm', runs: 4, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-10-13' };
+    const rep = ab.buildReport({ entries, tasks: [TASKS[0]], method: meth });
+    const s = rep.cells[0].spend.all;
+    assert.deepStrictEqual([s.runs, s.agentReportedRuns, s.floorRuns, s.unknownRuns], [4, 2, 1, 1]);
+    assert.ok(Math.abs(s.agentReportedUsd - 0.06) < 1e-9);
+    assert.strictEqual(s.floorUsd, 0.5);
+    assert.ok(!Object.keys(s).some((k) => /^total/i.test(k)), 'no field adds the classes');
+    const md = ab.renderMarkdown(rep);
+    assert.ok(md.includes('$0.0600 (2 runs) · ≥ $0.5000 floor (1 run) · 1 run unreported'), md);
+
+    // Nothing reported a cost: the section is left out, like any series nobody reported.
+    const blank = ab.buildReport({
+      entries: await ab.runPlan({ tasks: [TASKS[0]], runs: 4, runner: async (job) => stub({ cost: { usd: null, source: 'unavailable' } })(job) }),
+      tasks: [TASKS[0]], method: meth,
+    });
+    assert.ok(!ab.renderMarkdown(blank).includes('## Spend'));
+  });
+
+  await test('a completed run that dropped a cache figure is counted and named in the report (#959)', async () => {
+    const runner = async (job) => stub({ cacheGaps: job.run === 1 ? 2 : 0 })(job);
+    const entries = await ab.runPlan({ tasks: [TASKS[0]], runs: 4, runner });
+    const meth = { agent: 'claude-code', agentVersion: '1', model: 'm', runs: 4, tasksPerRepo: 1, budgetUsd: 1, timeoutMs: 1000, date: '2026-10-13' };
+    const rep = ab.buildReport({ entries, tasks: [TASKS[0]], method: meth });
+    assert.deepStrictEqual(rep.cells.map((c) => c.cacheGapRuns), [1, 1]);
+    assert.strictEqual(rep.total.cacheGapRuns, 2);
+    assert.match(ab.renderMarkdown(rep), /2 completed runs dropped a cache figure because some of their messages omitted that category/);
+  });
+
   await test('the rendered report names model, date, agent, runs, budget and caveats; unknown reads n/a', async () => {
     const runner = async (job) => stub({ usage: { in: 100, out: 10, cacheRead: null, cacheWrite: null } })(job);
     const entries = await ab.runPlan({ tasks: TASKS, runs: 4, runner });
@@ -398,6 +501,41 @@ const treeHash = (dir) => {
     assert.strictEqual(p.usageSource, 'messages');
   });
 
+  await test('parseStream: a cache category some messages omitted is unknown, never the sum of the others (#959)', () => {
+    const done = { type: 'result', subtype: 'success', is_error: false, result: 'x' };
+    const p = claude.parseStream(stream([
+      asst('a', [use('t1', 'Read')], U(10, 2, 7, 1)),
+      asst('b', [], { input_tokens: 5, output_tokens: 1, cache_creation_input_tokens: 2 }), // omits cache read only
+      asst('c', [], U(3, 1, 4, 0)),
+      done,
+    ]));
+    assert.deepStrictEqual(p.usage, { in: 18, out: 4, cacheRead: null, cacheWrite: 3 }, 'the read total would have been 11 — a floor');
+    assert.strictEqual(p.cacheGaps, 1, 'one message omitted it');
+    assert.strictEqual(p.usageSource, 'messages');
+
+    // The same for the write side, with the read side complete.
+    const w = claude.parseStream(stream([
+      asst('a', [], U(10, 2, 7, 1)),
+      asst('b', [], { input_tokens: 5, output_tokens: 1, cache_read_input_tokens: 4 }), // omits cache creation only
+      done,
+    ]));
+    assert.deepStrictEqual(w.usage, { in: 15, out: 3, cacheRead: 11, cacheWrite: null });
+    assert.strictEqual(w.cacheGaps, 1);
+
+    // Reported by every message: summed, no gap. By none: null, no gap (a category that was never there).
+    const full = claude.parseStream(stream([asst('a', [], U(10, 2, 7, 1)), asst('b', [], U(5, 1, 4, 2)), done]));
+    assert.deepStrictEqual(full.usage, { in: 15, out: 3, cacheRead: 11, cacheWrite: 3 });
+    assert.strictEqual(full.cacheGaps, 0);
+    const none = claude.parseStream(stream([asst('a', [], { input_tokens: 1, output_tokens: 1 }), done]));
+    assert.deepStrictEqual(none.usage, { in: 1, out: 1, cacheRead: null, cacheWrite: null });
+    assert.strictEqual(none.cacheGaps, 0);
+
+    // The count reaches the record, which is what --raw-out and the report read.
+    const rec = claude.toRecord(p, { wallMs: 1, cwds: [], model: 'claude-sonnet-5-5', timedOut: false, code: 0 });
+    assert.strictEqual(rec.cacheGaps, 1);
+    assert.strictEqual(rec.usage.cacheRead, null);
+  });
+
   await test('parseStream treats the stream as untrusted: bad lines are counted, bad numbers are dropped', () => {
     const p = claude.parseStream('not json\n{"type":"result","subtype":"success","result":"x","usage":{"input_tokens":-5,"output_tokens":"lots"},"total_cost_usd":"free"}\n{broken');
     assert.strictEqual(p.parseErrors, 2);
@@ -458,6 +596,57 @@ const treeHash = (dir) => {
     assert.ok(a.cwds.length >= 1 && b.binDir);
     const cfg = JSON.parse(b.mcpConfig).mcpServers.sigmap;
     assert.deepStrictEqual(cfg.args, [path.join(ROOT, 'gen-context.js'), '--mcp']);
+  });
+
+  await test('a symlinked clone is never reset, cleaned or written, and the two arms do not share a directory (#959)', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    // The borrowed-clone layout: benchmarks/repos/r1 is a link to a clone that lives elsewhere.
+    const link = path.join(root, 'benchmarks', 'repos', 'r1');
+    const borrowed = path.join(mktmp('ab-borrowed-'), 'r1');
+    fs.renameSync(link, borrowed);
+    fs.symlinkSync(borrowed, link, 'dir');
+    // What a maintainer keeps in a shared clone: an untracked file and a local edit.
+    fs.writeFileSync(path.join(borrowed, 'NOTES-untracked.txt'), 'my work\n');
+    fs.appendFileSync(path.join(borrowed, 'src', 'alpha.js'), '// local edit\n');
+    const before = treeHash(borrowed);
+    const head = git(borrowed, ['rev-parse', 'HEAD']);
+    const tmp = mktmp('ab-arms-link-');
+
+    const a = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT });
+    const b = arms.prepareArm({ root, repo: manifest.repos[0], arm: 'with', tmpRoot: tmp, codeRoot: ROOT });
+
+    assert.strictEqual(treeHash(borrowed), before, 'the shared clone is byte-identical');
+    assert.ok(fs.existsSync(path.join(borrowed, 'NOTES-untracked.txt')), 'its untracked file survives');
+    assert.ok(fs.readFileSync(path.join(borrowed, 'src', 'alpha.js'), 'utf8').includes('local edit'), 'its local edit survives');
+    assert.strictEqual(git(borrowed, ['rev-parse', 'HEAD']), head);
+    for (const arm of [a, b]) {
+      assert.ok(!fs.lstatSync(arm.cwd).isSymbolicLink(), `${arm.cwd} is a real directory`);
+      assert.ok(fs.realpathSync(arm.cwd).startsWith(fs.realpathSync(tmp) + path.sep), 'inside the private temp root');
+    }
+    assert.notStrictEqual(fs.realpathSync(a.cwd), fs.realpathSync(b.cwd), 'two directories, not one');
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'CLAUDE.md')) && !fs.existsSync(path.join(a.cwd, '.context')),
+      'the SigMap arm\'s generated files never reach the no-SigMap arm');
+    assert.ok(!fs.existsSync(path.join(borrowed, 'CLAUDE.md')) && !fs.existsSync(path.join(borrowed, '.context')),
+      'nor the shared clone');
+    assert.ok(fs.existsSync(path.join(b.cwd, '.context')), 'the SigMap arm has its own index');
+    assert.ok(!fs.existsSync(path.join(a.cwd, 'NOTES-untracked.txt')), 'the copy was cleaned, the original was not');
+  });
+
+  await test('an arm whose .git is a link is refused before git can write through it (#959)', () => {
+    const { root, manifest } = makeDataRoot([{ name: 'r1', tasks: [{ id: 'x001', query: 'q', expected: ['src/alpha.js'] }] }]);
+    const clone = path.join(root, 'benchmarks', 'repos', 'r1');
+    // A clone whose repository is shared: .git is a symlink to a gitdir kept elsewhere.
+    const gitdir = path.join(mktmp('ab-gitdir-'), 'shared.git');
+    fs.renameSync(path.join(clone, '.git'), gitdir);
+    fs.symlinkSync(gitdir, path.join(clone, '.git'), 'dir');
+    const head = git(clone, ['rev-parse', 'HEAD']);
+    const indexBefore = fs.readFileSync(path.join(gitdir, 'index'));
+    const tmp = mktmp('ab-arms-gitlink-');
+
+    assert.throws(() => arms.prepareArm({ root, repo: manifest.repos[0], arm: 'without', tmpRoot: tmp, codeRoot: ROOT }),
+      /r1 \(without\): the copy's \.git is not a directory of its own/);
+    assert.strictEqual(git(clone, ['rev-parse', 'HEAD']), head);
+    assert.ok(fs.readFileSync(path.join(gitdir, 'index')).equals(indexBefore), 'the shared repository\'s index was not rewritten');
   });
 
   await test('the sigmap shim runs THIS checkout, and the SigMap arm\'s MCP server answers', () => {
@@ -525,6 +714,32 @@ const treeHash = (dir) => {
     assert.match(r.stderr, /unknown flag --run/);
   });
 
+  await test('a flag that takes a value and is given none is an error naming the flag, never the default (#959)', () => {
+    const f = fixture();
+    // Live env and the fake agent, no --dry-run: before the fix each of these ran the whole plan
+    // on a default, so "nothing was started" is a real check, not a vacuous one.
+    // --out-dir is always given a real directory (bar the probe about --out-dir itself): were the
+    // check to regress, the run this test provokes must still not write into benchmarks/reports.
+    const probes = [
+      [['--runs', '--save'], '--runs'],                         // the next token is another flag
+      [['--model'], '--model'],                                 // last argument
+      [['--max-budget-usd', '--save'], '--max-budget-usd'],
+      [['--repos', '--runs', '4'], '--repos'],
+      [['--out-dir', ''], '--out-dir'],                         // an empty string is no value
+    ];
+    for (const [rest, flag] of probes) {
+      const args = ['--claude', f.bin, ...(flag === '--out-dir' ? [] : ['--out-dir', f.out]), ...rest];
+      const r = runCli(args, live(f));
+      assert.strictEqual(r.status, 2, `${args.join(' ')}: ${r.stderr}`);
+      assert.ok(r.stderr.includes(`${flag} needs a value`), `${args.join(' ')}: ${r.stderr}`);
+      assert.ok(!fs.existsSync(f.log), `${flag}: nothing was started`);
+    }
+    // Boolean flags take no value, and a value that looks like one is still a value for its own flag.
+    const ok = runCli(['--dry-run', '--runs', '6', '--tasks-per-repo', '1'], { SIGMAP_XREPO_DATA: f.root });
+    assert.strictEqual(ok.status, 0, ok.stderr);
+    assert.match(ok.stdout, /6 per arm × 2 arms = 24 agent runs/);
+  });
+
   await test('a full run: both arms, N runs, identical prompts, SigMap only in its arm, report saved', () => {
     const f = fixture();
     const clones = ['r1', 'r2'].map((n) => path.join(f.root, 'benchmarks', 'repos', n));
@@ -558,6 +773,12 @@ const treeHash = (dir) => {
     assert.strictEqual(rep.total.metrics.costUsd.without, 0.03);
     assert.strictEqual(rep.total.metrics.costUsd.with, 0.01);
     assert.strictEqual(rep.total.metrics.cacheRead.without, null, 'the no-SigMap arm reported none');
+    assert.deepStrictEqual([rep.total.spend.without.all.runs, rep.total.spend.with.all.runs], [8, 8]);
+    assert.deepStrictEqual([rep.total.spend.without.failed.runs, rep.total.spend.with.failed.runs], [0, 0]);
+    assert.ok(Math.abs(rep.total.spend.without.all.agentReportedUsd - 0.24) < 1e-9, 'the spend is the sum over every run');
+    assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /## Spend/);
+    const raw = JSON.parse(fs.readFileSync(path.join(f.out, 'raw.json'), 'utf8'));
+    assert.ok(raw.every((r) => r.cacheGaps === 0 && r.usageSource === 'result'), 'the raw record carries the gap count and where usage came from');
     assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /claude-code 9\.9\.9 \(Fake Claude\) · claude-sonnet-5-5/);
     assert.strictEqual(JSON.parse(fs.readFileSync(path.join(f.out, 'raw.json'), 'utf8')).length, 16);
     assert.ok(r.stdout.includes('## Caveats'));
@@ -599,6 +820,7 @@ const treeHash = (dir) => {
     assert.deepStrictEqual(rep.cells.map((c) => c.errors), [['timeout'], ['timeout']]);
     assert.ok(rep.cells.every((c) => c.completed === 0 && c.metrics.toolCalls === null && c.metrics.in === null));
     assert.strictEqual(rep.method.publishable, false);
+    assert.deepStrictEqual([rep.total.spend.with.failed.runs, rep.total.spend.with.failed.unknownRuns], [1, 1], 'a timeout is a billed run of unknown cost');
   });
 
   // ── guards ─────────────────────────────────────────────────────────────────
