@@ -103,7 +103,8 @@ const str = (v) => (typeof v === 'string' && v ? v.slice(0, 200) : null);
  * Tool calls are the `tool_use` blocks of main-thread assistant messages, once
  * per block id. Usage is the `result` event's own total; if that is absent the
  * per-message usage is summed once per message id (the host repeats a message
- * across content blocks). A cache category no message reported is `null`.
+ * across content blocks). A cache category not reported by EVERY message is
+ * `null`; when only some omitted it, `cacheGaps` counts them.
  *
  * @param {string} text
  */
@@ -111,7 +112,7 @@ export function parseStream(text) {
   const out = {
     init: null,
     toolCalls: { total: 0, byTool: {}, byCommand: {} },
-    usage: null, usageSource: 'unavailable',
+    usage: null, usageSource: 'unavailable', cacheGaps: 0,
     costUsd: null, turns: null,
     result: false, isError: false, subtype: null, answer: null,
     parseErrors: 0,
@@ -193,12 +194,19 @@ export function parseStream(text) {
   }
 
   if (!out.usage && messages > 0) {
+    // A category some messages omitted is UNKNOWN, not the sum of the messages that
+    // reported it: that sum is a floor, and in a lower-is-better series a floor
+    // favours whichever arm's messages omit more. The gap is counted, so the
+    // shortfall in `n` has a reason (the transcript parser keeps the partial sum
+    // and counts the same gap, because its consumer renders a `≥`).
+    const gap = (missing) => (missing > 0 && missing < messages ? missing : 0);
     out.usage = {
       in: sum.in,
       out: sum.out,
-      cacheRead: missingRead === messages ? null : sum.cacheRead,
-      cacheWrite: missingWrite === messages ? null : sum.cacheWrite,
+      cacheRead: missingRead > 0 ? null : sum.cacheRead,
+      cacheWrite: missingWrite > 0 ? null : sum.cacheWrite,
     };
+    out.cacheGaps = Math.max(gap(missingRead), gap(missingWrite));
     out.usageSource = 'messages';
   }
   return out;
@@ -232,6 +240,7 @@ export function toRecord(parsed, { wallMs, cwds, model, timedOut, code }) {
     toolCalls: parsed.result || parsed.toolCalls.total ? parsed.toolCalls : null,
     usage: parsed.usage,
     usageSource: parsed.usageSource,
+    cacheGaps: parsed.cacheGaps,
     cost,
     turns: parsed.turns,
     durationMs: wallMs,

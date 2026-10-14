@@ -78,9 +78,9 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.77.0</span>
+  <span><strong>Release:</strong> v8.77.1</span>
   <span>·</span>
-  <span><strong>New — an agent-level A/B harness:</strong> <code>npm run benchmark:agent-ab</code> runs a real coding agent on the same labelled question with and without SigMap and records tool calls, tokens per billing category, cost and whether the answer named the right file — opt-in with your own API key, at least four runs per arm, and no figure published yet.</span>
+  <span><strong>New — the A/B harness copes with a symlinked clone:</strong> it is no longer reset in place or shared between the two arms, and the report counts what every run spent — still opt-in with your own API key, and no figure published yet.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
   <span><strong>Benchmark:</strong> sigmap-v8.77-main</span>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-13 (v8.77.0)**.
+Latest saved benchmark run: **2026-10-13 (v8.77.1)**.
 
 </div>
 
