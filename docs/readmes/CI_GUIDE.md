@@ -155,7 +155,7 @@ Use `--report --json` to capture token metrics as structured output:
     echo "Final tokens: $(cat /tmp/cf-report.json | node -e 'process.stdin.resume();let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>console.log(JSON.parse(d).finalTokens))')"
 ```
 
-JSON schema (real output from SigMap's own repo, v8.77.1; `cacheFit.models` lists one entry per model in the roster and one is shown):
+JSON schema (real output from SigMap's own repo, v8.77.1; `cacheFit.models` lists one entry per model in the roster and one is shown; the command prints the object on one line and it is pretty-printed here):
 ```json
 {
   "version": "8.77.1",
@@ -236,7 +236,7 @@ Add a health check step to catch degradation before it affects acceptance rate:
 | Symptom | Fix |
 |---------|-----|
 | Context file is stale | Re-run `node gen-context.js` or check the nightly schedule |
-| Too many tokens (> 6K) | Lower `maxTokens` or add patterns to `.contextignore` |
+| Output larger than you want | Set `autoMaxTokens: false` and lower `maxTokens` (auto-scaling overrides a pinned `maxTokens` otherwise), or add patterns to `.contextignore` |
 | Package not detected in monorepo | Ensure directory has a manifest (`package.json`, `Cargo.toml`, etc.) |
 | Secret appears in output | Add pattern to `src/security/patterns.js` or use `.contextignore` for that file |
 | CI write permission denied | Add `permissions: contents: write` to the workflow job |

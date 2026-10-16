@@ -2477,7 +2477,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.77.1, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.77.2, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -2748,7 +2748,7 @@ Print a token reduction summary with coverage score and module heatmap (v4.0), a
 sigmap --report
 ```
 
-Real output on the SigMap repo itself (v8.77.1). Its config pins `maxTokens` at 16,000, so the budget reads `fixed`; a project without a pinned budget reads `auto-scaled`:
+Real output on the SigMap repo itself (v8.77.1). Its config sets `autoMaxTokens: false` and `maxTokens: 16000`, so the budget reads `fixed`; by default (`autoMaxTokens: true`) it is `auto-scaled` to the repo's size and a pinned `maxTokens` is overridden:
 
 ```
 [sigmap] report:
@@ -3181,7 +3181,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.77.1
+# 8.77.2
 ```
 
 ---
