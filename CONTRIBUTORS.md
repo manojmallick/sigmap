@@ -39,6 +39,9 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.77.2)
+- **@manojmallick** — docs: the `--report` samples in the getting-started, CI and enterprise guides and the CLI reference are real v8.77.1 output again, and the enterprise guide's advice for sharing the usage log works with a self-ignoring `.context/` (PR #963). Each sample was captured to a file and embedded verbatim (JSON pretty-printed, `cacheFit.models` trimmed to one entry); the `.context/.gitignore` edit was tested in a clean repository.
+
 ### Recent Contributors (v8.77.1)
 - **@manojmallick** — fix(benchmark): the agent-level A/B harness no longer resets a symlinked clone in place or lets its arms share one directory, and its report says what was spent (#959, PR #960). A symlinked clone is resolved before it is copied, so the shared clone is never reset or written and the two arms are two directories; an arm whose `.git` is a link is refused. The 4-run minimum counts completed runs, every run's cost is counted (one sum per provenance class), a cache category some messages omitted is unknown rather than a partial sum, and a value flag given no value is an error.
 - **@manojmallick** — test(benchmark): eight new and two extended cases in `agent-ab.test.js` (46 in all) — each fails on the v8.77.0 scripts — with 21 one-line mutants of the fix points all caught (PR #960).

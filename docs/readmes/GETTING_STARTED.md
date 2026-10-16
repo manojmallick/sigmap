@@ -62,7 +62,7 @@ Verify:
 
 ```bash
 sigmap --version
-# → 8.77.1
+# → 8.77.2
 ```
 
 ### Option B — Per-project (no global install)
@@ -73,7 +73,7 @@ curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.j
 
 # Run without installing
 node gen-context.js --version
-# → 8.77.1
+# → 8.77.2
 ```
 
 ### Option C — npx (zero install)
@@ -158,7 +158,7 @@ Every team member, CI run, and PR review will now have this context automaticall
 sigmap --report
 ```
 
-Real output on the SigMap repo itself (v8.77.1). Its own config pins `maxTokens` at 16,000, so the budget reads `fixed`; without a pinned budget it reads `auto-scaled`:
+Real output on the SigMap repo itself (v8.77.1). Its own config sets `autoMaxTokens: false` and `maxTokens: 16000`, so the budget reads `fixed`. By default (`autoMaxTokens: true`) the budget is `auto-scaled` to the repo's size, and a pinned `maxTokens` is overridden:
 
 ```
 [sigmap] report:
@@ -259,7 +259,7 @@ sigmap --report --json
 | `rawTokens` / `inputTokens` | What sending all source files would cost (the same number; `rawTokens` is the original name) |
 | `finalTokens` | What SigMap actually puts in the context file |
 | `reductionPct` | Percentage saved — aim for > 80% |
-| `budgetLimit` / `autoBudget` | The token budget in force. `autoBudget` is `true` when it was auto-scaled to the repo's size (the default) and `false` when a pinned `maxTokens` fixed it |
+| `budgetLimit` / `autoBudget` | The token budget in force. `autoBudget` is `true` when it was auto-scaled to the repo's size (the default) and `false` when `autoMaxTokens: false` fixed it at `maxTokens` |
 | `overBudget` | `true` if `finalTokens` is above `budgetLimit` — `--report` then exits `1` |
 | `droppedCount` | Files excluded to stay under budget — check `.contextignore` if this is high |
 | `coverage` | The share of in-scope source files that made it into the context: `score`, `grade`, per-module counts, and `confidence` (HIGH from 90% up, MEDIUM from 70%, LOW below that) |
@@ -576,7 +576,7 @@ Not usually run directly — your AI tool (Claude Code, Cursor) invokes it autom
 ### `sigmap --version`
 ```bash
 sigmap --version
-# → 8.77.1
+# → 8.77.2
 ```
 
 ### Installation

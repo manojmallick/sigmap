@@ -22,7 +22,7 @@ SigMap ships three observability features from v0.9:
 
 ### What it outputs
 
-Real output from SigMap's own repo (v8.77.1); `cacheFit.models` lists one entry per model in the roster and one is shown:
+Real output from SigMap's own repo (v8.77.1); `cacheFit.models` lists one entry per model in the roster and one is shown; the command prints the object on one line and it is pretty-printed here:
 
 ```json
 {
@@ -211,6 +211,8 @@ To share history across the team, edit `.context/.gitignore` — SigMap never ov
 ```
 
 then `git add .context`. The derived index and caches stay ignored. `sigmap doctor` lists tracked files under `.context/` as a warning; it cannot tell that you meant to.
+
+If your own root `.gitignore` excludes `.context/` as a whole, this will not work: git cannot re-include a file under an excluded directory, and `git add` refuses it. Remove that root rule and let `.context/.gitignore` do the ignoring.
 
 ---
 
