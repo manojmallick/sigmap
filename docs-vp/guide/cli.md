@@ -2477,7 +2477,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.77.1, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.77.2, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -2742,28 +2742,43 @@ sigmap --diagnose-extractors
 
 ## --report
 
-Print a token reduction summary with coverage score and module heatmap (v4.0).
+Print a token reduction summary with coverage score and module heatmap (v4.0), and a per-model prompt-cache fit-check.
 
 ```bash
 sigmap --report
 ```
 
+Real output on the SigMap repo itself (v8.77.1). Its config sets `autoMaxTokens: false` and `maxTokens: 16000`, so the budget reads `fixed`; by default (`autoMaxTokens: true`) it is `auto-scaled` to the repo's size and a pinned `maxTokens` is overridden:
+
 ```
 [sigmap] report:
-  version         : 5.9.0
-  files processed : 76
-  files dropped   : 0
-  input tokens    : ~65,227
-  output tokens   : ~4,103
-  budget limit    : 4000 (auto-scaled)
-  reduction       : 93.7%
-  coverage        : in-context 97% (76/76 scoped source files) grade A
-                    (2 non-code files skipped — json, md, config)
-  confidence      : HIGH
+  version         : 8.77.1
+  files processed : 206
+  files dropped   : 130
+  input tokens    : ~868873
+  output tokens   : ~13543
+  budget limit    : 16000 (fixed)
+  reduction       : 98.4%
+
+  cache fit (stable prefix; minimums as of 2026-10-04):
+    claude-fable-5-1   fits        ~13271 tokens (est. chars/4) — above the 512-token minimum
+    claude-haiku-4-5   fits        ~13271 tokens (est. chars/4) — above the 4096-token minimum
+    claude-opus-5-5    fits        ~13271 tokens (est. chars/4) — above the 512-token minimum
+    claude-sonnet-5-5  fits        ~13271 tokens (est. chars/4) — above the 512-token minimum
+
+  coverage        : in-context 36% (73/203 scoped source files) grade D
+                    (3 non-code files skipped — json, md, config)
+  confidence      : LOW
 
   Module Coverage:
-    src                ████████████████ 100% (64/64 files)
-    packages           ██████████████░░  86% (12/14 files)
+    src                █████░░░░░░░░░░░  32% (61/191 files)  ← attention needed
+    packages           ████████████████ 100% (12/12 files)
+
+  tip: modules marked "← attention needed" have <50% code-file coverage.
+       Common causes:
+         • token budget dropped files — raise maxTokens or use strategy:"per-module"
+         • srcDir path includes non-code files — check .contextignore or exclude config
+         • srcDir path is wrong — verify srcDirs in gen-context.config.json
 ```
 
 Machine-readable JSON (suitable for CI dashboards):
@@ -3166,7 +3181,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 5.9.0
+# 8.77.2
 ```
 
 ---

@@ -1,13 +1,13 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.77.1, with the latest release stopping the agent-level A/B harness resetting a symlinked clone in place and making its report count every run's spend, after v8.77.0 added that harness (it measures tool calls, tokens and cost against a real coding agent), v8.76.0 let any MCP agent report its own usage, v8.75.1 kept the .context/ directory out of git and v8.75.0 turned body words on by default (the third-party corpus reads 59 of 83 where it read 42, the honest corpus 92.8% where it read 89.6%).
+description: SigMap version history and roadmap. From v0.0 to v8.77.2, with the latest release replacing four pages' stale --report samples with real output, after v8.77.1 stopped the agent-level A/B harness resetting a symlinked clone in place and made its report count every run's spend, v8.77.0 added that harness (it measures tool calls, tokens and cost against a real coding agent), v8.76.0 let any MCP agent report its own usage, v8.75.1 kept the .context/ directory out of git and v8.75.0 turned body words on by default (the third-party corpus reads 59 of 83 where it read 42, the honest corpus 92.8% where it read 89.6%).
 head:
   - - meta
     - property: og:title
       content: "SigMap Roadmap — version history and upcoming features"
   - - meta
     - property: og:description
-      content: "247 versions shipped. See what changed in each release and what is coming next."
+      content: "248 versions shipped. See what changed in each release and what is coming next."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/roadmap"
@@ -20,7 +20,7 @@ head:
 ---
 # Roadmap
 
-Two hundred forty-seven versions shipped. MIT open source from day one.
+Two hundred forty-eight versions shipped. MIT open source from day one.
 
 **Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.32× measured lift vs single-shot grep (92.8% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
@@ -835,6 +835,25 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.77.2 — the report samples are real output again ✓ (2026-10-16)
+
+**Patch.** Four pages showed what `sigmap --report` printed in v5.9.0 and v6.5.0 ([#963](https://github.com/manojmallick/sigmap/pull/963)). The getting-started guide called its sample "real output on the SigMap repo itself" — 36 files, "94.3% fewer tokens" — and the CLI reference, the CI guide and the enterprise guide carried samples of the same age: none showed the per-model cache-fit check, and the JSON samples lacked `inputTokens`, `autoBudget`, `cacheFit` and `coverage`. The version string could not simply be swapped, because that would have made the getting-started claim false. Each sample is now the real v8.77.1 output of that command on that repository, captured to a file and embedded verbatim (the JSON pretty-printed, `cacheFit.models` trimmed to one entry).
+
+The real output is less flattering than the sample it replaced, and the page now says so. At the 16,000-token budget SigMap's own config fixes (`autoMaxTokens: false`) the report reads 206 files processed, 130 dropped, coverage grade D (36%) and confidence LOW — which a sentence reading "the AI still sees every public function and class" could not sit beside. It now says 98.4% fewer tokens, and that the report says what it left out. Beside the samples one piece of advice was wrong: the enterprise guide said to make sure `.context/` is not ignored in order to share the usage log, which has done nothing since v8.75.1 made the directory ignore itself. It now says to edit `.context/.gitignore` — which SigMap never overwrites — to re-include `usage.ndjson`.
+
+```
+getting-started sample        v6.5.0 · 36 files · 94.3% · budget 6000        ->  v8.77.1 real output · 206 files · 98.4% · 16000 fixed · grade D
+CI / enterprise JSON samples  9 fields                                        ->  13, with inputTokens, autoBudget, cacheFit, coverage
+sharing the usage log         "make sure .context/ is NOT ignored"            ->  edit .context/.gitignore: !.gitignore, !usage.ndjson
+```
+
+The edit to `.context/.gitignore` was tested in a clean throwaway repository, and the reason is the instructive part: this repository's own root `.gitignore` excludes `.context/` wholesale, and git cannot re-include a file under an excluded directory, so the same three lines look like they fail here. In a repository without that rule the log becomes stageable, the derived index stays ignored, and a later run keeps the edit.
+
+**Tags:** `GETTING_STARTED.md` · `CI_GUIDE.md` · `ENTERPRISE_SETUP.md` · `cli.md` · `--report` · `.context/.gitignore` · `budgetLimit` · `PR #963`
+**Impact:** no published figure moves. Token reduction 95.7%, hit@5 80.4%, task success 61.9%, test-discovery F1 98.0%, the grounding corpus, the third-party corpus (59 of 83), `hard` 71.1% (64 of 90, one task of headroom) and the honest comparison (92.8% against grep's 40.0%, 2.32×, with SigMap's own files holding 126 of the 625 top-5 places) reproduce v8.77.1's reports leaf for leaf apart from stamps — the nine reports these runs rewrite and `latest.json`, no differing result leaf. The release changes documentation only and adds no file to the index; the code the package ships is v8.77.1's, with a new version string and the shipped docs (README, CHANGELOG, llms files) carrying the new version and date.
 
 ---
 

@@ -155,18 +155,55 @@ Use `--report --json` to capture token metrics as structured output:
     echo "Final tokens: $(cat /tmp/cf-report.json | node -e 'process.stdin.resume();let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>console.log(JSON.parse(d).finalTokens))')"
 ```
 
-JSON schema:
+JSON schema (real output from SigMap's own repo, v8.77.1; `cacheFit.models` lists one entry per model in the roster and one is shown; the command prints the object on one line and it is pretty-printed here):
 ```json
 {
-  "version": "6.5.0",
-  "timestamp": "2026-04-01T09:00:00.000Z",
-  "rawTokens": 42000,
-  "finalTokens": 2800,
-  "fileCount": 120,
-  "droppedCount": 8,
-  "reductionPct": 93.3,
+  "version": "8.77.1",
+  "timestamp": "2026-10-15T00:23:24.226Z",
+  "rawTokens": 868873,
+  "inputTokens": 868873,
+  "finalTokens": 13543,
+  "fileCount": 206,
+  "droppedCount": 130,
+  "reductionPct": 98.4,
   "overBudget": false,
-  "budgetLimit": 6000
+  "budgetLimit": 16000,
+  "autoBudget": false,
+  "cacheFit": {
+    "layout": "stable-prefix",
+    "ttl": "5m",
+    "asOf": "2026-10-04",
+    "models": [
+      {
+        "model": "claude-fable-5-1",
+        "cacheMin": 512,
+        "tokens": 13271,
+        "estimated": true,
+        "verdict": "fits",
+        "note": "above the 512-token minimum"
+      }
+    ]
+  },
+  "coverage": {
+    "score": 36,
+    "grade": "D",
+    "confidence": "LOW",
+    "totalFiles": 203,
+    "includedFiles": 73,
+    "droppedFiles": 130,
+    "perModule": {
+      "src": {
+        "total": 191,
+        "included": 61,
+        "pct": 32
+      },
+      "packages": {
+        "total": 12,
+        "included": 12,
+        "pct": 100
+      }
+    }
+  }
 }
 ```
 
@@ -199,7 +236,7 @@ Add a health check step to catch degradation before it affects acceptance rate:
 | Symptom | Fix |
 |---------|-----|
 | Context file is stale | Re-run `node gen-context.js` or check the nightly schedule |
-| Too many tokens (> 6K) | Lower `maxTokens` or add patterns to `.contextignore` |
+| Output larger than you want | Set `autoMaxTokens: false` and lower `maxTokens` (auto-scaling overrides a pinned `maxTokens` otherwise), or add patterns to `.contextignore` |
 | Package not detected in monorepo | Ensure directory has a manifest (`package.json`, `Cargo.toml`, etc.) |
 | Secret appears in output | Add pattern to `src/security/patterns.js` or use `.contextignore` for that file |
 | CI write permission denied | Add `permissions: contents: write` to the workflow job |

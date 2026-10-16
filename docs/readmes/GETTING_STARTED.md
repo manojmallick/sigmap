@@ -62,7 +62,7 @@ Verify:
 
 ```bash
 sigmap --version
-# → 6.5.0
+# → 8.77.2
 ```
 
 ### Option B — Per-project (no global install)
@@ -73,7 +73,7 @@ curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.j
 
 # Run without installing
 node gen-context.js --version
-# → 6.5.0
+# → 8.77.2
 ```
 
 ### Option C — npx (zero install)
@@ -158,20 +158,40 @@ Every team member, CI run, and PR review will now have this context automaticall
 sigmap --report
 ```
 
-Real output on the SigMap repo itself (36 source files):
+Real output on the SigMap repo itself (v8.77.1). Its own config sets `autoMaxTokens: false` and `maxTokens: 16000`, so the budget reads `fixed`. By default (`autoMaxTokens: true`) the budget is `auto-scaled` to the repo's size, and a pinned `maxTokens` is overridden:
 
 ```
 [sigmap] report:
-  version         : 6.5.0
-  files processed : 36
-  files dropped   : 0
-  input tokens    : ~24,082
-  output tokens   : ~1,374
-  budget limit    : 6000
-  reduction       : 94.3%
+  version         : 8.77.1
+  files processed : 206
+  files dropped   : 130
+  input tokens    : ~868873
+  output tokens   : ~13543
+  budget limit    : 16000 (fixed)
+  reduction       : 98.4%
+
+  cache fit (stable prefix; minimums as of 2026-10-04):
+    claude-fable-5-1   fits        ~13271 tokens (est. chars/4) — above the 512-token minimum
+    claude-haiku-4-5   fits        ~13271 tokens (est. chars/4) — above the 4096-token minimum
+    claude-opus-5-5    fits        ~13271 tokens (est. chars/4) — above the 512-token minimum
+    claude-sonnet-5-5  fits        ~13271 tokens (est. chars/4) — above the 512-token minimum
+
+  coverage        : in-context 36% (73/203 scoped source files) grade D
+                    (3 non-code files skipped — json, md, config)
+  confidence      : LOW
+
+  Module Coverage:
+    src                █████░░░░░░░░░░░  32% (61/191 files)  ← attention needed
+    packages           ████████████████ 100% (12/12 files)
+
+  tip: modules marked "← attention needed" have <50% code-file coverage.
+       Common causes:
+         • token budget dropped files — raise maxTokens or use strategy:"per-module"
+         • srcDir path includes non-code files — check .contextignore or exclude config
+         • srcDir path is wrong — verify srcDirs in gen-context.config.json
 ```
 
-**94.3% fewer tokens. The AI still sees every public function and class.**
+**98.4% fewer tokens — and the report says what it left out.** 130 of the 206 files did not fit the 16,000-token budget, so `coverage` reads grade D (36%) and `confidence` is LOW; `Module Coverage` shows which directory is thin and the tip lists the usual causes. When the whole index fits, `files dropped` reads `0`.
 
 ### Get machine-readable JSON (for dashboards / CI)
 
@@ -181,26 +201,69 @@ sigmap --report --json
 
 ```json
 {
-  "version": "6.5.0",
-  "rawTokens": 24082,
-  "finalTokens": 1374,
-  "fileCount": 36,
-  "droppedCount": 0,
-  "reductionPct": 94.3,
+  "version": "8.77.1",
+  "timestamp": "2026-10-15T00:23:24.226Z",
+  "rawTokens": 868873,
+  "inputTokens": 868873,
+  "finalTokens": 13543,
+  "fileCount": 206,
+  "droppedCount": 130,
+  "reductionPct": 98.4,
   "overBudget": false,
-  "budgetLimit": 6000
+  "budgetLimit": 16000,
+  "autoBudget": false,
+  "cacheFit": {
+    "layout": "stable-prefix",
+    "ttl": "5m",
+    "asOf": "2026-10-04",
+    "models": [
+      {
+        "model": "claude-fable-5-1",
+        "cacheMin": 512,
+        "tokens": 13271,
+        "estimated": true,
+        "verdict": "fits",
+        "note": "above the 512-token minimum"
+      }
+    ]
+  },
+  "coverage": {
+    "score": 36,
+    "grade": "D",
+    "confidence": "LOW",
+    "totalFiles": 203,
+    "includedFiles": 73,
+    "droppedFiles": 130,
+    "perModule": {
+      "src": {
+        "total": 191,
+        "included": 61,
+        "pct": 32
+      },
+      "packages": {
+        "total": 12,
+        "included": 12,
+        "pct": 100
+      }
+    }
+  }
 }
 ```
+
+`cacheFit.models` has one entry per model in your roster (four here); one is shown. The command prints the object on one line; it is pretty-printed here.
 
 ### What the numbers mean
 
 | Metric | What it tells you |
 |---|---|
-| `rawTokens` | What sending all source files would cost |
+| `rawTokens` / `inputTokens` | What sending all source files would cost (the same number; `rawTokens` is the original name) |
 | `finalTokens` | What SigMap actually puts in the context file |
 | `reductionPct` | Percentage saved — aim for > 80% |
-| `overBudget` | `true` if output > `maxTokens` (default 6000) — means some files were dropped |
+| `budgetLimit` / `autoBudget` | The token budget in force. `autoBudget` is `true` when it was auto-scaled to the repo's size (the default) and `false` when `autoMaxTokens: false` fixed it at `maxTokens` |
+| `overBudget` | `true` if `finalTokens` is above `budgetLimit` — `--report` then exits `1` |
 | `droppedCount` | Files excluded to stay under budget — check `.contextignore` if this is high |
+| `coverage` | The share of in-scope source files that made it into the context: `score`, `grade`, per-module counts, and `confidence` (HIGH from 90% up, MEDIUM from 70%, LOW below that) |
+| `cacheFit` | Whether the stable prefix is long enough for each model's prompt-cache minimum (an estimate, chars/4) |
 
 ### Reduction benchmarks
 
@@ -513,7 +576,7 @@ Not usually run directly — your AI tool (Claude Code, Cursor) invokes it autom
 ### `sigmap --version`
 ```bash
 sigmap --version
-# → 6.5.0
+# → 8.77.2
 ```
 
 ### Installation

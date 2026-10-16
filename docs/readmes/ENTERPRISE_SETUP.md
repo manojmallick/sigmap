@@ -22,17 +22,56 @@ SigMap ships three observability features from v0.9:
 
 ### What it outputs
 
+Real output from SigMap's own repo (v8.77.1); `cacheFit.models` lists one entry per model in the roster and one is shown; the command prints the object on one line and it is pretty-printed here:
+
 ```json
 {
-  "version": "6.5.0",
-  "timestamp": "2026-04-01T00:00:00.000Z",
-  "rawTokens": 42000,
-  "finalTokens": 3200,
-  "fileCount": 147,
-  "droppedCount": 12,
-  "reductionPct": 92.4,
+  "version": "8.77.1",
+  "timestamp": "2026-10-15T00:23:24.226Z",
+  "rawTokens": 868873,
+  "inputTokens": 868873,
+  "finalTokens": 13543,
+  "fileCount": 206,
+  "droppedCount": 130,
+  "reductionPct": 98.4,
   "overBudget": false,
-  "budgetLimit": 6000
+  "budgetLimit": 16000,
+  "autoBudget": false,
+  "cacheFit": {
+    "layout": "stable-prefix",
+    "ttl": "5m",
+    "asOf": "2026-10-04",
+    "models": [
+      {
+        "model": "claude-fable-5-1",
+        "cacheMin": 512,
+        "tokens": 13271,
+        "estimated": true,
+        "verdict": "fits",
+        "note": "above the 512-token minimum"
+      }
+    ]
+  },
+  "coverage": {
+    "score": 36,
+    "grade": "D",
+    "confidence": "LOW",
+    "totalFiles": 203,
+    "includedFiles": 73,
+    "droppedFiles": 130,
+    "perModule": {
+      "src": {
+        "total": 191,
+        "included": 61,
+        "pct": 32
+      },
+      "packages": {
+        "total": 12,
+        "included": 12,
+        "pct": 100
+      }
+    }
+  }
 }
 ```
 
@@ -41,7 +80,7 @@ SigMap ships three observability features from v0.9:
 | Condition | Exit code |
 |---|---|
 | Output within budget | `0` |
-| Output exceeds `maxTokens` | `1` |
+| `finalTokens` exceeds `budgetLimit` (`overBudget: true`) | `1` |
 
 This lets CI pipelines fail automatically if context bloat is detected.
 
@@ -118,10 +157,10 @@ Once enabled, every `node gen-context.js` run appends one JSON line to `.context
 
 ### Log format (NDJSON)
 
-Each line is one record:
+Each line is one record (two consecutive runs on SigMap's own repo, v8.77.1):
 ```json
-{"ts":"2026-04-01T09:00:00.000Z","version":"6.5.0","fileCount":147,"droppedCount":0,"rawTokens":42000,"finalTokens":3200,"reductionPct":92.4,"overBudget":false,"budgetLimit":6000}
-{"ts":"2026-04-01T09:30:00.000Z","version":"6.5.0","fileCount":149,"droppedCount":2,"rawTokens":43500,"finalTokens":3400,"reductionPct":92.2,"overBudget":false,"budgetLimit":6000}
+{"ts":"2026-10-15T00:22:13.021Z","version":"8.77.1","fileCount":206,"droppedCount":130,"rawTokens":868873,"finalTokens":13543,"reductionPct":98.4,"overBudget":false,"budgetLimit":16000}
+{"ts":"2026-10-15T00:22:15.424Z","version":"8.77.1","fileCount":206,"droppedCount":130,"rawTokens":868873,"finalTokens":13543,"reductionPct":98.4,"overBudget":false,"budgetLimit":16000}
 ```
 
 Because it's NDJSON (one JSON object per line), it's easy to process with standard tools:
@@ -147,29 +186,33 @@ grep '"overBudget":true' .context/usage.ndjson
 ```bash
 node gen-context.js --report --history
 # [sigmap] usage history:
-#   total runs      : 42
-#   avg reduction   : 91.8%
-#   avg tokens out  : ~3280
+#   total runs      : 2
+#   avg reduction   : 98.4%
+#   avg tokens out  : ~13543
 #   over-budget runs: 0
-#   first run       : 2026-03-01T08:00:00.000Z
-#   last run        : 2026-04-01T09:30:00.000Z
+#   first run       : 2026-10-15T00:22:13.021Z
+#   last run        : 2026-10-15T00:22:15.424Z
 
 # JSON output for dashboards:
 node gen-context.js --report --history --json
 ```
 
-### Commit the log or ignore it
+### Commit the log or keep it local
 
-To track history across the team, commit the log:
-```bash
-# .gitignore — make sure .context/ is NOT ignored if you want shared history
-# .context/usage.ndjson  ← remove this line if present
-```
+`.context/` ignores itself: the first time SigMap uses the directory it writes `.context/.gitignore` holding `*`, so the usage log stays local by default and nothing needs adding to your own `.gitignore`.
 
-To keep it local:
+To share history across the team, edit `.context/.gitignore` — SigMap never overwrites an existing one — so that it re-includes the log:
+
 ```gitignore
-.context/usage.ndjson
+# .context/.gitignore
+*
+!.gitignore
+!usage.ndjson
 ```
+
+then `git add .context`. The derived index and caches stay ignored. `sigmap doctor` lists tracked files under `.context/` as a warning; it cannot tell that you meant to.
+
+If your own root `.gitignore` excludes `.context/` as a whole, this will not work: git cannot re-include a file under an excluded directory, and `git add` refuses it. Remove that root rule and let `.context/.gitignore` do the ignoring.
 
 ---
 
