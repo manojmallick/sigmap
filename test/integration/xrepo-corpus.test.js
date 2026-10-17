@@ -66,7 +66,7 @@ const byRepo = (n) => tasks.filter((t) => t.repo === n);
   await test('xrepo-only checkouts are flagged in the manifest and named by no other suite (#893 §7)', () => {
     const flagged = manifest.repos.filter((r) => r.xrepoOnly === true).map((r) => r.name).sort();
     assert.deepStrictEqual(flagged,
-      ['astro', 'django', 'excalidraw', 'godot-demo-projects', 'phoenix', 'plenary', 'tokio']);
+      ['astro', 'composer', 'django', 'excalidraw', 'exposed', 'godot-demo-projects', 'newtonsoft-json', 'phoenix', 'plenary', 'tokio', 'vitepress']);
     const pinned = new Set([...read('scripts/run-benchmark.mjs').matchAll(/name:\s*'([^']+)'/g)].map((m) => m[1]));
     for (const n of flagged) assert.ok(!pinned.has(n), `${n} is flagged xrepoOnly but run-benchmark.mjs pins it`);
     for (const r of manifest.repos) assert.ok(r.xrepoOnly === undefined || r.xrepoOnly === true, `${r.name}: xrepoOnly is true or absent`);

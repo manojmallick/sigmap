@@ -1,9 +1,9 @@
 {
   "_comment": "Both annotators’ raw answers for the tasks added by #984 (x084 onward), so the agreement figures and every task’s audit value can be recomputed. first = the files the annotator who wrote the question listed; second = the files an independent annotator named from the question alone. The label (expected_files) is the files both named; audit is agreed when the second annotator named exactly that set, partial when it named more. Both annotators were language models, so agreement bounds labelling noise, not blind spots they share. Method: benchmarks/XREPO_LABELLING.md.",
   "agreement": {
-    "tasks": 20,
-    "exact": 18,
-    "sharedAtLeastOne": 20,
+    "tasks": 45,
+    "exact": 43,
+    "sharedAtLeastOne": 45,
     "disjoint": 0
   },
   "tasks": {
@@ -175,6 +175,206 @@
       "second": [
         "include/spdlog/details/periodic_worker.h",
         "include/spdlog/details/periodic_worker-inl.h"
+      ]
+    },
+    "x104": {
+      "first": [
+        "src/Composer/DependencyResolver/PoolOptimizer.php"
+      ],
+      "second": [
+        "src/Composer/DependencyResolver/PoolOptimizer.php"
+      ]
+    },
+    "x105": {
+      "first": [
+        "src/Composer/Downloader/PathDownloader.php"
+      ],
+      "second": [
+        "src/Composer/Downloader/PathDownloader.php"
+      ]
+    },
+    "x106": {
+      "first": [
+        "src/Composer/Package/Version/VersionGuesser.php"
+      ],
+      "second": [
+        "src/Composer/Package/Version/VersionGuesser.php"
+      ]
+    },
+    "x107": {
+      "first": [
+        "src/Composer/Installer/BinaryInstaller.php"
+      ],
+      "second": [
+        "src/Composer/Installer/BinaryInstaller.php"
+      ]
+    },
+    "x108": {
+      "first": [
+        "src/Composer/Repository/FilterRepository.php"
+      ],
+      "second": [
+        "src/Composer/Repository/FilterRepository.php"
+      ]
+    },
+    "x109": {
+      "first": [
+        "Src/Newtonsoft.Json/Linq/JsonPath/ArraySliceFilter.cs"
+      ],
+      "second": [
+        "Src/Newtonsoft.Json/Linq/JsonPath/ArraySliceFilter.cs"
+      ]
+    },
+    "x110": {
+      "first": [
+        "Src/Newtonsoft.Json/Serialization/DefaultSerializationBinder.cs"
+      ],
+      "second": [
+        "Src/Newtonsoft.Json/Serialization/DefaultSerializationBinder.cs"
+      ]
+    },
+    "x111": {
+      "first": [
+        "Src/Newtonsoft.Json/Bson/BsonBinaryWriter.cs"
+      ],
+      "second": [
+        "Src/Newtonsoft.Json/Bson/BsonBinaryWriter.cs"
+      ]
+    },
+    "x112": {
+      "first": [
+        "Src/Newtonsoft.Json/Utilities/DateTimeParser.cs"
+      ],
+      "second": [
+        "Src/Newtonsoft.Json/Utilities/DateTimeParser.cs"
+      ]
+    },
+    "x113": {
+      "first": [
+        "Src/Newtonsoft.Json/Converters/DiscriminatedUnionConverter.cs"
+      ],
+      "second": [
+        "Src/Newtonsoft.Json/Converters/DiscriminatedUnionConverter.cs"
+      ]
+    },
+    "x114": {
+      "first": [
+        "Sources/Vapor/Security/OTP.swift"
+      ],
+      "second": [
+        "Sources/Vapor/Security/OTP.swift"
+      ]
+    },
+    "x115": {
+      "first": [
+        "Sources/Vapor/HTTP/EndpointCache.swift"
+      ],
+      "second": [
+        "Sources/Vapor/HTTP/EndpointCache.swift"
+      ]
+    },
+    "x116": {
+      "first": [
+        "Sources/Vapor/Utilities/DotEnv.swift"
+      ],
+      "second": [
+        "Sources/Vapor/Utilities/DotEnv.swift"
+      ]
+    },
+    "x117": {
+      "first": [
+        "Sources/Vapor/HTTP/Server/HTTPServerResponseEncoder.swift"
+      ],
+      "second": [
+        "Sources/Vapor/HTTP/Server/HTTPServerResponseEncoder.swift"
+      ]
+    },
+    "x118": {
+      "first": [
+        "Sources/Vapor/Responder/DefaultResponder.swift"
+      ],
+      "second": [
+        "Sources/Vapor/Responder/DefaultResponder.swift"
+      ]
+    },
+    "x119": {
+      "first": [
+        "exposed-crypt/src/main/kotlin/org/jetbrains/exposed/v1/crypt/Algorithms.kt"
+      ],
+      "second": [
+        "exposed-crypt/src/main/kotlin/org/jetbrains/exposed/v1/crypt/Algorithms.kt"
+      ]
+    },
+    "x120": {
+      "first": [
+        "exposed-json/src/main/kotlin/org/jetbrains/exposed/v1/json/JsonColumnType.kt"
+      ],
+      "second": [
+        "exposed-json/src/main/kotlin/org/jetbrains/exposed/v1/json/JsonColumnType.kt"
+      ]
+    },
+    "x121": {
+      "first": [
+        "exposed-money/src/main/kotlin/org/jetbrains/exposed/v1/money/CompositeMoneyColumn.kt"
+      ],
+      "second": [
+        "exposed-money/src/main/kotlin/org/jetbrains/exposed/v1/money/CompositeMoneyColumn.kt"
+      ]
+    },
+    "x122": {
+      "first": [
+        "exposed-migration-core/src/main/kotlin/org/jetbrains/exposed/v1/migration/core/MigrationUtilityApi.kt"
+      ],
+      "second": [
+        "exposed-migration-core/src/main/kotlin/org/jetbrains/exposed/v1/migration/core/MigrationUtilityApi.kt"
+      ]
+    },
+    "x123": {
+      "first": [
+        "exposed-core/src/main/kotlin/org/jetbrains/exposed/v1/core/statements/MultiRowValuesInsertStatement.kt"
+      ],
+      "second": [
+        "exposed-core/src/main/kotlin/org/jetbrains/exposed/v1/core/statements/MultiRowValuesInsertStatement.kt"
+      ]
+    },
+    "x124": {
+      "first": [
+        "src/client/theme-default/components/VPFlyout.vue"
+      ],
+      "second": [
+        "src/client/theme-default/components/VPFlyout.vue"
+      ]
+    },
+    "x125": {
+      "first": [
+        "src/client/theme-default/components/VPNavBarSearch.vue"
+      ],
+      "second": [
+        "src/client/theme-default/components/VPNavBarSearch.vue"
+      ]
+    },
+    "x126": {
+      "first": [
+        "src/node/utils/getGitTimestamp.ts"
+      ],
+      "second": [
+        "src/node/utils/getGitTimestamp.ts"
+      ]
+    },
+    "x127": {
+      "first": [
+        "src/node/build/generateSitemap.ts"
+      ],
+      "second": [
+        "src/node/build/generateSitemap.ts"
+      ]
+    },
+    "x128": {
+      "first": [
+        "src/client/app/composables/preFetch.ts"
+      ],
+      "second": [
+        "src/client/app/composables/preFetch.ts"
       ]
     }
   }
