@@ -396,14 +396,14 @@ absorbed the change as corpus drift.
 
 ## Measured on repos we do not control (xrepo)
 
-Every other corpus on this page is one this project wrote or can influence: `hard` scores SigMap against its own source, `mined` is its own commit history, `jvm` covers two repositories. A ranking regression on a repository nobody here controls could therefore ship green — which is how [#805](https://github.com/manojmallick/sigmap/issues/805), [#807](https://github.com/manojmallick/sigmap/issues/807) and [#808](https://github.com/manojmallick/sigmap/issues/808) reached users. **xrepo** is the instrument for that gap: **83 questions across 16 third-party repositories** (Go, Kotlin, Swift, Rust, TypeScript, Python, JavaScript, PHP, C#, Dart, Elixir, Astro, Lua and GDScript), each repository pinned to an exact commit, each question labelled with the files that answer it and a written reason ([#892](https://github.com/manojmallick/sigmap/issues/892)).
+Every other corpus on this page is one this project wrote or can influence: `hard` scores SigMap against its own source, `mined` is its own commit history, `jvm` covers two repositories. A ranking regression on a repository nobody here controls could therefore ship green — which is how [#805](https://github.com/manojmallick/sigmap/issues/805), [#807](https://github.com/manojmallick/sigmap/issues/807) and [#808](https://github.com/manojmallick/sigmap/issues/808) reached users. **xrepo** is the instrument for that gap: **103 questions across 20 third-party repositories** (Go, Kotlin, Swift, Rust, TypeScript, Python, JavaScript, PHP, C#, Dart, Elixir, Astro, Lua, GDScript, Ruby, C and C++), each repository pinned to an exact commit, each question labelled with the files that answer it and a written reason ([#892](https://github.com/manojmallick/sigmap/issues/892)). It started as 83 questions over 16 repositories and is growing toward at least 200 over 30 ([#984](https://github.com/manojmallick/sigmap/issues/984)): the first 20 added questions are the Ruby (Rails, Sidekiq) and C/C++ (libuv, spdlog) repositories, none of which the corpus covered before.
 
 ### How the labels were made
 
-- **Blind.** Every repo was labelled by reading its code. Nobody ran SigMap, the ranker or a `.context/` index first, and the baseline records whatever the ranker scored — including repos at 0%.
+- **Blind.** Every repo was labelled by reading its code. Nobody ran SigMap, the ranker or a `.context/` index first, and the baseline records whatever the ranker scored — including repos at 0%. The method is written down as a protocol, `benchmarks/XREPO_LABELLING.md`; the four repositories added by [#984](https://github.com/manojmallick/sigmap/issues/984) were labelled from clean `git archive` exports of their pinned commits, which hold no index and no generated instruction file.
 - **Leak-free.** The two checks the `hard` split uses: no query word shares a stem with an expected file's *name*, and no four-word run of a query appears in its answer's signatures.
 - **Eligibility without the ranker's own classifiers.** What may be an answer is decided by conventional test, docs and example directories, language-specific test-file names and non-source extensions — never by `src/util/file-class.js`. Those predicates demote tests and docs at ranking time and misfire on real implementation (see the findings below); a corpus that excluded whatever the ranker already calls "not source" could never reveal that.
-- **Two annotators.** A second, independent annotator saw only the questions and named the files it would pick. **79 of 83 file sets matched exactly (95%), all 83 shared at least one file, and none were disjoint.** The label is what both named; the one task where the first annotator had listed an extra file was cut back to the shared set, and three tasks where the second annotator named more are marked `"audit": "partial"`. Both annotators were language models, so the agreement bounds labelling noise, not blind spots they share.
+- **Two annotators.** A second, independent annotator saw only the questions and named the files it would pick. **79 of 83 file sets matched exactly (95%), all 83 shared at least one file, and none were disjoint.** The label is what both named; the one task where the first annotator had listed an extra file was cut back to the shared set, and three tasks where the second annotator named more are marked `"audit": "partial"`. Both annotators were language models, so the agreement bounds labelling noise, not blind spots they share. The 20 questions added since were annotated the same way, each annotator in a fresh context: **18 of 20 file sets matched exactly, all 20 shared at least one file, and none were disjoint.** In the two that differed the first annotator had listed one extra Rails file, and the label was cut back to the shared set. Both annotators' raw answers for those 20 are in `benchmarks/xrepo-annotations.json`, and a test re-derives every `audit` value from them.
 - One question is the external audit's own, verbatim: *How does gin route requests through its middleware chain?* Its expected files omit `gin.go`, because the query names the project and would leak against that basename; omitting a file can only make a hit harder.
 
 ### Reading it
@@ -426,15 +426,19 @@ Every other corpus on this page is one this project wrote or can influence: `har
 | Astro | astro | pnpm-workspace-subtree | zero-config | 7 | 4 | 57.1% | 1 |
 | plenary.nvim | lua | lua-module | zero-config | 6 | 6 | 100.0% | — |
 | godot-demo-projects | gdscript | godot-projects | zero-config | 5 | 3 | 60.0% | — |
-| **Overall** | | | | **83** | **59** | **71.1%** | **1** |
+| Rails | ruby | multi-gem-monorepo | zero-config | 5 | 1 | 20.0% | 4 |
+| Sidekiq | ruby | single-gem-lib | zero-config | 5 | 3 | 60.0% | — |
+| libuv | cpp | c-platform-split | zero-config | 5 | 3 | 60.0% | 1 |
+| spdlog | cpp | header-mostly | zero-config | 5 | 3 | 60.0% | — |
+| **Overall** | | | | **103** | **69** | **67.0%** | **6** |
 
-**Read it as a band, not a point.** One task is 1.2pp, and the 95% interval over 83 tasks is **60.6–79.7%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, twenty-five tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. Until v8.74.0 it scored far below `hard` and `mined` (42 of 83, 50.6%, 40.1–61.1%) for the reason it exists: those corpora are easier because they are closer to home. With body words on by default it sits level with them — 59 of 83, 71.1% — because the largest class of its misses was the one body words reach ([below](#why-a-task-misses-why)). That is a level of agreement with the self-scored corpora, not a claim that SigMap now finds the right file for seven questions in ten on any repository: its questions were written by reading the code, which favours a lever that indexes the code's own words.
+**Read it as a band, not a point.** One task is 1.0pp, and the 95% interval over 103 tasks is **57.4–75.3%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, twenty-seven tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. Until v8.74.0 it scored far below `hard` and `mined` (42 of 83, 50.6%, 40.1–61.1%) for the reason it exists: those corpora are easier because they are closer to home. With body words on by default the original 83 questions sit level with them — 59 of 83, 71.1% — because the largest class of its misses was the one body words reach ([below](#why-a-task-misses-why)). The 20 questions added since read 10 of 20 and take the whole to **69 of 103, 67.0%**: the 16 original repositories score exactly what they did, and the lower figure is the new repositories, four of the five Rails answers among them being absent from the zero-config index (see *Unreachable* below). That is a level of agreement with the self-scored corpora, not a claim that SigMap now finds the right file for two questions in three on any repository: its questions were written by reading the code, which favours a lever that indexes the code's own words.
 
 **Zero-config.** Each repo is indexed the way a first-time user's `sigmap` run indexes it — auto-detected `srcDirs`, no config. When this corpus was first scored, three repos could not be: the resolver never reached Riverpod's `packages/*/lib`, Phoenix's `lib/` or the Godot demos, so every answer was unindexed (0/5 each) and their manifest entries pinned `srcDirs` to measure ranking regardless. Detection now reaches all three, the pins are gone, and the table is zero-config throughout ([#900](https://github.com/manojmallick/sigmap/issues/900)). A manifest entry may still pin `srcDirs` — with a `srcDirsWhy` recording the measured reason — if a future layout defeats detection; none does today.
 
 **Phoenix read 4/5 zero-config at v8.74.0, not the 5/5 its pin scored, and reads 5/5 again with body words on.** The difference was a change of measurement path, not a regression. Zero-config scored 0/5 there before; the pinned 5/5 was measured through a config file, and with one present the import graph is built over the pinned roots. With none, the graph the ranker is handed is built over `src`, `app`, `lib`, `R` and `inst` whatever roots detection chose — on purpose, see [the import graph](#the-import-graph-and-the-ranker-934-935).
 
-**Unreachable** means no expected file of the task is in the index, so it cannot be found at all: detection skipped its directory, or the extractor emitted no signature for it. Those tasks stay in the corpus and are recorded in the baseline; the gate fails when a task that *was* reachable becomes unreachable, not on the gaps themselves.
+**Unreachable** means no expected file of the task is in the index, so it cannot be found at all: detection skipped its directory, or the extractor emitted no signature for it. Those tasks stay in the corpus and are recorded in the baseline; the gate fails when a task that *was* reachable becomes unreachable, not on the gaps themselves. Six are unreachable now. One is Astro's `build/` pipeline (below). The other five were found by the Ruby and C/C++ repositories added in [#984](https://github.com/manojmallick/sigmap/issues/984): four of the five Rails answers, and libuv's `include/uv/errno.h`. On Rails a zero-config run indexes 1,253 of the repository's 3,392 Ruby files, taken from five of its twelve gems (`activesupport`, `railties`, `activestorage`, `actioncable`, `actionmailer`) and its `guides/` folder, and none from `activerecord`, `actionpack`, `actionview` or `activejob`, where the four answers are. The cause is not investigated yet; this records what was observed.
 
 **Python is indexed with the regex extractor.** The default Python extractor shells out to the host's `python3` once per file, so the same tree scores differently depending on which Python is installed (Flask moved 5/5 → 4/5) and a repo the size of Django takes minutes. A committed number cannot depend on that, so the gate runs generation with `python3` shadowed.
 
@@ -501,26 +505,26 @@ npm run benchmark:graph-damping-sweep      # the table and the folds above, reco
 
 ### Why a task misses (`--why`)
 
-A hit rate says how many tasks miss and nothing about the remedy, and the remedy depends on the reason. `--why` places every miss in exactly one class. The table is the 24 misses behind the 59/83 above (the shipped ranker — body words on):
+A hit rate says how many tasks miss and nothing about the remedy, and the remedy depends on the reason. `--why` places every miss in exactly one class. The table is the 34 misses behind the 69/103 above (the shipped ranker — body words on):
 
 | Why the task misses | Tasks | What it needs |
 |---|---:|---|
-| answer not indexed | 1 | detection or an extractor |
+| answer not indexed | 6 | detection or an extractor |
 | demoted by a path penalty | 0 | a path classifier |
 | no token in common with the question | 1 | a way across the vocabulary — not a re-weighting |
-| ranked 6–10 | 6 | ranking |
-| ranked 11–20 | 5 | ranking |
-| ranked 21–50 | 5 | ranking |
+| ranked 6–10 | 7 | ranking |
+| ranked 11–20 | 7 | ranking |
+| ranked 21–50 | 7 | ranking |
 | ranked beyond 50 | 6 | ranking |
 
-The first two rows are decided by code that is not the ranker, and fixing one never costs another split: at the first run they held 4 tasks (plus 15 hidden behind the pinned `srcDirs`) and 1, and they hold 1 and 0 now. The other 23 misses are the ranker's. Six sit within five places of the top 5. The class that share no token with the question scored zero at v8.74.0 — the question and the answer's index entry have no word in common, so a lexical ranker has nothing to compare, and no re-weighting changes that — and held 12 of the 41 misses; the lever that reached them was not a re-weighting but the answer's *own* words, which [body words](#body-words) add, and one task is left in it. Repo-mined expansions, the other lever [#674](https://github.com/manojmallick/sigmap/issues/674) and [#703](https://github.com/manojmallick/sigmap/issues/703) asked about, are net negative on this corpus with body words on (−1).
+The first two rows are decided by code that is not the ranker, and fixing one never costs another split: at the first run they held 4 tasks (plus 15 hidden behind the pinned `srcDirs`) and 1, and they hold 6 and 0 now: the original 83 questions still hold 1 and 0, and the other five are in the Ruby and C/C++ repositories added by [#984](https://github.com/manojmallick/sigmap/issues/984). The other 28 misses are the ranker's. Seven sit within five places of the top 5. The class that share no token with the question scored zero at v8.74.0 — the question and the answer's index entry have no word in common, so a lexical ranker has nothing to compare, and no re-weighting changes that — and held 12 of the 41 misses; the lever that reached them was not a re-weighting but the answer's *own* words, which [body words](#body-words) add, and one task is left in it. Repo-mined expansions, the other lever [#674](https://github.com/manojmallick/sigmap/issues/674) and [#703](https://github.com/manojmallick/sigmap/issues/703) asked about, are net negative on this corpus with body words on (−1).
 
 The penalty row is a counterfactual: the path penalty is divided out of the file's final score and the list re-sorted with the ranker's own tie-break, so it answers "would this file have made the top 5 had its path not demoted it" and nothing more. The row is the baseline's own account (`--save` records it beside the hit count); it is not a gate.
 
 ### Run it
 
 ```bash
-npm run fetch:xrepo        # pinned shallow/sparse fetch of the 16 repos (about 380 MB, idempotent)
+npm run fetch:xrepo        # pinned shallow/sparse fetch of the 20 repos (about 450 MB, idempotent)
 npm run benchmark:xrepo    # the report; add --per-task for each task's rank and what moved
 npm run benchmark:xrepo -- --why   # why each miss misses: not indexed / penalty / ranking, by distance
 npm run validate:xrepo     # the gate: floor + per-repo no-regress (CI adds --require-repos)
@@ -535,7 +539,7 @@ CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.jso
 ### Changing the corpus
 
 - **Re-pin a repo:** change its `commit` in `benchmarks/xrepo-repos.json`, run `npm run fetch:xrepo`, re-check every task that names a file in that repo, then `node scripts/run-xrepo-gate.mjs --save`. A pin that moves with the corpus unchanged is a measurement change; say so in the PR.
-- **Add a task:** read the code, never the ranker; write a question that shares no word stem with the answer's file name; record a `rationale` naming what the file does and which neighbours you ruled out; have a second annotator name files for the question alone; set `"audit"` to `agreed` or `partial`. `test/integration/xrepo-corpus.test.js` enforces the mechanical half.
+- **Add a task:** read the code, never the ranker; write a question that shares no word stem with the answer's file name; record a `rationale` naming what the file does and which neighbours you ruled out; have a second annotator name files for the question alone; set `"audit"` to `agreed` or `partial`. `test/integration/xrepo-corpus.test.js` enforces the mechanical half, and `benchmarks/XREPO_LABELLING.md` is the whole procedure, including how to record both annotators' answers in `benchmarks/xrepo-annotations.json`.
 - **Never hand-edit the baseline.** `--save` merges, so a run on a machine that lacks some repos does not erase their entries.
 
 ## Where the misses come from
@@ -546,17 +550,19 @@ A hit rate says how many tasks miss and nothing about the remedy. Every gate can
 
 | Why the task misses | xrepo | jvm |
 |---|---:|---:|
-| answer not indexed | 1 | 0 |
+| answer not indexed | 6 | 0 |
 | demoted by a path penalty | 0 | 2 |
 | no token in common with the question | 1 | **16** |
-| ranked 6–10 | 6 | 6 |
-| ranked 11–20 | 5 | 3 |
-| ranked 21–50 | 5 | 6 |
+| ranked 6–10 | 7 | 6 |
+| ranked 11–20 | 7 | 3 |
+| ranked 21–50 | 7 | 6 |
 | ranked beyond 50 | 6 | 3 |
-| **hits / tasks** | 59 / 83 | 25 / 61 |
-| **hit rate over the tasks a word can reach** | 72.8% (59 / 81) | 55.6% (25 / 45) |
+| **hits / tasks** | 69 / 103 | 25 / 61 |
+| **hit rate over the tasks a word can reach** | 71.9% (69 / 96) | 55.6% (25 / 45) |
 
 *A word can reach a task* when its answer is indexed and shares a word with the question. A task outside that set cannot be won by any method that matches words, so the rate over the set is the one a ranking change can move; the rate over every task also moves when the corpus does.
+
+**The xrepo column above is the current baseline, 103 tasks. The signal-arm and sweep tables below were recorded when the corpus held 83 tasks (`xrepo 59 / 83`, `xrepo 42/83`), and they still describe that experiment; they will be re-recorded on the final corpus when [#984](https://github.com/manojmallick/sigmap/issues/984) finishes, so the two are not meant to be added up.**
 
 The largest class used to be the one no re-weighting touches: the answer shares no token with the question. On `xrepo`, whose questions were written by reading the code, it held 12 of the 41 misses at v8.74.0 and **11 of the 12** held a *distinctive* word of the question in their own source — a word held by no more than 5% of the files, which the file's signatures do not carry (okhttp `revalidated`, express `tls`, serilog `retrying`). A signature map keeps a file's shape and drops what its body says, and a question about how something works is asked in the words the body uses. [Body words](#body-words) index exactly those words and are on by default since v8.75.0, so the class is **1** now: the one task that holds none of the question's words anywhere. On `jvm` it is still the largest, 16 of 36 misses, and reads **1 / 9 / 6**: one holds a distinctive word, nine only common ones (`import`, `message`, `not`), six nothing. Those are commit subjects the miner took for questions, and most of them describe an edit, not a topic.
 

@@ -1,24 +1,24 @@
 {
   "overall": {
-    "tasks": 83,
-    "hits": 59,
-    "hitAt5": 0.7108433734939759,
-    "mrr": 0.4958915662650603,
-    "precisionAt5": 0.14696385542168677
+    "tasks": 103,
+    "hits": 69,
+    "hitAt5": 0.6699029126213593,
+    "mrr": 0.4667864077669904,
+    "precisionAt5": 0.13784466019417474
   },
   "why": {
-    "hits": 59,
+    "hits": 69,
     "misses": {
-      "answer not indexed": 1,
+      "answer not indexed": 6,
       "demoted by a path penalty": 0,
       "no token in common with the question": 1,
-      "ranked 6-10": 6,
-      "ranked 11-20": 5,
-      "ranked 21-50": 5,
+      "ranked 6-10": 7,
+      "ranked 11-20": 7,
+      "ranked 21-50": 7,
       "ranked beyond 50": 6
     },
-    "reachable": 81,
-    "reachableHits": 59,
+    "reachable": 96,
+    "reachableHits": 69,
     "noTokenWords": {
       "distinctive": 0,
       "commonOnly": 0,
@@ -175,6 +175,24 @@
         "x050": null
       }
     },
+    "libuv": {
+      "language": "cpp",
+      "tasks": 5,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.467,
+      "precisionAt5": 0.12,
+      "unreachable": [
+        "x098"
+      ],
+      "ranks": {
+        "x094": 3,
+        "x095": 1,
+        "x096": null,
+        "x097": 1,
+        "x098": null
+      }
+    },
     "okhttp": {
       "language": "kotlin",
       "tasks": 5,
@@ -224,6 +242,27 @@
         "x078": 1
       }
     },
+    "rails": {
+      "language": "ruby",
+      "tasks": 5,
+      "hits": 1,
+      "hitAt5": 0.2,
+      "mrr": 0.2,
+      "precisionAt5": 0.04,
+      "unreachable": [
+        "x084",
+        "x085",
+        "x087",
+        "x088"
+      ],
+      "ranks": {
+        "x084": null,
+        "x085": null,
+        "x086": 1,
+        "x087": null,
+        "x088": null
+      }
+    },
     "riverpod": {
       "language": "dart",
       "tasks": 5,
@@ -254,6 +293,38 @@
         "x053": null,
         "x054": 1,
         "x055": null
+      }
+    },
+    "sidekiq": {
+      "language": "ruby",
+      "tasks": 5,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.45,
+      "precisionAt5": 0.12,
+      "unreachable": [],
+      "ranks": {
+        "x089": 4,
+        "x090": 1,
+        "x091": null,
+        "x092": null,
+        "x093": 1
+      }
+    },
+    "spdlog": {
+      "language": "cpp",
+      "tasks": 5,
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.267,
+      "precisionAt5": 0.12,
+      "unreachable": [],
+      "ranks": {
+        "x099": null,
+        "x100": 2,
+        "x101": null,
+        "x102": 3,
+        "x103": 2
       }
     },
     "tokio": {
