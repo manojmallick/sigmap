@@ -27,23 +27,23 @@
     }
   },
   "mined": {
-    "hitAt5": 0.683,
-    "mrr": 0.471,
-    "precisionAt5": 0.147,
+    "hitAt5": 0.667,
+    "mrr": 0.463,
+    "precisionAt5": 0.143,
     "tasks": 60,
     "why": {
-      "hits": 41,
+      "hits": 40,
       "misses": {
         "answer not indexed": 0,
         "demoted by a path penalty": 0,
         "no token in common with the question": 2,
-        "ranked 6-10": 5,
+        "ranked 6-10": 6,
         "ranked 11-20": 2,
         "ranked 21-50": 2,
         "ranked beyond 50": 8
       },
       "reachable": 58,
-      "reachableHits": 41,
+      "reachableHits": 40,
       "noTokenWords": {
         "distinctive": 0,
         "commonOnly": 1,
