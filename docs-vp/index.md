@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.77.2</span>
+  <span><strong>Release:</strong> v8.78.0</span>
   <span>·</span>
-  <span><strong>New — the <code>--report</code> docs are real output again:</strong> the getting-started, CI and enterprise guides and the CLI reference now show SigMap's actual report (budget, cache fit, coverage) instead of v5–v6 samples, and the advice for sharing the usage log works with a self-ignoring <code>.context/</code>. Docs only — no code changed.</span>
+  <span><strong>New — the tool list and the <code>ask</code> box stop charging before they pay:</strong> <code>mcp.tools: "core"</code> advertises seven tools for 908 tokens of definitions where all 22 cost 2,517, and <code>sigmap ask</code> now prints the ranked files first, with one summary line — <code>--verbose</code> prints the old box. By default the MCP server still advertises the same 22 tools with the same argument schemas (their descriptions are shorter); the default <code>ask</code> output changed, so a script that parsed the box needs <code>--verbose</code>.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.77-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.78-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-16</span>
+  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-17</span>
 </div>
 </div>
 
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-16 (v8.77.2)**.
+Latest saved benchmark run: **2026-10-17 (v8.78.0)**.
 
 </div>
 

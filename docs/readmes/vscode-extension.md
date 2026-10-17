@@ -85,6 +85,8 @@ SigMap ships with a built-in **Model Context Protocol (MCP) server** for Claude 
 - `explain_file` — signatures, imports, and callers for a specific file
 - `list_modules` — all top-level modules sorted by token count
 
+A config written by `sigmap --init` sets `mcp.tools` to `"core"` — seven tools, of which only `read_context` is in this list; set it to `"all"` for all 22 ([Tool profiles](https://sigmap.io/guide/mcp#tool-profiles-core-or-all)).
+
 ---
 
 ## 🌐 21 Language Support

@@ -97,7 +97,7 @@ OpenCode's strength is **local development with full IDE awareness**. Use SigMap
 ```bash
 # Before asking OpenCode about auth, rank the files
 sigmap ask "How is authentication handled?" --top 10
-# Copy those file signatures into the context
+# The ranked files print here; their signatures are in .context/query-context.md — copy that into the context
 
 # Then ask OpenCode: "Given the file signatures, explain the auth flow"
 ```

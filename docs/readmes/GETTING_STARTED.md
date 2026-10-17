@@ -62,7 +62,7 @@ Verify:
 
 ```bash
 sigmap --version
-# → 8.77.2
+# → 8.78.0
 ```
 
 ### Option B — Per-project (no global install)
@@ -73,7 +73,7 @@ curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.j
 
 # Run without installing
 node gen-context.js --version
-# → 8.77.2
+# → 8.78.0
 ```
 
 ### Option C — npx (zero install)
@@ -459,6 +459,8 @@ Creates:
 - `gen-context.config.json` — annotated config with all options
 - `.contextignore` — exclusion rules (gitignore syntax)
 
+A config that already exists is never rewritten. The new one starts the MCP server on the seven-tool `core` profile (`"mcp": { "tools": "core" }`); set it to `"all"` to advertise all 22 tools — see [section 10](#10-mcp-server-setup).
+
 Run this first on a new project to customize what gets indexed.
 
 ---
@@ -576,7 +578,7 @@ Not usually run directly — your AI tool (Claude Code, Cursor) invokes it autom
 ### `sigmap --version`
 ```bash
 sigmap --version
-# → 8.77.2
+# → 8.78.0
 ```
 
 ### Installation
@@ -819,13 +821,15 @@ Best for: projects with MCP (Claude Code, Cursor) where you're focused on a spec
 
 ## 10. MCP server setup
 
-The MCP server exposes 22 tools to Claude Code, Cursor, and Windsurf (`tools/list` is the full reference). The three you reach for first:
+The MCP server exposes 22 tools by default to Claude Code, Cursor, and Windsurf (`tools/list` is the full reference). The three you reach for first:
 
 | Tool | What it does |
 |---|---|
 | `read_context` | Returns signatures for the whole project or a specific module path |
 | `search_signatures` | Keyword search across all signatures — find where a function is defined |
 | `get_map` | Returns import graph, class hierarchy, or route table |
+
+`mcp.tools` in `gen-context.config.json` chooses which tools the server advertises, and a config written by `sigmap --init` sets it to `"core"`: seven tools (`query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion`) for about 0.9k tokens of definitions where all 22 cost about 2.5k. On `core`, `search_signatures` and `get_map` are not advertised and a call to them is refused. Set `"mcp": { "tools": "all" }` and restart the server to get all 22; `sigmap doctor` shows the active profile. See [Tool profiles](https://sigmap.io/guide/mcp#tool-profiles-core-or-all).
 
 ### Enable in Claude Code
 
@@ -871,7 +875,7 @@ SigMap detects your AI tool config files and adds itself automatically.
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
 ```
 
-Should return JSON with `read_context`, `search_signatures`, and `get_map`.
+Should return JSON listing the tools the project advertises: all 22 by default, including `read_context`, `search_signatures` and `get_map`; on the `core` profile a `sigmap --init` config sets, the seven listed above (`read_context` is among them, the other two are not).
 
 ---
 

@@ -64,7 +64,8 @@ is using is stale. Add `--json` for CI or scripting.
 ## `read_memory` (MCP)
 
 The 11th MCP tool. Agents call it at the start of a task to recall the decision
-log plus the last ranking-session focus:
+log plus the last ranking-session focus. It is not in the `core` [tool profile](/guide/mcp#tool-profiles-core-or-all)
+a `sigmap --init` config selects: add it to an `mcp.tools` list by name, or set `"all"`.
 
 ```jsonc
 // tools/call
