@@ -9,7 +9,7 @@
   },
   "sigmapFilesInGrepTop5": {
     "places": 625,
-    "polluted": 126
+    "polluted": 125
   },
   "sigmapMisses": {
     "no token in common with the question": 3,
@@ -45,6 +45,6 @@
       "grepRank": 5
     }
   ],
-  "version": "8.78.0",
-  "generated": "2026-10-17T07:27:36.809Z"
+  "version": "8.79.0",
+  "generated": "2026-10-17T17:57:10.671Z"
 }

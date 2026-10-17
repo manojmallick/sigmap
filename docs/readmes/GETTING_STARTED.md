@@ -62,7 +62,7 @@ Verify:
 
 ```bash
 sigmap --version
-# → 8.78.0
+# → 8.79.0
 ```
 
 ### Option B — Per-project (no global install)
@@ -73,7 +73,7 @@ curl -O https://raw.githubusercontent.com/manojmallick/sigmap/main/gen-context.j
 
 # Run without installing
 node gen-context.js --version
-# → 8.78.0
+# → 8.79.0
 ```
 
 ### Option C — npx (zero install)
@@ -578,7 +578,7 @@ Not usually run directly — your AI tool (Claude Code, Cursor) invokes it autom
 ### `sigmap --version`
 ```bash
 sigmap --version
-# → 8.78.0
+# → 8.79.0
 ```
 
 ### Installation
