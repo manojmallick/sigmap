@@ -102,7 +102,7 @@ cat .context/repomix.md .github/copilot-instructions.md \
 | Task | Use | Why |
 |------|-----|-----|
 | Daily coding session | sigmap | Auto-updated signatures are enough for navigation and autocomplete context |
-| Fix a specific bug | sigmap | MCP `search_signatures` finds the relevant files in <200 tokens |
+| Fix a specific bug | sigmap | MCP `search_signatures` finds the relevant files in <200 tokens (not advertised on the `core` tool profile; use `query_context` there) |
 | Add a feature to existing code | sigmap | Signatures show the interface; bodies aren't needed to extend |
 | Architecture review | repomix | Agent needs full file contents to reason about system design |
 | Large-scale refactor | both | Repomix for full depth, SigMap to track what changes in real-time |

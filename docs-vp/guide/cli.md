@@ -7,7 +7,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - property: og:description
-      content: "All 128 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 129 SigMap commands and flags documented with examples. ask, ask --with-source, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, roots, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/cli"
@@ -19,7 +19,7 @@ head:
       content: "SigMap CLI Reference — every command and flag with examples"
   - - meta
     - name: twitter:description
-      content: "All 128 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
+      content: "All 129 SigMap commands and flags documented with examples. ask, evidence, deps, sbom, gain, budget, redact, squeeze, conventions, scaffold, plan, bench, judge, verify, verify-ai-output, verify-plan, review-pr, create, note, session, hooks, status, doctor, validate, daemon, history, --ci, --cost, --coverage, --watch, --diff, --callers, --callees, --explain, --mcp, --report, --health, --dashboard, weights --export/--import and more."
   - - meta
     - name: twitter:image:alt
       content: "SigMap CLI Reference"
@@ -112,7 +112,7 @@ If you are new to the product, start with the workflow pages first:
 | `hooks install claude` | Wire session capture into Claude Code — `SessionStart` + `SessionEnd`, in `.claude/settings.local.json` (`--stop` adds the per-turn hook, `--shared` writes the committed file) |
 | `hooks status` / `hooks remove claude` | Show which session hooks are wired (and whether the script they run still exists), or remove SigMap's hooks and nothing else |
 | `status` | Repo state — branch, dirty files, index freshness, notes |
-| `doctor` | Diagnose config, index, freshness, coverage, the model profile, MCP wiring, and the git post-commit hook — with a fix per issue (`--json`; exits 1 on hard failure) |
+| `doctor` | Diagnose config, index, freshness, coverage, the model profile, MCP wiring, the MCP tool profile, and the git post-commit hook — with a fix per issue (`--json`; exits 1 on hard failure) |
 | `wiki` | Deterministic architecture narrative → `.context/WIKI.md` — modules, hubs, entry points, conventions, health; no LLM (`--json`, `--out`) |
 | `mcp list` | List supported MCP clients and their config paths (`--json`) |
 | `mcp install <client>` | Wire MCP for one client — `claude`/`cursor`/`windsurf`/`vscode`/`zed`/`codex`/`gemini`/`opencode`/`mcp`; creates the config if absent; `--global` for user-level |
@@ -2512,7 +2512,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.77.2, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.78.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -2691,7 +2691,7 @@ sigmap --diff main
 
 ## --mcp
 
-Start the stdio MCP server implementing the Model Context Protocol. Used by Claude Code, Cursor, Windsurf, and Zed. Do not call this directly — wire it via `sigmap --setup` or the IDE config (see [MCP setup](/guide/mcp)).
+Start the stdio MCP server implementing the Model Context Protocol. Used by Claude Code, Cursor, Windsurf, and Zed. Do not call this directly — wire it via `sigmap --setup` or the IDE config (see [MCP setup](/guide/mcp)). Which tools it advertises, and answers, is the `mcp.tools` profile: all 22 with no key, the seven of `core` in a config written by `sigmap --init`; `sigmap doctor` shows the active one (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all)).
 
 ```bash
 node gen-context.js --mcp
@@ -3218,7 +3218,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.77.2
+# 8.78.0
 ```
 
 ---

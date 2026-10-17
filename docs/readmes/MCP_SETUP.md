@@ -74,6 +74,8 @@ See [examples/claude-code-settings.json](../examples/claude-code-settings.json) 
 
 ## Available tools
 
+Three of the server's tools are described here, the oldest of them; the [MCP guide](https://sigmap.io/guide/mcp) lists all 22. `mcp.tools` in `gen-context.config.json` chooses which tools a project advertises: with no key it is all 22, and a config written by `sigmap --init` sets `"core"`, which advertises `read_context` but not `search_signatures` or `get_map` (a call to a tool the profile does not advertise is refused). Set `"mcp": { "tools": "all" }` and restart the server to get them back. See [Tool profiles](https://sigmap.io/guide/mcp#tool-profiles-core-or-all).
+
 ### `read_context`
 
 Returns extracted code signatures for the whole project or a specific module.
@@ -168,7 +170,7 @@ Run `node gen-context.js` first to generate `.github/copilot-instructions.md`.
 Run `node gen-project-map.js` to generate the project map (available in v0.4+).
 
 **Server not appearing in tool list**
-Check that the absolute path in your settings file points to the correct `gen-context.js`. Use `node /path/to/gen-context.js --version` to verify it resolves correctly.
+Check that the absolute path in your settings file points to the correct `gen-context.js`. Use `node /path/to/gen-context.js --version` to verify it resolves correctly. If the server answers but lists fewer tools than you expect, check `mcp.tools` in `gen-context.config.json` (`sigmap doctor` prints the active profile).
 
 **Port/connection issues**
 The MCP server uses stdio, not a network port. If your tool reports connection errors, check the command path — it's not a network problem.

@@ -130,7 +130,7 @@ Or to use a larger fixed budget and disable auto-scaling:
 
 ## Issue 6 — MCP server not appearing in tool list
 
-**Symptom:** Claude Code or Cursor doesn't show any sigmap tools, or `tools/list` returns an empty array.
+**Symptom:** Claude Code or Cursor doesn't show any sigmap tools, or `tools/list` returns an empty array — or shows seven tools, and not `search_signatures` or `get_map`.
 
 **Fix:**
 
@@ -138,13 +138,14 @@ Or to use a larger fixed budget and disable auto-scaling:
 - Check JSON syntax in the settings file — a missing comma or mismatched quote will silently prevent parsing.
 - Reload or fully restart the IDE after making config changes. MCP servers are registered at startup.
 - Test the server manually to confirm it responds before blaming the editor config.
+- If the server answers but lists fewer tools than you expect, `mcp.tools` in `gen-context.config.json` chose them: `sigmap --init` writes `"core"` (seven tools) into a new config, and the server neither advertises nor answers the others. `sigmap doctor` prints the active profile in its `MCP tool profile` row. Set `"mcp": { "tools": "all" }` and restart the server for all 22 — see [Tool profiles](/guide/mcp#tool-profiles-core-or-all).
 
 ```bash
 node /path/to/gen-context.js --version
 # sigmap v5.5.0  ← must print a version
 
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
-# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 22 MCP tools
+# {"jsonrpc":"2.0","id":1,"result":{"tools":[...]}}  ← 22 MCP tools (7 on the "core" profile)
 ```
 
 ---
@@ -263,7 +264,7 @@ That refreshes the saved JSON reports and the HTML benchmark dashboard together.
 
 **Symptom:** the config file looks correct, but Claude Code or Cursor still shows no SigMap tools.
 
-**Fix:** restart the IDE completely, then test the server manually with `tools/list`. Editors usually register MCP servers only at startup.
+**Fix:** restart the IDE completely, then test the server manually with `tools/list`. Editors usually register MCP servers only at startup. If the manual test lists fewer tools than you expect, the server is configured to (`mcp.tools` — see Issue 6).
 
 ---
 
@@ -316,7 +317,7 @@ Open an issue at [github.com/manojmallick/sigmap/issues](https://github.com/mano
 
 - [CLI reference](/guide/cli) — every flag with examples and expected output
 - [Config reference](/guide/config) — every field in gen-context.config.json with defaults
-- [MCP server setup](/guide/mcp) — wire up sigmap's 22 MCP tools
+- [MCP server setup](/guide/mcp) — wire up sigmap's MCP tools (22, or the seven-tool `core` profile)
 
 
 ---
