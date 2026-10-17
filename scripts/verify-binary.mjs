@@ -152,11 +152,19 @@ try {
 
 console.log('\n[6] ask (v5.x workflow)');
 try {
+  // Default (#966): the ranked files lead, then one summary line.
   const out = run(binary, ['ask', 'explain the main function'], TMPDIR);
-  if (out.includes('Intent') || out.includes('Context') || out.includes('sigmap ask')) {
-    pass('ask produced expected output structure');
+  if (/ of \d+ files · .*tokens · sha256:[0-9a-f]{12} → \S+/.test(out)) {
+    pass('ask printed the ranked files and a summary line');
   } else {
-    fail('ask output missing expected fields', new Error(`output: ${out.slice(0, 200)}`));
+    fail('ask output missing the summary line', new Error(`output: ${out.slice(0, 200)}`));
+  }
+  // --verbose keeps the full header behind the same files.
+  const full = run(binary, ['ask', 'explain the main function', '--verbose'], TMPDIR);
+  if (full.includes('Intent') && full.includes('Context') && full.includes('sigmap ask')) {
+    pass('ask --verbose printed the full header');
+  } else {
+    fail('ask --verbose output missing header fields', new Error(`output: ${full.slice(0, 200)}`));
   }
 } catch (e) {
   fail('ask exited non-zero', e);

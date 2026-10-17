@@ -155,7 +155,10 @@ test('--with-source adds top-symbol bodies, sliced from the line anchors', () =>
     `the body itself must be present, not just its signature: ${ctx.slice(0, 600)}`);
   assert.ok(/### src\/router\.js:\d+-\d+/.test(ctx),
     `each block must carry the anchor it was sliced from: ${ctx.slice(0, 600)}`);
-  assert.ok(/ Source    :/.test(r.out), `the summary must report what was included: ${r.out}`);
+  assert.ok(/source: \d+ of \d+ top symbol\(s\)/.test(r.out), `the summary must report what was included: ${r.out}`);
+  // The full box still carries it as its own line (#966: the default folds it into the heads-up).
+  const v = run(dir, ['ask', 'how does the middleware chain dispatch a request', '--with-source', '--verbose']);
+  assert.ok(/ Source    :/.test(v.out), `--verbose must keep the Source line: ${v.out}`);
 });
 
 test('a blast-radius list accompanies the bodies', () => {
@@ -173,7 +176,7 @@ test('default ask is unchanged — no source section, no blast radius, no Source
   const ctx = fs.readFileSync(path.join(dir, '.context', 'query-context.md'), 'utf8');
   assert.ok(!/## Source \(top symbols\)/.test(ctx), `default run must not write bodies: ${ctx}`);
   assert.ok(!/## Blast radius/.test(ctx), `default run must not write a blast radius: ${ctx}`);
-  assert.ok(!/ Source    :/.test(r.out), `default run must not print a Source line: ${r.out}`);
+  assert.ok(!/ Source    :/.test(r.out) && !/^source:/m.test(r.out), `default run must not print a Source line: ${r.out}`);
   assert.ok(/function dispatchMiddleware/.test(ctx), 'signatures must still be there');
 });
 
@@ -305,7 +308,8 @@ test('"stale" has one definition, shared by judge, ask and MCP', () => {
 
 test('the coverage line names its population, numerator and denominator', () => {
   const dir = makeSourceRepo();
-  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request']);
+  // The figures live in the full box since #966; the default leads with the files.
+  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request', '--verbose']);
   assert.ok(!/ Coverage  : \d+%$/m.test(r.out), `a bare percentage is the defect: ${r.out}`);
   assert.ok(/ Coverage  : readable \d+% \(\d+\/\d+ files in srcDirs\)/.test(r.out),
     `coverage must name its population: ${r.out}`);
@@ -319,7 +323,7 @@ test('the coverage line names its population, numerator and denominator', () => 
 
 test('Risk names the basis it was measured from when a check ran', () => {
   const dir = makeGitSourceRepo();
-  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request']);
+  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request', '--verbose']);
   assert.ok(/ Risk      : (NONE|LOW|MEDIUM|HIGH) \(\d+ file\(s\) changed vs HEAD\)/.test(r.out),
     `risk must name its basis: ${r.out}`);
   const j = askJson(dir, ['ask', 'how does the middleware chain dispatch a request', '--json']);
@@ -340,7 +344,7 @@ test('a clean git tree reads NONE with its basis, not a bare NONE', () => {
   fs.writeFileSync(path.join(dir, '.gitignore'), '.context/\n');
   g(['init', '-q', '.']); g(['config', 'user.email', 't@t']); g(['config', 'user.name', 'T']);
   g(['add', '-A']); g(['commit', '-qm', 'base']);
-  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request']);
+  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request', '--verbose']);
   // The #806 repro exactly: a clean checkout. NONE is now qualified by what
   // was counted, so it can no longer be read as "this answer is safe".
   assert.ok(/ Risk      : NONE \(0 file\(s\) changed vs HEAD\)/.test(r.out),
@@ -351,7 +355,7 @@ test('Risk reads "not assessed" when no check could run', () => {
   // No git repo at all — the probe throws, and the old code still printed a
   // reassuring level next to it.
   const dir = makeSourceRepo();
-  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request']);
+  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request', '--verbose']);
   assert.ok(!/ Risk      : NONE$/m.test(r.out),
     `an unqualified NONE is the defect this closes: ${r.out}`);
   const j = askJson(dir, ['ask', 'how does the middleware chain dispatch a request', '--json']);
@@ -374,7 +378,7 @@ test('a selection with no source file emits a visible warning', () => {
 
 test('a source-bearing selection does not warn', () => {
   const dir = makeSourceRepo();
-  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request']);
+  const r = run(dir, ['ask', 'how does the middleware chain dispatch a request', '--verbose']);
   assert.ok(!/no source file in the selection/.test(r.all),
     `a healthy selection must not cry wolf: ${r.all}`);
   const j = askJson(dir, ['ask', 'how does the middleware chain dispatch a request', '--json']);

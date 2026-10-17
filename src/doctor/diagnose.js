@@ -302,6 +302,28 @@ function diagnose(cwd, opts = {}) {
     else add('mcp', 'MCP wiring', 'warn', 'MCP server not registered in any editor config', 'run: sigmap --setup   (auto-wires Claude, Cursor, Windsurf, VS Code, …)');
   } catch (_) {}
 
+  // 8b. MCP tool profile (#878). Every definition is paid for in tokens at the
+  // start of every MCP session, so the active profile and its cost are shown — and,
+  // on "all", what "core" would cost instead. The resolver is the one the server
+  // uses, so this row cannot disagree with what `tools/list` returns.
+  try {
+    const profile = require('../mcp/profile');
+    const resolved = profile.resolveProfile(config);
+    // `session.mcpCapture` adds a tool the profile does not own; the figure is what the client receives.
+    let captureOn = false;
+    try { captureOn = require('../session/store').sessionConfig(config).mcpCapture === true; } catch (_) {}
+    const shown = profile.label(resolved, captureOn);
+    if (resolved.notes.length > 0) {
+      add('mcp-tools', 'MCP tool profile', 'warn', `${resolved.notes.join('; ')} · ${shown}`,
+        'set "mcp.tools" in gen-context.config.json to "all", "core" or a list of tool names (inside an "mcp" object)');
+    } else if (resolved.profile === 'all') {
+      add('mcp-tools', 'MCP tool profile', 'ok',
+        `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens`);
+    } else {
+      add('mcp-tools', 'MCP tool profile', 'ok', shown);
+    }
+  } catch (_) {}
+
   // 9. Git hook (#784)
   //
   // `--setup` installs a post-commit hook that regenerates context on every

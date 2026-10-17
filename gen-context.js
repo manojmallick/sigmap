@@ -2757,7 +2757,8 @@ __factories["./src/cli/command-table"] = function(module, exports) {
     { argv: '--query "<text>" --json', desc: 'Ranked results as JSON' },
     { argv: '--query "<text>" --top <n>', desc: 'Limit results to top N files (default 10)' },
     { argv: '--query "<text>" --explain', desc: 'Per-file score signals, token coverage and near misses' },
-    { argv: 'ask "<query>"', desc: 'Ranked answer with signatures for a question (--json, --top <n>, --mode)' },
+    { argv: 'ask "<query>"', desc: 'Ranked files for a question, signatures written to .context/query-context.md (--json, --top <n>, --mode)' },
+    { argv: 'ask "<query>" --verbose', desc: 'Also print the full header: intent, coverage, risk, cost (default: files + one summary line)' },
     { argv: 'ask "<query>" --explain', desc: 'Diagnose a miss: which tokens matched, why files were demoted' },
     { argv: 'ask "<query>" --with-source', desc: 'Add top-symbol bodies + blast radius (budgeted; --source-budget <n>)' },
     { argv: 'plan "<goal>"', desc: 'Files to inspect, likely-to-change set, and impact radius (--json)' },
@@ -3191,6 +3192,10 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // MCP server configuration
     mcp: {
       autoRegister: true,
+      // Which tools the server advertises and answers (#878): "all" (every shipped
+      // tool; also what an absent key means), "core" (the retrieval + grounding loop,
+      // about a third of the definition tokens) or an array of tool names.
+      tools: 'all',
     },
 
     // Include a compact import dependency map at top of output
@@ -7754,6 +7759,28 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       }
       if (wired) add('mcp', 'MCP wiring', 'ok', `registered in ${_short(wired, cwd)}`);
       else add('mcp', 'MCP wiring', 'warn', 'MCP server not registered in any editor config', 'run: sigmap --setup   (auto-wires Claude, Cursor, Windsurf, VS Code, …)');
+    } catch (_) {}
+
+    // 8b. MCP tool profile (#878). Every definition is paid for in tokens at the
+    // start of every MCP session, so the active profile and its cost are shown — and,
+    // on "all", what "core" would cost instead. The resolver is the one the server
+    // uses, so this row cannot disagree with what `tools/list` returns.
+    try {
+      const profile = __require('./src/mcp/profile');
+      const resolved = profile.resolveProfile(config);
+      // `session.mcpCapture` adds a tool the profile does not own; the figure is what the client receives.
+      let captureOn = false;
+      try { captureOn = __require('./src/session/store').sessionConfig(config).mcpCapture === true; } catch (_) {}
+      const shown = profile.label(resolved, captureOn);
+      if (resolved.notes.length > 0) {
+        add('mcp-tools', 'MCP tool profile', 'warn', `${resolved.notes.join('; ')} · ${shown}`,
+          'set "mcp.tools" in gen-context.config.json to "all", "core" or a list of tool names (inside an "mcp" object)');
+      } else if (resolved.profile === 'all') {
+        add('mcp-tools', 'MCP tool profile', 'ok',
+          `${shown} · "mcp.tools": "core" would advertise ${profile.CORE.length} tools, ~${resolved.coreTokens.toLocaleString('en-US')} tokens`);
+      } else {
+        add('mcp-tools', 'MCP tool profile', 'ok', shown);
+      }
     } catch (_) {}
 
     // 9. Git hook (#784)
@@ -18022,6 +18049,145 @@ __factories["./src/extractors/yaml"] = function(module, exports) {
   
 };
 
+// ── ./src/format/ask-output ──
+__factories["./src/format/ask-output"] = function(module, exports) {
+  
+  /**
+   * Default `sigmap ask` output (#966, from #879): the answer first, then as little
+   * metadata as it takes to audit it.
+   *
+   * `ask` used to print a 12-line box and nothing else on stdout — intent, context
+   * size, cutoff, hash, selection, coverage, risk, cost and a footnote — while the
+   * files it ranked lived only in `.context/query-context.md`. The first thing a
+   * reader met was metadata, none of it the answer, and `Risk: HIGH (19 file(s)
+   * changed vs HEAD)` on an ordinary dirty working tree.
+   *
+   * The default is now the ranked files, one summary line carrying what makes a
+   * result reproducible (count, cutoff, tokens, hash, where the context was
+   * written) and — only when there is something to act on — one more line.
+   * `--verbose` keeps the whole box, which the CLI core still prints; `--json` is
+   * untouched.
+   *
+   * Pure formatting: the CLI core hands over figures it already computed for the
+   * box and for `--json`, so nothing here can disagree with either. Zero dependencies.
+   */
+
+  /** NONE / LOW / MEDIUM / HIGH for a count of changed files — the scale `ask` uses for every `Risk` figure. */
+  function riskLevel(count) {
+    return count === 0 ? 'NONE' : count <= 3 ? 'LOW' : count <= 10 ? 'MEDIUM' : 'HIGH';
+  }
+
+  /** A score rounded exactly as `--json` rounds it, so a row and `cutoffScore` compare as equals. */
+  function roundScore(score) {
+    return Number.isFinite(score) ? Math.round(score * 1000) / 1000 : null;
+  }
+
+  const num = (n) => n.toLocaleString('en-US');
+
+  /**
+   * The ranked files, one per line: rank, path, score, and the tokens of its signatures.
+   *
+   * @param {Array<{file:string, score:number, tokens?:number}>} ranked
+   * @returns {string[]}
+   */
+  function formatRankedList(ranked) {
+    const rows = (ranked || []).map((r, i) => ({
+      n: String(i + 1),
+      file: String(r.file),
+      score: roundScore(r.score),
+      tokens: typeof r.tokens === 'number' ? num(r.tokens) : null,
+    }));
+    if (rows.length === 0) return [];
+    const scoreOf = (r) => (r.score === null ? '-' : r.score.toFixed(3));
+    // A loop, not `Math.max(...rows.map(...))`: spreading a very large `--top` overflows the call stack.
+    const widest = (len) => rows.reduce((w, r) => Math.max(w, len(r)), 0);
+    const nW = widest((r) => r.n.length);
+    const fW = widest((r) => r.file.length);
+    const sW = widest((r) => scoreOf(r).length);
+    const tW = widest((r) => (r.tokens === null ? 0 : r.tokens.length));
+    return rows.map((r) => {
+      const tok = r.tokens === null ? '' : `  ${r.tokens.padStart(tW)} tok`;
+      return `${r.n.padStart(nW)}  ${r.file.padEnd(fW)}  ${scoreOf(r).padStart(sW)}${tok}`.trimEnd();
+    });
+  }
+
+  /**
+   * The line every default run prints after the list. It keeps what #775 made
+   * auditable — how many files, where the cut fell, a hash of what was written —
+   * and says where the signatures are.
+   *
+   * @param {{ selected:number, indexed:number, cutoff:number|null, tokens:number, hash:string, contextPath:string }} s
+   * @returns {string}
+   */
+  function formatSummary(s) {
+    const parts = [
+      `${s.selected} of ${s.indexed} files`,
+      Number.isFinite(s.cutoff) ? `cutoff ${s.cutoff.toFixed(3)}` : null,
+      `${num(s.tokens)} tokens`,
+      s.hash,
+    ].filter(Boolean);
+    return `${parts.join(' · ')} → ${s.contextPath}`;
+  }
+
+  /**
+   * What `--with-source` did, or null when it was not asked for. A request that put
+   * nothing in is reported, never dropped: the reader asked for bodies.
+   *
+   * @param {object|null} section  the `--with-source` report, or null when it failed
+   * @param {boolean} requested    whether `--with-source` was passed
+   * @returns {string|null}
+   */
+  function formatSourceStatus(section, requested) {
+    if (section && section.included > 0) {
+      const omitted = section.truncated ? `; ${section.skipped} omitted (over budget)` : '';
+      return `source: ${section.included} of ${section.candidates} top symbol(s), ` +
+        `${num(section.spentTokens)} of ${num(section.budgetTokens)} budget token(s)${omitted}`;
+    }
+    if (requested) {
+      const budget = section ? num(section.budgetTokens) : '0';
+      return `source: none included — no anchored symbol fit the ${budget}-token budget ` +
+        '(raise maxTokens or pass --source-budget <n>)';
+    }
+    return null;
+  }
+
+  /**
+   * The `Risk` a reader can act on: the selected files that differ from HEAD. The
+   * whole-tree figure (`--verbose`) says how much is in flight; this says whether
+   * the answer is standing on code that is mid-edit.
+   *
+   * @param {number} selected  how many files were selected
+   * @param {number} changed   how many of them are changed vs HEAD
+   * @returns {{ level:string, changed:number, selected:number }|null}  null when none is
+   */
+  function selectionRisk(selected, changed) {
+    return changed > 0 ? { level: riskLevel(changed), changed, selected } : null;
+  }
+
+  /** What an empty selection says when nothing in the query matched. */
+  const NO_MATCH_HINT = 'no file matched — try other wording, or --explain to see which tokens matched';
+
+  /**
+   * The optional second line: only what the reader can act on, joined by " · ".
+   *
+   * @param {{ empty?:string|null, notes?:string[], source?:string|null, risk?:{level:string,changed:number,selected:number}|null }} h
+   *        `empty` is the message for an empty selection (NO_MATCH_HINT, or a more exact one such
+   *        as "nothing changed since <ref>" when a filter, not the query, emptied it)
+   * @returns {string|null}  null when there is nothing to say
+   */
+  function formatHeadsUp(h) {
+    const items = [];
+    if (h.empty) items.push(h.empty);
+    if (h.notes && h.notes.length > 0) items.push(`notes: ${h.notes.length} matching (${h.notes.join(' / ')})`);
+    if (h.source) items.push(h.source);
+    if (h.risk) items.push(`risk: ${h.risk.level} (${h.risk.changed} of ${h.risk.selected} selected file(s) changed vs HEAD)`);
+    return items.length > 0 ? items.join(' · ') : null;
+  }
+
+  module.exports = { NO_MATCH_HINT, riskLevel, roundScore, formatRankedList, formatSummary, formatSourceStatus, selectionRisk, formatHeadsUp };
+  
+};
+
 // ── ./src/format/benchmark-report ──
 __factories["./src/format/benchmark-report"] = function(module, exports) {
   
@@ -26042,6 +26208,194 @@ __factories["./src/mcp/install"] = function(module, exports) {
   
 };
 
+// ── ./src/mcp/profile ──
+__factories["./src/mcp/profile"] = function(module, exports) {
+  
+  /**
+   * MCP tool profile (#966, from #878).
+   *
+   * Every tool definition is paid for in tokens at the start of every MCP session,
+   * and a longer list gives the model more to choose between. `mcp.tools` picks
+   * which of the shipped tools a server advertises (`tools/list`) and answers
+   * (`tools/call`):
+   *
+   *   "all"      every shipped tool — the default, and what an absent key means
+   *   "core"     the retrieval + grounding loop only (CORE below)
+   *   [names]    exactly those tools
+   *
+   * One function resolves it for the server and for `sigmap doctor`, so the tool
+   * count and the token figure cannot disagree. `log_session_usage` is not part of
+   * any profile: `session.mcpCapture` alone decides whether that tool exists.
+   *
+   * A bad value never breaks a server. It falls back to "all" (or drops the names
+   * that are not tools) and says why in `notes`, which `doctor` prints. The same
+   * goes for a setting that was meant for this block and does not parse as one: an
+   * `mcp` that is not an object, or a key beside `tools` that SigMap does not read —
+   * a typo there would otherwise leave the profile silently on "all".
+   */
+
+  const { TOOLS, LOG_SESSION_USAGE } = __require('./src/mcp/tools');
+  const { DEFAULTS } = __require('./src/config/defaults');
+
+  /**
+   * The grounding loop the MCP guide documents as "your agent's live loop": rank the
+   * files, read the map, pin the exact signatures, read the anchored lines, size the
+   * change, verify the answer. A profile that could not follow that loop would
+   * contradict the page that explains why the tools exist.
+   */
+  const CORE = Object.freeze([
+    'query_context',
+    'read_context',
+    'get_callee_signatures',
+    'get_lines',
+    'get_impact',
+    'get_method_impact',
+    'verify_suggestion',
+  ]);
+
+  const MAX_LISTED = 5;
+
+  /** Estimated tokens for a tool list as a client receives it (chars/4, as everywhere in SigMap). */
+  function definitionTokens(tools) {
+    return Math.ceil(JSON.stringify(tools).length / 4);
+  }
+
+  function _shown(names) {
+    const head = names.slice(0, MAX_LISTED).join(', ');
+    return names.length > MAX_LISTED ? `${head}, … (${names.length - MAX_LISTED} more)` : head;
+  }
+
+  /**
+   * Resolve `config.mcp.tools` against a tool list.
+   *
+   * @param {object} config  a loaded SigMap config; only `config.mcp` is read
+   * @param {object[]} [tools]  the tools on offer (tests pass a subset); defaults to the shipped TOOLS
+   * @returns {{ profile: 'all'|'core'|'custom', requested: *, tools: object[], names: string[],
+   *             total: number, tokens: number, allTokens: number, coreTokens: number, notes: string[] }}
+   */
+  function resolveProfile(config, tools = TOOLS) {
+    const block = config ? config.mcp : undefined;
+    const hasBlock = block !== undefined && block !== null;
+    const isObject = hasBlock && typeof block === 'object' && !Array.isArray(block);
+    const mcp = isObject ? block : {};
+    const requested = mcp.tools === undefined ? null : mcp.tools;
+    const shipped = new Set(tools.map((t) => t.name));
+    const notes = [];
+    let profile = 'all';
+    let selected = tools;
+
+    const fallBack = (why) => notes.push(`${why} — advertising all ${tools.length} tools`);
+
+    if (hasBlock && !isObject) {
+      fallBack(`mcp must be an object such as { "tools": "core" } (got ${JSON.stringify(block)})`);
+    } else if (isObject) {
+      const known = Object.keys(DEFAULTS.mcp);
+      const stray = Object.keys(mcp).filter((k) => !known.includes(k));
+      if (stray.length > 0) {
+        notes.push(`${stray.map((k) => `mcp.${k}`).join(', ')} ${stray.length === 1 ? 'is not a setting' : 'are not settings'} ` +
+          `SigMap reads (it reads ${known.map((k) => `mcp.${k}`).join(', ')})`);
+      }
+    }
+
+    if (requested === null) {
+      // No key: the default, and the reason an existing config sees no change.
+    } else if (typeof requested === 'string') {
+      const v = requested.trim().toLowerCase();
+      if (v === 'core') {
+        profile = 'core';
+        selected = tools.filter((t) => CORE.includes(t.name));
+      } else if (v !== 'all') {
+        fallBack(`mcp.tools is "${requested}"; expected "all", "core" or a list of tool names`);
+      }
+    } else if (Array.isArray(requested)) {
+      const wanted = new Set();
+      const ignored = [];
+      for (const raw of requested) {
+        const name = typeof raw === 'string' ? raw.trim() : '';
+        if (shipped.has(name)) wanted.add(name);
+        else ignored.push(typeof raw === 'string' ? raw : JSON.stringify(raw));
+      }
+      // Two different mistakes, two notes: one name is a real tool with its own switch,
+      // the rest are not tools at all. Saying only the first would hide a typo.
+      const capture = ignored.filter((n) => n === LOG_SESSION_USAGE.name);
+      const unknown = ignored.filter((n) => n !== LOG_SESSION_USAGE.name);
+      if (capture.length > 0) notes.push(`${LOG_SESSION_USAGE.name} is switched by session.mcpCapture, not listed in mcp.tools`);
+      if (unknown.length > 0) notes.push(`mcp.tools names no such tool: ${_shown(unknown)}`);
+      if (wanted.size === 0) {
+        fallBack('mcp.tools lists no shipped tool');
+      } else {
+        profile = 'custom';
+        selected = tools.filter((t) => wanted.has(t.name));
+      }
+    } else {
+      fallBack(`mcp.tools must be "all", "core" or a list of tool names (got ${JSON.stringify(requested)})`);
+    }
+
+    return {
+      profile,
+      requested,
+      tools: selected,
+      names: selected.map((t) => t.name),
+      total: tools.length,
+      tokens: definitionTokens(selected),
+      allTokens: definitionTokens(tools),
+      coreTokens: definitionTokens(tools.filter((t) => CORE.includes(t.name))),
+      notes,
+    };
+  }
+
+  /** Whether the resolved profile advertises (and so answers) a tool. */
+  function has(resolved, name) {
+    return resolved.names.includes(name);
+  }
+
+  /**
+   * One phrase for doctor and docs alike: the profile, its tool count and what its definitions
+   * cost — `core (N of M tools, ~T tokens of definitions)`. With `captureOn` (session.mcpCapture)
+   * the server also lists `log_session_usage`, so the phrase says what the client really receives.
+   */
+  function label(resolved, captureOn = false) {
+    const kind = resolved.profile === 'custom' ? 'custom list' : resolved.profile;
+    const count = resolved.profile === 'all'
+      ? `${resolved.names.length} tools`
+      : `${resolved.names.length} of ${resolved.total} tools`;
+    const base = `${kind} (${count}, ~${resolved.tokens.toLocaleString('en-US')} tokens of definitions)`;
+    if (!captureOn) return base;
+    const all = definitionTokens(resolved.tools.concat([LOG_SESSION_USAGE]));
+    return `${base} + ${LOG_SESSION_USAGE.name} (session.mcpCapture): ~${all.toLocaleString('en-US')} tokens in all`;
+  }
+
+  /**
+   * The `tools/call` answer for a shipped tool the profile does not advertise. It is read by an
+   * agent, so it states what is true and who can change it; it does not tell the reader to
+   * edit anything.
+   */
+  function refusal(name, resolved) {
+    const what = resolved.profile === 'custom'
+      ? 'the tools listed in mcp.tools'
+      : `the "${resolved.profile}" profile`;
+    return `Tool not enabled: ${name}. This project's MCP server advertises ${what} (${resolved.names.length} of ${resolved.total} tools). ` +
+      'The project owner can enable it by setting "mcp.tools": "all" in gen-context.config.json and restarting the server.';
+  }
+
+  /**
+   * The one-line `instructions` of `server/discover`, naming only tools the client
+   * can actually call. With every tool listed it is the sentence the server always sent.
+   */
+  function instructionsFor(resolved) {
+    const lead = ['query_context', 'search_signatures'].filter((n) => has(resolved, n));
+    const how = lead.length > 0
+      ? `Call ${lead.join(' or ')} to rank and fetch signature blocks instead of reading whole files.`
+      : has(resolved, 'read_context')
+        ? 'Call read_context to read signature blocks instead of reading whole files.'
+        : 'Use the listed tools to read signatures instead of whole files.';
+    return `SigMap serves code signatures for the working directory. ${how}`;
+  }
+
+  module.exports = { CORE, resolveProfile, has, label, refusal, instructionsFor, definitionTokens };
+  
+};
+
 // ── ./src/mcp/server ──
 __factories["./src/mcp/server"] = function(module, exports) {
   
@@ -26053,13 +26407,16 @@ __factories["./src/mcp/server"] = function(module, exports) {
    *
    * Supported methods:
    *   initialize        → serverInfo + capabilities + negotiated protocolVersion
-   *   tools/list        → 22 tool definitions (23 with session.mcpCapture on)
-   *   tools/call        → dispatch to handler, return result
+   *   tools/list        → the tools `mcp.tools` selects: 22 by default (23 with
+   *                       session.mcpCapture on), fewer with "core" (#878)
+   *   tools/call        → dispatch to handler, return result; a shipped tool the
+   *                       profile does not advertise is refused
    */
 
   const readline = require('readline');
   const crypto = require('crypto');
   const { TOOLS, LOG_SESSION_USAGE } = __require('./src/mcp/tools');
+  const { resolveProfile, has: profileHas, refusal: profileRefusal, instructionsFor } = __require('./src/mcp/profile');
   const { ensureSelfIgnore } = __require('./src/util/context-dir');
   const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap, logSessionUsage } = __require('./src/mcp/handlers');
 
@@ -26118,6 +26475,26 @@ __factories["./src/mcp/server"] = function(module, exports) {
     }
   }
 
+  // The tool profile (#878) is read once, when the first message needs it, and held
+  // for the life of the server. A host fetches `tools/list` when it starts the
+  // server and caches it, so a config edit takes effect on the next start either
+  // way; reading it once also keeps `tools/call` from re-reading the config.
+  const profiles = new Map();
+
+  /** The resolved `mcp.tools` profile for this project. Never throws: a broken config serves every tool. */
+  function _toolProfile(cwd) {
+    if (!profiles.has(cwd)) {
+      let resolved;
+      try {
+        resolved = resolveProfile(__require('./src/config/loader').loadConfig(cwd) || {});
+      } catch (_) {
+        resolved = resolveProfile({});
+      }
+      profiles.set(cwd, resolved);
+    }
+    return profiles.get(cwd);
+  }
+
   // ---------------------------------------------------------------------------
   // Method dispatcher
   // ---------------------------------------------------------------------------
@@ -26144,7 +26521,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
         supportedVersions: SUPPORTED_PROTOCOL_VERSIONS,
         capabilities: { tools: {} },
         serverInfo: SERVER_INFO,
-        instructions: 'SigMap serves code signatures for the working directory. Call query_context or search_signatures to rank and fetch signature blocks instead of reading whole files.',
+        instructions: instructionsFor(_toolProfile(cwd)),
       });
       return;
     }
@@ -26171,13 +26548,24 @@ __factories["./src/mcp/server"] = function(module, exports) {
         respondError(id, -32602, `Invalid cursor: ${String(params.cursor)}`);
         return;
       }
-      respond(id, { tools: _sessionCaptureOn(cwd) ? TOOLS.concat([LOG_SESSION_USAGE]) : TOOLS });
+      const advertised = _toolProfile(cwd).tools;
+      respond(id, { tools: _sessionCaptureOn(cwd) ? advertised.concat([LOG_SESSION_USAGE]) : advertised });
       return;
     }
 
     if (method === 'tools/call') {
       const name = params && params.name;
       const args = (params && params.arguments) || {};
+
+      // A tool the profile does not advertise is not callable either: an unlisted
+      // tool that still answered would make `mcp.tools` a suggestion rather than a
+      // switch (the rule `log_session_usage` already follows). A name that is not a
+      // tool at all falls through to "Unknown tool" below.
+      const profile = _toolProfile(cwd);
+      if (TOOLS.some((t) => t.name === name) && !profileHas(profile, name)) {
+        respondError(id, -32601, profileRefusal(name, profile));
+        return;
+      }
 
       let text;
       try {
@@ -26277,23 +26665,25 @@ __factories["./src/mcp/tools"] = function(module, exports) {
    * sigmap_notify_symbol_added, sigmap_notify_file_deleted, get_diff_context,
    * get_architecture_overview, verify_suggestion, squeeze_output, get_budget,
    * query_knowledge_map.
+   *
+   * Every definition is paid for in tokens at the start of every MCP session (#878),
+   * so a description says what the tool returns and when to reach for it — nothing
+   * else. Names, parameters, enums and `required` are the contract; the wording is
+   * not. Which of these a server advertises is `mcp.tools` (see ./profile.js).
    */
 
   const TOOLS = [
     {
       name: 'read_context',
       description:
-        'Read extracted code signatures for the project or a specific module path. ' +
-        'Returns the full copilot-instructions.md content (~500–4K tokens) or a ' +
-        'filtered subset when a module path is provided (~50–500 tokens).',
+        'Read extracted code signatures for the whole project, or only a module path ' +
+        '(~50–500 tokens scoped, ~500–4K for everything).',
       inputSchema: {
         type: 'object',
         properties: {
           module: {
             type: 'string',
-            description:
-              'Optional subdirectory path to scope results (e.g. "src/services"). ' +
-              'Omit to get the full codebase context.',
+            description: 'Optional subdirectory (e.g. "src/services"). Omit for the full context.',
           },
         },
         required: [],
@@ -26302,14 +26692,14 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'search_signatures',
       description:
-        'Search extracted code signatures for a keyword, function name, or class name. ' +
-        'Returns matching signature lines with their file paths.',
+        'Search extracted signatures for a keyword, function name or class name; ' +
+        'returns matching lines with their file paths.',
       inputSchema: {
         type: 'object',
         properties: {
           query: {
             type: 'string',
-            description: 'Keyword to search for in signatures (case-insensitive).',
+            description: 'Keyword (case-insensitive).',
           },
         },
         required: ['query'],
@@ -26318,15 +26708,15 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_map',
       description:
-        'Read a section from PROJECT_MAP.md — import graph, class hierarchy, or route table. ' +
-        'Requires gen-project-map.js to have been run first.',
+        'Read a section of PROJECT_MAP.md: import graph, class hierarchy or route table. ' +
+        'Needs gen-project-map.js to have been run.',
       inputSchema: {
         type: 'object',
         properties: {
           type: {
             type: 'string',
             enum: ['imports', 'classes', 'routes'],
-            description: 'Which section to retrieve: imports, classes, or routes.',
+            description: 'Section to retrieve: imports, classes or routes.',
           },
         },
         required: ['type'],
@@ -26335,16 +26725,14 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'create_checkpoint',
       description:
-        'Create a session checkpoint summarising current project state. ' +
-        'Returns recent git commits, active branch, token count, and a ' +
-        'compact snapshot of the codebase context — ideal for session handoffs ' +
-        'or periodic saves during long coding sessions.',
+        'Snapshot project state for a session handoff: recent commits, branch, ' +
+        'token count and a compact context.',
       inputSchema: {
         type: 'object',
         properties: {
           note: {
             type: 'string',
-            description: 'Optional free-text note to include in the checkpoint (e.g. what you were working on).',
+            description: 'Optional note to include (e.g. what you were working on).',
           },
         },
         required: [],
@@ -26353,9 +26741,8 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_routing',
       description:
-        'Get model routing hints for this project — which files belong to which complexity ' +
-        'tier (fast/balanced/powerful) and which AI model to use for each type of task. ' +
-        'Helps reduce API costs by 40–80% by routing simple tasks to cheaper models.',
+        'Model routing hints: which files sit in which complexity tier ' +
+        '(fast/balanced/powerful) and which model suits each type of task.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -26365,18 +26752,14 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'explain_file',
       description:
-        'Explain a specific file: returns its extracted signatures, direct imports ' +
-        '(files it depends on), and callers (files that import it). ' +
-        'Ideal for understanding a file in isolation without reading raw source. ' +
-        'Requires the context file to have been generated first.',
+        'Explain one file without reading its source: its signatures, what it imports ' +
+        'and what imports it. Needs a generated context file.',
       inputSchema: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description:
-              'Relative path from the project root (e.g. "src/services/auth.ts"). ' +
-              'Use the paths shown in read_context output.',
+            description: 'Project-relative path (e.g. "src/services/auth.ts"), as shown in read_context.',
           },
         },
         required: ['path'],
@@ -26385,9 +26768,8 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'list_modules',
       description:
-        'List all top-level modules (srcDirs) present in the context file, ' +
-        'sorted by token count descending. Use this to decide which module to ' +
-        'pass to read_context before querying a specific area of the codebase.',
+        'List the top-level modules (srcDirs) in the context file by token count, ' +
+        'to pick a module for read_context.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -26397,18 +26779,14 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'query_context',
       description:
-        'Rank and return the most relevant files for a specific task or question. ' +
-        'Uses keyword + symbol + path scoring to surface only the top-K files relevant ' +
-        'to the query — much cheaper than reading all context. ' +
-        'Returns ranked file list with signatures and relevance scores.',
+        'Rank files for a task or question and return the top-K with signatures and ' +
+        'relevance scores — far cheaper than reading all context.',
       inputSchema: {
         type: 'object',
         properties: {
           query: {
             type: 'string',
-            description:
-              'Natural language task description or keyword(s) to rank files against. ' +
-              'E.g. "add a new language extractor", "fix secret scanning", "auth module".',
+            description: 'Task description or keywords (e.g. "add a new language extractor", "auth module").',
           },
           topK: {
             type: 'number',
@@ -26421,18 +26799,17 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_method_impact',
       description:
-        'Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — ' +
-        'or, with direction "callees", every repo function it calls. Finer-grained than the ' +
-        'file-level get_impact: tells an agent which functions break, not just which files. ' +
-        'JS/TS, Python, Java, Go, and Rust call-graph; deterministic, no LLM.',
+        'Method-level blast radius for a symbol: every function that (transitively) calls it, ' +
+        'or with direction "callees" every repo function it calls. Finer than get_impact — ' +
+        'which functions break, not just which files. JS/TS, Python, Java, Go, Rust; deterministic.',
       inputSchema: {
         type: 'object',
         properties: {
           symbol: {
             type: 'string',
             description:
-              'Function/method name (e.g. "validateToken") or a full "file#name" id ' +
-              '(e.g. "src/auth/session.js#validateToken") to disambiguate.',
+              'Function/method name, or "file#name" to disambiguate ' +
+              '(e.g. "src/auth/session.js#validateToken").',
           },
           direction: {
             type: 'string',
@@ -26450,22 +26827,18 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_impact',
       description:
-        'Show every file that is impacted when a given file changes — direct importers, ' +
-        'transitive importers, affected tests, and affected routes/controllers. ' +
-        'Gives agents instant blast-radius awareness before making a change. ' +
-        'Handles circular dependencies safely (no infinite loops).',
+        'Blast radius of changing a file — check it before an edit: direct and transitive ' +
+        'importers, affected tests, routes and controllers.',
       inputSchema: {
         type: 'object',
         properties: {
           file: {
             type: 'string',
-            description:
-              'Relative path from the project root of the file that changed ' +
-              '(e.g. "src/extractors/python.js"). Use forward slashes.',
+            description: 'Project-relative path of the changed file, forward slashes (e.g. "src/extractors/python.js").',
           },
           depth: {
             type: 'number',
-            description: 'BFS traversal depth limit (default: 3). Use 0 for unlimited.',
+            description: 'BFS depth limit (default: 3). Use 0 for unlimited.',
           },
         },
         required: ['file'],
@@ -26474,26 +26847,23 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_lines',
       description:
-        'Fetch an exact line range from a source file on demand — the Surgical Context ' +
-        'workhorse. Signatures carry `path:start-end` anchors; call this to read just those ' +
-        'lines instead of re-opening the whole file. Lines are clamped to the file bounds and ' +
-        'secret-scanned (redacted) before return. Path is sandboxed to the project root.',
+        'Fetch an exact line range from a file — use the `path:start-end` anchors in signatures ' +
+        'instead of re-opening the whole file. Clamped to the file bounds, secret-redacted, ' +
+        'sandboxed to the project root.',
       inputSchema: {
         type: 'object',
         properties: {
           file: {
             type: 'string',
-            description:
-              'Relative path from the project root (e.g. "src/config/loader.js"). ' +
-              'Use the path shown in a signature anchor. Use forward slashes.',
+            description: 'Project-relative path, forward slashes (e.g. "src/config/loader.js"), as in a signature anchor.',
           },
           start: {
             type: 'number',
-            description: '1-based start line (inclusive). Clamped to the file bounds.',
+            description: '1-based start line (inclusive).',
           },
           end: {
             type: 'number',
-            description: '1-based end line (inclusive). Clamped to the file bounds.',
+            description: '1-based end line (inclusive).',
           },
         },
         required: ['file', 'start', 'end'],
@@ -26502,10 +26872,9 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'read_memory',
       description:
-        'Recall the project decision log — recent notes left by humans or agents ' +
-        'across sessions (via `sigmap note`), plus the last ranking-session focus. ' +
-        'Call this at the start of a task to kill cold-start: it answers ' +
-        '"what were we doing and why" without re-reading the whole codebase.',
+        'Recall the project decision log — recent notes left across sessions (via `sigmap note`) ' +
+        'plus the last ranking-session focus. Call at the start of a task to answer ' +
+        '"what were we doing and why" without re-reading the codebase.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -26520,10 +26889,9 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_callee_signatures',
       description:
-        'Return the EXACT current signature(s) of named symbols (functions, classes, ' +
-        "methods) from the index — so an agent never guesses a callee's parameter types " +
-        'from training memory. Call this before writing code that uses a symbol. ' +
-        'Unknown names get a closest-match suggestion.',
+        'Return the EXACT current signature(s) of named symbols from the index, so you never ' +
+        "guess a callee's parameter types from memory. Call before writing code that uses a " +
+        'symbol; unknown names get a closest-match suggestion.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -26539,9 +26907,8 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'sigmap_notify_file_created',
       description:
-        'Tell SigMap a file was created or modified so its signatures are indexed ' +
-        'live for the rest of the session. Call this after writing a file — the new ' +
-        'symbols become resolvable by search_signatures / get_callee_signatures.',
+        'Call after writing or changing a file so its signatures are indexed live for this ' +
+        'session (new symbols become resolvable by search_signatures / get_callee_signatures).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -26554,8 +26921,7 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'sigmap_notify_symbol_added',
       description:
-        'Fast path: register a single new symbol signature directly in the live ' +
-        'index without re-reading the whole file.',
+        'Fast path: register one new symbol signature in the live index without re-reading the file.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -26569,7 +26935,7 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'sigmap_notify_file_deleted',
       description:
-        'Tell SigMap a file was deleted so its symbols are dropped from the live index.',
+        'Tell SigMap a file was deleted so its symbols leave the live index.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -26581,16 +26947,15 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_diff_context',
       description:
-        'For every changed file in the working tree (or staged, or vs a base ref), return its ' +
-        'current signatures plus blast radius — direct importers, transitive count, and affected ' +
-        'tests/routes — with a risk label. One call gives an agent everything a code review or a ' +
-        'safe edit needs. Lists changed files shell-free (git binary, never a shell).',
+        'For every changed file (working tree, staged, or vs a base ref): its current signatures ' +
+        'plus blast radius — importers, affected tests/routes — with a risk label. One call for ' +
+        'a code review or a safe edit. Lists changed files shell-free.',
       inputSchema: {
         type: 'object',
         properties: {
           base: {
             type: 'string',
-            description: 'Optional git ref to diff against (e.g. "main"). Returns files changed between that ref and the WORKING TREE — committed and uncommitted alike. Omit for working-tree changes vs HEAD.',
+            description: 'Optional git ref to diff against (e.g. "main"): files changed between it and the WORKING TREE, committed and uncommitted alike. Omit for working-tree changes vs HEAD.',
           },
           staged: {
             type: 'boolean',
@@ -26607,9 +26972,9 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_architecture_overview',
       description:
-        'A high-level map of the codebase in one call: module breakdown (files/tokens), the most ' +
-        'depended-on "hub" files, the dependency-cycle count, and route totals. Extends get_map — ' +
-        'use it to orient in an unfamiliar repo before drilling in with read_context / query_context.',
+        'One-call map of the codebase: module breakdown (files/tokens), the most depended-on ' +
+        'hub files, dependency-cycle count and route totals. Extends get_map; use it to orient ' +
+        'before read_context / query_context.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -26619,19 +26984,16 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'verify_suggestion',
       description:
-        'Ground an AI code suggestion before writing it: verify a snippet or answer against the ' +
-        'repository AND the libraries actually installed in node_modules (the grounding moat). ' +
-        'Flags fake file paths, unresolvable imports, symbols that are in neither the repo (its index ' +
-        'or its source) nor the installed libraries, and non-existent npm scripts — deterministic, ' +
-        'offline, no LLM. ' +
-        'Reports the installed libraries it verified against with pinned versions.',
+        'Ground an AI code suggestion before writing it: check a snippet or answer against the ' +
+        'repository AND the libraries actually installed in node_modules. Flags fake file paths, ' +
+        'unresolvable imports, symbols in neither the repo nor the installed libraries, and ' +
+        'non-existent npm scripts. Deterministic, offline, no LLM.',
       inputSchema: {
         type: 'object',
         properties: {
           code: {
             type: 'string',
-            description:
-              'The AI-suggested code snippet or answer text to verify against the repo + installed libraries.',
+            description: 'The suggested code snippet or answer text to verify.',
           },
         },
         required: ['code'],
@@ -26640,19 +27002,16 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'squeeze_output',
       description:
-        'Compress noisy tool, command, or agent output before it enters context — a stack ' +
-        'trace, CI/build log, or JSON payload. Same deterministic, offline engine as ' +
-        '`sigmap squeeze`: keeps the signal (error frames, failing steps, JSON shape), strips ' +
-        'the noise, and enriches the top stack frame with its signature. Returns the squeezed ' +
-        'text plus token-reduction stats; passes the input through unchanged when no squeezable ' +
-        'structure is detected. No LLM, no network.',
+        'Compress noisy output (stack trace, CI/build log, JSON payload) before it enters context: ' +
+        'keeps error frames, failing steps and JSON shape, strips the noise, adds the top frame\'s ' +
+        'signature. Returns the squeezed text plus reduction stats; unchanged when nothing is ' +
+        'squeezable. Deterministic, offline.',
       inputSchema: {
         type: 'object',
         properties: {
           content: {
             type: 'string',
-            description:
-              'The raw output to compress (a stack trace, CI/build log, or JSON payload).',
+            description: 'The raw output to compress.',
           },
         },
         required: ['content'],
@@ -26661,24 +27020,19 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'get_budget',
       description:
-        'Session spend ledger — estimated tokens SigMap has emitted this session ' +
-        '(chars/4 estimates from the local gain log), optional budget remaining, and ' +
-        'context freshness. Scope honesty: counts only SigMap output, NOT the whole ' +
-        "chat's spend. Check this mid-session and degrade gracefully when near budget: " +
-        'prefer terse encoding, squeeze large outputs, summarize-then-drop context. ' +
-        'Local-only; no LLM, no network.',
+        'Session spend ledger: estimated tokens SigMap has emitted this session (chars/4, local ' +
+        'gain log — NOT the whole chat), optional budget remaining, and context freshness. ' +
+        'Check mid-session and degrade gracefully near budget (terse encoding, squeeze, summarize).',
       inputSchema: {
         type: 'object',
         properties: {
           session: {
             type: 'string',
-            description:
-              'Session key to report on (default: SIGMAP_SESSION env or the UTC day bucket).',
+            description: 'Session key to report on (default: SIGMAP_SESSION env or the UTC day bucket).',
           },
           budgetTokens: {
             type: 'number',
-            description:
-              'Budget override in estimated tokens (default: config sessionBudgetTokens).',
+            description: 'Budget override in estimated tokens (default: config sessionBudgetTokens).',
           },
         },
         required: [],
@@ -26687,13 +27041,11 @@ __factories["./src/mcp/tools"] = function(module, exports) {
     {
       name: 'query_knowledge_map',
       description:
-        'Query the unified knowledge map — typed nodes (file, symbol, library@version, route, ' +
-        'env-var, migration, script) and edges (imports, calls, defines, tests, uses-lib, ' +
-        "exposes-route, reads-env) assembled from SigMap's existing graphs. Pass { library: " +
-        '\"express\" } for upgrade impact: the lib → importing files → their callers → covering ' +
-        'tests chain. Pass { file: \"src/x.js\" } for a file\'s typed neighbors. Pass { env: ' +
-        '\"DATABASE_URL\" } for the files reading an environment variable. Deterministic, ' +
-        'cached in .context, local-only; no LLM, no network.',
+        'Query the typed knowledge map: nodes (file, symbol, library@version, route, env-var, ' +
+        'migration, script) and edges (imports, calls, defines, tests, uses-lib, exposes-route, ' +
+        'reads-env). { library } = upgrade impact (lib → importing files → callers → covering ' +
+        'tests); { file } = a file\'s typed neighbors; { env } = files reading an environment ' +
+        'variable. Deterministic, cached in .context, local-only.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -38196,12 +38548,17 @@ __factories["./src/wiki/generate"] = function(module, exports) {
     }
   }
 
+  /** The MCP tools the wiki's "Navigating" section points an agent at. */
+  const WIKI_MCP_TOOLS = ['get_architecture_overview', 'get_map', 'get_callee_signatures'];
+
   /**
    * Build the wiki. Every data source is optional — a repo with no context file
    * or no resolvable graph still yields a valid document.
    * @param {string} cwd
    * @param {object} [opts]
    * @param {string} [opts.version] SigMap version stamped in the header
+   * @param {object} [opts.config] the loaded config; when given, the MCP tools the wiki recommends
+   *        are limited to the ones this project's server advertises (`mcp.tools`, #966)
    * @returns {{ data: object, markdown: string }}
    */
   function buildWiki(cwd, opts = {}) {
@@ -38228,7 +38585,16 @@ __factories["./src/wiki/generate"] = function(module, exports) {
       health,
     };
 
-    return { data, markdown: renderWikiMarkdown(data, opts.version) };
+    let mcpTools;
+    if (opts.config) {
+      try {
+        const profile = __require('./src/mcp/profile');
+        const resolved = profile.resolveProfile(opts.config);
+        mcpTools = WIKI_MCP_TOOLS.filter((n) => profile.has(resolved, n));
+      } catch (_) { mcpTools = undefined; }
+    }
+
+    return { data, markdown: renderWikiMarkdown(data, opts.version, mcpTools) };
   }
 
   /**
@@ -38236,9 +38602,10 @@ __factories["./src/wiki/generate"] = function(module, exports) {
    * randomness — so output is byte-stable for a fixed repo state.
    * @param {object} data
    * @param {string} [sigmapVersion]
+   * @param {string[]} [mcpTools] the MCP tools to recommend (default: all three the wiki knows)
    * @returns {string}
    */
-  function renderWikiMarkdown(data, sigmapVersion) {
+  function renderWikiMarkdown(data, sigmapVersion, mcpTools) {
     const L = [];
     const title = data.version ? `${data.name} v${data.version}` : data.name;
     L.push(`# ${title} — Architecture Wiki`);
@@ -38311,7 +38678,8 @@ __factories["./src/wiki/generate"] = function(module, exports) {
     L.push('- `sigmap ask "<question>"` — ranked, budgeted mini-context for any task');
     L.push('- `sigmap --impact <file>` / `--callers <symbol>` — blast radius before you change something');
     L.push('- `sigmap evidence "<query>"` — machine-consumable Evidence Pack (JSON) for agents/CI');
-    L.push('- MCP: `get_architecture_overview`, `get_map`, `get_callee_signatures` for live agent access');
+    const mcp = Array.isArray(mcpTools) ? mcpTools : WIKI_MCP_TOOLS;
+    if (mcp.length > 0) L.push(`- MCP: ${mcp.map((n) => `\`${n}\``).join(', ')} for live agent access`);
     L.push('');
 
     return L.join('\n');
@@ -40224,7 +40592,12 @@ function writeInitConfig(cwd) {
     if (fs.existsSync(example)) {
       fs.copyFileSync(example, dest);
     } else {
-      fs.writeFileSync(dest, JSON.stringify(DEFAULTS, null, 2) + '\n');
+      // No example beside the script (a lone copy of the bundle, or the standalone binary):
+      // the defaults, with the one choice the example makes — a new install starts on the
+      // lean MCP profile (#966) — so `--init` means the same thing wherever it runs.
+      const fresh = JSON.parse(JSON.stringify(DEFAULTS));
+      fresh.mcp = Object.assign({}, fresh.mcp, { tools: 'core' });
+      fs.writeFileSync(dest, JSON.stringify(fresh, null, 2) + '\n');
     }
     console.warn('[sigmap] wrote gen-context.config.json');
   }
@@ -41576,12 +41949,31 @@ function buildIndexContext(ranked, cwd) {
 // returned with the evidence behind it, so the renderer can say `not assessed`
 // when nothing ran and name the basis when something did.
 function computeCurrentRisk(cwd) {
+  let count;
   try {
     const out = __git(['diff', '--name-only', 'HEAD'], { cwd, timeout: 3000 });
-    const count = out.trim().split('\n').filter(Boolean).length;
-    const level = count === 0 ? 'NONE' : count <= 3 ? 'LOW' : count <= 10 ? 'MEDIUM' : 'HIGH';
-    return { level, assessed: true, changed: count };
+    count = out.trim().split('\n').filter(Boolean).length;
   } catch (_) { return { level: 'UNKNOWN', assessed: false, changed: null }; }
+  // One scale for every `Risk` figure (#966): the default `ask` line applies it to the
+  // selected files, `--verbose` to the whole tree.
+  return { level: requireSourceOrBundled('./src/format/ask-output').riskLevel(count), assessed: true, changed: count };
+}
+
+// Which of `files` (as `ask` ranks them: relative to `cwd`) differ from HEAD. Never throws:
+// no git, no answer, nothing flagged.
+function changedAmong(cwd, files) {
+  try {
+    // `-z`: git quotes a path with non-ASCII characters (`"src/caf\303\251.js"`) unless
+    // it is told not to, and a quoted path matches nothing the ranker printed.
+    // `--relative`: git prints paths from the repo root, but `cwd` is only the git toplevel
+    // when it was resolved (resolveProjectRoot); `--cwd <dir>` is taken as given, and the
+    // ranked paths are then relative to <dir>. This makes git speak the same paths, and drops
+    // changes outside <dir>, which cannot be in the selection.
+    const out = __git(['diff', '--name-only', '-z', '--relative', 'HEAD'], { cwd, timeout: 3000 });
+    const key = (p) => String(p).replace(/\\/g, '/').normalize('NFC');
+    const changed = new Set(out.split('\0').filter(Boolean).map(key));
+    return files.filter((f) => changed.has(key(f)));
+  } catch (_) { return []; }
 }
 
 function getRawTokenCount(cwd, config) {
@@ -41832,12 +42224,12 @@ function main() {
       query = args[2];
     } else if (query && query.startsWith('--') && query !== '--json' && query !== '--model') {
       // Allow --json and --model but not other flags as query
-      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--explain] [--with-source] [--model <name>]');
+      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--verbose] [--explain] [--with-source] [--model <name>]');
       console.error('  Example: sigmap ask "fix the login bug" --followup');
       process.exit(1);
     }
     if (!query || query.startsWith('--')) {
-      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--explain] [--with-source] [--model <name>] [--top <n>]');
+      console.error('[sigmap] Usage: sigmap ask "<query>" [--followup] [--json] [--verbose] [--explain] [--with-source] [--model <name>] [--top <n>]');
       console.error('  Example: sigmap ask "fix the login bug" --followup');
       process.exit(1);
     }
@@ -42024,11 +42416,13 @@ function main() {
 
     // v6.12: Delta context — restrict to files changed since a git ref (--since <ref>).
     const sinceIdx = args.indexOf('--since');
+    let __sinceEmptied = null; // #966: the filter, not the query, left nothing — the empty hint must say so
     if (sinceIdx !== -1 && args[sinceIdx + 1]) {
       const baseRef = args[sinceIdx + 1];
       const changed = getFilesChangedSinceBase(cwd, baseRef);
       const before = ranked.length;
       ranked = ranked.filter((r) => changed.has(path.resolve(cwd, r.file)));
+      if (before > 0 && ranked.length === 0) __sinceEmptied = { before, ref: baseRef };
       if (!args.includes('--json')) {
         process.stderr.write(`[sigmap] Δ since ${baseRef}: ${ranked.length}/${before} ranked files changed\n`);
       }
@@ -42232,8 +42626,10 @@ function main() {
       if (__selectionWarning) {
         process.stderr.write(`[sigmap] ⚠  ${__selectionWarning}\n`);
       }
+      const __ao = requireSourceOrBundled('./src/format/ask-output');
+      const __list = __ao.formatRankedList(ranked);
       const bar = '─'.repeat(44);
-      console.log([
+      const __box = [
         bar,
         ` sigmap ask  "${query}"`,
         ` Intent    : ${detectIntents(query).join(', ')}`,
@@ -42257,7 +42653,32 @@ function main() {
         ` Cost      : $${costCtx}/query  (was $${costRaw} · saved ${savings}%)`,
         ` ${' '.repeat(9)} est. @ ${__price.model} $${__price.perMtok}/Mtok input as of ${__price.asOf}; cost tokens ${__tokBasis.label}; "was" = full ranked files`,
         bar,
-      ].filter(Boolean).join('\n'));
+      ].filter(Boolean).join('\n');
+      if (args.includes('--verbose')) {
+        // The full box exactly as it always was, behind the ranked files (#966).
+        console.log(__list.length > 0 ? `${__list.join('\n')}\n${__box}` : __box);
+      } else {
+        // Default (#966, from #879): the ranked files lead, then one summary line, and a
+        // second line only when something is actionable. Intent, coverage, cost and the
+        // whole-tree Risk are `--verbose` and `--json`; the warnings above stay on stderr.
+        const __lines = __list.slice();
+        __lines.push(__ao.formatSummary({
+          selected: __selection.count, indexed: sigIndex.size, cutoff: __selection.cutoff,
+          tokens: ctxTok, hash: __selection.hash, contextPath: path.relative(cwd, outPath),
+        }));
+        const __headsUp = __ao.formatHeadsUp({
+          empty: __selection.count !== 0 ? null
+            : __sinceEmptied ? `none of the ${__sinceEmptied.before} ranked files changed since ${__sinceEmptied.ref}`
+            : __ao.NO_MATCH_HINT,
+          notes: __relevantNotes.map((n) => n.text.slice(0, 48)),
+          source: __ao.formatSourceStatus(__sourceSection, __withSource),
+          risk: __risk.assessed && __risk.changed > 0
+            ? __ao.selectionRisk(ranked.length, changedAmong(cwd, ranked.map((r) => r.file)).length)
+            : null,
+        });
+        if (__headsUp) __lines.push(__headsUp);
+        console.log(__lines.join('\n'));
+      }
     }
     // gain: capture this query's savings for the `sigmap gain` dashboard.
     try {
@@ -44230,7 +44651,7 @@ function main() {
   // D9: `sigmap wiki` — deterministic architecture narrative (no LLM).
   if (args[0] === 'wiki') {
     const { buildWiki } = requireSourceOrBundled('./src/wiki/generate');
-    const result = buildWiki(cwd, { version: VERSION });
+    const result = buildWiki(cwd, { version: VERSION, config });
     if (args.includes('--json')) {
       process.stdout.write(JSON.stringify(result.data, null, 2) + '\n');
       process.exit(0);

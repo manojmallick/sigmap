@@ -108,7 +108,7 @@ The server is verified against the black-box [`@hasmcp/mcp-spec-test`](https://w
 Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 22 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
 :::
 
-All tools are available on-demand — your AI agent calls only what it needs.
+All tools are available on-demand — your AI agent calls only what it needs. All 22 are advertised by default; [`mcp.tools`](#tool-profiles-core-or-all) lets a project advertise fewer.
 
 | Tool | What it does | Arg(s) | Example call |
 |------|-------------|--------|-------------|
@@ -144,6 +144,29 @@ One more tool exists, and it is **not** among the 22. It lets an agent SigMap ha
 | `log_session_usage` | The session as the store now holds it, with its provenance label. Recorded as `agent-reported`: SigMap cannot verify it, and it is never merged into `measured` totals. | `id` (optional string — omit for one id per MCP connection) · `model` (optional string) · `usage` (optional object `{ in, out, cacheRead?, cacheWrite? }` — `in` and `out` required) |
 
 Send the session's **running totals** at the end of a task; a later call for the same session replaces the earlier one. An omitted cache category is stored as unknown (`n/a`), not `0`. Missing or invalid `usage` is recorded as `unavailable` with the reason returned — never as zeros, and never over a usable earlier report. A measured transcript of the same session (Claude Code hooks) outranks a self-report.
+
+## Tool profiles: core or all
+
+Every tool definition is sent to your agent at the start of every MCP session — about 2.5k tokens for all 22 — whether or not it is ever called, and each one is another thing for the model to choose between. `mcp.tools` in `gen-context.config.json` decides how many the server advertises:
+
+| `mcp.tools` | Tools advertised | Definition tokens | Use when |
+|---|---|---|---|
+| `"all"` (the default; also what an absent key means) | all 22 | ~2.5k | you use the live-index notify tools, checkpoints, the knowledge map or the architecture views |
+| `"core"` | 7 — `query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion` (the five tools of the [live loop](#your-agent-s-live-loop) below, plus `read_context` and `get_impact`) | ~0.9k | the agent only needs the retrieval + grounding loop |
+| `["get_lines", "verify_suggestion"]` | exactly the names listed | by list | you want a tighter or different set |
+
+Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap uses everywhere; `sigmap doctor` prints the exact figure for your project (counting `log_session_usage` when [`session.mcpCapture`](#opt-in-log-session-usage) is on), and what `core` would cost if you are on `all`.
+
+```json
+{ "mcp": { "tools": "core" } }
+```
+
+- **The profile applies to `tools/call` too.** A tool the server does not advertise is refused with a message that names the setting rather than answered anyway — otherwise the setting would be a suggestion, not a switch. A name that is not a tool at all still reads `Unknown tool`.
+- **`log_session_usage` is not part of any profile.** It exists only when [`session.mcpCapture`](#opt-in-log-session-usage) is on, whatever `mcp.tools` says.
+- **It is read once, on the first request the server handles, and held for as long as it runs** — like the tool list your editor caches. Restart the server (or the editor) after changing it.
+- **A value SigMap cannot read never breaks the server.** A typo, an empty list, names that are not tools, an `mcp` that is not an object, or a key beside `tools` that SigMap does not read: the server falls back to `all` (or drops only the unknown names), and `sigmap doctor` warns and says what it did instead.
+- **Existing configs keep every tool.** With no `mcp.tools` key you get the same 22 tools, with the same names, parameters and schemas as before (only their descriptions are shorter). `sigmap --init` writes `"core"` into a **new** config, wherever it runs, and never rewrites one that exists.
+- **Some guidance below names tools `core` does not advertise.** The workflows under [Three common MCP workflows](#three-common-mcp-workflows) use `explain_file` and `list_modules`; on `core`, rank with `query_context` and read a module with `read_context(module=...)`. The agent skills and the wiki that mention MCP tools also give a CLI alternative (`sigmap note`, `sigmap budget`, `sigmap squeeze`), and the wiki lists only the tools your project advertises. A refused call says why and who can change it.
 
 ## Your agent's live loop
 
@@ -188,7 +211,7 @@ Use `ask` to create `.context/query-context.md`, let the model answer, then run 
 
 ## Test the server
 
-Send a raw JSON-RPC request to confirm the server starts and returns all 22 tool definitions.
+Send a raw JSON-RPC request to confirm the server starts and returns its tool definitions (all 22, unless [`mcp.tools`](#tool-profiles-core-or-all) narrows them).
 
 ```bash
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
