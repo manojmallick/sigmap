@@ -1,0 +1,181 @@
+{
+  "_comment": "Both annotators’ raw answers for the tasks added by #984 (x084 onward), so the agreement figures and every task’s audit value can be recomputed. first = the files the annotator who wrote the question listed; second = the files an independent annotator named from the question alone. The label (expected_files) is the files both named; audit is agreed when the second annotator named exactly that set, partial when it named more. Both annotators were language models, so agreement bounds labelling noise, not blind spots they share. Method: benchmarks/XREPO_LABELLING.md.",
+  "agreement": {
+    "tasks": 20,
+    "exact": 18,
+    "sharedAtLeastOne": 20,
+    "disjoint": 0
+  },
+  "tasks": {
+    "x084": {
+      "first": [
+        "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb",
+        "activerecord/lib/active_record/connection_adapters/abstract/connection_pool.rb"
+      ],
+      "second": [
+        "activerecord/lib/active_record/connection_adapters/abstract/connection_pool/reaper.rb"
+      ]
+    },
+    "x085": {
+      "first": [
+        "actionpack/lib/action_controller/metal/params_wrapper.rb"
+      ],
+      "second": [
+        "actionpack/lib/action_controller/metal/params_wrapper.rb"
+      ]
+    },
+    "x086": {
+      "first": [
+        "activesupport/lib/active_support/concurrency/share_lock.rb"
+      ],
+      "second": [
+        "activesupport/lib/active_support/concurrency/share_lock.rb"
+      ]
+    },
+    "x087": {
+      "first": [
+        "actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb"
+      ],
+      "second": [
+        "actionview/lib/action_view/helpers/content_exfiltration_prevention_helper.rb"
+      ]
+    },
+    "x088": {
+      "first": [
+        "activejob/lib/active_job/continuable.rb",
+        "activejob/lib/active_job/continuation.rb"
+      ],
+      "second": [
+        "activejob/lib/active_job/continuable.rb"
+      ]
+    },
+    "x089": {
+      "first": [
+        "lib/sidekiq/manager.rb",
+        "lib/sidekiq/fetch.rb"
+      ],
+      "second": [
+        "lib/sidekiq/manager.rb",
+        "lib/sidekiq/fetch.rb"
+      ]
+    },
+    "x090": {
+      "first": [
+        "lib/sidekiq/scheduled.rb"
+      ],
+      "second": [
+        "lib/sidekiq/scheduled.rb"
+      ]
+    },
+    "x091": {
+      "first": [
+        "lib/sidekiq/web/application.rb"
+      ],
+      "second": [
+        "lib/sidekiq/web/application.rb"
+      ]
+    },
+    "x092": {
+      "first": [
+        "lib/sidekiq/metrics/shared.rb"
+      ],
+      "second": [
+        "lib/sidekiq/metrics/shared.rb"
+      ]
+    },
+    "x093": {
+      "first": [
+        "lib/sidekiq/api.rb",
+        "lib/sidekiq/launcher.rb"
+      ],
+      "second": [
+        "lib/sidekiq/api.rb",
+        "lib/sidekiq/launcher.rb"
+      ]
+    },
+    "x094": {
+      "first": [
+        "src/unix/core.c",
+        "src/unix/linux.c"
+      ],
+      "second": [
+        "src/unix/core.c",
+        "src/unix/linux.c"
+      ]
+    },
+    "x095": {
+      "first": [
+        "src/win/tty.c"
+      ],
+      "second": [
+        "src/win/tty.c"
+      ]
+    },
+    "x096": {
+      "first": [
+        "src/threadpool.c"
+      ],
+      "second": [
+        "src/threadpool.c"
+      ]
+    },
+    "x097": {
+      "first": [
+        "src/unix/process.c"
+      ],
+      "second": [
+        "src/unix/process.c"
+      ]
+    },
+    "x098": {
+      "first": [
+        "include/uv/errno.h"
+      ],
+      "second": [
+        "include/uv/errno.h"
+      ]
+    },
+    "x099": {
+      "first": [
+        "include/spdlog/sinks/dup_filter_sink.h"
+      ],
+      "second": [
+        "include/spdlog/sinks/dup_filter_sink.h"
+      ]
+    },
+    "x100": {
+      "first": [
+        "include/spdlog/cfg/helpers-inl.h"
+      ],
+      "second": [
+        "include/spdlog/cfg/helpers-inl.h"
+      ]
+    },
+    "x101": {
+      "first": [
+        "include/spdlog/details/os-inl.h"
+      ],
+      "second": [
+        "include/spdlog/details/os-inl.h"
+      ]
+    },
+    "x102": {
+      "first": [
+        "include/spdlog/pattern_formatter-inl.h"
+      ],
+      "second": [
+        "include/spdlog/pattern_formatter-inl.h"
+      ]
+    },
+    "x103": {
+      "first": [
+        "include/spdlog/details/periodic_worker.h",
+        "include/spdlog/details/periodic_worker-inl.h"
+      ],
+      "second": [
+        "include/spdlog/details/periodic_worker.h",
+        "include/spdlog/details/periodic_worker-inl.h"
+      ]
+    }
+  }
+}

@@ -199,7 +199,12 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
       String(x.plain.hits), String(x.plain.tasks), String(x.body.hits), pct(x.plain.hits, x.plain.tasks).replace('%', ''), pct(x.body.hits, x.body.tasks).replace('%', ''),
       String(x.body.lost.length), String(x.body.gained.length), x.body.mrr.toFixed(3), x.plain.mrr.toFixed(3),
     ]);
-    assert.strictEqual(x.plain.hits, xb.overall.hits, 'plain on xrepo is the baseline');
+    // The arms report was recorded on the corpus as it then stood (ids x001..x<plain.tasks>); tasks added since (#984) are in the
+    // baseline but not in the report, so "plain is the baseline" is held on the tasks the report measured.
+    assert.ok(x.plain.tasks <= xb.overall.tasks, 'the report cannot have measured more tasks than the baseline holds');
+    const measuredHits = Object.values(xb.repos).flatMap((r) => Object.entries(r.ranks))
+      .filter(([id, rank]) => Number(id.slice(1)) <= x.plain.tasks && rank !== null).length;
+    assert.strictEqual(x.plain.hits, measuredHits, 'plain on xrepo is the baseline, on the tasks the report measured');
     assert.ok(x.plain.mrr > x.body.mrr, 'the words lift MRR: it is not a hit@5-only effect');
     const hm = match(/honest corpus \*\*(\d+) → (\d+)\*\* of (\d+) \((\d+\.\d)% → \*\*(\d+\.\d)%\*\*\) without losing a task/, 'the honest result');
     assert.deepStrictEqual(hm.slice(1), [String(h.body.hits), String(h.plain.hits), String(h.plain.tasks), pct(h.body.hits, h.body.tasks).replace('%', ''), pct(h.plain.hits, h.plain.tasks).replace('%', '')]);
