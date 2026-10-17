@@ -160,6 +160,57 @@ const byRepo = (n) => tasks.filter((t) => t.repo === n);
       'at least 3 astro tasks must be answered by an .astro component, or the Astro extractor is barely measured');
   });
 
+  // ── growth: #984 ──────────────────────────────────────────────────────────
+
+  await test('Ruby and C/C++ are each measured by at least two repos, C itself among them, so #975 has a baseline (#984)', () => {
+    const ruby = manifest.repos.filter((r) => r.language === 'ruby');
+    const cpp = manifest.repos.filter((r) => r.language === 'cpp');
+    assert.ok(ruby.length >= 2, `${ruby.length} Ruby repo(s) in the manifest`);
+    assert.ok(cpp.length >= 2, `${cpp.length} C/C++ repo(s) in the manifest`);
+    for (const r of [...ruby, ...cpp]) assert.ok(byRepo(r.name).length >= 5, `${r.name} has ${byRepo(r.name).length} tasks`);
+    for (const r of ruby) for (const t of byRepo(r.name)) for (const f of t.expected_files) assert.match(f, /\.rb$/, `${t.id}: ${f} is not a Ruby file`);
+    for (const r of cpp) for (const t of byRepo(r.name)) for (const f of t.expected_files) assert.match(f, /\.(c|h|cc|cpp|cxx|hpp)$/, `${t.id}: ${f} is not a C/C++ file`);
+    assert.ok(cpp.some((r) => byRepo(r.name).some((t) => t.expected_files.some((f) => f.endsWith('.c')))), 'no task is answered by a .c file, so plain C is unmeasured');
+  });
+
+  const annotations = JSON.parse(read('benchmarks/xrepo-annotations.json'));
+  const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+
+  await test('the second annotator\'s answers re-derive every audit value of the tasks added by #984', () => {
+    const ids = Object.keys(annotations.tasks);
+    assert.ok(ids.length >= 20, `only ${ids.length} annotated task(s)`);
+    for (const id of ids) {
+      const t = tasks.find((x) => x.id === id);
+      assert.ok(t, `${id}: annotated but not in the corpus`);
+      const { first, second } = annotations.tasks[id];
+      assert.ok(Array.isArray(first) && Array.isArray(second) && first.length && second.length, `${id}: both annotators must have named files`);
+      const shared = first.filter((f) => second.includes(f));
+      assert.ok(shared.length > 0, `${id}: the annotators named disjoint sets, so the task should have been replaced, not kept`);
+      assert.ok(same(t.expected_files, shared), `${id}: expected_files ${JSON.stringify(t.expected_files)} is not what both annotators named ${JSON.stringify(shared)}`);
+      assert.strictEqual(t.audit, same(second, shared) ? 'agreed' : 'partial', `${id}: audit`);
+    }
+  });
+
+  await test('every task from x084 on carries both annotators\' answers, and the agreement figures add up', () => {
+    const late = tasks.filter((t) => Number(t.id.slice(1)) >= 84);
+    assert.ok(late.length >= 20);
+    for (const t of late) assert.ok(annotations.tasks[t.id], `${t.id}: no recorded annotator answers`);
+    const rows = Object.values(annotations.tasks);
+    const exact = rows.filter((r) => same(r.first, r.second)).length;
+    const shared = rows.filter((r) => r.first.some((f) => r.second.includes(f))).length;
+    assert.deepStrictEqual(annotations.agreement, { tasks: rows.length, exact, sharedAtLeastOne: shared, disjoint: rows.length - shared },
+      'the stated agreement must be recomputable from the recorded answers');
+  });
+
+  await test('the labelling protocol is written down and says what the tests cannot enforce', () => {
+    const doc = read('benchmarks/XREPO_LABELLING.md');
+    assert.match(doc, /Nobody runs SigMap/);
+    assert.match(doc, /second annotator/i);
+    assert.match(doc, /xrepo-annotations\.json/);
+    assert.match(doc, /--save/);
+    assert.ok(read('docs-vp/guide/retrieval-benchmark.md').includes('XREPO_LABELLING.md'), 'the guide must point at the protocol');
+  });
+
   // ── the baseline ──────────────────────────────────────────────────────────
 
   await test('the committed baseline covers exactly the corpus, task for task', () => {

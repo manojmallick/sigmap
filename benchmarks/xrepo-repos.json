@@ -127,6 +127,34 @@
       "sparse": [
         "*.gd"
       ]
+    },
+    {
+      "name": "rails",
+      "url": "https://github.com/rails/rails.git",
+      "commit": "f9243afd51d2b964618970139952de9f0abc2c0a",
+      "language": "ruby",
+      "layout": "multi-gem-monorepo"
+    },
+    {
+      "name": "sidekiq",
+      "url": "https://github.com/sidekiq/sidekiq.git",
+      "commit": "132f982f44a61156fff776209446a6c9e2816080",
+      "language": "ruby",
+      "layout": "single-gem-lib"
+    },
+    {
+      "name": "libuv",
+      "url": "https://github.com/libuv/libuv.git",
+      "commit": "20b08342bcdcc27497aeb87d826b97475c12aca6",
+      "language": "cpp",
+      "layout": "c-platform-split"
+    },
+    {
+      "name": "spdlog",
+      "url": "https://github.com/gabime/spdlog.git",
+      "commit": "8671ca4d492c8ee1cdfd3dd88afb9f88dd268178",
+      "language": "cpp",
+      "layout": "header-mostly"
     }
   ]
 }
