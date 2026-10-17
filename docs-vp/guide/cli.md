@@ -43,7 +43,8 @@ If you are new to the product, start with the workflow pages first:
 
 | Command / Flag | Description |
 |----------------|-------------|
-| `ask "<query>"` | Unified intent→rank→cost→risk pipeline in one command |
+| `ask "<query>"` | Rank the files for a question: signatures go to `.context/query-context.md`; stdout gets the ranked files and one summary line |
+| `ask "<query>" --verbose` | Also print the full header — intent, coverage, risk, cost — behind the ranked files |
 | `ask "<query>" --top <n>` | How many files to select (default 5) |
 | `ask "<query>" --explain` | Diagnose a miss: which query tokens matched, every signal behind each file, why a file was demoted, and the near misses |
 | `ask "<query>" --with-source` | Add the top symbols' **bodies** (sliced from their line anchors) plus a blast-radius list — budgeted, opt-in |
@@ -158,7 +159,7 @@ If you are new to the product, start with the workflow pages first:
 | `gain --models` | List the accepted model names, their per-MTok input rates, and the date of the profile they come from |
 | `gain --reset` | Clear the local savings log (`.context/gain.ndjson`) |
 | `--no-track` | Disable gain savings capture for a run |
-| `--init` | Scaffold `gen-context.config.json` and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
+| `--init` | Scaffold `gen-context.config.json` (starting on the lean `core` MCP tool profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` (alias `--eval`) | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
 | `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched |
@@ -171,27 +172,62 @@ If you are new to the product, start with the workflow pages first:
 
 ## ask
 
-Unified pipeline: intent detection → ranked mini-context → coverage check → cost estimate → risk level, all in one command. The identifier-aware BM25 ranker also **expands common code-domain synonyms/abbreviations** in your query (v8.5.0) — so `authentication` can surface a file whose signatures only say `auth` (and `database`↔`db`, `context`↔`ctx`, …); exact matches still rank first. Deterministic, applies to `--query` and MCP `query_context` too.
+Unified pipeline: intent detection → ranked mini-context → coverage check → cost estimate → risk level, all in one command. It writes the ranked files' signatures to `.context/query-context.md` and prints the **ranked files first**, then one summary line; `--verbose` adds the full header and `--json` carries everything. The identifier-aware BM25 ranker also **expands common code-domain synonyms/abbreviations** in your query (v8.5.0) — so `authentication` can surface a file whose signatures only say `auth` (and `database`↔`db`, `context`↔`ctx`, …); exact matches still rank first. Deterministic, applies to `--query` and MCP `query_context` too.
 
 ```bash
-sigmap ask "fix the login bug"
+sigmap ask "how are secrets redacted"
 sigmap ask "explain the rank function" --json
 sigmap ask "how are secrets redacted" --top 12
+sigmap ask "how are secrets redacted" --verbose
 ```
 
 ```
+1  src/security/redact.js    14.289  131 tok
+2  src/cache/entry.js        13.861  255 tok
+3  src/security/scanner.js   12.916   39 tok
+4  packages/core/index.js     9.235  220 tok
+5  src/security/patterns.js   7.123   41 tok
+5 of 529 files · cutoff 7.123 · 744 tokens · sha256:7e1624d83f1c → .context/query-context.md
+```
+
+Each row is a rank, a path, the file's score and the tokens its signatures cost in the index (the written context keeps the first 20 signatures of a file, so the rows can add up to more than the context holds). The last line says how many files were selected out of how many are indexed, where the cut fell (the last row's score), how many tokens the context holds, a short sha256 of it and where it was written. A **second line appears only when there is something to act on**: a matching [note](#note), the [`--with-source`](#ask-with-source-v8-61-0) status, an empty selection (with the reason: nothing matched, or `--since` left nothing), or `risk:` when a tracked file **in the selection** is itself changed against `HEAD`:
+
+```
+5 of 529 files · cutoff 7.123 · 744 tokens · sha256:7e1624d83f1c → .context/query-context.md
+risk: LOW (1 of 5 selected file(s) changed vs HEAD)
+```
+
+### Files first, the full header on request
+
+`ask` used to print a 12-line box and nothing else — intent, context size, cutoff, hash, selection, coverage, risk, cost and a footnote, about 150 tokens none of which was the answer. The ranked files sat in `.context/query-context.md`, one command away, so the first thing an agent read was metadata: including `Risk: HIGH (19 file(s) changed vs HEAD)` on an ordinary dirty working tree ([#879](https://github.com/manojmallick/sigmap/issues/879)). The default now leads with the files. `--verbose` prints that same box, unchanged, behind the list:
+
+```
+1  src/security/redact.js    14.289  131 tok
+2  src/cache/entry.js        13.861  255 tok
+3  src/security/scanner.js   12.916   39 tok
+4  packages/core/index.js     9.235  220 tok
+5  src/security/patterns.js   7.123   41 tok
 ────────────────────────────────────────────
- sigmap ask  "fix the login bug"
- Intent    : debug
- Context   : 1,823 tokens  →  .context/query-context.md
- Selected  : 5 of 441 file(s) (--top 5) · cutoff score 6.121
- Hash      : sha256:66de57f5b3a8
- Selection : 4 source, 1 support (test)
- Coverage  : readable 97% (428/441 files in srcDirs)
- Risk      : LOW (2 file(s) changed vs HEAD)
- Cost      : $0.0005/query  (was $0.032 · saved 98%)
+ sigmap ask  "how are secrets redacted"
+ Intent    : search
+ Context   : 744 tokens  →  .context/query-context.md
+ Selected  : 5 of 529 file(s) (--top 5) · cutoff score 7.123
+ Hash      : sha256:7e1624d83f1c
+ Selection : 5 source
+ Coverage  : readable 100% (205/205 files in srcDirs)
+ Risk      : NONE (0 file(s) changed vs HEAD)
+ Cost      : $0.0019/query  (was $0.0133 · saved 86%)
+           est. @ gpt-4o $2.5/Mtok input as of 2026-10-04; cost tokens est. (chars/4); "was" = full ranked files
 ────────────────────────────────────────────
 ```
+
+| You want | Use |
+|---|---|
+| The files, and one line to audit them by | `sigmap ask "…"` |
+| Intent, coverage, cost, and the whole-tree risk | `sigmap ask "…" --verbose` |
+| All of it, for a script | `sigmap ask "…" --json` (unchanged) |
+
+The default `risk:` is narrower than the box's `Risk` line on purpose. The box counts changed files across the **whole working tree**, which says how much is in flight; the default line appears only when a file **in the selection** is changed, because that is the one case where the answer stands on code that is mid-edit. Both count what `git diff HEAD` sees — tracked files, staged or not — so a brand-new file that has not been added yet is in neither. The warnings — a stale index, no source file in the selection, coverage under 70% — still go to stderr before the list, in both modes.
 
 With `--json` the output is a machine-readable object. The core keys are `intent`, `coverage`, `riskLevel`, `contextTokens`, `contextPath`, `contextHash` and `rankedFiles` — the ranked selection as `[{ rank, file, score, tokens }]`, in rank order, so the file list is readable without re-parsing the written context. Cost is reported as `costBefore`, `costAfter` and `savingsPct` rather than a single `cost` field, because a saving needs both sides of the comparison to mean anything. The rate behind them is named by `pricedModel` and dated by `priceAsOf` (the [model profile](/guide/config#models) date), and `tokenBasis` says whether the cost rests on the chars/4 estimate or on a `models.charsPerToken` factor you configured.
 
@@ -213,7 +249,7 @@ This sentence promised `cost` and `rankedFiles` from before v8.54.2, and neither
 
 ### Every figure names its basis (v8.61.0)
 
-Three of those lines used to be bare numbers, and two of them read as a trust signal they could not support (#806). On a fresh `gin` clone `ask` reported **`Coverage : 100%`** and **`Risk : NONE`** over five selected files that were a test, a README, a CI workflow and two unrelated sources — with not one of `gin.go`, `routergroup.go` or `tree.go` among them.
+These lines are part of the box `ask --verbose` prints (and `--json` carries each figure with its basis). Three of them used to be bare numbers, and two of them read as a trust signal they could not support (#806). On a fresh `gin` clone `ask` reported **`Coverage : 100%`** and **`Risk : NONE`** over five selected files that were a test, a README, a CI workflow and two unrelated sources — with not one of `gin.go`, `routergroup.go` or `tree.go` among them.
 
 Neither reading was a lie on its own:
 
@@ -256,7 +292,7 @@ Until v8.54.2 this flag was documented in `--help` and parsed correctly by [`--q
 
 ### Selection, cutoff and context hash (v8.54.2)
 
-`ask` reports tokens, coverage and cost — but it used to say nothing about **which** files it chose or where the cut fell, and emitted no hash, so a result could not be audited or reproduced from its own output. It now prints the selected count, the score at the cutoff, and a short sha256 of the emitted context. The `Generated:` timestamp line is excluded from the hash, so the same query over the same repo hashes identically.
+`ask` reports tokens, coverage and cost — but it used to say nothing about **which** files it chose or where the cut fell, and emitted no hash, so a result could not be audited or reproduced from its own output. It now prints the selected count, the score at the cutoff, and a short sha256 of the emitted context — on the summary line by default, as `Selected` and `Hash` under `--verbose`. The `Generated:` timestamp line is excluded from the hash, so the same query over the same repo hashes identically.
 
 `--json` carries the same as `topK`, `selectedFiles`, `cutoffScore` and `contextHash`.
 
@@ -310,24 +346,22 @@ Note in the example above that `penalty` is `1.00` on the test files: the query 
 `ask` emitted **signatures only**. An agent that then needed a body opened the whole file — which is the exact cost the map exists to avoid, so the saving was real at the map level and partly handed back one level down ([#814](https://github.com/manojmallick/sigmap/issues/814)). The `:start-end` line anchors every extractor already emits were enough to close that loop.
 
 ```bash
-sigmap ask "how does the ranker penalise test files" --with-source
+sigmap ask "how does the ranker penalise test files" --top 6 --with-source
 sigmap ask "how are secrets redacted" --with-source --source-budget 3000
 ```
 
 ```
-────────────────────────────────────────────
- sigmap ask  "how does the ranker penalise test files"
- Intent    : explain, test
- Context   : 2,356 tokens  →  .context/query-context.md
- Selected  : 3 of 454 file(s) (--top 3) · cutoff score 9.658
- Hash      : sha256:67282dea11a0
- Selection : 2 source, 1 support (test)
- Coverage  : readable 100% (179/179 files in srcDirs)
- Risk      : HIGH (12 file(s) changed vs HEAD)
- Source    : 9 of 9 top symbol(s), 1,274 of 14,981 budget token(s)
- Cost      : $0.0059/query  (was $0.0426 · saved 86%)
-────────────────────────────────────────────
+1  test/integration/ranker-honesty.test.js           16.564  165 tok
+2  test/integration/ranker-order-invariance.test.js   8.364  128 tok
+3  test/integration/xrepo-attribution.test.js         8.089  128 tok
+4  test/integration/observability.test.js             7.835   26 tok
+5  src/learning/weights.js                            7.708  199 tok
+6  src/retrieval/ranker.js                            7.556  794 tok
+6 of 529 files · cutoff 7.556 · 2,538 tokens · sha256:6a741170d4c7 → .context/query-context.md
+source: 12 of 12 top symbol(s), 1,090 of 14,662 budget token(s)
 ```
+
+The `source:` line is what the symbols spent against the budget; with `--verbose` it is the box's own `Source` line. If the request put nothing in, the line says so rather than disappearing.
 
 The written context gains two sections after the signatures — the bodies, each labelled with the anchor it was sliced from, and the blast radius so the agent sees what else a change there touches **without a second query**:
 
@@ -365,7 +399,7 @@ src/learning/weights.js  ← 2 direct, 13 total dependent file(s)
 
 When coverage drops below 70%, a warning is emitted on stderr pointing to `sigmap validate`.
 
-**Line anchors (v6.11.0+):** signatures carry a `:start-end` source range, e.g. `export class UserRepository  :18-36`, so an agent can open the exact lines instead of the whole file. Top-level TypeScript and Python decls were first (v6.11.0); **v6.13.0 adds JavaScript and per-member anchors** — TypeScript/JavaScript class methods and interface members now carry their own range, not the parent's. Anchors appear automatically in `ask` output, the generated `CLAUDE.md`, and every adapter; no flag is required.
+**Line anchors (v6.11.0+):** signatures carry a `:start-end` source range, e.g. `export class UserRepository  :18-36`, so an agent can open the exact lines instead of the whole file. Top-level TypeScript and Python decls were first (v6.11.0); **v6.13.0 adds JavaScript and per-member anchors** — TypeScript/JavaScript class methods and interface members now carry their own range, not the parent's. Anchors appear automatically in the context `ask` writes to `.context/query-context.md`, the generated `CLAUDE.md`, and every adapter; no flag is required.
 
 ### ask --followup
 
@@ -1640,7 +1674,7 @@ Equivalent to setting `testCoverage: true` in config, but applied only for the c
 
 ## doctor
 
-One-shot setup diagnostic. Runs ten resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, the model profile, MCP wiring, and the git post-commit hook — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
+One-shot setup diagnostic. Runs resilient checks — git repository, config & source roots, source files in scope, the generated context file, the signature index, index freshness, coverage, the model profile, MCP wiring, the [MCP tool profile](/guide/mcp#tool-profiles-core-or-all) (which tools the server advertises and what their definitions cost; a warning when `mcp.tools` or its `mcp` block could not be read), and the git post-commit hook — and prints an **actionable fix** for anything that is wrong or stale. Use it the moment SigMap "isn't working" or an answer looks thin; it tells you exactly what to run next.
 
 ```bash
 sigmap doctor
@@ -1659,6 +1693,7 @@ sigmap doctor
 ✓ Coverage — in-context 71% (54/76 scoped source files) grade B
 ✓ Model profile — as of 2026-10-04 (shipped profile) · no roster declared — advice names the shipped defaults
 ✓ MCP wiring — registered in .claude/settings.json
+✓ MCP tool profile — all (22 tools, ~2,517 tokens of definitions) · "mcp.tools": "core" would advertise 7 tools, ~908 tokens
 ✓ Git hook — .git/hooks/post-commit regenerates context after each commit (runs ~/node_modules/sigmap/gen-context.js)
 ✓ Local state in git — .context/ is ignored by git
 
@@ -2079,7 +2114,7 @@ function buildFromCwd(cwd, opts) {
 ```
 ````
 
-The `:447` form takes an anchor **pasted straight off a signature** — `ask` prints `buildFromCwd(cwd, opts) → { forward: …  :447-501`, and that string is the argument.
+The `:447` form takes an anchor **pasted straight off a signature** — `.context/query-context.md` (what `ask` writes) carries `buildFromCwd(cwd, opts) → { forward: …  :447-501`, and that string is the argument.
 
 It delegates to the same handler as MCP, so both paths share the project-root sandbox, the end-of-file clamping and the secret redaction. A range beyond the end of the file clamps rather than failing; a path resolving outside the project is refused.
 
@@ -3093,6 +3128,8 @@ Scaffold a starter `gen-context.config.json` and `.contextignore` in the current
 ```bash
 sigmap --init
 ```
+
+A new config starts on the lean MCP profile — `"mcp": { "tools": "core" }`, the retrieval + grounding loop at about a third of the tool-definition tokens (see [Tool profiles](/guide/mcp#tool-profiles-core-or-all)). That holds wherever the command runs, including a lone copy of the script or the standalone binary. A config that already exists is never rewritten, and a project with no config keeps every tool.
 
 ::: tip `.context/` keeps itself out of git
 `--init` writes those two files (and a creation-workflow block in `CLAUDE.md`) — it does not touch your `.gitignore`. The `.context/` directory (signature index, words cache, run telemetry, session records) carries its own `.gitignore` containing `*`, which SigMap writes the first time any command uses the directory. `git add .` therefore stages nothing there, with or without `--init`, and your own `.gitignore` is never edited.

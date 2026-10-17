@@ -8,23 +8,25 @@
  * sigmap_notify_symbol_added, sigmap_notify_file_deleted, get_diff_context,
  * get_architecture_overview, verify_suggestion, squeeze_output, get_budget,
  * query_knowledge_map.
+ *
+ * Every definition is paid for in tokens at the start of every MCP session (#878),
+ * so a description says what the tool returns and when to reach for it — nothing
+ * else. Names, parameters, enums and `required` are the contract; the wording is
+ * not. Which of these a server advertises is `mcp.tools` (see ./profile.js).
  */
 
 const TOOLS = [
   {
     name: 'read_context',
     description:
-      'Read extracted code signatures for the project or a specific module path. ' +
-      'Returns the full copilot-instructions.md content (~500–4K tokens) or a ' +
-      'filtered subset when a module path is provided (~50–500 tokens).',
+      'Read extracted code signatures for the whole project, or only a module path ' +
+      '(~50–500 tokens scoped, ~500–4K for everything).',
     inputSchema: {
       type: 'object',
       properties: {
         module: {
           type: 'string',
-          description:
-            'Optional subdirectory path to scope results (e.g. "src/services"). ' +
-            'Omit to get the full codebase context.',
+          description: 'Optional subdirectory (e.g. "src/services"). Omit for the full context.',
         },
       },
       required: [],
@@ -33,14 +35,14 @@ const TOOLS = [
   {
     name: 'search_signatures',
     description:
-      'Search extracted code signatures for a keyword, function name, or class name. ' +
-      'Returns matching signature lines with their file paths.',
+      'Search extracted signatures for a keyword, function name or class name; ' +
+      'returns matching lines with their file paths.',
     inputSchema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Keyword to search for in signatures (case-insensitive).',
+          description: 'Keyword (case-insensitive).',
         },
       },
       required: ['query'],
@@ -49,15 +51,15 @@ const TOOLS = [
   {
     name: 'get_map',
     description:
-      'Read a section from PROJECT_MAP.md — import graph, class hierarchy, or route table. ' +
-      'Requires gen-project-map.js to have been run first.',
+      'Read a section of PROJECT_MAP.md: import graph, class hierarchy or route table. ' +
+      'Needs gen-project-map.js to have been run.',
     inputSchema: {
       type: 'object',
       properties: {
         type: {
           type: 'string',
           enum: ['imports', 'classes', 'routes'],
-          description: 'Which section to retrieve: imports, classes, or routes.',
+          description: 'Section to retrieve: imports, classes or routes.',
         },
       },
       required: ['type'],
@@ -66,16 +68,14 @@ const TOOLS = [
   {
     name: 'create_checkpoint',
     description:
-      'Create a session checkpoint summarising current project state. ' +
-      'Returns recent git commits, active branch, token count, and a ' +
-      'compact snapshot of the codebase context — ideal for session handoffs ' +
-      'or periodic saves during long coding sessions.',
+      'Snapshot project state for a session handoff: recent commits, branch, ' +
+      'token count and a compact context.',
     inputSchema: {
       type: 'object',
       properties: {
         note: {
           type: 'string',
-          description: 'Optional free-text note to include in the checkpoint (e.g. what you were working on).',
+          description: 'Optional note to include (e.g. what you were working on).',
         },
       },
       required: [],
@@ -84,9 +84,8 @@ const TOOLS = [
   {
     name: 'get_routing',
     description:
-      'Get model routing hints for this project — which files belong to which complexity ' +
-      'tier (fast/balanced/powerful) and which AI model to use for each type of task. ' +
-      'Helps reduce API costs by 40–80% by routing simple tasks to cheaper models.',
+      'Model routing hints: which files sit in which complexity tier ' +
+      '(fast/balanced/powerful) and which model suits each type of task.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -96,18 +95,14 @@ const TOOLS = [
   {
     name: 'explain_file',
     description:
-      'Explain a specific file: returns its extracted signatures, direct imports ' +
-      '(files it depends on), and callers (files that import it). ' +
-      'Ideal for understanding a file in isolation without reading raw source. ' +
-      'Requires the context file to have been generated first.',
+      'Explain one file without reading its source: its signatures, what it imports ' +
+      'and what imports it. Needs a generated context file.',
     inputSchema: {
       type: 'object',
       properties: {
         path: {
           type: 'string',
-          description:
-            'Relative path from the project root (e.g. "src/services/auth.ts"). ' +
-            'Use the paths shown in read_context output.',
+          description: 'Project-relative path (e.g. "src/services/auth.ts"), as shown in read_context.',
         },
       },
       required: ['path'],
@@ -116,9 +111,8 @@ const TOOLS = [
   {
     name: 'list_modules',
     description:
-      'List all top-level modules (srcDirs) present in the context file, ' +
-      'sorted by token count descending. Use this to decide which module to ' +
-      'pass to read_context before querying a specific area of the codebase.',
+      'List the top-level modules (srcDirs) in the context file by token count, ' +
+      'to pick a module for read_context.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -128,18 +122,14 @@ const TOOLS = [
   {
     name: 'query_context',
     description:
-      'Rank and return the most relevant files for a specific task or question. ' +
-      'Uses keyword + symbol + path scoring to surface only the top-K files relevant ' +
-      'to the query — much cheaper than reading all context. ' +
-      'Returns ranked file list with signatures and relevance scores.',
+      'Rank files for a task or question and return the top-K with signatures and ' +
+      'relevance scores — far cheaper than reading all context.',
     inputSchema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description:
-            'Natural language task description or keyword(s) to rank files against. ' +
-            'E.g. "add a new language extractor", "fix secret scanning", "auth module".',
+          description: 'Task description or keywords (e.g. "add a new language extractor", "auth module").',
         },
         topK: {
           type: 'number',
@@ -152,18 +142,17 @@ const TOOLS = [
   {
     name: 'get_method_impact',
     description:
-      'Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — ' +
-      'or, with direction "callees", every repo function it calls. Finer-grained than the ' +
-      'file-level get_impact: tells an agent which functions break, not just which files. ' +
-      'JS/TS, Python, Java, Go, and Rust call-graph; deterministic, no LLM.',
+      'Method-level blast radius for a symbol: every function that (transitively) calls it, ' +
+      'or with direction "callees" every repo function it calls. Finer than get_impact — ' +
+      'which functions break, not just which files. JS/TS, Python, Java, Go, Rust; deterministic.',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
           description:
-            'Function/method name (e.g. "validateToken") or a full "file#name" id ' +
-            '(e.g. "src/auth/session.js#validateToken") to disambiguate.',
+            'Function/method name, or "file#name" to disambiguate ' +
+            '(e.g. "src/auth/session.js#validateToken").',
         },
         direction: {
           type: 'string',
@@ -181,22 +170,18 @@ const TOOLS = [
   {
     name: 'get_impact',
     description:
-      'Show every file that is impacted when a given file changes — direct importers, ' +
-      'transitive importers, affected tests, and affected routes/controllers. ' +
-      'Gives agents instant blast-radius awareness before making a change. ' +
-      'Handles circular dependencies safely (no infinite loops).',
+      'Blast radius of changing a file — check it before an edit: direct and transitive ' +
+      'importers, affected tests, routes and controllers.',
     inputSchema: {
       type: 'object',
       properties: {
         file: {
           type: 'string',
-          description:
-            'Relative path from the project root of the file that changed ' +
-            '(e.g. "src/extractors/python.js"). Use forward slashes.',
+          description: 'Project-relative path of the changed file, forward slashes (e.g. "src/extractors/python.js").',
         },
         depth: {
           type: 'number',
-          description: 'BFS traversal depth limit (default: 3). Use 0 for unlimited.',
+          description: 'BFS depth limit (default: 3). Use 0 for unlimited.',
         },
       },
       required: ['file'],
@@ -205,26 +190,23 @@ const TOOLS = [
   {
     name: 'get_lines',
     description:
-      'Fetch an exact line range from a source file on demand — the Surgical Context ' +
-      'workhorse. Signatures carry `path:start-end` anchors; call this to read just those ' +
-      'lines instead of re-opening the whole file. Lines are clamped to the file bounds and ' +
-      'secret-scanned (redacted) before return. Path is sandboxed to the project root.',
+      'Fetch an exact line range from a file — use the `path:start-end` anchors in signatures ' +
+      'instead of re-opening the whole file. Clamped to the file bounds, secret-redacted, ' +
+      'sandboxed to the project root.',
     inputSchema: {
       type: 'object',
       properties: {
         file: {
           type: 'string',
-          description:
-            'Relative path from the project root (e.g. "src/config/loader.js"). ' +
-            'Use the path shown in a signature anchor. Use forward slashes.',
+          description: 'Project-relative path, forward slashes (e.g. "src/config/loader.js"), as in a signature anchor.',
         },
         start: {
           type: 'number',
-          description: '1-based start line (inclusive). Clamped to the file bounds.',
+          description: '1-based start line (inclusive).',
         },
         end: {
           type: 'number',
-          description: '1-based end line (inclusive). Clamped to the file bounds.',
+          description: '1-based end line (inclusive).',
         },
       },
       required: ['file', 'start', 'end'],
@@ -233,10 +215,9 @@ const TOOLS = [
   {
     name: 'read_memory',
     description:
-      'Recall the project decision log — recent notes left by humans or agents ' +
-      'across sessions (via `sigmap note`), plus the last ranking-session focus. ' +
-      'Call this at the start of a task to kill cold-start: it answers ' +
-      '"what were we doing and why" without re-reading the whole codebase.',
+      'Recall the project decision log — recent notes left across sessions (via `sigmap note`) ' +
+      'plus the last ranking-session focus. Call at the start of a task to answer ' +
+      '"what were we doing and why" without re-reading the codebase.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -251,10 +232,9 @@ const TOOLS = [
   {
     name: 'get_callee_signatures',
     description:
-      'Return the EXACT current signature(s) of named symbols (functions, classes, ' +
-      "methods) from the index — so an agent never guesses a callee's parameter types " +
-      'from training memory. Call this before writing code that uses a symbol. ' +
-      'Unknown names get a closest-match suggestion.',
+      'Return the EXACT current signature(s) of named symbols from the index, so you never ' +
+      "guess a callee's parameter types from memory. Call before writing code that uses a " +
+      'symbol; unknown names get a closest-match suggestion.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -270,9 +250,8 @@ const TOOLS = [
   {
     name: 'sigmap_notify_file_created',
     description:
-      'Tell SigMap a file was created or modified so its signatures are indexed ' +
-      'live for the rest of the session. Call this after writing a file — the new ' +
-      'symbols become resolvable by search_signatures / get_callee_signatures.',
+      'Call after writing or changing a file so its signatures are indexed live for this ' +
+      'session (new symbols become resolvable by search_signatures / get_callee_signatures).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -285,8 +264,7 @@ const TOOLS = [
   {
     name: 'sigmap_notify_symbol_added',
     description:
-      'Fast path: register a single new symbol signature directly in the live ' +
-      'index without re-reading the whole file.',
+      'Fast path: register one new symbol signature in the live index without re-reading the file.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -300,7 +278,7 @@ const TOOLS = [
   {
     name: 'sigmap_notify_file_deleted',
     description:
-      'Tell SigMap a file was deleted so its symbols are dropped from the live index.',
+      'Tell SigMap a file was deleted so its symbols leave the live index.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -312,16 +290,15 @@ const TOOLS = [
   {
     name: 'get_diff_context',
     description:
-      'For every changed file in the working tree (or staged, or vs a base ref), return its ' +
-      'current signatures plus blast radius — direct importers, transitive count, and affected ' +
-      'tests/routes — with a risk label. One call gives an agent everything a code review or a ' +
-      'safe edit needs. Lists changed files shell-free (git binary, never a shell).',
+      'For every changed file (working tree, staged, or vs a base ref): its current signatures ' +
+      'plus blast radius — importers, affected tests/routes — with a risk label. One call for ' +
+      'a code review or a safe edit. Lists changed files shell-free.',
     inputSchema: {
       type: 'object',
       properties: {
         base: {
           type: 'string',
-          description: 'Optional git ref to diff against (e.g. "main"). Returns files changed between that ref and the WORKING TREE — committed and uncommitted alike. Omit for working-tree changes vs HEAD.',
+          description: 'Optional git ref to diff against (e.g. "main"): files changed between it and the WORKING TREE, committed and uncommitted alike. Omit for working-tree changes vs HEAD.',
         },
         staged: {
           type: 'boolean',
@@ -338,9 +315,9 @@ const TOOLS = [
   {
     name: 'get_architecture_overview',
     description:
-      'A high-level map of the codebase in one call: module breakdown (files/tokens), the most ' +
-      'depended-on "hub" files, the dependency-cycle count, and route totals. Extends get_map — ' +
-      'use it to orient in an unfamiliar repo before drilling in with read_context / query_context.',
+      'One-call map of the codebase: module breakdown (files/tokens), the most depended-on ' +
+      'hub files, dependency-cycle count and route totals. Extends get_map; use it to orient ' +
+      'before read_context / query_context.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -350,19 +327,16 @@ const TOOLS = [
   {
     name: 'verify_suggestion',
     description:
-      'Ground an AI code suggestion before writing it: verify a snippet or answer against the ' +
-      'repository AND the libraries actually installed in node_modules (the grounding moat). ' +
-      'Flags fake file paths, unresolvable imports, symbols that are in neither the repo (its index ' +
-      'or its source) nor the installed libraries, and non-existent npm scripts — deterministic, ' +
-      'offline, no LLM. ' +
-      'Reports the installed libraries it verified against with pinned versions.',
+      'Ground an AI code suggestion before writing it: check a snippet or answer against the ' +
+      'repository AND the libraries actually installed in node_modules. Flags fake file paths, ' +
+      'unresolvable imports, symbols in neither the repo nor the installed libraries, and ' +
+      'non-existent npm scripts. Deterministic, offline, no LLM.',
     inputSchema: {
       type: 'object',
       properties: {
         code: {
           type: 'string',
-          description:
-            'The AI-suggested code snippet or answer text to verify against the repo + installed libraries.',
+          description: 'The suggested code snippet or answer text to verify.',
         },
       },
       required: ['code'],
@@ -371,19 +345,16 @@ const TOOLS = [
   {
     name: 'squeeze_output',
     description:
-      'Compress noisy tool, command, or agent output before it enters context — a stack ' +
-      'trace, CI/build log, or JSON payload. Same deterministic, offline engine as ' +
-      '`sigmap squeeze`: keeps the signal (error frames, failing steps, JSON shape), strips ' +
-      'the noise, and enriches the top stack frame with its signature. Returns the squeezed ' +
-      'text plus token-reduction stats; passes the input through unchanged when no squeezable ' +
-      'structure is detected. No LLM, no network.',
+      'Compress noisy output (stack trace, CI/build log, JSON payload) before it enters context: ' +
+      'keeps error frames, failing steps and JSON shape, strips the noise, adds the top frame\'s ' +
+      'signature. Returns the squeezed text plus reduction stats; unchanged when nothing is ' +
+      'squeezable. Deterministic, offline.',
     inputSchema: {
       type: 'object',
       properties: {
         content: {
           type: 'string',
-          description:
-            'The raw output to compress (a stack trace, CI/build log, or JSON payload).',
+          description: 'The raw output to compress.',
         },
       },
       required: ['content'],
@@ -392,24 +363,19 @@ const TOOLS = [
   {
     name: 'get_budget',
     description:
-      'Session spend ledger — estimated tokens SigMap has emitted this session ' +
-      '(chars/4 estimates from the local gain log), optional budget remaining, and ' +
-      'context freshness. Scope honesty: counts only SigMap output, NOT the whole ' +
-      "chat's spend. Check this mid-session and degrade gracefully when near budget: " +
-      'prefer terse encoding, squeeze large outputs, summarize-then-drop context. ' +
-      'Local-only; no LLM, no network.',
+      'Session spend ledger: estimated tokens SigMap has emitted this session (chars/4, local ' +
+      'gain log — NOT the whole chat), optional budget remaining, and context freshness. ' +
+      'Check mid-session and degrade gracefully near budget (terse encoding, squeeze, summarize).',
     inputSchema: {
       type: 'object',
       properties: {
         session: {
           type: 'string',
-          description:
-            'Session key to report on (default: SIGMAP_SESSION env or the UTC day bucket).',
+          description: 'Session key to report on (default: SIGMAP_SESSION env or the UTC day bucket).',
         },
         budgetTokens: {
           type: 'number',
-          description:
-            'Budget override in estimated tokens (default: config sessionBudgetTokens).',
+          description: 'Budget override in estimated tokens (default: config sessionBudgetTokens).',
         },
       },
       required: [],
@@ -418,13 +384,11 @@ const TOOLS = [
   {
     name: 'query_knowledge_map',
     description:
-      'Query the unified knowledge map — typed nodes (file, symbol, library@version, route, ' +
-      'env-var, migration, script) and edges (imports, calls, defines, tests, uses-lib, ' +
-      "exposes-route, reads-env) assembled from SigMap's existing graphs. Pass { library: " +
-      '\"express\" } for upgrade impact: the lib → importing files → their callers → covering ' +
-      'tests chain. Pass { file: \"src/x.js\" } for a file\'s typed neighbors. Pass { env: ' +
-      '\"DATABASE_URL\" } for the files reading an environment variable. Deterministic, ' +
-      'cached in .context, local-only; no LLM, no network.',
+      'Query the typed knowledge map: nodes (file, symbol, library@version, route, env-var, ' +
+      'migration, script) and edges (imports, calls, defines, tests, uses-lib, exposes-route, ' +
+      'reads-env). { library } = upgrade impact (lib → importing files → callers → covering ' +
+      'tests); { file } = a file\'s typed neighbors; { env } = files reading an environment ' +
+      'variable. Deterministic, cached in .context, local-only.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -8,13 +8,16 @@
  *
  * Supported methods:
  *   initialize        → serverInfo + capabilities + negotiated protocolVersion
- *   tools/list        → 22 tool definitions (23 with session.mcpCapture on)
- *   tools/call        → dispatch to handler, return result
+ *   tools/list        → the tools `mcp.tools` selects: 22 by default (23 with
+ *                       session.mcpCapture on), fewer with "core" (#878)
+ *   tools/call        → dispatch to handler, return result; a shipped tool the
+ *                       profile does not advertise is refused
  */
 
 const readline = require('readline');
 const crypto = require('crypto');
 const { TOOLS, LOG_SESSION_USAGE } = require('./tools');
+const { resolveProfile, has: profileHas, refusal: profileRefusal, instructionsFor } = require('./profile');
 const { ensureSelfIgnore } = require('../util/context-dir');
 const { readContext, searchSignatures, getMap, createCheckpoint, getRouting, explainFile, listModules, queryContext, getMethodImpact, getImpact, getLines, readMemory, getCalleeSignatures, notifyFileCreated, notifySymbolAdded, notifyFileDeleted, getDiffContext, getArchitectureOverview, verifySuggestion, squeezeOutput, getBudget, queryKnowledgeMap, logSessionUsage } = require('./handlers');
 
@@ -73,6 +76,26 @@ function _sessionCaptureOn(cwd) {
   }
 }
 
+// The tool profile (#878) is read once, when the first message needs it, and held
+// for the life of the server. A host fetches `tools/list` when it starts the
+// server and caches it, so a config edit takes effect on the next start either
+// way; reading it once also keeps `tools/call` from re-reading the config.
+const profiles = new Map();
+
+/** The resolved `mcp.tools` profile for this project. Never throws: a broken config serves every tool. */
+function _toolProfile(cwd) {
+  if (!profiles.has(cwd)) {
+    let resolved;
+    try {
+      resolved = resolveProfile(require('../config/loader').loadConfig(cwd) || {});
+    } catch (_) {
+      resolved = resolveProfile({});
+    }
+    profiles.set(cwd, resolved);
+  }
+  return profiles.get(cwd);
+}
+
 // ---------------------------------------------------------------------------
 // Method dispatcher
 // ---------------------------------------------------------------------------
@@ -99,7 +122,7 @@ function dispatch(msg, cwd) {
       supportedVersions: SUPPORTED_PROTOCOL_VERSIONS,
       capabilities: { tools: {} },
       serverInfo: SERVER_INFO,
-      instructions: 'SigMap serves code signatures for the working directory. Call query_context or search_signatures to rank and fetch signature blocks instead of reading whole files.',
+      instructions: instructionsFor(_toolProfile(cwd)),
     });
     return;
   }
@@ -126,13 +149,24 @@ function dispatch(msg, cwd) {
       respondError(id, -32602, `Invalid cursor: ${String(params.cursor)}`);
       return;
     }
-    respond(id, { tools: _sessionCaptureOn(cwd) ? TOOLS.concat([LOG_SESSION_USAGE]) : TOOLS });
+    const advertised = _toolProfile(cwd).tools;
+    respond(id, { tools: _sessionCaptureOn(cwd) ? advertised.concat([LOG_SESSION_USAGE]) : advertised });
     return;
   }
 
   if (method === 'tools/call') {
     const name = params && params.name;
     const args = (params && params.arguments) || {};
+
+    // A tool the profile does not advertise is not callable either: an unlisted
+    // tool that still answered would make `mcp.tools` a suggestion rather than a
+    // switch (the rule `log_session_usage` already follows). A name that is not a
+    // tool at all falls through to "Unknown tool" below.
+    const profile = _toolProfile(cwd);
+    if (TOOLS.some((t) => t.name === name) && !profileHas(profile, name)) {
+      respondError(id, -32601, profileRefusal(name, profile));
+      return;
+    }
 
     let text;
     try {
