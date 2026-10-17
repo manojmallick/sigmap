@@ -39,6 +39,11 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.78.0)
+- **@manojmallick** — feat(agent-surface): a lean MCP tool profile and an `ask` that leads with the answer (#878, #879, #966, PR #967). `mcp.tools` is `"all"` (the default, and what an absent key means), `"core"` (seven tools, 908 tokens of definitions against 2,517 for all 22) or a list of names, and it gates `tools/call` as well as `tools/list`; a value it cannot read falls back and `doctor` warns, which also shows the profile and its cost. `sigmap ask` prints the ranked files and one summary line, with a second only when something is actionable and `--verbose` for the old box. `--init` starts a new config on `core`, and the wiki and `server/discover` name only the tools a project advertises. The reworded descriptions (all 22 tools, and 15 of the 33 parameters) keep every name, parameter name, type, enum and `required` list, which a hash in a test pins.
+- **@manojmallick** — test: 64 new cases in `tool-profile.test.js` (36) and `ask-files-first.test.js` (28), with the old box's assertions moved behind `--verbose`; the new wiring was mutation-checked on scratch copies in three passes and every mutant was caught but one equivalent mutant, whose dead de-duplication was deleted.
+- **@manojmallick** — chore(benchmark): the `mined` retrieval baseline re-recorded after index growth — one task, `m053`, rank 5 to 6 — attributed by running the previous release's code over the change's files, which gives the same per-task ranks as the change's own code (PR #967).
+
 ### Recent Contributors (v8.77.2)
 - **@manojmallick** — docs: the `--report` samples in the getting-started, CI and enterprise guides and the CLI reference are real v8.77.1 output again, and the enterprise guide's advice for sharing the usage log works with a self-ignoring `.context/` (PR #963). Each sample was captured to a file and embedded verbatim (JSON pretty-printed, `cacheFit.models` trimmed to one entry); the `.context/.gitignore` edit was tested in a clean repository.
 

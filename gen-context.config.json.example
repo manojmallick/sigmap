@@ -56,8 +56,10 @@
 
   "diffPriority": true,
 
+  "_mcp_tools_comment": "Which MCP tools the server advertises. 'core' = the retrieval + grounding loop only (query_context, read_context, get_callee_signatures, get_lines, get_impact, get_method_impact, verify_suggestion) at a fraction of the definition tokens; 'all' = every tool; a list of tool names also works. Takes effect when the MCP server next starts; `sigmap doctor` shows the active profile and its cost.",
   "mcp": {
-    "autoRegister": true
+    "autoRegister": true,
+    "tools": "core"
   },
 
   "_strategy_comment": "Context output strategy. Options: 'full' | 'per-module' | 'hot-cold'",

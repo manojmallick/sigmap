@@ -11,13 +11,13 @@ ranking keeps the relevant context in scope (cutting tokens ~97% as a side
 effect), with no LLM calls, embeddings, or vector database. Works with Claude,
 Cursor, GitHub Copilot, Aider, Windsurf, local LLMs, and MCP.
 
-# Version: 8.77.2 | Benchmark: sigmap-v8.77-main (2026-10-16)
+# Version: 8.78.0 | Benchmark: sigmap-v8.78-main (2026-10-17)
 # Source: auto-generated from package.json, version.json, benchmarks/latest.json, src/mcp/tools.js, src/config/defaults.js
 # Regenerate: npm run generate:llms   |   Validate: npm run validate:llms
 
 ---
 
-## Core metrics (benchmark: sigmap-v8.77-main, 2026-10-16)
+## Core metrics (benchmark: sigmap-v8.78-main, 2026-10-17)
 
 | Metric | Without SigMap | With SigMap |
 |--------|----------------|-------------|
@@ -99,7 +99,8 @@ sigmap --query "<text>"                  Rank files by relevance to a query
 sigmap --query "<text>" --json           Ranked results as JSON
 sigmap --query "<text>" --top <n>        Limit results to top N files (default 10)
 sigmap --query "<text>" --explain        Per-file score signals, token coverage and near misses
-sigmap ask "<query>"                     Ranked answer with signatures for a question (--json, --top <n>, --mode)
+sigmap ask "<query>"                     Ranked files for a question, signatures written to .context/query-context.md (--json, --top <n>, --mode)
+sigmap ask "<query>" --verbose           Also print the full header: intent, coverage, risk, cost (default: files + one summary line)
 sigmap ask "<query>" --explain           Diagnose a miss: which tokens matched, why files were demoted
 sigmap ask "<query>" --with-source       Add top-symbol bodies + blast radius (budgeted; --source-budget <n>)
 sigmap plan "<goal>"                     Files to inspect, likely-to-change set, and impact radius (--json)
@@ -194,7 +195,7 @@ Start with `sigmap --mcp` (stdio JSON-RPC). Configure once:
 
 ### read_context
 
-Read extracted code signatures for the project or a specific module path. Returns the full copilot-instructions.md content (~500–4K tokens) or a filtered subset when a module path is provided (~50–500 tokens).
+Read extracted code signatures for the whole project, or only a module path (~50–500 tokens scoped, ~500–4K for everything).
 
 ```
 Input:  { module?: string }
@@ -202,7 +203,7 @@ Input:  { module?: string }
 
 ### search_signatures
 
-Search extracted code signatures for a keyword, function name, or class name. Returns matching signature lines with their file paths.
+Search extracted signatures for a keyword, function name or class name; returns matching lines with their file paths.
 
 ```
 Input:  { query: string }
@@ -210,7 +211,7 @@ Input:  { query: string }
 
 ### get_map
 
-Read a section from PROJECT_MAP.md — import graph, class hierarchy, or route table. Requires gen-project-map.js to have been run first.
+Read a section of PROJECT_MAP.md: import graph, class hierarchy or route table. Needs gen-project-map.js to have been run.
 
 ```
 Input:  { type: string }
@@ -218,7 +219,7 @@ Input:  { type: string }
 
 ### create_checkpoint
 
-Create a session checkpoint summarising current project state. Returns recent git commits, active branch, token count, and a compact snapshot of the codebase context — ideal for session handoffs or periodic saves during long coding sessions.
+Snapshot project state for a session handoff: recent commits, branch, token count and a compact context.
 
 ```
 Input:  { note?: string }
@@ -226,7 +227,7 @@ Input:  { note?: string }
 
 ### get_routing
 
-Get model routing hints for this project — which files belong to which complexity tier (fast/balanced/powerful) and which AI model to use for each type of task. Helps reduce API costs by 40–80% by routing simple tasks to cheaper models.
+Model routing hints: which files sit in which complexity tier (fast/balanced/powerful) and which model suits each type of task.
 
 ```
 Input:  { } (no arguments)
@@ -234,7 +235,7 @@ Input:  { } (no arguments)
 
 ### explain_file
 
-Explain a specific file: returns its extracted signatures, direct imports (files it depends on), and callers (files that import it). Ideal for understanding a file in isolation without reading raw source. Requires the context file to have been generated first.
+Explain one file without reading its source: its signatures, what it imports and what imports it. Needs a generated context file.
 
 ```
 Input:  { path: string }
@@ -242,7 +243,7 @@ Input:  { path: string }
 
 ### list_modules
 
-List all top-level modules (srcDirs) present in the context file, sorted by token count descending. Use this to decide which module to pass to read_context before querying a specific area of the codebase.
+List the top-level modules (srcDirs) in the context file by token count, to pick a module for read_context.
 
 ```
 Input:  { } (no arguments)
@@ -250,7 +251,7 @@ Input:  { } (no arguments)
 
 ### query_context
 
-Rank and return the most relevant files for a specific task or question. Uses keyword + symbol + path scoring to surface only the top-K files relevant to the query — much cheaper than reading all context. Returns ranked file list with signatures and relevance scores.
+Rank files for a task or question and return the top-K with signatures and relevance scores — far cheaper than reading all context.
 
 ```
 Input:  { query: string, topK?: number }
@@ -258,7 +259,7 @@ Input:  { query: string, topK?: number }
 
 ### get_method_impact
 
-Method-level blast radius for a symbol: every FUNCTION that (transitively) calls it — or, with direction "callees", every repo function it calls. Finer-grained than the file-level get_impact: tells an agent which functions break, not just which files. JS/TS, Python, Java, Go, and Rust call-graph; deterministic, no LLM.
+Method-level blast radius for a symbol: every function that (transitively) calls it, or with direction "callees" every repo function it calls. Finer than get_impact — which functions break, not just which files. JS/TS, Python, Java, Go, Rust; deterministic.
 
 ```
 Input:  { symbol: string, direction?: string, depth?: number }
@@ -266,7 +267,7 @@ Input:  { symbol: string, direction?: string, depth?: number }
 
 ### get_impact
 
-Show every file that is impacted when a given file changes — direct importers, transitive importers, affected tests, and affected routes/controllers. Gives agents instant blast-radius awareness before making a change. Handles circular dependencies safely (no infinite loops).
+Blast radius of changing a file — check it before an edit: direct and transitive importers, affected tests, routes and controllers.
 
 ```
 Input:  { file: string, depth?: number }
@@ -274,7 +275,7 @@ Input:  { file: string, depth?: number }
 
 ### get_lines
 
-Fetch an exact line range from a source file on demand — the Surgical Context workhorse. Signatures carry `path:start-end` anchors; call this to read just those lines instead of re-opening the whole file. Lines are clamped to the file bounds and secret-scanned (redacted) before return. Path is sandboxed to the project root.
+Fetch an exact line range from a file — use the `path:start-end` anchors in signatures instead of re-opening the whole file. Clamped to the file bounds, secret-redacted, sandboxed to the project root.
 
 ```
 Input:  { file: string, start: number, end: number }
@@ -282,7 +283,7 @@ Input:  { file: string, start: number, end: number }
 
 ### read_memory
 
-Recall the project decision log — recent notes left by humans or agents across sessions (via `sigmap note`), plus the last ranking-session focus. Call this at the start of a task to kill cold-start: it answers "what were we doing and why" without re-reading the whole codebase.
+Recall the project decision log — recent notes left across sessions (via `sigmap note`) plus the last ranking-session focus. Call at the start of a task to answer "what were we doing and why" without re-reading the codebase.
 
 ```
 Input:  { limit?: number }
@@ -290,7 +291,7 @@ Input:  { limit?: number }
 
 ### get_callee_signatures
 
-Return the EXACT current signature(s) of named symbols (functions, classes, methods) from the index — so an agent never guesses a callee's parameter types from training memory. Call this before writing code that uses a symbol. Unknown names get a closest-match suggestion.
+Return the EXACT current signature(s) of named symbols from the index, so you never guess a callee's parameter types from memory. Call before writing code that uses a symbol; unknown names get a closest-match suggestion.
 
 ```
 Input:  { symbols: array }
@@ -298,7 +299,7 @@ Input:  { symbols: array }
 
 ### sigmap_notify_file_created
 
-Tell SigMap a file was created or modified so its signatures are indexed live for the rest of the session. Call this after writing a file — the new symbols become resolvable by search_signatures / get_callee_signatures.
+Call after writing or changing a file so its signatures are indexed live for this session (new symbols become resolvable by search_signatures / get_callee_signatures).
 
 ```
 Input:  { path: string, content?: string }
@@ -306,7 +307,7 @@ Input:  { path: string, content?: string }
 
 ### sigmap_notify_symbol_added
 
-Fast path: register a single new symbol signature directly in the live index without re-reading the whole file.
+Fast path: register one new symbol signature in the live index without re-reading the file.
 
 ```
 Input:  { signature: string, file: string, line?: number }
@@ -314,7 +315,7 @@ Input:  { signature: string, file: string, line?: number }
 
 ### sigmap_notify_file_deleted
 
-Tell SigMap a file was deleted so its symbols are dropped from the live index.
+Tell SigMap a file was deleted so its symbols leave the live index.
 
 ```
 Input:  { path: string }
@@ -322,7 +323,7 @@ Input:  { path: string }
 
 ### get_diff_context
 
-For every changed file in the working tree (or staged, or vs a base ref), return its current signatures plus blast radius — direct importers, transitive count, and affected tests/routes — with a risk label. One call gives an agent everything a code review or a safe edit needs. Lists changed files shell-free (git binary, never a shell).
+For every changed file (working tree, staged, or vs a base ref): its current signatures plus blast radius — importers, affected tests/routes — with a risk label. One call for a code review or a safe edit. Lists changed files shell-free.
 
 ```
 Input:  { base?: string, staged?: boolean, depth?: number }
@@ -330,7 +331,7 @@ Input:  { base?: string, staged?: boolean, depth?: number }
 
 ### get_architecture_overview
 
-A high-level map of the codebase in one call: module breakdown (files/tokens), the most depended-on "hub" files, the dependency-cycle count, and route totals. Extends get_map — use it to orient in an unfamiliar repo before drilling in with read_context / query_context.
+One-call map of the codebase: module breakdown (files/tokens), the most depended-on hub files, dependency-cycle count and route totals. Extends get_map; use it to orient before read_context / query_context.
 
 ```
 Input:  { } (no arguments)
@@ -338,7 +339,7 @@ Input:  { } (no arguments)
 
 ### verify_suggestion
 
-Ground an AI code suggestion before writing it: verify a snippet or answer against the repository AND the libraries actually installed in node_modules (the grounding moat). Flags fake file paths, unresolvable imports, symbols that are in neither the repo (its index or its source) nor the installed libraries, and non-existent npm scripts — deterministic, offline, no LLM. Reports the installed libraries it verified against with pinned versions.
+Ground an AI code suggestion before writing it: check a snippet or answer against the repository AND the libraries actually installed in node_modules. Flags fake file paths, unresolvable imports, symbols in neither the repo nor the installed libraries, and non-existent npm scripts. Deterministic, offline, no LLM.
 
 ```
 Input:  { code: string }
@@ -346,7 +347,7 @@ Input:  { code: string }
 
 ### squeeze_output
 
-Compress noisy tool, command, or agent output before it enters context — a stack trace, CI/build log, or JSON payload. Same deterministic, offline engine as `sigmap squeeze`: keeps the signal (error frames, failing steps, JSON shape), strips the noise, and enriches the top stack frame with its signature. Returns the squeezed text plus token-reduction stats; passes the input through unchanged when no squeezable structure is detected. No LLM, no network.
+Compress noisy output (stack trace, CI/build log, JSON payload) before it enters context: keeps error frames, failing steps and JSON shape, strips the noise, adds the top frame's signature. Returns the squeezed text plus reduction stats; unchanged when nothing is squeezable. Deterministic, offline.
 
 ```
 Input:  { content: string }
@@ -354,7 +355,7 @@ Input:  { content: string }
 
 ### get_budget
 
-Session spend ledger — estimated tokens SigMap has emitted this session (chars/4 estimates from the local gain log), optional budget remaining, and context freshness. Scope honesty: counts only SigMap output, NOT the whole chat's spend. Check this mid-session and degrade gracefully when near budget: prefer terse encoding, squeeze large outputs, summarize-then-drop context. Local-only; no LLM, no network.
+Session spend ledger: estimated tokens SigMap has emitted this session (chars/4, local gain log — NOT the whole chat), optional budget remaining, and context freshness. Check mid-session and degrade gracefully near budget (terse encoding, squeeze, summarize).
 
 ```
 Input:  { session?: string, budgetTokens?: number }
@@ -362,7 +363,7 @@ Input:  { session?: string, budgetTokens?: number }
 
 ### query_knowledge_map
 
-Query the unified knowledge map — typed nodes (file, symbol, library@version, route, env-var, migration, script) and edges (imports, calls, defines, tests, uses-lib, exposes-route, reads-env) assembled from SigMap's existing graphs. Pass { library: "express" } for upgrade impact: the lib → importing files → their callers → covering tests chain. Pass { file: "src/x.js" } for a file's typed neighbors. Pass { env: "DATABASE_URL" } for the files reading an environment variable. Deterministic, cached in .context, local-only; no LLM, no network.
+Query the typed knowledge map: nodes (file, symbol, library@version, route, env-var, migration, script) and edges (imports, calls, defines, tests, uses-lib, exposes-route, reads-env). { library } = upgrade impact (lib → importing files → callers → covering tests); { file } = a file's typed neighbors; { env } = files reading an environment variable. Deterministic, cached in .context, local-only.
 
 ```
 Input:  { library?: string, file?: string, env?: string }
@@ -405,7 +406,7 @@ tracking = false
 sessionBudgetTokens = null
 contextTtlDays = null
 session = {"retention":{"days":90,"compact":"monthly"},"logQueries":"hashed","injectSummary":false,"mcpCapture":false}
-mcp = {"autoRegister":true}
+mcp = {"autoRegister":true,"tools":"all"}
 depMap = true
 versionPins = true
 terse = false

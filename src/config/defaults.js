@@ -197,6 +197,10 @@ const DEFAULTS = {
   // MCP server configuration
   mcp: {
     autoRegister: true,
+    // Which tools the server advertises and answers (#878): "all" (every shipped
+    // tool; also what an absent key means), "core" (the retrieval + grounding loop,
+    // about a third of the definition tokens) or an array of tool names.
+    tools: 'all',
   },
 
   // Include a compact import dependency map at top of output

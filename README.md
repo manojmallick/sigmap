@@ -125,8 +125,8 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.77-main (21 repositories, including R language)
-Date      : 2026-10-16
+Benchmark : sigmap-v8.78-main (21 repositories, including R language)
+Date      : 2026-10-17
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
 Honest vs grep : 92.8% vs 40.0% grep baseline — 2.32× lift (125 tasks / 19 repos)
@@ -232,7 +232,7 @@ Use SigMap with open-source tools and fully self-hosted setups:
 sigmap --mcp
 ```
 
-Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), `get_budget` (what SigMap has emitted this session), `query_knowledge_map` (typed nodes and edges: a library's upgrade impact, a file's neighbors, who reads an env var), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. Full reference: [llms-full.txt](llms-full.txt).
+Tools: `read_context`, `search_signatures`, `get_map`, `create_checkpoint`, `get_routing`, `explain_file`, `list_modules`, `query_context`, `get_method_impact` (per-symbol blast radius), `get_impact`, `get_lines`, `read_memory`, `get_callee_signatures`, `get_diff_context` (changed files + signatures + blast radius), `get_architecture_overview` (modules, hub files, cycles), `verify_suggestion` (ground AI code against repo + installed libraries), `squeeze_output` (compress noisy tool/log/JSON output mid-session), `get_budget` (what SigMap has emitted this session), `query_knowledge_map` (typed nodes and edges: a library's upgrade impact, a file's neighbors, who reads an env var), plus the live-index notifications `sigmap_notify_file_created`, `sigmap_notify_symbol_added`, and `sigmap_notify_file_deleted`. All 22 are advertised unless `mcp.tools` says otherwise: `"core"` is seven of them (`query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion`) for about 0.9k tokens of definitions where all 22 cost about 2.5k, and `sigmap --init` writes it into a new config. Full reference: [llms-full.txt](llms-full.txt).
 
 SigMap doesn't compete with your agent's live search — it's what the live loop **calls for grounding**: grep finds the file; `query_context` → `get_callee_signatures` → `get_lines` → `verify_suggestion` → `get_method_impact` prove the symbols, lines, calls, and blast radius — deterministically. See [the agent live-loop guide](https://sigmap.io/guide/mcp#your-agents-live-loop).
 
@@ -273,7 +273,7 @@ SigMap treats coding agents as **consumers, not competitors**: it hands them a d
 
 | Agent | One-time setup | How it consumes SigMap |
 |---|---|---|
-| **Claude Code** | `sigmap mcp install claude` | 22 MCP tools (`search_signatures`, `get_lines`, `get_diff_context`, `squeeze_output`…) |
+| **Claude Code** | `sigmap mcp install claude` | 22 MCP tools by default (`search_signatures`, `get_lines`, `get_diff_context`, `squeeze_output`…), or the seven of the `core` profile |
 | **Cursor** | `sigmap mcp install cursor` | MCP tools, plus the `cursor` adapter writes `.cursorrules` |
 | **Cline** | `sigmap mcp install cursor` | Reads `.cursorrules`; same MCP server |
 | **Continue** | `sigmap mcp install vscode` | MCP tools inside the Continue extension |

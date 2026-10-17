@@ -22,7 +22,7 @@ head:
 
 Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.
 
-The SigMap MCP server exposes 22 tools over the stdio Model Context Protocol. Your AI agent calls only what it needs — keeping token costs low.
+The SigMap MCP server exposes 22 tools over the stdio Model Context Protocol (all of them by default; [`mcp.tools`](#tool-profiles-core-or-all) lets a project advertise fewer). Your AI agent calls only what it needs — keeping token costs low.
 
 > **Setup time: under 2 minutes.** Use `sigmap --setup` for automatic configuration.
 
@@ -105,10 +105,10 @@ The server is verified against the black-box [`@hasmcp/mcp-spec-test`](https://w
 ## 22 available tools
 
 ::: tip New in v6.3.0 — native tool registration
-Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server declares all 22 tools in the `initialize` response, so your AI sees them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
+Claude Code and Codex now receive the full tool list at MCP startup without a discovery round-trip. The server answers `tools/list` with all 22 tools (the `initialize` response itself declares only the `tools` capability), so a host that fetches the list when it starts the server has them immediately. No config change needed — upgrade via `npm install -g sigmap@latest`.
 :::
 
-All tools are available on-demand — your AI agent calls only what it needs.
+All tools are available on-demand — your AI agent calls only what it needs. All 22 are advertised by default; [`mcp.tools`](#tool-profiles-core-or-all) lets a project advertise fewer.
 
 | Tool | What it does | Arg(s) | Example call |
 |------|-------------|--------|-------------|
@@ -117,7 +117,7 @@ All tools are available on-demand — your AI agent calls only what it needs.
 | `get_map` | Returns a section from PROJECT_MAP.md: import graph, class hierarchy, route table, or (v8.5) environment variables, build & CI, config & manifests, or database migrations. | `type` ("imports"\|"classes"\|"routes"\|"env"\|"buildci"\|"manifests"\|"migrations") | `get_map(type="migrations")` |
 | `explain_file` | Returns signatures, imports, and reverse callers for a single file. | `path` (required string) | `explain_file(path="src/auth/service.ts")` |
 | `list_modules` | Returns a token-count table of top-level source directories. Use this first to decide which module to load. | none | `list_modules()` |
-| `create_checkpoint` | Records session progress with a git state snapshot. | `summary` (required string) | `create_checkpoint(summary="Added rate limiting")` |
+| `create_checkpoint` | Records session progress with a git state snapshot. | `note` (optional string) | `create_checkpoint(note="Added rate limiting")` |
 | `get_routing` | Returns the model tier hints table (fast / balanced / powerful per file) based on complexity scores. | none | `get_routing()` |
 | `query_context` | Ranks all files by relevance to a free-text query using TF-IDF scoring. Returns top-K files. New in v2.3. | `query` (required string), `topK` (optional number, default 10) | `query_context(query="authentication flow")` |
 | `get_impact` | Returns the blast radius of a file — direct importers, transitive importers, affected tests and routes. Since v8.43 a cached view over the knowledge map: affected tests include discovered test↔impl edges, not just importing test files. | `file` (required string), `depth` (optional number, default 3) | `get_impact(file="src/auth/service.ts")` |
@@ -144,6 +144,29 @@ One more tool exists, and it is **not** among the 22. It lets an agent SigMap ha
 | `log_session_usage` | The session as the store now holds it, with its provenance label. Recorded as `agent-reported`: SigMap cannot verify it, and it is never merged into `measured` totals. | `id` (optional string — omit for one id per MCP connection) · `model` (optional string) · `usage` (optional object `{ in, out, cacheRead?, cacheWrite? }` — `in` and `out` required) |
 
 Send the session's **running totals** at the end of a task; a later call for the same session replaces the earlier one. An omitted cache category is stored as unknown (`n/a`), not `0`. Missing or invalid `usage` is recorded as `unavailable` with the reason returned — never as zeros, and never over a usable earlier report. A measured transcript of the same session (Claude Code hooks) outranks a self-report.
+
+## Tool profiles: core or all
+
+Every tool definition is sent to your agent at the start of every MCP session — about 2.5k tokens for all 22 — whether or not it is ever called, and each one is another thing for the model to choose between. `mcp.tools` in `gen-context.config.json` decides how many the server advertises:
+
+| `mcp.tools` | Tools advertised | Definition tokens | Use when |
+|---|---|---|---|
+| `"all"` (the default; also what an absent key means) | all 22 | ~2.5k | you use the live-index notify tools, checkpoints, the knowledge map or the architecture views |
+| `"core"` | 7 — `query_context`, `read_context`, `get_callee_signatures`, `get_lines`, `get_impact`, `get_method_impact`, `verify_suggestion` (the five tools of the [live loop](#your-agent-s-live-loop) below, plus `read_context` and `get_impact`) | ~0.9k | the agent only needs the retrieval + grounding loop |
+| `["get_lines", "verify_suggestion"]` | exactly the names listed | by list | you want a tighter or different set |
+
+Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap uses everywhere; `sigmap doctor` prints the exact figure for your project (counting `log_session_usage` when [`session.mcpCapture`](#opt-in-log-session-usage) is on), and what `core` would cost if you are on `all`.
+
+```json
+{ "mcp": { "tools": "core" } }
+```
+
+- **The profile applies to `tools/call` too.** A tool the server does not advertise is refused with a message that names the setting rather than answered anyway — otherwise the setting would be a suggestion, not a switch. A name that is not a tool at all still reads `Unknown tool`.
+- **`log_session_usage` is not part of any profile.** It exists only when [`session.mcpCapture`](#opt-in-log-session-usage) is on, whatever `mcp.tools` says.
+- **It is read once, and held for as long as it runs** — when the server first handles a `tools/list`, a `tools/call` or a `server/discover` (`initialize` does not read it), like the tool list your editor caches. Restart the server (or the editor) after changing it.
+- **A value SigMap cannot read never breaks the server.** A string that is not `all` or `core`, an empty list, a value of the wrong type, or an `mcp` that is not an object: the server falls back to `all`. Names in a list that are not tools are dropped and the rest are served. A key beside `tools` that SigMap does not read (`mcp.tool`, say) is ignored, so a typo in the key itself leaves `all`. `sigmap doctor` warns in every case and says what it did instead.
+- **Existing configs keep every tool.** With no `mcp.tools` key you get the same 22 tools, with the same names, parameter names, types, enums and `required` lists as before. Their descriptions are shorter — all 22 tool descriptions and 15 of the 33 parameter descriptions — so a client that validates arguments sees no difference and one that shows or caches the description text sees different text. `sigmap --init` writes `"core"` into a **new** config, wherever it runs, and never rewrites one that exists; `--output`, `tune --apply` and `roots --fix` can also create a config, but write only the keys they set, so a config created by one of them keeps all 22.
+- **Some guidance below names tools `core` does not advertise.** The workflows under [Three common MCP workflows](#three-common-mcp-workflows) use `explain_file` and `list_modules`; on `core`, rank with `query_context` and read a module with `read_context(module=...)`. The agent skills and the wiki that mention MCP tools also give a CLI alternative (`sigmap note`, `sigmap budget`, `sigmap squeeze`), and the wiki lists only the tools your project advertises. A refused call says why and who can change it.
 
 ## Your agent's live loop
 
@@ -188,13 +211,13 @@ Use `ask` to create `.context/query-context.md`, let the model answer, then run 
 
 ## Test the server
 
-Send a raw JSON-RPC request to confirm the server starts and returns all 22 tool definitions.
+Send a raw JSON-RPC request to confirm the server starts and returns its tool definitions (all 22, unless [`mcp.tools`](#tool-profiles-core-or-all) narrows them).
 
 ```bash
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node gen-context.js --mcp
 ```
 
-Expected output:
+Expected output (abridged: the real reply lists every tool the profile advertises, in the server's own order, and each entry also carries a `description` and an `inputSchema`):
 
 ```json
 {

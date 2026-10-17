@@ -129,12 +129,17 @@ function _health(cwd) {
   }
 }
 
+/** The MCP tools the wiki's "Navigating" section points an agent at. */
+const WIKI_MCP_TOOLS = ['get_architecture_overview', 'get_map', 'get_callee_signatures'];
+
 /**
  * Build the wiki. Every data source is optional — a repo with no context file
  * or no resolvable graph still yields a valid document.
  * @param {string} cwd
  * @param {object} [opts]
  * @param {string} [opts.version] SigMap version stamped in the header
+ * @param {object} [opts.config] the loaded config; when given, the MCP tools the wiki recommends
+ *        are limited to the ones this project's server advertises (`mcp.tools`, #966)
  * @returns {{ data: object, markdown: string }}
  */
 function buildWiki(cwd, opts = {}) {
@@ -161,7 +166,16 @@ function buildWiki(cwd, opts = {}) {
     health,
   };
 
-  return { data, markdown: renderWikiMarkdown(data, opts.version) };
+  let mcpTools;
+  if (opts.config) {
+    try {
+      const profile = require('../mcp/profile');
+      const resolved = profile.resolveProfile(opts.config);
+      mcpTools = WIKI_MCP_TOOLS.filter((n) => profile.has(resolved, n));
+    } catch (_) { mcpTools = undefined; }
+  }
+
+  return { data, markdown: renderWikiMarkdown(data, opts.version, mcpTools) };
 }
 
 /**
@@ -169,9 +183,10 @@ function buildWiki(cwd, opts = {}) {
  * randomness — so output is byte-stable for a fixed repo state.
  * @param {object} data
  * @param {string} [sigmapVersion]
+ * @param {string[]} [mcpTools] the MCP tools to recommend (default: all three the wiki knows)
  * @returns {string}
  */
-function renderWikiMarkdown(data, sigmapVersion) {
+function renderWikiMarkdown(data, sigmapVersion, mcpTools) {
   const L = [];
   const title = data.version ? `${data.name} v${data.version}` : data.name;
   L.push(`# ${title} — Architecture Wiki`);
@@ -244,7 +259,8 @@ function renderWikiMarkdown(data, sigmapVersion) {
   L.push('- `sigmap ask "<question>"` — ranked, budgeted mini-context for any task');
   L.push('- `sigmap --impact <file>` / `--callers <symbol>` — blast radius before you change something');
   L.push('- `sigmap evidence "<query>"` — machine-consumable Evidence Pack (JSON) for agents/CI');
-  L.push('- MCP: `get_architecture_overview`, `get_map`, `get_callee_signatures` for live agent access');
+  const mcp = Array.isArray(mcpTools) ? mcpTools : WIKI_MCP_TOOLS;
+  if (mcp.length > 0) L.push(`- MCP: ${mcp.map((n) => `\`${n}\``).join(', ')} for live agent access`);
   L.push('');
 
   return L.join('\n');

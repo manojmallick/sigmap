@@ -94,10 +94,15 @@ test('#775 an invalid --top errors instead of silently defaulting', () => {
 });
 
 test('#775 ask reports selected count, cutoff and a context hash', () => {
+  // Default (#966): one summary line after the ranked files carries all three.
   const r = run(askDir, ['ask', 'thing function', '--top', '3']);
-  assert.ok(/Selected\s+: 3 of \d+ file\(s\) \(--top 3\)/.test(r.stdout), r.stdout);
-  assert.ok(/cutoff score/.test(r.stdout), `expected a cutoff score: ${r.stdout}`);
-  assert.ok(/Hash\s+: sha256:[0-9a-f]{12}/.test(r.stdout), `expected a context hash: ${r.stdout}`);
+  assert.ok(/^3 of \d+ files · cutoff \d+\.\d{3} · [\d,]+ tokens · sha256:[0-9a-f]{12} → /m.test(r.stdout),
+    `expected count, cutoff, tokens and hash on the summary line: ${r.stdout}`);
+  // --verbose keeps the full box, which says where the cap came from.
+  const v = run(askDir, ['ask', 'thing function', '--top', '3', '--verbose']);
+  assert.ok(/Selected\s+: 3 of \d+ file\(s\) \(--top 3\)/.test(v.stdout), v.stdout);
+  assert.ok(/cutoff score/.test(v.stdout), `expected a cutoff score: ${v.stdout}`);
+  assert.ok(/Hash\s+: sha256:[0-9a-f]{12}/.test(v.stdout), `expected a context hash: ${v.stdout}`);
 });
 
 test('#775 the context hash is stable across identical runs', () => {
@@ -186,7 +191,9 @@ test('#776 matching notes appear in ask output and in the written context', () =
   const dir = fixture({ srcDirs: ['src'] });
   run(dir, ['note', 'redaction logic for Slack tokens lives in src/mod7.js']);
   const r = run(dir, ['ask', 'redaction logic for Slack tokens', '--top', '3']);
-  assert.ok(/Notes\s+: 1 matching/.test(r.stdout), `ask output must surface the note: ${r.stdout}`);
+  assert.ok(/notes: 1 matching/.test(r.stdout), `ask output must surface the note: ${r.stdout}`);
+  const v = run(dir, ['ask', 'redaction logic for Slack tokens', '--top', '3', '--verbose']);
+  assert.ok(/Notes\s+: 1 matching/.test(v.stdout), `--verbose keeps the Notes line: ${v.stdout}`);
   const body = fs.readFileSync(path.join(dir, '.context', 'query-context.md'), 'utf8');
   assert.ok(body.includes('## Notes'), 'context must carry a Notes section');
   assert.ok(body.includes('src/mod7.js'), 'context must carry the note text');
@@ -197,7 +204,7 @@ test('#776 notes never leak into unrelated queries', () => {
   const dir = fixture({ srcDirs: ['src'] });
   run(dir, ['note', 'redaction logic for Slack tokens lives in src/mod7.js']);
   const r = run(dir, ['ask', 'graph builder traversal depth', '--top', '3']);
-  assert.ok(!/Notes\s+:/.test(r.stdout), `unrelated query must not surface the note: ${r.stdout}`);
+  assert.ok(!/Notes\s+:|notes: \d+ matching/.test(r.stdout), `unrelated query must not surface the note: ${r.stdout}`);
   const body = fs.readFileSync(path.join(dir, '.context', 'query-context.md'), 'utf8');
   assert.ok(!body.includes('## Notes'), 'unrelated context must carry no Notes section');
   fs.rmSync(dir, { recursive: true, force: true });
