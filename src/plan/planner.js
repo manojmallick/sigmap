@@ -100,16 +100,22 @@ function createPlan(goal, cwd, config = {}) {
       const entrySet = new Set(highConf.map(r => r.file));
       const direct = new Set();
       const transitive = new Set();
+      // Entry files the import graph cannot read: their empty blast radius is
+      // "not tracked", not "nothing depends on it" (#979).
+      const untracked = [];
       for (const r of highConf) {
         const imp = getImpact(r.file, graph, { depth: 3, cwd });
         for (const f of (imp.direct || [])) direct.add(clean(f));
         for (const f of (imp.transitive || [])) transitive.add(clean(f));
+        if (imp.graph) untracked.push({ file: r.file, language: imp.language });
       }
       // The files we plan to change are not their own blast radius; and a file
       // reached directly from one entry outranks a transitive reach from another.
       for (const e of entrySet) { direct.delete(e); transitive.delete(e); }
       for (const f of direct) transitive.delete(f);
       impact = { direct: [...direct], transitive: [...transitive] };
+      // Added only when it applies, so a plan over readable languages is unchanged.
+      if (untracked.length) impact.untracked = untracked;
     } catch (_) {
       // Graph build failed, continue without impact
     }
