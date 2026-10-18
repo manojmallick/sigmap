@@ -155,6 +155,45 @@
       "commit": "8671ca4d492c8ee1cdfd3dd88afb9f88dd268178",
       "language": "cpp",
       "layout": "header-mostly"
+    },
+    {
+      "name": "composer",
+      "url": "https://github.com/composer/composer.git",
+      "commit": "28145ca91e78bcc5f6a98517f26fd8a47e754ecb",
+      "language": "php",
+      "layout": "php-application-src",
+      "xrepoOnly": true
+    },
+    {
+      "name": "newtonsoft-json",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json.git",
+      "commit": "52fa3aef1f2cadcd3a3f874251eddc98d3efbbaa",
+      "language": "csharp",
+      "layout": "dotnet-single-library",
+      "xrepoOnly": true
+    },
+    {
+      "name": "vapor",
+      "url": "https://github.com/vapor/vapor.git",
+      "commit": "cfd8f434843ac7850e2d97f46c1aa5ddb906cf1c",
+      "language": "swift",
+      "layout": "swiftpm-framework-target"
+    },
+    {
+      "name": "exposed",
+      "url": "https://github.com/JetBrains/Exposed.git",
+      "commit": "09f814c61c22851b76840ccb65c1ac2c4db97452",
+      "language": "kotlin",
+      "layout": "gradle-orm-modules",
+      "xrepoOnly": true
+    },
+    {
+      "name": "vitepress",
+      "url": "https://github.com/vuejs/vitepress.git",
+      "commit": "8ffc07c44eb9a688354d62202336a88c3609ed09",
+      "language": "vue_sfc",
+      "layout": "vue-theme-plus-node-server",
+      "xrepoOnly": true
     }
   ]
 }
