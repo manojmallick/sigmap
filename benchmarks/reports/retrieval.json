@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-18T16:07:42.529Z",
+  "generated": "2026-10-18T23:14:20.144Z",
   "repos": [
     {
       "repo": "express",
@@ -378,7 +378,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 262,
+      "sigCount": 243,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.733,
@@ -441,7 +441,7 @@
             "actionview/lib/action_view/renderer/template_renderer.rb",
             "actionview/lib/action_view/template/handlers/erb.rb"
           ],
-          "top1": "railties/lib/rails/templates/rails/mailers/email.html.erb",
+          "top1": "actionview/lib/action_view/template/handlers/erb/erubi.rb",
           "firstHitRank": 3,
           "tier": "partial"
         }

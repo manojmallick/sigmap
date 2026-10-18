@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-18T16:08:55.571Z",
+  "generated": "2026-10-18T23:14:56.064Z",
   "methodology": {
     "promptWeights": {
       "correct": 1,
@@ -26,9 +26,9 @@
     "hitAt5Without": 13.6,
     "hitAt5With": 80.4,
     "avgImprovement": 60.2,
-    "totalGroundedSymbols": 16718,
-    "totalDarkSymbols": 51759,
-    "hallucinationRiskPct": 75.6
+    "totalGroundedSymbols": 16989,
+    "totalDarkSymbols": 51488,
+    "hallucinationRiskPct": 75.2
   },
   "repos": [
     {
@@ -97,9 +97,9 @@
       "promptsWith": 1.4,
       "promptsWithout": 3,
       "reductionPct": 53.3,
-      "groundedSymbols": 2010,
-      "darkSymbols": 5485,
-      "hallucinationRiskPct": 73.2
+      "groundedSymbols": 2281,
+      "darkSymbols": 5214,
+      "hallucinationRiskPct": 69.6
     },
     {
       "repo": "axios",
@@ -284,5 +284,5 @@
       "hallucinationRiskPct": 61.9
     }
   ],
-  "version": "8.80.0"
+  "version": "8.80.1"
 }
