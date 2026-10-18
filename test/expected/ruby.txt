@@ -1,4 +1,5 @@
 module Services
+class UserService
   def initialize(repo)
   def get_user(id)
   def create_user(data)
