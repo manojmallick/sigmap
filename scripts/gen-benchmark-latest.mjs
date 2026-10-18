@@ -20,6 +20,7 @@ import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { provenanceOf, classifySources } from './lib/report-stamp.mjs';
+import { wilson } from './lib/band.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -108,6 +109,29 @@ export function computeLatest(root = ROOT) {
       repos: honest.summary.repos,
     };
   }
+
+  // Third-party corpus (xrepo, #892/#984) — labelled questions over repositories
+  // this project does not control, beside the honest corpus, which includes this
+  // repository's own files (#973). Read from the gate's saved baseline rather than
+  // from benchmarks/reports/: `run-xrepo-gate.mjs --save` writes it. Optional and
+  // top-level, like the blocks around it, so version.json's metrics mirror and the
+  // hermetic fixtures are unaffected. The percentages are rounded exactly as the
+  // gate prints them, so the README can never disagree with `validate:xrepo`.
+  try {
+    const x = JSON.parse(readFileSync(join(root, 'benchmarks', 'xrepo-baseline.json'), 'utf8'));
+    if (x && x.overall && x.overall.tasks > 0 && x.repos) {
+      const { low, high } = wilson(x.overall.hits, x.overall.tasks);
+      const p1 = (v) => Number((v * 100).toFixed(1));
+      out.third_party = {
+        repos: Object.keys(x.repos).length,
+        tasks: x.overall.tasks,
+        hits: x.overall.hits,
+        hit_at_5_pct: p1(x.overall.hits / x.overall.tasks),
+        interval_low_pct: p1(low),
+        interval_high_pct: p1(high),
+      };
+    }
+  } catch { /* no baseline recorded yet */ }
 
   // Test-discovery (v8.5 C2) — optional, present once the benchmark has run.
   // Kept top-level (not under `metrics`) so version.json's metrics mirror is
