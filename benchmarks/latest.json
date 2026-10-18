@@ -23,6 +23,14 @@
     "tasks": 125,
     "repos": 19
   },
+  "third_party": {
+    "repos": 25,
+    "tasks": 128,
+    "hits": 81,
+    "hit_at_5_pct": 63.3,
+    "interval_low_pct": 54.7,
+    "interval_high_pct": 71.1
+  },
   "test_discovery": {
     "repos": 28,
     "pairs": 3701,
