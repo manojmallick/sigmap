@@ -2297,6 +2297,8 @@ __factories["./src/cache/freshen"] = function(module, exports) {
 
       const entryCfg = entryConfig(cwd);
       const fresh = [];
+      // One python3 process for the stale Python files, not one each (#970).
+      try { __require('./src/extractors/python').prefetch(stale.map((s) => s.f)); } catch (_) {}
       for (const { f, key } of stale) {
         try {
           const at = Date.now(); // before the read: an edit during it stays uncovered
@@ -14939,7 +14941,178 @@ __factories["./src/extractors/python"] = function(module, exports) {
     return null;
   }
 
+  // ---------------------------------------------------------------------------
+  // Batch pre-pass (#970)
+  //
+  // The AST tier used to start one `python3` per file: about 2,900 process starts
+  // on Django, 182 s against 7 s for the regex tier. `prefetch` hands a run's
+  // whole file list to `python_ast.py --batch` in chunks, and `tryNativeExtract`
+  // reads the answer back. The per-file call below stays for any caller that did
+  // not prefetch (one file edited, an MCP write hook, a test), so it is never
+  // wrong, only slower.
+  // ---------------------------------------------------------------------------
+
+  // Files per python3 process. Bounds the output held in memory at once (about
+  // 3 KB of signatures a file) and the files a hung process can take with it, but
+  // each process pays interpreter start-up: Django took 3.9 s at 200 a process and
+  // 2.9 s at 1,000.
+  const BATCH_CHUNK = 1000;
+  // A chunk normally takes well under two seconds; this only ends a hung one.
+  const BATCH_TIMEOUT_MS = 60000;
+  const BATCH_MAX_BUFFER = 256 * 1024 * 1024;
+
+  // absolute path -> { size, mtimeMs, sigs: string[]|null, degraded?: true }.
+  // `sigs: null` is a settled answer for the regex tier (parse error, empty
+  // result, python3 absent or failed), not "unknown": it is what keeps a failed
+  // batch from falling back to one process per file. `degraded` marks the ones a
+  // failure left unanswered, which the next prefetch tries again. The stat taken
+  // BEFORE python3 reads the file makes a file edited afterwards miss and take the
+  // per-file path, as it always has.
+  const _batched = new Map();
+
+  // 'major.minor' of the python3 that served the AST tier this run, and whether
+  // it served any file: the generated header labels the toolchain (#609).
+  let _astVersion = null;
+  let _astServed = false;
+
+  function statKey(p) {
+    try {
+      const st = fs.statSync(p);
+      return { size: st.size, mtimeMs: st.mtimeMs };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Run one chunk through `python_ast.py --batch`.
+   * @returns {{results: Map<string, string[]>, version: string|null, error: string|null, missing: boolean}}
+   */
+  function runBatchChunk(scriptPath, files, timeoutMs) {
+    const { spawnSync } = require('child_process');
+    const out = { results: new Map(), version: null, error: null, missing: false };
+    const r = spawnSync('python3', [scriptPath, '--batch'], {
+      input: files.map((f) => JSON.stringify(f)).join('\n') + '\n',
+      encoding: 'utf8',
+      timeout: timeoutMs,
+      maxBuffer: BATCH_MAX_BUFFER,
+      windowsHide: true,
+    });
+    if (r.error && r.error.code === 'ENOENT') { out.missing = true; return out; }
+    // Whatever arrived before a crash or timeout is still good: python_ast.py
+    // flushes one line per file.
+    for (const line of String(r.stdout || '').split('\n')) {
+      if (!line) continue;
+      let obj;
+      try { obj = JSON.parse(line); } catch (_) { continue; }
+      if (obj && Array.isArray(obj.version) && obj.version.length >= 2) out.version = `${obj.version[0]}.${obj.version[1]}`;
+      else if (obj && typeof obj.path === 'string' && Array.isArray(obj.sigs)) out.results.set(obj.path, obj.sigs);
+    }
+    if (r.error) out.error = r.error.code || r.error.message;
+    else if (r.status !== 0) out.error = r.signal ? `killed by ${r.signal}` : `exit ${r.status}`;
+    return out;
+  }
+
+  /**
+   * Extract many Python files with one `python3` process per chunk instead of one
+   * per file, and keep the answers for `tryNativeExtract`. A file an earlier call
+   * answered and that has not changed since is not sent again (`sigmap sync` walks
+   * the same files twice), and one that call failed on is. Never throws: a chunk
+   * that fails costs the files it did not answer their AST pass (they use the regex
+   * tier) and one line on stderr.
+   *
+   * @param {string[]} files - paths; non-Python files are ignored
+   * @param {{chunk?: number, timeoutMs?: number}} [opts]
+   * @returns {{requested: number, reused: number, served: number, regexTier: number, degraded: number, available: boolean}}
+   *   served/regexTier/degraded count the files sent to python3 by THIS call
+   */
+  function prefetch(files, opts = {}) {
+    const summary = { requested: 0, reused: 0, served: 0, regexTier: 0, degraded: 0, available: true };
+    try {
+      const scriptPath = resolvePythonAstScript();
+      if (!scriptPath || !Array.isArray(files)) return summary;
+      const chunk = opts.chunk > 0 ? opts.chunk : BATCH_CHUNK;
+      const timeoutMs = opts.timeoutMs > 0 ? opts.timeoutMs : BATCH_TIMEOUT_MS;
+      // A path holding a line break cannot be told apart from two by a reader of
+      // lines, so it keeps the per-file path.
+      const wanted = [...new Set(files.filter((f) => typeof f === 'string' && /\.pyw?$/i.test(f) && !/[\r\n]/.test(f))
+        .map((f) => path.resolve(f)))];
+      summary.requested = wanted.length;
+      const list = wanted.filter((f) => {
+        const hit = _batched.get(f);
+        if (!hit || hit.degraded) return true;
+        const now = statKey(f);
+        return !(now && now.size === hit.size && now.mtimeMs === hit.mtimeMs);
+      });
+      summary.reused = wanted.length - list.length;
+      let firstError = null;
+      for (let i = 0; i < list.length; i += chunk) {
+        const part = list.slice(i, i + chunk);
+        const stats = part.map(statKey);
+        const res = runBatchChunk(scriptPath, part, timeoutMs);
+        if (res.missing) {
+          // No python3 on PATH is the regex tier by design, not a failure: settle
+          // this chunk and every later one without another attempt or a notice.
+          summary.available = false;
+          for (let j = i; j < list.length; j++) {
+            const st = j < i + part.length ? stats[j - i] : statKey(list[j]);
+            if (st) _batched.set(list[j], { size: st.size, mtimeMs: st.mtimeMs, sigs: null });
+          }
+          summary.regexTier += list.length - i;
+          break;
+        }
+        if (res.version) _astVersion = res.version;
+        for (let k = 0; k < part.length; k++) {
+          if (!stats[k]) continue;
+          const sigs = res.results.get(part[k]);
+          const settled = sigs !== undefined && sigs.length > 0 ? sigs : null;
+          const entry = { size: stats[k].size, mtimeMs: stats[k].mtimeMs, sigs: settled };
+          if (sigs === undefined) entry.degraded = true;
+          _batched.set(part[k], entry);
+          if (settled) summary.served++;
+          else if (sigs !== undefined) summary.regexTier++;
+          else summary.degraded++;
+        }
+        if (res.error && !firstError) firstError = res.error;
+      }
+      if (summary.degraded > 0) {
+        console.warn(`[sigmap] python3 AST pass failed for ${summary.degraded} of ${list.length} Python file(s) (${firstError || 'no result'}); they use the regex tier`);
+      }
+    } catch (_) {
+      // A broken pre-pass must never stop generate; the per-file path still works.
+      _batched.clear();
+    }
+    return summary;
+  }
+
+  /**
+   * The header label for the AST tier, `python@3.9`, or null when no file was
+   * served by it this run. Minor version, not patch: the `ast` node shapes the
+   * extractor reads change with 3.x releases, not with 3.x.y fixes.
+   * @returns {string|null}
+   */
+  function toolchainLabel() {
+    if (!_astServed) return null;
+    if (!_astVersion) {
+      try {
+        const { execFileSync } = require('child_process');
+        const v = execFileSync('python3', ['-c', 'import sys; print("%d.%d" % sys.version_info[:2])'], { encoding: 'utf8', timeout: 5000, windowsHide: true });
+        if (/^\d+\.\d+$/.test(v.trim())) _astVersion = v.trim();
+      } catch (_) {}
+    }
+    return _astVersion ? `python@${_astVersion}` : null;
+  }
+
   function tryNativeExtract(filePath) {
+    const hit = _batched.get(filePath);
+    if (hit !== undefined) {
+      const now = statKey(filePath);
+      if (now && now.size === hit.size && now.mtimeMs === hit.mtimeMs) {
+        if (hit.sigs) _astServed = true;
+        return hit.sigs;
+      }
+      _batched.delete(filePath);
+    }
     try {
       const { execFileSync } = require('child_process');
       const scriptPath = resolvePythonAstScript();
@@ -14949,7 +15122,10 @@ __factories["./src/extractors/python"] = function(module, exports) {
         encoding: 'utf8',
       });
       const sigs = JSON.parse(result.trim());
-      if (Array.isArray(sigs) && sigs.length > 0) return sigs;
+      if (Array.isArray(sigs) && sigs.length > 0) {
+        _astServed = true;
+        return sigs;
+      }
     } catch (_) {}
     return null;
   }
@@ -15173,7 +15349,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     return sentence.slice(0, 60);
   }
 
-  module.exports = { extract, tryNativeExtract, resolvePythonAstScript };
+  module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel };
   
 };
 
@@ -39177,6 +39353,12 @@ let _nativeTsVersion = null;
 function _toolchainLabel() {
   const parts = [];
   if (_nativeTsVersion) parts.push('typescript@' + _nativeTsVersion);
+  // The Python AST tier runs by default whenever python3 is on PATH (#693), so
+  // the same tree extracts differently on a host without it: label it (#970).
+  try {
+    const pyLabel = requireSourceOrBundled('./src/extractors/python').toolchainLabel();
+    if (pyLabel) parts.push(pyLabel);
+  } catch (_) {}
   try {
     const lspx = requireSourceOrBundled('./src/extractors/lsp_symbols');
     parts.push(...lspx.toolchainLabels());
@@ -39186,6 +39368,15 @@ function _toolchainLabel() {
     parts.push(...scipx.toolchainLabels());
   } catch (_) {}
   return parts.length ? parts.join(', ') : undefined;
+}
+
+// One python3 process per chunk of the run's Python files, not one per file
+// (#970). Answers are kept by the extractor and read back by detectAndExtract;
+// any failure leaves the per-file path in place.
+function prefetchPythonAst(files) {
+  try {
+    requireSourceOrBundled('./src/extractors/python').prefetch(files);
+  } catch (_) { /* the per-file path still works */ }
 }
 
 function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd) {
@@ -41126,6 +41317,7 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
     }
   }
 
+  prefetchPythonAst(diffFiltered);
   for (const filePath of diffFiltered) {
     let content = '';
     try {
@@ -41272,6 +41464,11 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     }
   }
 
+  // A file the signature cache still holds is never extracted, so it is not prefetched.
+  prefetchPythonAst(cache ? allFiles.filter((f) => {
+    const cached = cache.get(f);
+    try { return !cached || cached.mtime !== fs.statSync(f).mtimeMs; } catch (_) { return true; }
+  }) : allFiles);
   for (const filePath of allFiles) {
     let content = '';
     try {
@@ -43963,6 +44160,7 @@ function main() {
         return !matchesIgnore(rel, ignorePatterns);
       });
       const syncEntries = [];
+      prefetchPythonAst(syncFiles);
       for (const fp of syncFiles) {
         let content = '';
         try { content = fs.readFileSync(fp, 'utf8'); } catch (_) { continue; }

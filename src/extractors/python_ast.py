@@ -12,6 +12,14 @@ Usage (called by SigMap's python.js extractor as fallback):
     python3 python_ast.py <filepath>
 
 Output: JSON array of signature strings (one per line → stdout)
+
+Batch mode (#970): one process for many files instead of one per file.
+    python3 python_ast.py --batch   (reads one JSON-encoded path per stdin line)
+
+Output: a first line {"version": [major, minor, micro]}, then one
+{"path": <as given>, "sigs": [...]} line per input path. A file that cannot be
+read or parsed yields "sigs": [] and never stalls or aborts the batch — the
+same answer the single-file call gives for it.
 """
 
 import ast
@@ -360,7 +368,32 @@ def extract(filepath):
     return sigs[:MAX_SIGS]
 
 
+def batch():
+    out = sys.stdout
+    out.write(json.dumps({"version": list(sys.version_info[:3])}) + "\n")
+    out.flush()
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            filepath = json.loads(line)
+        except ValueError:
+            continue
+        try:
+            sigs = extract(filepath)
+        except Exception:
+            sigs = []
+        # Flushed per file so a crash mid-batch keeps every earlier result.
+        out.write(json.dumps({"path": filepath, "sigs": sigs}) + "\n")
+        out.flush()
+
+
 def main():
+    if len(sys.argv) >= 2 and sys.argv[1] == "--batch":
+        batch()
+        return
+
     if len(sys.argv) < 2:
         print("[]")
         return
