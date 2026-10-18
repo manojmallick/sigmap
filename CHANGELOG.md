@@ -8,6 +8,9 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+### Fixed
+- **MCP host configuration** (#994) — Claude Code, Codex CLI, and OpenCode now receive the config formats their CLIs read; installs migrate old SigMap entries, avoid absolute paths for these hosts, verify registration when each host CLI is available, and preload Claude Code's `query_context` tool.
+
 ---
 
 ## [8.79.0] — 2026-10-17

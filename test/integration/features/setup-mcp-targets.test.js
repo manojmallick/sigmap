@@ -6,9 +6,9 @@
  * Verifies that --setup (registerMcp) correctly writes to:
  *  1.  .vscode/mcp.json            (VS Code / GitHub Copilot)
  *  2.  opencode.json               (OpenCode project-level)
- *  3.  ~/.config/opencode/config.json  (OpenCode global)
+ *  3.  ~/.config/opencode/opencode.json (OpenCode global)
  *  4.  ~/.gemini/settings.json     (Gemini CLI)
- *  5.  ~/.codex/config.yaml        (Codex CLI — YAML)
+ *  5.  ~/.codex/config.toml        (Codex CLI — TOML)
  *  6–10. Idempotency for each new target
  * 11.  Existing targets (Claude, Cursor) still work
  * 12.  Snippet output includes new target names
@@ -42,11 +42,12 @@ function withTempDir(fn) {
 }
 
 function runSetup(cwd, env = {}) {
+  const home = env.USERPROFILE || env.HOME || path.join(cwd, '.test-home');
   return spawnSync('node', [GEN, '--setup'], {
     cwd,
     encoding: 'utf8',
     timeout: 15000,
-    env: { ...process.env, ...env },
+    env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_HOME: path.join(home, '.codex'), ...env },
   });
 }
 
@@ -61,8 +62,9 @@ test('1. .vscode/mcp.json: registers sigmap when file exists', () => {
     fs.writeFileSync(path.join(vscodeDir, 'mcp.json'), JSON.stringify({}));
     runSetup(dir);
     const result = JSON.parse(fs.readFileSync(path.join(vscodeDir, 'mcp.json'), 'utf8'));
-    assert.ok(result.mcpServers && result.mcpServers.sigmap, 'sigmap entry missing from .vscode/mcp.json');
-    assert.strictEqual(result.mcpServers.sigmap.command, 'node');
+    assert.ok(result.servers && result.servers.sigmap, 'sigmap entry missing from .vscode/mcp.json');
+    assert.strictEqual(result.servers.sigmap.type, 'stdio');
+    assert.strictEqual(result.servers.sigmap.command, 'node');
   });
 });
 
@@ -93,7 +95,8 @@ test('4. opencode.json: registers sigmap when file exists', () => {
     fs.writeFileSync(path.join(dir, 'opencode.json'), JSON.stringify({}));
     runSetup(dir);
     const result = JSON.parse(fs.readFileSync(path.join(dir, 'opencode.json'), 'utf8'));
-    assert.ok(result.mcpServers && result.mcpServers.sigmap, 'sigmap entry missing from opencode.json');
+    assert.ok(result.mcp && result.mcp.sigmap, 'sigmap entry missing from opencode.json');
+    assert.deepStrictEqual(result.mcp.sigmap.command, ['npx', '-y', 'sigmap', '--mcp']);
   });
 });
 
@@ -108,31 +111,33 @@ test('5. opencode.json: idempotent — second run makes no changes', () => {
   });
 });
 
-// ── OpenCode global (~/.config/opencode/config.json) ─────────────────────────
+// ── OpenCode global (~/.config/opencode/opencode.json) ────────────────────────
 
-test('6. ~/.config/opencode/config.json: registers sigmap when file exists', () => {
+test('6. OpenCode migrates from the old global config path', () => {
   withTempDir((dir) => {
     withTempDir((fakeHome) => {
       const ocDir = path.join(fakeHome, '.config', 'opencode');
       fs.mkdirSync(ocDir, { recursive: true });
-      fs.writeFileSync(path.join(ocDir, 'config.json'), JSON.stringify({}));
+      fs.writeFileSync(path.join(ocDir, 'config.json'), JSON.stringify({ mcpServers: { sigmap: ENTRY } }));
       runSetup(dir, { HOME: fakeHome });
-      const result = JSON.parse(fs.readFileSync(path.join(ocDir, 'config.json'), 'utf8'));
-      assert.ok(result.mcpServers && result.mcpServers.sigmap, 'sigmap entry missing from ~/.config/opencode/config.json');
+      const result = JSON.parse(fs.readFileSync(path.join(ocDir, 'opencode.json'), 'utf8'));
+      assert.ok(result.mcp && result.mcp.sigmap, 'sigmap entry missing from ~/.config/opencode/opencode.json');
+      const legacy = JSON.parse(fs.readFileSync(path.join(ocDir, 'config.json'), 'utf8'));
+      assert.ok(!legacy.mcpServers?.sigmap, 'legacy SigMap entry should be removed');
     });
   });
 });
 
-test('7. ~/.config/opencode/config.json: idempotent', () => {
+test('7. OpenCode global install is idempotent', () => {
   withTempDir((dir) => {
     withTempDir((fakeHome) => {
       const ocDir = path.join(fakeHome, '.config', 'opencode');
       fs.mkdirSync(ocDir, { recursive: true });
       fs.writeFileSync(path.join(ocDir, 'config.json'), JSON.stringify({}));
       runSetup(dir, { HOME: fakeHome });
-      const after1 = fs.readFileSync(path.join(ocDir, 'config.json'), 'utf8');
+      const after1 = fs.readFileSync(path.join(ocDir, 'opencode.json'), 'utf8');
       runSetup(dir, { HOME: fakeHome });
-      const after2 = fs.readFileSync(path.join(ocDir, 'config.json'), 'utf8');
+      const after2 = fs.readFileSync(path.join(ocDir, 'opencode.json'), 'utf8');
       assert.strictEqual(after1, after2, 'changed on second run');
     });
   });
@@ -170,56 +175,58 @@ test('9. ~/.gemini/settings.json: idempotent', () => {
 
 // ── Codex CLI (~/.codex/config.yaml) ─────────────────────────────────────────
 
-test('10. ~/.codex/config.yaml: registers sigmap when file exists', () => {
+test('10. Codex setup writes TOML when the legacy YAML config exists', () => {
   withTempDir((dir) => {
     withTempDir((fakeHome) => {
       const codexDir = path.join(fakeHome, '.codex');
       fs.mkdirSync(codexDir);
       fs.writeFileSync(path.join(codexDir, 'config.yaml'), '# Codex config\nmodel: o4-mini\n');
       runSetup(dir, { HOME: fakeHome });
-      const content = fs.readFileSync(path.join(codexDir, 'config.yaml'), 'utf8');
-      assert.ok(content.includes('sigmap'), 'sigmap not found in ~/.codex/config.yaml');
-      assert.ok(content.includes('mcpServers:'), 'mcpServers block missing');
-      assert.ok(content.includes('command: node'), 'command: node missing');
-      assert.ok(content.includes('--mcp'), '--mcp arg missing');
+      const content = fs.readFileSync(path.join(codexDir, 'config.toml'), 'utf8');
+      assert.ok(content.includes('[mcp_servers.sigmap]'), 'SigMap TOML table missing');
+      assert.ok(content.includes('command = "npx"'), 'command = npx missing');
+      assert.ok(content.includes('"--mcp"'), '--mcp arg missing');
     });
   });
 });
 
-test('11. ~/.codex/config.yaml: idempotent — second run does not duplicate', () => {
+test('11. ~/.codex/config.toml: idempotent — second run does not duplicate', () => {
   withTempDir((dir) => {
     withTempDir((fakeHome) => {
       const codexDir = path.join(fakeHome, '.codex');
       fs.mkdirSync(codexDir);
-      fs.writeFileSync(path.join(codexDir, 'config.yaml'), '# Codex config\n');
+      fs.writeFileSync(path.join(codexDir, 'config.toml'), '# Codex config\n');
       runSetup(dir, { HOME: fakeHome });
-      const after1 = fs.readFileSync(path.join(codexDir, 'config.yaml'), 'utf8');
+      const after1 = fs.readFileSync(path.join(codexDir, 'config.toml'), 'utf8');
       runSetup(dir, { HOME: fakeHome });
-      const after2 = fs.readFileSync(path.join(codexDir, 'config.yaml'), 'utf8');
-      assert.strictEqual(after1, after2, 'config.yaml changed on second run — not idempotent');
+      const after2 = fs.readFileSync(path.join(codexDir, 'config.toml'), 'utf8');
+      assert.strictEqual(after1, after2, 'config.toml changed on second run — not idempotent');
     });
   });
 });
 
-test('12. ~/.codex/config.yaml: skipped when file does not exist', () => {
+test('12. Codex setup is skipped when no config exists', () => {
   withTempDir((dir) => {
     withTempDir((fakeHome) => {
       runSetup(dir, { HOME: fakeHome });
       assert.ok(!fs.existsSync(path.join(fakeHome, '.codex', 'config.yaml')), 'config.yaml must not be created');
+      assert.ok(!fs.existsSync(path.join(fakeHome, '.codex', 'config.toml')), 'config.toml must not be created');
     });
   });
 });
 
 // ── Existing targets still work ───────────────────────────────────────────────
 
-test('13. .claude/settings.json: still registered (existing target unchanged)', () => {
+test('13. .claude/settings.json: migrates to Claude project config', () => {
   withTempDir((dir) => {
     const claudeDir = path.join(dir, '.claude');
     fs.mkdirSync(claudeDir);
     fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({}));
     runSetup(dir);
-    const result = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf8'));
-    assert.ok(result.mcpServers && result.mcpServers.sigmap, 'sigmap missing from .claude/settings.json');
+    const result = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8'));
+    assert.ok(result.mcpServers && result.mcpServers.sigmap, 'sigmap missing from .mcp.json');
+    const legacy = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf8'));
+    assert.ok(!legacy.mcpServers?.sigmap, 'ignored Claude entry should be removed');
   });
 });
 
@@ -244,11 +251,11 @@ test('15. --setup snippet output mentions VS Code / OpenCode / Gemini CLI', () =
   });
 });
 
-test('16. --setup snippet output includes Codex CLI YAML block', () => {
+test('16. --setup output names the Codex TOML config', () => {
   withTempDir((dir) => {
     const result = runSetup(dir);
     const out = result.stderr + result.stdout;
-    assert.ok(out.includes('config.yaml') || out.includes('Codex CLI') || out.includes('mcpServers:'), `Codex CLI snippet missing:\n${out.slice(0, 500)}`);
+    assert.ok(out.includes('config.toml') || out.includes('Codex CLI'), `Codex CLI config missing:\n${out.slice(0, 500)}`);
   });
 });
 

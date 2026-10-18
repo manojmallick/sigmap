@@ -1822,7 +1822,7 @@ $ sigmap mcp list
 Supported MCP clients:
 
   claude     Claude Code
-             .claude/settings.json  [project]
+             .mcp.json  [project]
   cursor     Cursor
              .cursor/mcp.json  [project]
   windsurf   Windsurf
@@ -1831,13 +1831,14 @@ Supported MCP clients:
   zed        Zed
              ~/.config/zed/settings.json  [global]
   codex      Codex CLI
-             ~/.codex/config.yaml  [global]
+             ~/.codex/config.toml  [global]
 
 $ sigmap mcp install claude
-[sigmap] Claude Code: registered MCP server in .claude/settings.json
+[sigmap] Claude Code: registered MCP server in .mcp.json
+[sigmap] Claude Code CLI not found; run `claude mcp list` and approve SigMap on first use.
 ```
 
-Supported clients: `claude`, `cursor`, `windsurf`, `vscode`, `zed`, `codex`, `gemini`, `opencode`, and `mcp` (portable `.mcp.json`). The command emits the correct shape per client — `mcpServers` JSON, VS Code `servers`, Zed `context_servers`, or Codex YAML — and is **idempotent**: a second run reports that sigmap is already registered and never duplicates the entry. An unknown client name exits non-zero and lists the valid clients.
+Supported clients: `claude`, `cursor`, `windsurf`, `vscode`, `zed`, `codex`, `gemini`, `opencode`, and `mcp` (portable `.mcp.json`). The command emits each host's config shape: Claude project `.mcp.json`, Codex TOML in `$CODEX_HOME/config.toml` (default `~/.codex/config.toml`), OpenCode's `mcp` local-server object, VS Code `servers`, Zed `context_servers`, or `mcpServers` JSON. Claude, Codex, and OpenCode use `npx -y sigmap --mcp`, so their config does not contain a machine-specific path. When one of those host CLIs is installed, `mcp install` checks the entry with its `mcp list` command and exits non-zero if the host does not report it. Without the host CLI, it prints the command to check manually. A second run is **idempotent**; older SigMap entries are migrated while unrelated settings and servers are preserved. An unknown client name exits non-zero and lists the valid clients.
 
 **VS Code (v8.30.0).** VS Code reads a top-level `servers` key with an explicit transport `type`, not the generic `mcpServers` shape. Earlier versions wrote `mcpServers` into `.vscode/mcp.json`; the file was created, the command reported success, and VS Code silently ignored it — so GitHub Copilot never saw the server. `mcp install vscode` now writes:
 
@@ -2568,34 +2569,34 @@ One-command setup. Auto-wires the SigMap MCP server into all detected AI editor 
 
 | Editor | Config file written |
 |--------|-------------------|
-| Claude Code | `.claude/settings.json` → `mcpServers.sigmap` |
+| Claude Code | `.mcp.json` → `mcpServers.sigmap` |
 | Cursor | `.cursor/mcp.json` → `mcpServers.sigmap` |
 | Windsurf (project) | `.windsurf/mcp.json` → `mcpServers.sigmap` |
 | Windsurf (global) | `~/.codeium/windsurf/mcp_config.json` → `mcpServers.sigmap` |
 | Zed | `~/.config/zed/settings.json` → `context_servers.sigmap` |
-| VS Code (GitHub Copilot 1.99+) | `.vscode/mcp.json` → `mcpServers.sigmap` |
-| OpenCode (project) | `opencode.json` → `mcpServers.sigmap` |
-| OpenCode (global) | `~/.config/opencode/config.json` → `mcpServers.sigmap` |
+| VS Code (GitHub Copilot 1.99+) | `.vscode/mcp.json` → `servers.sigmap` |
+| OpenCode (project) | `opencode.json` → `mcp.sigmap` (`type: local`, array `command`) |
+| OpenCode (global) | `~/.config/opencode/opencode.json` → `mcp.sigmap` |
 | Gemini CLI | `~/.gemini/settings.json` → `mcpServers.sigmap` |
-| Codex CLI | `~/.codex/config.yaml` → `mcpServers.sigmap` (YAML) |
+| Codex CLI | `~/.codex/config.toml` → `[mcp_servers.sigmap]` |
 
 > **Neovim users:** `--setup` does not write Neovim config (Neovim uses a Lua plugin instead of a JSON config file). Install the `sigmap.nvim` plugin directly — see [`neovim-plugin/README.md`](https://github.com/manojmallick/sigmap/blob/main/neovim-plugin/README.md).
 
-Each target is only written if the file already exists — `--setup` will not create IDE config files. Running `--setup` again is safe: existing `sigmap` entries are never overwritten (idempotent).
+`--setup` only runs for detected clients; it does not create config for an editor that has no existing config. An older Claude `.claude/settings.json` entry is moved to `.mcp.json`, and Codex's old YAML entry is moved to TOML. Running `--setup` again is safe: existing `sigmap` entries are not duplicated.
 
 ```bash
 sigmap --setup
 ```
 
 ```
-[sigmap] registered MCP server in .claude/settings.json
-[sigmap] registered MCP server in .cursor/mcp.json
-[sigmap] registered MCP server in .windsurf/mcp.json
-[sigmap] registered MCP server in .vscode/mcp.json
-[sigmap] registered MCP server in opencode.json
-[sigmap] registered MCP server in ~/.gemini/settings.json
-[sigmap] registered MCP server in ~/.codex/config.yaml
-[sigmap] registered context server in ~/.config/zed/settings.json
+[sigmap] Claude Code: registered MCP server in .mcp.json
+[sigmap] Cursor: registered MCP server in .cursor/mcp.json
+[sigmap] Windsurf: registered MCP server in .windsurf/mcp.json
+[sigmap] VS Code: registered MCP server in .vscode/mcp.json
+[sigmap] OpenCode: registered MCP server in opencode.json
+[sigmap] Gemini CLI: registered MCP server in ~/.gemini/settings.json
+[sigmap] Codex CLI: registered MCP server in ~/.codex/config.toml
+[sigmap] Zed: registered MCP server in ~/.config/zed/settings.json
 [sigmap] installed .git/hooks/post-commit
 [sigmap] watching for changes (Ctrl+C to stop)…
 ```
@@ -2614,21 +2615,12 @@ node "<path to this install>" --generate 2>/dev/null || true
 
 [`sigmap doctor`](#doctor) reports whether the hook is installed, duplicated, stale or bypassed.
 
-After registration `--setup` also prints manual snippets for all tools so you can configure any editor not listed above:
+After registration `--setup` prints the corrected config locations for the three hosts with dedicated formats:
 
 ```
-[sigmap] MCP / context server config snippets:
-  Claude / Cursor / Windsurf / VS Code / OpenCode / Gemini CLI:
-  { "mcpServers": { "sigmap": { "command": "node", "args": ["./gen-context.js", "--mcp"] } } }
-  Zed (~/.config/zed/settings.json):
-  { "context_servers": { "sigmap": { "command": { "path": "node", "args": ["./gen-context.js", "--mcp"] } } } }
-  Codex CLI (~/.codex/config.yaml):
-  mcpServers:
-    sigmap:
-      command: node
-      args:
-        - ./gen-context.js
-        - --mcp
+[sigmap] Claude Code project config: .mcp.json
+[sigmap] Codex CLI config: ~/.codex/config.toml
+[sigmap] OpenCode config: opencode.json or ~/.config/opencode/opencode.json
 ```
 
 ---
