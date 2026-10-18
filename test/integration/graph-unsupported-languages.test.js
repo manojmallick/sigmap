@@ -200,6 +200,136 @@ test('a resolved symbol is unchanged', () => {
   assert.strictEqual('unsearched' in j, false);
 });
 
+test('a class-qualified name is not mistaken for a file: Service#save, com.acme.Service#save, #x', () => {
+  const root = jsRepo();
+  cli(root, []);
+  for (const sym of ['Service#save', 'com.acme.Service#save', '#x', 'src/nonexistent.php#whatever']) {
+    const { out } = cli(root, ['--callers', sym]);
+    assert.ok(!out.includes(NOT_TRACKED), `${sym} must not claim a declaration in an untracked file:\n${out}`);
+    assert.ok(out.includes('symbol not found in the call-graph'), out);
+  }
+});
+
+test('file#name with a file that exists in an unread language names it', () => {
+  const root = laravelRepo();
+  const { out } = cli(root, ['--callers', `${STR}#slug`]);
+  assert.ok(out.includes(NOT_TRACKED) && out.includes(`\`${STR}\``) && out.includes('(PHP)'), out);
+});
+
+test('languages only the import graph reads are named, not printed as raw keys', () => {
+  const root = jsRepo();
+  write(root, 'src/tool.rb', 'class Tool; end\n');
+  write(root, 'src/job.ex', 'defmodule Job do end\n');
+  write(root, 'src/calc.R', 'f <- function() 1\n');
+  const { out } = cli(root, ['--callers', 'noSuchThing']);
+  const note = out.split('\n').find((l) => l.includes('Not searched')) || '';
+  assert.ok(/1 Ruby/.test(note) && /1 Elixir/.test(note) && /1 R\b/.test(note), `expected readable names in:\n${note}`);
+  assert.ok(!/\b1 (ruby|elixir|r)\b/.test(note), `a raw language key leaked into:\n${note}`);
+});
+
+/** A flat repo: sources at the root, so the walk starts at "." and meets vendor/ and target/. */
+function flatRepo(opts) {
+  const root = tmpRepo('flat');
+  for (let i = 0; i < 12; i++) write(root, `mod${i}.js`, `module.exports = ${i};\n`);
+  write(root, 'helper.php', '<?php\nclass Helper {}\n');
+  for (let i = 0; i < 40; i++) write(root, `vendor/pkg/F${i}.php`, '<?php\nclass F {}\n');
+  if (!opts || opts.target !== false) for (let i = 0; i < 10; i++) write(root, `target/gen/G${i}.php`, '<?php\nclass G {}\n');
+  return root;
+}
+
+test('"Not searched" counts the tree the call graph walked: vendor/ is excluded', () => {
+  const root = flatRepo({ target: false });
+  cli(root, []);
+  const j = JSON.parse(cli(root, ['--callers', 'noSuchThing', '--json']).out);
+  assert.strictEqual(j.scope.roots.includes('.'), true, `the fixture must be walked from ".", got ${JSON.stringify(j.scope.roots)}`);
+  assert.strictEqual(j.unsearched.files, 1, `only helper.php is a real PHP file, got ${JSON.stringify(j.unsearched)}`);
+});
+
+test('get_method_impact counts the tree ITS walk used: vendor/ and target/ are excluded', () => {
+  const { getMethodImpact } = require('../../src/mcp/handlers');
+  const root = flatRepo();
+  cli(root, []);
+  const text = getMethodImpact({ symbol: 'noSuchThing' }, root);
+  assert.ok(/Not searched: 1 PHP file\(s\)/.test(text), text);
+});
+
+test('a directory is not a file in a language: it is never marked', () => {
+  const root = laravelRepo();
+  const j = JSON.parse(cli(root, ['--impact', 'src/Illuminate', '--json']).out);
+  assert.strictEqual('graph' in j, false, JSON.stringify(j));
+});
+
+// ── the other blast-radius surfaces ────────────────────────────────────────
+
+test('verify-plan does not report "blast radius in bounds" for a file the graph cannot read', () => {
+  const root = laravelRepo();
+  const plan = path.join(root, 'plan.md');
+  fs.writeFileSync(plan, `Plan: edit \`${STR}\` and keep the rest.\n`);
+  const j = JSON.parse(cli(root, ['verify-plan', plan, '--json']).out);
+  assert.strictEqual(j.blast[0].graph, 'unsupported-language');
+  assert.strictEqual(j.blast[0].language, 'PHP');
+  const text = cli(root, ['verify-plan', plan]).out;
+  assert.ok(text.includes('blast radius not tracked') && text.includes('PHP imports are not tracked'), text);
+  assert.ok(!text.includes('blast radius and scope in bounds'), `must not claim the blast radius is in bounds:\n${text}`);
+});
+
+test('verify-plan over a readable language keeps its wording and its blast entry', () => {
+  const root = jsRepo();
+  const plan = path.join(root, 'plan.md');
+  fs.writeFileSync(plan, 'Plan: edit `src/util.js`.\n');
+  const text = cli(root, ['verify-plan', plan]).out;
+  assert.ok(text.includes('blast radius and scope in bounds'), text);
+  const j = JSON.parse(cli(root, ['verify-plan', plan, '--json']).out);
+  assert.deepStrictEqual(Object.keys(j.blast[0]), ['file', 'totalImpact', 'tests']);
+});
+
+function gitRepoWithChange(root, rel) {
+  const git = (...a) => spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: root, encoding: 'utf8' });
+  git('init', '-q');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'init');
+  fs.appendFileSync(path.join(root, rel), '// edited\n');
+}
+
+test('get_diff_context says "not tracked" for a changed PHP file, not "0 file(s) impacted"', () => {
+  const { getDiffContext } = require('../../src/mcp/handlers');
+  const root = laravelRepo();
+  gitRepoWithChange(root, STR);
+  const text = getDiffContext({}, root);
+  assert.ok(text.includes('**Blast radius:** not tracked'), text);
+  assert.ok(text.includes('PHP imports are not tracked'), text);
+  assert.ok(!text.includes('0 file(s) impacted'), text);
+});
+
+test('get_diff_context over a readable language is unchanged', () => {
+  const { getDiffContext } = require('../../src/mcp/handlers');
+  const root = jsRepo();
+  gitRepoWithChange(root, 'src/lonely.js');
+  const text = getDiffContext({}, root);
+  assert.ok(text.includes('**Blast radius:** 0 file(s) impacted'), text);
+  assert.ok(!text.includes('not tracked'), text);
+});
+
+test('the PR evidence report says "not tracked" for a changed PHP file', () => {
+  const { buildPrEvidence, formatPrEvidenceMarkdown } = require('../../src/review/pr-evidence');
+  const root = laravelRepo();
+  const ev = buildPrEvidence([STR], root, {});
+  assert.strictEqual(ev.files[0].blast.graph, 'unsupported-language');
+  const md = formatPrEvidenceMarkdown(ev);
+  assert.ok(md.includes('**Blast radius:** not tracked') && md.includes('PHP imports are not tracked'), md);
+  assert.ok(!/Blast radius:\*\* 0 file/.test(md), md);
+});
+
+test('ask --with-source says "not tracked" in its blast radius section for a PHP file', () => {
+  const { buildSourceSection } = require('../../src/retrieval/with-source');
+  const root = laravelRepo();
+  const ranked = [{ file: STR, sigs: ['class Str  :4-9', "static function slug($title, $separator = '-')  :6-8"] }];
+  const section = buildSourceSection(ranked, root, { budgetTokens: 4000 });
+  assert.ok(/## Blast radius/.test(section.text), section.text);
+  assert.ok(section.text.includes(`${STR}  ← not tracked: PHP imports are not tracked`), section.text);
+  assert.ok(!/0 direct, 0 total/.test(section.text), section.text);
+});
+
 // ── plan ───────────────────────────────────────────────────────────────────
 
 test('plan lists the entry files whose blast radius is not tracked', () => {
@@ -219,7 +349,8 @@ test('plan over a readable language is unchanged: no untracked key', () => {
   const root = jsRepo();
   cli(root, []);
   const j = JSON.parse(cli(root, ['plan', 'change the helper in util', '--json']).out);
-  if (j.impactRadius) assert.strictEqual('untracked' in j.impactRadius, false);
+  assert.ok(j.impactRadius, 'the plan must have a blast radius for this to test anything');
+  assert.strictEqual('untracked' in j.impactRadius, false);
 });
 
 // ── doctor ─────────────────────────────────────────────────────────────────
@@ -248,6 +379,13 @@ test('doctor is quiet about a few stray files and about a repo the graph reads f
   const clean = graphCheck(jsRepo());
   assert.strictEqual(clean.status, 'ok');
   assert.ok(!clean.detail.includes('does not read'), clean.detail);
+});
+
+test('doctor counts the tree the graph walks: vendor/ and target/ are excluded', () => {
+  const root = flatRepo();
+  const c = graphCheck(root);
+  assert.strictEqual(c.status, 'ok', `1 PHP file in 13 must not warn when vendor/ and target/ are not walked: ${c.detail}`);
+  assert.ok(/PHP 1\b/.test(c.detail), c.detail);
 });
 
 test('doctor leaves markup, config and query files out of the gap', () => {
@@ -279,6 +417,12 @@ test('every extractor language is classified: readable, a counted gap, or delibe
     assert.ok(gap.includes(k), `${k} should be a counted gap`);
   }
   for (const k of gap) assert.ok(LABELS[k], `gap language ${k} needs a display name`);
+  // A call-graph report also names the languages only the import graph reads.
+  const { CALL_GRAPH_EXTS } = require('../../src/graph/call-graph');
+  const callReadable = new Set([...CALL_GRAPH_EXTS].map((e) => EXT_MAP[e]).filter(Boolean));
+  for (const k of LANGUAGES.filter((x) => !callReadable.has(x) && !NOT_EXPECTED.has(x))) {
+    assert.ok(LABELS[k], `${k} can appear in a call-graph report and needs a display name`);
+  }
   for (const k of readable) assert.ok(!gap.includes(k), `${k} is readable and must not be a gap`);
 });
 

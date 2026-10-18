@@ -54,7 +54,7 @@ function buildPrEvidence(changedFiles, cwd, opts = {}) {
     const km = require('../map/knowledge-map');
     const map = km.loadOrBuild(cwd);
     storeTests = km.relatedTestsView(map, files.filter((f) => f.status !== 'D').map((f) => f.path));
-    impactByFile = new Map(srcPaths.map((p) => [p, km.impactView(map, p, depth)]));
+    impactByFile = new Map(srcPaths.map((p) => [p, km.impactView(map, p, depth, cwd)]));
   } catch (_) {
     try {
       const { analyzeImpact } = require('../graph/impact');
@@ -96,6 +96,8 @@ function buildPrEvidence(changedFiles, cwd, opts = {}) {
         transitive: (impact.transitive || []).length,
         tests: impact.tests || [],
         routes: impact.routes || [],
+        // Present only when the import graph cannot read the file (#979).
+        ...(impact.graph ? { graph: impact.graph, language: impact.language } : {}),
       } : null,
       relatedTests: deleted ? [] : relatedFor(f.path),
     };
@@ -141,7 +143,9 @@ function formatPrEvidenceMarkdown(evidence, opts = {}) {
     L.push(`#### \`${f.path}\`  _(${st} · risk: ${f.riskLabel})_`);
     if (f.status === 'D') { L.push('_deleted_', ''); continue; }
 
-    if (f.blast) {
+    if (f.blast && f.blast.graph) {
+      L.push(`**Blast radius:** not tracked — ${require('../graph/language-support').shortNote(f.blast.language)}`);
+    } else if (f.blast) {
       L.push(
         `**Blast radius:** ${f.blast.total} file(s) impacted — ${f.blast.direct.length} direct, ${f.blast.transitive} transitive` +
         (f.blast.tests.length ? `, ${f.blast.tests.length} test(s)` : '') +

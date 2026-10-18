@@ -298,7 +298,7 @@ function upgradeImpact(map, libraryName) {
  * `exposes-route` edges (supersets, never smaller). Result shape matches
  * getImpact() so formatImpact renders it unchanged.
  */
-function impactView(map, relFile, depth) {
+function impactView(map, relFile, depth, cwd) {
   const { isTestFile, isRouteFile } = require('../graph/impact');
   const rel = String(relFile).replace(/\\/g, '/');
   const id = `file:${rel}`;
@@ -351,7 +351,7 @@ function impactView(map, relFile, depth) {
     tests: tests.concat(extraTests.sort()),
     routes,
     totalImpact: direct.size + transitive.size,
-  });
+  }, { cwd });
 }
 
 /**

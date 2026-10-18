@@ -430,7 +430,9 @@ function diagnose(cwd, opts = {}) {
   // files are an ordinary layout; past a tenth of the code, it is a warning.
   try {
     const { censusUntracked, graphLanguageList } = require('../graph/language-support');
-    const census = censusUntracked(cwd, { srcDirs: Array.isArray(config.srcDirs) && config.srcDirs.length ? config.srcDirs : undefined });
+    // No roots or exclusions passed: the census resolves them exactly as the
+    // graph walk does, so it counts the tree the graph would have read.
+    const census = censusUntracked(cwd);
     if (census.untracked === 0) {
       if (census.tracked > 0) add('graph', 'Import graph', 'ok', `${census.tracked} file(s) in languages it reads (${graphLanguageList()})`);
     } else {

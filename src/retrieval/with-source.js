@@ -135,6 +135,8 @@ function blastRadius(cwd, files, opts = {}) {
     file,
     direct: (impact && impact.direct ? impact.direct.length : 0),
     total: (impact && typeof impact.totalImpact === 'number' ? impact.totalImpact : 0),
+    // Present only when the import graph cannot read the file (#979).
+    ...(impact && impact.graph ? { graph: impact.graph, language: impact.language } : {}),
   }));
 }
 
@@ -191,7 +193,9 @@ function buildSourceSection(ranked, cwd, opts = {}) {
   if (blast.length > 0) {
     lines.push('## Blast radius', '```');
     for (const b of blast) {
-      lines.push(`${b.file}  ← ${b.direct} direct, ${b.total} total dependent file(s)`);
+      lines.push(b.graph
+        ? `${b.file}  ← not tracked: ${require('../graph/language-support').shortNote(b.language)}`
+        : `${b.file}  ← ${b.direct} direct, ${b.total} total dependent file(s)`);
     }
     lines.push('```', '');
   }

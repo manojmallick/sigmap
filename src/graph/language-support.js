@@ -32,6 +32,8 @@ const LABELS = {
   powershell: 'PowerShell', sql: 'SQL', graphql: 'GraphQL', terraform: 'Terraform',
   protobuf: 'Protocol Buffers', toml: 'TOML', properties: '.properties', xml: 'XML',
   markdown: 'Markdown', dockerfile: 'Dockerfile', pipeline: 'CI pipeline',
+  // Read by the import graph but not by the call graph, so a call-graph report can name them.
+  ruby: 'Ruby', elixir: 'Elixir', r: 'R',
 };
 
 /**
@@ -95,6 +97,16 @@ function importNote(label) {
   return `graph: ${UNSUPPORTED} — ${_subject(label)} are not tracked (the import graph reads ${graphLanguageList()}). This is not evidence that nothing depends on this file.`;
 }
 
+/**
+ * The same answer in one short clause, for the surfaces that print a blast
+ * radius per file (diff context, PR evidence, verify-plan, `ask --with-source`,
+ * `plan`): "PHP imports are not tracked (graph: unsupported-language); not
+ * evidence that nothing depends on it".
+ */
+function shortNote(label) {
+  return `${_subject(label)} are not tracked (graph: ${UNSUPPORTED}); not evidence that nothing depends on it`;
+}
+
 /** The same for a symbol declared in a file the call graph cannot read. */
 function callNote(label, files) {
   const where = files && files.length ? ` in ${files.map((f) => `\`${f}\``).join(', ')}` : '';
@@ -115,11 +127,18 @@ function unsearchedNote(unsearched) {
  * keeps its list, and every readable file's result is returned untouched, so
  * the output for supported languages does not change.
  *
+ * A directory is not a file in a language, so it is never marked.
+ *
  * @param {{ changed: string, totalImpact: number }} result
+ * @param {{ cwd?: string }} [opts]  with `cwd`, a path that is a directory is left alone
  * @returns {object} the same object, with `graph` and `language` added when it applies
  */
-function markImpact(result) {
+function markImpact(result, opts) {
   if (!result || result.totalImpact > 0) return result;
+  const cwd = opts && opts.cwd;
+  if (cwd) {
+    try { if (fs.statSync(path.resolve(cwd, result.changed)).isDirectory()) return result; } catch (_) { /* absent: judged by its extension */ }
+  }
   const s = graphSupport(result.changed);
   if (!s.tracked) { result.graph = UNSUPPORTED; result.language = s.label; }
   return result;
@@ -183,5 +202,5 @@ function censusUntracked(cwd, opts) {
 module.exports = {
   UNSUPPORTED, LABELS, NOT_EXPECTED,
   graphSupport, callGraphSupport, graphLanguageList, callGraphLanguageList,
-  importNote, callNote, unsearchedNote, markImpact, censusUntracked,
+  importNote, shortNote, callNote, unsearchedNote, markImpact, censusUntracked,
 };

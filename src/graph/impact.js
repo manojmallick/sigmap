@@ -123,7 +123,7 @@ function getImpact(changedFile, graph, opts) {
 
   // Bail gracefully if file not in graph
   if (!graph || !graph.reverse) {
-    return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 });
+    return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 }, { cwd });
   }
 
   const { direct, transitive } = bfs(absChanged, graph.reverse, depth);
@@ -149,7 +149,7 @@ function getImpact(changedFile, graph, opts) {
     tests:       tests.map(toRel),
     routes:      routes.map(toRel),
     totalImpact: direct.size + transitive.size,
-  });
+  }, { cwd });
 }
 
 /**

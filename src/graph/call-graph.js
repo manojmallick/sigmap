@@ -734,6 +734,9 @@ function buildCallGraph(cwd, opts = {}) {
   return {
     forward: toArr(forward), reverse: toArr(reverse), defs, edgeConfidence,
     scope: { roots: scopeRoots, files: files.length, dynamicLoads },
+    // The exclusions this walk used, so "what was not searched" (#979) counts
+    // the same tree. Beside `scope`, not in it: `scope` is printed in --json.
+    exclude: [...excludeSet],
   };
 }
 
@@ -779,7 +782,7 @@ function buildCallFileGraph(cwd, opts = {}) {
 // The result for a symbol the call graph does not know. `untracked` is added
 // only when the symbol is declared in a language the graph cannot read, so a
 // genuinely unknown symbol's result is the shape it always was (#979).
-function _unresolved(symbol, cwd, scope) {
+function _unresolved(symbol, cwd, scope, exclude) {
   const result = { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
   const untracked = _untrackedDeclaration(symbol, cwd);
   if (untracked) { result.untracked = untracked; return result; }
@@ -790,8 +793,7 @@ function _unresolved(symbol, cwd, scope) {
     try {
       const { censusUntracked } = require('./language-support');
       const census = censusUntracked(cwd, {
-        srcDirs: scope.roots, exts: CALL_GRAPH_EXTS,
-        exclude: ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor'],
+        srcDirs: scope.roots, exts: CALL_GRAPH_EXTS, exclude,
       });
       if (census.untracked > 0) {
         result.unsearched = { files: census.untracked, languages: census.languages.map((l) => ({ language: l.label, files: l.files })) };
@@ -850,7 +852,10 @@ function _untrackedDeclaration(symbol, cwd) {
     const { callGraphSupport } = require('./language-support');
     const hash = symbol.indexOf('#');
     if (hash !== -1) {
+      // `file#name` is only a file when one exists: `Service#save` and
+      // `com.acme.Service#save` are class-qualified names, not paths.
       const file = symbol.slice(0, hash);
+      if (!file || !fs.existsSync(path.resolve(cwd, file))) return null;
       const s = callGraphSupport(file);
       return s.tracked ? null : { language: s.label, files: [file] };
     }
@@ -882,7 +887,7 @@ function methodImpact(symbol, cwd, opts = {}) {
   const graph = opts.graph || buildCallGraph(cwd, opts);
   const ids = _resolveSymbol(symbol, graph.defs);
   const scope = graph.scope || null;
-  if (ids.length === 0) return _unresolved(symbol, cwd, scope);
+  if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
   const { direct, transitive } = _bfs(ids, graph.reverse, opts.depth || 0);
   return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
 }
@@ -913,7 +918,7 @@ function methodCallees(symbol, cwd, opts = {}) {
   const graph = opts.graph || buildCallGraph(cwd, opts);
   const ids = _resolveSymbol(symbol, graph.defs);
   const scope = graph.scope || null;
-  if (ids.length === 0) return _unresolved(symbol, cwd, scope);
+  if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
   const { direct, transitive } = _bfs(ids, graph.forward, opts.depth || 0);
   return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
 }

@@ -7891,7 +7891,9 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     // files are an ordinary layout; past a tenth of the code, it is a warning.
     try {
       const { censusUntracked, graphLanguageList } = __require('./src/graph/language-support');
-      const census = censusUntracked(cwd, { srcDirs: Array.isArray(config.srcDirs) && config.srcDirs.length ? config.srcDirs : undefined });
+      // No roots or exclusions passed: the census resolves them exactly as the
+      // graph walk does, so it counts the tree the graph would have read.
+      const census = censusUntracked(cwd);
       if (census.untracked === 0) {
         if (census.tracked > 0) add('graph', 'Import graph', 'ok', `${census.tracked} file(s) in languages it reads (${graphLanguageList()})`);
       } else {
@@ -21861,6 +21863,9 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     return {
       forward: toArr(forward), reverse: toArr(reverse), defs, edgeConfidence,
       scope: { roots: scopeRoots, files: files.length, dynamicLoads },
+      // The exclusions this walk used, so "what was not searched" (#979) counts
+      // the same tree. Beside `scope`, not in it: `scope` is printed in --json.
+      exclude: [...excludeSet],
     };
   }
 
@@ -21906,7 +21911,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   // The result for a symbol the call graph does not know. `untracked` is added
   // only when the symbol is declared in a language the graph cannot read, so a
   // genuinely unknown symbol's result is the shape it always was (#979).
-  function _unresolved(symbol, cwd, scope) {
+  function _unresolved(symbol, cwd, scope, exclude) {
     const result = { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
     const untracked = _untrackedDeclaration(symbol, cwd);
     if (untracked) { result.untracked = untracked; return result; }
@@ -21917,8 +21922,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       try {
         const { censusUntracked } = __require('./src/graph/language-support');
         const census = censusUntracked(cwd, {
-          srcDirs: scope.roots, exts: CALL_GRAPH_EXTS,
-          exclude: ['node_modules', '.git', 'dist', 'build', 'coverage', 'vendor'],
+          srcDirs: scope.roots, exts: CALL_GRAPH_EXTS, exclude,
         });
         if (census.untracked > 0) {
           result.unsearched = { files: census.untracked, languages: census.languages.map((l) => ({ language: l.label, files: l.files })) };
@@ -21977,7 +21981,10 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       const { callGraphSupport } = __require('./src/graph/language-support');
       const hash = symbol.indexOf('#');
       if (hash !== -1) {
+        // `file#name` is only a file when one exists: `Service#save` and
+        // `com.acme.Service#save` are class-qualified names, not paths.
         const file = symbol.slice(0, hash);
+        if (!file || !fs.existsSync(path.resolve(cwd, file))) return null;
         const s = callGraphSupport(file);
         return s.tracked ? null : { language: s.label, files: [file] };
       }
@@ -22009,7 +22016,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const graph = opts.graph || buildCallGraph(cwd, opts);
     const ids = _resolveSymbol(symbol, graph.defs);
     const scope = graph.scope || null;
-    if (ids.length === 0) return _unresolved(symbol, cwd, scope);
+    if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
     const { direct, transitive } = _bfs(ids, graph.reverse, opts.depth || 0);
     return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
   }
@@ -22040,7 +22047,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const graph = opts.graph || buildCallGraph(cwd, opts);
     const ids = _resolveSymbol(symbol, graph.defs);
     const scope = graph.scope || null;
-    if (ids.length === 0) return _unresolved(symbol, cwd, scope);
+    if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
     const { direct, transitive } = _bfs(ids, graph.forward, opts.depth || 0);
     return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
   }
@@ -22336,7 +22343,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
 
     // Bail gracefully if file not in graph
     if (!graph || !graph.reverse) {
-      return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 });
+      return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 }, { cwd });
     }
 
     const { direct, transitive } = bfs(absChanged, graph.reverse, depth);
@@ -22362,7 +22369,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
       tests:       tests.map(toRel),
       routes:      routes.map(toRel),
       totalImpact: direct.size + transitive.size,
-    });
+    }, { cwd });
   }
 
   /**
@@ -22509,6 +22516,8 @@ __factories["./src/graph/language-support"] = function(module, exports) {
     powershell: 'PowerShell', sql: 'SQL', graphql: 'GraphQL', terraform: 'Terraform',
     protobuf: 'Protocol Buffers', toml: 'TOML', properties: '.properties', xml: 'XML',
     markdown: 'Markdown', dockerfile: 'Dockerfile', pipeline: 'CI pipeline',
+    // Read by the import graph but not by the call graph, so a call-graph report can name them.
+    ruby: 'Ruby', elixir: 'Elixir', r: 'R',
   };
 
   /**
@@ -22572,6 +22581,16 @@ __factories["./src/graph/language-support"] = function(module, exports) {
     return `graph: ${UNSUPPORTED} — ${_subject(label)} are not tracked (the import graph reads ${graphLanguageList()}). This is not evidence that nothing depends on this file.`;
   }
 
+  /**
+   * The same answer in one short clause, for the surfaces that print a blast
+   * radius per file (diff context, PR evidence, verify-plan, `ask --with-source`,
+   * `plan`): "PHP imports are not tracked (graph: unsupported-language); not
+   * evidence that nothing depends on it".
+   */
+  function shortNote(label) {
+    return `${_subject(label)} are not tracked (graph: ${UNSUPPORTED}); not evidence that nothing depends on it`;
+  }
+
   /** The same for a symbol declared in a file the call graph cannot read. */
   function callNote(label, files) {
     const where = files && files.length ? ` in ${files.map((f) => `\`${f}\``).join(', ')}` : '';
@@ -22592,11 +22611,18 @@ __factories["./src/graph/language-support"] = function(module, exports) {
    * keeps its list, and every readable file's result is returned untouched, so
    * the output for supported languages does not change.
    *
+   * A directory is not a file in a language, so it is never marked.
+   *
    * @param {{ changed: string, totalImpact: number }} result
+   * @param {{ cwd?: string }} [opts]  with `cwd`, a path that is a directory is left alone
    * @returns {object} the same object, with `graph` and `language` added when it applies
    */
-  function markImpact(result) {
+  function markImpact(result, opts) {
     if (!result || result.totalImpact > 0) return result;
+    const cwd = opts && opts.cwd;
+    if (cwd) {
+      try { if (fs.statSync(path.resolve(cwd, result.changed)).isDirectory()) return result; } catch (_) { /* absent: judged by its extension */ }
+    }
     const s = graphSupport(result.changed);
     if (!s.tracked) { result.graph = UNSUPPORTED; result.language = s.label; }
     return result;
@@ -22660,7 +22686,7 @@ __factories["./src/graph/language-support"] = function(module, exports) {
   module.exports = {
     UNSUPPORTED, LABELS, NOT_EXPECTED,
     graphSupport, callGraphSupport, graphLanguageList, callGraphLanguageList,
-    importNote, callNote, unsearchedNote, markImpact, censusUntracked,
+    importNote, shortNote, callNote, unsearchedNote, markImpact, censusUntracked,
   };
   
 };
@@ -24994,7 +25020,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
    * `exposes-route` edges (supersets, never smaller). Result shape matches
    * getImpact() so formatImpact renders it unchanged.
    */
-  function impactView(map, relFile, depth) {
+  function impactView(map, relFile, depth, cwd) {
     const { isTestFile, isRouteFile } = __require('./src/graph/impact');
     const rel = String(relFile).replace(/\\/g, '/');
     const id = `file:${rel}`;
@@ -25047,7 +25073,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
       tests: tests.concat(extraTests.sort()),
       routes,
       totalImpact: direct.size + transitive.size,
-    });
+    }, { cwd });
   }
 
   /**
@@ -25959,7 +25985,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       const depth = Math.max(0, parseInt(args.depth, 10) || 3);
       const rel = path.isAbsolute(args.file) ? path.relative(cwd, args.file) : String(args.file);
       const map = km.loadOrBuild(cwd);
-      return formatImpact(km.impactView(map, rel, depth));
+      return formatImpact(km.impactView(map, rel, depth, cwd));
     } catch (err) {
       return `_get_impact failed: ${err.message}_`;
     }
@@ -26342,7 +26368,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
 
         out.push(`_risk: ${riskLabelFor(rel)}_`);
         const impact = impactByFile.get(rel);
-        if (impact) {
+        if (impact && impact.graph) {
+          // The import graph cannot read this file's language: say so, not "0 impacted" (#979).
+          out.push(`**Blast radius:** not tracked — ${__require('./src/graph/language-support').shortNote(impact.language)}`);
+        } else if (impact) {
           out.push(
             `**Blast radius:** ${impact.totalImpact} file(s) impacted — ` +
             `${impact.direct.length} direct importer(s), ${impact.transitive.length} transitive` +
@@ -28191,6 +28220,8 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
       try { impacts = analyzeImpact(existingFiles, cwd, {}); } catch (_) { impacts = []; }
       for (const { file, impact } of impacts) {
         const entry = { file, totalImpact: impact.totalImpact, tests: impact.tests.length };
+        // Present only when the import graph cannot read the file: a 0 here is "not tracked" (#979).
+        if (impact.graph) { entry.graph = impact.graph; entry.language = impact.language; }
         blast.push(entry);
         if (impact.totalImpact > blastThreshold) {
           issues.push({ type: 'high-blast-radius', ref: file, count: impact.totalImpact, severity: 'warn' });
@@ -30809,6 +30840,8 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
       file,
       direct: (impact && impact.direct ? impact.direct.length : 0),
       total: (impact && typeof impact.totalImpact === 'number' ? impact.totalImpact : 0),
+      // Present only when the import graph cannot read the file (#979).
+      ...(impact && impact.graph ? { graph: impact.graph, language: impact.language } : {}),
     }));
   }
 
@@ -30865,7 +30898,9 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
     if (blast.length > 0) {
       lines.push('## Blast radius', '```');
       for (const b of blast) {
-        lines.push(`${b.file}  ← ${b.direct} direct, ${b.total} total dependent file(s)`);
+        lines.push(b.graph
+          ? `${b.file}  ← not tracked: ${__require('./src/graph/language-support').shortNote(b.language)}`
+          : `${b.file}  ← ${b.direct} direct, ${b.total} total dependent file(s)`);
       }
       lines.push('```', '');
     }
@@ -30956,7 +30991,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       const km = __require('./src/map/knowledge-map');
       const map = km.loadOrBuild(cwd);
       storeTests = km.relatedTestsView(map, files.filter((f) => f.status !== 'D').map((f) => f.path));
-      impactByFile = new Map(srcPaths.map((p) => [p, km.impactView(map, p, depth)]));
+      impactByFile = new Map(srcPaths.map((p) => [p, km.impactView(map, p, depth, cwd)]));
     } catch (_) {
       try {
         const { analyzeImpact } = __require('./src/graph/impact');
@@ -30998,6 +31033,8 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
           transitive: (impact.transitive || []).length,
           tests: impact.tests || [],
           routes: impact.routes || [],
+          // Present only when the import graph cannot read the file (#979).
+          ...(impact.graph ? { graph: impact.graph, language: impact.language } : {}),
         } : null,
         relatedTests: deleted ? [] : relatedFor(f.path),
       };
@@ -31043,7 +31080,9 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       L.push(`#### \`${f.path}\`  _(${st} · risk: ${f.riskLabel})_`);
       if (f.status === 'D') { L.push('_deleted_', ''); continue; }
 
-      if (f.blast) {
+      if (f.blast && f.blast.graph) {
+        L.push(`**Blast radius:** not tracked — ${__require('./src/graph/language-support').shortNote(f.blast.language)}`);
+      } else if (f.blast) {
         L.push(
           `**Blast radius:** ${f.blast.total} file(s) impacted — ${f.blast.direct.length} direct, ${f.blast.transitive} transitive` +
           (f.blast.tests.length ? `, ${f.blast.tests.length} test(s)` : '') +
@@ -43887,8 +43926,9 @@ function main() {
       // say so instead of leaving the section out as if nothing depends on it.
       if (impact && impact.untracked && impact.untracked.length) {
         console.log('');
-        console.log(' Impact radius not tracked (graph: unsupported-language — not evidence that nothing depends on these):');
-        impact.untracked.forEach(u => console.log(`   • ${relOf(u.file)}  (${u.language} imports are not tracked)`));
+        console.log(' Impact radius not tracked:');
+        const { shortNote } = requireSourceOrBundled('./src/graph/language-support');
+        impact.untracked.forEach(u => console.log(`   • ${relOf(u.file)}  — ${shortNote(u.language)}`));
       }
       if (plan.coveredFiles.length > 0) {
         console.log('');
@@ -45676,10 +45716,20 @@ function main() {
     const introCount = s.filesIntroduced + s.symbolsIntroduced;
     console.log(`[sigmap] verify-plan — ${s.filesReferenced} file(s), ${s.symbolsReferenced} symbol(s) referenced`
       + (introCount ? `, ${introCount} introduced` : ''));
+    // #979: a referenced file the import graph cannot read has no blast radius to
+    // check; "in bounds" would be a claim about nothing.
+    const untrackedBlast = (result.blast || []).filter((b) => b.graph);
+    const printUntrackedBlast = () => {
+      if (!untrackedBlast.length) return;
+      const { shortNote } = requireSourceOrBundled('./src/graph/language-support');
+      for (const b of untrackedBlast) console.log(`  ⚠ blast radius not tracked: ${b.file} — ${shortNote(b.language)}`);
+    };
     if (result.issues.length === 0) {
+      const blastClaim = untrackedBlast.length ? 'scope in bounds' : 'blast radius and scope in bounds';
       console.log(introCount
-        ? '  ✓ plan checks out — references exist, introductions do not yet, blast radius and scope in bounds'
-        : '  ✓ plan checks out — all references exist, blast radius and scope in bounds');
+        ? `  ✓ plan checks out — references exist, introductions do not yet, ${blastClaim}`
+        : `  ✓ plan checks out — all references exist, ${blastClaim}`);
+      printUntrackedBlast();
       process.exit(0);
     }
     for (const i of result.issues) {
@@ -45690,6 +45740,7 @@ function main() {
       else if (i.type === 'high-blast-radius') console.log(`  ${mark} high blast radius: ${i.ref} → ${i.count} dependents`);
       else if (i.type === 'broad-scope') console.log(`  ${mark} broad scope: ${i.count} files (threshold ${i.threshold})`);
     }
+    printUntrackedBlast();
     console.log(`\n  ${s.errors} error(s), ${s.warnings} warning(s)`);
     process.exit(s.ok ? 0 : 1);
   }

@@ -524,7 +524,7 @@ function getImpact(args, cwd) {
     const depth = Math.max(0, parseInt(args.depth, 10) || 3);
     const rel = path.isAbsolute(args.file) ? path.relative(cwd, args.file) : String(args.file);
     const map = km.loadOrBuild(cwd);
-    return formatImpact(km.impactView(map, rel, depth));
+    return formatImpact(km.impactView(map, rel, depth, cwd));
   } catch (err) {
     return `_get_impact failed: ${err.message}_`;
   }
@@ -907,7 +907,10 @@ function getDiffContext(args, cwd) {
 
       out.push(`_risk: ${riskLabelFor(rel)}_`);
       const impact = impactByFile.get(rel);
-      if (impact) {
+      if (impact && impact.graph) {
+        // The import graph cannot read this file's language: say so, not "0 impacted" (#979).
+        out.push(`**Blast radius:** not tracked — ${require('../graph/language-support').shortNote(impact.language)}`);
+      } else if (impact) {
         out.push(
           `**Blast radius:** ${impact.totalImpact} file(s) impacted — ` +
           `${impact.direct.length} direct importer(s), ${impact.transitive.length} transitive` +
