@@ -1,13 +1,13 @@
 ---
 title: MCP server setup
-description: Set up the SigMap MCP server for Claude Code, Cursor, and Windsurf. On-demand codebase access with 22 tools over stdio. Zero npm install.
+description: Set up the SigMap MCP server for Claude Code, Codex CLI, OpenCode, Cursor, and Windsurf. On-demand codebase access with 22 tools over stdio. Zero npm install.
 head:
   - - meta
     - property: og:title
       content: "SigMap MCP Server — on-demand codebase context"
   - - meta
     - property: og:description
-      content: "Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. 22 MCP tools over stdio."
+      content: "Give Claude Code, Codex CLI, OpenCode, Cursor, and Windsurf on-demand access to your codebase signatures. 22 MCP tools over stdio."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/mcp"
@@ -16,11 +16,11 @@ head:
       content: article
   - - meta
     - name: keywords
-      content: "sigmap mcp, sigmap mcp server, claude code mcp, cursor mcp, windsurf mcp, codebase context mcp"
+      content: "sigmap mcp, sigmap mcp server, claude code mcp, codex mcp, opencode mcp, cursor mcp, windsurf mcp, codebase context mcp"
 ---
 # MCP server setup
 
-Give Claude Code, Cursor, and Windsurf on-demand access to your codebase signatures. Zero npm install.
+Give Claude Code, Codex CLI, OpenCode, Cursor, and Windsurf on-demand access to your codebase signatures. No setup-time npm install is needed.
 
 The SigMap MCP server exposes 22 tools over the stdio Model Context Protocol (all of them by default; [`mcp.tools`](#tool-profiles-core-or-all) lets a project advertise fewer). Your AI agent calls only what it needs — keeping token costs low.
 
@@ -34,31 +34,65 @@ One command detects your editor config and wires everything up automatically.
 sigmap --setup
 ```
 
-`--setup` detects `.claude/settings.json` and `.cursor/mcp.json` automatically, then adds the sigmap MCP server entry to each one it finds. It also installs a git post-commit hook and starts the file watcher.
+`--setup` detects existing MCP config files, writes each host's supported format, migrates older SigMap entries, then installs a git post-commit hook and starts the file watcher. Claude Code uses the project `.mcp.json`; Codex CLI uses `~/.codex/config.toml`; OpenCode uses `opencode.json` or `~/.config/opencode/opencode.json`.
 
 ```
-[sigmap] registered MCP server in .claude/settings.json
+[sigmap] Claude Code: registered MCP server in .mcp.json
 [sigmap] registered MCP server in .cursor/mcp.json
+[sigmap] Codex CLI: registered MCP server in ~/.codex/config.toml
+[sigmap] OpenCode: registered MCP server in opencode.json
 [sigmap] installed .git/hooks/post-commit
 [sigmap] watching for changes (Ctrl+C to stop)…
 ```
 
 ## Manual config — Claude Code
 
-Add the sigmap MCP server to your Claude Code settings file.
+Claude Code reads project MCP servers from `.mcp.json`.
 
-Use `.claude/settings.json` in your project root for project-level access, or `~/.claude/settings.json` for global access across all projects. The absolute path in `args` must point to the actual `gen-context.js` file on disk.
+`sigmap mcp install claude` writes this file and checks it with `claude mcp list` when the CLI is installed. Claude Code asks you to approve the server on first use.
+
+SigMap marks its task-oriented `query_context` tool to load upfront in Claude Code's tool search, so the first codebase question can discover the right files without requiring a separate search step.
 
 ```json
 {
   "mcpServers": {
     "sigmap": {
-      "command": "node",
-      "args": ["/absolute/path/to/your/project/gen-context.js", "--mcp"]
+      "command": "npx",
+      "args": ["-y", "sigmap", "--mcp"]
     }
   }
 }
 ```
+
+## Manual config — Codex CLI
+
+Codex CLI reads MCP server entries from `$CODEX_HOME/config.toml`, defaulting to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.sigmap]
+command = "npx"
+args = ["-y", "sigmap", "--mcp"]
+```
+
+`sigmap mcp install codex` writes this table, migrates the old SigMap entry out of `config.yaml`, and checks it with `codex mcp list` when the CLI is installed. The command honors `CODEX_HOME` when it is set.
+
+## Manual config — OpenCode
+
+OpenCode uses an `mcp` object and an array for a local server command. The project file is `opencode.json`; the global file is `~/.config/opencode/opencode.json`.
+
+```json
+{
+  "mcp": {
+    "sigmap": {
+      "type": "local",
+      "command": ["npx", "-y", "sigmap", "--mcp"],
+      "enabled": true
+    }
+  }
+}
+```
+
+`sigmap mcp install opencode` writes this shape and checks it with `opencode mcp list` when the CLI is installed.
 
 ## Manual config — Cursor
 
@@ -69,7 +103,7 @@ Add sigmap to your Cursor MCP configuration file at `.cursor/mcp.json`:
   "mcpServers": {
     "sigmap": {
       "command": "node",
-      "args": ["/absolute/path/to/your/project/gen-context.js", "--mcp"]
+      "args": ["/path/to/your/project/gen-context.js", "--mcp"]
     }
   }
 }

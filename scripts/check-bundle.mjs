@@ -57,7 +57,7 @@ export function findMissingFactories(root = ROOT) {
 /** Generate a factory block for a module key, from its source file. */
 export function generateFactory(key) {
   const file = join(ROOT, key.replace(/^\.\//, '') + '.js');
-  let body = readFileSync(file, 'utf8');
+  let body = readFileSync(file, 'utf8').replace(/\r\n?/g, '\n');
   body = body.replace(/^'use strict';\s*\n+/, '');
   const dir = dirname(key); // e.g. ./src/tracking
   // Rewrite local (./ or ../) requires to bundle __require keys.

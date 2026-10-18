@@ -78,7 +78,10 @@ let shimDir = null;
  * It is the ONLY host tool the default extraction path consults; the
  * TypeScript, LSP and SCIP tiers are opt-in and off.
  */
-export function zeroConfigEnv() {
+export function zeroConfigEnv(opts = {}) {
+  // The Python AST tier on its default path, host python3 and all (#970): only the
+  // `--python-ast` report asks for it, and what it measures is never gated or saved.
+  if (opts.pythonAst) return Object.assign({}, process.env);
   if (!shimDir) {
     shimDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-nopython-'));
     fs.writeFileSync(path.join(shimDir, 'python3'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
@@ -103,7 +106,7 @@ export function zeroConfigEnv() {
  * @param {(ctx: {dir:string, index:Map<string,string[]>}) => T} fn
  * @returns {T}
  */
-export function withZeroConfigIndex(root, repo, fn) {
+export function withZeroConfigIndex(root, repo, fn, opts = {}) {
   const dir = repoDir(root, repo.name);
   const { buildSigIndex } = require(path.join(CODE_ROOT, 'src/retrieval/ranker'));
   return withSharedRepoContext(dir, {
@@ -111,7 +114,7 @@ export function withZeroConfigIndex(root, repo, fn) {
       const cfg = path.join(dir, 'gen-context.config.json');
       if (repo.srcDirs) fs.writeFileSync(cfg, JSON.stringify({ srcDirs: repo.srcDirs }, null, 2) + '\n');
       else fs.rmSync(cfg, { force: true });
-      execFileSync(process.execPath, [path.join(CODE_ROOT, 'gen-context.js')], { cwd: dir, stdio: 'ignore', env: zeroConfigEnv() });
+      execFileSync(process.execPath, [path.join(CODE_ROOT, 'gen-context.js')], { cwd: dir, stdio: 'ignore', env: zeroConfigEnv(opts) });
     },
     measure: () => fn({ dir, index: buildSigIndex(dir) }),
   });

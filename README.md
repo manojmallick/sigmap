@@ -125,8 +125,8 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.79-main (21 repositories, including R language)
-Date      : 2026-10-17
+Benchmark : sigmap-v8.80-main (21 repositories, including R language)
+Date      : 2026-10-18
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
 Honest vs grep : 92.8% vs 40.0% grep baseline — 2.32× lift (125 tasks / 19 repos)
@@ -226,7 +226,7 @@ Use SigMap with open-source tools and fully self-hosted setups:
 | **JetBrains** | [Marketplace](https://plugins.jetbrains.com/plugin/31109-sigmap--ai-context-engine/) | [github.com/manojmallick/sigmap-jetbrains](https://github.com/manojmallick/sigmap-jetbrains) | IntelliJ IDEA, WebStorm, PyCharm, GoLand — tool window + actions |
 | **Neovim** | lazy.nvim / packer / vim-plug | [github.com/manojmallick/sigmap.nvim](https://github.com/manojmallick/sigmap.nvim) | `:SigMap`, `:SigMapQuery` float window, statusline widget |
 
-**MCP server** — 22 on-demand tools for Claude Code and Cursor:
+**MCP server** — 22 on-demand tools for Claude Code, Codex CLI, OpenCode, Cursor, and other supported clients:
 
 ```bash
 sigmap --mcp
@@ -274,12 +274,15 @@ SigMap treats coding agents as **consumers, not competitors**: it hands them a d
 | Agent | One-time setup | How it consumes SigMap |
 |---|---|---|
 | **Claude Code** | `sigmap mcp install claude` | 22 MCP tools by default (`search_signatures`, `get_lines`, `get_diff_context`, `squeeze_output`…), or the seven of the `core` profile |
+| **OpenCode** | `sigmap mcp install opencode` | Uses OpenCode's local MCP config |
 | **Cursor** | `sigmap mcp install cursor` | MCP tools, plus the `cursor` adapter writes `.cursorrules` |
 | **Cline** | `sigmap mcp install cursor` | Reads `.cursorrules`; same MCP server |
 | **Continue** | `sigmap mcp install vscode` | MCP tools inside the Continue extension |
 | **Aider** | `sigmap --adapter openai` | Reads `.github/openai-context.md` before a session |
 | **OpenHands** | `sigmap evidence "<task>"` | Consumes `.context/evidence-pack.json` directly |
 | **Codex CLI** | `sigmap mcp install codex` | MCP tools, plus the `codex` adapter writes `AGENTS.md` |
+
+Claude Code uses `.mcp.json`, Codex CLI uses `~/.codex/config.toml`, and OpenCode uses `opencode.json`. When those host CLIs are installed, `mcp install` verifies the entry with each host's `mcp list` command.
 
 ```bash
 # Pattern 1 — give the agent live, on-demand access (MCP)

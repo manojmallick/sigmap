@@ -35,6 +35,15 @@ function cleanup(dirs) {
   }
 }
 
+function runSetup(cwd, home = path.join(cwd, '.test-home')) {
+  execSync(`node "${GEN_CONTEXT}" --setup`, {
+    cwd,
+    env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_HOME: path.join(home, '.codex') },
+    encoding: 'utf8',
+    timeout: 15000,
+  });
+}
+
 console.log('\nmcp-register: MCP auto-wire tests\n');
 
 // ── Windsurf project-level ──────────────────────────────────────────────────
@@ -45,12 +54,13 @@ test('writes mcpServers.sigmap to .windsurf/mcp.json on --setup', () => {
     fs.mkdirSync(wsDir);
     fs.writeFileSync(path.join(wsDir, 'mcp.json'), JSON.stringify({}));
 
-    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+    runSetup(dir);
 
     const result = JSON.parse(fs.readFileSync(path.join(wsDir, 'mcp.json'), 'utf8'));
     assert.ok(result.mcpServers, '.windsurf/mcp.json should have mcpServers');
     assert.ok(result.mcpServers.sigmap, 'mcpServers.sigmap should be set');
     assert.strictEqual(result.mcpServers.sigmap.command, 'node');
+    assert.deepStrictEqual(result.mcpServers.sigmap.args, [path.resolve(GEN_CONTEXT), '--mcp']);
     assert.ok(Array.isArray(result.mcpServers.sigmap.args));
   } finally {
     cleanup([dir]);
@@ -64,7 +74,7 @@ test('does not duplicate Windsurf entry on repeat --setup', () => {
     fs.mkdirSync(wsDir);
     fs.writeFileSync(path.join(wsDir, 'mcp.json'), JSON.stringify({ mcpServers: { sigmap: { command: 'node', args: ['existing'] } } }));
 
-    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+    runSetup(dir);
 
     const result = JSON.parse(fs.readFileSync(path.join(wsDir, 'mcp.json'), 'utf8'));
     assert.deepStrictEqual(result.mcpServers.sigmap.args, ['existing'], 'existing entry must not be overwritten');
@@ -81,7 +91,7 @@ test('still writes mcpServers.sigmap to .cursor/mcp.json on --setup', () => {
     fs.mkdirSync(cursorDir);
     fs.writeFileSync(path.join(cursorDir, 'mcp.json'), JSON.stringify({}));
 
-    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+    runSetup(dir);
 
     const result = JSON.parse(fs.readFileSync(path.join(cursorDir, 'mcp.json'), 'utf8'));
     assert.ok(result.mcpServers?.sigmap, '.cursor/mcp.json mcpServers.sigmap must still be set');
@@ -100,12 +110,7 @@ test('writes context_servers.sigmap to zed settings when file exists', () => {
     fs.writeFileSync(path.join(zedDir, 'settings.json'), JSON.stringify({}));
 
     // Patch HOME so os.homedir() resolves to fakeHome
-    execSync(`node "${GEN_CONTEXT}" --setup`, {
-      cwd:     dir,
-      env:     { ...process.env, HOME: fakeHome },
-      encoding: 'utf8',
-      timeout: 15000,
-    });
+    runSetup(dir, fakeHome);
 
     const result = JSON.parse(fs.readFileSync(path.join(zedDir, 'settings.json'), 'utf8'));
     assert.ok(result.context_servers, 'zed settings.json should have context_servers');
@@ -127,12 +132,7 @@ test('does not duplicate Zed entry on repeat --setup', () => {
       context_servers: { sigmap: { command: { path: 'node', args: ['original'] } } },
     }));
 
-    execSync(`node "${GEN_CONTEXT}" --setup`, {
-      cwd:     dir,
-      env:     { ...process.env, HOME: fakeHome },
-      encoding: 'utf8',
-      timeout: 15000,
-    });
+    runSetup(dir, fakeHome);
 
     const result = JSON.parse(fs.readFileSync(path.join(zedDir, 'settings.json'), 'utf8'));
     assert.deepStrictEqual(result.context_servers.sigmap.command.args, ['original'], 'existing Zed entry must not be overwritten');
@@ -146,12 +146,7 @@ test('skips Zed registration when ~/.config/zed/settings.json does not exist', (
   const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-fakehome-'));
   try {
     // fakeHome has no .config/zed — should not throw
-    execSync(`node "${GEN_CONTEXT}" --setup`, {
-      cwd:     dir,
-      env:     { ...process.env, HOME: fakeHome },
-      encoding: 'utf8',
-      timeout: 15000,
-    });
+    runSetup(dir, fakeHome);
     // no assertion needed — test passes if no exception thrown
   } finally {
     cleanup([dir, fakeHome]);
@@ -164,12 +159,12 @@ test('writes mcpServers.sigmap to .mcp.json when it exists (highest priority)', 
   try {
     fs.writeFileSync(path.join(dir, '.mcp.json'), JSON.stringify({}));
 
-    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+    runSetup(dir);
 
     const result = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8'));
     assert.ok(result.mcpServers, '.mcp.json should have mcpServers');
     assert.ok(result.mcpServers.sigmap, 'mcpServers.sigmap should be set');
-    assert.strictEqual(result.mcpServers.sigmap.command, 'node');
+    assert.strictEqual(result.mcpServers.sigmap.command, 'npx');
     assert.ok(Array.isArray(result.mcpServers.sigmap.args));
   } finally {
     cleanup([dir]);
@@ -181,7 +176,7 @@ test('does not duplicate .mcp.json entry on repeat --setup', () => {
   try {
     fs.writeFileSync(path.join(dir, '.mcp.json'), JSON.stringify({ mcpServers: { sigmap: { command: 'node', args: ['existing'] } } }));
 
-    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+    runSetup(dir);
 
     const result = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8'));
     assert.deepStrictEqual(result.mcpServers.sigmap.args, ['existing'], 'existing .mcp.json entry must not be overwritten');
@@ -190,18 +185,19 @@ test('does not duplicate .mcp.json entry on repeat --setup', () => {
   }
 });
 
-test('falls back to .claude/settings.json when .mcp.json does not exist', () => {
+test('migrates a detected .claude/settings.json entry to .mcp.json', () => {
   const dir = makeTmpDir();
   try {
     const claudeDir = path.join(dir, '.claude');
     fs.mkdirSync(claudeDir);
     fs.writeFileSync(path.join(claudeDir, 'settings.json'), JSON.stringify({}));
 
-    // .mcp.json does not exist, so it should register to .claude/settings.json
-    execSync(`node "${GEN_CONTEXT}" --setup`, { cwd: dir, encoding: 'utf8', timeout: 15000 });
+    runSetup(dir);
 
-    const result = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf8'));
-    assert.ok(result.mcpServers?.sigmap, '.claude/settings.json mcpServers.sigmap must be set when .mcp.json does not exist');
+    const result = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8'));
+    assert.ok(result.mcpServers?.sigmap, '.mcp.json mcpServers.sigmap must be set');
+    const legacy = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf8'));
+    assert.ok(!legacy.mcpServers?.sigmap, 'ignored .claude/settings.json entry should be removed');
   } finally {
     cleanup([dir]);
   }

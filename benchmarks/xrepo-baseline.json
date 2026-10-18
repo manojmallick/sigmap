@@ -1,24 +1,24 @@
 {
   "overall": {
-    "tasks": 103,
-    "hits": 69,
-    "hitAt5": 0.6699029126213593,
-    "mrr": 0.4667864077669904,
-    "precisionAt5": 0.13784466019417474
+    "tasks": 128,
+    "hits": 81,
+    "hitAt5": 0.6328125,
+    "mrr": 0.4453046875000001,
+    "precisionAt5": 0.12967187499999996
   },
   "why": {
-    "hits": 69,
+    "hits": 81,
     "misses": {
-      "answer not indexed": 6,
+      "answer not indexed": 8,
       "demoted by a path penalty": 0,
       "no token in common with the question": 1,
-      "ranked 6-10": 7,
-      "ranked 11-20": 7,
-      "ranked 21-50": 7,
-      "ranked beyond 50": 6
+      "ranked 6-10": 9,
+      "ranked 11-20": 10,
+      "ranked 21-50": 11,
+      "ranked beyond 50": 8
     },
-    "reachable": 96,
-    "reachableHits": 69,
+    "reachable": 119,
+    "reachableHits": 81,
     "noTokenWords": {
       "distinctive": 0,
       "commonOnly": 0,
@@ -63,6 +63,22 @@
         "x072": null
       }
     },
+    "composer": {
+      "language": "php",
+      "tasks": 5,
+      "hits": 1,
+      "hitAt5": 0.2,
+      "mrr": 0.2,
+      "precisionAt5": 0.04,
+      "unreachable": [],
+      "ranks": {
+        "x104": null,
+        "x105": null,
+        "x106": null,
+        "x107": 1,
+        "x108": null
+      }
+    },
     "django": {
       "language": "python",
       "tasks": 5,
@@ -94,6 +110,22 @@
         "x024": null,
         "x025": 1,
         "x026": 1
+      }
+    },
+    "exposed": {
+      "language": "kotlin",
+      "tasks": 5,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.267,
+      "precisionAt5": 0.08,
+      "unreachable": [],
+      "ranks": {
+        "x119": 1,
+        "x120": 3,
+        "x121": null,
+        "x122": null,
+        "x123": null
       }
     },
     "express": {
@@ -191,6 +223,24 @@
         "x096": null,
         "x097": 1,
         "x098": null
+      }
+    },
+    "newtonsoft-json": {
+      "language": "csharp",
+      "tasks": 5,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.25,
+      "precisionAt5": 0.08,
+      "unreachable": [
+        "x110"
+      ],
+      "ranks": {
+        "x109": 4,
+        "x110": null,
+        "x111": null,
+        "x112": 1,
+        "x113": null
       }
     },
     "okhttp": {
@@ -341,6 +391,40 @@
         "x018": 3,
         "x019": null,
         "x020": 2
+      }
+    },
+    "vapor": {
+      "language": "swift",
+      "tasks": 5,
+      "hits": 5,
+      "hitAt5": 1,
+      "mrr": 0.8,
+      "precisionAt5": 0.2,
+      "unreachable": [],
+      "ranks": {
+        "x114": 1,
+        "x115": 2,
+        "x116": 1,
+        "x117": 2,
+        "x118": 1
+      }
+    },
+    "vitepress": {
+      "language": "vue_sfc",
+      "tasks": 5,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.267,
+      "precisionAt5": 0.08,
+      "unreachable": [
+        "x127"
+      ],
+      "ranks": {
+        "x124": 3,
+        "x125": 1,
+        "x126": null,
+        "x127": null,
+        "x128": null
       }
     },
     "vue-core": {

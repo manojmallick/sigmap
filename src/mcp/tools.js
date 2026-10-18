@@ -124,6 +124,7 @@ const TOOLS = [
     description:
       'Rank files for a task or question and return the top-K with signatures and ' +
       'relevance scores — far cheaper than reading all context.',
+    _meta: { 'anthropic/alwaysLoad': true },
     inputSchema: {
       type: 'object',
       properties: {

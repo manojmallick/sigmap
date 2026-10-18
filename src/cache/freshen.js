@@ -138,6 +138,8 @@ function freshen(cwd, opts = {}) {
 
     const entryCfg = entryConfig(cwd);
     const fresh = [];
+    // One python3 process for the stale Python files, not one each (#970).
+    try { require('../extractors/python').prefetch(stale.map((s) => s.f)); } catch (_) {}
     for (const { f, key } of stale) {
       try {
         const at = Date.now(); // before the read: an edit during it stays uncovered
