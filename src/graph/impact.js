@@ -12,6 +12,7 @@
 const path = require('path');
 const { buildFromCwd } = require('./builder');
 const { displayPath } = require('./path-key');
+const { markImpact, importNote, UNSUPPORTED } = require('./language-support');
 
 // Normalize paths for cross-platform consistency (same as in builder.js)
 function normalizePath(p) {
@@ -122,7 +123,7 @@ function getImpact(changedFile, graph, opts) {
 
   // Bail gracefully if file not in graph
   if (!graph || !graph.reverse) {
-    return { changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 };
+    return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 });
   }
 
   const { direct, transitive } = bfs(absChanged, graph.reverse, depth);
@@ -139,14 +140,16 @@ function getImpact(changedFile, graph, opts) {
   if (!realPaths.has(absChanged)) realPaths.set(absChanged, absChangedReal);
   const toRel = (f) => displayPath(f, cwd, realPaths);
 
-  return {
+  // An empty result for a file the graph cannot read is "not tracked", not
+  // "nothing depends on it" (#979); markImpact leaves every other result as is.
+  return markImpact({
     changed:     toRel(absChanged),
     direct:      [...direct].map(toRel),
     transitive:  [...transitive].map(toRel),
     tests:       tests.map(toRel),
     routes:      routes.map(toRel),
     totalImpact: direct.size + transitive.size,
-  };
+  });
 }
 
 /**
@@ -193,6 +196,11 @@ function formatImpact(result) {
   lines.push(`## Impact: \`${result.changed}\``);
   lines.push('');
 
+  if (result.graph === UNSUPPORTED) {
+    lines.push(`_${importNote(result.language)}_`);
+    return lines.join('\n');
+  }
+
   if (result.direct.length === 0 && result.transitive.length === 0) {
     lines.push('_No importers found via relative + aliased imports (lower bound — dynamic/computed imports are not tracked)._');
     return lines.join('\n');
@@ -235,7 +243,7 @@ function formatImpact(result) {
  * @returns {object}
  */
 function formatImpactJSON(result) {
-  return {
+  const out = {
     changed:     result.changed,
     direct:      result.direct,
     transitive:  result.transitive,
@@ -243,6 +251,10 @@ function formatImpactJSON(result) {
     routes:      result.routes,
     totalImpact: result.totalImpact,
   };
+  // Present only when the graph cannot read the file, so a readable file's
+  // JSON is the shape it always was (#979).
+  if (result.graph === UNSUPPORTED) { out.graph = result.graph; out.language = result.language; }
+  return out;
 }
 
 module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON, isTestFile, isRouteFile };

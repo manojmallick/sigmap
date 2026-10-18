@@ -342,14 +342,16 @@ function impactView(map, relFile, depth) {
   }
   const routeFiles = new Set(map.edges.filter((e) => e.kind === 'exposes-route').map((e) => strip(e.from)));
   const routes = impacted.filter((f) => isRouteFile(f) || routeFiles.has(f));
-  return {
+  // `get_impact` reads this view, not `getImpact`, so it needs the same
+  // "not tracked" marking for files whose language the import graph cannot read (#979).
+  return require('../graph/language-support').markImpact({
     changed: rel,
     direct: [...direct].map(strip),
     transitive: [...transitive].map(strip),
     tests: tests.concat(extraTests.sort()),
     routes,
     totalImpact: direct.size + transitive.size,
-  };
+  });
 }
 
 /**

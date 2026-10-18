@@ -19,6 +19,17 @@ Currently: **52 extractor modules covering 38 languages**. Counts are guarded ag
 
 All tiers are **deterministic** (same input → byte-identical output) and zero-dependency at runtime, with one qualification: the Python AST tier is deterministic *per Python version*. The interpreter decides which files parse (Django: 2,001 files on Python 3.9, 2,010 on 3.14), so a host with another Python, or none, extracts the same tree differently. The tier stays on by default, because it is the more accurate one, and the generated header names the interpreter that served it, `toolchain=python@3.9` (major.minor), as it does for the opt-in TypeScript tier; a run in which it served no file carries no label ([#970](https://github.com/manojmallick/sigmap/issues/970)). The xrepo gate still generates with `python3` shadowed, so its committed numbers do not depend on the host; `node scripts/run-xrepo-gate.mjs --python-ast` reports the Python repos on the default path beside them. There is no tree-sitter and no language server — that is a design constraint, not an accident, and it is exactly why the tiers above exist.
 
+## What the dependency graphs read
+
+Extraction covers every language in the tier table above; the two dependency graphs read fewer of them, and a file in any other language contributes no edges.
+
+| Graph | Used by | Reads |
+|-------|---------|-------|
+| **Import graph** | `--impact`, `get_impact`, the blast radius in `plan`, the ranker's neighbour boost | JavaScript/TypeScript, Python, Go, Rust, Java/Kotlin/Scala, Ruby, Elixir and R |
+| **Method-level call graph** | `--callers`, `--callees`, `get_method_impact` | JavaScript/TypeScript, Python, Java, Go, Rust, Kotlin and Scala |
+
+Everything else (PHP, C#, C/C++, Objective-C, Swift, Dart, Lua, GDScript, Vue, Svelte and Astro among them) has no edges. A blast-radius query on such a file answers `graph: unsupported-language` ("PHP imports are not tracked …") instead of "No importers found", `--json` carries `"graph": "unsupported-language"` with the language, and `--callers` on a symbol declared in one of them says where it is declared. An unknown symbol in a repo that holds unread files says how many were not searched. `sigmap doctor` counts the files the import graph cannot read, by language. None of these answers is evidence that nothing depends on the file. Extraction, ranking and `ask` are unaffected: they cover every language the extractors read.
+
 ## Truncation caps
 
 - **25 signatures per file** — files with more symbols are cut with a `… +N more signatures` notice; the least-informative entries fall off first.

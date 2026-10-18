@@ -33,6 +33,22 @@ const RB_EXTS  = new Set(['.rb', '.rake']);
 const R_EXTS   = new Set(['.r', '.R']);
 const EX_EXTS  = new Set(['.ex', '.exs']);
 
+// The languages the import graph reads, by family, and their union. The one
+// place that answers "can the graph see this file's imports" (#979): the walk
+// below, `--impact`, `get_impact`, `plan` and `doctor` all ask this list, so a
+// family added here is a family they all report as tracked.
+const GRAPH_FAMILIES = [
+  ['JavaScript/TypeScript', JS_EXTS],
+  ['Python', PY_EXTS],
+  ['Go', GO_EXTS],
+  ['Rust', RS_EXTS],
+  ['Java/Kotlin/Scala', JVM_EXTS],
+  ['Ruby', RB_EXTS],
+  ['Elixir', EX_EXTS],
+  ['R', R_EXTS],
+];
+const GRAPH_EXTS = new Set(GRAPH_FAMILIES.flatMap(([, exts]) => [...exts]));
+
 // ---------------------------------------------------------------------------
 // Per-build lookup tables
 // ---------------------------------------------------------------------------
@@ -609,11 +625,7 @@ function buildFromCwd(cwd, opts) {
         walkDir(full, depth + 1, out);
       } else if (e.isFile()) {
         const ext = path.extname(e.name).toLowerCase();
-        if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || GO_EXTS.has(ext) ||
-            RS_EXTS.has(ext) || JVM_EXTS.has(ext) || RB_EXTS.has(ext) ||
-            R_EXTS.has(ext) || EX_EXTS.has(ext)) {
-          out.push(full);
-        }
+        if (GRAPH_EXTS.has(ext)) out.push(full);
       }
     }
   }
@@ -669,4 +681,4 @@ function buildRankingGraph(cwd, opts) {
   return buildFromCwd(cwd, Object.assign({}, o, { srcDirs: configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS }));
 }
 
-module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };
+module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH, GRAPH_FAMILIES, GRAPH_EXTS };
