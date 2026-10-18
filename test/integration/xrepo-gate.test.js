@@ -374,6 +374,31 @@ const baselinePath = (data) => path.join(data, 'benchmarks/xrepo-baseline.json')
     assert.strictEqual(env.HOME, process.env.HOME, 'the rest of the environment is untouched');
   });
 
+  await test('--python-ast leaves the host python3 in place, and reports without touching the gated row or the baseline (#970)', async () => {
+    const lib = await import('../../scripts/lib/xrepo.mjs');
+    const shimmed = lib.zeroConfigEnv();
+    const open = lib.zeroConfigEnv({ pythonAst: true });
+    assert.notStrictEqual(open.PATH, shimmed.PATH, 'the open environment must not carry the shim directory');
+    assert.strictEqual(open.PATH, process.env.PATH, 'the host PATH, untouched');
+    assert.strictEqual(lib.zeroConfigEnv().PATH, shimmed.PATH, 'asking for the open environment must not disturb the shimmed one');
+
+    // A manifest entry that says \`python\` takes the report path; the fixture holds no .py file, which is enough to run it end to end.
+    const { data } = dataRoot({ entry: { language: 'python' } });
+    const plain = gate(data, ['--json']);
+    const withAst = gate(data, ['--json', '--python-ast']);
+    assert.strictEqual(withAst.status, 0, withAst.out);
+    const a = JSON.parse(plain.stdout), b = JSON.parse(withAst.stdout);
+    assert.deepStrictEqual(b.rows, a.rows, 'the gated rows must not move when the report is asked for');
+    assert.strictEqual(a.pythonAst, undefined, 'the report is opt-in');
+    assert.strictEqual(b.pythonAst.length, 1);
+    assert.strictEqual(b.pythonAst[0].repo, 'shop');
+    assert.strictEqual(b.pythonAst[0].tasks, b.rows[0].tasks);
+
+    assert.strictEqual(gate(data, ['--save', '--python-ast']).status, 0);
+    const saved = JSON.parse(fs.readFileSync(baselinePath(data), 'utf8'));
+    assert.ok(!JSON.stringify(saved).includes('pythonAst'), 'the default-path rows must never reach the baseline');
+  });
+
   for (const d of tmpDirs) fs.rmSync(d, { recursive: true, force: true });
   console.log(`\n  ${passed} passed, ${failed} failed`);
   process.exit(failed ? 1 : 0);

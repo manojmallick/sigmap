@@ -8,6 +8,7 @@
  *   node scripts/run-xrepo-gate.mjs --save                   # record the baseline
  *   node scripts/run-xrepo-gate.mjs --per-task               # per-task ranks, and what moved vs the baseline
  *   node scripts/run-xrepo-gate.mjs --why                    # why every miss misses (#674): not indexed / penalty / ranking
+ *   node scripts/run-xrepo-gate.mjs --python-ast             # also score the Python repos on the default path (#970); reported only
  *   node scripts/run-xrepo-gate.mjs --signals                # each opt-in ranking signal against plain, task by task (#703); records nothing
  *   node scripts/run-xrepo-gate.mjs --only gin,tokio --json
  *
@@ -42,6 +43,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { spawnSync } from 'child_process';
 import { band } from './lib/band.mjs';
 import { loadManifest, checkoutState, readTasks, withZeroConfigIndex, TASKS_REL, BASELINE_REL } from './lib/xrepo.mjs';
 import { staticProblems, repoProblems } from './lib/xrepo-hygiene.mjs';
@@ -70,6 +72,9 @@ const AS_JSON = has('--json');
 const PER_TASK = has('--per-task');
 const WHY = has('--why');
 const SIGNALS = has('--signals');
+// Python repos scored a second time with the host's python3 on PATH, the way a user's run extracts them. The gated row stays
+// shimmed so a committed number does not depend on which Python is installed; this one is for reading, never gated or saved.
+const PYTHON_AST = has('--python-ast');
 // A saved baseline carries the account of its misses beside the number, so the page that quotes it can be held to it.
 const NEED_WHY = WHY || SAVE;
 const ONLY = val('--only', null) ? new Set(val('--only', '').split(',')) : null;
@@ -112,7 +117,7 @@ function scoreSignals({ tasks, index, dir, graph }) {
 }
 
 /** Score one repo's tasks against its pinned, zero-config-indexed checkout. */
-function scoreRepo(repo, tasks) {
+function scoreRepo(repo, tasks, opts = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-xrepo-'));
   try {
     const file = path.join(tmp, 'tasks.jsonl');
@@ -173,13 +178,14 @@ function scoreRepo(repo, tasks) {
         }
       }
       return { row, found: found.filter((p) => p.kind !== 'unindexed') };
-    });
+    }, opts);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 }
 
 const rows = [];
+const pythonAstRows = [];
 const offPin = [];
 const absentRepos = [];
 for (const repo of manifest.repos) {
@@ -192,6 +198,10 @@ for (const repo of manifest.repos) {
   const { row, found } = scoreRepo(repo, tasks);
   rows.push(row);
   problems.push(...found);
+  if (PYTHON_AST && repo.language === 'python') {
+    const ast = scoreRepo(repo, tasks, { pythonAst: true }).row;
+    pythonAstRows.push({ repo: repo.name, tasks: row.tasks, regexHits: row.hits, astHits: ast.hits, regexMrr: row.mrr, astMrr: ast.mrr });
+  }
 }
 
 const expectedRepos = manifest.repos.filter((r) => (byRepo.get(r.name) || []).length && (!ONLY || ONLY.has(r.name))).map((r) => r.name);
@@ -218,7 +228,7 @@ const signalsReport = SIGNALS && rows.length ? {
 
 if (AS_JSON) {
   // Written whole before the exits below: with --why or --signals the document is larger than a pipe buffer.
-  writeAll(1, JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined, signals: signalsReport || undefined }, null, 2) + '\n');
+  writeAll(1, JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined, signals: signalsReport || undefined, pythonAst: PYTHON_AST ? pythonAstRows : undefined }, null, 2) + '\n');
 } else if (rows.length) {
   console.log('\n[sigmap] xrepo — labelled third-party retrieval (zero-config)\n');
   console.log('  repo                  lang              cfg      tasks   hit@5     MRR    P@5   unreachable');
@@ -237,6 +247,15 @@ if (AS_JSON) {
   console.log(`\n  floor ${pct(MIN)}  ·  ${Math.max(0, overall.hits - minHits)} task(s) of headroom${complete ? '' : '  ·  not enforced: incomplete run'}`);
   if (absentRepos.length) console.log(`  absent: ${absentRepos.join(', ')} (node scripts/fetch-xrepo-repos.mjs)`);
   if (offPin.length) console.log(`  off-pin (not scored): ${offPin.join(', ')}`);
+
+  if (pythonAstRows.length) {
+    const ver = spawnSync('python3', ['--version'], { encoding: 'utf8' });
+    const label = ver.status === 0 ? String(ver.stdout || ver.stderr).trim() : 'python3 not found';
+    console.log(`\n  Python repos on the default path (${label}) beside the shimmed row above. Reported only: not gated, not recorded, and it moves with the host's Python.\n`);
+    for (const p of pythonAstRows) {
+      console.log(`  ${p.repo.padEnd(21)} regex tier ${p.regexHits}/${p.tasks} (${pct(p.regexHits / p.tasks)}, MRR ${p.regexMrr.toFixed(3)})   AST tier ${p.astHits}/${p.tasks} (${pct(p.astHits / p.tasks)}, MRR ${p.astMrr.toFixed(3)})`);
+    }
+  }
 
   if (PER_TASK) {
     console.log('\n  per task (rank within the top 5; - = miss; U = unreachable, no expected file is in the zero-config index; * = moved vs baseline)\n');
