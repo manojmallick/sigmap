@@ -24,10 +24,13 @@ function test(name, fn) {
 
 (async () => {
   const mod = await import('url').then((u) => import(u.pathToFileURL(SCRIPT).href));
-  const { buildBundle, bundleInSync, bundledModuleKeys, START_MARKER, END_MARKER } = mod;
+  const { buildBundle, bundleInSync, bundledModuleKeys, normalizeLineEndings, START_MARKER, END_MARKER } = mod;
 
-  test('committed gen-context.js is reproducible from src/ (byte-for-byte)', () => {
-    assert.strictEqual(BUNDLE, buildBundle(ROOT));
+  test('committed gen-context.js is reproducible from src/ regardless of checkout line endings', () => {
+    const canonical = normalizeLineEndings(BUNDLE);
+    const crlf = canonical.replace(/\n/g, '\r\n');
+    assert.strictEqual(canonical, buildBundle(ROOT));
+    assert.strictEqual(normalizeLineEndings(crlf), canonical);
     assert.strictEqual(bundleInSync(ROOT), true);
   });
 
