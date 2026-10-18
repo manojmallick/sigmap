@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.79.0</span>
+  <span><strong>Release:</strong> v8.80.0</span>
   <span>·</span>
-  <span><strong>New — the third-party benchmark reaches Ruby and C/C++:</strong> <code>xrepo</code> is now 103 questions over 20 repositories — Rails, Sidekiq, libuv and spdlog were added, each labelled before SigMap ran on it — and reads 69 of 103 (67.0%, 95% interval 57.4–75.3%) where it read 59 of 83. The 16 original repositories score exactly what they did, and four of the five Rails answers are not in the zero-config index, which is recorded and not hidden. Nothing the package ships changed.</span>
+  <span><strong>New — Python extraction no longer starts a process per file:</strong> Django's first run falls from 182 s to 5 s with byte-identical output, and the generated header names the Python that served it (<code>toolchain=python@3.9</code>). MCP setup now writes the config files Claude Code, Codex CLI and OpenCode actually read (from an external contributor). And the third-party benchmark <code>xrepo</code> grew to 128 questions over 25 repositories — PHP, C#, Swift, Kotlin and Vue were added, each labelled before SigMap ran on it — and reads 81 of 128 (63.3%, 95% interval 54.7–71.1%) where it read 69 of 103; the 20 earlier repositories score exactly what they did.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.79-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.80-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-17</span>
+  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-18</span>
 </div>
 </div>
 
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-17 (v8.79.0)**.
+Latest saved benchmark run: **2026-10-18 (v8.80.0)**.
 
 </div>
 
