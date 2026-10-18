@@ -1,0 +1,24 @@
+name: MCP host compatibility
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-readers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install current host CLIs
+        run: npm install --global @anthropic-ai/claude-code @openai/codex opencode-ai
+      - name: Verify each host reads its generated SigMap config
+        env:
+          SIGMAP_REQUIRE_HOST_CLIS: '1'
+        run: node test/integration/mcp/host-readers.test.js

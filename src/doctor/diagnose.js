@@ -52,19 +52,18 @@ function _contextFiles(cwd) {
   return out;
 }
 
-function _mcpTargets(cwd) {
+function _mcpTargets(cwd, home = os.homedir(), codexHome = path.join(home, '.codex')) {
   return [
     path.join(cwd, '.mcp.json'),
-    path.join(cwd, '.claude', 'settings.json'),
     path.join(cwd, '.cursor', 'mcp.json'),
     path.join(cwd, '.windsurf', 'mcp.json'),
     path.join(cwd, '.vscode', 'mcp.json'),
     path.join(cwd, 'opencode.json'),
-    path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json'),
-    path.join(os.homedir(), '.config', 'opencode', 'config.json'),
-    path.join(os.homedir(), '.gemini', 'settings.json'),
-    path.join(os.homedir(), '.codex', 'config.yaml'),
-    path.join(os.homedir(), '.config', 'zed', 'settings.json'),
+    path.join(home, '.codeium', 'windsurf', 'mcp_config.json'),
+    path.join(home, '.config', 'opencode', 'opencode.json'),
+    path.join(home, '.gemini', 'settings.json'),
+    path.join(codexHome, 'config.toml'),
+    path.join(home, '.config', 'zed', 'settings.json'),
   ];
 }
 
@@ -292,7 +291,10 @@ function diagnose(cwd, opts = {}) {
   // 8. MCP wiring
   try {
     let wired = null;
-    for (const t of _mcpTargets(cwd)) {
+    const home = opts.home || os.homedir();
+    const env = opts.env || process.env;
+    const codexHome = path.resolve(cwd, opts.codexHome || env.CODEX_HOME || path.join(home, '.codex'));
+    for (const t of _mcpTargets(cwd, home, codexHome)) {
       try {
         if (!fs.existsSync(t)) continue;
         if (/sigmap/.test(fs.readFileSync(t, 'utf8'))) { wired = t; break; }

@@ -194,6 +194,15 @@ test('no config at all: tools/list is exactly TOOLS — nothing filtered, reorde
   withProject(undefined, (dir) => assert.deepStrictEqual(listTools(dir), JSON.parse(JSON.stringify(TOOLS))));
 });
 
+test('tools/list marks only query_context for Claude Code upfront loading', () => {
+  withProject(undefined, (dir) => {
+    const marked = listTools(dir)
+      .filter((tool) => tool._meta?.['anthropic/alwaysLoad'])
+      .map((tool) => tool.name);
+    assert.deepStrictEqual(marked, ['query_context']);
+  });
+});
+
 test('a config without mcp.tools changes nothing', () => {
   withProject({ maxTokens: 5000, mcp: { autoRegister: true } }, (dir) => {
     assert.deepStrictEqual(listTools(dir), JSON.parse(JSON.stringify(TOOLS)));
@@ -439,16 +448,18 @@ test('every tool still says what it does, and every parameter is described', () 
   }
 });
 
-/** Every `description` string removed, at any depth: what is left is the contract a client validates against. */
+/** Descriptions and host-specific metadata removed: what is left is the tool schema contract. */
 function stripDescriptions(node) {
   if (Array.isArray(node)) return node.map(stripDescriptions);
   if (node && typeof node === 'object') {
-    return Object.fromEntries(Object.entries(node).filter(([k]) => k !== 'description').map(([k, v]) => [k, stripDescriptions(v)]));
+    return Object.fromEntries(Object.entries(node)
+      .filter(([k]) => k !== 'description' && k !== '_meta')
+      .map(([k, v]) => [k, stripDescriptions(v)]));
   }
   return node;
 }
 
-test('the whole tool contract is the one v8.77.2 shipped: only the wording of descriptions moved', () => {
+test('the tool schema contract is the one v8.77.2 shipped', () => {
   // Names, order, parameter names/types/enums/items and `required` for all 22 tools, hashed.
   // Computed from `git show v8.77.2:src/mcp/tools.js` and from the reworded file: equal. If a
   // change to a schema is intended, update this fingerprint in the same commit — that is the point.

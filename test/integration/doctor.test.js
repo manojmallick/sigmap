@@ -90,6 +90,50 @@ test('diagnose passes context + index on a seeded project', () => {
   });
 });
 
+test('diagnose recognizes the host-specific OpenCode and Codex config files', () => {
+  withTempProject((dir) => {
+    seedHealthy(dir);
+    fs.writeFileSync(path.join(dir, 'opencode.json'), JSON.stringify({ mcp: { sigmap: { type: 'local' } } }));
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'cf-doctor-home-'));
+    const codexDir = path.join(home, 'custom-codex-home');
+    const codexConfig = path.join(codexDir, 'config.toml');
+    try {
+      fs.mkdirSync(codexDir, { recursive: true });
+      fs.writeFileSync(codexConfig, '[mcp_servers.sigmap]\ncommand = "npx"\n');
+      const detail = diagnose(dir, { home }).checks.find((check) => check.id === 'mcp').detail;
+      assert.ok(/opencode\.json/.test(detail), 'project OpenCode config should be recognized first');
+      fs.rmSync(path.join(dir, 'opencode.json'));
+      const codexDetail = diagnose(dir, { home, env: { CODEX_HOME: codexDir } }).checks.find((check) => check.id === 'mcp').detail;
+      assert.ok(codexDetail.includes(path.join('custom-codex-home', 'config.toml')), 'custom CODEX_HOME TOML config should be recognized');
+    } finally {
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+test('diagnose does not treat ignored legacy MCP paths as active configs', () => {
+  withTempProject((dir) => {
+    seedHealthy(dir);
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'cf-doctor-legacy-home-'));
+    try {
+      const claudeDir = path.join(dir, '.claude');
+      const codexDir = path.join(home, '.codex');
+      const openCodeDir = path.join(home, '.config', 'opencode');
+      fs.mkdirSync(claudeDir, { recursive: true });
+      fs.mkdirSync(codexDir, { recursive: true });
+      fs.mkdirSync(openCodeDir, { recursive: true });
+      fs.writeFileSync(path.join(claudeDir, 'settings.json'), '{"mcpServers":{"sigmap":{}}}');
+      fs.writeFileSync(path.join(codexDir, 'config.yaml'), 'mcpServers:\n  sigmap: {}\n');
+      fs.writeFileSync(path.join(openCodeDir, 'config.json'), '{"mcpServers":{"sigmap":{}}}');
+      const check = diagnose(dir, { home }).checks.find((item) => item.id === 'mcp');
+      assert.strictEqual(check.status, 'warn');
+      assert.ok(/not registered/.test(check.detail));
+    } finally {
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
 test('diagnose flags invalid gen-context.config.json', () => {
   withTempProject((dir) => {
     fs.writeFileSync(path.join(dir, 'gen-context.config.json'), '{ not valid json ');
