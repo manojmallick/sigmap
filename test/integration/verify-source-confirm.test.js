@@ -13,7 +13,7 @@
  *    4. excluded trees, minified/generated files, unsupported languages, oversized files
  *    5. order and budget: indexed files first, a sorted walk, a byte/file cap, no clock
  *   Guard (verify), through a real generated index
- *    6. #910: a real symbol past the 25-signature cap is not flagged; an invented one is
+ *    6. #910: a real symbol past the index limit (200 since #982, 25 before) is not flagged; an invented one is
  *    7. a real symbol outside the indexed roots, and one the extractor does not list
  *    8. a name only a comment or a string mentions stays flagged
  *    9. a caller-supplied symbol set is the whole truth; the lookup is injectable and
@@ -75,7 +75,7 @@ function index(dir) {
 const confirmed = (dir, names, opts) => [...sc.confirmSymbols(dir, names, opts).confirmed.keys()].sort();
 const flagged = (result) => result.issues.filter((i) => i.type === 'fake-symbol').map((i) => i.value);
 const answer = (...calls) => 'See ' + calls.map((c) => '`' + c + '`').join(' and ') + '.';
-/** `def handler_00(a)` … — a Python file with `n` functions, far past the 25-signature cap. */
+/** `def handler_00(a)` … — a Python file with `n` functions; 260 is past the index's 200 (the 25 was the context file's, #982). */
 const bigPy = (n) => Array.from({ length: n }, (_, i) => `def handler_${String(i).padStart(2, '0')}(a):\n    return a\n`).join('\n');
 
 // ── 1. Forms, by language family ─────────────────────────────────────────────
@@ -285,11 +285,11 @@ test('a 3,000-file repository is scanned within a loose bound, counters determin
 
 // ── 5. verify, through a real index ──────────────────────────────────────────
 
-test('#910: a real symbol past the 25-signature cap is not flagged; an invented one is', () => {
-  const dir = index(repo({ 'src/models.py': bigPy(40) }));
-  const text = answer('handler_35(a)', 'handler_36(a)', 'handler_9x(a)');
+test('#910: a real symbol past the index limit is not flagged; an invented one is', () => {
+  const dir = index(repo({ 'src/models.py': bigPy(260) }));
+  const text = answer('handler_235(a)', 'handler_236(a)', 'handler_9x(a)');
   const before = verify(text, dir, { sourceConfirm: false });
-  assert.deepStrictEqual(flagged(before).sort(), ['handler_35', 'handler_36', 'handler_9x'],
+  assert.deepStrictEqual(flagged(before).sort(), ['handler_235', 'handler_236', 'handler_9x'],
     'the index really lacks the symbols past the cut — otherwise this test proves nothing');
   const after = verify(text, dir);
   assert.deepStrictEqual(flagged(after), ['handler_9x']);
@@ -318,17 +318,17 @@ test('a name only a comment or a string mentions stays flagged', () => {
 });
 
 test('a caller-supplied symbol set is the whole truth; the lookup is injectable and only runs for names that would be flagged', () => {
-  const dir = index(repo({ 'src/models.py': bigPy(40), 'examples/x.py': 'def in_examples(): pass\n' }));
-  const text = answer('in_examples()', 'handler_35(a)');
+  const dir = index(repo({ 'src/models.py': bigPy(260), 'examples/x.py': 'def in_examples(): pass\n' }));
+  const text = answer('in_examples()', 'handler_235(a)');
   // Hermetic: with its own set the caller's answer stands — nothing is scanned.
-  assert.deepStrictEqual(flagged(verify(text, dir, { symbolSet: new Set(['other']) })).sort(), ['handler_35', 'in_examples']);
+  assert.deepStrictEqual(flagged(verify(text, dir, { symbolSet: new Set(['other']) })).sort(), ['handler_235', 'in_examples']);
   // Injectable: called once, with the unique names that would be flagged.
   const calls = [];
   const r = verify(text + '\n\nAnd `in_examples()` once more, on another line.', dir, {
     confirmSymbols: (names) => { calls.push(names); return new Set(['in_examples']); },
   });
-  assert.deepStrictEqual(calls, [['in_examples', 'handler_35']]);
-  assert.deepStrictEqual(flagged(r), ['handler_35']);
+  assert.deepStrictEqual(calls, [['in_examples', 'handler_235']]);
+  assert.deepStrictEqual(flagged(r), ['handler_235']);
   // Never called when nothing would be flagged.
   const never = [];
   verify(answer('handler_01(a)'), dir, { confirmSymbols: (n) => { never.push(n); return new Set(); } });
@@ -346,46 +346,46 @@ test('an installed-library or global name is still handled before the source is 
 // ── 6. verify-plan ───────────────────────────────────────────────────────────
 
 test('verify-plan: a referenced real symbol outside the index is no longer an unknown-symbol error', () => {
-  const dir = index(repo({ 'src/models.py': bigPy(40) }));
-  const plan = '# Plan\n\nReuse `handler_35(a)` and `handler_9x(a)`.\n';
+  const dir = index(repo({ 'src/models.py': bigPy(260) }));
+  const plan = '# Plan\n\nReuse `handler_235(a)` and `handler_9x(a)`.\n';
   const issues = (r) => r.issues.filter((i) => i.type === 'unknown-symbol').map((i) => i.ref);
-  assert.deepStrictEqual(issues(verifyPlan(plan, dir, { confirmSymbols: () => new Set() })).sort(), ['handler_35', 'handler_9x']);
+  assert.deepStrictEqual(issues(verifyPlan(plan, dir, { confirmSymbols: () => new Set() })).sort(), ['handler_235', 'handler_9x']);
   const r = verifyPlan(plan, dir);
   assert.deepStrictEqual(issues(r), ['handler_9x']);
   assert.strictEqual(r.summary.errors, 1);
   // One lookup, for the unique names the index lacks — never for an indexed one.
   const calls = [];
-  verifyPlan(plan + '\nAgain `handler_35(a)` and `handler_01(a)`.\n', dir, { confirmSymbols: (n) => { calls.push(n); return new Set(); } });
-  assert.deepStrictEqual(calls, [['handler_35', 'handler_9x']]);
+  verifyPlan(plan + '\nAgain `handler_235(a)` and `handler_01(a)`.\n', dir, { confirmSymbols: (n) => { calls.push(n); return new Set(); } });
+  assert.deepStrictEqual(calls, [['handler_235', 'handler_9x']]);
 });
 
 test('verify-plan: the redefinition guard is unchanged — a name introduced past the cut is still not caught', () => {
-  const dir = index(repo({ 'src/models.py': bigPy(40) }));
-  const r = verifyPlan('# Plan\n\nCreates: handler_35\n', dir);
+  const dir = index(repo({ 'src/models.py': bigPy(260) }));
+  const r = verifyPlan('# Plan\n\nCreates: handler_235\n', dir);
   assert.strictEqual(r.introduces[0].exists, false, 'widening the redefinition guard is a separate, false-negative-direction change');
 });
 
 // ── 7. judge and CLI ─────────────────────────────────────────────────────────
 
 test('judge: a correct answer citing a symbol past the cut is grounded through the repo', () => {
-  const dir = index(repo({ 'src/models.py': bigPy(40) }));
+  const dir = index(repo({ 'src/models.py': bigPy(260) }));
   const context = fs.readFileSync(resolveContextFile(dir), 'utf8');
-  assert.ok(!context.includes('handler_35'), 'the context never quotes it');
-  const g = claimGrounding(answer('handler_35(a)', 'handler_9x(a)'), context, { cwd: dir });
+  assert.ok(!context.includes('handler_235'), 'the context never quotes it');
+  const g = claimGrounding(answer('handler_235(a)', 'handler_9x(a)'), context, { cwd: dir });
   const by = Object.fromEntries(g.checked.map((c) => [c.value, c]));
-  assert.strictEqual(by.handler_35.grounded, true);
-  assert.strictEqual(by.handler_35.via, 'repo');
+  assert.strictEqual(by.handler_235.grounded, true);
+  assert.strictEqual(by.handler_235.via, 'repo');
   assert.strictEqual(by.handler_9x.grounded, false);
 });
 
 test('CLI: `verify` exits 0 for a real symbol past the cut and 1 for an invented one', () => {
-  const dir = index(repo({ 'src/models.py': bigPy(40) }));
+  const dir = index(repo({ 'src/models.py': bigPy(260) }));
   const run = (text) => {
     const f = path.join(dir, 'answer.md');
     fs.writeFileSync(f, text);
     return spawnSync(process.execPath, [SCRIPT, 'verify', f], { cwd: dir, encoding: 'utf8' });
   };
-  assert.strictEqual(run(answer('handler_35(a)')).status, 0);
+  assert.strictEqual(run(answer('handler_235(a)')).status, 0);
   const bad = run(answer('handler_9x(a)'));
   assert.strictEqual(bad.status, 1);
   assert.ok(/handler_9x/.test(bad.stdout + bad.stderr));

@@ -74,6 +74,7 @@ test('README carries the tier label and links KNOWN_LIMITATIONS.md', () => {
   assert.ok(README.includes('### Extraction honesty'), 'README tier-label section missing');
   assert.ok(README.includes('](KNOWN_LIMITATIONS.md)'), 'README link to KNOWN_LIMITATIONS.md missing');
   assert.ok(/25 signatures\/file/.test(README), 'README caps summary missing');
+  assert.ok(/up to 200 in the retrieval index/.test(README) && /120 members\/class/.test(README), 'README caps summary is stale');
 });
 
 console.log(`\n  known-limitations: ${pass} passed, ${fail} failed`);
