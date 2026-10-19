@@ -64,6 +64,8 @@ Rails (`f9243af`: `actionpack`, `activerecord`, `activesupport`) and Sidekiq (`1
 - The extractor row reproduces the [#981](https://github.com/manojmallick/sigmap/issues/981) figures (944 of 944 classes, 1,467 of 1,467 modules, 7,196 of 7,292 methods, 7,291 of 7,292 under the right owner).
 - **The index holds 298 of the 757 files, and that is a coverage gap, not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 34.4% / 30.3% / 28.1% / 28.0%.
 
+On the CI runner (Ruby 3.2.3, which parses 833 of the same files) the extractor scores 100.0% / 100.0% / 98.5% / 99.3% and the index, over the 331 files it holds, 87.1% / 98.4% / 82.7% / 80.6%. The floors for Ruby 3 are recorded from that run, which is why the saved report, made on Ruby 2.6, differs from it.
+
 ## Not measured
 
 A language is measured only where a reference parser can be run on the machine that runs the benchmark. These 36 have no adapter yet and are listed rather than left out: astro, cpp, csharp, css, dart, dockerfile, elixir, gdscript, go, graphql, html, java, javascript, kotlin, lua, markdown, objc, php, pipeline, powershell, properties, protobuf, r, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue_sfc, xml, yaml. The report lists them under `unmeasured`.
@@ -88,6 +90,6 @@ npm run validate:extraction-recall          # the gate CI runs
 
 `benchmarks/extraction-recall-floors.json` holds a floor per population and kind. Each is the recall measured on the recorded version, rounded down to a whole point, less one point (100.0 becomes 99), so a floor trips on a real loss and not on a rounding. `npm run validate:extraction-recall` exits 1 below a floor.
 
-A floor is a promise about one reference parser. A different version parses a different set of files, so a run is compared only with the floors recorded for its own version, by version prefix. On any other version the numbers are printed with "floors not enforced". The Python floors apply to any CPython 3 (checked on 3.9, 3.11 and 3.14); the Ruby floors apply to Ruby 2.6.
+A floor is a promise about one reference parser. A different version parses a different set of files, so a run is compared only with the floors recorded for its own version, by version prefix. On any other version the numbers are printed with "floors not enforced". The Python floors apply to any CPython 3 (checked on 3.9, 3.11, 3.12 and 3.14). The Ruby floors are recorded twice: for Ruby 2.6 (the local reference) and for Ruby 3, from 3.2.3, the version on the CI runner. CI passes `--require-reference`, so a runner whose Python or Ruby no floor covers fails the job instead of passing without checking; the remedy is to record floors for that version.
 
 A floor is raised in the change that raises the recall and is never lowered to land a change.

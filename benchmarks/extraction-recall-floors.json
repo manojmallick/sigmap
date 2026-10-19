@@ -68,6 +68,45 @@
               "owner": 87
             }
           }
+        },
+        {
+          "match": "3.",
+          "measuredWith": {
+            "version": "3.2.3",
+            "pins": {
+              "rails": "f9243af",
+              "sidekiq": "132f982"
+            },
+            "source": "the xrepo job of CI run 39221799594 (ubuntu-latest, 833 files; the index holds 331)",
+            "recorded": {
+              "extractor": {
+                "class": 100,
+                "module": 100,
+                "method": 98.5,
+                "owner": 99.3
+              },
+              "index": {
+                "class": 87.1,
+                "module": 98.4,
+                "method": 82.7,
+                "owner": 80.6
+              }
+            }
+          },
+          "floors": {
+            "extractor": {
+              "class": 99,
+              "module": 99,
+              "method": 97,
+              "owner": 98
+            },
+            "index": {
+              "class": 86,
+              "module": 97,
+              "method": 81,
+              "owner": 79
+            }
+          }
         }
       ]
     }

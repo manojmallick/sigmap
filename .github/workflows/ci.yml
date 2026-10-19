@@ -71,7 +71,8 @@ jobs:
         run: npm run validate:xrepo -- --require-repos
       # Extraction recall against each language's own parser (CPython ast, Ruby Ripper),
       # on the same pinned clones (#983). The interpreters are the runner's own; a floor is
-      # compared only with a run on the version it was recorded for, so a run on any other
-      # version prints its numbers and says the floors were not enforced.
+      # compared only with a run on the version it was recorded for. --require-reference makes
+      # a runner whose Python or Ruby no recorded floor covers (or that lacks one) fail loudly
+      # instead of passing without checking anything: record floors for the new version.
       - name: Extraction recall (floors against the reference parsers)
-        run: npm run validate:extraction-recall
+        run: npm run validate:extraction-recall -- --require-reference

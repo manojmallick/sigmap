@@ -364,6 +364,26 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     }
   });
 
+  await test('every floor is the recorded recall rounded down less one point: tight enough to trip on a loss, never above what was measured', () => {
+    const floorOf = (x) => (x >= 100 ? 99 : Math.floor(x) - 1);
+    for (const [name, spec] of Object.entries(floorsFile.languages)) {
+      for (const ref of spec.references) {
+        for (const [pop, kinds] of Object.entries(ref.floors)) {
+          for (const [kind, floor] of Object.entries(kinds)) {
+            const where = `${name}/${ref.match}/${pop}/${kind}`;
+            if (ref.measuredWith.recorded) {
+              assert.strictEqual(floor, floorOf(ref.measuredWith.recorded[pop][kind]), where);
+            } else if (report.languages[name].reference.version.startsWith(ref.match)) {
+              const recall = report.languages[name].populations[pop].rows.find((r) => r.kind === kind).recall;
+              // several interpreters were checked for a prefix: the floor is the lowest of them
+              assert.ok(floor <= floorOf(recall) && floor >= floorOf(recall) - 1, `${where}: ${floor} for a recall of ${recall}`);
+            }
+          }
+        }
+      }
+    }
+  });
+
   await test('the docs page publishes the numbers of the saved report, and the language table links to it', () => {
     const page = fs.readFileSync(path.join(ROOT, 'docs-vp/guide/extraction-recall.md'), 'utf8');
     const cellsOf = (label) => {
@@ -412,7 +432,7 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     const next = job.slice(1).search(/\n  [a-z][\w-]*:\n/);
     const body = next === -1 ? job : job.slice(0, next + 1);
     assert.ok(body.includes('node scripts/fetch-xrepo-repos.mjs'), 'the xrepo job does not fetch the clones');
-    assert.ok(/npm run validate:extraction-recall/.test(body), 'the xrepo job does not run the recall gate');
+    assert.ok(/npm run validate:extraction-recall -- --require-reference/.test(body), 'the xrepo job does not run the recall gate with --require-reference');
   });
 
   for (const d of tmpDirs) fs.rmSync(d, { recursive: true, force: true });
