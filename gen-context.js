@@ -7499,6 +7499,10 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
   // Below it, a couple of root entrypoints outside srcDirs is an ordinary layout.
   const OUTSIDE_WARN_SHARE = 0.10;
 
+  // Share of code files in languages the import graph cannot read that turns its
+  // report into a warning (#979). Below it, a few files is an ordinary layout.
+  const UNTRACKED_WARN_SHARE = 0.10;
+
   function _short(p, cwd) {
     const rel = path.relative(cwd, p);
     return rel && !rel.startsWith('..') ? rel : p.replace(os.homedir(), '~');
@@ -7878,6 +7882,27 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
           add('context-git', 'Local state in git', 'warn', '.context/ is not ignored — `git add .` would commit it',
             'run: sigmap   (writes .context/.gitignore), or add ".context/" to your .gitignore');
         }
+      }
+    } catch (_) {}
+
+    // 12. Import-graph reach (#979). The graph reads eight language families; a
+    // file in any other language has no edges, so --impact / get_impact answer
+    // "not tracked" for it. Say so here, before a query reaches it. A few stray
+    // files are an ordinary layout; past a tenth of the code, it is a warning.
+    try {
+      const { censusUntracked, graphLanguageList } = __require('./src/graph/language-support');
+      // No roots or exclusions passed: the census resolves them exactly as the
+      // graph walk does, so it counts the tree the graph would have read.
+      const census = censusUntracked(cwd);
+      if (census.untracked === 0) {
+        if (census.tracked > 0) add('graph', 'Import graph', 'ok', `${census.tracked} file(s) in languages it reads (${graphLanguageList()})`);
+      } else {
+        const list = census.languages.slice(0, 6).map((l) => `${l.label} ${l.files}`).join(', ')
+          + (census.languages.length > 6 ? `, +${census.languages.length - 6} more` : '');
+        const share = census.untracked / (census.untracked + census.tracked);
+        add('graph', 'Import graph', share < UNTRACKED_WARN_SHARE ? 'ok' : 'warn',
+          `${census.tracked} file(s) readable; ${census.untracked} in languages it does not read (${list}) — --impact and get_impact report these as "not tracked", not as having no dependents`,
+          share < UNTRACKED_WARN_SHARE ? null : `the import graph reads ${graphLanguageList()} only; signatures, ranking and ask still cover every language`);
       }
     } catch (_) {}
 
@@ -15727,52 +15752,352 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
 
   /**
    * Extract signatures from Ruby source code.
+   *
+   * Classes and modules are found at any indentation and listed by the name the
+   * source gives them (`class BadRequest`, not `ActionController::BadRequest`:
+   * the symbol lookups downstream read the name after `class`, as they do for
+   * the Python and Java extractors); every `def` is listed under the innermost
+   * class or module that owns it (#981). Two classes of one name in different
+   * namespaces stay two entries. Ownership comes from block depth: the source is
+   * masked (comments, strings, heredocs, regexps, %-literals) and `end` is
+   * matched against the keywords that open a block.
+   *
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
   function extract(src) {
     if (!src || typeof src !== 'string') return [];
+
+    const { plain, code } = maskRuby(src);
+    const owners = scanOwners(plain, code);
+
     const sigs = [];
-
-    // Length- AND newline-preserving: a deleting strip would desynchronise the
-    // offsets the balanced reader walks (#695).
-    const stripped = src.replace(/#[^\n]*/g, (m) => ' '.repeat(m.length));
-    const masked = stripped.replace(/(['"])(?:\\.|(?!\1)[^\\\n])*\1/g,
-      (m) => m[0] + ' '.repeat(Math.max(0, m.length - 2)) + m[0]);
-
-    // Modules and classes
-    for (const m of stripped.matchAll(/^(?:module|class)\s+([\w:]+)(?:\s*<\s*[\w:]+)?\s*$/gm)) {
-      const kind = m[0].trimStart().startsWith('module') ? 'module' : 'class';
-      sigs.push(`${kind} ${m[1]}`);
+    for (const o of owners) {
+      if (o.kind) sigs.push(`${o.kind} ${o.name}`);
+      for (const m of o.members) sigs.push(m);
     }
-
-    // Public methods (not private/protected)
-    for (const m of stripped.matchAll(/^[ \t]+def\s+(?:self\.)?(\w+)(\s*\()?/gm)) {
-      if (m[1].startsWith('_')) continue;
-      const pr = m[2] ? readParams(stripped, masked, m.index + m[0].length - 1) : null;
-      const params = pr ? `(${normalizeParams(pr.params)})` : '';
-      const selfPrefix = m[0].includes('self.') ? 'self.' : '';
-      const retStr = extractReturnHint(stripped, m.index);
-      sigs.push(`  def ${selfPrefix}${m[1]}${params}${retStr}`);
-    }
-
-    // Top-level def
-    for (const m of stripped.matchAll(/^def\s+(\w+)(\s*\()?/gm)) {
-      if (m[1].startsWith('_')) continue;
-      const pr = m[2] ? readParams(stripped, masked, m.index + m[0].length - 1) : null;
-      const params = pr ? `(${normalizeParams(pr.params)})` : '';
-      const retStr = extractReturnHint(stripped, m.index);
-      sigs.push(`def ${m[1]}${params}${retStr}`);
-    }
-
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
-  /** Balanced parameter read — `\(([^)]*)\)` truncated at a nested `)` (#695). */
-  function readParams(stripped, masked, openIdx) {
-    const close = readBalanced(masked, openIdx);
-    if (close < 0) return null;
-    return { params: stripped.slice(openIdx + 1, close), close };
+  // ── Masking ──────────────────────────────────────────────────────────────────
+
+  const OPEN_FOR = { '(': ')', '[': ']', '{': '}', '<': '>' };
+
+  /**
+   * Length- AND newline-preserving masks (a deleting strip would desynchronise
+   * the offsets the balanced reader walks, #695).
+   *
+   * `plain` has comments blanked and strings kept: the text parameters are read
+   * from. `code` also blanks string, heredoc, regexp and %-literal contents and
+   * `=begin`/`=end` blocks, so every keyword left in it is structural.
+   */
+  function maskRuby(src) {
+    const n = src.length;
+    const plain = src.split('');
+    const code = src.split('');
+    const blank = (arr, from, to) => { for (let k = from; k < to && k < n; k++) if (arr[k] !== '\n') arr[k] = ' '; };
+    const blankBoth = (from, to) => { blank(plain, from, to); blank(code, from, to); };
+    const lineEnd = (from) => { const e = src.indexOf('\n', from); return e === -1 ? n : e; };
+
+    // The last non-blank character of `code` before `i`, and the word it ends
+    // with, to tell a value position (`x = /re/`) from an operator (`a / b`).
+    const prevSig = (i) => {
+      let k = i - 1;
+      while (k >= 0 && (code[k] === ' ' || code[k] === '\t')) k--;
+      if (k < 0 || code[k] === '\n') return { ch: '', word: '', gap: false };
+      let w = k;
+      while (w >= 0 && /\w/.test(code[w])) w--;
+      return { ch: code[k], word: code.slice(w + 1, k + 1).join(''), gap: k < i - 1 };
+    };
+    const VALUE_AFTER = new Set(['=', '(', ',', '[', '{', ';', ':', '!', '&', '|', '?', '~', '+', '-', '*', '<', '>', '^', '%', '']);
+    const VALUE_WORDS = new Set(['when', 'if', 'unless', 'and', 'or', 'not', 'return', 'then', 'elsif', 'while', 'until', 'puts', 'in', 'case']);
+    const inValuePosition = (i) => {
+      const p = prevSig(i);
+      return VALUE_AFTER.has(p.ch) || VALUE_WORDS.has(p.word);
+    };
+
+    // Double-quoted (and backtick) strings: `#{...}` may nest quotes and braces.
+    const skipInterp = (i) => {
+      let depth = 1;
+      while (i < n && depth > 0) {
+        const c = src[i];
+        if (c === '$' && /[^\w\s]/.test(src[i + 1] || ' ')) { i += 2; continue; } // $` $' $" are globals
+        if (c === '{') depth++;
+        else if (c === '}') depth--;
+        else if (c === '"' || c === '`') { i = skipDq(i + 1, c); continue; }
+        else if (c === "'") { i = skipSq(i + 1); continue; }
+        i++;
+      }
+      return i;
+    };
+    const skipDq = (i, q) => {
+      while (i < n && src[i] !== q) {
+        if (src[i] === '\\') i += 2;
+        else if (src[i] === '#' && src[i + 1] === '{') i = skipInterp(i + 2);
+        else i++;
+      }
+      return i + 1;
+    };
+    const skipSq = (i) => {
+      while (i < n && src[i] !== "'") i += src[i] === '\\' ? 2 : 1;
+      return i + 1;
+    };
+
+    const heredocs = []; // pending on the current line: { id, indented, raw }
+    let i = 0;
+    while (i < n) {
+      const c = src[i];
+      const atLineStart = i === 0 || src[i - 1] === '\n';
+
+      if (atLineStart) {
+        if (src.startsWith('=begin', i) && /[\s]|$/.test(src[i + 6] || '\n')) {
+          const m = /^=end\b[^\n]*/m.exec(src.slice(i));
+          const stop = m ? i + m.index + m[0].length : n;
+          blankBoth(i, stop);
+          i = stop;
+          continue;
+        }
+        if (src.startsWith('__END__', i) && (i + 7 >= n || src[i + 7] === '\n' || src[i + 7] === '\r')) {
+          blankBoth(i, n);
+          break;
+        }
+      }
+
+      if (c === '\n' && heredocs.length) {
+        // The bodies start on the next line and run to each terminator in turn.
+        let pos = i + 1;
+        for (const h of heredocs) {
+          while (pos < n) {
+            const e = lineEnd(pos);
+            const text = src.slice(pos, e).replace(/\r$/, '');
+            blank(code, pos, e);
+            const done = (h.indented ? text.trim() : text) === h.id;
+            pos = Math.min(n, e + 1);
+            if (done) break;
+          }
+        }
+        heredocs.length = 0;
+        i = pos;
+        continue;
+      }
+
+      if (c === '$' && /[^\w\s]/.test(src[i + 1] || ' ')) {
+        // A special global (`$'`, `$"`, `\$\``, `$/`, `$;`) is not the start of a string.
+        i += 2;
+        continue;
+      }
+
+      if (c === '#') {
+        const e = lineEnd(i);
+        blankBoth(i, e);
+        i = e;
+        continue;
+      }
+      if (c === "'") {
+        const e = skipSq(i + 1);
+        blank(code, i + 1, e - 1);
+        i = e;
+        continue;
+      }
+      if (c === '"' || c === '`') {
+        const e = skipDq(i + 1, c);
+        blank(code, i + 1, e - 1);
+        i = e;
+        continue;
+      }
+      if (c === '<' && src[i + 1] === '<') {
+        const m = /^<<([~-]?)(["'`]?)([A-Za-z_]\w*)\2/.exec(src.slice(i, i + 80));
+        const before = code.slice(Math.max(0, i - 60), i).join('');
+        const lineStartText = code.slice(src.lastIndexOf('\n', i - 1) + 1, i).join('');
+        const isClassSelf = /^\s*class\s*$/.test(lineStartText);
+        const squiggly = m && (m[1] === '~' || m[1] === '-');
+        const bare = m && !m[1] && !m[2] && /^[A-Z_][A-Z0-9_]*$/.test(m[3]);
+        if (m && !isClassSelf && !/\w$/.test(before) && (squiggly || (bare && inValuePosition(i)))) {
+          heredocs.push({ id: m[3], indented: !!m[1] });
+          i += m[0].length;
+          continue;
+        }
+        i += 2;
+        continue;
+      }
+      if (c === '%') {
+        const m = /^%([qQwWiIrsx]?)([(\[{<|!\/^~@#$&*+=;,.:?-])/.exec(src.slice(i, i + 3));
+        const p = prevSig(i);
+        // `%w[a b]`, `%{...}`, `%(...)`: after an operator, or as a call's argument (`assert_dom_equal %{<a/>}`).
+        const literal = m && (m[1] || OPEN_FOR[m[2]]) && (inValuePosition(i) || (p.gap && /\w/.test(p.ch)));
+        if (literal) {
+          const open = m[2];
+          const close = OPEN_FOR[open] || open;
+          let j = i + m[0].length;
+          let depth = 1;
+          while (j < n && depth > 0) {
+            if (src[j] === '\\') { j += 2; continue; }
+            if (OPEN_FOR[open] && src[j] === open) depth++;
+            else if (src[j] === close) depth--;
+            j++;
+          }
+          blank(code, i + m[0].length, j - 1);
+          i = j;
+          continue;
+        }
+        i++;
+        continue;
+      }
+      if (c === '/' && inValuePosition(i)) {
+        // Where a value is expected `/` cannot be division, so this is a regexp
+        // literal. Under /x it may span lines (Rails' CONTENT_TYPE_PARSER does),
+        // and a `/` inside a [...] class does not close it.
+        let j = i + 1;
+        let inClass = false;
+        const stop = Math.min(n, i + 4000);
+        for (; j < stop; j++) {
+          const ch = src[j];
+          if (ch === '\\') { j++; continue; }
+          if (ch === '[') inClass = true;
+          else if (ch === ']') inClass = false;
+          else if (ch === '/' && !inClass) break;
+        }
+        if (src[j] === '/' && j < stop) {
+          blank(code, i + 1, j);
+          i = j + 1;
+          continue;
+        }
+      }
+      i++;
+    }
+    return { plain: plain.join(''), code: code.join('') };
+  }
+
+  // ── Structure ────────────────────────────────────────────────────────────────
+
+  // Keywords that open or close a block. Not preceded by `.`/`:`/`@`/`$` (a
+  // method call, symbol or variable), not a hash key (`if: 1`) and not the name
+  // in `def end` / `def begin`.
+  const KEYWORD = /(?<![\w.:@$])(?<!\bdef\s+)(class|module|def|if|unless|while|until|case|for|begin|do|end)(?![\w?!]|:(?!:))/g;
+
+  // `before` is the text ahead of an `if`/`unless`/`while`/`until` on its line.
+  // The keyword opens a block at the start of a statement or an assignment's
+  // right-hand side; anywhere else it is a modifier (`x if y`, `return if y`).
+  const OPENS_AFTER = /(?:^|[;(\[{|]|(?:^|[^=!<>~])=|[-+*/%|&^]=|\|\|=|&&=|<<=|>>=|\b(?:then|else|do|begin|ensure))$/;
+  function opensBlock(before) {
+    return OPENS_AFTER.test(before.trimEnd());
+  }
+
+  // Identifiers may be non-ASCII (Sidekiq defines `def ❤`).
+  const METHOD_NAME = /^(?:(self|[A-Z]\w*)\.)?([A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*[?!=]?|\[\]=?|<=>|===?|=~|!=|!~|\*\*|<<|>>|<=|>=|[+\-*/%<>!~^&|]@?|`)/;
+
+  /**
+   * Walk the masked source and return the owners in the order they open:
+   * `{ kind, name, full, members }` (`name` as written, `full` the lexical path
+   * that tells two same-named classes apart), with the owner-less top-level defs
+   * last as `{ kind: null, members }`.
+   */
+  function scanOwners(plain, code) {
+    const owners = [];
+    const byKey = new Map();
+    const root = { kind: null, name: '', full: '', members: [] };
+    const frames = []; // { type: 'class'|'module'|'sclass'|'def'|'block', owner?, self? }
+
+    const ownerFrame = () => {
+      for (let k = frames.length - 1; k >= 0; k--) {
+        if (frames[k].type === 'class' || frames[k].type === 'module' || frames[k].type === 'sclass') return frames[k];
+      }
+      return null;
+    };
+    const namedFrame = () => {
+      for (let k = frames.length - 1; k >= 0; k--) {
+        if (frames[k].type === 'class' || frames[k].type === 'module') return frames[k];
+      }
+      return null;
+    };
+    const open = (kind, full, name) => {
+      const key = `${kind} ${full}`;
+      let o = byKey.get(key);
+      if (!o) { o = { kind, name, full, members: [] }; byKey.set(key, o); owners.push(o); }
+      return o;
+    };
+
+    let lineStart = 0;
+    while (lineStart <= code.length) {
+      let lineEnd = code.indexOf('\n', lineStart);
+      if (lineEnd === -1) lineEnd = code.length;
+      const text = code.slice(lineStart, lineEnd);
+      let loopDo = false;
+
+      KEYWORD.lastIndex = 0;
+      let m;
+      while ((m = KEYWORD.exec(text)) !== null) {
+        const kw = m[1];
+        const col = m.index;
+        const abs = lineStart + col;
+
+        if (kw === 'end') {
+          frames.pop();
+        } else if (kw === 'class' || kw === 'module') {
+          const rest = text.slice(col + kw.length);
+          const sc = kw === 'class' ? /^\s*<<\s*(\w+)/.exec(rest) : null;
+          const nm = sc ? null : /^\s+(::)?([A-Z]\w*(?:::[A-Z]\w*)*)/.exec(rest);
+          if (!sc && !nm) continue;
+          const parent = namedFrame();
+          if (sc) {
+            frames.push({ type: 'sclass', owner: parent ? parent.owner : null, self: sc[1] === 'self' });
+          } else {
+            const full = nm[1] || !parent ? nm[2] : `${parent.owner.full}::${nm[2]}`;
+            frames.push({ type: kw, owner: open(kw, full, nm[2]) });
+          }
+        } else if (kw === 'def') {
+          const rest = code.slice(abs + 3, abs + 3 + 120);
+          const lead = /^\s+/.exec(rest);
+          const nm = lead && METHOD_NAME.exec(rest.slice(lead[0].length));
+          // A def whose name this scan cannot read still opens a block that an `end`
+          // will close, so it must be counted or the owner is popped too early.
+          if (!nm) { frames.push({ type: 'def' }); continue; }
+          const nameStart = abs + 3 + lead[0].length;
+          const afterName = nameStart + nm[0].length;
+          let paramsEnd = afterName;
+          let params = '';
+          let k = afterName;
+          while (code[k] === ' ' || code[k] === '\t') k++;
+          if (code[k] === '(') {
+            const close = readBalanced(code, k);
+            if (close >= 0) {
+              params = `(${normalizeParams(plain.slice(k + 1, close))})`;
+              paramsEnd = close + 1;
+            }
+          }
+          // `def name(args) = expr` has no `end` to wait for.
+          let e = paramsEnd;
+          while (code[e] === ' ' || code[e] === '\t') e++;
+          const endless = code[e] === '=' && !/[=~>]/.test(code[e + 1] || '');
+          if (!endless) frames.push({ type: 'def' });
+
+          const bare = nm[2];
+          if (bare.startsWith('_')) continue;
+          const ownerF = ownerFrame();
+          const owner = ownerF ? ownerF.owner : null;
+          const singleton = nm[1] ? `${nm[1]}.` : (ownerF && ownerF.type === 'sclass' && ownerF.self ? 'self.' : '');
+          const ls = code.lastIndexOf('\n', abs - 1) + 1;
+          const line = `${owner ? '  ' : ''}def ${singleton}${bare}${params}${extractReturnHint(plain, ls)}`;
+          (owner || root).members.push(line);
+        } else if (kw === 'if' || kw === 'unless' || kw === 'while' || kw === 'until') {
+          if (opensBlock(text.slice(0, col))) {
+            frames.push({ type: 'block' });
+            if (kw === 'while' || kw === 'until') loopDo = true;
+          }
+        } else if (kw === 'for') {
+          frames.push({ type: 'block' });
+          loopDo = true;
+        } else if (kw === 'case' || kw === 'begin') {
+          frames.push({ type: 'block' });
+        } else if (kw === 'do') {
+          if (loopDo) loopDo = false;
+          else frames.push({ type: 'block' });
+        }
+      }
+      lineStart = lineEnd + 1;
+    }
+
+    return owners.concat(root.members.length ? [root] : []);
   }
 
   function normalizeParams(params) {
@@ -20449,6 +20774,22 @@ __factories["./src/graph/builder"] = function(module, exports) {
   const R_EXTS   = new Set(['.r', '.R']);
   const EX_EXTS  = new Set(['.ex', '.exs']);
 
+  // The languages the import graph reads, by family, and their union. The one
+  // place that answers "can the graph see this file's imports" (#979): the walk
+  // below, `--impact`, `get_impact`, `plan` and `doctor` all ask this list, so a
+  // family added here is a family they all report as tracked.
+  const GRAPH_FAMILIES = [
+    ['JavaScript/TypeScript', JS_EXTS],
+    ['Python', PY_EXTS],
+    ['Go', GO_EXTS],
+    ['Rust', RS_EXTS],
+    ['Java/Kotlin/Scala', JVM_EXTS],
+    ['Ruby', RB_EXTS],
+    ['Elixir', EX_EXTS],
+    ['R', R_EXTS],
+  ];
+  const GRAPH_EXTS = new Set(GRAPH_FAMILIES.flatMap(([, exts]) => [...exts]));
+
   // ---------------------------------------------------------------------------
   // Per-build lookup tables
   // ---------------------------------------------------------------------------
@@ -21025,11 +21366,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
           walkDir(full, depth + 1, out);
         } else if (e.isFile()) {
           const ext = path.extname(e.name).toLowerCase();
-          if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || GO_EXTS.has(ext) ||
-              RS_EXTS.has(ext) || JVM_EXTS.has(ext) || RB_EXTS.has(ext) ||
-              R_EXTS.has(ext) || EX_EXTS.has(ext)) {
-            out.push(full);
-          }
+          if (GRAPH_EXTS.has(ext)) out.push(full);
         }
       }
     }
@@ -21085,7 +21422,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     return buildFromCwd(cwd, Object.assign({}, o, { srcDirs: configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS }));
   }
 
-  module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH };
+  module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH, GRAPH_FAMILIES, GRAPH_EXTS };
   
 };
 
@@ -21122,6 +21459,20 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   const RS_EXTS = new Set(['.rs']);
   const KT_EXTS = new Set(['.kt', '.kts']);
   const SCALA_EXTS = new Set(['.scala', '.sc']);
+
+  // The languages the method-level call graph reads, by family, and their union
+  // (#979): narrower than the import graph (no Ruby, Elixir or R), so the two
+  // are reported separately.
+  const CALL_GRAPH_FAMILIES = [
+    ['JavaScript/TypeScript', JS_EXTS],
+    ['Python', PY_EXTS],
+    ['Java', JAVA_EXTS],
+    ['Go', GO_EXTS],
+    ['Rust', RS_EXTS],
+    ['Kotlin', KT_EXTS],
+    ['Scala', SCALA_EXTS],
+  ];
+  const CALL_GRAPH_EXTS = new Set(CALL_GRAPH_FAMILIES.flatMap(([, exts]) => [...exts]));
 
   // Tokens that look like `name(` calls or definition headers but are language
   // keywords, not user symbols — never treated as a call or a definition.
@@ -21597,9 +21948,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       const full = path.join(dir, e.name);
       if (e.isDirectory()) _walk(full, excludeSet, out, depth + 1, maxDepth);
       else if (e.isFile()) {
-        const ext = path.extname(e.name).toLowerCase();
-        if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || JAVA_EXTS.has(ext) || GO_EXTS.has(ext)
-          || RS_EXTS.has(ext) || KT_EXTS.has(ext) || SCALA_EXTS.has(ext)) out.push(full);
+        if (CALL_GRAPH_EXTS.has(path.extname(e.name).toLowerCase())) out.push(full);
       }
     }
   }
@@ -21814,6 +22163,9 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     return {
       forward: toArr(forward), reverse: toArr(reverse), defs, edgeConfidence,
       scope: { roots: scopeRoots, files: files.length, dynamicLoads },
+      // The exclusions this walk used, so "what was not searched" (#979) counts
+      // the same tree. Beside `scope`, not in it: `scope` is printed in --json.
+      exclude: [...excludeSet],
     };
   }
 
@@ -21856,6 +22208,30 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     return { forward };
   }
 
+  // The result for a symbol the call graph does not know. `untracked` is added
+  // only when the symbol is declared in a language the graph cannot read, so a
+  // genuinely unknown symbol's result is the shape it always was (#979).
+  function _unresolved(symbol, cwd, scope, exclude) {
+    const result = { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
+    const untracked = _untrackedDeclaration(symbol, cwd);
+    if (untracked) { result.untracked = untracked; return result; }
+    // Not in the signature index either — which proves little: the index keeps
+    // 25 signatures per file, so a method of a large PHP class is absent from it.
+    // Say what the search could not read, in the roots it searched.
+    if (scope && Array.isArray(scope.roots) && scope.roots.length) {
+      try {
+        const { censusUntracked } = __require('./src/graph/language-support');
+        const census = censusUntracked(cwd, {
+          srcDirs: scope.roots, exts: CALL_GRAPH_EXTS, exclude,
+        });
+        if (census.untracked > 0) {
+          result.unsearched = { files: census.untracked, languages: census.languages.map((l) => ({ language: l.label, files: l.files })) };
+        }
+      } catch (_) { /* the census is advice; a failure leaves the plain answer */ }
+    }
+    return result;
+  }
+
   // Resolve a user-supplied symbol (bare name or full `file#name` id) to ids.
   function _resolveSymbol(symbol, defs) {
     if (defs.has(symbol)) return [symbol];
@@ -21880,6 +22256,54 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     return { direct: [...direct], transitive: [...transitive] };
   }
 
+  // Whether a signature declares `name`: the identifier that ends its head (the
+  // text before the parameter list, a base-class clause or a body). `public
+  // static function slug($t)` and `class Str extends Base` both declare; a
+  // signature that merely mentions the name as a parameter or a type does not.
+  function _declaresName(sig, name) {
+    const head = String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '')
+      .split(/[({:<]|\s+(?:extends|implements|inherits|with|where)\b/)[0];
+    const ids = head.match(/[A-Za-z_$][\w$]*/g);
+    return !!ids && ids[ids.length - 1] === name;
+  }
+
+  /**
+   * Where an unresolved symbol is declared in a language the call graph cannot
+   * read (#979). The signature index covers every language the extractors read;
+   * the call graph walks only `CALL_GRAPH_FAMILIES`, so a PHP method is "not
+   * found" there for a reason the caller deserves to hear. Null when the symbol
+   * is not in the index either (or there is no index): then it really is unknown.
+   *
+   * @returns {{ language: string, files: string[] }|null}
+   */
+  function _untrackedDeclaration(symbol, cwd) {
+    try {
+      const { callGraphSupport } = __require('./src/graph/language-support');
+      const hash = symbol.indexOf('#');
+      if (hash !== -1) {
+        // `file#name` is only a file when one exists: `Service#save` and
+        // `com.acme.Service#save` are class-qualified names, not paths.
+        const file = symbol.slice(0, hash);
+        if (!file || !fs.existsSync(path.resolve(cwd, file))) return null;
+        const s = callGraphSupport(file);
+        return s.tracked ? null : { language: s.label, files: [file] };
+      }
+      const index = __require('./src/retrieval/ranker').buildSigIndex(cwd);
+      const files = [];
+      const labels = new Set();
+      for (const [file, sigs] of index) {
+        const s = callGraphSupport(file);
+        if (s.tracked || !sigs.some((sig) => _declaresName(sig, symbol))) continue;
+        files.push(String(file).replace(/\\/g, '/'));
+        labels.add(s.label);
+      }
+      if (!files.length) return null;
+      return { language: [...labels].sort().join(', '), files: files.sort().slice(0, 3) };
+    } catch (_) {
+      return null;
+    }
+  }
+
   /**
    * Method-level blast radius: everything that (transitively) calls `symbol`.
    *
@@ -21892,7 +22316,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const graph = opts.graph || buildCallGraph(cwd, opts);
     const ids = _resolveSymbol(symbol, graph.defs);
     const scope = graph.scope || null;
-    if (ids.length === 0) return { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
+    if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
     const { direct, transitive } = _bfs(ids, graph.reverse, opts.depth || 0);
     return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
   }
@@ -21923,7 +22347,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const graph = opts.graph || buildCallGraph(cwd, opts);
     const ids = _resolveSymbol(symbol, graph.defs);
     const scope = graph.scope || null;
-    if (ids.length === 0) return { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
+    if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
     const { direct, transitive } = _bfs(ids, graph.forward, opts.depth || 0);
     return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
   }
@@ -21954,7 +22378,17 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   function formatCallGraph(result, kind) {
     const verb = kind === 'callees' ? 'calls' : 'callers of';
     const lines = [`## ${kind === 'callees' ? 'Callees' : 'Callers'}: \`${result.symbol}\``, ''];
-    if (result.unresolved) { lines.push('_symbol not found in the call-graph._'); return lines.join('\n'); }
+    if (result.unresolved) {
+      lines.push('_symbol not found in the call-graph._');
+      if (result.untracked) {
+        const { callNote } = __require('./src/graph/language-support');
+        lines.push('', `_${callNote(result.untracked.language, result.untracked.files)}_`);
+      } else if (result.unsearched) {
+        const { unsearchedNote } = __require('./src/graph/language-support');
+        lines.push('', `_${unsearchedNote(result.unsearched)}_`);
+      }
+      return lines.join('\n');
+    }
     const qualifier = _scopeClause(result.scope);
     if (result.total === 0) {
       lines.push(kind === 'callees'
@@ -21969,7 +22403,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
   }
 
   function formatCallGraphJSON(result, kind) {
-    return {
+    const out = {
       symbol: result.symbol,
       kind: kind === 'callees' ? 'callees' : 'callers',
       resolved: result.resolved,
@@ -21982,6 +22416,16 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
       lowerBound: true,
       scope: result.scope || null,
     };
+    // Present only for a symbol declared in a language the call graph cannot
+    // read, so every other result keeps its shape (#979).
+    if (result.untracked) {
+      out.graph = __require('./src/graph/language-support').UNSUPPORTED;
+      out.language = result.untracked.language;
+      out.declaredIn = result.untracked.files;
+    }
+    // A symbol the call graph does not know, in roots that hold files it cannot read.
+    if (result.unsearched) out.unsearched = result.unsearched;
+    return out;
   }
 
   /**
@@ -21999,6 +22443,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, buildRankingCallFileGraph, methodImpact, methodCallees,
     formatCallGraph, formatCallGraphJSON,
     extractDefs, maskJs, maskPy, maskRust,
+    CALL_GRAPH_FAMILIES, CALL_GRAPH_EXTS,
   };
   
 };
@@ -22087,6 +22532,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
   const path = require('path');
   const { buildFromCwd } = __require('./src/graph/builder');
   const { displayPath } = __require('./src/graph/path-key');
+  const { markImpact, importNote, UNSUPPORTED } = __require('./src/graph/language-support');
 
   // Normalize paths for cross-platform consistency (same as in builder.js)
   function normalizePath(p) {
@@ -22197,7 +22643,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
 
     // Bail gracefully if file not in graph
     if (!graph || !graph.reverse) {
-      return { changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 };
+      return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 }, { cwd });
     }
 
     const { direct, transitive } = bfs(absChanged, graph.reverse, depth);
@@ -22214,14 +22660,16 @@ __factories["./src/graph/impact"] = function(module, exports) {
     if (!realPaths.has(absChanged)) realPaths.set(absChanged, absChangedReal);
     const toRel = (f) => displayPath(f, cwd, realPaths);
 
-    return {
+    // An empty result for a file the graph cannot read is "not tracked", not
+    // "nothing depends on it" (#979); markImpact leaves every other result as is.
+    return markImpact({
       changed:     toRel(absChanged),
       direct:      [...direct].map(toRel),
       transitive:  [...transitive].map(toRel),
       tests:       tests.map(toRel),
       routes:      routes.map(toRel),
       totalImpact: direct.size + transitive.size,
-    };
+    }, { cwd });
   }
 
   /**
@@ -22268,6 +22716,11 @@ __factories["./src/graph/impact"] = function(module, exports) {
     lines.push(`## Impact: \`${result.changed}\``);
     lines.push('');
 
+    if (result.graph === UNSUPPORTED) {
+      lines.push(`_${importNote(result.language)}_`);
+      return lines.join('\n');
+    }
+
     if (result.direct.length === 0 && result.transitive.length === 0) {
       lines.push('_No importers found via relative + aliased imports (lower bound — dynamic/computed imports are not tracked)._');
       return lines.join('\n');
@@ -22310,7 +22763,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
    * @returns {object}
    */
   function formatImpactJSON(result) {
-    return {
+    const out = {
       changed:     result.changed,
       direct:      result.direct,
       transitive:  result.transitive,
@@ -22318,9 +22771,223 @@ __factories["./src/graph/impact"] = function(module, exports) {
       routes:      result.routes,
       totalImpact: result.totalImpact,
     };
+    // Present only when the graph cannot read the file, so a readable file's
+    // JSON is the shape it always was (#979).
+    if (result.graph === UNSUPPORTED) { out.graph = result.graph; out.language = result.language; }
+    return out;
   }
 
   module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON, isTestFile, isRouteFile };
+  
+};
+
+// ── ./src/graph/language-support ──
+__factories["./src/graph/language-support"] = function(module, exports) {
+  
+  /**
+   * What the dependency graphs can and cannot read (#979).
+   *
+   * The import graph reads eight language families and the method-level call
+   * graph seven (`GRAPH_FAMILIES`, `CALL_GRAPH_FAMILIES`). A file in any other
+   * language contributes no edges, so a blast-radius query on it used to answer
+   * "no importers found" — the same words as "nothing depends on this" — when
+   * the truth is "this language is not tracked". Laravel's `Str.php`, imported by
+   * 164 files, printed that.
+   *
+   * This module is the one place that tells the two apart. It is built on the
+   * families the graphs themselves declare, so a language added there is
+   * reported as tracked everywhere with no second list to forget.
+   *
+   * @module src/graph/language-support
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { GRAPH_FAMILIES, GRAPH_EXTS, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH } = __require('./src/graph/builder');
+
+  /** The value of the machine-readable `graph` field and of the `graph:` token in text. */
+  const UNSUPPORTED = 'unsupported-language';
+
+  /** Display names for the extractor language keys the graphs cannot read. */
+  const LABELS = {
+    php: 'PHP', csharp: 'C#', cpp: 'C/C++', objc: 'Objective-C', swift: 'Swift',
+    dart: 'Dart', lua: 'Lua', gdscript: 'GDScript', vue_sfc: 'Vue', svelte: 'Svelte',
+    astro: 'Astro', html: 'HTML', css: 'CSS', yaml: 'YAML', shell: 'Shell',
+    powershell: 'PowerShell', sql: 'SQL', graphql: 'GraphQL', terraform: 'Terraform',
+    protobuf: 'Protocol Buffers', toml: 'TOML', properties: '.properties', xml: 'XML',
+    markdown: 'Markdown', dockerfile: 'Dockerfile', pipeline: 'CI pipeline',
+    // Read by the import graph but not by the call graph, so a call-graph report can name them.
+    ruby: 'Ruby', elixir: 'Elixir', r: 'R',
+  };
+
+  /**
+   * Languages whose files are configuration, markup, queries or scripts: nobody
+   * expects a module import graph for them, so `doctor` does not count them as a
+   * gap. A blast-radius query on one of these files still gets the explicit
+   * "not tracked" answer; only the census leaves them out.
+   */
+  const NOT_EXPECTED = new Set([
+    'html', 'css', 'yaml', 'toml', 'properties', 'xml', 'markdown', 'dockerfile',
+    'pipeline', 'sql', 'graphql', 'terraform', 'protobuf', 'shell', 'powershell',
+  ]);
+
+  /** "JavaScript/TypeScript, Python and R" from a family table. */
+  function familyList(families) {
+    const names = families.map(([name]) => name);
+    if (names.length <= 1) return names.join('');
+    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  }
+
+  /** The languages the import graph reads, as prose. */
+  function graphLanguageList() { return familyList(GRAPH_FAMILIES); }
+
+  /** The languages the method-level call graph reads, as prose. */
+  function callGraphLanguageList() { return familyList(__require('./src/graph/call-graph').CALL_GRAPH_FAMILIES); }
+
+  /**
+   * Whether a graph can read a file, and what to call its language when it cannot.
+   *
+   * @param {string} file
+   * @param {Set<string>} exts  the graph's extension set
+   * @returns {{ tracked: boolean, key: string|null, label: string }}
+   */
+  function support(file, exts) {
+    const ext = path.extname(String(file || '')).toLowerCase();
+    if (exts.has(ext)) return { tracked: true, key: null, label: '' };
+    // Resolved only here, on the rare path, so a normal query never loads the extractors.
+    const key = __require('./src/extractors/dispatch').langFor(file);
+    const label = (key && LABELS[key]) || (ext ? ext : 'this file type');
+    return { tracked: false, key: key || null, label };
+  }
+
+  /** Can the import graph read this file? */
+  function graphSupport(file) { return support(file, GRAPH_EXTS); }
+
+  /** Can the method-level call graph read this file? */
+  function callGraphSupport(file) { return support(file, __require('./src/graph/call-graph').CALL_GRAPH_EXTS); }
+
+  /** "PHP imports" / "`.json` file imports" / "imports of this file type". */
+  function _subject(label) {
+    if (label === 'this file type') return 'imports of this file type';
+    return label.startsWith('.') ? `\`${label}\` file imports` : `${label} imports`;
+  }
+
+  /**
+   * The explicit answer for a blast-radius query on a file the import graph
+   * cannot read. Carries the `graph: unsupported-language` token so text-only
+   * callers (the MCP tools return markdown) can still match it.
+   */
+  function importNote(label) {
+    return `graph: ${UNSUPPORTED} — ${_subject(label)} are not tracked (the import graph reads ${graphLanguageList()}). This is not evidence that nothing depends on this file.`;
+  }
+
+  /**
+   * The same answer in one short clause, for the surfaces that print a blast
+   * radius per file (diff context, PR evidence, verify-plan, `ask --with-source`,
+   * `plan`): "PHP imports are not tracked (graph: unsupported-language); not
+   * evidence that nothing depends on it".
+   */
+  function shortNote(label) {
+    return `${_subject(label)} are not tracked (graph: ${UNSUPPORTED}); not evidence that nothing depends on it`;
+  }
+
+  /** The same for a symbol declared in a file the call graph cannot read. */
+  function callNote(label, files) {
+    const where = files && files.length ? ` in ${files.map((f) => `\`${f}\``).join(', ')}` : '';
+    return `graph: ${UNSUPPORTED} — declared${where} (${label}); ${label} calls are not tracked (the call graph reads ${callGraphLanguageList()}). This is not evidence that nothing calls it.`;
+  }
+
+  /** What a call-graph search could not read, for a symbol it does not know. */
+  function unsearchedNote(unsearched) {
+    const langs = unsearched.languages.slice(0, 4).map((l) => `${l.files.toLocaleString('en-US')} ${l.language}`).join(', ')
+      + (unsearched.languages.length > 4 ? `, +${unsearched.languages.length - 4} more` : '');
+    return `Not searched: ${langs} file(s) in the searched roots. The call graph reads ${callGraphLanguageList()}; if this symbol is declared in a language it does not read, its callers are not tracked.`;
+  }
+
+  /**
+   * Mark an impact result whose target the import graph cannot read.
+   *
+   * Only an empty result for an unreadable file is marked: a file with importers
+   * keeps its list, and every readable file's result is returned untouched, so
+   * the output for supported languages does not change.
+   *
+   * A directory is not a file in a language, so it is never marked.
+   *
+   * @param {{ changed: string, totalImpact: number }} result
+   * @param {{ cwd?: string }} [opts]  with `cwd`, a path that is a directory is left alone
+   * @returns {object} the same object, with `graph` and `language` added when it applies
+   */
+  function markImpact(result, opts) {
+    if (!result || result.totalImpact > 0) return result;
+    const cwd = opts && opts.cwd;
+    if (cwd) {
+      try { if (fs.statSync(path.resolve(cwd, result.changed)).isDirectory()) return result; } catch (_) { /* absent: judged by its extension */ }
+    }
+    const s = graphSupport(result.changed);
+    if (!s.tracked) { result.graph = UNSUPPORTED; result.language = s.label; }
+    return result;
+  }
+
+  /**
+   * Count the files under a graph's walk roots by whether that graph reads them:
+   * `doctor` for the import graph (same roots, exclusions and depth as
+   * `buildFromCwd`), and the call-graph query for the roots it actually searched.
+   *
+   * @param {string} cwd
+   * @param {object} [opts]  { srcDirs, exclude, maxDepth, exts } — `exts` is the
+   *                         graph's extension set (default: the import graph's)
+   * @returns {{ tracked: number, untracked: number, languages: Array<{ key: string, label: string, files: number }> }}
+   */
+  function censusUntracked(cwd, opts) {
+    const o = opts || {};
+    const readable = o.exts || GRAPH_EXTS;
+    let { srcDirs, exclude } = o;
+    if (srcDirs === undefined) {
+      const dirs = __require('./src/graph/src-dirs').resolveGraphDirs(cwd, DEFAULT_SRC_DIRS);
+      srcDirs = dirs.srcDirs;
+      if (exclude === undefined && dirs.exclude) exclude = dirs.exclude;
+    }
+    const excludeSet = new Set(exclude === undefined ? ['node_modules', '.git', 'dist', 'build'] : exclude);
+    const maxDepth = o.maxDepth === undefined ? DEFAULT_WALK_DEPTH : o.maxDepth;
+    const { EXT_MAP } = __require('./src/extractors/dispatch');
+
+    const seen = new Set();
+    const byKey = new Map();
+    let tracked = 0;
+    const walk = (dir, depth) => {
+      if (depth > maxDepth) return;
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      for (const e of entries) {
+        if (excludeSet.has(e.name) || e.name.startsWith('.')) continue;
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) { walk(full, depth + 1); continue; }
+        if (!e.isFile() || seen.has(full)) continue;
+        seen.add(full);
+        const ext = path.extname(e.name).toLowerCase();
+        if (readable.has(ext)) { tracked++; continue; }
+        const key = EXT_MAP[ext];
+        if (!key || NOT_EXPECTED.has(key)) continue;
+        byKey.set(key, (byKey.get(key) || 0) + 1);
+      }
+    };
+    for (const sd of srcDirs) {
+      const abs = path.resolve(cwd, sd);
+      if (fs.existsSync(abs)) walk(abs, 0);
+    }
+
+    // `.c`, `.h`, `.cpp`… share one key: one row per language, not per extension.
+    const languages = [...byKey.entries()]
+      .map(([key, files]) => ({ key, label: LABELS[key] || key, files }))
+      .sort((a, b) => b.files - a.files || (a.label < b.label ? -1 : 1));
+    return { tracked, untracked: languages.reduce((n, l) => n + l.files, 0), languages };
+  }
+
+  module.exports = {
+    UNSUPPORTED, LABELS, NOT_EXPECTED,
+    graphSupport, callGraphSupport, graphLanguageList, callGraphLanguageList,
+    importNote, shortNote, callNote, unsearchedNote, markImpact, censusUntracked,
+  };
   
 };
 
@@ -24653,7 +25320,7 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
    * `exposes-route` edges (supersets, never smaller). Result shape matches
    * getImpact() so formatImpact renders it unchanged.
    */
-  function impactView(map, relFile, depth) {
+  function impactView(map, relFile, depth, cwd) {
     const { isTestFile, isRouteFile } = __require('./src/graph/impact');
     const rel = String(relFile).replace(/\\/g, '/');
     const id = `file:${rel}`;
@@ -24697,14 +25364,16 @@ __factories["./src/map/knowledge-map"] = function(module, exports) {
     }
     const routeFiles = new Set(map.edges.filter((e) => e.kind === 'exposes-route').map((e) => strip(e.from)));
     const routes = impacted.filter((f) => isRouteFile(f) || routeFiles.has(f));
-    return {
+    // `get_impact` reads this view, not `getImpact`, so it needs the same
+    // "not tracked" marking for files whose language the import graph cannot read (#979).
+    return __require('./src/graph/language-support').markImpact({
       changed: rel,
       direct: [...direct].map(strip),
       transitive: [...transitive].map(strip),
       tests: tests.concat(extraTests.sort()),
       routes,
       totalImpact: direct.size + transitive.size,
-    };
+    }, { cwd });
   }
 
   /**
@@ -25616,7 +26285,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       const depth = Math.max(0, parseInt(args.depth, 10) || 3);
       const rel = path.isAbsolute(args.file) ? path.relative(cwd, args.file) : String(args.file);
       const map = km.loadOrBuild(cwd);
-      return formatImpact(km.impactView(map, rel, depth));
+      return formatImpact(km.impactView(map, rel, depth, cwd));
     } catch (err) {
       return `_get_impact failed: ${err.message}_`;
     }
@@ -25999,7 +26668,10 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
 
         out.push(`_risk: ${riskLabelFor(rel)}_`);
         const impact = impactByFile.get(rel);
-        if (impact) {
+        if (impact && impact.graph) {
+          // The import graph cannot read this file's language: say so, not "0 impacted" (#979).
+          out.push(`**Blast radius:** not tracked — ${__require('./src/graph/language-support').shortNote(impact.language)}`);
+        } else if (impact) {
           out.push(
             `**Blast radius:** ${impact.totalImpact} file(s) impacted — ` +
             `${impact.direct.length} direct importer(s), ${impact.transitive.length} transitive` +
@@ -26736,7 +27408,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.80.0',
+    version: '8.80.1',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -27613,16 +28285,22 @@ __factories["./src/plan/planner"] = function(module, exports) {
         const entrySet = new Set(highConf.map(r => r.file));
         const direct = new Set();
         const transitive = new Set();
+        // Entry files the import graph cannot read: their empty blast radius is
+        // "not tracked", not "nothing depends on it" (#979).
+        const untracked = [];
         for (const r of highConf) {
           const imp = getImpact(r.file, graph, { depth: 3, cwd });
           for (const f of (imp.direct || [])) direct.add(clean(f));
           for (const f of (imp.transitive || [])) transitive.add(clean(f));
+          if (imp.graph) untracked.push({ file: r.file, language: imp.language });
         }
         // The files we plan to change are not their own blast radius; and a file
         // reached directly from one entry outranks a transitive reach from another.
         for (const e of entrySet) { direct.delete(e); transitive.delete(e); }
         for (const f of direct) transitive.delete(f);
         impact = { direct: [...direct], transitive: [...transitive] };
+        // Added only when it applies, so a plan over readable languages is unchanged.
+        if (untracked.length) impact.untracked = untracked;
       } catch (_) {
         // Graph build failed, continue without impact
       }
@@ -27842,6 +28520,8 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
       try { impacts = analyzeImpact(existingFiles, cwd, {}); } catch (_) { impacts = []; }
       for (const { file, impact } of impacts) {
         const entry = { file, totalImpact: impact.totalImpact, tests: impact.tests.length };
+        // Present only when the import graph cannot read the file: a 0 here is "not tracked" (#979).
+        if (impact.graph) { entry.graph = impact.graph; entry.language = impact.language; }
         blast.push(entry);
         if (impact.totalImpact > blastThreshold) {
           issues.push({ type: 'high-blast-radius', ref: file, count: impact.totalImpact, severity: 'warn' });
@@ -30460,6 +31140,8 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
       file,
       direct: (impact && impact.direct ? impact.direct.length : 0),
       total: (impact && typeof impact.totalImpact === 'number' ? impact.totalImpact : 0),
+      // Present only when the import graph cannot read the file (#979).
+      ...(impact && impact.graph ? { graph: impact.graph, language: impact.language } : {}),
     }));
   }
 
@@ -30516,7 +31198,9 @@ __factories["./src/retrieval/with-source"] = function(module, exports) {
     if (blast.length > 0) {
       lines.push('## Blast radius', '```');
       for (const b of blast) {
-        lines.push(`${b.file}  ← ${b.direct} direct, ${b.total} total dependent file(s)`);
+        lines.push(b.graph
+          ? `${b.file}  ← not tracked: ${__require('./src/graph/language-support').shortNote(b.language)}`
+          : `${b.file}  ← ${b.direct} direct, ${b.total} total dependent file(s)`);
       }
       lines.push('```', '');
     }
@@ -30607,7 +31291,7 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       const km = __require('./src/map/knowledge-map');
       const map = km.loadOrBuild(cwd);
       storeTests = km.relatedTestsView(map, files.filter((f) => f.status !== 'D').map((f) => f.path));
-      impactByFile = new Map(srcPaths.map((p) => [p, km.impactView(map, p, depth)]));
+      impactByFile = new Map(srcPaths.map((p) => [p, km.impactView(map, p, depth, cwd)]));
     } catch (_) {
       try {
         const { analyzeImpact } = __require('./src/graph/impact');
@@ -30649,6 +31333,8 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
           transitive: (impact.transitive || []).length,
           tests: impact.tests || [],
           routes: impact.routes || [],
+          // Present only when the import graph cannot read the file (#979).
+          ...(impact.graph ? { graph: impact.graph, language: impact.language } : {}),
         } : null,
         relatedTests: deleted ? [] : relatedFor(f.path),
       };
@@ -30694,7 +31380,9 @@ __factories["./src/review/pr-evidence"] = function(module, exports) {
       L.push(`#### \`${f.path}\`  _(${st} · risk: ${f.riskLabel})_`);
       if (f.status === 'D') { L.push('_deleted_', ''); continue; }
 
-      if (f.blast) {
+      if (f.blast && f.blast.graph) {
+        L.push(`**Blast radius:** not tracked — ${__require('./src/graph/language-support').shortNote(f.blast.language)}`);
+      } else if (f.blast) {
         L.push(
           `**Blast radius:** ${f.blast.total} file(s) impacted — ${f.blast.direct.length} direct, ${f.blast.transitive} transitive` +
           (f.blast.tests.length ? `, ${f.blast.tests.length} test(s)` : '') +
@@ -39112,7 +39800,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.80.0';
+const VERSION = '8.80.1';
 function requireSourceOrBundled(key) {
   try {
     const rel = key.replace(/^\.\//, '') + '.js';
@@ -43534,6 +44222,14 @@ function main() {
         impact.direct.forEach(f => console.log(`   • ${relOf(f)}  (direct)`));
         impact.transitive.forEach(f => console.log(`   • ${relOf(f)}  (transitive)`));
       }
+      // #979: a file the import graph cannot read has no blast radius to show —
+      // say so instead of leaving the section out as if nothing depends on it.
+      if (impact && impact.untracked && impact.untracked.length) {
+        console.log('');
+        console.log(' Impact radius not tracked:');
+        const { shortNote } = requireSourceOrBundled('./src/graph/language-support');
+        impact.untracked.forEach(u => console.log(`   • ${relOf(u.file)}  — ${shortNote(u.language)}`));
+      }
       if (plan.coveredFiles.length > 0) {
         console.log('');
         console.log(' Files with test coverage (re-run their suites after changing):');
@@ -45320,10 +46016,20 @@ function main() {
     const introCount = s.filesIntroduced + s.symbolsIntroduced;
     console.log(`[sigmap] verify-plan — ${s.filesReferenced} file(s), ${s.symbolsReferenced} symbol(s) referenced`
       + (introCount ? `, ${introCount} introduced` : ''));
+    // #979: a referenced file the import graph cannot read has no blast radius to
+    // check; "in bounds" would be a claim about nothing.
+    const untrackedBlast = (result.blast || []).filter((b) => b.graph);
+    const printUntrackedBlast = () => {
+      if (!untrackedBlast.length) return;
+      const { shortNote } = requireSourceOrBundled('./src/graph/language-support');
+      for (const b of untrackedBlast) console.log(`  ⚠ blast radius not tracked: ${b.file} — ${shortNote(b.language)}`);
+    };
     if (result.issues.length === 0) {
+      const blastClaim = untrackedBlast.length ? 'scope in bounds' : 'blast radius and scope in bounds';
       console.log(introCount
-        ? '  ✓ plan checks out — references exist, introductions do not yet, blast radius and scope in bounds'
-        : '  ✓ plan checks out — all references exist, blast radius and scope in bounds');
+        ? `  ✓ plan checks out — references exist, introductions do not yet, ${blastClaim}`
+        : `  ✓ plan checks out — all references exist, ${blastClaim}`);
+      printUntrackedBlast();
       process.exit(0);
     }
     for (const i of result.issues) {
@@ -45334,6 +46040,7 @@ function main() {
       else if (i.type === 'high-blast-radius') console.log(`  ${mark} high blast radius: ${i.ref} → ${i.count} dependents`);
       else if (i.type === 'broad-scope') console.log(`  ${mark} broad scope: ${i.count} files (threshold ${i.threshold})`);
     }
+    printUntrackedBlast();
     console.log(`\n  ${s.errors} error(s), ${s.warnings} warning(s)`);
     process.exit(s.ok ? 0 : 1);
   }

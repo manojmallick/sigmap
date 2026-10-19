@@ -31,6 +31,20 @@ const RS_EXTS = new Set(['.rs']);
 const KT_EXTS = new Set(['.kt', '.kts']);
 const SCALA_EXTS = new Set(['.scala', '.sc']);
 
+// The languages the method-level call graph reads, by family, and their union
+// (#979): narrower than the import graph (no Ruby, Elixir or R), so the two
+// are reported separately.
+const CALL_GRAPH_FAMILIES = [
+  ['JavaScript/TypeScript', JS_EXTS],
+  ['Python', PY_EXTS],
+  ['Java', JAVA_EXTS],
+  ['Go', GO_EXTS],
+  ['Rust', RS_EXTS],
+  ['Kotlin', KT_EXTS],
+  ['Scala', SCALA_EXTS],
+];
+const CALL_GRAPH_EXTS = new Set(CALL_GRAPH_FAMILIES.flatMap(([, exts]) => [...exts]));
+
 // Tokens that look like `name(` calls or definition headers but are language
 // keywords, not user symbols — never treated as a call or a definition.
 const NON_CALL = new Set([
@@ -505,9 +519,7 @@ function _walk(dir, excludeSet, out, depth, maxDepth) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) _walk(full, excludeSet, out, depth + 1, maxDepth);
     else if (e.isFile()) {
-      const ext = path.extname(e.name).toLowerCase();
-      if (JS_EXTS.has(ext) || PY_EXTS.has(ext) || JAVA_EXTS.has(ext) || GO_EXTS.has(ext)
-        || RS_EXTS.has(ext) || KT_EXTS.has(ext) || SCALA_EXTS.has(ext)) out.push(full);
+      if (CALL_GRAPH_EXTS.has(path.extname(e.name).toLowerCase())) out.push(full);
     }
   }
 }
@@ -722,6 +734,9 @@ function buildCallGraph(cwd, opts = {}) {
   return {
     forward: toArr(forward), reverse: toArr(reverse), defs, edgeConfidence,
     scope: { roots: scopeRoots, files: files.length, dynamicLoads },
+    // The exclusions this walk used, so "what was not searched" (#979) counts
+    // the same tree. Beside `scope`, not in it: `scope` is printed in --json.
+    exclude: [...excludeSet],
   };
 }
 
@@ -764,6 +779,30 @@ function buildCallFileGraph(cwd, opts = {}) {
   return { forward };
 }
 
+// The result for a symbol the call graph does not know. `untracked` is added
+// only when the symbol is declared in a language the graph cannot read, so a
+// genuinely unknown symbol's result is the shape it always was (#979).
+function _unresolved(symbol, cwd, scope, exclude) {
+  const result = { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
+  const untracked = _untrackedDeclaration(symbol, cwd);
+  if (untracked) { result.untracked = untracked; return result; }
+  // Not in the signature index either — which proves little: the index keeps
+  // 25 signatures per file, so a method of a large PHP class is absent from it.
+  // Say what the search could not read, in the roots it searched.
+  if (scope && Array.isArray(scope.roots) && scope.roots.length) {
+    try {
+      const { censusUntracked } = require('./language-support');
+      const census = censusUntracked(cwd, {
+        srcDirs: scope.roots, exts: CALL_GRAPH_EXTS, exclude,
+      });
+      if (census.untracked > 0) {
+        result.unsearched = { files: census.untracked, languages: census.languages.map((l) => ({ language: l.label, files: l.files })) };
+      }
+    } catch (_) { /* the census is advice; a failure leaves the plain answer */ }
+  }
+  return result;
+}
+
 // Resolve a user-supplied symbol (bare name or full `file#name` id) to ids.
 function _resolveSymbol(symbol, defs) {
   if (defs.has(symbol)) return [symbol];
@@ -788,6 +827,54 @@ function _bfs(seedIds, graph, maxDepth) {
   return { direct: [...direct], transitive: [...transitive] };
 }
 
+// Whether a signature declares `name`: the identifier that ends its head (the
+// text before the parameter list, a base-class clause or a body). `public
+// static function slug($t)` and `class Str extends Base` both declare; a
+// signature that merely mentions the name as a parameter or a type does not.
+function _declaresName(sig, name) {
+  const head = String(sig).replace(/\s*:\d+(?:-\d+)?\s*$/, '')
+    .split(/[({:<]|\s+(?:extends|implements|inherits|with|where)\b/)[0];
+  const ids = head.match(/[A-Za-z_$][\w$]*/g);
+  return !!ids && ids[ids.length - 1] === name;
+}
+
+/**
+ * Where an unresolved symbol is declared in a language the call graph cannot
+ * read (#979). The signature index covers every language the extractors read;
+ * the call graph walks only `CALL_GRAPH_FAMILIES`, so a PHP method is "not
+ * found" there for a reason the caller deserves to hear. Null when the symbol
+ * is not in the index either (or there is no index): then it really is unknown.
+ *
+ * @returns {{ language: string, files: string[] }|null}
+ */
+function _untrackedDeclaration(symbol, cwd) {
+  try {
+    const { callGraphSupport } = require('./language-support');
+    const hash = symbol.indexOf('#');
+    if (hash !== -1) {
+      // `file#name` is only a file when one exists: `Service#save` and
+      // `com.acme.Service#save` are class-qualified names, not paths.
+      const file = symbol.slice(0, hash);
+      if (!file || !fs.existsSync(path.resolve(cwd, file))) return null;
+      const s = callGraphSupport(file);
+      return s.tracked ? null : { language: s.label, files: [file] };
+    }
+    const index = require('../retrieval/ranker').buildSigIndex(cwd);
+    const files = [];
+    const labels = new Set();
+    for (const [file, sigs] of index) {
+      const s = callGraphSupport(file);
+      if (s.tracked || !sigs.some((sig) => _declaresName(sig, symbol))) continue;
+      files.push(String(file).replace(/\\/g, '/'));
+      labels.add(s.label);
+    }
+    if (!files.length) return null;
+    return { language: [...labels].sort().join(', '), files: files.sort().slice(0, 3) };
+  } catch (_) {
+    return null;
+  }
+}
+
 /**
  * Method-level blast radius: everything that (transitively) calls `symbol`.
  *
@@ -800,7 +887,7 @@ function methodImpact(symbol, cwd, opts = {}) {
   const graph = opts.graph || buildCallGraph(cwd, opts);
   const ids = _resolveSymbol(symbol, graph.defs);
   const scope = graph.scope || null;
-  if (ids.length === 0) return { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
+  if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
   const { direct, transitive } = _bfs(ids, graph.reverse, opts.depth || 0);
   return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
 }
@@ -831,7 +918,7 @@ function methodCallees(symbol, cwd, opts = {}) {
   const graph = opts.graph || buildCallGraph(cwd, opts);
   const ids = _resolveSymbol(symbol, graph.defs);
   const scope = graph.scope || null;
-  if (ids.length === 0) return { symbol, resolved: [], direct: [], transitive: [], total: 0, unresolved: true, scope };
+  if (ids.length === 0) return _unresolved(symbol, cwd, scope, graph.exclude);
   const { direct, transitive } = _bfs(ids, graph.forward, opts.depth || 0);
   return { symbol, resolved: ids, direct, transitive, total: direct.length + transitive.length, unresolved: false, scope };
 }
@@ -862,7 +949,17 @@ function _scopeClause(scope) {
 function formatCallGraph(result, kind) {
   const verb = kind === 'callees' ? 'calls' : 'callers of';
   const lines = [`## ${kind === 'callees' ? 'Callees' : 'Callers'}: \`${result.symbol}\``, ''];
-  if (result.unresolved) { lines.push('_symbol not found in the call-graph._'); return lines.join('\n'); }
+  if (result.unresolved) {
+    lines.push('_symbol not found in the call-graph._');
+    if (result.untracked) {
+      const { callNote } = require('./language-support');
+      lines.push('', `_${callNote(result.untracked.language, result.untracked.files)}_`);
+    } else if (result.unsearched) {
+      const { unsearchedNote } = require('./language-support');
+      lines.push('', `_${unsearchedNote(result.unsearched)}_`);
+    }
+    return lines.join('\n');
+  }
   const qualifier = _scopeClause(result.scope);
   if (result.total === 0) {
     lines.push(kind === 'callees'
@@ -877,7 +974,7 @@ function formatCallGraph(result, kind) {
 }
 
 function formatCallGraphJSON(result, kind) {
-  return {
+  const out = {
     symbol: result.symbol,
     kind: kind === 'callees' ? 'callees' : 'callers',
     resolved: result.resolved,
@@ -890,6 +987,16 @@ function formatCallGraphJSON(result, kind) {
     lowerBound: true,
     scope: result.scope || null,
   };
+  // Present only for a symbol declared in a language the call graph cannot
+  // read, so every other result keeps its shape (#979).
+  if (result.untracked) {
+    out.graph = require('./language-support').UNSUPPORTED;
+    out.language = result.untracked.language;
+    out.declaredIn = result.untracked.files;
+  }
+  // A symbol the call graph does not know, in roots that hold files it cannot read.
+  if (result.unsearched) out.unsearched = result.unsearched;
+  return out;
 }
 
 /**
@@ -907,4 +1014,5 @@ module.exports = {
   buildCallGraph, buildTypeMap, receiverCallsInRange, javaTypeDecl, DEFAULT_WALK_DEPTH, buildCallFileGraph, buildRankingCallFileGraph, methodImpact, methodCallees,
   formatCallGraph, formatCallGraphJSON,
   extractDefs, maskJs, maskPy, maskRust,
+  CALL_GRAPH_FAMILIES, CALL_GRAPH_EXTS,
 };

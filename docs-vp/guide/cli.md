@@ -2196,7 +2196,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.8% vs 40.0%   (2.32× lift)
+ hit@5         92.8% vs 39.2%   (2.37× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2223,7 +2223,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.32× vs a grep agent (published)
+95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.37× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2233,7 +2233,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.32× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.37× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2513,7 +2513,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.80.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.80.1, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3156,6 +3156,8 @@ sigmap --impact src/auth/service.ts
 sigmap --impact src/auth/service.ts --json
 ```
 
+**Languages the import graph cannot read.** The graph reads JavaScript/TypeScript, Python, Go, Rust, Java/Kotlin/Scala, Ruby, Elixir and R. For a file in any other language (PHP, C#, C/C++, Swift, Dart, Lua, GDScript, Vue, Svelte, Astro …) with no importers found, `--impact` answers `graph: unsupported-language — PHP imports are not tracked …` instead of "No importers found", and `--json` adds `"graph": "unsupported-language"` and `"language"` to the result. That is not evidence that nothing depends on the file. A readable file's output has no such field. The same marker appears in `get_impact`, `get_diff_context`, `plan`, `verify-plan`, the PR evidence report and `ask --with-source`; `--callers` and `get_method_impact` say where a symbol is declared when it is in a language the call graph cannot read, and `sigmap doctor` counts the files affected. See [Known limitations](https://github.com/manojmallick/sigmap/blob/main/KNOWN_LIMITATIONS.md#what-the-dependency-graphs-read).
+
 ---
 
 ## --callers / --callees
@@ -3210,7 +3212,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.80.0
+# 8.80.1
 ```
 
 ---

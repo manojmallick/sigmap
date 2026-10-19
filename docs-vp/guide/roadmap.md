@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.80.0, with the latest release making the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
+description: SigMap version history and roadmap. From v0.0 to v8.80.1, with the latest release making a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Two hundred fifty versions shipped. MIT open source from day one.
 
-**Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.32× measured lift vs single-shot grep (92.8% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
+**Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.37× measured lift vs single-shot grep (92.8% vs 39.2%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,27 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.80.1 — a blast radius that says "not tracked", Ruby nesting, and an npm description that is not cut off ✓ (2026-10-19)
+
+**Patch.** `--impact`, `get_impact` and `plan` answered "No importers found" for every file in a language the import graph does not read ([#979](https://github.com/manojmallick/sigmap/issues/979), PR [#1009](https://github.com/manojmallick/sigmap/pull/1009)): Laravel's `Str.php`, imported by 164 files, printed the words for "nothing depends on this". The graph reads eight language families and the method-level call graph seven; PHP, C#, C/C++, Objective-C, Swift, Dart, Lua, GDScript, Vue, Svelte and Astro contribute no edges. An empty result for such a file is now `graph: unsupported-language — PHP imports are not tracked …`, and `--json` carries `"graph":"unsupported-language"` and the language. `--callers`, `--callees` and `get_method_impact` name the file when a symbol is declared in a language the call graph cannot read, and say how many files they could not search when it is unknown; `get_diff_context`, the PR evidence report, `ask --with-source` and `verify-plan` stop printing a zero blast radius for such files, and `doctor` counts them by language. Across 53 files in 17 pinned clones the only differences from v8.80.0 were the two added keys.
+
+```
+Ruby against Ripper (757 Rails + Sidekiq files)   v8.80.0    v8.80.1
+  class                                              13.8%     100.0%
+  module                                             44.0%     100.0%
+  method, by name                                    82.7%      98.7%
+  method listed under the class that defines it       3.5%     100.0%
+  files whose def count equals Ripper's (of 3,398)   3,206      3,375
+```
+
+The Ruby extractor read only column-0 `class` / `module` lines and listed every method with no owner ([#981](https://github.com/manojmallick/sigmap/issues/981), PR [#1010](https://github.com/manojmallick/sigmap/pull/1010)). It now masks comments, strings, heredocs, regexps and `%`-literals, matches `end` against the keywords that open a block, and lists each `def` under the class or module that owns it; the old extractor also listed `def` lines inside heredocs. The comparison is committed as `scripts/extraction-recall/ruby.mjs`, the first case of the extraction-recall benchmark. Two smaller fixes ride along: the npm description was 363 characters and npm keeps 255, so it ended "… so they stop h" on every release (PR [#1008](https://github.com/manojmallick/sigmap/pull/1008), with a real `verify` sample in the README and `mcpName` for the MCP Registry), and every claim about another tool is now dated and linked to a pinned commit (PR [#1005](https://github.com/manojmallick/sigmap/pull/1005), [#973](https://github.com/manojmallick/sigmap/issues/973)).
+
+**Tags:** `graph: unsupported-language`, `doctor`, `GRAPH_FAMILIES`, `CALL_GRAPH_FAMILIES`, `ruby.js`, `extraction-recall`, `mcpName`, `#979`, `#981`, `#977`, `#973`
+
+**Impact:** every published figure holds except one. Token reduction 95.7%, hit@5 80.4%, task success 61.9%, prompt reduction 44.4%, test-discovery F1 98.0% and the grounding corpus reproduce v8.80.0 leaf for leaf, except Rails' own rows, which move because its Ruby index does (index entries 262 to 243, final tokens 19,704 to 20,000 — the budget cap — grounded symbols 2,010 to 2,281; its hit@5 stays 1 of 5). The third-party corpus holds (the per-repo no-regress gate passes; in the per-task comparison of the Ruby change against its base no hit count moved and two Sidekiq misses changed rank). `hard` reads 71.1% (64 of 90) and `mined` 66.7% (40 of 60) with no task flipped, `easy` 90.0% (18 of 20); the self-scored MRRs move in the third decimal (`hard` 0.531 to 0.528, `mined` 0.459 to 0.466). The one figure that moves is the grep side of the honest comparison: 39.2% (49 of 125) where it read 40.0% (50 of 125), so the honest lift is **2.37×** where it was 2.32× (SigMap's side is unchanged at 92.8%). It is the merged repository and not the release's text: the untouched merged `develop`, measured in the same layout, reads the same, and SigMap's own generated files take 129 of the 625 top-5 places (125 at v8.80.0). `validate:grounding-coverage` passes with Rails at 73.8% (75.3% before) and Sidekiq at 81.1% (83.6%): grounded names rose, but the universe grew faster because nested classes and modules now exist to be counted.
 
 ---
 

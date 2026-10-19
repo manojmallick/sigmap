@@ -31,6 +31,7 @@
 ```bash
 npx sigmap
 npx sigmap ask "Where is auth handled?"
+npx sigmap verify answer.md      # flags files, imports and symbols an AI answer made up
 ```
 
 Zero config. Zero dependencies. Under 10 seconds.
@@ -62,7 +63,8 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **92.8% vs 40.0% single-shot grep baseline** — 2.32× measured lift on the honest corpus (125 tasks / 19 repos)
+- **92.8% vs 39.2% single-shot grep baseline** — 2.37× measured lift on the honest corpus (125 tasks / 19 repos)
+- **63.3% hit@5 on repositories we do not control** — the third-party corpus: 81 of 128 questions over 25 repos, 95% interval 54.7–71.1%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
 - **95.7% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.58 prompts per task** — down from 2.84 (44.4% fewer retries, modeled)
@@ -76,7 +78,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 ## 🔒 `sigmap verify` — the grounding flagship
 
-The one thing no agentic-grep loop, and no competitor, gives you: **prove an AI answer is anchored to real signatures and line numbers before you trust it.** Deterministic, offline, no LLM — SigMap indexes your repo *plus the libraries actually installed here* and flags every fabricated file, import, imported name, symbol, test, or npm script.
+The one thing an agentic-grep loop cannot give you: **prove an AI answer is anchored to real signatures and line numbers before you trust it.** Deterministic, offline, no LLM — SigMap indexes your repo *plus the libraries actually installed here* and flags every fabricated file, import, imported name, symbol, test, or npm script.
 
 ```bash
 sigmap verify answer.md                 # ✓ grounded, or a line-by-line list of fabrications
@@ -88,9 +90,13 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
 [sigmap] ✗ answer.md — 2 issues found
   fake-file: 1  fake-test-file: 0  fake-import: 0  fake-import-name: 0  fake-symbol: 1  fake-npm-script: 0
 
-  L12  [Fake file]    src/auth/session-store.js does not exist
-  L27  [Fake symbol]  authorize() — did you mean authenticate()?
+  L2  [Fake file]  File not found on disk: src/auth/session-store.js
+         ↳ Did you mean `sig-index-store.js` in src/retrieval/sig-index-store.js?
+  L2  [Fake symbol]  Symbol not found in repo index: authorize()
+         ↳ Did you mean `summarize()` in src/deps/sbom.js?
 ```
+
+<sub>Real output of `sigmap verify` on a two-line `answer.md` that names a file and a function this repository does not have; the "Did you mean" targets depend on the repository.</sub>
 
 `verify` is the flagship; `verify-ai-output` remains as the full command name. Pair it with `sigmap verify-plan` (check a plan before execution) and the `verify_suggestion` MCP tool (verify AI code against repo + private + installed-library symbols mid-session).
 
@@ -129,7 +135,8 @@ Benchmark : sigmap-v8.80-main (21 repositories, including R language)
 Date      : 2026-10-18
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
-Honest vs grep : 92.8% vs 40.0% grep baseline — 2.32× lift (125 tasks / 19 repos)
+Honest vs grep : 92.8% vs 39.2% grep baseline — 2.37× lift (125 tasks / 19 repos)
+Third-party    : 63.3% hit@5 (81 of 128 questions / 25 repos, 95% interval 54.7–71.1%)
 Map vs repo    : 95.7% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
 Task success   : 61.9%   (proxy — modeled from retrieval tiers)

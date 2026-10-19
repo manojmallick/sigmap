@@ -177,6 +177,8 @@ function verifyPlan(planText, cwd, opts = {}) {
     try { impacts = analyzeImpact(existingFiles, cwd, {}); } catch (_) { impacts = []; }
     for (const { file, impact } of impacts) {
       const entry = { file, totalImpact: impact.totalImpact, tests: impact.tests.length };
+      // Present only when the import graph cannot read the file: a 0 here is "not tracked" (#979).
+      if (impact.graph) { entry.graph = impact.graph; entry.language = impact.language; }
       blast.push(entry);
       if (impact.totalImpact > blastThreshold) {
         issues.push({ type: 'high-blast-radius', ref: file, count: impact.totalImpact, severity: 'warn' });

@@ -56,9 +56,19 @@ export function renderTokens(root = ROOT) {
     ? `- **${pct(honest.sigmap_hit_at_5 * 100)} vs ${pct(honest.grep_baseline_hit_at_5 * 100)} single-shot grep baseline** — ${Number(honest.lift).toFixed(2)}× measured lift on the honest corpus (${honest.tasks} tasks / ${honest.repos} repos)`
     : null;
 
+  // The third-party corpus sits beside the honest corpus because the two answer
+  // different questions: the honest corpus includes this repository's own files,
+  // the third-party one is repositories nobody here controls, and it reads lower
+  // (#973). A reader should see both numbers before deciding which to trust.
+  const tp = latest.third_party;
+  const thirdPartyClause = tp
+    ? `- **${pct(tp.hit_at_5_pct)} hit@5 on repositories we do not control** — the third-party corpus: ${tp.hits} of ${tp.tasks} questions over ${tp.repos} repos, 95% interval ${tp.interval_low_pct.toFixed(1)}–${tp.interval_high_pct.toFixed(1)}%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository`
+    : null;
+
   const bullets = [
     `- **${pct(m.hit_at_5 * 100)} hit@5** — right file in top 5 results (retrieval corpus, ${latest.repos_retrieval} repos)`,
     ...(honestClause ? [honestClause] : []),
+    ...(thirdPartyClause ? [thirdPartyClause] : []),
     `- **${pct(m.overall_token_reduction_pct)} smaller than the full repository** — the generated map vs every source file, averaged across ${latest.repos_token} real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo`,
     `- **${pct(m.task_success_proxy_pct)} task-success proxy** — modeled from retrieval tiers, not measured LLM sessions`,
     `- **${m.prompts_per_task} prompts per task** — down from ${m.baseline_prompts_per_task} (${pct(m.prompt_reduction_pct)} fewer retries, modeled)`,
@@ -74,6 +84,9 @@ export function renderTokens(root = ROOT) {
     `Hit@5          : ${pct(m.hit_at_5 * 100)}   (retrieval corpus, ${latest.repos_retrieval} repos)`,
     ...(honest
       ? [`Honest vs grep : ${pct(honest.sigmap_hit_at_5 * 100)} vs ${pct(honest.grep_baseline_hit_at_5 * 100)} grep baseline — ${Number(honest.lift).toFixed(2)}× lift (${honest.tasks} tasks / ${honest.repos} repos)`]
+      : []),
+    ...(tp
+      ? [`Third-party    : ${pct(tp.hit_at_5_pct)} hit@5 (${tp.hits} of ${tp.tasks} questions / ${tp.repos} repos, 95% interval ${tp.interval_low_pct.toFixed(1)}–${tp.interval_high_pct.toFixed(1)}%)`]
       : []),
     `Map vs repo    : ${pct(m.overall_token_reduction_pct)} smaller   (generated map vs all source files, ${latest.repos_token} repos — not a per-call cost saving)`,
     `Prompt reduction : ${pct(m.prompt_reduction_pct)} (${m.baseline_prompts_per_task} → ${m.prompts_per_task} prompts per task, modeled)`,

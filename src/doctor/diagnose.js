@@ -38,6 +38,10 @@ const ICON = { ok: '✓', warn: '⚠', fail: '✗' };
 // Below it, a couple of root entrypoints outside srcDirs is an ordinary layout.
 const OUTSIDE_WARN_SHARE = 0.10;
 
+// Share of code files in languages the import graph cannot read that turns its
+// report into a warning (#979). Below it, a few files is an ordinary layout.
+const UNTRACKED_WARN_SHARE = 0.10;
+
 function _short(p, cwd) {
   const rel = path.relative(cwd, p);
   return rel && !rel.startsWith('..') ? rel : p.replace(os.homedir(), '~');
@@ -417,6 +421,27 @@ function diagnose(cwd, opts = {}) {
         add('context-git', 'Local state in git', 'warn', '.context/ is not ignored — `git add .` would commit it',
           'run: sigmap   (writes .context/.gitignore), or add ".context/" to your .gitignore');
       }
+    }
+  } catch (_) {}
+
+  // 12. Import-graph reach (#979). The graph reads eight language families; a
+  // file in any other language has no edges, so --impact / get_impact answer
+  // "not tracked" for it. Say so here, before a query reaches it. A few stray
+  // files are an ordinary layout; past a tenth of the code, it is a warning.
+  try {
+    const { censusUntracked, graphLanguageList } = require('../graph/language-support');
+    // No roots or exclusions passed: the census resolves them exactly as the
+    // graph walk does, so it counts the tree the graph would have read.
+    const census = censusUntracked(cwd);
+    if (census.untracked === 0) {
+      if (census.tracked > 0) add('graph', 'Import graph', 'ok', `${census.tracked} file(s) in languages it reads (${graphLanguageList()})`);
+    } else {
+      const list = census.languages.slice(0, 6).map((l) => `${l.label} ${l.files}`).join(', ')
+        + (census.languages.length > 6 ? `, +${census.languages.length - 6} more` : '');
+      const share = census.untracked / (census.untracked + census.tracked);
+      add('graph', 'Import graph', share < UNTRACKED_WARN_SHARE ? 'ok' : 'warn',
+        `${census.tracked} file(s) readable; ${census.untracked} in languages it does not read (${list}) — --impact and get_impact report these as "not tracked", not as having no dependents`,
+        share < UNTRACKED_WARN_SHARE ? null : `the import graph reads ${graphLanguageList()} only; signatures, ranking and ask still cover every language`);
     }
   } catch (_) {}
 
