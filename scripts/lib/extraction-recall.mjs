@@ -20,12 +20,6 @@ export const SCHEMA = 1;
 /** Misses kept per kind in a saved report: enough to read, small enough to commit. */
 export const MISS_CAP = 60;
 
-/** A name whose last segment starts with "_" is private or dunder: the extractors omit it on purpose. */
-export function isPrivate(name) {
-  const last = String(name).split(/[#.]/).pop();
-  return last.startsWith('_');
-}
-
 /** One decimal, the same rounding everywhere a recall is printed or saved. */
 export function pct(found, reference) {
   return reference ? Math.round((1000 * found) / reference) / 10 : null;

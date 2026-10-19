@@ -51,9 +51,9 @@ export function withShippedIndex(reposDir, repo, opts, fn) {
   return withZeroConfigIndex(CODE_ROOT, entry, ({ index }) => fn(index), { dir: path.join(reposDir, repo), pythonAst: !!opts.pythonAst });
 }
 
-/** The index's line for a file, minus the "… +N more" notice that the cap leaves in its place. */
+/** The index's signature lines for a file, or [] when the index lacks it. */
 export function indexedSigs(index, rel) {
-  return (index.get(rel) || []).filter((s) => !/^\s*…\s*\+\d+ more/.test(s));
+  return index.get(rel) || [];
 }
 
 /** Drop a signature line's `:start-end` anchor and anything after it. */

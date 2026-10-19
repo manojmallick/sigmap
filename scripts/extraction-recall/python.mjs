@@ -21,15 +21,15 @@
 //
 // The file set is fixed: Flask's package and the Django libraries a user asks about most
 // (db/models, http, core, forms, utils, contrib/admin), without tests, migrations and locale
-// directories. Only public names count: a name whose last segment starts with "_" (private and
-// dunder) is skipped on both sides, because the extractors omit those on purpose. A file ast
+// directories. Names the extractors omit on purpose (see `isOmitted`: underscore-prefixed
+// functions and methods, dunders other than `__init__`) are skipped on both sides. A file ast
 // cannot parse drops out of both sides.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { newTally, record, skip, isPrivate, population, rowsOf } from '../lib/extraction-recall.mjs';
+import { newTally, record, skip, population, rowsOf } from '../lib/extraction-recall.mjs';
 import { DEFAULT_REPOS, listFiles, shaOf, probe, withShippedIndex, indexedSigs, bare } from './common.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -69,6 +69,18 @@ export function parseSigs(sigs) {
 }
 
 /**
+ * A reference symbol the extractors omit on purpose, so it is left out of the comparison on
+ * both sides: a function or method whose name starts with "_" (private by convention) and
+ * every dunder except `__init__`, which both tiers list (python.js extractClassMethods,
+ * python_ast.py). A class is never skipped: neither tier filters classes by name.
+ */
+export function isOmitted(kind, name) {
+  if (kind === 'class') return false;
+  const last = String(name).split('.').pop();
+  return last.startsWith('_') && last !== '__init__';
+}
+
+/**
  * Score one file's reference symbols against the names SigMap listed for it. A name counts
  * once per file and kind: a property's getter and setter, or an `@overload` series, are one
  * name, and the question is whether the file lists it.
@@ -78,7 +90,7 @@ export function compareFile(tally, truth, got, where) {
   for (const [kind, name] of truth) {
     if (!tally[kind] || seen.has(`${kind}\0${name}`)) continue;
     seen.add(`${kind}\0${name}`);
-    if (isPrivate(name)) { skip(tally, kind); continue; }
+    if (isOmitted(kind, name)) { skip(tally, kind); continue; }
     record(tally, kind, got[kind].has(name), `${where} :: ${name}`);
   }
 }

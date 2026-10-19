@@ -11,11 +11,14 @@
 // Dev-only: needs a `ruby` on PATH and the pinned clones under benchmarks/repos; with either
 // missing it says "unmeasured" and exits 0.
 //
-//   node scripts/extraction-recall/ruby.mjs [--repos <dir>] [--extractor <file>] [--json] [--no-index]
+//   node scripts/extraction-recall/ruby.mjs [--repos <dir>] [--extractor <file>] [--json] [--index]
 //                                           [--min-class <pct>] [--min-module <pct>] [--min-method <pct>] [--min-owner <pct>]
 //
-// The floors given to --min-* apply to the extractor population. The committed floors, checked
-// in CI against every population, live in benchmarks/extraction-recall-floors.json.
+// By default this measures the extractor only and touches nothing. --index adds the index as
+// shipped, which regenerates context inside the Rails and Sidekiq clones and restores it (see
+// scripts/run-extraction-recall.mjs for what that means). The floors given to --min-* apply to
+// the extractor population. The committed floors, checked in CI against every population, live
+// in benchmarks/extraction-recall-floors.json.
 //
 // The file set is fixed: the Rails libraries (actionpack, activerecord, activesupport) and
 // Sidekiq, the files the Ruby on PATH can parse (757 with Ruby 2.6, the system Ruby on macOS).
@@ -155,14 +158,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const asJson = args.includes('--json');
   const floors = { class: opt('--min-class'), module: opt('--min-module'), method: opt('--min-method'), owner: opt('--min-owner') };
   const result = measure({
-    reposDir: opt('--repos'), extractorPath: opt('--extractor'), index: !args.includes('--no-index'),
+    reposDir: opt('--repos'), extractorPath: opt('--extractor'), index: args.includes('--index'),
   });
   if (!result.measured) {
     console.log(asJson ? JSON.stringify({ measured: false, reason: result.reason }) : `extraction-recall ruby: unmeasured (${result.reason})`);
     process.exit(0);
   }
   const pop = result.populations.extractor;
-  const failures = pop.rows.filter((r) => floors[r.kind] != null && r.recall < Number(floors[r.kind]));
+  const failures = pop.rows.filter((r) => floors[r.kind] != null && (r.recall === null || r.recall < Number(floors[r.kind])));
   if (asJson) {
     console.log(JSON.stringify({
       measured: true, filesCompared: pop.filesCompared, pins: result.pins, rows: pop.rows,
@@ -172,9 +175,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`extraction-recall ruby: ${pop.filesCompared} files compared against Ripper ${result.reference.version} (rails ${result.pins.rails || '?'}, sidekiq ${result.pins.sidekiq || '?'})`);
     for (const [id, p] of Object.entries(result.populations)) {
       console.log(`  ${id}: ${p.label}`);
-      for (const r of p.rows) console.log(`    ${r.kind.padEnd(7)} reference ${String(r.reference).padStart(5)}  found ${String(r.found).padStart(5)}  recall ${r.recall.toFixed(1)}%`);
+      for (const r of p.rows) console.log(`    ${r.kind.padEnd(7)} reference ${String(r.reference).padStart(5)}  found ${String(r.found).padStart(5)}  recall ${r.recall === null ? 'n/a' : r.recall.toFixed(1) + '%'}`);
     }
-    for (const r of failures) console.log(`  FAIL ${r.kind}: ${r.recall.toFixed(1)}% is below the floor of ${floors[r.kind]}%`);
+    for (const r of failures) console.log(`  FAIL ${r.kind}: ${r.recall === null ? 'nothing to find' : r.recall.toFixed(1) + '%'} is below the floor of ${floors[r.kind]}%`);
   }
   process.exit(failures.length ? 1 : 0);
 }

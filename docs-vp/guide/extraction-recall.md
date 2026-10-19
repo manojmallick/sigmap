@@ -32,29 +32,31 @@ Flask (`2ac8988`) and Django (`a461af8`): `src/flask`, and Django's `db/models`,
 
 | Population | Files | class | function | method |
 |---|---|---|---|---|
-| extractor, regex tier (no `python3`) | 266 | 99.3% | 98.5% | 93.0% |
-| extractor, AST tier (`python3` on PATH) | 266 | 67.6% | 92.5% | 63.9% |
-| index as shipped, without `python3` | 237 | 65.0% | 77.3% | 58.4% |
-| index as shipped, with `python3` | 237 | 64.0% | 87.9% | 56.6% |
+| extractor, regex tier (no `python3`) | 266 | 99.3% | 98.5% | 90.7% |
+| extractor, AST tier (`python3` on PATH) | 266 | 67.7% | 92.5% | 64.4% |
+| index as shipped, without `python3` | 237 | 65.0% | 77.3% | 57.1% |
+| index as shipped, with `python3` | 237 | 64.0% | 87.9% | 57.5% |
 
-Counts behind each cell are in the report; the regex-tier row is 893 of 899 classes, 577 of 586 functions and 2,433 of 2,615 methods.
+The regex-tier row is 895 of 901 classes, 577 of 586 functions and 2,723 of 3,002 methods; every other count is in the report.
+
+Which names count: the extractors omit on purpose every function or method whose name starts with `_` and every dunder except `__init__`, so those are left out on both sides (88 functions and 933 methods for the regex tier). `__init__` is listed by both tiers and counts, and so does a class whose name starts with `_`.
 
 What the table says:
 
-- **The AST tier is not the more complete one.** `python_ast.py` stops after 30 signatures a file and does not say so (`MAX_SIGS`), so a large module loses its tail before the index cap applies: Django's `db/models/fields/__init__.py` comes back as 30 signatures where the regex tier returns 201. A machine with `python3` therefore indexes fewer classes and methods than one without. [#982](https://github.com/manojmallick/sigmap/issues/982) tracks the Python index recall.
-- **The index loses far more than the extractor does.** From the regex tier to the index without `python3`, classes fall 34 points, functions 21 and methods 35: the 25-signature cap drops the tail of every large file.
-- **Python 3.11 and 3.14 agree to within 0.3 points** (they parse three more Django files than 3.9), so the floors apply to any CPython 3.
+- **The AST tier's own output is not the more complete one.** `python_ast.py` stops after 30 signatures a file and does not say so (`MAX_SIGS`), and lists a class's constants before its methods, so a large module loses its tail: Django's `db/models/fields/__init__.py` comes back as 30 signatures where the regex tier returns 200 and says it dropped the rest. That cap does not bind on the index, where the 25-signature cap is lower, so the two index rows are within a point of each other on classes and methods. It does matter for [#982](https://github.com/manojmallick/sigmap/issues/982), which measured with the AST tier absent: raising the index cap would still leave a machine with `python3` receiving at most 30 signatures a file from the extractor. That consequence follows from the code and is not measured here.
+- **The index loses far more than the extractor does.** From the regex tier to the index without `python3`, classes fall 34 points, functions 21 and methods 34: the 25-signature cap drops the tail of every large file. [#982](https://github.com/manojmallick/sigmap/issues/982) tracks the Python index recall.
+- **Python 3.11 and 3.14 agree to within 0.2 points** (they parse three more Django files than 3.9), so the floors apply to any CPython 3.
 
 ### The earlier one-off figures
 
-Two Python figures were measured once, before this harness, with throwaway scripts; both reproduce, and the first needs a correction of method:
+Two Python figures were measured once, before this harness, with throwaway scripts. Both reproduce; what differs is which names count.
 
-- **Regex tier, 99.2% / 85.6% / 69.2%** (classes / functions / methods, 266 files) counted private and dunder names the extractor omits on purpose, which made up 88 of the 97 function misses. Scoring public names only gives 99.3% / 98.5% / 93.0%, the first row above.
-- **Django's index, methods 57.6%, classes 63.5%, functions 75.9%** (221 files) reproduces on a machine without `python3` as 57.6% / 63.6% / 75.9%; the 0.1 on classes is a class the extractor prints in its collapsed `@dataclass Name(...)` form, which this harness counts as listed. With `python3` on PATH the same 221 files give 54.6% / 62.7% / 87.8%. The 221-file Django figures are not in the report, which covers Flask and Django together.
+- **Regex tier, 99.2% / 85.6% / 69.2%** (classes / functions / methods, 266 files, Python 3.9.6) counted every name, private ones included: 88 of the 97 function misses were private or dunder. Counting the names the extractors list gives 99.3% / 98.5% / 90.7%, the first row above. The jump in methods is almost all underscore and dunder methods the extractors omit on purpose, not an improvement of the extractor.
+- **Django's index, methods 57.6%, classes 63.5%, functions 75.9%** (221 files, Python 3.9.6) reproduces as 57.6% / 63.6% / 75.9% on a machine without `python3`, with the one-off's file selection (Django's indexed files under those directories, without tests) and its rule (`__init__` skipped like every underscore name). The 0.1 on classes is one class the extractor prints in its collapsed `@dataclass Name(...)` form (`Action`, in `contrib/admin/options.py`), which this harness counts as listed. Counting `__init__` as the extractors list it gives 56.5% for methods; with `python3` on PATH the same files give 62.7% / 87.8% / 55.5%. These 221-file figures come from a scratch script outside the committed harness, which compares Flask and Django together over the file set above; the file count depends on the interpreter (Python 3.11 parses 224 of them).
 
 ## Ruby — against Ruby Ripper 2.6.10
 
-Rails (`f9243af`: `actionpack`, `activerecord`, `activesupport`) and Sidekiq (`132f982`). 757 files that Ruby 2.6 can parse; modern syntax drops out on both sides.
+Rails (`f9243af`: `actionpack`, `activerecord`, `activesupport`) and Sidekiq (`132f982`). 757 files that Ruby 2.6 can parse; modern syntax drops out on both sides. Methods whose name starts with `_` are left out on both sides, as the extractor omits them on purpose.
 
 | Population | Files | class | module | method | method under its owner |
 |---|---|---|---|---|---|
@@ -62,7 +64,7 @@ Rails (`f9243af`: `actionpack`, `activerecord`, `activesupport`) and Sidekiq (`1
 | index as shipped | 298 of 757 | 92.1% | 98.7% | 88.0% | 88.0% |
 
 - The extractor row reproduces the [#981](https://github.com/manojmallick/sigmap/issues/981) figures (944 of 944 classes, 1,467 of 1,467 modules, 7,196 of 7,292 methods, 7,291 of 7,292 under the right owner).
-- **The index holds 298 of the 757 files, and that is a coverage gap, not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 34.4% / 30.3% / 28.1% / 28.0%.
+- **The index holds 298 of the 757 files, and that is a coverage gap ([#997](https://github.com/manojmallick/sigmap/issues/997)), not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 34.4% / 30.3% / 28.1% / 28.0%.
 
 On the CI runner (Ruby 3.2.3, which parses 833 of the same files) the extractor scores 100.0% / 100.0% / 98.5% / 99.3% and the index, over the 331 files it holds, 87.1% / 98.4% / 82.7% / 80.6%. The floors for Ruby 3 are recorded from that run, which is why the saved report, made on Ruby 2.6, differs from it.
 
@@ -74,22 +76,28 @@ A measured language with no interpreter or no clones on the machine is also repo
 
 ## How it is measured
 
-- The reference parser lists every function, class and method in a file; `sigmap` lists what it extracts. A symbol is found when its name is listed in the same file (a method under the same class). A name counts once per file and kind.
-- Only public names count. A name whose last segment starts with `_` is skipped on both sides, because the extractors omit those on purpose; the report keeps the number skipped.
-- The clones are pinned to the commits in `benchmarks/xrepo-repos.json`, the same ones the retrieval gate uses. The index is built the way a first-time run builds it: auto-detected source directories, no config file, and the checkout is left byte-identical.
+- The reference parser lists every function, class and method in a file; SigMap lists what it extracts. A Python symbol is found when its name is listed in the same file (a method under the same class), and a name counts once per file and kind, so a property's getter and setter are one name. A Ruby symbol is found when its bare name is listed in the same file and each definition counts; the `owner` row asks whether each method is listed under the class or module that defines it.
+- Names the extractors omit on purpose are skipped on both sides, and the report keeps the number skipped (see above for each language).
+- The clones are pinned to the commits in `benchmarks/xrepo-repos.json`, the same ones the retrieval gate uses. The index is built the way a first-time run builds it: auto-detected source directories, no config file.
 - Reference versions are recorded in the report (`reference.version`) and with every floor.
+- The comparison is by name, so one thing it cannot see: the regex tier prints a nested class's methods under the outer class, so a nested class's method can be credited to the outer class when the outer class's own method of the same name is missed. That is not quantified and is expected to be small.
+- The index step regenerates context inside each pinned clone and restores it afterwards, as the retrieval gate does. Do not run it while another suite reads those clones, and if a run is interrupted, check `git status` in the clone and delete a leftover `.context`. `--no-index` measures the extractor only and touches nothing.
 
 ```bash
 node scripts/fetch-xrepo-repos.mjs          # the pinned clones
 node scripts/run-extraction-recall.mjs      # report both languages
 node scripts/run-extraction-recall.mjs --only python --misses 10
-npm run validate:extraction-recall          # the gate CI runs
+npm run validate:extraction-recall          # the gate
 ```
 
 ## Floors
 
 `benchmarks/extraction-recall-floors.json` holds a floor per population and kind. Each is the recall measured on the recorded version, rounded down to a whole point, less one point (100.0 becomes 99), so a floor trips on a real loss and not on a rounding. `npm run validate:extraction-recall` exits 1 below a floor.
 
-A floor is a promise about one reference parser. A different version parses a different set of files, so a run is compared only with the floors recorded for its own version, by version prefix. On any other version the numbers are printed with "floors not enforced". The Python floors apply to any CPython 3 (checked on 3.9, 3.11, 3.12 and 3.14). The Ruby floors are recorded twice: for Ruby 2.6 (the local reference) and for Ruby 3, from 3.2.3, the version on the CI runner. CI passes `--require-reference`, so a runner whose Python or Ruby no floor covers fails the job instead of passing without checking; the remedy is to record floors for that version.
+A floor is a promise about one reference parser. A different version parses a different set of files, so a run is compared only with the floors recorded for its own version, by version prefix. On any other version the numbers are printed with "floors not enforced". CI passes `--require-reference`, a stricter gate: it also fails unless every language that has floors was measured, on a version the floors cover, with every floored population run, so a runner whose Python or Ruby no floor covers fails the job instead of passing without checking. The remedy is to record floors for that version, never to lower one.
+
+- The Python floors apply to any CPython 3 and were checked on 3.9, 3.11 and 3.14.
+- The Ruby floors are recorded twice: for Ruby 2.6 (the local reference) and for Ruby 3, from 3.2.3, the version on the CI runner. The Ruby 3 prefix rests on that one run. Going from Ruby 2.6 to 3.2.3 moved the index class recall from 92.1% to 87.1% through the file set alone (298 to 331 indexed files), against a margin of one point, so a later 3.x could trip a floor without any change to the extractor.
+- The index floors guard recall over the files the index holds, not how many it holds ([#997](https://github.com/manojmallick/sigmap/issues/997)); when that changes, they may need new values.
 
 A floor is raised in the change that raises the recall and is never lowered to land a change.

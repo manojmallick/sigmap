@@ -5,7 +5,7 @@
  *
  *   node scripts/run-extraction-recall.mjs                        # report every language
  *   node scripts/run-extraction-recall.mjs --gate                 # exit 1 below a recorded floor
- *   node scripts/run-extraction-recall.mjs --gate --require-reference   # also exit 1 if a language with floors cannot be measured (CI)
+ *   node scripts/run-extraction-recall.mjs --require-reference   # a stricter --gate (CI): also exit 1 unless every language with floors was measured, on a version the floors cover, with every floored population run
  *   node scripts/run-extraction-recall.mjs --save                 # write benchmarks/reports/extraction-recall.json
  *   node scripts/run-extraction-recall.mjs --save --out <file>   # write it elsewhere (the tests do)
  *   node scripts/run-extraction-recall.mjs --only python --misses 10
@@ -23,6 +23,12 @@
  * for ITS version; otherwise its numbers are printed with "floors not enforced". A language
  * with no reference parser here (no interpreter, no clones, no adapter yet) is listed as
  * "unmeasured", never omitted, and exits 0 unless --require-reference is given.
+ *
+ * THE INDEX STEP regenerates context inside each pinned clone and restores it afterwards
+ * (scripts/lib/shared-repo-context.mjs), exactly as the xrepo gate does. So do not run it at
+ * the same time as a suite that reads those clones as they are, and if a run is interrupted
+ * (Ctrl-C) look at `git -C benchmarks/repos/<clone> status` and delete a leftover `.context`.
+ * `--no-index` measures the extractor only and touches nothing.
  *
  * Dev-only. Nothing here ships in the npm package and nothing at runtime depends on a
  * reference parser.
@@ -61,6 +67,12 @@ function loadFloors() {
 
 async function main() {
   const only = opt('--only') ? new Set(opt('--only').split(',')) : null;
+  const unknown = only ? [...only].filter((n) => !ADAPTERS.includes(n)) : [];
+  if (unknown.length) {
+    console.error(`[extraction-recall] unknown language: ${unknown.join(', ')}; the measured languages are ${ADAPTERS.join(', ')}`);
+    process.exitCode = 1;
+    return;
+  }
   const floors = loadFloors();
   const reposDir = opt('--repos');
   const results = {};
@@ -86,23 +98,36 @@ async function main() {
     console.log(`unmeasured (${names.length}): ${names.join(', ')} — no reference-parser adapter yet`);
   }
 
+  // --require-reference is a stricter --gate: every language that has floors must have been
+  // measured, on a version the floors cover, with every floored population run. A reference
+  // run that checks nothing must not look like a pass.
+  const required = flag('--require-reference');
   let code = 0;
   for (const [name, v] of Object.entries(verdicts)) {
-    const hasFloors = !!floors.languages[name];
-    if (v.status === 'fail' && flag('--gate')) {
+    if (v.status === 'fail' && (flag('--gate') || required)) {
       code = 1;
       console.error(`[extraction-recall] ${name}: below a floor — ${v.checks.filter((c) => c.status === 'fail').map((c) => `${c.population}/${c.kind} ${c.recall}% < ${c.floor}%`).join('; ')}`);
     }
-    if (flag('--require-reference') && hasFloors && (v.status === 'unmeasured' || v.status === 'not-enforced')) {
-      code = 1;
-      console.error(`[extraction-recall] ${name}: ${v.status} — ${v.note}. --require-reference needs a reference parser the floors cover.`);
+  }
+  if (required) {
+    for (const name of Object.keys(floors.languages)) {
+      const v = verdicts[name];
+      const why = !v ? 'not measured (left out by --only)'
+        : v.status === 'unmeasured' || v.status === 'not-enforced' ? `${v.status} — ${v.note}`
+          : v.checks.some((c) => c.status === 'skipped') ? 'a floored population was not run (--no-index)'
+            : null;
+      if (why) {
+        code = 1;
+        console.error(`[extraction-recall] ${name}: ${why}. --require-reference needs a reference parser the floors cover, with every floored population measured.`);
+      }
     }
   }
 
   if (flag('--save')) {
     const missing = Object.entries(results).filter(([, r]) => r.measured === false);
-    if (only || missing.length) {
-      console.error(`[extraction-recall] not saved: ${only ? 'a partial run (--only)' : `unmeasured ${missing.map(([n]) => n).join(', ')}`} would drop numbers from the report`);
+    const partial = Object.entries(results).filter(([, r]) => r.notRun);
+    if (only || missing.length || partial.length) {
+      console.error(`[extraction-recall] not saved: ${only ? 'a partial run (--only)' : missing.length ? `unmeasured ${missing.map(([n]) => n).join(', ')}` : 'a run without the index (--no-index)'} would drop numbers from the report`);
       code = code || 1;
     } else {
       const report = stamp({ schema: SCHEMA, benchmark: 'extraction-recall', method: 'scripts/run-extraction-recall.mjs', languages: results, unmeasured }, ROOT);

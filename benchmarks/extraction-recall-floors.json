@@ -21,22 +21,22 @@
             "extractor-regex": {
               "class": 98,
               "func": 97,
-              "method": 92
+              "method": 89
             },
             "extractor-ast": {
               "class": 66,
               "func": 91,
-              "method": 62
+              "method": 63
             },
             "index-regex": {
               "class": 64,
               "func": 76,
-              "method": 57
+              "method": 56
             },
             "index-ast": {
               "class": 63,
               "func": 86,
-              "method": 55
+              "method": 56
             }
           }
         }

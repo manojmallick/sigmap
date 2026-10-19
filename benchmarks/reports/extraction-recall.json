@@ -20,10 +20,10 @@
           "rows": [
             {
               "kind": "class",
-              "reference": 899,
-              "found": 893,
+              "reference": 901,
+              "found": 895,
               "recall": 99.3,
-              "skipped": 2,
+              "skipped": 0,
               "missed": 6
             },
             {
@@ -36,11 +36,11 @@
             },
             {
               "kind": "method",
-              "reference": 2615,
-              "found": 2433,
-              "recall": 93,
-              "skipped": 1320,
-              "missed": 182
+              "reference": 3002,
+              "found": 2723,
+              "recall": 90.7,
+              "skipped": 933,
+              "missed": 279
             }
           ],
           "misses": {
@@ -64,7 +64,12 @@
               "flask/src/flask/helpers.py :: send_file"
             ],
             "method": [
+              "django/django/contrib/admin/helpers.py :: AdminForm.__init__",
+              "django/django/contrib/admin/helpers.py :: Fieldset.__init__",
+              "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.__init__",
+              "django/django/contrib/admin/helpers.py :: InlineAdminForm.__init__",
               "django/django/contrib/admin/models.py :: LogEntryManager.log_actions",
+              "django/django/contrib/admin/options.py :: ModelAdmin.__init__",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_instances",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_urls",
               "django/django/contrib/admin/options.py :: ModelAdmin.urls",
@@ -118,12 +123,7 @@
               "django/django/contrib/admin/options.py :: ModelAdmin.delete_view",
               "django/django/contrib/admin/options.py :: ModelAdmin.history_view",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_formset_kwargs",
-              "django/django/contrib/admin/options.py :: InlineModelAdmin.media",
-              "django/django/contrib/admin/options.py :: InlineModelAdmin.get_extra",
-              "django/django/contrib/admin/options.py :: InlineModelAdmin.get_min_num",
-              "django/django/contrib/admin/options.py :: InlineModelAdmin.get_max_num",
-              "django/django/contrib/admin/options.py :: InlineModelAdmin.get_formset",
-              "django/django/contrib/admin/options.py :: InlineModelAdmin.get_queryset"
+              "django/django/contrib/admin/options.py :: InlineModelAdmin.__init__"
             ]
           }
         },
@@ -133,10 +133,10 @@
           "rows": [
             {
               "kind": "class",
-              "reference": 899,
-              "found": 608,
-              "recall": 67.6,
-              "skipped": 2,
+              "reference": 901,
+              "found": 610,
+              "recall": 67.7,
+              "skipped": 0,
               "missed": 291
             },
             {
@@ -149,11 +149,11 @@
             },
             {
               "kind": "method",
-              "reference": 2615,
-              "found": 1672,
-              "recall": 63.9,
-              "skipped": 1320,
-              "missed": 943
+              "reference": 3002,
+              "found": 1934,
+              "recall": 64.4,
+              "skipped": 933,
+              "missed": 1068
             }
           ],
           "misses": {
@@ -268,19 +268,24 @@
             "method": [
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: DateFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.choices",
               "django/django/contrib/admin/filters.py :: RelatedOnlyFieldListFilter.field_choices",
+              "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.get_lookup_condition",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.queryset",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.expected_parameters",
@@ -290,10 +295,13 @@
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.is_bound",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.total_form_count",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.media",
+              "django/django/contrib/admin/helpers.py :: InlineAdminForm.__init__",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.needs_explicit_pk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.pk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.fk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.deletion_field",
+              "django/django/contrib/admin/helpers.py :: InlineFieldset.__init__",
+              "django/django/contrib/admin/helpers.py :: AdminErrorList.__init__",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.get_sortable_by",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.lookup_allowed",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.to_field_allowed",
@@ -303,6 +311,7 @@
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_view_permission",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_view_or_change_permission",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_module_permission",
+              "django/django/contrib/admin/options.py :: ModelAdmin.__init__",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_instances",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_urls",
               "django/django/contrib/admin/options.py :: ModelAdmin.urls",
@@ -316,16 +325,7 @@
               "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_formset",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_formsets_with_inlines",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_paginator",
-              "django/django/contrib/admin/options.py :: ModelAdmin.log_addition",
-              "django/django/contrib/admin/options.py :: ModelAdmin.log_change",
-              "django/django/contrib/admin/options.py :: ModelAdmin.log_deletions",
-              "django/django/contrib/admin/options.py :: ModelAdmin.action_checkbox",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_actions",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_action_choices",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_action",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_display",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_display_links",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_filter"
+              "django/django/contrib/admin/options.py :: ModelAdmin.log_addition"
             ]
           }
         },
@@ -335,10 +335,10 @@
           "rows": [
             {
               "kind": "class",
-              "reference": 899,
-              "found": 584,
+              "reference": 901,
+              "found": 586,
               "recall": 65,
-              "skipped": 2,
+              "skipped": 0,
               "missed": 315
             },
             {
@@ -351,11 +351,11 @@
             },
             {
               "kind": "method",
-              "reference": 2615,
-              "found": 1526,
-              "recall": 58.4,
-              "skipped": 1320,
-              "missed": 1089
+              "reference": 3002,
+              "found": 1714,
+              "recall": 57.1,
+              "skipped": 933,
+              "missed": 1288
             }
           ],
           "misses": {
@@ -491,34 +491,45 @@
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.field_choices",
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: DateFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.choices",
               "django/django/contrib/admin/filters.py :: RelatedOnlyFieldListFilter.field_choices",
+              "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.get_lookup_condition",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.queryset",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.choices",
+              "django/django/contrib/admin/helpers.py :: AdminForm.__init__",
+              "django/django/contrib/admin/helpers.py :: Fieldset.__init__",
+              "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.__init__",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.forms",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.is_collapsible",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.non_form_errors",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.is_bound",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.total_form_count",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.media",
+              "django/django/contrib/admin/helpers.py :: InlineAdminForm.__init__",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.needs_explicit_pk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.pk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.fk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.deletion_field",
+              "django/django/contrib/admin/helpers.py :: InlineFieldset.__init__",
+              "django/django/contrib/admin/helpers.py :: AdminErrorList.__init__",
               "django/django/contrib/admin/models.py :: LogEntryManager.log_actions",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.to_field_allowed",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_add_permission",
@@ -527,33 +538,22 @@
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_view_permission",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_view_or_change_permission",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_module_permission",
+              "django/django/contrib/admin/options.py :: ModelAdmin.__init__",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_instances",
               "django/django/contrib/admin/options.py :: ModelAdmin.get_urls",
               "django/django/contrib/admin/options.py :: ModelAdmin.urls",
               "django/django/contrib/admin/options.py :: ModelAdmin.media",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_model_perms",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_form",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_instance",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_object",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_form",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_formset",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_formsets_with_inlines",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_paginator",
-              "django/django/contrib/admin/options.py :: ModelAdmin.log_addition",
-              "django/django/contrib/admin/options.py :: ModelAdmin.log_change",
-              "django/django/contrib/admin/options.py :: ModelAdmin.log_deletions",
-              "django/django/contrib/admin/options.py :: ModelAdmin.action_checkbox"
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_model_perms"
             ]
           },
           "filesTotal": 266,
           "rowsAllFiles": [
             {
               "kind": "class",
-              "reference": 899,
-              "found": 584,
+              "reference": 901,
+              "found": 586,
               "recall": 65,
-              "skipped": 2,
+              "skipped": 0,
               "missed": 315
             },
             {
@@ -566,11 +566,11 @@
             },
             {
               "kind": "method",
-              "reference": 2615,
-              "found": 1526,
-              "recall": 58.4,
-              "skipped": 1320,
-              "missed": 1089
+              "reference": 3002,
+              "found": 1714,
+              "recall": 57.1,
+              "skipped": 933,
+              "missed": 1288
             }
           ]
         },
@@ -580,10 +580,10 @@
           "rows": [
             {
               "kind": "class",
-              "reference": 899,
-              "found": 575,
+              "reference": 901,
+              "found": 577,
               "recall": 64,
-              "skipped": 2,
+              "skipped": 0,
               "missed": 324
             },
             {
@@ -596,11 +596,11 @@
             },
             {
               "kind": "method",
-              "reference": 2615,
-              "found": 1480,
-              "recall": 56.6,
-              "skipped": 1320,
-              "missed": 1135
+              "reference": 3002,
+              "found": 1727,
+              "recall": 57.5,
+              "skipped": 933,
+              "missed": 1275
             }
           ],
           "misses": {
@@ -736,24 +736,30 @@
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.field_choices",
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: RelatedFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: BooleanFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: ChoicesFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: DateFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: DateFieldListFilter.choices",
+              "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: AllValuesFieldListFilter.choices",
               "django/django/contrib/admin/filters.py :: RelatedOnlyFieldListFilter.field_choices",
+              "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.__init__",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.get_lookup_condition",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.queryset",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.expected_parameters",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.get_facet_counts",
               "django/django/contrib/admin/filters.py :: EmptyFieldListFilter.choices",
+              "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.__init__",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.fields",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.inline_formset_data",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.forms",
@@ -762,10 +768,13 @@
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.is_bound",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.total_form_count",
               "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.media",
+              "django/django/contrib/admin/helpers.py :: InlineAdminForm.__init__",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.needs_explicit_pk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.pk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.fk_field",
               "django/django/contrib/admin/helpers.py :: InlineAdminForm.deletion_field",
+              "django/django/contrib/admin/helpers.py :: InlineFieldset.__init__",
+              "django/django/contrib/admin/helpers.py :: AdminErrorList.__init__",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.get_inlines",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.get_ordering",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.get_readonly_fields",
@@ -779,26 +788,17 @@
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_delete_permission",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_view_permission",
               "django/django/contrib/admin/options.py :: BaseModelAdmin.has_view_or_change_permission",
-              "django/django/contrib/admin/options.py :: BaseModelAdmin.has_module_permission",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_instances",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_urls",
-              "django/django/contrib/admin/options.py :: ModelAdmin.urls",
-              "django/django/contrib/admin/options.py :: ModelAdmin.media",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_model_perms",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_form",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_instance",
-              "django/django/contrib/admin/options.py :: ModelAdmin.get_object"
+              "django/django/contrib/admin/options.py :: BaseModelAdmin.has_module_permission"
             ]
           },
           "filesTotal": 266,
           "rowsAllFiles": [
             {
               "kind": "class",
-              "reference": 899,
-              "found": 575,
+              "reference": 901,
+              "found": 577,
               "recall": 64,
-              "skipped": 2,
+              "skipped": 0,
               "missed": 324
             },
             {
@@ -811,11 +811,11 @@
             },
             {
               "kind": "method",
-              "reference": 2615,
-              "found": 1480,
-              "recall": 56.6,
-              "skipped": 1320,
-              "missed": 1135
+              "reference": 3002,
+              "found": 1727,
+              "recall": 57.5,
+              "skipped": 933,
+              "missed": 1275
             }
           ]
         }
@@ -1218,5 +1218,5 @@
     "yaml": "no reference-parser adapter yet"
   },
   "version": "8.80.1",
-  "generated": "2026-10-19T08:01:56.626Z"
+  "generated": "2026-10-19T08:48:26.308Z"
 }

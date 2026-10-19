@@ -59,9 +59,9 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
 
   // ── the arithmetic ────────────────────────────────────────────────────────
 
-  await test('a name whose last segment starts with "_" is private; a dunder and a nested one are too', () => {
-    for (const n of ['_x', '__init__', 'Cls._x', 'Cls.__eq__', 'Owner#_hook', 'Owner._x']) assert.strictEqual(lib.isPrivate(n), true, n);
-    for (const n of ['x', 'Cls.run', 'Owner#save', 'Owner.build', 'run_', 'a_b']) assert.strictEqual(lib.isPrivate(n), false, n);
+  await test('python: what the extractors omit on purpose is left out of the comparison, and nothing else', () => {
+    for (const [kind, n] of [['func', '_x'], ['method', 'A._x'], ['method', 'A.__eq__'], ['method', 'A.__call__'], ['func', '__main__']]) assert.strictEqual(py.isOmitted(kind, n), true, `${kind} ${n}`);
+    for (const [kind, n] of [['method', 'A.__init__'], ['method', 'A.run'], ['func', 'run_'], ['func', 'a_b'], ['class', 'Public'], ['class', '_Hidden'], ['class', '__Mangled']]) assert.strictEqual(py.isOmitted(kind, n), false, `${kind} ${n}`);
   });
 
   await test('recall is rounded to one decimal and is null, not 0 or NaN, with nothing to find', () => {
@@ -146,15 +146,20 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     assert.deepStrictEqual([...got.method].sort(), ['A.go', 'A.run', 'B.only']);
   });
 
-  await test('python: a name counts once per file, private names are skipped, and a miss says where', () => {
+  await test('python: a name counts once per file; omitted names are skipped; __init__ and underscore classes count; a miss says where', () => {
     const t = lib.newTally(['class', 'func', 'method']);
     const got = py.parseSigs(['class A', '  def run()']);
-    py.compareFile(t, [['class', 'A'], ['method', 'A.run'], ['method', 'A.run'], ['method', 'A.save'], ['method', 'A.__init__'], ['func', '_hidden'], ['func', 'helper']], got, 'flask/src/flask/a.py');
+    py.compareFile(
+      t,
+      [['class', 'A'], ['class', '_Hidden'], ['method', 'A.run'], ['method', 'A.run'], ['method', 'A.save'], ['method', 'A.__init__'], ['method', 'A.__eq__'], ['method', 'A._x'], ['func', '_hidden'], ['func', 'helper']],
+      got, 'flask/src/flask/a.py',
+    );
     const rows = Object.fromEntries(lib.rowsOf(t).map((r) => [r.kind, r]));
-    assert.deepStrictEqual([rows.class.reference, rows.class.found], [1, 1]);
-    assert.deepStrictEqual([rows.method.reference, rows.method.found, rows.method.skipped], [2, 1, 1], 'a getter/setter pair is one name');
+    assert.deepStrictEqual([rows.class.reference, rows.class.found, rows.class.skipped], [2, 1, 0], 'an underscore class is a reference symbol');
+    assert.deepStrictEqual([rows.method.reference, rows.method.found, rows.method.skipped], [3, 1, 2], 'run twice is one name; __init__ counts; __eq__ and _x are skipped');
     assert.deepStrictEqual([rows.func.reference, rows.func.found, rows.func.skipped], [1, 0, 1]);
-    assert.deepStrictEqual(lib.missesOf(t).method, ['flask/src/flask/a.py :: A.save']);
+    assert.deepStrictEqual(lib.missesOf(t).method, ['flask/src/flask/a.py :: A.save', 'flask/src/flask/a.py :: A.__init__']);
+    assert.deepStrictEqual(lib.missesOf(t).class, ['flask/src/flask/a.py :: _Hidden']);
   });
 
   // ── Ruby: scoring a file ──────────────────────────────────────────────────
@@ -223,77 +228,125 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
   // ── end to end, over a few real lines ─────────────────────────────────────
 
   const PY_SRC = [
-    'class App:', '    def run(self): pass', '    def _private(self): pass', '    def handle(self): pass', '',
+    'class App:', '    def __init__(self): pass', '    def run(self): pass', '    def _private(self): pass', '    def __eq__(self, o): pass', '    def handle(self): pass', '',
+    'class _Hidden: pass', '',
     'def helper(): pass', 'async def fetch(): pass', 'def _hidden(): pass', '',
   ].join('\n');
+  // 30 class-level constants ahead of the methods: the AST tier lists constants before methods and
+  // stops at 30 signatures, so none of the three methods reaches the index; the regex tier lists them
+  const PY_CONSTS = `class Big:\n${Array.from({ length: 30 }, (_, i) => `    CONST_${i} = ${i}\n`).join('')}    def __init__(self): pass\n    def run(self): pass\n    def stop(self): pass\n`;
+  const floorsFile2 = (languages) => {
+    const f = path.join(tmp('sigmap-recall-floors-'), 'floors.json');
+    put(f, JSON.stringify({ languages }));
+    return f;
+  };
+  const pyFloors = (n, match = '3.', pops = { 'extractor-regex': ['class', 'func', 'method'] }) => floorsFile2({
+    python: { references: [{ match, floors: Object.fromEntries(Object.entries(pops).map(([pop, kinds]) => [pop, Object.fromEntries(kinds.map((k) => [k, n]))])) }] },
+  });
+  const cells = (rows) => rows.map((x) => `${x.kind} ${x.found}/${x.reference}`);
+
   if (have('python3', ['--version'])) {
     await test('python end to end: the real parser against an extractor that finds only some names', () => {
       const repos = tmp('sigmap-recall-py-');
       put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
+      // directories the file set leaves out: tests, migrations, locale
+      put(path.join(repos, 'flask/src/flask/tests/test_x.py'), 'class InTests:\n    def go(self): pass\n');
+      put(path.join(repos, 'flask/src/flask/migrations/0001.py'), 'class InMigrations: pass\n');
+      put(path.join(repos, 'flask/src/flask/locale/x.py'), 'class InLocale: pass\n');
       const extractor = path.join(tmp('sigmap-recall-ext-'), 'partial.js');
       put(extractor, `module.exports = {
-        extract: () => ['class App  :1-4', '  def run()', 'def helper()'],
+        extract: () => ['class App  :1-6', '  def __init__()', '  def run()', 'def helper()'],
         prefetch: () => {},
-        tryNativeExtract: () => ['class App  :1-4', '  def run()', '  def handle()', 'async def fetch()'],
+        tryNativeExtract: () => ['class App  :1-6', '  def run()', '  def handle()', 'async def fetch()', 'class _Hidden'],
       };`);
       const r = py.measure({ reposDir: repos, extractorPath: extractor, index: false });
       assert.strictEqual(r.measured, true);
       assert.ok(/^3\./.test(r.reference.version), r.reference.version);
-      const cells = (id) => Object.fromEntries(r.populations[id].rows.map((x) => [x.kind, `${x.found}/${x.reference}`]));
-      assert.deepStrictEqual(cells('extractor-regex'), { class: '1/1', func: '1/2', method: '1/2' });
-      assert.deepStrictEqual(cells('extractor-ast'), { class: '1/1', func: '1/2', method: '2/2' });
-      assert.deepStrictEqual(r.populations['extractor-regex'].misses, { class: [], func: ['flask/src/flask/app.py :: fetch'], method: ['flask/src/flask/app.py :: App.handle'] });
+      const regex = r.populations['extractor-regex'];
+      assert.strictEqual(regex.filesCompared, 1, 'tests, migrations and locale directories are not compared');
+      assert.deepStrictEqual(cells(regex.rows), ['class 1/2', 'func 1/2', 'method 2/3']);
+      assert.deepStrictEqual(regex.misses, { class: ['flask/src/flask/app.py :: _Hidden'], func: ['flask/src/flask/app.py :: fetch'], method: ['flask/src/flask/app.py :: App.handle'] });
+      const ast = r.populations['extractor-ast'];
+      assert.deepStrictEqual(cells(ast.rows), ['class 2/2', 'func 1/2', 'method 2/3']);
+      assert.deepStrictEqual(ast.misses.method, ['flask/src/flask/app.py :: App.__init__'], '__init__ is a reference symbol');
       assert.deepStrictEqual(r.notRun, ['index-regex', 'index-ast']);
+    });
+
+    await test('python end to end with the real extractor: the shipped extractor finds every name of the fixture it lists on purpose', () => {
+      const repos = tmp('sigmap-recall-py-');
+      put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
+      const r = py.measure({ reposDir: repos, index: false });
+      for (const id of ['extractor-regex', 'extractor-ast']) {
+        assert.deepStrictEqual(cells(r.populations[id].rows), ['class 2/2', 'func 2/2', 'method 3/3'], id);
+        assert.deepStrictEqual(r.populations[id].rows.map((x) => x.skipped), [0, 1, 2], id);
+      }
+    });
+
+    await test('python end to end: the index is built per tier, scored over the files it holds, with the files it lacks counted apart', () => {
+      const repos = tmp('sigmap-recall-py-');
+      put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
+      put(path.join(repos, 'flask/src/flask/big.py'), PY_CONSTS);
+      put(path.join(repos, 'flask/src/flask/skipme.py'), 'class Skipped:\n    def go(self): pass\n');
+      put(path.join(repos, 'flask/.contextignore'), 'src/flask/skipme.py\n');
+      const r = py.measure({ reposDir: repos });
+      const regex = r.populations['index-regex'];
+      const ast = r.populations['index-ast'];
+      assert.deepStrictEqual([regex.filesCompared, regex.filesTotal, ast.filesCompared, ast.filesTotal], [2, 3, 2, 3]);
+      assert.deepStrictEqual(cells(regex.rows), ['class 3/3', 'func 2/2', 'method 6/6'], 'the regex tier lists the methods behind the constants');
+      assert.deepStrictEqual(cells(ast.rows), ['class 3/3', 'func 2/2', 'method 3/6'], 'the AST tier has spent its signatures on constants: this fails if the two tiers are swapped');
+      assert.deepStrictEqual(cells(regex.rowsAllFiles), ['class 3/4', 'func 2/2', 'method 6/7'], 'the file the index lacks counts as all missed');
+      assert.strictEqual(fs.existsSync(path.join(repos, 'flask/.context')), false, 'the checkout was left as it was found');
     });
 
     await test('the runner gates: exit 1 below a floor, 0 at it, and 0 below it when only reporting', () => {
       const repos = tmp('sigmap-recall-py-');
       put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
-      const floors = (n) => {
-        const f = path.join(tmp('sigmap-recall-floors-'), 'floors.json');
-        put(f, JSON.stringify({ languages: { python: { references: [{ match: '3.', floors: { 'extractor-regex': { class: n, func: n, method: n } } }] } } }));
-        return f;
-      };
       const base = ['--repos', repos, '--only', 'python', '--no-index'];
-      const at = run([...base, '--floors', floors(100), '--gate']);
+      const at = run([...base, '--floors', pyFloors(100), '--gate']);
       assert.strictEqual(at.status, 0, at.stdout + at.stderr);
       assert.ok(/floor 100%/.test(at.stdout), at.stdout);
-      const over = run([...base, '--floors', floors(101), '--gate']);
+      const over = run([...base, '--floors', pyFloors(101), '--gate']);
       assert.strictEqual(over.status, 1, over.stdout);
       assert.ok(/python: below a floor — extractor-regex\/class 100% < 101%/.test(over.stderr), over.stderr);
-      const report = run([...base, '--floors', floors(101)]);
-      assert.strictEqual(report.status, 0, 'without --gate a run only reports');
+      assert.strictEqual(run([...base, '--floors', pyFloors(101)]).status, 0, 'without --gate a run only reports');
+      assert.strictEqual(run([...base, '--floors', pyFloors(101), '--require-reference']).status, 1, '--require-reference is a stricter --gate, not an add-on to it');
     });
 
-    await test('python end to end with the real extractor: the shipped extractor finds every public name of the fixture', () => {
+    await test('--require-reference fails a reference it cannot use: no floors for this version, a language left out, a population not run', () => {
       const repos = tmp('sigmap-recall-py-');
       put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
-      const r = py.measure({ reposDir: repos, index: false });
-      for (const id of ['extractor-regex', 'extractor-ast']) {
-        assert.deepStrictEqual(r.populations[id].rows.map((x) => `${x.kind} ${x.found}/${x.reference}`), ['class 1/1', 'func 2/2', 'method 2/2'], id);
-      }
+      const base = ['--repos', repos, '--only', 'python', '--no-index'];
+      const wrongVersion = pyFloors(50, '9.');
+      assert.strictEqual(run([...base, '--floors', wrongVersion, '--gate']).status, 0, 'a gate alone reports "not enforced" and passes');
+      const strict = run([...base, '--floors', wrongVersion, '--require-reference']);
+      assert.strictEqual(strict.status, 1);
+      assert.ok(/python: not-enforced/.test(strict.stderr), strict.stderr);
+      const rubyToo = floorsFile2({
+        python: { references: [{ match: '3.', floors: { 'extractor-regex': { class: 1 } } }] },
+        ruby: { references: [{ match: '2.', floors: { extractor: { class: 1 } } }, { match: '3.', floors: { extractor: { class: 1 } } }] },
+      });
+      const left = run([...base, '--floors', rubyToo, '--require-reference']);
+      assert.strictEqual(left.status, 1);
+      assert.ok(/ruby: not measured \(left out by --only\)/.test(left.stderr), left.stderr);
+      const indexFloor = pyFloors(1, '3.', { 'index-regex': ['class'] });
+      const notRun = run([...base, '--floors', indexFloor, '--require-reference']);
+      assert.strictEqual(notRun.status, 1);
+      assert.ok(/floored population was not run/.test(notRun.stderr), notRun.stderr);
+      assert.strictEqual(run([...base, '--floors', indexFloor, '--gate']).status, 0, 'a gate alone skips a population that was not asked for');
     });
 
-    await test('python end to end: the index as shipped is built and scored over the files it holds, with the files it lacks counted apart', () => {
-      const repos = tmp('sigmap-recall-py-');
-      put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
-      put(path.join(repos, 'flask/src/flask/skipme.py'), 'class Skipped:\n    def go(self): pass\n');
-      put(path.join(repos, 'flask/.contextignore'), 'src/flask/skipme.py\n');
-      const r = py.measure({ reposDir: repos });
-      const pop = r.populations['index-regex'];
-      const cells = (rows) => rows.map((x) => `${x.kind} ${x.found}/${x.reference}`);
-      assert.deepStrictEqual([pop.filesCompared, pop.filesTotal], [1, 2]);
-      assert.deepStrictEqual(cells(pop.rows), ['class 1/1', 'func 2/2', 'method 2/2'], 'scored over the file the index holds');
-      assert.deepStrictEqual(cells(pop.rowsAllFiles), ['class 1/2', 'func 2/2', 'method 2/3'], 'the file the index lacks counts as all missed');
-      assert.strictEqual(fs.existsSync(path.join(repos, 'flask/.context')), false, 'the checkout was left as it was found');
+    await test('an unknown language in --only is an error, not an empty pass', () => {
+      const r = run(['--only', 'nonsense', '--gate', '--require-reference']);
+      assert.strictEqual(r.status, 1);
+      assert.ok(/unknown language: nonsense/.test(r.stderr), r.stderr);
     });
   } else {
-    skip('python end to end (3 cases)', 'python3 is not installed');
+    skip('python end to end (6 cases)', 'python3 is not installed');
   }
 
   const RB_SRC = [
     'module Sidekiq', '  class Worker', '    def perform; end', '    def self.build; end', '    def _hidden; end', '  end', 'end', '',
-    'class Top', '  def run; end', 'end', '',
+    'class Top', '  def run; end', 'end', '', 'def helper; end', '',
   ].join('\n');
   if (have('ruby', ['--version'])) {
     await test('ruby end to end: Ripper against the shipped extractor and against one that finds nothing', () => {
@@ -301,30 +354,66 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
       put(path.join(repos, 'sidekiq/lib/a.rb'), RB_SRC);
       const real = rb.measure({ reposDir: repos, index: false });
       assert.strictEqual(real.measured, true);
-      assert.deepStrictEqual(real.populations.extractor.rows.map((x) => `${x.kind} ${x.found}/${x.reference}`), ['class 2/2', 'module 1/1', 'method 3/3', 'owner 3/3']);
+      assert.deepStrictEqual(cells(real.populations.extractor.rows), ['class 2/2', 'module 1/1', 'method 4/4', 'owner 4/4'], 'a top-level def has no owner');
       const none = path.join(tmp('sigmap-recall-ext-'), 'none.js');
       put(none, 'module.exports = { extract: () => [] };');
       const blind = rb.measure({ reposDir: repos, extractorPath: none, index: false });
       assert.deepStrictEqual(blind.populations.extractor.rows.map((x) => x.recall), [0, 0, 0, 0]);
       assert.deepStrictEqual(blind.populations.extractor.misses.class.sort(), ['sidekiq/lib/a.rb :: Top', 'sidekiq/lib/a.rb :: Worker']);
+      // a top-level def listed under the class above it is found by name and missed by owner
+      const stale = path.join(tmp('sigmap-recall-ext-'), 'stale.js');
+      put(stale, "module.exports = { extract: () => ['class Top', '  def helper'] };");
+      const wrong = rb.measure({ reposDir: repos, extractorPath: stale, index: false });
+      assert.deepStrictEqual(cells(wrong.populations.extractor.rows).slice(2), ['method 1/4', 'owner 0/4']);
     });
 
-    await test('ruby.mjs keeps its command line: --min-* exits 1 under a floor and 0 over it, "unmeasured" exits 0', () => {
+    await test('ruby.mjs keeps its command line, stays read-only without --index, and --min-* exits 1 under a floor', () => {
       const repos = tmp('sigmap-recall-rb-');
       put(path.join(repos, 'sidekiq/lib/a.rb'), RB_SRC);
       const script = path.join(ROOT, 'scripts/extraction-recall/ruby.mjs');
       const none = path.join(tmp('sigmap-recall-ext-'), 'none.js');
       put(none, 'module.exports = { extract: () => [] };');
-      const ok = spawnSync(process.execPath, [script, '--repos', repos, '--no-index', '--min-class', '99'], { encoding: 'utf8' });
+      const ok = spawnSync(process.execPath, [script, '--repos', repos, '--min-class', '99'], { encoding: 'utf8' });
       assert.strictEqual(ok.status, 0, ok.stdout + ok.stderr);
-      const bad = spawnSync(process.execPath, [script, '--repos', repos, '--no-index', '--extractor', none, '--min-class', '99'], { encoding: 'utf8' });
+      assert.ok(!/index:/.test(ok.stdout), 'the index step is opt-in');
+      assert.strictEqual(fs.existsSync(path.join(repos, 'sidekiq/.context')), false);
+      const bad = spawnSync(process.execPath, [script, '--repos', repos, '--extractor', none, '--min-class', '99'], { encoding: 'utf8' });
       assert.strictEqual(bad.status, 1, bad.stdout);
       assert.ok(/FAIL class: 0\.0% is below the floor of 99%/.test(bad.stdout), bad.stdout);
-      const json = JSON.parse(spawnSync(process.execPath, [script, '--repos', repos, '--no-index', '--json'], { encoding: 'utf8' }).stdout);
+      const json = JSON.parse(spawnSync(process.execPath, [script, '--repos', repos, '--json'], { encoding: 'utf8' }).stdout);
       assert.deepStrictEqual(Object.keys(json).filter((k) => ['measured', 'filesCompared', 'pins', 'rows', 'failures'].includes(k)).sort(), ['failures', 'filesCompared', 'measured', 'pins', 'rows']);
+      // a kind with nothing to find has a null recall: the command line must say so, not throw
+      const empty = tmp('sigmap-recall-rb-');
+      put(path.join(empty, 'sidekiq/lib/a.rb'), 'class A\nend\n');
+      const r = spawnSync(process.execPath, [script, '--repos', empty, '--min-module', '50'], { encoding: 'utf8' });
+      assert.strictEqual(r.status, 1, r.stdout + r.stderr);
+      assert.ok(/module .*recall n\/a/.test(r.stdout) && /FAIL module: nothing to find/.test(r.stdout), r.stdout + r.stderr);
     });
+
+    if (have('python3', ['--version'])) {
+      await test('--save writes the report only for a complete run: not with --only, not without the index, and it does when complete', () => {
+        const repos = tmp('sigmap-recall-both-');
+        put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
+        put(path.join(repos, 'sidekiq/lib/a.rb'), RB_SRC);
+        const out = path.join(tmp('sigmap-recall-out-'), 'report.json');
+        const only = run(['--repos', repos, '--only', 'python', '--save', '--out', out]);
+        assert.strictEqual(only.status, 1, only.stdout + only.stderr);
+        assert.ok(/a partial run \(--only\)/.test(only.stderr), only.stderr);
+        const noIndex = run(['--repos', repos, '--no-index', '--save', '--out', out]);
+        assert.strictEqual(noIndex.status, 1, noIndex.stdout + noIndex.stderr);
+        assert.ok(/without the index/.test(noIndex.stderr), noIndex.stderr);
+        assert.strictEqual(fs.existsSync(out), false, 'a partial run wrote a report');
+        const whole = run(['--repos', repos, '--save', '--out', out]);
+        assert.strictEqual(whole.status, 0, whole.stdout + whole.stderr);
+        const saved = JSON.parse(fs.readFileSync(out, 'utf8'));
+        assert.deepStrictEqual(Object.keys(saved.languages).sort(), ['python', 'ruby']);
+        assert.ok(saved.version && saved.generated, 'stamped');
+      });
+    } else {
+      skip('--save case', 'python3 is not installed');
+    }
   } else {
-    skip('ruby end to end (2 cases)', 'ruby is not installed');
+    skip('ruby end to end (3 cases)', 'ruby is not installed');
   }
 
   // ── the committed floors, the saved report and the published page ─────────
@@ -384,6 +473,18 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     }
   });
 
+  await test('the pins in the report and the floors are the commits the manifest pins', () => {
+    const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'benchmarks/xrepo-repos.json'), 'utf8'));
+    const commit = (name) => manifest.repos.find((r) => r.name === name).commit;
+    const check = (pins, where) => {
+      for (const [repo, sha] of Object.entries(pins)) assert.ok(commit(repo).startsWith(sha), `${where}: ${repo} is at ${sha}, the manifest pins ${commit(repo)}`);
+    };
+    for (const [name, r] of Object.entries(report.languages)) check(r.pins, `report/${name}`);
+    for (const [name, spec] of Object.entries(floorsFile.languages)) {
+      for (const ref of spec.references) check(ref.measuredWith.pins, `floors/${name}/${ref.match}`);
+    }
+  });
+
   await test('the docs page publishes the numbers of the saved report, and the language table links to it', () => {
     const page = fs.readFileSync(path.join(ROOT, 'docs-vp/guide/extraction-recall.md'), 'utf8');
     const cellsOf = (label) => {
@@ -416,6 +517,17 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     }
     assert.ok(page.includes(`These ${Object.keys(report.unmeasured).length} have no adapter`), 'the unmeasured count');
     for (const l of Object.keys(report.unmeasured)) assert.ok(page.includes(l), `unmeasured language ${l} not listed`);
+    // the prose figures, not only the table cells
+    const n = (x) => x.toLocaleString('en-US');
+    const regexRows = Object.fromEntries(report.languages.python.populations['extractor-regex'].rows.map((x) => [x.kind, x]));
+    assert.ok(page.includes(`${n(regexRows.class.found)} of ${n(regexRows.class.reference)} classes, ${n(regexRows.func.found)} of ${n(regexRows.func.reference)} functions and ${n(regexRows.method.found)} of ${n(regexRows.method.reference)} methods`), 'the regex-tier counts');
+    assert.ok(page.includes(`(${regexRows.func.skipped} functions and ${regexRows.method.skipped} methods for the regex tier)`), 'the skipped counts');
+    const drop = (kind) => Math.round(regexRows[kind].recall - report.languages.python.populations['index-regex'].rows.find((x) => x.kind === kind).recall);
+    assert.ok(page.includes(`classes fall ${drop('class')} points, functions ${drop('func')} and methods ${drop('method')}`), 'the cap cost in points');
+    const idxRb = report.languages.ruby.populations.index;
+    assert.ok(page.includes(`index recall is ${idxRb.rowsAllFiles.map((x) => `${x.recall.toFixed(1)}%`).join(' / ')}`), 'the all-files Ruby index recall');
+    const rbRows = Object.fromEntries(report.languages.ruby.populations.extractor.rows.map((x) => [x.kind, x]));
+    assert.ok(page.includes(`(${n(rbRows.class.found)} of ${n(rbRows.class.reference)} classes, ${n(rbRows.module.found)} of ${n(rbRows.module.reference)} modules, ${n(rbRows.method.found)} of ${n(rbRows.method.reference)} methods, ${n(rbRows.owner.found)} of ${n(rbRows.owner.reference)} under the right owner)`), 'the Ruby counts');
     const languages = fs.readFileSync(path.join(ROOT, 'docs-vp/guide/languages.md'), 'utf8');
     for (const lang of ['Python', 'Ruby']) {
       const row = languages.split('\n').find((l) => l.startsWith(`| ${lang} |`));
