@@ -80,7 +80,8 @@ function buildSymbolSet(cwd) {
   let sigIndex = null;
   try {
     const { buildSigIndex } = require('../retrieval/ranker');
-    const idx = buildSigIndex(cwd);
+    // every signature the index keeps: a symbol past what the ranker reads is still a real one (#982)
+    const idx = buildSigIndex(cwd, { full: true });
     sigIndex = idx;
     fileKeys = [...idx.keys()];
     for (const sigs of idx.values()) {

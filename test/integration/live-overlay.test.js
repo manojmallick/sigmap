@@ -403,16 +403,21 @@ test('the shared pipeline follows a local `extends` for the index limit', () => 
   assert.deepStrictEqual(entrySigs(path.join(dir, 'src/m.js'), fs.readFileSync(path.join(dir, 'src/m.js'), 'utf8'), dir), full);
 });
 
-test('the context-file limit does not shrink the index, in a full run or in the shared pipeline (#982)', () => {
+test('the context-file limit does not shrink the index: the ranker reads it, the rest is kept for lookups (#982)', () => {
   const dir = mkProject({ 'src/m.js': 'function a1() {}\nfunction a2() {}\nfunction a3() {}\nfunction a4() {}\nfunction a5() {}\n' });
   fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ maxSigsPerFile: 2, srcDirs: ['src'] }));
   generate(dir);
-  const full = store.readFullIndex(dir).get('src/m.js');
-  assert.ok(['a1', 'a2', 'a3', 'a4', 'a5'].every((n) => full.some((s) => s.includes(`function ${n}(`))), `all five reach the index: ${JSON.stringify(full)}`);
+  const meta = store.readFullIndexMeta(dir);
+  const view = meta.index.get('src/m.js');
+  assert.ok(view.some((x) => x.includes('function a2(')) && !view.some((x) => x.includes('function a3(')), `what the ranker reads is the context-file limit, as before: ${JSON.stringify(view)}`);
+  assert.deepStrictEqual(meta.more.get('src/m.js').map((x) => x.replace(/\s+:.*/, '')), ['function a3()', 'function a4()', 'function a5()']);
+  const everything = require('../../src/retrieval/ranker').buildSigIndex(dir, { full: true }).get('src/m.js');
+  assert.ok(['a1', 'a2', 'a3', 'a4', 'a5'].every((n) => everything.some((x) => x.includes(`function ${n}(`))), JSON.stringify(everything));
   const context = fs.readFileSync(path.join(dir, '.github/copilot-instructions.md'), 'utf8');
   assert.ok(context.includes('function a2(') && !context.includes('function a3('), 'the context file still keeps only maxSigsPerFile');
-  const { entrySigs } = require('../../src/cache/entry');
-  assert.deepStrictEqual(entrySigs(path.join(dir, 'src/m.js'), fs.readFileSync(path.join(dir, 'src/m.js'), 'utf8'), dir), full);
+  const { entryParts } = require('../../src/cache/entry');
+  const parts = entryParts(path.join(dir, 'src/m.js'), fs.readFileSync(path.join(dir, 'src/m.js'), 'utf8'), dir);
+  assert.deepStrictEqual(parts, { sigs: view, more: meta.more.get('src/m.js') }, 'freshen and the hooks write what a full run writes');
 });
 
 test('an overlay entry stamped in the same millisecond as a fractional base still applies', () => {
@@ -607,10 +612,13 @@ test('watcher: a patch keeps what a full run keeps when the context-file limit i
   await waitFor(() => overlay.load(dir).has('src/many.js'), 'the file to be patched');
   stopWatcher(w);
   await sleep(150);
-  const patched = overlay.load(dir).get('src/many.js').sigs;
-  assert.strictEqual(patched.filter((x) => /^function f\d/.test(x)).length, 6, `all six reach the patch, not maxSigsPerFile (2): ${JSON.stringify(patched)}`);
+  const patched = overlay.load(dir).get('src/many.js');
+  assert.strictEqual(patched.sigs.filter((x) => /^function f\d/.test(x)).length, 2, `the ranker reads maxSigsPerFile (2) of it, as before: ${JSON.stringify(patched.sigs)}`);
+  assert.strictEqual(patched.more.length, 4, `and the other four are kept for lookups: ${JSON.stringify(patched.more)}`);
   generate(dir);
-  assert.deepStrictEqual(patched, store.readFullIndex(dir).get('src/many.js'), 'the patch must equal the regenerated entry');
+  const meta = store.readFullIndexMeta(dir);
+  assert.deepStrictEqual(patched.sigs, meta.index.get('src/many.js'), 'the patch must equal the regenerated entry');
+  assert.deepStrictEqual(patched.more, meta.more.get('src/many.js'), 'and so must what is kept for lookups');
 }, { needsWatch: true });
 
 test('watcher: after a quiet window one regeneration converges to the full-run index', async () => {

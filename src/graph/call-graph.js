@@ -787,7 +787,8 @@ function _unresolved(symbol, cwd, scope, exclude) {
   const untracked = _untrackedDeclaration(symbol, cwd);
   if (untracked) { result.untracked = untracked; return result; }
   // Not in the signature index either — which proves little: the index keeps
-  // 25 signatures per file, so a method of a large PHP class is absent from it.
+  // 200 signatures per file at most (25 before #982), so a method of a very large
+  // class is absent from it, and so is one in a file outside the detected roots.
   // Say what the search could not read, in the roots it searched.
   if (scope && Array.isArray(scope.roots) && scope.roots.length) {
     try {
@@ -859,7 +860,7 @@ function _untrackedDeclaration(symbol, cwd) {
       const s = callGraphSupport(file);
       return s.tracked ? null : { language: s.label, files: [file] };
     }
-    const index = require('../retrieval/ranker').buildSigIndex(cwd);
+    const index = require('../retrieval/ranker').buildSigIndex(cwd, { full: true }); // a declaration past what the ranker reads still counts (#982)
     const files = [];
     const labels = new Set();
     for (const [file, sigs] of index) {

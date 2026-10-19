@@ -7,8 +7,11 @@
  * (.context/sig-index.json) feeds `ask`, `verify`, `explain` and the MCP search tools
  * and is never injected into a prompt, yet it used to inherit the 25: on Django it held
  * 57-76% of the public symbols, and a file with 40 top-level functions hid every class
- * that came after them. `maxIndexSigsPerFile` (200) now governs the index; the context
- * file is byte-identical to what it was.
+ * that came after them. `maxIndexSigsPerFile` (200) now governs what the index keeps. The
+ * index file holds two lists per file: `files`, what the ranker, `ask` and the tools that
+ * list a file have always read (the first `maxSigsPerFile`, exactly as before), and `more`,
+ * the rest, for the tools that look a symbol up (`verify`, `get_callee_signatures`). The
+ * context file is byte-identical to what it was.
  *
  * Each case below fails against the code before the change.
  * Run: node test/integration/index-limit.test.js
@@ -23,7 +26,7 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '../..');
 const CLI = path.join(ROOT, 'gen-context.js');
 const { DEFAULTS } = require('../../src/config/defaults');
-const { entryConfig, indexLimit, capForIndex } = require('../../src/cache/entry');
+const { entryConfig, indexLimit, capForIndex, splitForIndex } = require('../../src/cache/entry');
 
 let passed = 0;
 let failed = 0;
@@ -48,7 +51,15 @@ function generate(dir) {
   assert.strictEqual(r.status, 0, r.stderr);
   return r;
 }
-const indexOf = (dir) => JSON.parse(fs.readFileSync(path.join(dir, '.context/sig-index.json'), 'utf8')).files;
+const rawIndex = (dir) => JSON.parse(fs.readFileSync(path.join(dir, '.context/sig-index.json'), 'utf8'));
+/** What the ranker reads of each file: the index file's `files`. */
+const indexOf = (dir) => rawIndex(dir).files;
+/** Everything the index keeps of each file: `files` and `more` together, as `verify` reads it. */
+const everythingOf = (dir) => {
+  const raw = rawIndex(dir);
+  return Object.fromEntries(Object.entries(raw.files).map(([rel, sigs]) => [rel, sigs.concat((raw.more || {})[rel] || [])]));
+};
+const nameCount = (sigs, re) => sigs.filter((x) => re.test(x)).length;
 const contextOf = (dir) => fs.readFileSync(path.join(dir, '.github/copilot-instructions.md'), 'utf8').replace(/^<!-- Updated:.*$/m, '');
 const fns = (n, prefix = 'fn') => Array.from({ length: n }, (_, i) => `function ${prefix}${i}(a) { return a; }\n`).join('');
 
@@ -92,13 +103,24 @@ test('capForIndex cuts at the limit, drops the extractor\'s trailing notice and 
 
 // ── a full run ─────────────────────────────────────────────────────────────
 
-test('a file with 40 functions: the index holds all 40, the context file the first 25', () => {
+test('a file with 40 functions: the index keeps all 40, the ranker reads the first 25, the context file the same 25', () => {
   const dir = project({ 'src/big.js': fns(40) });
   generate(dir);
-  const sigs = indexOf(dir)['src/big.js'];
-  assert.strictEqual(sigs.filter((s) => /^function fn\d+/.test(s)).length, 40, `the index: ${sigs.length}`);
+  assert.strictEqual(nameCount(everythingOf(dir)['src/big.js'], /^function fn\d+/), 40, 'the index keeps all of them');
+  const read = indexOf(dir)['src/big.js'];
+  assert.strictEqual(nameCount(read, /^function fn\d+/), 25, `what the ranker reads is what it always read: ${read.length}`);
+  assert.strictEqual(nameCount(rawIndex(dir).more['src/big.js'], /^function fn\d+/), 15);
   const ctx = contextOf(dir);
   assert.ok(ctx.includes('function fn24(') && !ctx.includes('function fn25('), 'the context file stops at 25');
+});
+
+test('the index file\'s `files` do not depend on the index limit, nor on anything past the context limit', () => {
+  const a = project({ 'src/big.js': fns(40) });
+  const b = project({ 'src/big.js': fns(25) + Array.from({ length: 15 }, (_, i) => `function other${i}() {}\n`).join('') }, { maxIndexSigsPerFile: 25 });
+  generate(a);
+  generate(b);
+  assert.deepStrictEqual(indexOf(a)['src/big.js'], indexOf(b)['src/big.js'].map((x) => x), 'the first 25 are the first 25, whatever follows and whatever the limit');
+  assert.strictEqual(rawIndex(b).more, undefined, 'at a limit of 25 nothing is kept apart');
 });
 
 test('the index limit never changes the context file: byte-identical at 25, 200 and 500', () => {
@@ -112,20 +134,35 @@ test('the index limit never changes the context file: byte-identical at 25, 200 
   assert.strictEqual(outputs[1], outputs[2]);
 });
 
-test('lowering the index limit lowers the index and the one-line summary says what was left out', () => {
+test('lowering the index limit lowers what the index keeps and the one-line summary says what was left out', () => {
   const dir = project({ 'src/big.js': fns(60) }, { maxIndexSigsPerFile: 30 });
   const r = generate(dir);
-  assert.strictEqual(indexOf(dir)['src/big.js'].filter((s) => /^function fn/.test(s)).length, 30);
-  assert.ok(/\[sigmap\] index: 1 file\(s\) hold more than 30 signatures; 30 not indexed/.test(r.stderr), r.stderr);
+  assert.strictEqual(nameCount(everythingOf(dir)['src/big.js'], /^function fn/), 30);
+  assert.ok(/\[sigmap\] index: 1 file\(s\) hold more signatures than the index keeps; 30 not indexed \(maxIndexSigsPerFile is 30;/.test(r.stderr), r.stderr);
 });
 
 test('a file past the extractors\' own 200 is cut there, without the extractor\'s notice line, and the summary counts it', () => {
   const dir = project({ 'src/huge.js': fns(230) });
   const r = generate(dir);
-  const sigs = indexOf(dir)['src/huge.js'];
+  const sigs = everythingOf(dir)['src/huge.js'];
   assert.strictEqual(sigs.length, 200);
   assert.ok(!sigs.some((s) => /more signatures/.test(s)), 'no notice line in the index');
-  assert.ok(/1 file\(s\) hold more than 200 signatures; 30 not indexed/.test(r.stderr), r.stderr);
+  assert.ok(/1 file\(s\) hold more signatures than the index keeps; 30 not indexed/.test(r.stderr), r.stderr);
+});
+
+test('a file the extractor ends with another file-level notice (headings, keys, entries) has it dropped and counted too', () => {
+  for (const label of ['signatures', 'headings', 'keys', 'entries']) {
+    const sigs = Array.from({ length: 5 }, (_, i) => `# h${i}`).concat(`… +60 more ${label}`);
+    assert.deepStrictEqual(capForIndex(sigs, 200), { sigs: sigs.slice(0, 5), dropped: 60 }, label);
+  }
+  assert.deepStrictEqual(capForIndex(['class A', '… +3 more methods'], 200).dropped, 0, 'a class block\'s notice is not the file\'s');
+});
+
+test('a context limit of 0 keeps no file, as it always did', () => {
+  const dir = project({ 'src/a.js': fns(3) }, { maxSigsPerFile: 0 });
+  generate(dir);
+  assert.deepStrictEqual(Object.keys(indexOf(dir)), []);
+  assert.ok(!/## src/.test(contextOf(dir)), 'no empty section');
 });
 
 test('nothing is printed when no file reaches the limit', () => {
@@ -141,107 +178,109 @@ test('a secret beyond the first 25 signatures is redacted in the index', () => {
   generate(dir);
   const text = fs.readFileSync(path.join(dir, '.context/sig-index.json'), 'utf8');
   assert.ok(!text.includes('hunter2pass'), 'the secret reached the index');
-  assert.ok(indexOf(dir)['src/many.js'].some((s) => /REDACTED/.test(s)), 'and was redacted, not dropped');
+  assert.ok(everythingOf(dir)['src/many.js'].some((s) => /REDACTED/.test(s)), 'and was redacted, not dropped');
+  assert.ok(rawIndex(dir).more['src/many.js'].some((s) => /REDACTED/.test(s)), 'in what is kept apart');
 });
 
 // ── the signature cache ───────────────────────────────────────────────────
 
-test('a cache entry from before (25 signatures, no ceiling recorded) is not reused; a changed limit needs no new extraction', () => {
+test('a cache entry is reused when it carries the ceiling and not when it does not; a changed limit needs no new extraction', () => {
   const dir = project({ 'src/big.js': fns(40) }, { sigCache: true, maxIndexSigsPerFile: 30 });
   generate(dir);
-  assert.strictEqual(indexOf(dir)['src/big.js'].filter((s) => /^function fn/.test(s)).length, 30);
+  assert.strictEqual(nameCount(everythingOf(dir)['src/big.js'], /^function fn/), 30);
   fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ srcDirs: ['src'], sigCache: true }));
   generate(dir);
-  assert.strictEqual(indexOf(dir)['src/big.js'].filter((s) => /^function fn/.test(s)).length, 40, 'the cache kept the cut, not the list');
-  // an entry as the previous version wrote it: the first 25 signatures, no ceiling recorded
+  assert.strictEqual(nameCount(everythingOf(dir)['src/big.js'], /^function fn/), 40, 'the cache kept the cut, not the list');
+  // the cache is used: an entry that carries the ceiling is served in place of the file
   const cachePath = path.join(dir, '.sigmap-cache.json');
-  const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-  for (const e of Object.values(cache.entries)) { delete e.cap; e.sigs = e.sigs.slice(0, 25); }
+  let cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+  for (const e of Object.values(cache.entries)) e.sigs = ['function fromTheCache()  :1-1'];
   fs.writeFileSync(cachePath, JSON.stringify(cache));
   generate(dir);
-  assert.strictEqual(indexOf(dir)['src/big.js'].filter((s) => /^function fn/.test(s)).length, 40, 'an entry without a ceiling was trusted');
+  assert.deepStrictEqual(everythingOf(dir)['src/big.js'].map((x) => x.replace(/\s+:.*/, '')).filter((x) => /fromTheCache/.test(x)), ['function fromTheCache()'], 'the cache was not used');
+  // an entry as the previous version wrote it carries no ceiling and is not trusted
+  cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+  for (const e of Object.values(cache.entries)) { delete e.cap; e.sigs = ['function fromTheCache()  :1-1']; }
+  fs.writeFileSync(cachePath, JSON.stringify(cache));
+  generate(dir);
+  assert.strictEqual(nameCount(everythingOf(dir)['src/big.js'], /fromTheCache/), 0, 'an entry without a ceiling was trusted');
+  assert.strictEqual(nameCount(everythingOf(dir)['src/big.js'], /^function fn/), 40);
 });
 
 test('a warm cache gives the same index and the same context file as a cold one', () => {
   const files = { 'src/big.js': fns(60), 'src/small.js': fns(3, 'g') };
   const dir = project(files, { sigCache: true });
   generate(dir);
-  const cold = { index: JSON.stringify(indexOf(dir)), ctx: contextOf(dir) };
+  const cold = { index: JSON.stringify(everythingOf(dir)), ctx: contextOf(dir) };
   generate(dir);
-  assert.strictEqual(JSON.stringify(indexOf(dir)), cold.index);
+  assert.strictEqual(JSON.stringify(everythingOf(dir)), cold.index);
   assert.strictEqual(contextOf(dir), cold.ctx);
 });
 
-// ── the ranker reads what it always read ───────────────────────────────────
+// ── who reads what ─────────────────────────────────────────────────────────
 
 const { rank, buildSigIndex } = require('../../src/retrieval/ranker');
-const { rankWindow, rankingView } = require('../../src/retrieval/rank-window');
 const { buildSymbolSet } = require('../../src/verify/hallucination-guard');
+const handlers = require('../../src/mcp/handlers');
 
-test('rankingView keeps the module-doc lines and the first `limit` other lines, and leaves short files alone', () => {
-  const long = ['# module: Rate limiter for the API', ...Array.from({ length: 40 }, (_, i) => `function f${i}()`)];
-  const short = ['# module: tiny', 'function a()'];
-  const index = new Map([['long.js', long], ['short.js', short]]);
-  const view = rankingView(index, 25);
-  assert.strictEqual(view.get('long.js').length, 26);
-  assert.strictEqual(view.get('long.js')[0], '# module: Rate limiter for the API');
-  assert.strictEqual(view.get('long.js')[25], 'function f24()');
-  assert.strictEqual(view.get('short.js'), short, 'a file within the limit keeps the very array');
-  assert.strictEqual(index.get('long.js').length, 41, 'the index passed in is not changed');
-  assert.strictEqual(rankingView(new Map([['short.js', short]]), 25).get('short.js'), short);
-  const untouched = new Map([['short.js', short]]);
-  assert.strictEqual(rankingView(untouched, 25), untouched, 'nothing to cut: the same Map');
+test('buildSigIndex reads what it always read; { full: true } adds the rest', () => {
+  const dir = project({ 'src/big.js': fns(40) });
+  generate(dir);
+  const read = buildSigIndex(dir).get('src/big.js');
+  const everything = buildSigIndex(dir, { full: true }).get('src/big.js');
+  assert.strictEqual(nameCount(read, /^function fn\d+/), 25);
+  assert.strictEqual(nameCount(everything, /^function fn\d+/), 40);
+  assert.deepStrictEqual(everything.slice(0, read.length), read, 'the rest follows what the ranker reads');
 });
 
-test('rankWindow follows maxSigsPerFile of the project, an explicit option first, 25 by default', () => {
-  assert.strictEqual(rankWindow({}), 25);
-  assert.strictEqual(rankWindow(undefined), 25);
-  assert.strictEqual(rankWindow({ rankSigsPerFile: 7 }), 7);
-  const dir = project({ 'src/a.js': fns(3) }, { maxSigsPerFile: 11 });
-  assert.strictEqual(rankWindow({ cwd: dir }), 11);
-  assert.strictEqual(rankWindow({ cwd: dir, rankSigsPerFile: 9 }), 9);
+test('ranking is untouched by what is kept apart: a word past the context limit scores nothing', () => {
+  const dir = project({ 'src/big.js': fns(40) + 'function quarantineEverything() {}\n', 'src/other.js': fns(3, 'x') });
+  generate(dir);
+  assert.ok(rank('quarantine everything', buildSigIndex(dir), { learned: false }).every((r) => r.file !== 'src/big.js' || r.score === 0 || !/quarantine/i.test(r.sigs.join(' '))),
+    'the ranker must not see a signature past the context limit');
+  assert.ok(!buildSigIndex(dir).get('src/big.js').some((x) => /quarantine/.test(x)));
+  assert.ok(buildSigIndex(dir, { full: true }).get('src/big.js').some((x) => /quarantine/.test(x)));
 });
 
-test('a word that appears only past the ranker\'s window changes no score and no order', () => {
-  const body = (extra) => Array.from({ length: 30 }, (_, i) => `function helper${i}()`).concat(extra);
-  const a = new Map([
-    ['src/a.js', body(['function quarantineEverything()'])],
-    ['src/b.js', ['function helper0()', 'function helper1()']],
-  ]);
-  const b = new Map([
-    ['src/a.js', body(['function somethingElseEntirely()'])],
-    ['src/b.js', ['function helper0()', 'function helper1()']],
-  ]);
-  const opts = { learned: false };
-  const ra = rank('quarantine everything helper', a, opts).map((r) => [r.file, r.score]);
-  const rb = rank('quarantine everything helper', b, opts).map((r) => [r.file, r.score]);
-  assert.deepStrictEqual(ra, rb);
-  const near = new Map([['src/a.js', Array.from({ length: 5 }, (_, i) => `function helper${i}()`).concat('function quarantineEverything()')]]);
-  assert.ok(rank('quarantine everything', near, opts).length === 1 && rank('quarantine everything', near, opts)[0].score > 0, 'inside the window it counts');
-});
-
-test('body words are computed against what the ranker reads: a word in a signature past the window still counts as a body word', () => {
-  const bodyWords = require('../../src/retrieval/body-words');
-  // one lowercase word, so the same token is in the signature and in the source
-  const src = fns(40) + 'function quarantined() { return 1; }\n';
-  const dir = project({ 'src/a.js': src, 'src/b.js': 'function other() {}\n', 'src/c.js': 'function more() {}\n' });
-  const full = Array.from({ length: 40 }, (_, i) => `function fn${i}(a)`).concat('function quarantined()');
-  const index = new Map([['src/a.js', full], ['src/b.js', ['function other()']], ['src/c.js', ['function more()']]]);
-  const words = bodyWords.buildFor(dir, index);
-  assert.ok(/\bquarantined\b/.test(words.get('src/a.js') || ''), `the signature is past the ranker's 25, so its word is still the body's: ${words.get('src/a.js')}`);
-  const near = new Map([['src/a.js', ['function quarantined()']], ['src/b.js', ['function other()']], ['src/c.js', ['function more()']]]);
-  assert.ok(!/\bquarantined\b/.test(bodyWords.buildFor(dir, near).get('src/a.js') || ''), 'inside the window the signature already carries it');
-});
-
-test('what the ranker does not read, a symbol lookup still sees: the 40th function is in the symbol set', () => {
+test('verify and get_callee_signatures see a symbol past what the ranker reads', () => {
   const dir = project({ 'src/big.js': fns(40) });
   generate(dir);
   assert.ok(buildSymbolSet(dir).set.has('fn39'), 'verify can see it');
   assert.ok(buildSymbolSet(dir).set.has('fn30'));
-  const idx = buildSigIndex(dir);
-  assert.ok(idx.get('src/big.js').length > 25, 'the index holds more than the ranker reads');
-  const r = rank('fn39', idx, { cwd: dir, learned: false });
-  assert.ok(r.every((x) => x.sigs.length <= 26), 'ranked entries carry what the ranker read');
+  const out = handlers.getCalleeSignatures({ symbols: ['fn39'] }, dir);
+  assert.ok(/function fn39/.test(out), out);
+});
+
+test('a symbol added live is read by the ranker even in a file with more than 25 signatures', () => {
+  const dir = project({ 'src/routes.js': fns(40) });
+  generate(dir);
+  handlers.notifySymbolAdded({ signature: 'function brandNewQuokkaFeature(x)', file: 'src/routes.js' }, dir);
+  const r = rank('quokka feature', buildSigIndex(dir), { learned: false, cwd: dir });
+  assert.ok(r.length > 0 && r[0].file === 'src/routes.js', JSON.stringify(r.map((x) => x.file)));
+});
+
+test('a live entry for a file past the context limit carries the rest apart, like a full run', () => {
+  const dir = project({ 'src/big.js': fns(40) });
+  generate(dir);
+  fs.writeFileSync(path.join(dir, 'src/big.js'), fns(60));
+  handlers.notifyFileCreated({ path: 'src/big.js' }, dir);
+  assert.strictEqual(nameCount(buildSigIndex(dir).get('src/big.js'), /^function fn\d+/), 25);
+  assert.strictEqual(nameCount(buildSigIndex(dir, { full: true }).get('src/big.js'), /^function fn\d+/), 60);
+  generate(dir);
+  assert.strictEqual(nameCount(buildSigIndex(dir, { full: true }).get('src/big.js'), /^function fn\d+/), 60, 'a full run agrees');
+});
+
+test('test and pipeline files are read by the ranker as before: whole, up to the extractors\' own limit', () => {
+  const dir = project({ 'src/a.js': fns(2), 'tests/big.test.js': fns(40, 'helper') });
+  generate(dir);
+  assert.strictEqual(nameCount(indexOf(dir)['tests/big.test.js'] || [], /^function helper\d+/), 40);
+});
+
+test('a symbol the sig cache holds past the context limit does not outrank the index file\'s entry', () => {
+  const dir = project({ 'src/big.js': fns(40) }, { sigCache: true });
+  generate(dir);
+  const read = buildSigIndex(dir).get('src/big.js');
+  assert.ok(read.length <= 26, `the cache (raw, up to 1000) must not replace the entry the index file holds: ${read.length}`);
 });
 
 // ── the Python AST tier no longer stops at 30 ──────────────────────────────
@@ -267,7 +306,7 @@ if (havePython) {
     const src = `${Array.from({ length: 40 }, (_, i) => `def f${i}(): pass\n`).join('')}class Later:\n    def run(self): pass\n`;
     const dir = project({ 'src/later.py': src });
     generate(dir);
-    const sigs = indexOf(dir)['src/later.py'];
+    const sigs = everythingOf(dir)['src/later.py'];
     assert.ok(sigs.some((x) => /^class Later/.test(x)) && sigs.some((x) => /def run/.test(x)), JSON.stringify(sigs.slice(-3)));
     assert.ok(!contextOf(dir).includes('class Later'), 'the context file keeps its first 25');
   });

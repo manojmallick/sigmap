@@ -213,10 +213,7 @@ function _readUnder(root, file) {
 function buildFor(cwd, index) {
   let root = path.resolve(cwd);
   try { root = fs.realpathSync(root); } catch (_) { /* keep the resolved path */ }
-  // A word qualifies only if the file's index entry does not already carry it, so the entry
-  // must be the one the ranker reads: the index holds more since #982 (see rank-window.js).
-  const { rankingView, rankWindow } = require('./rank-window');
-  return buildBodyWords(rankingView(index, rankWindow({ cwd: root })), (file) => _readUnder(root, file));
+  return buildBodyWords(index, (file) => _readUnder(root, file));
 }
 
 /**

@@ -132,10 +132,7 @@ function loadOrMine(cwd) {
   let mined;
   try {
     const { buildSigIndex } = require('./ranker');
-    const { rankingView, rankWindow } = require('./rank-window');
-    // Mined from what the ranker reads, so the expansions it applies do not depend on
-    // how many signatures the index keeps beyond that (#982).
-    mined = mineExpansions(rankingView(buildSigIndex(cwd), rankWindow({ cwd })));
+    mined = mineExpansions(buildSigIndex(cwd));
   } catch (_) {
     mined = { schema: SCHEMA_VERSION, files: 0, expansions: {} };
   }

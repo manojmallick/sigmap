@@ -20,7 +20,6 @@
 const { loadWeights } = require('../learning/weights');
 const { tokenize, STOP_WORDS } = require('./tokenizer');
 const { bm25rank, MODULE_DOC_RE, stem } = require('./bm25');
-const { rankWindow, rankingView } = require('./rank-window');
 const { isTestFile, isMockFile, isGeneratedDir, isDocsFile, isCiFile } = require('../util/file-class');
 
 // ---------------------------------------------------------------------------
@@ -411,7 +410,6 @@ function scoreFile(filePath, sigs, queryTokens, weights, wants, pathIdf) {
 function rank(query, sigIndex, opts) {
   if (!query || typeof query !== 'string') return [];
   if (!sigIndex || !(sigIndex instanceof Map) || sigIndex.size === 0) return [];
-  sigIndex = rankingView(sigIndex, rankWindow(opts));
 
   const topK = (opts && opts.topK) || 10;
   const recencyMultiplier = (opts && opts.recencyBoost) || DEFAULT_WEIGHTS.recencyBoost;
@@ -774,11 +772,16 @@ function _buildSigIndexFromCache(cwd) {
       version = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || version;
     }
     const cache = loadCache(cwd, version);
+    // The cache holds the raw extraction, up to what the index keeps (#982); this fallback is
+    // merged under the rule "the entry with more signatures wins", so it is cut to what the
+    // index file's entries hold, or a raw, unredacted list would outrank a redacted one.
+    let limit = 25;
+    try { limit = require('../cache/entry').entryConfig(cwd).maxSigsPerFile; } catch (_) { /* default */ }
     for (const [absPath, entry] of cache.entries()) {
       if (!entry || !entry.sigs || entry.sigs.length === 0) continue;
       const rel = path.relative(cwd, absPath).replace(/\\/g, '/');
       if (!rel || rel.startsWith('..')) continue;
-      index.set(rel, entry.sigs);
+      index.set(rel, entry.sigs.length > limit ? entry.sigs.slice(0, limit) : entry.sigs);
     }
   } catch (_) {}
   return index;
@@ -790,7 +793,7 @@ function _buildSigIndexFromCache(cwd) {
  * @param {string} cwd
  * @returns {Map<string, string[]>}
  */
-function _enrichSigIndexFromStrategy(cwd, index) {
+function _enrichSigIndexFromStrategy(cwd, index, opts) {
   const fs = require('fs');
   const path = require('path');
   // Merge every strategy split file: context-cold.md (hot-cold) AND each
@@ -817,12 +820,28 @@ function _enrichSigIndexFromStrategy(cwd, index) {
   // as its full form, so merging the other way would keep the anchors.
   let merged = index;
   let baseMs = null;
+  // The signatures past what the ranker reads (#982), tracked only for a caller that asks.
+  const wantMore = !!(opts && opts.full);
+  let more = null;
   try {
     const full = require('./sig-index-store').readFullIndexMeta(cwd);
-    if (full.index.size > 0) { merged = _mergeSigIndex(full.index, index); baseMs = full.baseMs; }
+    if (full.index.size > 0) {
+      const base = wantMore ? new Map(full.index) : null;
+      merged = _mergeSigIndex(full.index, index);
+      baseMs = full.baseMs;
+      if (wantMore) {
+        more = new Map(full.more);
+        // an entry the merge replaced is no longer the one these belong to
+        for (const rel of [...more.keys()]) if (merged.get(rel) !== base.get(rel)) more.delete(rel);
+      }
+    }
   } catch (_) { /* absent → budgeted view is still served */ }
 
-  return _applyLiveOverlay(cwd, merged, baseMs);
+  const live = _applyLiveOverlay(cwd, merged, baseMs, more);
+  if (!more || more.size === 0) return live;
+  const out = new Map();
+  for (const [rel, sigs] of live) out.set(rel, more.has(rel) ? sigs.concat(more.get(rel)) : sigs);
+  return out;
 }
 
 /**
@@ -835,7 +854,7 @@ function _enrichSigIndexFromStrategy(cwd, index) {
  * generated context file was written, so a freshly generated repo is never
  * overlaid with entries its own generation already saw.
  */
-function _applyLiveOverlay(cwd, index, baseMs) {
+function _applyLiveOverlay(cwd, index, baseMs, more) {
   try {
     const overlay = require('../cache/overlay');
     const entries = overlay.load(cwd);
@@ -849,7 +868,7 @@ function _applyLiveOverlay(cwd, index, baseMs) {
         try { since = Math.max(since, fs.statSync(path.join(cwd, ...parts)).mtimeMs); } catch (_) {}
       }
     }
-    overlay.apply(index, entries, since);
+    overlay.apply(index, entries, since, more);
   } catch (_) { /* the overlay is an accelerator; the base index stands without it */ }
   return index;
 }
@@ -865,8 +884,12 @@ function _applyLiveOverlay(cwd, index, baseMs) {
  *     previous `--output <file>` generation run
  *  3. All known adapter output paths probed in order (first non-empty wins)
  *
+ * `opts.full` returns every signature the index keeps (#982), the ones past what the ranker
+ * reads included. Use it to look a symbol up (`verify`, `get_callee_signatures`); ranking and
+ * the tools that list a file's signatures read the default, which is what they always read.
+ *
  * @param {string} cwd
- * @param {{ contextPath?: string }} [opts]
+ * @param {{ contextPath?: string, full?: boolean }} [opts]
  * @returns {Map<string, string[]>}
  */
 function buildSigIndex(cwd, opts) {
@@ -876,7 +899,7 @@ function buildSigIndex(cwd, opts) {
   // 1. Caller supplied an explicit path — use it directly.
   if (opts && opts.contextPath) {
     const index = _parseContextFile(opts.contextPath);
-    return _enrichSigIndexFromStrategy(cwd, index);
+    return _enrichSigIndexFromStrategy(cwd, index, opts);
   }
 
   // 2. Check gen-context.config.json for a persisted customOutput path.
@@ -887,7 +910,7 @@ function buildSigIndex(cwd, opts) {
       if (cfg.customOutput) {
         const customPath = path.resolve(cwd, cfg.customOutput);
         const index = _parseContextFile(customPath);
-        if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index);
+        if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index, opts);
       }
     }
   } catch (_) {}
@@ -896,12 +919,12 @@ function buildSigIndex(cwd, opts) {
   for (const parts of ADAPTER_OUTPUT_PATHS) {
     const contextPath = path.join(cwd, ...parts);
     const index = _parseContextFile(contextPath);
-    if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index);
+    if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index, opts);
   }
 
   // 4. Primary file empty/missing (hot-cold) — still serve cold + cache.
   const fallback = new Map();
-  return _enrichSigIndexFromStrategy(cwd, fallback);
+  return _enrichSigIndexFromStrategy(cwd, fallback, opts);
 }
 
 /**
@@ -1114,4 +1137,4 @@ function detectIntent(query) {
   return detectIntents(query)[0];
 }
 
-module.exports = { rank, rankWindow, rankingView, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
+module.exports = { rank, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
