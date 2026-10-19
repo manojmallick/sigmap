@@ -220,6 +220,19 @@ test('a word that appears only past the ranker\'s window changes no score and no
   assert.ok(rank('quarantine everything', near, opts).length === 1 && rank('quarantine everything', near, opts)[0].score > 0, 'inside the window it counts');
 });
 
+test('body words are computed against what the ranker reads: a word in a signature past the window still counts as a body word', () => {
+  const bodyWords = require('../../src/retrieval/body-words');
+  // one lowercase word, so the same token is in the signature and in the source
+  const src = fns(40) + 'function quarantined() { return 1; }\n';
+  const dir = project({ 'src/a.js': src, 'src/b.js': 'function other() {}\n', 'src/c.js': 'function more() {}\n' });
+  const full = Array.from({ length: 40 }, (_, i) => `function fn${i}(a)`).concat('function quarantined()');
+  const index = new Map([['src/a.js', full], ['src/b.js', ['function other()']], ['src/c.js', ['function more()']]]);
+  const words = bodyWords.buildFor(dir, index);
+  assert.ok(/\bquarantined\b/.test(words.get('src/a.js') || ''), `the signature is past the ranker's 25, so its word is still the body's: ${words.get('src/a.js')}`);
+  const near = new Map([['src/a.js', ['function quarantined()']], ['src/b.js', ['function other()']], ['src/c.js', ['function more()']]]);
+  assert.ok(!/\bquarantined\b/.test(bodyWords.buildFor(dir, near).get('src/a.js') || ''), 'inside the window the signature already carries it');
+});
+
 test('what the ranker does not read, a symbol lookup still sees: the 40th function is in the symbol set', () => {
   const dir = project({ 'src/big.js': fns(40) });
   generate(dir);
