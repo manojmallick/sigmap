@@ -20,6 +20,7 @@
 const { loadWeights } = require('../learning/weights');
 const { tokenize, STOP_WORDS } = require('./tokenizer');
 const { bm25rank, MODULE_DOC_RE, stem } = require('./bm25');
+const { rankWindow, rankingView } = require('./rank-window');
 const { isTestFile, isMockFile, isGeneratedDir, isDocsFile, isCiFile } = require('../util/file-class');
 
 // ---------------------------------------------------------------------------
@@ -410,6 +411,7 @@ function scoreFile(filePath, sigs, queryTokens, weights, wants, pathIdf) {
 function rank(query, sigIndex, opts) {
   if (!query || typeof query !== 'string') return [];
   if (!sigIndex || !(sigIndex instanceof Map) || sigIndex.size === 0) return [];
+  sigIndex = rankingView(sigIndex, rankWindow(opts));
 
   const topK = (opts && opts.topK) || 10;
   const recencyMultiplier = (opts && opts.recencyBoost) || DEFAULT_WEIGHTS.recencyBoost;
@@ -1112,4 +1114,4 @@ function detectIntent(query) {
   return detectIntents(query)[0];
 }
 
-module.exports = { rank, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
+module.exports = { rank, rankWindow, rankingView, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };

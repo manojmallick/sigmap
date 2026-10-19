@@ -9,7 +9,7 @@
  * went through them replaced a redacted base entry with one carrying the secret,
  * and dropped the module-doc line. Now the stages live here, once:
  *
- *   extract → cap at maxSigsPerFile → redact secrets → module-doc line / terse
+ *   extract → cap at the index limit → redact secrets → module-doc line / terse
  *
  * The CLI core's `detectAndExtract` stays the extractor for generate and the
  * watcher (it owns the opt-in exactness tiers and the generic fallback); the
@@ -82,7 +82,7 @@ function indexSigsFor(filePath, content, sigs, config) {
  * this cheap enough for a hook that runs on every agent write.
  *
  * @param {string} cwd
- * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number }}
+ * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number, maxIndexSigsPerFile: number }}
  */
 function entryConfig(cwd) {
   const { DEFAULTS } = require('../config/defaults');
@@ -101,7 +101,53 @@ function entryConfig(cwd) {
     secretScan: !!pick('secretScan'),
     terse: !!pick('terse'),
     maxSigsPerFile: Number.isFinite(pick('maxSigsPerFile')) ? pick('maxSigsPerFile') : 25,
+    maxIndexSigsPerFile: Number.isFinite(pick('maxIndexSigsPerFile')) ? pick('maxIndexSigsPerFile') : 200,
   };
+}
+
+/**
+ * What a full extraction is asked for, whatever the limits: the extractors stop at 200
+ * signatures a file on their own, and this bounds the few that do not. It is above both
+ * limits so that `capForIndex` is the one place a file is cut, and can say how much.
+ */
+const EXTRACT_CEILING = 1000;
+
+/** Matches the extractors' own disclosure line, `… +N more signatures` (util/truncate.js). */
+const TRUNCATION_NOTICE = /^… \+(\d+) more signatures$/;
+
+/**
+ * How many signatures a file may contribute to the retrieval INDEX, and so how many
+ * the extraction must produce: the index limit, never below the context-file limit
+ * (the context file is a view of what was extracted, so the index cannot hold less).
+ *
+ * @param {{maxSigsPerFile?: number, maxIndexSigsPerFile?: number}} config
+ * @returns {number}
+ */
+function indexLimit(config) {
+  const ctx = Number.isFinite(config && config.maxSigsPerFile) ? config.maxSigsPerFile : 25;
+  const idx = Number.isFinite(config && config.maxIndexSigsPerFile) ? config.maxIndexSigsPerFile : 200;
+  return Math.max(ctx, idx);
+}
+
+/**
+ * A file's signatures as the INDEX keeps them: at most `limit`, and without the
+ * extractor's trailing `… +N more signatures` line. That line is a disclosure for a
+ * reader of the prompt, not a signature: left in the index it would put the words
+ * "more" and "signatures" into every truncated file's vocabulary and show up as a
+ * line with no symbol to the tools that read the index.
+ *
+ * @param {string[]} sigs
+ * @param {number} limit
+ * @returns {{ sigs: string[], dropped: number }} `dropped` counts what the limit
+ *          and the extractor's own ceiling left out
+ */
+function capForIndex(sigs, limit) {
+  let list = sigs;
+  let dropped = 0;
+  const last = list.length ? TRUNCATION_NOTICE.exec(list[list.length - 1]) : null;
+  if (last) { dropped += Number(last[1]); list = list.slice(0, -1); }
+  if (list.length > limit) { dropped += list.length - limit; list = list.slice(0, limit); }
+  return { sigs: list, dropped };
 }
 
 /**
@@ -124,10 +170,10 @@ function entrySigs(filePath, content, cwd, config) {
   if (sigs.length === 0 && !langFor(filePath)) {
     try { sigs = require('../extractors/generic').extract(content, filePath) || []; } catch (_) { sigs = []; }
   }
-  sigs = sigs.slice(0, cfg.maxSigsPerFile);
+  sigs = capForIndex(sigs, indexLimit(cfg)).sigs;
   if (sigs.length === 0) return [];
   sigs = redactSecrets(sigs, filePath, cfg).sigs;
   return indexSigsFor(filePath, content, sigs, cfg);
 }
 
-module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs };
+module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, indexLimit, capForIndex, EXTRACT_CEILING };

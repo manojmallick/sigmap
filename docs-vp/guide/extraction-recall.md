@@ -22,7 +22,7 @@ Retrieval can only rank what the extractor emitted. This page measures the extra
 Two populations, because they answer different questions:
 
 - **extractor** — what the extractor returns for the file.
-- **index** — what a first-time `sigmap` run keeps, after the 25-signature-per-file cap. It is scored over the files the index holds, so the cap is not confused with coverage; the number of files it holds is shown beside it.
+- **index** — what a first-time `sigmap` run keeps in `.context/sig-index.json`, after the index limit (`maxIndexSigsPerFile`, 200 since [#982](https://github.com/manojmallick/sigmap/issues/982); it was the context file's 25). It is scored over the files the index holds, so the limit is not confused with coverage; the number of files it holds is shown beside it.
 
 Measured on SigMap 8.80.1 with `node scripts/run-extraction-recall.mjs`. The full numbers and the first 60 misses of every kind are in [`benchmarks/reports/extraction-recall.json`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/reports/extraction-recall.json).
 
@@ -33,9 +33,9 @@ Flask (`2ac8988`) and Django (`a461af8`): `src/flask`, and Django's `db/models`,
 | Population | Files | class | function | method |
 |---|---|---|---|---|
 | extractor, regex tier (no `python3`) | 266 | 99.3% | 98.5% | 90.7% |
-| extractor, AST tier (`python3` on PATH) | 266 | 67.7% | 92.5% | 64.4% |
-| index as shipped, without `python3` | 237 | 65.0% | 77.3% | 57.1% |
-| index as shipped, with `python3` | 237 | 64.0% | 87.9% | 57.5% |
+| extractor, AST tier (`python3` on PATH) | 266 | 98.8% | 100.0% | 98.6% |
+| index as shipped, without `python3` | 237 | 99.3% | 98.5% | 90.6% |
+| index as shipped, with `python3` | 237 | 98.8% | 100.0% | 98.6% |
 
 The regex-tier row is 895 of 901 classes, 577 of 586 functions and 2,723 of 3,002 methods; every other count is in the report.
 
@@ -43,8 +43,9 @@ Which names count: the extractors omit on purpose every function or method whose
 
 What the table says:
 
-- **The AST tier's own output is not the more complete one.** `python_ast.py` stops after 30 signatures a file and does not say so (`MAX_SIGS`), and lists a class's constants before its methods, so a large module loses its tail: Django's `db/models/fields/__init__.py` comes back as 30 signatures where the regex tier returns 200 and says it dropped the rest. That cap does not bind on the index, where the 25-signature cap is lower, so the two index rows are within a point of each other on classes and methods. It does matter for [#982](https://github.com/manojmallick/sigmap/issues/982), which measured with the AST tier absent: raising the index cap would still leave a machine with `python3` receiving at most 30 signatures a file from the extractor. That consequence follows from the code and is not measured here.
-- **The index loses far more than the extractor does.** From the regex tier to the index without `python3`, classes fall 34 points, functions 21 and methods 34: the 25-signature cap drops the tail of every large file. [#982](https://github.com/manojmallick/sigmap/issues/982) tracks the Python index recall.
+- **The index now holds what the extractor returns.** Before #982 it kept 25 signatures a file and lost most of a large module: 65.0% / 77.3% / 57.1% (without `python3`) and 64.0% / 87.9% / 57.5% (with). The Python AST tier's own output was cut as well, silently, at 30 signatures a file (`MAX_SIGS`), with a class's constants listed ahead of its methods: 67.7% / 92.5% / 64.4%. Both limits are lifted (the AST tier now stops at the regex tier's 200 and says so), and the index rows equal the extractor rows to within two methods. The context file still keeps its first 25 signatures a file, byte for byte as before.
+- **What is left on the AST path is the extractors' own 200.** Two of the 266 files hold more than 200 symbols, `db/models/fields/__init__.py` (278) and `db/models/expressions.py` (277); they account for every one of the 11 classes and 41 methods the index misses with `python3`. No class in the 266 files has more than 120 methods, the per-class member limit the extractors stop at.
+- **Without `python3` the methods stay at 90.6%, and that is the regex tier, not the index** (its extractor row is 90.7%). 65 of the 281 methods it misses are in `contrib/admin/options.py`, where it lists none of `ModelAdmin`'s members.
 - **Python 3.11 and 3.14 agree to within 0.2 points** (they parse three more Django files than 3.9), so the floors apply to any CPython 3.
 
 ### The earlier one-off figures
@@ -52,7 +53,7 @@ What the table says:
 Two Python figures were measured once, before this harness, with throwaway scripts. Both reproduce; what differs is which names count.
 
 - **Regex tier, 99.2% / 85.6% / 69.2%** (classes / functions / methods, 266 files, Python 3.9.6) counted every name, private ones included: 88 of the 97 function misses were private or dunder. Counting the names the extractors list gives 99.3% / 98.5% / 90.7%, the first row above. The jump in methods is almost all underscore and dunder methods the extractors omit on purpose, not an improvement of the extractor.
-- **Django's index, methods 57.6%, classes 63.5%, functions 75.9%** (221 files, Python 3.9.6) reproduces as 57.6% / 63.6% / 75.9% on a machine without `python3`, with the one-off's file selection (Django's indexed files under those directories, without tests) and its rule (`__init__` skipped like every underscore name). The 0.1 on classes is one class the extractor prints in its collapsed `@dataclass Name(...)` form (`Action`, in `contrib/admin/options.py`), which this harness counts as listed. Counting `__init__` as the extractors list it gives 56.5% for methods; with `python3` on PATH the same files give 62.7% / 87.8% / 55.5%. These 221-file figures come from a scratch script outside the committed harness, which compares Flask and Django together over the file set above; the file count depends on the interpreter (Python 3.11 parses 224 of them).
+- **Django's index at 25 signatures a file, before #982: methods 57.6%, classes 63.5%, functions 75.9%** (221 files, Python 3.9.6) reproduces as 57.6% / 63.6% / 75.9% on a machine without `python3`, with the one-off's file selection (Django's indexed files under those directories, without tests) and its rule (`__init__` skipped like every underscore name). The 0.1 on classes is one class the extractor prints in its collapsed `@dataclass Name(...)` form (`Action`, in `contrib/admin/options.py`), which this harness counts as listed. Counting `__init__` as the extractors list it gives 56.5% for methods; with `python3` on PATH the same files give 62.7% / 87.8% / 55.5%. These 221-file figures come from a scratch script outside the committed harness, which compares Flask and Django together over the file set above; the file count depends on the interpreter (Python 3.11 parses 224 of them).
 
 ## Ruby — against Ruby Ripper 2.6.10
 
@@ -61,12 +62,12 @@ Rails (`f9243af`: `actionpack`, `activerecord`, `activesupport`) and Sidekiq (`1
 | Population | Files | class | module | method | method under its owner |
 |---|---|---|---|---|---|
 | extractor | 757 | 100.0% | 100.0% | 98.7% | 100.0% |
-| index as shipped | 298 of 757 | 92.1% | 98.7% | 88.0% | 88.0% |
+| index as shipped | 298 of 757 | 100.0% | 100.0% | 98.3% | 100.0% |
 
 - The extractor row reproduces the [#981](https://github.com/manojmallick/sigmap/issues/981) figures (944 of 944 classes, 1,467 of 1,467 modules, 7,196 of 7,292 methods, 7,291 of 7,292 under the right owner).
-- **The index holds 298 of the 757 files, and that is a coverage gap ([#997](https://github.com/manojmallick/sigmap/issues/997)), not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 34.4% / 30.3% / 28.1% / 28.0%.
+- **The index holds 298 of the 757 files, and that is a coverage gap ([#997](https://github.com/manojmallick/sigmap/issues/997)), not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 37.4% / 30.7% / 31.3% / 31.9%.
 
-On the CI runner (Ruby 3.2.3, which parses 833 of the same files) the extractor scores 100.0% / 100.0% / 98.5% / 99.3% and the index, over the 331 files it holds, 87.1% / 98.4% / 82.7% / 80.6%. The floors for Ruby 3 are recorded from that run, which is why the saved report, made on Ruby 2.6, differs from it.
+On the CI runner (Ruby 3.2.3, which parses 833 of the same files) the extractor scores 100.0% / 100.0% / 98.5% / 99.3%. The floors for Ruby 3 are recorded from a run there, which is why the saved report, made on Ruby 2.6, differs from it.
 
 ## Not measured
 

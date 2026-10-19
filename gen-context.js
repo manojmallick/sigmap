@@ -2031,7 +2031,7 @@ __factories["./src/cache/entry"] = function(module, exports) {
    * went through them replaced a redacted base entry with one carrying the secret,
    * and dropped the module-doc line. Now the stages live here, once:
    *
-   *   extract → cap at maxSigsPerFile → redact secrets → module-doc line / terse
+   *   extract → cap at the index limit → redact secrets → module-doc line / terse
    *
    * The CLI core's `detectAndExtract` stays the extractor for generate and the
    * watcher (it owns the opt-in exactness tiers and the generic fallback); the
@@ -2104,7 +2104,7 @@ __factories["./src/cache/entry"] = function(module, exports) {
    * this cheap enough for a hook that runs on every agent write.
    *
    * @param {string} cwd
-   * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number }}
+   * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number, maxIndexSigsPerFile: number }}
    */
   function entryConfig(cwd) {
     const { DEFAULTS } = __require('./src/config/defaults');
@@ -2123,7 +2123,53 @@ __factories["./src/cache/entry"] = function(module, exports) {
       secretScan: !!pick('secretScan'),
       terse: !!pick('terse'),
       maxSigsPerFile: Number.isFinite(pick('maxSigsPerFile')) ? pick('maxSigsPerFile') : 25,
+      maxIndexSigsPerFile: Number.isFinite(pick('maxIndexSigsPerFile')) ? pick('maxIndexSigsPerFile') : 200,
     };
+  }
+
+  /**
+   * What a full extraction is asked for, whatever the limits: the extractors stop at 200
+   * signatures a file on their own, and this bounds the few that do not. It is above both
+   * limits so that `capForIndex` is the one place a file is cut, and can say how much.
+   */
+  const EXTRACT_CEILING = 1000;
+
+  /** Matches the extractors' own disclosure line, `… +N more signatures` (util/truncate.js). */
+  const TRUNCATION_NOTICE = /^… \+(\d+) more signatures$/;
+
+  /**
+   * How many signatures a file may contribute to the retrieval INDEX, and so how many
+   * the extraction must produce: the index limit, never below the context-file limit
+   * (the context file is a view of what was extracted, so the index cannot hold less).
+   *
+   * @param {{maxSigsPerFile?: number, maxIndexSigsPerFile?: number}} config
+   * @returns {number}
+   */
+  function indexLimit(config) {
+    const ctx = Number.isFinite(config && config.maxSigsPerFile) ? config.maxSigsPerFile : 25;
+    const idx = Number.isFinite(config && config.maxIndexSigsPerFile) ? config.maxIndexSigsPerFile : 200;
+    return Math.max(ctx, idx);
+  }
+
+  /**
+   * A file's signatures as the INDEX keeps them: at most `limit`, and without the
+   * extractor's trailing `… +N more signatures` line. That line is a disclosure for a
+   * reader of the prompt, not a signature: left in the index it would put the words
+   * "more" and "signatures" into every truncated file's vocabulary and show up as a
+   * line with no symbol to the tools that read the index.
+   *
+   * @param {string[]} sigs
+   * @param {number} limit
+   * @returns {{ sigs: string[], dropped: number }} `dropped` counts what the limit
+   *          and the extractor's own ceiling left out
+   */
+  function capForIndex(sigs, limit) {
+    let list = sigs;
+    let dropped = 0;
+    const last = list.length ? TRUNCATION_NOTICE.exec(list[list.length - 1]) : null;
+    if (last) { dropped += Number(last[1]); list = list.slice(0, -1); }
+    if (list.length > limit) { dropped += list.length - limit; list = list.slice(0, limit); }
+    return { sigs: list, dropped };
   }
 
   /**
@@ -2146,13 +2192,13 @@ __factories["./src/cache/entry"] = function(module, exports) {
     if (sigs.length === 0 && !langFor(filePath)) {
       try { sigs = __require('./src/extractors/generic').extract(content, filePath) || []; } catch (_) { sigs = []; }
     }
-    sigs = sigs.slice(0, cfg.maxSigsPerFile);
+    sigs = capForIndex(sigs, indexLimit(cfg)).sigs;
     if (sigs.length === 0) return [];
     sigs = redactSecrets(sigs, filePath, cfg).sigs;
     return indexSigsFor(filePath, content, sigs, cfg);
   }
 
-  module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs };
+  module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, indexLimit, capForIndex, EXTRACT_CEILING };
   
 };
 
@@ -3045,8 +3091,15 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // Maximum directory depth to recurse
     maxDepth: 6,
 
-    // Maximum signatures extracted per file
+    // Maximum signatures a file contributes to the GENERATED CONTEXT FILE (the prompt
+    // artifact, which is token-budgeted). The retrieval index has its own limit below.
     maxSigsPerFile: 25,
+
+    // Maximum signatures a file contributes to the RETRIEVAL INDEX (.context/sig-index.json),
+    // which feeds `ask`, `verify`, `explain` and the MCP search tools and is not injected into
+    // a prompt. The index never holds fewer than `maxSigsPerFile`. The extractors stop at 200
+    // a file (and 120 members a class) on their own, so a value above 200 changes nothing.
+    maxIndexSigsPerFile: 200,
 
     // Maximum tokens in final output before budget enforcement kicks in.
     // Used only when autoMaxTokens is false, or as a floor for auto-scaling.
@@ -28497,7 +28550,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     }
 
     // 2. Referenced symbols must exist in the live index (suggest a near match) —
-    // or in the source: the index keeps `maxSigsPerFile` signatures a file and only
+    // or in the source: the index keeps `maxIndexSigsPerFile` signatures a file and only
     // the files under the detected roots, and an `error` here blocks the plan on a
     // symbol that is real (#914). Only the references the index lacks are looked up.
     const missing = symbolsRef.filter((s) => !introSymbols.has(s.name) && !symbolSet.has(s.name));
@@ -29143,7 +29196,10 @@ __factories["./src/retrieval/body-words"] = function(module, exports) {
   function buildFor(cwd, index) {
     let root = path.resolve(cwd);
     try { root = fs.realpathSync(root); } catch (_) { /* keep the resolved path */ }
-    return buildBodyWords(index, (file) => _readUnder(root, file));
+    // A word qualifies only if the file's index entry does not already carry it, so the entry
+    // must be the one the ranker reads: the index holds more since #982 (see rank-window.js).
+    const { rankingView, rankWindow } = __require('./src/retrieval/rank-window');
+    return buildBodyWords(rankingView(index, rankWindow({ cwd: root })), (file) => _readUnder(root, file));
   }
 
   /**
@@ -29423,7 +29479,10 @@ __factories["./src/retrieval/mined-expansions"] = function(module, exports) {
     let mined;
     try {
       const { buildSigIndex } = __require('./src/retrieval/ranker');
-      mined = mineExpansions(buildSigIndex(cwd));
+      const { rankingView, rankWindow } = __require('./src/retrieval/rank-window');
+      // Mined from what the ranker reads, so the expansions it applies do not depend on
+      // how many signatures the index keeps beyond that (#982).
+      mined = mineExpansions(rankingView(buildSigIndex(cwd), rankWindow({ cwd })));
     } catch (_) {
       mined = { schema: SCHEMA_VERSION, files: 0, expansions: {} };
     }
@@ -29563,6 +29622,71 @@ __factories["./src/retrieval/module-doc"] = function(module, exports) {
   
 };
 
+// ── ./src/retrieval/rank-window ──
+__factories["./src/retrieval/rank-window"] = function(module, exports) {
+  
+  /**
+   * What the ranker reads of a file's signatures (#982).
+   *
+   * The retrieval index holds up to `maxIndexSigsPerFile` (200) signatures of a file, for the
+   * tools that look a symbol up (`verify`, `explain`, `get_callee_signatures`). The RANKER
+   * reads the leading `maxSigsPerFile` (25), as it always did: scoring the rest was measured
+   * on the third-party gate and lost more tasks than it won (74 -> 72 of 108 locally; gin and
+   * serilog gained one each, phoenix, plenary, libuv and spdlog lost one each), so retrieval is
+   * left exactly as it was. Everything that feeds the ranker from the index reads this view:
+   * `rank` itself, the body words (which exclude the words an entry already carries) and the
+   * mined expansions.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  const { MODULE_DOC_RE } = __require('./src/retrieval/bm25');
+
+  /**
+   * How many signatures of a file the ranker reads: an explicit option, else the project's
+   * `maxSigsPerFile`, else 25.
+   *
+   * @param {{rankSigsPerFile?: number, cwd?: string}} [opts]
+   * @returns {number}
+   */
+  function rankWindow(opts) {
+    if (opts && Number.isFinite(opts.rankSigsPerFile)) return opts.rankSigsPerFile;
+    if (opts && opts.cwd) {
+      try { return __require('./src/cache/entry').entryConfig(opts.cwd).maxSigsPerFile; } catch (_) { /* default */ }
+    }
+    return 25;
+  }
+
+  /**
+   * The index as the ranker reads it: for each file its module-doc lines and its first
+   * `limit` other lines. A file with no more than that keeps the very array it had, and an
+   * index nothing is cut from comes back as the same Map.
+   *
+   * @param {Map<string,string[]>} sigIndex
+   * @param {number} limit
+   * @returns {Map<string,string[]>}
+   */
+  function rankingView(sigIndex, limit) {
+    let out = null;
+    for (const [file, sigs] of sigIndex) {
+      if (!Array.isArray(sigs) || sigs.length <= limit) continue;
+      let code = 0;
+      const kept = [];
+      for (const line of sigs) {
+        if (MODULE_DOC_RE.test(line)) kept.push(line);
+        else if (code < limit) { kept.push(line); code++; }
+      }
+      if (kept.length === sigs.length) continue;
+      if (!out) out = new Map(sigIndex);
+      out.set(file, kept);
+    }
+    return out || sigIndex;
+  }
+
+  module.exports = { rankWindow, rankingView };
+  
+};
+
 // ── ./src/retrieval/ranker ──
 __factories["./src/retrieval/ranker"] = function(module, exports) {
   
@@ -29586,6 +29710,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   const { loadWeights } = __require('./src/learning/weights');
   const { tokenize, STOP_WORDS } = __require('./src/retrieval/tokenizer');
   const { bm25rank, MODULE_DOC_RE, stem } = __require('./src/retrieval/bm25');
+  const { rankWindow, rankingView } = __require('./src/retrieval/rank-window');
   const { isTestFile, isMockFile, isGeneratedDir, isDocsFile, isCiFile } = __require('./src/util/file-class');
 
   // ---------------------------------------------------------------------------
@@ -29976,6 +30101,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
   function rank(query, sigIndex, opts) {
     if (!query || typeof query !== 'string') return [];
     if (!sigIndex || !(sigIndex instanceof Map) || sigIndex.size === 0) return [];
+    sigIndex = rankingView(sigIndex, rankWindow(opts));
 
     const topK = (opts && opts.topK) || 10;
     const recencyMultiplier = (opts && opts.recencyBoost) || DEFAULT_WEIGHTS.recencyBoost;
@@ -30678,7 +30804,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     return detectIntents(query)[0];
   }
 
-  module.exports = { rank, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
+  module.exports = { rank, rankWindow, rankingView, buildSigIndex, scoreFile, _queryWants, _isDataHolder, detectIntents, formatRankTable, formatRankJSON, formatExplainTable, DEFAULT_WEIGHTS, GRAPH_BOOST_AMOUNTS, CENTRALITY_BLEND_WEIGHT, detectIntent };
   
 };
 
@@ -37954,7 +38080,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
 
     // 3. fake-symbol
     //
-    // The symbol set is a summary — a file keeps `maxSigsPerFile` signatures, only
+    // The symbol set is a summary — a file keeps `maxIndexSigsPerFile` signatures, only
     // the files under the detected roots are in it, an extractor lists only the
     // constructs it knows — so a name it lacks is not yet fake (#914, #910). The
     // names that would be flagged are looked up in the source, in one pass, and a
@@ -39202,8 +39328,8 @@ __factories["./src/verify/source-confirm"] = function(module, exports) {
    * Source-confirmed symbols (#914, closes #910).
    *
    * `fake-symbol` asked one question — "is this name in the symbol index?" — and the
-   * index is a lossy summary of the repository: a file keeps `maxSigsPerFile` (25)
-   * signatures, only the files under the detected source roots are in it, and an
+   * index is a lossy summary of the repository: a file keeps `maxIndexSigsPerFile` (200,
+   * and 25 before #982) signatures, only the files under the detected source roots are in it, and an
    * extractor lists only the constructs it knows. A real symbol outside it was
    * reported as fabricated (#910: httpx's `Cookies.extract_cookies`, 1,100 lines into
    * a file whose index entry stops at 25). Measured over 35 repositories' own docs,
@@ -41342,6 +41468,10 @@ function watchKind(cwd, config, abs, ctx) {
  */
 function patchLiveFiles(cwd, config, absFiles, ctx) {
   const overlay = requireSourceOrBundled('./src/cache/overlay');
+  // A patch is an index entry, so it keeps what a full run keeps (indexLimit), not the context-file budget.
+  const { indexLimit, capForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
+  const patchLimit = indexLimit(config);
+  const readLimit = Math.max(patchLimit, EXTRACT_CEILING);
   const updates = [];
   let removed = 0;
   let full = false;
@@ -41363,7 +41493,7 @@ function patchLiveFiles(cwd, config, absFiles, ctx) {
       const under = key + '/';
       for (const k of ctx.known()) if (k.startsWith(under)) { full = true; break; }
     }
-    let sigs = content === null ? [] : detectAndExtract(abs, content, config.maxSigsPerFile, config.exactness, cwd);
+    let sigs = content === null ? [] : detectAndExtract(abs, content, readLimit, config.exactness, cwd);
     if (sigs.length === 0) {
       // A removal only means something for a path the index holds. An editor's
       // swap or atomic-save temp file comes and goes without ever being indexed,
@@ -41371,7 +41501,7 @@ function patchLiveFiles(cwd, config, absFiles, ctx) {
       if (ctx.known().has(key)) { updates.push([key, { at, deleted: true }]); ctx.known().delete(key); removed++; }
       continue;
     }
-    sigs = finishFileSigs(sigs, abs, cwd, config, ctx.testIndex());
+    sigs = capForIndex(finishFileSigs(sigs, abs, cwd, config, ctx.testIndex()), patchLimit).sigs;
     updates.push([key, { at, sigs: indexSigsFor(abs, content, sigs, config) }]);
     ctx.known().add(key);
   }
@@ -42152,6 +42282,14 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     }
   }
 
+  // One extraction per file feeds two views of it: the context file keeps the first
+  // `maxSigsPerFile` signatures, the retrieval index keeps up to its own limit (#982).
+  const { indexLimit, capForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
+  const extractLimit = indexLimit(config);
+  // What extraction is asked for: more than either limit, so that what the index cuts can
+  // be counted (the extractors stop at 200 a file on their own; this bounds one without).
+  const readLimit = Math.max(extractLimit, EXTRACT_CEILING);
+
   // A file the signature cache still holds is never extracted, so it is not prefetched.
   prefetchPythonAst(cache ? allFiles.filter((f) => {
     const cached = cache.get(f);
@@ -42171,23 +42309,28 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       const cached = cache.get(filePath);
       let mtime = 0;
       try { mtime = fs.statSync(filePath).mtimeMs; } catch (_) {}
-      if (cached && cached.mtime === mtime) {
+      // An entry is reused only if it was extracted under the same ceiling: one from an
+      // older version holds the first 25 signatures of the file, not the list the index keeps.
+      if (cached && cached.mtime === mtime && cached.cap === readLimit) {
         sigs = cached.sigs;
       } else {
-        sigs = detectAndExtract(filePath, content, config.maxSigsPerFile, config.exactness, cwd);
+        sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
         if (sigs.length > 0) {
-          cache.set(filePath, { mtime, sigs });
+          cache.set(filePath, { mtime, sigs, cap: readLimit });
         }
       }
     } else {
-      sigs = detectAndExtract(filePath, content, config.maxSigsPerFile, config.exactness, cwd);
+      sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
     }
     if (sigs.length === 0) continue;
 
     // Baseline = estimated tokens of original source content for intuitive reduction stats.
     inputTokenTotal += estimateTokens(content);
 
-    sigs = finishFileSigs(sigs, filePath, cwd, config, testIndex);
+    // Annotated and secret-scanned in full, so what the index keeps is scanned too;
+    // the context file then takes the first `maxSigsPerFile` of the same list.
+    const indexSigs = finishFileSigs(sigs, filePath, cwd, config, testIndex);
+    sigs = indexSigs.slice(0, config.maxSigsPerFile);
 
     let mtime = 0;
     try {
@@ -42200,7 +42343,7 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     // preserving the original processing-order ranking (see nextRecentMtime, #440).
     if (recentFiles.has(filePath)) mtime = nextRecentMtime();
 
-    fileEntries.push({ filePath, sigs, deps: extractFileDeps(filePath, content, config), content, mtime });
+    fileEntries.push({ filePath, sigs, indexSigs, deps: extractFileDeps(filePath, content, config), content, mtime });
   }
 
   // v6.5: Coverage feedback loop — warn if symbol density is suspiciously low
@@ -42253,10 +42396,14 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       // ONLY: the prompt artifact is token-budgeted, the index is not.
       // Per-file enrichment lives in indexSigsFor (shared with the watcher's
       // per-file patch, so a patch and this run cannot disagree about a file).
+      let __cutFiles = 0;
+      let __cutSigs = 0;
       let __entries = fileEntries.map((e) => {
         let src = e.content;
         if (typeof src !== 'string') { try { src = fs.readFileSync(e.filePath, 'utf8'); } catch (_) { src = ''; } }
-        return Object.assign({}, e, { sigs: indexSigsFor(e.filePath, src, e.sigs, config) });
+        const kept = capForIndex(e.indexSigs || e.sigs, extractLimit);
+        if (kept.dropped > 0) { __cutFiles++; __cutSigs += kept.dropped; }
+        return Object.assign({}, e, { sigs: indexSigsFor(e.filePath, src, kept.sigs, config) });
       });
       // Test files: indexed, never rendered into the prompt. They were the one
       // whole category `sigmap ask` could not reach at all — srcDirs excludes
@@ -42273,6 +42420,10 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       } catch (_) { /* best-effort */ }
       const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION, startedAt: __genT0 });
       __indexWritten = __w.files > 0;
+      // Said once per run, and only when it happened: a file past the limit is not fully indexed.
+      if (__cutFiles > 0 && !reportJson) {
+        console.warn(`[sigmap] index: ${__cutFiles} file(s) hold more than ${extractLimit} signatures; ${__cutSigs} not indexed (maxIndexSigsPerFile; the extractors stop at 200 a file)`);
+      }
       // The index now reflects every change up to the instant this run began, so any
       // overlay entry older than that is superseded and is dropped.
       try { requireSourceOrBundled('./src/cache/overlay').prune(cwd, __genT0); } catch (_) { /* best-effort */ }

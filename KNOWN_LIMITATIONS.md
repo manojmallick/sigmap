@@ -36,10 +36,13 @@ Everything else (PHP, C#, C/C++, Objective-C, Swift, Dart, Lua, GDScript, Vue, S
 
 ## Truncation caps
 
-- **25 signatures per file** — files with more symbols are cut with a `… +N more signatures` notice; the least-informative entries fall off first.
-- **8 members per class/impl/interface block** — same notice pattern (`… +N more methods`).
+There are three limits, and they are not the same thing (#982):
 
-Large god-files are therefore **under-represented by design**: the caps are what keep the whole-repo map inside a model's context window.
+- **The generated context file keeps the first 25 signatures of a file** (`maxSigsPerFile`). The cut is silent: no notice is written, and the rest of the file is not in that artifact. A file with more than 25 top-level functions can hide a whole class that comes after them.
+- **The retrieval index keeps up to 200 signatures of a file** (`maxIndexSigsPerFile`, never below `maxSigsPerFile`). The index (`.context/sig-index.json`) feeds `ask`, `verify`, `explain`, `get_callee_signatures` and the MCP search tools and is never injected into a prompt, so it does not share the context file's token budget. Before #982 it inherited the 25 and held 57-76% of Django's public symbols; the measured recall is on the [extraction recall](docs-vp/guide/extraction-recall.md) page. A run prints one line when a file went past the limit.
+- **The extractors stop at 200 signatures a file and 120 members a class**, on their own. Past 200 they end the list with `… +N more signatures`, past 120 members a class block ends with `… +N more methods`; the Python AST tier (`python_ast.py`) did the same at 30 until #982 and said nothing. The index drops its trailing `… +N more signatures` line, which is a notice for a reader, not a signature, and the run's one-line summary counts those signatures as not indexed. A value of `maxIndexSigsPerFile` above 200 therefore changes nothing; a god-file with more than 200 symbols (Django's `db/models/fields/__init__.py`) is still cut at 200.
+
+Large god-files are therefore **under-represented in the context file by design** (the cap is what keeps the whole-repo map inside a model's context window), and **past 200 symbols in the index**.
 
 ## Known regex gaps (Tier 2)
 

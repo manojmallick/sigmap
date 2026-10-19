@@ -48,8 +48,15 @@ const DEFAULTS = {
   // Maximum directory depth to recurse
   maxDepth: 6,
 
-  // Maximum signatures extracted per file
+  // Maximum signatures a file contributes to the GENERATED CONTEXT FILE (the prompt
+  // artifact, which is token-budgeted). The retrieval index has its own limit below.
   maxSigsPerFile: 25,
+
+  // Maximum signatures a file contributes to the RETRIEVAL INDEX (.context/sig-index.json),
+  // which feeds `ask`, `verify`, `explain` and the MCP search tools and is not injected into
+  // a prompt. The index never holds fewer than `maxSigsPerFile`. The extractors stop at 200
+  // a file (and 120 members a class) on their own, so a value above 200 changes nothing.
+  maxIndexSigsPerFile: 200,
 
   // Maximum tokens in final output before budget enforcement kicks in.
   // Used only when autoMaxTokens is false, or as a floor for auto-scaling.

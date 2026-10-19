@@ -391,13 +391,26 @@ test('a secret in a module header comment is redacted, in the full run and in ev
   assert.ok(!/AKIAIOSFODNN7EXAMPLE|xoxb-1234/.test(fs.readFileSync(overlay.overlayPath(dir), 'utf8')), 'nor may the overlay');
 });
 
-test('the shared pipeline follows a local `extends` for maxSigsPerFile', () => {
+test('the shared pipeline follows a local `extends` for the index limit', () => {
   const dir = mkProject({ 'src/m.js': 'function a1() {}\nfunction a2() {}\nfunction a3() {}\nfunction a4() {}\n' });
-  fs.writeFileSync(path.join(dir, 'base.json'), JSON.stringify({ maxSigsPerFile: 2 }));
+  // the index never holds fewer than the context file, so both keys come down together
+  fs.writeFileSync(path.join(dir, 'base.json'), JSON.stringify({ maxSigsPerFile: 2, maxIndexSigsPerFile: 2 }));
   fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ extends: './base.json', srcDirs: ['src'] }));
   generate(dir);
   const full = store.readFullIndex(dir).get('src/m.js');
-  assert.ok(full.length <= 3, `precondition: the cap from the base config applied (${full.length})`);
+  assert.ok(full.length <= 3, `precondition: the limit from the base config applied (${full.length})`);
+  const { entrySigs } = require('../../src/cache/entry');
+  assert.deepStrictEqual(entrySigs(path.join(dir, 'src/m.js'), fs.readFileSync(path.join(dir, 'src/m.js'), 'utf8'), dir), full);
+});
+
+test('the context-file limit does not shrink the index, in a full run or in the shared pipeline (#982)', () => {
+  const dir = mkProject({ 'src/m.js': 'function a1() {}\nfunction a2() {}\nfunction a3() {}\nfunction a4() {}\nfunction a5() {}\n' });
+  fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ maxSigsPerFile: 2, srcDirs: ['src'] }));
+  generate(dir);
+  const full = store.readFullIndex(dir).get('src/m.js');
+  assert.ok(['a1', 'a2', 'a3', 'a4', 'a5'].every((n) => full.some((s) => s.includes(`function ${n}(`))), `all five reach the index: ${JSON.stringify(full)}`);
+  const context = fs.readFileSync(path.join(dir, '.github/copilot-instructions.md'), 'utf8');
+  assert.ok(context.includes('function a2(') && !context.includes('function a3('), 'the context file still keeps only maxSigsPerFile');
   const { entrySigs } = require('../../src/cache/entry');
   assert.deepStrictEqual(entrySigs(path.join(dir, 'src/m.js'), fs.readFileSync(path.join(dir, 'src/m.js'), 'utf8'), dir), full);
 });
@@ -560,7 +573,7 @@ test('watcher: a patched entry equals the entry a full run writes for the same f
     'src/doc.js': '/**\n * Rate limiter for the public API.\n */\nfunction limit() {}\nmodule.exports = { limit };\n',
     'src/secret.js': 'function connect() {}\nmodule.exports = { connect };\n',
     'src/many.js': 'function f1() {}\nfunction f2() {}\n',
-  }, Object.assign({ maxSigsPerFile: 3 }, WATCH));
+  }, Object.assign({ maxSigsPerFile: 3, maxIndexSigsPerFile: 3 }, WATCH));
   const w = startWatcher(dir);
   await watcherReady(dir);
   fs.writeFileSync(path.join(dir, 'src/doc.js'), '/**\n * Rate limiter for the public API, per client.\n */\nfunction limit() {}\nfunction reset() {}\nmodule.exports = { limit, reset };\n');
@@ -577,13 +590,27 @@ test('watcher: a patched entry equals the entry a full run writes for the same f
   for (const [rel, e] of overlay.load(dir)) patched[rel] = e.sigs;
   assert.ok(patched['src/doc.js'][0].startsWith('//') || /Rate limiter/.test(patched['src/doc.js'][0]), `module doc leads the patched entry: ${patched['src/doc.js'][0]}`);
   assert.ok(patched['src/secret.js'].some((s) => /REDACTED/.test(s)), 'the secret was redacted in the patch');
-  assert.strictEqual(patched['src/many.js'].length <= 4, true, 'maxSigsPerFile is honoured by the patch');
+  assert.strictEqual(patched['src/many.js'].length <= 4, true, 'the index limit is honoured by the patch');
 
   generate(dir); // a full run over the same tree, same directory (the redaction text embeds the path)
   const regenerated = store.readFullIndex(dir);
   for (const rel of rels) {
     assert.deepStrictEqual(patched[rel], regenerated.get(rel), `${rel}: patch must equal the regenerated entry`);
   }
+}, { needsWatch: true });
+
+test('watcher: a patch keeps what a full run keeps when the context-file limit is lower than the index limit (#982)', async () => {
+  const dir = mkProject({ 'src/many.js': 'function f1() {}\nfunction f2() {}\n' }, Object.assign({ maxSigsPerFile: 2 }, WATCH));
+  const w = startWatcher(dir);
+  await watcherReady(dir);
+  fs.writeFileSync(path.join(dir, 'src/many.js'), 'function f1() {}\nfunction f2() {}\nfunction f3() {}\nfunction f4() {}\nfunction f5() {}\nfunction f6() {}\n');
+  await waitFor(() => overlay.load(dir).has('src/many.js'), 'the file to be patched');
+  stopWatcher(w);
+  await sleep(150);
+  const patched = overlay.load(dir).get('src/many.js').sigs;
+  assert.strictEqual(patched.filter((x) => /^function f\d/.test(x)).length, 6, `all six reach the patch, not maxSigsPerFile (2): ${JSON.stringify(patched)}`);
+  generate(dir);
+  assert.deepStrictEqual(patched, store.readFullIndex(dir).get('src/many.js'), 'the patch must equal the regenerated entry');
 }, { needsWatch: true });
 
 test('watcher: after a quiet window one regeneration converges to the full-run index', async () => {
