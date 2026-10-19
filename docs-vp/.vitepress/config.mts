@@ -78,6 +78,7 @@ export default defineConfig({
           { text: 'Config', link: '/guide/config' },
           { text: 'Strategies', link: '/guide/strategies' },
           { text: 'Languages', link: '/guide/languages' },
+          { text: 'Extraction recall', link: '/guide/extraction-recall' },
         ],
       },
       {

@@ -104,10 +104,11 @@ export function zeroConfigEnv(opts = {}) {
  * @param {string} root data root holding benchmarks/repos
  * @param {{name:string, srcDirs?:string[]}} repo manifest entry
  * @param {(ctx: {dir:string, index:Map<string,string[]>}) => T} fn
+ * @param {{pythonAst?: boolean, dir?: string}} [opts] `dir` indexes that checkout instead of `root`'s
  * @returns {T}
  */
 export function withZeroConfigIndex(root, repo, fn, opts = {}) {
-  const dir = repoDir(root, repo.name);
+  const dir = opts.dir || repoDir(root, repo.name);
   const { buildSigIndex } = require(path.join(CODE_ROOT, 'src/retrieval/ranker'));
   return withSharedRepoContext(dir, {
     generate() {
