@@ -77,7 +77,7 @@
               "rails": "f9243af",
               "sidekiq": "132f982"
             },
-            "source": "the xrepo job of CI run 39221799594 (ubuntu-latest, 833 files; the index holds 331)",
+            "source": "the xrepo job of CI run 39221799594 (ubuntu-latest, 833 files) for the extractor; of CI run 39328240582 (PR #1014, 331 indexed files) for the index",
             "recorded": {
               "extractor": {
                 "class": 100,
@@ -86,10 +86,10 @@
                 "owner": 99.3
               },
               "index": {
-                "class": 87.1,
-                "module": 98.4,
-                "method": 82.7,
-                "owner": 80.6
+                "class": 100.0,
+                "module": 100.0,
+                "method": 97.8,
+                "owner": 97.7
               }
             }
           },
@@ -101,10 +101,10 @@
               "owner": 98
             },
             "index": {
-              "class": 86,
-              "module": 97,
-              "method": 81,
-              "owner": 79
+              "class": 99,
+              "module": 99,
+              "method": 96,
+              "owner": 96
             }
           }
         }

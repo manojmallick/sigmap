@@ -67,7 +67,7 @@ Rails (`f9243af`: `actionpack`, `activerecord`, `activesupport`) and Sidekiq (`1
 - The extractor row reproduces the [#981](https://github.com/manojmallick/sigmap/issues/981) figures (944 of 944 classes, 1,467 of 1,467 modules, 7,196 of 7,292 methods, 7,291 of 7,292 under the right owner).
 - **The index holds 298 of the 757 files, and that is a coverage gap ([#997](https://github.com/manojmallick/sigmap/issues/997)), not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 37.4% / 30.7% / 31.3% / 31.9%.
 
-On the CI runner (Ruby 3.2.3, which parses 833 of the same files) the extractor scores 100.0% / 100.0% / 98.5% / 99.3%. The floors for Ruby 3 are recorded from a run there, which is why the saved report, made on Ruby 2.6, differs from it.
+On the CI runner (Ruby 3.2.3, which parses 833 of the same files) the extractor scores 100.0% / 100.0% / 98.5% / 99.3% and the index, over the 331 files it holds, 100.0% / 100.0% / 97.8% / 97.7% (87.1% / 98.4% / 82.7% / 80.6% before #982). The floors for Ruby 3 are recorded from those runs, which is why the saved report, made on Ruby 2.6, differs from it.
 
 ## Not measured
 
