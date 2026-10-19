@@ -276,6 +276,36 @@ test('test and pipeline files are read by the ranker as before: whole, up to the
   assert.strictEqual(nameCount(indexOf(dir)['tests/big.test.js'] || [], /^function helper\d+/), 40);
 });
 
+test('the secrets in what a live entry keeps apart are redacted too', () => {
+  const dir = project({ 'src/big.js': fns(40) });
+  generate(dir);
+  const secret = 'function connect(url = "postgres://admin:hunter2pass@db.internal/app") { return url; }\n';
+  fs.writeFileSync(path.join(dir, 'src/big.js'), fns(60) + secret);
+  handlers.notifyFileCreated({ path: 'src/big.js' }, dir);
+  const entry = require('../../src/cache/overlay').load(dir).get('src/big.js');
+  assert.ok(entry && entry.more && entry.more.length > 0, 'the entry keeps the rest apart');
+  assert.ok(!JSON.stringify(entry).includes('hunter2pass'), 'a secret past the context limit reached the overlay');
+  assert.ok(entry.more.some((x) => /REDACTED/.test(x)));
+});
+
+test('a deleted file takes what was kept apart with it', () => {
+  const dir = project({ 'src/big.js': fns(40), 'src/keep.js': fns(2, 'k') });
+  generate(dir);
+  assert.ok(buildSigIndex(dir, { full: true }).get('src/big.js').length > 25);
+  handlers.notifyFileDeleted({ path: 'src/big.js' }, dir);
+  assert.ok(!buildSigIndex(dir, { full: true }).has('src/big.js'));
+  assert.ok(buildSigIndex(dir, { full: true }).has('src/keep.js'));
+});
+
+test('--callers names a PHP declaration past what ranking reads (the call graph cannot read PHP)', () => {
+  const methods = Array.from({ length: 30 }, (_, i) => `    public static function helper${i}($x) { return $x; }\n`).join('');
+  const dir = project({ 'src/Str.php': `<?php\nclass Str\n{\n${methods}    public static function slug($title) { return $title; }\n}\n` });
+  generate(dir);
+  assert.ok(!buildSigIndex(dir).get('src/Str.php').some((x) => /\bslug\b/.test(x)), 'precondition: slug is past what ranking reads');
+  const r = spawnSync(process.execPath, [CLI, '--callers', 'slug'], { cwd: dir, encoding: 'utf8' });
+  assert.ok(/graph: unsupported-language/.test(r.stdout) && /src\/Str\.php/.test(r.stdout), r.stdout + r.stderr);
+});
+
 test('a symbol the sig cache holds past the context limit does not outrank the index file\'s entry', () => {
   const dir = project({ 'src/big.js': fns(40) }, { sigCache: true });
   generate(dir);
@@ -309,6 +339,27 @@ if (havePython) {
     const sigs = everythingOf(dir)['src/later.py'];
     assert.ok(sigs.some((x) => /^class Later/.test(x)) && sigs.some((x) => /def run/.test(x)), JSON.stringify(sigs.slice(-3)));
     assert.ok(!contextOf(dir).includes('class Later'), 'the context file keeps its first 25');
+  });
+
+  test('after an upgrade the first run keeps its one batched python3 process, not one per file (a cache from before is no reason to skip the prefetch)', () => {
+    const files = {};
+    for (let i = 0; i < 6; i++) files[`src/m${i}.py`] = `def f${i}(): pass\n`;
+    const dir = project(files, { sigCache: true });
+    generate(dir);
+    const cachePath = path.join(dir, '.sigmap-cache.json');
+    const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+    for (const e of Object.values(cache.entries)) delete e.cap; // as the previous version wrote them
+    fs.writeFileSync(cachePath, JSON.stringify(cache));
+    const shimDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-idxlimit-shim-'));
+    tmpDirs.push(shimDir);
+    const log = path.join(shimDir, 'calls.log');
+    const real = spawnSync('which', ['python3'], { encoding: 'utf8' }).stdout.trim();
+    fs.writeFileSync(path.join(shimDir, 'python3'), `#!/bin/sh\necho "$@" >> '${log}'\nexec '${real}' "$@"\n`, { mode: 0o755 });
+    const r = spawnSync(process.execPath, [CLI], { cwd: dir, encoding: 'utf8', env: Object.assign({}, process.env, { PATH: shimDir + path.delimiter + process.env.PATH }) });
+    assert.strictEqual(r.status, 0, r.stderr);
+    const calls = fs.readFileSync(log, 'utf8').split('\n').filter((l) => /python_ast\.py/.test(l));
+    assert.strictEqual(calls.filter((l) => /--batch/.test(l)).length, 1, `one batch process: ${JSON.stringify(calls)}`);
+    assert.strictEqual(calls.filter((l) => /m\d\.py/.test(l)).length, 0, `no process per file: ${JSON.stringify(calls)}`);
   });
 
   test('python AST tier: past 200 it ends with the same notice the regex tier writes, with the exact count', () => {
