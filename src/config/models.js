@@ -53,9 +53,13 @@ const MODELS = {
   'gemini-3.8-flash':       { vendor: 'google', tier: 'balanced', inputPerMtok: 0.75, window: null, cacheMin: null },
   'gemini-3.5-flash-lite':  { vendor: 'google', tier: 'fast',     inputPerMtok: 0.3,  window: null, cacheMin: null },
 
+  // Flash price/window verified 2026-10-20: platform.minimax.io/docs/guides/models-intro
+  // and platform.minimax.io/docs/guides/pricing-paygo. Keep AS_OF conservative for the rest.
+  'minimax-m3.1-flash': { vendor: 'minimax', tier: null,       inputPerMtok: 0.15, window: 1000000, cacheMin: null },
   // minimax-m3: requests up to 512K input tokens; longer requests cost more.
   'minimax-m3':        { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null },
-  'minimax-m2.7':      { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null },
+  // Retain explicit legacy estimates without advertising the model by default.
+  'minimax-m2.7':      { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null, legacy: true },
 };
 
 // Family keys older releases accepted, kept valid as names for the current model.

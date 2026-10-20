@@ -8,6 +8,8 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+- Default MiniMax live ablation runs to MiniMax-M3.1-Flash and list Flash before M3 in pricing choices, preserving explicit legacy/custom models and project overrides. Added offline request coverage by @octo-patch.
+
 ---
 
 ## [8.80.1] — 2026-10-19
