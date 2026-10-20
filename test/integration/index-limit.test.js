@@ -36,7 +36,8 @@ function test(name, fn) {
 
 const tmpDirs = [];
 function project(files, config) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-idxlimit-'));
+  // the real path: the generator records files under it, and a cache keyed by the tmpdir symlink (macOS) is never matched
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-idxlimit-')));
   tmpDirs.push(dir);
   spawnSync('git', ['init', '-q', dir]);
   for (const [rel, text] of Object.entries(files)) {
@@ -372,7 +373,7 @@ test('with terse the signatures kept apart use the encoding of the ones read', (
 });
 
 test('a context limit of 0 does not claim a token reduction for a context file that holds nothing', () => {
-  const dir = project({ 'src/a.js': fns(30) }, { maxSigsPerFile: 0 });
+  const dir = project({ 'src/a.js': fns(400) }, { maxSigsPerFile: 0 }); // a source far larger than the fixed header, or "none" would be the answer anyway
   const r = generate(dir);
   assert.ok(/Token reduction: none/.test(r.stdout + r.stderr), r.stdout + r.stderr);
 });
