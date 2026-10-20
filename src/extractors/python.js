@@ -64,7 +64,8 @@ function resolvePythonAstScript() {
 // ---------------------------------------------------------------------------
 
 // Files per python3 process. Bounds the output held in memory at once (about
-// 3 KB of signatures a file) and the files a hung process can take with it, but
+// 3 KB of signatures a file, and up to about 25 KB for a file at the 200-signature
+// ceiling since #982) and the files a hung process can take with it, but
 // each process pays interpreter start-up: Django took 3.9 s at 200 a process and
 // 2.9 s at 1,000.
 const BATCH_CHUNK = 1000;

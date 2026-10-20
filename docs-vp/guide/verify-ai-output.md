@@ -87,13 +87,13 @@ Python import.
 ### Symbols are confirmed against your source (#914)
 
 `fake-symbol` used to ask one question — *is this name in the symbol index?* — and
-the index is a summary: a file keeps `maxSigsPerFile` (25) signatures, only the
+the index is a summary: a file keeps `maxIndexSigsPerFile` (200) signatures (25 until #982), only the
 files under the detected source roots are in it, and an extractor lists only the
 constructs it knows. A real symbol outside it was reported as fabricated. Measured
 on the docs of 35 open-source repositories, **42% of the names `verify` flagged
 were defined in the checkout**: 32% in files the index does not hold (another
 root, `examples/`, tests), 7% in an indexed file the extractor did not list, and
-3% past the 25-signature cap (#910 — httpx's `Cookies.extract_cookies`).
+3% past the 25-signature cap the index had then (#910 — httpx's `Cookies.extract_cookies`).
 
 So before a symbol is reported, `verify` looks it up in the source — only the
 names that would be flagged, in one pass. A name is **confirmed**, and not

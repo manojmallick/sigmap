@@ -383,6 +383,7 @@ srcDirs = ["src","app","lib","packages","services","api","server","client","web"
 exclude = ["node_modules",".git","dist","build","out","__pycache__",".next","coverage","target","vendor",".context","playwright-tmp","playwright-report","test-results",".turbo","storybook-static",".docusaurus"]
 maxDepth = 6
 maxSigsPerFile = 25
+maxIndexSigsPerFile = 200
 maxTokens = 6000
 autoMaxTokens = true
 coverageTarget = 0.8

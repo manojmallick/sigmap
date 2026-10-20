@@ -104,7 +104,7 @@ export function zeroConfigEnv(opts = {}) {
  * @param {string} root data root holding benchmarks/repos
  * @param {{name:string, srcDirs?:string[]}} repo manifest entry
  * @param {(ctx: {dir:string, index:Map<string,string[]>}) => T} fn
- * @param {{pythonAst?: boolean, dir?: string}} [opts] `dir` indexes that checkout instead of `root`'s
+ * @param {{pythonAst?: boolean, dir?: string, full?: boolean}} [opts] `dir` indexes that checkout instead of `root`'s; `full` hands over every signature the index keeps, not only what the ranker reads (#982)
  * @returns {T}
  */
 export function withZeroConfigIndex(root, repo, fn, opts = {}) {
@@ -117,7 +117,7 @@ export function withZeroConfigIndex(root, repo, fn, opts = {}) {
       else fs.rmSync(cfg, { force: true });
       execFileSync(process.execPath, [path.join(CODE_ROOT, 'gen-context.js')], { cwd: dir, stdio: 'ignore', env: zeroConfigEnv(opts) });
     },
-    measure: () => fn({ dir, index: buildSigIndex(dir) }),
+    measure: () => fn({ dir, index: buildSigIndex(dir, opts.full ? { full: true } : undefined) }),
   });
 }
 

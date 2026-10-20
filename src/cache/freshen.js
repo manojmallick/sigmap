@@ -23,7 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const overlay = require('./overlay');
 const { readIndexStamp } = require('../retrieval/sig-index-store');
-const { entryConfig, entrySigs } = require('./entry');
+const { entryConfig, entryParts } = require('./entry');
 const { langFor } = require('../extractors/dispatch');
 const { loadIgnorePatterns, matchesIgnore } = require('../util/ignore');
 const { resolveGraphDirs } = require('../graph/src-dirs');
@@ -143,12 +143,12 @@ function freshen(cwd, opts = {}) {
     for (const { f, key } of stale) {
       try {
         const at = Date.now(); // before the read: an edit during it stays uncovered
-        const sigs = entrySigs(f, fs.readFileSync(f, 'utf8'), cwd, entryCfg);
+        const { sigs, more } = entryParts(f, fs.readFileSync(f, 'utf8'), cwd, entryCfg);
         // An empty result is not recorded: this tier cannot tell a file with no
         // signatures from an extractor that failed, and a wrong removal is worse
         // than a stale entry the next full run replaces. A scanner that cannot
         // run throws and lands here too — nothing unredacted is ever stored.
-        if (sigs.length > 0) fresh.push([key, { at, sigs }]);
+        if (sigs.length > 0) fresh.push([key, more.length > 0 ? { at, sigs, more } : { at, sigs }]);
       } catch (_) {}
     }
     if (fresh.length > 0) overlay.update(cwd, (m) => { for (const [k, e] of fresh) overlay.put(m, k, e); });

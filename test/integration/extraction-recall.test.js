@@ -232,9 +232,6 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     'class _Hidden: pass', '',
     'def helper(): pass', 'async def fetch(): pass', 'def _hidden(): pass', '',
   ].join('\n');
-  // 30 class-level constants ahead of the methods: the AST tier lists constants before methods and
-  // stops at 30 signatures, so none of the three methods reaches the index; the regex tier lists them
-  const PY_CONSTS = `class Big:\n${Array.from({ length: 30 }, (_, i) => `    CONST_${i} = ${i}\n`).join('')}    def __init__(self): pass\n    def run(self): pass\n    def stop(self): pass\n`;
   const floorsFile2 = (languages) => {
     const f = path.join(tmp('sigmap-recall-floors-'), 'floors.json');
     put(f, JSON.stringify({ languages }));
@@ -285,16 +282,17 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     await test('python end to end: the index is built per tier, scored over the files it holds, with the files it lacks counted apart', () => {
       const repos = tmp('sigmap-recall-py-');
       put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
-      put(path.join(repos, 'flask/src/flask/big.py'), PY_CONSTS);
+      // a default value with a call in it: the regex tier cannot match the first def, the AST tier lists both
+      put(path.join(repos, 'flask/src/flask/odd.py'), 'class Odd:\n    def a(self, x=f(1)): pass\n    def b(self): pass\n');
       put(path.join(repos, 'flask/src/flask/skipme.py'), 'class Skipped:\n    def go(self): pass\n');
       put(path.join(repos, 'flask/.contextignore'), 'src/flask/skipme.py\n');
       const r = py.measure({ reposDir: repos });
       const regex = r.populations['index-regex'];
       const ast = r.populations['index-ast'];
       assert.deepStrictEqual([regex.filesCompared, regex.filesTotal, ast.filesCompared, ast.filesTotal], [2, 3, 2, 3]);
-      assert.deepStrictEqual(cells(regex.rows), ['class 3/3', 'func 2/2', 'method 6/6'], 'the regex tier lists the methods behind the constants');
-      assert.deepStrictEqual(cells(ast.rows), ['class 3/3', 'func 2/2', 'method 3/6'], 'the AST tier has spent its signatures on constants: this fails if the two tiers are swapped');
-      assert.deepStrictEqual(cells(regex.rowsAllFiles), ['class 3/4', 'func 2/2', 'method 6/7'], 'the file the index lacks counts as all missed');
+      assert.deepStrictEqual(cells(regex.rows), ['class 3/3', 'func 2/2', 'method 4/5'], 'the regex tier misses the def with a call in its defaults');
+      assert.deepStrictEqual(cells(ast.rows), ['class 3/3', 'func 2/2', 'method 5/5'], 'the AST tier lists both: this fails if the two tiers are swapped');
+      assert.deepStrictEqual(cells(regex.rowsAllFiles), ['class 3/4', 'func 2/2', 'method 4/6'], 'the file the index lacks counts as all missed');
       assert.strictEqual(fs.existsSync(path.join(repos, 'flask/.context')), false, 'the checkout was left as it was found');
     });
 
@@ -522,8 +520,10 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     const regexRows = Object.fromEntries(report.languages.python.populations['extractor-regex'].rows.map((x) => [x.kind, x]));
     assert.ok(page.includes(`${n(regexRows.class.found)} of ${n(regexRows.class.reference)} classes, ${n(regexRows.func.found)} of ${n(regexRows.func.reference)} functions and ${n(regexRows.method.found)} of ${n(regexRows.method.reference)} methods`), 'the regex-tier counts');
     assert.ok(page.includes(`(${regexRows.func.skipped} functions and ${regexRows.method.skipped} methods for the regex tier)`), 'the skipped counts');
-    const drop = (kind) => Math.round(regexRows[kind].recall - report.languages.python.populations['index-regex'].rows.find((x) => x.kind === kind).recall);
-    assert.ok(page.includes(`classes fall ${drop('class')} points, functions ${drop('func')} and methods ${drop('method')}`), 'the cap cost in points');
+    const idxAst = Object.fromEntries(report.languages.python.populations['index-ast'].rows.map((x) => [x.kind, x]));
+    const idxRegex = Object.fromEntries(report.languages.python.populations['index-regex'].rows.map((x) => [x.kind, x]));
+    assert.ok(page.includes(`the ${idxAst.class.missed} classes and ${idxAst.method.missed} methods the index misses with \`python3\``), 'the AST-path misses');
+    assert.ok(page.includes(`of the ${idxRegex.method.missed} methods it misses are in`), 'the regex-tier method misses');
     const idxRb = report.languages.ruby.populations.index;
     assert.ok(page.includes(`index recall is ${idxRb.rowsAllFiles.map((x) => `${x.recall.toFixed(1)}%`).join(' / ')}`), 'the all-files Ruby index recall');
     const rbRows = Object.fromEntries(report.languages.ruby.populations.extractor.rows.map((x) => [x.kind, x]));

@@ -43,12 +43,13 @@ export function probe(cmd, args) {
  * Index one clone the way a first-time user's `sigmap` run does (auto-detected source
  * directories, no config file), hand the signature index to `fn`, and leave the
  * checkout byte-identical. `pythonAst` lets the host's python3 serve the Python files,
- * as it does on a user's machine; without it the pure-Node regex tier serves them.
+ * as it does on a user's machine; without it the pure-Node regex tier serves them. The index is
+ * read in full (every signature it keeps, #982), as `verify` reads it, not as the ranker does.
  */
 export function withShippedIndex(reposDir, repo, opts, fn) {
   const manifest = (() => { try { return loadManifest(CODE_ROOT); } catch (_) { return { repos: [] }; } })();
   const entry = manifest.repos.find((r) => r.name === repo) || { name: repo };
-  return withZeroConfigIndex(CODE_ROOT, entry, ({ index }) => fn(index), { dir: path.join(reposDir, repo), pythonAst: !!opts.pythonAst });
+  return withZeroConfigIndex(CODE_ROOT, entry, ({ index }) => fn(index), { dir: path.join(reposDir, repo), pythonAst: !!opts.pythonAst, full: true });
 }
 
 /** The index's signature lines for a file, or [] when the index lacks it. */

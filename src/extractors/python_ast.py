@@ -26,7 +26,13 @@ import ast
 import json
 import sys
 
-MAX_SIGS = 30
+# Per-file ceiling, the same as the regex tier's PER_FILE_LIMIT (python.js): the ceiling
+# sits above the default `maxSigsPerFile` (25), so what a run keeps is decided by its
+# config and not by a number buried here. It used to be 30 and cut silently, and a
+# class's constants are listed before its methods, so a large module lost methods
+# without a word (#982). Past the ceiling the list ends with `… +N more signatures`,
+# as the regex tier's does.
+MAX_SIGS = 200
 MAX_DOC_HINT_LEN = 60
 
 
@@ -305,9 +311,6 @@ def extract(filepath):
 
     # Walk top-level statements only
     for node in tree.body:
-        if len(sigs) >= MAX_SIGS:
-            break
-
         # Classes
         if isinstance(node, ast.ClassDef):
             bases_str = ", ".join(annotation_to_str(b) for b in node.bases if b)
@@ -334,14 +337,10 @@ def extract(filepath):
 
             # Class constants
             for const in extract_class_constants(node):
-                if len(sigs) >= MAX_SIGS:
-                    break
                 sigs.append(f"  {const}")
 
             # Methods (skip private except __init__, skip all other dunder)
             for stmt in node.body:
-                if len(sigs) >= MAX_SIGS:
-                    break
                 if not isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
                 name = stmt.name
@@ -359,13 +358,13 @@ def extract(filepath):
     routes = extract_fastapi_routes(tree, src_lines)
     seen_sigs = set(sigs)
     for route in routes:
-        if len(sigs) >= MAX_SIGS:
-            break
         if route not in seen_sigs:
             sigs.append(route)
             seen_sigs.add(route)
 
-    return sigs[:MAX_SIGS]
+    if len(sigs) > MAX_SIGS:
+        return sigs[:MAX_SIGS] + [f"… +{len(sigs) - MAX_SIGS} more signatures"]
+    return sigs
 
 
 def batch():

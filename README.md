@@ -422,7 +422,7 @@ Not all 38 languages get the same depth — and we say so plainly:
 | **Anchored regex** | 12 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, PowerShell) | Declarations + `:start-end` line anchors; doc hints on 7 |
 | **Pattern/heuristic** | Everything else + generic fallback | Line-oriented patterns |
 
-Caps: 25 signatures/file · 8 members/block. Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.
+Caps: 25 signatures/file in the context file, up to 200 in the retrieval index · 120 members/class (the extractors' own limit). Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.
 
 ---
 

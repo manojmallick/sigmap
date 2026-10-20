@@ -4,8 +4,8 @@
  * Source-confirmed symbols (#914, closes #910).
  *
  * `fake-symbol` asked one question — "is this name in the symbol index?" — and the
- * index is a lossy summary of the repository: a file keeps `maxSigsPerFile` (25)
- * signatures, only the files under the detected source roots are in it, and an
+ * index is a lossy summary of the repository: a file keeps `maxIndexSigsPerFile` (200,
+ * and 25 before #982) signatures, only the files under the detected source roots are in it, and an
  * extractor lists only the constructs it knows. A real symbol outside it was
  * reported as fabricated (#910: httpx's `Cookies.extract_cookies`, 1,100 lines into
  * a file whose index entry stops at 25). Measured over 35 repositories' own docs,

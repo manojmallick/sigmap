@@ -30,9 +30,19 @@ test('KNOWN_LIMITATIONS.md exists and names all three tiers', () => {
   assert.ok(/3 — pattern\/heuristic/.test(DOC), 'Tier 3 (pattern/heuristic) missing');
 });
 
-test('doc states both truncation caps and the nested-paren gap', () => {
-  assert.ok(/25 signatures per file/.test(DOC), '25 sigs/file cap missing');
-  assert.ok(/8 members per class/.test(DOC), '8 members/block cap missing');
+test('doc states the three truncation limits, each number the code\'s, and the nested-paren gap', () => {
+  const { DEFAULTS } = require('../../src/config/defaults');
+  const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  assert.ok(DOC.includes(`first ${DEFAULTS.maxSigsPerFile} signatures of a file`), 'the context-file limit is missing or not the default');
+  assert.ok(DOC.includes(`up to ${DEFAULTS.maxIndexSigsPerFile} signatures of a file`), 'the index limit is missing or not the default');
+  assert.ok(DOC.includes('`maxIndexSigsPerFile`') && DOC.includes('`maxSigsPerFile`'), 'the two settings are not named');
+  // the extractors\' own ceilings, which the index cannot exceed: 200 a file, 120 a class
+  assert.ok(/200 signatures a file and 120 members a class/.test(DOC), 'the extractors\' own limits are missing');
+  for (const rel of ['src/extractors/python.js', 'src/extractors/go.js', 'src/extractors/rust.js']) {
+    assert.ok(/PER_FILE_LIMIT = 200;/.test(read(rel)) && /MEMBER_LIMIT = 120;/.test(read(rel)), `${rel} no longer has the 200 / 120 the doc quotes`);
+  }
+  assert.ok(/MAX_SIGS = 200\b/.test(read('src/extractors/python_ast.py')), 'the Python AST tier no longer stops at 200');
+  assert.ok(!/8 members per class/.test(DOC), 'the stale "8 members per class" is back');
   assert.ok(/first `\)`/.test(DOC), 'nested-paren gap missing');
 });
 
@@ -64,6 +74,7 @@ test('README carries the tier label and links KNOWN_LIMITATIONS.md', () => {
   assert.ok(README.includes('### Extraction honesty'), 'README tier-label section missing');
   assert.ok(README.includes('](KNOWN_LIMITATIONS.md)'), 'README link to KNOWN_LIMITATIONS.md missing');
   assert.ok(/25 signatures\/file/.test(README), 'README caps summary missing');
+  assert.ok(/up to 200 in the retrieval index/.test(README) && /120 members\/class/.test(README), 'README caps summary is stale');
 });
 
 console.log(`\n  known-limitations: ${pass} passed, ${fail} failed`);

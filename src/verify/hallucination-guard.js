@@ -80,7 +80,8 @@ function buildSymbolSet(cwd) {
   let sigIndex = null;
   try {
     const { buildSigIndex } = require('../retrieval/ranker');
-    const idx = buildSigIndex(cwd);
+    // every signature the index keeps: a symbol past what the ranker reads is still a real one (#982)
+    const idx = buildSigIndex(cwd, { full: true });
     sigIndex = idx;
     fileKeys = [...idx.keys()];
     for (const sigs of idx.values()) {
@@ -345,7 +346,7 @@ function verify(answerText, cwd, opts = {}) {
 
   // 3. fake-symbol
   //
-  // The symbol set is a summary — a file keeps `maxSigsPerFile` signatures, only
+  // The symbol set is a summary — a file keeps `maxIndexSigsPerFile` signatures, only
   // the files under the detected roots are in it, an extractor lists only the
   // constructs it knows — so a name it lacks is not yet fake (#914, #910). The
   // names that would be flagged are looked up in the source, in one pass, and a

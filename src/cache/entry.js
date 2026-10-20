@@ -9,7 +9,7 @@
  * went through them replaced a redacted base entry with one carrying the secret,
  * and dropped the module-doc line. Now the stages live here, once:
  *
- *   extract → cap at maxSigsPerFile → redact secrets → module-doc line / terse
+ *   extract → cap at the index limit → redact secrets → module-doc line / terse
  *
  * The CLI core's `detectAndExtract` stays the extractor for generate and the
  * watcher (it owns the opt-in exactness tiers and the generic fallback); the
@@ -82,7 +82,7 @@ function indexSigsFor(filePath, content, sigs, config) {
  * this cheap enough for a hook that runs on every agent write.
  *
  * @param {string} cwd
- * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number }}
+ * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number, maxIndexSigsPerFile: number }}
  */
 function entryConfig(cwd) {
   const { DEFAULTS } = require('../config/defaults');
@@ -101,7 +101,92 @@ function entryConfig(cwd) {
     secretScan: !!pick('secretScan'),
     terse: !!pick('terse'),
     maxSigsPerFile: Number.isFinite(pick('maxSigsPerFile')) ? pick('maxSigsPerFile') : 25,
+    maxIndexSigsPerFile: Number.isFinite(pick('maxIndexSigsPerFile')) ? pick('maxIndexSigsPerFile') : 200,
   };
+}
+
+/**
+ * What a full extraction is asked for, whatever the limits: the extractors stop at 200
+ * signatures a file on their own, and this bounds the few that do not. It is above both
+ * limits so that `capForIndex` is the one place a file is cut, and can say how much.
+ */
+const EXTRACT_CEILING = 1000;
+
+/**
+ * Matches the extractors' own disclosure line at the end of a file's list, `… +N more
+ * <label>` (util/truncate.js). The labels a whole file can end with: `signatures` for most
+ * extractors, `headings` (markdown), `keys` and `entries` (properties, toml). Others, like
+ * `methods` or `members`, close a class block inside the list and are left where they are.
+ */
+const TRUNCATION_NOTICE = /^… \+(\d+) more (?:signatures|headings|keys|entries)$/;
+
+/**
+ * How many signatures a file may contribute to the retrieval INDEX, and so how many
+ * the extraction must produce: the index limit, never below the context-file limit
+ * (the context file is a view of what was extracted, so the index cannot hold less).
+ *
+ * @param {{maxSigsPerFile?: number, maxIndexSigsPerFile?: number}} config
+ * @returns {number}
+ */
+function indexLimit(config) {
+  const ctx = Number.isFinite(config && config.maxSigsPerFile) ? config.maxSigsPerFile : 25;
+  const idx = Number.isFinite(config && config.maxIndexSigsPerFile) ? config.maxIndexSigsPerFile : 200;
+  return Math.max(ctx, idx);
+}
+
+/**
+ * A file's signatures as the INDEX keeps them: at most `limit`, and without the
+ * extractor's trailing `… +N more signatures` line. That line is a disclosure for a
+ * reader of the prompt, not a signature: left in the index it would put the words
+ * "more" and "signatures" into every truncated file's vocabulary and show up as a
+ * line with no symbol to the tools that read the index.
+ *
+ * @param {string[]} sigs
+ * @param {number} limit
+ * @returns {{ sigs: string[], dropped: number }} `dropped` counts what the limit
+ *          and the extractor's own ceiling left out
+ */
+function capForIndex(sigs, limit) {
+  let list = sigs;
+  let dropped = 0;
+  const last = list.length ? TRUNCATION_NOTICE.exec(list[list.length - 1]) : null;
+  if (last) { dropped += Number(last[1]); list = list.slice(0, -1); }
+  if (list.length > limit) { dropped += list.length - limit; list = list.slice(0, limit); }
+  return { sigs: list, dropped };
+}
+
+/**
+ * A file's signatures split the way the index file keeps them (#982): `view` is what the
+ * ranker, `ask` and the tools that list a file have always read, the first `maxSigsPerFile`
+ * of the extraction exactly as before; `more` is the rest, up to the index limit, kept for the
+ * tools that look a symbol up (`verify`, `get_callee_signatures`). A file that fits the
+ * context limit keeps its list untouched, notice line and all.
+ *
+ * @param {string[]} sigs the extraction, already secret-scanned
+ * @param {{maxSigsPerFile?: number, maxIndexSigsPerFile?: number}} config
+ * @returns {{ view: string[], more: string[], dropped: number }}
+ */
+function splitForIndex(sigs, config) {
+  // What the context file keeps, by the very expression the extraction cuts with, so an odd
+  // setting (a negative number, a string) means the same here as there.
+  const limit = config && config.maxSigsPerFile !== undefined ? config.maxSigsPerFile : 25;
+  const ctx = sigs.slice(0, limit).length;
+  if (ctx === sigs.length) return { view: sigs, more: [], dropped: 0 };
+  const kept = capForIndex(sigs, indexLimit(config));
+  return { view: kept.sigs.slice(0, ctx), more: kept.sigs.slice(ctx), dropped: kept.dropped };
+}
+
+/**
+ * The signatures kept apart, in the same encoding as the ones read: with `terse` the compact
+ * form, so a lookup tool does not meet two encodings in one file.
+ *
+ * @param {string[]} more
+ * @param {{terse?: boolean}} config
+ * @returns {string[]}
+ */
+function moreForIndex(more, config) {
+  if (!config || !config.terse || more.length === 0) return more;
+  try { return require('../format/terse').encodeTerseSigs(more); } catch (_) { return more; }
 }
 
 /**
@@ -115,6 +200,21 @@ function entryConfig(cwd) {
  * @returns {string[]} empty when the file yields no signatures
  */
 function entrySigs(filePath, content, cwd, config) {
+  return entryParts(filePath, content, cwd, config).sigs;
+}
+
+/**
+ * `entrySigs` with the signatures past what the ranker reads kept apart (#982): `sigs` is the
+ * entry the index file's `files` holds, `more` its `more`. The whole extraction is
+ * secret-scanned, so what is kept apart is scanned like the rest.
+ *
+ * @param {string} filePath - absolute
+ * @param {string} content
+ * @param {string} cwd
+ * @param {object} [config] - from entryConfig(cwd)
+ * @returns {{ sigs: string[], more: string[] }} both empty when the file yields no signatures
+ */
+function entryParts(filePath, content, cwd, config) {
   const cfg = config || entryConfig(cwd);
   const { extractFile, langFor } = require('../extractors/dispatch');
   let sigs = extractFile(filePath, content);
@@ -124,10 +224,13 @@ function entrySigs(filePath, content, cwd, config) {
   if (sigs.length === 0 && !langFor(filePath)) {
     try { sigs = require('../extractors/generic').extract(content, filePath) || []; } catch (_) { sigs = []; }
   }
-  sigs = sigs.slice(0, cfg.maxSigsPerFile);
-  if (sigs.length === 0) return [];
-  sigs = redactSecrets(sigs, filePath, cfg).sigs;
-  return indexSigsFor(filePath, content, sigs, cfg);
+  const split = splitForIndex(sigs, cfg);
+  if (split.view.length === 0) return { sigs: [], more: [] };
+  const safe = redactSecrets(split.view.concat(split.more), filePath, cfg).sigs;
+  return {
+    sigs: indexSigsFor(filePath, content, safe.slice(0, split.view.length), cfg),
+    more: moreForIndex(safe.slice(split.view.length), cfg),
+  };
 }
 
-module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs };
+module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, entryParts, indexLimit, capForIndex, splitForIndex, moreForIndex, EXTRACT_CEILING };
