@@ -68,6 +68,8 @@
     "validate:retrieval": "node scripts/check-corpus.mjs && node scripts/check-corpus.mjs benchmarks/tasks/retrieval-mined.jsonl && node scripts/run-retrieval-gate.mjs --gate --no-regress",
     "fetch:xrepo": "node scripts/fetch-xrepo-repos.mjs",
     "benchmark:xrepo": "node scripts/run-xrepo-gate.mjs",
+    "benchmark:perf": "node scripts/run-perf-benchmark.mjs --save",
+    "validate:warm-cache": "node scripts/run-perf-benchmark.mjs --equivalence",
     "validate:xrepo": "node scripts/run-xrepo-gate.mjs --gate --no-regress",
     "validate:extraction-recall": "node scripts/run-extraction-recall.mjs --gate",
     "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save",

@@ -417,6 +417,7 @@ changesCommits = 10
 testCoverage = false
 testDirs = ["tests","test","__tests__","spec"]
 sigCache = false
+extractCache = true
 impactRadius = false
 retrieval = {"topK":10,"recencyBoost":1.5,"callGraphBoost":false,"centralityBlend":false,"surfaceEnrichment":false,"minedExpansions":false,"bodyWords":true}
 exactness = {"typescript":false,"lsp":false,"lspServers":{},"scip":false}

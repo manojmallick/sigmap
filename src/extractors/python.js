@@ -461,4 +461,41 @@ function extractDocHint(src, fnName, fnSigLine) {
   return sentence.slice(0, 60);
 }
 
-module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel };
+/**
+ * The identity of the interpreter the AST tier would use: the real path, size and mtime of
+ * the first `python3` on PATH, or 'none'. A file extracted under one is not the file
+ * extracted under another (the AST tier and the regex tier list different things), so the
+ * extraction cache is keyed by it (#971). Found by walking PATH, not by starting a process.
+ *
+ * @returns {string}
+ */
+function tierId() {
+  const names = process.platform === 'win32' ? ['python3.exe', 'python3'] : ['python3'];
+  for (const dir of String(process.env.PATH || '').split(path.delimiter)) {
+    if (!dir) continue;
+    for (const name of names) {
+      try {
+        const real = fs.realpathSync(path.join(dir, name));
+        const st = fs.statSync(real);
+        if (st.isFile()) return `${real}:${st.size}:${Math.floor(st.mtimeMs)}`;
+      } catch (_) { /* not in this directory */ }
+    }
+  }
+  return 'none';
+}
+
+/**
+ * A run that serves its Python files from the extraction cache never starts the AST tier,
+ * yet the header of a cold run names it (`toolchain=python@3.9`). The label the cold run
+ * recorded is restored here so a warm run writes the same header.
+ *
+ * @param {string|null} label - as returned by toolchainLabel()
+ */
+function restoreToolchain(label) {
+  const m = /^python@(\d+\.\d+)$/.exec(String(label || ''));
+  if (!m) return;
+  _astServed = true;
+  if (!_astVersion) _astVersion = m[1];
+}
+
+module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel, tierId, restoreToolchain };

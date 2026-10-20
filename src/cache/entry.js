@@ -47,9 +47,11 @@ function redactSecrets(sigs, filePath, config) {
  * @param {string} content
  * @param {string[]} sigs
  * @param {{terse?: boolean}} config
+ * @param {string} [precomputedDoc] - the file's module-doc line when already known (the extraction cache
+ *        holds it), so the file need not be read; '' means the file has none
  * @returns {string[]}
  */
-function indexSigsFor(filePath, content, sigs, config) {
+function indexSigsFor(filePath, content, sigs, config, precomputedDoc) {
   let out = sigs;
   try {
     // TRIED AND REJECTED: also indexing every per-symbol doc sentence
@@ -61,7 +63,7 @@ function indexSigsFor(filePath, content, sigs, config) {
     // describe internal helpers, so they broaden what each file matches
     // without making any file a better answer.
     const { moduleDocSig } = require('../retrieval/module-doc');
-    const doc = moduleDocSig(content, filePath);
+    const doc = typeof precomputedDoc === 'string' ? precomputedDoc : moduleDocSig(content, filePath);
     // The header is prose lifted from the file, so it is scanned like a signature:
     // a key pasted into a header comment must not reach the index. A scanner that
     // cannot run throws into the catch below and the line is simply omitted.
