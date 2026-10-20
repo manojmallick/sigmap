@@ -13,7 +13,7 @@
  * Providers (auto-detected from the present key; --provider overrides):
  *   anthropic — ANTHROPIC_API_KEY            (default model claude-sonnet-4-6)
  *   gemini    — GEMINI_API_KEY / GOOGLE_API_KEY  (default model gemini-2.5-flash)
- *   minimax   — MINIMAX_API_KEY               (default model MiniMax-M3)
+ *   minimax   — MINIMAX_API_KEY               (default model MiniMax-M3.1-Flash)
  *
  * Usage:
  *   ANTHROPIC_API_KEY=sk-...  node scripts/run-llm-ablation.mjs
@@ -51,7 +51,7 @@ const MINIMAX_BASE_URL = (process.env.MINIMAX_BASE_URL || 'https://api.minimax.i
 const DEFAULT_MODEL = {
   anthropic: 'claude-sonnet-4-6',
   gemini: 'gemini-2.5-flash',
-  minimax: 'MiniMax-M3',
+  minimax: 'MiniMax-M3.1-Flash',
 };
 
 // Resolve the provider: explicit flag, else whichever key is present (Gemini first).
