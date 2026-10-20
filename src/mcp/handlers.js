@@ -105,7 +105,8 @@ function searchSignatures(args, cwd) {
   try {
     try { require('../cache/freshen').freshen(cwd); } catch (_) {}
     const { buildSigIndex } = require('../retrieval/ranker');
-    const index = buildSigIndex(cwd);
+    // every signature the index keeps: a symbol is found here whenever get_callee_signatures finds it (#982)
+    const index = buildSigIndex(cwd, { full: true });
     if (index.size === 0) {
       return 'No context file found. Run: node gen-context.js';
     }
@@ -314,7 +315,7 @@ function explainFile(args, cwd) {
 
   try {
     const { buildSigIndex } = require('../retrieval/ranker');
-    const index = buildSigIndex(cwd);
+    const index = buildSigIndex(cwd, { full: true }); // one file: all of what the index keeps of it (#982)
     let sigs = index.get(targetRel);
     if (!sigs) {
       for (const [file, fileSigs] of index.entries()) {

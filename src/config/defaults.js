@@ -53,9 +53,11 @@ const DEFAULTS = {
   maxSigsPerFile: 25,
 
   // Maximum signatures a file contributes to the RETRIEVAL INDEX (.context/sig-index.json),
-  // which feeds `ask`, `verify`, `explain` and the MCP search tools and is not injected into
-  // a prompt. The index never holds fewer than `maxSigsPerFile`. The extractors stop at 200
-  // a file (and 120 members a class) on their own, so a value above 200 changes nothing.
+  // which is not injected into a prompt. The index never holds fewer than `maxSigsPerFile`.
+  // The first `maxSigsPerFile` of a file are what ranking and `ask` read, exactly as before;
+  // the rest are kept apart for the tools that look a symbol up (`verify`, `search_signatures`,
+  // `get_callee_signatures`). Most extractors stop at 200 a file (and 120 members a class) on
+  // their own, so a higher value changes nothing for them.
   maxIndexSigsPerFile: 200,
 
   // Maximum tokens in final output before budget enforcement kicks in.

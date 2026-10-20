@@ -608,13 +608,15 @@ test('watcher: a patch keeps what a full run keeps when the context-file limit i
   const dir = mkProject({ 'src/many.js': 'function f1() {}\nfunction f2() {}\n' }, Object.assign({ maxSigsPerFile: 2 }, WATCH));
   const w = startWatcher(dir);
   await watcherReady(dir);
-  fs.writeFileSync(path.join(dir, 'src/many.js'), 'function f1() {}\nfunction f2() {}\nfunction f3() {}\nfunction f4() {}\nfunction f5() {}\nfunction f6() {}\n');
+  fs.writeFileSync(path.join(dir, 'src/many.js'), 'function f1() {}\nfunction f2() {}\nfunction f3() {}\nfunction f4(url = "postgres://admin:hunter2pass@db.internal/app") { return url }\nfunction f5() {}\nfunction f6() {}\n');
   await waitFor(() => overlay.load(dir).has('src/many.js'), 'the file to be patched');
   stopWatcher(w);
   await sleep(150);
   const patched = overlay.load(dir).get('src/many.js');
   assert.strictEqual(patched.sigs.filter((x) => /^function f\d/.test(x)).length, 2, `the ranker reads maxSigsPerFile (2) of it, as before: ${JSON.stringify(patched.sigs)}`);
   assert.strictEqual(patched.more.length, 4, `and the other four are kept for lookups: ${JSON.stringify(patched.more)}`);
+  assert.ok(!JSON.stringify(patched).includes('hunter2pass'), 'a secret past maxSigsPerFile reached the overlay');
+  assert.ok(patched.more.some((x) => /REDACTED/.test(x)), 'it was redacted in what is kept apart, not dropped');
   generate(dir);
   const meta = store.readFullIndexMeta(dir);
   assert.deepStrictEqual(patched.sigs, meta.index.get('src/many.js'), 'the patch must equal the regenerated entry');

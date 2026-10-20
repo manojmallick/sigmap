@@ -167,10 +167,26 @@ function capForIndex(sigs, limit) {
  * @returns {{ view: string[], more: string[], dropped: number }}
  */
 function splitForIndex(sigs, config) {
-  const ctx = Number.isFinite(config && config.maxSigsPerFile) ? Math.max(0, config.maxSigsPerFile) : 25;
-  if (sigs.length <= ctx) return { view: sigs, more: [], dropped: 0 };
+  // What the context file keeps, by the very expression the extraction cuts with, so an odd
+  // setting (a negative number, a string) means the same here as there.
+  const limit = config && config.maxSigsPerFile !== undefined ? config.maxSigsPerFile : 25;
+  const ctx = sigs.slice(0, limit).length;
+  if (ctx === sigs.length) return { view: sigs, more: [], dropped: 0 };
   const kept = capForIndex(sigs, indexLimit(config));
   return { view: kept.sigs.slice(0, ctx), more: kept.sigs.slice(ctx), dropped: kept.dropped };
+}
+
+/**
+ * The signatures kept apart, in the same encoding as the ones read: with `terse` the compact
+ * form, so a lookup tool does not meet two encodings in one file.
+ *
+ * @param {string[]} more
+ * @param {{terse?: boolean}} config
+ * @returns {string[]}
+ */
+function moreForIndex(more, config) {
+  if (!config || !config.terse || more.length === 0) return more;
+  try { return require('../format/terse').encodeTerseSigs(more); } catch (_) { return more; }
 }
 
 /**
@@ -213,8 +229,8 @@ function entryParts(filePath, content, cwd, config) {
   const safe = redactSecrets(split.view.concat(split.more), filePath, cfg).sigs;
   return {
     sigs: indexSigsFor(filePath, content, safe.slice(0, split.view.length), cfg),
-    more: safe.slice(split.view.length),
+    more: moreForIndex(safe.slice(split.view.length), cfg),
   };
 }
 
-module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, entryParts, indexLimit, capForIndex, splitForIndex, EXTRACT_CEILING };
+module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, entryParts, indexLimit, capForIndex, splitForIndex, moreForIndex, EXTRACT_CEILING };

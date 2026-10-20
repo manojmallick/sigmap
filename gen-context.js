@@ -2189,10 +2189,26 @@ __factories["./src/cache/entry"] = function(module, exports) {
    * @returns {{ view: string[], more: string[], dropped: number }}
    */
   function splitForIndex(sigs, config) {
-    const ctx = Number.isFinite(config && config.maxSigsPerFile) ? Math.max(0, config.maxSigsPerFile) : 25;
-    if (sigs.length <= ctx) return { view: sigs, more: [], dropped: 0 };
+    // What the context file keeps, by the very expression the extraction cuts with, so an odd
+    // setting (a negative number, a string) means the same here as there.
+    const limit = config && config.maxSigsPerFile !== undefined ? config.maxSigsPerFile : 25;
+    const ctx = sigs.slice(0, limit).length;
+    if (ctx === sigs.length) return { view: sigs, more: [], dropped: 0 };
     const kept = capForIndex(sigs, indexLimit(config));
     return { view: kept.sigs.slice(0, ctx), more: kept.sigs.slice(ctx), dropped: kept.dropped };
+  }
+
+  /**
+   * The signatures kept apart, in the same encoding as the ones read: with `terse` the compact
+   * form, so a lookup tool does not meet two encodings in one file.
+   *
+   * @param {string[]} more
+   * @param {{terse?: boolean}} config
+   * @returns {string[]}
+   */
+  function moreForIndex(more, config) {
+    if (!config || !config.terse || more.length === 0) return more;
+    try { return __require('./src/format/terse').encodeTerseSigs(more); } catch (_) { return more; }
   }
 
   /**
@@ -2235,11 +2251,11 @@ __factories["./src/cache/entry"] = function(module, exports) {
     const safe = redactSecrets(split.view.concat(split.more), filePath, cfg).sigs;
     return {
       sigs: indexSigsFor(filePath, content, safe.slice(0, split.view.length), cfg),
-      more: safe.slice(split.view.length),
+      more: moreForIndex(safe.slice(split.view.length), cfg),
     };
   }
 
-  module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, entryParts, indexLimit, capForIndex, splitForIndex, EXTRACT_CEILING };
+  module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, entryParts, indexLimit, capForIndex, splitForIndex, moreForIndex, EXTRACT_CEILING };
   
 };
 
@@ -3142,9 +3158,11 @@ __factories["./src/config/defaults"] = function(module, exports) {
     maxSigsPerFile: 25,
 
     // Maximum signatures a file contributes to the RETRIEVAL INDEX (.context/sig-index.json),
-    // which feeds `ask`, `verify`, `explain` and the MCP search tools and is not injected into
-    // a prompt. The index never holds fewer than `maxSigsPerFile`. The extractors stop at 200
-    // a file (and 120 members a class) on their own, so a value above 200 changes nothing.
+    // which is not injected into a prompt. The index never holds fewer than `maxSigsPerFile`.
+    // The first `maxSigsPerFile` of a file are what ranking and `ask` read, exactly as before;
+    // the rest are kept apart for the tools that look a symbol up (`verify`, `search_signatures`,
+    // `get_callee_signatures`). Most extractors stop at 200 a file (and 120 members a class) on
+    // their own, so a higher value changes nothing for them.
     maxIndexSigsPerFile: 200,
 
     // Maximum tokens in final output before budget enforcement kicks in.
@@ -25967,7 +25985,8 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     try {
       try { __require('./src/cache/freshen').freshen(cwd); } catch (_) {}
       const { buildSigIndex } = __require('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
+      // every signature the index keeps: a symbol is found here whenever get_callee_signatures finds it (#982)
+      const index = buildSigIndex(cwd, { full: true });
       if (index.size === 0) {
         return 'No context file found. Run: node gen-context.js';
       }
@@ -26176,7 +26195,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
 
     try {
       const { buildSigIndex } = __require('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
+      const index = buildSigIndex(cwd, { full: true }); // one file: all of what the index keeps of it (#982)
       let sigs = index.get(targetRel);
       if (!sigs) {
         for (const [file, fileSigs] of index.entries()) {
@@ -30477,7 +30496,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         _mergeSigIndex(index, _parseContextFile(path.join(ghDir, f)));
       }
     } catch (_) {}
-    _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
+    // The extraction cache is a fallback for a repo with no complete retrieval index. With one
+    // it adds nothing, and a raw entry (unredacted, from a run under other settings) must not
+    // outrank the index's own (#982).
+    let full = null;
+    try { full = __require('./src/retrieval/sig-index-store').readFullIndexMeta(cwd); } catch (_) { /* absent */ }
+    if (!full || full.index.size === 0) _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
 
     // The complete retrieval index (written by generate before applyTokenBudget)
     // takes precedence: it is the only source containing files the budget dropped,
@@ -30491,8 +30515,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     const wantMore = !!(opts && opts.full);
     let more = null;
     try {
-      const full = __require('./src/retrieval/sig-index-store').readFullIndexMeta(cwd);
-      if (full.index.size > 0) {
+      if (full && full.index.size > 0) {
         const base = wantMore ? new Map(full.index) : null;
         merged = _mergeSigIndex(full.index, index);
         baseMs = full.baseMs;
@@ -41484,7 +41507,7 @@ function watchKind(cwd, config, abs, ctx) {
 function patchLiveFiles(cwd, config, absFiles, ctx) {
   const overlay = requireSourceOrBundled('./src/cache/overlay');
   // A patch is an index entry, so it keeps what a full run keeps (indexLimit), not the context-file budget.
-  const { indexLimit, splitForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
+  const { indexLimit, splitForIndex, moreForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
   const patchLimit = indexLimit(config);
   const readLimit = Math.max(patchLimit, EXTRACT_CEILING);
   const updates = [];
@@ -41518,7 +41541,7 @@ function patchLiveFiles(cwd, config, absFiles, ctx) {
     }
     const split = splitForIndex(finishFileSigs(sigs, abs, cwd, config, ctx.testIndex()), config);
     const entry = { at, sigs: indexSigsFor(abs, content, split.view, config) };
-    if (split.more.length > 0) entry.more = split.more;
+    if (split.more.length > 0) entry.more = moreForIndex(split.more, config);
     updates.push([key, entry]);
     ctx.known().add(key);
   }
@@ -42301,7 +42324,7 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
 
   // One extraction per file feeds two views of it: the context file keeps the first
   // `maxSigsPerFile` signatures, the retrieval index keeps up to its own limit (#982).
-  const { indexLimit, splitForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
+  const { indexLimit, splitForIndex, moreForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
   const extractLimit = indexLimit(config);
   // What extraction is asked for: more than either limit, so that what the index cuts can
   // be counted (the extractors stop at 200 a file on their own; this bounds one without).
@@ -42341,14 +42364,14 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     }
     if (sigs.length === 0) continue;
 
-    // Baseline = estimated tokens of original source content for intuitive reduction stats.
-    inputTokenTotal += estimateTokens(content);
-
     // Annotated and secret-scanned in full, so what the index keeps is scanned too;
     // the context file then takes the first `maxSigsPerFile` of the same list.
     const indexSigs = finishFileSigs(sigs, filePath, cwd, config, testIndex);
     sigs = indexSigs.slice(0, config.maxSigsPerFile);
     if (sigs.length === 0) continue; // a context limit of 0 keeps no file, as it always did
+
+    // Baseline = estimated tokens of original source content for intuitive reduction stats.
+    inputTokenTotal += estimateTokens(content);
 
     let mtime = 0;
     try {
@@ -42423,7 +42446,7 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
         // the tools that look a symbol up (the index file keeps them in separate fields).
         const split = splitForIndex(e.indexSigs || e.sigs, config);
         if (split.dropped > 0) { __cutFiles++; __cutSigs += split.dropped; }
-        return Object.assign({}, e, { sigs: indexSigsFor(e.filePath, src, split.view, config), more: split.more });
+        return Object.assign({}, e, { sigs: indexSigsFor(e.filePath, src, split.view, config), more: moreForIndex(split.more, config) });
       });
       // Test files: indexed, never rendered into the prompt. They were the one
       // whole category `sigmap ask` could not reach at all — srcDirs excludes

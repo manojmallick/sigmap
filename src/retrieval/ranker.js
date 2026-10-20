@@ -810,7 +810,12 @@ function _enrichSigIndexFromStrategy(cwd, index, opts) {
       _mergeSigIndex(index, _parseContextFile(path.join(ghDir, f)));
     }
   } catch (_) {}
-  _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
+  // The extraction cache is a fallback for a repo with no complete retrieval index. With one
+  // it adds nothing, and a raw entry (unredacted, from a run under other settings) must not
+  // outrank the index's own (#982).
+  let full = null;
+  try { full = require('./sig-index-store').readFullIndexMeta(cwd); } catch (_) { /* absent */ }
+  if (!full || full.index.size === 0) _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
 
   // The complete retrieval index (written by generate before applyTokenBudget)
   // takes precedence: it is the only source containing files the budget dropped,
@@ -824,8 +829,7 @@ function _enrichSigIndexFromStrategy(cwd, index, opts) {
   const wantMore = !!(opts && opts.full);
   let more = null;
   try {
-    const full = require('./sig-index-store').readFullIndexMeta(cwd);
-    if (full.index.size > 0) {
+    if (full && full.index.size > 0) {
       const base = wantMore ? new Map(full.index) : null;
       merged = _mergeSigIndex(full.index, index);
       baseMs = full.baseMs;

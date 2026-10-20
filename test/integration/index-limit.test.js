@@ -306,11 +306,92 @@ test('--callers names a PHP declaration past what ranking reads (the call graph 
   assert.ok(/graph: unsupported-language/.test(r.stdout) && /src\/Str\.php/.test(r.stdout), r.stdout + r.stderr);
 });
 
-test('a symbol the sig cache holds past the context limit does not outrank the index file\'s entry', () => {
+test('the sig cache is a fallback for a repo with no complete index: cut to the context limit, and ignored when an index exists', () => {
+  const version = require('../../package.json').version; // the cache is read by the project's package.json version
   const dir = project({ 'src/big.js': fns(40) }, { sigCache: true });
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'fixture', version }));
   generate(dir);
+  const cachePath = path.join(dir, '.sigmap-cache.json');
+  assert.ok(Object.values(JSON.parse(fs.readFileSync(cachePath, 'utf8')).entries)[0].sigs.length > 25, 'precondition: the cache holds the raw extraction');
+  // with the index present the cache adds nothing: what is read is the index file's entry
+  assert.deepStrictEqual(buildSigIndex(dir).get('src/big.js'), indexOf(dir)['src/big.js']);
+  // without it the cache is the fallback, and a raw list longer than the context file's must not outrank it
+  fs.rmSync(path.join(dir, '.context/sig-index.json'));
   const read = buildSigIndex(dir).get('src/big.js');
-  assert.ok(read.length <= 26, `the cache (raw, up to 1000) must not replace the entry the index file holds: ${read.length}`);
+  assert.ok(read.length <= 26, `the cache (raw, up to 1000) must be cut to the context limit: ${read.length}`);
+});
+
+test('a raw cache entry never outranks the index file: a secret only the cache holds is not served', () => {
+  const version = require('../../package.json').version;
+  const dir = project({ 'src/big.js': fns(40) }, { sigCache: true });
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'fixture', version }));
+  generate(dir);
+  const cachePath = path.join(dir, '.sigmap-cache.json');
+  const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+  for (const e of Object.values(cache.entries)) e.sigs = e.sigs.concat(Array.from({ length: 30 }, (_, i) => `function leak${i}(t = "ghp_abcdefghijklmnopqrstuvwxyz0123456789")`));
+  fs.writeFileSync(cachePath, JSON.stringify(cache));
+  assert.ok(!JSON.stringify([...buildSigIndex(dir, { full: true }).values()]).includes('ghp_abcdefghijklmnopqrstuvwxyz0123456789'));
+});
+
+// ── the tools that search and explain read what verify reads ───────────────
+
+test('search_signatures, explain_file and get_callee_signatures agree about a symbol past what ranking reads', () => {
+  const dir = project({ 'src/big.js': fns(40) });
+  generate(dir);
+  assert.ok(!buildSigIndex(dir).get('src/big.js').some((x) => /fn39\(/.test(x)), 'precondition: fn39 is past what ranking reads');
+  assert.ok(/function fn39/.test(handlers.searchSignatures({ query: 'fn39(' }, dir)), 'search_signatures');
+  assert.ok(/function fn39/.test(handlers.explainFile({ path: 'src/big.js' }, dir)), 'explain_file');
+  assert.ok(/function fn39/.test(handlers.getCalleeSignatures({ symbols: ['fn39'] }, dir)), 'get_callee_signatures');
+});
+
+test('list_modules and read_context still describe the context file: a module\'s size does not move with the index limit', () => {
+  const a = project({ 'src/big.js': fns(60) }, { maxIndexSigsPerFile: 25 });
+  const b = project({ 'src/big.js': fns(60) });
+  generate(a);
+  generate(b);
+  assert.strictEqual(handlers.listModules({}, a).replace(/\S*sigmap-idxlimit-\S*/g, ''), handlers.listModules({}, b).replace(/\S*sigmap-idxlimit-\S*/g, ''));
+});
+
+// ── odd settings mean the same here as in the extraction ───────────────────
+
+test('a context limit that is negative or a string splits the way slice() does, as the extraction cuts', () => {
+  const sigs = Array.from({ length: 10 }, (_, i) => `def f${i}()`);
+  for (const limit of [-3, '4', 0, 1, 25, 10, 9]) {
+    const split = splitForIndex(sigs, { maxSigsPerFile: limit });
+    assert.deepStrictEqual(split.view, sigs.slice(0, limit), `limit ${JSON.stringify(limit)}`);
+    assert.deepStrictEqual(split.view.concat(split.more), sigs, `limit ${JSON.stringify(limit)}: nothing lost`);
+  }
+});
+
+test('with terse the signatures kept apart use the encoding of the ones read', () => {
+  const dir = project({ 'src/a.js': fns(6) }, { terse: true, maxSigsPerFile: 2 });
+  generate(dir);
+  const raw = rawIndex(dir);
+  assert.ok(raw.files['src/a.js'].every((x) => /^fn /.test(x)), JSON.stringify(raw.files['src/a.js']));
+  assert.ok(raw.more['src/a.js'].length > 0 && raw.more['src/a.js'].every((x) => /^fn /.test(x)), JSON.stringify(raw.more['src/a.js']));
+});
+
+test('a context limit of 0 does not claim a token reduction for a context file that holds nothing', () => {
+  const dir = project({ 'src/a.js': fns(30) }, { maxSigsPerFile: 0 });
+  const r = generate(dir);
+  assert.ok(/Token reduction: none/.test(r.stdout + r.stderr), r.stdout + r.stderr);
+});
+
+// ── freshen carries what is kept apart, like the other writers ─────────────
+
+test('freshen writes the rest apart too, and the edited symbols are found', () => {
+  const { freshen } = require('../../src/cache/freshen');
+  const dir = project({ 'src/big.js': fns(40) });
+  generate(dir);
+  const file = path.join(dir, 'src/big.js');
+  fs.writeFileSync(file, fns(60));
+  const later = new Date(Date.now() + 5000);
+  fs.utimesSync(file, later, later);
+  freshen(dir, { force: true });
+  const entry = require('../../src/cache/overlay').load(dir).get('src/big.js');
+  assert.ok(entry && entry.more && entry.more.length >= 30, `freshen kept the rest apart: ${entry && entry.more && entry.more.length}`);
+  assert.strictEqual(nameCount(buildSigIndex(dir, { full: true }).get('src/big.js'), /^function fn\d+/), 60);
+  assert.strictEqual(nameCount(buildSigIndex(dir).get('src/big.js'), /^function fn\d+/), 25);
 });
 
 // ── the Python AST tier no longer stops at 30 ──────────────────────────────
