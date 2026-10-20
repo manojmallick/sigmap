@@ -334,6 +334,23 @@ test('a raw cache entry never outranks the index file: a secret only the cache h
   assert.ok(!JSON.stringify([...buildSigIndex(dir, { full: true }).values()]).includes('ghp_abcdefghijklmnopqrstuvwxyz0123456789'));
 });
 
+test('raising the context limit without regenerating does not let a raw cache entry replace the index file\'s entry', () => {
+  const version = require('../../package.json').version;
+  const dir = project({ 'src/big.js': fns(40) }, { sigCache: true });
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'fixture', version }));
+  generate(dir);
+  const stored = indexOf(dir)['src/big.js'];
+  const cachePath = path.join(dir, '.sigmap-cache.json');
+  const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+  // the raw extraction, as a later run would have cached it, with a secret in the part now inside the larger limit
+  for (const e of Object.values(cache.entries)) e.sigs = e.sigs.slice(0, 30).concat('function leak(t = "ghp_abcdefghijklmnopqrstuvwxyz0123456789")', e.sigs.slice(30));
+  fs.writeFileSync(cachePath, JSON.stringify(cache));
+  fs.writeFileSync(path.join(dir, 'gen-context.config.json'), JSON.stringify({ srcDirs: ['src'], sigCache: true, maxSigsPerFile: 45 }));
+  const read = buildSigIndex(dir).get('src/big.js');
+  assert.deepStrictEqual(read, stored, 'the index file\'s entry stands until the next full run');
+  assert.ok(!JSON.stringify(buildSigIndex(dir, { full: true }).get('src/big.js')).includes('ghp_'), 'and so does what is kept apart');
+});
+
 // ── the tools that search and explain read what verify reads ───────────────
 
 test('search_signatures, explain_file and get_callee_signatures agree about a symbol past what ranking reads', () => {
