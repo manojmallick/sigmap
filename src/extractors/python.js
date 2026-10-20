@@ -463,25 +463,49 @@ function extractDocHint(src, fnName, fnSigLine) {
 
 /**
  * The identity of the interpreter the AST tier would use: the real path, size and mtime of
- * the first `python3` on PATH, or 'none'. A file extracted under one is not the file
- * extracted under another (the AST tier and the regex tier list different things), so the
- * extraction cache is keyed by it (#971). Found by walking PATH, not by starting a process.
+ * the first `python3` on PATH, or 'none', and the things that choose which Python a version
+ * manager's shim runs (an environment variable, a `.python-version` or `.tool-versions` file in
+ * the project). A file extracted under one is not the file extracted under another (the AST
+ * tier and the regex tier list different things, and the `ast` node shapes change between 3.x
+ * releases), so the extraction cache is keyed by it (#971). Found without starting a process.
  *
+ * @param {string} [cwd] - the project, for the version files
  * @returns {string}
  */
-function tierId() {
+function tierId(cwd) {
   const names = process.platform === 'win32' ? ['python3.exe', 'python3'] : ['python3'];
-  for (const dir of String(process.env.PATH || '').split(path.delimiter)) {
+  let id = 'none';
+  find: for (const dir of String(process.env.PATH || '').split(path.delimiter)) {
     if (!dir) continue;
     for (const name of names) {
       try {
         const real = fs.realpathSync(path.join(dir, name));
         const st = fs.statSync(real);
-        if (st.isFile()) return `${real}:${st.size}:${Math.floor(st.mtimeMs)}`;
+        if (st.isFile()) { id = `${real}:${st.size}:${Math.floor(st.mtimeMs)}`; break find; }
       } catch (_) { /* not in this directory */ }
     }
   }
-  return 'none';
+  if (id === 'none') return id;
+  const env = ['PYENV_VERSION', 'VIRTUAL_ENV', 'CONDA_PREFIX', 'ASDF_PYTHON_VERSION', 'UV_PYTHON'].map((k) => process.env[k] || '').join('|');
+  let files = '';
+  for (const f of ['.python-version', '.tool-versions']) {
+    try { files += `|${f}=${fs.readFileSync(path.join(cwd || process.cwd(), f), 'utf8')}`; } catch (_) { /* none */ }
+  }
+  return `${id}|${env}${files}`;
+}
+
+/**
+ * Whether this run asked python3 for the file and got no answer (the batch failed or timed
+ * out): the regex tier served it, but that is the failure's answer, not the AST tier's, so a
+ * caller that keeps answers must not keep this one. Absent python3 and a file the AST tier
+ * settled as unparseable are settled answers, not this.
+ *
+ * @param {string} filePath
+ * @returns {boolean}
+ */
+function wasDegraded(filePath) {
+  const hit = _batched.get(path.resolve(filePath));
+  return !!(hit && hit.degraded);
 }
 
 /**
@@ -498,4 +522,4 @@ function restoreToolchain(label) {
   if (!_astVersion) _astVersion = m[1];
 }
 
-module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel, tierId, restoreToolchain };
+module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel, tierId, wasDegraded, restoreToolchain };

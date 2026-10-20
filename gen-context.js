@@ -2336,12 +2336,12 @@ __factories["./src/cache/extract-cache"] = function(module, exports) {
   /**
    * The fingerprint of everything a derivation depends on besides the file.
    *
-   * @param {object} parts - version, the extraction ceiling, depMap, the Python tier id, and
+   * @param {object} parts - version, the extraction ceiling, depMap, secretScan, the Python tier id, and
    *        the two hashes the caller computes from the install (`sources`, `core`)
    * @returns {string}
    */
   function fingerprint(parts) {
-    return sha1(JSON.stringify([SCHEMA, parts.version, parts.sources, parts.core, parts.readLimit, parts.depMap, parts.python]));
+    return sha1(JSON.stringify([SCHEMA, parts.version, parts.sources, parts.core, parts.readLimit, parts.depMap, parts.secretScan, parts.python]));
   }
 
   /** Whether an entry's remembered stat can stand in for reading the file. */
@@ -15745,25 +15745,49 @@ __factories["./src/extractors/python"] = function(module, exports) {
 
   /**
    * The identity of the interpreter the AST tier would use: the real path, size and mtime of
-   * the first `python3` on PATH, or 'none'. A file extracted under one is not the file
-   * extracted under another (the AST tier and the regex tier list different things), so the
-   * extraction cache is keyed by it (#971). Found by walking PATH, not by starting a process.
+   * the first `python3` on PATH, or 'none', and the things that choose which Python a version
+   * manager's shim runs (an environment variable, a `.python-version` or `.tool-versions` file in
+   * the project). A file extracted under one is not the file extracted under another (the AST
+   * tier and the regex tier list different things, and the `ast` node shapes change between 3.x
+   * releases), so the extraction cache is keyed by it (#971). Found without starting a process.
    *
+   * @param {string} [cwd] - the project, for the version files
    * @returns {string}
    */
-  function tierId() {
+  function tierId(cwd) {
     const names = process.platform === 'win32' ? ['python3.exe', 'python3'] : ['python3'];
-    for (const dir of String(process.env.PATH || '').split(path.delimiter)) {
+    let id = 'none';
+    find: for (const dir of String(process.env.PATH || '').split(path.delimiter)) {
       if (!dir) continue;
       for (const name of names) {
         try {
           const real = fs.realpathSync(path.join(dir, name));
           const st = fs.statSync(real);
-          if (st.isFile()) return `${real}:${st.size}:${Math.floor(st.mtimeMs)}`;
+          if (st.isFile()) { id = `${real}:${st.size}:${Math.floor(st.mtimeMs)}`; break find; }
         } catch (_) { /* not in this directory */ }
       }
     }
-    return 'none';
+    if (id === 'none') return id;
+    const env = ['PYENV_VERSION', 'VIRTUAL_ENV', 'CONDA_PREFIX', 'ASDF_PYTHON_VERSION', 'UV_PYTHON'].map((k) => process.env[k] || '').join('|');
+    let files = '';
+    for (const f of ['.python-version', '.tool-versions']) {
+      try { files += `|${f}=${fs.readFileSync(path.join(cwd || process.cwd(), f), 'utf8')}`; } catch (_) { /* none */ }
+    }
+    return `${id}|${env}${files}`;
+  }
+
+  /**
+   * Whether this run asked python3 for the file and got no answer (the batch failed or timed
+   * out): the regex tier served it, but that is the failure's answer, not the AST tier's, so a
+   * caller that keeps answers must not keep this one. Absent python3 and a file the AST tier
+   * settled as unparseable are settled answers, not this.
+   *
+   * @param {string} filePath
+   * @returns {boolean}
+   */
+  function wasDegraded(filePath) {
+    const hit = _batched.get(path.resolve(filePath));
+    return !!(hit && hit.degraded);
   }
 
   /**
@@ -15780,7 +15804,7 @@ __factories["./src/extractors/python"] = function(module, exports) {
     if (!_astVersion) _astVersion = m[1];
   }
 
-  module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel, tierId, restoreToolchain };
+  module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel, tierId, wasDegraded, restoreToolchain };
   
 };
 
@@ -40429,6 +40453,11 @@ function collectTestEntries(cwd, config, existing, xcache) {
     // after one batched python3 process, not one per file; the results keep the walk's order.
     // A file the cache holds by its stat is not read at all.
     const xc = xcache ? requireSourceOrBundled('./src/cache/extract-cache') : null;
+    // A Python file served from the cache never starts the AST tier, yet a cold run's header names it.
+    const restoreLabel = (f) => {
+      if (!/\.pyw?$/i.test(f)) return;
+      try { requireSourceOrBundled('./src/extractors/python').restoreToolchain(xcache.toolchain); } catch (_) { /* label only */ }
+    };
     const slots = [];
     const pending = [];
     for (const fp of files) {
@@ -40438,7 +40467,7 @@ function collectTestEntries(cwd, config, existing, xcache) {
         slot.key = 't:' + path.relative(cwd, fp).replace(/\\/g, '/');
         try { slot.st = fs.statSync(fp); } catch (_) { continue; }
         const hit = xcache.peek(slot.key, slot.st, 'g');
-        if (hit) { slot.sigs = hit.s.slice(); slot.doc = hit.g; slots.push(slot); continue; }
+        if (hit) { slot.sigs = hit.s.slice(); slot.doc = hit.g; slots.push(slot); restoreLabel(fp); continue; }
       }
       try { slot.src = fs.readFileSync(fp, 'utf8'); } catch (_) { continue; }
       if (xcache) {
@@ -40448,6 +40477,7 @@ function collectTestEntries(cwd, config, existing, xcache) {
           slot.sigs = hit.s.slice();
           if (hit.g === undefined && hit.s.length > 0) xcache.update(hit, { g: moduleDocSig ? (moduleDocSig(slot.src, fp) || '') : '' });
           slot.doc = hit.g;
+          restoreLabel(fp);
         }
       }
       slots.push(slot);
@@ -40460,7 +40490,9 @@ function collectTestEntries(cwd, config, existing, xcache) {
         try { p.sigs = extractFile(p.fp, p.src) || []; } catch (_) { p.sigs = null; continue; }
         if (xcache) {
           p.doc = p.sigs.length > 0 && moduleDocSig ? (moduleDocSig(p.src, p.fp) || '') : '';
-          xcache.set(p.key, p.hash, p.sigs.length > 0 ? { s: p.sigs.slice(), g: p.doc } : { s: [] }, { size: p.st.size, mtimeMs: p.st.mtimeMs });
+          // Not kept when the AST tier failed on the file: the next run asks python3 again.
+          const degraded = /\.pyw?$/i.test(p.fp) && requireSourceOrBundled('./src/extractors/python').wasDegraded(p.fp);
+          if (!degraded) xcache.set(p.key, p.hash, p.sigs.length > 0 ? { s: p.sigs.slice(), g: p.doc } : { s: [] }, { size: p.st.size, mtimeMs: p.st.mtimeMs });
         }
       }
     }
@@ -41111,9 +41143,20 @@ function applyTokenBudget(fileEntries, maxTokens) {
 let __runCache = null;
 let __runHead;
 
-/** HEAD's commit id, once per run ('' outside a repository). */
+/**
+ * HEAD's commit id and the state of the repository's shallow boundary, once per run ('' outside a
+ * repository). The commits `git log` reaches from HEAD, and what the oldest of them is diffed against,
+ * change when a shallow clone is deepened or unshallowed with HEAD where it was.
+ */
 function __headOf(cwd) {
-  if (__runHead === undefined) __runHead = __tryGit(['rev-parse', 'HEAD'], { cwd });
+  if (__runHead === undefined) {
+    const out = __tryGit(['rev-parse', 'HEAD', '--git-path', 'shallow'], { cwd }).split('\n');
+    let shallow = '';
+    if (out[0] && out[1]) {
+      try { shallow = requireSourceOrBundled('./src/cache/extract-cache').sha1(fs.readFileSync(path.resolve(cwd, out[1].trim()))); } catch (_) { /* not shallow */ }
+    }
+    __runHead = out[0] ? `${out[0].trim()}|${shallow}` : '';
+  }
   return __runHead;
 }
 
@@ -42729,10 +42772,11 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
  * What one file contributes to the generated context once it has been
  * extracted: secret redaction, then test-coverage annotation.
  */
-function finishFileSigs(sigs, filePath, cwd, config, testIndex) {
+function finishFileSigs(sigs, filePath, cwd, config, testIndex, redactedEarlier) {
   const { redactSecrets } = requireSourceOrBundled('./src/cache/entry');
   const result = redactSecrets(sigs, filePath, config);
-  if (result.redacted) {
+  // `redactedEarlier`: the extraction cache already redacted this list (and says so on every run, as before).
+  if (result.redacted || redactedEarlier) {
     console.warn(`[sigmap] secrets redacted in ${path.relative(cwd, filePath)}`);
   }
   return annotateCoverage(result.sigs, testIndex, !!config.testCoverage);
@@ -42770,7 +42814,7 @@ function openExtractionCache(cwd, config, readLimit) {
     const sources = xc.treeHash(path.join(srcDir, 'extractors'), ['.js', '.py']) + xc.treeHash(path.join(srcDir, 'util'), ['truncate.js']) + xc.treeHash(path.join(srcDir, 'retrieval'), ['module-doc.js']);
     let core = '';
     try { core = xc.sha1(fs.readFileSync(__filename)); } catch (_) { /* the version still keys it */ }
-    return xc.open(cwd, xc.fingerprint({ version: VERSION, sources, core, readLimit, depMap: config.depMap !== false, python: py.tierId() }));
+    return xc.open(cwd, xc.fingerprint({ version: VERSION, sources, core, readLimit, depMap: config.depMap !== false, secretScan: !!config.secretScan, python: py.tierId(cwd) }));
   } catch (_) { return null; }
 }
 
@@ -42787,8 +42831,19 @@ function deriveFileFacts(filePath, content, config) {
     k: estimateTokens(content),
     g: '',
   };
-  try { facts.g = requireSourceOrBundled('./src/retrieval/module-doc').moduleDocSig(content, filePath) || ''; } catch (_) { /* no doc line */ }
+  let doc = '';
+  try { doc = requireSourceOrBundled('./src/retrieval/module-doc').moduleDocSig(content, filePath) || ''; } catch (_) { /* no doc line */ }
+  // The header is prose lifted from the file: scanned before it is kept, like a signature.
+  if (doc) facts.g = requireSourceOrBundled('./src/cache/entry').redactSecrets([doc], __FILE_TOKEN, config).sigs[0] || '';
   return facts;
+}
+
+// A redacted line names its file by absolute path. The cache holds redacted text (a credential must not
+// reach `.context/extract-cache.json` any more than the context file), and a path in it would not survive
+// moving the repository, so the path is stored as this token and given back on the way out.
+const __FILE_TOKEN = '@@sigmap-file@@';
+function __withPath(lines, filePath) {
+  return lines.map((l) => (typeof l === 'string' && l.includes(__FILE_TOKEN) ? l.split(__FILE_TOKEN).join(filePath) : l));
 }
 
 /**
@@ -42891,6 +42946,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
   for (const filePath of allFiles) {
     let content = '';
     let facts = null; // what the content cache derived for this file, when it served or stored one
+    let redactedEarlier = false;
     let cached = null;
     let st = null;
     if (xcache) {
@@ -42926,18 +42982,33 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       // The content cache: the file's signatures are a function of its content (and of what the
       // cache's fingerprint covers), so the same content gives the same list without extracting.
       const rel = relOf(filePath);
+      let kept = true; // false: the entry is used this run and not kept
       if (!cached) {
         const hash = requireSourceOrBundled('./src/cache/extract-cache').contentHash(content);
         cached = xcache.get(rel, hash, st);
         if (!cached) {
-          sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
-          cached = xcache.set(rel, hash, { s: sigs.slice() }, { size: st.size, mtimeMs: st.mtimeMs });
+          const raw = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
+          // What is kept is what the scanner leaves of the list; a scanner that cannot run throws, as it does below.
+          const scanned = requireSourceOrBundled('./src/cache/entry').redactSecrets(raw, __FILE_TOKEN, config);
+          const entryFacts = { s: scanned.sigs.slice(), x: scanned.redacted ? 1 : 0 };
+          // A file the AST tier failed on was answered by the regex tier: that answer is not the AST tier's,
+          // so it is not kept, and the next run asks python3 again.
+          if (isPy(filePath) && requireSourceOrBundled('./src/extractors/python').wasDegraded(filePath)) {
+            cached = entryFacts;
+            kept = false;
+          } else {
+            cached = xcache.set(rel, hash, entryFacts, { size: st.size, mtimeMs: st.mtimeMs });
+          }
         }
       }
-      if (!sigs.length) sigs = cached.s.slice();
+      sigs = __withPath(cached.s, filePath);
+      redactedEarlier = !!cached.x;
       if (isPy(filePath)) { try { requireSourceOrBundled('./src/extractors/python').restoreToolchain(xcache.toolchain); } catch (_) { /* label only */ } }
       if (sigs.length > 0) {
-        if (typeof cached.l !== 'number') xcache.update(cached, deriveFileFacts(filePath, content, config));
+        if (typeof cached.l !== 'number') {
+          const derived = deriveFileFacts(filePath, content, config);
+          if (kept) xcache.update(cached, derived); else Object.assign(cached, derived);
+        }
         facts = cached;
       }
     } else {
@@ -42947,7 +43018,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
 
     // Annotated and secret-scanned in full, so what the index keeps is scanned too;
     // the context file then takes the first `maxSigsPerFile` of the same list.
-    const indexSigs = finishFileSigs(sigs, filePath, cwd, config, testIndex);
+    const indexSigs = finishFileSigs(sigs, filePath, cwd, config, testIndex, redactedEarlier);
     sigs = indexSigs.slice(0, config.maxSigsPerFile);
     if (sigs.length === 0) continue; // a context limit of 0 keeps no file, as it always did
 
@@ -42972,7 +43043,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     if (facts) {
       // What later steps read of the text, so that none of them needs the file itself.
       entry.loc = facts.l;
-      entry.doc = facts.g;
+      entry.doc = __withPath([facts.g], filePath)[0];
       if (content) entry.content = content; else lazyContent(entry, filePath);
     } else {
       entry.content = content;
@@ -43018,7 +43089,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     if (reportMode) xcache.keep('t:');
     xcache.save();
     if (process.argv.includes('--verbose')) {
-      console.warn(`[sigmap] extraction cache: ${xcache.stats.hits} hit(s), ${xcache.stats.misses} extracted (${xcache.loaded} entries on disk)`);
+      console.warn(`[sigmap] extraction cache: ${xcache.stats.hits} hit(s), ${xcache.stats.misses} extracted (${xcache.loaded} entries loaded)`);
     }
   };
 
@@ -43264,12 +43335,18 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       if (__indexedSource !== null) {
         const n = (x) => x.toLocaleString();
         const idxPct = coveragePct(__indexedSource, result.fileCount);
-        coverageLine = ` Indexed        : ${n(__indexedSource)} of ${n(result.fileCount)} files with symbols (${idxPct}%) \u2014 every one reachable with \`sigmap ask\`\n`
-          + ` In context     : ${n(cov.included)} of ${n(cov.total)} source files (${cov.score}%) fit the context file${autoBudgetNote}`;
-        if (cov.score < 40 && config.strategy !== 'per-module' && config.strategy !== 'hot-cold'
-          && config.strategy !== 'index') {
-          coverageLine += `\n [sigmap] tip: the rest stay indexed; strategy:"per-module" puts more of them in front of the agent`;
-        }
+        coverageLine = ` Indexed        : ${n(__indexedSource)} of ${n(result.fileCount)} files with symbols (${idxPct}%) \u2014 every one reachable with \`sigmap ask\``;
+        const split = config.strategy && config.strategy !== 'full';
+        if (!split) {
+          coverageLine += `\n In context     : ${n(cov.included)} of ${n(cov.total)} source files (${cov.score}%) fit the context file${autoBudgetNote}`;
+          if (cov.score < 40) {
+            coverageLine += `\n [sigmap] tip: the rest stay indexed; strategy:"per-module" puts more of them in front of the agent`;
+          }
+        } else if (config.strategy !== 'index') {
+          // The signatures are split across files, not budgeted into one: there is no single "fits the context file".
+          coverageLine += `\n In context     : split by strategy "${config.strategy}" (see Output) \u2014 not one budgeted file`;
+        } // `index`: the line above this block already says the always-on file holds no signatures
+
       } else {
         coverageLine = ` Coverage       : ${cov.grade} (${cov.score}%)  \u2014 ${cov.included} of ${cov.total} source files included${autoBudgetNote}`;
         // Extra warning line when coverage is still poor despite auto-scaling

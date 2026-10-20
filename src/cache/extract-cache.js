@@ -70,12 +70,12 @@ function treeHash(dir, extensions) {
 /**
  * The fingerprint of everything a derivation depends on besides the file.
  *
- * @param {object} parts - version, the extraction ceiling, depMap, the Python tier id, and
+ * @param {object} parts - version, the extraction ceiling, depMap, secretScan, the Python tier id, and
  *        the two hashes the caller computes from the install (`sources`, `core`)
  * @returns {string}
  */
 function fingerprint(parts) {
-  return sha1(JSON.stringify([SCHEMA, parts.version, parts.sources, parts.core, parts.readLimit, parts.depMap, parts.python]));
+  return sha1(JSON.stringify([SCHEMA, parts.version, parts.sources, parts.core, parts.readLimit, parts.depMap, parts.secretScan, parts.python]));
 }
 
 /** Whether an entry's remembered stat can stand in for reading the file. */

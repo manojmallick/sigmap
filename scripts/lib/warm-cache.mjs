@@ -36,7 +36,8 @@ export function tempDir(prefix) {
 
 /** Copy a repository (its `.git` included: the run reads history) to `dest`. */
 export function copyRepo(src, dest) {
-  fs.cpSync(src, dest, { recursive: true, verbatimSymlinks: true });
+  // A clone that is itself a symlink (a worktree borrowing shared clones) is copied as the directory it names.
+  fs.cpSync(fs.realpathSync(src), dest, { recursive: true, verbatimSymlinks: true });
 }
 
 /**
@@ -46,6 +47,27 @@ export function copyRepo(src, dest) {
 export function resetCopy(dir) {
   spawnSync('git', ['-C', dir, 'clean', '-fdxq'], { stdio: 'ignore' });
   spawnSync('git', ['-C', dir, 'checkout', '-q', '--', '.'], { stdio: 'ignore' });
+}
+
+/**
+ * An environment with no python3 on PATH: a directory holding only node and git. (A shim that
+ * fails is not "no python3": a python3 that is there and fails gives the regex tier's answer for
+ * one run, and the extraction cache does not keep it.)
+ */
+export function noPythonEnv() {
+  const dir = tempDir('sigmap-nopy-');
+  const find = (name) => {
+    for (const d of String(process.env.PATH || '').split(path.delimiter)) {
+      const f = path.join(d, name);
+      try { if (fs.statSync(f).isFile()) return f; } catch (_) { /* not here */ }
+    }
+    return null;
+  };
+  fs.symlinkSync(process.execPath, path.join(dir, 'node'));
+  const git = find('git');
+  if (git) fs.symlinkSync(git, path.join(dir, 'git'));
+  process.on('exit', () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) { /* best effort */ } });
+  return Object.assign({}, process.env, { PATH: dir });
 }
 
 /** Parse the second line of the shell's `times` ("0m1.200s 0m0.400s") into seconds. */
@@ -71,7 +93,7 @@ export function runOnce(dir, script, opts = {}) {
   const t0 = Date.now();
   const load = os.loadavg()[0];
   // The shell runs the generator, then prints the CPU time its children used.
-  const r = spawnSync('sh', ['-c', '"$0" "$@" >/dev/null 2>&1 </dev/null; echo "$?" >&3; times >&3', process.execPath, script, ...(opts.args || [])], {
+  const r = spawnSync('/bin/sh', ['-c', '"$0" "$@" >/dev/null 2>&1 </dev/null; echo "$?" >&3; times >&3', process.execPath, script, ...(opts.args || [])], {
     cwd: dir,
     env: opts.env || process.env,
     encoding: 'utf8',

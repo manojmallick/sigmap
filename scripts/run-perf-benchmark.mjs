@@ -35,10 +35,10 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
-import { CODE_ROOT, loadManifest, repoDir, checkoutState, zeroConfigEnv } from './lib/xrepo.mjs';
+import { CODE_ROOT, loadManifest, repoDir, checkoutState } from './lib/xrepo.mjs';
 import {
   tempDir, copyRepo, resetCopy, runOnce, readOutputs, diffOutputs, writeConfig,
-  pickEditableFile, touchContent, median,
+  pickEditableFile, touchContent, median, noPythonEnv,
 } from './lib/warm-cache.mjs';
 
 const ROOT = CODE_ROOT;
@@ -217,7 +217,9 @@ function pinnedClones() {
   let overrides = {};
   try { overrides = JSON.parse(fs.readFileSync(path.join(dataRoot, 'benchmarks', 'config-overrides.json'), 'utf8')); } catch (_) { /* none */ }
   let names = [];
-  try { names = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && fs.existsSync(path.join(dir, e.name, '.git'))).map((e) => e.name).sort(); } catch (_) { /* none */ }
+  // `isDirectory()` of a Dirent is false for a symlink, which is how a worktree shares the clones.
+  const isDir = (name) => { try { return fs.statSync(path.join(dir, name)).isDirectory(); } catch (_) { return false; } };
+  try { names = fs.readdirSync(dir).filter((n) => isDir(n) && fs.existsSync(path.join(dir, n, '.git'))).sort(); } catch (_) { /* none */ }
   return names.map((name) => {
     const entry = manifest.repos.find((r) => r.name === name);
     const srcDirs = (entry && entry.srcDirs) || (overrides[name] && overrides[name].srcDirs) || undefined;
@@ -232,7 +234,7 @@ if (flag('--equivalence')) {
   for (const repo of pinnedClones()) {
     if (only.length && !only.includes(repo.name)) continue;
     ran++;
-    const res = equivalence(repo, repo.dir, zeroConfigEnv());
+    const res = equivalence(repo, repo.dir, noPythonEnv());
     if (res.failures.length) {
       bad++;
       console.log(`[warm-cache] FAIL ${repo.name}`);
@@ -274,7 +276,7 @@ for (const name of names) {
   const entry = { name, commit: checkoutState(dataRoot, repo).head, situations: {} };
   const situations = [];
   if (py) situations.push(['python3-present', process.env]);
-  situations.push(['python3-absent', zeroConfigEnv()]);
+  situations.push(['python3-absent', noPythonEnv()]);
   for (const [label, env] of situations) {
     console.log(`[perf] ${name} · ${label} · ${runs} run(s) per arm ...`);
     const r = measure(srcDir, name, env, runs, base);
