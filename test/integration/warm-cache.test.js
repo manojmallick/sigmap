@@ -452,6 +452,19 @@ if (HAVE_PYTHON) {
     assert.ok('src/service.py' in cacheOf(dir).files, 'and its answer is kept');
   });
 
+  test('what picks the Python a version-manager shim runs is part of the key', () => {
+    const dir = project();
+    backdate(dir);
+    const env = (extra) => Object.assign({}, process.env, extra);
+    run(dir, { env: env({ PYENV_VERSION: '3.8.0' }) });
+    assert.strictEqual(run(dir, { env: env({ PYENV_VERSION: '3.8.0' }) }).extracted, 0, 'the same selection is a warm run');
+    const switched = run(dir, { env: env({ PYENV_VERSION: '3.12.0' }) });
+    assert.strictEqual(switched.hits, 0, `another selected version re-extracts: ${switched.stderr}`);
+    run(dir, { env: env({ PYENV_VERSION: '3.12.0' }) });
+    fs.writeFileSync(path.join(dir, '.python-version'), '3.11.1\n');
+    assert.strictEqual(run(dir, { env: env({ PYENV_VERSION: '3.12.0' }) }).hits, 0, 'a .python-version file is part of the key too');
+  });
+
   test('the toolchain header survives a warm run when Python only lives in the test roots', () => {
     const dir = project({ 'src/app.js': FILES['src/app.js'], 'tests/test_a.py': 'def test_a():\n    assert True\n' });
     backdate(dir);
