@@ -68,6 +68,28 @@ function test(name, fn) {
     assert.ok(llms.includes(liftStr) || llmsFull.includes(liftStr), `llms files missing "${liftStr}"`);
   });
 
+  const { grepRank, NOT_COUNTED } = await import(require('url').pathToFileURL(path.join(ROOT, 'scripts/lib/grep-baseline.mjs')).href);
+  test('the published grep scan does not count the extraction cache, and counts every other SigMap file as before (#971)', () => {
+    const os = require('os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'grepscan-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+      fs.mkdirSync(path.join(dir, '.context'), { recursive: true });
+      fs.writeFileSync(path.join(dir, 'src', 'billing.js'), 'function invoice() {}\n');
+      const crowd = 'invoice billing refund ledger '.repeat(50);
+      fs.writeFileSync(path.join(dir, '.context', 'extract-cache.json'), crowd);
+      fs.writeFileSync(path.join(dir, '.context', 'sig-index.json'), crowd);
+      const tasks = [{ id: 't1', query: 'invoice billing refund ledger' }];
+      const { ranked, filesScanned } = grepRank(dir, tasks);
+      assert.deepStrictEqual([...NOT_COUNTED], ['.context/extract-cache.json']);
+      assert.ok(!ranked.get('t1').includes('.context/extract-cache.json'), `the cache took a top-5 place: ${ranked.get('t1')}`);
+      assert.ok(ranked.get('t1').includes('.context/sig-index.json'), 'the index is still counted, as in every earlier release');
+      assert.strictEqual(filesScanned, 2, 'the cache is not part of the repository size that picks the bucket either');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test('benchmark script is zero-dep — no child processes, no shell', () => {
     const src = fs.readFileSync(path.join(ROOT, 'scripts/run-honest-benchmark.mjs'), 'utf8');
     assert.ok(!/child_process|execSync|execFileSync|spawnSync|shell:\s*true/.test(src),
