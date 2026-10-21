@@ -742,8 +742,8 @@ test('a run lists the source directory once for the walkers that share it', () =
   pr.reset();
   run(dir, { env });
   const listed = pr.lines().filter((l) => l === `list ${path.join(dir, 'src')}`).length;
-  // the file walker and the coverage walker share one listing; the config detection (before the run) lists it too
-  assert.ok(listed <= 3, `src was listed ${listed} times`);
+  // the file walker and the coverage walker share one listing (without the shared one it is listed three times)
+  assert.strictEqual(listed, 1, `src was listed ${listed} times`);
 });
 
 test('several runs at once leave a whole cache file and no temporary one', () => {
