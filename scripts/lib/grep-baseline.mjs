@@ -27,6 +27,18 @@ const SKIP_DIRS = new Set([
 ]);
 const MAX_FILE_BYTES = 1024 * 1024; // grep-realistic cap; skips lockfile giants
 
+/**
+ * The one SigMap-written file the published scan does not count: the extraction cache (#971).
+ *
+ * The published scan counts SigMap's own files on purpose (the autopsy reports what that costs
+ * grep: `.context/sig-index.json` and the context files take about a fifth of the top-5 places),
+ * so that its figure stays comparable from release to release. The extraction cache did not exist
+ * before v8.81.0 and sits in every indexed clone; counting it would have moved the published grep
+ * baseline from 39.2% to 34.4% (lift 2.37x to 2.70x) with no change to SigMap's 92.8%. Leaving it out keeps
+ * the series what it was. Every other file SigMap writes is counted exactly as before.
+ */
+const NOT_COUNTED = new Set(['.context/extract-cache.json']);
+
 const norm = (p) => String(p).replace(/\\/g, '/').replace(/^\.\//, '');
 
 /** Significant literal query terms — no stemming; grep matches literals. */
@@ -86,6 +98,7 @@ function grepRank(repoPath, tasks, { skipFile = null } = {}) {
         continue;
       }
       if (!e.isFile()) continue;
+      if (NOT_COUNTED.has(norm(path.relative(repoPath, full)))) continue;
       if (skipFile && skipFile(norm(path.relative(repoPath, full)))) continue;
       filesScanned++;
       let buf;
@@ -121,7 +134,7 @@ function grepRank(repoPath, tasks, { skipFile = null } = {}) {
   return { ranked, filesScanned };
 }
 
-export { SKIP_DIRS, MAX_FILE_BYTES, terms, gitignoreDirs, grepRank };
+export { SKIP_DIRS, MAX_FILE_BYTES, NOT_COUNTED, terms, gitignoreDirs, grepRank };
 
 /**
  * Every file SigMap itself writes into a repository: each adapter's output and the `.context/`
