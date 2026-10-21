@@ -76,3 +76,21 @@ jobs:
       # instead of passing without checking anything: record floors for the new version.
       - name: Extraction recall (floors against the reference parsers)
         run: npm run validate:extraction-recall -- --require-reference
+      # A re-run reads an extraction cache (#971). The promise that makes it safe to ship: on each pinned
+      # clone a cached run, cold or warm or after one changed file, writes exactly what a run without the
+      # cache writes. Python is shadowed so every runner extracts the same way.
+      - name: Warm-cache equivalence (cache on == cache off, byte for byte)
+        run: npm run validate:warm-cache
+        timeout-minutes: 45
+      # What a re-run costs on Django, as CPU time with the runner and its load noted. Report-only: a shared
+      # runner is too noisy to gate on; the figures are in the job log and the uploaded report.
+      - name: Re-run cost on Django (report only)
+        continue-on-error: true
+        run: node scripts/run-perf-benchmark.mjs --repos django --runs 3 --save
+      - name: Upload the perf report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-report
+          path: benchmarks/reports/perf.json
+          if-no-files-found: ignore

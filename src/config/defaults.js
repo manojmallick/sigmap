@@ -239,6 +239,12 @@ const DEFAULTS = {
   // Enable incremental signature cache (v6.7) - only re-extract changed files
   sigCache: false,
 
+  // Content-hash extraction cache (#971): a re-run costs the files that changed. Entries live
+  // in `.context/extract-cache.json`, are keyed by the SHA-1 of the file and by a fingerprint
+  // of everything else the extraction depends on, and give a warm run byte-identical output.
+  // Not used with `exactness.typescript|lsp|scip`, whose answers come from outside the file.
+  extractCache: true,
+
   // Add reverse dependency usage hints on file headings (opt-in)
   impactRadius: false,
 

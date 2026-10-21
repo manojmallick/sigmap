@@ -282,8 +282,11 @@ test('a one-file package reports one file and no negative token reduction', () =
     });
     const result = runMonorepo(tmp);
     assert.strictEqual(result.status, 0, result.stderr);
-    assert.ok(/ Coverage {7}: \w \(\d+%\)\s+— 1 of 1 source files included/.test(result.stderr),
-      `expected "1 of 1 source files included":\n${result.stderr}`);
+    // The summary names two populations (#971): what the index holds and what fits the context file.
+    assert.ok(/ In context {5}: 1 of 1 source files \(\d+%\)/.test(result.stderr),
+      `expected "1 of 1 source files" in context:\n${result.stderr}`);
+    assert.ok(/ Indexed {8}: 1 of 1 files with symbols \(100%\)/.test(result.stderr),
+      `expected "1 of 1 files with symbols" indexed:\n${result.stderr}`);
     assert.ok(!/2 of 2 source files/.test(result.stderr), result.stderr);
     const line = result.stderr.match(/^ Token reduction: (.*)$/m);
     assert.ok(line, `no Token reduction line:\n${result.stderr}`);

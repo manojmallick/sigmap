@@ -327,6 +327,7 @@ Before v8.51.0 these layouts were badly under-detected — the scan looked two d
 | `secretScan` | `boolean` | `true` | Scan output for 15 credential patterns before writing. Matching content is replaced with `[REDACTED]`. Patterns: AWS keys, GitHub tokens, JWTs, database URLs, SSH keys, GCP keys, Stripe keys, Twilio keys, Slack tokens/webhooks, OpenAI and Anthropic keys (v8.54.1), generic passwords/api_keys. The unquoted `password=value` variant is text-only and applies to [`redact`](/guide/cli#redact), not to signature scanning. |
 | `monorepo` | `boolean` | `false` | See Source scanning above. |
 | `sigCache` | `boolean` | `false` | Enable incremental signature cache. When true, caches extracted signatures with mtime-based validation. Cache is automatically busted on version changes. Skips re-extraction of unchanged files for faster subsequent runs. |
+| `extractCache` | `boolean` | `true` | Content-hash extraction cache (#971): a re-run costs the files that changed. Entries live in `.context/extract-cache.json` (self-ignoring), keyed by the SHA-1 of each file and by a fingerprint of everything else the extraction depends on. A warm run's output is byte-identical to a cold run's. Set `false` to extract every file on every run. |
 | `sessionBudgetTokens` | `number\|null` | `null` | Opt-in per-session budget for **estimated SigMap-emitted tokens** (chars/4). When set, [`sigmap budget`](/guide/cli#budget) and the MCP `get_budget` tool report remaining tokens, percent used, and an over-budget flag. Counts only what SigMap outputs — not the host chat's total spend. |
 | `contextTtlDays` | `number\|null` | `null` | Opt-in staleness threshold: when the newest generated context file is older than this many days, `budget`/`get_budget` flag it `STALE` and advise re-running sigmap. |
 | `session.retention.days` | `number` | `90` | Sessions in `.context/sessions.ndjson` whose last event is older than this fold into monthly rollups and their raw events are dropped. See [Session capture](/guide/cli#session). |
@@ -410,6 +411,22 @@ Enable incremental signature caching with mtime-based validation. When enabled, 
 ```json
 {
   "sigCache": true
+}
+```
+
+### extractCache
+
+**Default `true`.** A generate run keeps what it derives from each file, so the next run costs only the files that changed. On Django (3,000 source files) a re-run with nothing changed takes about a sixth of the first run's CPU time with `python3` on `PATH` (0.48 s against 2.9 s on a CI runner) and about a third without it (0.50 s against 1.7 s: the first run is cheaper there, while the fixed cost of starting up, listing the tree and reading the configuration is the same); one changed file adds about 0.05-0.2 s. `npm run benchmark:perf` measures it on your machine and writes `benchmarks/reports/perf.json` with the load average beside every figure.
+
+What is kept, in `.context/extract-cache.json`, per file: the signatures the extractor returned, the imports, the line and token counts, the module-doc line and, once the output asked for them, the TODO lines. Signatures and doc lines are kept after the secret scan, so a credential in a signature never reaches this file. A file is served from the cache when its size and modification time are what they were *and* the entry is more than two seconds older than that modification (the rule git applies to a "racily clean" file); otherwise it is read and hashed, and the entry is used only if the hash matches. The git answers behind `## recent changes` and the hot-file ordering are kept too, keyed by the commit ids of the range (and, for the ordering, by the repository's shallow boundary, so deepening a shallow clone is noticed).
+
+What discards the whole cache: a different SigMap version, any change to the extractors or to the generator's own code, `depMap` or `secretScan` switched, an extraction ceiling above 1,000 signatures a file (the extractors always read up to 1,000, so `maxSigsPerFile` and `maxIndexSigsPerFile` below that change nothing the cache holds), or a different `python3`: another binary, another `PYENV_VERSION` / `VIRTUAL_ENV` / `CONDA_PREFIX`, another `.python-version` (the AST tier and the regex fallback return different lists). With no `python3` on `PATH` the regex tier's answer is the settled one and is kept. A `python3` that is there but fails (a version-manager shim with no version selected, a stub, a batch that crashed or timed out) gives the regex tier's answer for that run only: those Python files are not kept, so the next run asks again. A deleted or renamed file is dropped on the next run. The cache is not used at all when `exactness.typescript`, `exactness.lsp` or `exactness.scip` is on, because those answers come from outside the file.
+
+Limits worth knowing: a file whose content changes while its size and modification time do not (a tool that restores timestamps, or a network filesystem whose clock lags the machine's) is not noticed until its size or time moves, or the cache is deleted; a file that becomes unreadable (a permissions change leaves the modification time alone) is still served until it changes. The recent-changes entries do not notice a change to git's own configuration, to a nested `.gitattributes` or `.git/info/attributes`, or `git replace` and grafts, only to HEAD, the range, the shallow boundary and the top-level `.gitattributes`. Deleting `.context/extract-cache.json` (or `extractCache: false`) is always the way out.
+
+```json
+{
+  "extractCache": false
 }
 ```
 
