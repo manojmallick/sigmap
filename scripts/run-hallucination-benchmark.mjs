@@ -125,11 +125,19 @@ function definedNames(repoDir) {
   return { names, files: files.length };
 }
 
-/** Symbols SigMap surfaces in its index (resolvable by get_callee_signatures). */
+/**
+ * Symbols SigMap surfaces in its index (resolvable by get_callee_signatures).
+ *
+ * Everything the index keeps: since #982 that is the list the ranker reads (`files`, the first
+ * `maxSigsPerFile`) AND the rest (`more`, up to `maxIndexSigsPerFile`), and `get_callee_signatures`
+ * looks a symbol up in both. Counting only the first list measured a design the tool no longer has: the
+ * universe below is whatever the extractors list (up to 200 a file), so a Python file past 25 symbols
+ * read as ungrounded and click, httpx and rich fell under their floors.
+ */
 function indexedNames(repoDir) {
   const names = new Set();
   try {
-    for (const sigs of buildSigIndex(repoDir).values()) {
+    for (const sigs of buildSigIndex(repoDir, { full: true }).values()) {
       for (const sig of sigs) { const n = defName(sig); if (n) names.add(n); }
     }
   } catch (_) {}

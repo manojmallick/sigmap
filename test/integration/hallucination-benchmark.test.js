@@ -59,6 +59,23 @@ function withRepo(fn) {
     });
   });
 
+  test('a file past the context limit is grounded by what the index keeps, not only by the first 25 (#982)', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gbench-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+      // 40 functions: the ranker reads the first 25, the index keeps all 40 and get_callee_signatures finds all 40.
+      fs.writeFileSync(path.join(dir, 'src', 'big.js'),
+        Array.from({ length: 40 }, (_, i) => `function member${i}(a) { return a + ${i}; }\n`).join(''));
+      execFileSync(process.execPath, [GEN], { cwd: dir, stdio: 'ignore' });
+      const m = measureGrounding(dir);
+      assert.strictEqual(m.total, 40);
+      assert.strictEqual(m.grounded, 40, `the index keeps 40 symbols; counting only the first list reads ${m.grounded}`);
+      assert.strictEqual(m.coverage, 1);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test('measureGrounding shape is stable', () => {
     withRepo((dir) => {
       const m = measureGrounding(dir);
