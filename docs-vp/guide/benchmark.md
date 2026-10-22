@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v8.80.1 benchmark snapshot. 95.7% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
+description: Official v8.81.0 benchmark snapshot. 95.7% average token reduction across 21 repos, 80.4% retrieval hit@5, 44.4% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v8.80.1 snapshot with R language"
+      content: "SigMap benchmark overview — v8.81.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.80.1 benchmark run (2026-10-18) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.81.0 benchmark run (2026-10-21) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,15 +15,15 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.80.1 benchmark snapshot (21 repos, including R language)
+::: info Official v8.81.0 benchmark snapshot (21 repos, including R language)
 **Benchmark ID:** sigmap-v8.80-main &nbsp;·&nbsp; **Date:** 2026-10-18
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 39.2% single-shot grep — **2.37× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 40.0% single-shot grep — **2.32× lift** |
 | Token reduction (21 repos) | **95.7%** |
-| Honest lift (vs grep agent) | **2.37×** |
+| Honest lift (vs grep agent) | **2.32×** |
 | Prompt reduction | **44.4%** (2.84 → 1.6) |
 | Task success proxy | **61.9%** |
 | Test discovery (impl→test) | **F1 98.0%** · hit@1 97.4% (28 repos) |
@@ -39,9 +39,9 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.80.1 snapshot (with R language support)
+## Official v8.81.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-10-18 (v8.80.1)**
+Latest saved benchmark run: **2026-10-21 (v8.81.0)**
 
 Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
 
@@ -63,7 +63,7 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 | Average token reduction (all 21) | **95.7%** |
 | Retrieval hit@5 (18 core) | **80.4%** |
 | Graph-boosted hit@5 | **80.4%** |
-| Grep-agent baseline hit@5 (125 tasks, 19 repos) | 39.2% — **2.37× honest lift** |
+| Grep-agent baseline hit@5 (125 tasks, 19 repos) | 40.0% — **2.32× honest lift** |
 | Random baseline hit@5 (data only, no longer quoted) | 13.6% |
 | Prompt reduction | **44.4%** (2.84 → 1.6 prompts) |
 | GPT-4o overflow repos without SigMap | **14 / 21** |
@@ -88,8 +88,8 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 
 - SigMap hit@5 (honest corpus, 125 tasks): **92.8%**
 - SigMap hit@5 (retrieval corpus, 105 tasks): **80.4%** — graph-boosted **80.4%** (+0.0pp)
-- Grep-agent baseline: **39.2%** (single-shot, `npm run benchmark:honest`)
-- Honest lift: **2.37x** (+53.6pt vs grep; random baseline 13.6% kept as data only)
+- Grep-agent baseline: **40.0%** (single-shot, `npm run benchmark:honest`)
+- Honest lift: **2.32x** (+52.8pt vs grep; random baseline 13.6% kept as data only)
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 
@@ -130,7 +130,7 @@ This is the best benchmark when the question is: *"When SigMap points at a file,
 - The corpus includes cases the detectors currently get wrong (a real bare import the judge cannot clear without a `package.json`, a fake name that is a substring of a real one) — they are recorded in the floors, so a fix raises the number and a regression lowers it
 - Reproduce: `npm run benchmark:grounding-regression`
 
-The related `npm run benchmark:grounding` reports *ground-truth availability* — how many in-scope symbols the index surfaces, per repo. Its universe is the generator's own resolved scope, a repo that measures nothing fails the run instead of printing a row, and `npm run validate:grounding-coverage` gates each repo against its own recorded floor.
+The related `npm run benchmark:grounding` reports *ground-truth availability* — how many in-scope symbols the index surfaces (everything it keeps, `files` and `more`, as `get_callee_signatures` looks a symbol up), per repo. Its universe is the generator's own resolved scope, a repo that measures nothing fails the run instead of printing a row, and `npm run validate:grounding-coverage` gates each repo against its own recorded floor.
 
 This is the best benchmark when the question is: *"When an AI answer cites a file, symbol or import, how often is SigMap right about whether it is real?"*
 
@@ -147,6 +147,25 @@ This is the best benchmark when the question is: *"When an AI answer cites a fil
 No figure from it is published yet — the harness ships ready, the numbers come from a live run. Until then every tool-call, token-cost and task-success claim elsewhere on this page remains what it says it is: modelled.
 
 This is the best benchmark when the question is: *"Does an agent with SigMap actually use fewer tool calls and tokens, and still find the right file?"*
+
+### 8. Re-run cost (CPU time)
+
+- **Measured, not modelled:** `npm run benchmark:perf` copies a pinned clone, then times the generator three ways on a fresh copy each time: cold (empty `.context/`), warm (immediately again, nothing changed) and warm with one source file changed. The figure is **CPU time (user plus system) of the whole process tree**, the median of several runs, read from the shell's own `times` builtin, with the machine and the load average beside it and every sample in `benchmarks/reports/perf.json`. Wall time is recorded and is not the figure.
+- Run twice per clone: with `python3` on `PATH` (the Python AST tier) and with none (the regex tier), because the first run costs very different amounts.
+- Report-only in CI (a shared runner is too noisy to gate on): the `xrepo` job runs it on Django and uploads the report as the `perf-report` artifact. The promise that makes the cache safe, that a cached run writes exactly what an uncached one writes, **is** gated: `npm run validate:warm-cache` (50 of 50 local clones, 25 of 25 in CI).
+
+| Django, CPU time | python3 | cold | warm | one file changed | warm / cold |
+|---|---|---:|---:|---:|---:|
+| CI runner 1 (4 cpus, load 1.4) | on PATH | 2.90 s | 0.48 s | 0.55 s | 17% |
+| | none | 1.68 s | 0.50 s | 0.51 s | 30% |
+| CI runner 2 (4 cpus, load 1.1) | on PATH | 5.16 s | 0.77 s | 0.84 s | 15% |
+| | none | 2.83 s | 0.77 s | 0.79 s | 27% |
+
+The #971 criterion was a warm run at no more than 25% of cold: met with `python3`, not without it (the first run is cheap there, so the fixed floor of about 0.5 s is a larger share). Before the cache a second run cost as much as the first.
+
+What the READMEs of other tools say about speed, for context, read on 2026-10-18 at the commit the [comparison page](/guide/compare-alternatives) pins, on their machines and repositories, **not run here**: code-review-graph, [README](https://github.com/tirth8205/code-review-graph/blob/d72e8fbf7ef571b668c26a4222a284bf7792e7a1/README.md): "a cold build of a ~3,000-file repository took about 40 seconds" and, on django, "a two-file edit re-indexes in about 2.5 seconds on the path the hooks use, of which ~1.4 s is process start-up"; codebase-memory-mcp, [README](https://github.com/DeusData/codebase-memory-mcp/blob/354ccecbe612a9fdb624396a6738fa87f2617434/README.md): "Linux kernel (28M LOC, 75K files) in 3 minutes".
+
+This is the best benchmark when the question is: *"How long does a second `sigmap` run take, and is it allowed to be different from the first?"*
 
 ## Open the HTML dashboard
 

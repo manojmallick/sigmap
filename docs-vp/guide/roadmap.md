@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.80.1, with the latest release making a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
+description: SigMap version history and roadmap. From v0.0 to v8.81.0, with the latest release giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Two hundred fifty versions shipped. MIT open source from day one.
 
-**Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.37× measured lift vs single-shot grep (92.8% vs 39.2%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
+**Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.32× measured lift vs single-shot grep (92.8% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,33 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.81.0 — the index keeps 200 signatures a file, a re-run costs a sixth of the first, and extraction recall is measured ✓ (2026-10-21)
+
+**Minor.** `maxSigsPerFile` (25) is a token budget for the generated context file, yet the retrieval index inherited it, so on Django the index held 57–76% of the public symbols and `verify` flagged real ones ([#982](https://github.com/manojmallick/sigmap/issues/982), PR [#1014](https://github.com/manojmallick/sigmap/pull/1014)). The index now has its own limit, `maxIndexSigsPerFile` (200), and keeps two lists per file: `files`, the first `maxSigsPerFile`, **byte-identical to v8.80.1's** (so ranking cannot change), and `more`, the rest, read only by the tools that look a symbol up (`verify`, `verify-plan`, `search_signatures`, `explain_file`, `get_callee_signatures`). The first design cut a longer list at rank time and two independent reviews broke it; the context file is unchanged (sha256 equal on five repositories). The numbers come from [#983](https://github.com/manojmallick/sigmap/issues/983) (PR [#1013](https://github.com/manojmallick/sigmap/pull/1013)): `npm run validate:extraction-recall` asks CPython's `ast` and Ruby's Ripper what each file of the pinned Flask, Django, Rails and Sidekiq clones defines and counts how many of those names SigMap lists, with floors per reference version enforced in CI.
+
+```
+Index as shipped, against the language's own parser      v8.80.1    v8.81.0
+  Python + python3  class / function / method           64.0 / 87.9 / 57.5 %    98.8 / 100.0 / 98.6 %
+  Python, no python3  class / function / method         65.0 / 77.3 / 57.1 %    99.3 / 98.5 / 90.6 %
+  Ruby (298 files)  class / module / method / owner     92.1 / 98.7 / 88.0 / 88.0 %    100 / 100 / 98.3 / 100 %
+```
+
+A second `sigmap` run used to cost as much as the first (warm 7.5 s against cold 7.3 s on Django) and the first graded a complete index "D (5%)" because the context file held 139 of 3,014 files ([#971](https://github.com/manojmallick/sigmap/issues/971), PR [#1016](https://github.com/manojmallick/sigmap/pull/1016)). An extraction cache, `.context/extract-cache.json`, keeps what a run derives from each file, keyed by its SHA-1 and by a fingerprint of everything else the answer depends on; a file whose size and modification time are unchanged is not read at all, and the git answers behind `## recent changes` are kept per commit range. The run summary now reads `Indexed : 2,069 of 2,069 files with symbols` and `In context : 139 of 3,014 source files`, neither graded by the other.
+
+```
+Re-run of Django, CPU time (CI runner, 4 cpus, load 1.1-1.4, median of 3)   cold      warm      one file changed
+  python3 on PATH                                                            2.90 s    0.48 s    0.55 s     (17%)
+  no python3                                                                 1.68 s    0.50 s    0.51 s     (30%)
+```
+
+A cache is only worth shipping if it cannot be wrong, so `npm run validate:warm-cache` runs, on every clone under `benchmarks/repos`, the same sequence with the cache on and off (first run, second run, after one changed file) and fails unless the context file and the retrieval index are identical: 50 of 50 locally and 25 of 25 in CI. An independent review of the cache found five defects (a failing `python3` cached as the AST tier's answer, credentials in the cache file, a lost toolchain header, a false "fits the context file" for three strategies, a stale ordering after deepening a shallow clone); each is fixed with a test, and a sweep of 47 deliberate bugs is caught in full.
+
+**Tags:** `maxIndexSigsPerFile`, `more`, `extractCache`, `extract-cache.json`, `dir-listing`, `validate:extraction-recall`, `validate:warm-cache`, `benchmark:perf`, `#982`, `#971`, `#983`
+
+**Impact:** every published figure holds except two readings of this repository's own corpus. Token reduction 95.7%, hit@5 80.4%, task success 61.9%, prompt reduction 44.4%, test-discovery F1 98.0%, the grounding corpus and the third-party gate reproduce v8.80.1 leaf for leaf. On the honest comparison SigMap's 92.8% (116 of 125) is unchanged, its MRR reads 0.767 where it read 0.758 (the self-repo task set is scored against the repository), and the single-shot grep baseline reads 40.0% (50 of 125) where v8.80.1 read 39.2% (49), the lift 2.32× where it read 2.37×; an untouched merged `develop` reads the same, so it is the merged code. Counting the extraction cache in that scan would have read 34.4% and 2.70× (SigMap's own files taking 187 of the 625 top-5 places instead of 129), a lift made larger by a file the scan should not rank, so the published scan leaves that one file out (PR #1018) and the like-for-like reading, SigMap's files left out, is 46.4%, 2.00×. `hard` reads 70.0% (63 of 90) against 71.1% (64) on a clean tree of v8.80.1: `h062` went from rank 4 to rank 7 because the release added `src/util/dir-listing.js` and rewrote the header of `src/cache/entry.js`, and both now hold words of its question; the ranker is unchanged and the floor, 70.0%, has no task of headroom. The grounding-coverage benchmark, which runs in no CI job, failed on merged develop (click, httpx and rich under their floors) because it counted only the first 25 signatures of a file; it counts the whole index now (PR #1017), 74.4% to 100.0% over 43 repositories, with the floors re-recorded by the gate's own flag.
 
 ---
 
