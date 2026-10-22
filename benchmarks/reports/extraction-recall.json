@@ -1,0 +1,757 @@
+{
+  "schema": 1,
+  "benchmark": "extraction-recall",
+  "method": "scripts/run-extraction-recall.mjs",
+  "languages": {
+    "python": {
+      "measured": true,
+      "reference": {
+        "name": "CPython ast",
+        "version": "3.9.6"
+      },
+      "pins": {
+        "flask": "2ac8988",
+        "django": "a461af8"
+      },
+      "populations": {
+        "extractor-regex": {
+          "label": "regex tier, as a machine without python3 runs it",
+          "filesCompared": 266,
+          "rows": [
+            {
+              "kind": "class",
+              "reference": 901,
+              "found": 895,
+              "recall": 99.3,
+              "skipped": 0,
+              "missed": 6
+            },
+            {
+              "kind": "func",
+              "reference": 586,
+              "found": 577,
+              "recall": 98.5,
+              "skipped": 88,
+              "missed": 9
+            },
+            {
+              "kind": "method",
+              "reference": 3002,
+              "found": 2723,
+              "recall": 90.7,
+              "skipped": 933,
+              "missed": 279
+            }
+          ],
+          "misses": {
+            "class": [
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMeta",
+              "django/django/db/models/fields/__init__.py :: AutoField",
+              "django/django/db/models/fields/__init__.py :: BigAutoField",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField",
+              "django/django/db/models/manager.py :: Manager"
+            ],
+            "func": [
+              "django/django/core/management/commands/diffsettings.py :: module_to_dict",
+              "django/django/core/management/utils.py :: run_formatters",
+              "django/django/db/models/fields/__init__.py :: return_None",
+              "django/django/utils/ipv6.py :: clean_ipv6_address",
+              "django/django/utils/termcolors.py :: colorize",
+              "django/django/utils/termcolors.py :: make_style",
+              "django/django/utils/text.py :: get_text_list",
+              "flask/src/flask/helpers.py :: get_flashed_messages",
+              "flask/src/flask/helpers.py :: send_file"
+            ],
+            "method": [
+              "django/django/contrib/admin/helpers.py :: AdminForm.__init__",
+              "django/django/contrib/admin/helpers.py :: Fieldset.__init__",
+              "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.__init__",
+              "django/django/contrib/admin/helpers.py :: InlineAdminForm.__init__",
+              "django/django/contrib/admin/models.py :: LogEntryManager.log_actions",
+              "django/django/contrib/admin/options.py :: ModelAdmin.__init__",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_instances",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_urls",
+              "django/django/contrib/admin/options.py :: ModelAdmin.urls",
+              "django/django/contrib/admin/options.py :: ModelAdmin.media",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_model_perms",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_instance",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_object",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_formset",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_formsets_with_inlines",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_paginator",
+              "django/django/contrib/admin/options.py :: ModelAdmin.log_addition",
+              "django/django/contrib/admin/options.py :: ModelAdmin.log_change",
+              "django/django/contrib/admin/options.py :: ModelAdmin.log_deletions",
+              "django/django/contrib/admin/options.py :: ModelAdmin.action_checkbox",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_actions",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_action_choices",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_action",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_display",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_display_links",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_filter",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_select_related",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_search_fields",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_search_results",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_preserved_filters",
+              "django/django/contrib/admin/options.py :: ModelAdmin.construct_change_message",
+              "django/django/contrib/admin/options.py :: ModelAdmin.message_user",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_model",
+              "django/django/contrib/admin/options.py :: ModelAdmin.delete_model",
+              "django/django/contrib/admin/options.py :: ModelAdmin.delete_queryset",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_formset",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_related",
+              "django/django/contrib/admin/options.py :: ModelAdmin.render_change_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_add",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_change",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_post_save_add",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_post_save_change",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_action",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_delete",
+              "django/django/contrib/admin/options.py :: ModelAdmin.render_delete_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_formsets",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changeform_initial_data",
+              "django/django/contrib/admin/options.py :: ModelAdmin.changeform_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.add_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.change_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.changelist_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_deleted_objects",
+              "django/django/contrib/admin/options.py :: ModelAdmin.delete_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.history_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_formset_kwargs",
+              "django/django/contrib/admin/options.py :: InlineModelAdmin.__init__"
+            ]
+          }
+        },
+        "extractor-ast": {
+          "label": "AST tier, as a machine with python3 runs it",
+          "filesCompared": 266,
+          "rows": [
+            {
+              "kind": "class",
+              "reference": 901,
+              "found": 890,
+              "recall": 98.8,
+              "skipped": 0,
+              "missed": 11
+            },
+            {
+              "kind": "func",
+              "reference": 586,
+              "found": 586,
+              "recall": 100,
+              "skipped": 88,
+              "missed": 0
+            },
+            {
+              "kind": "method",
+              "reference": 3002,
+              "found": 2961,
+              "recall": 98.6,
+              "skipped": 933,
+              "missed": 41
+            }
+          ],
+          "misses": {
+            "class": [
+              "django/django/db/models/expressions.py :: Window",
+              "django/django/db/models/expressions.py :: WindowFrameExclusion",
+              "django/django/db/models/expressions.py :: WindowFrame",
+              "django/django/db/models/expressions.py :: RowRange",
+              "django/django/db/models/expressions.py :: ValueRange",
+              "django/django/db/models/fields/__init__.py :: UUIDField",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMeta",
+              "django/django/db/models/fields/__init__.py :: AutoField",
+              "django/django/db/models/fields/__init__.py :: BigAutoField",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField"
+            ],
+            "func": [],
+            "method": [
+              "django/django/db/models/expressions.py :: Window.__init__",
+              "django/django/db/models/expressions.py :: Window.get_source_expressions",
+              "django/django/db/models/expressions.py :: Window.set_source_expressions",
+              "django/django/db/models/expressions.py :: Window.as_sql",
+              "django/django/db/models/expressions.py :: Window.as_sqlite",
+              "django/django/db/models/expressions.py :: Window.get_group_by_cols",
+              "django/django/db/models/expressions.py :: WindowFrame.__init__",
+              "django/django/db/models/expressions.py :: WindowFrame.set_source_expressions",
+              "django/django/db/models/expressions.py :: WindowFrame.get_source_expressions",
+              "django/django/db/models/expressions.py :: WindowFrame.get_exclusion",
+              "django/django/db/models/expressions.py :: WindowFrame.as_sql",
+              "django/django/db/models/expressions.py :: WindowFrame.get_group_by_cols",
+              "django/django/db/models/expressions.py :: WindowFrame.window_frame_start_end",
+              "django/django/db/models/expressions.py :: RowRange.window_frame_start_end",
+              "django/django/db/models/expressions.py :: ValueRange.window_frame_start_end",
+              "django/django/db/models/fields/__init__.py :: BinaryField.get_placeholder_sql",
+              "django/django/db/models/fields/__init__.py :: BinaryField.get_default",
+              "django/django/db/models/fields/__init__.py :: BinaryField.get_db_prep_value",
+              "django/django/db/models/fields/__init__.py :: BinaryField.value_to_string",
+              "django/django/db/models/fields/__init__.py :: BinaryField.to_python",
+              "django/django/db/models/fields/__init__.py :: UUIDField.__init__",
+              "django/django/db/models/fields/__init__.py :: UUIDField.deconstruct",
+              "django/django/db/models/fields/__init__.py :: UUIDField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: UUIDField.get_prep_value",
+              "django/django/db/models/fields/__init__.py :: UUIDField.get_db_prep_value",
+              "django/django/db/models/fields/__init__.py :: UUIDField.to_python",
+              "django/django/db/models/fields/__init__.py :: UUIDField.formfield",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.__init__",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.check",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.deconstruct",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.validate",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.get_db_prep_value",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.get_db_prep_save",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.contribute_to_class",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.formfield",
+              "django/django/db/models/fields/__init__.py :: AutoField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: AutoField.rel_db_type",
+              "django/django/db/models/fields/__init__.py :: BigAutoField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: BigAutoField.rel_db_type",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField.rel_db_type"
+            ]
+          }
+        },
+        "index-regex": {
+          "label": "index as shipped on a machine without python3",
+          "filesCompared": 237,
+          "rows": [
+            {
+              "kind": "class",
+              "reference": 901,
+              "found": 895,
+              "recall": 99.3,
+              "skipped": 0,
+              "missed": 6
+            },
+            {
+              "kind": "func",
+              "reference": 586,
+              "found": 577,
+              "recall": 98.5,
+              "skipped": 86,
+              "missed": 9
+            },
+            {
+              "kind": "method",
+              "reference": 3002,
+              "found": 2721,
+              "recall": 90.6,
+              "skipped": 933,
+              "missed": 281
+            }
+          ],
+          "misses": {
+            "class": [
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMeta",
+              "django/django/db/models/fields/__init__.py :: AutoField",
+              "django/django/db/models/fields/__init__.py :: BigAutoField",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField",
+              "django/django/db/models/manager.py :: Manager"
+            ],
+            "func": [
+              "django/django/core/management/commands/diffsettings.py :: module_to_dict",
+              "django/django/core/management/utils.py :: run_formatters",
+              "django/django/db/models/fields/__init__.py :: return_None",
+              "django/django/utils/ipv6.py :: clean_ipv6_address",
+              "django/django/utils/termcolors.py :: colorize",
+              "django/django/utils/termcolors.py :: make_style",
+              "django/django/utils/text.py :: get_text_list",
+              "flask/src/flask/helpers.py :: get_flashed_messages",
+              "flask/src/flask/helpers.py :: send_file"
+            ],
+            "method": [
+              "django/django/contrib/admin/helpers.py :: AdminForm.__init__",
+              "django/django/contrib/admin/helpers.py :: Fieldset.__init__",
+              "django/django/contrib/admin/helpers.py :: InlineAdminFormSet.__init__",
+              "django/django/contrib/admin/helpers.py :: InlineAdminForm.__init__",
+              "django/django/contrib/admin/models.py :: LogEntryManager.log_actions",
+              "django/django/contrib/admin/options.py :: ModelAdmin.__init__",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_instances",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_urls",
+              "django/django/contrib/admin/options.py :: ModelAdmin.urls",
+              "django/django/contrib/admin/options.py :: ModelAdmin.media",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_model_perms",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_instance",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_object",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changelist_formset",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_formsets_with_inlines",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_paginator",
+              "django/django/contrib/admin/options.py :: ModelAdmin.log_addition",
+              "django/django/contrib/admin/options.py :: ModelAdmin.log_change",
+              "django/django/contrib/admin/options.py :: ModelAdmin.log_deletions",
+              "django/django/contrib/admin/options.py :: ModelAdmin.action_checkbox",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_actions",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_action_choices",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_action",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_display",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_display_links",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_filter",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_list_select_related",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_search_fields",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_search_results",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_preserved_filters",
+              "django/django/contrib/admin/options.py :: ModelAdmin.construct_change_message",
+              "django/django/contrib/admin/options.py :: ModelAdmin.message_user",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_model",
+              "django/django/contrib/admin/options.py :: ModelAdmin.delete_model",
+              "django/django/contrib/admin/options.py :: ModelAdmin.delete_queryset",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_formset",
+              "django/django/contrib/admin/options.py :: ModelAdmin.save_related",
+              "django/django/contrib/admin/options.py :: ModelAdmin.render_change_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_add",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_change",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_post_save_add",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_post_save_change",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_action",
+              "django/django/contrib/admin/options.py :: ModelAdmin.response_delete",
+              "django/django/contrib/admin/options.py :: ModelAdmin.render_delete_form",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_inline_formsets",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_changeform_initial_data",
+              "django/django/contrib/admin/options.py :: ModelAdmin.changeform_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.add_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.change_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.changelist_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_deleted_objects",
+              "django/django/contrib/admin/options.py :: ModelAdmin.delete_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.history_view",
+              "django/django/contrib/admin/options.py :: ModelAdmin.get_formset_kwargs",
+              "django/django/contrib/admin/options.py :: InlineModelAdmin.__init__"
+            ]
+          },
+          "filesTotal": 266,
+          "rowsAllFiles": [
+            {
+              "kind": "class",
+              "reference": 901,
+              "found": 895,
+              "recall": 99.3,
+              "skipped": 0,
+              "missed": 6
+            },
+            {
+              "kind": "func",
+              "reference": 586,
+              "found": 577,
+              "recall": 98.5,
+              "skipped": 88,
+              "missed": 9
+            },
+            {
+              "kind": "method",
+              "reference": 3002,
+              "found": 2721,
+              "recall": 90.6,
+              "skipped": 933,
+              "missed": 281
+            }
+          ]
+        },
+        "index-ast": {
+          "label": "index as shipped on a machine with python3",
+          "filesCompared": 237,
+          "rows": [
+            {
+              "kind": "class",
+              "reference": 901,
+              "found": 890,
+              "recall": 98.8,
+              "skipped": 0,
+              "missed": 11
+            },
+            {
+              "kind": "func",
+              "reference": 586,
+              "found": 586,
+              "recall": 100,
+              "skipped": 86,
+              "missed": 0
+            },
+            {
+              "kind": "method",
+              "reference": 3002,
+              "found": 2961,
+              "recall": 98.6,
+              "skipped": 933,
+              "missed": 41
+            }
+          ],
+          "misses": {
+            "class": [
+              "django/django/db/models/expressions.py :: Window",
+              "django/django/db/models/expressions.py :: WindowFrameExclusion",
+              "django/django/db/models/expressions.py :: WindowFrame",
+              "django/django/db/models/expressions.py :: RowRange",
+              "django/django/db/models/expressions.py :: ValueRange",
+              "django/django/db/models/fields/__init__.py :: UUIDField",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMeta",
+              "django/django/db/models/fields/__init__.py :: AutoField",
+              "django/django/db/models/fields/__init__.py :: BigAutoField",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField"
+            ],
+            "func": [],
+            "method": [
+              "django/django/db/models/expressions.py :: Window.__init__",
+              "django/django/db/models/expressions.py :: Window.get_source_expressions",
+              "django/django/db/models/expressions.py :: Window.set_source_expressions",
+              "django/django/db/models/expressions.py :: Window.as_sql",
+              "django/django/db/models/expressions.py :: Window.as_sqlite",
+              "django/django/db/models/expressions.py :: Window.get_group_by_cols",
+              "django/django/db/models/expressions.py :: WindowFrame.__init__",
+              "django/django/db/models/expressions.py :: WindowFrame.set_source_expressions",
+              "django/django/db/models/expressions.py :: WindowFrame.get_source_expressions",
+              "django/django/db/models/expressions.py :: WindowFrame.get_exclusion",
+              "django/django/db/models/expressions.py :: WindowFrame.as_sql",
+              "django/django/db/models/expressions.py :: WindowFrame.get_group_by_cols",
+              "django/django/db/models/expressions.py :: WindowFrame.window_frame_start_end",
+              "django/django/db/models/expressions.py :: RowRange.window_frame_start_end",
+              "django/django/db/models/expressions.py :: ValueRange.window_frame_start_end",
+              "django/django/db/models/fields/__init__.py :: BinaryField.get_placeholder_sql",
+              "django/django/db/models/fields/__init__.py :: BinaryField.get_default",
+              "django/django/db/models/fields/__init__.py :: BinaryField.get_db_prep_value",
+              "django/django/db/models/fields/__init__.py :: BinaryField.value_to_string",
+              "django/django/db/models/fields/__init__.py :: BinaryField.to_python",
+              "django/django/db/models/fields/__init__.py :: UUIDField.__init__",
+              "django/django/db/models/fields/__init__.py :: UUIDField.deconstruct",
+              "django/django/db/models/fields/__init__.py :: UUIDField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: UUIDField.get_prep_value",
+              "django/django/db/models/fields/__init__.py :: UUIDField.get_db_prep_value",
+              "django/django/db/models/fields/__init__.py :: UUIDField.to_python",
+              "django/django/db/models/fields/__init__.py :: UUIDField.formfield",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.__init__",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.check",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.deconstruct",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.validate",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.get_db_prep_value",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.get_db_prep_save",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.contribute_to_class",
+              "django/django/db/models/fields/__init__.py :: AutoFieldMixin.formfield",
+              "django/django/db/models/fields/__init__.py :: AutoField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: AutoField.rel_db_type",
+              "django/django/db/models/fields/__init__.py :: BigAutoField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: BigAutoField.rel_db_type",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField.get_internal_type",
+              "django/django/db/models/fields/__init__.py :: SmallAutoField.rel_db_type"
+            ]
+          },
+          "filesTotal": 266,
+          "rowsAllFiles": [
+            {
+              "kind": "class",
+              "reference": 901,
+              "found": 890,
+              "recall": 98.8,
+              "skipped": 0,
+              "missed": 11
+            },
+            {
+              "kind": "func",
+              "reference": 586,
+              "found": 586,
+              "recall": 100,
+              "skipped": 88,
+              "missed": 0
+            },
+            {
+              "kind": "method",
+              "reference": 3002,
+              "found": 2961,
+              "recall": 98.6,
+              "skipped": 933,
+              "missed": 41
+            }
+          ]
+        }
+      }
+    },
+    "ruby": {
+      "measured": true,
+      "reference": {
+        "name": "Ruby Ripper",
+        "version": "2.6.10"
+      },
+      "pins": {
+        "rails": "f9243af",
+        "sidekiq": "132f982"
+      },
+      "populations": {
+        "extractor": {
+          "label": "the extractor's output",
+          "filesCompared": 757,
+          "rows": [
+            {
+              "kind": "class",
+              "reference": 944,
+              "found": 944,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "module",
+              "reference": 1467,
+              "found": 1467,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "method",
+              "reference": 7292,
+              "found": 7196,
+              "recall": 98.7,
+              "skipped": 126,
+              "missed": 96
+            },
+            {
+              "kind": "owner",
+              "reference": 7292,
+              "found": 7291,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 1
+            }
+          ],
+          "misses": {
+            "class": [],
+            "module": [],
+            "method": [
+              "rails/actionpack/lib/action_dispatch/http/headers.rb :: Headers#[]",
+              "rails/actionpack/lib/action_dispatch/http/headers.rb :: Headers#[]=",
+              "rails/actionpack/lib/action_dispatch/http/param_error.rb :: ParamError.===",
+              "rails/actionpack/lib/action_dispatch/journey/gtg/transition_table.rb :: TransitionTable#[]=",
+              "rails/actionpack/lib/action_dispatch/journey/path/pattern.rb :: MatchData#[]",
+              "rails/actionpack/lib/action_dispatch/middleware/cookies.rb :: CookieJar#[]",
+              "rails/actionpack/lib/action_dispatch/middleware/cookies.rb :: CookieJar#[]=",
+              "rails/actionpack/lib/action_dispatch/middleware/cookies.rb :: AbstractCookieJar#[]",
+              "rails/actionpack/lib/action_dispatch/middleware/cookies.rb :: AbstractCookieJar#[]=",
+              "rails/actionpack/lib/action_dispatch/middleware/flash.rb :: FlashNow#[]=",
+              "rails/actionpack/lib/action_dispatch/middleware/flash.rb :: FlashNow#[]",
+              "rails/actionpack/lib/action_dispatch/middleware/flash.rb :: FlashHash#[]=",
+              "rails/actionpack/lib/action_dispatch/middleware/flash.rb :: FlashHash#[]",
+              "rails/actionpack/lib/action_dispatch/middleware/stack.rb :: Middleware#==",
+              "rails/actionpack/lib/action_dispatch/middleware/stack.rb :: MiddlewareStack#[]",
+              "rails/actionpack/lib/action_dispatch/request/session.rb :: Options#[]",
+              "rails/actionpack/lib/action_dispatch/request/session.rb :: Options#[]=",
+              "rails/actionpack/lib/action_dispatch/request/session.rb :: Session#[]",
+              "rails/actionpack/lib/action_dispatch/request/session.rb :: Session#[]=",
+              "rails/activerecord/lib/active_record/association_relation.rb :: AssociationRelation#==",
+              "rails/activerecord/lib/active_record/associations/collection_proxy.rb :: CollectionProxy#==",
+              "rails/activerecord/lib/active_record/associations/collection_proxy.rb :: CollectionProxy#<<",
+              "rails/activerecord/lib/active_record/attribute_methods/time_zone_conversion.rb :: TimeZoneConverter#==",
+              "rails/activerecord/lib/active_record/connection_adapters/abstract/schema_definitions.rb :: TableDefinition#[]",
+              "rails/activerecord/lib/active_record/connection_adapters/column.rb :: Column#==",
+              "rails/activerecord/lib/active_record/connection_adapters/mysql/type_metadata.rb :: TypeMetadata#==",
+              "rails/activerecord/lib/active_record/connection_adapters/postgresql/column.rb :: Column#==",
+              "rails/activerecord/lib/active_record/connection_adapters/postgresql/oid/array.rb :: Array#==",
+              "rails/activerecord/lib/active_record/connection_adapters/postgresql/oid/range.rb :: Range#==",
+              "rails/activerecord/lib/active_record/connection_adapters/postgresql/type_metadata.rb :: TypeMetadata#==",
+              "rails/activerecord/lib/active_record/connection_adapters/postgresql/utils.rb :: Name#==",
+              "rails/activerecord/lib/active_record/connection_adapters/sql_type_metadata.rb :: SqlTypeMetadata#==",
+              "rails/activerecord/lib/active_record/connection_adapters/sqlite3/column.rb :: Column#==",
+              "rails/activerecord/lib/active_record/connection_adapters/statement_pool.rb :: StatementPool#[]",
+              "rails/activerecord/lib/active_record/connection_adapters/statement_pool.rb :: StatementPool#[]=",
+              "rails/activerecord/lib/active_record/core.rb :: Core#==",
+              "rails/activerecord/lib/active_record/core.rb :: Core#<=>",
+              "rails/activerecord/lib/active_record/encryption/message.rb :: Message#==",
+              "rails/activerecord/lib/active_record/encryption/properties.rb :: Properties#[]=",
+              "rails/activerecord/lib/active_record/explain.rb :: Explain.inspect",
+              "rails/activerecord/lib/active_record/fixtures.rb :: FixtureSet#[]",
+              "rails/activerecord/lib/active_record/fixtures.rb :: FixtureSet#[]=",
+              "rails/activerecord/lib/active_record/fixtures.rb :: Fixture#[]",
+              "rails/activerecord/lib/active_record/internal_metadata.rb :: InternalMetadata#[]=",
+              "rails/activerecord/lib/active_record/internal_metadata.rb :: InternalMetadata#[]",
+              "rails/activerecord/lib/active_record/relation/from_clause.rb :: FromClause#==",
+              "rails/activerecord/lib/active_record/relation/predicate_builder.rb :: PredicateBuilder#[]",
+              "rails/activerecord/lib/active_record/relation/where_clause.rb :: WhereClause#+",
+              "rails/activerecord/lib/active_record/relation/where_clause.rb :: WhereClause#-",
+              "rails/activerecord/lib/active_record/relation/where_clause.rb :: WhereClause#|",
+              "rails/activerecord/lib/active_record/relation/where_clause.rb :: WhereClause#==",
+              "rails/activerecord/lib/active_record/result.rb :: IndexedRow#==",
+              "rails/activerecord/lib/active_record/result.rb :: IndexedRow#[]",
+              "rails/activerecord/lib/active_record/result.rb :: Result#[]",
+              "rails/activerecord/lib/active_record/schema.rb :: Schema.[]",
+              "rails/activerecord/lib/active_record/type/adapter_specific_registry.rb :: Registration#<=>",
+              "rails/activerecord/lib/active_record/type/internal/timezone.rb :: Timezone#==",
+              "rails/activesupport/lib/active_support/cache/serializer_with_fallback.rb :: SerializerWithFallback.[]",
+              "rails/activesupport/lib/active_support/core_ext/date_time/calculations.rb :: DateTime#<=>",
+              "rails/activesupport/lib/active_support/core_ext/range/compare_range.rb :: CompareWithRange#==="
+            ],
+            "owner": [
+              "rails/activerecord/lib/active_record/explain.rb :: Explain.inspect"
+            ]
+          }
+        },
+        "index": {
+          "label": "the index as shipped, after the per-file cap",
+          "filesCompared": 298,
+          "rows": [
+            {
+              "kind": "class",
+              "reference": 353,
+              "found": 353,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "module",
+              "reference": 450,
+              "found": 450,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "method",
+              "reference": 2325,
+              "found": 2286,
+              "recall": 98.3,
+              "skipped": 25,
+              "missed": 39
+            },
+            {
+              "kind": "owner",
+              "reference": 2325,
+              "found": 2325,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            }
+          ],
+          "misses": {
+            "class": [],
+            "module": [],
+            "method": [
+              "rails/activesupport/lib/active_support/cache/serializer_with_fallback.rb :: SerializerWithFallback.[]",
+              "rails/activesupport/lib/active_support/core_ext/date_time/calculations.rb :: DateTime#<=>",
+              "rails/activesupport/lib/active_support/core_ext/range/compare_range.rb :: CompareWithRange#===",
+              "rails/activesupport/lib/active_support/core_ext/string/output_safety.rb :: SafeBuffer#[]",
+              "rails/activesupport/lib/active_support/core_ext/string/output_safety.rb :: SafeBuffer#[]=",
+              "rails/activesupport/lib/active_support/core_ext/string/output_safety.rb :: SafeBuffer#+",
+              "rails/activesupport/lib/active_support/core_ext/string/output_safety.rb :: SafeBuffer#*",
+              "rails/activesupport/lib/active_support/core_ext/string/output_safety.rb :: SafeBuffer#%",
+              "rails/activesupport/lib/active_support/core_ext/time/calculations.rb :: Time#===",
+              "rails/activesupport/lib/active_support/deprecation/deprecators.rb :: Deprecators#[]",
+              "rails/activesupport/lib/active_support/deprecation/deprecators.rb :: Deprecators#[]=",
+              "rails/activesupport/lib/active_support/descendants_tracker.rb :: WeakSet#<<",
+              "rails/activesupport/lib/active_support/descendants_tracker.rb :: WeakSet#[]",
+              "rails/activesupport/lib/active_support/descendants_tracker.rb :: WeakSet#[]=",
+              "rails/activesupport/lib/active_support/descendants_tracker.rb :: WeakSet#<<",
+              "rails/activesupport/lib/active_support/execution_context.rb :: ExecutionContext#[]=",
+              "rails/activesupport/lib/active_support/hash_with_indifferent_access.rb :: HashWithIndifferentAccess.[]",
+              "rails/activesupport/lib/active_support/hash_with_indifferent_access.rb :: HashWithIndifferentAccess#[]=",
+              "rails/activesupport/lib/active_support/hash_with_indifferent_access.rb :: HashWithIndifferentAccess#[]",
+              "rails/activesupport/lib/active_support/inflector/inflections.rb :: Uncountables#<<",
+              "rails/activesupport/lib/active_support/isolated_execution_state.rb :: IsolatedExecutionState#[]",
+              "rails/activesupport/lib/active_support/isolated_execution_state.rb :: IsolatedExecutionState#[]=",
+              "rails/activesupport/lib/active_support/messages/rotation_coordinator.rb :: RotationCoordinator#[]",
+              "rails/activesupport/lib/active_support/messages/rotation_coordinator.rb :: RotationCoordinator#[]=",
+              "rails/activesupport/lib/active_support/messages/serializer_with_fallback.rb :: SerializerWithFallback.[]",
+              "rails/activesupport/lib/active_support/ordered_options.rb :: OrderedOptions#[]=",
+              "rails/activesupport/lib/active_support/ordered_options.rb :: OrderedOptions#[]",
+              "rails/activesupport/lib/active_support/ordered_options.rb :: InheritableOptions#==",
+              "rails/activesupport/lib/active_support/testing/parallelization.rb :: Parallelization#<<",
+              "rails/activesupport/lib/active_support/testing/parallelization/server.rb :: Server#<<",
+              "rails/activesupport/lib/active_support/testing/parallelization/thread_pool_executor.rb :: ThreadPoolExecutor#<<",
+              "rails/activesupport/lib/active_support/testing/parallelize_executor.rb :: ParallelizeExecutor#<<",
+              "rails/activesupport/lib/active_support/values/time_zone.rb :: TimeZone#[]",
+              "rails/activesupport/lib/active_support/values/time_zone.rb :: TimeZone#<=>",
+              "rails/activesupport/lib/active_support/values/time_zone.rb :: TimeZone#=~",
+              "sidekiq/lib/sidekiq.rb :: Sidekiq.❨╯°□°❩╯︵┻━┻",
+              "sidekiq/lib/sidekiq/launcher.rb :: Launcher#❤",
+              "sidekiq/lib/sidekiq/ring_buffer.rb :: RingBuffer#<<",
+              "sidekiq/lib/sidekiq/test_api.rb :: Queues#[]"
+            ],
+            "owner": []
+          },
+          "filesTotal": 757,
+          "rowsAllFiles": [
+            {
+              "kind": "class",
+              "reference": 944,
+              "found": 353,
+              "recall": 37.4,
+              "skipped": 0,
+              "missed": 591
+            },
+            {
+              "kind": "module",
+              "reference": 1467,
+              "found": 450,
+              "recall": 30.7,
+              "skipped": 0,
+              "missed": 1017
+            },
+            {
+              "kind": "method",
+              "reference": 7292,
+              "found": 2286,
+              "recall": 31.3,
+              "skipped": 126,
+              "missed": 5006
+            },
+            {
+              "kind": "owner",
+              "reference": 7292,
+              "found": 2325,
+              "recall": 31.9,
+              "skipped": 0,
+              "missed": 4967
+            }
+          ]
+        }
+      }
+    }
+  },
+  "unmeasured": {
+    "astro": "no reference-parser adapter yet",
+    "cpp": "no reference-parser adapter yet",
+    "csharp": "no reference-parser adapter yet",
+    "css": "no reference-parser adapter yet",
+    "dart": "no reference-parser adapter yet",
+    "dockerfile": "no reference-parser adapter yet",
+    "elixir": "no reference-parser adapter yet",
+    "gdscript": "no reference-parser adapter yet",
+    "go": "no reference-parser adapter yet",
+    "graphql": "no reference-parser adapter yet",
+    "html": "no reference-parser adapter yet",
+    "java": "no reference-parser adapter yet",
+    "javascript": "no reference-parser adapter yet",
+    "kotlin": "no reference-parser adapter yet",
+    "lua": "no reference-parser adapter yet",
+    "markdown": "no reference-parser adapter yet",
+    "objc": "no reference-parser adapter yet",
+    "php": "no reference-parser adapter yet",
+    "pipeline": "no reference-parser adapter yet",
+    "powershell": "no reference-parser adapter yet",
+    "properties": "no reference-parser adapter yet",
+    "protobuf": "no reference-parser adapter yet",
+    "r": "no reference-parser adapter yet",
+    "rust": "no reference-parser adapter yet",
+    "scala": "no reference-parser adapter yet",
+    "shell": "no reference-parser adapter yet",
+    "sql": "no reference-parser adapter yet",
+    "svelte": "no reference-parser adapter yet",
+    "swift": "no reference-parser adapter yet",
+    "terraform": "no reference-parser adapter yet",
+    "toml": "no reference-parser adapter yet",
+    "typescript": "no reference-parser adapter yet",
+    "typescript_react": "no reference-parser adapter yet",
+    "vue_sfc": "no reference-parser adapter yet",
+    "xml": "no reference-parser adapter yet",
+    "yaml": "no reference-parser adapter yet"
+  },
+  "version": "8.80.1",
+  "generated": "2026-10-19T20:51:51.348Z"
+}

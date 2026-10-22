@@ -986,6 +986,8 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
    * }}
    */
 
+  const dirListing = __require('./src/util/dir-listing');
+
   const CODE_EXTS = new Set([
     '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx',
     '.py', '.rb', '.go', '.rs', '.java', '.kt',
@@ -1191,7 +1193,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     const path = require('path');
     if (depth > OWNED_WALK_MAX_DEPTH) return;
     let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    try { entries = dirListing.list(dir); } catch (_) { return; }
     if (depth > 0 && entries.some((e) => e.name === '.git')) return; // a repo of its own
     for (const e of entries) {
       if (excludeSet.has(e.name)) continue;
@@ -1205,7 +1207,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     const fs   = require('fs');
     const path = require('path');
     let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    try { entries = dirListing.list(dir); } catch (_) { return; }
     for (const e of entries) {
       if (excludeSet.has(e.name)) continue;
       const full = path.join(dir, e.name);
@@ -1341,7 +1343,7 @@ __factories["./src/analysis/diagnostics"] = function(module, exports) {
   }
 
   function computeFileMetrics(entry) {
-    const loc = entry.content ? entry.content.split('\n').length : 1;
+    const loc = typeof entry.loc === 'number' ? entry.loc : (entry.content ? entry.content.split('\n').length : 1);
     const sigCount = entry.sigs ? entry.sigs.length : 0;
     const signalQuality = loc > 0 ? sigCount / loc : 0;
     const tokens = estimateTokens(entry.sigs.join('\n'));
@@ -2031,7 +2033,7 @@ __factories["./src/cache/entry"] = function(module, exports) {
    * went through them replaced a redacted base entry with one carrying the secret,
    * and dropped the module-doc line. Now the stages live here, once:
    *
-   *   extract → cap at maxSigsPerFile → redact secrets → module-doc line / terse
+   *   extract → cap at the index limit → redact secrets → module-doc line / terse
    *
    * The CLI core's `detectAndExtract` stays the extractor for generate and the
    * watcher (it owns the opt-in exactness tiers and the generic fallback); the
@@ -2069,9 +2071,11 @@ __factories["./src/cache/entry"] = function(module, exports) {
    * @param {string} content
    * @param {string[]} sigs
    * @param {{terse?: boolean}} config
+   * @param {string} [precomputedDoc] - the file's module-doc line when already known (the extraction cache
+   *        holds it), so the file need not be read; '' means the file has none
    * @returns {string[]}
    */
-  function indexSigsFor(filePath, content, sigs, config) {
+  function indexSigsFor(filePath, content, sigs, config, precomputedDoc) {
     let out = sigs;
     try {
       // TRIED AND REJECTED: also indexing every per-symbol doc sentence
@@ -2083,7 +2087,7 @@ __factories["./src/cache/entry"] = function(module, exports) {
       // describe internal helpers, so they broaden what each file matches
       // without making any file a better answer.
       const { moduleDocSig } = __require('./src/retrieval/module-doc');
-      const doc = moduleDocSig(content, filePath);
+      const doc = typeof precomputedDoc === 'string' ? precomputedDoc : moduleDocSig(content, filePath);
       // The header is prose lifted from the file, so it is scanned like a signature:
       // a key pasted into a header comment must not reach the index. A scanner that
       // cannot run throws into the catch below and the line is simply omitted.
@@ -2104,7 +2108,7 @@ __factories["./src/cache/entry"] = function(module, exports) {
    * this cheap enough for a hook that runs on every agent write.
    *
    * @param {string} cwd
-   * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number }}
+   * @returns {{ secretScan: boolean, terse: boolean, maxSigsPerFile: number, maxIndexSigsPerFile: number }}
    */
   function entryConfig(cwd) {
     const { DEFAULTS } = __require('./src/config/defaults');
@@ -2123,7 +2127,92 @@ __factories["./src/cache/entry"] = function(module, exports) {
       secretScan: !!pick('secretScan'),
       terse: !!pick('terse'),
       maxSigsPerFile: Number.isFinite(pick('maxSigsPerFile')) ? pick('maxSigsPerFile') : 25,
+      maxIndexSigsPerFile: Number.isFinite(pick('maxIndexSigsPerFile')) ? pick('maxIndexSigsPerFile') : 200,
     };
+  }
+
+  /**
+   * What a full extraction is asked for, whatever the limits: the extractors stop at 200
+   * signatures a file on their own, and this bounds the few that do not. It is above both
+   * limits so that `capForIndex` is the one place a file is cut, and can say how much.
+   */
+  const EXTRACT_CEILING = 1000;
+
+  /**
+   * Matches the extractors' own disclosure line at the end of a file's list, `… +N more
+   * <label>` (util/truncate.js). The labels a whole file can end with: `signatures` for most
+   * extractors, `headings` (markdown), `keys` and `entries` (properties, toml). Others, like
+   * `methods` or `members`, close a class block inside the list and are left where they are.
+   */
+  const TRUNCATION_NOTICE = /^… \+(\d+) more (?:signatures|headings|keys|entries)$/;
+
+  /**
+   * How many signatures a file may contribute to the retrieval INDEX, and so how many
+   * the extraction must produce: the index limit, never below the context-file limit
+   * (the context file is a view of what was extracted, so the index cannot hold less).
+   *
+   * @param {{maxSigsPerFile?: number, maxIndexSigsPerFile?: number}} config
+   * @returns {number}
+   */
+  function indexLimit(config) {
+    const ctx = Number.isFinite(config && config.maxSigsPerFile) ? config.maxSigsPerFile : 25;
+    const idx = Number.isFinite(config && config.maxIndexSigsPerFile) ? config.maxIndexSigsPerFile : 200;
+    return Math.max(ctx, idx);
+  }
+
+  /**
+   * A file's signatures as the INDEX keeps them: at most `limit`, and without the
+   * extractor's trailing `… +N more signatures` line. That line is a disclosure for a
+   * reader of the prompt, not a signature: left in the index it would put the words
+   * "more" and "signatures" into every truncated file's vocabulary and show up as a
+   * line with no symbol to the tools that read the index.
+   *
+   * @param {string[]} sigs
+   * @param {number} limit
+   * @returns {{ sigs: string[], dropped: number }} `dropped` counts what the limit
+   *          and the extractor's own ceiling left out
+   */
+  function capForIndex(sigs, limit) {
+    let list = sigs;
+    let dropped = 0;
+    const last = list.length ? TRUNCATION_NOTICE.exec(list[list.length - 1]) : null;
+    if (last) { dropped += Number(last[1]); list = list.slice(0, -1); }
+    if (list.length > limit) { dropped += list.length - limit; list = list.slice(0, limit); }
+    return { sigs: list, dropped };
+  }
+
+  /**
+   * A file's signatures split the way the index file keeps them (#982): `view` is what the
+   * ranker, `ask` and the tools that list a file have always read, the first `maxSigsPerFile`
+   * of the extraction exactly as before; `more` is the rest, up to the index limit, kept for the
+   * tools that look a symbol up (`verify`, `get_callee_signatures`). A file that fits the
+   * context limit keeps its list untouched, notice line and all.
+   *
+   * @param {string[]} sigs the extraction, already secret-scanned
+   * @param {{maxSigsPerFile?: number, maxIndexSigsPerFile?: number}} config
+   * @returns {{ view: string[], more: string[], dropped: number }}
+   */
+  function splitForIndex(sigs, config) {
+    // What the context file keeps, by the very expression the extraction cuts with, so an odd
+    // setting (a negative number, a string) means the same here as there.
+    const limit = config && config.maxSigsPerFile !== undefined ? config.maxSigsPerFile : 25;
+    const ctx = sigs.slice(0, limit).length;
+    if (ctx === sigs.length) return { view: sigs, more: [], dropped: 0 };
+    const kept = capForIndex(sigs, indexLimit(config));
+    return { view: kept.sigs.slice(0, ctx), more: kept.sigs.slice(ctx), dropped: kept.dropped };
+  }
+
+  /**
+   * The signatures kept apart, in the same encoding as the ones read: with `terse` the compact
+   * form, so a lookup tool does not meet two encodings in one file.
+   *
+   * @param {string[]} more
+   * @param {{terse?: boolean}} config
+   * @returns {string[]}
+   */
+  function moreForIndex(more, config) {
+    if (!config || !config.terse || more.length === 0) return more;
+    try { return __require('./src/format/terse').encodeTerseSigs(more); } catch (_) { return more; }
   }
 
   /**
@@ -2137,6 +2226,21 @@ __factories["./src/cache/entry"] = function(module, exports) {
    * @returns {string[]} empty when the file yields no signatures
    */
   function entrySigs(filePath, content, cwd, config) {
+    return entryParts(filePath, content, cwd, config).sigs;
+  }
+
+  /**
+   * `entrySigs` with the signatures past what the ranker reads kept apart (#982): `sigs` is the
+   * entry the index file's `files` holds, `more` its `more`. The whole extraction is
+   * secret-scanned, so what is kept apart is scanned like the rest.
+   *
+   * @param {string} filePath - absolute
+   * @param {string} content
+   * @param {string} cwd
+   * @param {object} [config] - from entryConfig(cwd)
+   * @returns {{ sigs: string[], more: string[] }} both empty when the file yields no signatures
+   */
+  function entryParts(filePath, content, cwd, config) {
     const cfg = config || entryConfig(cwd);
     const { extractFile, langFor } = __require('./src/extractors/dispatch');
     let sigs = extractFile(filePath, content);
@@ -2146,13 +2250,241 @@ __factories["./src/cache/entry"] = function(module, exports) {
     if (sigs.length === 0 && !langFor(filePath)) {
       try { sigs = __require('./src/extractors/generic').extract(content, filePath) || []; } catch (_) { sigs = []; }
     }
-    sigs = sigs.slice(0, cfg.maxSigsPerFile);
-    if (sigs.length === 0) return [];
-    sigs = redactSecrets(sigs, filePath, cfg).sigs;
-    return indexSigsFor(filePath, content, sigs, cfg);
+    const split = splitForIndex(sigs, cfg);
+    if (split.view.length === 0) return { sigs: [], more: [] };
+    const safe = redactSecrets(split.view.concat(split.more), filePath, cfg).sigs;
+    return {
+      sigs: indexSigsFor(filePath, content, safe.slice(0, split.view.length), cfg),
+      more: moreForIndex(safe.slice(split.view.length), cfg),
+    };
   }
 
-  module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs };
+  module.exports = { redactSecrets, indexSigsFor, entryConfig, entrySigs, entryParts, indexLimit, capForIndex, splitForIndex, moreForIndex, EXTRACT_CEILING };
+  
+};
+
+// ── ./src/cache/extract-cache ──
+__factories["./src/cache/extract-cache"] = function(module, exports) {
+  
+  /**
+   * Content-hash extraction cache (#971): a re-run costs the files that changed.
+   *
+   * `generate` used to re-extract every file on every run: a second run with nothing
+   * changed cost as much as the first. This keeps, per file, what the run derives from
+   * its content (the signatures the extractor returned, the imports, the line and token
+   * counts, the TODO lines and the module-doc line), keyed by the SHA-1 of the content,
+   * in `.context/extract-cache.json` (already self-ignoring). A hit hands back exactly
+   * what a fresh derivation would have produced, so the output of a warm run is
+   * byte-identical to a cold one.
+   *
+   * What makes an entry valid is everything the derivation depends on besides the file,
+   * and the cache records it once, as a fingerprint: SigMap's version, the extractor
+   * sources and the CLI core that routes to them, the extraction ceiling, whether
+   * imports are mapped, and the Python interpreter the AST tier would use. A different
+   * fingerprint discards the whole file, which is how an extractor change, a version
+   * bump or a different python3 force the right re-extraction.
+   *
+   * To avoid even reading a file that has not changed, an entry also remembers the
+   * file's size and mtime. They are trusted only when the file was last modified more
+   * than two seconds before the entry was written (the rule git applies to a "racily
+   * clean" index entry): a file edited within the same clock tick, at the same size,
+   * is read and hashed instead.
+   *
+   * Opt-in extraction tiers whose answer depends on something outside the file (the
+   * repo's own typescript package, a language server, a SCIP index) are not cached.
+   *
+   * Zero-dependency, bundle-safe (fs, path, crypto only).
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+
+  const SCHEMA = 2;
+  const CACHE_REL = path.join('.context', 'extract-cache.json');
+  /** A stat is believed only if the file is at least this much older than the entry (ms). */
+  const RACY_MS = 2000;
+
+  /** Hex SHA-1 of a string or Buffer. */
+  function sha1(data) {
+    return crypto.createHash('sha1').update(data).digest('hex');
+  }
+
+  /** The cache key of a file's content. */
+  function contentHash(content) {
+    return sha1(content);
+  }
+
+  /**
+   * One hash for the files of `dir` that end in one of `extensions` (sorted by name; name
+   * and bytes both in the hash), or '' when the directory is absent. Used for the
+   * extractor sources.
+   */
+  function treeHash(dir, extensions) {
+    let names;
+    try { names = fs.readdirSync(dir).filter((n) => extensions.some((e) => n.endsWith(e))).sort(); } catch (_) { return ''; }
+    const h = crypto.createHash('sha1');
+    for (const n of names) {
+      h.update(n);
+      h.update('\0');
+      try { h.update(fs.readFileSync(path.join(dir, n))); } catch (_) { /* unreadable: the name still counts */ }
+      h.update('\0');
+    }
+    return h.digest('hex');
+  }
+
+  /**
+   * The fingerprint of everything a derivation depends on besides the file.
+   *
+   * @param {object} parts - version, the extraction ceiling, depMap, secretScan, the Python tier id, and
+   *        the two hashes the caller computes from the install (`sources`, `core`)
+   * @returns {string}
+   */
+  function fingerprint(parts) {
+    return sha1(JSON.stringify([SCHEMA, parts.version, parts.sources, parts.core, parts.readLimit, parts.depMap, parts.secretScan, parts.python]));
+  }
+
+  /** Whether an entry's remembered stat can stand in for reading the file. */
+  function trusted(e, st) {
+    return !!st && Number.isFinite(e.w) && e.z === st.size && e.m === st.mtimeMs && e.m <= e.w - RACY_MS;
+  }
+
+  /**
+   * Open the cache for a repository. A file that is absent, corrupt, from another
+   * schema or under another fingerprint is the same as an empty cache.
+   *
+   * An entry is `{ h, z, m, w, s, d, l, k, g, t }`: content hash; size, mtime and the time it
+   * was written; signatures, imports, lines, tokens, module-doc line, and (once something asked for
+   * them) TODO lines.
+   *
+   * @param {string} cwd
+   * @param {string} fp - fingerprint()
+   */
+  function open(cwd, fp) {
+    const file = path.join(cwd, CACHE_REL);
+    let files = {};
+    let toolchain = null;
+    let memos = {};
+    try {
+      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (data && data.schema === SCHEMA && data.fingerprint === fp && data.files && typeof data.files === 'object') {
+        files = data.files;
+        toolchain = typeof data.toolchain === 'string' ? data.toolchain : null;
+        if (data.memo && typeof data.memo === 'object') memos = data.memo;
+      }
+    } catch (_) { /* absent or unreadable: start empty */ }
+
+    const loaded = Object.keys(files).length;
+    const next = {};
+    let changed = false;
+    let toolchainChanged = false;
+    const stats = { hits: 0, statHits: 0, misses: 0 };
+    const originalToolchain = toolchain;
+    const memoNext = {};
+    let memoChanged = false;
+
+    return {
+      stats,
+      loaded,
+      get toolchain() { return toolchain; },
+      setToolchain(label) {
+        const v = typeof label === 'string' ? label : null;
+        if (v !== toolchain) { toolchain = v; toolchainChanged = true; }
+      },
+      /** Whether the file is believed unchanged from its stat alone (no read needed). */
+      fresh(rel, st) {
+        const e = files[rel];
+        return !!e && Array.isArray(e.s) && trusted(e, st);
+      },
+      /**
+       * The entry for a file whose stat is trusted, without reading it; otherwise undefined.
+       * An entry that holds signatures but not the fact a consumer reads (`need`, by default the
+       * line count) is not served this way, so the file is read once and the entry completed.
+       */
+      peek(rel, st, need = 'l') {
+        const e = files[rel];
+        if (e && Array.isArray(e.s) && (e.s.length === 0 || e[need] !== undefined) && trusted(e, st)) {
+          next[rel] = e; stats.hits++; stats.statHits++;
+          return e;
+        }
+        return undefined;
+      },
+      /**
+       * An answer a run derived from something other than a file's content (git history, for the
+       * run's recent-changes section), kept under a name with the key it is valid for. Gives it
+       * back only for that exact key.
+       */
+      memoGet(name, key) {
+        const m = memos[name];
+        if (m && m.k === key) { memoNext[name] = m; return m.v; }
+        return undefined;
+      },
+      memoSet(name, key, value) {
+        memoNext[name] = { k: key, v: value };
+        memoChanged = true;
+      },
+      /** The entry this run holds for a file (one it has looked at), or undefined. */
+      entryOf(rel) {
+        return next[rel];
+      },
+      /** Add derived facts to an entry already held (marks the cache for writing). */
+      update(entry, facts) {
+        Object.assign(entry, facts);
+        changed = true;
+        return entry;
+      },
+      /** The entry for a file whose content hashes to `hash`; refreshes the remembered stat. */
+      get(rel, hash, st) {
+        const e = files[rel];
+        if (e && e.h === hash && Array.isArray(e.s)) {
+          stats.hits++;
+          if (st && !trusted(e, st)) { e.z = st.size; e.m = st.mtimeMs; e.w = Date.now(); changed = true; }
+          next[rel] = e;
+          return e;
+        }
+        stats.misses++;
+        return undefined;
+      },
+      set(rel, hash, facts, st) {
+        const e = Object.assign({ h: hash, z: st ? st.size : null, m: st ? st.mtimeMs : null, w: Date.now() }, facts);
+        next[rel] = e;
+        changed = true;
+        return e;
+      },
+      /**
+       * Carry every loaded entry under `prefix` over untouched: for a run that does not visit
+       * that part of the cache (the test entries are only collected when the index is written),
+       * so that it is not mistaken for deleted files and dropped.
+       */
+      keep(prefix) {
+        for (const rel of Object.keys(files)) {
+          if (rel.startsWith(prefix) && !(rel in next)) next[rel] = files[rel];
+        }
+      },
+      /**
+       * Write the cache holding exactly the files this run saw (a deleted or renamed file
+       * is dropped). Nothing is written when nothing changed. Failure to write is silent:
+       * the cache is an accelerator, never a dependency.
+       */
+      save() {
+        const pruned = Object.keys(files).some((rel) => !(rel in next)) || Object.keys(memos).some((n) => !(n in memoNext));
+        if (!changed && !pruned && !memoChanged && !toolchainChanged && toolchain === originalToolchain) return false;
+        try {
+          const out = path.join(cwd, CACHE_REL);
+          fs.mkdirSync(path.dirname(out), { recursive: true });
+          try { __require('./src/util/context-dir').ensureSelfIgnore(cwd); } catch (_) { /* best-effort */ }
+          const body = {};
+          for (const rel of Object.keys(next).sort()) body[rel] = next[rel];
+          const tmp = `${out}.${process.pid}.tmp`;
+          fs.writeFileSync(tmp, JSON.stringify({ schema: SCHEMA, fingerprint: fp, toolchain, memo: memoNext, files: body }), 'utf8');
+          fs.renameSync(tmp, out);
+          return true;
+        } catch (_) { return false; }
+      },
+    };
+  }
+
+  module.exports = { SCHEMA, CACHE_REL, RACY_MS, contentHash, treeHash, fingerprint, open, sha1 };
   
 };
 
@@ -2182,7 +2514,7 @@ __factories["./src/cache/freshen"] = function(module, exports) {
   const path = require('path');
   const overlay = __require('./src/cache/overlay');
   const { readIndexStamp } = __require('./src/retrieval/sig-index-store');
-  const { entryConfig, entrySigs } = __require('./src/cache/entry');
+  const { entryConfig, entryParts } = __require('./src/cache/entry');
   const { langFor } = __require('./src/extractors/dispatch');
   const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
   const { resolveGraphDirs } = __require('./src/graph/src-dirs');
@@ -2302,12 +2634,12 @@ __factories["./src/cache/freshen"] = function(module, exports) {
       for (const { f, key } of stale) {
         try {
           const at = Date.now(); // before the read: an edit during it stays uncovered
-          const sigs = entrySigs(f, fs.readFileSync(f, 'utf8'), cwd, entryCfg);
+          const { sigs, more } = entryParts(f, fs.readFileSync(f, 'utf8'), cwd, entryCfg);
           // An empty result is not recorded: this tier cannot tell a file with no
           // signatures from an extractor that failed, and a wrong removal is worse
           // than a stale entry the next full run replaces. A scanner that cannot
           // run throws and lands here too — nothing unredacted is ever stored.
-          if (sigs.length > 0) fresh.push([key, { at, sigs }]);
+          if (sigs.length > 0) fresh.push([key, more.length > 0 ? { at, sigs, more } : { at, sigs }]);
         } catch (_) {}
       }
       if (fresh.length > 0) overlay.update(cwd, (m) => { for (const [k, e] of fresh) overlay.put(m, k, e); });
@@ -2395,7 +2727,8 @@ __factories["./src/cache/overlay"] = function(module, exports) {
 
   function _valid(e) {
     return !!e && typeof e === 'object' && Number.isFinite(e.at)
-      && (e.deleted === true || (Array.isArray(e.sigs) && e.sigs.every((s) => typeof s === 'string')));
+      && (e.deleted === true || (Array.isArray(e.sigs) && e.sigs.every((s) => typeof s === 'string')))
+      && (e.more === undefined || (Array.isArray(e.more) && e.more.every((s) => typeof s === 'string')));
   }
 
   /**
@@ -2457,15 +2790,18 @@ __factories["./src/cache/overlay"] = function(module, exports) {
    * @param {Map<string,string[]>} index
    * @param {Map} entries
    * @param {number|null} baseMs - when the base index began; null/0 → every entry is newer
+   * @param {Map<string,string[]>} [more] the signatures past what the ranker reads (#982), kept
+   *        in step: an entry that replaces a file's signatures carries its own, a deleted file
+   *        loses them, an additive entry leaves them
    * @returns {number} entries applied
    */
-  function apply(index, entries, baseMs) {
+  function apply(index, entries, baseMs, more) {
     // `at` is whole milliseconds and a base derived from a file mtime is fractional.
     const since = Number.isFinite(baseMs) ? Math.floor(baseMs) : 0;
     let applied = 0;
     for (const [rel, e] of entries) {
       if (e.at < since) continue;
-      if (e.deleted) { if (index.delete(rel)) applied++; continue; }
+      if (e.deleted) { if (more) more.delete(rel); if (index.delete(rel)) applied++; continue; }
       if (!e.sigs || e.sigs.length === 0) continue;
       if (e.additive) {
         const have = index.get(rel) || [];
@@ -2474,6 +2810,7 @@ __factories["./src/cache/overlay"] = function(module, exports) {
         index.set(rel, merged);
       } else {
         index.set(rel, e.sigs);
+        if (more) { if (e.more && e.more.length > 0) more.set(rel, e.more); else more.delete(rel); }
       }
       applied++;
     }
@@ -3045,8 +3382,17 @@ __factories["./src/config/defaults"] = function(module, exports) {
     // Maximum directory depth to recurse
     maxDepth: 6,
 
-    // Maximum signatures extracted per file
+    // Maximum signatures a file contributes to the GENERATED CONTEXT FILE (the prompt
+    // artifact, which is token-budgeted). The retrieval index has its own limit below.
     maxSigsPerFile: 25,
+
+    // Maximum signatures a file contributes to the RETRIEVAL INDEX (.context/sig-index.json),
+    // which is not injected into a prompt. The index never holds fewer than `maxSigsPerFile`.
+    // The first `maxSigsPerFile` of a file are what ranking and `ask` read, exactly as before;
+    // the rest are kept apart for the tools that look a symbol up (`verify`, `search_signatures`,
+    // `get_callee_signatures`). Most extractors stop at 200 a file (and 120 members a class) on
+    // their own, so a higher value changes nothing for them.
+    maxIndexSigsPerFile: 200,
 
     // Maximum tokens in final output before budget enforcement kicks in.
     // Used only when autoMaxTokens is false, or as a floor for auto-scaling.
@@ -3226,6 +3572,12 @@ __factories["./src/config/defaults"] = function(module, exports) {
 
     // Enable incremental signature cache (v6.7) - only re-extract changed files
     sigCache: false,
+
+    // Content-hash extraction cache (#971): a re-run costs the files that changed. Entries live
+    // in `.context/extract-cache.json`, are keyed by the SHA-1 of the file and by a fingerprint
+    // of everything else the extraction depends on, and give a warm run byte-identical output.
+    // Not used with `exactness.typescript|lsp|scip`, whose answers come from outside the file.
+    extractCache: true,
 
     // Add reverse dependency usage hints on file headings (opt-in)
     impactRadius: false,
@@ -3748,9 +4100,13 @@ __factories["./src/config/models"] = function(module, exports) {
     'gemini-3.8-flash':       { vendor: 'google', tier: 'balanced', inputPerMtok: 0.75, window: null, cacheMin: null },
     'gemini-3.5-flash-lite':  { vendor: 'google', tier: 'fast',     inputPerMtok: 0.3,  window: null, cacheMin: null },
 
+    // Flash price/window verified 2026-10-20: platform.minimax.io/docs/guides/models-intro
+    // and platform.minimax.io/docs/guides/pricing-paygo. Keep AS_OF conservative for the rest.
+    'minimax-m3.1-flash': { vendor: 'minimax', tier: null,       inputPerMtok: 0.15, window: 1000000, cacheMin: null },
     // minimax-m3: requests up to 512K input tokens; longer requests cost more.
     'minimax-m3':        { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null },
-    'minimax-m2.7':      { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null },
+    // Retain explicit legacy estimates without advertising the model by default.
+    'minimax-m2.7':      { vendor: 'minimax',   tier: null,       inputPerMtok: 0.3,  window: null,    cacheMin: null, legacy: true },
   };
 
   // Family keys older releases accepted, kept valid as names for the current model.
@@ -5112,6 +5468,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
 
   const fs = require('fs');
   const path = require('path');
+  const dirListing = __require('./src/util/dir-listing');
 
   const MAX_DEPS_PER_MANIFEST = 400;
 
@@ -5713,7 +6070,7 @@ __factories["./src/deps/inventory"] = function(module, exports) {
     const walk = (dir, relDir, depth) => {
       if (found.length >= MANIFEST_MAX_FILES || depth > MANIFEST_MAX_DEPTH) return;
       let entries;
-      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      try { entries = dirListing.list(dir); } catch (_) { return; }
       const dirs = [];
       for (const e of entries) {
         if (e.isDirectory()) {
@@ -6142,10 +6499,9 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
   const path = require('path');
   const { REGISTRY } = __require('./src/discovery/source-root-registry');
 
-  module.exports = { detectFrameworks };
-
   function detectFrameworks(cwd) {
     const detected = [];
+    const names = _nameSets(cwd);
 
     for (const [lang, reg] of Object.entries(REGISTRY)) {
       if (!reg.frameworks) continue;
@@ -6154,7 +6510,7 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
 
         // Detection files: +0.95 / 0.93 / 0.90 depending on specificity
         for (const f of (fw.detectionFiles || [])) {
-          if (_existsAnywhere(cwd, f, 3)) { confidence = Math.max(confidence, 0.93); }
+          if (_existsAnywhere(cwd, f, 3, names)) { confidence = Math.max(confidence, 0.93); }
         }
 
         // Detection deps in package.json
@@ -6183,7 +6539,7 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
         if (fw.specialRule === 'django-app-dirs' && fs.existsSync(path.join(cwd, 'manage.py'))) {
           confidence = Math.max(confidence, 0.95);
         }
-        if (fw.specialRule === 'swift-project-dir' && _existsAnywhere(cwd, '.xcodeproj', 2)) {
+        if (fw.specialRule === 'swift-project-dir' && _existsAnywhere(cwd, '.xcodeproj', 2, names)) {
           confidence = Math.max(confidence, 0.90);
         }
 
@@ -6205,25 +6561,37 @@ __factories["./src/discovery/framework-detector"] = function(module, exports) {
     try { return fs.readFileSync(p, 'utf8'); } catch { return ''; }
   }
 
-  function _existsAnywhere(cwd, filename, maxDepth) {
+  function _existsAnywhere(cwd, filename, maxDepth, names) {
     const parts = filename.split('/');
     if (parts.length > 1) return fs.existsSync(path.join(cwd, filename));
-    return _walkFind(cwd, filename, maxDepth);
+    return (names ? names.of(maxDepth) : _walkNames(cwd, maxDepth)).has(filename);
   }
 
-  function _walkFind(dir, name, depth) {
-    if (depth <= 0) return false;
+  /**
+   * Every entry name found by listing `depth` levels of directories under `dir`: the
+   * root's entries, those of its subdirectories, and so on. A name is "found" exactly when the
+   * old per-name walk (`_walkFind`) would have found it, but the tree is listed once, not once
+   * for each of the ~50 names a run asks about (that was 160-340 ms on Django, #971).
+   */
+  function _walkNames(dir, depth, out = new Set()) {
+    if (depth <= 0) return out;
     try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const e of entries) {
-        if (e.name === name) return true;
-        if (e.isDirectory() && depth > 1) {
-          if (_walkFind(path.join(dir, e.name), name, depth - 1)) return true;
-        }
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        out.add(e.name);
+        if (e.isDirectory() && depth > 1) _walkNames(path.join(dir, e.name), depth - 1, out);
       }
-    } catch (_) {}
-    return false;
+    } catch (_) { /* an unreadable directory has no names */ }
+    return out;
   }
+
+  /** The name sets of one `detectFrameworks` run, listed on first use and once per depth. */
+  function _nameSets(cwd) {
+    const byDepth = new Map();
+    return { of(depth) { if (!byDepth.has(depth)) byDepth.set(depth, _walkNames(cwd, depth)); return byDepth.get(depth); } };
+  }
+
+  // `_walkNames` is exported for the test that holds it to the per-name walk it replaced.
+  module.exports = { detectFrameworks, _walkNames };
   
 };
 
@@ -14978,7 +15346,8 @@ __factories["./src/extractors/python"] = function(module, exports) {
   // ---------------------------------------------------------------------------
 
   // Files per python3 process. Bounds the output held in memory at once (about
-  // 3 KB of signatures a file) and the files a hung process can take with it, but
+  // 3 KB of signatures a file, and up to about 25 KB for a file at the 200-signature
+  // ceiling since #982) and the files a hung process can take with it, but
   // each process pays interpreter start-up: Django took 3.9 s at 200 a process and
   // 2.9 s at 1,000.
   const BATCH_CHUNK = 1000;
@@ -15374,7 +15743,68 @@ __factories["./src/extractors/python"] = function(module, exports) {
     return sentence.slice(0, 60);
   }
 
-  module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel };
+  /**
+   * The identity of the interpreter the AST tier would use: the real path, size and mtime of
+   * the first `python3` on PATH, or 'none', and the things that choose which Python a version
+   * manager's shim runs (an environment variable, a `.python-version` or `.tool-versions` file in
+   * the project). A file extracted under one is not the file extracted under another (the AST
+   * tier and the regex tier list different things, and the `ast` node shapes change between 3.x
+   * releases), so the extraction cache is keyed by it (#971). Found without starting a process.
+   *
+   * @param {string} [cwd] - the project, for the version files
+   * @returns {string}
+   */
+  function tierId(cwd) {
+    const names = process.platform === 'win32' ? ['python3.exe', 'python3'] : ['python3'];
+    let id = 'none';
+    find: for (const dir of String(process.env.PATH || '').split(path.delimiter)) {
+      if (!dir) continue;
+      for (const name of names) {
+        try {
+          const real = fs.realpathSync(path.join(dir, name));
+          const st = fs.statSync(real);
+          if (st.isFile()) { id = `${real}:${st.size}:${Math.floor(st.mtimeMs)}`; break find; }
+        } catch (_) { /* not in this directory */ }
+      }
+    }
+    if (id === 'none') return id;
+    const env = ['PYENV_VERSION', 'VIRTUAL_ENV', 'CONDA_PREFIX', 'ASDF_PYTHON_VERSION', 'UV_PYTHON'].map((k) => process.env[k] || '').join('|');
+    let files = '';
+    for (const f of ['.python-version', '.tool-versions']) {
+      try { files += `|${f}=${fs.readFileSync(path.join(cwd || process.cwd(), f), 'utf8')}`; } catch (_) { /* none */ }
+    }
+    return `${id}|${env}${files}`;
+  }
+
+  /**
+   * Whether this run asked python3 for the file and got no answer (the batch failed or timed
+   * out): the regex tier served it, but that is the failure's answer, not the AST tier's, so a
+   * caller that keeps answers must not keep this one. Absent python3 and a file the AST tier
+   * settled as unparseable are settled answers, not this.
+   *
+   * @param {string} filePath
+   * @returns {boolean}
+   */
+  function wasDegraded(filePath) {
+    const hit = _batched.get(path.resolve(filePath));
+    return !!(hit && hit.degraded);
+  }
+
+  /**
+   * A run that serves its Python files from the extraction cache never starts the AST tier,
+   * yet the header of a cold run names it (`toolchain=python@3.9`). The label the cold run
+   * recorded is restored here so a warm run writes the same header.
+   *
+   * @param {string|null} label - as returned by toolchainLabel()
+   */
+  function restoreToolchain(label) {
+    const m = /^python@(\d+\.\d+)$/.exec(String(label || ''));
+    if (!m) return;
+    _astServed = true;
+    if (!_astVersion) _astVersion = m[1];
+  }
+
+  module.exports = { extract, tryNativeExtract, resolvePythonAstScript, prefetch, toolchainLabel, tierId, wasDegraded, restoreToolchain };
   
 };
 
@@ -22216,7 +22646,8 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
     const untracked = _untrackedDeclaration(symbol, cwd);
     if (untracked) { result.untracked = untracked; return result; }
     // Not in the signature index either — which proves little: the index keeps
-    // 25 signatures per file, so a method of a large PHP class is absent from it.
+    // 200 signatures per file at most (25 before #982), so a method of a very large
+    // class is absent from it, and so is one in a file outside the detected roots.
     // Say what the search could not read, in the roots it searched.
     if (scope && Array.isArray(scope.roots) && scope.roots.length) {
       try {
@@ -22288,7 +22719,7 @@ __factories["./src/graph/call-graph"] = function(module, exports) {
         const s = callGraphSupport(file);
         return s.tracked ? null : { language: s.label, files: [file] };
       }
-      const index = __require('./src/retrieval/ranker').buildSigIndex(cwd);
+      const index = __require('./src/retrieval/ranker').buildSigIndex(cwd, { full: true }); // a declaration past what the ranker reads still counts (#982)
       const files = [];
       const labels = new Set();
       for (const [file, sigs] of index) {
@@ -25866,7 +26297,8 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     try {
       try { __require('./src/cache/freshen').freshen(cwd); } catch (_) {}
       const { buildSigIndex } = __require('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
+      // every signature the index keeps: a symbol is found here whenever get_callee_signatures finds it (#982)
+      const index = buildSigIndex(cwd, { full: true });
       if (index.size === 0) {
         return 'No context file found. Run: node gen-context.js';
       }
@@ -26075,7 +26507,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
 
     try {
       const { buildSigIndex } = __require('./src/retrieval/ranker');
-      const index = buildSigIndex(cwd);
+      const index = buildSigIndex(cwd, { full: true }); // one file: all of what the index keeps of it (#982)
       let sigs = index.get(targetRel);
       if (!sigs) {
         for (const [file, fileSigs] of index.entries()) {
@@ -26475,7 +26907,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       try { __require('./src/cache/freshen').freshen(cwd); } catch (_) {}
       const { buildSigIndex } = __require('./src/retrieval/ranker');
       const { buildSymbolCandidates, closestMatch, formatSuggestion } = __require('./src/verify/closest-match');
-      const index = buildSigIndex(cwd);
+      const index = buildSigIndex(cwd, { full: true }); // a definition past what the ranker reads still counts (#982)
       if (index.size === 0) return 'No context file found. Run: node gen-context.js';
 
       // Extract the defining symbol name from a signature line (same rules as
@@ -26523,7 +26955,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
     if (!rel) return 'Missing required argument: path';
     try {
       const overlay = __require('./src/cache/overlay');
-      const { entrySigs } = __require('./src/cache/entry');
+      const { entryParts } = __require('./src/cache/entry');
       const { loadIgnorePatterns, matchesIgnore } = __require('./src/util/ignore');
       const abs = path.resolve(cwd, rel);
       const key = overlay.relKey(cwd, abs);
@@ -26538,13 +26970,13 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       // The same stages a full run applies — a secret in the file is redacted here
       // too, and the module-doc line is kept — so this entry cannot replace a
       // redacted base entry with a leaky one.
-      const sigs = entrySigs(abs, content, cwd);
+      const { sigs, more } = entryParts(abs, content, cwd);
       // An empty result is NOT a removal: this tier cannot tell a file with no
       // signatures from one it cannot read or does not know, and a wrong removal is
       // worse than a stale entry the next full run replaces. Use notify_file_deleted
       // for a file that is gone.
       if (sigs.length === 0) return `No signatures found in ${rel}; the index is unchanged.`;
-      if (!overlay.update(cwd, (entries) => overlay.put(entries, key, { at, sigs }))) {
+      if (!overlay.update(cwd, (entries) => overlay.put(entries, key, more.length > 0 ? { at, sigs, more } : { at, sigs }))) {
         return `_notify_file_created failed: could not write the live overlay_`;
       }
       return `Indexed ${rel}: ${sigs.length} signature(s) now live.`;
@@ -26824,7 +27256,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       } catch (_) {}
       try {
         const { buildSigIndex } = __require('./src/retrieval/ranker');
-        symbolIndex = buildSigIndex(cwd);
+        symbolIndex = buildSigIndex(cwd, { full: true });
       } catch (_) {}
       sq = squeeze(content, { srcDirs, symbolIndex });
     } catch (err) {
@@ -27408,7 +27840,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.80.1',
+    version: '8.81.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -28497,7 +28929,7 @@ __factories["./src/plan/verify-plan"] = function(module, exports) {
     }
 
     // 2. Referenced symbols must exist in the live index (suggest a near match) —
-    // or in the source: the index keeps `maxSigsPerFile` signatures a file and only
+    // or in the source: the index keeps `maxIndexSigsPerFile` signatures a file and only
     // the files under the detected roots, and an `error` here blocks the plan on a
     // symbol that is real (#914). Only the references the index lacks are looked up.
     const missing = symbolsRef.filter((s) => !introSymbols.has(s.name) && !symbolSet.has(s.name));
@@ -30338,11 +30770,16 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         version = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version || version;
       }
       const cache = loadCache(cwd, version);
+      // The cache holds the raw extraction, up to what the index keeps (#982); this fallback is
+      // merged under the rule "the entry with more signatures wins", so it is cut to what the
+      // index file's entries hold, or a raw, unredacted list would outrank a redacted one.
+      let limit = 25;
+      try { limit = __require('./src/cache/entry').entryConfig(cwd).maxSigsPerFile; } catch (_) { /* default */ }
       for (const [absPath, entry] of cache.entries()) {
         if (!entry || !entry.sigs || entry.sigs.length === 0) continue;
         const rel = path.relative(cwd, absPath).replace(/\\/g, '/');
         if (!rel || rel.startsWith('..')) continue;
-        index.set(rel, entry.sigs);
+        index.set(rel, entry.sigs.length > limit ? entry.sigs.slice(0, limit) : entry.sigs);
       }
     } catch (_) {}
     return index;
@@ -30354,7 +30791,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    * @param {string} cwd
    * @returns {Map<string, string[]>}
    */
-  function _enrichSigIndexFromStrategy(cwd, index) {
+  function _enrichSigIndexFromStrategy(cwd, index, opts) {
     const fs = require('fs');
     const path = require('path');
     // Merge every strategy split file: context-cold.md (hot-cold) AND each
@@ -30371,7 +30808,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         _mergeSigIndex(index, _parseContextFile(path.join(ghDir, f)));
       }
     } catch (_) {}
-    _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
+    // The extraction cache is a fallback for a repo with no complete retrieval index. With one
+    // it adds nothing, and a raw entry (unredacted, from a run under other settings) must not
+    // outrank the index's own (#982).
+    let full = null;
+    try { full = __require('./src/retrieval/sig-index-store').readFullIndexMeta(cwd); } catch (_) { /* absent */ }
+    if (!full || full.index.size === 0) _mergeSigIndex(index, _buildSigIndexFromCache(cwd));
 
     // The complete retrieval index (written by generate before applyTokenBudget)
     // takes precedence: it is the only source containing files the budget dropped,
@@ -30381,12 +30823,27 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     // as its full form, so merging the other way would keep the anchors.
     let merged = index;
     let baseMs = null;
+    // The signatures past what the ranker reads (#982), tracked only for a caller that asks.
+    const wantMore = !!(opts && opts.full);
+    let more = null;
     try {
-      const full = __require('./src/retrieval/sig-index-store').readFullIndexMeta(cwd);
-      if (full.index.size > 0) { merged = _mergeSigIndex(full.index, index); baseMs = full.baseMs; }
+      if (full && full.index.size > 0) {
+        const base = wantMore ? new Map(full.index) : null;
+        merged = _mergeSigIndex(full.index, index);
+        baseMs = full.baseMs;
+        if (wantMore) {
+          more = new Map(full.more);
+          // an entry the merge replaced is no longer the one these belong to
+          for (const rel of [...more.keys()]) if (merged.get(rel) !== base.get(rel)) more.delete(rel);
+        }
+      }
     } catch (_) { /* absent → budgeted view is still served */ }
 
-    return _applyLiveOverlay(cwd, merged, baseMs);
+    const live = _applyLiveOverlay(cwd, merged, baseMs, more);
+    if (!more || more.size === 0) return live;
+    const out = new Map();
+    for (const [rel, sigs] of live) out.set(rel, more.has(rel) ? sigs.concat(more.get(rel)) : sigs);
+    return out;
   }
 
   /**
@@ -30399,7 +30856,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    * generated context file was written, so a freshly generated repo is never
    * overlaid with entries its own generation already saw.
    */
-  function _applyLiveOverlay(cwd, index, baseMs) {
+  function _applyLiveOverlay(cwd, index, baseMs, more) {
     try {
       const overlay = __require('./src/cache/overlay');
       const entries = overlay.load(cwd);
@@ -30413,7 +30870,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
           try { since = Math.max(since, fs.statSync(path.join(cwd, ...parts)).mtimeMs); } catch (_) {}
         }
       }
-      overlay.apply(index, entries, since);
+      overlay.apply(index, entries, since, more);
     } catch (_) { /* the overlay is an accelerator; the base index stands without it */ }
     return index;
   }
@@ -30429,8 +30886,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
    *     previous `--output <file>` generation run
    *  3. All known adapter output paths probed in order (first non-empty wins)
    *
+   * `opts.full` returns every signature the index keeps (#982), the ones past what the ranker
+   * reads included. Use it to look a symbol up (`verify`, `get_callee_signatures`); ranking and
+   * the tools that list a file's signatures read the default, which is what they always read.
+   *
    * @param {string} cwd
-   * @param {{ contextPath?: string }} [opts]
+   * @param {{ contextPath?: string, full?: boolean }} [opts]
    * @returns {Map<string, string[]>}
    */
   function buildSigIndex(cwd, opts) {
@@ -30440,7 +30901,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     // 1. Caller supplied an explicit path — use it directly.
     if (opts && opts.contextPath) {
       const index = _parseContextFile(opts.contextPath);
-      return _enrichSigIndexFromStrategy(cwd, index);
+      return _enrichSigIndexFromStrategy(cwd, index, opts);
     }
 
     // 2. Check gen-context.config.json for a persisted customOutput path.
@@ -30451,7 +30912,7 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
         if (cfg.customOutput) {
           const customPath = path.resolve(cwd, cfg.customOutput);
           const index = _parseContextFile(customPath);
-          if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index);
+          if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index, opts);
         }
       }
     } catch (_) {}
@@ -30460,12 +30921,12 @@ __factories["./src/retrieval/ranker"] = function(module, exports) {
     for (const parts of ADAPTER_OUTPUT_PATHS) {
       const contextPath = path.join(cwd, ...parts);
       const index = _parseContextFile(contextPath);
-      if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index);
+      if (index.size > 0) return _enrichSigIndexFromStrategy(cwd, index, opts);
     }
 
     // 4. Primary file empty/missing (hot-cold) — still serve cold + cache.
     const fallback = new Map();
-    return _enrichSigIndexFromStrategy(cwd, fallback);
+    return _enrichSigIndexFromStrategy(cwd, fallback, opts);
   }
 
   /**
@@ -30839,12 +31300,16 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    */
   function writeFullIndex(cwd, fileEntries, opts = {}) {
     const files = {};
+    const more = {};
     let count = 0;
     for (const e of fileEntries || []) {
       if (!e || !e.filePath || !Array.isArray(e.sigs) || e.sigs.length === 0) continue;
       const rel = path.relative(cwd, e.filePath).replace(/\\/g, '/');
       if (!rel || rel.startsWith('..')) continue;
       files[rel] = e.sigs;
+      // The signatures of a file past what the ranker reads (#982): kept for the tools that
+      // look a symbol up, in a field of their own so `files` stays exactly what it was.
+      if (Array.isArray(e.more) && e.more.length > 0) more[rel] = e.more;
       count++;
     }
 
@@ -30861,6 +31326,7 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
       // older than it describes a change the run has already seen.
       startedAt: Number.isFinite(opts.startedAt) ? opts.startedAt : null,
       files,
+      ...(Object.keys(more).length > 0 ? { more } : {}),
     }), 'utf8');
     fs.renameSync(tmp, out);
     return { path: out, files: count };
@@ -30889,22 +31355,31 @@ __factories["./src/retrieval/sig-index-store"] = function(module, exports) {
    * an overlay entry made during that run is conservatively treated as superseded),
    * else null.
    *
+   * `more` holds, for a file the index cut at what the ranker reads, the signatures after
+   * that point (#982). `index` alone is what the ranker, `ask` and the listing tools read.
+   *
    * @param {string} cwd
-   * @returns {{ index: Map<string, string[]>, baseMs: number|null }}
+   * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]> }}
    */
   function readFullIndexMeta(cwd) {
     const index = new Map();
+    const more = new Map();
     let baseMs = null;
     try {
       const data = JSON.parse(fs.readFileSync(indexPath(cwd), 'utf8'));
-      if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs };
+      if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more };
       for (const [rel, sigs] of Object.entries(data.files)) {
         if (Array.isArray(sigs) && sigs.length > 0) index.set(rel, sigs);
+      }
+      if (data.more && typeof data.more === 'object') {
+        for (const [rel, sigs] of Object.entries(data.more)) {
+          if (Array.isArray(sigs) && sigs.length > 0 && index.has(rel)) more.set(rel, sigs);
+        }
       }
       if (Number.isFinite(data.startedAt)) baseMs = data.startedAt;
       else if (data.generated && Number.isFinite(Date.parse(data.generated))) baseMs = Date.parse(data.generated);
     } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
-    return { index, baseMs };
+    return { index, baseMs, more };
   }
 
   /**
@@ -36165,10 +36640,14 @@ __factories["./src/tracking/pricing"] = function(module, exports) {
 
   /**
    * @param {object} [profile] - from resolveProfile(config); the shipped profile when omitted
-   * @returns {string[]} every accepted model name (ids, then aliases)
+   * @returns {string[]} current model names (ids, then aliases), plus explicit project choices
    */
   function listModels(profile) {
-    return Object.keys(profile ? _priceMap(profile) : PRICES);
+    const p = profile || SHIPPED;
+    return Object.keys(profile ? _priceMap(profile) : PRICES).filter((name) => {
+      const hit = lookup(p, name);
+      return !hit.model.legacy || hit.model.source === 'config' || p.roster.includes(hit.id);
+    });
   }
 
   module.exports = { PRICES, DEFAULT_MODEL, resolvePrice, listModels };
@@ -36383,6 +36862,59 @@ __factories["./src/util/context-dir"] = function(module, exports) {
   }
 
   module.exports = { ensureSelfIgnore, isSelfIgnore, CONTEXT_DIR, SELF_IGNORE };
+  
+};
+
+// ── ./src/util/dir-listing ──
+__factories["./src/util/dir-listing"] = function(module, exports) {
+  
+  /**
+   * One listing of a directory per run (#971).
+   *
+   * A generate run walks the same directories several times, each walker with its own rules: the file
+   * collector, the test collector, the manifest finder, the coverage count. Each asked the filesystem again
+   * (9,116 listings of 3,532 directories on Django), and a listing is the dearest call a warm run still
+   * makes. Inside a run (`begin()` ... `end()`) the first listing of a directory is kept and the others
+   * are served from it; outside one, every call goes to the filesystem as it always did.
+   *
+   * What a run may not see change is the set of entries of a directory it has already listed. Everything
+   * a run writes is a context or index file, never a source file, and the walkers that read a listing
+   * after the outputs are written (the coverage count) only count source files.
+   *
+   * Callers get their own array each time, so sorting it in place is safe.
+   *
+   * Zero-dependency, bundle-safe.
+   */
+
+  const fs = require('fs');
+
+  let memo = null;
+
+  /** Start sharing listings (and forget any from a previous run). */
+  function begin() { memo = new Map(); }
+
+  /** Stop sharing; every listing goes to the filesystem again. */
+  function end() { memo = null; }
+
+  /**
+   * `fs.readdirSync(dir, { withFileTypes: true })`, shared within a run. Throws what readdirSync throws,
+   * for a directory that cannot be read, every time it is asked.
+   *
+   * @param {string} dir
+   * @returns {fs.Dirent[]}
+   */
+  function list(dir) {
+    if (!memo) return fs.readdirSync(dir, { withFileTypes: true });
+    let held = memo.get(dir);
+    if (held === undefined) {
+      try { held = fs.readdirSync(dir, { withFileTypes: true }); } catch (err) { held = err; }
+      memo.set(dir, held);
+    }
+    if (held instanceof Error) throw held;
+    return held.slice();
+  }
+
+  module.exports = { begin, end, list };
   
 };
 
@@ -37689,7 +38221,8 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
     let sigIndex = null;
     try {
       const { buildSigIndex } = __require('./src/retrieval/ranker');
-      const idx = buildSigIndex(cwd);
+      // every signature the index keeps: a symbol past what the ranker reads is still a real one (#982)
+      const idx = buildSigIndex(cwd, { full: true });
       sigIndex = idx;
       fileKeys = [...idx.keys()];
       for (const sigs of idx.values()) {
@@ -37954,7 +38487,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
 
     // 3. fake-symbol
     //
-    // The symbol set is a summary — a file keeps `maxSigsPerFile` signatures, only
+    // The symbol set is a summary — a file keeps `maxIndexSigsPerFile` signatures, only
     // the files under the detected roots are in it, an extractor lists only the
     // constructs it knows — so a name it lacks is not yet fake (#914, #910). The
     // names that would be flagged are looked up in the source, in one pass, and a
@@ -39202,8 +39735,8 @@ __factories["./src/verify/source-confirm"] = function(module, exports) {
    * Source-confirmed symbols (#914, closes #910).
    *
    * `fake-symbol` asked one question — "is this name in the symbol index?" — and the
-   * index is a lossy summary of the repository: a file keeps `maxSigsPerFile` (25)
-   * signatures, only the files under the detected source roots are in it, and an
+   * index is a lossy summary of the repository: a file keeps `maxIndexSigsPerFile` (200,
+   * and 25 before #982) signatures, only the files under the detected source roots are in it, and an
    * extractor lists only the constructs it knows. A real symbol outside it was
    * reported as fabricated (#910: httpx's `Cookies.extract_cookies`, 1,100 lines into
    * a file whose index entry stops at 25). Measured over 35 repositories' own docs,
@@ -39800,14 +40333,21 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.80.1';
+const VERSION = '8.81.0';
+// A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
+// (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
+const __sourceOrBundled = new Map();
 function requireSourceOrBundled(key) {
+  if (__sourceOrBundled.has(key)) return __sourceOrBundled.get(key);
+  let mod;
   try {
     const rel = key.replace(/^\.\//, '') + '.js';
     const abs = path.join(__dirname, rel);
-    if (fs.existsSync(abs)) return require(abs);
+    if (fs.existsSync(abs)) mod = require(abs);
   } catch (_) {}
-  return __require(key);
+  if (mod === undefined) mod = __require(key);
+  __sourceOrBundled.set(key, mod);
+  return mod;
 }
 
 // ---------------------------------------------------------------------------
@@ -39852,7 +40392,7 @@ function walkDir(dir, exclude, maxDepth, depth = 0) {
   let results = [];
   let entries;
   try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
+    entries = requireSourceOrBundled('./src/util/dir-listing').list(dir);
   } catch (_) {
     return [];
   }
@@ -39896,7 +40436,7 @@ function buildFileList(cwd, config) {
  * was gen-context.js, which holds the whole generator pipeline. Declared
  * entrypoints are load-bearing by definition, so they are always scanned.
  */
-function collectTestEntries(cwd, config, existing) {
+function collectTestEntries(cwd, config, existing, xcache) {
   // #825: the roots come from the shared primitive, so `validate`/`doctor`
   // cannot classify as stale a file this collector deliberately indexed.
   const { testRootDirs } = requireSourceOrBundled('./src/analysis/index-state');
@@ -39909,17 +40449,57 @@ function collectTestEntries(cwd, config, existing) {
     if (!fs.existsSync(abs)) continue;
     let files = [];
     try { files = walkDir(abs, config.exclude, config.maxDepth); } catch (_) { continue; }
+    // Look at every candidate first, so that what the extraction cache does not hold is extracted
+    // after one batched python3 process, not one per file; the results keep the walk's order.
+    // A file the cache holds by its stat is not read at all.
+    const xc = xcache ? requireSourceOrBundled('./src/cache/extract-cache') : null;
+    // A Python file served from the cache never starts the AST tier, yet a cold run's header names it.
+    const restoreLabel = (f) => {
+      if (!/\.pyw?$/i.test(f)) return;
+      try { requireSourceOrBundled('./src/extractors/python').restoreToolchain(xcache.toolchain); } catch (_) { /* label only */ }
+    };
+    const slots = [];
+    const pending = [];
     for (const fp of files) {
       if (have.has(fp)) continue;
-      let src = '';
-      try { src = fs.readFileSync(fp, 'utf8'); } catch (_) { continue; }
-      let sigs = [];
-      try {
-        const { extractFile } = requireSourceOrBundled('./src/extractors/dispatch');
-        sigs = extractFile(fp, src) || [];
-      } catch (_) { continue; }
-      if (!sigs.length) continue;
-      const doc = moduleDocSig ? moduleDocSig(src, fp) : '';
+      const slot = { fp, src: '', sigs: null, doc: null, key: null, hash: null, st: null };
+      if (xcache) {
+        slot.key = 't:' + path.relative(cwd, fp).replace(/\\/g, '/');
+        try { slot.st = fs.statSync(fp); } catch (_) { continue; }
+        const hit = xcache.peek(slot.key, slot.st, 'g');
+        if (hit) { slot.sigs = hit.s.slice(); slot.doc = hit.g; slots.push(slot); restoreLabel(fp); continue; }
+      }
+      try { slot.src = fs.readFileSync(fp, 'utf8'); } catch (_) { continue; }
+      if (xcache) {
+        slot.hash = xc.contentHash(slot.src);
+        const hit = xcache.get(slot.key, slot.hash, slot.st);
+        if (hit) {
+          slot.sigs = hit.s.slice();
+          if (hit.g === undefined && hit.s.length > 0) xcache.update(hit, { g: moduleDocSig ? (moduleDocSig(slot.src, fp) || '') : '' });
+          slot.doc = hit.g;
+          restoreLabel(fp);
+        }
+      }
+      slots.push(slot);
+      if (!slot.sigs) pending.push(slot);
+    }
+    if (pending.length > 0) {
+      prefetchPythonAst(pending.map((p) => p.fp));
+      const { extractFile } = requireSourceOrBundled('./src/extractors/dispatch');
+      for (const p of pending) {
+        try { p.sigs = extractFile(p.fp, p.src) || []; } catch (_) { p.sigs = null; continue; }
+        if (xcache) {
+          p.doc = p.sigs.length > 0 && moduleDocSig ? (moduleDocSig(p.src, p.fp) || '') : '';
+          // Not kept when the AST tier failed on the file: the next run asks python3 again.
+          const degraded = /\.pyw?$/i.test(p.fp) && requireSourceOrBundled('./src/extractors/python').wasDegraded(p.fp);
+          if (!degraded) xcache.set(p.key, p.hash, p.sigs.length > 0 ? { s: p.sigs.slice(), g: p.doc } : { s: [] }, { size: p.st.size, mtimeMs: p.st.mtimeMs });
+        }
+      }
+    }
+    for (const slot of slots) {
+      const { fp, sigs } = slot;
+      if (!sigs || !sigs.length) continue;
+      const doc = typeof slot.doc === 'string' ? slot.doc : (moduleDocSig ? moduleDocSig(slot.src, fp) : '');
       out.push({ filePath: fp, sigs: doc ? [doc, ...sigs] : sigs });
     }
   }
@@ -40419,7 +40999,7 @@ function applyTokenBudget(fileEntries, maxTokens) {
     else if (isConfigFile(e.filePath)) { priority = 6; dropReason = 'budget: config file'; }
     else if (isEntryPointFile(e.filePath)) { priority = 3; dropReason = 'budget: entry point'; }
     else priority = 4;
-    const loc = e.content ? e.content.split('\n').length : 1;
+    const loc = typeof e.loc === 'number' ? e.loc : (e.content ? e.content.split('\n').length : 1);
     const signalQuality = loc > 0 ? (e.sigs ? e.sigs.length : 0) / loc : 0;
     return { ...e, priority, dropReason, signalQuality };
   });
@@ -40558,11 +41138,39 @@ function applyTokenBudget(fileEntries, maxTokens) {
 // ---------------------------------------------------------------------------
 // Recently committed files (git, optional)
 // ---------------------------------------------------------------------------
+// The extraction cache of the run in progress. Git's answers about history cannot change while HEAD does
+// not, so they are kept in it too and a re-run asks git for a few identifiers instead of every diff.
+let __runCache = null;
+let __runHead;
+
+/**
+ * HEAD's commit id and the state of the repository's shallow boundary, once per run ('' outside a
+ * repository). The commits `git log` reaches from HEAD, and what the oldest of them is diffed against,
+ * change when a shallow clone is deepened or unshallowed with HEAD where it was.
+ */
+function __headOf(cwd) {
+  if (__runHead === undefined) {
+    const out = __tryGit(['rev-parse', 'HEAD', '--git-path', 'shallow'], { cwd }).split('\n');
+    let shallow = '';
+    if (out[0] && out[1]) {
+      try { shallow = requireSourceOrBundled('./src/cache/extract-cache').sha1(fs.readFileSync(path.resolve(cwd, out[1].trim()))); } catch (_) { /* not shallow */ }
+    }
+    __runHead = out[0] ? `${out[0].trim()}|${shallow}` : '';
+  }
+  return __runHead;
+}
+
 function getRecentlyCommittedFiles(cwd, count) {
   const n = count || 10;
   try {
-    const out = __git(['log', '--name-only', '--format=', '-n', String(n)], { cwd });
-    return new Set(out.split('\n').map((f) => f.trim()).filter(Boolean).map((f) => path.resolve(cwd, f)));
+    const head = __runCache ? __headOf(cwd) : '';
+    let names = head ? __runCache.memoGet(`recent:${n}`, head) : undefined;
+    if (!names) {
+      const out = __git(['log', '--name-only', '--format=', '-n', String(n)], { cwd });
+      names = out.split('\n').map((f) => f.trim()).filter(Boolean);
+      if (head) __runCache.memoSet(`recent:${n}`, head, names);
+    }
+    return new Set(names.map((f) => path.resolve(cwd, f)));
   } catch (_) {
     return new Set();
   }
@@ -40648,12 +41256,26 @@ function buildDepMap(fileEntries, cwd) {
   return lines;
 }
 
+/**
+ * The TODO lines of one file. Kept in the extraction cache when the run has one, so that a file
+ * served from it by its stat is not read for this.
+ */
+function __todosOf(entry, cwd, extractTodos) {
+  const held = __runCache ? __runCache.entryOf(path.relative(cwd, entry.filePath).replace(/\\/g, '/')) : undefined;
+  if (held && Array.isArray(held.t)) return held.t;
+  let src = entry.content;
+  if (typeof src !== 'string') { try { src = fs.readFileSync(entry.filePath, 'utf8'); } catch (_) { src = ''; } }
+  const found = extractTodos(src || '');
+  if (held) __runCache.update(held, { t: found });
+  return found;
+}
+
 function buildTodoSection(fileEntries, cwd, config) {
   if (config && config.todos === false) return [];
   const { extractTodos } = requireSourceOrBundled('./src/extractors/todos');
   const out = [];
   for (const entry of fileEntries) {
-    const todos = extractTodos(entry.content || '');
+    const todos = __todosOf(entry, cwd, extractTodos);
     if (!todos || todos.length === 0) continue;
     const rel = path.relative(cwd, entry.filePath);
     for (const t of todos) {
@@ -40668,58 +41290,108 @@ function buildChangesSection(cwd, config, fileEntries) {
   const n = (config && config.changesCommits) || 5;
   try {
     let range = `HEAD~${n}..HEAD`;
-    try {
-      __git(['rev-parse', '--verify', `HEAD~${n}`], { cwd });
-    } catch (_) {
-      // HEAD~n doesn't exist (shallow repo) — clamp to deepest valid ancestor
-      let best = 1;
-      for (let k = n - 1; k >= 2; k--) {
-        try {
-          __git(['rev-parse', '--verify', `HEAD~${k}`], { cwd });
-          best = k;
-          break;
-        } catch (_) {}
+    // The range is named by the commits at its two ends, so the diffs under it are the same whenever
+    // those are (what lets a re-run reuse them). One listing of the first-parent chain gives both ends,
+    // and the clamp of a shallow repository, exactly as the probing below would find it.
+    let ident = null;
+    if (__runCache && Number.isInteger(n) && n > 0) {
+      try {
+        const chain = __git(['rev-list', '--first-parent', '-n', String(n + 1), 'HEAD'], { cwd }).split('\n').filter(Boolean);
+        const ancestors = chain.length - 1;
+        // No commit before HEAD (a one-commit history or a depth-1 clone): there is no range to diff,
+        // which the probing below arrives at only after trying every ancestor.
+        if (chain.length === 1) return [];
+        const back = ancestors >= n ? n : ((n - 1 >= 2 && ancestors >= 2) ? Math.min(n - 1, ancestors) : 1);
+        if (chain[0] && chain[back]) {
+          range = `HEAD~${back}..HEAD`;
+          ident = {
+            key: `${chain[0]}|${chain[back]}|${__attributesStamp(cwd)}`,
+            branch: __git(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }).trim(),
+          };
+        }
+      } catch (_) { /* no history to read: below */ }
+    }
+    if (!ident) {
+      try {
+        __git(['rev-parse', '--verify', `HEAD~${n}`], { cwd });
+      } catch (_) {
+        // HEAD~n doesn't exist (shallow repo) — clamp to deepest valid ancestor
+        let best = 1;
+        for (let k = n - 1; k >= 2; k--) {
+          try {
+            __git(['rev-parse', '--verify', `HEAD~${k}`], { cwd });
+            best = k;
+            break;
+          } catch (_) {}
+        }
+        range = `HEAD~${best}..HEAD`;
       }
-      range = `HEAD~${best}..HEAD`;
     }
 
-    const namesOnly = __git(['diff', range, '--name-only'], { cwd });
-    const changed = new Set(namesOnly.split('\n').map((l) => l.trim()).filter(Boolean).map((f) => path.resolve(cwd, f)));
-    if (changed.size === 0) return [];
+    const held = ident ? __runCache.memoGet('changes', ident.key) : undefined;
+    const memo = ident ? (held || { names: null, deltas: {} }) : null;
+    let dirty = !held; // something was derived that the cache did not hold
+    let names = memo && memo.names;
+    if (!names) {
+      const namesOnly = __git(['diff', range, '--name-only'], { cwd });
+      names = namesOnly.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (memo) { memo.names = names; dirty = true; }
+    }
+    const changed = new Set(names.map((f) => path.resolve(cwd, f)));
+    if (changed.size === 0) {
+      if (memo && dirty) __runCache.memoSet('changes', ident.key, memo);
+      return [];
+    }
 
     // Identify the tip by commit, never by relative age (#683): "5 minutes ago"
     // is false the moment the file is written and differs on every regeneration.
     const tipHash = __git(['rev-parse', '--short', 'HEAD'], { cwd }).trim();
-    const tipBranch = __git(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }).trim() || 'HEAD';
+    const tipBranch = (ident ? ident.branch : __git(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd }).trim()) || 'HEAD';
 
     const lines = [`## recent changes (${tipBranch}@${tipHash})`, '```'];
     let hasDelta = false;
     for (const entry of fileEntries) {
       if (!changed.has(entry.filePath)) continue;
       const rel = path.relative(cwd, entry.filePath);
-      let diff = '';
-      try {
-        diff = __git(['diff', range, '--', rel], { cwd });
-      } catch (_) {
-        continue;
+      let delta;
+      if (memo && Object.prototype.hasOwnProperty.call(memo.deltas, rel)) {
+        delta = memo.deltas[rel];
+      } else {
+        let diff = '';
+        try {
+          diff = __git(['diff', range, '--', rel], { cwd });
+        } catch (_) {
+          continue;
+        }
+        const plus = [...diff.matchAll(/^\+.*(?:def\s+|function\s+|class\s+|func\s+)(\w+)/gm)].map((m) => `+${m[1]}`);
+        const modDef = [...diff.matchAll(/^-.*(?:def\s+|function\s+|class\s+|func\s+)(\w+)/gm)].map((m) => `~${m[1]}`);
+        // Hunk headers (Python/Go/Java: git shows enclosing func in @@ ... @@ context)
+        const modCtx = [...diff.matchAll(/^@@[^@]*@@\s+(?:(?:async|export|public|private|static)\s+)*(?:def|function|class|func)\s+(\w+)/gm)].map((m) => `~${m[1]}`);
+        // Context lines (TS/JS: git doesn't detect funcname, so scan the unchanged lines adjacent to hunks)
+        const ctxFn = [...diff.matchAll(/^ +(?:export\s+)?(?:async\s+)?(?:default\s+)?(?:function\s+(\w+)|class\s+(\w+))/gm)].map((m) => `~${m[1] || m[2]}`);
+        delta = [...new Set([...plus, ...modDef, ...modCtx, ...ctxFn])].slice(0, 4).join('  ');
+        if (memo) { memo.deltas[rel] = delta; dirty = true; }
       }
-      const plus = [...diff.matchAll(/^\+.*(?:def\s+|function\s+|class\s+|func\s+)(\w+)/gm)].map((m) => `+${m[1]}`);
-      const modDef = [...diff.matchAll(/^-.*(?:def\s+|function\s+|class\s+|func\s+)(\w+)/gm)].map((m) => `~${m[1]}`);
-      // Hunk headers (Python/Go/Java: git shows enclosing func in @@ ... @@ context)
-      const modCtx = [...diff.matchAll(/^@@[^@]*@@\s+(?:(?:async|export|public|private|static)\s+)*(?:def|function|class|func)\s+(\w+)/gm)].map((m) => `~${m[1]}`);
-      // Context lines (TS/JS: git doesn't detect funcname, so scan the unchanged lines adjacent to hunks)
-      const ctxFn = [...diff.matchAll(/^ +(?:export\s+)?(?:async\s+)?(?:default\s+)?(?:function\s+(\w+)|class\s+(\w+))/gm)].map((m) => `~${m[1] || m[2]}`);
-      const delta = [...new Set([...plus, ...modDef, ...modCtx, ...ctxFn])].slice(0, 4).join('  ');
       if (delta) {
         hasDelta = true;
         lines.push(`${rel.padEnd(45)} ${delta}`);
       }
     }
+    if (memo && dirty) __runCache.memoSet('changes', ident.key, memo);
     lines.push('```', '');
     return hasDelta ? lines : [];
   } catch (_) {
     return [];
   }
+}
+
+/**
+ * What in the working tree can change how git renders a diff without a new commit: the repository's
+ * top-level .gitattributes (which can select a language's function-name pattern). Part of the key a
+ * cached diff is valid for.
+ */
+function __attributesStamp(cwd) {
+  try { return requireSourceOrBundled('./src/cache/extract-cache').sha1(fs.readFileSync(path.join(cwd, '.gitattributes'))); } catch (_) { return ''; }
 }
 
 function normalizeRelNoExt(rel) {
@@ -41342,6 +42014,10 @@ function watchKind(cwd, config, abs, ctx) {
  */
 function patchLiveFiles(cwd, config, absFiles, ctx) {
   const overlay = requireSourceOrBundled('./src/cache/overlay');
+  // A patch is an index entry, so it keeps what a full run keeps (indexLimit), not the context-file budget.
+  const { indexLimit, splitForIndex, moreForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
+  const patchLimit = indexLimit(config);
+  const readLimit = Math.max(patchLimit, EXTRACT_CEILING);
   const updates = [];
   let removed = 0;
   let full = false;
@@ -41363,7 +42039,7 @@ function patchLiveFiles(cwd, config, absFiles, ctx) {
       const under = key + '/';
       for (const k of ctx.known()) if (k.startsWith(under)) { full = true; break; }
     }
-    let sigs = content === null ? [] : detectAndExtract(abs, content, config.maxSigsPerFile, config.exactness, cwd);
+    let sigs = content === null ? [] : detectAndExtract(abs, content, readLimit, config.exactness, cwd);
     if (sigs.length === 0) {
       // A removal only means something for a path the index holds. An editor's
       // swap or atomic-save temp file comes and goes without ever being indexed,
@@ -41371,8 +42047,10 @@ function patchLiveFiles(cwd, config, absFiles, ctx) {
       if (ctx.known().has(key)) { updates.push([key, { at, deleted: true }]); ctx.known().delete(key); removed++; }
       continue;
     }
-    sigs = finishFileSigs(sigs, abs, cwd, config, ctx.testIndex());
-    updates.push([key, { at, sigs: indexSigsFor(abs, content, sigs, config) }]);
+    const split = splitForIndex(finishFileSigs(sigs, abs, cwd, config, ctx.testIndex()), config);
+    const entry = { at, sigs: indexSigsFor(abs, content, split.view, config) };
+    if (split.more.length > 0) entry.more = moreForIndex(split.more, config);
+    updates.push([key, entry]);
     ctx.known().add(key);
   }
   if (updates.length > 0) {
@@ -42094,10 +42772,11 @@ function runDiff(cwd, config, stagedOnly, baseRef) {
  * What one file contributes to the generated context once it has been
  * extracted: secret redaction, then test-coverage annotation.
  */
-function finishFileSigs(sigs, filePath, cwd, config, testIndex) {
+function finishFileSigs(sigs, filePath, cwd, config, testIndex, redactedEarlier) {
   const { redactSecrets } = requireSourceOrBundled('./src/cache/entry');
   const result = redactSecrets(sigs, filePath, config);
-  if (result.redacted) {
+  // `redactedEarlier`: the extraction cache already redacted this list (and says so on every run, as before).
+  if (result.redacted || redactedEarlier) {
     console.warn(`[sigmap] secrets redacted in ${path.relative(cwd, filePath)}`);
   }
   return annotateCoverage(result.sigs, testIndex, !!config.testCoverage);
@@ -42111,14 +42790,97 @@ function finishFileSigs(sigs, filePath, cwd, config, testIndex) {
  * hooks: a patched entry and a regenerated one cannot disagree about a file,
  * which is what lets the live overlay and a full run converge on the same index.
  */
-function indexSigsFor(filePath, content, sigs, config) {
-  return requireSourceOrBundled('./src/cache/entry').indexSigsFor(filePath, content, sigs, config);
+function indexSigsFor(filePath, content, sigs, config, doc) {
+  return requireSourceOrBundled('./src/cache/entry').indexSigsFor(filePath, content, sigs, config, doc);
+}
+
+// ---------------------------------------------------------------------------
+// Content-hash extraction cache (#971)
+// ---------------------------------------------------------------------------
+
+/**
+ * Open the extraction cache for this run, or null when it must not be used: switched off
+ * (`extractCache: false`), or an opt-in tier is on whose answer comes from outside the file
+ * (the repo's own typescript package, a language server, a SCIP index).
+ */
+function openExtractionCache(cwd, config, readLimit) {
+  if (config.extractCache === false) return null;
+  const ex = config.exactness || {};
+  if (ex.typescript || ex.lsp || ex.scip) return null;
+  try {
+    const xc = requireSourceOrBundled('./src/cache/extract-cache');
+    const py = requireSourceOrBundled('./src/extractors/python');
+    const srcDir = path.join(__dirname, 'src');
+    const sources = xc.treeHash(path.join(srcDir, 'extractors'), ['.js', '.py']) + xc.treeHash(path.join(srcDir, 'util'), ['truncate.js']) + xc.treeHash(path.join(srcDir, 'retrieval'), ['module-doc.js']);
+    let core = '';
+    try { core = xc.sha1(fs.readFileSync(__filename)); } catch (_) { /* the version still keys it */ }
+    return xc.open(cwd, xc.fingerprint({ version: VERSION, sources, core, readLimit, depMap: config.depMap !== false, secretScan: !!config.secretScan, python: py.tierId(cwd) }));
+  } catch (_) { return null; }
+}
+
+/**
+ * What a run derives from a file's content besides its signatures, so that a file the cache
+ * holds need not be read again: the imports it declares, its line count and token estimate,
+ * and the leading module-doc line the retrieval index adds. (TODO lines are cached too, but only
+ * for the files that reach the output: scanning every file for them is the dearest step there is.)
+ */
+function deriveFileFacts(filePath, content, config) {
+  const facts = {
+    d: extractFileDeps(filePath, content, config),
+    l: content ? content.split('\n').length : 1,
+    k: estimateTokens(content),
+    g: '',
+  };
+  let doc = '';
+  try { doc = requireSourceOrBundled('./src/retrieval/module-doc').moduleDocSig(content, filePath) || ''; } catch (_) { /* no doc line */ }
+  // The header is prose lifted from the file: scanned before it is kept, like a signature.
+  if (doc) facts.g = requireSourceOrBundled('./src/cache/entry').redactSecrets([doc], __FILE_TOKEN, config).sigs[0] || '';
+  return facts;
+}
+
+// A redacted line names its file by absolute path. The cache holds redacted text (a credential must not
+// reach `.context/extract-cache.json` any more than the context file), and a path in it would not survive
+// moving the repository, so the path is stored as this token and given back on the way out.
+const __FILE_TOKEN = '@@sigmap-file@@';
+function __withPath(lines, filePath) {
+  return lines.map((l) => (typeof l === 'string' && l.includes(__FILE_TOKEN) ? l.split(__FILE_TOKEN).join(filePath) : l));
+}
+
+/**
+ * Give an entry a `content` it reads from disk on first use. A file served from the cache by
+ * its stat is never read for the run; anything that still asks for the text gets it, once.
+ * Not enumerable, so copying an entry (`{ ...e }`) does not read the file.
+ */
+function lazyContent(entry, filePath) {
+  let value;
+  let loaded = false;
+  Object.defineProperty(entry, 'content', {
+    enumerable: false,
+    configurable: true,
+    get() {
+      if (!loaded) { try { value = fs.readFileSync(filePath, 'utf8'); } catch (_) { value = ''; } loaded = true; }
+      return value;
+    },
+    set(v) { value = v; loaded = true; },
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Core generate pipeline
 // ---------------------------------------------------------------------------
 function runGenerate(cwd, config, reportMode, reportJson = false) {
+  // Directories are listed once for the whole run (src/util/dir-listing.js).
+  let listing = null;
+  try { listing = requireSourceOrBundled('./src/util/dir-listing'); listing.begin(); } catch (_) { listing = null; }
+  try {
+    return runGenerateOnce(cwd, config, reportMode, reportJson);
+  } finally {
+    if (listing) listing.end();
+    __runCache = null; // a run that threw leaves no cache for the next caller to mistake for its own
+  }
+}
+
+function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
   const __genT0 = Date.now();
   const ignorePatterns = loadIgnorePatterns(cwd);
   let allFiles = buildFileList(cwd, config);
@@ -42128,10 +42890,6 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     const rel = path.relative(cwd, f).replace(/\\/g, '/');
     return !matchesIgnore(rel, ignorePatterns);
   });
-
-  // Gather mtime and git-committed info
-  const hotCommits = config.hotCommits || 10;
-  const recentFiles = config.diffPriority ? getRecentlyCommittedFiles(cwd, hotCommits) : new Set();
 
   // v6.7: Load signature cache if enabled
   let cache = null;
@@ -42152,47 +42910,128 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     }
   }
 
-  // A file the signature cache still holds is never extracted, so it is not prefetched.
+  // One extraction per file feeds two views of it: the context file keeps the first
+  // `maxSigsPerFile` signatures, the retrieval index keeps up to its own limit (#982).
+  const { indexLimit, splitForIndex, moreForIndex, EXTRACT_CEILING } = requireSourceOrBundled('./src/cache/entry');
+  const extractLimit = indexLimit(config);
+  // What extraction is asked for: more than either limit, so that what the index cuts can
+  // be counted (the extractors stop at 200 a file on their own; this bounds one without).
+  const readLimit = Math.max(extractLimit, EXTRACT_CEILING);
+
+  const xcache = cache ? null : openExtractionCache(cwd, config, readLimit);
+  __runCache = xcache;
+  __runHead = undefined;
+
+  // Gather mtime and git-committed info (after the cache is open: git's answers are kept in it)
+  const hotCommits = config.hotCommits || 10;
+  const recentFiles = config.diffPriority ? getRecentlyCommittedFiles(cwd, hotCommits) : new Set();
+  // A walked path is `cwd` + separator + the relative path, already normalised; only others need path.relative.
+  const cwdPrefix = cwd.endsWith(path.sep) ? cwd : cwd + path.sep;
+  const relOf = (f) => (f.startsWith(cwdPrefix) ? f.slice(cwdPrefix.length) : path.relative(cwd, f)).replace(/\\/g, '/');
+  const isPy = (f) => /\.pyw?$/i.test(f);
+  // One stat a file for the whole loop: it says whether the content cache can answer without reading the file,
+  // and is the mtime the budget sorts by.
+  const statOf = new Map();
+  if (xcache) {
+    for (const f of allFiles) { try { statOf.set(f, fs.statSync(f)); } catch (_) { /* unreadable: skipped below */ } }
+  }
+
+  // A file a cache still holds (under the same ceiling, as below) is never extracted, so it is not
+  // prefetched. For the content cache the file's size and mtime only say "probably unchanged": a
+  // wrong guess costs one batched python3 process, never a wrong answer.
   prefetchPythonAst(cache ? allFiles.filter((f) => {
     const cached = cache.get(f);
-    try { return !cached || cached.mtime !== fs.statSync(f).mtimeMs; } catch (_) { return true; }
-  }) : allFiles);
+    try { return !cached || cached.cap !== readLimit || cached.mtime !== fs.statSync(f).mtimeMs; } catch (_) { return true; }
+  }) : xcache ? allFiles.filter((f) => isPy(f) && !xcache.fresh(relOf(f), statOf.get(f))) : allFiles);
   for (const filePath of allFiles) {
     let content = '';
-    try {
-      content = fs.readFileSync(filePath, 'utf8');
-    } catch (_) {
-      continue;
+    let facts = null; // what the content cache derived for this file, when it served or stored one
+    let redactedEarlier = false;
+    let cached = null;
+    let st = null;
+    if (xcache) {
+      st = statOf.get(filePath);
+      if (!st) continue;
+      cached = xcache.peek(relOf(filePath), st);
+    }
+    if (!cached) {
+      try {
+        content = fs.readFileSync(filePath, 'utf8');
+      } catch (_) {
+        continue;
+      }
     }
 
     // v6.7: Check cache before extracting
     let sigs = [];
     if (cache) {
-      const cached = cache.get(filePath);
+      const hit = cache.get(filePath);
       let mtime = 0;
       try { mtime = fs.statSync(filePath).mtimeMs; } catch (_) {}
-      if (cached && cached.mtime === mtime) {
-        sigs = cached.sigs;
+      // An entry is reused only if it was extracted under the same ceiling: one from an
+      // older version holds the first 25 signatures of the file, not the list the index keeps.
+      if (hit && hit.mtime === mtime && hit.cap === readLimit) {
+        sigs = hit.sigs;
       } else {
-        sigs = detectAndExtract(filePath, content, config.maxSigsPerFile, config.exactness, cwd);
+        sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
         if (sigs.length > 0) {
-          cache.set(filePath, { mtime, sigs });
+          cache.set(filePath, { mtime, sigs, cap: readLimit });
         }
       }
+    } else if (xcache) {
+      // The content cache: the file's signatures are a function of its content (and of what the
+      // cache's fingerprint covers), so the same content gives the same list without extracting.
+      const rel = relOf(filePath);
+      let kept = true; // false: the entry is used this run and not kept
+      if (!cached) {
+        const hash = requireSourceOrBundled('./src/cache/extract-cache').contentHash(content);
+        cached = xcache.get(rel, hash, st);
+        if (!cached) {
+          const raw = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
+          // What is kept is what the scanner leaves of the list; a scanner that cannot run throws, as it does below.
+          const scanned = requireSourceOrBundled('./src/cache/entry').redactSecrets(raw, __FILE_TOKEN, config);
+          const entryFacts = { s: scanned.sigs.slice(), x: scanned.redacted ? 1 : 0 };
+          // A file the AST tier failed on was answered by the regex tier: that answer is not the AST tier's,
+          // so it is not kept, and the next run asks python3 again.
+          if (isPy(filePath) && requireSourceOrBundled('./src/extractors/python').wasDegraded(filePath)) {
+            cached = entryFacts;
+            kept = false;
+          } else {
+            cached = xcache.set(rel, hash, entryFacts, { size: st.size, mtimeMs: st.mtimeMs });
+          }
+        }
+      }
+      sigs = __withPath(cached.s, filePath);
+      redactedEarlier = !!cached.x;
+      if (isPy(filePath)) { try { requireSourceOrBundled('./src/extractors/python').restoreToolchain(xcache.toolchain); } catch (_) { /* label only */ } }
+      if (sigs.length > 0) {
+        if (typeof cached.l !== 'number') {
+          const derived = deriveFileFacts(filePath, content, config);
+          if (kept) xcache.update(cached, derived); else Object.assign(cached, derived);
+        }
+        facts = cached;
+      }
     } else {
-      sigs = detectAndExtract(filePath, content, config.maxSigsPerFile, config.exactness, cwd);
+      sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
     }
     if (sigs.length === 0) continue;
 
-    // Baseline = estimated tokens of original source content for intuitive reduction stats.
-    inputTokenTotal += estimateTokens(content);
+    // Annotated and secret-scanned in full, so what the index keeps is scanned too;
+    // the context file then takes the first `maxSigsPerFile` of the same list.
+    const indexSigs = finishFileSigs(sigs, filePath, cwd, config, testIndex, redactedEarlier);
+    sigs = indexSigs.slice(0, config.maxSigsPerFile);
+    if (sigs.length === 0) continue; // a context limit of 0 keeps no file, as it always did
 
-    sigs = finishFileSigs(sigs, filePath, cwd, config, testIndex);
+    // Baseline = estimated tokens of original source content for intuitive reduction stats.
+    inputTokenTotal += facts ? facts.k : estimateTokens(content);
 
     let mtime = 0;
-    try {
-      mtime = fs.statSync(filePath).mtimeMs;
-    } catch (_) {}
+    if (st) mtime = st.mtimeMs;
+    else {
+      try {
+        mtime = fs.statSync(filePath).mtimeMs;
+      } catch (_) {}
+    }
 
     // Boost recently committed files (give them a max mtime so they aren't
     // dropped first). A deterministic monotonic counter — not Date.now() — keeps
@@ -42200,7 +43039,16 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     // preserving the original processing-order ranking (see nextRecentMtime, #440).
     if (recentFiles.has(filePath)) mtime = nextRecentMtime();
 
-    fileEntries.push({ filePath, sigs, deps: extractFileDeps(filePath, content, config), content, mtime });
+    const entry = { filePath, sigs, indexSigs, deps: facts ? facts.d.slice() : extractFileDeps(filePath, content, config), mtime };
+    if (facts) {
+      // What later steps read of the text, so that none of them needs the file itself.
+      entry.loc = facts.l;
+      entry.doc = __withPath([facts.g], filePath)[0];
+      if (content) entry.content = content; else lazyContent(entry, filePath);
+    } else {
+      entry.content = content;
+    }
+    fileEntries.push(entry);
   }
 
   // v6.5: Coverage feedback loop — warn if symbol density is suspiciously low
@@ -42231,6 +43079,23 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     ? Object.assign({}, config, { maxTokens: effectiveMaxTokens, _autoMaxTokens: effectiveMaxTokens })
     : config;
 
+  // The extraction cache is written once everything that fills it has run: the main loop, the
+  // test entries the index step collects and the git answers the output step asks for. A report
+  // run collects no test entries and carries them over.
+  const finishExtractionCache = () => {
+    __runCache = null;
+    if (!xcache) return;
+    try { xcache.setToolchain(requireSourceOrBundled('./src/extractors/python').toolchainLabel()); } catch (_) { /* label only */ }
+    if (reportMode) xcache.keep('t:');
+    xcache.save();
+    if (process.argv.includes('--verbose')) {
+      console.warn(`[sigmap] extraction cache: ${xcache.stats.hits} hit(s), ${xcache.stats.misses} extracted (${xcache.loaded} entries loaded)`);
+    }
+  };
+
+  // How many of the scanned files the retrieval index holds, for the run summary (null: no index was written).
+  let __indexedSource = null;
+
   let result;
   if (!reportMode) {
     // Retrieval index (complete, unbudgeted) — written BEFORE applyTokenBudget
@@ -42253,17 +43118,25 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       // ONLY: the prompt artifact is token-budgeted, the index is not.
       // Per-file enrichment lives in indexSigsFor (shared with the watcher's
       // per-file patch, so a patch and this run cannot disagree about a file).
+      let __cutFiles = 0;
+      let __cutSigs = 0;
       let __entries = fileEntries.map((e) => {
-        let src = e.content;
+        // The module-doc line a cached file already holds spares reading the file; otherwise its text.
+        const doc = typeof e.doc === 'string' ? e.doc : undefined;
+        let src = doc !== undefined ? '' : e.content;
         if (typeof src !== 'string') { try { src = fs.readFileSync(e.filePath, 'utf8'); } catch (_) { src = ''; } }
-        return Object.assign({}, e, { sigs: indexSigsFor(e.filePath, src, e.sigs, config) });
+        // `sigs` is what the ranker reads of the file, exactly as before; `more` the rest, for
+        // the tools that look a symbol up (the index file keeps them in separate fields).
+        const split = splitForIndex(e.indexSigs || e.sigs, config);
+        if (split.dropped > 0) { __cutFiles++; __cutSigs += split.dropped; }
+        return { filePath: e.filePath, deps: e.deps, mtime: e.mtime, sigs: indexSigsFor(e.filePath, src, split.view, config, doc), more: moreForIndex(split.more, config) };
       });
       // Test files: indexed, never rendered into the prompt. They were the one
       // whole category `sigmap ask` could not reach at all — srcDirs excludes
       // them, so "where are the tests for X" had no answer at any rank. The
       // prompt artifact stays clean because this list never reaches formatOutput.
       try {
-        __entries = __entries.concat(collectTestEntries(cwd, config, __entries));
+        __entries = __entries.concat(collectTestEntries(cwd, config, __entries, xcache));
       } catch (_) { /* best-effort */ }
       // CI definitions live outside srcDirs by construction (`.github/workflows`
       // is a root dotdir), so without this the pipeline extractor is correct but
@@ -42273,6 +43146,18 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
       } catch (_) { /* best-effort */ }
       const __w = __store.writeFullIndex(cwd, __entries, { version: VERSION, startedAt: __genT0 });
       __indexWritten = __w.files > 0;
+      if (__indexWritten) {
+        // The same test writeFullIndex applies to an entry, over the source files only.
+        __indexedSource = __entries.slice(0, fileEntries.length).filter((e) => {
+          if (!e.sigs || e.sigs.length === 0) return false;
+          const r = path.relative(cwd, e.filePath);
+          return !!r && !r.startsWith('..');
+        }).length;
+      }
+      // Said once per run, and only when it happened: a file past the limit is not fully indexed.
+      if (__cutFiles > 0 && !reportJson) {
+        console.warn(`[sigmap] index: ${__cutFiles} file(s) hold more signatures than the index keeps; ${__cutSigs} not indexed (maxIndexSigsPerFile is ${extractLimit}; most extractors stop at 200 a file)`);
+      }
       // The index now reflects every change up to the instant this run began, so any
       // overlay entry older than that is superseded and is dropped.
       try { requireSourceOrBundled('./src/cache/overlay').prune(cwd, __genT0); } catch (_) { /* best-effort */ }
@@ -42370,6 +43255,8 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     result = { inputTokenTotal, finalTokens, fileCount: beforeCount, droppedCount, coverageResult, cacheFit: buildCacheFit(content, configWithBudget) };
   }
 
+  finishExtractionCache();
+
   // Budget-override notice (#783) — on EVERY path, not only under --report.
   // `autoMaxTokens` defaults to true and silently replaces a pinned budget;
   // the only trace on a default run was the word "auto-scaled" in the coverage
@@ -42429,23 +43316,44 @@ function runGenerate(cwd, config, reportMode, reportJson = false) {
     && !process.argv.includes('--report')
     && !process.argv.includes('--quiet')) {
     const bar  = '\u2500'.repeat(43);
-    const syms = fileEntries.reduce((n, f) => n + (f.sigs ? f.sigs.length : 0), 0);
+    // Every file the run extracted from, not the part that fit the budget (`fileEntries` is the latter by now).
+    const syms = symbolsFound;
     const pct  = result.inputTokenTotal > 0
       ? Math.round((1 - result.finalTokens / result.inputTokenTotal) * 100)
       : 0;
     // v4.0: coverage score in post-run summary
     let coverageLine = '';
     try {
-      const { coverageScore } = requireSourceOrBundled('./src/analysis/coverage-score');
+      const { coverageScore, coveragePct } = requireSourceOrBundled('./src/analysis/coverage-score');
       const cov = coverageScore(cwd, fileEntries, configWithBudget);
       const autoBudgetNote = (config.autoMaxTokens !== false && effectiveMaxTokens !== config.maxTokens)
         ? `  [budget: ${effectiveMaxTokens} auto-scaled]`
         : '';
-      coverageLine = ` Coverage       : ${cov.grade} (${cov.score}%)  \u2014 ${cov.included} of ${cov.total} source files included${autoBudgetNote}`;
-      // Extra warning line when coverage is still poor despite auto-scaling
-      if (cov.score < 40 && config.strategy !== 'per-module' && config.strategy !== 'hot-cold'
-        && config.strategy !== 'index') {
-        coverageLine += '\n [sigmap] tip: large repo — consider strategy:"per-module" for full coverage';
+      // Two populations, named, and neither graded by the other's size: what the retrieval index holds
+      // (everything the run found symbols in; `sigmap ask` and the MCP tools reach all of it) and what
+      // fits the budgeted context file. A complete index is not a D because its prompt view is small.
+      if (__indexedSource !== null) {
+        const n = (x) => x.toLocaleString();
+        const idxPct = coveragePct(__indexedSource, result.fileCount);
+        coverageLine = ` Indexed        : ${n(__indexedSource)} of ${n(result.fileCount)} files with symbols (${idxPct}%) \u2014 every one reachable with \`sigmap ask\``;
+        const split = config.strategy && config.strategy !== 'full';
+        if (!split) {
+          coverageLine += `\n In context     : ${n(cov.included)} of ${n(cov.total)} source files (${cov.score}%) fit the context file${autoBudgetNote}`;
+          if (cov.score < 40) {
+            coverageLine += `\n [sigmap] tip: the rest stay indexed; strategy:"per-module" puts more of them in front of the agent`;
+          }
+        } else if (config.strategy !== 'index') {
+          // The signatures are split across files, not budgeted into one: there is no single "fits the context file".
+          coverageLine += `\n In context     : split by strategy "${config.strategy}" (see Output) \u2014 not one budgeted file`;
+        } // `index`: the line above this block already says the always-on file holds no signatures
+
+      } else {
+        coverageLine = ` Coverage       : ${cov.grade} (${cov.score}%)  \u2014 ${cov.included} of ${cov.total} source files included${autoBudgetNote}`;
+        // Extra warning line when coverage is still poor despite auto-scaling
+        if (cov.score < 40 && config.strategy !== 'per-module' && config.strategy !== 'hot-cold'
+          && config.strategy !== 'index') {
+          coverageLine += '\n [sigmap] tip: large repo \u2014 consider strategy:"per-module" for full coverage';
+        }
       }
     } catch (_) {}
     const lines = [
@@ -45952,7 +46860,7 @@ function main() {
     let symbolIndex = null;
     try {
       const { buildSigIndex } = requireSourceOrBundled('./src/retrieval/ranker');
-      symbolIndex = buildSigIndex(cwd);
+      symbolIndex = buildSigIndex(cwd, { full: true });
     } catch (_) {}
     const sq = runSqueeze(input, { srcDirs: config.srcDirs, symbolIndex });
 

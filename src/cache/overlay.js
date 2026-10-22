@@ -71,7 +71,8 @@ function writeAtomic(file, text) {
 
 function _valid(e) {
   return !!e && typeof e === 'object' && Number.isFinite(e.at)
-    && (e.deleted === true || (Array.isArray(e.sigs) && e.sigs.every((s) => typeof s === 'string')));
+    && (e.deleted === true || (Array.isArray(e.sigs) && e.sigs.every((s) => typeof s === 'string')))
+    && (e.more === undefined || (Array.isArray(e.more) && e.more.every((s) => typeof s === 'string')));
 }
 
 /**
@@ -133,15 +134,18 @@ function put(entries, rel, entry) {
  * @param {Map<string,string[]>} index
  * @param {Map} entries
  * @param {number|null} baseMs - when the base index began; null/0 → every entry is newer
+ * @param {Map<string,string[]>} [more] the signatures past what the ranker reads (#982), kept
+ *        in step: an entry that replaces a file's signatures carries its own, a deleted file
+ *        loses them, an additive entry leaves them
  * @returns {number} entries applied
  */
-function apply(index, entries, baseMs) {
+function apply(index, entries, baseMs, more) {
   // `at` is whole milliseconds and a base derived from a file mtime is fractional.
   const since = Number.isFinite(baseMs) ? Math.floor(baseMs) : 0;
   let applied = 0;
   for (const [rel, e] of entries) {
     if (e.at < since) continue;
-    if (e.deleted) { if (index.delete(rel)) applied++; continue; }
+    if (e.deleted) { if (more) more.delete(rel); if (index.delete(rel)) applied++; continue; }
     if (!e.sigs || e.sigs.length === 0) continue;
     if (e.additive) {
       const have = index.get(rel) || [];
@@ -150,6 +154,7 @@ function apply(index, entries, baseMs) {
       index.set(rel, merged);
     } else {
       index.set(rel, e.sigs);
+      if (more) { if (e.more && e.more.length > 0) more.set(rel, e.more); else more.delete(rel); }
     }
     applied++;
   }

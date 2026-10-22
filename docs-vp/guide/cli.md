@@ -2196,7 +2196,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.8% vs 39.2%   (2.37× lift)
+ hit@5         92.8% vs 40.0%   (2.32× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2223,7 +2223,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.37× vs a grep agent (published)
+95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.32× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2233,7 +2233,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.37× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.32× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2513,7 +2513,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.80.1, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.81.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3039,7 +3039,7 @@ sigmap gain --model gpt4o
 [sigmap] unknown model 'gpt4o' — priced as claude-sonnet-5-5 ($2/MTok); see: sigmap gain --models
 ```
 
-`gain --models` lists what it will accept:
+`gain --models` lists current pricing models and explicit project choices:
 
 ```bash
 sigmap gain --models
@@ -3059,14 +3059,18 @@ Known pricing models (sigmap gain --model <name>) — input prices as of 2026-10
   gemini-3.1-pro-preview   $2/MTok
   gemini-3.8-flash         $0.75/MTok
   gemini-3.5-flash-lite    $0.3/MTok
+  minimax-m3.1-flash       $0.15/MTok
   minimax-m3               $0.3/MTok
-  minimax-m2.7             $0.3/MTok
   claude-opus              $4/MTok  → claude-opus-5-5
   claude-sonnet            $2/MTok  → claude-sonnet-5-5  (default)
   claude-haiku             $1/MTok  → claude-haiku-4-5
 ```
 
 Since **v8.63.0** this is the one model table SigMap has: [`--suggest-tool`](#suggest-tool) and the routing section name models from it, and `--cost` and `ask` price from it. The family keys (`claude-sonnet`, `claude-opus`, `claude-haiku`) are aliases for the current model of that family, so the rate they resolve to moves when the profile does. Prices you set under [`models.prices`](/guide/config#models) appear here and win over the shipped ones; the header then reads `(your config)` when you also set `models.asOf`. The `gemini-1.5-*` keys earlier releases listed are gone — the vendor no longer publishes a price for them; add your own under `models.prices` if you still use one.
+
+MiniMax choices list `minimax-m3.1-flash` first, then `minimax-m3`. Flash's $0.15/M input rate and 1,000,000-token window were verified on 2026-10-20 against the [pricing](https://platform.minimax.io/docs/guides/pricing-paygo) and [model](https://platform.minimax.io/docs/guides/models-intro) pages; the shared profile date remains conservative for the other entries. M3's estimate assumes standard requests up to 512k input tokens. Explicit `--model MiniMax-M2.7` still resolves its legacy estimate; a project roster or price override can list it again.
+
+The live ablation runner (`npm run benchmark:llm-ablation`) defaults to `MiniMax-M3.1-Flash` when `MINIMAX_API_KEY` selects MiniMax. Pass `-- --model MiniMax-M3` to select M3; explicit legacy or custom model IDs pass through unchanged. `MINIMAX_BASE_URL` continues to override the global `https://api.minimax.io/v1` endpoint, including `https://api.minimaxi.com/v1` for the regional API. The runner leaves thinking and effort unset, using the API defaults.
 
 The exit code and the dashboard itself are unchanged — the fallback is disclosed, not removed, because a figure someone is already quoting should not silently change shape.
 
@@ -3212,7 +3216,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.80.1
+# 8.81.0
 ```
 
 ---

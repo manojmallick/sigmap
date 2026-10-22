@@ -46,12 +46,16 @@ function indexPath(cwd) {
  */
 function writeFullIndex(cwd, fileEntries, opts = {}) {
   const files = {};
+  const more = {};
   let count = 0;
   for (const e of fileEntries || []) {
     if (!e || !e.filePath || !Array.isArray(e.sigs) || e.sigs.length === 0) continue;
     const rel = path.relative(cwd, e.filePath).replace(/\\/g, '/');
     if (!rel || rel.startsWith('..')) continue;
     files[rel] = e.sigs;
+    // The signatures of a file past what the ranker reads (#982): kept for the tools that
+    // look a symbol up, in a field of their own so `files` stays exactly what it was.
+    if (Array.isArray(e.more) && e.more.length > 0) more[rel] = e.more;
     count++;
   }
 
@@ -68,6 +72,7 @@ function writeFullIndex(cwd, fileEntries, opts = {}) {
     // older than it describes a change the run has already seen.
     startedAt: Number.isFinite(opts.startedAt) ? opts.startedAt : null,
     files,
+    ...(Object.keys(more).length > 0 ? { more } : {}),
   }), 'utf8');
   fs.renameSync(tmp, out);
   return { path: out, files: count };
@@ -96,22 +101,31 @@ function readFullIndex(cwd) {
  * an overlay entry made during that run is conservatively treated as superseded),
  * else null.
  *
+ * `more` holds, for a file the index cut at what the ranker reads, the signatures after
+ * that point (#982). `index` alone is what the ranker, `ask` and the listing tools read.
+ *
  * @param {string} cwd
- * @returns {{ index: Map<string, string[]>, baseMs: number|null }}
+ * @returns {{ index: Map<string, string[]>, baseMs: number|null, more: Map<string, string[]> }}
  */
 function readFullIndexMeta(cwd) {
   const index = new Map();
+  const more = new Map();
   let baseMs = null;
   try {
     const data = JSON.parse(fs.readFileSync(indexPath(cwd), 'utf8'));
-    if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs };
+    if (!data || data.schema !== SCHEMA || !data.files) return { index, baseMs, more };
     for (const [rel, sigs] of Object.entries(data.files)) {
       if (Array.isArray(sigs) && sigs.length > 0) index.set(rel, sigs);
+    }
+    if (data.more && typeof data.more === 'object') {
+      for (const [rel, sigs] of Object.entries(data.more)) {
+        if (Array.isArray(sigs) && sigs.length > 0 && index.has(rel)) more.set(rel, sigs);
+      }
     }
     if (Number.isFinite(data.startedAt)) baseMs = data.startedAt;
     else if (data.generated && Number.isFinite(Date.parse(data.generated))) baseMs = Date.parse(data.generated);
   } catch (_) { /* absent or corrupt → caller falls back to the context file */ }
-  return { index, baseMs };
+  return { index, baseMs, more };
 }
 
 /**

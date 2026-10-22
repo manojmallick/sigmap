@@ -105,7 +105,8 @@ function searchSignatures(args, cwd) {
   try {
     try { require('../cache/freshen').freshen(cwd); } catch (_) {}
     const { buildSigIndex } = require('../retrieval/ranker');
-    const index = buildSigIndex(cwd);
+    // every signature the index keeps: a symbol is found here whenever get_callee_signatures finds it (#982)
+    const index = buildSigIndex(cwd, { full: true });
     if (index.size === 0) {
       return 'No context file found. Run: node gen-context.js';
     }
@@ -314,7 +315,7 @@ function explainFile(args, cwd) {
 
   try {
     const { buildSigIndex } = require('../retrieval/ranker');
-    const index = buildSigIndex(cwd);
+    const index = buildSigIndex(cwd, { full: true }); // one file: all of what the index keeps of it (#982)
     let sigs = index.get(targetRel);
     if (!sigs) {
       for (const [file, fileSigs] of index.entries()) {
@@ -714,7 +715,7 @@ function getCalleeSignatures(args, cwd) {
     try { require('../cache/freshen').freshen(cwd); } catch (_) {}
     const { buildSigIndex } = require('../retrieval/ranker');
     const { buildSymbolCandidates, closestMatch, formatSuggestion } = require('../verify/closest-match');
-    const index = buildSigIndex(cwd);
+    const index = buildSigIndex(cwd, { full: true }); // a definition past what the ranker reads still counts (#982)
     if (index.size === 0) return 'No context file found. Run: node gen-context.js';
 
     // Extract the defining symbol name from a signature line (same rules as
@@ -762,7 +763,7 @@ function notifyFileCreated(args, cwd) {
   if (!rel) return 'Missing required argument: path';
   try {
     const overlay = require('../cache/overlay');
-    const { entrySigs } = require('../cache/entry');
+    const { entryParts } = require('../cache/entry');
     const { loadIgnorePatterns, matchesIgnore } = require('../util/ignore');
     const abs = path.resolve(cwd, rel);
     const key = overlay.relKey(cwd, abs);
@@ -777,13 +778,13 @@ function notifyFileCreated(args, cwd) {
     // The same stages a full run applies — a secret in the file is redacted here
     // too, and the module-doc line is kept — so this entry cannot replace a
     // redacted base entry with a leaky one.
-    const sigs = entrySigs(abs, content, cwd);
+    const { sigs, more } = entryParts(abs, content, cwd);
     // An empty result is NOT a removal: this tier cannot tell a file with no
     // signatures from one it cannot read or does not know, and a wrong removal is
     // worse than a stale entry the next full run replaces. Use notify_file_deleted
     // for a file that is gone.
     if (sigs.length === 0) return `No signatures found in ${rel}; the index is unchanged.`;
-    if (!overlay.update(cwd, (entries) => overlay.put(entries, key, { at, sigs }))) {
+    if (!overlay.update(cwd, (entries) => overlay.put(entries, key, more.length > 0 ? { at, sigs, more } : { at, sigs }))) {
       return `_notify_file_created failed: could not write the live overlay_`;
     }
     return `Indexed ${rel}: ${sigs.length} signature(s) now live.`;
@@ -1063,7 +1064,7 @@ function squeezeOutput(args, cwd) {
     } catch (_) {}
     try {
       const { buildSigIndex } = require('../retrieval/ranker');
-      symbolIndex = buildSigIndex(cwd);
+      symbolIndex = buildSigIndex(cwd, { full: true });
     } catch (_) {}
     sq = squeeze(content, { srcDirs, symbolIndex });
   } catch (err) {

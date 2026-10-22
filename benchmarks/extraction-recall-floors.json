@@ -1,0 +1,114 @@
+{
+  "_comment": "Recall floors for scripts/run-extraction-recall.mjs (#983). A floor is a promise about ONE reference parser: another version parses a different set of files, so each language lists `references`, ordered, and a run is compared only with the first entry whose `match` is a prefix of its interpreter version. A run on any other version prints its numbers with 'floors not enforced'. Each floor is the recall measured on the recorded `measuredWith` rounded down to a whole percent, less one point of margin (100.0 -> 99), so a floor trips on a real loss, not on a rounding. Raise a floor in the PR that raises the recall; never lower one to land a change.",
+  "languages": {
+    "python": {
+      "reference": "CPython ast",
+      "references": [
+        {
+          "match": "3.",
+          "measuredWith": {
+            "version": "3.9.6",
+            "alsoChecked": [
+              "3.11.15",
+              "3.14.6"
+            ],
+            "pins": {
+              "flask": "2ac8988",
+              "django": "a461af8"
+            }
+          },
+          "floors": {
+            "extractor-regex": {
+              "class": 98,
+              "func": 97,
+              "method": 89
+            },
+            "extractor-ast": {
+              "class": 97,
+              "func": 99,
+              "method": 97
+            },
+            "index-regex": {
+              "class": 98,
+              "func": 97,
+              "method": 89
+            },
+            "index-ast": {
+              "class": 97,
+              "func": 99,
+              "method": 97
+            }
+          }
+        }
+      ]
+    },
+    "ruby": {
+      "reference": "Ruby Ripper",
+      "references": [
+        {
+          "match": "2.6",
+          "measuredWith": {
+            "version": "2.6.10",
+            "pins": {
+              "rails": "f9243af",
+              "sidekiq": "132f982"
+            }
+          },
+          "floors": {
+            "extractor": {
+              "class": 99,
+              "module": 99,
+              "method": 97,
+              "owner": 99
+            },
+            "index": {
+              "class": 99,
+              "module": 99,
+              "method": 97,
+              "owner": 99
+            }
+          }
+        },
+        {
+          "match": "3.",
+          "measuredWith": {
+            "version": "3.2.3",
+            "pins": {
+              "rails": "f9243af",
+              "sidekiq": "132f982"
+            },
+            "source": "the xrepo job of CI run 39221799594 (ubuntu-latest, 833 files) for the extractor; of CI run 39328240582 (PR #1014, 331 indexed files) for the index",
+            "recorded": {
+              "extractor": {
+                "class": 100,
+                "module": 100,
+                "method": 98.5,
+                "owner": 99.3
+              },
+              "index": {
+                "class": 100.0,
+                "module": 100.0,
+                "method": 97.8,
+                "owner": 97.7
+              }
+            }
+          },
+          "floors": {
+            "extractor": {
+              "class": 99,
+              "module": 99,
+              "method": 97,
+              "owner": 98
+            },
+            "index": {
+              "class": 99,
+              "module": 99,
+              "method": 96,
+              "owner": 96
+            }
+          }
+        }
+      ]
+    }
+  }
+}

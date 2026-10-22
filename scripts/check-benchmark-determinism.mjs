@@ -15,6 +15,10 @@
  * context regeneration no longer skews the shared benchmark repos (the
  * override-mismatch bug this gate exists for).
  *
+ * Both modes end with the warm-cache equivalence (#971): on every cloned repo,
+ * a run reading the extraction cache, cold or warm or after one changed file,
+ * writes exactly what a run without it writes.
+ *
  * Requires cached benchmark repos with generated context (run the retrieval
  * benchmark first). Exit 1 on any divergence, with a per-repo diff.
  */
@@ -97,6 +101,18 @@ const run2 = runJson('run-honest-benchmark.mjs', ['--json']);
 if (canonical(run1) === canonical(run2)) {
   console.log(`[determinism] OK — ${CROSS_SUITE ? 'cross-suite ' : ''}runs identical`
     + ` (hit@5 ${(run1.summary.sigmap.hitAt5 * 100).toFixed(1)}%, ${run1.summary.tasks} tasks)`);
+  // The same promise across the extraction cache (#971): a warm run, and a run after one file
+  // changed, write what a run without the cache writes — on every clone, byte for byte.
+  console.log('[determinism] warm-cache equivalence: cold == warm == cache off, on every clone');
+  const eq = spawnSync('node', [path.join(ROOT, 'scripts', 'run-perf-benchmark.mjs'), '--equivalence'], {
+    cwd: ROOT, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024,
+  });
+  process.stdout.write(eq.stdout || '');
+  process.stderr.write(eq.stderr || '');
+  if (eq.status !== 0) {
+    console.error('[determinism] FAIL — a cached run wrote something an uncached run did not');
+    process.exit(1);
+  }
   process.exit(0);
 }
 

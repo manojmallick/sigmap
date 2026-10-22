@@ -22,7 +22,7 @@ head:
 
 SigMap extracts signatures from 33 programming languages and formats using deterministic, zero-dependency extraction — no Tree-sitter, no native binaries. Every extractor is a single JS file. No grammar files to download. Runs deterministically on any machine with Node.js 18+.
 
-**Stats:** 38 languages · 25 max signatures per file · 0 npm packages
+**Stats:** 38 languages · 25 signatures per file in the context file, up to 200 in the retrieval index · 0 npm packages
 
 Not every language gets the same depth — the tiers (AST / anchored regex / pattern-heuristic), the truncation caps, and the known regex gaps are stated plainly in [KNOWN_LIMITATIONS.md](https://github.com/manojmallick/sigmap/blob/main/KNOWN_LIMITATIONS.md) (v8.26.1), drift-locked by a guard test.
 
@@ -91,18 +91,20 @@ export class UserService
 
 ## All 38 languages
 
+Recall against each language's own parser is measured for Python and Ruby (the Python and Ruby rows link to the [recall report](/guide/extraction-recall)); the other languages are listed there as unmeasured.
+
 | Language | Extensions | Extracts |
 |----------|------------|----------|
 | TypeScript | `.ts` `.tsx` | export function, export class, interface, type alias, enum, methods, generics |
 | JavaScript | `.js` `.jsx` `.mjs` `.cjs` | export function, export class, arrow functions, module.exports, methods |
-| Python | `.py` `.pyw` | def functions, class, methods, async def, @dataclass, @property |
+| Python | `.py` `.pyw` | def functions, class, methods, async def, @dataclass, @property ([recall](/guide/extraction-recall)) |
 | Java | `.java` | public class, interface, enum, public methods, annotations |
 | Kotlin | `.kt` `.kts` | fun, class, data class, interface, object, sealed class |
 | Go | `.go` | func, type struct, interface, method receivers, type alias |
 | Rust | `.rs` | pub fn, pub struct, trait, enum, impl methods, pub type |
 | C# | `.cs` | public class, interface, enum, public methods, record, struct |
 | C / C++ | `.c` `.cpp` `.h` `.hpp` `.cc` | functions, class / struct, public methods, template, typedef |
-| Ruby | `.rb` `.rake` | def, class, module, attr_accessor, include / extend |
+| Ruby | `.rb` `.rake` | def, class, module, attr_accessor, include / extend ([recall](/guide/extraction-recall)) |
 | PHP | `.php` | function, class, interface, trait, public methods |
 | Swift | `.swift` | func, class / struct, protocol, enum, extension |
 | Dart | `.dart` | class, void / return type functions, abstract class, mixin, methods |

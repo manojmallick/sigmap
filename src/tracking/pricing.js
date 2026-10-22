@@ -66,10 +66,14 @@ function resolvePrice(model, profile) {
 
 /**
  * @param {object} [profile] - from resolveProfile(config); the shipped profile when omitted
- * @returns {string[]} every accepted model name (ids, then aliases)
+ * @returns {string[]} current model names (ids, then aliases), plus explicit project choices
  */
 function listModels(profile) {
-  return Object.keys(profile ? _priceMap(profile) : PRICES);
+  const p = profile || SHIPPED;
+  return Object.keys(profile ? _priceMap(profile) : PRICES).filter((name) => {
+    const hit = lookup(p, name);
+    return !hit.model.legacy || hit.model.source === 'config' || p.roster.includes(hit.id);
+  });
 }
 
 module.exports = { PRICES, DEFAULT_MODEL, resolvePrice, listModels };

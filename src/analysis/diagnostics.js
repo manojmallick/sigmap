@@ -26,7 +26,7 @@ function formatFileDecision(entry, decision, reason, score = null) {
 }
 
 function computeFileMetrics(entry) {
-  const loc = entry.content ? entry.content.split('\n').length : 1;
+  const loc = typeof entry.loc === 'number' ? entry.loc : (entry.content ? entry.content.split('\n').length : 1);
   const sigCount = entry.sigs ? entry.sigs.length : 0;
   const signalQuality = loc > 0 ? sigCount / loc : 0;
   const tokens = estimateTokens(entry.sigs.join('\n'));

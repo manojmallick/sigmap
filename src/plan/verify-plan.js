@@ -154,7 +154,7 @@ function verifyPlan(planText, cwd, opts = {}) {
   }
 
   // 2. Referenced symbols must exist in the live index (suggest a near match) —
-  // or in the source: the index keeps `maxSigsPerFile` signatures a file and only
+  // or in the source: the index keeps `maxIndexSigsPerFile` signatures a file and only
   // the files under the detected roots, and an `error` here blocks the plan on a
   // symbol that is real (#914). Only the references the index lacks are looked up.
   const missing = symbolsRef.filter((s) => !introSymbols.has(s.name) && !symbolSet.has(s.name));

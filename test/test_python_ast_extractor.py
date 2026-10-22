@@ -139,14 +139,30 @@ class MyClass:
         self.assertEqual(sigs, [], "Syntax error should return empty list")
 
     def test_signature_cap_at_max_sigs(self):
-        """When signatures exceed MAX_SIGS (30), should cap at 30."""
-        # Generate 40+ function definitions
-        funcs = '\n'.join(f'def func_{i}():\n    pass' for i in range(45))
-        code = funcs
-        sigs = self.run_extractor(code)
-        self.assertEqual(len(sigs), 30, "Should cap at MAX_SIGS=30")
+        """Past MAX_SIGS (200) the list is cut there and ends with a notice that counts the rest.
+
+        It used to stop at 30 without a word, listing a class's constants ahead of its
+        methods, so a large module lost its methods silently (#982).
+        """
+        funcs = '\n'.join(f'def func_{i}():\n    pass' for i in range(230))
+        sigs = self.run_extractor(funcs)
+        self.assertEqual(len(sigs), 201, "Should cap at MAX_SIGS=200 and add one notice line")
+        self.assertEqual(sigs[-1], '\u2026 +30 more signatures')
         # Verify first funcs are captured
         self.assertTrue(any('func_0' in s for s in sigs))
+
+    def test_under_the_ceiling_nothing_is_cut(self):
+        """45 functions (more than the old cap of 30) are all listed, with no notice."""
+        funcs = '\n'.join(f'def func_{i}():\n    pass' for i in range(45))
+        sigs = self.run_extractor(funcs)
+        self.assertEqual(len(sigs), 45)
+        self.assertFalse(any('more signatures' in s for s in sigs))
+
+    def test_methods_behind_constants_are_listed(self):
+        """A class's constants come first; 30 of them no longer hide its methods (#982)."""
+        consts = '\n'.join(f'    CONST_{i} = {i}' for i in range(30))
+        sigs = self.run_extractor(f'class Big:\n{consts}\n    def run(self):\n        pass\n')
+        self.assertTrue(any('def run' in s for s in sigs))
 
     def test_nested_fastapi_routes_excluded(self):
         """Nested function with FastAPI decorator should NOT be extracted."""

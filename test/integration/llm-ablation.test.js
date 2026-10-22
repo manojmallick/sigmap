@@ -157,10 +157,12 @@ test('aggregateRuns: single run mean equals that run', () => {
 
 // ── MiniMax provider metadata ──────────────────────────────────────────────
 test('MiniMax models: target input pricing is registered', () => {
-  assert.ok(listModels().includes('minimax-m3'));
-  assert.ok(listModels().includes('minimax-m2.7'));
+  assert.deepStrictEqual(listModels().filter((id) => id.startsWith('minimax-')),
+    ['minimax-m3.1-flash', 'minimax-m3']);
+  assert.strictEqual(resolvePrice('MiniMax-M3.1-Flash').perMtok, 0.15);
   assert.strictEqual(resolvePrice('MiniMax-M3').perMtok, 0.3);
   assert.strictEqual(resolvePrice('MiniMax-M2.7').perMtok, 0.3);
+  assert.strictEqual(resolvePrice('MiniMax-M2.7').fallback, false);
 });
 
 // ── corpus shape (fact questions, not code-writing) ─────────────────────────
@@ -173,6 +175,60 @@ test('corpus: checkable repo-fact questions — no example-code tasks', () => {
   assert.ok(tasks.every((t) => /do not write illustrative or example code/.test(t.prompt)), 'every prompt forbids example scaffolding');
   assert.ok(!tasks.some((t) => /requires .* and calls its/.test(t.prompt)), 'no legacy "write an example" tasks remain');
 });
+
+// Run the real CLI with fetch replaced before its entrypoint loads. Every
+// serialized request is checked; no provider credentials or network are used.
+for (const scenario of [
+  { name: 'auto-detected default', model: 'MiniMax-M3.1-Flash' },
+  { name: 'regional default', model: 'MiniMax-M3.1-Flash', base: 'https://api.minimaxi.com/v1///', args: ['--provider', 'minimax'] },
+  { name: 'explicit Flash', model: 'MiniMax-M3.1-Flash', args: ['--model', 'MiniMax-M3.1-Flash'] },
+  { name: 'explicit M3', model: 'MiniMax-M3', args: ['--model', 'MiniMax-M3'] },
+  { name: 'explicit legacy', model: 'MiniMax-M2.7', args: ['--model', 'MiniMax-M2.7'] },
+  { name: 'custom model and endpoint', model: 'my-minimax-deployment', base: 'https://example.invalid/custom/v1/', args: ['--model', 'my-minimax-deployment'] },
+]) {
+  test(`script: MiniMax ${scenario.name} reaches the request boundary unchanged`, () => {
+    const { pathToFileURL } = require('url');
+    const corpus = JSON.parse(fs.readFileSync(path.join(ROOT, 'benchmarks', 'llm-ablation-tasks.json'), 'utf8'));
+    // The runner caches duplicate prompts within a run.
+    const prompts = [...new Set(corpus.tasks.map((task) => task.prompt))];
+    const mock = `
+      const assert = require('assert');
+      const prompts = ${JSON.stringify(prompts)};
+      const seen = [];
+      process.argv = ['node', ${JSON.stringify(SCRIPT)}, ...${JSON.stringify(scenario.args || [])}];
+      globalThis.fetch = async (url, init) => {
+        assert.strictEqual(url, ${JSON.stringify((scenario.base || 'https://api.minimax.io/v1').replace(/\/+$/, '') + '/chat/completions')});
+        assert.strictEqual(init.method, 'POST');
+        assert.deepStrictEqual(init.headers, { authorization: 'Bearer offline-fixture', 'content-type': 'application/json' });
+        const body = JSON.parse(init.body);
+        const prompt = body.messages[0].content;
+        assert.strictEqual(typeof prompt, 'string');
+        assert.ok(prompts.some((p) => prompt === p || prompt.endsWith('\\n\\n---\\n\\n' + p)));
+        // Leaving thinking/effort unset uses the API's adaptive/max defaults;
+        // unsupported Flash fields must never be added to this payload.
+        assert.deepStrictEqual(body, {
+          model: ${JSON.stringify(scenario.model)}, max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        seen.push(prompt);
+        return { ok: true, json: async () => ({ choices: [{ message: { content: 'No claim.', reasoning_content: 'Internal reasoning.' } }] }) };
+      };
+      process.on('exit', () => {
+        assert.strictEqual(seen.length, prompts.length * 2);
+        for (const prompt of prompts) assert.ok(seen.includes(prompt));
+        console.log('OFFLINE_REQUESTS=' + seen.length);
+      });
+      import(${JSON.stringify(pathToFileURL(SCRIPT).href)});
+    `;
+    const env = { PATH: process.env.PATH, MINIMAX_API_KEY: 'offline-fixture' };
+    if (scenario.base) env.MINIMAX_BASE_URL = scenario.base;
+    const res = spawnSync(process.execPath, ['-e', mock], { cwd: ROOT, encoding: 'utf8', env, timeout: 30000 });
+    assert.strictEqual(res.status, 0, res.stderr || String(res.error));
+    assert.ok(res.stdout.includes(`minimax/${scenario.model}`));
+    assert.ok(res.stdout.includes(`OFFLINE_REQUESTS=${prompts.length * 2}`));
+    assert.ok(res.stdout.includes('measured delta:'));
+  });
+}
 
 // ── script (skip path) ──────────────────────────────────────────────────────
 test('script: exits 0 with guidance when no API key is set', () => {

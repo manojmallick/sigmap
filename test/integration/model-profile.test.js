@@ -137,6 +137,46 @@ test('shipped figures are well-formed: dated, positive, never a guess', () => {
   assert.ok(models.lookup(models.resolveProfile(), models.DEFAULT_MODEL), 'DEFAULT_MODEL does not resolve');
 });
 
+test('MiniMax listings prefer current models while explicit legacy pricing survives', () => {
+  const p = models.resolveProfile();
+  assert.deepStrictEqual(pricing.listModels(p).filter((id) => id.startsWith('minimax-')),
+    ['minimax-m3.1-flash', 'minimax-m3']);
+  assert.strictEqual(models.lookup(p, 'MiniMax-M3.1-Flash').model.window, 1000000);
+  assert.strictEqual(pricing.resolvePrice('MiniMax-M2.7', p).model, 'minimax-m2.7');
+  assert.strictEqual(pricing.resolvePrice('MiniMax-M2.7', p).fallback, false);
+  withProject(null, (dir) => {
+    const listed = cli(dir, ['gain', '--models']);
+    assert.strictEqual(listed.status, 0, listed.stderr);
+    assert.ok(listed.stdout.includes('minimax-m3.1-flash'));
+    assert.ok(!listed.stdout.includes('minimax-m2.7'));
+    const legacy = cli(dir, ['gain', '--model', 'MiniMax-M2.7']);
+    assert.strictEqual(legacy.status, 0, legacy.stderr);
+    assert.ok(!legacy.stderr.includes('unknown model'));
+  });
+});
+
+test('explicit legacy rosters and custom prices remain visible and win over defaults', () => {
+  const config = { models: {
+    roster: ['MiniMax-M2.7'],
+    prices: { 'minimax-m3.1-flash': 0.25, 'house-minimax': 0.7 },
+  } };
+  const p = models.resolveProfile(config);
+  assert.ok(pricing.listModels(p).includes('minimax-m2.7'));
+  assert.ok(pricing.listModels(p).includes('house-minimax'));
+  assert.strictEqual(pricing.resolvePrice('MiniMax-M3.1-Flash', p).perMtok, 0.25);
+  assert.strictEqual(pricing.resolvePrice('house-minimax', p).perMtok, 0.7);
+  const overridden = models.resolveProfile({ models: { prices: { 'minimax-m2.7': 0.4 } } });
+  assert.ok(pricing.listModels(overridden).includes('minimax-m2.7'));
+  assert.strictEqual(pricing.resolvePrice('minimax-m2.7', overridden).perMtok, 0.4);
+  withProject(config, (dir) => {
+    const listed = cli(dir, ['gain', '--models']);
+    assert.strictEqual(listed.status, 0, listed.stderr);
+    assert.ok(listed.stdout.includes('minimax-m2.7'));
+    assert.match(listed.stdout, /minimax-m3\.1-flash\s+\$0\.25\/MTok/);
+    assert.match(listed.stdout, /house-minimax\s+\$0\.7\/MTok/);
+  });
+});
+
 // ── override precedence ────────────────────────────────────────────────────
 
 test('config wins over shipped, field by field, and leaves the rest alone', () => {

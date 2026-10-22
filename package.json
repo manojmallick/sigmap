@@ -1,6 +1,6 @@
 {
   "name": "sigmap",
-  "version": "8.80.1",
+  "version": "8.81.0",
   "description": "The deterministic, verifiable grounding layer for AI code work. Flags fabricated files, imports and symbols in AI answers against your repo and installed libraries. Zero dependencies, offline, byte-stable; also a ranked signature map and MCP server.",
   "mcpName": "io.github.manojmallick/sigmap",
   "main": "packages/core/index.js",
@@ -68,7 +68,10 @@
     "validate:retrieval": "node scripts/check-corpus.mjs && node scripts/check-corpus.mjs benchmarks/tasks/retrieval-mined.jsonl && node scripts/run-retrieval-gate.mjs --gate --no-regress",
     "fetch:xrepo": "node scripts/fetch-xrepo-repos.mjs",
     "benchmark:xrepo": "node scripts/run-xrepo-gate.mjs",
+    "benchmark:perf": "node scripts/run-perf-benchmark.mjs --save",
+    "validate:warm-cache": "node scripts/run-perf-benchmark.mjs --equivalence",
     "validate:xrepo": "node scripts/run-xrepo-gate.mjs --gate --no-regress",
+    "validate:extraction-recall": "node scripts/run-extraction-recall.mjs --gate",
     "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save",
     "benchmark:signals": "node scripts/run-signal-verdicts.mjs --save",
     "benchmark:body-words-sweep": "node scripts/run-body-words-sweep.mjs --save",

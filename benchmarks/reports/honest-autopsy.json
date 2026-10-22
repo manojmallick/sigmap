@@ -4,12 +4,12 @@
   "tasks": 125,
   "sigmapHits": 116,
   "grepHits": {
-    "published": 49,
-    "withoutSigmapFiles": 57
+    "published": 50,
+    "withoutSigmapFiles": 58
   },
   "sigmapFilesInGrepTop5": {
     "places": 625,
-    "polluted": 129
+    "polluted": 132
   },
   "sigmapMisses": {
     "no token in common with the question": 3,
@@ -19,8 +19,8 @@
   },
   "againstScanWithoutSigmapFiles": {
     "allTasks": {
-      "both": 55,
-      "sigmapOnly": 61,
+      "both": 56,
+      "sigmapOnly": 60,
       "grepOnly": 2,
       "neither": 7
     },
@@ -45,6 +45,6 @@
       "grepRank": 5
     }
   ],
-  "version": "8.80.1",
-  "generated": "2026-10-18T23:31:49.496Z"
+  "version": "8.81.0",
+  "generated": "2026-10-22T08:59:09.225Z"
 }

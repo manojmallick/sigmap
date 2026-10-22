@@ -27,6 +27,8 @@
  * }}
  */
 
+const dirListing = require('../util/dir-listing');
+
 const CODE_EXTS = new Set([
   '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx',
   '.py', '.rb', '.go', '.rs', '.java', '.kt',
@@ -232,7 +234,7 @@ function _walkOwned(dir, excludeSet, out, depth) {
   const path = require('path');
   if (depth > OWNED_WALK_MAX_DEPTH) return;
   let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+  try { entries = dirListing.list(dir); } catch (_) { return; }
   if (depth > 0 && entries.some((e) => e.name === '.git')) return; // a repo of its own
   for (const e of entries) {
     if (excludeSet.has(e.name)) continue;
@@ -246,7 +248,7 @@ function _walk(dir, excludeSet, out) {
   const fs   = require('fs');
   const path = require('path');
   let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+  try { entries = dirListing.list(dir); } catch (_) { return; }
   for (const e of entries) {
     if (excludeSet.has(e.name)) continue;
     const full = path.join(dir, e.name);

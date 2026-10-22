@@ -63,7 +63,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **92.8% vs 39.2% single-shot grep baseline** — 2.37× measured lift on the honest corpus (125 tasks / 19 repos)
+- **92.8% vs 40.0% single-shot grep baseline** — 2.32× measured lift on the honest corpus (125 tasks / 19 repos)
 - **63.3% hit@5 on repositories we do not control** — the third-party corpus: 81 of 128 questions over 25 repos, 95% interval 54.7–71.1%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
 - **95.7% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
@@ -131,11 +131,11 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.80-main (21 repositories, including R language)
-Date      : 2026-10-18
+Benchmark : sigmap-v8.81-main (21 repositories, including R language)
+Date      : 2026-10-21
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
-Honest vs grep : 92.8% vs 39.2% grep baseline — 2.37× lift (125 tasks / 19 repos)
+Honest vs grep : 92.8% vs 40.0% grep baseline — 2.32× lift (125 tasks / 19 repos)
 Third-party    : 63.3% hit@5 (81 of 128 questions / 25 repos, 95% interval 54.7–71.1%)
 Map vs repo    : 95.7% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
@@ -422,7 +422,7 @@ Not all 38 languages get the same depth — and we say so plainly:
 | **Anchored regex** | 12 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, PowerShell) | Declarations + `:start-end` line anchors; doc hints on 7 |
 | **Pattern/heuristic** | Everything else + generic fallback | Line-oriented patterns |
 
-Caps: 25 signatures/file · 8 members/block. Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.
+Caps: 25 signatures/file in the context file, up to 200 in the retrieval index · 120 members/class (the extractors' own limit). Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.
 
 ---
 

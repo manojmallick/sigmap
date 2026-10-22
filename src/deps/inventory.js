@@ -22,6 +22,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const dirListing = require('../util/dir-listing');
 
 const MAX_DEPS_PER_MANIFEST = 400;
 
@@ -623,7 +624,7 @@ function findManifests(cwd, opts = {}) {
   const walk = (dir, relDir, depth) => {
     if (found.length >= MANIFEST_MAX_FILES || depth > MANIFEST_MAX_DEPTH) return;
     let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    try { entries = dirListing.list(dir); } catch (_) { return; }
     const dirs = [];
     for (const e of entries) {
       if (e.isDirectory()) {
