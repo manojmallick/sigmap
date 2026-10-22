@@ -8,6 +8,9 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ## [Unreleased]
 
+- **A first run with `python3` on PATH costs about 60% more CPU than v8.80.1's, measured after v8.81.0 shipped** (#982) — Django 1.68 s to 2.7 s (median of five, same machine, same minute); the cache-off arm of v8.81.0 is as slow (2.87 s), so it is the Python AST tier extracting up to 200 signatures a file where it stopped at 30, and the index file written 56% larger, not the cache. Without `python3` the first run is about 11% cheaper (1.74 s to 1.55 s). A re-run is unaffected (0.45–0.5 s). Not fixed.
+- Compare page: the codebase-memory-mcp column is re-read against its current README (2026-10-22); its "about 120× fewer tokens" headline is now described there as an earlier comparison.
+
 ---
 
 ## [8.81.0] — 2026-10-21
