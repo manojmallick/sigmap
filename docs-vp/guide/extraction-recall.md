@@ -24,7 +24,7 @@ Two populations, because they answer different questions:
 - **extractor** — what the extractor returns for the file.
 - **index** — what a first-time `sigmap` run keeps in `.context/sig-index.json`, read in full, the way `verify` and `search_signatures` read it (ranking and `ask` read the first 25 signatures of each file, exactly as before, so on the ranking side the recall is what it was before #982: for Python 65.0% / 77.3% / 57.1% without `python3` and 64.0% / 87.9% / 57.5% with it, for Ruby 92.1% / 98.7% / 88.0% / 88.0%), after the index limit (`maxIndexSigsPerFile`, 200 since [#982](https://github.com/manojmallick/sigmap/issues/982); it was the context file's 25). It is scored over the files the index holds, so the limit is not confused with coverage; the number of files it holds is shown beside it.
 
-Measured on SigMap 8.80.1 with `node scripts/run-extraction-recall.mjs`. The full numbers and the first 60 misses of every kind are in [`benchmarks/reports/extraction-recall.json`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/reports/extraction-recall.json).
+Measured on SigMap 8.81.0 with `node scripts/run-extraction-recall.mjs`. The full numbers and the first 60 misses of every kind are in [`benchmarks/reports/extraction-recall.json`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/reports/extraction-recall.json).
 
 ## Python — against CPython `ast` 3.9.6
 
