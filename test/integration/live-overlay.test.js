@@ -717,7 +717,9 @@ test('watcher: a directory moved OUT of the tree leaves the index', async () => 
   fs.renameSync(path.join(dir, 'src/pkg'), path.join(outside, 'pkg'));
   await waitFor(() => !buildSigIndex(dir).has('src/pkg/m.js'), 'the removed directory to leave the index', 30000);
   assert.ok(buildSigIndex(dir).has('src/keep.js'), 'the rest of the index is intact');
-  assert.ok(overlay.readLive(dir).regens >= 1, 'handled by a full run');
+  // The index is written inside the run and the run's telemetry after it returns, so a reader that has just
+  // seen the index change can be ahead of the count; wait for it rather than race it.
+  await waitFor(() => overlay.readLive(dir).regens >= 1, 'the full run that handled it to be recorded', 30000);
   stopWatcher(w);
 }, { needsWatch: true });
 
@@ -813,7 +815,8 @@ test('watcher: a watched root that is moved away is handled by a full run', asyn
   await watcherReady(dir);
   fs.renameSync(path.join(dir, 'src'), path.join(dir, 'src_old'));
   await waitFor(() => { const i = buildSigIndex(dir); return !i.has('src/a.js') && !i.has('src/b.js'); }, 'the index to drop a root that no longer exists', 30000);
-  assert.ok(overlay.readLive(dir).regens >= 1, 'a full run handled it');
+  // Same ordering as above: the index changes inside the run, the count after it.
+  await waitFor(() => overlay.readLive(dir).regens >= 1, 'the full run that handled it to be recorded', 30000);
   stopWatcher(w);
 }, { needsWatch: true });
 
