@@ -1,0 +1,39 @@
+{
+  "_comment": "The tools the head-to-head harness (scripts/run-head-to-head.mjs, #972) runs SigMap against, each pinned to an exact release and to the SHA-256 of the artifact. They are NEVER a dependency of SigMap: nothing here is installed by `npm install`, nothing ships in the npm package, and a test fails if one appears in package.json. The harness downloads an artifact only to the self-ignoring directory benchmarks/rivals/ (or $SIGMAP_RIVALS_DIR), refuses to run it unless its SHA-256 equals the value pinned here, and runs it with a scratch HOME so it cannot touch a real agent configuration. `readme` is the commit-pinned README the claims about the tool were read from; `readOn` is the date.",
+  "tools": {
+    "codebase-memory-mcp": {
+      "version": "0.12.1",
+      "tag": "v0.12.1",
+      "tagObject": "a7158ac2f48ca646b4527341b76f930f2aeff87e",
+      "license": "MIT",
+      "repository": "https://github.com/DeusData/codebase-memory-mcp",
+      "readme": "https://github.com/DeusData/codebase-memory-mcp/blob/10ab613de30dfd573d0b251cd0ad648e1c7e5204/README.md",
+      "readOn": "2026-10-22",
+      "provenance": "SLSA build provenance, verifiable with: gh attestation verify <artifact> --repo DeusData/codebase-memory-mcp",
+      "checksumsUrl": "https://github.com/DeusData/codebase-memory-mcp/releases/download/v0.12.1/checksums.txt",
+      "artifacts": {
+        "darwin-arm64": { "file": "codebase-memory-mcp-darwin-arm64.tar.gz", "sha256": "9bfcbe38414b47969a3e1d1c1999f5357409387c86fa3d24221b5458267660d2" },
+        "darwin-x64": { "file": "codebase-memory-mcp-darwin-amd64.tar.gz", "sha256": "ca6e64397a8ae80cec898a8205a6aa16750ac798acc05a0c3ed983837944a581" },
+        "linux-x64": { "file": "codebase-memory-mcp-linux-amd64-portable.tar.gz", "sha256": "8c3d0341064301e78ecc84cf7348d4e2c6562a0f57448243ea560aaa34de36c1" },
+        "linux-arm64": { "file": "codebase-memory-mcp-linux-arm64-portable.tar.gz", "sha256": "ed0f1f548cd79b121c401c2e9f7841c189a001af26d3768368088c24f6a53533" }
+      },
+      "binary": "codebase-memory-mcp"
+    },
+    "code-review-graph": {
+      "version": "2.3.9",
+      "tag": "v2.3.9",
+      "tagObject": "fa04ea21e701d9feb748199dbb0b4cf4f365f8f9",
+      "license": "MIT",
+      "repository": "https://github.com/tirth8205/code-review-graph",
+      "readme": "https://github.com/tirth8205/code-review-graph/blob/d72e8fbf7ef571b668c26a4222a284bf7792e7a1/README.md",
+      "readOn": "2026-10-22",
+      "python": ">=3.10",
+      "wheel": {
+        "file": "code_review_graph-2.3.9-py3-none-any.whl",
+        "sha256": "908500a23f23fe05566090a2e5fce95f7f177d054090a355b46367546db5d910",
+        "metadata": "https://pypi.org/pypi/code-review-graph/2.3.9/json"
+      },
+      "note": "Its dependencies (tree-sitter, networkx, fastmcp, mcp, watchdog, ...) are resolved from PyPI at install time; the resolved set is recorded in the report (pip freeze)."
+    }
+  }
+}
