@@ -194,6 +194,76 @@
       "language": "vue_sfc",
       "layout": "vue-theme-plus-node-server",
       "xrepoOnly": true
+    },
+    {
+      "name": "svelte",
+      "url": "https://github.com/sveltejs/svelte.git",
+      "commit": "4a50e8ea3b7db1d8cd752b825032e4ce2878524b",
+      "language": "svelte",
+      "layout": "compiler-monorepo-packages-svelte"
+    },
+    {
+      "name": "fastify",
+      "url": "https://github.com/fastify/fastify.git",
+      "commit": "890ab7578f14730b2fed6de43acfeee19da1a3e4",
+      "language": "javascript",
+      "layout": "plugin-framework-lib-and-docs"
+    },
+    {
+      "name": "fastapi",
+      "url": "https://github.com/fastapi/fastapi.git",
+      "commit": "9653034b8d459607a4b7f761e6c23a6f287fa5fa",
+      "language": "python",
+      "layout": "package-at-repo-root"
+    },
+    {
+      "name": "dplyr",
+      "url": "https://github.com/tidyverse/dplyr.git",
+      "commit": "770ad50f884ebb78a479d78b79d0ba2ec0fb0c53",
+      "language": "r",
+      "layout": "r-package-R-dir"
+    },
+    {
+      "name": "akka",
+      "url": "https://github.com/akka/akka.git",
+      "commit": "2b2032215d05e13d6cad47f66ac387015e23a57d",
+      "language": "scala",
+      "layout": "sbt-multimodule-scala-and-java"
+    },
+    {
+      "name": "rust-analyzer",
+      "url": "https://github.com/rust-lang/rust-analyzer.git",
+      "commit": "9eb97ea96d8400e8957ddd56702e962614296583",
+      "language": "rust",
+      "layout": "crates-dir-workspace"
+    },
+    {
+      "name": "abseil-cpp",
+      "url": "https://github.com/abseil/abseil-cpp.git",
+      "commit": "ea64b6e7e63ffd917b20609eca768e8e6eacceda",
+      "language": "cpp",
+      "layout": "absl-subdirs-headers-and-sources"
+    },
+    {
+      "name": "gson",
+      "url": "https://github.com/google/gson.git",
+      "commit": "c9f3fd55854a743b66f857ace3c7b268ea3e2ef7",
+      "language": "java",
+      "layout": "maven-library-plus-extras"
+    },
+    {
+      "name": "gorm",
+      "url": "https://github.com/go-gorm/gorm.git",
+      "commit": "1d6ce99528060be18a42be09aca8d39efcb47f28",
+      "language": "go",
+      "layout": "root-package-plus-subpackages"
+    },
+    {
+      "name": "zod",
+      "url": "https://github.com/colinhacks/zod.git",
+      "commit": "912f0f51b0ced654d0069741e7160834dca742ee",
+      "language": "typescript",
+      "layout": "pnpm-monorepo-packages-zod"
     }
   ]
 }

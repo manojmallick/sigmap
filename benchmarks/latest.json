@@ -24,12 +24,12 @@
     "repos": 19
   },
   "third_party": {
-    "repos": 25,
-    "tasks": 128,
-    "hits": 81,
-    "hit_at_5_pct": 63.3,
-    "interval_low_pct": 54.7,
-    "interval_high_pct": 71.1
+    "repos": 35,
+    "tasks": 208,
+    "hits": 116,
+    "hit_at_5_pct": 55.8,
+    "interval_low_pct": 49,
+    "interval_high_pct": 62.4
   },
   "test_discovery": {
     "repos": 28,
