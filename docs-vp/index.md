@@ -78,7 +78,7 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.81.0</span>
+  <span><strong>Release:</strong> v8.82.0</span>
   <span>·</span>
   <span><strong>New — a blast radius that says "not tracked":</strong> a query on a language the graph cannot read (PHP, C#, Swift and more) no longer answers "No importers found"; Laravel's <code>Str.php</code>, imported by 164 files, used to. The Ruby extractor now finds classes and modules at any indentation and lists each method under its owner (classes found against Ruby's own parser: 13.8% to 100.0%), the npm description is no longer cut off mid-word, and every claim about another tool is dated and sourced. A patch release: Python extraction, MCP setup and the third-party benchmark of v8.80.0 are unchanged.</span>
 </div>
@@ -177,7 +177,7 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Overall token reduction | — | **95.7%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-21 (v8.81.0)**.
+Latest saved benchmark run: **2026-10-23 (v8.82.0)**.
 
 </div>
 
