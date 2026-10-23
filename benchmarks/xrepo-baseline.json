@@ -1,32 +1,73 @@
 {
   "overall": {
-    "tasks": 128,
-    "hits": 81,
-    "hitAt5": 0.6328125,
-    "mrr": 0.4453046875000001,
-    "precisionAt5": 0.12967187499999996
+    "tasks": 208,
+    "hits": 116,
+    "hitAt5": 0.5576923076923077,
+    "mrr": 0.3797644230769231,
+    "precisionAt5": 0.11345192307692308
   },
   "why": {
-    "hits": 81,
+    "hits": 116,
     "misses": {
-      "answer not indexed": 8,
+      "answer not indexed": 13,
       "demoted by a path penalty": 0,
-      "no token in common with the question": 1,
-      "ranked 6-10": 9,
-      "ranked 11-20": 10,
-      "ranked 21-50": 11,
-      "ranked beyond 50": 8
+      "no token in common with the question": 4,
+      "ranked 6-10": 22,
+      "ranked 11-20": 14,
+      "ranked 21-50": 25,
+      "ranked beyond 50": 14
     },
-    "reachable": 119,
-    "reachableHits": 81,
+    "reachable": 191,
+    "reachableHits": 116,
     "noTokenWords": {
       "distinctive": 0,
-      "commonOnly": 0,
+      "commonOnly": 3,
       "nowhere": 1,
       "inIndex": 0
     }
   },
   "repos": {
+    "abseil-cpp": {
+      "language": "cpp",
+      "tasks": 8,
+      "hits": 1,
+      "hitAt5": 0.125,
+      "mrr": 0.025,
+      "precisionAt5": 0.025,
+      "unreachable": [],
+      "ranks": {
+        "x177": null,
+        "x178": null,
+        "x179": null,
+        "x180": 5,
+        "x181": null,
+        "x182": null,
+        "x183": null,
+        "x184": null
+      }
+    },
+    "akka": {
+      "language": "scala",
+      "tasks": 8,
+      "hits": 3,
+      "hitAt5": 0.375,
+      "mrr": 0.104,
+      "precisionAt5": 0.075,
+      "unreachable": [
+        "x163",
+        "x165"
+      ],
+      "ranks": {
+        "x161": 4,
+        "x162": null,
+        "x163": null,
+        "x164": null,
+        "x165": null,
+        "x166": null,
+        "x167": 4,
+        "x168": 3
+      }
+    },
     "alamofire": {
       "language": "swift",
       "tasks": 5,
@@ -95,6 +136,25 @@
         "x031": 4
       }
     },
+    "dplyr": {
+      "language": "r",
+      "tasks": 8,
+      "hits": 2,
+      "hitAt5": 0.25,
+      "mrr": 0.25,
+      "precisionAt5": 0.05,
+      "unreachable": [],
+      "ranks": {
+        "x153": null,
+        "x154": null,
+        "x155": null,
+        "x156": null,
+        "x157": null,
+        "x158": null,
+        "x159": 1,
+        "x160": 1
+      }
+    },
     "excalidraw": {
       "language": "typescript_react",
       "tasks": 6,
@@ -143,6 +203,44 @@
         "x040": null
       }
     },
+    "fastapi": {
+      "language": "python",
+      "tasks": 8,
+      "hits": 5,
+      "hitAt5": 0.625,
+      "mrr": 0.417,
+      "precisionAt5": 0.125,
+      "unreachable": [],
+      "ranks": {
+        "x145": 3,
+        "x146": 1,
+        "x147": 2,
+        "x148": 2,
+        "x149": 1,
+        "x150": null,
+        "x151": null,
+        "x152": null
+      }
+    },
+    "fastify": {
+      "language": "javascript",
+      "tasks": 8,
+      "hits": 3,
+      "hitAt5": 0.375,
+      "mrr": 0.281,
+      "precisionAt5": 0.075,
+      "unreachable": [],
+      "ranks": {
+        "x137": 4,
+        "x138": null,
+        "x139": 1,
+        "x140": null,
+        "x141": null,
+        "x142": null,
+        "x143": 1,
+        "x144": null
+      }
+    },
     "flask": {
       "language": "python",
       "tasks": 5,
@@ -189,6 +287,44 @@
         "x081": 1,
         "x082": 2,
         "x083": null
+      }
+    },
+    "gorm": {
+      "language": "go",
+      "tasks": 8,
+      "hits": 5,
+      "hitAt5": 0.625,
+      "mrr": 0.365,
+      "precisionAt5": 0.125,
+      "unreachable": [],
+      "ranks": {
+        "x193": 1,
+        "x194": 3,
+        "x195": null,
+        "x196": null,
+        "x197": 4,
+        "x198": 3,
+        "x199": null,
+        "x200": 1
+      }
+    },
+    "gson": {
+      "language": "java",
+      "tasks": 8,
+      "hits": 6,
+      "hitAt5": 0.75,
+      "mrr": 0.49,
+      "precisionAt5": 0.15,
+      "unreachable": [],
+      "ranks": {
+        "x185": 3,
+        "x186": 1,
+        "x187": 3,
+        "x188": null,
+        "x189": 1,
+        "x190": 4,
+        "x191": null,
+        "x192": 1
       }
     },
     "laravel": {
@@ -329,6 +465,29 @@
         "x060": null
       }
     },
+    "rust-analyzer": {
+      "language": "rust",
+      "tasks": 8,
+      "hits": 1,
+      "hitAt5": 0.125,
+      "mrr": 0.042,
+      "precisionAt5": 0.025,
+      "unreachable": [
+        "x172",
+        "x173",
+        "x175"
+      ],
+      "ranks": {
+        "x169": null,
+        "x170": null,
+        "x171": null,
+        "x172": null,
+        "x173": null,
+        "x174": 3,
+        "x175": null,
+        "x176": null
+      }
+    },
     "serilog": {
       "language": "csharp",
       "tasks": 5,
@@ -375,6 +534,25 @@
         "x101": null,
         "x102": 3,
         "x103": 2
+      }
+    },
+    "svelte": {
+      "language": "svelte",
+      "tasks": 8,
+      "hits": 6,
+      "hitAt5": 0.75,
+      "mrr": 0.4,
+      "precisionAt5": 0.15,
+      "unreachable": [],
+      "ranks": {
+        "x129": 5,
+        "x130": 1,
+        "x131": 3,
+        "x132": null,
+        "x133": 3,
+        "x134": null,
+        "x135": 3,
+        "x136": 1
       }
     },
     "tokio": {
@@ -441,6 +619,25 @@
         "x043": null,
         "x044": 2,
         "x045": null
+      }
+    },
+    "zod": {
+      "language": "typescript",
+      "tasks": 8,
+      "hits": 3,
+      "hitAt5": 0.375,
+      "mrr": 0.375,
+      "precisionAt5": 0.075,
+      "unreachable": [],
+      "ranks": {
+        "x201": null,
+        "x202": null,
+        "x203": 1,
+        "x204": null,
+        "x205": null,
+        "x206": 1,
+        "x207": 1,
+        "x208": null
       }
     }
   },

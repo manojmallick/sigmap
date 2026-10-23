@@ -52,7 +52,7 @@ RepoMix packs a repository into one AI-friendly file. SigMap extracts signatures
 |---|---|---|
 | What it produces | A ranked signature map, per query | One packed file of the repository (or the files its include and ignore patterns select) |
 | Token reduction | **95.7%** average (the map against every source file, 21 repos) | ~70% with `--compress`, which uses Tree-sitter to keep signatures (its README's figure) |
-| Retrieval accuracy (hit@5) | **80.4%** on the retrieval corpus; **63.3%** on repositories we do not control | No retrieval metric in its README |
+| Retrieval accuracy (hit@5) | **80.4%** on the retrieval corpus; **55.8%** on repositories we do not control | No retrieval metric in its README |
 | Query-aware context | **Yes** — ranked per query | Not described: it packs. Its MCP server can search a packed file (`grep_repomix_output`) |
 | Dependency graph | **Yes** — import-aware BFS | Not described in its README |
 | Learn from usage | **Yes** — `sigmap learn` | Not described in its README |
@@ -66,7 +66,7 @@ Both token figures are size ratios against the uncompressed source, not a cost p
 
 codebase-memory-mcp indexes a codebase into a persistent knowledge graph and serves it to coding agents over MCP. It overlaps SigMap's graph and impact features, and by its own README it is ahead of SigMap on language count and type resolution.
 
-| | SigMap | codebase-memory-mcp (characterized: [README, 2026-10-18](https://github.com/DeusData/codebase-memory-mcp/blob/354ccecbe612a9fdb624396a6738fa87f2617434/README.md)) |
+| | SigMap | codebase-memory-mcp (characterized: [README, 2026-10-22](https://github.com/DeusData/codebase-memory-mcp/blob/10ab613de30dfd573d0b251cd0ad648e1c7e5204/README.md)) |
 |---|---|---|
 | What it is | A signature map, a ranker and a verifier, written as files and served by an optional MCP server | A local MCP server over a persistent code knowledge graph (functions, classes, imports, calls) |
 | Index and ranking | Extracted signatures with line anchors, ranked with BM25; no embeddings, no database | SQLite, with BM25 full-text search (FTS5) and vector search using bundled `nomic-embed-code` embeddings |
@@ -74,7 +74,7 @@ codebase-memory-mcp indexes a codebase into a persistent knowledge graph and ser
 | MCP tools | 22 by default; 7 with `mcp.tools: core` | 17 |
 | Install | `npx sigmap`, zero dependencies | A native executable from an install script (macOS, Linux, Windows) |
 | Verifies AI output against the code | **Yes** — `sigmap verify`, `sigmap judge` | Not described in its README |
-| Its headline claim | — | "About 120× fewer tokens" in its own five-query comparison (~3,400 against ~412,000); a preprint over 31 repositories reports 10× lower token use and 2.1× fewer tool calls, with answer quality 83% against 92% for file-by-file exploration |
+| Its headline claim | — | A preprint over 31 repositories reports 10× lower token use and 2.1× fewer tool calls than file-by-file exploration (March 2026 measurements); its earlier five-query comparison (~3,400 against ~412,000 tokens, "about 120× fewer") is now described as earlier |
 | Measured head to head | Not yet — [#972](https://github.com/manojmallick/sigmap/issues/972) | Not yet |
 
 ## SigMap vs code-review-graph

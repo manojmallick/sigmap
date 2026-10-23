@@ -72,10 +72,13 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
   });
 
   await test('the words behind the no-token misses are the baselines\'', () => {
-    // body words are on by default, so the third-party corpus has one such task left: it holds none of the question's words
-    const x = match(/the class is \*\*(\d+)\*\* now: the one task that holds none of the question's words anywhere/, 'what is left of the xrepo no-token class');
+    // body words are on by default, so what is left of the third-party corpus's no-token class holds no distinctive word:
+    // some tasks hold none of the question's words anywhere, the others only common ones
+    const x = match(/the class is \*\*(\d+)\*\* now: (\w+) tasks? holds? none of the question's words anywhere and (\w+) hold only common ones/, 'what is left of the xrepo no-token class');
     assert.strictEqual(Number(x[1]), X.misses[NT]);
-    assert.deepStrictEqual(X.noTokenWords, { distinctive: 0, commonOnly: 0, nowhere: 1, inIndex: 0 }, 'the section says the one that is left holds none of the question\'s words');
+    assert.deepStrictEqual({ distinctive: X.noTokenWords.distinctive, inIndex: X.noTokenWords.inIndex }, { distinctive: 0, inIndex: 0 }, 'no xrepo no-token miss holds a distinctive word');
+    assert.deepStrictEqual([x[2], x[3]], [WORDS[X.noTokenWords.nowhere], WORDS[X.noTokenWords.commonOnly]], 'the words spell the counts of the baseline');
+    assert.strictEqual(X.noTokenWords.nowhere + X.noTokenWords.commonOnly, X.misses[NT], 'every no-token miss is one of the two');
     const j = match(/reads \*\*(\d+) \/ (\d+) \/ (\d+)\*\*: (\w+) holds? a distinctive word, (\w+) only common ones[^.]*, (\w+) nothing/, 'the JVM split of the no-token misses');
     const triple = [1, 2, 3].map((i) => Number(j[i]));
     assert.deepStrictEqual(triple, [J.noTokenWords.distinctive, J.noTokenWords.commonOnly, J.noTokenWords.nowhere]);
@@ -165,7 +168,7 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
     assert.strictEqual(cg[4], WORDS[negative('callgraph')], `the call-graph boost is net-negative on ${negative('callgraph')} corpora`);
     const ng = match(/Removing it is net -(\d+) over the five corpora it applies to \(won (\d+), lost (\d+)\)/, 'no import graph');
     assert.deepStrictEqual([Number(ng[1]), Number(ng[2]), Number(ng[3])], [-net(T.nograph), T.nograph.gained, T.nograph.lost]);
-    assert.strictEqual(T.nograph.tasks, 314);
+    assert.strictEqual(T.nograph.tasks, Object.values(sa.corpora).filter((c) => c.nograph).reduce((n, c) => n + c.plain.tasks, 0), 'the arm applies to the five corpora that are scored with a graph');
   });
 
   await test('the rule a signal is held to puts each signal where the section says', () => {
@@ -181,13 +184,26 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
       if (t.won - t.lost <= 0 && t.won + t.lost <= 2) return 'deprecated';
       return 'opt-in';
     };
+    // Body words ship on. By the rule as written they are a default only while no other corpus is net-negative for them; on the tree this
+    // report was recorded on `hard` reads -1 (the words win 3, lose 4), so the rule as written says opt-in. The section states that plainly and
+    // leaves the call to the maintainer; this test holds the section to the measurement, and fails if either side moves without the other.
+    const blockers = Object.entries(sa.corpora).filter(([c]) => c !== 'xrepo' && sa.corpora[c].body)
+      .filter(([, c]) => effect('body', c.body).won - effect('body', c.body).lost < 0).map(([c]) => c);
     assert.deepStrictEqual(Object.fromEntries(['centrality', 'surface', 'mined', 'callgraph', 'body'].map((a) => [a, verdict(a)])), {
-      centrality: 'deprecated', surface: 'deprecated', mined: 'opt-in', callgraph: 'opt-in', body: 'default',
+      centrality: 'deprecated', surface: 'deprecated', mined: 'opt-in', callgraph: 'opt-in', body: blockers.length ? 'opt-in' : 'default',
     });
+    const shipped = require(path.join(ROOT, 'src/config/defaults')).DEFAULTS.retrieval.bodyWords;
+    assert.strictEqual(shipped, true, 'body words ship on');
+    if (blockers.length) {
+      assert.deepStrictEqual(blockers, ['hard'], 'the only corpus the words cost is the self-scored one');
+      assert.match(section, /by the rule as written they would not be a default/);
+      assert.match(section, /Body words: the default, by one task of `hard` short of the rule/);
+    } else {
+      assert.match(section, /Body words: the default\./);
+    }
     assert.match(section, /Centrality blend: deprecated/);
     assert.match(section, /Surface enrichment: deprecated/);
     assert.match(section, /Mined expansions: stays opt-in/);
-    assert.match(section, /Body words: the default/);
     assert.match(section, /at least five more tasks than it loses/);
   });
 
@@ -199,7 +215,7 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
       String(x.plain.hits), String(x.plain.tasks), String(x.body.hits), pct(x.plain.hits, x.plain.tasks).replace('%', ''), pct(x.body.hits, x.body.tasks).replace('%', ''),
       String(x.body.lost.length), String(x.body.gained.length), x.body.mrr.toFixed(3), x.plain.mrr.toFixed(3),
     ]);
-    // The arms report was recorded on the corpus as it then stood (ids x001..x<plain.tasks>); tasks added since (#984) are in the
+    // The report is recorded on the corpus as it stood (ids x001..x<plain.tasks>); if tasks were added after it, they are in the
     // baseline but not in the report, so "plain is the baseline" is held on the tasks the report measured.
     assert.ok(x.plain.tasks <= xb.overall.tasks, 'the report cannot have measured more tasks than the baseline holds');
     const measuredHits = Object.values(xb.repos).flatMap((r) => Object.entries(r.ranks))
@@ -211,10 +227,14 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
     assert.strictEqual(h.body.gained.length, 0, 'the words lose no honest task');
     const effect = (c) => sa.corpora[c].body.lost.length - sa.corpora[c].body.gained.length;
     assert.match(section, new RegExp(`\`mined\` \\+${effect('mined')}, \`jvm\` \\+${effect('jvm')}, \`easy\` \\+${effect('easy')}`));
-    assert.strictEqual(effect('hard'), 0);
-    assert.match(section, new RegExp(`\`hard\` is level \\(${sa.corpora.hard.body.lost.length} won, ${sa.corpora.hard.body.gained.length} lost\\)`));
-    for (const c of Object.values(sa.corpora)) assert.ok(c.body.lost.length >= c.body.gained.length, 'no corpus is worse off with the words');
-    assert.match(section, /No corpus is worse off with them/);
+    // `hard` is the one corpus the words cost, by one task; the section names it, its win/lose counts and the tasks they lose
+    const hb2 = sa.corpora.hard.body;
+    assert.strictEqual(effect('hard'), -1, 'the words cost `hard` one task on this recording');
+    assert.match(section, new RegExp(`the words win ${hb2.lost.length} of its tasks and lose ${hb2.gained.length}`));
+    for (const id of hb2.gained) assert.ok(section.includes(id.split('/')[1]), `${id}: the section names a task the words lose`);
+    const worse = Object.entries(sa.corpora).filter(([, c]) => c.body.lost.length < c.body.gained.length).map(([n]) => n);
+    assert.deepStrictEqual(worse, ['hard'], 'no corpus but hard is worse off with the words');
+    assert.match(section, /no corpus but `hard` is worse off with them/);
   });
 
   await test('the sweep table, and what is said of it, are the recorded grid', () => {
