@@ -40,6 +40,7 @@ import { attributeTasks, summarizeWhy, whyLabel, rankOf, formatGap, GAP_LABELS }
 import { docStats, queryTermsOf, termsOf } from './lib/corpus-vocabulary.mjs';
 import { crossTab, hitCounts, pollutedPlaces } from './lib/autopsy.mjs';
 import { ARMS, compareArms, mergeArms, verdictOf } from './lib/signal-arms.mjs';
+import { pairedOfArm, pairedText } from './lib/paired-test.mjs';
 import { buildArmRankers } from './lib/signal-rankers.mjs';
 
 const require = createRequire(import.meta.url);
@@ -250,6 +251,10 @@ if (signalsMerged && !JSON_OUT) {
     const m = signalsMerged[a.id];
     if (!m) continue;
     console.log(`    ${a.label.padEnd(24)} ${`${m.hits}/${m.tasks} ${(100 * m.hits / m.tasks).toFixed(1)}%`.padStart(15)}   ${m.mrr.toFixed(3)}   ${a.id === 'plain' ? '' : verdictOf(m)}`);
+  }
+  for (const a of ARMS.slice(1)) {
+    const m = signalsMerged[a.id];
+    if (m && (m.gained.length || m.lost.length)) console.log(`    ${a.label.padEnd(24)} ${pairedText(pairedOfArm(m))}`);
   }
   for (const f of armFellBack) console.log(`    NOT RUN: ${f}`);
 }

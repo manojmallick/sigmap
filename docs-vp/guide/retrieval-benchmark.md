@@ -551,6 +551,16 @@ npm run validate:xrepo     # the gate: floor + per-repo no-regress (CI adds --re
 
 CI restores `benchmarks/repos` from a cache keyed on `benchmarks/xrepo-repos.json`, fetches only what is missing or off-pin, and runs the gate. The gate exits 0 when the repos are absent, so a fresh checkout is never broken by it.
 
+### Judging a change: the exact paired test
+
+A retrieval change is scored on the same tasks before and after, so only the tasks whose hit status changed carry information: the ones it **won** (a miss that is now a hit) and the ones it **lost**. If the change only moved the answers around, each changed task is equally likely to go either way, which makes the number of wins among them a fair-coin count; the gate prints the exact two-sided sign test on it (McNemar's exact test is the same computation, with no normal approximation). It sits beside the won and lost counts, in three places:
+
+- `npm run benchmark:xrepo` prints **against the baseline** after the table: the tasks compared with the recorded baseline, those won and lost, and the verdict. Tasks and repositories the baseline does not hold yet are counted as new and never compared. `--json` carries the same as `vsBaseline`.
+- `npm run benchmark:xrepo -- --signals` prints the line under every ranking signal that changed a task, and so do `benchmark:retrieval -- --signals` (per corpus) and `benchmark:honest` with its signal arms.
+- Nothing is decided by it: the gate's floor and per-repo no-regress rule are unchanged. The test only says how much a won/lost count supports.
+
+Read it as a rule of thumb: the words "better" or "worse" appear only when p is below 0.05, and anything else reads "not distinguishable from reshuffling", with how many changed tasks it would take. Fewer than six changed tasks can never be decisive: a clean 5–0 sweep is p = 0.0625. So a change that moves four tasks is not evidence either way, however it looks as a rate, and a net gain of two (3 won, 1 lost) is p = 0.625.
+
 :::tip The eleven xrepo-only clones are skipped by the suites that walk `benchmarks/repos`
 `fetch:xrepo` puts eleven repositories that no other suite expects (tokio, excalidraw, django, phoenix, astro, plenary, godot-demo-projects, composer, newtonsoft-json, exposed, vitepress) into `benchmarks/repos/`. The manifest flags them `xrepoOnly`, and the two suites whose published figure or gate depends on the exact set of clones — `benchmark:test-discovery` and `validate:grounding-coverage` — skip them through `scripts/lib/benchmark-repos.mjs`, so a machine that has run `fetch:xrepo` reads the same figures on those two as one that has not (`validate:source-roots` and `validate:benchmark-determinism` also read the directory and were left as they were) ([#893](https://github.com/manojmallick/sigmap/issues/893) §7). The twenty-four repositories xrepo shares with other suites are measured by both.
 :::
