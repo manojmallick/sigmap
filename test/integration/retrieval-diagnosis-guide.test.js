@@ -72,10 +72,13 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
   });
 
   await test('the words behind the no-token misses are the baselines\'', () => {
-    // body words are on by default, so the third-party corpus has one such task left: it holds none of the question's words
-    const x = match(/the class is \*\*(\d+)\*\* now: the one task that holds none of the question's words anywhere/, 'what is left of the xrepo no-token class');
+    // body words are on by default, so what is left of the third-party corpus's no-token class holds no distinctive word:
+    // some tasks hold none of the question's words anywhere, the others only common ones
+    const x = match(/the class is \*\*(\d+)\*\* now: (\w+) tasks? holds? none of the question's words anywhere and (\w+) hold only common ones/, 'what is left of the xrepo no-token class');
     assert.strictEqual(Number(x[1]), X.misses[NT]);
-    assert.deepStrictEqual(X.noTokenWords, { distinctive: 0, commonOnly: 0, nowhere: 1, inIndex: 0 }, 'the section says the one that is left holds none of the question\'s words');
+    assert.deepStrictEqual({ distinctive: X.noTokenWords.distinctive, inIndex: X.noTokenWords.inIndex }, { distinctive: 0, inIndex: 0 }, 'no xrepo no-token miss holds a distinctive word');
+    assert.deepStrictEqual([x[2], x[3]], [WORDS[X.noTokenWords.nowhere], WORDS[X.noTokenWords.commonOnly]], 'the words spell the counts of the baseline');
+    assert.strictEqual(X.noTokenWords.nowhere + X.noTokenWords.commonOnly, X.misses[NT], 'every no-token miss is one of the two');
     const j = match(/reads \*\*(\d+) \/ (\d+) \/ (\d+)\*\*: (\w+) holds? a distinctive word, (\w+) only common ones[^.]*, (\w+) nothing/, 'the JVM split of the no-token misses');
     const triple = [1, 2, 3].map((i) => Number(j[i]));
     assert.deepStrictEqual(triple, [J.noTokenWords.distinctive, J.noTokenWords.commonOnly, J.noTokenWords.nowhere]);

@@ -1,9 +1,9 @@
 {
   "_comment": "Both annotators’ raw answers for the tasks added by #984 (x084 onward), so the agreement figures and every task’s audit value can be recomputed. first = the files the annotator who wrote the question listed; second = the files an independent annotator named from the question alone. The label (expected_files) is the files both named; audit is agreed when the second annotator named exactly that set, partial when it named more. Both annotators were language models, so agreement bounds labelling noise, not blind spots they share. Method: benchmarks/XREPO_LABELLING.md.",
   "agreement": {
-    "tasks": 45,
-    "exact": 43,
-    "sharedAtLeastOne": 45,
+    "tasks": 125,
+    "exact": 122,
+    "sharedAtLeastOne": 125,
     "disjoint": 0
   },
   "tasks": {
@@ -375,6 +375,647 @@
       ],
       "second": [
         "src/client/app/composables/preFetch.ts"
+      ]
+    },
+    "x129": {
+      "first": [
+        "packages/svelte/src/html-tree-validation.js"
+      ],
+      "second": [
+        "packages/svelte/src/html-tree-validation.js"
+      ]
+    },
+    "x130": {
+      "first": [
+        "packages/svelte/src/motion/spring.js"
+      ],
+      "second": [
+        "packages/svelte/src/motion/spring.js"
+      ]
+    },
+    "x131": {
+      "first": [
+        "packages/svelte/src/reactivity/create-subscriber.js"
+      ],
+      "second": [
+        "packages/svelte/src/reactivity/create-subscriber.js"
+      ]
+    },
+    "x132": {
+      "first": [
+        "packages/svelte/src/internal/client/dom/elements/events.js"
+      ],
+      "second": [
+        "packages/svelte/src/internal/client/dom/elements/events.js"
+      ]
+    },
+    "x133": {
+      "first": [
+        "packages/svelte/src/compiler/phases/3-transform/css/index.js"
+      ],
+      "second": [
+        "packages/svelte/src/compiler/phases/3-transform/css/index.js"
+      ]
+    },
+    "x134": {
+      "first": [
+        "packages/svelte/src/internal/client/proxy.js"
+      ],
+      "second": [
+        "packages/svelte/src/internal/client/proxy.js"
+      ]
+    },
+    "x135": {
+      "first": [
+        "packages/svelte/src/store/shared/index.js"
+      ],
+      "second": [
+        "packages/svelte/src/store/shared/index.js"
+      ]
+    },
+    "x136": {
+      "first": [
+        "packages/svelte/src/internal/server/renderer.js"
+      ],
+      "second": [
+        "packages/svelte/src/internal/server/renderer.js"
+      ]
+    },
+    "x137": {
+      "first": [
+        "lib/schemas.js"
+      ],
+      "second": [
+        "lib/schemas.js"
+      ]
+    },
+    "x138": {
+      "first": [
+        "lib/validation.js"
+      ],
+      "second": [
+        "lib/validation.js"
+      ]
+    },
+    "x139": {
+      "first": [
+        "lib/content-type-parser.js"
+      ],
+      "second": [
+        "lib/content-type-parser.js"
+      ]
+    },
+    "x140": {
+      "first": [
+        "lib/four-oh-four.js"
+      ],
+      "second": [
+        "lib/four-oh-four.js"
+      ]
+    },
+    "x141": {
+      "first": [
+        "lib/plugin-override.js"
+      ],
+      "second": [
+        "lib/plugin-override.js"
+      ]
+    },
+    "x142": {
+      "first": [
+        "lib/hooks.js"
+      ],
+      "second": [
+        "lib/hooks.js"
+      ]
+    },
+    "x143": {
+      "first": [
+        "lib/request.js"
+      ],
+      "second": [
+        "lib/request.js"
+      ]
+    },
+    "x144": {
+      "first": [
+        "lib/error-handler.js"
+      ],
+      "second": [
+        "lib/error-handler.js"
+      ]
+    },
+    "x145": {
+      "first": [
+        "fastapi/encoders.py"
+      ],
+      "second": [
+        "fastapi/encoders.py"
+      ]
+    },
+    "x146": {
+      "first": [
+        "fastapi/sse.py"
+      ],
+      "second": [
+        "fastapi/sse.py"
+      ]
+    },
+    "x147": {
+      "first": [
+        "fastapi/concurrency.py"
+      ],
+      "second": [
+        "fastapi/concurrency.py"
+      ]
+    },
+    "x148": {
+      "first": [
+        "fastapi/openapi/docs.py"
+      ],
+      "second": [
+        "fastapi/openapi/docs.py"
+      ]
+    },
+    "x149": {
+      "first": [
+        "fastapi/security/oauth2.py"
+      ],
+      "second": [
+        "fastapi/security/oauth2.py"
+      ]
+    },
+    "x150": {
+      "first": [
+        "fastapi/dependencies/utils.py"
+      ],
+      "second": [
+        "fastapi/dependencies/utils.py"
+      ]
+    },
+    "x151": {
+      "first": [
+        "fastapi/routing.py"
+      ],
+      "second": [
+        "fastapi/routing.py"
+      ]
+    },
+    "x152": {
+      "first": [
+        "fastapi/applications.py"
+      ],
+      "second": [
+        "fastapi/applications.py",
+        "fastapi/middleware/asyncexitstack.py"
+      ]
+    },
+    "x153": {
+      "first": [
+        "R/by.R"
+      ],
+      "second": [
+        "R/by.R"
+      ]
+    },
+    "x154": {
+      "first": [
+        "R/rows.R"
+      ],
+      "second": [
+        "R/rows.R"
+      ]
+    },
+    "x155": {
+      "first": [
+        "R/join-by.R"
+      ],
+      "second": [
+        "R/join-by.R"
+      ]
+    },
+    "x156": {
+      "first": [
+        "R/order-by.R"
+      ],
+      "second": [
+        "R/order-by.R"
+      ]
+    },
+    "x157": {
+      "first": [
+        "R/data-mask.R"
+      ],
+      "second": [
+        "R/data-mask.R"
+      ]
+    },
+    "x158": {
+      "first": [
+        "R/count-tally.R"
+      ],
+      "second": [
+        "R/count-tally.R"
+      ]
+    },
+    "x159": {
+      "first": [
+        "R/relocate.R"
+      ],
+      "second": [
+        "R/relocate.R"
+      ]
+    },
+    "x160": {
+      "first": [
+        "R/consecutive-id.R"
+      ],
+      "second": [
+        "R/consecutive-id.R"
+      ]
+    },
+    "x161": {
+      "first": [
+        "akka-actor/src/main/scala/akka/routing/TailChopping.scala"
+      ],
+      "second": [
+        "akka-actor/src/main/scala/akka/routing/TailChopping.scala"
+      ]
+    },
+    "x162": {
+      "first": [
+        "akka-cluster/src/main/scala/akka/cluster/sbr/DowningStrategy.scala"
+      ],
+      "second": [
+        "akka-cluster/src/main/scala/akka/cluster/sbr/DowningStrategy.scala"
+      ]
+    },
+    "x163": {
+      "first": [
+        "akka-stream/src/main/scala/akka/stream/impl/JsonObjectParser.scala"
+      ],
+      "second": [
+        "akka-stream/src/main/scala/akka/stream/impl/JsonObjectParser.scala"
+      ]
+    },
+    "x164": {
+      "first": [
+        "akka-persistence/src/main/scala/akka/persistence/journal/ReplayFilter.scala"
+      ],
+      "second": [
+        "akka-persistence/src/main/scala/akka/persistence/journal/ReplayFilter.scala"
+      ]
+    },
+    "x165": {
+      "first": [
+        "akka-serialization-jackson/src/main/scala/akka/serialization/jackson/JacksonSerializer.scala"
+      ],
+      "second": [
+        "akka-serialization-jackson/src/main/scala/akka/serialization/jackson/JacksonSerializer.scala"
+      ]
+    },
+    "x166": {
+      "first": [
+        "akka-discovery/src/main/scala/akka/discovery/aggregate/AggregateServiceDiscovery.scala"
+      ],
+      "second": [
+        "akka-discovery/src/main/scala/akka/discovery/aggregate/AggregateServiceDiscovery.scala"
+      ]
+    },
+    "x167": {
+      "first": [
+        "akka-remote/src/main/scala/akka/remote/artery/SystemMessageDelivery.scala"
+      ],
+      "second": [
+        "akka-remote/src/main/scala/akka/remote/artery/SystemMessageDelivery.scala"
+      ]
+    },
+    "x168": {
+      "first": [
+        "akka-actor/src/main/scala/akka/dispatch/affinity/AffinityPool.scala"
+      ],
+      "second": [
+        "akka-actor/src/main/scala/akka/dispatch/affinity/AffinityPool.scala"
+      ]
+    },
+    "x169": {
+      "first": [
+        "crates/hir-def/src/nameres/mod_resolution.rs"
+      ],
+      "second": [
+        "crates/hir-def/src/nameres/mod_resolution.rs"
+      ]
+    },
+    "x170": {
+      "first": [
+        "crates/mbe/src/expander/matcher.rs"
+      ],
+      "second": [
+        "crates/mbe/src/expander/matcher.rs"
+      ]
+    },
+    "x171": {
+      "first": [
+        "crates/hir-ty/src/dyn_compatibility.rs"
+      ],
+      "second": [
+        "crates/hir-ty/src/dyn_compatibility.rs"
+      ]
+    },
+    "x172": {
+      "first": [
+        "crates/ide-completion/src/completions/postfix.rs"
+      ],
+      "second": [
+        "crates/ide-completion/src/completions/postfix.rs"
+      ]
+    },
+    "x173": {
+      "first": [
+        "crates/ide-assists/src/handlers/apply_demorgan.rs"
+      ],
+      "second": [
+        "crates/ide-assists/src/handlers/apply_demorgan.rs"
+      ]
+    },
+    "x174": {
+      "first": [
+        "crates/project-model/src/sysroot.rs"
+      ],
+      "second": [
+        "crates/project-model/src/sysroot.rs"
+      ]
+    },
+    "x175": {
+      "first": [
+        "crates/rust-analyzer/src/diagnostics/flycheck_to_proto.rs"
+      ],
+      "second": [
+        "crates/rust-analyzer/src/diagnostics/flycheck_to_proto.rs"
+      ]
+    },
+    "x176": {
+      "first": [
+        "crates/parser/src/event.rs"
+      ],
+      "second": [
+        "crates/parser/src/event.rs"
+      ]
+    },
+    "x177": {
+      "first": [
+        "absl/time/internal/cctz/src/time_zone_posix.cc"
+      ],
+      "second": [
+        "absl/time/internal/cctz/src/time_zone_posix.cc"
+      ]
+    },
+    "x178": {
+      "first": [
+        "absl/strings/internal/damerau_levenshtein_distance.cc"
+      ],
+      "second": [
+        "absl/strings/internal/damerau_levenshtein_distance.cc"
+      ]
+    },
+    "x179": {
+      "first": [
+        "absl/container/internal/compressed_tuple.h"
+      ],
+      "second": [
+        "absl/container/internal/compressed_tuple.h"
+      ]
+    },
+    "x180": {
+      "first": [
+        "absl/synchronization/internal/graphcycles.cc"
+      ],
+      "second": [
+        "absl/synchronization/internal/graphcycles.cc"
+      ]
+    },
+    "x181": {
+      "first": [
+        "absl/debugging/failure_signal_handler.cc"
+      ],
+      "second": [
+        "absl/debugging/failure_signal_handler.cc"
+      ]
+    },
+    "x182": {
+      "first": [
+        "absl/status/status.cc"
+      ],
+      "second": [
+        "absl/status/status.cc"
+      ]
+    },
+    "x183": {
+      "first": [
+        "absl/random/internal/seed_material.cc"
+      ],
+      "second": [
+        "absl/random/internal/seed_material.cc"
+      ]
+    },
+    "x184": {
+      "first": [
+        "absl/flags/parse.cc"
+      ],
+      "second": [
+        "absl/flags/parse.cc"
+      ]
+    },
+    "x185": {
+      "first": [
+        "gson/src/main/java/com/google/gson/internal/Excluder.java"
+      ],
+      "second": [
+        "gson/src/main/java/com/google/gson/internal/Excluder.java"
+      ]
+    },
+    "x186": {
+      "first": [
+        "gson/src/main/java/com/google/gson/FieldNamingPolicy.java"
+      ],
+      "second": [
+        "gson/src/main/java/com/google/gson/FieldNamingPolicy.java"
+      ]
+    },
+    "x187": {
+      "first": [
+        "gson/src/main/java/com/google/gson/ToNumberPolicy.java"
+      ],
+      "second": [
+        "gson/src/main/java/com/google/gson/ToNumberPolicy.java"
+      ]
+    },
+    "x188": {
+      "first": [
+        "gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java"
+      ],
+      "second": [
+        "gson/src/main/java/com/google/gson/internal/bind/DefaultDateTypeAdapter.java"
+      ]
+    },
+    "x189": {
+      "first": [
+        "gson/src/main/java/com/google/gson/stream/JsonReader.java"
+      ],
+      "second": [
+        "gson/src/main/java/com/google/gson/stream/JsonReader.java"
+      ]
+    },
+    "x190": {
+      "first": [
+        "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java"
+      ],
+      "second": [
+        "gson/src/main/java/com/google/gson/internal/ConstructorConstructor.java"
+      ]
+    },
+    "x191": {
+      "first": [
+        "extras/src/main/java/com/google/gson/typeadapters/RuntimeTypeAdapterFactory.java"
+      ],
+      "second": [
+        "extras/src/main/java/com/google/gson/typeadapters/RuntimeTypeAdapterFactory.java"
+      ]
+    },
+    "x192": {
+      "first": [
+        "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java"
+      ],
+      "second": [
+        "proto/src/main/java/com/google/gson/protobuf/ProtoTypeAdapter.java"
+      ]
+    },
+    "x193": {
+      "first": [
+        "utils/utils.go"
+      ],
+      "second": [
+        "utils/utils.go"
+      ]
+    },
+    "x194": {
+      "first": [
+        "logger/sql.go"
+      ],
+      "second": [
+        "logger/sql.go"
+      ]
+    },
+    "x195": {
+      "first": [
+        "soft_delete.go"
+      ],
+      "second": [
+        "soft_delete.go"
+      ]
+    },
+    "x196": {
+      "first": [
+        "migrator/migrator.go"
+      ],
+      "second": [
+        "migrator/migrator.go"
+      ]
+    },
+    "x197": {
+      "first": [
+        "schema/naming.go"
+      ],
+      "second": [
+        "schema/naming.go"
+      ]
+    },
+    "x198": {
+      "first": [
+        "clause/where.go"
+      ],
+      "second": [
+        "clause/where.go"
+      ]
+    },
+    "x199": {
+      "first": [
+        "callbacks/preload.go"
+      ],
+      "second": [
+        "callbacks/preload.go"
+      ]
+    },
+    "x200": {
+      "first": [
+        "callbacks.go"
+      ],
+      "second": [
+        "callbacks.go"
+      ]
+    },
+    "x201": {
+      "first": [
+        "packages/zod/src/v4/core/regexes.ts"
+      ],
+      "second": [
+        "packages/zod/src/v4/core/regexes.ts"
+      ]
+    },
+    "x202": {
+      "first": [
+        "packages/zod/src/v4/classic/from-json-schema.ts"
+      ],
+      "second": [
+        "packages/zod/src/v4/classic/from-json-schema.ts"
+      ]
+    },
+    "x203": {
+      "first": [
+        "packages/zod/src/v4/core/to-json-schema.ts"
+      ],
+      "second": [
+        "packages/zod/src/v4/core/to-json-schema.ts"
+      ]
+    },
+    "x204": {
+      "first": [
+        "packages/zod/src/v4/core/errors.ts"
+      ],
+      "second": [
+        "packages/zod/src/v4/core/errors.ts"
+      ]
+    },
+    "x205": {
+      "first": [
+        "packages/zod/src/v4/core/registries.ts"
+      ],
+      "second": [
+        "packages/zod/src/v4/core/registries.ts"
+      ]
+    },
+    "x206": {
+      "first": [
+        "packages/zod/src/v4/core/doc.ts"
+      ],
+      "second": [
+        "packages/zod/src/v4/core/doc.ts"
+      ]
+    },
+    "x207": {
+      "first": [
+        "packages/zod/src/v3/helpers/parseUtil.ts"
+      ],
+      "second": [
+        "packages/zod/src/v3/helpers/parseUtil.ts"
+      ]
+    },
+    "x208": {
+      "first": [
+        "packages/zod/src/v4/core/util.ts"
+      ],
+      "second": [
+        "packages/zod/src/v4/core/util.ts"
       ]
     }
   }

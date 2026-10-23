@@ -20,7 +20,6 @@
   },
   "knownGaps": {
     "objc": "answer language with no labelled task: no Objective-C repo in the corpus yet",
-    "r": "answer language with no labelled task: the R benchmark repos (ggplot2, dplyr, shiny) have no task corpus",
     "svelte": "answer language with no labelled task whose answer is a .svelte file (the svelte repo's tasks point at .js)",
     "typescript_react": "answer language with no labelled task whose answer is a .tsx file",
     "vue_sfc": "answer language with no labelled task whose answer is a .vue file (the vue-core tasks point at .ts)"
