@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.81.0, with the latest release giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
+description: SigMap version history and roadmap. From v0.0 to v8.82.0, with the latest release growing the third-party corpus from 128 questions over 25 repositories to 208 over 35 (hit@5 63.3% to 55.8%, every earlier repository unchanged) and printing an exact paired test beside every won/lost count, after v8.81.0 giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
 head:
   - - meta
     - property: og:title
@@ -835,6 +835,25 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.82.0 — the third-party corpus reaches 208 questions over 35 repositories, and the gates print an exact paired test ✓ (2026-10-23)
+
+**Minor.** Nothing SigMap ships changes: `gen-context.js`, `src/` and `packages/` are the v8.81.0 files apart from their version strings, and the npm package has the same 222 files. The release is the instrument. The third-party corpus (xrepo) grows from 128 questions over 25 repositories to **208 over 35** ([#984](https://github.com/manojmallick/sigmap/issues/984), PR [#1025](https://github.com/manojmallick/sigmap/pull/1025)): Svelte, Fastify, FastAPI, dplyr, Akka, rust-analyzer, Abseil, Gson, GORM and Zod, eight questions each, labelled blind from clean `git archive` exports of their pins and answered independently by a second annotator who saw only the questions (79 of 80 file sets exact, none disjoint). Java, Scala, R and Svelte are measured for the first time. The gates also print an exact paired test: any comparison against the baseline, and every signal arm, now carries the won and lost counts, the exact two-sided sign test on them (McNemar's exact test is the same computation) and a verdict that says "better" or "worse" only below p = 0.05 ([#1024](https://github.com/manojmallick/sigmap/pull/1024)). Fewer than six changed tasks can never be decisive, and the output says so. A head-to-head harness against codebase-memory-mcp and code-review-graph is built and exploratory only: nothing is published until it runs on the enlarged corpus ([#972](https://github.com/manojmallick/sigmap/issues/972), PR [#1023](https://github.com/manojmallick/sigmap/pull/1023)).
+
+```
+xrepo                  81 of 128 (63.3%, 54.7–71.1%)  ->  116 of 208 (55.8%, 49.0–62.4%)
+the 25 earlier repos   81 of 128                      ->  81 of 128, task for task
+the 10 added repos     —                              ->  35 of 80 (43.8%)
+unreachable answers    8                              ->  13 (five of them in Akka and rust-analyzer)
+```
+
+The signal-arm report is re-recorded on the 208 tasks ([#1026](https://github.com/manojmallick/sigmap/pull/1026)). The verdicts stand, and it records one thing the guide says plainly: on `hard`, body words read −1 (they win 3 tasks and lose 4), so by the guide's rule (no other corpus net-negative) they would not be a default. They stay on and nothing in the code changed; whether one task of a 90-task self-scored corpus outweighs −38 on the third-party corpus is the maintainer's call. The three sweeps remain dated experiments on the first 83 tasks.
+
+**Tags:** `xrepo`, `208 tasks`, `paired-test.mjs`, `McNemar`, `head-to-head`, `rivals.json`, `signal-arms`, `#984`, `#972`
+
+**Impact:** every published figure holds except the third-party corpus, which moves because it grew and not because the ranker changed (81 of 128 to 116 of 208, the 25 earlier repositories task for task). Token reduction 95.7%, hit@5 80.4%, task success 61.9%, prompt reduction 44.4%, test-discovery F1 98.0%, the grounding corpus and the honest comparison (SigMap 92.8%, 116 of 125; single-shot grep 40.0%, 50 of 125; 2.32×) reproduce v8.81.0 leaf for leaf. `hard` reads 70.0% (63 of 90), the gate's floor, with no task of headroom.
 
 ---
 
