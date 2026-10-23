@@ -43,6 +43,7 @@ import { attributeTasks, summarizeWhy, reachable, whyLabel, formatGap, GAP_LABEL
 import { isTestAnswer } from './lib/xrepo-hygiene.mjs';
 import { docStats, queryTermsOf, termsOf } from './lib/corpus-vocabulary.mjs';
 import { ARMS, compareArms, mergeArms, verdictOf } from './lib/signal-arms.mjs';
+import { pairedOfArm, pairedText } from './lib/paired-test.mjs';
 import { buildArmRankers } from './lib/signal-rankers.mjs';
 import { writeAll } from './lib/write-sync.mjs';
 
@@ -381,6 +382,7 @@ if (signals && !disagreements.length) {
       const shift = (id) => { const mv = m.moves.find((x) => x.id === id); return mv ? ` (${mv.from === null ? '-' : mv.from} → ${mv.to === null ? '-' : mv.to})` : ''; };
       if (m.gained.length) console.log(`      ${c.padEnd(6)} won   ${m.gained.map((id) => id + shift(id)).join(', ')}`);
       if (m.lost.length) console.log(`      ${c.padEnd(6)} lost  ${m.lost.map((id) => id + shift(id)).join(', ')}`);
+      console.log(`      ${' '.repeat(6)} ${pairedText(pairedOfArm(m))}`);
     }
   }
   // Each repository once: `hard`, `mined` and `easy` all score this checkout.

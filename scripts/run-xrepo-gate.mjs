@@ -51,6 +51,7 @@ import { rankOf, totals, decide, EPS, summarizeWhy, whyLabel } from './lib/xrepo
 import { attributeTasks, formatGap, GAP_LABELS, reachable } from './lib/attribution.mjs';
 import { docStats, queryTermsOf, termsOf } from './lib/corpus-vocabulary.mjs';
 import { ARMS, compareArms, mergeArms, verdictOf } from './lib/signal-arms.mjs';
+import { compareRanks, pairedOfArm, pairedText } from './lib/paired-test.mjs';
 import { buildArmRankers } from './lib/signal-rankers.mjs';
 import { writeAll } from './lib/write-sync.mjs';
 
@@ -208,6 +209,23 @@ const expectedRepos = manifest.repos.filter((r) => (byRepo.get(r.name) || []).le
 const prior = fs.existsSync(BASELINE) ? JSON.parse(fs.readFileSync(BASELINE, 'utf8')) : null;
 const overall = totals(rows);
 
+// Any comparison with the recorded baseline is a paired one (#984): only the tasks whose hit status changed carry
+// information, and an exact sign test says whether they are more than the answers being moved around. Tasks and
+// repositories the baseline does not hold yet are counted, never compared.
+const vsBaseline = (() => {
+  if (!prior || !prior.repos || !rows.length) return null;
+  const before = {};
+  const after = {};
+  for (const r of rows) {
+    const p = prior.repos[r.repo];
+    if (!p || !p.ranks) continue;
+    for (const [id, rank] of Object.entries(p.ranks)) before[`${r.repo}/${id}`] = rank;
+    for (const [id, rank] of Object.entries(r.ranks)) after[`${r.repo}/${id}`] = rank;
+  }
+  const c = compareRanks(before, after);
+  return { compared: c.compared, newTasks: overall.tasks - c.compared, moved: c.moved, wonTasks: c.won, lostTasks: c.lost, ...c.verdict };
+})();
+
 if (!rows.length && !REQUIRE && !AS_JSON) {
   console.log('\n[xrepo] no pinned checkouts present — skipped. Fetch them with: node scripts/fetch-xrepo-repos.mjs\n');
   if (offPin.length) console.log(`  off-pin: ${offPin.join(', ')}\n`);
@@ -228,7 +246,7 @@ const signalsReport = SIGNALS && rows.length ? {
 
 if (AS_JSON) {
   // Written whole before the exits below: with --why or --signals the document is larger than a pipe buffer.
-  writeAll(1, JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined, signals: signalsReport || undefined, pythonAst: PYTHON_AST ? pythonAstRows : undefined }, null, 2) + '\n');
+  writeAll(1, JSON.stringify({ overall, band: band(overall.hits, overall.tasks), complete, vsBaseline: vsBaseline || undefined, rows, absent: absentRepos, offPin, reasons, why: whySummary || undefined, signals: signalsReport || undefined, pythonAst: PYTHON_AST ? pythonAstRows : undefined }, null, 2) + '\n');
 } else if (rows.length) {
   console.log('\n[sigmap] xrepo — labelled third-party retrieval (zero-config)\n');
   console.log('  repo                  lang              cfg      tasks   hit@5     MRR    P@5   unreachable');
@@ -245,6 +263,13 @@ if (AS_JSON) {
   console.log('  while a drop in any repo\'s hit count is a real change (deterministic ranker, pinned repos).');
   const minHits = Math.ceil(MIN * overall.tasks - EPS);
   console.log(`\n  floor ${pct(MIN)}  ·  ${Math.max(0, overall.hits - minHits)} task(s) of headroom${complete ? '' : '  ·  not enforced: incomplete run'}`);
+  if (vsBaseline) {
+    const names = (ids) => (ids.length ? `  ${ids.join(', ')}` : '');
+    console.log(`\n  against the baseline  ${vsBaseline.compared} tasks compared${vsBaseline.newTasks ? ` · ${vsBaseline.newTasks} new, nothing to compare with` : ''} · won ${vsBaseline.won} · lost ${vsBaseline.lost}`);
+    console.log(`    ${pairedText(vsBaseline)}`);
+    if (vsBaseline.won) console.log(`    won ${names(vsBaseline.wonTasks)}`);
+    if (vsBaseline.lost) console.log(`    lost${names(vsBaseline.lostTasks)}`);
+  }
   if (absentRepos.length) console.log(`  absent: ${absentRepos.join(', ')} (node scripts/fetch-xrepo-repos.mjs)`);
   if (offPin.length) console.log(`  off-pin (not scored): ${offPin.join(', ')}`);
 
@@ -315,6 +340,7 @@ if (AS_JSON) {
       console.log(`\n    ${a.label}`);
       if (m.gained.length) console.log(`      won   ${m.gained.map((id) => id + shift(m, id)).join(', ')}`);
       if (m.lost.length) console.log(`      lost  ${m.lost.map((id) => id + shift(m, id)).join(', ')}`);
+      console.log(`      ${pairedText(pairedOfArm(m))}`);
     }
     console.log(`\n    cost: surface enrichment adds ${signalsReport.added.routeSigs} pseudo-signatures to the index; mined expansions hold ${signalsReport.added.minedTokens} tokens; body words add ${signalsReport.added.bodyWords} words over ${signalsReport.added.bodyFiles} files`);
     for (const [repo, ids] of Object.entries(signalsReport.fellBack)) console.log(`    NOT RUN on ${repo}: ${ids.join(', ')} could not be built, so those arms equal plain there`);
