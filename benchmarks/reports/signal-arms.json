@@ -13,55 +13,61 @@
   "corpora": {
     "xrepo": {
       "plain": {
-        "hits": 59,
-        "tasks": 83,
-        "mrr": 0.496,
+        "hits": 116,
+        "tasks": 208,
+        "mrr": 0.38,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "centrality": {
-        "hits": 59,
-        "tasks": 83,
-        "mrr": 0.496,
+        "hits": 116,
+        "tasks": 208,
+        "mrr": 0.38,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "surface": {
-        "hits": 59,
-        "tasks": 83,
-        "mrr": 0.511,
+        "hits": 116,
+        "tasks": 208,
+        "mrr": 0.385,
         "gained": [],
         "lost": [],
-        "moved": 3
+        "moved": 5
       },
       "mined": {
-        "hits": 58,
-        "tasks": 83,
-        "mrr": 0.495,
-        "gained": [],
-        "lost": [
-          "flask/x033"
+        "hits": 115,
+        "tasks": 208,
+        "mrr": 0.378,
+        "gained": [
+          "newtonsoft-json/x113",
+          "gorm/x196"
         ],
-        "moved": 10
+        "lost": [
+          "flask/x033",
+          "svelte/x131",
+          "abseil-cpp/x180"
+        ],
+        "moved": 35
       },
       "callgraph": {
-        "hits": 58,
-        "tasks": 83,
-        "mrr": 0.493,
+        "hits": 115,
+        "tasks": 208,
+        "mrr": 0.376,
         "gained": [],
         "lost": [
           "flask/x033"
         ],
-        "moved": 1
+        "moved": 3
       },
       "body": {
-        "hits": 42,
-        "tasks": 83,
-        "mrr": 0.354,
+        "hits": 78,
+        "tasks": 208,
+        "mrr": 0.244,
         "gained": [
-          "express/x040"
+          "express/x040",
+          "zod/x202"
         ],
         "lost": [
           "okhttp/x008",
@@ -81,50 +87,72 @@
           "astro/x066",
           "astro/x067",
           "astro/x070",
-          "plenary/x075"
+          "plenary/x075",
+          "sidekiq/x089",
+          "sidekiq/x090",
+          "spdlog/x100",
+          "spdlog/x102",
+          "newtonsoft-json/x109",
+          "newtonsoft-json/x112",
+          "vapor/x115",
+          "vapor/x118",
+          "exposed/x120",
+          "vitepress/x124",
+          "vitepress/x125",
+          "svelte/x129",
+          "svelte/x131",
+          "fastify/x137",
+          "fastapi/x146",
+          "fastapi/x148",
+          "akka/x167",
+          "akka/x168",
+          "abseil-cpp/x180",
+          "gson/x186",
+          "gson/x187",
+          "gson/x190"
         ],
-        "moved": 38
+        "moved": 91
       },
       "nograph": {
-        "hits": 58,
-        "tasks": 83,
-        "mrr": 0.491,
+        "hits": 115,
+        "tasks": 208,
+        "mrr": 0.377,
         "gained": [],
         "lost": [
           "phoenix/x062"
         ],
-        "moved": 2
+        "moved": 4
       }
     },
     "hard": {
       "plain": {
-        "hits": 65,
+        "hits": 63,
         "tasks": 90,
-        "mrr": 0.547,
+        "mrr": 0.526,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "centrality": {
-        "hits": 65,
+        "hits": 63,
         "tasks": 90,
-        "mrr": 0.547,
+        "mrr": 0.526,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "surface": {
-        "hits": 65,
+        "hits": 63,
         "tasks": 90,
-        "mrr": 0.547,
+        "mrr": 0.526,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "mined": {
-        "hits": 62,
+        "hits": 60,
         "tasks": 90,
-        "mrr": 0.494,
+        "mrr": 0.486,
         "gained": [
           "hard/h023"
         ],
@@ -134,104 +162,96 @@
           "hard/h043",
           "hard/h089"
         ],
-        "moved": 27
-      },
-      "callgraph": {
-        "hits": 61,
-        "tasks": 90,
-        "mrr": 0.484,
-        "gained": [],
-        "lost": [
-          "hard/h006",
-          "hard/h013",
-          "hard/h062",
-          "hard/h089"
-        ],
         "moved": 28
       },
-      "body": {
-        "hits": 65,
+      "callgraph": {
+        "hits": 59,
         "tasks": 90,
-        "mrr": 0.544,
+        "mrr": 0.466,
+        "gained": [],
+        "lost": [
+          "hard/h013",
+          "hard/h016",
+          "hard/h043",
+          "hard/h089"
+        ],
+        "moved": 30
+      },
+      "body": {
+        "hits": 64,
+        "tasks": 90,
+        "mrr": 0.536,
         "gained": [
+          "hard/h006",
           "hard/h031",
           "hard/h045",
           "hard/h064"
         ],
         "lost": [
           "hard/h043",
-          "hard/h067",
-          "hard/h081"
+          "hard/h057",
+          "hard/h067"
         ],
-        "moved": 23
+        "moved": 22
       },
       "nograph": {
-        "hits": 68,
+        "hits": 64,
         "tasks": 90,
-        "mrr": 0.596,
+        "mrr": 0.57,
         "gained": [
-          "hard/h023",
+          "hard/h006",
           "hard/h027",
           "hard/h031"
         ],
-        "lost": [],
-        "moved": 19
+        "lost": [
+          "hard/h077",
+          "hard/h089"
+        ],
+        "moved": 22
       }
     },
     "mined": {
       "plain": {
-        "hits": 41,
+        "hits": 40,
         "tasks": 60,
-        "mrr": 0.471,
+        "mrr": 0.476,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "centrality": {
-        "hits": 41,
+        "hits": 40,
         "tasks": 60,
-        "mrr": 0.471,
+        "mrr": 0.476,
         "gained": [],
         "lost": [],
         "moved": 1
       },
       "surface": {
-        "hits": 41,
+        "hits": 40,
         "tasks": 60,
-        "mrr": 0.471,
+        "mrr": 0.476,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "mined": {
-        "hits": 40,
+        "hits": 39,
         "tasks": 60,
-        "mrr": 0.445,
-        "gained": [],
-        "lost": [
+        "mrr": 0.447,
+        "gained": [
           "mined/m053"
         ],
-        "moved": 19
+        "lost": [
+          "mined/m006",
+          "mined/m009"
+        ],
+        "moved": 20
       },
       "callgraph": {
-        "hits": 38,
+        "hits": 36,
         "tasks": 60,
-        "mrr": 0.452,
-        "gained": [
-          "mined/m013"
-        ],
-        "lost": [
-          "mined/m009",
-          "mined/m018",
-          "mined/m026",
-          "mined/m053"
-        ],
-        "moved": 28
-      },
-      "body": {
-        "hits": 37,
-        "tasks": 60,
-        "mrr": 0.477,
+        "mrr": 0.445,
         "gained": [],
         "lost": [
           "mined/m009",
@@ -239,81 +259,94 @@
           "mined/m024",
           "mined/m038"
         ],
-        "moved": 15
+        "moved": 23
+      },
+      "body": {
+        "hits": 37,
+        "tasks": 60,
+        "mrr": 0.453,
+        "gained": [
+          "mined/m053"
+        ],
+        "lost": [
+          "mined/m009",
+          "mined/m018",
+          "mined/m024",
+          "mined/m038"
+        ],
+        "moved": 14
       },
       "nograph": {
         "hits": 37,
         "tasks": 60,
-        "mrr": 0.467,
+        "mrr": 0.443,
         "gained": [],
         "lost": [
           "mined/m008",
-          "mined/m024",
           "mined/m040",
           "mined/m048"
         ],
-        "moved": 20
+        "moved": 18
       }
     },
     "easy": {
       "plain": {
-        "hits": 19,
+        "hits": 18,
         "tasks": 20,
-        "mrr": 0.829,
+        "mrr": 0.817,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "centrality": {
-        "hits": 19,
+        "hits": 18,
         "tasks": 20,
-        "mrr": 0.829,
+        "mrr": 0.817,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "surface": {
-        "hits": 19,
+        "hits": 18,
         "tasks": 20,
-        "mrr": 0.829,
+        "mrr": 0.817,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "mined": {
-        "hits": 19,
+        "hits": 18,
         "tasks": 20,
-        "mrr": 0.829,
+        "mrr": 0.817,
         "gained": [],
         "lost": [],
-        "moved": 0
+        "moved": 1
       },
       "callgraph": {
-        "hits": 17,
+        "hits": 18,
         "tasks": 20,
-        "mrr": 0.763,
+        "mrr": 0.773,
         "gained": [],
-        "lost": [
-          "easy/t005",
-          "easy/t006"
-        ],
+        "lost": [],
         "moved": 4
       },
       "body": {
-        "hits": 18,
+        "hits": 17,
         "tasks": 20,
-        "mrr": 0.808,
+        "mrr": 0.742,
         "gained": [],
         "lost": [
           "easy/t005"
         ],
-        "moved": 3
+        "moved": 4
       },
       "nograph": {
         "hits": 19,
         "tasks": 20,
-        "mrr": 0.875,
-        "gained": [],
+        "mrr": 0.863,
+        "gained": [
+          "easy/t006"
+        ],
         "lost": [],
         "moved": 3
       }
@@ -398,7 +431,7 @@
       "plain": {
         "hits": 116,
         "tasks": 125,
-        "mrr": 0.765,
+        "mrr": 0.763,
         "gained": [],
         "lost": [],
         "moved": 0
@@ -406,31 +439,33 @@
       "surface": {
         "hits": 116,
         "tasks": 125,
-        "mrr": 0.761,
+        "mrr": 0.763,
         "gained": [],
         "lost": [],
-        "moved": 3
+        "moved": 2
       },
       "mined": {
         "hits": 116,
         "tasks": 125,
-        "mrr": 0.77,
+        "mrr": 0.763,
         "gained": [],
         "lost": [],
-        "moved": 9
+        "moved": 11
       },
       "callgraph": {
-        "hits": 116,
+        "hits": 115,
         "tasks": 125,
-        "mrr": 0.771,
+        "mrr": 0.769,
         "gained": [],
-        "lost": [],
+        "lost": [
+          "retrieval/t006"
+        ],
         "moved": 10
       },
       "body": {
         "hits": 112,
         "tasks": 125,
-        "mrr": 0.73,
+        "mrr": 0.72,
         "gained": [],
         "lost": [
           "axios/axios-t002",
@@ -438,61 +473,61 @@
           "retrieval/t005",
           "svelte/svelte-t002"
         ],
-        "moved": 20
+        "moved": 21
       }
     }
   },
   "total": {
     "plain": {
-      "hits": 325,
-      "tasks": 439,
+      "hits": 378,
+      "tasks": 564,
       "gained": 0,
       "lost": 0,
       "moved": 0
     },
     "centrality": {
-      "hits": 209,
-      "tasks": 314,
+      "hits": 262,
+      "tasks": 439,
       "gained": 0,
       "lost": 0,
       "moved": 6
     },
     "surface": {
-      "hits": 325,
-      "tasks": 439,
+      "hits": 378,
+      "tasks": 564,
       "gained": 0,
       "lost": 0,
-      "moved": 8
+      "moved": 9
     },
     "mined": {
-      "hits": 321,
-      "tasks": 439,
-      "gained": 3,
-      "lost": 7,
-      "moved": 76
+      "hits": 374,
+      "tasks": 564,
+      "gained": 6,
+      "lost": 10,
+      "moved": 106
     },
     "callgraph": {
-      "hits": 317,
-      "tasks": 439,
-      "gained": 3,
-      "lost": 11,
-      "moved": 78
+      "hits": 370,
+      "tasks": 564,
+      "gained": 2,
+      "lost": 10,
+      "moved": 77
     },
     "body": {
-      "hits": 295,
-      "tasks": 439,
-      "gained": 4,
-      "lost": 34,
-      "moved": 113
+      "hits": 329,
+      "tasks": 564,
+      "gained": 7,
+      "lost": 56,
+      "moved": 166
     },
     "nograph": {
-      "hits": 206,
-      "tasks": 314,
-      "gained": 4,
-      "lost": 7,
-      "moved": 57
+      "hits": 259,
+      "tasks": 439,
+      "gained": 5,
+      "lost": 8,
+      "moved": 60
     }
   },
-  "version": "8.75.0",
-  "generated": "2026-10-11T09:09:12.143Z"
+  "version": "8.81.0",
+  "generated": "2026-10-23T00:10:09.305Z"
 }
