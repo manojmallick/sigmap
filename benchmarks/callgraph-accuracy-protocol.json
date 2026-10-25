@@ -15,7 +15,8 @@
   },
   "typescriptProject": {
     "typescript": "use the repository's own root tsconfig.json unchanged",
-    "javascript": "replace any tsconfig.json with {\"compilerOptions\":{\"allowJs\":true,\"checkJs\":false,\"noEmit\":true},\"include\":[\"**/*\"],\"exclude\":[\"node_modules\"]} in the measurement copy"
+    "javascript": "replace any tsconfig.json in the measurement copy with `javascriptConfig`",
+    "javascriptConfig": { "compilerOptions": { "allowJs": true, "checkJs": false, "noEmit": true }, "include": ["**/*"], "exclude": ["node_modules"] }
   },
   "repos": {
     "typescript": [

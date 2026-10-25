@@ -41,6 +41,8 @@ Two further figures keep that choice honest:
 
 Intervals are a cluster bootstrap over caller files (2000 resamples, seed 976, 95%), so the many edges of one file are not treated as independent. A cell with fewer than 100 edges is printed and marked `n<100`; it is never quoted as a headline and never decides a threshold.
 
+A secondary **judgeable precision** (added after the first run, section 10) counts only graph edges whose caller and callee are both nodes the index defines as callables or classes, so an edge that touches a function-local callable is left out of the denominator. The registered precision above is unchanged and is the one to quote as the headline; the secondary figure says how much of it is the reference's blind spot.
+
 A file-level view collapses both sides to undirected file pairs (caller file != callee file), the shape `buildCallFileGraph` feeds the ranker.
 
 ## 5. The registered threshold
@@ -67,6 +69,7 @@ Where a prediction is wrong the report says so. P1 and P4 are structural and are
 - It says nothing about PHP, C#, C/C++, Swift, Dart, Lua, GDScript, Vue, Svelte or Astro (the graph reads none of them, #979), nor about Rust, Kotlin, Scala or Ruby (no SCIP indexer was run here), nor about repositories of another shape.
 - The repositories are well-known open-source projects with a normal layout; a monorepo or generated-code-heavy repository may score differently.
 - JSX element references count as non-calls on both sides, which does not penalise the graph for React component edges.
+- **The reference cannot name function-local callables.** scip-typescript gives `const f = () => ...` declared inside a function no callable identity (a `local N` symbol of kind Constant, with no `enclosing_range`), so such a function is neither a caller nor a callee of any reference edge, and a call made inside it is attributed to the enclosing named function. A graph edge that has one as an endpoint is **unjudged**, not wrong; section 4 reports precision both ways. This was visible on the development fixture before the run and was left out of this protocol's first text.
 - Dependencies are not installed in the measurement copy, so a call resolved through an installed package's types is unresolved. This only removes reference edges to in-repository callees that need such types.
 - A git co-change reference (file pairs that change together) was considered and is not part of this protocol: the pinned clones are single-commit checkouts, so it needs a full-history fetch of every repository and a separate method. It stays open on #976.
 
@@ -99,4 +102,29 @@ Each repository is exported with `git archive` into a scratch directory, indexed
 
 ## 10. Deviation log
 
-None yet.
+Every change after the first run of a registered repository. The primary definitions in sections 2 to 5 are unchanged by all of them.
+
+### 2026-10-26, after the first run
+
+**The first run** (harness commit `8bf6c12`, protocol commit `fe787a5`) produced figures for the TypeScript group only. Python, JavaScript and the wave-2 groups did not run, for the reasons under "operational". These are its figures, kept here whatever the final report says (zod and excalidraw, in the files both sides cover):
+
+| | recall | reference edges | precision | graph edges |
+|---|---:|---:|---:|---:|
+| all edges | 5.6% | 1472 | 6.0% | 1365 |
+| function | 13.0% | 630 | 25.8% | 318 |
+| method | 0.0% | 664 | 0.0% | 7 |
+| constructor | 0.0% | 178 | - | 0 |
+| graph edges whose callee the index cannot name | - | - | 0.0% | 1040 |
+
+Receiver-only method recall 0.0%, so the section 5 threshold said a spike is warranted. Predictions: P1 held, P2 missed (26.5%), P3 missed (6.0%), P4 held.
+
+**Operational** (a figure could not exist; no definition changed):
+
+1. The runner wrote the protocol's description of the JavaScript project file into `tsconfig.json` instead of the configuration itself, so express and fastify could not be indexed. The protocol JSON now carries the same configuration as data (`javascriptConfig`); its content is the one registered in section 8.
+2. The runner required a root `tsconfig.json` for every non-JavaScript group, Python included, so flask, fastapi and django did not run. Only TypeScript repositories need one.
+3. An indexer failure showed only the end of its stack trace; it now shows the first lines too.
+
+**Added** (a new figure; no existing one changed):
+
+4. Judgeable precision (section 4). In the first run 1040 of the 1365 graph edges had a callee the index cannot name. The one inspected (`_parse -> freeze` in zod's `types.ts`) is a real call, to a function-local constant. Quoting 6.0% alone would have blamed the graph for the reference's blind spot.
+5. Section 7 now states that blind spot.

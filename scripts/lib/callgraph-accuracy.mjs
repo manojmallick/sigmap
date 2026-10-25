@@ -126,15 +126,18 @@ export function compareRepo(graph, ref) {
     bump(c, 'graph');
     if (r) {
       bump(c, `graph:${r.kind}`);
+      bump(c, 'judged');
       continue;
     }
     const kind = ref.nodeKinds.get(e.calleeId) || 'unknown';
     bump(c, `graph:${kind}`);
     const calleeKnown = ref.nodeKinds.has(e.calleeId);
     const callerKnown = ref.callerNodes.has(e.callerId);
+    // An edge whose caller or callee the index cannot name is not wrong, it is unjudged: the
+    // compiler-derived reference is blind to function-local callables (protocol, section 7).
     if (!calleeKnown) blind.calleeUnnamed++;
     else if (!callerKnown) blind.callerUnnamed++;
-    else blind.bothNamed++;
+    else { blind.bothNamed++; bump(c, 'judged'); }
     spurious.push({ edge: `${e.callerId} -> ${e.calleeId}`, calleeKind: kind, reason: !calleeKnown ? 'callee-not-in-index' : !callerKnown ? 'caller-not-in-index' : 'both-in-index' });
   }
 
@@ -270,6 +273,7 @@ export function ratioSpecs() {
     r.push({ id: `precision:${k}`, num: `tp:${k}`, den: `graph:${k}` });
   }
   r.push({ id: 'precision:unknown', num: 'tp:unknown', den: 'graph:unknown' });
+  r.push({ id: 'precision:judged', num: 'tp', den: 'judged' });
   for (const ks of KIND_SITES) r.push({ id: `recall:${ks}`, num: `tp:${ks}`, den: `ref:${ks}` });
   r.push({ id: 'recall:method/no-bare', num: 'tp:method/no-bare', den: 'ref:method/no-bare' });
   return r;
@@ -291,7 +295,7 @@ export function tableOf(clusterMaps, protocol) {
     const precision = precisionId ? cell(precisionId) : null;
     return { label, recall, precision, f1: recall && precision ? f1(precision.value, recall.value) : null };
   };
-  const rows = [row('all edges', 'recall:all', 'precision:all')];
+  const rows = [row('all edges', 'recall:all', 'precision:all'), row('judgeable edges', null, 'precision:judged')];
   for (const k of KINDS) rows.push(row(k, `recall:${k}`, `precision:${k}`));
   rows.push(row('unknown callee', null, 'precision:unknown'));
   const sites = KIND_SITES.map((ks) => row(ks, `recall:${ks}`, null));

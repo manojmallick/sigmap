@@ -55,7 +55,13 @@ function run(cmd, argv, options = {}) {
   return { ok: r.status === 0 && !r.error, status: r.status, signal: r.signal, error: r.error, stdout: r.stdout || '', stderr: r.stderr || '' };
 }
 
-const tail = (text, n = 6) => text.trim().split('\n').slice(-n).join(' | ');
+/** The first lines of an error say what failed; the last say where. Both, trimmed, on one line. */
+export function excerpt(text, head = 3, tail = 2) {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  const keep = lines.length > head + tail ? [...lines.slice(0, head), '...', ...lines.slice(-tail)] : lines;
+  return keep.join(' | ').slice(0, 600);
+}
+const tail = excerpt;
 
 // ── Indexers ─────────────────────────────────────────────────────────────────
 
@@ -110,12 +116,19 @@ function exportTree(clone, commit, tree, work) {
   return null;
 }
 
-function projectFor(group, tree, protocol) {
-  if (group !== 'javascript') {
+/**
+ * Put the project file an indexer needs into the measurement copy (protocol, typescriptProject).
+ * Returns a reason string when the copy cannot be indexed, or null.
+ */
+export function prepareProject(group, tree, protocol) {
+  if (group === 'javascript') {
+    fs.writeFileSync(path.join(tree, 'tsconfig.json'), `${JSON.stringify(protocol.typescriptProject.javascriptConfig)}\n`);
+    return null;
+  }
+  if (group === 'typescript') {
     return fs.existsSync(path.join(tree, 'tsconfig.json')) ? null : 'the repository has no root tsconfig.json';
   }
-  fs.writeFileSync(path.join(tree, 'tsconfig.json'), `${protocol.typescriptProject.javascript}\n`);
-  return null;
+  return null; // python and the wave-2 languages need no project file
 }
 
 function indexTree({ indexer, group, repo, tree, scip, protocol, work, reindex }) {
@@ -150,7 +163,7 @@ function measureRepo(group, repo, ctx) {
   const dir = path.join(work, `${repo.name}-${repo.commit.slice(0, 7)}`);
   const tree = path.join(dir, 'tree');
   let err = exportTree(clone, repo.commit, tree, work);
-  if (!err) err = projectFor(group, tree, protocol);
+  if (!err) err = prepareProject(group, tree, protocol);
   if (err) return unmeasured(err);
 
   const scip = path.join(dir, `${found.key}-${found.spec.version}.scip`);

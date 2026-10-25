@@ -487,6 +487,29 @@ function build(files, { encoding } = {}) {
     assert.strictEqual(table.receiverOnly.n, 2);
   });
 
+  await test('precision over judgeable edges leaves out an edge whose caller or callee the index cannot name, and keeps the registered precision as it was', () => {
+    const graph = graphOf([
+      ['a.py#f', 'a.py#g'],        // right
+      ['a.py#f', 'b.py#h'],        // wrong, both endpoints named by the index: counts against the graph
+      ['a.py#f', 'b.py#local'],    // callee not in the index (a function-local callable): unjudged
+      ['a.py#anon', 'b.py#h'],     // caller not in the index: unjudged
+    ], ['a.py#f', 'a.py#g', 'a.py#anon', 'b.py#h', 'b.py#local']);
+    const ref = refOf([['a.py#f', 'a.py#g', 'function', 'bare']], {
+      nodeKinds: new Map([['a.py#g', 'function'], ['b.py#h', 'function']]),
+      callerNodes: new Set(['a.py#f']),
+    });
+    const r = lib.compareRepo(graph, ref);
+    const table = lib.tableOf([r.clusters], lib.loadProtocol(ROOT));
+    const all = table.rows.find((x) => x.label === 'all edges');
+    const judged = table.rows.find((x) => x.label === 'judgeable edges');
+    assert.strictEqual(all.precision.n, 4);
+    assert.strictEqual(all.precision.value, 1 / 4, 'the registered precision still counts every graph edge in U');
+    assert.strictEqual(judged.precision.n, 2);
+    assert.strictEqual(judged.precision.value, 1 / 2);
+    assert.strictEqual(judged.recall, null, 'a diagnostic row has no recall');
+    assert.deepStrictEqual(r.diagnostics.wrongEdgesByReason, { 'both-in-index': 1, 'callee-not-in-index': 1, 'caller-not-in-index': 1 });
+  });
+
   await test('the file level collapses to undirected pairs and ignores same-file edges', () => {
     const graph = graphOf([['a.py#f', 'b.py#h'], ['a.py#f', 'a.py#g']], ['a.py#f', 'a.py#g', 'b.py#h']);
     const ref = refOf([['b.py#h', 'a.py#f', 'function', 'bare'], ['a.py#f', 'a.py#g', 'function', 'bare']]);
@@ -613,6 +636,31 @@ function build(files, { encoding } = {}) {
 
   // The runner reads SIGMAP_SCIP_INDEXERS; these cases are about the run WITHOUT indexers.
   const noIndexers = { ...process.env, SIGMAP_SCIP_INDEXERS: '' };
+
+  await test('the project file an indexer needs: a valid allowJs config for JavaScript, the repository\'s own for TypeScript, nothing for Python', () => {
+    const protocol = lib.loadProtocol(ROOT);
+    const js = tmp('sigmap-cgacc-prep-');
+    put(path.join(js, 'tsconfig.json'), 'a sentence, not a config');
+    assert.strictEqual(runner.prepareProject('javascript', js, protocol), null);
+    const written = JSON.parse(fs.readFileSync(path.join(js, 'tsconfig.json'), 'utf8'));
+    assert.strictEqual(written.compilerOptions.allowJs, true, 'an existing tsconfig.json is replaced by the registered one');
+    assert.deepStrictEqual(written, protocol.typescriptProject.javascriptConfig);
+    const ts = tmp('sigmap-cgacc-prep-');
+    assert.match(runner.prepareProject('typescript', ts, protocol), /no root tsconfig/);
+    put(path.join(ts, 'tsconfig.json'), '{}');
+    assert.strictEqual(runner.prepareProject('typescript', ts, protocol), null);
+    const py = tmp('sigmap-cgacc-prep-');
+    assert.strictEqual(runner.prepareProject('python', py, protocol), null, 'a Python repository needs no tsconfig.json');
+    assert.ok(!fs.existsSync(path.join(py, 'tsconfig.json')));
+  });
+
+  await test('an indexer failure is reported with its first lines, not only the stack at the end', () => {
+    const text = ['error: no files got indexed', ...Array.from({ length: 20 }, (_, i) => `    at frame ${i}`), 'Node.js v25'].join('\n');
+    const out = runner.excerpt(text);
+    assert.ok(out.startsWith('error: no files got indexed'));
+    assert.ok(out.includes('Node.js v25') && out.includes('...'));
+    assert.ok(out.length < 400);
+  });
 
   await test('the report is saved where the docs and the generator look for it', () => {
     assert.strictEqual(runner.REPORT_REL, 'benchmarks/reports/callgraph-accuracy.json');
