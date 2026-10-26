@@ -3,8 +3,8 @@
 /**
  * What the dependency graphs can and cannot read (#979).
  *
- * The import graph reads eight language families and the method-level call
- * graph seven (`GRAPH_FAMILIES`, `CALL_GRAPH_FAMILIES`). A file in any other
+ * The import graph reads fifteen language families (eight, and seven more since #980)
+ * and the method-level call graph seven (`GRAPH_FAMILIES`, `CALL_GRAPH_FAMILIES`). A file in any other
  * language contributes no edges, so a blast-radius query on it used to answer
  * "no importers found" — the same words as "nothing depends on this" — when
  * the truth is "this language is not tracked". Laravel's `Str.php`, imported by
@@ -94,7 +94,10 @@ function _subject(label) {
  * callers (the MCP tools return markdown) can still match it.
  */
 function importNote(label) {
-  return `graph: ${UNSUPPORTED} — ${_subject(label)} are not tracked (the import graph reads ${graphLanguageList()}). This is not evidence that nothing depends on this file.`;
+  const swift = label === 'Swift'
+    ? ' Swift imports name modules (SwiftPM targets), not files, so no file-level edge is drawn; where a Package.swift declares the target, the files that import this file\'s module are listed below.'
+    : '';
+  return `graph: ${UNSUPPORTED} — ${_subject(label)} are not tracked (the import graph reads ${graphLanguageList()}). This is not evidence that nothing depends on this file.${swift}`;
 }
 
 /**

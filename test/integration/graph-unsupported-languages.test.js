@@ -6,11 +6,16 @@
  *
  * Before the fix `--impact src/Illuminate/Support/Str.php` on Laravel (imported
  * by 164 files) printed "No importers found via relative + aliased imports":
- * the same words as "nothing depends on this". The import graph reads eight
+ * the same words as "nothing depends on this". The import graph then read eight
  * language families, the call graph seven, and every other language
- * contributes no edges. `--impact`, `get_impact`, `--callers`,
+ * contributed no edges. `--impact`, `get_impact`, `--callers`,
  * `get_method_impact` and `plan` now say so, and `doctor` counts the files
  * affected.
+ *
+ * #980 taught the import graph PHP, C#, C/C++, Dart, Vue/Svelte/Astro, Lua and
+ * GDScript, so the import-graph assertions here use Swift, which names modules and
+ * not files and stays unread at file level. The call graph still reads none of
+ * those, so the call-graph assertions keep using PHP.
  *
  * Each acceptance criterion gets a test that fails against the pre-fix code.
  * Run: node test/integration/graph-unsupported-languages.test.js
@@ -50,6 +55,7 @@ function cli(cwd, args) {
 }
 
 const STR = 'src/Illuminate/Support/Str.php';
+const SW = 'Sources/App/Str.swift';
 const NOT_TRACKED = 'graph: unsupported-language';
 
 /** The Laravel shape from the issue: a PHP helper imported by several files. */
@@ -59,6 +65,16 @@ function laravelRepo() {
   for (const rel of ['src/Illuminate/Mail/Mailer.php', 'src/Illuminate/Http/Request.php', 'app/Http/Controllers/PostController.php']) {
     const cls = path.basename(rel, '.php');
     write(root, rel, `<?php\nnamespace App;\n\nuse Illuminate\\Support\\Str;\n\nclass ${cls}\n{\n    public function name() { return Str::slug('x'); }\n}\n`);
+  }
+  return root;
+}
+
+/** The same shape in a language the import graph still cannot read: a Swift helper imported by several files. */
+function swiftRepo() {
+  const root = tmpRepo('swift');
+  write(root, SW, 'import Foundation\n\nenum Str {\n    static func slug(_ title: String) -> String {\n        return title\n    }\n}\n');
+  for (const name of ['Mailer', 'Request', 'PostController']) {
+    write(root, `Sources/App/${name}.swift`, `import Foundation\n\nstruct ${name} {\n    func name() -> String { return Str.slug("x") }\n}\n`);
   }
   return root;
 }
@@ -74,37 +90,45 @@ function jsRepo() {
 
 // ── --impact ───────────────────────────────────────────────────────────────
 
-test('--impact on a PHP file says PHP is not tracked, not "No importers found" (Laravel Str.php)', () => {
-  const root = laravelRepo();
-  const { out, code } = cli(root, ['--impact', STR]);
+test('--impact on a file the import graph cannot read says so, not "No importers found" (a Swift helper)', () => {
+  const root = swiftRepo();
+  const { out, code } = cli(root, ['--impact', SW]);
   assert.strictEqual(code, 0);
   assert.ok(out.includes(NOT_TRACKED), `expected the explicit marker, got:\n${out}`);
-  assert.ok(out.includes('PHP imports are not tracked'), `the message must name PHP:\n${out}`);
+  assert.ok(out.includes('Swift imports are not tracked'), `the message must name Swift:\n${out}`);
   assert.ok(out.includes('not evidence that nothing depends on this file'), out);
   assert.ok(!out.includes('No importers found'), `must not claim "No importers found":\n${out}`);
 });
 
 test('--impact --json carries graph:"unsupported-language" and the language, with no importers', () => {
-  const root = laravelRepo();
-  const j = JSON.parse(cli(root, ['--impact', STR, '--json']).out);
+  const root = swiftRepo();
+  const j = JSON.parse(cli(root, ['--impact', SW, '--json']).out);
   assert.strictEqual(j.graph, 'unsupported-language');
-  assert.strictEqual(j.language, 'PHP');
+  assert.strictEqual(j.language, 'Swift');
   assert.strictEqual(j.totalImpact, 0);
   assert.deepStrictEqual(j.direct, []);
 });
 
 const UNSUPPORTED = [
-  ['.cs', 'C#'], ['.dart', 'Dart'], ['.swift', 'Swift'], ['.lua', 'Lua'], ['.gd', 'GDScript'],
-  ['.cpp', 'C/C++'], ['.c', 'C/C++'], ['.h', 'C/C++'], ['.m', 'Objective-C'],
-  ['.vue', 'Vue'], ['.svelte', 'Svelte'], ['.astro', 'Astro'], ['.php', 'PHP'],
+  ['.swift', 'Swift'], ['.css', 'CSS'], ['.html', 'HTML'], ['.sql', 'SQL'],
+  ['.proto', 'Protocol Buffers'], ['.sh', 'Shell'], ['.yaml', 'YAML'], ['.tf', 'Terraform'],
 ];
-test('every unsupported language from the issue gets the explicit result', () => {
+test('every language the import graph still cannot read gets the explicit result', () => {
   const root = tmpRepo('langs');
   for (const [ext] of UNSUPPORTED) write(root, `src/thing${ext}`, '// x\n');
   for (const [ext, label] of UNSUPPORTED) {
     const j = JSON.parse(cli(root, ['--impact', `src/thing${ext}`, '--json']).out);
     assert.strictEqual(j.graph, 'unsupported-language', `${ext} is not marked`);
     assert.strictEqual(j.language, label, `${ext} should be called ${label}, got ${j.language}`);
+  }
+});
+
+test('the languages #980 added are read, so an empty result for one is NOT marked', () => {
+  const root = tmpRepo('read');
+  for (const ext of ['.php', '.cs', '.dart', '.lua', '.gd', '.cpp', '.c', '.h', '.m', '.vue', '.svelte', '.astro']) write(root, `src/thing${ext}`, '// x\n');
+  for (const ext of ['.php', '.cs', '.dart', '.lua', '.gd', '.cpp', '.c', '.h', '.m', '.vue', '.svelte', '.astro']) {
+    const j = JSON.parse(cli(root, ['--impact', `src/thing${ext}`, '--json']).out);
+    assert.strictEqual('graph' in j, false, `${ext} is read by the import graph and must not be marked`);
   }
 });
 
@@ -137,10 +161,10 @@ test('every readable family stays unmarked when it has no importers', () => {
 
 // ── get_impact (MCP) ───────────────────────────────────────────────────────
 
-test('get_impact answers "not tracked" for a PHP file', () => {
+test('get_impact answers "not tracked" for a file the import graph cannot read', () => {
   const { getImpact } = require('../../src/mcp/handlers');
-  const text = getImpact({ file: STR }, laravelRepo());
-  assert.ok(text.includes(NOT_TRACKED) && text.includes('PHP imports are not tracked'), text);
+  const text = getImpact({ file: SW }, swiftRepo());
+  assert.ok(text.includes(NOT_TRACKED) && text.includes('Swift imports are not tracked'), text);
   assert.ok(!text.includes('No importers found'), text);
 });
 
@@ -229,11 +253,13 @@ test('languages only the import graph reads are named, not printed as raw keys',
 
 /** A flat repo: sources at the root, so the walk starts at "." and meets vendor/ and target/. */
 function flatRepo(opts) {
+  const ext = (opts && opts.ext) || 'php';
+  const body = ext === 'php' ? (n) => `<?php\nclass ${n} {}\n` : (n) => `struct ${n} {}\n`;
   const root = tmpRepo('flat');
   for (let i = 0; i < 12; i++) write(root, `mod${i}.js`, `module.exports = ${i};\n`);
-  write(root, 'helper.php', '<?php\nclass Helper {}\n');
-  for (let i = 0; i < 40; i++) write(root, `vendor/pkg/F${i}.php`, '<?php\nclass F {}\n');
-  if (!opts || opts.target !== false) for (let i = 0; i < 10; i++) write(root, `target/gen/G${i}.php`, '<?php\nclass G {}\n');
+  write(root, `helper.${ext}`, body('Helper'));
+  for (let i = 0; i < 40; i++) write(root, `vendor/pkg/F${i}.${ext}`, body('F'));
+  if (!opts || opts.target !== false) for (let i = 0; i < 10; i++) write(root, `target/gen/G${i}.${ext}`, body('G'));
   return root;
 }
 
@@ -262,14 +288,14 @@ test('a directory is not a file in a language: it is never marked', () => {
 // ── the other blast-radius surfaces ────────────────────────────────────────
 
 test('verify-plan does not report "blast radius in bounds" for a file the graph cannot read', () => {
-  const root = laravelRepo();
+  const root = swiftRepo();
   const plan = path.join(root, 'plan.md');
-  fs.writeFileSync(plan, `Plan: edit \`${STR}\` and keep the rest.\n`);
+  fs.writeFileSync(plan, `Plan: edit \`${SW}\` and keep the rest.\n`);
   const j = JSON.parse(cli(root, ['verify-plan', plan, '--json']).out);
   assert.strictEqual(j.blast[0].graph, 'unsupported-language');
-  assert.strictEqual(j.blast[0].language, 'PHP');
+  assert.strictEqual(j.blast[0].language, 'Swift');
   const text = cli(root, ['verify-plan', plan]).out;
-  assert.ok(text.includes('blast radius not tracked') && text.includes('PHP imports are not tracked'), text);
+  assert.ok(text.includes('blast radius not tracked') && text.includes('Swift imports are not tracked'), text);
   assert.ok(!text.includes('blast radius and scope in bounds'), `must not claim the blast radius is in bounds:\n${text}`);
 });
 
@@ -291,13 +317,13 @@ function gitRepoWithChange(root, rel) {
   fs.appendFileSync(path.join(root, rel), '// edited\n');
 }
 
-test('get_diff_context says "not tracked" for a changed PHP file, not "0 file(s) impacted"', () => {
+test('get_diff_context says "not tracked" for a changed Swift file, not "0 file(s) impacted"', () => {
   const { getDiffContext } = require('../../src/mcp/handlers');
-  const root = laravelRepo();
-  gitRepoWithChange(root, STR);
+  const root = swiftRepo();
+  gitRepoWithChange(root, SW);
   const text = getDiffContext({}, root);
   assert.ok(text.includes('**Blast radius:** not tracked'), text);
-  assert.ok(text.includes('PHP imports are not tracked'), text);
+  assert.ok(text.includes('Swift imports are not tracked'), text);
   assert.ok(!text.includes('0 file(s) impacted'), text);
 });
 
@@ -310,23 +336,23 @@ test('get_diff_context over a readable language is unchanged', () => {
   assert.ok(!text.includes('not tracked'), text);
 });
 
-test('the PR evidence report says "not tracked" for a changed PHP file', () => {
+test('the PR evidence report says "not tracked" for a changed Swift file', () => {
   const { buildPrEvidence, formatPrEvidenceMarkdown } = require('../../src/review/pr-evidence');
-  const root = laravelRepo();
-  const ev = buildPrEvidence([STR], root, {});
+  const root = swiftRepo();
+  const ev = buildPrEvidence([SW], root, {});
   assert.strictEqual(ev.files[0].blast.graph, 'unsupported-language');
   const md = formatPrEvidenceMarkdown(ev);
-  assert.ok(md.includes('**Blast radius:** not tracked') && md.includes('PHP imports are not tracked'), md);
+  assert.ok(md.includes('**Blast radius:** not tracked') && md.includes('Swift imports are not tracked'), md);
   assert.ok(!/Blast radius:\*\* 0 file/.test(md), md);
 });
 
-test('ask --with-source says "not tracked" in its blast radius section for a PHP file', () => {
+test('ask --with-source says "not tracked" in its blast radius section for a Swift file', () => {
   const { buildSourceSection } = require('../../src/retrieval/with-source');
-  const root = laravelRepo();
-  const ranked = [{ file: STR, sigs: ['class Str  :4-9', "static function slug($title, $separator = '-')  :6-8"] }];
+  const root = swiftRepo();
+  const ranked = [{ file: SW, sigs: ['enum Str  :3-7', 'static func slug(_ title: String) -> String  :4-6'] }];
   const section = buildSourceSection(ranked, root, { budgetTokens: 4000 });
   assert.ok(/## Blast radius/.test(section.text), section.text);
-  assert.ok(section.text.includes(`${STR}  ← not tracked: PHP imports are not tracked`), section.text);
+  assert.ok(section.text.includes(`${SW}  ← not tracked: Swift imports are not tracked`), section.text);
   assert.ok(!/0 direct, 0 total/.test(section.text), section.text);
 });
 
@@ -334,15 +360,15 @@ test('ask --with-source says "not tracked" in its blast radius section for a PHP
 
 test('plan lists the entry files whose blast radius is not tracked', () => {
   const root = tmpRepo('plan');
-  write(root, 'src/Billing/InvoiceMailer.php', '<?php\nclass InvoiceMailer\n{\n    public function sendInvoiceReminder($invoice) { return $invoice; }\n}\n');
-  write(root, 'src/Billing/Ledger.php', '<?php\nclass Ledger\n{\n    public function record($entry) { return $entry; }\n}\n');
+  write(root, 'src/Billing/InvoiceMailer.swift', 'struct InvoiceMailer {\n    func sendInvoiceReminder(_ invoice: String) -> String { return invoice }\n}\n');
+  write(root, 'src/Billing/Ledger.swift', 'struct Ledger {\n    func record(_ entry: String) -> String { return entry }\n}\n');
   cli(root, []);
   const j = JSON.parse(cli(root, ['plan', 'change how the invoice mailer sends invoice reminders', '--json']).out);
   assert.ok(j.impactRadius && Array.isArray(j.impactRadius.untracked) && j.impactRadius.untracked.length > 0,
     `impactRadius.untracked missing: ${JSON.stringify(j.impactRadius)}`);
-  assert.strictEqual(j.impactRadius.untracked[0].language, 'PHP');
+  assert.strictEqual(j.impactRadius.untracked[0].language, 'Swift');
   const text = cli(root, ['plan', 'change how the invoice mailer sends invoice reminders']).out;
-  assert.ok(text.includes('Impact radius not tracked') && text.includes('PHP imports are not tracked'), text);
+  assert.ok(text.includes('Impact radius not tracked') && text.includes('Swift imports are not tracked'), text);
 });
 
 test('plan over a readable language is unchanged: no untracked key', () => {
@@ -361,31 +387,31 @@ function graphCheck(root) {
 }
 
 test('doctor counts the files the import graph cannot read, by language', () => {
-  const root = laravelRepo();
+  const root = swiftRepo();
   const c = graphCheck(root);
   assert.ok(c, 'doctor has no import-graph check');
   assert.strictEqual(c.status, 'warn');
-  assert.ok(/PHP 4\b/.test(c.detail), `expected the PHP count, got: ${c.detail}`);
+  assert.ok(/Swift 4\b/.test(c.detail), `expected the Swift count, got: ${c.detail}`);
   assert.ok(c.detail.includes('"not tracked"'), c.detail);
 });
 
 test('doctor is quiet about a few stray files and about a repo the graph reads fully', () => {
   const root = jsRepo();
   for (let i = 0; i < 12; i++) write(root, `src/more${i}.js`, `module.exports = ${i};\n`);
-  write(root, 'src/odd.lua', 'return 1\n');
+  write(root, 'src/odd.swift', 'let x = 1\n');
   const stray = graphCheck(root);
-  assert.strictEqual(stray.status, 'ok', `1 Lua file in 16 must not warn: ${stray.detail}`);
-  assert.ok(stray.detail.includes('Lua 1'), stray.detail);
+  assert.strictEqual(stray.status, 'ok', `1 Swift file in 16 must not warn: ${stray.detail}`);
+  assert.ok(stray.detail.includes('Swift 1'), stray.detail);
   const clean = graphCheck(jsRepo());
   assert.strictEqual(clean.status, 'ok');
   assert.ok(!clean.detail.includes('does not read'), clean.detail);
 });
 
 test('doctor counts the tree the graph walks: vendor/ and target/ are excluded', () => {
-  const root = flatRepo();
+  const root = flatRepo({ ext: 'swift' });
   const c = graphCheck(root);
-  assert.strictEqual(c.status, 'ok', `1 PHP file in 13 must not warn when vendor/ and target/ are not walked: ${c.detail}`);
-  assert.ok(/PHP 1\b/.test(c.detail), c.detail);
+  assert.strictEqual(c.status, 'ok', `1 Swift file in 13 must not warn when vendor/ and target/ are not walked: ${c.detail}`);
+  assert.ok(/Swift 1\b/.test(c.detail), c.detail);
 });
 
 test('doctor leaves markup, config and query files out of the gap', () => {
@@ -412,9 +438,12 @@ test('every extractor language is classified: readable, a counted gap, or delibe
   const { NOT_EXPECTED, LABELS } = require('../../src/graph/language-support');
   const readable = new Set([...GRAPH_EXTS].map((e) => EXT_MAP[e]).filter(Boolean));
   const gap = LANGUAGES.filter((k) => !readable.has(k) && !NOT_EXPECTED.has(k));
-  // The languages the issue names must be counted as gaps, and nothing the graph reads may be.
-  for (const k of ['php', 'csharp', 'cpp', 'objc', 'swift', 'dart', 'lua', 'gdscript', 'vue_sfc', 'svelte', 'astro']) {
-    assert.ok(gap.includes(k), `${k} should be a counted gap`);
+  // Swift is the one language of the issue the file-level graph still does not read; the rest
+  // (added in #980) are read, so none of them may be a counted gap.
+  assert.ok(gap.includes('swift'), 'swift should be a counted gap');
+  for (const k of ['php', 'csharp', 'cpp', 'objc', 'dart', 'lua', 'gdscript', 'vue_sfc', 'svelte', 'astro']) {
+    assert.ok(readable.has(k), `${k} is read by the import graph since #980`);
+    assert.ok(!gap.includes(k), `${k} must not be a counted gap`);
   }
   for (const k of gap) assert.ok(LABELS[k], `gap language ${k} needs a display name`);
   // A call-graph report also names the languages only the import graph reads.

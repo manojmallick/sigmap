@@ -1,0 +1,292 @@
+{
+  "_comment": "Pre-registration for scripts/run-import-accuracy.mjs (#980). Committed BEFORE the harness was run on any repository listed under `groups.*.repos.eval`; the prose is benchmarks/IMPORT_RESOLVER_PROTOCOL.md. The harness reads this file, records its sha256 in the report and refuses --save when it differs from the committed copy. A change after the first registered run is a deviation: add it to the Deviation log in the prose with its date and reason. Never edit a value here to make a result look better.",
+  "schema": 1,
+  "issue": 980,
+  "registeredAt": "2026-10-26",
+  "system": {
+    "under_test": "buildFromCwd(tree) from src/graph/builder.js with every family, zero config, on a copy of the pinned commit",
+    "reference": "per group, the language's own tooling (see `groups.*.reference`); never the resolver itself"
+  },
+  "edge": "importing file -> imported file, both repository files, directed; for Swift (module level) importing file -> module:<local SwiftPM target>",
+  "universe": "the importing files the graph walked AND the reference could analyse; an edge counts only when its importing file is in it",
+  "metrics": {
+    "precision": "|graph edges that are also reference edges| / |graph edges|",
+    "recall": "|reference edges that are also graph edges| / |reference edges|",
+    "f1": "harmonic mean of the two",
+    "pooling": "micro-average over the evaluation repositories of a group"
+  },
+  "minSample": 100,
+  "bootstrap": {
+    "resamples": 2000,
+    "seed": 980,
+    "cluster": "importing file",
+    "interval": 0.95
+  },
+  "tools": {
+    "npm": {
+      "typescript": "6.0.3",
+      "@vue/compiler-sfc": "3.5.44",
+      "svelte": "5.57.2",
+      "@astrojs/compiler": "4.0.0"
+    },
+    "php": {
+      "version": "8.4.23",
+      "archives": {
+        "darwin-arm64": {
+          "url": "https://dl.static-php.dev/static-php-cli/common/php-8.4.23-cli-macos-aarch64.tar.gz",
+          "sha256": "bba286e442796dbd420d778a016e2817b31d5036d11b3ba316d19a60de912cdc"
+        }
+      },
+      "composer": {
+        "version": "2.10.3",
+        "url": "https://getcomposer.org/download/2.10.3/composer.phar",
+        "sha256": "7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6"
+      }
+    }
+  },
+  "groups": {
+    "c": {
+      "title": "C / C++ / Objective-C",
+      "reference": {
+        "what": "the direct includes the compiler reports: clang -E -H -fshow-skipped-includes, the lines of nesting depth one; a header the repository lacks is an error the preprocessor carries on past, so it is not an edge and the includes after it are still listed",
+        "compiler": "clang",
+        "targets": [
+          {
+            "name": "host",
+            "args": []
+          },
+          {
+            "name": "linux",
+            "args": [
+              "--target=x86_64-unknown-linux-gnu",
+              "-nostdinc"
+            ]
+          },
+          {
+            "name": "windows",
+            "args": [
+              "--target=x86_64-pc-windows-msvc",
+              "-nostdinc"
+            ]
+          }
+        ],
+        "includeDirs": [
+          "<tree>",
+          "<tree>/include",
+          "<tree>/src"
+        ],
+        "languageOfPlainH": "C++ when the repository has any C++ source file, else C"
+      },
+      "repos": {
+        "eval": [
+          {
+            "name": "libuv",
+            "commit": "20b08342bcdcc27497aeb87d826b97475c12aca6",
+            "url": "https://github.com/libuv/libuv.git"
+          },
+          {
+            "name": "abseil-cpp",
+            "commit": "ea64b6e7e63ffd917b20609eca768e8e6eacceda",
+            "url": "https://github.com/abseil/abseil-cpp.git"
+          }
+        ],
+        "dev": [
+          "spdlog (benchmarks/repos), a small C project written for the fixtures"
+        ]
+      }
+    },
+    "sfc": {
+      "title": "Vue / Svelte / Astro",
+      "reference": {
+        "what": "the script found by the framework's own parser (@vue/compiler-sfc, svelte/compiler, @astrojs/compiler), its specifiers listed by ts.preProcessFile and resolved by ts.resolveModuleName with the repository's own tsconfig and the bundler resolution rules; a host shim lets TypeScript resolve ./X.vue as a module"
+      },
+      "repos": {
+        "eval": [
+          {
+            "name": "vue-core",
+            "commit": "7df0edd46c1636751750588d8db2fafd2ef68443",
+            "url": "https://github.com/vuejs/core.git"
+          },
+          {
+            "name": "svelte",
+            "commit": "4a50e8ea3b7db1d8cd752b825032e4ce2878524b",
+            "url": "https://github.com/sveltejs/svelte.git"
+          },
+          {
+            "name": "astro",
+            "commit": "4c1470a7f907fe678ef5e7dceaa972ca83d297da",
+            "sparse": true,
+            "url": "https://github.com/withastro/astro.git"
+          }
+        ],
+        "dev": [
+          "vitepress (benchmarks/repos)"
+        ]
+      }
+    },
+    "php": {
+      "title": "PHP",
+      "reference": {
+        "what": "PHP's own tokenizer for the top-level use statements, and Composer's own autoloader (composer dump-autoload --classmap-authoritative in a scratch copy, then ClassLoader::findFile) for the file that defines each class; dependencies are not installed. A require/include of a literal path is not read by the reference, so the graph's edges of that kind count as ones the reference lacks and precision is a lower bound"
+      },
+      "repos": {
+        "eval": [
+          {
+            "name": "laravel",
+            "commit": "635129b24d0d6c5664e4b77f41b1297a2f74c91a",
+            "url": "https://github.com/laravel/framework.git"
+          },
+          {
+            "name": "composer",
+            "commit": "28145ca91e78bcc5f6a98517f26fd8a47e754ecb",
+            "url": "https://github.com/composer/composer.git"
+          }
+        ],
+        "dev": [
+          "guzzle (benchmarks/repos)"
+        ]
+      }
+    },
+    "swift": {
+      "title": "Swift (module level)",
+      "reference": {
+        "what": "swiftc -emit-imported-modules for the modules a file imports, and swift package describe for the targets and the files each owns; an edge is a file importing a local target other than its own",
+        "compiler": "swiftc",
+        "swift": "swift"
+      },
+      "repos": {
+        "eval": [
+          {
+            "name": "alamofire",
+            "commit": "903c53c710d1cbbac0b4b9c2527aefb791e1fee3",
+            "url": "https://github.com/Alamofire/Alamofire.git"
+          },
+          {
+            "name": "vapor",
+            "commit": "cfd8f434843ac7850e2d97f46c1aa5ddb906cf1c",
+            "url": "https://github.com/vapor/vapor.git"
+          }
+        ],
+        "dev": [
+          "fixtures written for the tests"
+        ]
+      }
+    },
+    "csharp": {
+      "title": "C#",
+      "reference": null,
+      "unmeasured": "no compiler-grade reference was run: Roslyn or scip-dotnet needs the .NET SDK and a restore and build of the repository, which is not installed here",
+      "repos": {
+        "eval": [],
+        "dev": [
+          "newtonsoft-json"
+        ]
+      }
+    },
+    "dart": {
+      "title": "Dart",
+      "reference": null,
+      "unmeasured": "no compiler-grade reference was run: scip_dart needs the Dart SDK and, for riverpod, a Flutter SDK to resolve the workspace",
+      "repos": {
+        "eval": [],
+        "dev": [
+          "dio"
+        ]
+      }
+    },
+    "lua": {
+      "title": "Lua",
+      "reference": null,
+      "unmeasured": "no reference exists to run: Lua resolves a module by searching package.path, and the roots a project sets are not declared in the repository, so the resolver's roots are the only roots there are",
+      "repos": {
+        "eval": [],
+        "dev": [
+          "plenary"
+        ]
+      }
+    },
+    "gdscript": {
+      "title": "GDScript",
+      "reference": null,
+      "unmeasured": "no reference exists to run: the engine is the only resolver and it is not installed",
+      "repos": {
+        "eval": [],
+        "dev": [
+          "godot-demo-projects"
+        ]
+      }
+    }
+  },
+  "unmeasured": {
+    "csharp": "no compiler-grade reference was run",
+    "dart": "no compiler-grade reference was run",
+    "lua": "no reference exists to run",
+    "gdscript": "no reference exists to run"
+  },
+  "predictions": [
+    {
+      "id": "P1",
+      "group": "c",
+      "metric": "recall",
+      "op": ">=",
+      "value": 0.9,
+      "claim": "C/C++ recall is at least 90%: the resolver searches the way the compiler does, and the compiler's include dirs are the ones registered"
+    },
+    {
+      "id": "P2",
+      "group": "c",
+      "metric": "precision",
+      "op": ">=",
+      "value": 0.8,
+      "claim": "C/C++ precision is at least 80%: a platform branch the three configurations do not enable is an include the graph counts and the reference does not"
+    },
+    {
+      "id": "P3",
+      "group": "sfc",
+      "metric": "precision",
+      "op": ">=",
+      "value": 0.95,
+      "claim": "component precision is at least 95%: a specifier either resolves to a file TypeScript also resolves it to, or not at all"
+    },
+    {
+      "id": "P4",
+      "group": "sfc",
+      "metric": "recall",
+      "op": ">=",
+      "value": 0.9,
+      "claim": "component recall is at least 90%; the misses are the bundler aliases and .js-to-.ts mappings the JS resolver does not read"
+    },
+    {
+      "id": "P5",
+      "group": "php",
+      "metric": "precision",
+      "op": ">=",
+      "value": 0.95,
+      "claim": "PHP precision is at least 95%"
+    },
+    {
+      "id": "P6",
+      "group": "php",
+      "metric": "recall",
+      "op": ">=",
+      "value": 0.85,
+      "claim": "PHP recall is at least 85%"
+    },
+    {
+      "id": "P7",
+      "group": "swift",
+      "metric": "precision",
+      "op": ">=",
+      "value": 0.99,
+      "claim": "Swift module-level precision is at least 99%"
+    },
+    {
+      "id": "P8",
+      "group": "swift",
+      "metric": "recall",
+      "op": ">=",
+      "value": 0.99,
+      "claim": "Swift module-level recall is at least 99%"
+    }
+  ]
+}
