@@ -34,6 +34,8 @@ export function reference({ tree, files, protocol }) {
   let pkg;
   try { pkg = JSON.parse(d.stdout); } catch (e) { return { edges: [], covered: new Set(), notes: { unmeasured: 'swift package describe did not print JSON' } }; }
   const local = new Set(pkg.targets.map((t) => t.name));
+  // a target whose sources hold no Swift file (a C or C++ target) has no file the product could be asked about
+  const hasSwift = new Set(pkg.targets.filter((t) => (t.sources || []).some((s) => s.endsWith('.swift'))).map((t) => t.name));
   const ownerOf = new Map();
   for (const t of pkg.targets) for (const s of t.sources || []) ownerOf.set(path.normalize(path.join(t.path, s)), t.name);
 
@@ -49,7 +51,7 @@ export function reference({ tree, files, protocol }) {
     covered.add(rel);
     const own = ownerOf.get(path.normalize(rel));
     for (const m of new Set(r.stdout.split('\n').map((x) => x.trim()).filter(Boolean))) {
-      if (local.has(m) && m !== own) edges.push([rel, `module:${m}`]);
+      if (local.has(m) && m !== own) edges.push([rel, `module:${m}`, hasSwift.has(m) ? 'a module of Swift files' : 'a module with no Swift file (a C-language target)']);
     }
   }
   return { edges, covered, notes: { targets: pkg.targets.length, filesOwned: ownerOf.size, failed: failed.length, failedSample: failed.slice(0, 5).map(([f, why]) => `${f}: ${why.trim().slice(0, 100)}`) } };

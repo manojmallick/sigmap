@@ -310,20 +310,25 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
       const tree = tmp('sigmap-impacc-swift-');
       put(path.join(tree, 'Package.swift'), ['// swift-tools-version:5.9', 'import PackageDescription', 'let package = Package(name: "Pkg", targets: [',
         '    .target(name: "Core"),', '    .executableTarget(name: "App", dependencies: ["Core"]),', '    .target(name: "Net", path: "Libs/Net"),',
-        '    .testTarget(name: "CoreTests", dependencies: ["Core"]),', '])'].join('\n'));
+        '    .testTarget(name: "CoreTests", dependencies: ["Core"]),', '    .target(name: "CLib"),', '])'].join('\n'));
       const files = {
         'Sources/Core/Core.swift': 'public struct Core {}\n', 'Sources/Core/Inner.swift': 'import Foundation\nimport Core\nstruct Inner { let c = Core() }\n',
         'Sources/App/main.swift': 'import Foundation\nimport Core\nprint(Core())\n', 'Libs/Net/Net.swift': '@testable import Core\n',
         'Tests/CoreTests/CoreTests.swift': '@testable import Core\nimport XCTest\n', 'Sources/App/Other.swift': 'import struct Core.Core\n',
-        'Sources/App/NotCore.swift': 'import CoreFoundation\n',
+        'Sources/App/NotCore.swift': 'import CoreFoundation\n', 'Sources/App/UsesC.swift': 'import CLib\n',
+        'Sources/CLib/clib.c': 'int clib(void) { return 1; }\n', 'Sources/CLib/include/clib.h': 'int clib(void);\n',
       };
       for (const [rel, text] of Object.entries(files)) put(path.join(tree, rel), text);
-      const list = ['Package.swift', ...Object.keys(files)];
+      const list = ['Package.swift', ...Object.keys(files).filter((f) => f.endsWith('.swift'))];
       const ref = swift.reference({ tree, files: list, protocol });
       assert.ok(!(ref.notes && ref.notes.unmeasured), JSON.stringify(ref.notes));
-      assert.deepStrictEqual(ref.edges.map(([a, b]) => `${a} > ${b}`).sort(),
-        ['Libs/Net/Net.swift > module:Core', 'Sources/App/Other.swift > module:Core', 'Sources/App/main.swift > module:Core', 'Tests/CoreTests/CoreTests.swift > module:Core'],
-        'Inner.swift imports its own target and CoreFoundation is not a target');
+      assert.deepStrictEqual(ref.edges.map(([a, b, kind]) => `${a} > ${b} | ${kind}`).sort(), [
+        'Libs/Net/Net.swift > module:Core | a module of Swift files',
+        'Sources/App/Other.swift > module:Core | a module of Swift files',
+        'Sources/App/UsesC.swift > module:CLib | a module with no Swift file (a C-language target)',
+        'Sources/App/main.swift > module:Core | a module of Swift files',
+        'Tests/CoreTests/CoreTests.swift > module:Core | a module of Swift files',
+      ], 'Inner.swift imports its own target and CoreFoundation is not a target');
       assert.strictEqual(ref.covered.size, list.length, 'every file was read: main.swift is the entry point, so top-level code is not an error');
       assert.strictEqual(ref.notes.failed, 0);
     });
