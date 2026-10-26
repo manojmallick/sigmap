@@ -162,7 +162,7 @@ If you are new to the product, start with the workflow pages first:
 | `--init` | Scaffold `gen-context.config.json` (starting on the lean `core` MCP tool profile) and `.contextignore`; inject a "Creation workflow" block into `CLAUDE.md` |
 | `--benchmark` (alias `--eval`) | Run retrieval evaluation tasks |
 | `--impact <file>` | Trace every file that transitively imports the given file |
-| `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched |
+| `--callers <symbol>` | Method-level blast radius — every function that transitively calls `<symbol>`; reported as a **lower bound** naming the scope searched. Measured against compiler-derived edges: plain `f()` calls are found 99% in Go, 56% in Python; calls through a receiver (`x.m()`) are not found outside Java — see [call-graph accuracy](/guide/callgraph-accuracy) |
 | `--callees <symbol>` | Every repo function that `<symbol>` transitively calls |
 | `--suggest-tool <task>` | Classify a task into fast / balanced / powerful model tier, naming models from the dated profile (or your roster) |
 | `--version` | Print version and exit |

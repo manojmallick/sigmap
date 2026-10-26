@@ -9,16 +9,16 @@
     "committed": true
   },
   "sigmap": {
-    "commit": "370ba3252ac90bc7a8baaae7e9560faf05ea32f2",
+    "commit": "5ec27b7cc70dbf6c5ad54a9d7c705f381eb1a41a",
     "dirty": false
   },
   "environment": {
     "node": "v25.6.0",
     "platform": "darwin-arm64",
     "loadAverage": [
-      4.9,
-      4.72,
-      4.33
+      3.59,
+      4.26,
+      4.23
     ],
     "go": {
       "go": "1.27.3",
@@ -1625,8 +1625,7 @@
               "reason": "caller-not-in-index"
             }
           ]
-        },
-        "seconds": 8
+        }
       },
       "excalidraw": {
         "status": "measured",
@@ -1956,8 +1955,7 @@
               "reason": "callee-not-in-index"
             }
           ]
-        },
-        "seconds": 11
+        }
       }
     },
     "javascript": {
@@ -2140,8 +2138,7 @@
               "reason": "callee-not-in-index"
             }
           ]
-        },
-        "seconds": 1
+        }
       },
       "fastify": {
         "status": "measured",
@@ -2364,8 +2361,7 @@
               "reason": "caller-not-in-index"
             }
           ]
-        },
-        "seconds": 5
+        }
       }
     },
     "python": {
@@ -2699,8 +2695,7 @@
               "reason": "callee-declared-inside-caller"
             }
           ]
-        },
-        "seconds": 14
+        }
       },
       "fastapi": {
         "status": "measured",
@@ -3029,8 +3024,7 @@
               "reason": "callee-declared-inside-caller"
             }
           ]
-        },
-        "seconds": 23
+        }
       },
       "django": {
         "status": "measured",
@@ -3363,8 +3357,7 @@
               "reason": "both-in-index"
             }
           ]
-        },
-        "seconds": 95
+        }
       }
     },
     "go": {
@@ -3603,8 +3596,7 @@
               "reason": "both-in-index"
             }
           ]
-        },
-        "seconds": 15
+        }
       },
       "gorm": {
         "status": "measured",
@@ -3834,15 +3826,14 @@
               "reason": "callee-declared-inside-caller"
             }
           ]
-        },
-        "seconds": 23
+        }
       }
     },
     "java": {
       "gson": {
         "status": "unmeasured",
         "commit": "c9f3fd55854a743b66f857ace3c7b268ea3e2ef7",
-        "reason": "the indexer exited 1: \u001b[90m$ mvn -Dmaven.compiler.useIncrementalCompilation=false -Dmaven.compiler.compilerId=javac -Dmaven.compiler.executable=/var/folders/89/3cgr5bn11jd8tj80lz7v7kdm0000gn/T/scip-java16240975920111213560/bin/javac -Dmaven.compiler.fork=true --batch-mode clean verify -DskipTests\u001b[39m | [INFO] Scanning for projects... | [INFO] Downloading from central: https://repo.maven.apache.org/maven2/org/sonatype/central/central-publishing-maven-plugin/0.10.0/central-publishing-maven-plugin-0.10.0.pom | ... | [ERROR] After correcting the problems, you can resume the build with the command | [ERROR]   mvn <args"
+        "reason": "the indexer exited 1: [ERROR] COMPILATION ERROR : | [ERROR] error: invalid flag:                 -XepExcludedPaths:.*/generated-test-sources/protobuf/.* | [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project gson: Compilation failure"
       },
       "spring-petclinic": {
         "status": "measured",
@@ -4050,13 +4041,12 @@
               "reason": "callee-not-in-index"
             }
           ]
-        },
-        "seconds": 46
+        }
       }
     }
   },
   "unmeasured": {
-    "java/gson": "the indexer exited 1: \u001b[90m$ mvn -Dmaven.compiler.useIncrementalCompilation=false -Dmaven.compiler.compilerId=javac -Dmaven.compiler.executable=/var/folders/89/3cgr5bn11jd8tj80lz7v7kdm0000gn/T/scip-java16240975920111213560/bin/javac -Dmaven.compiler.fork=true --batch-mode clean verify -DskipTests\u001b[39m | [INFO] Scanning for projects... | [INFO] Downloading from central: https://repo.maven.apache.org/maven2/org/sonatype/central/central-publishing-maven-plugin/0.10.0/central-publishing-maven-plugin-0.10.0.pom | ... | [ERROR] After correcting the problems, you can resume the build with the command | [ERROR]   mvn <args"
+    "java/gson": "the indexer exited 1: [ERROR] COMPILATION ERROR : | [ERROR] error: invalid flag:                 -XepExcludedPaths:.*/generated-test-sources/protobuf/.* | [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project gson: Compilation failure"
   },
   "predictions": {
     "P1": {
@@ -4180,5 +4170,5 @@
     }
   },
   "version": "8.82.0",
-  "generated": "2026-10-26T00:14:29.954Z"
+  "generated": "2026-10-26T00:17:55.886Z"
 }

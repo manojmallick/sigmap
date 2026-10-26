@@ -3,6 +3,7 @@
  * Call-graph accuracy: how often do the edges of SigMap's method-level call graph agree with
  * the edges a compiler resolves? (#976)
  *
+ *   node scripts/run-callgraph-accuracy.mjs --write-doc                # re-render the tables of docs-vp/guide/callgraph-accuracy.md from the saved report
  *   node scripts/run-callgraph-accuracy.mjs --setup-indexers <dir>     # install the pinned wave-1 indexers into <dir>
  *   node scripts/run-callgraph-accuracy.mjs --setup-indexers <dir> --with go,java   # and the Go / Java toolchains and indexers
  *   node scripts/run-callgraph-accuracy.mjs --indexers <dir>           # score every registered repository
@@ -38,6 +39,7 @@ import {
   formatGroup, sumCounts, sumTwoLevel, summaryOf,
 } from './lib/callgraph-accuracy.mjs';
 import { stamp } from './lib/report-stamp.mjs';
+import { renderBlock, inject } from './lib/callgraph-accuracy-doc.mjs';
 import { setupGo, setupJava, writeWave2, readWave2, wave2Tools, indexerCommand, mavenVersion } from './lib/scip-toolchains.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -303,8 +305,22 @@ function toolchainsUsed(home, results) {
   return out;
 }
 
+const PAGE_REL = 'docs-vp/guide/callgraph-accuracy.md';
+
+/** Put the tables of the saved report into the guide page, between its markers. */
+function writeDoc() {
+  const report = JSON.parse(fs.readFileSync(path.join(ROOT, REPORT_REL), 'utf8'));
+  const file = path.join(ROOT, PAGE_REL);
+  const next = inject(fs.readFileSync(file, 'utf8'), renderBlock(report));
+  if (next === null) { console.error(`[callgraph-accuracy] ${PAGE_REL} has no generated-block markers`); return 1; }
+  fs.writeFileSync(file, next);
+  console.log(`[callgraph-accuracy] wrote the tables of ${REPORT_REL} (${report.generated}) into ${PAGE_REL}`);
+  return 0;
+}
+
 async function main() {
   const protocol = loadProtocol(ROOT);
+  if (flag('--write-doc')) { process.exitCode = writeDoc(); return; }
   if (opt('--setup-indexers')) {
     const withList = opt('--with') ? opt('--with').split(',') : [];
     process.exitCode = await setupIndexers(path.resolve(opt('--setup-indexers')), protocol, withList);

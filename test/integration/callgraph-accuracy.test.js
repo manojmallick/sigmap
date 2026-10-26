@@ -129,6 +129,7 @@ function build(files, { encoding, typed } = {}) {
   const lib = await import('../../scripts/lib/callgraph-accuracy.mjs');
   const runner = await import('../../scripts/run-callgraph-accuracy.mjs');
   const tc = await import('../../scripts/lib/scip-toolchains.mjs');
+  const doc = await import('../../scripts/lib/callgraph-accuracy-doc.mjs');
 
   const derive = (spec, opts) => {
     const { buf, read } = build(spec, opts);
@@ -826,6 +827,123 @@ function build(files, { encoding, typed } = {}) {
     assert.match(protocol.indexers.java.toolchain.coursier, /^\d+\.\d+\.\d+$/);
     assert.match(protocol.indexers.java.toolchain.coursierSha256['darwin-arm64'], /^[0-9a-f]{64}$/);
     assert.strictEqual(protocol.indexers.java.toolchain.buildTool, 'maven');
+  });
+
+  // ── the saved report and the page that quotes it ───────────────────────────
+
+  const REPORT = path.join(ROOT, 'benchmarks/reports/callgraph-accuracy.json');
+  const PAGE = path.join(ROOT, 'docs-vp/guide/callgraph-accuracy.md');
+  const report = JSON.parse(fs.readFileSync(REPORT, 'utf8'));
+  const page = fs.readFileSync(PAGE, 'utf8');
+  const n0 = (n) => n.toLocaleString('en-US');
+
+  await test('the saved report came from the committed protocol, a clean tree, and covers every registered repository', () => {
+    const protocol = lib.loadProtocol(ROOT);
+    assert.strictEqual(report.benchmark, 'callgraph-accuracy');
+    assert.strictEqual(report.protocol.committed, true, 'the report was made from an edited protocol');
+    assert.match(report.protocol.commit, /^[0-9a-f]{40}$/);
+    assert.strictEqual(report.sigmap.dirty, false, 'the report was made from a dirty tree');
+    assert.match(report.sigmap.commit, /^[0-9a-f]{40}$/);
+    const listed = Object.entries(protocol.repos).flatMap(([g, rs]) => rs.map((r) => `${g}/${r.name}`)).sort();
+    const reported = Object.entries(report.repos).flatMap(([g, byRepo]) => Object.keys(byRepo).map((n) => `${g}/${n}`)).sort();
+    assert.deepStrictEqual(reported, listed, 'a registered repository is missing from the report, or one was added');
+    for (const [g, byRepo] of Object.entries(report.repos)) {
+      for (const [name, r] of Object.entries(byRepo)) {
+        const pinned = protocol.repos[g].find((x) => x.name === name).commit;
+        assert.strictEqual(r.commit, pinned, `${g}/${name} was measured at another commit than the protocol pins`);
+        assert.ok(r.status === 'measured' || (r.reason && r.reason.length > 20), `${g}/${name} is unmeasured without a reason`);
+      }
+    }
+    assert.deepStrictEqual(Object.keys(report.unmeasured).sort(), Object.entries(report.repos).flatMap(([g, byRepo]) => Object.entries(byRepo).filter(([, r]) => r.status !== 'measured').map(([n]) => `${g}/${n}`)).sort());
+  });
+
+  await test('the tables on the page are the tables the saved report renders to', () => {
+    assert.strictEqual(doc.extract(page), doc.renderBlock(report), 'run: node scripts/run-callgraph-accuracy.mjs --write-doc');
+  });
+
+  await test('every figure the page\'s prose gives for the headline findings is one the report yields', () => {
+    const g = report.groups;
+    const row = (k, label) => g[k].table.rows.find((r) => r.label === label);
+    const site = (k, label) => g[k].table.sites.find((r) => r.label === label);
+    const p1 = (v) => `${(100 * v).toFixed(1)}%`;
+    const total = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+    const has = (text) => assert.ok(page.includes(text), `the page does not say "${text}"`);
+    // receiver-only method edges
+    has(`${p1(g.typescript.table.receiverOnly.value)} of ${n0(g.typescript.table.receiverOnly.n)} reference edges in TypeScript`);
+    has(`${p1(g.python.table.receiverOnly.value)} of ${n0(g.python.table.receiverOnly.n)} in Python`);
+    has(`${p1(g.go.table.receiverOnly.value)} of ${n0(g.go.table.receiverOnly.n)} in Go`);
+    has(`${p1(g.java.table.receiverOnly.value)} of ${n0(g.java.table.receiverOnly.n)}`);
+    assert.strictEqual(g.javascript.table.receiverOnly.n, 2);
+    // plain calls
+    has(`Go: ${p1(site('go', 'function/bare').recall.value)} of ${n0(site('go', 'function/bare').recall.n)}`);
+    has(`JavaScript: ${p1(site('javascript', 'function/bare').recall.value)} of ${n0(site('javascript', 'function/bare').recall.n)}`);
+    has(`${p1(site('python', 'function/bare').recall.value)} of ${n0(site('python', 'function/bare').recall.n)}`);
+    has(`${p1(site('typescript', 'function/bare').recall.value)} of ${n0(site('typescript', 'function/bare').recall.n)}`);
+    const pyMiss = g.python.diagnostics.missedByReason['function/bare'];
+    has(`${n0(pyMiss['call-not-linked-cross-file'])} of its ${n0(total(pyMiss))} misses`);
+    const tsMiss = g.typescript.diagnostics.missedByReason['function/bare'];
+    has(`${n0(tsMiss['caller-not-a-graph-node'] + tsMiss['callee-not-a-graph-node'])} of its ${total(tsMiss)} misses`);
+    has(`only ${tsMiss['every-call-site-masked-by-graph']} of those ${total(tsMiss)}`);
+    // constructors
+    has(`${n0(row('typescript', 'constructor').recall.n)} edges) and Python (${n0(row('python', 'constructor').recall.n)})`);
+    assert.ok(row('go', 'constructor').recall.small && row('java', 'constructor').recall.small, 'the page calls the Go and Java constructor cells too few');
+    has(`Go has ${row('go', 'constructor').recall.n} such edges and Java ${row('java', 'constructor').recall.n}`);
+    // precision
+    has(`${p1(row('go', 'all edges').precision.value)} in Go and ${p1(row('java', 'all edges').precision.value)} in Java`);
+    has(`it is ${p1(row('python', 'all edges').precision.value)}`);
+    const pyWrong = g.python.diagnostics.wrongEdgesByReason;
+    has(`${n0(pyWrong['callee-declared-inside-caller'])} of its ${n0(total(pyWrong))} wrong edges (${Math.round((100 * pyWrong['callee-declared-inside-caller']) / total(pyWrong))}%)`);
+    const pyAll = row('python', 'all edges').precision;
+    const pyTp = Math.round(pyAll.value * pyAll.n);
+    has(`Python precision would be ${p1(pyTp / (pyAll.n - pyWrong['callee-declared-inside-caller']))}`);
+    const flask = report.repos.python.flask;
+    has(`flask's ${p1(flask.summary.precision)}`);
+    has(`${flask.diagnostics.wrongEdgesByReason['callee-declared-inside-caller']} of its ${total(flask.diagnostics.wrongEdgesByReason)} wrong edges`);
+    // typescript: unjudged
+    const tsWrong = g.typescript.diagnostics.wrongEdgesByReason;
+    has(`${n0(tsWrong['callee-not-in-index'] + tsWrong['caller-not-in-index'])} of the ${n0(row('typescript', 'all edges').precision.n)} TypeScript graph edges`);
+    const judged = row('typescript', 'judgeable edges').precision;
+    has(`The ${judged.n} edges both sides can name are right ${p1(judged.value)} of the time`);
+    // scope
+    has(`${p1(g.typescript.scope.scopeInclusiveRecall)} in TypeScript, ${p1(g.python.scope.scopeInclusiveRecall)} in Python, ${p1(g.go.scope.scopeInclusiveRecall)} in Go`);
+    // the threshold the page says was registered
+    assert.strictEqual(lib.loadProtocol(ROOT).threshold.value, 0.7);
+    for (const k of ['typescript', 'python', 'go', 'java']) assert.strictEqual(g[k].threshold.status, 'spike-warranted', `the page says a receiver-type pass is warranted in ${k}`);
+    assert.strictEqual(g.javascript.threshold.status, 'insufficient-sample');
+    assert.strictEqual(report.repos.javascript.express.summary.referenceEdges, 3);
+    assert.strictEqual(report.repos.java.gson.status, 'unmeasured');
+  });
+
+  await test('the three graph behaviours the page names as causes are still true of buildCallGraph', () => {
+    // If one of these is fixed, the page and the saved report describe a graph that no longer exists:
+    // re-run the benchmark, re-render the page, and delete the sentence.
+    const dir = tmp('sigmap-cgacc-mech-');
+    put(path.join(dir, 'src/a.py'), 'def outer():\n    def inner():\n        return 1\n    return 2\n');
+    put(path.join(dir, 'src/b.ts'), 'export function plain(x: number): number {\n  return x;\n}\n\nexport function generic<T>(x: T): T {\n  return x;\n}\n\nexport function user() {\n  plain(1);\n  generic(2);\n}\n');
+    put(path.join(dir, 'src/c.js'), 'function helper() {}\nfunction viaTemplate() {\n  return `${helper()}`;\n}\nfunction viaPlain() {\n  return helper();\n}\n');
+    const { buildCallGraph } = require(path.join(ROOT, 'src/graph/call-graph.js'));
+    const g = buildCallGraph(dir);
+    const has = (a, b) => (g.forward.get(a) || []).includes(b);
+    assert.ok(has('src/a.py#outer', 'src/a.py#inner'), 'a nested def line is read as a call to it');
+    assert.ok(!g.defs.has('src/b.ts#generic'), 'a generic function declaration has no node');
+    assert.ok(g.defs.has('src/b.ts#plain') && has('src/b.ts#user', 'src/b.ts#plain'), 'the same function without type parameters does');
+    assert.ok(!has('src/b.ts#user', 'src/b.ts#generic'));
+    assert.ok(has('src/c.js#viaPlain', 'src/c.js#helper') && !has('src/c.js#viaTemplate', 'src/c.js#helper'), 'a call inside ${...} is not seen');
+  });
+
+  await test('the page is in the sidebar, the npm script exists, and the docs that describe blast radius link to it', () => {
+    assert.ok(fs.readFileSync(path.join(ROOT, 'docs-vp/.vitepress/config.mts'), 'utf8').includes("'/guide/callgraph-accuracy'"), 'not in the sidebar');
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    assert.strictEqual(pkg.scripts['benchmark:callgraph-accuracy'], 'node scripts/run-callgraph-accuracy.mjs');
+    for (const [file, link] of [['docs-vp/guide/cli.md', '/guide/callgraph-accuracy'], ['docs-vp/guide/mcp.md', '/guide/callgraph-accuracy'], ['KNOWN_LIMITATIONS.md', 'docs-vp/guide/callgraph-accuracy.md']]) {
+      assert.ok(fs.readFileSync(path.join(ROOT, file), 'utf8').includes(link), `${file} does not link to the call-graph accuracy page`);
+    }
+    const limits = fs.readFileSync(path.join(ROOT, 'KNOWN_LIMITATIONS.md'), 'utf8');
+    const g = report.groups;
+    const p1 = (v) => `${(100 * v).toFixed(1)}%`;
+    for (const figure of [p1(g.go.table.sites.find((r) => r.label === 'function/bare').recall.value), p1(g.python.table.sites.find((r) => r.label === 'function/bare').recall.value), p1(g.typescript.table.sites.find((r) => r.label === 'function/bare').recall.value), p1(g.java.table.receiverOnly.value), p1(g.go.table.rows[0].precision.value), p1(g.java.table.rows[0].precision.value), p1(g.python.table.rows[0].precision.value)]) {
+      assert.ok(limits.includes(figure), `KNOWN_LIMITATIONS.md does not carry ${figure}`);
+    }
   });
 
   // ── the real indexers, end to end ──────────────────────────────────────────
