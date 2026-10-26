@@ -661,7 +661,7 @@ const sfc = (() => {
   const EXTS = new Set(['.vue', '.svelte', '.astro']);
 
   const SCRIPT = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi;
-  const FENCE = /^﻿?[ \t]*---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+  const FENCE = /^\uFEFF?\s*---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 
   /**
    * The script source of a component file: every `<script>` body, and for Astro the

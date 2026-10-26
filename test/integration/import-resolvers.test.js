@@ -304,6 +304,23 @@ test('components: an import list that spans lines is read; a plain .ts file keep
   assert.deepStrictEqual(importsOf(one, 'src/V.vue'), ['src/lib.ts'], 'a string that looks like an import is not one');
 });
 
+test('Astro: blank lines before the frontmatter fence are fine; a component that imports itself is not its own importer', () => {
+  const root = repo({
+    'src/pages/lead.astro': "\n\n---\nimport C from '../components/C'\n---\n<C/>\n",
+    'src/pages/bom.astro': "\uFEFF---\nimport C from '../components/C'\n---\n<C/>\n",
+    'src/components/C.tsx': '',
+    'src/components/Self.astro': "---\nimport Self from './Self.astro'\nimport C from './C'\n---\n<Self/>\n",
+    'src/components/Rec.svelte': "<script>\nimport Rec from './Rec.svelte'\nimport C from './C'\n</script>\n",
+  });
+  assert.deepStrictEqual(importsOf(root, 'src/pages/lead.astro'), ['src/components/C.tsx'], 'a blank line before the fence');
+  assert.deepStrictEqual(importsOf(root, 'src/pages/bom.astro'), ['src/components/C.tsx'], 'a byte order mark before the fence');
+  assert.deepStrictEqual(importsOf(root, 'src/components/Self.astro'), ['src/components/C.tsx'], 'an Astro component that renders itself');
+  assert.deepStrictEqual(importsOf(root, 'src/components/Rec.svelte'), ['src/components/C.tsx'], 'a Svelte component that renders itself');
+  const text = "---\nimport C from '../components/C'\n---\n";
+  const late = repo({ 'src/pages/x.astro': `<p>text first</p>\n${text}`, 'src/components/C.tsx': '' });
+  assert.deepStrictEqual(importsOf(late, 'src/pages/x.astro'), [], 'a fence that is not at the top of the file is not frontmatter');
+});
+
 test('Svelte: instance and module scripts are read, and $lib reaches src/lib', () => {
   const root = repo({
     'src/lib/b.js': '', 'src/lib/Card.svelte': '', 'src/routes/Child.svelte': '',

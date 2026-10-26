@@ -366,7 +366,9 @@ function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
   // ── Vue / Svelte / Astro ──────────────────────────────────────────────────
   // The imports sit in the component's script; they resolve like any script's.
   if (RESOLVERS.sfc.EXTS.has(ext)) {
-    found.push(...jsDeps(RESOLVERS.sfc.scriptOf(ext, content), dir, fileSet, cwd, ctx, true));
+    // A component that renders itself (svelte:self, a recursive Astro component) is not its own importer.
+    const self = normalizePath(filePath);
+    found.push(...jsDeps(RESOLVERS.sfc.scriptOf(ext, content), dir, fileSet, cwd, ctx, true).filter((k) => k !== self));
   }
 
   // ── C/C++/Objective-C, PHP, C#, Dart, Lua, GDScript (#980) ────────────────
