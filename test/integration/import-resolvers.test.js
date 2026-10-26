@@ -283,6 +283,27 @@ test('Vue: the imports of every <script> block resolve like a script\'s; the tem
   assert.deepStrictEqual(importsOf(root, 'src/main.ts'), ['src/App.vue'], 'a .ts file importing a component by its file name');
 });
 
+test('components: an import list that spans lines is read; a plain .ts file keeps the one-line reading, and so does the ranker', () => {
+  const wrapped = "import {\n  a,\n  b\n} from './lib'\nexport {\n  c\n} from './re'\nimport type {\n  T\n} from './types'\n";
+  const root = repo({
+    'src/V.vue': `<script setup lang="ts">\n${wrapped}</script>\n`,
+    'src/S.svelte': `<script lang="ts">\n${wrapped}</script>\n`,
+    'src/A.astro': `---\n${wrapped}---\n<div/>\n`,
+    'src/plain.ts': wrapped,
+    'src/lib.ts': '', 'src/re.ts': '', 'src/types.ts': '',
+  });
+  for (const f of ['src/V.vue', 'src/S.svelte', 'src/A.astro']) {
+    assert.deepStrictEqual(importsOf(root, f), ['src/lib.ts', 'src/re.ts', 'src/types.ts'], `${f}: all three lists, across lines`);
+  }
+  // The original eight families read one line per import and the ranker is built from them (#934):
+  // widening that would move retrieval, so it is a separate decision. The test pins "unchanged".
+  assert.deepStrictEqual(importsOf(root, 'src/plain.ts'), [], 'plain TypeScript is read as before: a list across lines is not an edge');
+  const ranking = buildRankingGraph(root, { srcDirs: ['.'] });
+  assert.deepStrictEqual((ranking.forward.get(path.join(root, 'src/plain.ts').toLowerCase()) || []), []);
+  const one = repo({ 'src/V.vue': "<script setup>\nimport { a } from './lib'\nconst s = 'x'\nconst t = \"import { z } from './nope'\"\n</script>\n", 'src/lib.ts': '', 'src/nope.ts': '' });
+  assert.deepStrictEqual(importsOf(one, 'src/V.vue'), ['src/lib.ts'], 'a string that looks like an import is not one');
+});
+
 test('Svelte: instance and module scripts are read, and $lib reaches src/lib', () => {
   const root = repo({
     'src/lib/b.js': '', 'src/lib/Card.svelte': '', 'src/routes/Child.svelte': '',

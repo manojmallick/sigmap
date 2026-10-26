@@ -21467,9 +21467,12 @@ __factories["./src/graph/builder"] = function(module, exports) {
    * @param {Set<string>} fileSet
    * @param {string} [cwd]
    * @param {object} [ctx]
+   * @param {boolean} [wrapped]  also read import lists that span lines. Only a component's script
+   *        is read that way: the original eight families keep their one-line reading, because the
+   *        ranker's graph is built from them and a better blast radius must not move retrieval (#934).
    * @returns {string[]}
    */
-  function jsDeps(content, dir, fileSet, cwd, ctx) {
+  function jsDeps(content, dir, fileSet, cwd, ctx, wrapped) {
     const found = [];
     const aliasMap = ctx && ctx.aliasMap;
     // The extended graph (everything but the ranker's) also knows SvelteKit's `$lib`.
@@ -21495,7 +21498,9 @@ __factories["./src/graph/builder"] = function(module, exports) {
 
     let m;
     // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
-    const reEs = /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
+    const reEs = wrapped
+      ? /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g
+      : /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
     while ((m = reEs.exec(stripped)) !== null) {
       const r = resolveSpec(m[1]);
       if (r) found.push(r);
@@ -21532,7 +21537,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
     // ── Vue / Svelte / Astro ──────────────────────────────────────────────────
     // The imports sit in the component's script; they resolve like any script's.
     if (RESOLVERS.sfc.EXTS.has(ext)) {
-      found.push(...jsDeps(RESOLVERS.sfc.scriptOf(ext, content), dir, fileSet, cwd, ctx));
+      found.push(...jsDeps(RESOLVERS.sfc.scriptOf(ext, content), dir, fileSet, cwd, ctx, true));
     }
 
     // ── C/C++/Objective-C, PHP, C#, Dart, Lua, GDScript (#980) ────────────────
