@@ -96,3 +96,10 @@ First run (the figures the second run must reproduce):
 | Swift (module level) | 100.0% | 150 | 99.3% | 151 |
 
 Predictions: P1, P2, P3, P5, P6, P7, P8 held; **P4 missed** (component recall 79.0% against 90%).
+
+**The second run reproduced the first exactly**: every group's figures, every repository's counts and samples, every prediction (compared field by field before anything else was done). It also showed what the misses are, and two of them were defects in the new component reader rather than gaps in the shared JavaScript resolver:
+
+- an Astro file that starts with a blank line before its `---` fence lost its frontmatter (the fence pattern required the first character); Astro's own parser accepts the blank line;
+- a component that renders itself (`svelte:self`, a recursive Astro component) was its own importer, which no other new resolver allows.
+
+Both were fixed in `src/graph/import-resolvers.js` and `src/graph/builder.js` (commit `91aec34`), with tests and mutants, and the scorer also gained a label for a Swift module with no Swift file (`7287d5a`). **The third run is the saved report.** Against the first run: C, PHP and Swift are bit-for-bit unchanged; components went from 99.7% precision on 1,539 graph edges to **100.0% on 1,535** (five self-edges gone, one frontmatter edge found) and from 79.0% to **79.1% recall** on the same 1,941 reference edges. P4 is still missed. The remaining component misses are not defects of the component reader and were **not** fixed here: they are in the resolver every `.js` and `.ts` file shares, and widening it would move the ranker's graph (#934); the report counts them by cause and the guide page lists them.

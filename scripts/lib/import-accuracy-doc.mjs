@@ -56,7 +56,11 @@ function perRepo(report) {
       ]);
     }
   }
-  return table(['Group', 'Repository', 'Commit', 'Importing files scored', 'Reference edges', 'Graph edges', 'Precision', 'Recall', 'Note'], rows, ['l', 'l', 'l']);
+  // the Note column holds why a repository is unmeasured; it is left out when every one was measured
+  const noted = rows.some((r) => r[8]);
+  const head = ['Group', 'Repository', 'Commit', 'Importing files scored', 'Reference edges', 'Graph edges', 'Precision', 'Recall'];
+  if (!noted) return table(head, rows.map((r) => r.slice(0, 8)), ['l', 'l', 'l']);
+  return table([...head, 'Note'], rows, ['l', 'l', 'l', 'r', 'r', 'r', 'r', 'r', 'l']);
 }
 
 function scope(report) {
@@ -80,6 +84,18 @@ function kinds(report, key, title) {
   const rows = all.map((kind) => [kind, ...groups.map((k) => n0(report.groups[k].diagnostics[key][kind] || 0))]);
   rows.push(['**all**', ...groups.map((k) => `**${n0(Object.values(report.groups[k].diagnostics[key]).reduce((a, b) => a + b, 0))}**`)]);
   return table([title, ...groups.map((k) => LABELS[k])], rows, ['l']);
+}
+
+/** Which repository the missed edges are in, and how their imports reach the file. */
+function whereMissed(report) {
+  const rows = [];
+  for (const k of ORDER) {
+    for (const [name, r] of Object.entries(report.repos[k] || {})) {
+      if (r.status !== 'measured' || !r.diagnostics) continue;
+      for (const [kind, n] of Object.entries(r.diagnostics.missedByKind).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) rows.push([LABELS[k], name, kind, n0(n)]);
+    }
+  }
+  return rows.length ? table(['Group', 'Repository', 'How the missed import reaches its file', 'Reference edges missed'], rows, ['l', 'l', 'l']) : null;
 }
 
 function unmeasured(report) {
@@ -120,7 +136,9 @@ export function renderBlock(report) {
   ];
   const missed = kinds(report, 'missedByKind', 'Reference edges the graph lacks, by how the import reaches its file');
   const wrong = kinds(report, 'wrongByKind', 'Graph edges the reference lacks, by what they reach');
+  const where = whereMissed(report);
   if (missed) blocks.push('### Why edges were missed', '', missed, '');
+  if (where) blocks.push('### Where the missed edges are', '', where, '');
   if (wrong) blocks.push('### Graph edges the reference does not have', '', wrong, '');
   const un = unmeasured(report);
   if (un) blocks.push('### Not measured', '', un, '');

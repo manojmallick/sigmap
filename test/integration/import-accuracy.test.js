@@ -230,7 +230,7 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
     environment: { node: 'v22.0.0', platform: 'darwin-arm64' },
     groups: { c: { repos: ['libuv', 'abseil-cpp'], reference: 'Apple clang 17', counts: {}, diagnostics: { missedByKind: { 'reaches a .inc file': 11 }, wrongByKind: { 'reaches a .h file': 7, 'a file importing itself': 1 } }, table: { precision: cellOf(0.91, 400, 0.88, 0.94), recall: cellOf(0.97, 380, 0.95, 0.99), f1: 0.939 } },
       swift: { repos: ['alamofire'], reference: 'swift 6.2', counts: {}, table: { precision: cellOf(1, 12, 1, 1), recall: cellOf(1, 12, 1, 1), f1: 1 } } },
-    repos: { c: { libuv: { status: 'measured', commit: 'a'.repeat(40), counts: { universe: 90, walked: 100, covered: 95, referenceEdges: 200, graphEdges: 210, truePositives: 190, graphEdgesOutsideUniverse: 3, referenceEdgesOutsideUniverse: 4 } },
+    repos: { c: { libuv: { status: 'measured', commit: 'a'.repeat(40), diagnostics: { missedByKind: { 'reaches a .inc file': 11 }, wrongByKind: {} }, counts: { universe: 90, walked: 100, covered: 95, referenceEdges: 200, graphEdges: 210, truePositives: 190, graphEdgesOutsideUniverse: 3, referenceEdgesOutsideUniverse: 4 } },
       'abseil-cpp': { status: 'unmeasured', commit: 'b'.repeat(40), reason: 'no clone at /x' } } },
     unmeasured: { 'c/abseil-cpp': 'no clone at /x' }, unregistered: { lua: 'no reference exists to run' },
     predictions: { P1: { claim: 'C recall is at least 90%', status: 'held', value: 0.97 }, P7: { claim: 'Swift precision', status: 'not-testable', value: 1 } },
@@ -242,6 +242,7 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
     assert.ok(block.includes('| **C / C++ / Objective-C** | libuv, abseil-cpp | 380 | 97.0% (95-99) | 400 | 91.0% (88-94) | 93.9% |'), block);
     assert.ok(block.includes('n=12, too few'), 'a cell under the minimum is not quoted');
     assert.ok(block.includes('| reaches a .inc file | 11 |'), 'the reasons edges were missed');
+    assert.ok(block.includes('| C / C++ / Objective-C | libuv | reaches a .inc file | 11 |'), 'and the repository they are in');
     assert.ok(block.includes('| **all** | **8** |'), 'and the graph edges the reference lacks, in total');
     assert.ok(block.includes('| Reference edges the graph lacks, by how the import reaches its file | C / C++ / Objective-C |\n'), 'a group without diagnostics has no column');
     assert.ok(block.includes('| Lua | language | no reference exists to run |'));
@@ -253,6 +254,94 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
     assert.strictEqual(doc.extract(once), block);
     assert.strictEqual(doc.inject(once, block), once, 'regenerating a current page changes nothing');
     assert.strictEqual(doc.inject('no markers', block), null);
+  });
+
+  // ── the saved report, the page, and the figures other documents quote ───────
+
+  const reportFile = path.join(ROOT, runner.REPORT_REL);
+  const pageFile = path.join(ROOT, runner.PAGE_REL);
+  const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  assert.ok(fs.existsSync(reportFile), `${runner.REPORT_REL} is missing: node scripts/run-import-accuracy.mjs --references <dir> --save`);
+  const report = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
+  const page = fs.readFileSync(pageFile, 'utf8');
+  const p1 = (v) => `${(100 * v).toFixed(1)}%`;
+  const n0 = (n) => n.toLocaleString('en-US');
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+
+  await test('the saved report came from the committed protocol, a clean tree, and covers every registered repository, pinned to its commit', () => {
+    assert.strictEqual(report.benchmark, 'import-accuracy');
+    assert.strictEqual(report.protocol.committed, true, 'the report was made from an edited protocol');
+    assert.strictEqual(report.protocol.sha256, lib.protocolState(ROOT).sha256, 'the report was scored under another protocol than the committed one');
+    assert.match(report.protocol.commit, /^[0-9a-f]{40}$/);
+    assert.strictEqual(report.sigmap.dirty, false, 'the report was made from a dirty tree');
+    assert.match(report.sigmap.commit, /^[0-9a-f]{40}$/);
+    const listed = Object.entries(protocol.groups).flatMap(([g, def]) => def.repos.eval.map((r) => `${g}/${r.name}`)).sort();
+    const reported = Object.entries(report.repos).flatMap(([g, byRepo]) => Object.keys(byRepo).map((n) => `${g}/${n}`)).sort();
+    assert.deepStrictEqual(reported, listed, 'a registered repository is missing from the report, or one was added');
+    for (const [g, byRepo] of Object.entries(report.repos)) {
+      for (const [name, r] of Object.entries(byRepo)) {
+        assert.strictEqual(r.commit, protocol.groups[g].repos.eval.find((x) => x.name === name).commit, `${g}/${name} was measured at another commit than the protocol pins`);
+        assert.ok(r.status === 'measured' || (r.reason && r.reason.length > 20), `${g}/${name} is unmeasured without a reason`);
+      }
+    }
+    assert.deepStrictEqual(Object.keys(report.unregistered).sort(), ['csharp', 'dart', 'gdscript', 'lua']);
+    assert.deepStrictEqual(Object.keys(report.predictions).sort(), protocol.predictions.map((p) => p.id).sort(), 'every registered prediction has a result, and only those');
+  });
+
+  await test('the tables on the page are the tables the saved report renders to', () => {
+    assert.strictEqual(doc.extract(page), doc.renderBlock(report), 'run: node scripts/run-import-accuracy.mjs --write-doc');
+  });
+
+  await test('every claim the page\'s prose makes about the headline findings is one the report yields', () => {
+    const g = report.groups;
+    const has = (text) => assert.ok(page.includes(text), `the page does not say "${text}"`);
+    const { LEGACY_FAMILIES, GRAPH_FAMILIES } = require('../../src/graph/builder');
+    assert.deepStrictEqual([LEGACY_FAMILIES.length, GRAPH_FAMILIES.length], [8, 15]);
+    has('Until #980 it read eight language families; it now reads fifteen');
+    // components: perfect precision, the lowest recall, and the one prediction that was missed
+    assert.strictEqual(g.sfc.table.precision.value, 1);
+    has('Every edge the graph draws between components is one the reference has');
+    const lowest = Object.entries(g).sort((a, b) => a[1].table.recall.value - b[1].table.recall.value)[0][0];
+    assert.strictEqual(lowest, 'sfc');
+    has('component recall is the lowest of the four groups');
+    assert.deepStrictEqual(Object.entries(report.predictions).filter(([, p]) => p.status === 'missed').map(([id]) => id), ['P4']);
+    assert.strictEqual(protocol.predictions.find((p) => p.id === 'P4').value, 0.9);
+    has('The registered prediction was 90% recall; it was **missed**');
+    // where the component misses are
+    const bare = 'a bare specifier that resolves inside the repository';
+    const mapped = 'written .js/.jsx, the file is .ts/.tsx';
+    assert.strictEqual(g.sfc.diagnostics.missedByKind[bare], report.repos.sfc.svelte.diagnostics.missedByKind[bare], 'every bare-specifier miss is in svelte');
+    has('all of the "bare specifier" misses are in that one repository');
+    assert.strictEqual(g.sfc.diagnostics.missedByKind[mapped], report.repos.sfc.astro.diagnostics.missedByKind[mapped]);
+    assert.strictEqual(g.sfc.diagnostics.missedByKind[mapped], 12);
+    has('a dozen edges, all in astro');
+    assert.ok(g.sfc.diagnostics.missedByKind[bare] > g.sfc.diagnostics.missedByKind[mapped], 'the package naming itself is the larger cause');
+    has('the larger cause is the package naming itself, in svelte');
+    // C: the missed edges are all .inc, the extra ones are headers; PHP: one extra edge; Swift: one miss, in vapor
+    assert.deepStrictEqual(Object.keys(g.c.diagnostics.missedByKind), ['reaches a .inc file']);
+    has('The missed edges are all `.inc` files');
+    assert.strictEqual(sum(g.php.diagnostics.wrongByKind), 1);
+    has('The one extra edge is a literal `require` of a file');
+    assert.strictEqual(sum(g.swift.diagnostics.missedByKind), 1);
+    assert.strictEqual(sum(report.repos.swift.vapor.diagnostics.missedByKind), 1);
+    has('The one miss is a C-language target of vapor');
+  });
+
+  await test("the figures KNOWN_LIMITATIONS quotes are the report's, and the other docs point at the page", () => {
+    const kl = read('KNOWN_LIMITATIONS.md');
+    const t = (k) => report.groups[k].table;
+    const has = (text) => assert.ok(kl.includes(text), `KNOWN_LIMITATIONS does not say "${text}"`);
+    has(`C and C++ ${p1(t('c').precision.value)} precision and ${p1(t('c').recall.value)} recall`);
+    has(`PHP ${p1(t('php').precision.value)} and ${p1(t('php').recall.value)}`);
+    has(`Swift at module level ${p1(t('swift').precision.value)} and ${p1(t('swift').recall.value)}`);
+    has(`Vue, Svelte and Astro ${p1(t('sfc').precision.value)} precision and **${p1(t('sfc').recall.value)} recall**`);
+    has('The registered prediction of 90% component recall was missed');
+    assert.ok(kl.includes('docs-vp/guide/import-accuracy.md'));
+    assert.ok(read('docs-vp/guide/cli.md').includes('(/guide/import-accuracy)'));
+    assert.ok(read('docs-vp/guide/mcp.md').includes('(/guide/import-accuracy)'));
+    assert.ok(read('docs-vp/.vitepress/config.mts').includes("link: '/guide/import-accuracy'"), 'the page is in the sidebar');
+    assert.ok(!read('docs-vp/guide/cli.md').includes('Languages the import graph cannot read'), 'the old statement that PHP, C#, C/C++ and the component languages are unread is gone');
+    assert.ok(n0(report.groups.c.table.precision.n).length > 0);
   });
 
   // ── the runner ─────────────────────────────────────────────────────────────
