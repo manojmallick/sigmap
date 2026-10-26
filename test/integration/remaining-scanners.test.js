@@ -132,10 +132,11 @@ test('cpp: a function-pointer parameter no longer drops the declaration', () => 
   assert.strictEqual(got, 'f(int (*cb)(int), int n) → int');
 });
 
-test('cpp: a declaration without a body is still not a definition', () => {
-  // Top level only reports definitions; a bare prototype must stay out.
+test('cpp: a prototype is listed, since a header is a declaration surface (#975)', () => {
+  // Before #975 only definitions were reported. A header declares its API with prototypes, so they are listed now,
+  // each with the anchor of its declaration; a forward declaration of a class still is not (extractor tests).
   const out = bare(extractFile('a.cpp', 'int f(int a);\n'));
-  assert.deepStrictEqual(out, [], `prototype should not be reported, got ${JSON.stringify(out)}`);
+  assert.deepStrictEqual(out, ['f(int a) → int'], `got ${JSON.stringify(out)}`);
 });
 
 // ── dart ─────────────────────────────────────────────────────────────────────
