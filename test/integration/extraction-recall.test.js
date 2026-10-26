@@ -172,20 +172,36 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     const t = rubyTally();
     rb.compareFile(t, rubyTruth, ['module Sidekiq', '  class Worker', '    def perform', '    def self.build', 'class Top', '  def perform'], 'x.rb');
     // Top#run is not listed anywhere; Worker's two are under Worker; the extra `perform` under Top is not asked for
-    assert.deepStrictEqual(rubyRows(t), { class: '2/2', module: '1/1', method: '2/3', owner: '2/3' });
+    assert.deepStrictEqual(rubyRows(t), { class: '2/2', module: '1/1', method: '2/3', owner: '2/3', anchored: '0/6', 'anchor-exact': '0/0' });
     const wrongOwner = rubyTally();
     rb.compareFile(wrongOwner, [['class', 'A'], ['class', 'B'], ['method', 'B#save']], ['class A', '  def save', 'class B'], 'x.rb');
-    assert.deepStrictEqual(rubyRows(wrongOwner), { class: '2/2', module: '0/0', method: '1/1', owner: '0/1' });
+    assert.deepStrictEqual(rubyRows(wrongOwner), { class: '2/2', module: '0/0', method: '1/1', owner: '0/1', anchored: '0/3', 'anchor-exact': '0/0' });
   });
 
   await test('ruby: a private method is skipped, and a method listed twice is still one owner hit per definition', () => {
     const t = rubyTally();
     rb.compareFile(t, [['class', 'A'], ['method', 'A#_x'], ['method', 'A#a'], ['method', 'A#a']], ['class A', '  def a', '  def a'], 'x.rb');
-    assert.deepStrictEqual(rubyRows(t), { class: '1/1', module: '0/0', method: '2/2', owner: '2/2' });
+    assert.deepStrictEqual(rubyRows(t), { class: '1/1', module: '0/0', method: '2/2', owner: '2/2', anchored: '0/3', 'anchor-exact': '0/0' });
     assert.strictEqual(t.method.skipped, 1);
     const once = rubyTally();
     rb.compareFile(once, [['class', 'A'], ['method', 'A#a'], ['method', 'A#a']], ['class A', '  def a'], 'x.rb');
     assert.strictEqual(rubyRows(once).owner, '1/2');
+  });
+
+  await test('ruby: anchors are judged on what the extractor emits: is one there, and is it the parser\'s own range (#975)', () => {
+    const truth = [['module', 'M', 1, 10], ['class', 'C', 2, 9], ['method', 'C#a', 3, 5], ['method', 'C.b', 7, 7]];
+    const t = rubyTally();
+    // five definition lines: four carry an anchor; `b` ends a line late, so three of the four are exact; a
+    // notice line is not a definition and is not counted
+    rb.compareFile(t, truth, ['module M  :1-10', '  class C  :2-9', '    def a  :3-5', '    def self.b  :7-8', '  def c', '… +3 more signatures'], 'x.rb');
+    const rows = rubyRows(t);
+    assert.strictEqual(rows.anchored, '4/5');
+    assert.strictEqual(rows['anchor-exact'], '3/4');
+    assert.deepStrictEqual(t['anchor-exact'].misses, ['x.rb :: def self.b :7-8']);
+    // the same range under another name or kind is not a match
+    const other = rubyTally();
+    rb.compareFile(other, [['class', 'C', 2, 9]], ['module C  :2-9', 'class D  :2-9'], 'y.rb');
+    assert.strictEqual(rubyRows(other)['anchor-exact'], '0/2');
   });
 
   // ── the runner ────────────────────────────────────────────────────────────
@@ -352,17 +368,17 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
       put(path.join(repos, 'sidekiq/lib/a.rb'), RB_SRC);
       const real = rb.measure({ reposDir: repos, index: false });
       assert.strictEqual(real.measured, true);
-      assert.deepStrictEqual(cells(real.populations.extractor.rows), ['class 2/2', 'module 1/1', 'method 4/4', 'owner 4/4'], 'a top-level def has no owner');
+      assert.deepStrictEqual(cells(real.populations.extractor.rows), ['class 2/2', 'module 1/1', 'method 4/4', 'owner 4/4', 'anchored 7/7', 'anchor-exact 7/7'], 'a top-level def has no owner');
       const none = path.join(tmp('sigmap-recall-ext-'), 'none.js');
       put(none, 'module.exports = { extract: () => [] };');
       const blind = rb.measure({ reposDir: repos, extractorPath: none, index: false });
-      assert.deepStrictEqual(blind.populations.extractor.rows.map((x) => x.recall), [0, 0, 0, 0]);
+      assert.deepStrictEqual(blind.populations.extractor.rows.map((x) => x.recall), [0, 0, 0, 0, null, null], 'an extractor that emits nothing has no anchors to judge');
       assert.deepStrictEqual(blind.populations.extractor.misses.class.sort(), ['sidekiq/lib/a.rb :: Top', 'sidekiq/lib/a.rb :: Worker']);
       // a top-level def listed under the class above it is found by name and missed by owner
       const stale = path.join(tmp('sigmap-recall-ext-'), 'stale.js');
       put(stale, "module.exports = { extract: () => ['class Top', '  def helper'] };");
       const wrong = rb.measure({ reposDir: repos, extractorPath: stale, index: false });
-      assert.deepStrictEqual(cells(wrong.populations.extractor.rows).slice(2), ['method 1/4', 'owner 0/4']);
+      assert.deepStrictEqual(cells(wrong.populations.extractor.rows).slice(2, 4), ['method 1/4', 'owner 0/4']);
     });
 
     await test('ruby.mjs keeps its command line, stays read-only without --index, and --min-* exits 1 under a floor', () => {
@@ -525,7 +541,7 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     assert.ok(page.includes(`the ${idxAst.class.missed} classes and ${idxAst.method.missed} methods the index misses with \`python3\``), 'the AST-path misses');
     assert.ok(page.includes(`of the ${idxRegex.method.missed} methods it misses are in`), 'the regex-tier method misses');
     const idxRb = report.languages.ruby.populations.index;
-    assert.ok(page.includes(`index recall is ${idxRb.rowsAllFiles.map((x) => `${x.recall.toFixed(1)}%`).join(' / ')}`), 'the all-files Ruby index recall');
+    assert.ok(page.includes(`index recall is ${idxRb.rowsAllFiles.filter((x) => !/^anchor/.test(x.kind)).map((x) => `${x.recall.toFixed(1)}%`).join(' / ')}`), 'the all-files Ruby index recall (the anchor rows are about what is emitted, so a file the index lacks adds nothing to them)');
     const rbRows = Object.fromEntries(report.languages.ruby.populations.extractor.rows.map((x) => [x.kind, x]));
     assert.ok(page.includes(`(${n(rbRows.class.found)} of ${n(rbRows.class.reference)} classes, ${n(rbRows.module.found)} of ${n(rbRows.module.reference)} modules, ${n(rbRows.method.found)} of ${n(rbRows.method.reference)} methods, ${n(rbRows.owner.found)} of ${n(rbRows.owner.reference)} under the right owner)`), 'the Ruby counts');
     const languages = fs.readFileSync(path.join(ROOT, 'docs-vp/guide/languages.md'), 'utf8');

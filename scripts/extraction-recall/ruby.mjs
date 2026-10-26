@@ -31,6 +31,12 @@
 // defines it (a `def` line counts under the nearest class/module line above it; a column-0 `def`
 // has no owner). Unlike the first three rows it matches every method name, operators included.
 //
+// Two more rows measure the `:start-end` anchors (#975), over what the extractor EMITS rather than over
+// what Ripper finds: "anchored" is the share of emitted class, module and def lines that carry an
+// anchor, and "anchor-exact" the share of those anchors that equal the lines Ripper says the same
+// definition starts and ends on (the name's line and the closing `end`). A class opened twice is one
+// entry, anchored to its first opening, and that opening is the one Ripper must agree with.
+//
 // Before #981 (column-0 classes, ownerless defs): class 13.8%, module 44.0%, method 82.7%.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -45,7 +51,7 @@ const root = path.resolve(here, '..', '..');
 const require = createRequire(import.meta.url);
 
 export const language = 'ruby';
-export const KINDS = ['class', 'module', 'method', 'owner'];
+export const KINDS = ['class', 'module', 'method', 'owner', 'anchored', 'anchor-exact'];
 export const ROOTS = [
   ['rails', 'actionpack/lib'],
   ['rails', 'activerecord/lib/active_record'],
@@ -59,6 +65,8 @@ export const ROOTS = [
  * listed under the class or module that defines it (counted with multiplicity).
  */
 export function compareFile(tally, truth, sigs, where) {
+  const ranges = new Set(); // "kind|name|first|last" for every definition Ripper found
+  for (const [kind, name, first, last] of truth) ranges.add(`${kind}|${name.split(/[#.]/).pop()}|${first}|${last}`);
   const got = { class: new Set(), module: new Set(), method: new Set() };
   const listed = new Map(); // "Owner|name" -> how many times the extractor lists it
   let owner = '';
@@ -66,6 +74,15 @@ export function compareFile(tally, truth, sigs, where) {
     const text = bare(raw);
     const line = text.trim();
     let m;
+    // anchors: judged on every emitted definition line, whatever its name
+    const decl = /^(class|module)\s+(?:[\w:]*::)?([A-Z]\w*)/.exec(line) || /^def\s+(?:\w+\.)?([^\s(→]+)/.exec(line);
+    if (decl) {
+      const kind = decl[2] === undefined ? 'method' : decl[1];
+      const name = decl[2] === undefined ? decl[1] : decl[2];
+      const a = /\s:(\d+)-(\d+)\s*$/.exec(raw);
+      record(tally, 'anchored', !!a, `${where} :: ${line}`);
+      if (a) record(tally, 'anchor-exact', ranges.has(`${kind}|${name}|${a[1]}|${a[2]}`), `${where} :: ${line} :${a[1]}-${a[2]}`);
+    }
     if ((m = /^class\s+(?:[\w:]*::)?([A-Z]\w*)/.exec(line))) { got.class.add(m[1]); owner = m[1]; }
     else if ((m = /^module\s+(?:[\w:]*::)?([A-Z]\w*)/.exec(line))) { got.module.add(m[1]); owner = m[1]; }
     else if ((m = /^def\s+(?:self\.)?([A-Za-z_]\w*[?!=]?)/.exec(line))) got.method.add(m[1]);

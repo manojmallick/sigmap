@@ -2,6 +2,7 @@
 
 const { capWithNotice } = require('../util/truncate');
 const { readBalanced } = require('./scan');
+const { withAnchor } = require('./line-anchor');
 
 // Ceiling sits above the default `maxSigsPerFile` so the configured budget
 // governs output rather than a literal buried here, and omissions are disclosed (#576).
@@ -19,6 +20,11 @@ const PER_FILE_LIMIT = 200;
  * masked (comments, strings, heredocs, regexps, %-literals) and `end` is
  * matched against the keywords that open a block.
  *
+ * Every signature carries the `:start-end` lines of its definition (#975): the
+ * line of the `class` / `module` / `def` keyword and the line of the `end` that
+ * the same depth count closes it with. A class reopened elsewhere is one entry,
+ * anchored to its first opening; an endless `def f = x` ends on its own line.
+ *
  * @param {string} src - Raw file content
  * @returns {string[]} Array of signature strings
  */
@@ -30,8 +36,8 @@ function extract(src) {
 
   const sigs = [];
   for (const o of owners) {
-    if (o.kind) sigs.push(`${o.kind} ${o.name}`);
-    for (const m of o.members) sigs.push(m);
+    if (o.kind) sigs.push(withAnchor(`${o.kind} ${o.name}`, o.start, o.end));
+    for (const m of o.members) sigs.push(withAnchor(m.text, m.start, m.end));
   }
   return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
 }
@@ -200,7 +206,9 @@ function maskRuby(src) {
       i++;
       continue;
     }
-    if (c === '/' && inValuePosition(i)) {
+    // `:/` is the operator symbol (`calculate(:/, other)`, `send(:/, x)`), not the start of a regexp;
+    // `::/` cannot occur, so a single `:` before the slash is enough to tell.
+    if (c === '/' && inValuePosition(i) && !(src[i - 1] === ':' && src[i - 2] !== ':')) {
       // Where a value is expected `/` cannot be division, so this is a regexp
       // literal. Under /x it may span lines (Rails' CONTENT_TYPE_PARSER does),
       // and a `/` inside a [...] class does not close it.
@@ -235,25 +243,31 @@ const KEYWORD = /(?<![\w.:@$])(?<!\bdef\s+)(class|module|def|if|unless|while|unt
 // `before` is the text ahead of an `if`/`unless`/`while`/`until` on its line.
 // The keyword opens a block at the start of a statement or an assignment's
 // right-hand side; anywhere else it is a modifier (`x if y`, `return if y`).
-const OPENS_AFTER = /(?:^|[;(\[{|]|(?:^|[^=!<>~])=|[-+*/%|&^]=|\|\|=|&&=|<<=|>>=|\b(?:then|else|do|begin|ensure))$/;
+const OPENS_AFTER = /(?:^|[;(\[{|,]|(?:^|[^=!<>~])=|[-+*/%|&^]=|\|\|=|&&=|<<=|>>=|<<|&&|\|\||=>|\b(?:then|else|do|begin|ensure|and|or|not))$/;
 function opensBlock(before) {
-  return OPENS_AFTER.test(before.trimEnd());
+  const t = before.trimEnd();
+  return !ENDS_IN_SYMBOL.test(t) && OPENS_AFTER.test(t);
 }
+// A symbol literal is a finished value even when it ends in `=` (`alias_method :a, :[]= unless x`,
+// `attr_writer :b= if y`): what follows it is a modifier, not an assignment's right-hand side.
+const ENDS_IN_SYMBOL = /(?:^|[^:\w]):(?:\[\]=?|[A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*[?!=]?)$/;
 
 // Identifiers may be non-ASCII (Sidekiq defines `def ❤`).
-const METHOD_NAME = /^(?:(self|[A-Z]\w*)\.)?([A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*[?!=]?|\[\]=?|<=>|===?|=~|!=|!~|\*\*|<<|>>|<=|>=|[+\-*/%<>!~^&|]@?|`)/;
+const METHOD_NAME = /^(?:(self|[A-Za-z_]\w*)\.)?([A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*[?!=]?|\[\]=?|<=>|===?|=~|!=|!~|\*\*|<<|>>|<=|>=|[+\-*/%<>!~^&|]@?|`)/;
 
 /**
  * Walk the masked source and return the owners in the order they open:
- * `{ kind, name, full, members }` (`name` as written, `full` the lexical path
- * that tells two same-named classes apart), with the owner-less top-level defs
- * last as `{ kind: null, members }`.
+ * `{ kind, name, full, start, end, members }` (`name` as written, `full` the lexical
+ * path that tells two same-named classes apart, `start`/`end` the 1-based lines of its
+ * first opening), with the owner-less top-level defs last as `{ kind: null, members }`.
+ * A member is `{ text, start, end }`.
  */
 function scanOwners(plain, code) {
   const owners = [];
   const byKey = new Map();
   const root = { kind: null, name: '', full: '', members: [] };
-  const frames = []; // { type: 'class'|'module'|'sclass'|'def'|'block', owner?, self? }
+  // { type: 'class'|'module'|'sclass'|'def'|'block', owner?, self?, claims?: {start,end} to close with `end` }
+  const frames = [];
 
   const ownerFrame = () => {
     for (let k = frames.length - 1; k >= 0; k--) {
@@ -267,14 +281,15 @@ function scanOwners(plain, code) {
     }
     return null;
   };
-  const open = (kind, full, name) => {
+  const open = (kind, full, name, line) => {
     const key = `${kind} ${full}`;
     let o = byKey.get(key);
-    if (!o) { o = { kind, name, full, members: [] }; byKey.set(key, o); owners.push(o); }
+    if (!o) { o = { kind, name, full, start: line, end: line, members: [] }; byKey.set(key, o); owners.push(o); o.fresh = true; }
     return o;
   };
 
   let lineStart = 0;
+  let lineNo = 1;
   while (lineStart <= code.length) {
     let lineEnd = code.indexOf('\n', lineStart);
     if (lineEnd === -1) lineEnd = code.length;
@@ -289,7 +304,8 @@ function scanOwners(plain, code) {
       const abs = lineStart + col;
 
       if (kw === 'end') {
-        frames.pop();
+        const closed = frames.pop();
+        if (closed && closed.claims) closed.claims.end = lineNo;
       } else if (kw === 'class' || kw === 'module') {
         const rest = text.slice(col + kw.length);
         const sc = kw === 'class' ? /^\s*<<\s*(\w+)/.exec(rest) : null;
@@ -300,7 +316,11 @@ function scanOwners(plain, code) {
           frames.push({ type: 'sclass', owner: parent ? parent.owner : null, self: sc[1] === 'self' });
         } else {
           const full = nm[1] || !parent ? nm[2] : `${parent.owner.full}::${nm[2]}`;
-          frames.push({ type: kw, owner: open(kw, full, nm[2]) });
+          const o = open(kw, full, nm[2], lineNo);
+          // Only the first opening of a class is anchored; later ones add members under it.
+          const claims = o.fresh ? o : null;
+          o.fresh = false;
+          frames.push({ type: kw, owner: o, claims });
         }
       } else if (kw === 'def') {
         const rest = code.slice(abs + 3, abs + 3 + 120);
@@ -326,7 +346,8 @@ function scanOwners(plain, code) {
         let e = paramsEnd;
         while (code[e] === ' ' || code[e] === '\t') e++;
         const endless = code[e] === '=' && !/[=~>]/.test(code[e + 1] || '');
-        if (!endless) frames.push({ type: 'def' });
+        const member = { text: '', start: lineNo, end: lineNo };
+        if (!endless) frames.push({ type: 'def', claims: member });
 
         const bare = nm[2];
         if (bare.startsWith('_')) continue;
@@ -334,8 +355,8 @@ function scanOwners(plain, code) {
         const owner = ownerF ? ownerF.owner : null;
         const singleton = nm[1] ? `${nm[1]}.` : (ownerF && ownerF.type === 'sclass' && ownerF.self ? 'self.' : '');
         const ls = code.lastIndexOf('\n', abs - 1) + 1;
-        const line = `${owner ? '  ' : ''}def ${singleton}${bare}${params}${extractReturnHint(plain, ls)}`;
-        (owner || root).members.push(line);
+        member.text = `${owner ? '  ' : ''}def ${singleton}${bare}${params}${extractReturnHint(plain, ls)}`;
+        (owner || root).members.push(member);
       } else if (kw === 'if' || kw === 'unless' || kw === 'while' || kw === 'until') {
         if (opensBlock(text.slice(0, col))) {
           frames.push({ type: 'block' });
@@ -352,6 +373,14 @@ function scanOwners(plain, code) {
       }
     }
     lineStart = lineEnd + 1;
+    lineNo++;
+  }
+
+  // A block the depth count never closed (input that stops early, or a construct the masking
+  // misread) runs to the last line of the file; the empty piece after a final newline is not a line.
+  const lastLine = code.endsWith('\n') ? lineNo - 2 : lineNo - 1;
+  for (const f of frames) {
+    if (f.claims) f.claims.end = Math.max(f.claims.start, lastLine);
   }
 
   return owners.concat(root.members.length ? [root] : []);

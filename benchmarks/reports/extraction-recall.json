@@ -516,10 +516,26 @@
             {
               "kind": "owner",
               "reference": 7292,
-              "found": 7291,
+              "found": 7292,
               "recall": 100,
               "skipped": 0,
-              "missed": 1
+              "missed": 0
+            },
+            {
+              "kind": "anchored",
+              "reference": 9701,
+              "found": 9701,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "anchor-exact",
+              "reference": 9701,
+              "found": 9701,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
             }
           ],
           "misses": {
@@ -587,9 +603,9 @@
               "rails/activesupport/lib/active_support/core_ext/date_time/calculations.rb :: DateTime#<=>",
               "rails/activesupport/lib/active_support/core_ext/range/compare_range.rb :: CompareWithRange#==="
             ],
-            "owner": [
-              "rails/activerecord/lib/active_record/explain.rb :: Explain.inspect"
-            ]
+            "owner": [],
+            "anchored": [],
+            "anchor-exact": []
           }
         },
         "index": {
@@ -624,6 +640,22 @@
               "kind": "owner",
               "reference": 2325,
               "found": 2325,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "anchored",
+              "reference": 3126,
+              "found": 3126,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "anchor-exact",
+              "reference": 3126,
+              "found": 3126,
               "recall": 100,
               "skipped": 0,
               "missed": 0
@@ -673,7 +705,9 @@
               "sidekiq/lib/sidekiq/ring_buffer.rb :: RingBuffer#<<",
               "sidekiq/lib/sidekiq/test_api.rb :: Queues#[]"
             ],
-            "owner": []
+            "owner": [],
+            "anchored": [],
+            "anchor-exact": []
           },
           "filesTotal": 757,
           "rowsAllFiles": [
@@ -708,6 +742,22 @@
               "recall": 31.9,
               "skipped": 0,
               "missed": 4967
+            },
+            {
+              "kind": "anchored",
+              "reference": 3126,
+              "found": 3126,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
+            },
+            {
+              "kind": "anchor-exact",
+              "reference": 3126,
+              "found": 3126,
+              "recall": 100,
+              "skipped": 0,
+              "missed": 0
             }
           ]
         }
@@ -752,6 +802,6 @@
     "xml": "no reference-parser adapter yet",
     "yaml": "no reference-parser adapter yet"
   },
-  "version": "8.80.1",
-  "generated": "2026-10-19T20:51:51.348Z"
+  "version": "8.82.0",
+  "generated": "2026-10-26T19:06:38.933Z"
 }

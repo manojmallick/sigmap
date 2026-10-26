@@ -59,15 +59,17 @@ Two Python figures were measured once, before this harness, with throwaway scrip
 
 Rails (`f9243af`: `actionpack`, `activerecord`, `activesupport`) and Sidekiq (`132f982`). 757 files that Ruby 2.6 can parse; modern syntax drops out on both sides. Methods whose name starts with `_` are left out on both sides, as the extractor omits them on purpose.
 
-| Population | Files | class | module | method | method under its owner |
-|---|---|---|---|---|---|
-| extractor | 757 | 100.0% | 100.0% | 98.7% | 100.0% |
-| index as shipped | 298 of 757 | 100.0% | 100.0% | 98.3% | 100.0% |
+| Population | Files | class | module | method | method under its owner | anchored | anchor exact |
+|---|---|---|---|---|---|---|---|
+| extractor | 757 | 100.0% | 100.0% | 98.7% | 100.0% | 100.0% | 100.0% |
+| index as shipped | 298 of 757 | 100.0% | 100.0% | 98.3% | 100.0% | 100.0% | 100.0% |
 
-- The extractor row reproduces the [#981](https://github.com/manojmallick/sigmap/issues/981) figures (944 of 944 classes, 1,467 of 1,467 modules, 7,196 of 7,292 methods, 7,291 of 7,292 under the right owner).
-- **The index holds 298 of the 757 files, and that is a coverage gap ([#997](https://github.com/manojmallick/sigmap/issues/997)), not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 37.4% / 30.7% / 31.3% / 31.9%.
+The last two rows are judged on what the extractor **emits**, not on what Ripper finds ([#975](https://github.com/manojmallick/sigmap/issues/975)). *Anchored* is the share of emitted class, module and `def` lines that carry a `:start-end` anchor (9,701 of 9,701). *Anchor exact* is the share of those anchors that equal the lines Ripper says the same definition starts and ends on, the line of its name and the line of the closing `end` (9,701 of 9,701). A class opened twice is one entry, anchored to its first opening. Before #975 Ruby had no anchors: 0% anchored.
 
-On the CI runner (Ruby 3.2.3, which parses 833 of the same files) the extractor scores 100.0% / 100.0% / 98.5% / 99.3% and the index, over the 331 files it holds, 100.0% / 100.0% / 97.8% / 97.7% (87.1% / 98.4% / 82.7% / 80.6% before #982). The floors for Ruby 3 are recorded from those runs, which is why the saved report, made on Ruby 2.6, differs from it.
+- The extractor row reproduces the [#981](https://github.com/manojmallick/sigmap/issues/981) figures (944 of 944 classes, 1,467 of 1,467 modules, 7,196 of 7,292 methods, 7,292 of 7,292 under the right owner), where owner was 7,291 before the fixes below.
+- **The index holds 298 of the 757 files, and that is a coverage gap ([#997](https://github.com/manojmallick/sigmap/issues/997)), not an extraction one.** Zero-config source-directory detection on Rails picks `activestorage, actioncable, actionmailer, activesupport, guides, railties`, so no file of `actionpack` or `activerecord` is indexed (`sigmap explain actionpack/lib/action_controller/base.rb` says "not under any srcDir"). Scored over all 757 files the index recall is 37.4% / 30.7% / 31.3% / 31.9% (the anchor rows are about what is emitted, so a file the index lacks adds nothing to them).
+
+On Ruby 3.2 (833 of the same files, including endless `def`s and pattern matching, which Ruby 2.6 cannot parse) the extractor scores 100.0% / 100.0% / 98.5% / 100.0% with 12,471 of 12,471 definition lines anchored and exact, and the index, over the 331 files it holds, 100.0% / 100.0% / 97.8% / 100.0% with 3,893 of 3,893 (87.1% / 98.4% / 82.7% / 80.6% before #982). The floors for Ruby 3 are recorded from those runs, which is why the saved report, made on Ruby 2.6, differs from it. Reading these files against Ripper found three misreads, fixed in #975: a symbol that ends in `=` (`alias_method :a, :[]= unless x`) was taken for an assignment, so the `unless` opened a block; the operator symbol `:/` (`calculate(:/, other)`) was taken for the start of a regexp that swallowed the code up to the next slash; and `lines << if x … end`, an `if` after `<<`, `,`, `&&`, `||` or `=>`, was taken for a modifier. Each left a class or module closed on the wrong `end`.
 
 ## Not measured
 
