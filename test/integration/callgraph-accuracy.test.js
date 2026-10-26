@@ -128,6 +128,7 @@ function build(files, { encoding, typed } = {}) {
   const edges = await import('../../scripts/lib/scip-edges.mjs');
   const lib = await import('../../scripts/lib/callgraph-accuracy.mjs');
   const runner = await import('../../scripts/run-callgraph-accuracy.mjs');
+  const tc = await import('../../scripts/lib/scip-toolchains.mjs');
 
   const derive = (spec, opts) => {
     const { buf, read } = build(spec, opts);
@@ -769,6 +770,60 @@ function build(files, { encoding, typed } = {}) {
     assert.ok(report.repos.go.gin.status === 'unmeasured' && report.repos.java.gson.status === 'unmeasured');
   });
 
+  // ── the indexers' commands and toolchains ──────────────────────────────────
+
+  await test('each indexer is run with an argument list, in its own scratch environment, and Java is told to use Maven', () => {
+    const protocol = lib.loadProtocol(ROOT);
+    const base = { PATH: '/usr/bin', HOME: '/home/u' };
+    const repo = { name: 'flask', commit: '2ac89889f4cc330eabd50f295dcef02828522c69' };
+    const common = { repo, scip: '/w/out.scip', tmp: '/w/tmp', heapMb: 4096, base };
+    const ts = tc.indexerCommand({ key: 'typescript', spec: protocol.indexers.typescript, tools: { bin: '/i/scip-typescript' }, home: '/i', ...common });
+    assert.deepStrictEqual(ts.argv, ['index', '--no-progress-bar', '--output', '/w/out.scip']);
+    assert.strictEqual(ts.env.TMPDIR, '/w/tmp');
+    assert.strictEqual(ts.env.NODE_OPTIONS, '--max-old-space-size=4096');
+    const py = tc.indexerCommand({ key: 'python', spec: protocol.indexers.python, tools: { bin: '/i/scip-python' }, home: '/i', ...common });
+    assert.deepStrictEqual(py.argv, ['index', '.', '--project-name', 'flask', '--project-version', '2ac8988', '--output', '/w/out.scip', '--quiet']);
+    const go = tc.indexerCommand({ key: 'go', spec: protocol.indexers.go, tools: { bin: '/i/go/bin/scip-go' }, home: '/i', ...common });
+    assert.deepStrictEqual(go.argv, ['--output', '/w/out.scip']);
+    assert.strictEqual(go.env.GOROOT, '/i/go/goroot');
+    assert.strictEqual(go.env.GOTOOLCHAIN, 'local', 'the pinned toolchain is the only one used');
+    assert.ok(go.env.PATH.startsWith('/i/go/goroot/bin'), 'the pinned go comes first on PATH');
+    assert.ok(go.env.GOPATH.startsWith('/i/') && go.env.GOCACHE.startsWith('/i/'), 'nothing is written outside the setup directory');
+    const java = tc.indexerCommand({ key: 'java', spec: protocol.indexers.java, tools: { bin: '/i/java/scip-java', javaHome: '/i/java/jdk' }, home: '/i', ...common });
+    assert.deepStrictEqual(java.argv, ['index', '--build-tool', 'maven', '--output', '/w/out.scip']);
+    assert.strictEqual(java.env.JAVA_HOME, '/i/java/jdk');
+    assert.ok(java.env.PATH.startsWith('/i/java/jdk/bin'));
+    assert.ok(java.env.MAVEN_OPTS.includes('/i/java/m2'), 'Maven downloads land in the setup directory, not ~/.m2');
+    assert.throws(() => tc.indexerCommand({ key: 'cobol', spec: {}, tools: {}, home: '/i', ...common }), /no indexer command/);
+  });
+
+  await test('a wave-2 language is unmeasured, with the reason, until its toolchain is installed at the pinned versions', () => {
+    const protocol = lib.loadProtocol(ROOT);
+    const home = tmp('sigmap-cgacc-home-');
+    assert.match(tc.wave2Tools('go', null, protocol).reason, /no --indexers directory/);
+    assert.match(tc.wave2Tools('go', home, protocol).reason, /not set up/);
+    const bin = path.join(home, 'scip-go');
+    put(bin, '#!/bin/sh\n');
+    tc.writeWave2(home, { go: { bin, goVersion: '1.0.0', scipGoVersion: protocol.indexers.go.version } });
+    assert.match(tc.wave2Tools('go', home, protocol).reason, /pins 1\.27\.3 \/ 0\.2\.9|pins .* \/ 0\.2\.9/, 'a different Go version is refused');
+    tc.writeWave2(home, { go: { bin: path.join(home, 'gone'), goVersion: protocol.indexers.go.toolchain.go, scipGoVersion: protocol.indexers.go.version } });
+    assert.match(tc.wave2Tools('go', home, protocol).reason, /is missing/);
+    tc.writeWave2(home, { go: { bin, goVersion: protocol.indexers.go.toolchain.go, scipGoVersion: protocol.indexers.go.version } });
+    assert.strictEqual(tc.wave2Tools('go', home, protocol).tools.bin, bin);
+    assert.match(tc.wave2Tools('java', home, protocol).reason, /not set up/, 'Go being installed says nothing about Java');
+  });
+
+  await test('the wave-2 pins are exact: toolchain versions, and a checksum for the coursier launcher', () => {
+    const protocol = lib.loadProtocol(ROOT);
+    assert.match(protocol.indexers.go.toolchain.go, /^\d+\.\d+\.\d+$/);
+    assert.match(protocol.indexers.go.version, /^\d+\.\d+\.\d+$/);
+    assert.match(protocol.indexers.java.version, /^\d+\.\d+\.\d+$/);
+    assert.match(protocol.indexers.java.toolchain.jdk, /^\d+\.\d+\.\d+\+\d+$/);
+    assert.match(protocol.indexers.java.toolchain.coursier, /^\d+\.\d+\.\d+$/);
+    assert.match(protocol.indexers.java.toolchain.coursierSha256['darwin-arm64'], /^[0-9a-f]{64}$/);
+    assert.strictEqual(protocol.indexers.java.toolchain.buildTool, 'maven');
+  });
+
   // ── the real indexers, end to end ──────────────────────────────────────────
 
   const indexers = process.env.SIGMAP_SCIP_INDEXERS;
@@ -850,6 +905,72 @@ function build(files, { encoding, typed } = {}) {
         'method/self src/m.py#save->src/m.py#log',
       ]);
       assert.strictEqual(ref.counts.selfEdges, 1, 'Child.save calling super().save() is a node calling itself');
+    });
+  }
+
+  // wave 2: needs the Go and Java toolchains, which --setup-indexers <dir> --with go,java installs
+  const w2 = (key) => (ready || indexers ? tc.wave2Tools(key, indexers, protocol) : { reason: 'no SIGMAP_SCIP_INDEXERS' });
+  const goReady = w2('go');
+  const javaReady = w2('java');
+  if (goReady.reason) {
+    skip('real scip-go on a Go fixture', goReady.reason);
+  } else {
+    await test('real scip-go: reads the typed ranges it writes; bare calls are found by the graph, calls through a receiver are not', () => {
+      const dir = tmp('sigmap-cgacc-go-');
+      put(path.join(dir, 'go.mod'), 'module demo\n\ngo 1.21\n');
+      put(path.join(dir, 'src/demo.go'), [
+        'package demo', '', 'type Repo struct{ name string }', '', 'func Helper(x int) int { return x + 1 }', '',
+        'func NewRepo(name string) *Repo { return &Repo{name: name} }', '', 'func (r *Repo) Save(item string) {', '\tr.log(item)', '}', '',
+        'func (r *Repo) log(msg string) {', '\tHelper(1)', '}', '', 'func Run() {', '\tr := NewRepo("n")', '\tr.Save("i")', '\tHelper(2)', '}', '',
+      ].join('\n'));
+      const scip = path.join(dir, 'out.scip');
+      const cmd = tc.indexerCommand({ key: 'go', spec: protocol.indexers.go, tools: goReady.tools, home: indexers, repo: { name: 'demo', commit: '0'.repeat(40) }, scip, tmp: tmp('sigmap-cgacc-idx-'), heapMb: 2048 });
+      const idx = spawnSync(cmd.bin, cmd.argv, { cwd: dir, env: cmd.env, encoding: 'utf8', maxBuffer: 1 << 26 });
+      assert.strictEqual(idx.status, 0, idx.stderr);
+      const ref = edges.deriveReferenceEdges(edges.readScipIndex(fs.readFileSync(scip)), (rel) => fs.readFileSync(path.join(dir, rel), 'utf8'));
+      assert.deepStrictEqual(listing(ref), [
+        'function/bare src/demo.go#Run->src/demo.go#Helper',
+        'function/bare src/demo.go#Run->src/demo.go#NewRepo',
+        'function/bare src/demo.go#log->src/demo.go#Helper',
+        'method/receiver src/demo.go#Run->src/demo.go#Save',
+        'method/receiver src/demo.go#Save->src/demo.go#log',
+      ].sort());
+      const { buildCallGraph } = require(path.join(ROOT, 'src/graph/call-graph.js'));
+      const r = lib.compareRepo(buildCallGraph(dir), ref);
+      const total = [...r.clusters.values()].reduce((acc, c) => { for (const [k, v] of Object.entries(c)) acc[k] = (acc[k] || 0) + v; return acc; }, {});
+      assert.strictEqual(total.tp, 3, 'the three bare calls');
+      assert.strictEqual(total['tp:method/no-bare'] || 0, 0);
+    });
+  }
+
+  if (javaReady.reason) {
+    skip('real scip-java on a Maven fixture', javaReady.reason);
+  } else {
+    await test('real scip-java: the graph resolves receiver calls through declared types, and misses only a call through "this"', () => {
+      const dir = tmp('sigmap-cgacc-java-');
+      put(path.join(dir, 'pom.xml'), '<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><groupId>demo</groupId><artifactId>demo</artifactId><version>1.0</version><properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties></project>\n');
+      const j = (name, body) => put(path.join(dir, `src/main/java/demo/${name}.java`), `package demo;\n\n${body}\n`);
+      j('Repo', 'public class Repo {\n    private final Helper helper = new Helper();\n\n    public Repo() {\n    }\n\n    public void save(String item) {\n        this.log(item);\n        helper.assist(item);\n    }\n\n    void log(String msg) {\n        Util.format(msg);\n    }\n\n    static Repo create() {\n        return new Repo();\n    }\n}');
+      j('Helper', 'class Helper {\n    void assist(String s) {\n        Util.format(s);\n    }\n}');
+      j('Util', 'class Util {\n    static String format(String s) {\n        return s;\n    }\n}');
+      j('Main', 'public class Main {\n    public static void main(String[] args) {\n        Repo r = Repo.create();\n        r.save("x");\n        Util.format("y");\n    }\n}');
+      const scip = path.join(dir, 'out.scip');
+      const cmd = tc.indexerCommand({ key: 'java', spec: protocol.indexers.java, tools: javaReady.tools, home: indexers, repo: { name: 'demo', commit: '0'.repeat(40) }, scip, tmp: tmp('sigmap-cgacc-idx-'), heapMb: 2048 });
+      const idx = spawnSync(cmd.bin, cmd.argv, { cwd: dir, env: cmd.env, encoding: 'utf8', maxBuffer: 1 << 26 });
+      assert.strictEqual(idx.status, 0, (idx.stderr || idx.stdout).slice(-600));
+      // the graph is built on a tree the build has not written into
+      const pristine = tmp('sigmap-cgacc-java-src-');
+      fs.cpSync(path.join(dir, 'src'), path.join(pristine, 'src'), { recursive: true });
+      const ref = edges.deriveReferenceEdges(edges.readScipIndex(fs.readFileSync(scip)), (rel) => fs.readFileSync(path.join(dir, rel), 'utf8'));
+      assert.strictEqual(ref.edges.size, 8);
+      const { buildCallGraph } = require(path.join(ROOT, 'src/graph/call-graph.js'));
+      const r = lib.compareRepo(buildCallGraph(pristine), ref);
+      const total = [...r.clusters.values()].reduce((acc, c) => { for (const [k, v] of Object.entries(c)) acc[k] = (acc[k] || 0) + v; return acc; }, {});
+      assert.strictEqual(total.ref, 8);
+      assert.strictEqual(total.tp, 7, 'every edge but save -> log, which is a call through this');
+      assert.strictEqual(total.graph, 7, 'and nothing the compiler did not see');
+      assert.strictEqual(r.samples.missed.length, 1);
+      assert.ok(r.samples.missed[0].edge.includes('Repo.java#save -> src/main/java/demo/Repo.java#log'));
     });
   }
 

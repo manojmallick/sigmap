@@ -10,8 +10,22 @@
   "indexers": {
     "typescript": { "package": "@sourcegraph/scip-typescript", "version": "0.5.2", "covers": ["typescript", "javascript"], "wave": 1 },
     "python": { "package": "@sourcegraph/scip-python", "version": "0.6.8", "covers": ["python"], "wave": 1 },
-    "go": { "package": "github.com/scip-code/scip-go", "version": "pending", "covers": ["go"], "wave": 2, "note": "needs a Go toolchain; run only if it can be installed into a scratch directory without a system install" },
-    "java": { "package": "com.sourcegraph:scip-java", "version": "pending", "covers": ["java"], "wave": 2, "note": "needs a supported JDK and a working build of the pinned repository" }
+    "go": {
+      "package": "github.com/scip-code/scip-go",
+      "version": "0.2.9",
+      "covers": ["go"],
+      "wave": 2,
+      "toolchain": { "go": "1.27.3" },
+      "note": "pinned 2026-10-26, before the first Go run; the Go toolchain and scip-go are installed into the setup directory, never system-wide"
+    },
+    "java": {
+      "package": "com.sourcegraph:scip-java_2.13",
+      "version": "0.12.3",
+      "covers": ["java"],
+      "wave": 2,
+      "toolchain": { "jdk": "21.0.13+9", "coursier": "2.1.24", "coursierSha256": { "darwin-arm64": "53a5728c2016118c8296fa7d5678ddfe122e22dc6c36deb554d771b3b9295b4f" }, "buildTool": "maven" },
+      "note": "pinned 2026-10-26, before the first Java run; Temurin JDK and the scip-java launcher are installed into the setup directory, never system-wide; the pinned repositories are indexed with `--build-tool maven`"
+    }
   },
   "typescriptProject": {
     "typescript": "use the repository's own root tsconfig.json unchanged",

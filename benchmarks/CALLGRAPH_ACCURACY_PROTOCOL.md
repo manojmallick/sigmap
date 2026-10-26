@@ -80,20 +80,20 @@ Where a prediction is wrong the report says so. P1 and P4 are structural and are
 | typescript | `@sourcegraph/scip-typescript` 0.5.2, the repository's own `tsconfig.json` | zod, excalidraw |
 | javascript | `@sourcegraph/scip-typescript` 0.5.2, a generated `allowJs` project (JSON `typescriptProject`) | express, fastify |
 | python | `@sourcegraph/scip-python` 0.6.8 | flask, fastapi, django |
-| go (wave 2) | `scip-go`, version recorded when installed | gin, gorm |
-| java (wave 2) | `scip-java`, version recorded when installed | gson, spring-petclinic |
+| go (wave 2) | `scip-go` 0.2.9, built with Go 1.27.3 | gin, gorm |
+| java (wave 2) | `scip-java` 0.12.3 (coursier 2.1.24), Temurin JDK 21.0.13+9, `--build-tool maven` | gson, spring-petclinic |
 
-Waves 1 and 2 share this protocol. Wave 2 runs only if its indexer and toolchain can be installed into a scratch directory without a system install; otherwise it is reported unmeasured with the reason.
+Waves 1 and 2 share this protocol. The wave-2 toolchains are pinned too and are installed by `--setup-indexers <dir> --with go,java` into the setup directory, never system-wide; every download is checked against a published checksum (the coursier launcher against the one recorded in the JSON). Java builds the repository, so it needs a working Maven build; a repository that does not build is reported unmeasured with the build's error.
 
 **No substitution.** A repository whose indexer fails or exceeds 30 minutes is reported unmeasured with the reason; it is not replaced by a friendlier one.
 
-**Development used other repositories.** The reference deriver was built and checked on `src/` of this repository (as JavaScript) and on `click`, neither of which is in the table.
+**Development used other repositories.** The reference deriver was built and checked on `src/` of this repository (as JavaScript), on `click` (Python), on `cobra` (Go), on small hand-written fixtures in every language, and on a synthetic Maven project for Java. `retrofit` was tried for Java and abandoned (scip-java's Gradle plugin failed on its Android module). None of them is in the table.
 
 ## 9. Reproducing a run
 
 ```
-node scripts/fetch-xrepo-repos.mjs --only zod,excalidraw,express,fastify,flask,fastapi,django
-node scripts/run-callgraph-accuracy.mjs --setup-indexers <dir>      # installs the two pinned indexers into <dir>
+node scripts/fetch-xrepo-repos.mjs --only zod,excalidraw,express,fastify,flask,fastapi,django,gin,gorm,gson
+node scripts/run-callgraph-accuracy.mjs --setup-indexers <dir> --with go,java   # installs the pinned indexers and toolchains into <dir>
 node scripts/run-callgraph-accuracy.mjs --indexers <dir>            # prints the tables
 node scripts/run-callgraph-accuracy.mjs --indexers <dir> --save     # also writes benchmarks/reports/callgraph-accuracy.json
 ```
@@ -131,6 +131,8 @@ Receiver-only method recall 0.0%, so the section 5 threshold said a spike is war
 6. Reasons for each missed reference edge, computed by the harness from the graph's own nodes and masker: the graph has no node for the caller, no node for the callee, every call site is one its masker hides (a string, a template literal, a comment), or both nodes exist and the call was not seen (same file) or not linked (another file). And a reason for a graph edge the reference lacks that is not the blind spot: the callee is declared inside the caller, which is how the graph reads a nested `def name(` as a call. These explain the figures; they do not change them.
 7. A per-repository summary line (edges, recall, precision) in the saved report, so each pooled figure can be traced to the repository that produced it.
 
-**Operational, before the first wave-2 run:**
+**Before the first wave-2 run** (neither Go nor Java had run; the JSON said `pending` for both):
 
 8. The SCIP reader accepts the typed range messages (`single_line_range`, `multi_line_range` and their enclosing forms, fields 8 to 11) and prefers them over the deprecated packed `range`, as the schema asks of consumers. scip-go v0.2.9 writes only the typed form; scip-typescript 0.5.2 and scip-python 0.6.8 still write the packed one, so no wave-1 figure depends on this.
+9. The wave-2 versions are now pinned in the JSON: Go 1.27.3 with scip-go 0.2.9, and Temurin JDK 21.0.13+9 with coursier 2.1.24 (and its checksum) and scip-java 0.12.3, built with Maven. Section 8 and the JSON agree.
+10. The graph is built from a pristine export of each repository, and the indexer runs in a second export of its own. A Maven build writes `target/` into the tree it runs in, and generated sources there would change what the graph walks.

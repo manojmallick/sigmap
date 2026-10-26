@@ -3,7 +3,8 @@
  * Call-graph accuracy: how often do the edges of SigMap's method-level call graph agree with
  * the edges a compiler resolves? (#976)
  *
- *   node scripts/run-callgraph-accuracy.mjs --setup-indexers <dir>     # install the pinned indexers into <dir>
+ *   node scripts/run-callgraph-accuracy.mjs --setup-indexers <dir>     # install the pinned wave-1 indexers into <dir>
+ *   node scripts/run-callgraph-accuracy.mjs --setup-indexers <dir> --with go,java   # and the Go / Java toolchains and indexers
  *   node scripts/run-callgraph-accuracy.mjs --indexers <dir>           # score every registered repository
  *   node scripts/run-callgraph-accuracy.mjs --indexers <dir> --save    # also write benchmarks/reports/callgraph-accuracy.json
  *   node scripts/run-callgraph-accuracy.mjs --indexers <dir> --only flask,typescript --misses 5
@@ -37,6 +38,7 @@ import {
   formatGroup, sumCounts, sumTwoLevel, summaryOf,
 } from './lib/callgraph-accuracy.mjs';
 import { stamp } from './lib/report-stamp.mjs';
+import { setupGo, setupJava, writeWave2, wave2Tools, indexerCommand } from './lib/scip-toolchains.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -67,14 +69,25 @@ const tail = excerpt;
 
 const INDEXER_PACKAGES = { typescript: '@sourcegraph/scip-typescript', python: '@sourcegraph/scip-python' };
 
-/** Install the pinned indexers into `dir` (no install scripts run). */
-function setupIndexers(dir, protocol) {
+/** Install the pinned indexers into `dir` (no install scripts run); `with` adds the wave-2 toolchains. */
+async function setupIndexers(dir, protocol, withList) {
   fs.mkdirSync(dir, { recursive: true });
   const specs = Object.values(protocol.indexers).filter((i) => i.wave === 1).map((i) => `${i.package}@${i.version}`);
   const r = run('npm', ['install', '--prefix', dir, '--ignore-scripts', '--no-audit', '--no-fund', ...specs]);
   if (!r.ok) { console.error(`[callgraph-accuracy] npm install failed: ${tail(r.stderr)}`); return 1; }
   for (const [name, pkg] of Object.entries(INDEXER_PACKAGES)) {
     console.log(`[callgraph-accuracy] ${name}: ${pkg}@${installedVersion(dir, pkg)} in ${dir}`);
+  }
+  for (const key of withList) {
+    if (key !== 'go' && key !== 'java') { console.error(`[callgraph-accuracy] --with takes go and/or java, not ${key}`); return 1; }
+    try {
+      const rec = key === 'go' ? await setupGo(dir, protocol) : await setupJava(dir, protocol);
+      writeWave2(dir, { [key]: rec });
+      console.log(`[callgraph-accuracy] ${key}: ${key === 'go' ? `Go ${rec.goVersion}, scip-go ${rec.scipGoVersion}` : `JDK ${rec.jdk}, scip-java ${rec.scipJavaVersion}`} in ${dir}`);
+    } catch (e) {
+      console.error(`[callgraph-accuracy] ${key} setup failed: ${e.message}`);
+      return 1;
+    }
   }
   return 0;
 }
@@ -88,11 +101,14 @@ function indexerFor(group, dir, protocol) {
   const key = group === 'javascript' ? 'typescript' : group;
   const spec = protocol.indexers[key];
   if (!spec) return { reason: `no indexer registered for ${group}` };
-  if (spec.wave !== 1) return { reason: `${key} indexer is wave 2 and has not been set up (${spec.note})` };
+  if (spec.wave === 2) {
+    const w = wave2Tools(key, dir, protocol);
+    return w.reason ? { reason: w.reason } : { key, spec, tools: w.tools };
+  }
   if (!dir) return { reason: 'no --indexers directory (run --setup-indexers <dir> first)' };
   const have = installedVersion(dir, spec.package);
   if (have !== spec.version) return { reason: `${spec.package} is ${have || 'not installed'} in ${dir}, the protocol pins ${spec.version}` };
-  return { key, spec, bin: path.join(dir, 'node_modules', '.bin', key === 'typescript' ? 'scip-typescript' : 'scip-python') };
+  return { key, spec, tools: { bin: path.join(dir, 'node_modules', '.bin', key === 'typescript' ? 'scip-typescript' : 'scip-python') } };
 }
 
 // ── Repository trees ─────────────────────────────────────────────────────────
@@ -131,17 +147,15 @@ export function prepareProject(group, tree, protocol) {
   return null; // python and the wave-2 languages need no project file
 }
 
-function indexTree({ indexer, group, repo, tree, scip, protocol, work, reindex }) {
+/** Index `indexTree` (a scratch export no one else reads) into `scip`, unless an index is cached. */
+function indexRepo({ indexer, repo, indexTree, scip, protocol, work, indexersDir, reindex }) {
   if (!reindex && fs.existsSync(scip)) return { cached: true };
   const tmp = path.join(work, 'tmp');
   fs.mkdirSync(tmp, { recursive: true });
-  const argv = indexer.key === 'typescript'
-    ? ['index', '--no-progress-bar', '--output', scip]
-    : ['index', '.', '--project-name', repo.name, '--project-version', repo.commit.slice(0, 7), '--output', scip, '--quiet'];
-  const heap = Math.floor((os.totalmem() / 1048576) * 0.75);
-  const env = { ...process.env, TMPDIR: tmp, NODE_OPTIONS: process.env.NODE_OPTIONS || `--max-old-space-size=${Math.min(heap, 12288)}` };
+  const heapMb = Math.min(Math.floor((os.totalmem() / 1048576) * 0.75), 12288);
+  const cmd = indexerCommand({ key: indexer.key, spec: indexer.spec, tools: indexer.tools, home: indexersDir, repo, scip, tmp, heapMb });
   const started = Date.now();
-  const r = run(indexer.bin, argv, { cwd: tree, env, timeout: protocol.indexTimeoutMinutes * 60000, killSignal: 'SIGKILL' });
+  const r = run(cmd.bin, cmd.argv, { cwd: indexTree, env: cmd.env, timeout: protocol.indexTimeoutMinutes * 60000, killSignal: 'SIGKILL' });
   fs.rmSync(tmp, { recursive: true, force: true });
   if (r.error && r.error.code === 'ETIMEDOUT') return { failed: `the indexer ran past ${protocol.indexTimeoutMinutes} minutes` };
   if (!r.ok || !fs.existsSync(scip)) return { failed: `the indexer exited ${r.status ?? r.signal}: ${tail(r.stderr || r.stdout)}` };
@@ -178,15 +192,25 @@ function measureRepo(group, repo, ctx) {
   if (!fs.existsSync(path.join(clone, '.git'))) return unmeasured(`no clone at ${clone} (node scripts/fetch-xrepo-repos.mjs --only ${repo.name})`);
   if (!run('git', ['-C', clone, 'cat-file', '-e', `${repo.commit}^{commit}`]).ok) return unmeasured(`the clone does not contain the pinned commit ${repo.commit.slice(0, 7)}`);
 
+  // `tree` is the pristine export the graph is built from and the sources are read from. An
+  // indexer may write into the tree it runs in (a Maven build leaves target/), so it gets its own.
   const dir = path.join(work, `${repo.name}-${repo.commit.slice(0, 7)}`);
   const tree = path.join(dir, 'tree');
   let err = exportTree(clone, repo.commit, tree, work);
-  if (!err) err = prepareProject(group, tree, protocol);
   if (err) return unmeasured(err);
 
   const scip = path.join(dir, `${found.key}-${found.spec.version}.scip`);
-  const indexed = indexTree({ indexer: found, group, repo, tree, scip, protocol, work, reindex: flag('--reindex') });
-  if (indexed.failed) return unmeasured(indexed.failed);
+  const reindex = flag('--reindex');
+  let indexed = { cached: true };
+  if (reindex || !fs.existsSync(scip)) {
+    const indexTree = path.join(dir, 'index-tree');
+    fs.rmSync(indexTree, { recursive: true, force: true });
+    err = exportTree(clone, repo.commit, indexTree, work) || prepareProject(group, indexTree, protocol);
+    if (err) return unmeasured(err);
+    indexed = indexRepo({ indexer: found, repo, indexTree, scip, protocol, work, indexersDir, reindex });
+    fs.rmSync(indexTree, { recursive: true, force: true });
+    if (indexed.failed) return unmeasured(indexed.failed);
+  }
 
   const index = readScipIndex(fs.readFileSync(scip));
   const ref = deriveReferenceEdges(index, (rel) => {
@@ -264,7 +288,11 @@ function devRun(tree, scipFile, protocol) {
 
 async function main() {
   const protocol = loadProtocol(ROOT);
-  if (opt('--setup-indexers')) { process.exitCode = setupIndexers(path.resolve(opt('--setup-indexers')), protocol); return; }
+  if (opt('--setup-indexers')) {
+    const withList = opt('--with') ? opt('--with').split(',') : [];
+    process.exitCode = await setupIndexers(path.resolve(opt('--setup-indexers')), protocol, withList);
+    return;
+  }
   if (opt('--tree')) {
     if (!opt('--scip')) { console.error('[callgraph-accuracy] --tree needs --scip <index file>'); process.exitCode = 1; return; }
     devRun(path.resolve(opt('--tree')), path.resolve(opt('--scip')), protocol);
