@@ -57,9 +57,16 @@ function run(cmd, argv, options = {}) {
   return { ok: r.status === 0 && !r.error, status: r.status, signal: r.signal, error: r.error, stdout: r.stdout || '', stderr: r.stderr || '' };
 }
 
-/** The first lines of an error say what failed; the last say where. Both, trimmed, on one line. */
+/**
+ * What an indexer failure says, on one line. Maven prints its own `[ERROR]` lines, which name the
+ * failure; anything else is shown as its first lines (what failed) and its last (where).
+ */
 export function excerpt(text, head = 3, tail = 2) {
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  // eslint-disable-next-line no-control-regex
+  const lines = text.replace(/\u001b\[[0-9;]*m/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const noise = /\[Help \d+\]|^\[ERROR\]\s*->|re-run Maven|For more information|To see the full stack trace|^\[ERROR\]\s*$/i;
+  const maven = lines.filter((l) => /^\[ERROR\]\s*\S/.test(l) && !noise.test(l));
+  if (maven.length) return maven.slice(0, 3).join(' | ').slice(0, 600);
   const keep = lines.length > head + tail ? [...lines.slice(0, head), '...', ...lines.slice(-tail)] : lines;
   return keep.join(' | ').slice(0, 600);
 }

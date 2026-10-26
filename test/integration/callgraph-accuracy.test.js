@@ -737,6 +737,9 @@ function build(files, { encoding, typed } = {}) {
     assert.ok(out.startsWith('error: no files got indexed'));
     assert.ok(out.includes('Node.js v25') && out.includes('...'));
     assert.ok(out.length < 400);
+    // a failed Maven build: its [ERROR] lines say what failed, not the echo of the command it ran
+    const maven = ['\u001b[94m$ mvn -Dmaven.compiler.executable=/tmp/x/javac clean verify\u001b[39m', '[INFO] Scanning for projects...', '[ERROR] COMPILATION ERROR :', '[ERROR] error: invalid flag: -XepExcludedPaths:x', '[ERROR] ', '[ERROR] -> [Help 1]', '[ERROR] For more information about the errors, read the following articles:'].join('\n');
+    assert.strictEqual(runner.excerpt(maven), '[ERROR] COMPILATION ERROR : | [ERROR] error: invalid flag: -XepExcludedPaths:x');
   });
 
   await test('the report is saved where the docs and the generator look for it', () => {

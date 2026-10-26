@@ -136,3 +136,10 @@ Receiver-only method recall 0.0%, so the section 5 threshold said a spike is war
 8. The SCIP reader accepts the typed range messages (`single_line_range`, `multi_line_range` and their enclosing forms, fields 8 to 11) and prefers them over the deprecated packed `range`, as the schema asks of consumers. scip-go v0.2.9 writes only the typed form; scip-typescript 0.5.2 and scip-python 0.6.8 still write the packed one, so no wave-1 figure depends on this.
 9. The wave-2 versions are now pinned in the JSON: Go 1.27.3 with scip-go 0.2.9, and Temurin JDK 21.0.13+9 with coursier 2.1.24 (and its checksum) and scip-java 0.12.3, built with Maven. Section 8 and the JSON agree.
 10. The graph is built from a pristine export of each repository, and the indexer runs in a second export of its own. A Maven build writes `target/` into the tree it runs in, and generated sources there would change what the graph walks.
+
+### 2026-10-26, the final run
+
+The final run started from an empty work directory (no cached index) with the protocol and harness as committed, and measured every registered repository except one.
+
+11. **`java/gson` is unmeasured; the Java figures are spring-petclinic alone.** gson's `pom.xml` passes Error Prone to `javac` as one multi-line compiler argument (`-Xplugin:ErrorProne` followed by its options on the next lines), and scip-java replaces `javac` with a wrapper that rejects the options once the first line is dropped. On a scratch copy: ignoring the `-Xplugin:ErrorProne` prefix did not help (the continuation lines arrive as separate arguments with leading whitespace); deleting that argument from the copy's `pom.xml` let the build reach the Spotless format check, which that edit trips; skipping Spotless reached a `failOnWarning` set explicitly in the pom, which a command-line property cannot override. The attempt stopped there, as section 8 requires: no substitute, no edit beyond the throwaway copy, and no number from gson. One Java repository is a small sample for any claim about Java, and the Java rows say so.
+12. A failed build reports Maven's own `[ERROR]` lines rather than the command it echoed.
