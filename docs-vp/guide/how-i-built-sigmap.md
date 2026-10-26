@@ -31,7 +31,7 @@ Before the story, the outcome — so you know what you're reading toward. These 
 |---|---|
 | File retrieval accuracy | **80.4% hit@5** (vs 13.6% baseline — 5.9× lift) |
 | Token reduction | **40–98%** across 18 real open-source repos |
-| Task success rate | **61.9%** (vs 10% without context) |
+| Task success rate | **60.0%** (vs 10% without context) |
 | Prompts per task | **1.69** (down from 2.84) |
 | Dependencies | **Zero** |
 

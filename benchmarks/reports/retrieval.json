@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-23T14:43:11.498Z",
+  "generated": "2026-10-26T21:28:10.440Z",
   "repos": [
     {
       "repo": "express",
@@ -378,7 +378,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 243,
+      "sigCount": 211,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.733,
@@ -441,7 +441,7 @@
             "actionview/lib/action_view/renderer/template_renderer.rb",
             "actionview/lib/action_view/template/handlers/erb.rb"
           ],
-          "top1": "actionview/lib/action_view/template/handlers/erb/erubi.rb",
+          "top1": "railties/lib/rails/templates/rails/mailers/email.html.erb",
           "firstHitRank": 3,
           "tier": "partial"
         }
@@ -628,15 +628,15 @@
     {
       "repo": "abseil-cpp",
       "fileCount": 700,
-      "sigCount": 130,
+      "sigCount": 114,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 1,
+      "mrr": 0.733,
       "randomBaseline": 0.007,
       "improvement": 140,
       "tiers": {
-        "correct": 5,
-        "partial": 0,
+        "correct": 3,
+        "partial": 2,
         "wrong": 0
       },
       "taskDetails": [
@@ -669,9 +669,9 @@
             "absl/time/internal/cctz/include/cctz/time_zone.h",
             "absl/time/internal/cctz/src/time_zone_impl.h"
           ],
-          "top1": "absl/time/internal/cctz/include/cctz/time_zone.h",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "absl/time/internal/cctz/src/time_zone_format.cc",
+          "firstHitRank": 3,
+          "tier": "partial"
         },
         {
           "id": "absl-t004",
@@ -680,9 +680,9 @@
             "absl/types/span.h",
             "absl/types/internal/span.h"
           ],
-          "top1": "absl/types/span.h",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "absl/time/civil_time_benchmark.cc",
+          "firstHitRank": 3,
+          "tier": "partial"
         },
         {
           "id": "absl-t005",
@@ -1048,7 +1048,7 @@
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 92,
+      "sigCount": 95,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.05,
