@@ -1,27 +1,27 @@
 {
   "overall": {
     "tasks": 208,
-    "hits": 116,
-    "hitAt5": 0.5576923076923077,
-    "mrr": 0.3797644230769231,
-    "precisionAt5": 0.11345192307692308
+    "hits": 115,
+    "hitAt5": 0.5528846153846154,
+    "mrr": 0.37934615384615383,
+    "precisionAt5": 0.1124903846153846
   },
   "why": {
-    "hits": 116,
+    "hits": 115,
     "misses": {
       "answer not indexed": 13,
       "demoted by a path penalty": 0,
-      "no token in common with the question": 4,
+      "no token in common with the question": 3,
       "ranked 6-10": 22,
-      "ranked 11-20": 14,
-      "ranked 21-50": 25,
-      "ranked beyond 50": 14
+      "ranked 11-20": 15,
+      "ranked 21-50": 23,
+      "ranked beyond 50": 17
     },
-    "reachable": 191,
-    "reachableHits": 116,
+    "reachable": 192,
+    "reachableHits": 115,
     "noTokenWords": {
       "distinctive": 0,
-      "commonOnly": 3,
+      "commonOnly": 2,
       "nowhere": 1,
       "inIndex": 0
     }
@@ -32,14 +32,14 @@
       "tasks": 8,
       "hits": 1,
       "hitAt5": 0.125,
-      "mrr": 0.025,
+      "mrr": 0.031,
       "precisionAt5": 0.025,
       "unreachable": [],
       "ranks": {
         "x177": null,
         "x178": null,
         "x179": null,
-        "x180": 5,
+        "x180": 4,
         "x181": null,
         "x182": null,
         "x183": null,
@@ -523,17 +523,17 @@
     "spdlog": {
       "language": "cpp",
       "tasks": 5,
-      "hits": 3,
-      "hitAt5": 0.6,
-      "mrr": 0.267,
-      "precisionAt5": 0.12,
+      "hits": 2,
+      "hitAt5": 0.4,
+      "mrr": 0.24,
+      "precisionAt5": 0.08,
       "unreachable": [],
       "ranks": {
         "x099": null,
-        "x100": 2,
+        "x100": 5,
         "x101": null,
-        "x102": 3,
-        "x103": 2
+        "x102": null,
+        "x103": 1
       }
     },
     "svelte": {
