@@ -80,6 +80,16 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
     assert.deepStrictEqual(r.samples.wrong, ['a -> c']);
   });
 
+  await test('why an edge is missed or wrong: the adapter\'s account, else the file it reaches; a file importing itself is named', () => {
+    const r = lib.compareImports({
+      graphEdges: e('a.vue>a.vue', 'a.vue>k.ts'), walked: new Set(['a.vue']), covered: new Set(['a.vue']), importers: everyone,
+      refEdges: [['a.vue', 'm.d.ts', 'a bare specifier'], ['a.vue', 'n.d.ts', 'a bare specifier'], ['a.vue', 'x.inc'], ['a.vue', 'k.ts', 'a relative path']],
+    });
+    assert.deepStrictEqual(r.diagnostics.missedByKind, { 'a bare specifier': 2, 'reaches a .inc file': 1 }, 'k.ts was found, so it is not a miss');
+    assert.deepStrictEqual(r.diagnostics.wrongByKind, { 'a file importing itself': 1 });
+    assert.deepStrictEqual(lib.sumKinds([{ x: 1, y: 2 }, { x: 3 }, undefined]), { x: 4, y: 2 });
+  });
+
   await test('an edge to a file outside the walk is still compared: the graph cannot have it, so it is a miss, not scope', () => {
     const r = lib.compareImports({ graphEdges: [], refEdges: e('a>outside'), walked: new Set(['a']), covered: new Set(['a']), importers: everyone });
     assert.strictEqual(r.counts.referenceEdges, 1);
@@ -218,7 +228,7 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
   const synthetic = () => ({
     version: '9.9.9', sigmap: { commit: 'abcdef0123456789' }, protocol: { commit: '0123456789abcdef' },
     environment: { node: 'v22.0.0', platform: 'darwin-arm64' },
-    groups: { c: { repos: ['libuv', 'abseil-cpp'], reference: 'Apple clang 17', counts: {}, table: { precision: cellOf(0.91, 400, 0.88, 0.94), recall: cellOf(0.97, 380, 0.95, 0.99), f1: 0.939 } },
+    groups: { c: { repos: ['libuv', 'abseil-cpp'], reference: 'Apple clang 17', counts: {}, diagnostics: { missedByKind: { 'reaches a .inc file': 11 }, wrongByKind: { 'reaches a .h file': 7, 'a file importing itself': 1 } }, table: { precision: cellOf(0.91, 400, 0.88, 0.94), recall: cellOf(0.97, 380, 0.95, 0.99), f1: 0.939 } },
       swift: { repos: ['alamofire'], reference: 'swift 6.2', counts: {}, table: { precision: cellOf(1, 12, 1, 1), recall: cellOf(1, 12, 1, 1), f1: 1 } } },
     repos: { c: { libuv: { status: 'measured', commit: 'a'.repeat(40), counts: { universe: 90, walked: 100, covered: 95, referenceEdges: 200, graphEdges: 210, truePositives: 190, graphEdgesOutsideUniverse: 3, referenceEdgesOutsideUniverse: 4 } },
       'abseil-cpp': { status: 'unmeasured', commit: 'b'.repeat(40), reason: 'no clone at /x' } } },
@@ -231,6 +241,9 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
     assert.ok(block.startsWith(doc.BEGIN) && block.endsWith(doc.END));
     assert.ok(block.includes('| **C / C++ / Objective-C** | libuv, abseil-cpp | 380 | 97.0% (95-99) | 400 | 91.0% (88-94) | 93.9% |'), block);
     assert.ok(block.includes('n=12, too few'), 'a cell under the minimum is not quoted');
+    assert.ok(block.includes('| reaches a .inc file | 11 |'), 'the reasons edges were missed');
+    assert.ok(block.includes('| **all** | **8** |'), 'and the graph edges the reference lacks, in total');
+    assert.ok(block.includes('| Reference edges the graph lacks, by how the import reaches its file | C / C++ / Objective-C |\n'), 'a group without diagnostics has no column');
     assert.ok(block.includes('| Lua | language | no reference exists to run |'));
     assert.ok(block.includes('| C / C++ / Objective-C | abseil-cpp | `bbbbbbb` | unmeasured'));
     assert.ok(block.includes('| P1 | C recall is at least 90% | held | 97.0% |'));
@@ -342,8 +355,14 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
     const sfc = await import(path.join(ROOT, 'scripts/import-accuracy/sfc.mjs'));
     await test('the component reference: the framework\'s script, TypeScript\'s resolution; a package and a missing file are not edges', async () => {
       const tree = tmp('sigmap-impacc-sfc-');
-      put(path.join(tree, 'tsconfig.json'), JSON.stringify({ compilerOptions: { moduleResolution: 'bundler', module: 'esnext', target: 'es2020' } }));
-      put(path.join(tree, 'src/App.vue'), '<script setup lang="ts">\nimport Child from "./Child.vue"\nimport { x } from "./util"\nimport vue from "vue"\nimport nope from "./nope"\n</script>\n<template><Child/></template>\n');
+      put(path.join(tree, 'tsconfig.json'), JSON.stringify({ compilerOptions: { moduleResolution: 'bundler', module: 'esnext', target: 'es2020', resolveJsonModule: true, baseUrl: '.', paths: { '@/*': ['src/*'] } } }));
+      put(path.join(tree, 'package.json'), JSON.stringify({ name: 'app', imports: { '#c/*': './src/*' } }));
+      put(path.join(tree, 'src/App.vue'), '<script setup lang="ts">\nimport Child from "./Child.vue"\nimport { x } from "./util"\nimport vue from "vue"\nimport nope from "./nope"\nimport b from "./b.js"\nimport data from "./data.json"\nimport type { T } from "./types"\nimport z from "@/zed"\nimport o from "#c/util2.js"\n</script>\n<template><Child/></template>\n');
+      put(path.join(tree, 'src/b.ts'), 'export default 1\n');
+      put(path.join(tree, 'src/data.json'), '{}');
+      put(path.join(tree, 'src/types.d.ts'), 'export type T = 1\n');
+      put(path.join(tree, 'src/zed.ts'), 'export default 1\n');
+      put(path.join(tree, 'src/util2.ts'), 'export default 2\n');
       put(path.join(tree, 'src/Child.vue'), '<template><i/></template>\n');
       put(path.join(tree, 'src/util.ts'), 'export const x = 1\n');
       put(path.join(tree, 'node_modules/vue/package.json'), '{"name":"vue","main":"index.js"}');
@@ -351,7 +370,15 @@ const have = (cmd) => { const r = spawnSync(cmd, ['--version'], { encoding: 'utf
       const work = tmp('sigmap-impacc-swork-');
       const ref = await sfc.reference({ tree, files: ['src/App.vue', 'src/Child.vue'], tools: { dir: refsDir }, protocol, work });
       assert.ok(!(ref.notes && ref.notes.unmeasured), JSON.stringify(ref.notes));
-      assert.deepStrictEqual(ref.edges.map(([a, b]) => `${a} > ${b}`).sort(), ['src/App.vue > src/Child.vue', 'src/App.vue > src/util.ts']);
+      assert.deepStrictEqual(ref.edges.map(([a, b, kind]) => `${a} > ${b} | ${kind}`).sort(), [
+        'src/App.vue > src/Child.vue | a relative path',
+        'src/App.vue > src/b.ts | written .js/.jsx, the file is .ts/.tsx',
+        'src/App.vue > src/data.json | a JSON module',
+        'src/App.vue > src/types.d.ts | a relative path that resolves to a .d.ts',
+        'src/App.vue > src/util.ts | a relative path',
+        'src/App.vue > src/util2.ts | a "#name" import of the package.json imports map',
+        'src/App.vue > src/zed.ts | a bare specifier that resolves inside the repository',
+      ], 'the reference says how each import is written; vue (a package) and ./nope (no file) are not edges');
     });
   } else {
     skip('the PHP and component references', 'set SIGMAP_IMPORT_REFERENCES to the directory `run-import-accuracy.mjs --setup-references` filled');

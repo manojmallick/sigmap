@@ -84,4 +84,15 @@ A git co-change reference (files that change together in a commit) was listed in
 
 ## 9. Deviation log
 
-None yet.
+**2026-10-26 — a second run, to record why edges were missed.** The first registered run (scorer at `975d281`, protocol sha256 `e259922692bf…`, load average 3.44) gave the figures below. Reading the misses of the component group showed that most of them share one cause, and the report as run said only how many edges were missed, not why. The scorer was extended to count, for every missed and every extra edge, how the import reaches its file (`missedByKind`, `wrongByKind` in the report; `scripts/lib/import-accuracy.mjs`, `scripts/import-accuracy/sfc.mjs`) and the run was repeated to save a report that carries them. Nothing that decides an edge or a figure changed. The protocol file, the references, the repositories and the pinned commits are the ones of the first run, and the headline figures of the second run are checked against the first's before anything is published.
+
+First run (the figures the second run must reproduce):
+
+| Group | Precision | Graph edges | Recall | Reference edges |
+|---|---|---|---|---|
+| C / C++ / Objective-C | 99.7% | 4,609 | 99.7% | 4,611 |
+| Vue / Svelte / Astro | 99.7% | 1,539 | 79.0% | 1,941 |
+| PHP | 100.0% | 4,976 | 100.0% | 4,975 |
+| Swift (module level) | 100.0% | 150 | 99.3% | 151 |
+
+Predictions: P1, P2, P3, P5, P6, P7, P8 held; **P4 missed** (component recall 79.0% against 90%).

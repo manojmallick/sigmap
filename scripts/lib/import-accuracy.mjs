@@ -65,6 +65,20 @@ export function protocolState(root) {
 const bump = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
 
 /**
+ * How a reference edge reaches its target: what the adapter says about the import (a third
+ * element of the edge), else the extension of the file it reaches. Diagnostic only: no figure
+ * depends on it.
+ */
+const kindOf = ([, to, kind]) => kind || `reaches a ${path.extname(to) || '(no extension)'} file`;
+
+/** Add the counts of several `{ kind: n }` objects. */
+export function sumKinds(list) {
+  const out = {};
+  for (const o of list) for (const [k, n] of Object.entries(o || {})) bump(out, k, n);
+  return out;
+}
+
+/**
  * Compare one repository's graph edges with its reference edges.
  *
  * Both are lists of `[from, to]` repo-relative paths. The universe is the files the graph
@@ -88,14 +102,17 @@ export function compareImports({ graphEdges, refEdges, walked, covered, importer
   let tp = 0;
   const missed = [];
   const wrong = [];
-  for (const [k, [a, b]] of R) {
+  const missedByKind = {};
+  const wrongByKind = {};
+  for (const [k, e] of R) {
+    const [a, b] = e;
     const c = cluster(a);
     bump(c, 'ref');
-    if (G.has(k)) { tp++; bump(c, 'tp'); } else missed.push(`${a} -> ${b}`);
+    if (G.has(k)) { tp++; bump(c, 'tp'); } else { missed.push(`${a} -> ${b}`); bump(missedByKind, kindOf(e)); }
   }
   for (const [k, [a, b]] of G) {
     bump(cluster(a), 'graph');
-    if (!R.has(k)) wrong.push(`${a} -> ${b}`);
+    if (!R.has(k)) { wrong.push(`${a} -> ${b}`); bump(wrongByKind, a === b ? 'a file importing itself' : `reaches a ${path.extname(b) || '(no extension)'} file`); }
   }
   missed.sort();
   wrong.sort();
@@ -108,6 +125,7 @@ export function compareImports({ graphEdges, refEdges, walked, covered, importer
       referenceEdgesOutsideUniverse: refEdges.filter(([a]) => !universe.has(a)).length,
     },
     samples: { missed: missed.slice(0, SAMPLE_CAP), wrong: wrong.slice(0, SAMPLE_CAP) },
+    diagnostics: { missedByKind, wrongByKind },
   };
 }
 

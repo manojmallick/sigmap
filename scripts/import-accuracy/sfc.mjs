@@ -52,6 +52,22 @@ async function scriptsOf(ext, source, filename, tools) {
   return out;
 }
 
+const JS_NAMED = new Set(['.js', '.jsx', '.mjs', '.cjs']);
+const TS_FILE = new Set(['.ts', '.tsx', '.mts', '.cts']);
+
+/**
+ * How an import is written, for the report's account of why an edge was missed. Diagnostic
+ * only: it is the third element of an edge and no figure depends on it.
+ */
+export function kindOf(spec, to) {
+  if (spec.startsWith('#')) return 'a "#name" import of the package.json imports map';
+  if (!spec.startsWith('.') && !spec.startsWith('/')) return 'a bare specifier that resolves inside the repository';
+  if (/\.json$/.test(to)) return 'a JSON module';
+  if (JS_NAMED.has(path.extname(spec)) && TS_FILE.has(path.extname(to))) return 'written .js/.jsx, the file is .ts/.tsx';
+  if (/\.d\.ts$/.test(to)) return 'a relative path that resolves to a .d.ts';
+  return 'a relative path';
+}
+
 /** The repository's own compiler options for module resolution. */
 function compilerOptions(ts, tree) {
   const base = { moduleResolution: ts.ModuleResolutionKind.Bundler, module: ts.ModuleKind.ESNext, allowJs: true, resolveJsonModule: true, noEmit: true };
@@ -107,7 +123,7 @@ export async function reference({ tree, files, tools }) {
         const inTree = path.relative(treeReal, real);
         if (!inTree || inTree.startsWith('..') || path.isAbsolute(inTree) || inTree.split(path.sep).includes('node_modules')) continue;
         const to = inTree.replace(/\\/g, '/');
-        if (to !== rel) edges.set(`${rel}\u0000${to}`, [rel, to]);
+        if (to !== rel) edges.set(`${rel}\u0000${to}`, [rel, to, kindOf(imp.fileName, to)]);
       }
     }
   }

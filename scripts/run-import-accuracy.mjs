@@ -30,7 +30,7 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
-  SCHEMA, PROTOCOL_REL, loadProtocol, protocolState, compareImports, tableOf, sumCounts, formatGroup, swiftModuleEdges,
+  SCHEMA, PROTOCOL_REL, loadProtocol, protocolState, compareImports, tableOf, sumCounts, formatGroup, swiftModuleEdges, sumKinds,
 } from './lib/import-accuracy.mjs';
 import { stamp } from './lib/report-stamp.mjs';
 import { renderBlock, inject } from './lib/import-accuracy-doc.mjs';
@@ -231,13 +231,14 @@ async function measureRepo(group, repo, ctx) {
   fs.rmSync(refTree, { recursive: true, force: true });
   if (ref.notes && ref.notes.unmeasured) return unmeasured(ref.notes.unmeasured);
   const result = compareImports({ graphEdges: graph.edges, refEdges: ref.edges, walked: graph.walked, covered: ref.covered, importers: (f) => EXTS[group].has(path.extname(f).toLowerCase()) });
-  return { status: 'measured', commit: repo.commit, counts: result.counts, samples: result.samples, notes: ref.notes, seconds: Math.round((Date.now() - started) / 1000), clusters: result.clusters };
+  return { status: 'measured', commit: repo.commit, counts: result.counts, samples: result.samples, diagnostics: result.diagnostics, notes: ref.notes, seconds: Math.round((Date.now() - started) / 1000), clusters: result.clusters };
 }
 
 function poolGroup(group, measured, protocol, tools) {
   const table = tableOf(measured.map((m) => m.clusters), protocol);
   const counts = sumCounts(measured.map((m) => m.counts));
-  return { repos: measured.map((m) => m.name), table, counts, reference: tools };
+  const diagnostics = { missedByKind: sumKinds(measured.map((m) => m.diagnostics.missedByKind)), wrongByKind: sumKinds(measured.map((m) => m.diagnostics.wrongByKind)) };
+  return { repos: measured.map((m) => m.name), table, counts, diagnostics, reference: tools };
 }
 
 function checkPredictions(groups, protocol) {
@@ -291,6 +292,7 @@ async function main() {
     const g = poolGroup(group, [{ name: path.basename(tree), ...r }], protocol, found.tools.version);
     console.log(formatGroup(`${group} (dev, not a registered run)`, g).join('\n'));
     console.log(`counts: ${JSON.stringify(r.counts)}  notes: ${JSON.stringify(ref.notes)}`);
+    console.log(`missed by kind: ${JSON.stringify(r.diagnostics.missedByKind)}  wrong by kind: ${JSON.stringify(r.diagnostics.wrongByKind)}`);
     const n = Number(opt('--misses')) || 0;
     if (n) { console.log('missed:'); r.samples.missed.slice(0, n).forEach((x) => console.log(`  ${x}`)); console.log('wrong:'); r.samples.wrong.slice(0, n).forEach((x) => console.log(`  ${x}`)); }
     return;

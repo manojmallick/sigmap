@@ -71,6 +71,17 @@ function scope(report) {
   return table(['Group', 'Repository', 'Files the graph walked', 'Files the reference could analyse', 'Scored (both)', 'Graph edges outside', 'Reference edges outside'], rows, ['l', 'l']);
 }
 
+/** Counts of edges by kind, one column per group; null when no group carries diagnostics. */
+function kinds(report, key, title) {
+  const groups = groupsOf(report).filter((k) => report.groups[k].diagnostics);
+  const total = (kind) => groups.reduce((n, k) => n + (report.groups[k].diagnostics[key][kind] || 0), 0);
+  const all = [...new Set(groups.flatMap((k) => Object.keys(report.groups[k].diagnostics[key])))].sort((a, b) => total(b) - total(a) || a.localeCompare(b));
+  if (!all.length) return null;
+  const rows = all.map((kind) => [kind, ...groups.map((k) => n0(report.groups[k].diagnostics[key][kind] || 0))]);
+  rows.push(['**all**', ...groups.map((k) => `**${n0(Object.values(report.groups[k].diagnostics[key]).reduce((a, b) => a + b, 0))}**`)]);
+  return table([title, ...groups.map((k) => LABELS[k])], rows, ['l']);
+}
+
 function unmeasured(report) {
   const rows = [];
   for (const [k, why] of Object.entries(report.unregistered || {})) rows.push([LABELS[k] || k, 'language', why]);
@@ -107,6 +118,10 @@ export function renderBlock(report) {
     scope(report),
     '',
   ];
+  const missed = kinds(report, 'missedByKind', 'Reference edges the graph lacks, by how the import reaches its file');
+  const wrong = kinds(report, 'wrongByKind', 'Graph edges the reference lacks, by what they reach');
+  if (missed) blocks.push('### Why edges were missed', '', missed, '');
+  if (wrong) blocks.push('### Graph edges the reference does not have', '', wrong, '');
   const un = unmeasured(report);
   if (un) blocks.push('### Not measured', '', un, '');
   blocks.push('### The registered predictions', '', predictions(report), '', END);
