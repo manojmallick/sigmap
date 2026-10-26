@@ -13,7 +13,8 @@
  *
  * WHY: every other gate scores ranking, which hides what the extractor never emitted. A file
  * the extractor misses is a file the ranker cannot find, whatever the ranker does. This
- * measures the extractor against the language's own parser (CPython's ast, Ruby's Ripper),
+ * measures the extractor against the language's own parser (CPython's ast, Ruby's Ripper, and for
+ * C and C++ clangd, a language server built on clang's parser and preprocessor),
  * on pinned third-party clones, in two populations: the extractor's raw output, and the
  * index as shipped (what a first-time `sigmap` run keeps, after the per-file cap).
  *
@@ -46,7 +47,7 @@ export const FLOORS_REL = 'benchmarks/extraction-recall-floors.json';
 export const REPORT_REL = 'benchmarks/reports/extraction-recall.json';
 
 /** The languages that have a reference-parser adapter, in report order. */
-export const ADAPTERS = ['python', 'ruby'];
+export const ADAPTERS = ['python', 'ruby', 'cpp'];
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
