@@ -16,16 +16,18 @@
  * Dev-only. Nothing here ships in the npm package.
  */
 
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 export const GROUP = 'swift';
 
 /**
- * @param {{ tree: string, files: string[], protocol: object }} i  `files` are every `.swift` file under the tree
+ * @param {{ tree: string, files: string[], protocol: object, work?: string }} i  `files` are every `.swift` file under the tree
  * @returns {{ edges: Array<[string,string]>, covered: Set<string>, notes: object }}
  */
-export function reference({ tree, files, protocol }) {
+export function reference({ tree, files, protocol, work }) {
   const cfg = protocol.groups.swift.reference;
   const d = spawnSync(cfg.swift, ['package', 'describe', '--type', 'json'], { cwd: tree, encoding: 'utf8', maxBuffer: 1 << 26, timeout: 600000 });
   if (d.status !== 0) {
@@ -42,17 +44,26 @@ export function reference({ tree, files, protocol }) {
   const edges = [];
   const covered = new Set();
   const failed = [];
-  for (const rel of files) {
-    // The compiler's own rule: a file named main.swift is the program's entry point and may hold
-    // top-level code; every other file is parsed as part of a library.
-    const asLibrary = path.basename(rel) !== 'main.swift';
-    const r = spawnSync(cfg.compiler, ['-emit-imported-modules', ...(asLibrary ? ['-parse-as-library'] : []), '-module-name', 'M', path.join(tree, rel), '-o', '/dev/stdout'], { encoding: 'utf8', maxBuffer: 1 << 24, timeout: 60000 });
-    if (r.status !== 0) { failed.push([rel, (r.stderr || String(r.error || '')).split('\n').find((l) => /error/.test(l)) || 'exit ' + r.status]); continue; }
-    covered.add(rel);
-    const own = ownerOf.get(path.normalize(rel));
-    for (const m of new Set(r.stdout.split('\n').map((x) => x.trim()).filter(Boolean))) {
-      if (local.has(m) && m !== own) edges.push([rel, `module:${m}`, hasSwift.has(m) ? 'a module of Swift files' : 'a module with no Swift file (a C-language target)']);
+  // The module list goes to a file: `-o /dev/stdout` fails on Linux ("No such device or address")
+  // when stdout is a socket, which is how a child process gets it from Node.
+  const outDir = fs.mkdtempSync(path.join(work || os.tmpdir(), 'swift-imports-'));
+  const out = path.join(outDir, 'imports.txt');
+  try {
+    for (const rel of files) {
+      // The compiler's own rule: a file named main.swift is the program's entry point and may hold
+      // top-level code; every other file is parsed as part of a library.
+      const asLibrary = path.basename(rel) !== 'main.swift';
+      fs.rmSync(out, { force: true });
+      const r = spawnSync(cfg.compiler, ['-emit-imported-modules', ...(asLibrary ? ['-parse-as-library'] : []), '-module-name', 'M', path.join(tree, rel), '-o', out], { encoding: 'utf8', maxBuffer: 1 << 24, timeout: 60000 });
+      if (r.status !== 0 || !fs.existsSync(out)) { failed.push([rel, (r.stderr || String(r.error || '')).split('\n').find((l) => /error/.test(l)) || 'exit ' + r.status]); continue; }
+      covered.add(rel);
+      const own = ownerOf.get(path.normalize(rel));
+      for (const m of new Set(fs.readFileSync(out, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean))) {
+        if (local.has(m) && m !== own) edges.push([rel, `module:${m}`, hasSwift.has(m) ? 'a module of Swift files' : 'a module with no Swift file (a C-language target)']);
+      }
     }
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
   }
   return { edges, covered, notes: { targets: pkg.targets.length, filesOwned: ownerOf.size, failed: failed.length, failedSample: failed.slice(0, 5).map(([f, why]) => `${f}: ${why.trim().slice(0, 100)}`) } };
 }
