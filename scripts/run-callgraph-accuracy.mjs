@@ -38,7 +38,7 @@ import {
   formatGroup, sumCounts, sumTwoLevel, summaryOf,
 } from './lib/callgraph-accuracy.mjs';
 import { stamp } from './lib/report-stamp.mjs';
-import { setupGo, setupJava, writeWave2, wave2Tools, indexerCommand } from './lib/scip-toolchains.mjs';
+import { setupGo, setupJava, writeWave2, readWave2, wave2Tools, indexerCommand, mavenVersion } from './lib/scip-toolchains.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -286,6 +286,16 @@ function devRun(tree, scipFile, protocol) {
   }
 }
 
+/** The wave-2 toolchains that built a measured repository, and the Maven that built the Java ones. */
+function toolchainsUsed(home, results) {
+  const w2 = home ? readWave2(home) : null;
+  const measured = (group) => Object.values(results[group] || {}).some((r) => r.status === 'measured');
+  const out = {};
+  if (w2 && w2.go && measured('go')) out.go = { go: w2.goVersion || w2.go.goVersion, scipGo: w2.go.scipGoVersion };
+  if (w2 && w2.java && measured('java')) out.java = { jdk: w2.java.jdk, scipJava: w2.java.scipJavaVersion, maven: mavenVersion(home, w2.java.javaHome) };
+  return out;
+}
+
 async function main() {
   const protocol = loadProtocol(ROOT);
   if (opt('--setup-indexers')) {
@@ -350,7 +360,12 @@ async function main() {
     method: 'scripts/run-callgraph-accuracy.mjs',
     protocol: { file: PROTOCOL_REL, sha256: state.sha256, commit: state.commit, committed: state.committed },
     sigmap,
-    environment: { node: process.version, platform: `${process.platform}-${process.arch}`, loadAverage: os.loadavg().map((x) => Math.round(x * 100) / 100) },
+    environment: {
+      node: process.version,
+      platform: `${process.platform}-${process.arch}`,
+      loadAverage: os.loadavg().map((x) => Math.round(x * 100) / 100),
+      ...toolchainsUsed(indexersDir, results),
+    },
     groups: Object.fromEntries(Object.entries(groups).map(([g, v]) => [g, { ...v, table: { rows: v.table.rows, sites: v.table.sites, receiverOnly: v.table.receiverOnly } }])),
     repos,
     unmeasured,

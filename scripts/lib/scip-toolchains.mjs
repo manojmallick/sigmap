@@ -80,6 +80,8 @@ export function javaEnv(home, javaHome, base = process.env) {
     PATH: `${path.join(javaHome, 'bin')}${path.delimiter}${base.PATH || ''}`,
     COURSIER_CACHE: path.join(home, 'java', 'coursier-cache'),
     MAVEN_OPTS: `-Dmaven.repo.local=${path.join(home, 'java', 'm2')}`,
+    // a project's own Maven wrapper downloads its Maven distribution here, not into ~/.m2
+    MAVEN_USER_HOME: path.join(home, 'java', 'maven-user'),
   };
 }
 
@@ -154,6 +156,12 @@ export async function setupJava(home, protocol) {
   if (v !== spec.version) throw new Error(`scip-java reports ${v}, the protocol pins ${spec.version}`);
   fs.rmSync(dl, { recursive: true, force: true });
   return { bin, javaHome, jdk: spec.toolchain.jdk, scipJavaVersion: v, coursierSha256: csSha };
+}
+
+/** The first line of `mvn -version` under the Java installation in `home`, or null. */
+export function mavenVersion(home, javaHome) {
+  const r = run('mvn', ['-version'], { env: javaEnv(home, javaHome) });
+  return r.ok ? r.stdout.split('\n')[0].trim() : null;
 }
 
 export function readWave2(home) {

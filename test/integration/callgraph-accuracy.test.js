@@ -794,6 +794,7 @@ function build(files, { encoding, typed } = {}) {
     assert.strictEqual(java.env.JAVA_HOME, '/i/java/jdk');
     assert.ok(java.env.PATH.startsWith('/i/java/jdk/bin'));
     assert.ok(java.env.MAVEN_OPTS.includes('/i/java/m2'), 'Maven downloads land in the setup directory, not ~/.m2');
+    assert.strictEqual(java.env.MAVEN_USER_HOME, '/i/java/maven-user', 'a Maven wrapper\'s distribution too');
     assert.throws(() => tc.indexerCommand({ key: 'cobol', spec: {}, tools: {}, home: '/i', ...common }), /no indexer command/);
   });
 
