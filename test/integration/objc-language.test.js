@@ -514,7 +514,7 @@ public:
 int area(int w, int h) { return w * h; }
 `;
   const sigs = dispatch.extractFile('Widget.h', src);
-  assert.ok(sigs.includes('class Widget'), `C++ class extracted: ${JSON.stringify(sigs)}`);
+  assert.ok(sigs.some((s) => /^class Widget\b/.test(s)), `C++ class extracted: ${JSON.stringify(sigs)}`);
   assert.ok(sigs.some((s) => s.startsWith('area(')), 'C++ function extracted');
 });
 

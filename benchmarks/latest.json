@@ -26,10 +26,10 @@
   "third_party": {
     "repos": 35,
     "tasks": 208,
-    "hits": 116,
-    "hit_at_5_pct": 55.8,
-    "interval_low_pct": 49,
-    "interval_high_pct": 62.4
+    "hits": 115,
+    "hit_at_5_pct": 55.3,
+    "interval_low_pct": 48.5,
+    "interval_high_pct": 61.9
   },
   "test_discovery": {
     "repos": 28,

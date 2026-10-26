@@ -6,6 +6,7 @@
  *
  *   node scripts/run-signal-verdicts.mjs          # run both gates' arms and print one table
  *   node scripts/run-signal-verdicts.mjs --save   # also record benchmarks/reports/signal-arms.json
+ *   node scripts/run-signal-verdicts.mjs --only xrepo --save   # re-score one corpus, keep the others as recorded
  *
  * Each opt-in ranking signal is scored against the shipped ranker, task by task, on the
  * labelled third-party corpus (`run-xrepo-gate.mjs --signals`), on this repository's own
@@ -24,11 +25,23 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import { stamp } from './lib/report-stamp.mjs';
-import { ARMS } from './lib/signal-arms.mjs';
+import { ARMS, totalsOf, mergeReport } from './lib/signal-arms.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPORT = path.join(ROOT, 'benchmarks', 'reports', 'signal-arms.json');
 const SAVE = process.argv.includes('--save');
+const CORPORA = ['xrepo', 'hard', 'mined', 'easy', 'jvm', 'honest'];
+const onlyAt = process.argv.indexOf('--only');
+const ONLY = onlyAt === -1 ? [] : String(process.argv[onlyAt + 1] || '').split(',').filter(Boolean);
+for (const name of ONLY) {
+  if (!CORPORA.includes(name)) { console.error(`--only: unknown corpus "${name}" (one of ${CORPORA.join(', ')})`); process.exit(2); }
+}
+const wants = (name) => !ONLY.length || ONLY.includes(name);
+let PRIOR = null;
+if (ONLY.length && SAVE) {
+  try { PRIOR = JSON.parse(fs.readFileSync(REPORT, 'utf8')); } catch (_) { /* reported below */ }
+  if (!PRIOR) { console.error('--only --save updates a saved report, and there is none: record all corpora first.'); process.exit(1); }
+}
 
 /** Run a gate with `--signals --json` and parse the one document it writes to stdout. */
 function gateJson(script) {
@@ -54,19 +67,25 @@ function summarize(arms) {
 }
 
 const corpora = {};
-const xrepo = gateJson('run-xrepo-gate.mjs');
-if (xrepo.signals) corpora.xrepo = summarize(xrepo.signals.arms);
-const own = gateJson('run-retrieval-gate.mjs');
-for (const split of ['hard', 'mined', 'easy', 'jvm']) {
-  const s = own.splits && own.splits[split] && own.splits[split].signals;
-  if (s) corpora[split] = summarize(s.arms);
+if (wants('xrepo')) {
+  const xrepo = gateJson('run-xrepo-gate.mjs');
+  if (xrepo.signals) corpora.xrepo = summarize(xrepo.signals.arms);
+}
+if (['hard', 'mined', 'easy', 'jvm'].some(wants)) {
+  const own = gateJson('run-retrieval-gate.mjs');
+  for (const split of ['hard', 'mined', 'easy', 'jvm']) {
+    const s = wants(split) && own.splits && own.splits[split] && own.splits[split].signals;
+    if (s) corpora[split] = summarize(s.arms);
+  }
 }
 // The honest corpus needs the benchmark clones and exits non-zero without them; the rest of the table stands without it.
-try {
-  const honest = gateJson('run-honest-benchmark.mjs');
-  if (honest.signals) corpora.honest = summarize(honest.signals.arms);
-} catch (e) {
-  console.error(`  note: the honest corpus was not scored (${String(e.message).split('\n')[0].slice(0, 120)})`);
+if (wants('honest')) {
+  try {
+    const honest = gateJson('run-honest-benchmark.mjs');
+    if (honest.signals) corpora.honest = summarize(honest.signals.arms);
+  } catch (e) {
+    console.error(`  note: the honest corpus was not scored (${String(e.message).split('\n')[0].slice(0, 120)})`);
+  }
 }
 if (!Object.keys(corpora).length) {
   console.error('No corpus was scored — fetch the xrepo checkouts (node scripts/fetch-xrepo-repos.mjs) and clone the benchmark repos.');
@@ -74,18 +93,7 @@ if (!Object.keys(corpora).length) {
 }
 
 // Totals over every corpus scored, per arm.
-const total = {};
-for (const arm of ARMS.map((a) => a.id)) {
-  // Over the corpora the arm ran on; the dash cells are not counted as zeros.
-  const rows = Object.values(corpora).map((c) => c[arm]).filter(Boolean);
-  total[arm] = {
-    hits: rows.reduce((n, r) => n + r.hits, 0),
-    tasks: rows.reduce((n, r) => n + r.tasks, 0),
-    gained: rows.reduce((n, r) => n + r.gained.length, 0),
-    lost: rows.reduce((n, r) => n + r.lost.length, 0),
-    moved: rows.reduce((n, r) => n + r.moved, 0),
-  };
-}
+const total = totalsOf(corpora);
 
 const names = Object.keys(corpora);
 const W = 12;
@@ -104,14 +112,22 @@ console.log(`\n    ranks moved (tasks whose rank changed, in the top 10 on eithe
 for (const a of ARMS.slice(1)) if (has(a.id)) console.log(`      ${a.label.padEnd(26)} ${String(total[a.id].moved).padStart(4)} of ${total[a.id].tasks}`);
 
 if (SAVE) {
+  // A whole recording replaces the file. With --only, the corpora named are re-scored and the others stay as recorded:
+  // the ones scored against this repository's own source move with the checkout they are run in (a control on untouched
+  // develop already reads differently from the saved report), so a change that moves one corpus must not rewrite them all.
+  const now = stamp({}, ROOT);
+  const merged = mergeReport(PRIOR, corpora, now);
   const report = {
     benchmark: 'signal-arms',
     method: 'each opt-in ranking signal against the shipped ranker, task by task; run-xrepo-gate.mjs --signals and run-retrieval-gate.mjs --signals',
     arms: Object.fromEntries(ARMS.map((a) => [a.id, a.label])),
-    corpora,
-    total,
+    corpora: merged.corpora,
+    total: merged.total,
+    ...(ONLY.length ? { recorded: merged.recorded } : {}),
   };
+  report.version = now.version;
+  report.generated = now.generated;
   fs.mkdirSync(path.dirname(REPORT), { recursive: true });
-  fs.writeFileSync(REPORT, JSON.stringify(stamp(report, ROOT), null, 2) + '\n');
-  console.log(`\n  saved: ${path.relative(ROOT, REPORT)}`);
+  fs.writeFileSync(REPORT, JSON.stringify(report, null, 2) + '\n');
+  console.log(`\n  saved: ${path.relative(ROOT, REPORT)}${ONLY.length ? ` (re-scored: ${ONLY.join(', ')}; the others as recorded)` : ''}`);
 }

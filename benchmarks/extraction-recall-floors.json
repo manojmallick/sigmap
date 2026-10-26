@@ -59,13 +59,17 @@
               "class": 99,
               "module": 99,
               "method": 97,
-              "owner": 99
+              "owner": 99,
+              "anchored": 99,
+              "anchor-exact": 99
             },
             "index": {
               "class": 99,
               "module": 99,
               "method": 97,
-              "owner": 99
+              "owner": 99,
+              "anchored": 99,
+              "anchor-exact": 99
             }
           }
         },
@@ -77,34 +81,45 @@
               "rails": "f9243af",
               "sidekiq": "132f982"
             },
-            "source": "the xrepo job of CI run 39221799594 (ubuntu-latest, 833 files) for the extractor; of CI run 39328240582 (PR #1014, 331 indexed files) for the index",
+            "source": "the xrepo job of CI run 39221799594 (ubuntu-latest, 833 files) for the extractor; of CI run 39328240582 (PR #1014, 331 indexed files) for the index; owner, anchored and anchor-exact (#975) re-measured with Ruby 3.2.11 (the ruby:3.2 container) on the same 833 files and 331 indexed files, because the operator-symbol and value-position-if fixes of that PR raised owner recall",
             "recorded": {
               "extractor": {
                 "class": 100,
                 "module": 100,
                 "method": 98.5,
-                "owner": 99.3
+                "owner": 100.0,
+                "anchored": 100.0,
+                "anchor-exact": 100.0
               },
               "index": {
                 "class": 100.0,
                 "module": 100.0,
                 "method": 97.8,
-                "owner": 97.7
+                "owner": 100.0,
+                "anchored": 100.0,
+                "anchor-exact": 100.0
               }
-            }
+            },
+            "alsoChecked": [
+              "3.2.11"
+            ]
           },
           "floors": {
             "extractor": {
               "class": 99,
               "module": 99,
               "method": 97,
-              "owner": 98
+              "owner": 99,
+              "anchored": 99,
+              "anchor-exact": 99
             },
             "index": {
               "class": 99,
               "module": 99,
               "method": 96,
-              "owner": 96
+              "owner": 99,
+              "anchored": 99,
+              "anchor-exact": 99
             }
           }
         }

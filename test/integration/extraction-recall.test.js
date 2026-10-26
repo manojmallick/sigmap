@@ -55,6 +55,8 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
   const lib = await import('../../scripts/lib/extraction-recall.mjs');
   const py = await import('../../scripts/extraction-recall/python.mjs');
   const rb = await import('../../scripts/extraction-recall/ruby.mjs');
+  const cx = await import('../../scripts/extraction-recall/cpp.mjs');
+  const cref = await import('../../scripts/extraction-recall/cpp-reference.mjs');
   const runner = await import('../../scripts/run-extraction-recall.mjs');
 
   // ── the arithmetic ────────────────────────────────────────────────────────
@@ -172,20 +174,145 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     const t = rubyTally();
     rb.compareFile(t, rubyTruth, ['module Sidekiq', '  class Worker', '    def perform', '    def self.build', 'class Top', '  def perform'], 'x.rb');
     // Top#run is not listed anywhere; Worker's two are under Worker; the extra `perform` under Top is not asked for
-    assert.deepStrictEqual(rubyRows(t), { class: '2/2', module: '1/1', method: '2/3', owner: '2/3' });
+    assert.deepStrictEqual(rubyRows(t), { class: '2/2', module: '1/1', method: '2/3', owner: '2/3', anchored: '0/6', 'anchor-exact': '0/0' });
     const wrongOwner = rubyTally();
     rb.compareFile(wrongOwner, [['class', 'A'], ['class', 'B'], ['method', 'B#save']], ['class A', '  def save', 'class B'], 'x.rb');
-    assert.deepStrictEqual(rubyRows(wrongOwner), { class: '2/2', module: '0/0', method: '1/1', owner: '0/1' });
+    assert.deepStrictEqual(rubyRows(wrongOwner), { class: '2/2', module: '0/0', method: '1/1', owner: '0/1', anchored: '0/3', 'anchor-exact': '0/0' });
   });
 
   await test('ruby: a private method is skipped, and a method listed twice is still one owner hit per definition', () => {
     const t = rubyTally();
     rb.compareFile(t, [['class', 'A'], ['method', 'A#_x'], ['method', 'A#a'], ['method', 'A#a']], ['class A', '  def a', '  def a'], 'x.rb');
-    assert.deepStrictEqual(rubyRows(t), { class: '1/1', module: '0/0', method: '2/2', owner: '2/2' });
+    assert.deepStrictEqual(rubyRows(t), { class: '1/1', module: '0/0', method: '2/2', owner: '2/2', anchored: '0/3', 'anchor-exact': '0/0' });
     assert.strictEqual(t.method.skipped, 1);
     const once = rubyTally();
     rb.compareFile(once, [['class', 'A'], ['method', 'A#a'], ['method', 'A#a']], ['class A', '  def a'], 'x.rb');
     assert.strictEqual(rubyRows(once).owner, '1/2');
+  });
+
+  await test('ruby: anchors are judged on what the extractor emits: is one there, and is it the parser\'s own range (#975)', () => {
+    const truth = [['module', 'M', 1, 10], ['class', 'C', 2, 9], ['method', 'C#a', 3, 5], ['method', 'C.b', 7, 7]];
+    const t = rubyTally();
+    // five definition lines: four carry an anchor; `b` ends a line late, so three of the four are exact; a
+    // notice line is not a definition and is not counted
+    rb.compareFile(t, truth, ['module M  :1-10', '  class C  :2-9', '    def a  :3-5', '    def self.b  :7-8', '  def c', '… +3 more signatures'], 'x.rb');
+    const rows = rubyRows(t);
+    assert.strictEqual(rows.anchored, '4/5');
+    assert.strictEqual(rows['anchor-exact'], '3/4');
+    assert.deepStrictEqual(t['anchor-exact'].misses, ['x.rb :: def self.b :7-8']);
+    // the same range under another name or kind is not a match
+    const other = rubyTally();
+    rb.compareFile(other, [['class', 'C', 2, 9]], ['module C  :2-9', 'class D  :2-9'], 'y.rb');
+    assert.strictEqual(rubyRows(other)['anchor-exact'], '0/2');
+  });
+
+  // ── C and C++: scoring a file against clangd (#975) ──────────────────────
+
+  const cxTally = () => lib.newTally(cx.KINDS);
+  const cxRows = (t) => Object.fromEntries(lib.rowsOf(t).map((r) => [r.kind, `${r.found}/${r.reference}`]));
+
+  await test('cpp: the extractor\'s lines are read as classes, enums, functions and methods of the class above', () => {
+    const scope = [];
+    const read = (l) => { const r = cx.readLine(l, scope); return r && `${r.kind} ${r.owner ? `${r.owner}::` : ''}${r.name}`; };
+    assert.strictEqual(read('class Service  :6-20'), 'class Service');
+    assert.strictEqual(read('  Service(int id)  :8-8'), 'method Service::Service');
+    assert.strictEqual(read('  ~Service()  :10-10'), 'method Service::~Service');
+    assert.strictEqual(read('  operator()(int x) → int  :15-15'), 'method Service::operator()');
+    assert.strictEqual(read('  operator bool()  :16-16'), 'method Service::operator bool');
+    assert.strictEqual(read('  struct Inner  :17-18'), 'class Service::Inner');
+    assert.strictEqual(read('    go() → void  :17-17'), 'method Inner::go');
+    assert.strictEqual(read('enum class Mode  :30-30'), 'enum Mode');
+    assert.strictEqual(read('helper(int x) → int  :40-40'), 'function helper');
+    assert.strictEqual(read('Service::run(int a) → int  :41-41'), 'method Service::run');
+    assert.strictEqual(read('… +30 more signatures'), null, 'a notice is not a definition');
+  });
+
+  await test('cpp: recall by name once per file and kind; owner by class; underscore names skipped; anchors judged on what is emitted', () => {
+    const truth = [['class', 'A', 1, 9, ''], ['method', 'f', 2, 2, 'A'], ['method', 'f', 3, 3, 'A'], ['method', '_hid', 4, 4, 'A'], ['function', 'g', 11, 12, ''], ['enum', 'E', 14, 16, '']];
+    const t = cxTally();
+    cx.compareFile(t, truth, ['class A  :1-9', '  f(int) → void  :2-2', 'g() → int  :11-13', 'extra() → int  :20-20'], 'x.cpp');
+    const rows = cxRows(t);
+    assert.deepStrictEqual([rows.class, rows.method, rows.function, rows.enum, rows.owner], ['1/1', '1/1', '1/1', '0/1', '1/1'], 'f counts once, _hid is skipped, E is missed');
+    assert.strictEqual(t.method.skipped, 1);
+    assert.deepStrictEqual([rows.anchored, rows['anchor-exact']], ['4/4', '2/3'], 'g ends a line late; extra() is not in clangd, so it is not judged');
+    assert.strictEqual(t['anchor-exact'].skipped, 1);
+    assert.deepStrictEqual(t['anchor-exact'].misses, ['x.cpp :: g() → int :11-13']);
+    // a method listed under another class is found by name and missed by owner
+    const wrong = cxTally();
+    cx.compareFile(wrong, [['class', 'A', 1, 3, ''], ['class', 'B', 4, 6, ''], ['method', 'save', 5, 5, 'B']], ['class A  :1-3', '  save() → void  :2-2', 'class B  :4-6'], 'y.cpp');
+    assert.deepStrictEqual([cxRows(wrong).method, cxRows(wrong).owner], ['1/1', '0/1']);
+  });
+
+  await test('cpp: a template header above a declaration is part of SigMap\'s anchor and not of clangd\'s range, and only that is forgiven', () => {
+    const src = 'template <typename T>\nT id(T v) { return v; }\nint late(int x);\n\nint other(int y);\n';
+    const truth = [['function', 'id', 2, 2, ''], ['function', 'late', 3, 3, ''], ['function', 'other', 5, 5, '']];
+    const withHeader = cxTally();
+    cx.compareFile(withHeader, truth, ['id(T v) → T  :1-2', 'late(int x) → int  :1-3', 'other(int y) → int  :4-5'], 'z.cpp', src);
+    // id: the extra line is a template header -> exact; late: it starts on `template` and runs over code -> not; other: a blank line is not a header
+    assert.deepStrictEqual(withHeader['anchor-exact'].misses, ['z.cpp :: late(int x) → int :1-3', 'z.cpp :: other(int y) → int :4-5']);
+    const noSource = cxTally();
+    cx.compareFile(noSource, truth, ['id(T v) → T  :1-2'], 'z.cpp');
+    assert.strictEqual(cxRows(noSource)['anchor-exact'], '0/1', 'without the source only an identical range is exact');
+  });
+
+  await test('cpp: a forward or friend declaration is not a definition, so it is not asked for', () => {
+    const src = 'class Fwd;\nclass Real {\n};\nenum class Op : int;\nenum class Full : int { A };\n';
+    const truth = [['class', 'Fwd', 1, 1, ''], ['class', 'Real', 2, 3, ''], ['enum', 'Op', 4, 4, ''], ['enum', 'Full', 5, 5, '']];
+    const t = cxTally();
+    cx.compareFile(t, truth, ['class Real  :2-3', 'enum class Full  :5-5'], 'f.cpp', src);
+    assert.deepStrictEqual([cxRows(t).class, cxRows(t).enum], ['1/1', '1/1']);
+  });
+
+  await test('cpp reference: clangd names lose their template arguments, an operator keeps its symbols, and a macro node is transparent', () => {
+    assert.deepStrictEqual(cref.splitName('Storage<T, N, A>::Resize'), { qualifier: 'Storage', bare: 'Resize' });
+    assert.deepStrictEqual(cref.splitName('formatter<spdlog::stopwatch>'), { qualifier: '', bare: 'formatter' });
+    assert.deepStrictEqual(cref.splitName('Foo::operator<=>'), { qualifier: 'Foo', bare: 'operator<=>' });
+    assert.deepStrictEqual(cref.splitName('std::less<int>::operator()'), { qualifier: 'less', bare: 'operator()' });
+    const node = (kind, name, a, b, detail, children) => ({ kind, name, range: { start: { line: a - 1 }, end: { line: b - 1 } }, detail, children });
+    const tree = [
+      node(15, 'LIB_NAMESPACE_BEGIN', 1, 30, '', [node(3, 'lib', 1, 30, '', [
+        node(5, 'Box', 3, 12, 'template class', [node(9, 'Box', 4, 4, '()'), node(6, 'put', 5, 6, 'void (T)'), node(8, 'v_', 7, 7, 'T'), node(5, 'alias_t', 8, 8, 'type alias')]),
+        node(10, 'Color', 14, 16, 'enum', [node(22, 'Red', 15, 15, '')]),
+        node(10, 'RED', 17, 17, 'int'),
+        node(12, 'make', 20, 24, 'Box<int> ()'),
+        node(12, 'Box::get', 26, 28, 'int ()'),
+      ])]),
+    ];
+    assert.deepStrictEqual(cref.flatten(tree), [
+      ['class', 'Box', 3, 12, ''], ['method', 'Box', 4, 4, 'Box'], ['method', 'put', 5, 6, 'Box'],
+      ['enum', 'Color', 14, 16, ''], ['function', 'make', 20, 24, ''], ['method', 'get', 26, 28, 'Box'],
+    ], 'fields, aliases, enumerators and macro-made enum constants are left out');
+  });
+
+  await test('the held-out repositories are fixed commits, apart from the development ones, and the recorded numbers name the same commits', () => {
+    const names = new Set([...cx.REPOS, ...cx.DEV_REPOS].map((r) => r.repo));
+    assert.ok(cx.HELD_OUT_REPOS.length >= 3);
+    for (const r of cx.HELD_OUT_REPOS) {
+      assert.ok(/^[0-9a-f]{40}$/.test(r.commit), `${r.repo} is not pinned to a full commit`);
+      assert.ok(!names.has(r.repo), `${r.repo} is also a development repository`);
+      assert.ok(/^https:\/\/github\.com\//.test(r.url), r.repo);
+    }
+    const held = JSON.parse(fs.readFileSync(path.join(ROOT, 'benchmarks/reports/extraction-recall-cpp-held-out.json'), 'utf8'));
+    assert.deepStrictEqual(held.commits, Object.fromEntries(cx.HELD_OUT_REPOS.map((r) => [r.repo, r.commit])));
+    assert.strictEqual(held.first.extractor.files, held.final.extractor.files, 'the same files before and after');
+  });
+
+  await test('--held-out says unmeasured with no clones, and refuses a clone at another commit instead of measuring it', () => {
+    const empty = tmp('sigmap-recall-held-');
+    const none = cx.measure({ reposDir: empty, heldOut: true });
+    assert.strictEqual(none.measured, false);
+    assert.ok(/docs-vp\/guide\/extraction-recall\.md/.test(none.reason) && !/fetch-xrepo-repos/.test(none.reason), none.reason);
+    const spec = cx.HELD_OUT_REPOS[0];
+    const dir = path.join(empty, spec.repo);
+    fs.mkdirSync(path.join(dir, spec.roots[0]), { recursive: true });
+    fs.writeFileSync(path.join(dir, spec.roots[0], 'a.h'), 'int f(void);\n');
+    const git = (...a) => spawnSync('git', ['-C', dir, ...a], { encoding: 'utf8' });
+    git('init', '-q');
+    git('-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '.');
+    git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'x');
+    const moved = cx.measure({ reposDir: empty, heldOut: true });
+    assert.strictEqual(moved.measured, false);
+    assert.ok(new RegExp(`${spec.repo} is at [0-9a-f]+, not ${spec.commit.slice(0, 7)}`).test(moved.reason), moved.reason);
   });
 
   // ── the runner ────────────────────────────────────────────────────────────
@@ -352,17 +479,17 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
       put(path.join(repos, 'sidekiq/lib/a.rb'), RB_SRC);
       const real = rb.measure({ reposDir: repos, index: false });
       assert.strictEqual(real.measured, true);
-      assert.deepStrictEqual(cells(real.populations.extractor.rows), ['class 2/2', 'module 1/1', 'method 4/4', 'owner 4/4'], 'a top-level def has no owner');
+      assert.deepStrictEqual(cells(real.populations.extractor.rows), ['class 2/2', 'module 1/1', 'method 4/4', 'owner 4/4', 'anchored 7/7', 'anchor-exact 7/7'], 'a top-level def has no owner');
       const none = path.join(tmp('sigmap-recall-ext-'), 'none.js');
       put(none, 'module.exports = { extract: () => [] };');
       const blind = rb.measure({ reposDir: repos, extractorPath: none, index: false });
-      assert.deepStrictEqual(blind.populations.extractor.rows.map((x) => x.recall), [0, 0, 0, 0]);
+      assert.deepStrictEqual(blind.populations.extractor.rows.map((x) => x.recall), [0, 0, 0, 0, null, null], 'an extractor that emits nothing has no anchors to judge');
       assert.deepStrictEqual(blind.populations.extractor.misses.class.sort(), ['sidekiq/lib/a.rb :: Top', 'sidekiq/lib/a.rb :: Worker']);
       // a top-level def listed under the class above it is found by name and missed by owner
       const stale = path.join(tmp('sigmap-recall-ext-'), 'stale.js');
       put(stale, "module.exports = { extract: () => ['class Top', '  def helper'] };");
       const wrong = rb.measure({ reposDir: repos, extractorPath: stale, index: false });
-      assert.deepStrictEqual(cells(wrong.populations.extractor.rows).slice(2), ['method 1/4', 'owner 0/4']);
+      assert.deepStrictEqual(cells(wrong.populations.extractor.rows).slice(2, 4), ['method 1/4', 'owner 0/4']);
     });
 
     await test('ruby.mjs keeps its command line, stays read-only without --index, and --min-* exits 1 under a floor', () => {
@@ -393,18 +520,27 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
         const repos = tmp('sigmap-recall-both-');
         put(path.join(repos, 'flask/src/flask/app.py'), PY_SRC);
         put(path.join(repos, 'sidekiq/lib/a.rb'), RB_SRC);
+        put(path.join(repos, 'spdlog/include/spdlog/a.h'), 'class C {\n public:\n  void m();\n};\nenum class E { A };\nvoid f();\n');
         const out = path.join(tmp('sigmap-recall-out-'), 'report.json');
         const only = run(['--repos', repos, '--only', 'python', '--save', '--out', out]);
         assert.strictEqual(only.status, 1, only.stdout + only.stderr);
         assert.ok(/a partial run \(--only\)/.test(only.stderr), only.stderr);
         const noIndex = run(['--repos', repos, '--no-index', '--save', '--out', out]);
         assert.strictEqual(noIndex.status, 1, noIndex.stdout + noIndex.stderr);
-        assert.ok(/without the index/.test(noIndex.stderr), noIndex.stderr);
+        // without clangd C and C++ are unmeasured, which the runner names first; either way nothing is saved
+        assert.ok((have('clangd', ['--version']) ? /without the index/ : /unmeasured cpp/).test(noIndex.stderr), noIndex.stderr);
         assert.strictEqual(fs.existsSync(out), false, 'a partial run wrote a report');
         const whole = run(['--repos', repos, '--save', '--out', out]);
+        if (!have('clangd', ['--version'])) {
+          // C and C++ are measured against clangd; without it that language is unmeasured and nothing is saved
+          assert.strictEqual(whole.status, 1, whole.stdout + whole.stderr);
+          assert.ok(/unmeasured cpp/.test(whole.stderr), whole.stderr);
+          assert.strictEqual(fs.existsSync(out), false);
+          return;
+        }
         assert.strictEqual(whole.status, 0, whole.stdout + whole.stderr);
         const saved = JSON.parse(fs.readFileSync(out, 'utf8'));
-        assert.deepStrictEqual(Object.keys(saved.languages).sort(), ['python', 'ruby']);
+        assert.deepStrictEqual(Object.keys(saved.languages).sort(), ['cpp', 'python', 'ruby']);
         assert.ok(saved.version && saved.generated, 'stamped');
       });
     } else {
@@ -525,11 +661,52 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     assert.ok(page.includes(`the ${idxAst.class.missed} classes and ${idxAst.method.missed} methods the index misses with \`python3\``), 'the AST-path misses');
     assert.ok(page.includes(`of the ${idxRegex.method.missed} methods it misses are in`), 'the regex-tier method misses');
     const idxRb = report.languages.ruby.populations.index;
-    assert.ok(page.includes(`index recall is ${idxRb.rowsAllFiles.map((x) => `${x.recall.toFixed(1)}%`).join(' / ')}`), 'the all-files Ruby index recall');
+    assert.ok(page.includes(`index recall is ${idxRb.rowsAllFiles.filter((x) => !/^anchor/.test(x.kind)).map((x) => `${x.recall.toFixed(1)}%`).join(' / ')}`), 'the all-files Ruby index recall (the anchor rows are about what is emitted, so a file the index lacks adds nothing to them)');
     const rbRows = Object.fromEntries(report.languages.ruby.populations.extractor.rows.map((x) => [x.kind, x]));
     assert.ok(page.includes(`(${n(rbRows.class.found)} of ${n(rbRows.class.reference)} classes, ${n(rbRows.module.found)} of ${n(rbRows.module.reference)} modules, ${n(rbRows.method.found)} of ${n(rbRows.method.reference)} methods, ${n(rbRows.owner.found)} of ${n(rbRows.owner.reference)} under the right owner)`), 'the Ruby counts');
+    // C and C++: the section's own table, found by its heading so the Ruby rows above cannot be matched
+    const cxr = report.languages.cpp;
+    const cxSection = page.slice(page.indexOf('## C and C++'), page.indexOf('## Not measured'));
+    assert.ok(cxSection.length > 0, 'no C and C++ section');
+    const cxCells = (label) => {
+      const line = cxSection.split('\n').find((l) => l.startsWith(`| ${label}`));
+      assert.ok(line, `no C and C++ row for ${label}`);
+      return line.split('|').slice(2, -1).map((c) => c.trim());
+    };
+    const cxExtractor = cxCells('extractor |');
+    const cxRows = Object.fromEntries(cxr.populations.extractor.rows.map((x) => [x.kind, x]));
+    const cxPct = (kinds) => kinds.map((k) => pct1(cxRows[k]));
+    assert.strictEqual(cxExtractor[0], String(cxr.populations.extractor.filesCompared));
+    assert.deepStrictEqual(cxExtractor.slice(1, 6), cxPct(['class', 'enum', 'function', 'method', 'owner']));
+    assert.strictEqual(cxExtractor[6], pct1(cxRows.anchored));
+    assert.strictEqual(cxExtractor[7], pct1(cxRows['anchor-exact']));
+    const cxIndex = cxCells('index as shipped |');
+    const cxIdx = cxr.populations.index;
+    assert.strictEqual(cxIndex[0], `${cxIdx.filesCompared} of ${cxIdx.filesTotal}`);
+    assert.deepStrictEqual(cxIndex.slice(1, 6), cxIdx.rows.filter((x) => !/^anchor/.test(x.kind)).map(pct1));
+    assert.ok(cxSection.includes(`clangd ${cxr.reference.version}`), 'the clangd version');
+    assert.ok(page.includes(`## C and C++ — against clangd ${cxr.reference.version}`), 'the heading names the version');
+    for (const sha of Object.values(cxr.pins)) assert.ok(page.includes(sha), `pin ${sha} not on the page`);
+    assert.ok(cxSection.includes(`${n(cxRows.anchored.found)} of ${n(cxRows.anchored.reference)}`), 'the anchored count');
+    assert.ok(cxSection.includes(`${n(cxRows['anchor-exact'].found)} of ${n(cxRows['anchor-exact'].reference)}`), 'the anchor-exact count');
+    assert.ok(cxSection.includes(`the other ${cxRows['anchor-exact'].skipped} name`), 'the anchor-exact skipped count');
+    assert.ok(!/unmeasured[^\n]*\bcpp\b/.test(page.slice(page.indexOf('## Not measured'), page.indexOf('## How it is measured'))), 'cpp is listed as unmeasured');
+    const held = JSON.parse(fs.readFileSync(path.join(ROOT, 'benchmarks/reports/extraction-recall-cpp-held-out.json'), 'utf8'));
+    const heldCells = (label) => {
+      const line = cxSection.split('\n').find((l) => l.startsWith(`| ${label}`));
+      assert.ok(line, `no held-out row for ${label}`);
+      return line.split('|').slice(2, -1).map((c) => c.trim());
+    };
+    const heldPct = (pop) => pop.rows.map((x) => `${(100 * x.found / x.reference).toFixed(1)}%`);
+    const heldFiles = (pop) => `${pop.files}${pop.filesTotal ? ` of ${pop.filesTotal}` : ''}`;
+    for (const [label, pop] of [['first check', held.first.extractor], ['after the three changes below', held.final.extractor], ['after the three changes, index', held.final.index]]) {
+      const cells = heldCells(label);
+      assert.strictEqual(cells[0], heldFiles(pop), label);
+      assert.deepStrictEqual(cells.slice(1), heldPct(pop), label);
+    }
+    for (const sha of Object.values(held.commits)) assert.ok(cxSection.includes(sha), `held-out commit ${sha} not on the page`);
     const languages = fs.readFileSync(path.join(ROOT, 'docs-vp/guide/languages.md'), 'utf8');
-    for (const lang of ['Python', 'Ruby']) {
+    for (const lang of ['Python', 'Ruby', 'C / C++']) {
       const row = languages.split('\n').find((l) => l.startsWith(`| ${lang} |`));
       assert.ok(row && row.includes('/guide/extraction-recall'), `${lang} row of the language table does not link to the report`);
     }

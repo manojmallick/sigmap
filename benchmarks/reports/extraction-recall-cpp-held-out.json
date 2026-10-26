@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "what": "C and C++ extraction recall on four repositories the extractor was not developed against (#975). Reproduce: node scripts/extraction-recall/cpp.mjs --held-out --repos <dir> --index",
+  "reference": {
+    "name": "clangd",
+    "version": "21.0.0"
+  },
+  "commits": {
+    "leveldb": "bb74ef739973a70ca9f0d90788a1da89b788c0ad",
+    "hiredis": "5bb7f030f6631b243438cf0fdd3be84352b905bb",
+    "yaml-cpp": "c5e65360373d1d99d6b6848c991cd4fcee435009",
+    "cJSON": "6d9f2443ab071f86e5d9b43025a40929ec41c46c"
+  },
+  "first": {
+    "note": "the first check, before any change made because of it",
+    "extractor": {
+      "files": 222,
+      "rows": [
+        {
+          "kind": "class",
+          "found": 329,
+          "reference": 353,
+          "skipped": 8
+        },
+        {
+          "kind": "enum",
+          "found": 40,
+          "reference": 41,
+          "skipped": 0
+        },
+        {
+          "kind": "function",
+          "found": 1022,
+          "reference": 1221,
+          "skipped": 31
+        },
+        {
+          "kind": "method",
+          "found": 1920,
+          "reference": 1946,
+          "skipped": 11
+        },
+        {
+          "kind": "owner",
+          "found": 2053,
+          "reference": 2103,
+          "skipped": 0
+        },
+        {
+          "kind": "anchored",
+          "found": 4219,
+          "reference": 4219,
+          "skipped": 0
+        },
+        {
+          "kind": "anchor-exact",
+          "found": 3951,
+          "reference": 3987,
+          "skipped": 232
+        }
+      ]
+    },
+    "index": {
+      "files": 210,
+      "filesTotal": 222,
+      "rows": [
+        {
+          "kind": "class",
+          "found": 326,
+          "reference": 350,
+          "skipped": 8
+        },
+        {
+          "kind": "enum",
+          "found": 39,
+          "reference": 40,
+          "skipped": 0
+        },
+        {
+          "kind": "function",
+          "found": 963,
+          "reference": 978,
+          "skipped": 31
+        },
+        {
+          "kind": "method",
+          "found": 1920,
+          "reference": 1946,
+          "skipped": 11
+        },
+        {
+          "kind": "owner",
+          "found": 2053,
+          "reference": 2103,
+          "skipped": 0
+        },
+        {
+          "kind": "anchored",
+          "found": 4146,
+          "reference": 4146,
+          "skipped": 0
+        },
+        {
+          "kind": "anchor-exact",
+          "found": 3881,
+          "reference": 3917,
+          "skipped": 229
+        }
+      ]
+    }
+  },
+  "final": {
+    "note": "after three changes made because of it (a macro that wraps the return type, a macro that stands for it, and a field that a macro annotates); these repositories are not held out for those patterns any more",
+    "extractor": {
+      "files": 222,
+      "rows": [
+        {
+          "kind": "class",
+          "found": 329,
+          "reference": 353,
+          "skipped": 8
+        },
+        {
+          "kind": "enum",
+          "found": 40,
+          "reference": 41,
+          "skipped": 0
+        },
+        {
+          "kind": "function",
+          "found": 1206,
+          "reference": 1221,
+          "skipped": 31
+        },
+        {
+          "kind": "method",
+          "found": 1930,
+          "reference": 1946,
+          "skipped": 11
+        },
+        {
+          "kind": "owner",
+          "found": 2063,
+          "reference": 2103,
+          "skipped": 0
+        },
+        {
+          "kind": "anchored",
+          "found": 4383,
+          "reference": 4383,
+          "skipped": 0
+        },
+        {
+          "kind": "anchor-exact",
+          "found": 4145,
+          "reference": 4181,
+          "skipped": 202
+        }
+      ]
+    },
+    "index": {
+      "files": 210,
+      "filesTotal": 222,
+      "rows": [
+        {
+          "kind": "class",
+          "found": 326,
+          "reference": 350,
+          "skipped": 8
+        },
+        {
+          "kind": "enum",
+          "found": 39,
+          "reference": 40,
+          "skipped": 0
+        },
+        {
+          "kind": "function",
+          "found": 963,
+          "reference": 978,
+          "skipped": 31
+        },
+        {
+          "kind": "method",
+          "found": 1930,
+          "reference": 1946,
+          "skipped": 11
+        },
+        {
+          "kind": "owner",
+          "found": 2063,
+          "reference": 2103,
+          "skipped": 0
+        },
+        {
+          "kind": "anchored",
+          "found": 4126,
+          "reference": 4126,
+          "skipped": 0
+        },
+        {
+          "kind": "anchor-exact",
+          "found": 3891,
+          "reference": 3927,
+          "skipped": 199
+        }
+      ]
+    }
+  }
+}

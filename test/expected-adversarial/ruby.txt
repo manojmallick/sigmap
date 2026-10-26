@@ -1,3 +1,3 @@
-def nested_default(a = g(1, 2), b: h(3))
-def keyword_args(a:, b: 2)
-def string_delims(sep = ")")
+def nested_default(a = g(1, 2), b: h(3))  :2-4
+def keyword_args(a:, b: 2)  :6-8
+def string_delims(sep = ")")  :10-12

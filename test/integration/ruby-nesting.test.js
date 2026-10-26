@@ -13,6 +13,16 @@
  * on 757 Rails and Sidekiq files: class 13.8%, module 44.0%, method 82.7%.
  *
  * Each case below gets a fixture that fails against the pre-fix extractor.
+ *
+ * The second half (#975) pins the `:start-end` anchors every class, module and `def` now carries:
+ * the line of the keyword and the line of the `end` that the same depth count closes it with, so
+ * `get_lines` can read exactly one symbol. Measured against Ripper on 757 Rails and Sidekiq files with
+ * `node scripts/run-extraction-recall.mjs --only ruby`, every emitted definition line is anchored and
+ * every anchor is the parser's exact range. The cases are the hard ones (heredocs and strings that
+ * hold `end`, `begin`/`rescue`, `case`, loops, modifiers, a symbol that ends in `=`, an operator
+ * symbol, `if` as a value, definitions across lines, reopened classes, input that never closes) and,
+ * where Ruby is installed, each is also checked against Ripper at run time.
+ *
  * Run: node test/integration/ruby-nesting.test.js
  */
 
@@ -22,14 +32,19 @@ const path = require('path');
 const assert = require('assert');
 const { spawnSync } = require('child_process');
 const { extract } = require('../../src/extractors/ruby');
+const { getLines } = require('../../src/mcp/handlers');
 
 let passed = 0;
 let failed = 0;
+let skipped = 0;
 function test(name, fn) {
   try { fn(); console.log(`  PASS  ${name}`); passed++; }
   catch (e) { console.log(`  FAIL  ${name}\n        ${e.message}`); failed++; }
 }
-const out = (src) => extract(src);
+// These cases pin WHICH symbols are listed and under which owner; the `:start-end` anchors the
+// extractor now adds (#975) are pinned in ruby-anchors.test.js, so they are stripped here.
+const unanchor = (sig) => sig.replace(/\s{2}:\d+-\d+$/, '');
+const out = (src) => extract(src).map(unanchor);
 const same = (src, expected) => assert.deepStrictEqual(out(src), expected);
 
 // ── owners ─────────────────────────────────────────────────────────────────
@@ -466,5 +481,361 @@ test('the recall harness says "unmeasured" and exits 0 when the clones or Ruby a
   }
 });
 
-console.log(`\nruby-nesting: ${passed} passed, ${failed} failed`);
+// ── anchors (#975) ─────────────────────────────────────────────────────────
+
+// Each case is a complete Ruby 2.6 file (so Ripper can read it) and the signatures it must give.
+const CASES = {
+  'nesting, one-line defs and a top-level def': {
+    src: `module Services
+  class UserService < Base
+    def initialize(repo)
+      @repo = repo
+    end
+
+    def self.build(repo); new(repo); end
+
+    def one_line; end
+  end
+end
+
+def top(x)
+  if x
+    1
+  end
+end
+`,
+    sigs: [
+      'module Services  :1-11',
+      'class UserService  :2-10',
+      '  def initialize(repo)  :3-5',
+      '  def self.build(repo)  :7-7',
+      '  def one_line  :9-9',
+      'def top(x)  :13-17',
+    ],
+  },
+
+  'class << self: each singleton method has its own range': {
+    src: `class Config
+  class << self
+    def load
+      new
+    end
+
+    def reset!; @x = nil; end
+  end
+
+  def self.name
+    'c'
+  end
+end
+`,
+    sigs: [
+      'class Config  :1-13',
+      '  def self.load  :3-5',
+      '  def self.reset!  :7-7',
+      '  def self.name  :10-12',
+    ],
+  },
+
+  'a class opened twice is one entry, anchored to its first opening': {
+    src: `module A
+  class Foo
+    def one
+      1
+    end
+  end
+end
+
+module A
+  class Foo
+    def two
+      2
+    end
+  end
+end
+`,
+    sigs: [
+      'module A  :1-7',
+      'class Foo  :2-6',
+      '  def one  :3-5',
+      '  def two  :11-13',
+    ],
+  },
+
+  'heredoc bodies that hold class, def and end are not code': {
+    src: `class Doc
+  def render
+    <<~TEXT
+      class Fake
+        def nope
+        end
+      end
+    TEXT
+  end
+
+  def after
+    <<-EOS.strip
+    end
+    EOS
+  end
+end
+`,
+    sigs: ['class Doc  :1-16', '  def render  :2-9', '  def after  :11-15'],
+  },
+
+  'strings, regexps, %-literals, comments and =begin blocks that hold keywords': {
+    src: `class Lit
+  # def commented
+  # end
+  def a
+    s = "end def class"
+    t = 'module end'
+    r = /end\\/def/
+    w = %w[end def class]
+    s
+  end
+
+=begin
+def in_block_comment
+end
+=end
+
+  def b
+    1
+  end
+end
+`,
+    sigs: ['class Lit  :1-20', '  def a  :4-10', '  def b  :17-19'],
+  },
+
+  'begin/rescue/ensure, case, loops, assignment from if, modifiers and begin...end while': {
+    src: `class Flow
+  def run(items)
+    items.each do |i|
+      begin
+        work(i)
+      rescue StandardError => e
+        warn e
+      ensure
+        done
+      end
+    end
+    case items.size
+    when 0 then :none
+    else :some
+    end
+    while items.any? do
+      items.pop
+    end
+    x = if items.empty?
+          1
+        else
+          2
+        end
+    puts x unless x.nil?
+    begin
+      x += 1
+    end while x < 3
+  end
+
+  def after_flow; end
+end
+`,
+    sigs: ['class Flow  :1-31', '  def run(items)  :2-28', '  def after_flow  :30-30'],
+  },
+
+  'a def whose parameters run over several lines': {
+    src: `class Wide
+  def call(first,
+           second = {},
+           *rest,
+           key: 1,
+           &block)
+    first
+  end
+
+  def after; end
+end
+`,
+    sigs: ['class Wide  :1-11', '  def call(first, second = {}, *rest, key: 1, &block)  :2-8', '  def after  :10-10'],
+  },
+
+  'a symbol that ends in = before a modifier is not an assignment (the class still closes where it ends)': {
+    src: `class Hash2
+  alias_method :w, :[]= unless method_defined?(:w)
+  def []=(k, v)
+    v
+  end
+  def last_one; end
+end
+
+AFTER = 1
+`,
+    sigs: ['class Hash2  :1-7', '  def []=(k, v)  :3-5', '  def last_one  :6-6'],
+  },
+
+  'an operator symbol (:/) is not the start of a regexp, and a def of / and % keeps its range': {
+    src: `class Calc
+  def /(other)
+    if other.zero?
+      1
+    else
+      calculate(:/, other)
+    end
+  end
+
+  def %(other)
+    send(:%, other)
+  end
+
+  def tail; 4 / 2; end
+end
+`,
+    sigs: ['class Calc  :1-15', '  def /(other)  :2-8', '  def %(other)  :10-12', '  def tail  :14-14'],
+  },
+
+  'if after << , && and => is a value, not a modifier, and opens a block that its end closes': {
+    src: `class Fmt
+  def lines_for(last)
+    lines = []
+    lines << if last && last.size > 0
+      last
+    else
+      []
+    end
+    lines
+  end
+
+  def pair(a)
+    [a, if a then 1 else 2 end]
+  end
+
+  def both(a, b)
+    a && if b then 1 else 2 end
+  end
+
+  def keyed(a)
+    { k: 1 }.merge(:v => if a then 1 else 2 end)
+  end
+end
+
+AFTER = 1
+`,
+    sigs: ['class Fmt  :1-23', '  def lines_for(last)  :2-10', '  def pair(a)  :12-14', '  def both(a, b)  :16-18', '  def keyed(a)  :20-22'],
+  },
+
+  'def obj.name keeps its receiver, whatever it is called': {
+    src: `module Explain
+  def run(str)
+    def str.inspect
+      self
+    end
+    str
+  end
+end
+`,
+    sigs: ['module Explain  :1-8', '  def run(str)  :2-7', '  def str.inspect  :3-5'],
+  },
+};
+
+// ── literal expectations ───────────────────────────────────────────────────
+
+for (const [name, c] of Object.entries(CASES)) {
+  test(`anchors: ${name}`, () => assert.deepStrictEqual(extract(c.src), c.sigs));
+}
+
+test('an endless def (Ruby 3) ends on its own line and does not wait for an end', () => {
+  assert.deepStrictEqual(extract(`class E
+  def sq(x) = x * x
+  def after; end
+end
+`), ['class E  :1-4', '  def sq(x)  :2-2', '  def after  :3-3']);
+});
+
+test('input that never closes does not throw: an open block runs to the last line', () => {
+  const sigs = extract('class Open\n  def a\n    1\n');
+  assert.deepStrictEqual(sigs, ['class Open  :1-3', '  def a  :2-3']);
+  const lone = extract('def only\n  1');
+  assert.deepStrictEqual(lone, ['def only  :1-2']);
+});
+
+test('names that start with an underscore stay out; the signatures after them keep their own lines', () => {
+  assert.deepStrictEqual(extract(`class P
+  def _hidden
+    1
+  end
+
+  def shown
+    2
+  end
+end
+`), ['class P  :1-9', '  def shown  :6-8']);
+});
+
+test('every anchor starts on a line that names its symbol and ends on or after it', () => {
+  for (const [name, c] of Object.entries(CASES)) {
+    const lines = c.src.split('\n');
+    for (const sig of extract(c.src)) {
+      const m = /^\s*(class|module|def)\s+(?:self\.|\w+\.)?([^\s(→:]+).*?\s{2}:(\d+)-(\d+)$/.exec(sig);
+      assert.ok(m, `${name}: ${sig} has no anchor`);
+      const [, , sym, a, b] = m;
+      assert.ok(Number(a) <= Number(b), `${name}: ${sig} ends before it starts`);
+      assert.ok(lines[Number(a) - 1].includes(sym.replace(/^.*::/, '')), `${name}: line ${a} does not name ${sym}`);
+    }
+  }
+});
+
+// ── get_lines narrows to a symbol ──────────────────────────────────────────
+
+test('get_lines with an anchor returns exactly one symbol, from its keyword to its end', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-rbanchor-'));
+  try {
+    const c = CASES['nesting, one-line defs and a top-level def'];
+    fs.writeFileSync(path.join(root, 'svc.rb'), c.src);
+    const sig = extract(c.src).find((s) => s.includes('def initialize'));
+    const [, a, b] = /:(\d+)-(\d+)$/.exec(sig);
+    const out = getLines({ file: 'svc.rb', start: a, end: b }, root);
+    assert.strictEqual(out, ['# svc.rb:3-5', '```', '    def initialize(repo)', '      @repo = repo', '    end', '```'].join('\n'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// ── against Ruby's own parser ──────────────────────────────────────────────
+
+const ruby = spawnSync('ruby', ['-e', 'puts RUBY_VERSION'], { encoding: 'utf8' });
+if (ruby.error || ruby.status !== 0) {
+  console.log('  SKIP  every case agrees with Ripper (ruby is not on PATH)');
+  skipped++;
+} else {
+  test('every emitted anchor is a range Ripper reports for the same kind and name', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-rbripper-'));
+    try {
+      const files = [];
+      for (const [i, c] of Object.values(CASES).entries()) {
+        const f = path.join(dir, `case${i}.rb`);
+        fs.writeFileSync(f, c.src);
+        files.push(f);
+      }
+      const script = path.join(__dirname, '..', '..', 'scripts', 'extraction-recall', 'ruby-ripper.rb');
+      const r = spawnSync('ruby', [script, ...files], { encoding: 'utf8', maxBuffer: 1 << 26 });
+      assert.strictEqual(r.status, 0, r.stderr);
+      const truth = JSON.parse(r.stdout);
+      Object.values(CASES).forEach((c, i) => {
+        const ref = truth[files[i]];
+        assert.ok(ref, `Ripper could not read case ${i}: ${Object.keys(CASES)[i]}`);
+        const ranges = new Set(ref.map(([kind, name, a, b]) => `${kind}|${name.split(/[#.]/).pop()}|${a}|${b}`));
+        for (const sig of extract(c.src)) {
+          const m = /^\s*(class|module|def)\s+(?:\w+\.)?([^\s(→]+).*?\s{2}:(\d+)-(\d+)$/.exec(sig);
+          const kind = m[1] === 'def' ? 'method' : m[1];
+          assert.ok(ranges.has(`${kind}|${m[2]}|${m[3]}|${m[4]}`), `${Object.keys(CASES)[i]}: ${sig.trim()} is not a range Ripper reports`);
+        }
+      });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}
+
+console.log(`\nruby-nesting: ${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ''}`);
 process.exit(failed > 0 ? 1 : 0);
