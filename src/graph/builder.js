@@ -4,7 +4,9 @@
  * Dependency graph builder (v2.5).
  *
  * Builds a forward and reverse dependency graph by resolving import/require
- * statements across JS/TS, Python, Go, Rust, Java, Kotlin, and Ruby files.
+ * statements across JS/TS, Python, Go, Rust, Java, Kotlin, Ruby, Elixir and R files
+ * (the original eight families) and, since #980, C/C++/Objective-C, PHP, C#, Dart,
+ * Vue/Svelte/Astro, Lua and GDScript (src/graph/resolvers).
  *
  * @module src/graph/builder
  */
@@ -16,6 +18,21 @@ const path = require('path');
 // and the call-graph cannot drift apart again (see src/graph/path-key.js).
 const { graphKey } = require('./path-key');
 const { resolveGraphDirs, configuredSrcDirs } = require('./src-dirs');
+// The import resolvers added in #980. Each has `name`, `EXTS` and either `extract(filePath,
+// content, fileSet, cwd, ctx)` (graph keys out) or, for single-file components, `scriptOf`.
+// A family listed here is walked, resolved, and reported as tracked by every surface.
+// Swift is not here on purpose: it has no file-level edges (resolvers/swift-modules.js).
+const sfc = require('./resolvers/sfc');
+const RESOLVERS = {
+  FAMILIES: [
+    require('./resolvers/c'), require('./resolvers/php'), require('./resolvers/csharp'),
+    require('./resolvers/dart'), sfc, require('./resolvers/lua'), require('./resolvers/gdscript'),
+  ],
+  BY_EXT: new Map(),
+  sfc,
+};
+for (const f of RESOLVERS.FAMILIES) for (const e of f.EXTS) RESOLVERS.BY_EXT.set(e, f);
+const { ancestorDirs } = require('./resolvers/shared');
 function normalizePath(p) {
   return graphKey(p);
 }
@@ -37,7 +54,12 @@ const EX_EXTS  = new Set(['.ex', '.exs']);
 // place that answers "can the graph see this file's imports" (#979): the walk
 // below, `--impact`, `get_impact`, `plan` and `doctor` all ask this list, so a
 // family added here is a family they all report as tracked.
-const GRAPH_FAMILIES = [
+//
+// The first eight are the families the graph has always read. The ranker is still
+// handed only those (LEGACY_EXTS, see buildRankingGraph): a better blast-radius graph
+// must not silently move the retrieval numbers (#934, #935). The rest were added in
+// #980 and are read by every surface that reports a blast radius.
+const LEGACY_FAMILIES = [
   ['JavaScript/TypeScript', JS_EXTS],
   ['Python', PY_EXTS],
   ['Go', GO_EXTS],
@@ -47,7 +69,11 @@ const GRAPH_FAMILIES = [
   ['Elixir', EX_EXTS],
   ['R', R_EXTS],
 ];
+const NEW_FAMILIES = RESOLVERS.FAMILIES.map((f) => [f.name, f.EXTS]);
+const GRAPH_FAMILIES = [...LEGACY_FAMILIES, ...NEW_FAMILIES];
+const LEGACY_EXTS = new Set(LEGACY_FAMILIES.flatMap(([, exts]) => [...exts]));
 const GRAPH_EXTS = new Set(GRAPH_FAMILIES.flatMap(([, exts]) => [...exts]));
+const NEW_EXTS = new Set(NEW_FAMILIES.flatMap(([, exts]) => [...exts]));
 
 // ---------------------------------------------------------------------------
 // Per-build lookup tables
@@ -115,12 +141,17 @@ function firstEndingWith(t, want) {
 
 /**
  * First file a Go import's last path segment names: `<suffix>.go`, or any file
- * below a directory called `<suffix>`.
+ * below a directory called `<suffix>`. A file of a family added in #980 (a `.c` beside
+ * the Go it is cgo for) is not a Go package file and never answers: the directory
+ * match used to see only the original families, and still picks the same file there.
  */
 function firstGoMatch(t, suffix) {
   const a = byBase(t).get(suffix + '.go');
   const b = suffix ? byDir(t).get(suffix) : undefined;
-  const i = Math.min(a ? a[0] : Infinity, b ? b[0] : Infinity);
+  const ai = a ? a[0] : Infinity;
+  let bi = Infinity;
+  if (b) for (const i of b) { if (!NEW_EXTS.has(path.extname(t.keys[i]))) { bi = i; break; } }
+  const i = Math.min(ai, bi);
   return i === Infinity ? null : t.keys[i];
 }
 
@@ -136,6 +167,7 @@ function probeJs(base, fileSet) {
     base,
     base + '.ts', base + '.tsx',
     base + '.js', base + '.jsx', base + '.mjs', base + '.cjs',
+    base + '.vue', base + '.svelte', base + '.astro',
     path.join(base, 'index.ts'), path.join(base, 'index.tsx'),
     path.join(base, 'index.js'), path.join(base, 'index.jsx'),
   ];
@@ -270,6 +302,57 @@ function resolveRPath(dir, importStr, fileSet, cwd) {
 }
 
 /**
+ * Resolve the ES imports and CommonJS requires of a piece of script source: a `.js` /
+ * `.ts` file, or the `<script>` of a component.
+ *
+ * @param {string} content
+ * @param {string} dir  directory of the file the script is in
+ * @param {Set<string>} fileSet
+ * @param {string} [cwd]
+ * @param {object} [ctx]
+ * @returns {string[]}
+ */
+function jsDeps(content, dir, fileSet, cwd, ctx) {
+  const found = [];
+  const aliasMap = ctx && ctx.aliasMap;
+  // The extended graph (everything but the ranker's) also knows SvelteKit's `$lib`.
+  const extended = !(ctx && ctx.families === 'legacy');
+  // Resolve any specifier: relative → dir-relative; otherwise via tsconfig/
+  // jsconfig path aliases + baseUrl. Bare npm packages (react, lodash) fall
+  // through to null because they are not in fileSet, so no false edges.
+  const resolveSpec = (spec) => {
+    if (spec.startsWith('.')) return resolveJsPath(dir, spec, fileSet);
+    const viaAlias = resolveAlias(spec, aliasMap, fileSet);
+    if (viaAlias || !extended || !(spec === '$lib' || spec.startsWith('$lib/'))) return viaAlias;
+    const rest = spec.slice('$lib'.length).replace(/^\//, '');
+    for (const a of ancestorDirs(dir, cwd)) {
+      const r = probeJs(rest ? path.join(a, 'src', 'lib', rest) : path.join(a, 'src', 'lib'), fileSet);
+      if (r) return r;
+    }
+    return null;
+  };
+
+  const stripped = content
+    .replace(/\/\/.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+
+  let m;
+  // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
+  const reEs = /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
+  while ((m = reEs.exec(stripped)) !== null) {
+    const r = resolveSpec(m[1]);
+    if (r) found.push(r);
+  }
+  // CommonJS require('x') and dynamic import('x').
+  const reCall = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  while ((m = reCall.exec(stripped)) !== null) {
+    const r = resolveSpec(m[1]);
+    if (r) found.push(r);
+  }
+  return found;
+}
+
+/**
  * Extract absolute dependency paths from a single file.
  * @param {string} filePath - absolute path to the file
  * @param {string} content  - file source content
@@ -287,33 +370,17 @@ function extractFileDeps(filePath, content, fileSet, cwd, ctx) {
   const found = [];
 
   // ── JS / TS ───────────────────────────────────────────────────────────────
-  if (JS_EXTS.has(ext)) {
-    const aliasMap = ctx && ctx.aliasMap;
-    // Resolve any specifier: relative → dir-relative; otherwise via tsconfig/
-    // jsconfig path aliases + baseUrl. Bare npm packages (react, lodash) fall
-    // through to null because they are not in fileSet, so no false edges.
-    const resolveSpec = (spec) => spec.startsWith('.')
-      ? resolveJsPath(dir, spec, fileSet)
-      : resolveAlias(spec, aliasMap, fileSet);
+  if (JS_EXTS.has(ext)) found.push(...jsDeps(content, dir, fileSet, cwd, ctx));
 
-    const stripped = content
-      .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
-
-    let m;
-    // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
-    const reEs = /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
-    while ((m = reEs.exec(stripped)) !== null) {
-      const r = resolveSpec(m[1]);
-      if (r) found.push(r);
-    }
-    // CommonJS require('x') and dynamic import('x').
-    const reCall = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-    while ((m = reCall.exec(stripped)) !== null) {
-      const r = resolveSpec(m[1]);
-      if (r) found.push(r);
-    }
+  // ── Vue / Svelte / Astro ──────────────────────────────────────────────────
+  // The imports sit in the component's script; they resolve like any script's.
+  if (RESOLVERS.sfc.EXTS.has(ext)) {
+    found.push(...jsDeps(RESOLVERS.sfc.scriptOf(ext, content), dir, fileSet, cwd, ctx));
   }
+
+  // ── C/C++/Objective-C, PHP, C#, Dart, Lua, GDScript (#980) ────────────────
+  const family = RESOLVERS.BY_EXT.get(ext);
+  if (family && family.extract) found.push(...family.extract(filePath, content, fileSet, cwd, ctx));
 
   // ── Python ────────────────────────────────────────────────────────────────
   if (PY_EXTS.has(ext)) {
@@ -518,14 +585,16 @@ function build(files, cwd, ctx) {
   // Resolve the JS/TS path-alias map once (tsconfig/jsconfig paths + baseUrl),
   // unless a caller supplied one explicitly via ctx.
   const aliasMap = (ctx && 'aliasMap' in ctx) ? ctx.aliasMap : loadAliasMap(cwd);
-  const effectiveCtx = Object.assign({}, ctx, { aliasMap });
-  const forward = new Map();
-  const reverse = new Map();
 
   // Node keys are lowercased for case-insensitive matching, which loses the
   // real spelling every display surface needs. Keep the original-case path
   // alongside so renderers can recover it (see src/graph/path-key displayPath).
+  // The resolvers that index file contents read files by it (a lowercased key is
+  // not a path on a case-sensitive filesystem).
   const realPaths = new Map();
+  const effectiveCtx = Object.assign({}, ctx, { aliasMap, realPaths });
+  const forward = new Map();
+  const reverse = new Map();
 
   // Initialise every known file in both maps (ensures isolated files appear)
   // Store using normalized paths for Windows compatibility
@@ -601,6 +670,10 @@ function buildFromCwd(cwd, opts) {
   // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
   // The existence check below makes these no-ops in non-R projects.
   const o = opts || {};
+  // 'all' (default) reads every family; 'legacy' only the original eight, which is what the
+  // ranker is handed (see buildRankingGraph).
+  const families = o.families === 'legacy' ? 'legacy' : 'all';
+  const readable = families === 'legacy' ? LEGACY_EXTS : GRAPH_EXTS;
   const maxDepth = o.maxDepth === undefined ? DEFAULT_WALK_DEPTH : o.maxDepth;
   let { srcDirs, exclude } = o;
   if (srcDirs === undefined) {
@@ -625,7 +698,7 @@ function buildFromCwd(cwd, opts) {
         walkDir(full, depth + 1, out);
       } else if (e.isFile()) {
         const ext = path.extname(e.name).toLowerCase();
-        if (GRAPH_EXTS.has(ext)) out.push(full);
+        if (readable.has(ext)) out.push(full);
       }
     }
   }
@@ -643,14 +716,14 @@ function buildFromCwd(cwd, opts) {
   }
 
   // Build R namespace context if this looks like an R package.
-  let ctx;
+  let ctx = { families };
   try {
     const { readDescription, collectLocalDefs } = require('../discovery/r-manifest');
     const desc = readDescription(cwd);
     if (desc && desc.package) {
       const rFiles = files.filter((f) => R_EXTS.has(path.extname(f).toLowerCase()));
       if (rFiles.length > 0) {
-        ctx = { rPackage: desc.package, rLocalDefs: collectLocalDefs(rFiles) };
+        ctx = { families, rPackage: desc.package, rLocalDefs: collectLocalDefs(rFiles) };
       }
     }
   } catch (_) { /* manifest module missing or read failed — proceed without ctx */ }
@@ -676,9 +749,12 @@ function buildFromCwd(cwd, opts) {
  * @param {object} [opts] as buildFromCwd; an explicit `srcDirs` still wins
  */
 function buildRankingGraph(cwd, opts) {
-  const o = opts || {};
+  // Also the original eight families only (#980): the families added since read more files
+  // and add edges, and the same unbounded neighbour boost would see them. Pass
+  // `families: 'all'` to measure what that does; nothing ships it.
+  const o = Object.assign({ families: 'legacy' }, opts || {});
   if (o.srcDirs !== undefined) return buildFromCwd(cwd, o);
   return buildFromCwd(cwd, Object.assign({}, o, { srcDirs: configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS }));
 }
 
-module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH, GRAPH_FAMILIES, GRAPH_EXTS };
+module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH, GRAPH_FAMILIES, GRAPH_EXTS, LEGACY_FAMILIES, LEGACY_EXTS };

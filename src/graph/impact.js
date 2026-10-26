@@ -123,7 +123,7 @@ function getImpact(changedFile, graph, opts) {
 
   // Bail gracefully if file not in graph
   if (!graph || !graph.reverse) {
-    return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 }, { cwd });
+    return withModule(markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 }, { cwd }), cwd);
   }
 
   const { direct, transitive } = bfs(absChanged, graph.reverse, depth);
@@ -142,14 +142,29 @@ function getImpact(changedFile, graph, opts) {
 
   // An empty result for a file the graph cannot read is "not tracked", not
   // "nothing depends on it" (#979); markImpact leaves every other result as is.
-  return markImpact({
+  return withModule(markImpact({
     changed:     toRel(absChanged),
     direct:      [...direct].map(toRel),
     transitive:  [...transitive].map(toRel),
     tests:       tests.map(toRel),
     routes:      routes.map(toRel),
     totalImpact: direct.size + transitive.size,
-  }, { cwd });
+  }, { cwd }), cwd);
+}
+
+/**
+ * Swift names modules, not files, so a Swift file has no file-level importers and is marked
+ * "not tracked"; what is known is its module (#980). Attach the files in other targets that
+ * import that module, labelled as module-level. Only a Swift file the graph could not read, and
+ * only where a Package.swift declares the target that owns it.
+ */
+function withModule(result, cwd) {
+  if (!result || result.graph !== UNSUPPORTED || result.language !== 'Swift' || !cwd) return result;
+  try {
+    const m = require('./resolvers/swift-modules').moduleImpact(cwd, path.resolve(cwd, result.changed));
+    if (m) result.module = m;
+  } catch (_) { /* module structure unreadable: the file-level answer stands */ }
+  return result;
 }
 
 /**
@@ -198,6 +213,14 @@ function formatImpact(result) {
 
   if (result.graph === UNSUPPORTED) {
     lines.push(`_${importNote(result.language)}_`);
+    if (result.module) {
+      const m = result.module;
+      lines.push('');
+      lines.push(`### Module-level importers (module \`${m.module}\`, target \`${m.dir}\`)`);
+      lines.push(`**${m.importers.length}** file(s) in other targets import this file's module _(module level: a superset of what changing this file affects)_`);
+      for (const f of m.importers.slice(0, 25)) lines.push(`- \`${f}\``);
+      if (m.importers.length > 25) lines.push(`- _…and ${m.importers.length - 25} more_`);
+    }
     return lines.join('\n');
   }
 
@@ -254,6 +277,7 @@ function formatImpactJSON(result) {
   // Present only when the graph cannot read the file, so a readable file's
   // JSON is the shape it always was (#979).
   if (result.graph === UNSUPPORTED) { out.graph = result.graph; out.language = result.language; }
+  if (result.module) out.module = result.module;
   return out;
 }
 
