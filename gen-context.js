@@ -29598,7 +29598,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.82.0',
+    version: '8.83.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -42091,7 +42091,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.82.0';
+const VERSION = '8.83.0';
 // A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
 // (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
 const __sourceOrBundled = new Map();

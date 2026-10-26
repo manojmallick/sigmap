@@ -64,7 +64,7 @@ Example tasks:
 
 **Baseline:** Single-shot grep agent = 40.0% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
 
-**SigMap score:** 92.8% on the same 125-task honest corpus — a measured **2.32× lift** over the grep baseline (92.8 ÷ 40.0). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
+**SigMap score:** 92.0% on the same 125-task honest corpus — a measured **2.30× lift** over the grep baseline (92.0 ÷ 40.0). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
 
 ### 2. Task success proxy (correct rank)
 
@@ -78,8 +78,8 @@ Example tasks:
 - **Wrong** (not in top 5) — likely multiple retries
 
 **SigMap breakdown:**
-- Correct: 61.9% of tasks
-- Partial: 18.1% of tasks
+- Correct: 60.0% of tasks
+- Partial: 20.0% of tasks
 - Wrong: 20.0% of tasks
 
 ### 3. Prompt reduction
@@ -90,8 +90,8 @@ Example tasks:
 
 **Metric:** Average prompts per task
 - **Without SigMap:** 2.84 prompts/task (cold start, no context)
-- **With SigMap:** 1.58 prompts/task
-- **Reduction:** 44.4%
+- **With SigMap:** 1.6 prompts/task
+- **Reduction:** 43.7%
 
 ### 4. Token reduction
 
@@ -143,7 +143,7 @@ Metrics vary significantly by repository type:
 | Dimension | Range | Meaning |
 |-----------|-------|---------|
 | Hit@5 per repository | 20–100% | 13 of 18 repositories read 80% or more; the weakest read 20% (serilog, vapor) |
-| Prompt reduction per repository | 4.7–66.6% | Lowest on serilog, highest on abseil-cpp |
+| Prompt reduction per repository | 4.7–61.8% | Lowest on serilog, highest on gin |
 | Token reduction per repository | 89.4–99.4% | Lowest on fastapi, highest on rust-analyzer (21 repositories) |
 
 See [per-repo breakdown](retrieval-benchmark.md#per-repo-results) for details.

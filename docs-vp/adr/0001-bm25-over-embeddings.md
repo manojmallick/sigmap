@@ -35,7 +35,7 @@ SigMap ranks with BM25 over identifiers ([`src/retrieval/bm25.js`](https://githu
 ## Evidence
 
 - `src/retrieval/bm25.js` header: the four additions and the 75.3% → 82.4% result.
-- [Retrieval benchmark](/guide/retrieval-benchmark): the `--why` miss classes, and "How far is 90%?" for the honest corpus (92.8%, 116 of 125) and the third-party corpus (71.1% as shipped, 59 of 83).
+- [Retrieval benchmark](/guide/retrieval-benchmark): the `--why` miss classes, and "How far is 90%?" for the honest corpus (92.0%, 115 of 125) and the third-party corpus (71.1% as shipped, 59 of 83).
 - `scripts/check-benchmark-determinism.mjs` ([#522](https://github.com/manojmallick/sigmap/issues/522)): runs a benchmark twice and fails on any difference in the reports.
 
 ## Revisit when

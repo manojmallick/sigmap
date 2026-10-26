@@ -2,27 +2,28 @@
   "benchmark": "honest-autopsy",
   "method": "run-honest-benchmark.mjs --autopsy: SigMap scored without an import graph, against the published grep scan and against the same scan with the files SigMap itself writes left out",
   "tasks": 125,
-  "sigmapHits": 116,
+  "sigmapHits": 115,
   "grepHits": {
     "published": 50,
     "withoutSigmapFiles": 58
   },
   "sigmapFilesInGrepTop5": {
     "places": 625,
-    "polluted": 131
+    "polluted": 130
   },
   "sigmapMisses": {
     "no token in common with the question": 3,
     "ranked 6-10": 4,
     "ranked 11-20": 1,
-    "ranked 21-50": 1
+    "ranked 21-50": 1,
+    "ranked beyond 50": 1
   },
   "againstScanWithoutSigmapFiles": {
     "allTasks": {
       "both": 56,
-      "sigmapOnly": 60,
+      "sigmapOnly": 59,
       "grepOnly": 2,
-      "neither": 7
+      "neither": 8
     },
     "hardSplit": {
       "both": 7,
@@ -45,6 +46,6 @@
       "grepRank": 5
     }
   ],
-  "version": "8.82.0",
-  "generated": "2026-10-23T15:09:02.345Z"
+  "version": "8.83.0",
+  "generated": "2026-10-26T22:08:51.405Z"
 }

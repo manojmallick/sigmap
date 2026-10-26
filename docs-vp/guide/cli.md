@@ -2196,7 +2196,7 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.8% vs 40.0%   (2.32× lift)
+ hit@5         92.0% vs 40.0%   (2.30× lift)
  Corpus        125 tasks · 19 repos (honest split)
  Token cut     95.7% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
@@ -2223,7 +2223,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.32× vs a grep agent (published)
+95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.30× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2233,7 +2233,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.32× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.30× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2513,7 +2513,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.82.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.83.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3216,7 +3216,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.82.0
+# 8.83.0
 ```
 
 ---
