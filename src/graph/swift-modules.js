@@ -18,12 +18,12 @@
  * A project with no `Package.swift` (an Xcode project) has no module structure here and
  * answers nothing.
  *
- * @module src/graph/resolvers/swift-modules
+ * @module src/graph/swift-modules
  */
 
 const fs = require('fs');
 const path = require('path');
-const { maskCode, readBalanced, stripComments } = require('./shared');
+const { maskCode, readBalanced, stripComments } = require('./import-resolvers');
 
 const SKIP = new Set(['.git', 'node_modules', '.build', 'Pods', 'Carthage', 'DerivedData', 'build', 'dist', '.swiftpm']);
 const MAX_FILES = 50000;
@@ -129,4 +129,9 @@ function moduleImpact(cwd, file) {
   return { module: mine.name, kind: mine.kind, dir: path.relative(cwd, mine.dir).replace(/\\/g, '/'), importers };
 }
 
-module.exports = { moduleImpact, importedModules, targetsOf };
+/** Every `.swift` file the module view walks under `cwd`, repo-relative. */
+function swiftFiles(cwd) {
+  return walk(cwd, (n) => n.endsWith('.swift')).map((f) => path.relative(cwd, f).replace(/\\/g, '/')).sort();
+}
+
+module.exports = { moduleImpact, swiftFiles, importedModules, targetsOf };

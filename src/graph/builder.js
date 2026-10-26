@@ -6,7 +6,7 @@
  * Builds a forward and reverse dependency graph by resolving import/require
  * statements across JS/TS, Python, Go, Rust, Java, Kotlin, Ruby, Elixir and R files
  * (the original eight families) and, since #980, C/C++/Objective-C, PHP, C#, Dart,
- * Vue/Svelte/Astro, Lua and GDScript (src/graph/resolvers).
+ * Vue/Svelte/Astro, Lua and GDScript (src/graph/import-resolvers.js).
  *
  * @module src/graph/builder
  */
@@ -18,21 +18,8 @@ const path = require('path');
 // and the call-graph cannot drift apart again (see src/graph/path-key.js).
 const { graphKey } = require('./path-key');
 const { resolveGraphDirs, configuredSrcDirs } = require('./src-dirs');
-// The import resolvers added in #980. Each has `name`, `EXTS` and either `extract(filePath,
-// content, fileSet, cwd, ctx)` (graph keys out) or, for single-file components, `scriptOf`.
-// A family listed here is walked, resolved, and reported as tracked by every surface.
-// Swift is not here on purpose: it has no file-level edges (resolvers/swift-modules.js).
-const sfc = require('./resolvers/sfc');
-const RESOLVERS = {
-  FAMILIES: [
-    require('./resolvers/c'), require('./resolvers/php'), require('./resolvers/csharp'),
-    require('./resolvers/dart'), sfc, require('./resolvers/lua'), require('./resolvers/gdscript'),
-  ],
-  BY_EXT: new Map(),
-  sfc,
-};
-for (const f of RESOLVERS.FAMILIES) for (const e of f.EXTS) RESOLVERS.BY_EXT.set(e, f);
-const { ancestorDirs } = require('./resolvers/shared');
+const RESOLVERS = require('./import-resolvers');   // the families added in #980
+const { ancestorDirs } = RESOLVERS;
 function normalizePath(p) {
   return graphKey(p);
 }
@@ -167,7 +154,6 @@ function probeJs(base, fileSet) {
     base,
     base + '.ts', base + '.tsx',
     base + '.js', base + '.jsx', base + '.mjs', base + '.cjs',
-    base + '.vue', base + '.svelte', base + '.astro',
     path.join(base, 'index.ts'), path.join(base, 'index.tsx'),
     path.join(base, 'index.js'), path.join(base, 'index.jsx'),
   ];

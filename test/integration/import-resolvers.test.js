@@ -241,7 +241,9 @@ test('C#: using static and an alias name a type directly; global using applies t
     'src/App/G.cs': 'namespace App;\nclass G { LogEvent e; }\n',
     'other/Other.csproj': '<Project/>',
     'other/Y.cs': 'namespace Other;\nclass Y { LogEvent e; }\n',
+    'src/Core/Self.cs': 'using Me = Lib.Core.Self;\nnamespace Lib.Core;\nclass Self { }\n',
   }));
+  assert.deepStrictEqual(importsOf(root, 'src/Core/Self.cs'), [], 'an alias of a type the file declares itself is not an edge to itself');
   assert.deepStrictEqual(importsOf(root, 'src/App/S.cs'), ['src/Core/Util.cs']);
   assert.deepStrictEqual(importsOf(root, 'src/App/Al.cs'), ['src/Core/Logger.cs']);
   assert.deepStrictEqual(importsOf(root, 'src/App/G.cs'), ['src/Events/LogEvent.cs'], 'a global using of the same project');
@@ -275,8 +277,10 @@ test('Vue: the imports of every <script> block resolve like a script\'s; the tem
     'src/Child.vue': '<template><div/></template>\n', 'src/Plain.vue': '', 'src/Fake.vue': '', 'src/util.ts': '', 'src/lib/y.ts': '', 'src/s.css': '',
     'src/main.ts': "import App from './App.vue'\nimport Child from './Child'\n",
   });
+  // './Child' (no extension) is not guessed to mean Child.vue: a bundler does not unless it is configured to
   assert.deepStrictEqual(importsOf(root, 'src/App.vue'), ['src/Child.vue', 'src/Plain.vue', 'src/lib/y.ts', 'src/util.ts']);
-  assert.deepStrictEqual(importersOf(root, 'src/Child.vue'), ['src/App.vue', 'src/main.ts'], 'a .ts file importing a component, with or without the extension');
+  assert.deepStrictEqual(importersOf(root, 'src/Child.vue'), ['src/App.vue'], 'only the import that names the extension reaches the component');
+  assert.deepStrictEqual(importsOf(root, 'src/main.ts'), ['src/App.vue'], 'a .ts file importing a component by its file name');
 });
 
 test('Svelte: instance and module scripts are read, and $lib reaches src/lib', () => {
@@ -338,7 +342,7 @@ const PACKAGE = [
 ].join('\n');
 
 test('Swift: a file\'s module and the files in other targets that import it; no file-level edge is drawn', () => {
-  const { moduleImpact } = require('../../src/graph/resolvers/swift-modules');
+  const { moduleImpact } = require('../../src/graph/swift-modules');
   const root = repo({
     'Package.swift': PACKAGE,
     'Sources/Core/Core.swift': 'public struct Core {}\n', 'Sources/Core/Inner.swift': 'import Foundation\nimport Core\nstruct Inner { let c = Core() }\n',
@@ -355,6 +359,7 @@ test('Swift: a file\'s module and the files in other targets that import it; no 
   assert.strictEqual(moduleImpact(root, path.join(root, 'Libs/Net/Net.swift')).module, 'Net', 'a target with a path: is found');
   assert.deepStrictEqual(moduleImpact(root, path.join(root, 'Libs/Net/Net.swift')).importers, []);
   assert.deepStrictEqual(edges(root), [], 'Swift contributes no file-level edge');
+  assert.strictEqual(require('../../src/graph/swift-modules').swiftFiles(root).length, 8);
 });
 
 test('Swift: --impact keeps the "not tracked" answer and adds the module-level importers; with no Package.swift it adds nothing', () => {

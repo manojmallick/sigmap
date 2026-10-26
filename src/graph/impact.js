@@ -161,7 +161,7 @@ function getImpact(changedFile, graph, opts) {
 function withModule(result, cwd) {
   if (!result || result.graph !== UNSUPPORTED || result.language !== 'Swift' || !cwd) return result;
   try {
-    const m = require('./resolvers/swift-modules').moduleImpact(cwd, path.resolve(cwd, result.changed));
+    const m = require('./swift-modules').moduleImpact(cwd, path.resolve(cwd, result.changed));
     if (m) result.module = m;
   } catch (_) { /* module structure unreadable: the file-level answer stands */ }
   return result;
