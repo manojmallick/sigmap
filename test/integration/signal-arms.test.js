@@ -108,6 +108,36 @@ const at = (file, rank) => { const l = filler(60); l[rank - 1] = file; return l;
 
   // ── writing a document whole ───────────────────────────────────────────────
 
+  await test('re-scoring one corpus replaces only that corpus, adds the totals up again, and says when each entry was recorded', () => {
+    const cell = (hits, gained = [], lost = []) => ({ hits, tasks: 10, mrr: 0.5, gained, lost, moved: gained.length + lost.length });
+    const prior = {
+      version: '8.81.0', generated: '2026-10-23T00:00:00.000Z',
+      corpora: { xrepo: { plain: cell(6), body: cell(3, [], ['a', 'b', 'c']) }, hard: { plain: cell(7), body: cell(8, ['h1'], []) } },
+      total: {},
+    };
+    const now = { version: '8.82.0', generated: '2026-10-26T20:00:00.000Z' };
+    const out = arms.mergeReport(prior, { xrepo: { plain: cell(5), body: cell(3, ['z'], ['a', 'b', 'c']) } }, now);
+    assert.deepStrictEqual(Object.keys(out.corpora), ['xrepo', 'hard'], 'the corpora keep their order');
+    assert.strictEqual(out.corpora.xrepo.plain.hits, 5, 'the re-scored corpus is replaced');
+    assert.strictEqual(out.corpora.hard, prior.corpora.hard, 'the others are left exactly as recorded');
+    assert.deepStrictEqual({ hits: out.total.plain.hits, tasks: out.total.plain.tasks }, { hits: 12, tasks: 20 }, 'totals over both corpora');
+    assert.deepStrictEqual({ gained: out.total.body.gained, lost: out.total.body.lost }, { gained: 2, lost: 3 });
+    assert.deepStrictEqual(out.recorded.xrepo, now);
+    assert.deepStrictEqual(out.recorded.hard, { version: '8.81.0', generated: '2026-10-23T00:00:00.000Z' }, 'a report without provenance per corpus gives each the file\'s');
+    const again = arms.mergeReport({ ...prior, recorded: out.recorded, corpora: out.corpora }, { hard: { plain: cell(9) } }, { version: '8.83.0', generated: '2026-11-01T00:00:00.000Z' });
+    assert.deepStrictEqual(again.recorded.xrepo, now, 'an entry recorded earlier keeps its own date');
+    assert.strictEqual(again.recorded.hard.version, '8.83.0');
+    const first = arms.mergeReport(null, { xrepo: { plain: cell(1) } }, now);
+    assert.deepStrictEqual(Object.keys(first.corpora), ['xrepo']);
+    assert.deepStrictEqual(first.recorded, { xrepo: now });
+  });
+
+  await test('the recorder refuses a corpus it does not know, before it scores anything', () => {
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'scripts/run-signal-verdicts.mjs'), '--only', 'nope'], { encoding: 'utf8' });
+    assert.strictEqual(r.status, 2, r.stdout + r.stderr);
+    assert.ok(/unknown corpus "nope"/.test(r.stderr), r.stderr);
+  });
+
   await test('a document larger than a pipe buffer arrives whole when the process exits straight after writing it', () => {
     // A gate prints one JSON document and exits. Through a pipe the exit cuts an asynchronous write off at the
     // buffer size (65,536 bytes), which is how a --signals document reached its reader as truncated JSON.

@@ -119,3 +119,49 @@ export function verdictOf(arm) {
   if (net < 0) return `${net} task${net === -1 ? '' : 's'} (won ${arm.gained.length}, lost ${arm.lost.length})`;
   return `net zero (won ${arm.gained.length}, lost ${arm.lost.length})`;
 }
+
+/**
+ * Totals per arm over the corpora each arm ran on; a dash cell is not counted as a zero.
+ * @param {Record<string, Record<string, {hits:number,tasks:number,gained:string[],lost:string[],moved:number}>>} corpora
+ */
+export function totalsOf(corpora) {
+  const total = {};
+  for (const arm of ARMS.map((a) => a.id)) {
+    const rows = Object.values(corpora).map((c) => c[arm]).filter(Boolean);
+    total[arm] = {
+      hits: rows.reduce((n, r) => n + r.hits, 0),
+      tasks: rows.reduce((n, r) => n + r.tasks, 0),
+      gained: rows.reduce((n, r) => n + r.gained.length, 0),
+      lost: rows.reduce((n, r) => n + r.lost.length, 0),
+      moved: rows.reduce((n, r) => n + r.moved, 0),
+    };
+  }
+  return total;
+}
+
+/**
+ * The corpora of a report after re-scoring only some of them: the ones in `scored` replace their
+ * entries and every other corpus stays as it was recorded. That is the honest way to move one
+ * corpus when the others cannot be reproduced from where the run happens (the corpora scored
+ * against this repository's own source depend on the checkout they are run in). The result says,
+ * corpus by corpus, which release and moment each entry was recorded at, so a file stamped now does
+ * not pass the older entries off as new.
+ *
+ * @param {object|null} prior the saved report, or null for a first recording
+ * @param {Record<string, object>} scored the corpora scored in this run
+ * @param {{version:string, generated:string}} now provenance of this run
+ * @returns {{corpora: object, total: object, recorded: Record<string, {version:string|null, generated:string|null}>}}
+ */
+export function mergeReport(prior, scored, now) {
+  const kept = prior && prior.corpora ? prior.corpora : {};
+  const corpora = { ...kept, ...scored };
+  const before = (prior && prior.recorded) || {};
+  const recorded = {};
+  for (const name of Object.keys(corpora)) {
+    recorded[name] = name in scored
+      ? { version: now.version, generated: now.generated }
+      : before[name] || { version: (prior && prior.version) || null, generated: (prior && prior.generated) || null };
+  }
+  return { corpora, total: totalsOf(corpora), recorded };
+}
+

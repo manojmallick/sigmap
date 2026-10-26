@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.82.0, with the latest release growing the third-party corpus from 128 questions over 25 repositories to 208 over 35 (hit@5 63.3% to 55.8%, every earlier repository unchanged) and printing an exact paired test beside every won/lost count, after v8.81.0 giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
+description: SigMap version history and roadmap. From v0.0 to v8.83.0, with the latest release moving Ruby and C/C++ to the anchored tier (9,701 of 9,701 Ruby anchors equal to Ripper's lines; C++ classes found against clangd 49.5% to 95.6%), reading seven more import families and measuring the import graph and the call graph against what each language's own tooling resolves, after v8.82.0 growing the third-party corpus from 128 questions over 25 repositories to 208 over 35 (hit@5 63.3% to 55.8%, every earlier repository unchanged) and printing an exact paired test beside every won/lost count, after v8.81.0 giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Two hundred fifty versions shipped. MIT open source from day one.
 
-**Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.32× measured lift vs single-shot grep (92.8% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
+**Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.30× measured lift vs single-shot grep (92.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,26 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.83.0 — Ruby and C/C++ are read as structure and anchored, the import graph reads fifteen language families, and both graphs are measured ✓ (2026-10-26)
+
+**Minor.** The first release since v8.81.0 that changes shipped code, and the one that completes the W4 wave of the gap programme ([#975](https://github.com/manojmallick/sigmap/issues/975), [#980](https://github.com/manojmallick/sigmap/issues/980), [#976](https://github.com/manojmallick/sigmap/issues/976)). **Ruby and C/C++ leave Tier 3** (PR [#1031](https://github.com/manojmallick/sigmap/pull/1031)): every class, module, `def`, namespace, class, enum, function, method and template carries a `:start-end` anchor, so `get_lines` can read one symbol instead of the file. Measured against each language's own parser, not asserted: Ripper agrees with all 9,701 Ruby anchors (Ruby 2.6, 757 files) and all 12,471 on Ruby 3.2, after three misreads the check exposed were fixed; clangd 21.0.0 agrees with 3,961 of 4,073 C/C++ anchors the extractor emits on 248 files, and C++ classes go from 49.5% to 95.6% found, methods from 16.6% to 96.6%, methods under the right class from 13.0% to 96.9%. The 200-signature cap is most of what is left. A held-out check on four repositories nobody developed against read functions at 83.7% and found three patterns the development set had not shown (a macro that wraps the return type, a macro that stands for it, a field a macro annotates that was listed as a method); they are fixed, and those four repositories are no longer held out for them. **The import graph reads fifteen families, up from eight** (PR [#1030](https://github.com/manojmallick/sigmap/pull/1030)): C/C++/Objective-C, PHP, C#, Dart, Vue/Svelte/Astro, Lua and GDScript, with Swift answered at module level; the ranker is still handed only the original eight. Measured on nine pinned repositories against `clang -E -H`, Composer's autoloader, `swiftc` and TypeScript's own resolution: C/C++ 99.7% precision and recall, PHP 100/100, Swift module level 100/99.3, components 100/**79.1%** with the registered prediction of 90% recall **missed and published**; C#, Dart, Lua and GDScript have fixtures and no figure. **The call graph is scored against compiler-derived edges** for the first time (PR [#1029](https://github.com/manojmallick/sigmap/pull/1029)): plain `f()` calls are found at Go 99.0%, JavaScript 99.3%, Python 55.7%, TypeScript 26.5%; calls through a receiver are not in the graph outside Java; the registered 70% threshold tripped in four languages, which says a receiver-type pass is warranted and is not one.
+
+```
+Ruby anchors equal to Ripper's lines     0            ->  9,701 of 9,701 (Ruby 3.2: 12,471 of 12,471)
+C/C++ classes / methods (clangd)         49.5% / 16.6% ->  95.6% / 96.6%
+C/C++ anchored / equal to clangd         0            ->  4,192 of 4,192 / 3,961 of 4,073
+import families the graph reads         8            ->  15 (Swift at module level)
+xrepo (third-party)                      116 of 208 (55.8%)  ->  115 of 208 (55.3%, 48.5-61.9%)
+```
+
+The third-party headline moves by one task because the C++ extractor stopped inventing signatures: for `spdlog` the old one listed 102 "signatures" such as `if(!padding.truncate_)` that happened to hold a question's words, and the new one lists the 150 declarations the file has. A control on untouched `develop` reproduces the old baseline and the move; nothing was tuned to win the task back. The signal-arm report is re-scored for its third-party column only (`run-signal-verdicts.mjs --only xrepo`), because the self-scored columns do not reproduce from a fresh worktree even on `develop`.
+
+**Tags:** `Tier 2`, `anchors`, `Ripper`, `clangd`, `held-out`, `import-resolvers`, `swift-modules`, `SCIP`, `call-graph accuracy`, `#975`, `#980`, `#976`
+
+**Impact:** token reduction 95.7%, retrieval hit@5 80.4%, test-discovery F1 98.0%, the grounding corpus and the hallucination guard reproduce v8.82.0 leaf for leaf. Three published figures move and a control reproduces each: the task-success proxy 61.9% to **60.0%** and prompt reduction 44.4% to **43.7%** (`abseil-cpp` loses two rank-1 tasks to rank 3, MRR 1.000 to 0.733, hit@5 unchanged), and the honest comparison 92.8% to **92.0%** (115 of 125; grep 40.0%, 50 of 125; 2.30×), all of it in the task set scored against this repository itself. `hard` reads 70.0% (63 of 90), the gate's floor, with no task of headroom. The npm package gains two files (222 to 224).
 
 ---
 

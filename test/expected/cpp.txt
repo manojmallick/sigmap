@@ -1,7 +1,12 @@
-class UserService
-  UserService(std::shared_ptr<Repository> repo)
-  getUser(const std::string& id) → User
-  createUser(const CreateUserDto& dto) → User
-struct Repository
-  findById(const std::string& id) → User
-  save(const User& user) → bool
+class UserService  :5-17
+  UserService(std::shared_ptr<Repository> repo)  :7-7
+  getUser(const std::string& id) → User  :8-8
+  createUser(const CreateUserDto& dto) → User  :9-9
+  ~UserService()  :10-10
+struct Repository  :19-22
+  findById(const std::string& id) → User  :20-20
+  save(const User& user) → bool  :21-21
+hashPassword(const std::string& password) → std::string  :24-24
+enum class Level  :28-28
+clamp(T v, T lo, T hi) → T  :30-33
+UserService::describe() → std::string  :37-37

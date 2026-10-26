@@ -91,7 +91,7 @@ export class UserService
 
 ## All 38 languages
 
-Recall against each language's own parser is measured for Python and Ruby (the Python and Ruby rows link to the [recall report](/guide/extraction-recall)); the other languages are listed there as unmeasured.
+Recall against each language's own parser is measured for Python, Ruby and C / C++ (those rows link to the [recall report](/guide/extraction-recall)); the other languages are listed there as unmeasured.
 
 | Language | Extensions | Extracts |
 |----------|------------|----------|
@@ -103,7 +103,7 @@ Recall against each language's own parser is measured for Python and Ruby (the P
 | Go | `.go` | func, type struct, interface, method receivers, type alias |
 | Rust | `.rs` | pub fn, pub struct, trait, enum, impl methods, pub type |
 | C# | `.cs` | public class, interface, enum, public methods, record, struct |
-| C / C++ | `.c` `.cpp` `.h` `.hpp` `.cc` | functions, class / struct, public methods, template, typedef |
+| C / C++ | `.c` `.cpp` `.h` `.hpp` `.cc` | functions and prototypes, class / struct / union, enum, namespace, methods (in-class and out-of-line), template, `:start-end` anchors; type aliases are not listed ([recall](/guide/extraction-recall)) |
 | Ruby | `.rb` `.rake` | def, class, module, attr_accessor, include / extend ([recall](/guide/extraction-recall)) |
 | PHP | `.php` | function, class, interface, trait, public methods |
 | Swift | `.swift` | func, class / struct, protocol, enum, extension |

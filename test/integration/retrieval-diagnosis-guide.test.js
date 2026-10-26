@@ -278,9 +278,11 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
     const as = match(/As shipped it reads \*\*(\d+\.\d)%\*\* \((\d+) of (\d+)\)/, 'the honest corpus as shipped');
     assert.deepStrictEqual([as[1], Number(as[2]), Number(as[3])], [pct(h.plain.hits, h.plain.tasks).replace('%', ''), h.plain.hits, h.plain.tasks]);
     assert.ok(h.plain.hits / h.plain.tasks >= 0.9, 'as shipped it clears 90%');
-    const before = match(/(\d+\.\d)% \((\d+) of (\d+)\) before body words were the default, one task short/, 'the honest corpus without the words');
+    const before = match(/with the words switched off it reads (\d+\.\d)% \((\d+) of (\d+)\), (\w+) tasks? short of 90%/, 'the honest corpus without the words');
     assert.deepStrictEqual([before[1], Number(before[2]), Number(before[3])], [pct(h.body.hits, h.body.tasks).replace('%', ''), h.body.hits, h.body.tasks]);
-    assert.strictEqual(Math.ceil(0.9 * h.body.tasks) - h.body.hits, 1, 'one more task would have cleared 90%');
+    const short = Math.ceil(0.9 * h.body.tasks) - h.body.hits;
+    assert.ok(short > 0, 'without the words the honest corpus falls short of 90%');
+    assert.strictEqual(before[4], WORDS[short], `${short} more tasks would have cleared 90%`);
     const margin = h.plain.hits - Math.ceil(0.9 * h.plain.tasks);
     assert.match(section, new RegExp(`clears 90% by ${WORDS[margin]} tasks`));
     assert.match(section, new RegExp(`${pct(sa.corpora.xrepo.plain.hits, sa.corpora.xrepo.plain.tasks)} as shipped, ${pct(sa.corpora.xrepo.body.hits, sa.corpora.xrepo.body.tasks)} without the words`));

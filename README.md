@@ -57,17 +57,17 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 **Deterministic and verifiable — the two things an agentic-grep loop can't give you:**
 - **Deterministic** — no LLM calls, no agent loop; the same repo always produces a byte-identical map you can diff, cache, and gate in CI.
-- **Auditable & grounded** — every symbol in the AST and anchored-regex tiers carries a real `:start-end` line anchor; Tier-3 formats (Ruby, R, Lua, Elixir, C/C++, config formats) are listed without anchors, as [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) states. `sigmap verify` flags any AI claim that isn't grounded.
+- **Auditable & grounded** — every symbol in the AST and anchored-regex tiers carries a real `:start-end` line anchor; Tier-3 formats (R, Lua, Elixir, config formats) are listed without anchors, as [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) states. `sigmap verify` flags any AI claim that isn't grounded.
 - **Zero dependencies** — `npx sigmap` on any machine; no embeddings, no vector DB, no hosted service, fully offline.
 
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **92.8% vs 40.0% single-shot grep baseline** — 2.32× measured lift on the honest corpus (125 tasks / 19 repos)
-- **55.8% hit@5 on repositories we do not control** — the third-party corpus: 116 of 208 questions over 35 repos, 95% interval 49.0–62.4%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
+- **92.0% vs 40.0% single-shot grep baseline** — 2.30× measured lift on the honest corpus (125 tasks / 19 repos)
+- **55.3% hit@5 on repositories we do not control** — the third-party corpus: 115 of 208 questions over 35 repos, 95% interval 48.5–61.9%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
 - **95.7% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
-- **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
-- **1.58 prompts per task** — down from 2.84 (44.4% fewer retries, modeled)
+- **60.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
+- **1.6 prompts per task** — down from 2.84 (43.7% fewer retries, modeled)
 <!--/SM:whyMetrics-->
 - **<!--SM:languages-->38<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
@@ -131,15 +131,15 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.82-main (21 repositories, including R language)
-Date      : 2026-10-23
+Benchmark : sigmap-v8.83-main (21 repositories, including R language)
+Date      : 2026-10-26
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
-Honest vs grep : 92.8% vs 40.0% grep baseline — 2.32× lift (125 tasks / 19 repos)
-Third-party    : 55.8% hit@5 (116 of 208 questions / 35 repos, 95% interval 49.0–62.4%)
+Honest vs grep : 92.0% vs 40.0% grep baseline — 2.30× lift (125 tasks / 19 repos)
+Third-party    : 55.3% hit@5 (115 of 208 questions / 35 repos, 95% interval 48.5–61.9%)
 Map vs repo    : 95.7% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
-Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
-Task success   : 61.9%   (proxy — modeled from retrieval tiers)
+Prompt reduction : 43.7% (2.84 → 1.6 prompts per task, modeled)
+Task success   : 60.0%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 <!--/SM:benchmarkBlock-->
@@ -419,7 +419,7 @@ Not all 38 languages get the same depth — and we say so plainly:
 | Tier | Coverage | Depth |
 |------|----------|-------|
 | **AST** | Python (`python3` on PATH; regex fallback without) | Full parse |
-| **Anchored regex** | 12 brace languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, PowerShell) | Declarations + `:start-end` line anchors; doc hints on 7 |
+| **Anchored regex** | 15 block-structured languages (JS, TS, Go, Rust, Java, Kotlin, Swift, PHP, Scala, Dart, C#, PowerShell, Objective-C, Ruby, C/C++) | Declarations + `:start-end` line anchors; doc hints on 7 |
 | **Pattern/heuristic** | Everything else + generic fallback | Line-oriented patterns |
 
 Caps: 25 signatures/file in the context file, up to 200 in the retrieval index · 120 members/class (the extractors' own limit). Full details, known regex gaps, and what they mean for `verify`: **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)**.

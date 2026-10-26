@@ -13,23 +13,23 @@
   "corpora": {
     "xrepo": {
       "plain": {
-        "hits": 116,
+        "hits": 115,
         "tasks": 208,
-        "mrr": 0.38,
+        "mrr": 0.379,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "centrality": {
-        "hits": 116,
+        "hits": 115,
         "tasks": 208,
-        "mrr": 0.38,
+        "mrr": 0.379,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "surface": {
-        "hits": 116,
+        "hits": 115,
         "tasks": 208,
         "mrr": 0.385,
         "gained": [],
@@ -39,20 +39,21 @@
       "mined": {
         "hits": 115,
         "tasks": 208,
-        "mrr": 0.378,
+        "mrr": 0.375,
         "gained": [
+          "spdlog/x102",
           "newtonsoft-json/x113",
           "gorm/x196"
         ],
         "lost": [
           "flask/x033",
-          "svelte/x131",
-          "abseil-cpp/x180"
+          "spdlog/x100",
+          "svelte/x131"
         ],
-        "moved": 35
+        "moved": 34
       },
       "callgraph": {
-        "hits": 115,
+        "hits": 114,
         "tasks": 208,
         "mrr": 0.376,
         "gained": [],
@@ -64,9 +65,10 @@
       "body": {
         "hits": 78,
         "tasks": 208,
-        "mrr": 0.244,
+        "mrr": 0.248,
         "gained": [
           "express/x040",
+          "abseil-cpp/x177",
           "zod/x202"
         ],
         "lost": [
@@ -90,8 +92,8 @@
           "plenary/x075",
           "sidekiq/x089",
           "sidekiq/x090",
+          "libuv/x094",
           "spdlog/x100",
-          "spdlog/x102",
           "newtonsoft-json/x109",
           "newtonsoft-json/x112",
           "vapor/x115",
@@ -114,7 +116,7 @@
         "moved": 91
       },
       "nograph": {
-        "hits": 115,
+        "hits": 114,
         "tasks": 208,
         "mrr": 0.377,
         "gained": [],
@@ -429,25 +431,25 @@
     },
     "honest": {
       "plain": {
-        "hits": 116,
+        "hits": 115,
         "tasks": 125,
-        "mrr": 0.763,
+        "mrr": 0.759,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "surface": {
-        "hits": 116,
+        "hits": 115,
         "tasks": 125,
-        "mrr": 0.763,
+        "mrr": 0.759,
         "gained": [],
         "lost": [],
         "moved": 2
       },
       "mined": {
-        "hits": 116,
+        "hits": 115,
         "tasks": 125,
-        "mrr": 0.763,
+        "mrr": 0.759,
         "gained": [],
         "lost": [],
         "moved": 11
@@ -455,79 +457,104 @@
       "callgraph": {
         "hits": 115,
         "tasks": 125,
-        "mrr": 0.769,
+        "mrr": 0.767,
         "gained": [],
-        "lost": [
-          "retrieval/t006"
-        ],
-        "moved": 10
+        "lost": [],
+        "moved": 9
       },
       "body": {
-        "hits": 112,
+        "hits": 110,
         "tasks": 125,
-        "mrr": 0.72,
+        "mrr": 0.704,
         "gained": [],
         "lost": [
+          "abseil-cpp/absl-t004",
           "axios/axios-t002",
           "express/express-h001",
           "retrieval/t005",
           "svelte/svelte-t002"
         ],
-        "moved": 21
+        "moved": 23
       }
     }
   },
   "total": {
     "plain": {
-      "hits": 378,
+      "hits": 376,
       "tasks": 564,
       "gained": 0,
       "lost": 0,
       "moved": 0
     },
     "centrality": {
-      "hits": 262,
+      "hits": 261,
       "tasks": 439,
       "gained": 0,
       "lost": 0,
       "moved": 6
     },
     "surface": {
-      "hits": 378,
+      "hits": 376,
       "tasks": 564,
       "gained": 0,
       "lost": 0,
       "moved": 9
     },
     "mined": {
-      "hits": 374,
-      "tasks": 564,
-      "gained": 6,
-      "lost": 10,
-      "moved": 106
-    },
-    "callgraph": {
-      "hits": 370,
-      "tasks": 564,
-      "gained": 2,
-      "lost": 10,
-      "moved": 77
-    },
-    "body": {
-      "hits": 329,
+      "hits": 373,
       "tasks": 564,
       "gained": 7,
-      "lost": 56,
-      "moved": 166
+      "lost": 10,
+      "moved": 105
+    },
+    "callgraph": {
+      "hits": 369,
+      "tasks": 564,
+      "gained": 2,
+      "lost": 9,
+      "moved": 76
+    },
+    "body": {
+      "hits": 327,
+      "tasks": 564,
+      "gained": 8,
+      "lost": 57,
+      "moved": 168
     },
     "nograph": {
-      "hits": 259,
+      "hits": 258,
       "tasks": 439,
       "gained": 5,
       "lost": 8,
       "moved": 60
     }
   },
-  "version": "8.81.0",
-  "generated": "2026-10-23T00:10:09.305Z"
+  "recorded": {
+    "xrepo": {
+      "version": "8.82.0",
+      "generated": "2026-10-26T20:27:16.297Z"
+    },
+    "hard": {
+      "version": "8.81.0",
+      "generated": "2026-10-23T00:10:09.305Z"
+    },
+    "mined": {
+      "version": "8.81.0",
+      "generated": "2026-10-23T00:10:09.305Z"
+    },
+    "easy": {
+      "version": "8.81.0",
+      "generated": "2026-10-23T00:10:09.305Z"
+    },
+    "jvm": {
+      "version": "8.81.0",
+      "generated": "2026-10-23T00:10:09.305Z"
+    },
+    "honest": {
+      "version": "8.83.0",
+      "generated": "2026-10-26T21:57:25.714Z"
+    }
+  },
+  "version": "8.83.0",
+  "generated": "2026-10-26T21:57:25.714Z"
 }

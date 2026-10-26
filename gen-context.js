@@ -9897,22 +9897,37 @@ __factories["./src/extractors/coverage"] = function(module, exports) {
 __factories["./src/extractors/cpp"] = function(module, exports) {
   
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
-  const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
+  const { stripComments, maskCode } = __require('./src/extractors/scan');
+  const { withAnchor } = __require('./src/extractors/line-anchor');
 
   // Ceilings sit above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed
   // — an undisclosed cap looks like a class that simply has eight methods (#576).
-  // Class bodies are scanned to this many characters. Real classes routinely
-  // run past the old 4KB scan window — truncating there silently hid every
-  // member after ~4000 chars AND anchored class end-lines short (#576). The
-  // ceiling only guards against pathological input (Java parity, #551).
-  const MAX_CLASS_BODY_CHARS = 200000;
   const MEMBER_LIMIT = 120;
   const PER_FILE_LIMIT = 200;
+  // Past this a file is generated or data, not a declaration surface worth scanning.
+  const MAX_SOURCE = 4 * 1024 * 1024;
+  const MAX_PARAMS = 200;
+  const MAX_RETURN = 30;
 
   /**
-   * Extract signatures from C/C++ source code.
+   * Extract signatures from C/C++ source code (Tier 2, #975).
+   *
+   * The source is masked (comments, strings and preprocessor lines blanked, every
+   * newline kept), cut into tokens, and read one declaration at a time: namespaces
+   * and `extern "C"` blocks are transparent, a class, struct or union lists the
+   * functions it declares or defines under it, and a function is listed whether it
+   * has a body or only a prototype (a header is a declaration surface). Each
+   * signature carries the `:start-end` lines of its declaration, from its first
+   * token (a `template <...>` header included) to the `;` or the closing `}`.
+   *
+   * What it does not do is expand macros or resolve names, so it is a reading of
+   * the text and not of the program: a function a macro writes is not listed, an
+   * `#if` that opens a brace in one branch and not in another can swallow the rest
+   * of the file, and a statement it cannot place is skipped rather than guessed.
+   *
    * @param {string} src - Raw file content
+   * @param {string} [filePath]
    * @returns {string[]} Array of signature strings
    */
   function extract(src, filePath) {
@@ -9927,83 +9942,695 @@ __factories["./src/extractors/cpp"] = function(module, exports) {
     if (/^\s*@(?:interface|implementation|protocol)\b/m.test(stripped) || /^\s*#import\b/m.test(stripped)) {
       return __require('./src/extractors/objc').extract(src, filePath);
     }
+    if (src.length > MAX_SOURCE) return [];
+
+    const toks = tokenize(maskCode(blankDirectives(src)));
+    const nodes = [];
+    new Reader(toks, stripped).block(0, toks.length, { out: nodes, cls: null });
+
     const sigs = [];
-    const masked = maskCode(src);
-
-    // Classes and structs
-    const classRe = /^(?:class|struct)\s+(\w+)(?:\s*:\s*(?:public|protected|private)\s+[\w:]+)?\s*\{/gm;
-    for (const m of stripped.matchAll(classRe)) {
-      const kind = m[0].trimStart().startsWith('class') ? 'class' : 'struct';
-      sigs.push(`${kind} ${m[1]}`);
-      const bodyStart = m.index + m[0].length;
-      const block = extractBlock(stripped, bodyStart);
-      for (const meth of extractMembers(block, masked.slice(bodyStart, bodyStart + block.length))) sigs.push(`  ${meth}`);
-    }
-
-    // Top-level function declarations/definitions (not inside a class)
-    for (const m of stripped.matchAll(/^(?!class|struct|if|for|while|switch)([\w:*&<> ]+?)\s+(\w+)\s*\(/gm)) {
-      if (m[2].startsWith('_')) continue;
-      const pr = readParams(stripped, masked, m.index + m[0].length - 1);
-      if (!pr) continue;
-      // Only a definition (body `{`) counts at top level, as before.
-      const tail = masked.slice(pr.close + 1, pr.close + 40);
-      if (!/^\s*(?:const\s*)?\{/.test(tail)) continue;
-      const ret = normalizeType(m[1]);
-      const retStr = ret ? ` → ${ret}` : '';
-      sigs.push(`${m[2]}(${normalizeParams(pr.params)})${retStr}`);
-    }
-
+    render(nodes, 0, sigs);
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
 
-  /**
-   * Balanced parameter read (#695). `\(([^)]*)\)` stopped at the first `)`, so
-   * `int f(int a, int b = g(1, 2))` and a function-pointer parameter
-   * `int (*cb)(int)` failed the whole declaration match and were DROPPED — the
-   * symbol then became a fake-symbol false positive in `verify`.
-   */
-  function readParams(stripped, masked, openIdx) {
-    const close = readBalanced(masked, openIdx);
-    if (close < 0) return null;
-    return { params: stripped.slice(openIdx + 1, close), close };
+  // ── Output ───────────────────────────────────────────────────────────────────
+
+  function render(nodes, depth, sigs) {
+    const pad = '  '.repeat(depth);
+    const lines = [];
+    for (const n of nodes) {
+      if (n.kind === 'func') {
+        if (/^_/.test(n.name.split('::').pop())) continue; // underscore names are left out on purpose
+        lines.push({ text: `${pad}${n.name}(${n.params})${n.ret ? ` → ${n.ret}` : ''}`, n });
+      } else {
+        lines.push({ text: `${pad}${n.keyword} ${n.name}`, n });
+      }
+    }
+    for (const l of lines) {
+      sigs.push(withAnchor(l.text, l.n.start, l.n.end));
+      if (l.n.members) {
+        const inner = [];
+        render(l.n.members, depth + 1, inner);
+        // a class body that holds only nested classes still lists them; the cap counts lines
+        for (const m of capMembersWithNotice(inner.map((t) => ({ text: t })), MEMBER_LIMIT, 'members')) sigs.push(m.text);
+      }
+    }
   }
 
-  function extractBlock(src, startIndex) {
-    let depth = 1, i = startIndex;
-    const end = Math.min(src.length, startIndex + MAX_CLASS_BODY_CHARS);
-    while (i < end && depth > 0) {
-      if (src[i] === '{') depth++;
-      else if (src[i] === '}') depth--;
+  // ── Masking and tokens ───────────────────────────────────────────────────────
+
+  /**
+   * Blank every preprocessor line (with its backslash continuations), keeping the newlines. Done on the raw
+   * text, before the masking: an unquoted apostrophe in `#error don't` would otherwise open a character
+   * literal that runs into the code below it.
+   */
+  function blankDirectives(text) {
+    const out = text.split('');
+    const n = text.length;
+    let i = 0;
+    while (i < n) {
+      let e = text.indexOf('\n', i);
+      if (e < 0) e = n;
+      let j = i;
+      while (j < e && (text[j] === ' ' || text[j] === '\t')) j++;
+      if (text[j] === '#') {
+        for (;;) {
+          for (let q = i; q < e; q++) out[q] = ' ';
+          let b = e - 1;
+          if (b >= i && text[b] === '\r') b--;
+          if (b >= i && text[b] === '\\' && e < n) { i = e + 1; e = text.indexOf('\n', i); if (e < 0) e = n; continue; }
+          break;
+        }
+      }
+      i = e + 1;
+    }
+    return out.join('');
+  }
+
+  const isIdStart = (c) => (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95 || c === 36 || c > 127;
+  const isIdPart = (c) => isIdStart(c) || (c >= 48 && c <= 57);
+  const isDigit = (c) => c >= 48 && c <= 57;
+
+  /** Tokens: `{ t: 'id'|'num'|'str'|'p', v, line, i, end }` (`i`/`end` are offsets into the masked text). */
+  function tokenize(m) {
+    const toks = [];
+    const n = m.length;
+    let line = 1;
+    let i = 0;
+    while (i < n) {
+      const c = m.charCodeAt(i);
+      if (c === 10) { line++; i++; continue; }
+      if (c === 32 || c === 9 || c === 13 || c === 12 || c === 11) { i++; continue; }
+      if (isIdStart(c)) {
+        let j = i + 1;
+        while (j < n && isIdPart(m.charCodeAt(j))) j++;
+        toks.push({ t: 'id', v: m.slice(i, j), line, i, end: j });
+        i = j;
+        continue;
+      }
+      if (isDigit(c)) {
+        let j = i + 1;
+        while (j < n && (isIdPart(m.charCodeAt(j)) || m[j] === '.' || m[j] === "'")) j++;
+        toks.push({ t: 'num', v: m.slice(i, j), line, i, end: j });
+        i = j;
+        continue;
+      }
+      if (c === 34 || c === 39) {
+        // the masked literal keeps its quotes and blanks the inside, so the next same quote closes it
+        let j = i + 1;
+        const startLine = line;
+        while (j < n && m.charCodeAt(j) !== c) { if (m.charCodeAt(j) === 10) line++; j++; }
+        toks.push({ t: 'str', v: '"', line: startLine, i, end: j + 1 });
+        i = j + 1;
+        continue;
+      }
+      const two = m.slice(i, i + 2);
+      if (two === '::' || two === '->') { toks.push({ t: 'p', v: two, line, i, end: i + 2 }); i += 2; continue; }
+      if (m.startsWith('...', i)) { toks.push({ t: 'p', v: '...', line, i, end: i + 3 }); i += 3; continue; }
+      toks.push({ t: 'p', v: m[i], line, i, end: i + 1 });
       i++;
     }
-    return src.slice(startIndex, i - 1);
+    return toks;
   }
 
-  function extractMembers(block, maskedBlock) {
-    const members = [];
-    const methodRe = /^[ \t]+(?:virtual\s+|static\s+|inline\s+)?(?!private:|protected:|public:)([\w:*&<> ]+?)\s+(\w+)\s*\(/gm;
-    for (const m of block.matchAll(methodRe)) {
-      if (m[2].startsWith('_')) continue;
-      const pr = readParams(block, maskedBlock, m.index + m[0].length - 1);
-      if (!pr) continue;
-      // Declarations end in `;` (optionally after const/override/= 0), as before.
-      const tail = maskedBlock.slice(pr.close + 1, pr.close + 40);
-      if (!/^\s*(?:const\s*)?(?:override\s*)?(?:=\s*0\s*)?;/.test(tail)) continue;
-      const ret = normalizeType(m[1]);
-      const retStr = ret ? ` → ${ret}` : '';
-      members.push(`${m[2]}(${normalizeParams(pr.params)})${retStr}`);
+  /** For every `(`, `[` and `{`, the index of its closer (and the other way round); -1 when unmatched. */
+  function pairBrackets(toks) {
+    const pair = new Int32Array(toks.length).fill(-1);
+    const CLOSE = { '(': ')', '[': ']', '{': '}' };
+    const stack = [];
+    for (let i = 0; i < toks.length; i++) {
+      const v = toks[i].v;
+      if (toks[i].t !== 'p') continue;
+      if (CLOSE[v]) { stack.push(i); continue; }
+      if (v === ')' || v === ']' || v === '}') {
+        // a closer that does not match the innermost opener closes the openers an `#if` left open
+        let k = stack.length - 1;
+        while (k >= 0 && CLOSE[toks[stack[k]].v] !== v) k--;
+        if (k < 0) continue;
+        const open = stack[k];
+        stack.length = k;
+        pair[open] = i;
+        pair[i] = open;
+      }
     }
-    return capWithNotice(members, MEMBER_LIMIT, 'members');
+    return pair;
   }
 
-  function normalizeParams(params) {
-    if (!params) return '';
-    return params.trim().replace(/\s+/g, ' ');
+  // ── The reader ───────────────────────────────────────────────────────────────
+
+  const SKIPPED_SPECIFIERS = new Set([
+    'static', 'inline', 'virtual', 'constexpr', 'consteval', 'constinit', 'extern', 'explicit', 'mutable',
+    'register', 'thread_local', '__inline', '__inline__', '__forceinline', '_Noreturn', '__extension__',
+  ]);
+  const ATTRIBUTE_CALLS = new Set(['__attribute__', '__declspec', 'alignas', '_Alignas', '__asm__', '__asm', 'asm']);
+  const NOT_A_FUNCTION = new Set([
+    'if', 'for', 'while', 'switch', 'return', 'sizeof', 'alignof', 'decltype', 'typeof', '__typeof__', 'static_assert',
+    '_Static_assert', 'defined', 'catch', 'throw', 'new', 'delete', 'case', 'else', 'do', 'noexcept', 'requires', '_Generic',
+    'typeid', 'co_return', 'co_await', 'co_yield', 'using', 'namespace', 'typedef',
+  ]);
+  const DECL_KEYWORDS = new Set(['class', 'struct', 'union', 'enum', 'namespace', 'template', 'typedef', 'extern', 'inline', 'static', 'using', 'friend', 'virtual', 'constexpr']);
+  const ACCESS = new Set(['public', 'private', 'protected']);
+  const TYPE_PARENS = new Set(['decltype', 'typeof', '__typeof__', '_Atomic', 'typename']);
+  const TAIL_WORDS = new Set(['const', 'volatile', 'noexcept', 'override', 'final', 'throw', 'mutable', 'try']);
+  // An export or attribute macro: upper case with an underscore (`UV_EXTERN`, `ABSL_MUST_USE_RESULT`).
+  // `FILE` or `DWORD` is a type and is kept.
+  const isMacroName = (v) => /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/.test(v);
+  const TYPE_WORDS = new Set(['unsigned', 'signed', 'long', 'short', 'int', 'char', 'float', 'double', 'bool', 'void', 'auto', 'wchar_t', 'char8_t', 'char16_t', 'char32_t', '_Bool', '_Complex']);
+  const ELABORATED = new Set(['struct', 'union', 'enum', 'class', 'typename']);
+
+  /**
+   * Whether the tokens in front of a name read as a type that ends in a name of its own (`int count`,
+   * `std::vector<int>* items`): a variable that a macro call annotates, not a return type.
+   */
+  function endsInDeclarator(toks) {
+    const t = toks.filter((x) => !(x.t === 'id' && (SKIPPED_SPECIFIERS.has(x.v) || x.v === 'const' || x.v === 'volatile' || isMacroName(x.v))));
+    const last = t[t.length - 1];
+    const prev = t[t.length - 2];
+    if (!last || !prev || last.t !== 'id' || TYPE_WORDS.has(last.v)) return false;
+    if (prev.t === 'id') return !ELABORATED.has(prev.v);
+    return prev.v === '*' || prev.v === '&' || prev.v === '&&' || prev.v === '>';
   }
 
-  function normalizeType(type) {
-    if (!type) return '';
-    return type.trim().replace(/\s+/g, ' ').slice(0, 30);
+  class Reader {
+    constructor(toks, stripped) {
+      this.toks = toks;
+      this.src = stripped;
+      this.pair = pairBrackets(toks);
+    }
+
+    /** Read declarations from token `i` up to `end` (exclusive) into `ctx.out`. */
+    block(i, end, ctx) {
+      const { toks } = this;
+      while (i < end) {
+        const t = toks[i];
+        if (t.v === ';' || t.v === '}' || t.v === ')' || t.v === ']') { i++; continue; }
+        if (t.t === 'id' && ACCESS.has(t.v) && toks[i + 1] && toks[i + 1].v === ':') { i += 2; continue; }
+        const next = this.statement(i, end, ctx);
+        i = next > i ? next : i + 1;
+      }
+    }
+
+    /** The token index just past a `<...>` group opening at `open`, or -1 when it does not close before `end`. */
+    angles(open, end) {
+      const { toks, pair } = this;
+      let depth = 0;
+      for (let k = open; k < end; k++) {
+        const v = toks[k].v;
+        if (toks[k].t === 'p') {
+          if (v === '<') depth++;
+          else if (v === '>') { depth--; if (depth === 0) return k + 1; }
+          else if (v === '(' || v === '[' || v === '{') { if (pair[k] < 0) return -1; k = pair[k]; }
+          else if (v === ';' || v === '}') return -1;
+        }
+      }
+      return -1;
+    }
+
+    /** Index of the first token of the declaration proper, past specifiers, attributes and annotation macros. */
+    prefix(j, end) {
+      const { toks, pair } = this;
+      for (;;) {
+        const t = toks[j];
+        if (!t || j >= end) return j;
+        if (t.t === 'id' && SKIPPED_SPECIFIERS.has(t.v)) { j++; continue; }
+        if (t.v === '[' && toks[j + 1] && toks[j + 1].v === '[') { if (pair[j] < 0) return j; j = pair[j] + 1; continue; }
+        if (t.t === 'id' && ATTRIBUTE_CALLS.has(t.v) && toks[j + 1] && toks[j + 1].v === '(') {
+          if (pair[j + 1] < 0) return j;
+          j = pair[j + 1] + 1;
+          continue;
+        }
+        if (t.t === 'id' && isMacroName(t.v)) {
+          // `ABSL_NAMESPACE_BEGIN class Foo`, `UV_EXTERN struct x {`: a macro in front of a declaration keyword
+          let k = j + 1;
+          if (toks[k] && toks[k].v === '(' && pair[k] >= 0) k = pair[k] + 1;
+          if (toks[k] && toks[k].t === 'id' && DECL_KEYWORDS.has(toks[k].v)) { j = k; continue; }
+        }
+        return j;
+      }
+    }
+
+    /** Read one statement starting at `i`; returns the index to continue from. */
+    statement(i, end, ctx) {
+      const { toks, pair } = this;
+      let j = i;
+
+      // A macro written as a statement of its own (`SPDLOG_NAMESPACE_BEGIN`, `UV_PRIVATE_REQ_TYPES`) has
+      // no `;`, so it would run into the declaration below it and pull its first line up. One line apart
+      // it is an attribute (`UV_EXTERN` above its return type); a blank line or more apart it is its own.
+      const lead = toks[i];
+      if (lead.t === 'id' && isMacroName(lead.v) && toks[i + 1] && toks[i + 1].v !== '(' && toks[i + 1].line - lead.line >= 2) return i + 1;
+
+      // template <...> headers, however many
+      while (toks[j] && toks[j].v === 'template' && toks[j + 1] && toks[j + 1].v === '<') {
+        const after = this.angles(j + 1, end);
+        if (after < 0) return this.skip(j, end);
+        j = after;
+      }
+
+      // `extern "C" {`: the masking blanks the string, quotes included, so the brace follows `extern` directly
+      if (toks[j] && toks[j].v === 'extern') {
+        const open = toks[j + 1] && toks[j + 1].t === 'str' ? j + 2 : j + 1;
+        if (toks[open] && toks[open].v === '{') {
+          const close = pair[open];
+          this.block(open + 1, close < 0 ? end : close, ctx);
+          return close < 0 ? end : close + 1;
+        }
+      }
+
+      const first = toks[j];
+      if (!first) return end;
+      if (first.v === 'friend' || first.v === 'using' || first.v === 'static_assert' || first.v === '_Static_assert') return this.skip(j, end);
+      if (first.v === 'typedef') return this.typedef(i, j, end, ctx);
+      if (first.v === '{') return pair[j] < 0 ? end : pair[j] + 1; // a block a macro left behind
+
+      if (first.v === 'namespace' || (first.v === 'inline' && toks[j + 1] && toks[j + 1].v === 'namespace')) {
+        let k = j + (first.v === 'inline' ? 2 : 1);
+        while (k < end && toks[k].v !== '{' && toks[k].v !== ';' && toks[k].v !== '=') k++;
+        if (toks[k] && toks[k].v === '{') {
+          const close = pair[k];
+          this.block(k + 1, close < 0 ? end : close, ctx);
+          return close < 0 ? end : close + 1;
+        }
+        return this.skip(j, end);
+      }
+
+      const p = this.prefix(j, end);
+      const head = toks[p];
+      if (!head) return end;
+      if (head.v === 'class' || head.v === 'struct' || head.v === 'union') {
+        const r = this.record(i, p, end, ctx);
+        if (r >= 0) return r;
+      } else if (head.v === 'enum') {
+        const r = this.enumeration(i, p, end, ctx);
+        if (r >= 0) return r;
+      } else if (head.v === 'namespace') {
+        return this.statement(p, end, ctx);
+      }
+      return this.declaration(i, p, end, ctx);
+    }
+
+    /** Skip a statement we do not list: to its `;`, or past its `{...}` body. */
+    skip(i, end) {
+      const { toks, pair } = this;
+      let sawEquals = false;
+      for (let k = i; k < end; k++) {
+        const v = toks[k].v;
+        if (toks[k].t !== 'p') continue;
+        if (v === ';') return k + 1;
+        if (v === '=') sawEquals = true;
+        else if (v === '(' || v === '[') { if (pair[k] >= 0) k = pair[k]; }
+        else if (v === '{') {
+          if (pair[k] < 0) return end;
+          k = pair[k];
+          if (sawEquals) continue;
+          return toks[k + 1] && toks[k + 1].v === ';' ? k + 2 : k + 1;
+        } else if (v === '}') return k;
+      }
+      return end;
+    }
+
+    /** `typedef`: a named struct/union/enum is listed, everything else is skipped. */
+    typedef(i, j, end, ctx) {
+      const { toks } = this;
+      const k = this.prefix(j + 1, end);
+      const kw = toks[k] && toks[k].v;
+      if (kw === 'struct' || kw === 'union' || kw === 'class') { const r = this.record(i, k, end, ctx); if (r >= 0) return r; }
+      if (kw === 'enum') { const r = this.enumeration(i, k, end, ctx); if (r >= 0) return r; }
+      return this.skip(j, end);
+    }
+
+    /** The head of a class, struct or union at `p`. Returns the index after it, or -1 when it is not a definition. */
+    record(i, p, end, ctx) {
+      const { toks, pair } = this;
+      const keyword = toks[p].v;
+      let k = p + 1;
+      const names = [];
+      let stop = -1; // where the name ends: the base clause, `final` or the brace
+      for (; k < end; k++) {
+        const t = toks[k];
+        if (t.t === 'p') {
+          if (t.v === '{') break;
+          if (t.v === ';') return this.skip(i, end);
+          // past the `:` a comma separates base classes; before it, one means this is not a class head
+          if (t.v === '=' || t.v === '}' || t.v === ')' || (t.v === ',' && stop < 0)) return -1;
+          if (t.v === '[' && toks[k + 1] && toks[k + 1].v === '[') { if (pair[k] < 0) return -1; k = pair[k]; continue; }
+          if (t.v === '(') {
+            const prev = toks[k - 1];
+            // an attribute or annotation call (`__attribute__((packed))`, `ABSL_DEPRECATED("x")`) is not the name
+            if (prev && prev.t === 'id' && (ATTRIBUTE_CALLS.has(prev.v) || isMacroName(prev.v)) && pair[k] >= 0) {
+              if (names[names.length - 1] === prev) names.pop();
+              k = pair[k];
+              continue;
+            }
+            return -1;
+          }
+          if (t.v === '<') { const after = this.angles(k, end); if (after < 0) return -1; k = after - 1; continue; }
+          if (t.v === ':' && stop < 0) { stop = k; continue; }
+          continue;
+        }
+        if (stop >= 0) continue;
+        if (t.t === 'id' && (t.v === 'final' || t.v === 'sealed')) { stop = k; continue; }
+        if (t.t === 'id' && !ATTRIBUTE_CALLS.has(t.v)) names.push(t);
+      }
+      if (k >= end || toks[k].v !== '{') return -1;
+      const open = k;
+      const close = pair[open];
+      const nameTok = names.filter((t) => !isMacroName(t.v)).pop() || names.pop();
+      const lastLine = close < 0 ? toks[end - 1].line : toks[close].line;
+      if (!nameTok) return this.afterDeclarators(close < 0 ? end : close + 1, end);
+      const node = { kind: 'class', keyword, name: nameTok.v, start: toks[i].line, end: lastLine, members: [] };
+      ctx.out.push(node);
+      this.block(open + 1, close < 0 ? end : close, { out: node.members, cls: node });
+      return this.afterDeclarators(close < 0 ? end : close + 1, end);
+    }
+
+    /** `enum`, `enum class`, `enum struct`. */
+    enumeration(i, p, end, ctx) {
+      const { toks, pair } = this;
+      let k = p + 1;
+      let scoped = false;
+      if (toks[k] && (toks[k].v === 'class' || toks[k].v === 'struct')) { scoped = true; k++; }
+      const names = [];
+      let stop = false;
+      for (; k < end; k++) {
+        const t = toks[k];
+        if (t.t === 'p') {
+          if (t.v === '{') break;
+          if (t.v === ';') return this.skip(i, end);
+          if (t.v === '=' || t.v === '}' || t.v === ',' || t.v === ')') return -1;
+          if (t.v === '(') {
+            const prev = toks[k - 1];
+            if (prev && prev.t === 'id' && (ATTRIBUTE_CALLS.has(prev.v) || isMacroName(prev.v)) && pair[k] >= 0) { if (names[names.length - 1] === prev) names.pop(); k = pair[k]; continue; }
+            return -1;
+          }
+          if (t.v === ':') stop = true;
+          continue;
+        }
+        if (!stop && t.t === 'id' && !ATTRIBUTE_CALLS.has(t.v)) names.push(t);
+      }
+      if (k >= end || toks[k].v !== '{') return -1;
+      const close = pair[k];
+      const nameTok = names.filter((t) => !isMacroName(t.v)).pop() || names.pop();
+      if (nameTok) {
+        ctx.out.push({ kind: 'enum', keyword: scoped ? 'enum class' : 'enum', name: nameTok.v, start: toks[i].line, end: close < 0 ? toks[end - 1].line : toks[close].line });
+      }
+      return this.afterDeclarators(close < 0 ? end : close + 1, end);
+    }
+
+    /** After a `}` that closed a type: declarators (`} x, *y;`) up to the `;`. */
+    afterDeclarators(k, end) {
+      const { toks, pair } = this;
+      for (; k < end; k++) {
+        const v = toks[k].v;
+        if (v === ';') return k + 1;
+        if (toks[k].t === 'p' && (v === '(' || v === '[' || v === '{') && pair[k] >= 0) { k = pair[k]; continue; }
+        if (toks[k].t === 'p' && (v === '}' || v === ')')) return k;
+        if (toks[k].t === 'id' && DECL_KEYWORDS.has(toks[k].v) && v !== 'static') return k; // a statement began without a `;`
+      }
+      return end;
+    }
+
+    /**
+     * What follows a parameter list: cv-qualifiers, `noexcept`, `override`, a trailing return type, an
+     * initialiser list, `= 0`, `= default`, `= delete`. Returns { body: index of `{` or -1, end: index
+     * of the last token of the declaration, next: where to continue } or null when what follows is not
+     * the end of a declarator (so the `(` was not the function's).
+     */
+    tail(p, end) {
+      const { toks, pair } = this;
+      for (let guard = 0; p < end && guard < 400; guard++) {
+        const t = toks[p];
+        const v = t.v;
+        if (v === ';') return { body: -1, last: p, next: p + 1 };
+        if (v === '{') {
+          const c = pair[p];
+          const last = c < 0 ? end - 1 : c;
+          return { body: p, last, next: last + 1 + (toks[last + 1] && toks[last + 1].v === ';' ? 1 : 0) };
+        }
+        if (v === '=') {
+          const w = toks[p + 1];
+          if (w && (w.v === '0' || w.v === 'default' || w.v === 'delete') && toks[p + 2] && toks[p + 2].v === ';') return { body: -1, last: p + 2, next: p + 3 };
+          return null;
+        }
+        if (v === ':') return this.initializers(p + 1, end);
+        if (v === '->') {
+          // trailing return type: up to the body, `;` or `= 0`
+          let k = p + 1;
+          while (k < end && toks[k].v !== '{' && toks[k].v !== ';' && toks[k].v !== '=') {
+            if (toks[k].t === 'p' && (toks[k].v === '(' || toks[k].v === '[') && pair[k] >= 0) k = pair[k];
+            k++;
+          }
+          p = k;
+          continue;
+        }
+        if (v === '&' || v === '&&') { p++; continue; }
+        if (t.t === 'id' && (TAIL_WORDS.has(v) || isMacroName(v) || ATTRIBUTE_CALLS.has(v))) {
+          p++;
+          if (toks[p] && toks[p].v === '(' && pair[p] >= 0) p = pair[p] + 1;
+          continue;
+        }
+        if (t.t === 'id' && v === 'requires') { while (p < end && toks[p].v !== '{' && toks[p].v !== ';') p++; continue; }
+        if (v === '[' && toks[p + 1] && toks[p + 1].v === '[' && pair[p] >= 0) { p = pair[p] + 1; continue; }
+        return null;
+      }
+      return null;
+    }
+
+    /** A constructor's initialiser list, up to the body. `p` is the first token after the `:`. */
+    initializers(p, end) {
+      const { toks, pair } = this;
+      for (let k = p; k < end; k++) {
+        const t = toks[k];
+        if (t.t !== 'p') continue;
+        if (t.v === '(' || t.v === '[') { if (pair[k] < 0) return null; k = pair[k]; continue; }
+        if (t.v === '{') {
+          const prev = toks[k - 1];
+          // `member{0}` and `Base<T>{}` initialise; the brace after `)` or `}` is the body
+          if (prev && (prev.t === 'id' || prev.v === '>') ) { if (pair[k] < 0) return null; k = pair[k]; continue; }
+          const c = pair[k];
+          const last = c < 0 ? end - 1 : c;
+          return { body: k, last, next: last + 1 + (toks[last + 1] && toks[last + 1].v === ';' ? 1 : 0) };
+        }
+        if (t.v === ';') return null;
+      }
+      return null;
+    }
+
+    /** The declaration starting at statement token `i`, whose meaningful part starts at `p`. */
+    declaration(i, p, end, ctx) {
+      const { toks, pair } = this;
+      const cands = [];
+      let k = p;
+      for (; k < end; k++) {
+        const t = toks[k];
+        if (t.t === 'id' && t.v === 'operator') {
+          // `operator<<`, `operator bool` run to the `(`; for `operator()` that is the name's own `(`, which is
+          // rejected as a candidate (a `(` follows it) before its real parameter list is read
+          let q = k + 1;
+          while (q < end && toks[q].v !== '(' && toks[q].v !== ';' && toks[q].v !== '{') q++;
+          k = q - 1;
+          continue;
+        }
+        if (t.t === 'p') {
+          const v = t.v;
+          if (v === ';') return k + 1;
+          if (v === '}') return k;
+          if (v === '{') return this.skip(p, end); // a body or initialiser with no declarator we recognise
+          if (v === '=') return this.skip(p, end);
+          if (v === '[') { if (pair[k] >= 0) k = pair[k]; continue; }
+          if (v === '<') { const after = this.angles(k, end); if (after > 0) k = after - 1; continue; }
+          if (v === '(') {
+            const close = pair[k];
+            if (close < 0) return this.skip(p, end);
+            const nameEnd = k - 1;
+            const prev = toks[nameEnd];
+            // `operator()` is a name, and its parameter list is the next group
+            if (prev && prev.v === ')' && toks[nameEnd - 1] && toks[nameEnd - 1].v === '(' && toks[nameEnd - 2] && toks[nameEnd - 2].v === 'operator') {
+              cands.push({ open: k, close, nameStart: nameEnd - 2 });
+            } else if (prev && prev.v === ')' && pair[nameEnd] === nameEnd - 2 && toks[nameEnd - 1].t === 'id' && toks[nameEnd - 3] && (toks[nameEnd - 3].t === 'id' || toks[nameEnd - 3].v === '>' || toks[nameEnd - 3].v === '*' || toks[nameEnd - 3].v === '&')) {
+              // `result_type (min)() { ... }`: the parentheses keep a function-like macro named `min` from expanding
+              cands.push({ open: k, close, nameStart: nameEnd - 1, parenthesised: true });
+            } else if (prev && prev.t === 'id' && !NOT_A_FUNCTION.has(prev.v) && !ATTRIBUTE_CALLS.has(prev.v)) {
+              cands.push({ open: k, close, nameStart: nameEnd });
+            } else if (prev && prev.t === 'p' && toks[this.operatorStart(nameEnd)] && toks[this.operatorStart(nameEnd)].v === 'operator') {
+              cands.push({ open: k, close, nameStart: this.operatorStart(nameEnd) });
+            }
+            const cand = cands[cands.length - 1];
+            if (cand && cand.open === k) {
+              const tl = this.tail(close + 1, end);
+              if (tl) {
+                const fn = this.function(i, p, cand, tl, ctx);
+                if (fn) return tl.next;
+                return tl.next > k ? tl.next : this.skip(p, end);
+              }
+            }
+            k = close;
+            continue;
+          }
+        }
+      }
+      return end;
+    }
+
+    /** Index of the `operator` token that starts the operator name ending at `last`, or -1. */
+    operatorStart(last) {
+      const { toks } = this;
+      for (let q = last; q >= 0 && q > last - 6; q--) {
+        if (toks[q].t === 'id' && toks[q].v === 'operator') return q;
+        if (toks[q].t === 'p' && (toks[q].v === ';' || toks[q].v === '{' || toks[q].v === '}')) return -1;
+      }
+      return -1;
+    }
+
+    /** Try to list the function whose parameter list is `cand`; returns the node or null. */
+    function(i, p, cand, tl, ctx) {
+      const { toks, pair, src } = this;
+      let ns = cand.nameStart;
+      // a conversion operator names a type: `operator bool`, `operator const char*`
+      if (toks[ns].v !== 'operator' && toks[ns - 1] && toks[ns - 1].v === 'operator') ns--;
+      let nameFrom = ns;
+      // `~Foo`
+      if (toks[nameFrom - 1] && toks[nameFrom - 1].v === '~') nameFrom--;
+      // `A::B::name`, `A<T>::name`
+      while (toks[nameFrom - 1] && toks[nameFrom - 1].v === '::') {
+        let q = nameFrom - 2;
+        if (toks[q] && toks[q].v === '>') {
+          let depth = 0;
+          while (q >= p) { if (toks[q].v === '>') depth++; else if (toks[q].v === '<') { depth--; if (depth === 0) break; } q--; }
+          q--;
+        }
+        if (q < p || !toks[q] || toks[q].t !== 'id') break;
+        nameFrom = q;
+      }
+      // the written name, without template arguments in the qualifier
+      const nameText = cand.parenthesised ? toks[nameFrom].v : this.nameText(nameFrom, cand.open);
+      if (!nameText) return null;
+      const bare = nameText.split('::').pop();
+      const isOperator = /^operator\b/.test(bare);
+      if (!isOperator && NOT_A_FUNCTION.has(bare)) return null;
+
+      // what stands before the name: the return type, plus specifiers. An annotation macro called with
+      // arguments (`ABSL_DEPRECATED("x") void f();`) is not part of the type and is dropped.
+      const before = [];
+      let wrapped = null; // the argument tokens of the one macro call that was dropped: `CJSON_PUBLIC(const char *) name(`
+      let calls = 0;
+      for (let q = p; q < nameFrom - (cand.parenthesised ? 1 : 0); q++) {
+        const t = toks[q];
+        if (t.t === 'id' && isMacroName(t.v) && toks[q + 1] && toks[q + 1].v === '(' && pair[q + 1] >= 0) {
+          calls++;
+          wrapped = toks.slice(q + 2, pair[q + 1]);
+          q = pair[q + 1];
+          continue;
+        }
+        before.push(t);
+      }
+      // Any other parenthesis there is a macro call with no `;` that ran into this declaration
+      // (`DECLARE(foo) TEST(a, b) { ... }`), except where a type itself has one (`decltype(x)`).
+      for (let q = 0; q < before.length; q++) {
+        if (before[q].v !== '(') continue;
+        const prev = before[q - 1];
+        if (!(prev && prev.t === 'id' && (TYPE_PARENS.has(prev.v) || ATTRIBUTE_CALLS.has(prev.v)))) return null;
+      }
+      const qualified = nameText.includes('::');
+      const cls = ctx.cls;
+      const parts = nameText.split('::');
+      const isCtorLike = bare === (cls && cls.name) || /^~/.test(bare)
+        || (qualified && (parts[parts.length - 2] === bare || parts[parts.length - 2] === bare.replace(/^~/, '')))
+        || (isOperator && /^operator\s+[A-Za-z_]/.test(bare) && !/^operator\s*(new|delete)\b/.test(bare));
+      // `int count GUARDED_BY(mu_);` is a variable and its annotation. A name in capitals after a type that ends in a
+      // name of its own is that, not a function (`UTC()` after `time_zone` is one).
+      if (!isOperator && !/[a-z]/.test(bare) && endsInDeclarator(before)) return null;
+      const typeTokens = before.filter((t) => !(t.t === 'id' && (SKIPPED_SPECIFIERS.has(t.v) || isMacroName(t.v))) && !(t.v === '>' || t.v === '<'));
+      // Where the type is the macro itself, the name is an ordinary one: `CJSON_PUBLIC(const char *) cJSON_Version(void)`
+      // wraps it in a call, `EMITTER_MANIP GetFlowType() const` is a macro that stands for it. A name in capitals
+      // (`TEST(a, b) {`, `DECLARE(x);`) is a macro, not a function.
+      let macroType = null;
+      if (typeTokens.length === 0 && /[a-z]/.test(bare)) {
+        const bareMacro = before.filter((t) => t.t === 'id' && isMacroName(t.v)).pop();
+        if (calls === 1 && wrapped.length && wrapped.every((t) => t.t === 'id' || t.v === '*' || t.v === '&' || t.v === '::')) {
+          macroType = collapse(src.slice(wrapped[0].i, wrapped[wrapped.length - 1].end));
+        } else if (calls === 0 && bareMacro) {
+          macroType = bareMacro.v;
+        }
+      }
+      if (!isCtorLike && typeTokens.length === 0 && macroType === null) return null;     // `TEST(a, b) {`, `DECLARE(x);`: a macro, not a function
+      if (isCtorLike && !cls && !qualified && !/^~/.test(bare)) return null;
+      if (!cls && !qualified && !isCtorLike && this.looksLikeInitialiser(cand.open, cand.close)) return null;
+      if (!cls && !qualified && isCtorLike) return null;
+
+      const ret = isCtorLike ? '' : macroType !== null ? (macroType.length > MAX_RETURN ? macroType.slice(0, MAX_RETURN) : macroType) : this.returnType(before);
+      const params = collapse(src.slice(toks[cand.open].end, toks[cand.close].i));
+      ctx.out.push({
+        kind: 'func', name: nameText, params: params.length > MAX_PARAMS ? `${params.slice(0, MAX_PARAMS - 1)}…` : params, ret,
+        start: toks[i].line, end: toks[tl.last].line,
+      });
+      return true;
+    }
+
+    /**
+     * `Foo x(1, 2);` initialises a variable; the parentheses of a function hold parameters. A literal is
+     * evidence of the first only as a direct argument: `char name[16]` (an array bound) and `int n = 5`
+     * (a default argument) are parameters.
+     */
+    looksLikeInitialiser(open, close) {
+      const { toks, pair, src } = this;
+      let defaulted = false;
+      let from = toks[open].end;
+      // the masking blanks a string away, so a quote is looked for in the text between the argument's tokens
+      const quoted = (to) => !defaulted && /["']/.test(src.slice(from, to));
+      for (let q = open + 1; q < close; q++) {
+        const t = toks[q];
+        if (t.t === 'p') {
+          if ((t.v === '[' || t.v === '(') && pair[q] >= 0) { q = pair[q]; continue; }
+          if (t.v === ',') { if (quoted(t.i)) return true; defaulted = false; from = t.end; }
+          else if (t.v === '=') defaulted = true;
+          else if (t.v === '.' && !defaulted) return true;
+        } else if ((t.t === 'num' || t.t === 'str') && !defaulted) return true;
+      }
+      return quoted(toks[close].i);
+    }
+
+    /** The name as written, joined without spaces (`Foo::bar`, `~Foo`, `operator==`, `operator()`). */
+    nameText(from, open) {
+      const { toks } = this;
+      let text = '';
+      let angleDepth = 0;
+      for (let q = from; q < open; q++) {
+        const t = toks[q];
+        if (t.v === '<' && toks[q - 1] && toks[q - 1].v !== 'operator' && !/operator/.test(text)) { angleDepth++; continue; }
+        if (t.v === '>' && angleDepth > 0) { angleDepth--; continue; }
+        if (angleDepth > 0) continue;
+        if (t.t === 'id' && (/operator$/.test(text) || /\w$/.test(text))) text += ` ${t.v}`;
+        else text += t.v;
+      }
+      return text.replace(/\s+/g, ' ').trim();
+    }
+
+    /** The return type, as written, minus specifiers, attributes and annotation macros. */
+    returnType(before) {
+      const { src } = this;
+      const keep = before.filter((t) => !(t.t === 'id' && (SKIPPED_SPECIFIERS.has(t.v) || isMacroName(t.v))));
+      // attribute groups inside the span: `[[nodiscard]]`, `__attribute__((x))`
+      const kept = [];
+      for (let q = 0; q < keep.length; q++) {
+        const t = keep[q];
+        if (t.v === '[' && keep[q + 1] && keep[q + 1].v === '[') { while (q < keep.length && !(keep[q].v === ']' && keep[q + 1] && keep[q + 1].v === ']')) q++; q++; continue; }
+        if (t.t === 'id' && ATTRIBUTE_CALLS.has(t.v) && keep[q + 1] && keep[q + 1].v === '(') {
+          let depth = 0;
+          q++;
+          for (; q < keep.length; q++) { if (keep[q].v === '(') depth++; else if (keep[q].v === ')') { depth--; if (depth === 0) break; } }
+          continue;
+        }
+        kept.push(t);
+      }
+      if (!kept.length) return '';
+      const text = collapse(src.slice(kept[0].i, kept[kept.length - 1].end));
+      return text.length > MAX_RETURN ? text.slice(0, MAX_RETURN) : text;
+    }
+  }
+
+  function collapse(s) {
+    return s.replace(/\s+/g, ' ').trim();
   }
 
   module.exports = { extract };
@@ -16175,6 +16802,7 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
   
   const { capWithNotice } = __require('./src/util/truncate');
   const { readBalanced } = __require('./src/extractors/scan');
+  const { withAnchor } = __require('./src/extractors/line-anchor');
 
   // Ceiling sits above the default `maxSigsPerFile` so the configured budget
   // governs output rather than a literal buried here, and omissions are disclosed (#576).
@@ -16192,6 +16820,11 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
    * masked (comments, strings, heredocs, regexps, %-literals) and `end` is
    * matched against the keywords that open a block.
    *
+   * Every signature carries the `:start-end` lines of its definition (#975): the
+   * line of the `class` / `module` / `def` keyword and the line of the `end` that
+   * the same depth count closes it with. A class reopened elsewhere is one entry,
+   * anchored to its first opening; an endless `def f = x` ends on its own line.
+   *
    * @param {string} src - Raw file content
    * @returns {string[]} Array of signature strings
    */
@@ -16203,8 +16836,8 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
 
     const sigs = [];
     for (const o of owners) {
-      if (o.kind) sigs.push(`${o.kind} ${o.name}`);
-      for (const m of o.members) sigs.push(m);
+      if (o.kind) sigs.push(withAnchor(`${o.kind} ${o.name}`, o.start, o.end));
+      for (const m of o.members) sigs.push(withAnchor(m.text, m.start, m.end));
     }
     return capWithNotice(sigs, PER_FILE_LIMIT, 'signatures');
   }
@@ -16373,7 +17006,9 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
         i++;
         continue;
       }
-      if (c === '/' && inValuePosition(i)) {
+      // `:/` is the operator symbol (`calculate(:/, other)`, `send(:/, x)`), not the start of a regexp;
+      // `::/` cannot occur, so a single `:` before the slash is enough to tell.
+      if (c === '/' && inValuePosition(i) && !(src[i - 1] === ':' && src[i - 2] !== ':')) {
         // Where a value is expected `/` cannot be division, so this is a regexp
         // literal. Under /x it may span lines (Rails' CONTENT_TYPE_PARSER does),
         // and a `/` inside a [...] class does not close it.
@@ -16408,25 +17043,31 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
   // `before` is the text ahead of an `if`/`unless`/`while`/`until` on its line.
   // The keyword opens a block at the start of a statement or an assignment's
   // right-hand side; anywhere else it is a modifier (`x if y`, `return if y`).
-  const OPENS_AFTER = /(?:^|[;(\[{|]|(?:^|[^=!<>~])=|[-+*/%|&^]=|\|\|=|&&=|<<=|>>=|\b(?:then|else|do|begin|ensure))$/;
+  const OPENS_AFTER = /(?:^|[;(\[{|,]|(?:^|[^=!<>~])=|[-+*/%|&^]=|\|\|=|&&=|<<=|>>=|<<|&&|\|\||=>|\b(?:then|else|do|begin|ensure|and|or|not))$/;
   function opensBlock(before) {
-    return OPENS_AFTER.test(before.trimEnd());
+    const t = before.trimEnd();
+    return !ENDS_IN_SYMBOL.test(t) && OPENS_AFTER.test(t);
   }
+  // A symbol literal is a finished value even when it ends in `=` (`alias_method :a, :[]= unless x`,
+  // `attr_writer :b= if y`): what follows it is a modifier, not an assignment's right-hand side.
+  const ENDS_IN_SYMBOL = /(?:^|[^:\w]):(?:\[\]=?|[A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*[?!=]?)$/;
 
   // Identifiers may be non-ASCII (Sidekiq defines `def ❤`).
-  const METHOD_NAME = /^(?:(self|[A-Z]\w*)\.)?([A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*[?!=]?|\[\]=?|<=>|===?|=~|!=|!~|\*\*|<<|>>|<=|>=|[+\-*/%<>!~^&|]@?|`)/;
+  const METHOD_NAME = /^(?:(self|[A-Za-z_]\w*)\.)?([A-Za-z_\u0080-\uFFFF][\w\u0080-\uFFFF]*[?!=]?|\[\]=?|<=>|===?|=~|!=|!~|\*\*|<<|>>|<=|>=|[+\-*/%<>!~^&|]@?|`)/;
 
   /**
    * Walk the masked source and return the owners in the order they open:
-   * `{ kind, name, full, members }` (`name` as written, `full` the lexical path
-   * that tells two same-named classes apart), with the owner-less top-level defs
-   * last as `{ kind: null, members }`.
+   * `{ kind, name, full, start, end, members }` (`name` as written, `full` the lexical
+   * path that tells two same-named classes apart, `start`/`end` the 1-based lines of its
+   * first opening), with the owner-less top-level defs last as `{ kind: null, members }`.
+   * A member is `{ text, start, end }`.
    */
   function scanOwners(plain, code) {
     const owners = [];
     const byKey = new Map();
     const root = { kind: null, name: '', full: '', members: [] };
-    const frames = []; // { type: 'class'|'module'|'sclass'|'def'|'block', owner?, self? }
+    // { type: 'class'|'module'|'sclass'|'def'|'block', owner?, self?, claims?: {start,end} to close with `end` }
+    const frames = [];
 
     const ownerFrame = () => {
       for (let k = frames.length - 1; k >= 0; k--) {
@@ -16440,14 +17081,15 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
       }
       return null;
     };
-    const open = (kind, full, name) => {
+    const open = (kind, full, name, line) => {
       const key = `${kind} ${full}`;
       let o = byKey.get(key);
-      if (!o) { o = { kind, name, full, members: [] }; byKey.set(key, o); owners.push(o); }
+      if (!o) { o = { kind, name, full, start: line, end: line, members: [] }; byKey.set(key, o); owners.push(o); o.fresh = true; }
       return o;
     };
 
     let lineStart = 0;
+    let lineNo = 1;
     while (lineStart <= code.length) {
       let lineEnd = code.indexOf('\n', lineStart);
       if (lineEnd === -1) lineEnd = code.length;
@@ -16462,7 +17104,8 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
         const abs = lineStart + col;
 
         if (kw === 'end') {
-          frames.pop();
+          const closed = frames.pop();
+          if (closed && closed.claims) closed.claims.end = lineNo;
         } else if (kw === 'class' || kw === 'module') {
           const rest = text.slice(col + kw.length);
           const sc = kw === 'class' ? /^\s*<<\s*(\w+)/.exec(rest) : null;
@@ -16473,7 +17116,11 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
             frames.push({ type: 'sclass', owner: parent ? parent.owner : null, self: sc[1] === 'self' });
           } else {
             const full = nm[1] || !parent ? nm[2] : `${parent.owner.full}::${nm[2]}`;
-            frames.push({ type: kw, owner: open(kw, full, nm[2]) });
+            const o = open(kw, full, nm[2], lineNo);
+            // Only the first opening of a class is anchored; later ones add members under it.
+            const claims = o.fresh ? o : null;
+            o.fresh = false;
+            frames.push({ type: kw, owner: o, claims });
           }
         } else if (kw === 'def') {
           const rest = code.slice(abs + 3, abs + 3 + 120);
@@ -16499,7 +17146,8 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
           let e = paramsEnd;
           while (code[e] === ' ' || code[e] === '\t') e++;
           const endless = code[e] === '=' && !/[=~>]/.test(code[e + 1] || '');
-          if (!endless) frames.push({ type: 'def' });
+          const member = { text: '', start: lineNo, end: lineNo };
+          if (!endless) frames.push({ type: 'def', claims: member });
 
           const bare = nm[2];
           if (bare.startsWith('_')) continue;
@@ -16507,8 +17155,8 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
           const owner = ownerF ? ownerF.owner : null;
           const singleton = nm[1] ? `${nm[1]}.` : (ownerF && ownerF.type === 'sclass' && ownerF.self ? 'self.' : '');
           const ls = code.lastIndexOf('\n', abs - 1) + 1;
-          const line = `${owner ? '  ' : ''}def ${singleton}${bare}${params}${extractReturnHint(plain, ls)}`;
-          (owner || root).members.push(line);
+          member.text = `${owner ? '  ' : ''}def ${singleton}${bare}${params}${extractReturnHint(plain, ls)}`;
+          (owner || root).members.push(member);
         } else if (kw === 'if' || kw === 'unless' || kw === 'while' || kw === 'until') {
           if (opensBlock(text.slice(0, col))) {
             frames.push({ type: 'block' });
@@ -16525,6 +17173,14 @@ __factories["./src/extractors/ruby"] = function(module, exports) {
         }
       }
       lineStart = lineEnd + 1;
+      lineNo++;
+    }
+
+    // A block the depth count never closed (input that stops early, or a construct the masking
+    // misread) runs to the last line of the file; the empty piece after a final newline is not a line.
+    const lastLine = code.endsWith('\n') ? lineNo - 2 : lineNo - 1;
+    for (const f of frames) {
+      if (f.claims) f.claims.end = Math.max(f.claims.start, lastLine);
     }
 
     return owners.concat(root.members.length ? [root] : []);
@@ -21175,7 +21831,9 @@ __factories["./src/graph/builder"] = function(module, exports) {
    * Dependency graph builder (v2.5).
    *
    * Builds a forward and reverse dependency graph by resolving import/require
-   * statements across JS/TS, Python, Go, Rust, Java, Kotlin, and Ruby files.
+   * statements across JS/TS, Python, Go, Rust, Java, Kotlin, Ruby, Elixir and R files
+   * (the original eight families) and, since #980, C/C++/Objective-C, PHP, C#, Dart,
+   * Vue/Svelte/Astro, Lua and GDScript (src/graph/import-resolvers.js).
    *
    * @module src/graph/builder
    */
@@ -21187,6 +21845,8 @@ __factories["./src/graph/builder"] = function(module, exports) {
   // and the call-graph cannot drift apart again (see src/graph/path-key.js).
   const { graphKey } = __require('./src/graph/path-key');
   const { resolveGraphDirs, configuredSrcDirs } = __require('./src/graph/src-dirs');
+  const RESOLVERS = __require('./src/graph/import-resolvers');   // the families added in #980
+  const { ancestorDirs } = RESOLVERS;
   function normalizePath(p) {
     return graphKey(p);
   }
@@ -21208,7 +21868,12 @@ __factories["./src/graph/builder"] = function(module, exports) {
   // place that answers "can the graph see this file's imports" (#979): the walk
   // below, `--impact`, `get_impact`, `plan` and `doctor` all ask this list, so a
   // family added here is a family they all report as tracked.
-  const GRAPH_FAMILIES = [
+  //
+  // The first eight are the families the graph has always read. The ranker is still
+  // handed only those (LEGACY_EXTS, see buildRankingGraph): a better blast-radius graph
+  // must not silently move the retrieval numbers (#934, #935). The rest were added in
+  // #980 and are read by every surface that reports a blast radius.
+  const LEGACY_FAMILIES = [
     ['JavaScript/TypeScript', JS_EXTS],
     ['Python', PY_EXTS],
     ['Go', GO_EXTS],
@@ -21218,7 +21883,11 @@ __factories["./src/graph/builder"] = function(module, exports) {
     ['Elixir', EX_EXTS],
     ['R', R_EXTS],
   ];
+  const NEW_FAMILIES = RESOLVERS.FAMILIES.map((f) => [f.name, f.EXTS]);
+  const GRAPH_FAMILIES = [...LEGACY_FAMILIES, ...NEW_FAMILIES];
+  const LEGACY_EXTS = new Set(LEGACY_FAMILIES.flatMap(([, exts]) => [...exts]));
   const GRAPH_EXTS = new Set(GRAPH_FAMILIES.flatMap(([, exts]) => [...exts]));
+  const NEW_EXTS = new Set(NEW_FAMILIES.flatMap(([, exts]) => [...exts]));
 
   // ---------------------------------------------------------------------------
   // Per-build lookup tables
@@ -21286,12 +21955,17 @@ __factories["./src/graph/builder"] = function(module, exports) {
 
   /**
    * First file a Go import's last path segment names: `<suffix>.go`, or any file
-   * below a directory called `<suffix>`.
+   * below a directory called `<suffix>`. A file of a family added in #980 (a `.c` beside
+   * the Go it is cgo for) is not a Go package file and never answers: the directory
+   * match used to see only the original families, and still picks the same file there.
    */
   function firstGoMatch(t, suffix) {
     const a = byBase(t).get(suffix + '.go');
     const b = suffix ? byDir(t).get(suffix) : undefined;
-    const i = Math.min(a ? a[0] : Infinity, b ? b[0] : Infinity);
+    const ai = a ? a[0] : Infinity;
+    let bi = Infinity;
+    if (b) for (const i of b) { if (!NEW_EXTS.has(path.extname(t.keys[i]))) { bi = i; break; } }
+    const i = Math.min(ai, bi);
     return i === Infinity ? null : t.keys[i];
   }
 
@@ -21441,6 +22115,62 @@ __factories["./src/graph/builder"] = function(module, exports) {
   }
 
   /**
+   * Resolve the ES imports and CommonJS requires of a piece of script source: a `.js` /
+   * `.ts` file, or the `<script>` of a component.
+   *
+   * @param {string} content
+   * @param {string} dir  directory of the file the script is in
+   * @param {Set<string>} fileSet
+   * @param {string} [cwd]
+   * @param {object} [ctx]
+   * @param {boolean} [wrapped]  also read import lists that span lines. Only a component's script
+   *        is read that way: the original eight families keep their one-line reading, because the
+   *        ranker's graph is built from them and a better blast radius must not move retrieval (#934).
+   * @returns {string[]}
+   */
+  function jsDeps(content, dir, fileSet, cwd, ctx, wrapped) {
+    const found = [];
+    const aliasMap = ctx && ctx.aliasMap;
+    // The extended graph (everything but the ranker's) also knows SvelteKit's `$lib`.
+    const extended = !(ctx && ctx.families === 'legacy');
+    // Resolve any specifier: relative → dir-relative; otherwise via tsconfig/
+    // jsconfig path aliases + baseUrl. Bare npm packages (react, lodash) fall
+    // through to null because they are not in fileSet, so no false edges.
+    const resolveSpec = (spec) => {
+      if (spec.startsWith('.')) return resolveJsPath(dir, spec, fileSet);
+      const viaAlias = resolveAlias(spec, aliasMap, fileSet);
+      if (viaAlias || !extended || !(spec === '$lib' || spec.startsWith('$lib/'))) return viaAlias;
+      const rest = spec.slice('$lib'.length).replace(/^\//, '');
+      for (const a of ancestorDirs(dir, cwd)) {
+        const r = probeJs(rest ? path.join(a, 'src', 'lib', rest) : path.join(a, 'src', 'lib'), fileSet);
+        if (r) return r;
+      }
+      return null;
+    };
+
+    const stripped = content
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+
+    let m;
+    // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
+    const reEs = wrapped
+      ? /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g
+      : /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
+    while ((m = reEs.exec(stripped)) !== null) {
+      const r = resolveSpec(m[1]);
+      if (r) found.push(r);
+    }
+    // CommonJS require('x') and dynamic import('x').
+    const reCall = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+    while ((m = reCall.exec(stripped)) !== null) {
+      const r = resolveSpec(m[1]);
+      if (r) found.push(r);
+    }
+    return found;
+  }
+
+  /**
    * Extract absolute dependency paths from a single file.
    * @param {string} filePath - absolute path to the file
    * @param {string} content  - file source content
@@ -21458,33 +22188,19 @@ __factories["./src/graph/builder"] = function(module, exports) {
     const found = [];
 
     // ── JS / TS ───────────────────────────────────────────────────────────────
-    if (JS_EXTS.has(ext)) {
-      const aliasMap = ctx && ctx.aliasMap;
-      // Resolve any specifier: relative → dir-relative; otherwise via tsconfig/
-      // jsconfig path aliases + baseUrl. Bare npm packages (react, lodash) fall
-      // through to null because they are not in fileSet, so no false edges.
-      const resolveSpec = (spec) => spec.startsWith('.')
-        ? resolveJsPath(dir, spec, fileSet)
-        : resolveAlias(spec, aliasMap, fileSet);
+    if (JS_EXTS.has(ext)) found.push(...jsDeps(content, dir, fileSet, cwd, ctx));
 
-      const stripped = content
-        .replace(/\/\/.*$/gm, '')
-        .replace(/\/\*[\s\S]*?\*\//g, '');
-
-      let m;
-      // ES imports:  import ... from 'x'  |  import 'x'  |  export ... from 'x'
-      const reEs = /(?:^|[\r\n])\s*(?:import|export)\s+(?:[^'";\r\n]*?\s+from\s+)?['"]([^'"]+)['"]/g;
-      while ((m = reEs.exec(stripped)) !== null) {
-        const r = resolveSpec(m[1]);
-        if (r) found.push(r);
-      }
-      // CommonJS require('x') and dynamic import('x').
-      const reCall = /\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-      while ((m = reCall.exec(stripped)) !== null) {
-        const r = resolveSpec(m[1]);
-        if (r) found.push(r);
-      }
+    // ── Vue / Svelte / Astro ──────────────────────────────────────────────────
+    // The imports sit in the component's script; they resolve like any script's.
+    if (RESOLVERS.sfc.EXTS.has(ext)) {
+      // A component that renders itself (svelte:self, a recursive Astro component) is not its own importer.
+      const self = normalizePath(filePath);
+      found.push(...jsDeps(RESOLVERS.sfc.scriptOf(ext, content), dir, fileSet, cwd, ctx, true).filter((k) => k !== self));
     }
+
+    // ── C/C++/Objective-C, PHP, C#, Dart, Lua, GDScript (#980) ────────────────
+    const family = RESOLVERS.BY_EXT.get(ext);
+    if (family && family.extract) found.push(...family.extract(filePath, content, fileSet, cwd, ctx));
 
     // ── Python ────────────────────────────────────────────────────────────────
     if (PY_EXTS.has(ext)) {
@@ -21689,14 +22405,16 @@ __factories["./src/graph/builder"] = function(module, exports) {
     // Resolve the JS/TS path-alias map once (tsconfig/jsconfig paths + baseUrl),
     // unless a caller supplied one explicitly via ctx.
     const aliasMap = (ctx && 'aliasMap' in ctx) ? ctx.aliasMap : loadAliasMap(cwd);
-    const effectiveCtx = Object.assign({}, ctx, { aliasMap });
-    const forward = new Map();
-    const reverse = new Map();
 
     // Node keys are lowercased for case-insensitive matching, which loses the
     // real spelling every display surface needs. Keep the original-case path
     // alongside so renderers can recover it (see src/graph/path-key displayPath).
+    // The resolvers that index file contents read files by it (a lowercased key is
+    // not a path on a case-sensitive filesystem).
     const realPaths = new Map();
+    const effectiveCtx = Object.assign({}, ctx, { aliasMap, realPaths });
+    const forward = new Map();
+    const reverse = new Map();
 
     // Initialise every known file in both maps (ensures isolated files appear)
     // Store using normalized paths for Windows compatibility
@@ -21772,6 +22490,10 @@ __factories["./src/graph/builder"] = function(module, exports) {
     // R-package layouts use `R/` and `inst/`; Shiny apps put helpers in `R/`.
     // The existence check below makes these no-ops in non-R projects.
     const o = opts || {};
+    // 'all' (default) reads every family; 'legacy' only the original eight, which is what the
+    // ranker is handed (see buildRankingGraph).
+    const families = o.families === 'legacy' ? 'legacy' : 'all';
+    const readable = families === 'legacy' ? LEGACY_EXTS : GRAPH_EXTS;
     const maxDepth = o.maxDepth === undefined ? DEFAULT_WALK_DEPTH : o.maxDepth;
     let { srcDirs, exclude } = o;
     if (srcDirs === undefined) {
@@ -21796,7 +22518,7 @@ __factories["./src/graph/builder"] = function(module, exports) {
           walkDir(full, depth + 1, out);
         } else if (e.isFile()) {
           const ext = path.extname(e.name).toLowerCase();
-          if (GRAPH_EXTS.has(ext)) out.push(full);
+          if (readable.has(ext)) out.push(full);
         }
       }
     }
@@ -21814,14 +22536,14 @@ __factories["./src/graph/builder"] = function(module, exports) {
     }
 
     // Build R namespace context if this looks like an R package.
-    let ctx;
+    let ctx = { families };
     try {
       const { readDescription, collectLocalDefs } = __require('./src/discovery/r-manifest');
       const desc = readDescription(cwd);
       if (desc && desc.package) {
         const rFiles = files.filter((f) => R_EXTS.has(path.extname(f).toLowerCase()));
         if (rFiles.length > 0) {
-          ctx = { rPackage: desc.package, rLocalDefs: collectLocalDefs(rFiles) };
+          ctx = { families, rPackage: desc.package, rLocalDefs: collectLocalDefs(rFiles) };
         }
       }
     } catch (_) { /* manifest module missing or read failed — proceed without ctx */ }
@@ -21847,12 +22569,15 @@ __factories["./src/graph/builder"] = function(module, exports) {
    * @param {object} [opts] as buildFromCwd; an explicit `srcDirs` still wins
    */
   function buildRankingGraph(cwd, opts) {
-    const o = opts || {};
+    // Also the original eight families only (#980): the families added since read more files
+    // and add edges, and the same unbounded neighbour boost would see them. Pass
+    // `families: 'all'` to measure what that does; nothing ships it.
+    const o = Object.assign({ families: 'legacy' }, opts || {});
     if (o.srcDirs !== undefined) return buildFromCwd(cwd, o);
     return buildFromCwd(cwd, Object.assign({}, o, { srcDirs: configuredSrcDirs(cwd) || DEFAULT_SRC_DIRS }));
   }
 
-  module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH, GRAPH_FAMILIES, GRAPH_EXTS };
+  module.exports = { build, buildFromCwd, buildRankingGraph, extractFileDeps, normalizePath, loadAliasMap, resolveAlias, _configuredSrcDirs, DEFAULT_SRC_DIRS, DEFAULT_WALK_DEPTH, GRAPH_FAMILIES, GRAPH_EXTS, LEGACY_FAMILIES, LEGACY_EXTS };
   
 };
 
@@ -23074,7 +23799,7 @@ __factories["./src/graph/impact"] = function(module, exports) {
 
     // Bail gracefully if file not in graph
     if (!graph || !graph.reverse) {
-      return markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 }, { cwd });
+      return withModule(markImpact({ changed: changedFile, direct: [], transitive: [], tests: [], routes: [], totalImpact: 0 }, { cwd }), cwd);
     }
 
     const { direct, transitive } = bfs(absChanged, graph.reverse, depth);
@@ -23093,14 +23818,29 @@ __factories["./src/graph/impact"] = function(module, exports) {
 
     // An empty result for a file the graph cannot read is "not tracked", not
     // "nothing depends on it" (#979); markImpact leaves every other result as is.
-    return markImpact({
+    return withModule(markImpact({
       changed:     toRel(absChanged),
       direct:      [...direct].map(toRel),
       transitive:  [...transitive].map(toRel),
       tests:       tests.map(toRel),
       routes:      routes.map(toRel),
       totalImpact: direct.size + transitive.size,
-    }, { cwd });
+    }, { cwd }), cwd);
+  }
+
+  /**
+   * Swift names modules, not files, so a Swift file has no file-level importers and is marked
+   * "not tracked"; what is known is its module (#980). Attach the files in other targets that
+   * import that module, labelled as module-level. Only a Swift file the graph could not read, and
+   * only where a Package.swift declares the target that owns it.
+   */
+  function withModule(result, cwd) {
+    if (!result || result.graph !== UNSUPPORTED || result.language !== 'Swift' || !cwd) return result;
+    try {
+      const m = __require('./src/graph/swift-modules').moduleImpact(cwd, path.resolve(cwd, result.changed));
+      if (m) result.module = m;
+    } catch (_) { /* module structure unreadable: the file-level answer stands */ }
+    return result;
   }
 
   /**
@@ -23149,6 +23889,14 @@ __factories["./src/graph/impact"] = function(module, exports) {
 
     if (result.graph === UNSUPPORTED) {
       lines.push(`_${importNote(result.language)}_`);
+      if (result.module) {
+        const m = result.module;
+        lines.push('');
+        lines.push(`### Module-level importers (module \`${m.module}\`, target \`${m.dir}\`)`);
+        lines.push(`**${m.importers.length}** file(s) in other targets import this file's module _(module level: a superset of what changing this file affects)_`);
+        for (const f of m.importers.slice(0, 25)) lines.push(`- \`${f}\``);
+        if (m.importers.length > 25) lines.push(`- _…and ${m.importers.length - 25} more_`);
+      }
       return lines.join('\n');
     }
 
@@ -23205,10 +23953,876 @@ __factories["./src/graph/impact"] = function(module, exports) {
     // Present only when the graph cannot read the file, so a readable file's
     // JSON is the shape it always was (#979).
     if (result.graph === UNSUPPORTED) { out.graph = result.graph; out.language = result.language; }
+    if (result.module) out.module = result.module;
     return out;
   }
 
   module.exports = { getImpact, analyzeImpact, formatImpact, formatImpactJSON, isTestFile, isRouteFile };
+  
+};
+
+// ── ./src/graph/import-resolvers ──
+__factories["./src/graph/import-resolvers"] = function(module, exports) {
+  
+  /**
+   * Import resolvers for the languages added to the import graph in #980: C/C++/Objective-C,
+   * PHP, C#, Dart, Vue/Svelte/Astro, Lua and GDScript. `builder.js` builds `GRAPH_FAMILIES`
+   * from `FAMILIES` and dispatches on extension, so a family listed here is walked, resolved
+   * and reported as tracked by `--impact`, `get_impact`, `plan` and `doctor`.
+   *
+   * Each family is a section below with `name`, `EXTS` and either `extract(filePath, content,
+   * fileSet, cwd, ctx)`, which returns graph keys, or (single-file components) `scriptOf`,
+   * which returns the script the JS/TS resolver then reads. The rule every one keeps is
+   * precision first: an import that cannot be resolved to exactly one file of the repository
+   * yields no edge (an external package, a system header, a commented-out import, an ambiguous
+   * name), and what a language does not count as an import is not an edge.
+   *
+   * One file and not one per language on purpose: this repository scores its own retrieval
+   * against its own source, and every indexed file shifts that score (see the gate's comments),
+   * so the footprint of a feature is part of its cost. Swift is in swift-modules.js: it names
+   * modules, not files, and draws no file-level edge.
+   *
+   * Zero-dependency, bundle-safe.
+   *
+   * @module src/graph/import-resolvers
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { graphKey } = __require('./src/graph/path-key');
+  const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
+
+  // ── shared ───────────────────────────────────────────────────────────────────
+
+  /** Walk bound for any search up a directory chain. */
+  const MAX_UP = 24;
+
+  /**
+   * Directories from `dir` up to and including `cwd`, nearest first. When `dir` is
+   * not below `cwd` the chain still ends (at the filesystem root, or after MAX_UP).
+   * @param {string} dir
+   * @param {string} [cwd]
+   * @returns {string[]} absolute directories
+   */
+  function ancestorDirs(dir, cwd) {
+    const out = [];
+    const stop = cwd ? graphKey(path.resolve(cwd)) : null;
+    let d = path.resolve(dir);
+    for (let i = 0; i < MAX_UP; i++) {
+      out.push(d);
+      if (stop && graphKey(d) === stop) break;
+      const parent = path.dirname(d);
+      if (parent === d) break;
+      d = parent;
+    }
+    return out;
+  }
+
+  const _memo = new WeakMap();
+
+  /**
+   * Build something once per file set. The set the graph hands a resolver is made
+   * once per build, so keying on it gives one index per build with no plumbing.
+   * @template T
+   * @param {Set<string>} fileSet
+   * @param {string} name
+   * @param {() => T} make
+   * @returns {T}
+   */
+  function perBuild(fileSet, name, make) {
+    let m = _memo.get(fileSet);
+    if (!m) { m = new Map(); _memo.set(fileSet, m); }
+    if (!m.has(name)) m.set(name, make());
+    return m.get(name);
+  }
+
+  /** The text of a file, or '' when it cannot be read. */
+  function readText(file) {
+    try { return fs.readFileSync(file, 'utf8'); } catch (_) { return ''; }
+  }
+
+  /** A graph key's real path: the build's own map when it has one, else the key. */
+  function realPathOf(ctx, key) {
+    return (ctx && ctx.realPaths && ctx.realPaths.get(key)) || key;
+  }
+
+  /** True when `abs` is a file of the set; returns its key, else null. */
+  function inSet(fileSet, abs) {
+    const k = graphKey(abs);
+    return fileSet.has(k) ? k : null;
+  }
+
+  /** Cache a directory-existence probe: one stat per directory per process. */
+  const _exists = new Map();
+  function dirHas(dir, name) {
+    const k = dir + '\u0000' + name;
+    if (!_exists.has(k)) {
+      let ok = false;
+      try { ok = fs.existsSync(path.join(dir, name)); } catch (_) { ok = false; }
+      _exists.set(k, ok);
+    }
+    return _exists.get(k);
+  }
+
+  // ── C / C++ / Objective-C ─────────────────────────────────────────────────
+
+  const c = (() => {
+    /**
+     * C / C++ / Objective-C includes (#980).
+     *
+     * `#include "x.h"` and `#import "x.h"` are searched the way a compiler searches them:
+     * next to the including file first, then the include roots. `#include <x.h>` skips
+     * the first step (it is not searched next to the file) and an angle-bracket header
+     * that is not in the repository (`<stdio.h>`, `<vector>`) misses the file set and
+     * yields no edge, so system headers need no list. Header-only libraries include their
+     * own headers with angle brackets (`<spdlog/common.h>`); those resolve through the
+     * roots exactly like a quoted one.
+     *
+     * Include roots, in order, for every directory from the including file up to the project
+     * root. A quoted include tries the directory itself, its `include/` and its `src/`. An
+     * angle-bracket include tries only `include/`, and the project root itself and its `src/`
+     * when the path has a directory part (`<proj/x.h>`), so a repository file that happens to be
+     * called `string.h` never answers `<string.h>`. If no root hits, a path with a directory part
+     * (`uv/unix.h`) resolves when exactly one file of the repository ends with it; two candidates
+     * are ambiguous and yield nothing.
+     *
+     * An include inside a comment is not an include (comments are blanked first), and an
+     * include under `#if` still counts: the edge says "can include", the same
+     * over-approximation the other languages' resolvers make.
+     *
+     * @module src/graph/import-resolvers (c)
+     */
+
+
+    const EXTS = new Set([
+      '.c', '.h', '.cc', '.cpp', '.cxx', '.c++', '.hh', '.hpp', '.hxx', '.h++',
+      '.inl', '.ipp', '.tpp', '.m', '.mm',
+    ]);
+
+    const QUOTED_SUBS = ['', 'include', 'src'];
+
+    /** file name -> keys carrying it, for the unique-suffix step. */
+    function byName(fileSet) {
+      return perBuild(fileSet, 'c:byName', () => {
+        const m = new Map();
+        for (const k of fileSet) {
+          const base = k.slice(k.lastIndexOf(path.sep) + 1);
+          const a = m.get(base);
+          if (a) a.push(k); else m.set(base, [k]);
+        }
+        return m;
+      });
+    }
+
+    function resolve(spec, quoted, dir, selfKey, fileSet, cwd) {
+      if (!spec || path.isAbsolute(spec)) return null;
+      const rel = spec.replace(/\\/g, '/');
+      if (rel.split('/').includes('..') && !quoted) return null; // an angle include never climbs
+
+      const root = cwd ? graphKey(path.resolve(cwd)) : null;
+      const slashed = rel.includes('/');
+      for (const a of ancestorDirs(dir, cwd)) {
+        const atRoot = root !== null && graphKey(a) === root;
+        const subs = quoted ? QUOTED_SUBS : (slashed && atRoot ? QUOTED_SUBS : ['include']);
+        for (const sub of subs) {
+          const k = inSet(fileSet, path.resolve(a, sub, rel));
+          if (k && k !== selfKey) return k;
+        }
+      }
+      if (slashed) {
+        const tail = graphKey(rel);
+        const cands = (byName(fileSet).get(path.basename(tail)) || []).filter((k) => k !== selfKey && k.endsWith(path.sep + tail));
+        if (cands.length === 1) return cands[0];
+      }
+      return null;
+    }
+
+    const RE = /^[ \t]*#[ \t]*(?:include|import)[ \t]*(?:"([^"\n]+)"|<([^>\n]+)>)/gm;
+
+    /**
+     * @param {string} filePath  absolute path
+     * @param {string} content
+     * @param {Set<string>} fileSet  graph keys
+     * @param {string} [cwd]
+     * @returns {string[]} keys of the files this one includes
+     */
+    function extract(filePath, content, fileSet, cwd) {
+      const text = stripComments(content);
+      const dir = path.dirname(filePath);
+      const self = graphKey(filePath);
+      const out = [];
+      RE.lastIndex = 0;
+      let m;
+      while ((m = RE.exec(text)) !== null) {
+        const quoted = m[1] !== undefined;
+        const hit = resolve((quoted ? m[1] : m[2]).trim(), quoted, dir, self, fileSet, cwd);
+        if (hit) out.push(hit);
+      }
+      return out;
+    }
+
+    return { name: 'C/C++/Objective-C', EXTS, extract };
+  })();
+
+  // ── PHP ───────────────────────────────────────────────────────────────────
+
+  const php = (() => {
+    /**
+     * PHP imports (#980): `use Ns\Class;` and literal `require` / `include`.
+     *
+     * A `use` names a class, not a file, so it goes through the autoloader the project
+     * declares. `composer.json` `autoload` and `autoload-dev` `psr-4` map a namespace
+     * prefix to one or more directories, and PSR-4 tries every prefix that matches, so
+     * `Illuminate\Support\Str` is looked for under `Illuminate\Support\` first and under
+     * `Illuminate\` after it (Laravel maps the first to four directories). When no PSR-4
+     * path holds a file of the set, a class declared in the set under that exact
+     * namespace and name is used instead (a layout with no mapping, or a package whose
+     * own `composer.json` is not the root one). Two files declaring one name are
+     * ambiguous and yield nothing.
+     *
+     * Only top-level `use` statements of classes, interfaces, traits and enums are
+     * imports: `use function` and `use const` name no file (their clause does not parse as a
+     * class name), `use ($x)` on a closure and
+     * a trait `use` inside a class body are indented and not matched. A class used by its
+     * fully qualified name with no `use` is not an import and is not an edge.
+     *
+     * `require` / `include` with a literal path resolve next to the file, or relative to
+     * the project root; `__DIR__ . '/x.php'` and `dirname(__FILE__) . '/x.php'` are the
+     * file's directory. A path built from a variable yields nothing.
+     *
+     * @module src/graph/import-resolvers (php)
+     */
+
+
+    const EXTS = new Set(['.php']);
+
+    // ── composer.json ────────────────────────────────────────────────────────────
+
+    const _composer = new Map(); // composer.json path -> { mtimeMs, map }
+
+    /** `{ prefix: 'Illuminate\\Support\\', dirs: [abs...] }[]`, longest prefix first. */
+    function psr4(cwd) {
+      if (!cwd) return [];
+      const file = path.join(cwd, 'composer.json');
+      let st;
+      try { st = fs.statSync(file); } catch (_) { return []; }
+      const known = _composer.get(file);
+      if (known && known.mtimeMs === st.mtimeMs) return known.map;
+
+      let json = null;
+      try { json = JSON.parse(readText(file)); } catch (_) { json = null; }
+      const map = [];
+      for (const section of ['autoload', 'autoload-dev']) {
+        const table = json && json[section] && json[section]['psr-4'];
+        if (!table || typeof table !== 'object') continue;
+        for (const [prefix, target] of Object.entries(table)) {
+          const dirs = (Array.isArray(target) ? target : [target])
+            .filter((d) => typeof d === 'string')
+            .map((d) => path.resolve(cwd, d));
+          const p = prefix === '' ? '' : (prefix.endsWith('\\') ? prefix : prefix + '\\');
+          map.push({ prefix: p, dirs });
+        }
+      }
+      map.sort((a, b) => b.prefix.length - a.prefix.length);
+      _composer.set(file, { mtimeMs: st.mtimeMs, map });
+      return map;
+    }
+
+    // ── a name -> file index, for what PSR-4 does not reach ──────────────────────
+
+    const DECL = /^[ \t]*(?:(?:abstract|final|readonly)[ \t]+)*(?:class|interface|trait|enum)[ \t]+([A-Za-z_]\w*)/gm;
+    const NS = /^[ \t]*namespace[ \t]+([A-Za-z_][\w\\]*)[ \t]*[;{]/gm;
+
+    function declaredIn(text) {
+      const out = [];
+      const spans = [];
+      NS.lastIndex = 0;
+      let m;
+      while ((m = NS.exec(text)) !== null) spans.push({ at: m.index, name: m[1] });
+      DECL.lastIndex = 0;
+      while ((m = DECL.exec(text)) !== null) {
+        let ns = '';
+        for (const s of spans) if (s.at <= m.index) ns = s.name;
+        out.push((ns ? ns + '\\' : '') + m[1]);
+      }
+      return out;
+    }
+
+    /** lowercased fully qualified name -> keys declaring it. */
+    function classIndex(fileSet, ctx) {
+      return perBuild(fileSet, 'php:classes', () => {
+        const idx = new Map();
+        for (const k of fileSet) {
+          if (!k.endsWith('.php')) continue;
+          const text = stripComments(readText(realPathOf(ctx, k)));
+          for (const fq of declaredIn(text)) {
+            const l = fq.toLowerCase();
+            const a = idx.get(l);
+            if (a) a.push(k); else idx.set(l, [k]);
+          }
+        }
+        return idx;
+      });
+    }
+
+    function resolveClass(fq, fileSet, cwd, ctx) {
+      const name = fq.replace(/^\\/, '');
+      if (!name) return null;
+      for (const { prefix, dirs } of psr4(cwd)) {
+        if (!name.startsWith(prefix)) continue;
+        const rest = name.slice(prefix.length).replace(/\\/g, path.sep);
+        if (!rest) continue;
+        for (const d of dirs) {
+          const k = inSet(fileSet, path.join(d, rest + '.php'));
+          if (k) return k;
+        }
+      }
+      const hits = classIndex(fileSet, ctx).get(name.toLowerCase());
+      return hits && hits.length === 1 ? hits[0] : null;
+    }
+
+    // ── use statements ───────────────────────────────────────────────────────────
+
+    /** Split on commas that are not inside braces. */
+    function topLevelCommas(s) {
+      const out = [];
+      let depth = 0;
+      let cur = '';
+      for (const ch of s) {
+        if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+        if (ch === ',' && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
+      }
+      if (cur.trim()) out.push(cur);
+      return out;
+    }
+
+    /** The fully qualified class names one `use` clause imports. */
+    function namesIn(clause) {
+      const out = [];
+      for (const item of topLevelCommas(clause)) {
+        const t = item.trim();
+        const group = /^\\?([A-Za-z_][\w\\]*)\\\{([^}]*)\}$/.exec(t.replace(/\s+/g, ' '));
+        if (group) {
+          for (const sub of group[2].split(',')) {
+            const s = sub.trim().replace(/\s+as\s+\w+$/i, '');
+            if (/^(function|const)\s/.test(s) || !s) continue;
+            out.push(group[1] + '\\' + s);
+          }
+          continue;
+        }
+        const plain = /^\\?([A-Za-z_][\w\\]*)(?:\s+as\s+\w+)?$/.exec(t.replace(/\s+/g, ' '));
+        if (plain) out.push(plain[1]);
+      }
+      return out;
+    }
+
+    const USE = /^use[ \t]+([^;]+);/gm;
+    const INCLUDE = /\b(?:require|include)(?:_once)?[ \t]*\(?[ \t]*(?:(__DIR__|dirname[ \t]*\([ \t]*__FILE__[ \t]*\))[ \t]*\.[ \t]*)?(['"])([^'"$\n]+)\2/g;
+
+    function extract(filePath, content, fileSet, cwd, ctx) {
+      const text = stripComments(content);
+      const out = [];
+      let m;
+
+      USE.lastIndex = 0;
+      while ((m = USE.exec(text)) !== null) {
+        for (const fq of namesIn(m[1])) {
+          const hit = resolveClass(fq, fileSet, cwd, ctx);
+          if (hit) out.push(hit);
+        }
+      }
+
+      const dir = path.dirname(filePath);
+      INCLUDE.lastIndex = 0;
+      while ((m = INCLUDE.exec(text)) !== null) {
+        const lit = m[3];
+        const bases = m[1] || lit.startsWith('./') || lit.startsWith('../') ? [dir] : [dir, cwd].filter(Boolean);
+        for (const b of bases) {
+          const k = inSet(fileSet, path.resolve(b, lit.replace(/^\/(?=[^/])/, m[1] ? '' : '/')));
+          if (k) { out.push(k); break; }
+        }
+      }
+      return out.filter((k) => k !== graphKey(filePath));
+    }
+
+    return { name: 'PHP', EXTS, extract };
+  })();
+
+  // ── C# ────────────────────────────────────────────────────────────────────
+
+  const csharp = (() => {
+    /**
+     * C# `using` directives (#980).
+     *
+     * A `using` names a namespace, and a namespace is many files, so resolving it to all
+     * of them would link every file of `Serilog` to every other. An edge A -> B is drawn
+     * only when A imports a namespace in which B declares a top-level type AND A mentions
+     * that type's name as an identifier. A `partial` type declared across several files
+     * links to all of its parts. `using static N.T;` and `using Alias = N.T;` name a type
+     * directly and link to the files declaring it.
+     *
+     * The index (namespace -> top-level type name -> files) is built once per build from
+     * the C# files of the set. Block `namespace N { }`, nested blocks and file-scoped
+     * `namespace N;` are read, with strings and comments blanked first so a brace inside
+     * either does not move the depth.
+     *
+     * `global using` applies to every file of the same project (the directory holding the
+     * nearest `.csproj` above it). Types in the file's own namespace need no `using`; they
+     * are implicit dependencies, not imports, and are not edges. A namespace that is not
+     * declared in the set (`System.*`, a NuGet package) matches nothing.
+     *
+     * @module src/graph/import-resolvers (csharp)
+     */
+
+
+    const EXTS = new Set(['.cs']);
+
+    const NS_OPEN = /\bnamespace\s+([A-Za-z_][\w.]*)\s*([;{])/y;
+
+    /**
+     * Declarations of a file: `{ ns, type }` for each top-level type, and every namespace
+     * it declares. Walks the masked text once, tracking brace depth.
+     */
+    function scanDeclarations(masked) {
+      const types = [];
+      const nss = new Set();
+      const stack = []; // block namespaces: { name, depth }
+      let fileScoped = '';
+      let depth = 0;
+      const n = masked.length;
+      for (let i = 0; i < n; i++) {
+        const ch = masked[i];
+        if (ch === '{') { depth++; continue; }
+        if (ch === '}') {
+          depth--;
+          while (stack.length && stack[stack.length - 1].depth > depth) stack.pop();
+          continue;
+        }
+        if (ch === 'n' && masked.startsWith('namespace', i) && /\W/.test(masked[i - 1] || ' ')) {
+          NS_OPEN.lastIndex = i;
+          const m = NS_OPEN.exec(masked);
+          if (m) {
+            const outer = stack.length ? stack[stack.length - 1].name : fileScoped;
+            const full = outer ? outer + '.' + m[1] : m[1];
+            nss.add(full);
+            if (m[2] === ';') fileScoped = full;
+            else { stack.push({ name: full, depth: depth + 1 }); }
+            i += m[0].length - 1;
+            if (m[2] === '{') depth++;
+            continue;
+          }
+        }
+        if (/[cseird]/.test(ch) && /\W/.test(masked[i - 1] || ' ')) {
+          const kw = /^(?:class|struct|interface|enum|record(?:\s+(?:class|struct))?|delegate\s+[^\s(;{]+(?:\s*<[^>]*>)?)\s+([A-Za-z_]\w*)/.exec(masked.slice(i, i + 160));
+          if (kw) {
+            const ns = stack.length ? stack[stack.length - 1].name : fileScoped;
+            const onTop = stack.length ? depth === stack[stack.length - 1].depth : depth === 0;
+            if (ns && onTop) types.push({ ns, type: kw[1] });
+            i += kw[0].length - 1;
+          }
+        }
+      }
+      return { types, nss };
+    }
+
+    /** Does a directory hold a `.csproj`? One listing per directory per process. */
+    const _csproj = new Map();
+    function hasCsproj(dir) {
+      if (!_csproj.has(dir)) {
+        let names = [];
+        try { names = fs.readdirSync(dir); } catch (_) { /* unreadable: no project here */ }
+        _csproj.set(dir, names.some((x) => x.endsWith('.csproj')));
+      }
+      return _csproj.get(dir);
+    }
+
+    /** Directory of the nearest `.csproj` above a file; '' when there is none. */
+    function projectDirOf(file, cwd) {
+      for (const a of ancestorDirs(path.dirname(file), cwd)) if (hasCsproj(a)) return a;
+      return '';
+    }
+
+    /** { ns: Map<lcNamespace, Map<type, Set<key>>>, globals: Map<project dir, Set<lcNamespace>> } */
+    function indexFor(fileSet, cwd, ctx) {
+      return perBuild(fileSet, 'cs:index', () => {
+        const ns = new Map();
+        const globals = new Map(); // project dir -> Set<namespace>
+        for (const k of fileSet) {
+          if (!k.endsWith('.cs')) continue;
+          const real = realPathOf(ctx, k);
+          const masked = maskCode(readText(real));
+          const { types } = scanDeclarations(masked);
+          for (const { ns: n, type } of types) {
+            const key = n.toLowerCase();
+            if (!ns.has(key)) ns.set(key, new Map());
+            const byType = ns.get(key);
+            if (!byType.has(type)) byType.set(type, new Set());
+            byType.get(type).add(k);
+          }
+          const g = /^[ \t]*global[ \t]+using[ \t]+(?!static\b)(?:\w+[ \t]*=[ \t]*)?([A-Za-z_][\w.]*)[ \t]*;/gm;
+          let m;
+          while ((m = g.exec(masked)) !== null) {
+            const p = projectDirOf(real, cwd);
+            if (!globals.has(p)) globals.set(p, new Set());
+            globals.get(p).add(m[1].toLowerCase());
+          }
+        }
+        return { ns, globals };
+      });
+    }
+
+    const USING = /^[ \t]*(global[ \t]+)?using[ \t]+(static[ \t]+)?(?:([A-Za-z_]\w*)[ \t]*=[ \t]*)?([A-Za-z_][\w.]*)(?:<[^;>]*>)?[ \t]*;/gm;
+
+    function extract(filePath, content, fileSet, cwd, ctx) {
+      const idx = indexFor(fileSet, cwd, ctx);
+      const self = graphKey(filePath);
+      const masked = maskCode(content);
+
+      const imported = new Set();   // namespaces whose types the file may use
+      const direct = [];            // [namespace, type] named outright
+      let m;
+      USING.lastIndex = 0;
+      while ((m = USING.exec(masked)) !== null) {
+        const name = m[4];
+        if (m[2] || m[3]) {                       // using static N.T;  using A = N.T;
+          const dot = name.lastIndexOf('.');
+          if (dot > 0) direct.push([name.slice(0, dot).toLowerCase(), name.slice(dot + 1)]);
+        } else {
+          imported.add(name.toLowerCase());
+        }
+      }
+      const proj = projectDirOf(filePath, cwd);
+      for (const g of idx.globals.get(proj) || []) imported.add(g);
+
+      const out = new Set();
+      for (const [n, t] of direct) {
+        const files = idx.ns.get(n) && idx.ns.get(n).get(t);
+        if (files) for (const f of files) if (f !== self) out.add(f);
+      }
+      if (imported.size) {
+        const ids = new Set(masked.match(/[A-Za-z_]\w*/g) || []);
+        for (const n of imported) {
+          const byType = idx.ns.get(n);
+          if (!byType) continue;
+          for (const [type, files] of byType) {
+            if (!ids.has(type)) continue;
+            for (const f of files) if (f !== self) out.add(f);
+          }
+        }
+      }
+      return [...out];
+    }
+
+    return { name: 'C#', EXTS, extract };
+  })();
+
+  // ── Dart ──────────────────────────────────────────────────────────────────
+
+  const dart = (() => {
+    /**
+     * Dart `import`, `export` and `part` (#980).
+     *
+     * `import 'x.dart'`, `export 'x.dart'` and `part 'x.g.dart'` resolve next to the file;
+     * `part of 'x.dart'` points back at the library. `package:name/path.dart` resolves
+     * through the packages the repository itself holds: a package is a directory with a
+     * `pubspec.yaml`, its name is that file's `name:`, and its code is under `lib/`. So in
+     * a monorepo `package:flutter_riverpod/x.dart` reaches `packages/flutter_riverpod/lib/x.dart`.
+     * `dart:` libraries and packages that are not in the repository (`package:flutter/...`,
+     * `package:test/...`) miss the set and yield nothing.
+     *
+     * A conditional import (`import 'a.dart' if (dart.library.io) 'a_io.dart';`) is one
+     * statement with several possible targets; every one that is a file of the set is an
+     * edge, because any of them can be the file that is compiled in.
+     *
+     * @module src/graph/import-resolvers (dart)
+     */
+
+
+    const EXTS = new Set(['.dart']);
+
+    /** package name -> lib directory, for every pubspec.yaml above any file of the set. */
+    function packages(fileSet, cwd, ctx) {
+      return perBuild(fileSet, 'dart:packages', () => {
+        const roots = new Set();
+        const seen = new Set();
+        for (const k of fileSet) {
+          if (!k.endsWith('.dart')) continue;
+          // a key is lowercased; the directories to look in are spelled as they are on disk
+          for (const a of ancestorDirs(path.dirname(realPathOf(ctx, k)), cwd)) {
+            if (seen.has(a)) break;       // everything above it was already visited
+            seen.add(a);
+            if (dirHas(a, 'pubspec.yaml')) roots.add(a);
+          }
+        }
+        const byName = new Map();
+        for (const root of roots) {
+          const m = /^name:[ \t]*['"]?([A-Za-z_][\w]*)['"]?[ \t]*$/m.exec(readText(path.join(root, 'pubspec.yaml')));
+          if (m && !byName.has(m[1])) byName.set(m[1], path.join(root, 'lib'));
+        }
+        return byName;
+      });
+    }
+
+    // A directive runs to its `;` and may hold conditional URIs after the first one.
+    const DIRECTIVE = /^[ \t]*(import|export|part[ \t]+of|part)[ \t]+((?:'[^'\n]*'|"[^"\n]*")[^;]*);/gm;
+    const URI = /(?:'([^'\n]*)'|"([^"\n]*)")/g;
+
+    function extract(filePath, content, fileSet, cwd, ctx) {
+      const text = stripComments(content);
+      const dir = path.dirname(filePath);
+      const self = graphKey(filePath);
+      const out = [];
+      let m;
+      DIRECTIVE.lastIndex = 0;
+      while ((m = DIRECTIVE.exec(text)) !== null) {
+        const uris = [];
+        URI.lastIndex = 0;
+        let u;
+        while ((u = URI.exec(m[2])) !== null) uris.push(u[1] !== undefined ? u[1] : u[2]);
+        // `show` / `hide` / `as` clauses name symbols, not files, so only strings are read; a
+        // string after `if (...)` is a conditional target, but a bare `show 'x'` cannot occur.
+        for (const uri of uris) {
+          let k = null;
+          if (uri.startsWith('package:')) {
+            const rest = uri.slice('package:'.length);
+            const slash = rest.indexOf('/');
+            if (slash < 0) continue;
+            const lib = packages(fileSet, cwd, ctx).get(rest.slice(0, slash));
+            if (lib) k = inSet(fileSet, path.join(lib, rest.slice(slash + 1)));
+          } else if (!/^[a-z][a-z0-9+.-]*:/i.test(uri)) {     // dart:, http:, ... are not files of the set
+            k = inSet(fileSet, path.resolve(dir, uri));
+          }
+          if (k && k !== self) out.push(k);
+        }
+      }
+      return out;
+    }
+
+    return { name: 'Dart', EXTS, extract };
+  })();
+
+  // ── Vue / Svelte / Astro ──────────────────────────────────────────────────
+
+  const sfc = (() => {
+    /**
+     * Single-file components: Vue, Svelte, Astro (#980).
+     *
+     * The imports of these files are ordinary ES imports; they sit in a `<script>` block
+     * (Vue, Svelte) or in the frontmatter fence and `<script>` tags (Astro). This module
+     * only finds that code. The graph builder resolves it with the same JS/TS resolver as
+     * any other script, so relative paths, `tsconfig` aliases and extension-less
+     * specifiers behave exactly as they do in a `.ts` file.
+     *
+     * Template markup, `<style>` blocks and component tags are not read: a tag
+     * `<Child />` is an import only through the `import Child from './Child.vue'` that
+     * names it, which is in the script. The extension stays in the specifier: a bundler
+     * does not guess that `./Child` means `Child.vue` unless it is configured to, so
+     * neither does the graph.
+     *
+     * @module src/graph/import-resolvers (sfc)
+     */
+
+    const EXTS = new Set(['.vue', '.svelte', '.astro']);
+
+    const SCRIPT = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi;
+    const FENCE = /^\uFEFF?\s*---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+
+    /**
+     * The script source of a component file: every `<script>` body, and for Astro the
+     * frontmatter before them. Returned as one string; import statements are line based.
+     * @param {string} ext   '.vue' | '.svelte' | '.astro'
+     * @param {string} content
+     * @returns {string}
+     */
+    function scriptOf(ext, content) {
+      const parts = [];
+      let body = content;
+      if (ext === '.astro') {
+        const f = FENCE.exec(content);
+        if (f) { parts.push(f[1]); body = content.slice(f[0].length); }
+      }
+      SCRIPT.lastIndex = 0;
+      let m;
+      while ((m = SCRIPT.exec(body)) !== null) parts.push(m[1]);
+      return parts.join('\n');
+    }
+
+    return { name: 'Vue/Svelte/Astro', EXTS, scriptOf };
+  })();
+
+  // ── Lua ───────────────────────────────────────────────────────────────────
+
+  const lua = (() => {
+    /**
+     * Lua `require` (#980).
+     *
+     * `require("a.b")`, `require "a.b"` and `pcall(require, "a.b")` name a module whose file
+     * is `a/b.lua` or `a/b/init.lua` under a root Lua searches (`package.path`). The roots
+     * are not declared in the repository, so they are tried the way projects lay them out:
+     * every directory from the requiring file up to the project root, and under each of
+     * them the directory itself, `lua/`, `src/` and `lib/`. That finds `lua/plenary/job.lua`
+     * for `require "plenary.job"` from a test, a plugin or another module. A module that is
+     * not in the repository (`require "vim"`, a rock) misses the set and yields nothing.
+     *
+     * `dofile("x.lua")` and `loadfile("x.lua")` with a literal path resolve next to the file
+     * or from the project root. A module name built at run time yields nothing.
+     *
+     * @module src/graph/import-resolvers (lua)
+     */
+
+
+    const EXTS = new Set(['.lua']);
+
+    const ROOTS = ['', 'lua', 'src', 'lib'];
+
+    /** Blank `--[[ ]]` / `--[==[ ]==]` blocks and `--` line comments, keeping newlines. */
+    function stripLua(src) {
+      return src
+        .replace(/--\[(=*)\[[\s\S]*?\]\1\]/g, (m) => m.replace(/[^\n]/g, ' '))
+        .replace(/--[^\n]*/g, '');
+    }
+
+    const REQUIRE = /(?:^|[^\w.:])require[ \t]*\(?[ \t]*(['"])([^'"\n]+)\1/g;
+    const PCALL = /\bpcall[ \t]*\([ \t]*require[ \t]*,[ \t]*(['"])([^'"\n]+)\1/g;
+    const FILE = /\b(?:dofile|loadfile)[ \t]*\([ \t]*(['"])([^'"\n]+\.lua)\1/g;
+
+    function moduleFile(name, dir, fileSet, cwd) {
+      if (!/^[\w.\-]+$/.test(name)) return null;
+      const rel = name.replace(/\./g, path.sep);
+      for (const a of ancestorDirs(dir, cwd)) {
+        for (const r of ROOTS) {
+          const k = inSet(fileSet, path.resolve(a, r, rel + '.lua')) || inSet(fileSet, path.resolve(a, r, rel, 'init.lua'));
+          if (k) return k;
+        }
+      }
+      return null;
+    }
+
+    function extract(filePath, content, fileSet, cwd) {
+      const text = stripLua(content);
+      const dir = path.dirname(filePath);
+      const self = graphKey(filePath);
+      const out = [];
+      let m;
+      for (const re of [REQUIRE, PCALL]) {
+        re.lastIndex = 0;
+        while ((m = re.exec(text)) !== null) {
+          const k = moduleFile(m[2], dir, fileSet, cwd);
+          if (k && k !== self) out.push(k);
+        }
+      }
+      FILE.lastIndex = 0;
+      while ((m = FILE.exec(text)) !== null) {
+        const k = inSet(fileSet, path.resolve(dir, m[2])) || (cwd && inSet(fileSet, path.resolve(cwd, m[2])));
+        if (k && k !== self) out.push(k);
+      }
+      return out;
+    }
+
+    return { name: 'Lua', EXTS, extract };
+  })();
+
+  // ── GDScript ──────────────────────────────────────────────────────────────
+
+  const gdscript = (() => {
+    /**
+     * GDScript `preload`, `load` and `extends` (#980).
+     *
+     * `preload("res://a/b.gd")` and `load("res://a/b.gd")` resolve from the Godot project
+     * root, the nearest directory above the file that holds a `project.godot` (a repository
+     * of demo projects has one per project), falling back to the repository root. A path
+     * without `res://` is relative to the file. Only a path that is a script of the set is
+     * an edge: a scene, an image or a sound is not a node of this graph.
+     *
+     * `extends "res://base.gd"` is the same. `extends Name` resolves when `Name` is declared
+     * by a `class_name Name` in the same Godot project, which is how a script inherits from
+     * another without a path; the engine's own classes (`extends Node`) match nothing.
+     *
+     * A path held in a variable or built by concatenation yields nothing.
+     *
+     * @module src/graph/import-resolvers (gdscript)
+     */
+
+
+    const EXTS = new Set(['.gd']);
+
+    function stripGd(src) { return src.replace(/(^|[^"'\\])#[^\n]*/g, '$1'); }
+
+    /** The Godot project directory of a file: the nearest above it with a project.godot. */
+    function projectRootOf(file, cwd) {
+      for (const a of ancestorDirs(path.dirname(file), cwd)) if (dirHas(a, 'project.godot')) return a;
+      return cwd ? path.resolve(cwd) : path.dirname(file);
+    }
+
+    const CLASS_NAME = /^[ \t]*class_name[ \t]+([A-Za-z_]\w*)/gm;
+
+    /** project root -> class_name -> keys declaring it. */
+    function classNames(fileSet, cwd, ctx) {
+      return perBuild(fileSet, 'gd:classNames', () => {
+        const idx = new Map();
+        for (const k of fileSet) {
+          if (!k.endsWith('.gd')) continue;
+          const real = realPathOf(ctx, k);
+          const text = stripGd(readText(real));
+          const root = graphKey(projectRootOf(real, cwd));
+          CLASS_NAME.lastIndex = 0;
+          let m;
+          while ((m = CLASS_NAME.exec(text)) !== null) {
+            const key = root + '\u0000' + m[1];
+            const a = idx.get(key);
+            if (a) a.push(k); else idx.set(key, [k]);
+          }
+        }
+        return idx;
+      });
+    }
+
+    const LOAD = /\b(?:preload|load)[ \t]*\([ \t]*(['"])([^'"\n]+)\1/g;
+    const EXTENDS_PATH = /^[ \t]*extends[ \t]+(['"])([^'"\n]+)\1/gm;
+    const EXTENDS_NAME = /^[ \t]*(?:class_name[ \t]+\w+[ \t]+)?extends[ \t]+([A-Za-z_]\w*)/gm;
+
+    function fileFor(p, dir, root, fileSet) {
+      if (p.startsWith('res://')) return inSet(fileSet, path.join(root, p.slice('res://'.length)));
+      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(p)) return null;     // user://, http://, ...
+      return inSet(fileSet, path.resolve(dir, p));
+    }
+
+    function extract(filePath, content, fileSet, cwd, ctx) {
+      const text = stripGd(content);
+      const dir = path.dirname(filePath);
+      const root = projectRootOf(filePath, cwd);
+      const self = graphKey(filePath);
+      const out = [];
+      let m;
+      for (const re of [LOAD, EXTENDS_PATH]) {
+        re.lastIndex = 0;
+        while ((m = re.exec(text)) !== null) {
+          const k = fileFor(m[2], dir, root, fileSet);
+          if (k && k !== self) out.push(k);
+        }
+      }
+      EXTENDS_NAME.lastIndex = 0;
+      const names = classNames(fileSet, cwd, ctx);
+      while ((m = EXTENDS_NAME.exec(text)) !== null) {
+        const hits = names.get(graphKey(root) + '\u0000' + m[1]);
+        if (hits && hits.length === 1 && hits[0] !== self) out.push(hits[0]);
+      }
+      return out;
+    }
+
+    return { name: 'GDScript', EXTS, extract };
+  })();
+
+  // ── the list ─────────────────────────────────────────────────────────────────
+
+  const FAMILIES = [c, php, csharp, dart, sfc, lua, gdscript];
+
+  /** extension -> family module */
+  const BY_EXT = new Map();
+  for (const f of FAMILIES) for (const e of f.EXTS) BY_EXT.set(e, f);
+
+  module.exports = { FAMILIES, BY_EXT, sfc, ancestorDirs, stripComments, maskCode, readBalanced };
   
 };
 
@@ -23218,8 +24832,8 @@ __factories["./src/graph/language-support"] = function(module, exports) {
   /**
    * What the dependency graphs can and cannot read (#979).
    *
-   * The import graph reads eight language families and the method-level call
-   * graph seven (`GRAPH_FAMILIES`, `CALL_GRAPH_FAMILIES`). A file in any other
+   * The import graph reads fifteen language families (eight, and seven more since #980)
+   * and the method-level call graph seven (`GRAPH_FAMILIES`, `CALL_GRAPH_FAMILIES`). A file in any other
    * language contributes no edges, so a blast-radius query on it used to answer
    * "no importers found" — the same words as "nothing depends on this" — when
    * the truth is "this language is not tracked". Laravel's `Str.php`, imported by
@@ -23309,7 +24923,10 @@ __factories["./src/graph/language-support"] = function(module, exports) {
    * callers (the MCP tools return markdown) can still match it.
    */
   function importNote(label) {
-    return `graph: ${UNSUPPORTED} — ${_subject(label)} are not tracked (the import graph reads ${graphLanguageList()}). This is not evidence that nothing depends on this file.`;
+    const swift = label === 'Swift'
+      ? ' Swift imports name modules (SwiftPM targets), not files, so no file-level edge is drawn; where a Package.swift declares the target, the files that import this file\'s module are listed below.'
+      : '';
+    return `graph: ${UNSUPPORTED} — ${_subject(label)} are not tracked (the import graph reads ${graphLanguageList()}). This is not evidence that nothing depends on this file.${swift}`;
   }
 
   /**
@@ -23616,6 +25233,147 @@ __factories["./src/graph/src-dirs"] = function(module, exports) {
   }
 
   module.exports = { resolveGraphDirs, configuredSrcDirs, mergeDirs, clearDetectionCache, ALWAYS_EXCLUDED };
+  
+};
+
+// ── ./src/graph/swift-modules ──
+__factories["./src/graph/swift-modules"] = function(module, exports) {
+  
+  /**
+   * Swift, at module level (#980).
+   *
+   * `import Alamofire` names a module, and a module is a SwiftPM target: many files, with
+   * no way to tell from the import which of them are used. Linking the importing file to
+   * any one of them, or to all, would invent file-level edges, so Swift contributes none
+   * to the import graph (`.swift` stays outside `GRAPH_EXTS`, and a blast-radius query on a
+   * Swift file still says file-level imports are not tracked).
+   *
+   * What is known, and is not invented, is the module structure: a `Package.swift` declares
+   * targets and each owns a directory (`Sources/<name>` by default, a `path:` when given,
+   * `Tests/<name>` for a test target). From that, for a Swift file: the target it belongs to,
+   * and the files in OTHER targets that `import` that target. That is the module-level blast
+   * radius, a superset of the true one, and it is reported as such.
+   *
+   * A project with no `Package.swift` (an Xcode project) has no module structure here and
+   * answers nothing.
+   *
+   * @module src/graph/swift-modules
+   */
+
+  const fs = require('fs');
+  const path = require('path');
+  const { maskCode, readBalanced, stripComments } = __require('./src/graph/import-resolvers');
+
+  const SKIP = new Set(['.git', 'node_modules', '.build', 'Pods', 'Carthage', 'DerivedData', 'build', 'dist', '.swiftpm']);
+  const MAX_FILES = 50000;
+  const MAX_DEPTH = 12;
+
+  /** Every file under `root` for which `want(name)` holds, as absolute paths. */
+  function walk(root, want) {
+    const out = [];
+    const go = (dir, depth) => {
+      if (depth > MAX_DEPTH || out.length >= MAX_FILES) return;
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+      for (const e of entries) {
+        if (SKIP.has(e.name)) continue;
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) go(full, depth + 1);
+        else if (e.isFile() && want(e.name)) out.push(full);
+      }
+    };
+    go(root, 0);
+    return out;
+  }
+
+  const KINDS = ['target', 'executableTarget', 'testTarget', 'macro', 'plugin'];
+  const CALL = new RegExp(`\\.(${KINDS.join('|')})\\s*\\(`, 'g');
+
+  /** The targets one Package.swift declares: `{ name, kind, dir }` with `dir` absolute. */
+  function targetsOf(packageFile) {
+    let src;
+    try { src = fs.readFileSync(packageFile, 'utf8'); } catch (_) { return []; }
+    const root = path.dirname(packageFile);
+    const masked = maskCode(src);
+    const text = stripComments(src);
+    const out = [];
+    CALL.lastIndex = 0;
+    let m;
+    while ((m = CALL.exec(masked)) !== null) {
+      const open = m.index + m[0].length - 1;
+      const close = readBalanced(masked, open, '(', ')', 8000);
+      if (close < 0) continue;
+      const args = text.slice(open + 1, close);
+      const name = /\bname\s*:\s*"([^"]+)"/.exec(args);
+      if (!name) continue;
+      const given = /\bpath\s*:\s*"([^"]+)"/.exec(args);
+      const kind = m[1];
+      const rel = given ? given[1] : path.join(kind === 'testTarget' ? 'Tests' : 'Sources', name[1]);
+      const dir = path.resolve(root, rel);
+      if (fs.existsSync(dir)) out.push({ name: name[1], kind, dir });
+    }
+    return out;
+  }
+
+  /** All targets under `cwd`, from every Package.swift found. */
+  function targetsUnder(cwd) {
+    const out = [];
+    for (const f of walk(cwd, (n) => n === 'Package.swift')) out.push(...targetsOf(f));
+    return out;
+  }
+
+  const IMPORT = /^[ \t]*(?:@\w+(?:\([^)]*\))?[ \t]+)*import[ \t]+(?:(?:typealias|struct|class|enum|protocol|let|var|func)[ \t]+)?([A-Za-z_]\w*)/gm;
+
+  /** The module names a Swift source imports. */
+  function importedModules(content) {
+    const text = stripComments(content);
+    const out = new Set();
+    IMPORT.lastIndex = 0;
+    let m;
+    while ((m = IMPORT.exec(text)) !== null) out.add(m[1]);
+    return out;
+  }
+
+  /** The target whose directory holds `file` (the deepest, when targets nest). */
+  function targetOf(targets, file) {
+    let best = null;
+    for (const t of targets) {
+      const rel = path.relative(t.dir, file);
+      if (rel && !rel.startsWith('..') && !path.isAbsolute(rel) && (!best || t.dir.length > best.dir.length)) best = t;
+    }
+    return best;
+  }
+
+  /**
+   * The module-level view of a Swift file.
+   * @param {string} cwd
+   * @param {string} file  absolute path of a `.swift` file
+   * @returns {{ module: string, kind: string, dir: string, importers: string[] }|null}
+   *          null when `cwd` has no Package.swift target that owns the file
+   */
+  function moduleImpact(cwd, file) {
+    const targets = targetsUnder(cwd);
+    const mine = targetOf(targets, file);
+    if (!mine) return null;
+    const importers = [];
+    for (const f of walk(cwd, (n) => n.endsWith('.swift'))) {
+      if (f === file) continue;
+      const t = targetOf(targets, f);
+      if (t && t.name === mine.name) continue;
+      let text;
+      try { text = fs.readFileSync(f, 'utf8'); } catch (_) { continue; }
+      if (importedModules(text).has(mine.name)) importers.push(path.relative(cwd, f).replace(/\\/g, '/'));
+    }
+    importers.sort();
+    return { module: mine.name, kind: mine.kind, dir: path.relative(cwd, mine.dir).replace(/\\/g, '/'), importers };
+  }
+
+  /** Every `.swift` file the module view walks under `cwd`, repo-relative. */
+  function swiftFiles(cwd) {
+    return walk(cwd, (n) => n.endsWith('.swift')).map((f) => path.relative(cwd, f).replace(/\\/g, '/')).sort();
+  }
+
+  module.exports = { moduleImpact, swiftFiles, importedModules, targetsOf };
   
 };
 
@@ -27840,7 +29598,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.82.0',
+    version: '8.83.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -40333,7 +42091,7 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
-const VERSION = '8.82.0';
+const VERSION = '8.83.0';
 // A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
 // (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
 const __sourceOrBundled = new Map();

@@ -93,7 +93,7 @@ function test(name, fn) {
   await test('README does not promise a line anchor for every symbol', () => {
     const src = read('README.md');
     assert.ok(!/every file and symbol traces to a real line anchor/.test(src),
-      'README still claims universal anchors; Ruby, R, Lua, Elixir and C/C++ emit none');
+      'README still claims universal anchors; R, Lua and Elixir emit none');
     assert.ok(!/every symbol on a real line anchor/.test(src),
       'README comparison table still claims universal anchors');
   });
@@ -106,12 +106,13 @@ function test(name, fn) {
 
   await test('the anchor claim matches measured extractor behaviour', () => {
     // The scoping is only honest if these really do differ.
-    const anchored = ['javascript', 'go'];
-    const unanchored = ['ruby', 'r', 'lua', 'elixir'];
+    const anchored = ['javascript', 'go', 'ruby', 'cpp'];   // Ruby and C/C++ since #975
+    const unanchored = ['r', 'lua', 'elixir'];
     const sample = {
       javascript: 'function f(a) { }',
       go: 'func F(a int) int { return 1 }',
       ruby: 'def f(a)\nend',
+      cpp: 'int f(int a) { return a; }',
       r: 'f <- function(a) 1',
       lua: 'function f(a)\nend',
       elixir: 'defmodule M do\nend',

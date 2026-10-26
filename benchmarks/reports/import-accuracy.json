@@ -1,0 +1,652 @@
+{
+  "schema": 1,
+  "benchmark": "import-accuracy",
+  "method": "scripts/run-import-accuracy.mjs",
+  "protocol": {
+    "file": "benchmarks/import-resolver-protocol.json",
+    "sha256": "e259922692bfd7a530cfc324f0dab207e61d37097f461de7d8b301216a08324a",
+    "commit": "975d2813ae4a2cd28c17752ae35cc5416edbba79",
+    "committed": true
+  },
+  "sigmap": {
+    "commit": "7287d5ae2192f6c840485ad2058336a38e980bec",
+    "dirty": false
+  },
+  "environment": {
+    "node": "v25.6.0",
+    "platform": "darwin-arm64",
+    "loadAverage": [
+      3.7,
+      4.04,
+      4.23
+    ]
+  },
+  "groups": {
+    "c": {
+      "repos": [
+        "libuv",
+        "abseil-cpp"
+      ],
+      "table": {
+        "precision": {
+          "value": 0.9969624647428943,
+          "lo": 0.9928906656273108,
+          "hi": 0.9997812821201109,
+          "n": 4609,
+          "small": false
+        },
+        "recall": {
+          "value": 0.9965300368683583,
+          "lo": 0.9937609968817219,
+          "hi": 0.9986988973217862,
+          "n": 4611,
+          "small": false
+        },
+        "f1": 0.9967462039045553
+      },
+      "counts": {
+        "walked": 1190,
+        "covered": 1190,
+        "universe": 1190,
+        "referenceEdges": 4611,
+        "graphEdges": 4609,
+        "truePositives": 4595,
+        "graphEdgesOutsideUniverse": 0,
+        "referenceEdgesOutsideUniverse": 0
+      },
+      "diagnostics": {
+        "missedByKind": {
+          "reaches a .inc file": 16
+        },
+        "wrongByKind": {
+          "reaches a .h file": 14
+        }
+      },
+      "reference": "Apple clang version 21.0.0 (clang-2100.1.1.101)"
+    },
+    "sfc": {
+      "repos": [
+        "vue-core",
+        "svelte",
+        "astro"
+      ],
+      "table": {
+        "precision": {
+          "value": 1,
+          "lo": 1,
+          "hi": 1,
+          "n": 1535,
+          "small": false
+        },
+        "recall": {
+          "value": 0.7908294693456981,
+          "lo": 0.7710708305490265,
+          "hi": 0.809428442220893,
+          "n": 1941,
+          "small": false
+        },
+        "f1": 0.883199079401611
+      },
+      "counts": {
+        "walked": 5451,
+        "covered": 5347,
+        "universe": 5347,
+        "referenceEdges": 1941,
+        "graphEdges": 1535,
+        "truePositives": 1535,
+        "graphEdgesOutsideUniverse": 0,
+        "referenceEdgesOutsideUniverse": 0
+      },
+      "diagnostics": {
+        "missedByKind": {
+          "a bare specifier that resolves inside the repository": 389,
+          "a relative path": 1,
+          "written .js/.jsx, the file is .ts/.tsx": 12,
+          "a \"#name\" import of the package.json imports map": 1,
+          "a JSON module": 3
+        },
+        "wrongByKind": {}
+      },
+      "reference": "typescript 6.0.3, @vue/compiler-sfc 3.5.44, svelte 5.57.2, @astrojs/compiler 4.0.0"
+    },
+    "php": {
+      "repos": [
+        "laravel",
+        "composer"
+      ],
+      "table": {
+        "precision": {
+          "value": 0.9997990353697749,
+          "lo": 0.9993723619260011,
+          "hi": 1,
+          "n": 4976,
+          "small": false
+        },
+        "recall": {
+          "value": 1,
+          "lo": 1,
+          "hi": 1,
+          "n": 4975,
+          "small": false
+        },
+        "f1": 0.999899507587177
+      },
+      "counts": {
+        "walked": 1933,
+        "covered": 1933,
+        "universe": 1933,
+        "referenceEdges": 4975,
+        "graphEdges": 4976,
+        "truePositives": 4975,
+        "graphEdgesOutsideUniverse": 0,
+        "referenceEdgesOutsideUniverse": 0
+      },
+      "diagnostics": {
+        "missedByKind": {},
+        "wrongByKind": {
+          "reaches a .php file": 1
+        }
+      },
+      "reference": "PHP 8.4.23, Composer 2.10.3"
+    },
+    "swift": {
+      "repos": [
+        "alamofire",
+        "vapor"
+      ],
+      "table": {
+        "precision": {
+          "value": 1,
+          "lo": 1,
+          "hi": 1,
+          "n": 150,
+          "small": false
+        },
+        "recall": {
+          "value": 0.9933774834437086,
+          "lo": 0.9788694935570872,
+          "hi": 1,
+          "n": 151,
+          "small": false
+        },
+        "f1": 0.9966777408637874
+      },
+      "counts": {
+        "walked": 392,
+        "covered": 392,
+        "universe": 392,
+        "referenceEdges": 151,
+        "graphEdges": 150,
+        "truePositives": 150,
+        "graphEdgesOutsideUniverse": 0,
+        "referenceEdgesOutsideUniverse": 0
+      },
+      "diagnostics": {
+        "missedByKind": {
+          "a module with no Swift file (a C-language target)": 1
+        },
+        "wrongByKind": {}
+      },
+      "reference": "Apple Swift version 6.3.2 (swiftlang-6.3.2.1.108 clang-2100.1.1.101)"
+    }
+  },
+  "repos": {
+    "c": {
+      "libuv": {
+        "status": "measured",
+        "commit": "20b08342bcdcc27497aeb87d826b97475c12aca6",
+        "counts": {
+          "walked": 330,
+          "covered": 330,
+          "universe": 330,
+          "referenceEdges": 677,
+          "graphEdges": 683,
+          "truePositives": 677,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [],
+          "wrong": [
+            "include/uv/unix.h -> include/uv/aix.h",
+            "include/uv/unix.h -> include/uv/bsd.h",
+            "include/uv/unix.h -> include/uv/os390.h",
+            "include/uv/unix.h -> include/uv/posix.h",
+            "include/uv/unix.h -> include/uv/sunos.h",
+            "src/unix/internal.h -> src/unix/os390-syscalls.h"
+          ]
+        },
+        "diagnostics": {
+          "missedByKind": {},
+          "wrongByKind": {
+            "reaches a .h file": 6
+          }
+        },
+        "notes": {
+          "clangRuns": 990,
+          "failed": 0,
+          "targets": [
+            "host",
+            "linux",
+            "windows"
+          ]
+        },
+        "seconds": 42
+      },
+      "abseil-cpp": {
+        "status": "measured",
+        "commit": "ea64b6e7e63ffd917b20609eca768e8e6eacceda",
+        "counts": {
+          "walked": 860,
+          "covered": 860,
+          "universe": 860,
+          "referenceEdges": 3934,
+          "graphEdges": 3926,
+          "truePositives": 3918,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [
+            "absl/base/internal/spinlock_wait.cc -> absl/base/internal/spinlock_linux.inc",
+            "absl/base/internal/spinlock_wait.cc -> absl/base/internal/spinlock_posix.inc",
+            "absl/base/internal/spinlock_wait.cc -> absl/base/internal/spinlock_win32.inc",
+            "absl/debugging/stacktrace.cc -> absl/debugging/internal/stacktrace_generic-inl.inc",
+            "absl/debugging/stacktrace.cc -> absl/debugging/internal/stacktrace_win32-inl.inc",
+            "absl/debugging/stacktrace.cc -> absl/debugging/internal/stacktrace_x86-inl.inc",
+            "absl/debugging/symbolize.cc -> absl/debugging/symbolize_darwin.inc",
+            "absl/debugging/symbolize.cc -> absl/debugging/symbolize_unimplemented.inc",
+            "absl/log/absl_check_test.cc -> absl/log/check_test_impl.inc",
+            "absl/log/absl_log_basic_test.cc -> absl/log/log_basic_test_impl.inc",
+            "absl/log/check_test.cc -> absl/log/check_test_impl.inc",
+            "absl/log/log_basic_test.cc -> absl/log/log_basic_test_impl.inc",
+            "absl/numeric/int128.h -> absl/numeric/int128_have_intrinsic.inc",
+            "absl/numeric/int128.h -> absl/numeric/int128_no_intrinsic.inc",
+            "absl/time/clock.cc -> absl/time/internal/get_current_time_chrono.inc",
+            "absl/time/clock.cc -> absl/time/internal/get_current_time_posix.inc"
+          ],
+          "wrong": [
+            "absl/base/internal/unscaledcycleclock.cc -> absl/base/call_once.h",
+            "absl/strings/internal/str_split_internal.h -> absl/strings/internal/stl_type_traits.h",
+            "absl/synchronization/internal/futex_waiter.cc -> absl/base/config.h",
+            "absl/synchronization/internal/futex_waiter.cc -> absl/base/internal/raw_logging.h",
+            "absl/synchronization/internal/futex_waiter.cc -> absl/base/internal/thread_identity.h",
+            "absl/synchronization/internal/futex_waiter.cc -> absl/base/optimization.h",
+            "absl/synchronization/internal/futex_waiter.cc -> absl/synchronization/internal/futex.h",
+            "absl/synchronization/internal/futex_waiter.cc -> absl/synchronization/internal/kernel_timeout.h"
+          ]
+        },
+        "diagnostics": {
+          "missedByKind": {
+            "reaches a .inc file": 16
+          },
+          "wrongByKind": {
+            "reaches a .h file": 8
+          }
+        },
+        "notes": {
+          "clangRuns": 2580,
+          "failed": 0,
+          "targets": [
+            "host",
+            "linux",
+            "windows"
+          ]
+        },
+        "seconds": 202
+      }
+    },
+    "sfc": {
+      "vue-core": {
+        "status": "measured",
+        "commit": "7df0edd46c1636751750588d8db2fafd2ef68443",
+        "counts": {
+          "walked": 11,
+          "covered": 11,
+          "universe": 11,
+          "referenceEdges": 14,
+          "graphEdges": 14,
+          "truePositives": 14,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [],
+          "wrong": []
+        },
+        "diagnostics": {
+          "missedByKind": {},
+          "wrongByKind": {}
+        },
+        "notes": {
+          "failed": 0,
+          "failedSample": []
+        },
+        "seconds": 0
+      },
+      "svelte": {
+        "status": "measured",
+        "commit": "4a50e8ea3b7db1d8cd752b825032e4ce2878524b",
+        "counts": {
+          "walked": 4339,
+          "covered": 4238,
+          "universe": 4238,
+          "referenceEdges": 1316,
+          "graphEdges": 926,
+          "truePositives": 926,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [
+            "packages/svelte/tests/compiler-errors/samples/runes-before-after-update/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/compiler-errors/samples/store-shadow-scope-2/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/compiler-errors/samples/store-shadow-scope-3/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/compiler-errors/samples/store-shadow-scope/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/compiler-errors/samples/store-template-expression-scope/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/compiler-errors/samples/svelte-internal-import/main.svelte -> packages/svelte/src/internal/client/index.js",
+            "packages/svelte/tests/hydration/samples/noscript/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/hydration/samples/snippet-raw-hydrate/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/manual/each-stress-test/main.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/accessors/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/effects-with-alias-run/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/effects/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/event-handlers-with-alias/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/event-handlers/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/impossible-migrate-beforeUpdate-afterUpdate/input.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/impossible-migrate-beforeUpdate-afterUpdate/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/labeled-statement-reassign-state/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/named-slots/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/reactive-statements-inner-block/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/reactive-statements-reorder-2/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/reactive-statements-reorder-not-deleting-additions/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/reactive-statements-reorder-with-comments/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/single-assignment-labeled/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/slot-use_ts-2/output.svelte -> packages/svelte/types/index.d.ts",
+            "packages/svelte/tests/migrate/samples/slot-use_ts/output.svelte -> packages/svelte/types/index.d.ts"
+          ],
+          "wrong": []
+        },
+        "diagnostics": {
+          "missedByKind": {
+            "a bare specifier that resolves inside the repository": 389,
+            "a relative path": 1
+          },
+          "wrongByKind": {}
+        },
+        "notes": {
+          "failed": 101,
+          "failedSample": [
+            [
+              "packages/svelte/tests/compiler-errors/samples/attribute-empty/main.svelte",
+              "Expected attribute value\nhttps://svelte.dev/e/expected_attribute_value"
+            ],
+            [
+              "packages/svelte/tests/compiler-errors/samples/attribute-unique-binding/main.svelte",
+              "Attributes need to be unique\nhttps://svelte.dev/e/attribute_duplicate"
+            ],
+            [
+              "packages/svelte/tests/compiler-errors/samples/attribute-unique-class/main.svelte",
+              "Attributes need to be unique\nhttps://svelte.dev/e/attribute_duplicate"
+            ],
+            [
+              "packages/svelte/tests/compiler-errors/samples/attribute-unique-shorthand/main.svelte",
+              "Attributes need to be unique\nhttps://svelte.dev/e/attribute_duplicate"
+            ],
+            [
+              "packages/svelte/tests/compiler-errors/samples/attribute-unique-style/main.svelte",
+              "Attributes need to be unique\nhttps://svelte.dev/e/attribute_duplicate"
+            ]
+          ]
+        },
+        "seconds": 2
+      },
+      "astro": {
+        "status": "measured",
+        "commit": "4c1470a7f907fe678ef5e7dceaa972ca83d297da",
+        "counts": {
+          "walked": 1101,
+          "covered": 1098,
+          "universe": 1098,
+          "referenceEdges": 611,
+          "graphEdges": 595,
+          "truePositives": 595,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [
+            "packages/astro/components/Code.astro -> packages/astro/types.d.ts",
+            "packages/astro/components/Image.astro -> packages/astro/types.d.ts",
+            "packages/astro/components/Picture.astro -> packages/astro/types.d.ts",
+            "packages/astro/e2e/fixtures/client-only/src/pages/index.astro -> packages/astro/e2e/fixtures/client-only/src/components/preact/PreactCounter.tsx",
+            "packages/astro/e2e/fixtures/client-only/src/pages/index.astro -> packages/astro/e2e/fixtures/client-only/src/components/solid/SolidCounter.tsx",
+            "packages/astro/e2e/fixtures/cloudflare/src/pages/index.astro -> packages/astro/e2e/fixtures/cloudflare/src/components/react/SubpathCounter.tsx",
+            "packages/astro/e2e/fixtures/ts-resolution/src/pages/index.astro -> packages/astro/e2e/fixtures/ts-resolution/src/components/Counter.tsx",
+            "packages/astro/test/fixtures/astro-component-code/src/pages/imported.astro -> packages/astro/test/fixtures/astro-component-code/src/assets/ri.tmLanguage.json",
+            "packages/astro/test/fixtures/astro-component-code/src/pages/imported.astro -> packages/astro/test/fixtures/astro-component-code/src/assets/serendipity-morning.json",
+            "packages/astro/test/fixtures/astro-envs/src/pages/index.astro -> packages/astro/test/fixtures/astro-envs/src/data/cats.json",
+            "packages/astro/test/fixtures/astro-scripts/src/components/Inline.astro -> packages/astro/test/fixtures/astro-scripts/src/scripts/some-files/two.ts",
+            "packages/astro/test/fixtures/astro-slots-nested/src/pages/server-component-nested.astro -> packages/astro/test/fixtures/astro-slots-nested/src/components/preact/PassesChildrenP.tsx",
+            "packages/astro/test/fixtures/astro-slots-nested/src/pages/server-component-nested.astro -> packages/astro/test/fixtures/astro-slots-nested/src/components/react/PassesChildren.tsx",
+            "packages/astro/test/fixtures/astro-slots-nested/src/pages/server-component-nested.astro -> packages/astro/test/fixtures/astro-slots-nested/src/components/solid/PassesChildrenS.tsx",
+            "packages/astro/test/fixtures/import-ts-with-js/src/pages/index.astro -> packages/astro/test/fixtures/import-ts-with-js/src/foo.ts",
+            "packages/astro/test/fixtures/jsx/src/pages/frameworks.astro -> packages/astro/test/fixtures/jsx/src/components/preact/PreactCounter.tsx"
+          ],
+          "wrong": []
+        },
+        "diagnostics": {
+          "missedByKind": {
+            "written .js/.jsx, the file is .ts/.tsx": 12,
+            "a \"#name\" import of the package.json imports map": 1,
+            "a JSON module": 3
+          },
+          "wrongByKind": {}
+        },
+        "notes": {
+          "failed": 3,
+          "failedSample": [
+            [
+              "packages/astro/e2e/fixtures/errors/src/components/svelte/SvelteSyntaxError.svelte",
+              "`</div>` attempted to close an element that was not open\nhttps://svelte.dev/e/el"
+            ],
+            [
+              "packages/astro/test/fixtures/0-css/src/components/SvelteSass.svelte",
+              "Expected a valid CSS identifier\nhttps://svelte.dev/e/css_expected_identifier"
+            ],
+            [
+              "packages/astro/test/fixtures/0-css/src/components/SvelteScss.svelte",
+              "Expected a valid CSS identifier\nhttps://svelte.dev/e/css_expected_identifier"
+            ]
+          ]
+        },
+        "seconds": 2
+      }
+    },
+    "php": {
+      "laravel": {
+        "status": "measured",
+        "commit": "635129b24d0d6c5664e4b77f41b1297a2f74c91a",
+        "counts": {
+          "walked": 1619,
+          "covered": 1619,
+          "universe": 1619,
+          "referenceEdges": 3625,
+          "graphEdges": 3625,
+          "truePositives": 3625,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [],
+          "wrong": []
+        },
+        "diagnostics": {
+          "missedByKind": {},
+          "wrongByKind": {}
+        },
+        "notes": {
+          "failed": 0
+        },
+        "seconds": 1
+      },
+      "composer": {
+        "status": "measured",
+        "commit": "28145ca91e78bcc5f6a98517f26fd8a47e754ecb",
+        "counts": {
+          "walked": 314,
+          "covered": 314,
+          "universe": 314,
+          "referenceEdges": 1350,
+          "graphEdges": 1351,
+          "truePositives": 1350,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [],
+          "wrong": [
+            "src/Composer/Autoload/AutoloadGenerator.php -> src/Composer/Autoload/ClassLoader.php"
+          ]
+        },
+        "diagnostics": {
+          "missedByKind": {},
+          "wrongByKind": {
+            "reaches a .php file": 1
+          }
+        },
+        "notes": {
+          "failed": 0
+        },
+        "seconds": 1
+      }
+    },
+    "swift": {
+      "alamofire": {
+        "status": "measured",
+        "commit": "903c53c710d1cbbac0b4b9c2527aefb791e1fee3",
+        "counts": {
+          "walked": 98,
+          "covered": 98,
+          "universe": 98,
+          "referenceEdges": 43,
+          "graphEdges": 43,
+          "truePositives": 43,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [],
+          "wrong": []
+        },
+        "diagnostics": {
+          "missedByKind": {},
+          "wrongByKind": {}
+        },
+        "notes": {
+          "targets": 2,
+          "filesOwned": 87,
+          "failed": 0,
+          "failedSample": []
+        },
+        "seconds": 17
+      },
+      "vapor": {
+        "status": "measured",
+        "commit": "cfd8f434843ac7850e2d97f46c1aa5ddb906cf1c",
+        "counts": {
+          "walked": 294,
+          "covered": 294,
+          "universe": 294,
+          "referenceEdges": 108,
+          "graphEdges": 107,
+          "truePositives": 107,
+          "graphEdgesOutsideUniverse": 0,
+          "referenceEdgesOutsideUniverse": 0
+        },
+        "samples": {
+          "missed": [
+            "Sources/Vapor/Bcrypt/Bcrypt.swift -> module:CVaporBcrypt"
+          ],
+          "wrong": []
+        },
+        "diagnostics": {
+          "missedByKind": {
+            "a module with no Swift file (a C-language target)": 1
+          },
+          "wrongByKind": {}
+        },
+        "notes": {
+          "targets": 7,
+          "filesOwned": 295,
+          "failed": 0,
+          "failedSample": []
+        },
+        "seconds": 47
+      }
+    },
+    "csharp": {},
+    "dart": {},
+    "lua": {},
+    "gdscript": {}
+  },
+  "unmeasured": {},
+  "unregistered": {
+    "csharp": "no compiler-grade reference was run",
+    "dart": "no compiler-grade reference was run",
+    "lua": "no reference exists to run",
+    "gdscript": "no reference exists to run"
+  },
+  "predictions": {
+    "P1": {
+      "claim": "C/C++ recall is at least 90%: the resolver searches the way the compiler does, and the compiler's include dirs are the ones registered",
+      "status": "held",
+      "value": 0.9965300368683583,
+      "threshold": 0.9
+    },
+    "P2": {
+      "claim": "C/C++ precision is at least 80%: a platform branch the three configurations do not enable is an include the graph counts and the reference does not",
+      "status": "held",
+      "value": 0.9969624647428943,
+      "threshold": 0.8
+    },
+    "P3": {
+      "claim": "component precision is at least 95%: a specifier either resolves to a file TypeScript also resolves it to, or not at all",
+      "status": "held",
+      "value": 1,
+      "threshold": 0.95
+    },
+    "P4": {
+      "claim": "component recall is at least 90%; the misses are the bundler aliases and .js-to-.ts mappings the JS resolver does not read",
+      "status": "missed",
+      "value": 0.7908294693456981,
+      "threshold": 0.9
+    },
+    "P5": {
+      "claim": "PHP precision is at least 95%",
+      "status": "held",
+      "value": 0.9997990353697749,
+      "threshold": 0.95
+    },
+    "P6": {
+      "claim": "PHP recall is at least 85%",
+      "status": "held",
+      "value": 1,
+      "threshold": 0.85
+    },
+    "P7": {
+      "claim": "Swift module-level precision is at least 99%",
+      "status": "held",
+      "value": 1,
+      "threshold": 0.99
+    },
+    "P8": {
+      "claim": "Swift module-level recall is at least 99%",
+      "status": "held",
+      "value": 0.9933774834437086,
+      "threshold": 0.99
+    }
+  },
+  "version": "8.82.0",
+  "generated": "2026-10-26T17:21:27.795Z"
+}

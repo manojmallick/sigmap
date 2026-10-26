@@ -79,6 +79,8 @@ export default defineConfig({
           { text: 'Strategies', link: '/guide/strategies' },
           { text: 'Languages', link: '/guide/languages' },
           { text: 'Extraction recall', link: '/guide/extraction-recall' },
+          { text: 'Call-graph accuracy', link: '/guide/callgraph-accuracy' },
+          { text: 'Import-graph accuracy', link: '/guide/import-accuracy' },
         ],
       },
       {
