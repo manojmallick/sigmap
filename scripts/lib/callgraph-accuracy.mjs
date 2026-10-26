@@ -16,6 +16,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { contains, splitLines } from './scip-edges.mjs';
 
 export const SCHEMA = 1;
 export const PROTOCOL_REL = 'benchmarks/callgraph-accuracy-protocol.json';
@@ -79,7 +80,31 @@ const bump = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
  *   scope: object, diagnostics: object, fileLevel: object, samples: object,
  * }}
  */
-export function compareRepo(graph, ref) {
+export function compareRepo(graph, ref, ctx = {}) {
+  // Is the character at (line, col) of `file` source text that the graph's own masker blanks
+  // (a string, a template literal or a comment)? null when the question cannot be asked.
+  const maskCache = new Map();
+  const maskedAt = (file, line, col) => {
+    if (!ctx.readSource || !ctx.mask) return null;
+    if (!maskCache.has(file)) {
+      const src = ctx.readSource(file);
+      maskCache.set(file, src == null ? null : { raw: splitLines(src), masked: splitLines(ctx.mask(file, src)) });
+    }
+    const m = maskCache.get(file);
+    const raw = m && m.raw[line];
+    const masked = m && m.masked[line];
+    if (raw === undefined || masked === undefined || raw === null || masked === null) return null;
+    return raw[col] !== undefined && raw[col] !== ' ' && masked[col] === ' ';
+  };
+  // Is `calleeId` declared inside a body of `callerId`? Then the graph reading the nested
+  // `def name(` header as a call to it is the likely cause of an edge the compiler lacks.
+  const declaredInside = (callerId, calleeId) => {
+    const caller = ref.nodeRanges && ref.nodeRanges.get(callerId);
+    const callee = ref.nodeRanges && ref.nodeRanges.get(calleeId);
+    if (!caller || !callee) return false;
+    return callee.defs.some(([line, col]) => caller.enclosing.some((enc) => contains(enc, line, col)));
+  };
+
   const graphFiles = new Set();
   for (const d of graph.defs.values()) graphFiles.add(d.file);
   const universe = new Set([...graphFiles].filter((f) => ref.documents.has(f)));
@@ -100,6 +125,7 @@ export function compareRepo(graph, ref) {
   // Recall side: every reference edge in U, found or not.
   let found = 0;
   const missed = [];
+  const missedBy = {};
   for (const [key, e] of refInU) {
     const c = cluster(e.callerFile);
     const hit = graphKeys.has(key);
@@ -111,7 +137,15 @@ export function compareRepo(graph, ref) {
       bump(c, 'tp'); bump(c, `tp:${e.kind}`); bump(c, `tp:${ks}`);
       if (e.kind === 'method' && e.site !== 'bare') bump(c, 'tp:method/no-bare');
     } else {
-      missed.push({ edge: `${e.callerFile}#${e.callerName} -> ${e.calleeFile}#${e.calleeName}`, kind: ks });
+      const [callerId, calleeId] = key.split('\u0000');
+      let why;
+      if (!graph.defs.has(callerId)) why = 'caller-not-a-graph-node';
+      else if (!graph.defs.has(calleeId)) why = 'callee-not-a-graph-node';
+      else if (e.sites && e.sites.length && e.sites.every(([line, col]) => maskedAt(e.callerFile, line, col) === true)) why = 'every-call-site-masked-by-graph';
+      else why = e.callerFile === e.calleeFile ? 'call-not-seen-same-file' : 'call-not-linked-cross-file';
+      if (!missedBy[ks]) missedBy[ks] = {};
+      bump(missedBy[ks], why);
+      missed.push({ edge: `${e.callerFile}#${e.callerName} -> ${e.calleeFile}#${e.calleeName}`, kind: ks, reason: why });
     }
   }
 
@@ -138,7 +172,12 @@ export function compareRepo(graph, ref) {
     if (!calleeKnown) blind.calleeUnnamed++;
     else if (!callerKnown) blind.callerUnnamed++;
     else { blind.bothNamed++; bump(c, 'judged'); }
-    spurious.push({ edge: `${e.callerId} -> ${e.calleeId}`, calleeKind: kind, reason: !calleeKnown ? 'callee-not-in-index' : !callerKnown ? 'caller-not-in-index' : 'both-in-index' });
+    const nested = calleeKnown && callerKnown && declaredInside(e.callerId, e.calleeId);
+    spurious.push({
+      edge: `${e.callerId} -> ${e.calleeId}`,
+      calleeKind: kind,
+      reason: !calleeKnown ? 'callee-not-in-index' : !callerKnown ? 'caller-not-in-index' : nested ? 'callee-declared-inside-caller' : 'both-in-index',
+    });
   }
 
   // Scope-inclusive recall: every reference edge between two indexed files, walked or not.
@@ -173,7 +212,7 @@ export function compareRepo(graph, ref) {
       referenceEdgesOutsideU: { callerNotWalked: outsideCaller, calleeNotWalked: outsideCallee },
       scopeInclusiveRecall: refAll.length ? found / refAll.length : null,
     },
-    diagnostics: { ...ref.counts, wrongEdges: spurious.length, wrongEdgesByReason: byReason },
+    diagnostics: { ...ref.counts, wrongEdges: spurious.length, wrongEdgesByReason: byReason, missedByReason: missedBy },
     fileLevel: { referencePairs: refPairs.size, graphPairs: graphPairs.size, found: pairsFound },
     samples: {
       missed: missed.sort((a, b) => a.edge.localeCompare(b.edge)).slice(0, SAMPLE_CAP),
@@ -302,6 +341,35 @@ export function tableOf(clusterMaps, protocol) {
   return { rows, sites, receiverOnly: cell('recall:method/no-bare'), edgesPooled: clusters.length };
 }
 
+/** Add two-level count objects ({ outer: { inner: n } }) key by key. */
+export function sumTwoLevel(list) {
+  const out = {};
+  for (const o of list) {
+    for (const [k, inner] of Object.entries(o || {})) {
+      if (!out[k]) out[k] = {};
+      for (const [r, n] of Object.entries(inner)) out[k][r] = (out[k][r] || 0) + n;
+    }
+  }
+  return out;
+}
+
+/** One repository's headline counts and ratios, from its per-file tallies. */
+export function summaryOf(clusterMap) {
+  const t = {};
+  for (const c of clusterMap.values()) for (const [k, v] of Object.entries(c)) t[k] = (t[k] || 0) + v;
+  const ratio = (a, b) => (b ? a / b : null);
+  return {
+    referenceEdges: t.ref || 0,
+    graphEdges: t.graph || 0,
+    found: t.tp || 0,
+    recall: ratio(t.tp || 0, t.ref || 0),
+    precision: ratio(t.tp || 0, t.graph || 0),
+    judgeablePrecision: ratio(t.tp || 0, t.judged || 0),
+    functionRecall: ratio(t['tp:function'] || 0, t['ref:function'] || 0),
+    receiverOnlyMethodRecall: ratio(t['tp:method/no-bare'] || 0, t['ref:method/no-bare'] || 0),
+  };
+}
+
 /** Add the integer counts of several per-repository objects, key by key. */
 export function sumCounts(list) {
   const out = {};
@@ -392,6 +460,19 @@ export function formatGroup(name, group) {
   for (const r of group.table.sites) {
     if (!r.recall.n) continue;
     lines.push(`    ${r.label.padEnd(20)}${cellText(r.recall)}${String(r.recall.n).padStart(7)}`);
+  }
+  const d = group.diagnostics;
+  if (d && d.missedByReason) {
+    lines.push('  why reference edges were missed (graph-side reason, by kind/site)');
+    for (const ks of KIND_SITES) {
+      const m = d.missedByReason[ks];
+      if (!m) continue;
+      const total = Object.values(m).reduce((a, b) => a + b, 0);
+      lines.push(`    ${ks.padEnd(22)}${String(total).padStart(6)}  ${Object.entries(m).sort((a, b) => b[1] - a[1]).map(([r, n]) => `${r} ${n}`).join(' | ')}`);
+    }
+  }
+  if (d && d.wrongEdgesByReason) {
+    lines.push(`  graph edges the reference lacks, by reason: ${Object.entries(d.wrongEdgesByReason).sort((a, b) => b[1] - a[1]).map(([r, n]) => `${r} ${n}`).join(' | ') || 'none'}`);
   }
   const t = group.threshold;
   lines.push(`  receiver-only method recall ${pct(t.recall)} (threshold ${pct(t.threshold)}): ${t.status}`);

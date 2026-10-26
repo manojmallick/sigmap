@@ -69,8 +69,17 @@ const str = (field, s) => ld(field, Buffer.from(s, 'utf8'));
 const packed = (field, nums) => ld(field, Buffer.concat(nums.map(varint)));
 const none = Buffer.alloc(0);
 
-function occurrence({ range, symbol, roles = 0, enclosing }) {
-  return Buffer.concat([packed(1, range), str(2, symbol), roles ? vi(3, roles) : none, enclosing ? packed(7, enclosing) : none]);
+function occurrence({ range, symbol, roles = 0, enclosing, typed }) {
+  // `typed` writes the ranges the way scip-go does since the schema deprecated the packed form
+  const msg = (r, single, multi) => (r.length === 3
+    ? ld(single, Buffer.concat(r.map((n, i) => vi(i + 1, n))))
+    : ld(multi, Buffer.concat(r.map((n, i) => vi(i + 1, n)))));
+  const ranges = typed === 'only'
+    ? [msg(range, 8, 9), enclosing ? msg(enclosing, 10, 11) : none]
+    : typed === 'both-disagree'
+      ? [packed(1, [9, 9, 9]), msg(range, 8, 9), enclosing ? packed(7, [9, 9, 9, 9]) : none, enclosing ? msg(enclosing, 10, 11) : none]
+      : [packed(1, range), enclosing ? packed(7, enclosing) : none];
+  return Buffer.concat([...ranges, str(2, symbol), roles ? vi(3, roles) : none]);
 }
 function information({ symbol, kind }) {
   return Buffer.concat([str(1, symbol), kind ? vi(5, kind) : none]);
@@ -90,7 +99,7 @@ const S = (file, desc) => `scip-typescript npm . . \`${file}\`/${desc}`;
  * name first appears on its line; a reference where the `text` appears for the `nth` time.
  *   files: { 'a.ts': { lines: [...], defs: [{ sym, line, name, enc: [l0,c0,l1,c1], kind }], refs: [{ sym, line, text, nth }] } }
  */
-function build(files, { encoding } = {}) {
+function build(files, { encoding, typed } = {}) {
   const documents = [];
   const sources = {};
   for (const [rel, f] of Object.entries(files)) {
@@ -108,7 +117,7 @@ function build(files, { encoding } = {}) {
       if (d.kind) symbols.push({ symbol: d.sym, kind: d.kind });
     }
     for (const r of f.refs || []) occurrences.push({ range: place(r.line, r.text, r.nth), symbol: r.sym });
-    documents.push({ rel, occurrences, symbols, encoding });
+    documents.push({ rel, occurrences: occurrences.map((o) => ({ ...o, typed })), symbols, encoding });
   }
   return { buf: scipIndex(documents), read: (rel) => (rel in sources ? sources[rel] : null) };
 }
@@ -392,6 +401,23 @@ function build(files, { encoding } = {}) {
     assert.strictEqual(ref.counts.rangeMismatch, 0);
   });
 
+  await test('typed ranges (scip-go) read the same as packed ones, and win when both are present', () => {
+    const spec = {
+      'a.go': {
+        lines: ['func helper() {}', 'func use() {', '\thelper()', '}'],
+        defs: [
+          { sym: 'scip-go gomod m . `m`/helper().', line: 0, name: 'helper', enc: [0, 0, 0, 16] },
+          { sym: 'scip-go gomod m . `m`/use().', line: 1, name: 'use', enc: [1, 0, 3, 1] },
+        ],
+        refs: [{ sym: 'scip-go gomod m . `m`/helper().', line: 2, text: 'helper' }],
+      },
+    };
+    const packedList = listing(derive(spec));
+    assert.deepStrictEqual(packedList, ['function/bare a.go#use->a.go#helper']);
+    assert.deepStrictEqual(listing(derive(spec, { typed: 'only' })), packedList, 'single- and multi-line typed ranges');
+    assert.deepStrictEqual(listing(derive(spec, { typed: 'both-disagree' })), packedList, 'the typed range wins over a conflicting packed one');
+  });
+
   await test('a range that does not hold an identifier is counted, not guessed', () => {
     const buf = scipIndex([{
       rel: 'a.ts',
@@ -419,7 +445,7 @@ function build(files, { encoding } = {}) {
     for (const [a, b, kind, site] of list) {
       const [callerFile, callerName] = a.split('#');
       const [calleeFile, calleeName] = b.split('#');
-      map.set(`${a}\u0000${b}`, { callerFile, callerName, calleeFile, calleeName, kind, site });
+      map.set(`${a}\u0000${b}`, { callerFile, callerName, calleeFile, calleeName, kind, site, sites: [], siteCount: 1 });
     }
     return { edges: map, nodeKinds: new Map(), callerNodes: new Set(), documents: new Set(['a.py', 'b.py', 'c.py']), counts: {}, ...extra };
   };
@@ -508,6 +534,56 @@ function build(files, { encoding } = {}) {
     assert.strictEqual(judged.precision.value, 1 / 2);
     assert.strictEqual(judged.recall, null, 'a diagnostic row has no recall');
     assert.deepStrictEqual(r.diagnostics.wrongEdgesByReason, { 'both-in-index': 1, 'callee-not-in-index': 1, 'caller-not-in-index': 1 });
+  });
+
+  await test('a missed edge is attributed: no node for the caller or callee, a call the graph\'s masker hides, or a call it did not see', () => {
+    const graph = graphOf([], ['a.py#f', 'a.py#g', 'b.py#h']);          // no caller-less/callee-less nodes: a.py#nocaller and b.py#nocallee are absent
+    const edge = (a, b, sites) => {
+      const [callerFile, callerName] = a.split('#');
+      const [calleeFile, calleeName] = b.split('#');
+      return [`${a}\u0000${b}`, { callerFile, callerName, calleeFile, calleeName, kind: 'function', site: 'bare', sites, siteCount: sites.length }];
+    };
+    const ref = refOf([], {
+      edges: new Map([
+        edge('a.py#nocaller', 'a.py#g', [[0, 0]]),
+        edge('a.py#f', 'b.py#nocallee', [[0, 0]]),
+        edge('a.py#f', 'a.py#g', [[1, 4]]),       // site 1:4 is inside a template literal in the source below
+        edge('a.py#f', 'b.py#h', [[0, 0]]),       // cross-file, visible
+        edge('a.py#g', 'a.py#f', [[0, 0], [1, 4]]), // same file, one visible and one hidden site: not "every site masked"
+      ]),
+      documents: new Set(['a.py', 'b.py']),
+    });
+    const sources = { 'a.py': 'x\n  `${g()}`', 'b.py': 'g()\n  `${g()}`' };
+    // a masker that blanks the template literal, as the graph's own does
+    const mask = (file, src) => src.replace(/`[^`]*`/g, (m) => m.replace(/[^\n]/g, ' '));
+    const r = lib.compareRepo(graph, ref, { readSource: (f) => sources[f], mask });
+    // the graph in this test has defs for a.py#f, a.py#g and b.py#h only
+    assert.deepStrictEqual(r.diagnostics.missedByReason, {
+      'function/bare': {
+        'caller-not-a-graph-node': 1,
+        'callee-not-a-graph-node': 1,
+        'every-call-site-masked-by-graph': 1,
+        'call-not-linked-cross-file': 1,
+        'call-not-seen-same-file': 1,
+      },
+    });
+    const noCtx = lib.compareRepo(graph, ref);
+    assert.strictEqual(noCtx.diagnostics.missedByReason['function/bare']['every-call-site-masked-by-graph'], undefined, 'without a masker the question is not asked');
+  });
+
+  await test('a wrong edge whose callee is declared inside its caller is told apart from one that is not', () => {
+    const graph = graphOf([['a.py#outer', 'a.py#decorator'], ['a.py#outer', 'a.py#elsewhere']], ['a.py#outer', 'a.py#decorator', 'a.py#elsewhere']);
+    const ref = refOf([], {
+      nodeKinds: new Map([['a.py#outer', 'function'], ['a.py#decorator', 'function'], ['a.py#elsewhere', 'function']]),
+      callerNodes: new Set(['a.py#outer', 'a.py#decorator', 'a.py#elsewhere']),
+      nodeRanges: new Map([
+        ['a.py#outer', { defs: [[1, 4]], enclosing: [[1, 0, 9, 0]] }],
+        ['a.py#decorator', { defs: [[3, 8]], enclosing: [[3, 4, 6, 0]] }],      // inside outer's range
+        ['a.py#elsewhere', { defs: [[20, 4]], enclosing: [[20, 0, 22, 0]] }],   // outside it
+      ]),
+    });
+    const r = lib.compareRepo(graph, ref);
+    assert.deepStrictEqual(r.diagnostics.wrongEdgesByReason, { 'callee-declared-inside-caller': 1, 'both-in-index': 1 });
   });
 
   await test('the file level collapses to undirected pairs and ignores same-file edges', () => {

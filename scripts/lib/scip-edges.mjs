@@ -213,15 +213,22 @@ export function readScipIndex(buf) {
         if (symbol && kind) kinds.set(symbol, kind);
       } else if (df === 2) {
         let range = null;
+        let typedRange = null;
         let symbol = '';
         let roles = 0;
         let enclosing = null;
+        let typedEnclosing = null;
         for (const [of, ov] of fields(dv)) {
           if (of === 1) range = Buffer.isBuffer(ov) ? packedVarints(ov) : [ov];
           else if (of === 2) symbol = ov.toString('utf8');
           else if (of === 3) roles = ov;
           else if (of === 7) enclosing = Buffer.isBuffer(ov) ? packedVarints(ov) : [ov];
+          else if (of === 8 || of === 9) typedRange = typed(ov, of === 9);
+          else if (of === 10 || of === 11) typedEnclosing = typed(ov, of === 11);
         }
+        // The typed forms take precedence over the deprecated packed ones (scip.proto, Occurrence).
+        range = typedRange || range;
+        enclosing = typedEnclosing || enclosing;
         if (range && symbol) occurrences.push({ range, symbol, roles, enclosing });
       }
     }
@@ -244,6 +251,17 @@ export function readScipIndex(buf) {
     documents.set(rel.replace(/\\/g, '/'), { encoding, defs, refs });
   }
   return { tool, documents };
+}
+
+/**
+ * A typed range message: SingleLineRange { line, start_character, end_character } or
+ * MultiLineRange { start_line, start_character, end_line, end_character }. Written by scip-go
+ * since the schema deprecated the packed `range`; every field is a varint and a missing one is 0.
+ */
+function typed(buf, multi) {
+  const v = [0, 0, 0, 0];
+  for (const [f, x] of fields(buf)) if (f >= 1 && f <= (multi ? 4 : 3)) v[f - 1] = x;
+  return multi ? v : v.slice(0, 3);
 }
 
 /** `[line, from, to]` and `[line, from, line2, to]` are both valid SCIP ranges. */
@@ -311,9 +329,11 @@ export function classifySite(line, from, to) {
 // ── Reference edges ──────────────────────────────────────────────────────────
 
 const CALLER_KINDS = new Set(['function', 'method', 'constructor']);
+/** Call sites kept per edge, for the diagnostics that ask whether every one is invisible to the graph. */
+const MAX_SITES = 8;
 
 /** Does the range `enc` ([l0, c0, l1, c1]) contain the position (line, col)? */
-function contains(enc, line, col) {
+export function contains(enc, line, col) {
   if (line < enc[0] || line > enc[2]) return false;
   if (line === enc[0] && col < enc[1]) return false;
   if (line === enc[2] && col > enc[3]) return false;
@@ -345,9 +365,10 @@ function symbolKey(rel, symbol) {
  * @param {{ documents: Map<string, object> }} index  from readScipIndex
  * @param {(rel: string) => string|null} readSource  the text of a document, or null
  * @returns {{
- *   edges: Map<string, { callerFile: string, callerName: string, calleeFile: string, calleeName: string, kind: string, site: string }>,
+ *   edges: Map<string, { callerFile, callerName, calleeFile, calleeName, kind, site, sites: Array<[line, col]>, siteCount }>,
  *   nodeKinds: Map<string, string>,   every node the index defines as a callable or class, by kind
  *   callerNodes: Set<string>,         the nodes that have a body range, so can be a caller
+ *   nodeRanges: Map<string, object>,  where each node is defined and the body ranges it has, for the nesting diagnostic
  *   documents: Set<string>,
  *   counts: { edges: number, nonCall: number, topLevel: number, external: number, selfEdges: number, sourceMissing: number, rangeMismatch: number },
  * }}
@@ -369,6 +390,7 @@ export function deriveReferenceEdges(index, readSource) {
   const callersByDoc = new Map();
   const nodeKinds = new Map();
   const callerNodes = new Set();
+  const nodeRanges = new Map(); // node id -> { defs: [[line, col]], enclosing: [range] }, in index units
   const nodeRank = { function: 0, method: 1, constructor: 2, class: 3 };
   for (const rel of rels) {
     const doc = index.documents.get(rel);
@@ -385,6 +407,9 @@ export function deriveReferenceEdges(index, readSource) {
       const kind = d.cls === 'class' ? 'constructor' : d.cls;
       const id = `${rel}#${name}`;
       if (!nodeKinds.has(id) || nodeRank[kind] < nodeRank[nodeKinds.get(id)]) nodeKinds.set(id, kind);
+      if (!nodeRanges.has(id)) nodeRanges.set(id, { defs: [], enclosing: [] });
+      nodeRanges.get(id).defs.push([d.line, d.c0]);
+      if (CALLER_KINDS.has(d.cls) && d.enclosing) nodeRanges.get(id).enclosing.push(d.enclosing);
       if (CALLER_KINDS.has(d.cls) && d.enclosing) {
         if (!callersByDoc.has(rel)) callersByDoc.set(rel, []);
         callersByDoc.get(rel).push({ name, enclosing: d.enclosing });
@@ -436,11 +461,13 @@ export function deriveReferenceEdges(index, readSource) {
       const known = edges.get(key);
       if (known) {
         if (SITE_ORDER.indexOf(siteClass) < SITE_ORDER.indexOf(known.site)) known.site = siteClass;
+        if (known.sites.length < MAX_SITES) known.sites.push([r.line, from]);
+        known.siteCount++;
         continue;
       }
-      edges.set(key, { callerFile: rel, callerName: caller.name, calleeFile: target.rel, calleeName: target.name, kind, site: siteClass });
+      edges.set(key, { callerFile: rel, callerName: caller.name, calleeFile: target.rel, calleeName: target.name, kind, site: siteClass, sites: [[r.line, from]], siteCount: 1 });
     }
   }
   counts.edges = edges.size;
-  return { edges, nodeKinds, callerNodes, documents: new Set(rels), counts };
+  return { edges, nodeKinds, callerNodes, nodeRanges, documents: new Set(rels), counts };
 }

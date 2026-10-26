@@ -128,3 +128,9 @@ Receiver-only method recall 0.0%, so the section 5 threshold said a spike is war
 
 4. Judgeable precision (section 4). In the first run 1040 of the 1365 graph edges had a callee the index cannot name. The one inspected (`_parse -> freeze` in zod's `types.ts`) is a real call, to a function-local constant. Quoting 6.0% alone would have blamed the graph for the reference's blind spot.
 5. Section 7 now states that blind spot.
+6. Reasons for each missed reference edge, computed by the harness from the graph's own nodes and masker: the graph has no node for the caller, no node for the callee, every call site is one its masker hides (a string, a template literal, a comment), or both nodes exist and the call was not seen (same file) or not linked (another file). And a reason for a graph edge the reference lacks that is not the blind spot: the callee is declared inside the caller, which is how the graph reads a nested `def name(` as a call. These explain the figures; they do not change them.
+7. A per-repository summary line (edges, recall, precision) in the saved report, so each pooled figure can be traced to the repository that produced it.
+
+**Operational, before the first wave-2 run:**
+
+8. The SCIP reader accepts the typed range messages (`single_line_range`, `multi_line_range` and their enclosing forms, fields 8 to 11) and prefers them over the deprecated packed `range`, as the schema asks of consumers. scip-go v0.2.9 writes only the typed form; scip-typescript 0.5.2 and scip-python 0.6.8 still write the packed one, so no wave-1 figure depends on this.

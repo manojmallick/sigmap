@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { readScipIndex, deriveReferenceEdges } from './lib/scip-edges.mjs';
 import {
   SCHEMA, PROTOCOL_REL, loadProtocol, protocolState, compareRepo, tableOf, thresholdVerdict, checkPredictions,
-  formatGroup, sumCounts,
+  formatGroup, sumCounts, sumTwoLevel, summaryOf,
 } from './lib/callgraph-accuracy.mjs';
 import { stamp } from './lib/report-stamp.mjs';
 
@@ -150,6 +150,24 @@ function indexTree({ indexer, group, repo, tree, scip, protocol, work, reindex }
 
 // ── One repository ───────────────────────────────────────────────────────────
 
+/** What `compareRepo` needs to ask whether the graph's own masker hides a call site. */
+function graphContext(tree) {
+  const { maskJs, maskPy, maskRust } = require(path.join(ROOT, 'src/graph/call-graph.js'));
+  return {
+    readSource: (rel) => {
+      if (rel.split('/').includes('..') || path.isAbsolute(rel)) return null;
+      try { return fs.readFileSync(path.join(tree, rel), 'utf8'); } catch { return null; }
+    },
+    // The same choice call-graph.js's maskFor makes, which is not exported.
+    mask: (rel, src) => {
+      const ext = path.extname(rel).toLowerCase();
+      if (ext === '.py' || ext === '.pyi') return maskPy(src);
+      if (ext === '.rs') return maskRust(src);
+      return maskJs(src, { js: ['.js', '.mjs', '.cjs', '.jsx'].includes(ext) });
+    },
+  };
+}
+
 function measureRepo(group, repo, ctx) {
   const { protocol, reposDir, work, indexersDir } = ctx;
   const unmeasured = (reason) => ({ status: 'unmeasured', commit: repo.commit, reason });
@@ -179,11 +197,12 @@ function measureRepo(group, repo, ctx) {
 
   const { buildCallGraph } = require(path.join(ROOT, 'src/graph/call-graph.js'));
   const graph = buildCallGraph(tree);
-  const result = compareRepo(graph, ref);
+  const result = compareRepo(graph, ref, graphContext(tree));
   return {
     status: 'measured',
     commit: repo.commit,
     indexer: index.tool,
+    summary: summaryOf(result.clusters),
     scope: result.scope,
     diagnostics: result.diagnostics,
     fileLevel: result.fileLevel,
@@ -210,7 +229,11 @@ function poolGroup(name, measured, protocol) {
     precision: fl.graphPairs ? fl.found / fl.graphPairs : null,
     recall: fl.referencePairs ? fl.found / fl.referencePairs : null,
   };
-  const diagnostics = sumNested(measured, (m) => ({ ...m.diagnostics, ...m.diagnostics.wrongEdgesByReason, wrongEdgesByReason: undefined }));
+  const diagnostics = {
+    ...sumCounts(measured.map((m) => m.diagnostics)),
+    wrongEdgesByReason: sumCounts(measured.map((m) => m.diagnostics.wrongEdgesByReason)),
+    missedByReason: sumTwoLevel(measured.map((m) => m.diagnostics.missedByReason)),
+  };
   const threshold = thresholdVerdict(table, protocol);
   return { repos: measured.map((m) => m.name), table, scope, fileLevel, diagnostics, threshold };
 }
@@ -225,7 +248,7 @@ function devRun(tree, scipFile, protocol) {
     try { return fs.readFileSync(path.join(tree, rel), 'utf8'); } catch { return null; }
   });
   const { buildCallGraph } = require(path.join(ROOT, 'src/graph/call-graph.js'));
-  const result = compareRepo(buildCallGraph(tree), ref);
+  const result = compareRepo(buildCallGraph(tree), ref, graphContext(tree));
   const group = poolGroup('dev', [{ name: path.basename(tree), ...result }], protocol);
   console.log(formatGroup('dev (not a registered run)', group).join('\n'));
   console.log(`\nreference counts: ${JSON.stringify(ref.counts)}`);
