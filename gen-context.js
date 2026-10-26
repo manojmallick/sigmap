@@ -23886,13 +23886,14 @@ __factories["./src/graph/import-resolvers"] = function(module, exports) {
     const EXTS = new Set(['.dart']);
 
     /** package name -> lib directory, for every pubspec.yaml above any file of the set. */
-    function packages(fileSet, cwd) {
+    function packages(fileSet, cwd, ctx) {
       return perBuild(fileSet, 'dart:packages', () => {
         const roots = new Set();
         const seen = new Set();
         for (const k of fileSet) {
           if (!k.endsWith('.dart')) continue;
-          for (const a of ancestorDirs(path.dirname(k), cwd)) {
+          // a key is lowercased; the directories to look in are spelled as they are on disk
+          for (const a of ancestorDirs(path.dirname(realPathOf(ctx, k)), cwd)) {
             if (seen.has(a)) break;       // everything above it was already visited
             seen.add(a);
             if (dirHas(a, 'pubspec.yaml')) roots.add(a);
@@ -23911,7 +23912,7 @@ __factories["./src/graph/import-resolvers"] = function(module, exports) {
     const DIRECTIVE = /^[ \t]*(import|export|part[ \t]+of|part)[ \t]+((?:'[^'\n]*'|"[^"\n]*")[^;]*);/gm;
     const URI = /(?:'([^'\n]*)'|"([^"\n]*)")/g;
 
-    function extract(filePath, content, fileSet, cwd) {
+    function extract(filePath, content, fileSet, cwd, ctx) {
       const text = stripComments(content);
       const dir = path.dirname(filePath);
       const self = graphKey(filePath);
@@ -23931,7 +23932,7 @@ __factories["./src/graph/import-resolvers"] = function(module, exports) {
             const rest = uri.slice('package:'.length);
             const slash = rest.indexOf('/');
             if (slash < 0) continue;
-            const lib = packages(fileSet, cwd).get(rest.slice(0, slash));
+            const lib = packages(fileSet, cwd, ctx).get(rest.slice(0, slash));
             if (lib) k = inSet(fileSet, path.join(lib, rest.slice(slash + 1)));
           } else if (!/^[a-z][a-z0-9+.-]*:/i.test(uri)) {     // dart:, http:, ... are not files of the set
             k = inSet(fileSet, path.resolve(dir, uri));

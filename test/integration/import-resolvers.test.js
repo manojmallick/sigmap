@@ -379,6 +379,65 @@ const PACKAGE = [
   '    .target(name: "Net", path: "Libs/Net"),', '    .testTarget(name: "CoreTests", dependencies: ["Core"]),', '])',
 ].join('\n');
 
+// ── a case-sensitive filesystem ─────────────────────────────────────────────
+
+/**
+ * Run `fn` with the fs reads the resolvers use behaving as on a case-sensitive filesystem
+ * (Linux), even on a case-insensitive one (macOS): a path exists only if every component is
+ * spelled exactly as its parent lists it. Graph keys are lowercased, so a resolver that builds
+ * a path to read from a KEY, not from the file's real path, finds nothing on Linux and
+ * everything on macOS; this makes the mistake visible on both.
+ */
+function onCaseSensitiveFs(fn) {
+  const listing = new Map();
+  const names = (dir) => {
+    if (!listing.has(dir)) { let n = []; try { n = origReaddir(dir); } catch (_) { n = []; } listing.set(dir, new Set(n)); }
+    return listing.get(dir);
+  };
+  const exact = (p) => {
+    let abs = path.resolve(String(p));
+    for (;;) {
+      const parent = path.dirname(abs);
+      if (parent === abs) return true;
+      if (!names(parent).has(path.basename(abs))) return false;
+      abs = parent;
+    }
+  };
+  const origReaddir = fs.readdirSync.bind(fs);
+  const saved = {};
+  for (const name of ['existsSync', 'readFileSync', 'readdirSync', 'statSync', 'lstatSync']) saved[name] = fs[name];
+  fs.existsSync = (p, ...r) => (typeof p === 'string' && !exact(p) ? false : saved.existsSync(p, ...r));
+  for (const name of ['readFileSync', 'readdirSync', 'statSync', 'lstatSync']) {
+    fs[name] = (p, ...r) => {
+      if (typeof p === 'string' && !exact(p)) throw Object.assign(new Error(`ENOENT: no such file or directory, ${name.replace('Sync', '')} '${p}'`), { code: 'ENOENT' });
+      return saved[name](p, ...r);
+    };
+  }
+  try { return fn(); } finally { Object.assign(fs, saved); }
+}
+
+test('the resolvers that read project files find them by their real spelling: Dart, PHP, C# and GDScript, with capitals in the directory names', () => {
+  const root = repo({
+    // Dart: a pubspec.yaml names the package, under directories with capitals
+    'pubspec.yaml': 'name: app_pkg\n', 'Packages/Other/pubspec.yaml': 'name: other_pkg\n', 'Packages/Other/lib/O.dart': '',
+    'App/A.dart': "import 'package:app_pkg/C.dart';\nimport 'package:other_pkg/O.dart';\n", 'lib/C.dart': '',
+    // PHP: composer.json maps a namespace to a directory with a capital
+    'composer.json': JSON.stringify({ autoload: { 'psr-4': { 'App\\': 'Src/' } } }), 'Src/Str.php': '<?php\nnamespace App;\nclass Str {}\n',
+    'Src/Main.php': '<?php\nnamespace App;\nuse App\\Str;\nclass Main {}\n',
+    // C#: the nearest .csproj bounds a project's global usings
+    'Proj/App.csproj': '<Project/>', 'Proj/GlobalUsings.cs': 'global using Lib.Events;\n', 'Proj/Use.cs': 'namespace App;\nclass Use { LogEvent e; }\n',
+    'Events/LogEvent.cs': 'namespace Lib.Events;\npublic class LogEvent {}\n',
+    // GDScript: res:// is the directory of the nearest project.godot
+    'Game/project.godot': '', 'Game/Scripts/Player.gd': 'extends "res://Scripts/Base.gd"\n', 'Game/Scripts/Base.gd': '',
+  });
+  onCaseSensitiveFs(() => {
+    assert.deepStrictEqual(importsOf(root, 'App/A.dart'), ['Packages/Other/lib/O.dart', 'lib/C.dart'], 'Dart: both pubspec.yaml files are found');
+    assert.deepStrictEqual(importsOf(root, 'Src/Main.php'), ['Src/Str.php'], 'PHP: composer.json is found');
+    assert.deepStrictEqual(importsOf(root, 'Proj/Use.cs'), ['Events/LogEvent.cs'], 'C#: the .csproj is found');
+    assert.deepStrictEqual(importsOf(root, 'Game/Scripts/Player.gd'), ['Game/Scripts/Base.gd'], 'GDScript: project.godot is found');
+  });
+});
+
 test('Swift: a file\'s module and the files in other targets that import it; no file-level edge is drawn', () => {
   const { moduleImpact } = require('../../src/graph/swift-modules');
   const root = repo({
