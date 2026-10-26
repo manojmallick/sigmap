@@ -73,6 +73,7 @@
     "validate:xrepo": "node scripts/run-xrepo-gate.mjs --gate --no-regress",
     "validate:extraction-recall": "node scripts/run-extraction-recall.mjs --gate",
     "benchmark:callgraph-accuracy": "node scripts/run-callgraph-accuracy.mjs",
+    "benchmark:import-accuracy": "node scripts/run-import-accuracy.mjs",
     "benchmark:mined-expansions": "node scripts/run-mined-expansions-benchmark.mjs --save",
     "benchmark:signals": "node scripts/run-signal-verdicts.mjs --save",
     "benchmark:body-words-sweep": "node scripts/run-body-words-sweep.mjs --save",
