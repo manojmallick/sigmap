@@ -1,0 +1,4174 @@
+{
+  "schema": 1,
+  "benchmark": "callgraph-accuracy",
+  "method": "scripts/run-callgraph-accuracy.mjs",
+  "protocol": {
+    "file": "benchmarks/callgraph-accuracy-protocol.json",
+    "sha256": "85419889a189af3eb6767472b4dd67e5a66f596c951f0daacf18a27b86f87546",
+    "commit": "85268ae92c9f4ebbe1bb43c6985e20e7a8721bb3",
+    "committed": true
+  },
+  "sigmap": {
+    "commit": "5ec27b7cc70dbf6c5ad54a9d7c705f381eb1a41a",
+    "dirty": false
+  },
+  "environment": {
+    "node": "v25.6.0",
+    "platform": "darwin-arm64",
+    "loadAverage": [
+      3.59,
+      4.26,
+      4.23
+    ],
+    "go": {
+      "go": "1.27.3",
+      "scipGo": "0.2.9"
+    },
+    "java": {
+      "jdk": "21.0.13+9",
+      "scipJava": "0.12.3",
+      "maven": "Apache Maven 3.9.16 (2bdd9fddda4b155ebf8000e807eb73fd829a51d5)"
+    }
+  },
+  "groups": {
+    "typescript": {
+      "repos": [
+        "zod",
+        "excalidraw"
+      ],
+      "table": {
+        "rows": [
+          {
+            "label": "all edges",
+            "recall": {
+              "value": 0.05570652173913043,
+              "lo": 0.03167414941054303,
+              "hi": 0.09187697557471262,
+              "n": 1472,
+              "small": false
+            },
+            "precision": {
+              "value": 0.060073260073260075,
+              "lo": 0.027760419190428574,
+              "hi": 0.10850699526736925,
+              "n": 1365,
+              "small": false
+            },
+            "f1": 0.057807543179414875
+          },
+          {
+            "label": "judgeable edges",
+            "recall": null,
+            "precision": {
+              "value": 0.9425287356321839,
+              "lo": 0.8627389705882353,
+              "hi": 1,
+              "n": 87,
+              "small": true
+            },
+            "f1": null
+          },
+          {
+            "label": "function",
+            "recall": {
+              "value": 0.13015873015873017,
+              "lo": 0.07977139819245083,
+              "hi": 0.22076177811550143,
+              "n": 630,
+              "small": false
+            },
+            "precision": {
+              "value": 0.2578616352201258,
+              "lo": 0.08438774795595007,
+              "hi": 0.8733446601941747,
+              "n": 318,
+              "small": false
+            },
+            "f1": 0.1729957805907173
+          },
+          {
+            "label": "method",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 664,
+              "small": false
+            },
+            "precision": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 7,
+              "small": true
+            },
+            "f1": 0
+          },
+          {
+            "label": "constructor",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 178,
+              "small": false
+            },
+            "precision": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "f1": 0
+          },
+          {
+            "label": "unknown callee",
+            "recall": null,
+            "precision": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 1040,
+              "small": false
+            },
+            "f1": null
+          }
+        ],
+        "sites": [
+          {
+            "label": "function/bare",
+            "recall": {
+              "value": 0.26537216828478966,
+              "lo": 0.1578912186884323,
+              "hi": 0.37501096491228064,
+              "n": 309,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "function/qualified",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 321,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/bare",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/self",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 235,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/receiver",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 429,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/bare",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 153,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/qualified",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 25,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          }
+        ],
+        "receiverOnly": {
+          "value": 0,
+          "lo": 0,
+          "hi": 0,
+          "n": 664,
+          "small": false
+        }
+      },
+      "scope": {
+        "graphFiles": 609,
+        "indexedFiles": 1029,
+        "universeFiles": 578,
+        "graphEdges": 1374,
+        "graphEdgesInU": 1365,
+        "referenceEdges": 1551,
+        "referenceEdgesInU": 1472,
+        "truePositives": 82,
+        "scopeInclusiveRecall": 0.052869116698903935,
+        "referenceEdgesOutsideU": {
+          "callerNotWalked": 65,
+          "calleeNotWalked": 14
+        }
+      },
+      "fileLevel": {
+        "referencePairs": 125,
+        "graphPairs": 297,
+        "found": 2,
+        "precision": 0.006734006734006734,
+        "recall": 0.016
+      },
+      "diagnostics": {
+        "edges": 1551,
+        "nonCall": 29041,
+        "topLevel": 18390,
+        "external": 34707,
+        "selfEdges": 63,
+        "sourceMissing": 0,
+        "rangeMismatch": 16,
+        "wrongEdges": 1283,
+        "wrongEdgesByReason": {
+          "callee-not-in-index": 1040,
+          "callee-declared-inside-caller": 1,
+          "both-in-index": 4,
+          "caller-not-in-index": 238
+        },
+        "missedByReason": {
+          "function/bare": {
+            "every-call-site-masked-by-graph": 5,
+            "caller-not-a-graph-node": 82,
+            "call-not-linked-cross-file": 30,
+            "call-not-seen-same-file": 5,
+            "callee-not-a-graph-node": 105
+          },
+          "constructor/bare": {
+            "caller-not-a-graph-node": 90,
+            "callee-not-a-graph-node": 63
+          },
+          "method/receiver": {
+            "caller-not-a-graph-node": 47,
+            "call-not-seen-same-file": 100,
+            "call-not-linked-cross-file": 203,
+            "callee-not-a-graph-node": 79
+          },
+          "method/self": {
+            "call-not-seen-same-file": 205,
+            "caller-not-a-graph-node": 22,
+            "callee-not-a-graph-node": 1,
+            "call-not-linked-cross-file": 7
+          },
+          "function/qualified": {
+            "call-not-linked-cross-file": 60,
+            "callee-not-a-graph-node": 144,
+            "caller-not-a-graph-node": 117
+          },
+          "constructor/qualified": {
+            "caller-not-a-graph-node": 7,
+            "callee-not-a-graph-node": 18
+          }
+        }
+      },
+      "threshold": {
+        "status": "spike-warranted",
+        "recall": 0,
+        "lo": 0,
+        "hi": 0,
+        "referenceEdges": 664,
+        "threshold": 0.7
+      }
+    },
+    "javascript": {
+      "repos": [
+        "express",
+        "fastify"
+      ],
+      "table": {
+        "rows": [
+          {
+            "label": "all edges",
+            "recall": {
+              "value": 0.9571428571428572,
+              "lo": 0.8823529411764706,
+              "hi": 0.9940837104072398,
+              "n": 140,
+              "small": false
+            },
+            "precision": {
+              "value": 0.4511784511784512,
+              "lo": 0.31698796604827095,
+              "hi": 0.6013699235885098,
+              "n": 297,
+              "small": false
+            },
+            "f1": 0.6132723112128147
+          },
+          {
+            "label": "judgeable edges",
+            "recall": null,
+            "precision": {
+              "value": 0.7403314917127072,
+              "lo": 0.6229382736701239,
+              "hi": 0.8634378940731396,
+              "n": 181,
+              "small": false
+            },
+            "f1": null
+          },
+          {
+            "label": "function",
+            "recall": {
+              "value": 0.9925925925925926,
+              "lo": 0.970873786407767,
+              "hi": 1,
+              "n": 135,
+              "small": false
+            },
+            "precision": {
+              "value": 0.5254901960784314,
+              "lo": 0.3807194044743795,
+              "hi": 0.7045788770053475,
+              "n": 255,
+              "small": false
+            },
+            "f1": 0.6871794871794873
+          },
+          {
+            "label": "method",
+            "recall": {
+              "value": 0,
+              "lo": null,
+              "hi": null,
+              "n": 2,
+              "small": true
+            },
+            "precision": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "f1": 0
+          },
+          {
+            "label": "constructor",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 3,
+              "small": true
+            },
+            "precision": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "f1": 0
+          },
+          {
+            "label": "unknown callee",
+            "recall": null,
+            "precision": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 42,
+              "small": true
+            },
+            "f1": null
+          }
+        ],
+        "sites": [
+          {
+            "label": "function/bare",
+            "recall": {
+              "value": 0.9925925925925926,
+              "lo": 0.970873786407767,
+              "hi": 1,
+              "n": 135,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "function/qualified",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/bare",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/self",
+            "recall": {
+              "value": 0,
+              "lo": null,
+              "hi": null,
+              "n": 2,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/receiver",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/bare",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 3,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/qualified",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          }
+        ],
+        "receiverOnly": {
+          "value": 0,
+          "lo": null,
+          "hi": null,
+          "n": 2,
+          "small": true
+        }
+      },
+      "scope": {
+        "graphFiles": 163,
+        "indexedFiles": 438,
+        "universeFiles": 162,
+        "graphEdges": 298,
+        "graphEdgesInU": 297,
+        "referenceEdges": 203,
+        "referenceEdgesInU": 140,
+        "truePositives": 134,
+        "scopeInclusiveRecall": 0.6600985221674877,
+        "referenceEdgesOutsideU": {
+          "callerNotWalked": 29,
+          "calleeNotWalked": 34
+        }
+      },
+      "fileLevel": {
+        "referencePairs": 25,
+        "graphPairs": 33,
+        "found": 23,
+        "precision": 0.696969696969697,
+        "recall": 0.92
+      },
+      "diagnostics": {
+        "edges": 203,
+        "nonCall": 5009,
+        "topLevel": 7431,
+        "external": 8228,
+        "selfEdges": 4,
+        "sourceMissing": 0,
+        "rangeMismatch": 0,
+        "wrongEdges": 163,
+        "wrongEdgesByReason": {
+          "callee-not-in-index": 42,
+          "caller-not-in-index": 74,
+          "callee-declared-inside-caller": 40,
+          "both-in-index": 7
+        },
+        "missedByReason": {
+          "constructor/bare": {
+            "callee-not-a-graph-node": 3
+          },
+          "function/bare": {
+            "call-not-linked-cross-file": 1
+          },
+          "method/self": {
+            "call-not-seen-same-file": 2
+          }
+        }
+      },
+      "threshold": {
+        "status": "insufficient-sample",
+        "recall": 0,
+        "referenceEdges": 2,
+        "threshold": 0.7
+      }
+    },
+    "python": {
+      "repos": [
+        "flask",
+        "fastapi",
+        "django"
+      ],
+      "table": {
+        "rows": [
+          {
+            "label": "all edges",
+            "recall": {
+              "value": 0.1078967044343475,
+              "lo": 0.0939409326423296,
+              "hi": 0.12325183412310846,
+              "n": 52161,
+              "small": false
+            },
+            "precision": {
+              "value": 0.6927621861152142,
+              "lo": 0.6436552788500534,
+              "hi": 0.7377676577472795,
+              "n": 8124,
+              "small": false
+            },
+            "f1": 0.1867131127146056
+          },
+          {
+            "label": "judgeable edges",
+            "recall": null,
+            "precision": {
+              "value": 0.6941292550567341,
+              "lo": 0.6448655482851879,
+              "hi": 0.738968156289154,
+              "n": 8108,
+              "small": false
+            },
+            "f1": null
+          },
+          {
+            "label": "function",
+            "recall": {
+              "value": 0.481031172867721,
+              "lo": 0.43094808099874427,
+              "hi": 0.5343775730955004,
+              "n": 10939,
+              "small": false
+            },
+            "precision": {
+              "value": 0.834840552118039,
+              "lo": 0.7756806401197698,
+              "hi": 0.8859042580510685,
+              "n": 6303,
+              "small": false
+            },
+            "f1": 0.6103700266790396
+          },
+          {
+            "label": "method",
+            "recall": {
+              "value": 0.015118968935888962,
+              "lo": 0.01160873168465991,
+              "hi": 0.01939565913798337,
+              "n": 24208,
+              "small": false
+            },
+            "precision": {
+              "value": 0.2027700831024931,
+              "lo": 0.1588614602656035,
+              "hi": 0.24895158262264544,
+              "n": 1805,
+              "small": false
+            },
+            "f1": 0.028139776265713297
+          },
+          {
+            "label": "constructor",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 17014,
+              "small": false
+            },
+            "precision": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "f1": 0
+          },
+          {
+            "label": "unknown callee",
+            "recall": null,
+            "precision": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 16,
+              "small": true
+            },
+            "f1": null
+          }
+        ],
+        "sites": [
+          {
+            "label": "function/bare",
+            "recall": {
+              "value": 0.5570022229279136,
+              "lo": 0.4977978084824053,
+              "hi": 0.6145930477497271,
+              "n": 9447,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "function/qualified",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 1492,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/bare",
+            "recall": {
+              "value": 0.9710144927536232,
+              "lo": 0.9427673809994074,
+              "hi": 0.9915492957746479,
+              "n": 345,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/self",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 13216,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/receiver",
+            "recall": {
+              "value": 0.0029116182962336807,
+              "lo": 0.0009851870205558756,
+              "hi": 0.00537939761729428,
+              "n": 10647,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/bare",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 14099,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/qualified",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 2915,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          }
+        ],
+        "receiverOnly": {
+          "value": 0.0012990822612412522,
+          "lo": 0.0004490192867809297,
+          "hi": 0.002374055784656922,
+          "n": 23863,
+          "small": false
+        }
+      },
+      "scope": {
+        "graphFiles": 2669,
+        "indexedFiles": 4135,
+        "universeFiles": 2652,
+        "graphEdges": 8155,
+        "graphEdgesInU": 8124,
+        "referenceEdges": 52456,
+        "referenceEdgesInU": 52161,
+        "truePositives": 5628,
+        "scopeInclusiveRecall": 0.1072899191703523,
+        "referenceEdgesOutsideU": {
+          "callerNotWalked": 40,
+          "calleeNotWalked": 255
+        }
+      },
+      "fileLevel": {
+        "referencePairs": 6726,
+        "graphPairs": 1199,
+        "found": 1181,
+        "precision": 0.9849874895746455,
+        "recall": 0.17558727326791554
+      },
+      "diagnostics": {
+        "edges": 52456,
+        "nonCall": 65663,
+        "topLevel": 8872,
+        "external": 61380,
+        "selfEdges": 702,
+        "sourceMissing": 0,
+        "rangeMismatch": 223,
+        "wrongEdges": 2496,
+        "wrongEdgesByReason": {
+          "callee-declared-inside-caller": 2026,
+          "both-in-index": 454,
+          "callee-not-in-index": 16
+        },
+        "missedByReason": {
+          "method/receiver": {
+            "call-not-linked-cross-file": 10424,
+            "call-not-seen-same-file": 192
+          },
+          "method/self": {
+            "call-not-linked-cross-file": 6172,
+            "call-not-seen-same-file": 7043,
+            "every-call-site-masked-by-graph": 1
+          },
+          "constructor/qualified": {
+            "callee-not-a-graph-node": 2915
+          },
+          "constructor/bare": {
+            "callee-not-a-graph-node": 14099
+          },
+          "function/bare": {
+            "call-not-linked-cross-file": 3920,
+            "call-not-seen-same-file": 262,
+            "every-call-site-masked-by-graph": 3
+          },
+          "function/qualified": {
+            "call-not-linked-cross-file": 1492
+          },
+          "method/bare": {
+            "call-not-seen-same-file": 10
+          }
+        }
+      },
+      "threshold": {
+        "status": "spike-warranted",
+        "recall": 0.0012990822612412522,
+        "lo": 0.0004490192867809297,
+        "hi": 0.002374055784656922,
+        "referenceEdges": 23863,
+        "threshold": 0.7
+      }
+    },
+    "go": {
+      "repos": [
+        "gin",
+        "gorm"
+      ],
+      "table": {
+        "rows": [
+          {
+            "label": "all edges",
+            "recall": {
+              "value": 0.36324257425742573,
+              "lo": 0.2866188106855177,
+              "hi": 0.4415936337625178,
+              "n": 3232,
+              "small": false
+            },
+            "precision": {
+              "value": 0.9890480202190396,
+              "lo": 0.9761898312954651,
+              "hi": 0.9967433722646676,
+              "n": 1187,
+              "small": false
+            },
+            "f1": 0.5313419325639285
+          },
+          {
+            "label": "judgeable edges",
+            "recall": null,
+            "precision": {
+              "value": 0.9890480202190396,
+              "lo": 0.9761898312954651,
+              "hi": 0.9967433722646676,
+              "n": 1187,
+              "small": false
+            },
+            "f1": null
+          },
+          {
+            "label": "function",
+            "recall": {
+              "value": 0.8914198936977981,
+              "lo": 0.8305418020527102,
+              "hi": 0.9312518051989731,
+              "n": 1317,
+              "small": false
+            },
+            "precision": {
+              "value": 0.9991489361702127,
+              "lo": 0.9977742735715027,
+              "hi": 1,
+              "n": 1175,
+              "small": false
+            },
+            "f1": 0.942215088282504
+          },
+          {
+            "label": "method",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 1884,
+              "small": false
+            },
+            "precision": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 12,
+              "small": true
+            },
+            "f1": 0
+          },
+          {
+            "label": "constructor",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 31,
+              "small": true
+            },
+            "precision": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "f1": 0
+          },
+          {
+            "label": "unknown callee",
+            "recall": null,
+            "precision": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "f1": null
+          }
+        ],
+        "sites": [
+          {
+            "label": "function/bare",
+            "recall": {
+              "value": 0.9898819561551433,
+              "lo": 0.9781101889754241,
+              "hi": 0.9968237488199652,
+              "n": 1186,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "function/qualified",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 131,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/bare",
+            "recall": {
+              "value": 0,
+              "lo": null,
+              "hi": null,
+              "n": 1,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/self",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/receiver",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 1883,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/bare",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 27,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/qualified",
+            "recall": {
+              "value": 0,
+              "lo": 0,
+              "hi": 0,
+              "n": 4,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          }
+        ],
+        "receiverOnly": {
+          "value": 0,
+          "lo": 0,
+          "hi": 0,
+          "n": 1883,
+          "small": false
+        }
+      },
+      "scope": {
+        "graphFiles": 249,
+        "indexedFiles": 210,
+        "universeFiles": 186,
+        "graphEdges": 1481,
+        "graphEdgesInU": 1187,
+        "referenceEdges": 3240,
+        "referenceEdgesInU": 3232,
+        "truePositives": 1174,
+        "scopeInclusiveRecall": 0.36234567901234566,
+        "referenceEdgesOutsideU": {
+          "callerNotWalked": 0,
+          "calleeNotWalked": 8
+        }
+      },
+      "fileLevel": {
+        "referencePairs": 385,
+        "graphPairs": 152,
+        "found": 148,
+        "precision": 0.9736842105263158,
+        "recall": 0.38441558441558443
+      },
+      "diagnostics": {
+        "edges": 3240,
+        "nonCall": 5162,
+        "topLevel": 15,
+        "external": 8882,
+        "selfEdges": 40,
+        "sourceMissing": 12,
+        "rangeMismatch": 0,
+        "wrongEdges": 13,
+        "wrongEdgesByReason": {
+          "both-in-index": 10,
+          "callee-declared-inside-caller": 3
+        },
+        "missedByReason": {
+          "function/qualified": {
+            "call-not-linked-cross-file": 130,
+            "callee-not-a-graph-node": 1
+          },
+          "method/receiver": {
+            "call-not-seen-same-file": 386,
+            "call-not-linked-cross-file": 1493,
+            "caller-not-a-graph-node": 4
+          },
+          "constructor/bare": {
+            "callee-not-a-graph-node": 27
+          },
+          "function/bare": {
+            "call-not-linked-cross-file": 9,
+            "call-not-seen-same-file": 2,
+            "callee-not-a-graph-node": 1
+          },
+          "constructor/qualified": {
+            "callee-not-a-graph-node": 4
+          },
+          "method/bare": {
+            "call-not-linked-cross-file": 1
+          }
+        }
+      },
+      "threshold": {
+        "status": "spike-warranted",
+        "recall": 0,
+        "lo": 0,
+        "hi": 0,
+        "referenceEdges": 1883,
+        "threshold": 0.7
+      }
+    },
+    "java": {
+      "repos": [
+        "spring-petclinic"
+      ],
+      "table": {
+        "rows": [
+          {
+            "label": "all edges",
+            "recall": {
+              "value": 0.45217391304347826,
+              "lo": 0.3801140350877193,
+              "hi": 0.5438995215311003,
+              "n": 230,
+              "small": false
+            },
+            "precision": {
+              "value": 0.9811320754716981,
+              "lo": 0.9285714285714286,
+              "hi": 1,
+              "n": 106,
+              "small": false
+            },
+            "f1": 0.6190476190476191
+          },
+          {
+            "label": "judgeable edges",
+            "recall": null,
+            "precision": {
+              "value": 1,
+              "lo": 1,
+              "hi": 1,
+              "n": 104,
+              "small": false
+            },
+            "f1": null
+          },
+          {
+            "label": "function",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "f1": null
+          },
+          {
+            "label": "method",
+            "recall": {
+              "value": 0.5024630541871922,
+              "lo": 0.41907682597610363,
+              "hi": 0.6115910692549169,
+              "n": 203,
+              "small": false
+            },
+            "precision": {
+              "value": 1,
+              "lo": 1,
+              "hi": 1,
+              "n": 102,
+              "small": false
+            },
+            "f1": 0.6688524590163935
+          },
+          {
+            "label": "constructor",
+            "recall": {
+              "value": 0.07407407407407407,
+              "lo": 0,
+              "hi": 0.19047619047619047,
+              "n": 27,
+              "small": true
+            },
+            "precision": {
+              "value": 1,
+              "lo": null,
+              "hi": null,
+              "n": 2,
+              "small": true
+            },
+            "f1": 0.13793103448275862
+          },
+          {
+            "label": "unknown callee",
+            "recall": null,
+            "precision": {
+              "value": 0,
+              "lo": null,
+              "hi": null,
+              "n": 2,
+              "small": true
+            },
+            "f1": null
+          }
+        ],
+        "sites": [
+          {
+            "label": "function/bare",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "function/qualified",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/bare",
+            "recall": {
+              "value": 0.96,
+              "lo": 0.875,
+              "hi": 1,
+              "n": 25,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/self",
+            "recall": {
+              "value": 0,
+              "lo": null,
+              "hi": null,
+              "n": 5,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "method/receiver",
+            "recall": {
+              "value": 0.4508670520231214,
+              "lo": 0.34734757686294954,
+              "hi": 0.5652173913043478,
+              "n": 173,
+              "small": false
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/bare",
+            "recall": {
+              "value": 0.07407407407407407,
+              "lo": 0,
+              "hi": 0.19047619047619047,
+              "n": 27,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          },
+          {
+            "label": "constructor/qualified",
+            "recall": {
+              "value": null,
+              "lo": null,
+              "hi": null,
+              "n": 0,
+              "small": true
+            },
+            "precision": null,
+            "f1": null
+          }
+        ],
+        "receiverOnly": {
+          "value": 0.43820224719101125,
+          "lo": 0.3264332721150903,
+          "hi": 0.5510269492412349,
+          "n": 178,
+          "small": false
+        }
+      },
+      "scope": {
+        "graphFiles": 39,
+        "indexedFiles": 47,
+        "universeFiles": 39,
+        "graphEdges": 106,
+        "graphEdgesInU": 106,
+        "referenceEdges": 240,
+        "referenceEdgesInU": 230,
+        "truePositives": 104,
+        "scopeInclusiveRecall": 0.43333333333333335,
+        "referenceEdgesOutsideU": {
+          "callerNotWalked": 1,
+          "calleeNotWalked": 9
+        }
+      },
+      "fileLevel": {
+        "referencePairs": 72,
+        "graphPairs": 31,
+        "found": 31,
+        "precision": 1,
+        "recall": 0.4305555555555556
+      },
+      "diagnostics": {
+        "edges": 240,
+        "nonCall": 224,
+        "topLevel": 1,
+        "external": 2109,
+        "selfEdges": 1,
+        "sourceMissing": 0,
+        "rangeMismatch": 0,
+        "wrongEdges": 2,
+        "wrongEdgesByReason": {
+          "callee-not-in-index": 2
+        },
+        "missedByReason": {
+          "method/self": {
+            "call-not-seen-same-file": 1,
+            "call-not-linked-cross-file": 4
+          },
+          "method/receiver": {
+            "call-not-linked-cross-file": 91,
+            "caller-not-a-graph-node": 3,
+            "callee-not-a-graph-node": 1
+          },
+          "constructor/bare": {
+            "callee-not-a-graph-node": 22,
+            "caller-not-a-graph-node": 1,
+            "call-not-linked-cross-file": 2
+          },
+          "method/bare": {
+            "call-not-linked-cross-file": 1
+          }
+        }
+      },
+      "threshold": {
+        "status": "spike-warranted",
+        "recall": 0.43820224719101125,
+        "lo": 0.3264332721150903,
+        "hi": 0.5510269492412349,
+        "referenceEdges": 178,
+        "threshold": 0.7
+      }
+    }
+  },
+  "repos": {
+    "typescript": {
+      "zod": {
+        "status": "measured",
+        "commit": "912f0f51b0ced654d0069741e7160834dca742ee",
+        "indexer": "scip-typescript@0.5.2",
+        "summary": {
+          "referenceEdges": 711,
+          "graphEdges": 71,
+          "found": 62,
+          "recall": 0.08720112517580872,
+          "precision": 0.8732394366197183,
+          "judgeablePrecision": 0.96875,
+          "functionRecall": 0.13566739606126915,
+          "receiverOnlyMethodRecall": 0
+        },
+        "scope": {
+          "graphFiles": 151,
+          "indexedFiles": 366,
+          "universeFiles": 120,
+          "graphEdges": 80,
+          "graphEdgesInU": 71,
+          "referenceEdges": 723,
+          "referenceEdgesInU": 711,
+          "truePositives": 62,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 12,
+            "calleeNotWalked": 0
+          },
+          "scopeInclusiveRecall": 0.08575380359612725
+        },
+        "diagnostics": {
+          "edges": 723,
+          "nonCall": 10131,
+          "topLevel": 12386,
+          "external": 9541,
+          "selfEdges": 47,
+          "sourceMissing": 0,
+          "rangeMismatch": 7,
+          "wrongEdges": 9,
+          "wrongEdgesByReason": {
+            "callee-not-in-index": 6,
+            "callee-declared-inside-caller": 1,
+            "both-in-index": 1,
+            "caller-not-in-index": 1
+          },
+          "missedByReason": {
+            "function/bare": {
+              "every-call-site-masked-by-graph": 5,
+              "caller-not-a-graph-node": 24,
+              "call-not-linked-cross-file": 6,
+              "call-not-seen-same-file": 4,
+              "callee-not-a-graph-node": 35
+            },
+            "constructor/bare": {
+              "caller-not-a-graph-node": 75,
+              "callee-not-a-graph-node": 42
+            },
+            "method/receiver": {
+              "caller-not-a-graph-node": 12,
+              "call-not-seen-same-file": 11,
+              "call-not-linked-cross-file": 10,
+              "callee-not-a-graph-node": 20
+            },
+            "method/self": {
+              "call-not-seen-same-file": 58,
+              "caller-not-a-graph-node": 1
+            },
+            "function/qualified": {
+              "call-not-linked-cross-file": 60,
+              "callee-not-a-graph-node": 144,
+              "caller-not-a-graph-node": 117
+            },
+            "constructor/qualified": {
+              "caller-not-a-graph-node": 7,
+              "callee-not-a-graph-node": 18
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 30,
+          "graphPairs": 0,
+          "found": 0
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "packages/bench/benchUtil.ts#formatNumber -> packages/bench/benchUtil.ts#toFixed",
+              "kind": "function/bare",
+              "reason": "every-call-site-masked-by-graph"
+            },
+            {
+              "edge": "packages/bench/metabench.ts#benchWithData -> packages/bench/metabench.ts#add",
+              "kind": "method/receiver",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/bench/metabench.ts#benchWithData -> packages/bench/metabench.ts#metabench",
+              "kind": "function/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/bench/metabench.ts#metabench -> packages/bench/metabench.ts#BenchmarkJS",
+              "kind": "constructor/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/bench/metabench.ts#metabench -> packages/bench/metabench.ts#Mitata",
+              "kind": "constructor/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/bench/metabench.ts#metabench -> packages/bench/metabench.ts#Tinybench",
+              "kind": "constructor/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/bench/metabench.ts#run -> packages/bench/benchUtil.ts#formatNumber",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/tsc/generate.ts#generateFields -> packages/tsc/generate.ts#randomStr",
+              "kind": "function/bare",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/helpers/parseUtil.ts#addIssueToContext -> packages/zod/src/v3/errors.ts#getErrorMap",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/helpers/parseUtil.ts#mergeArray -> packages/zod/src/v3/helpers/parseUtil.ts#dirty",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/helpers/parseUtil.ts#mergeObjectAsync -> packages/zod/src/v3/helpers/parseUtil.ts#mergeObjectSync",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/helpers/parseUtil.ts#mergeObjectSync -> packages/zod/src/v3/helpers/parseUtil.ts#dirty",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/tests/nullable.test.ts#checkErrors -> packages/zod/src/v3/types.ts#nullable",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/tests/nullable.test.ts#checkErrors -> packages/zod/src/v3/types.ts#parse",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/tests/optional.test.ts#checkErrors -> packages/zod/src/v3/types.ts#optional",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/tests/optional.test.ts#checkErrors -> packages/zod/src/v3/types.ts#parse",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_addCheck -> packages/zod/src/v3/types.ts#ZodBigInt",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_addCheck -> packages/zod/src/v3/types.ts#ZodDate",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_addCheck -> packages/zod/src/v3/types.ts#ZodNumber",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_addCheck -> packages/zod/src/v3/types.ts#ZodString",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_getInvalidInput -> packages/zod/src/v3/helpers/parseUtil.ts#addIssueToContext",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_getInvalidInput -> packages/zod/src/v3/types.ts#_getOrReturnCtx",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/errors.ts#getErrorMap",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/helpers/parseUtil.ts#abort",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/helpers/parseUtil.ts#addIssueToContext",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/types.ts#error",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/types.ts#freeze",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/types.ts#handleAsync",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/types.ts#handleResults",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#_parse -> packages/zod/src/v3/types.ts#path",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "packages/zod/src/v3/types.ts#refine -> packages/zod/src/v3/types.ts#setError",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "packages/zod/src/v3/ZodError.ts#format -> packages/zod/src/v3/ZodError.ts#processError",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "packages/zod/src/v4/classic/tests/hash.test.ts#makeDigests -> packages/zod/src/v4/classic/tests/hash.test.ts#toB64Url",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "packages/zod/src/v4/core/core.ts#_ -> packages/zod/src/v4/core/core.ts#init",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            }
+          ]
+        }
+      },
+      "excalidraw": {
+        "status": "measured",
+        "commit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e",
+        "indexer": "scip-typescript@0.5.2",
+        "summary": {
+          "referenceEdges": 761,
+          "graphEdges": 1294,
+          "found": 20,
+          "recall": 0.026281208935611037,
+          "precision": 0.015455950540958269,
+          "judgeablePrecision": 0.8695652173913043,
+          "functionRecall": 0.11560693641618497,
+          "receiverOnlyMethodRecall": 0
+        },
+        "scope": {
+          "graphFiles": 458,
+          "indexedFiles": 663,
+          "universeFiles": 458,
+          "graphEdges": 1294,
+          "graphEdgesInU": 1294,
+          "referenceEdges": 828,
+          "referenceEdgesInU": 761,
+          "truePositives": 20,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 53,
+            "calleeNotWalked": 14
+          },
+          "scopeInclusiveRecall": 0.024154589371980676
+        },
+        "diagnostics": {
+          "edges": 828,
+          "nonCall": 18910,
+          "topLevel": 6004,
+          "external": 25166,
+          "selfEdges": 16,
+          "sourceMissing": 0,
+          "rangeMismatch": 9,
+          "wrongEdges": 1274,
+          "wrongEdgesByReason": {
+            "callee-not-in-index": 1034,
+            "both-in-index": 3,
+            "caller-not-in-index": 237
+          },
+          "missedByReason": {
+            "constructor/bare": {
+              "caller-not-a-graph-node": 15,
+              "callee-not-a-graph-node": 21
+            },
+            "method/receiver": {
+              "call-not-linked-cross-file": 193,
+              "caller-not-a-graph-node": 35,
+              "call-not-seen-same-file": 89,
+              "callee-not-a-graph-node": 59
+            },
+            "method/self": {
+              "call-not-seen-same-file": 147,
+              "caller-not-a-graph-node": 21,
+              "callee-not-a-graph-node": 1,
+              "call-not-linked-cross-file": 7
+            },
+            "function/bare": {
+              "call-not-linked-cross-file": 24,
+              "callee-not-a-graph-node": 70,
+              "caller-not-a-graph-node": 58,
+              "call-not-seen-same-file": 1
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 95,
+          "graphPairs": 297,
+          "found": 2
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "excalidraw-app/collab/Collab.tsx#constructor -> excalidraw-app/collab/Portal.tsx#Portal",
+              "kind": "constructor/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "excalidraw-app/collab/Collab.tsx#constructor -> excalidraw-app/data/FileManager.ts#FileManager",
+              "kind": "constructor/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "excalidraw-app/collab/Collab.tsx#constructor -> packages/excalidraw/errors.ts#AbortError",
+              "kind": "constructor/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "excalidraw-app/collab/Portal.tsx#_broadcastSocketData -> excalidraw-app/collab/Portal.tsx#isOpen",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "excalidraw-app/collab/Portal.tsx#open -> excalidraw-app/collab/Collab.tsx#setCollaborators",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "excalidraw-app/components/TopErrorBoundary.tsx#errorSplash -> excalidraw-app/components/TopErrorBoundary.tsx#createGithubIssue",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "excalidraw-app/components/TopErrorBoundary.tsx#render -> excalidraw-app/components/TopErrorBoundary.tsx#errorSplash",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "excalidraw-app/data/fileStatusStore.ts#getSnapshot -> packages/common/src/versionedSnapshotStore.ts#getSnapshot",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "excalidraw-app/data/fileStatusStore.ts#pull -> packages/common/src/versionedSnapshotStore.ts#pull",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "excalidraw-app/data/fileStatusStore.ts#updateStatuses -> packages/common/src/versionedSnapshotStore.ts#update",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#clear -> packages/common/src/emitter.ts#clear",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#emit -> packages/common/src/appEventBus.ts#getEmitter",
+              "kind": "method/self",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#emit -> packages/common/src/emitter.ts#clear",
+              "kind": "method/receiver",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#emit -> packages/common/src/emitter.ts#trigger",
+              "kind": "method/receiver",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#getEmitter -> packages/common/src/emitter.ts#Emitter",
+              "kind": "constructor/bare",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#on -> packages/common/src/appEventBus.ts#getEmitter",
+              "kind": "method/self",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#on -> packages/common/src/appEventBus.ts#toPromiseValue",
+              "kind": "method/self",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#on -> packages/common/src/emitter.ts#on",
+              "kind": "method/receiver",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/appEventBus.ts#on -> packages/common/src/emitter.ts#once",
+              "kind": "method/receiver",
+              "reason": "caller-not-a-graph-node"
+            },
+            {
+              "edge": "packages/common/src/binary-heap.ts#pop -> packages/common/src/binary-heap.ts#bubbleUp",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/common/src/binary-heap.ts#push -> packages/common/src/binary-heap.ts#sinkDown",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/common/src/binary-heap.ts#remove -> packages/common/src/binary-heap.ts#bubbleUp",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/common/src/binary-heap.ts#remove -> packages/common/src/binary-heap.ts#sinkDown",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/common/src/binary-heap.ts#rescoreElement -> packages/common/src/binary-heap.ts#sinkDown",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "packages/common/src/colors.ts#cssHueRotate -> packages/math/src/angle.ts#degreesToRadians",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "excalidraw-app/app-language/LanguageList.tsx#LanguageList -> packages/excalidraw/i18n.ts#t",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/app-language/LanguageList.tsx#LanguageList -> packages/excalidraw/i18n.ts#useI18n",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/app-language/language-detector.ts#getPreferredLanguage",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/app-language/language-state.ts#useAppLangCode",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/App.tsx#onExportToBackend",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/data/FileManager.ts#updateStaleImageStatuses",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/data/firebase.ts#loadFilesFromFirebase",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/data/tabSync.ts#isBrowserStorageStateNewer",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/debugCollaborators.ts#useSimulatedCollaborators",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> excalidraw-app/useHandleAppTheme.ts#useHandleAppTheme",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/common/src/utils.ts#getFrame",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/common/src/utils.ts#getVersion",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/common/src/utils.ts#isDevEnv",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/common/src/utils.ts#isRunningInIframe",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/common/src/utils.ts#isTestEnv",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/common/src/utils.ts#preventUnload",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/excalidraw/analytics.ts#trackEvent",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#ExcalidrawWrapper -> packages/excalidraw/i18n.ts#t",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#onExportToBackend -> packages/excalidraw/i18n.ts#t",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/App.tsx#unloadHandler -> packages/common/src/utils.ts#preventUnload",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/collab/Portal.tsx#open -> packages/excalidraw/analytics.ts#trackEvent",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/components/AppSidebar.tsx#AppSidebar -> packages/excalidraw/context/ui-appState.ts#useUIAppState",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/components/DebugCanvas.tsx#_debugRenderer -> excalidraw-app/components/DebugCanvas.tsx#render",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/components/DebugCanvas.tsx#_debugRenderer -> excalidraw-app/components/DebugCanvas.tsx#renderBindings",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "excalidraw-app/components/DebugCanvas.tsx#_debugRenderer -> excalidraw-app/components/DebugCanvas.tsx#renderOrigin",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            }
+          ]
+        }
+      }
+    },
+    "javascript": {
+      "express": {
+        "status": "measured",
+        "commit": "8e022edc9185f540a3fcecaf5e56b850d919cdac",
+        "indexer": "scip-typescript@0.5.2",
+        "summary": {
+          "referenceEdges": 3,
+          "graphEdges": 33,
+          "found": 3,
+          "recall": 1,
+          "precision": 0.09090909090909091,
+          "judgeablePrecision": 0.375,
+          "functionRecall": 1,
+          "receiverOnlyMethodRecall": null
+        },
+        "scope": {
+          "graphFiles": 40,
+          "indexedFiles": 141,
+          "universeFiles": 40,
+          "graphEdges": 33,
+          "graphEdgesInU": 33,
+          "referenceEdges": 3,
+          "referenceEdgesInU": 3,
+          "truePositives": 3,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 0,
+            "calleeNotWalked": 0
+          },
+          "scopeInclusiveRecall": 1
+        },
+        "diagnostics": {
+          "edges": 3,
+          "nonCall": 146,
+          "topLevel": 305,
+          "external": 1156,
+          "selfEdges": 0,
+          "sourceMissing": 0,
+          "rangeMismatch": 0,
+          "wrongEdges": 30,
+          "wrongEdgesByReason": {
+            "callee-not-in-index": 14,
+            "caller-not-in-index": 11,
+            "callee-declared-inside-caller": 5
+          },
+          "missedByReason": {}
+        },
+        "fileLevel": {
+          "referencePairs": 0,
+          "graphPairs": 3,
+          "found": 0
+        },
+        "samples": {
+          "missed": [],
+          "wrong": [
+            {
+              "edge": "lib/application.js#defaultConfiguration -> lib/application.js#onmount",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/application.js#defaultConfiguration -> lib/view.js#resolve",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/application.js#init -> lib/application.js#getrouter",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/application.js#render -> lib/application.js#tryRender",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/application.js#render -> lib/view.js#View",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/application.js#set -> lib/utils.js#compileQueryParser",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/application.js#use -> lib/application.js#mounted_app",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#json -> lib/response.js#stringify",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#jsonp -> lib/response.js#stringify",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#onfinish -> lib/response.js#onaborted",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#onfinish -> lib/response.js#onerror",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#send -> lib/utils.js#setCharset",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#sendfile -> lib/response.js#headers",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#sendfile -> lib/response.js#ondirectory",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/response.js#sendfile -> lib/response.js#onend",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/response.js#sendfile -> lib/response.js#onfile",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/response.js#sendfile -> lib/response.js#onfinish",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/response.js#sendfile -> lib/response.js#onstream",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/response.js#sendFile -> lib/response.js#send",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/response.js#sendFile -> lib/response.js#sendfile",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/utils.js#createETagGenerator -> lib/utils.js#generateETag",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/view.js#lookup -> lib/view.js#resolve",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/view.js#onRender -> lib/view.js#renderTick",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/view.js#render -> lib/view.js#onRender",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/view.js#render -> lib/view.js#renderTick",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            }
+          ]
+        }
+      },
+      "fastify": {
+        "status": "measured",
+        "commit": "890ab7578f14730b2fed6de43acfeee19da1a3e4",
+        "indexer": "scip-typescript@0.5.2",
+        "summary": {
+          "referenceEdges": 137,
+          "graphEdges": 264,
+          "found": 131,
+          "recall": 0.9562043795620438,
+          "precision": 0.4962121212121212,
+          "judgeablePrecision": 0.7572254335260116,
+          "functionRecall": 0.9924242424242424,
+          "receiverOnlyMethodRecall": 0
+        },
+        "scope": {
+          "graphFiles": 123,
+          "indexedFiles": 297,
+          "universeFiles": 122,
+          "graphEdges": 265,
+          "graphEdgesInU": 264,
+          "referenceEdges": 200,
+          "referenceEdgesInU": 137,
+          "truePositives": 131,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 29,
+            "calleeNotWalked": 34
+          },
+          "scopeInclusiveRecall": 0.655
+        },
+        "diagnostics": {
+          "edges": 200,
+          "nonCall": 4863,
+          "topLevel": 7126,
+          "external": 7072,
+          "selfEdges": 4,
+          "sourceMissing": 0,
+          "rangeMismatch": 0,
+          "wrongEdges": 133,
+          "wrongEdgesByReason": {
+            "callee-declared-inside-caller": 35,
+            "both-in-index": 7,
+            "caller-not-in-index": 63,
+            "callee-not-in-index": 28
+          },
+          "missedByReason": {
+            "constructor/bare": {
+              "callee-not-a-graph-node": 3
+            },
+            "function/bare": {
+              "call-not-linked-cross-file": 1
+            },
+            "method/self": {
+              "call-not-seen-same-file": 2
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 25,
+          "graphPairs": 30,
+          "found": 23
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "lib/handle-request.js#handleRequest -> lib/content-type.js#ContentType",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "lib/initial-config-validation.js#validateInitialConfig -> lib/config-validator.js#validate10",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "lib/schema-controller.js#buildSchemaController -> lib/schema-controller.js#SchemaController",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "lib/schema-controller.js#setupSerializer -> lib/schema-controller.js#getSerializerBuilder",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "lib/schema-controller.js#setupValidator -> lib/schema-controller.js#getValidatorBuilder",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "test/types/logger.test-d.ts#child -> test/types/logger.test-d.ts#CustomLoggerImpl",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "lib/content-type-parser.js#getDefaultJsonParser -> lib/content-type-parser.js#defaultJsonParser",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/content-type-parser.js#rawBody -> lib/content-type-parser.js#onData",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/content-type-parser.js#rawBody -> lib/content-type-parser.js#onEnd",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/error-handler.js#fallbackErrorHandler -> lib/schemas.js#getSchemaSerializer",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "lib/error-serializer.js#anonymous -> lib/error-serializer.js#anonymous0",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#_setNotFoundHandler -> lib/context.js#Context",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#_setNotFoundHandler -> lib/error-handler.js#buildErrorHandler",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#createOnBadUrl -> lib/four-oh-four.js#onBadUrl",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#createOnBadUrl -> lib/logger-factory.js#createChildLogger",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#createOnBadUrl -> lib/reply.js#Reply",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#createOnBadUrl -> lib/req-id-gen-factory.js#getGenReqId",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#createOnBadUrl -> lib/request.js#Request",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFour -> lib/four-oh-four.js#_setNotFoundHandler",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFour -> lib/four-oh-four.js#arrange404",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFour -> lib/four-oh-four.js#basic404",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFour -> lib/four-oh-four.js#fourOhFourFallBack",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFour -> lib/four-oh-four.js#onBadUrl",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFour -> lib/four-oh-four.js#setContext",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFour -> lib/four-oh-four.js#setNotFoundHandler",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFourFallBack -> lib/logger-factory.js#createChildLogger",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFourFallBack -> lib/reply.js#Reply",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFourFallBack -> lib/req-id-gen-factory.js#getGenReqId",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#fourOhFourFallBack -> lib/request.js#Request",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#onBadUrl -> lib/logger-factory.js#createChildLogger",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            },
+            {
+              "edge": "lib/four-oh-four.js#onBadUrl -> lib/reply.js#Reply",
+              "calleeKind": "function",
+              "reason": "caller-not-in-index"
+            }
+          ]
+        }
+      }
+    },
+    "python": {
+      "flask": {
+        "status": "measured",
+        "commit": "2ac89889f4cc330eabd50f295dcef02828522c69",
+        "indexer": "scip-python@0.6.8",
+        "summary": {
+          "referenceEdges": 311,
+          "graphEdges": 604,
+          "found": 46,
+          "recall": 0.14790996784565916,
+          "precision": 0.076158940397351,
+          "judgeablePrecision": 0.076158940397351,
+          "functionRecall": 0.6615384615384615,
+          "receiverOnlyMethodRecall": 0
+        },
+        "scope": {
+          "graphFiles": 50,
+          "indexedFiles": 83,
+          "universeFiles": 50,
+          "graphEdges": 604,
+          "graphEdgesInU": 604,
+          "referenceEdges": 336,
+          "referenceEdgesInU": 311,
+          "truePositives": 46,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 25,
+            "calleeNotWalked": 0
+          },
+          "scopeInclusiveRecall": 0.13690476190476192
+        },
+        "diagnostics": {
+          "edges": 336,
+          "nonCall": 812,
+          "topLevel": 42,
+          "external": 4423,
+          "selfEdges": 6,
+          "sourceMissing": 0,
+          "rangeMismatch": 28,
+          "wrongEdges": 558,
+          "wrongEdgesByReason": {
+            "callee-declared-inside-caller": 555,
+            "both-in-index": 3
+          },
+          "missedByReason": {
+            "method/receiver": {
+              "call-not-linked-cross-file": 55,
+              "call-not-seen-same-file": 10
+            },
+            "method/self": {
+              "call-not-linked-cross-file": 12,
+              "call-not-seen-same-file": 105
+            },
+            "constructor/qualified": {
+              "callee-not-a-graph-node": 2
+            },
+            "constructor/bare": {
+              "callee-not-a-graph-node": 58
+            },
+            "function/bare": {
+              "call-not-linked-cross-file": 11,
+              "call-not-seen-same-file": 8,
+              "every-call-site-masked-by-graph": 1
+            },
+            "function/qualified": {
+              "call-not-linked-cross-file": 2
+            },
+            "method/bare": {
+              "call-not-seen-same-file": 1
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 36,
+          "graphPairs": 8,
+          "found": 8
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "src/flask/app.py#__call__ -> src/flask/app.py#wsgi_app",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#__init__ -> src/flask/app.py#send_static_file",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#__init__ -> src/flask/cli.py#AppGroup",
+              "kind": "constructor/qualified",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/flask/app.py#__init__ -> src/flask/sansio/app.py#__init__",
+              "kind": "method/self",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/flask/app.py#__init__ -> src/flask/sansio/app.py#add_url_rule",
+              "kind": "method/self",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/flask/app.py#app_context -> src/flask/ctx.py#AppContext",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/flask/app.py#dispatch_request -> src/flask/app.py#ensure_sync",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#dispatch_request -> src/flask/app.py#make_default_options_response",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#dispatch_request -> src/flask/app.py#raise_routing_exception",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#do_teardown_appcontext -> src/flask/app.py#ensure_sync",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#do_teardown_appcontext -> src/flask/helpers.py#_CollectErrors",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/flask/app.py#do_teardown_appcontext -> src/flask/helpers.py#raise_any",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/flask/app.py#do_teardown_request -> src/flask/app.py#ensure_sync",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#do_teardown_request -> src/flask/helpers.py#_CollectErrors",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/flask/app.py#do_teardown_request -> src/flask/helpers.py#raise_any",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/flask/app.py#ensure_sync -> src/flask/app.py#async_to_sync",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#finalize_request -> src/flask/app.py#make_response",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#finalize_request -> src/flask/app.py#process_response",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#full_dispatch_request -> src/flask/app.py#dispatch_request",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#full_dispatch_request -> src/flask/app.py#finalize_request",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#full_dispatch_request -> src/flask/app.py#handle_user_exception",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#full_dispatch_request -> src/flask/app.py#preprocess_request",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#handle_exception -> src/flask/app.py#ensure_sync",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#handle_exception -> src/flask/app.py#finalize_request",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/flask/app.py#handle_exception -> src/flask/app.py#log_exception",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "src/flask/app.py#add_ctx -> src/flask/app.py#wrapper",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/app.py#remove_ctx -> src/flask/app.py#wrapper",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/cli.py#with_appcontext -> src/flask/cli.py#decorator",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/ctx.py#copy_current_request_context -> src/flask/ctx.py#wrapper",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/debughelpers.py#attach_enctype_error_multidict -> src/flask/debughelpers.py#__getitem__",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/sansio/blueprints.py#decorator -> src/flask/sansio/blueprints.py#from_blueprint",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/sansio/blueprints.py#record_once -> src/flask/sansio/blueprints.py#wrapper",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/sansio/scaffold.py#endpoint -> src/flask/sansio/scaffold.py#decorator",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/sansio/scaffold.py#route -> src/flask/sansio/scaffold.py#decorator",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "src/flask/sansio/scaffold.py#setupmethod -> src/flask/sansio/scaffold.py#wrapper_func",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/conftest.py#purge_module -> tests/conftest.py#inner",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down -> tests/test_appctx.py#cleanup",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down_with_handled_exception_by_app_handler -> tests/test_appctx.py#cleanup",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down_with_handled_exception_by_app_handler -> tests/test_appctx.py#handler",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down_with_handled_exception_by_app_handler -> tests/test_appctx.py#index",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down_with_handled_exception_by_except_block -> tests/test_appctx.py#cleanup",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down_with_previous_exception -> tests/test_appctx.py#cleanup",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down_with_unhandled_exception -> tests/test_appctx.py#cleanup",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_app_tearing_down_with_unhandled_exception -> tests/test_appctx.py#index",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_basic_url_generation -> tests/test_appctx.py#index",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_clean_pop -> tests/test_appctx.py#teardown_app",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_clean_pop -> tests/test_appctx.py#teardown_req",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_context_refcounts -> tests/test_appctx.py#index",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_context_refcounts -> tests/test_appctx.py#teardown_app",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_appctx.py#test_context_refcounts -> tests/test_appctx.py#teardown_req",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            }
+          ]
+        }
+      },
+      "fastapi": {
+        "status": "measured",
+        "commit": "9653034b8d459607a4b7f761e6c23a6f287fa5fa",
+        "indexer": "scip-python@0.6.8",
+        "summary": {
+          "referenceEdges": 3233,
+          "graphEdges": 608,
+          "found": 371,
+          "recall": 0.11475409836065574,
+          "precision": 0.6101973684210527,
+          "judgeablePrecision": 0.6101973684210527,
+          "functionRecall": 0.29052466718872355,
+          "receiverOnlyMethodRecall": 0
+        },
+        "scope": {
+          "graphFiles": 906,
+          "indexedFiles": 1121,
+          "universeFiles": 905,
+          "graphEdges": 608,
+          "graphEdgesInU": 608,
+          "referenceEdges": 3239,
+          "referenceEdgesInU": 3233,
+          "truePositives": 371,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 0,
+            "calleeNotWalked": 6
+          },
+          "scopeInclusiveRecall": 0.11454152516208706
+        },
+        "diagnostics": {
+          "edges": 3239,
+          "nonCall": 3550,
+          "topLevel": 824,
+          "external": 19159,
+          "selfEdges": 39,
+          "sourceMissing": 0,
+          "rangeMismatch": 59,
+          "wrongEdges": 237,
+          "wrongEdgesByReason": {
+            "callee-declared-inside-caller": 226,
+            "both-in-index": 11
+          },
+          "missedByReason": {
+            "method/receiver": {
+              "call-not-linked-cross-file": 1409,
+              "call-not-seen-same-file": 12
+            },
+            "function/bare": {
+              "call-not-linked-cross-file": 786,
+              "call-not-seen-same-file": 113,
+              "every-call-site-masked-by-graph": 2
+            },
+            "constructor/bare": {
+              "callee-not-a-graph-node": 484
+            },
+            "method/self": {
+              "call-not-linked-cross-file": 5,
+              "call-not-seen-same-file": 26
+            },
+            "function/qualified": {
+              "call-not-linked-cross-file": 5
+            },
+            "constructor/qualified": {
+              "callee-not-a-graph-node": 20
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 1021,
+          "graphPairs": 56,
+          "found": 56
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "docs_src/additional_responses/tutorial001_py310.py#read_item -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/additional_responses/tutorial002_py310.py#read_item -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/additional_responses/tutorial003_py310.py#read_item -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/additional_responses/tutorial004_py310.py#read_item -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/additional_status_codes/tutorial001_an_py310.py#upsert_item -> fastapi/applications.py#put",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/additional_status_codes/tutorial001_an_py310.py#upsert_item -> fastapi/param_functions.py#Body",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/additional_status_codes/tutorial001_py310.py#upsert_item -> fastapi/applications.py#put",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/additional_status_codes/tutorial001_py310.py#upsert_item -> fastapi/param_functions.py#Body",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/advanced_middleware/tutorial001_py310.py#main -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/advanced_middleware/tutorial002_py310.py#main -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/advanced_middleware/tutorial003_py310.py#main -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_a_py310/main.py#read_main -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_an_py310/main.py#create_item -> fastapi/applications.py#post",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_an_py310/main.py#create_item -> fastapi/exceptions.py#HTTPException",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_an_py310/main.py#create_item -> fastapi/param_functions.py#Header",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_an_py310/main.py#read_main -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_an_py310/main.py#read_main -> fastapi/exceptions.py#HTTPException",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_an_py310/main.py#read_main -> fastapi/param_functions.py#Header",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_py310/main.py#create_item -> fastapi/applications.py#post",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_py310/main.py#create_item -> fastapi/exceptions.py#HTTPException",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_py310/main.py#create_item -> fastapi/param_functions.py#Header",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_py310/main.py#read_main -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_py310/main.py#read_main -> fastapi/exceptions.py#HTTPException",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "docs_src/app_testing/app_b_py310/main.py#read_main -> fastapi/param_functions.py#Header",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "docs_src/app_testing/tutorial001_py310.py#read_main -> fastapi/applications.py#get",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "docs_src/custom_request_and_route/tutorial001_an_py310.py#get_route_handler -> docs_src/custom_request_and_route/tutorial001_an_py310.py#custom_route_handler",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "docs_src/custom_request_and_route/tutorial001_py310.py#get_route_handler -> docs_src/custom_request_and_route/tutorial001_py310.py#custom_route_handler",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "docs_src/custom_request_and_route/tutorial002_an_py310.py#get_route_handler -> docs_src/custom_request_and_route/tutorial002_an_py310.py#custom_route_handler",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "docs_src/custom_request_and_route/tutorial002_py310.py#get_route_handler -> docs_src/custom_request_and_route/tutorial002_py310.py#custom_route_handler",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "docs_src/custom_request_and_route/tutorial003_py310.py#get_route_handler -> docs_src/custom_request_and_route/tutorial003_py310.py#custom_route_handler",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/applications.py#setup -> fastapi/applications.py#openapi",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/applications.py#setup -> fastapi/applications.py#redoc_html",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/applications.py#setup -> fastapi/applications.py#swagger_ui_html",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/applications.py#setup -> fastapi/applications.py#swagger_ui_redirect",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/applications.py#setup -> fastapi/openapi/docs.py#get_redoc_html",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "fastapi/applications.py#setup -> fastapi/openapi/docs.py#get_swagger_ui_html",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "fastapi/applications.py#setup -> fastapi/openapi/docs.py#get_swagger_ui_oauth2_redirect_html",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "fastapi/routing.py#app -> fastapi/encoders.py#jsonable_encoder",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/routing.py#app -> fastapi/routing.py#_keepalive_inserter",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/routing.py#app -> fastapi/routing.py#_producer",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/routing.py#app -> fastapi/routing.py#_serialize_data",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/routing.py#app -> fastapi/routing.py#_serialize_item",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/routing.py#app -> fastapi/routing.py#_serialize_sse_item",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "fastapi/routing.py#app -> fastapi/sse.py#format_sse_event",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "tests/benchmarks/test_general_performance.py#_bench_get -> tests/benchmarks/test_general_performance.py#do_request",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_ambiguous_params.py#test_multiple_annotations -> fastapi/param_functions.py#Depends",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "tests/test_ambiguous_params.py#test_multiple_annotations -> fastapi/param_functions.py#Query",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "tests/test_ambiguous_params.py#test_multiple_annotations -> tests/test_ambiguous_params.py#dep",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_ambiguous_params.py#test_multiple_annotations -> tests/test_ambiguous_params.py#get",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "tests/test_ambiguous_params.py#test_multiple_annotations -> tests/test_ambiguous_params.py#get2",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            }
+          ]
+        }
+      },
+      "django": {
+        "status": "measured",
+        "commit": "a461af8ce48762d7ec602260aaff81014ddccbcb",
+        "indexer": "scip-python@0.6.8",
+        "summary": {
+          "referenceEdges": 48617,
+          "graphEdges": 6912,
+          "found": 5211,
+          "recall": 0.10718472962132587,
+          "precision": 0.75390625,
+          "judgeablePrecision": 0.7556554524361949,
+          "functionRecall": 0.5051578618318224,
+          "receiverOnlyMethodRecall": 0.0013945746547303073
+        },
+        "scope": {
+          "graphFiles": 1713,
+          "indexedFiles": 2931,
+          "universeFiles": 1697,
+          "graphEdges": 6943,
+          "graphEdgesInU": 6912,
+          "referenceEdges": 48881,
+          "referenceEdgesInU": 48617,
+          "truePositives": 5211,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 15,
+            "calleeNotWalked": 249
+          },
+          "scopeInclusiveRecall": 0.10660583866942165
+        },
+        "diagnostics": {
+          "edges": 48881,
+          "nonCall": 61301,
+          "topLevel": 8006,
+          "external": 37798,
+          "selfEdges": 657,
+          "sourceMissing": 0,
+          "rangeMismatch": 136,
+          "wrongEdges": 1701,
+          "wrongEdgesByReason": {
+            "callee-declared-inside-caller": 1245,
+            "both-in-index": 440,
+            "callee-not-in-index": 16
+          },
+          "missedByReason": {
+            "function/bare": {
+              "call-not-linked-cross-file": 3123,
+              "call-not-seen-same-file": 141
+            },
+            "method/receiver": {
+              "call-not-linked-cross-file": 8960,
+              "call-not-seen-same-file": 170
+            },
+            "constructor/bare": {
+              "callee-not-a-graph-node": 13557
+            },
+            "method/self": {
+              "call-not-seen-same-file": 6912,
+              "call-not-linked-cross-file": 6155,
+              "every-call-site-masked-by-graph": 1
+            },
+            "constructor/qualified": {
+              "callee-not-a-graph-node": 2893
+            },
+            "function/qualified": {
+              "call-not-linked-cross-file": 1485
+            },
+            "method/bare": {
+              "call-not-seen-same-file": 9
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 5669,
+          "graphPairs": 1135,
+          "found": 1117
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "django/__init__.py#setup -> django/apps/registry.py#populate",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "django/__init__.py#setup -> django/urls/base.py#set_script_prefix",
+              "kind": "function/bare",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "django/apps/config.py#__init__ -> django/apps/config.py#_path_from_module",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/config.py#__init__ -> django/core/exceptions.py#ImproperlyConfigured",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "django/apps/config.py#_path_from_module -> django/core/exceptions.py#ImproperlyConfigured",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "django/apps/config.py#create -> django/core/exceptions.py#ImproperlyConfigured",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "django/apps/registry.py#__init__ -> django/apps/registry.py#populate",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#apply_next_model -> django/apps/registry.py#lazy_model_operation",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#check_apps_ready -> django/core/exceptions.py#AppRegistryNotReady",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "django/apps/registry.py#check_models_ready -> django/core/exceptions.py#AppRegistryNotReady",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "django/apps/registry.py#get_app_config -> django/apps/registry.py#check_apps_ready",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_app_config -> django/apps/registry.py#get_app_configs",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_app_configs -> django/apps/registry.py#check_apps_ready",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_containing_app_config -> django/apps/registry.py#check_apps_ready",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_model -> django/apps/registry.py#check_apps_ready",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_model -> django/apps/registry.py#check_models_ready",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_model -> django/apps/registry.py#get_app_config",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_models -> django/apps/registry.py#check_models_ready",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#get_swappable_settings_name -> django/apps/registry.py#get_models",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#is_installed -> django/apps/registry.py#check_apps_ready",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#lazy_model_operation -> django/apps/registry.py#get_registered_model",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#populate -> django/apps/config.py#create",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "django/apps/registry.py#populate -> django/apps/registry.py#clear_cache",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#populate -> django/apps/registry.py#get_app_configs",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "django/apps/registry.py#populate -> django/core/exceptions.py#ImproperlyConfigured",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "django/contrib/admin/decorators.py#register -> django/contrib/admin/decorators.py#_model_admin_wrapper",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#_get_list_editable_queryset -> django/forms/models.py#validate",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#get_formset -> django/contrib/admin/options.py#hand_clean_DELETE",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#get_formset -> django/contrib/admin/options.py#has_changed",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#get_formset -> django/contrib/admin/options.py#is_valid",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#get_formset -> django/utils/text.py#get_text_list",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#get_formset -> django/utils/translation/__init__.py#ngettext",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#get_urls -> django/contrib/admin/options.py#wrapper",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#get_urls -> django/forms/widgets.py#path",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/options.py#wrap -> django/contrib/admin/options.py#wrapper",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/sites.py#admin_view -> django/contrib/admin/sites.py#inner",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/sites.py#admin_view -> django/contrib/auth/views.py#redirect_to_login",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/sites.py#get_urls -> django/contrib/admin/sites.py#wrapper",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/sites.py#wrap -> django/contrib/admin/sites.py#wrapper",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/templatetags/admin_filters.py#list_formatter -> django/contrib/admin/templatetags/admin_filters.py#escaper",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/templatetags/admin_filters.py#truncated_unordered_list -> django/contrib/admin/templatetags/admin_filters.py#escaper",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/templatetags/admin_filters.py#truncated_unordered_list -> django/template/defaultfilters.py#_walk_items",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/templatetags/admin_urls.py#add_preserved_filters -> django/contrib/admin/utils.py#unquote",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/utils.py#_nested -> django/contrib/admin/utils.py#format_callback",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/utils.py#get_deleted_objects -> django/contrib/admin/utils.py#display_for_value",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/utils.py#get_deleted_objects -> django/contrib/admin/utils.py#quote",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admin/utils.py#get_deleted_objects -> django/utils/html.py#format_html",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admin/utils.py#get_deleted_objects -> django/utils/text.py#capfirst",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "django/contrib/admindocs/utils.py#create_reference_role -> django/contrib/admindocs/utils.py#_role",
+              "calleeKind": "function",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "django/contrib/admindocs/utils.py#create_reference_role -> django/contrib/admindocs/utils.py#split_explicit_title",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            }
+          ]
+        }
+      }
+    },
+    "go": {
+      "gin": {
+        "status": "measured",
+        "commit": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6",
+        "indexer": "scip-go@0.2.9",
+        "summary": {
+          "referenceEdges": 2212,
+          "graphEdges": 1018,
+          "found": 1010,
+          "recall": 0.4566003616636528,
+          "precision": 0.9921414538310412,
+          "judgeablePrecision": 0.9921414538310412,
+          "functionRecall": 0.9786821705426356,
+          "receiverOnlyMethodRecall": 0
+        },
+        "scope": {
+          "graphFiles": 96,
+          "indexedFiles": 99,
+          "universeFiles": 90,
+          "graphEdges": 1021,
+          "graphEdgesInU": 1018,
+          "referenceEdges": 2212,
+          "referenceEdgesInU": 2212,
+          "truePositives": 1010,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 0,
+            "calleeNotWalked": 0
+          },
+          "scopeInclusiveRecall": 0.4566003616636528
+        },
+        "diagnostics": {
+          "edges": 2212,
+          "nonCall": 2110,
+          "topLevel": 12,
+          "external": 6041,
+          "selfEdges": 14,
+          "sourceMissing": 6,
+          "rangeMismatch": 0,
+          "wrongEdges": 8,
+          "wrongEdgesByReason": {
+            "both-in-index": 7,
+            "callee-declared-inside-caller": 1
+          },
+          "missedByReason": {
+            "function/qualified": {
+              "call-not-linked-cross-file": 13
+            },
+            "method/receiver": {
+              "call-not-seen-same-file": 192,
+              "call-not-linked-cross-file": 972,
+              "caller-not-a-graph-node": 1
+            },
+            "constructor/bare": {
+              "callee-not-a-graph-node": 15
+            },
+            "function/bare": {
+              "call-not-linked-cross-file": 8,
+              "call-not-seen-same-file": 1
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 184,
+          "graphPairs": 107,
+          "found": 104
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "auth_test.go#TestBasicAuth401 -> context.go#MustGet",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401 -> context.go#String",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401 -> gin.go#ServeHTTP",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401 -> gin.go#Use",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401 -> routergroup.go#GET",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401WithCustomRealm -> context.go#MustGet",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401WithCustomRealm -> context.go#String",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401WithCustomRealm -> gin.go#ServeHTTP",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401WithCustomRealm -> gin.go#Use",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuth401WithCustomRealm -> routergroup.go#GET",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxy407 -> context.go#MustGet",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxy407 -> context.go#String",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxy407 -> gin.go#ServeHTTP",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxy407 -> gin.go#Use",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxy407 -> routergroup.go#Any",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxySucceed -> context.go#MustGet",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxySucceed -> context.go#String",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxySucceed -> gin.go#ServeHTTP",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxySucceed -> gin.go#Use",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthForProxySucceed -> routergroup.go#Any",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthSearchCredential -> auth.go#searchCredential",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthSucceed -> context.go#MustGet",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthSucceed -> context.go#String",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthSucceed -> gin.go#ServeHTTP",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "auth_test.go#TestBasicAuthSucceed -> gin.go#Use",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "context_test.go#TestRaceParamsContextCopy -> binding/binding.go#Default",
+              "calleeKind": "function",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "ginS/gins_test.go#TestNoMethod -> gin.go#NoMethod",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "ginS/gins_test.go#TestNoRoute -> gin.go#NoRoute",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "ginS/gins_test.go#TestRoutes -> gin.go#Routes",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "ginS/gins_test.go#TestSetHTMLTemplate -> gin.go#SetHTMLTemplate",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "ginS/gins_test.go#TestUse -> gin.go#Use",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "recovery.go#CustomRecoveryWithWriter -> routergroup.go#handle",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "utils_test.go#TestBindMiddleware -> binding/xml.go#Bind",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            }
+          ]
+        }
+      },
+      "gorm": {
+        "status": "measured",
+        "commit": "1d6ce99528060be18a42be09aca8d39efcb47f28",
+        "indexer": "scip-go@0.2.9",
+        "summary": {
+          "referenceEdges": 1020,
+          "graphEdges": 169,
+          "found": 164,
+          "recall": 0.1607843137254902,
+          "precision": 0.9704142011834319,
+          "judgeablePrecision": 0.9704142011834319,
+          "functionRecall": 0.5754385964912281,
+          "receiverOnlyMethodRecall": 0
+        },
+        "scope": {
+          "graphFiles": 153,
+          "indexedFiles": 111,
+          "universeFiles": 96,
+          "graphEdges": 460,
+          "graphEdgesInU": 169,
+          "referenceEdges": 1028,
+          "referenceEdgesInU": 1020,
+          "truePositives": 164,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 0,
+            "calleeNotWalked": 8
+          },
+          "scopeInclusiveRecall": 0.15953307392996108
+        },
+        "diagnostics": {
+          "edges": 1028,
+          "nonCall": 3052,
+          "topLevel": 3,
+          "external": 2841,
+          "selfEdges": 26,
+          "sourceMissing": 6,
+          "rangeMismatch": 0,
+          "wrongEdges": 5,
+          "wrongEdgesByReason": {
+            "both-in-index": 3,
+            "callee-declared-inside-caller": 2
+          },
+          "missedByReason": {
+            "method/receiver": {
+              "call-not-linked-cross-file": 521,
+              "call-not-seen-same-file": 194,
+              "caller-not-a-graph-node": 3
+            },
+            "function/qualified": {
+              "call-not-linked-cross-file": 117,
+              "callee-not-a-graph-node": 1
+            },
+            "function/bare": {
+              "call-not-seen-same-file": 1,
+              "call-not-linked-cross-file": 1,
+              "callee-not-a-graph-node": 1
+            },
+            "constructor/bare": {
+              "callee-not-a-graph-node": 12
+            },
+            "constructor/qualified": {
+              "callee-not-a-graph-node": 4
+            },
+            "method/bare": {
+              "call-not-linked-cross-file": 1
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 201,
+          "graphPairs": 45,
+          "found": 44
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "association.go#Append -> association.go#Replace",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "association.go#Append -> association.go#saveAssociation",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "association.go#Association -> statement.go#Parse",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#buildCondition -> chainable_api.go#Clauses",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#buildCondition -> chainable_api.go#Model",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#buildCondition -> gorm.go#Session",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#buildCondition -> schema/relationship.go#ToQueryConditions",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#buildCondition -> statement.go#AddClause",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#buildCondition -> statement.go#Build",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Clear -> association.go#Replace",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "association.go#Count -> association.go#buildCondition",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "association.go#Count -> finisher_api.go#Count",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> chainable_api.go#Clauses",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> chainable_api.go#Model",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> chainable_api.go#Where",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> finisher_api.go#Delete",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> finisher_api.go#UpdateColumns",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> gorm.go#Session",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> schema/utils.go#GetIdentityFieldValuesMap",
+              "kind": "function/qualified",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> schema/utils.go#GetIdentityFieldValuesMapFromValues",
+              "kind": "function/qualified",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> schema/utils.go#ToQueryValues",
+              "kind": "function/qualified",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Delete -> utils/utils.go#ToStringKey",
+              "kind": "function/qualified",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Find -> association.go#buildCondition",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "association.go#Find -> finisher_api.go#Find",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "association.go#Replace -> association.go#saveAssociation",
+              "kind": "method/receiver",
+              "reason": "call-not-seen-same-file"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "finisher_api.go#ScanRows -> finisher_api.go#Scan",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "generics.go#Joins -> generics.go#getInstance",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "gorm.go#Open -> gorm.go#Apply",
+              "calleeKind": "method",
+              "reason": "both-in-index"
+            },
+            {
+              "edge": "gorm.go#Open -> prepare_stmt.go#Ping",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            },
+            {
+              "edge": "statement.go#AddVar -> generics.go#getInstance",
+              "calleeKind": "method",
+              "reason": "callee-declared-inside-caller"
+            }
+          ]
+        }
+      }
+    },
+    "java": {
+      "gson": {
+        "status": "unmeasured",
+        "commit": "c9f3fd55854a743b66f857ace3c7b268ea3e2ef7",
+        "reason": "the indexer exited 1: [ERROR] COMPILATION ERROR : | [ERROR] error: invalid flag:                 -XepExcludedPaths:.*/generated-test-sources/protobuf/.* | [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project gson: Compilation failure"
+      },
+      "spring-petclinic": {
+        "status": "measured",
+        "commit": "edf4db28affcc4741c79850a3d95bc3f177b5ff9",
+        "indexer": "scip-java@0.12.3",
+        "summary": {
+          "referenceEdges": 230,
+          "graphEdges": 106,
+          "found": 104,
+          "recall": 0.45217391304347826,
+          "precision": 0.9811320754716981,
+          "judgeablePrecision": 1,
+          "functionRecall": null,
+          "receiverOnlyMethodRecall": 0.43820224719101125
+        },
+        "scope": {
+          "graphFiles": 39,
+          "indexedFiles": 47,
+          "universeFiles": 39,
+          "graphEdges": 106,
+          "graphEdgesInU": 106,
+          "referenceEdges": 240,
+          "referenceEdgesInU": 230,
+          "truePositives": 104,
+          "referenceEdgesOutsideU": {
+            "callerNotWalked": 1,
+            "calleeNotWalked": 9
+          },
+          "scopeInclusiveRecall": 0.43333333333333335
+        },
+        "diagnostics": {
+          "edges": 240,
+          "nonCall": 224,
+          "topLevel": 1,
+          "external": 2109,
+          "selfEdges": 1,
+          "sourceMissing": 0,
+          "rangeMismatch": 0,
+          "wrongEdges": 2,
+          "wrongEdgesByReason": {
+            "callee-not-in-index": 2
+          },
+          "missedByReason": {
+            "method/self": {
+              "call-not-seen-same-file": 1,
+              "call-not-linked-cross-file": 4
+            },
+            "method/receiver": {
+              "call-not-linked-cross-file": 91,
+              "caller-not-a-graph-node": 3,
+              "callee-not-a-graph-node": 1
+            },
+            "constructor/bare": {
+              "callee-not-a-graph-node": 22,
+              "caller-not-a-graph-node": 1,
+              "call-not-linked-cross-file": 2
+            },
+            "method/bare": {
+              "call-not-linked-cross-file": 1
+            }
+          }
+        },
+        "fileLevel": {
+          "referencePairs": 72,
+          "graphPairs": 31,
+          "found": 31
+        },
+        "samples": {
+          "missed": [
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java#toString -> src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java#getName",
+              "kind": "method/self",
+              "reason": "call-not-seen-same-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#addPet -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#isNew",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#getPet -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#getId",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#getPet -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#isNew",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#getPet -> src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java#getName",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#toString -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#getId",
+              "kind": "method/self",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#toString -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#isNew",
+              "kind": "method/self",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#toString -> src/main/java/org/springframework/samples/petclinic/model/Person.java#getFirstName",
+              "kind": "method/self",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/Owner.java#toString -> src/main/java/org/springframework/samples/petclinic/model/Person.java#getLastName",
+              "kind": "method/self",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#findOwner -> src/main/java/org/springframework/samples/petclinic/owner/Owner.java#Owner",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#findOwner -> src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java#findById",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#processCreationForm -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#getId",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#processFindForm -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#getId",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#processFindForm -> src/main/java/org/springframework/samples/petclinic/model/Person.java#getLastName",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#processUpdateOwnerForm -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#getId",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#processUpdateOwnerForm -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#setId",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java#showOwner -> src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java#findById",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#findOwner -> src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java#findById",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#findPet -> src/main/java/org/springframework/samples/petclinic/owner/OwnerRepository.java#findById",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#findPet -> src/main/java/org/springframework/samples/petclinic/owner/Pet.java#Pet",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#initCreationForm -> src/main/java/org/springframework/samples/petclinic/owner/Pet.java#Pet",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#initPetBinder -> src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java#PetValidator",
+              "kind": "constructor/bare",
+              "reason": "callee-not-a-graph-node"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#populatePetTypes -> src/main/java/org/springframework/samples/petclinic/owner/PetTypeRepository.java#findPetTypes",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#processCreationForm -> src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java#isNew",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            },
+            {
+              "edge": "src/main/java/org/springframework/samples/petclinic/owner/PetController.java#processCreationForm -> src/main/java/org/springframework/samples/petclinic/model/NamedEntity.java#getName",
+              "kind": "method/receiver",
+              "reason": "call-not-linked-cross-file"
+            }
+          ],
+          "wrong": [
+            {
+              "edge": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java#checkI18nPropertyFilesAreInSync -> src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java#try",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            },
+            {
+              "edge": "src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java#checkNonInternationalizedStrings -> src/test/java/org/springframework/samples/petclinic/system/I18nPropertiesSyncTest.java#try",
+              "calleeKind": "unknown",
+              "reason": "callee-not-in-index"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "unmeasured": {
+    "java/gson": "the indexer exited 1: [ERROR] COMPILATION ERROR : | [ERROR] error: invalid flag:                 -XepExcludedPaths:.*/generated-test-sources/protobuf/.* | [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project gson: Compilation failure"
+  },
+  "predictions": {
+    "P1": {
+      "claim": "receiver-only method recall is below 15% in typescript, javascript, python and go, because buildCallGraph resolves `.name(` calls through a receiver type only for Java (typeMap is built only for JAVA_EXTS)",
+      "status": "held",
+      "parts": [
+        {
+          "group": "typescript",
+          "value": 0,
+          "ok": true
+        },
+        {
+          "group": "javascript",
+          "value": 0,
+          "note": "not testable"
+        },
+        {
+          "group": "python",
+          "value": 0.0012990822612412522,
+          "ok": true
+        },
+        {
+          "group": "go",
+          "value": 0,
+          "ok": true
+        }
+      ]
+    },
+    "P2": {
+      "claim": "recall of `function` edges with a bare site is between 50% and 90% in every measured group",
+      "status": "missed",
+      "parts": [
+        {
+          "group": "typescript",
+          "value": 0.26537216828478966,
+          "ok": false
+        },
+        {
+          "group": "javascript",
+          "value": 0.9925925925925926,
+          "ok": false
+        },
+        {
+          "group": "python",
+          "value": 0.5570022229279136,
+          "ok": true
+        },
+        {
+          "group": "go",
+          "value": 0.9898819561551433,
+          "ok": false
+        },
+        {
+          "group": "java",
+          "value": null,
+          "note": "not testable"
+        }
+      ]
+    },
+    "P3": {
+      "claim": "overall precision is between 50% and 90% in every measured group, driven by calls that match a same-named definition that is not the one the compiler resolved",
+      "status": "missed",
+      "parts": [
+        {
+          "group": "typescript",
+          "value": 0.060073260073260075,
+          "ok": false
+        },
+        {
+          "group": "javascript",
+          "value": 0.4511784511784512,
+          "ok": false
+        },
+        {
+          "group": "python",
+          "value": 0.6927621861152142,
+          "ok": true
+        },
+        {
+          "group": "go",
+          "value": 0.9890480202190396,
+          "ok": false
+        },
+        {
+          "group": "java",
+          "value": 0.9811320754716981,
+          "ok": false
+        }
+      ]
+    },
+    "P4": {
+      "claim": "`constructor` recall is below 10% in typescript, javascript and python, because classes are not nodes of the graph",
+      "status": "held",
+      "parts": [
+        {
+          "group": "typescript",
+          "value": 0,
+          "ok": true
+        },
+        {
+          "group": "javascript",
+          "value": 0,
+          "note": "not testable"
+        },
+        {
+          "group": "python",
+          "value": 0,
+          "ok": true
+        }
+      ]
+    },
+    "P5": {
+      "claim": "in java, receiver-only method recall is higher than in any other group but still below 70%",
+      "status": "held",
+      "parts": [
+        {
+          "group": "java",
+          "value": 0.43820224719101125
+        }
+      ]
+    }
+  },
+  "version": "8.82.0",
+  "generated": "2026-10-26T00:17:55.886Z"
+}

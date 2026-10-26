@@ -1,0 +1,99 @@
+{
+  "_comment": "Pre-registration for scripts/run-callgraph-accuracy.mjs (#976). Committed BEFORE the harness was run on any repository listed under `repos`; the prose is benchmarks/CALLGRAPH_ACCURACY_PROTOCOL.md. The harness reads this file, records its sha256 in the report and refuses --save when it differs from the committed copy. A change after the first run is a deviation: add it to the Deviation log in the prose protocol with its date and reason, and keep the first run's numbers in the report history. Never edit a value here to make a result look better.",
+  "schema": 1,
+  "issue": 976,
+  "registeredAt": "2026-10-26",
+  "system": {
+    "under_test": "buildCallGraph(cwd) from src/graph/call-graph.js, zero config, on a git archive copy of the pinned commit",
+    "reference": "caller-to-callee edges derived from a SCIP index of the same copy (compiler-derived, not ground truth)"
+  },
+  "indexers": {
+    "typescript": { "package": "@sourcegraph/scip-typescript", "version": "0.5.2", "covers": ["typescript", "javascript"], "wave": 1 },
+    "python": { "package": "@sourcegraph/scip-python", "version": "0.6.8", "covers": ["python"], "wave": 1 },
+    "go": {
+      "package": "github.com/scip-code/scip-go",
+      "version": "0.2.9",
+      "covers": ["go"],
+      "wave": 2,
+      "toolchain": { "go": "1.27.3" },
+      "note": "pinned 2026-10-26, before the first Go run; the Go toolchain and scip-go are installed into the setup directory, never system-wide"
+    },
+    "java": {
+      "package": "com.sourcegraph:scip-java_2.13",
+      "version": "0.12.3",
+      "covers": ["java"],
+      "wave": 2,
+      "toolchain": { "jdk": "21.0.13+9", "coursier": "2.1.24", "coursierSha256": { "darwin-arm64": "53a5728c2016118c8296fa7d5678ddfe122e22dc6c36deb554d771b3b9295b4f" }, "buildTool": "maven" },
+      "note": "pinned 2026-10-26, before the first Java run; Temurin JDK and the scip-java launcher are installed into the setup directory, never system-wide; the pinned repositories are indexed with `--build-tool maven`"
+    }
+  },
+  "typescriptProject": {
+    "typescript": "use the repository's own root tsconfig.json unchanged",
+    "javascript": "replace any tsconfig.json in the measurement copy with `javascriptConfig`",
+    "javascriptConfig": { "compilerOptions": { "allowJs": true, "checkJs": false, "noEmit": true }, "include": ["**/*"], "exclude": ["node_modules"] }
+  },
+  "repos": {
+    "typescript": [
+      { "name": "zod", "commit": "912f0f51b0ced654d0069741e7160834dca742ee", "url": "https://github.com/colinhacks/zod.git" },
+      { "name": "excalidraw", "commit": "ed10ac7dca7e40f3f4a31269b4bfba980d0db41e", "url": "https://github.com/excalidraw/excalidraw.git" }
+    ],
+    "javascript": [
+      { "name": "express", "commit": "8e022edc9185f540a3fcecaf5e56b850d919cdac", "url": "https://github.com/expressjs/express.git" },
+      { "name": "fastify", "commit": "890ab7578f14730b2fed6de43acfeee19da1a3e4", "url": "https://github.com/fastify/fastify.git" }
+    ],
+    "python": [
+      { "name": "flask", "commit": "2ac89889f4cc330eabd50f295dcef02828522c69", "url": "https://github.com/pallets/flask.git" },
+      { "name": "fastapi", "commit": "9653034b8d459607a4b7f761e6c23a6f287fa5fa", "url": "https://github.com/fastapi/fastapi.git" },
+      { "name": "django", "commit": "a461af8ce48762d7ec602260aaff81014ddccbcb", "url": "https://github.com/django/django.git" }
+    ],
+    "go": [
+      { "name": "gin", "commit": "d3ffc9985281dcf4d3bef604cce4e662b1a327a6", "url": "https://github.com/gin-gonic/gin.git" },
+      { "name": "gorm", "commit": "1d6ce99528060be18a42be09aca8d39efcb47f28", "url": "https://github.com/go-gorm/gorm.git" }
+    ],
+    "java": [
+      { "name": "gson", "commit": "c9f3fd55854a743b66f857ace3c7b268ea3e2ef7", "url": "https://github.com/google/gson.git" },
+      { "name": "spring-petclinic", "commit": "edf4db28affcc4741c79850a3d95bc3f177b5ff9", "url": "https://github.com/spring-projects/spring-petclinic.git" }
+    ]
+  },
+  "substitution": "none: a repository whose indexer fails, or runs past `indexTimeoutMinutes`, is reported unmeasured with the reason and is not replaced",
+  "indexTimeoutMinutes": 30,
+  "development": {
+    "repos": ["sigmap (src/ of this repository, as JavaScript)", "click (benchmarks/repos/click, as Python)"],
+    "why": "The reference deriver was built and debugged on repositories that are not in `repos`, so no rule was tuned on a measured repository."
+  },
+  "edge": {
+    "identity": "<repo-relative path>#<bare name>, the node id buildCallGraph uses; callerId -> calleeId, directed, self edges dropped",
+    "kinds": ["function", "method", "constructor"],
+    "sites": ["bare", "self", "receiver", "qualified"],
+    "callSite": "the next non-blank character after the reference is '(' once a balanced <...> on the same line has been skipped",
+    "selfReceivers": ["this", "self", "cls", "super"]
+  },
+  "universe": {
+    "primary": "edges whose caller file and callee file are both in U = (files with at least one definition in buildCallGraph) intersect (documents of the SCIP index)",
+    "secondary": "every reference edge between SCIP documents, whatever the graph walked (scope-inclusive recall)"
+  },
+  "metrics": {
+    "precision": "|graph edges in U that are also reference edges| / |graph edges in U|",
+    "recall": "|reference edges in U that are also graph edges| / |reference edges in U|",
+    "f1": "harmonic mean of the two",
+    "pooling": "micro-average over the repositories of a language group",
+    "fileLevel": "undirected file pairs, caller file != callee file, on both sides"
+  },
+  "minSample": 100,
+  "bootstrap": { "resamples": 2000, "seed": 976, "cluster": "caller file", "interval": 0.95 },
+  "threshold": {
+    "name": "receiver-only method recall",
+    "statistic": "pooled in-scope recall of reference edges of kind `method` whose sites are all `self` or `receiver` (no bare site)",
+    "value": 0.7,
+    "applies": "per language group with at least `minSample` such reference edges",
+    "if_below": "a spike is warranted for a zero-dependency receiver-type pass that extends buildTypeMap (no type checker, no Tree-sitter) for that language",
+    "spikeAcceptance": "the pass is kept only if it raises receiver-only method recall by at least 20 points in that language and lowers overall precision by no more than 2 points, both measured by this harness on the same repositories"
+  },
+  "predictions": [
+    { "id": "P1", "claim": "receiver-only method recall is below 15% in typescript, javascript, python and go, because buildCallGraph resolves `.name(` calls through a receiver type only for Java (typeMap is built only for JAVA_EXTS)" },
+    { "id": "P2", "claim": "recall of `function` edges with a bare site is between 50% and 90% in every measured group" },
+    { "id": "P3", "claim": "overall precision is between 50% and 90% in every measured group, driven by calls that match a same-named definition that is not the one the compiler resolved" },
+    { "id": "P4", "claim": "`constructor` recall is below 10% in typescript, javascript and python, because classes are not nodes of the graph" },
+    { "id": "P5", "claim": "in java, receiver-only method recall is higher than in any other group but still below 70%" }
+  ]
+}
