@@ -39909,6 +39909,7 @@ __factories["./src/verify/coverage"] = function(module, exports) {
     return (libraries || []).map((l) => {
       const pin = l.version ? `${l.name}@${l.version}` : l.name;
       if (!l.symbols) return `${pin}: no readable types — library imports not checked`;
+      if (l.partial) return `${pin}: ${l.symbols} name${l.symbols === 1 ? '' : 's'} indexed (partial: not every name could be read, so a name that is absent is not proof)`;
       return `${pin}: ${l.symbols} name${l.symbols === 1 ? '' : 's'} indexed`;
     });
   }
@@ -40557,7 +40558,7 @@ __factories["./src/verify/hallucination-guard"] = function(module, exports) {
       symbolsConfirmed: sourceConfirmed.size,
       withSuggestion: issues.filter((i) => i.suggestion).length,
       librariesIndexed: libraries.length,
-      libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed })),
+      libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed, ...(l.partial ? { partial: true } : {}) })),
       // Claims each class decided (#989): the number a clean verdict is a verdict ON.
       claims: { ...claims, total: claims.files + claims.imports + claims.symbols + claims.scripts },
       // Which claim classes actually ran (J1, #640): lets callers distinguish
@@ -40979,7 +40980,9 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
    * Two ecosystems, one index:
    *   - **JS/TS** — each **direct** dependency in `package.json` resolved under
    *     `node_modules/<dep>`; exports read from its TypeScript declaration entry
-   *     (`types`/`typings`, else `index.d.ts`).
+   *     (`types`/`typings`, `exports` types, `typesVersions`, else `index.d.ts`; or
+   *     `node_modules/@types/<dep>` when the package ships none), and followed through
+   *     the relative `export * from` barrels that most large libraries are made of (#990).
    *   - **Python** — each direct dependency in `requirements.txt`/`pyproject.toml`
    *     resolved in the project's venv `site-packages`; exports read from the
    *     package's `__init__.py`/`.pyi`. No Python runtime is spawned (North-Star #1).
@@ -40995,6 +40998,12 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
 
   const MAX_DTS_BYTES = 512 * 1024; // per-file read cap
   const MAX_DEPS = 1000;            // dep count cap
+  const MAX_PARTS = 400;            // declaration files read for one library (barrels included)
+  const MAX_DTS_FILE_BYTES = 4 * 1024 * 1024;  // one declaration file (valibot's is 630 KB, @types/node's larger)
+  const MAX_PARTS_BYTES = 16 * 1024 * 1024;    // total bytes read for one library
+  // `typesVersions` keys are TypeScript version ranges. A fixed assumption keeps the
+  // answer the same on every machine, instead of depending on whichever compiler is installed.
+  const ASSUMED_TS = [5, 9];
   const DEP_KEYS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
   const VENV_DIRS = ['.venv', 'venv', 'env', '.env'];
 
@@ -41046,30 +41055,243 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     return [...names].sort();
   }
 
+  function readJson(p) {
+    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; }
+  }
+
+  function isFile(p) {
+    try { return fs.statSync(p).isFile(); } catch (_) { return false; }
+  }
+
+  /** `foo.js` → `foo.d.ts`, `foo.mjs` → `foo.d.mts`, `foo.cjs` → `foo.d.cts` (how TypeScript pairs them). */
+  function declarationOf(rel) {
+    const m = rel.match(/^(.*)\.(js|mjs|cjs)$/);
+    if (!m) return rel;
+    return `${m[1]}.d.${m[2] === 'js' ? 'ts' : m[2].replace('js', 'ts')}`;
+  }
+
+  /** Whether a `typesVersions` range key applies to the compiler version assumed above. */
+  function rangeApplies(range) {
+    if (range === '*') return true;
+    const m = String(range).trim().match(/^>=?\s*(\d+)\.(\d+)/);
+    if (!m) return false;
+    const [maj, min] = [Number(m[1]), Number(m[2])];
+    return maj < ASSUMED_TS[0] || (maj === ASSUMED_TS[0] && min <= ASSUMED_TS[1]);
+  }
+
+  /**
+   * Where `typesVersions` sends a package-relative path: the first range that applies
+   * and has a pattern matching it, as TypeScript does. The path itself when none does.
+   */
+  function applyTypesVersions(pkg, rel) {
+    const tv = pkg && pkg.typesVersions;
+    if (!tv || typeof tv !== 'object') return [rel];
+    const want = rel.replace(/^\.\//, '');
+    for (const range of Object.keys(tv)) {
+      if (!rangeApplies(range) || !tv[range] || typeof tv[range] !== 'object') continue;
+      const out = [];
+      for (const pattern of Object.keys(tv[range])) {
+        const targets = [].concat(tv[range][pattern]).filter((t) => typeof t === 'string');
+        const star = pattern.indexOf('*');
+        let captured = null;
+        if (star === -1) {
+          if (pattern.replace(/^\.\//, '') === want) captured = '';
+        } else {
+          const pre = pattern.slice(0, star).replace(/^\.\//, '');
+          const post = pattern.slice(star + 1);
+          if (want.startsWith(pre) && want.endsWith(post) && want.length >= pre.length + post.length) {
+            captured = want.slice(pre.length, want.length - post.length);
+          }
+        }
+        if (captured === null) continue;
+        for (const t of targets) out.push(t.replace('*', captured));
+      }
+      if (out.length) return out;
+    }
+    return [rel];
+  }
+
+  /** The declaration (or, failing that, JS) paths a package.json `exports` map names for `subpath` ('.' is the root). */
+  function exportsEntries(pkg, subpath = '.') {
+    const ex = pkg && pkg.exports;
+    if (!ex) return [];
+    const out = [];
+    const visit = (node, depth) => {
+      if (node == null || depth > 6) return;
+      if (typeof node === 'string') { out.push(node); return; }
+      if (Array.isArray(node)) { for (const n of node) visit(n, depth + 1); return; }
+      if (typeof node !== 'object') return;
+      if ('types' in node) visit(node.types, depth + 1); // the `types` condition leads
+      for (const k of Object.keys(node)) {
+        if (k === 'types' || (k.startsWith('.') && k !== '.')) continue; // a subpath, not the root
+        visit(node[k], depth + 1);
+      }
+    };
+    const subpathMap = typeof ex === 'object' && !Array.isArray(ex) && Object.keys(ex).some((k) => k.startsWith('.'));
+    if (subpathMap) visit(ex[subpath], 0);
+    else if (subpath === '.') visit(ex, 0);
+    return out;
+  }
+
+  /** `@scope/name` → `@types/scope__name`; `name` → `@types/name`. */
+  function typesPackageName(dep) {
+    return dep.startsWith('@') ? `@types/${dep.slice(1).replace('/', '__')}` : `@types/${dep}`;
+  }
+
+  /** Candidate declaration paths inside one package directory, best first. */
+  function entryCandidates(pkg) {
+    const out = [];
+    const typesField = pkg.types || pkg.typings;
+    if (typeof typesField === 'string') {
+      out.push(...applyTypesVersions(pkg, typesField));
+      out.push(path.join(typesField, 'index.d.ts')); // typesField may be a dir
+    }
+    for (const e of exportsEntries(pkg)) out.push(/\.d\.[cm]?ts$/.test(e) ? e : declarationOf(e));
+    out.push(...applyTypesVersions(pkg, 'index.d.ts'));
+    if (typeof pkg.main === 'string') out.push(declarationOf(pkg.main), pkg.main.replace(/\.(js|cjs|mjs)$/, '.d.ts'));
+    return out;
+  }
+
+  function firstExisting(pkgDir, candidates) {
+    for (const c of candidates) {
+      const p = path.join(pkgDir, c);
+      if (isFile(p) && p.startsWith(pkgDir)) return p;
+    }
+    return null;
+  }
+
   /**
    * Resolve an installed dependency's version + entry `.d.ts` path.
-   * @returns {{ version: string|null, dtsPath: string|null }|null} null if not installed
+   *
+   * The package's own types come first — `types`/`typings`, the `exports` map's
+   * `types` condition, `typesVersions`, `index.d.ts`, `main` — and then
+   * `node_modules/@types/<dep>`, which is where an untyped package's declarations live.
+   *
+   * @returns {{ version: string|null, dtsPath: string|null, pkgDir: string, via: string|null }|null} null if not installed
    */
   function resolveEntry(cwd, dep) {
     const pkgDir = path.join(cwd, 'node_modules', dep);
-    let pkg;
-    try { pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf8')); } catch (_) { return null; }
+    const pkg = readJson(path.join(pkgDir, 'package.json'));
+    if (!pkg) return null;
     const version = typeof pkg.version === 'string' ? pkg.version : null;
 
-    const candidates = [];
-    const typesField = pkg.types || pkg.typings;
-    if (typeof typesField === 'string') {
-      candidates.push(typesField);
-      candidates.push(path.join(typesField, 'index.d.ts')); // typesField may be a dir
-    }
-    candidates.push('index.d.ts');
-    if (typeof pkg.main === 'string') candidates.push(pkg.main.replace(/\.(js|cjs|mjs)$/, '.d.ts'));
+    const own = firstExisting(pkgDir, entryCandidates(pkg));
+    if (own) return { version, dtsPath: own, pkgDir, via: 'package' };
 
-    for (const c of candidates) {
-      const p = path.join(pkgDir, c);
-      try { if (fs.statSync(p).isFile()) return { version, dtsPath: p }; } catch (_) { /* next */ }
+    const typesDir = path.join(cwd, 'node_modules', typesPackageName(dep));
+    const typesPkg = readJson(path.join(typesDir, 'package.json'));
+    if (typesPkg) {
+      const theirs = firstExisting(typesDir, entryCandidates(typesPkg));
+      if (theirs) return { version, dtsPath: theirs, pkgDir: typesDir, via: '@types' };
     }
-    return { version, dtsPath: null }; // installed but untyped
+    return { version, dtsPath: null, pkgDir, via: null }; // installed but untyped
+  }
+
+  /**
+   * Where a relative re-export specifier lands on disk, inside `root`, or null.
+   * `./x.js` and `./x.ts` are the declaration `./x.d.ts` (or `.d.cts`/`.d.mts`, in
+   * the family of the file that names it); `./x` is `x.d.ts` or `x/index.d.ts`.
+   */
+  function resolveReexport(fromFile, spec, root) {
+    const base = path.resolve(path.dirname(fromFile), spec);
+    const fam = (fromFile.match(/\.d\.([cm]?ts)$/) || [null, 'ts'])[1];
+    const stemmed = base.match(/^(.*)\.(?:js|mjs|cjs|ts|mts|cts)$/);
+    let cands;
+    if (/\.d\.[cm]?ts$/.test(base)) cands = [base];
+    else if (stemmed) cands = [`${stemmed[1]}.d.${fam}`, `${stemmed[1]}.d.ts`, `${stemmed[1]}.d.mts`, `${stemmed[1]}.d.cts`];
+    else cands = [`${base}.d.${fam}`, `${base}.d.ts`, `${base}.d.mts`, `${base}.d.cts`, path.join(base, `index.d.${fam}`), path.join(base, 'index.d.ts')];
+    for (const c of cands) {
+      if (c.startsWith(root + path.sep) && isFile(c)) return c;
+    }
+    return null;
+  }
+
+  /**
+   * Where a bare re-export specifier lands: another installed package (`export * from
+   * "types-ramda"`) or a subpath of the package itself (`export * from 'zustand/vanilla'`),
+   * found the way Node finds them — up the node_modules chain from the file naming it.
+   * @returns {{ file: string, root: string }|null}
+   */
+  function resolveBare(fromFile, spec) {
+    const parts = spec.split('/');
+    const name = spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+    const sub = spec.slice(name.length).replace(/^\//, '');
+    let dir = path.dirname(fromFile);
+    for (let i = 0; i < 24; i++) {
+      const pkgDir = path.join(dir, 'node_modules', name);
+      const pkg = readJson(path.join(pkgDir, 'package.json'));
+      if (pkg) {
+        let cands;
+        if (!sub) cands = entryCandidates(pkg);
+        else {
+          cands = exportsEntries(pkg, './' + sub).map((e) => (/\.d\.[cm]?ts$/.test(e) ? e : declarationOf(e)));
+          cands.push(`${sub}.d.ts`, path.join(sub, 'index.d.ts'), declarationOf(sub));
+        }
+        const file = firstExisting(pkgDir, cands);
+        return file ? { file, root: pkgDir } : null;
+      }
+      const up = path.dirname(dir);
+      if (up === dir) break;
+      dir = up;
+    }
+    return null;
+  }
+
+  const EXPORT_STAR_RE = /\bexport\s*\*\s*(?:as\s+([A-Za-z_$][\w$]*)\s*)?from\s*(['"])([^'"\r\n]+)\2/g;
+
+  /**
+   * Every exported name of a library: its entry declaration file and the relative
+   * `export * from` files behind it. A barrel (`export * from './external'`) holds no
+   * names of its own, which is how zod and rxjs read as empty before (#990).
+   *
+   * `unread` counts what could not be enumerated — a re-export whose file is not there,
+   * the read caps, and an `export =` whose members are not listed — so a caller can say
+   * the list is partial instead of treating it as the whole.
+   *
+   * @returns {{ names: string[], parts: Array<[string, number]>, unread: number }}
+   */
+  function readDtsClosure(entryPath, root) {
+    const names = new Set();
+    const parts = [];
+    const seen = new Set();
+    const queue = [{ file: entryPath, root }];
+    let unread = 0;
+    let bytes = 0;
+    while (queue.length) {
+      const { file, root: pkgRoot } = queue.shift();
+      if (seen.has(file)) continue;
+      seen.add(file);
+      if (parts.length >= MAX_PARTS || bytes >= MAX_PARTS_BYTES) { unread++; continue; }
+      let src = '';
+      let mtime = 0;
+      try {
+        const st = fs.statSync(file);
+        mtime = st.mtimeMs;
+        if (st.size > MAX_DTS_FILE_BYTES) { unread++; parts.push([file, mtime]); continue; }
+        src = fs.readFileSync(file, 'utf8');
+      } catch (_) { unread++; continue; }
+      bytes += src.length;
+      parts.push([file, mtime]);
+      for (const n of extractDtsExports(src)) names.add(n);
+      // `export = X` makes X's members the module's names, and X is a namespace or interface
+      // whose members this extractor does not enumerate: the list is a floor, not the whole.
+      if (/\bexport\s*=\s*[A-Za-z_$]/.test(src)) unread++;
+      let m;
+      EXPORT_STAR_RE.lastIndex = 0;
+      while ((m = EXPORT_STAR_RE.exec(src)) !== null) {
+        if (m[1]) names.add(m[1]); // export * as ns from '…'
+        if (m[1]) continue; // its members are reached as ns.x, which is not a named import
+        const spec = m[3];
+        if (spec.startsWith('.')) {
+          const target = resolveReexport(file, spec, pkgRoot);
+          if (target) queue.push({ file: target, root: pkgRoot }); else unread++;
+        } else {
+          const target = resolveBare(file, spec);
+          if (target) queue.push(target); else unread++;
+        }
+      }
+    }
+    return { names: [...names].sort(), parts, unread };
   }
 
   // ── Python ──────────────────────────────────────────────────────────────────
@@ -41203,7 +41425,8 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
    * @param {object} [opts]
    * @param {string} [opts.version='0']  sigmap version, for cache busting
    * @param {boolean} [opts.cache=true]  use the on-disk sig-cache
-   * @returns {{ symbols: Set<string>, libraries: Array<{name,version,symbols,typed}>, count: number }}
+   * @returns {{ symbols: Set<string>, libraries: Array<{name,version,symbols,typed,partial}>, count: number }}
+   *   `partial` is present (true) only when a re-export behind the entry could not be read, so `symbols` is a floor
    */
   function buildLibraryIndex(cwd, opts = {}) {
     const version = opts.version || '0';
@@ -41213,7 +41436,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     const entries = []; // { name, version, sourcePath, kind: 'dts'|'py' }
     for (const dep of directDeps(cwd).slice(0, MAX_DEPS)) {
       const r = resolveEntry(cwd, dep);
-      if (r) entries.push({ name: dep, version: r.version, sourcePath: r.dtsPath, kind: 'dts' });
+      if (r) entries.push({ name: dep, version: r.version, sourcePath: r.dtsPath, pkgDir: r.pkgDir, kind: 'dts' });
     }
     const sitePkgs = findSitePackages(cwd);
     if (sitePkgs.length) {
@@ -41224,18 +41447,37 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
     }
 
     const cache = useCache ? loadCache(cwd, version) : new Map();
-    const files = entries.filter((e) => e.sourcePath).map((e) => e.sourcePath);
+    const files = entries.filter((e) => e.sourcePath && e.kind === 'py').map((e) => e.sourcePath);
     const { unchanged } = getChangedFiles(files, cache);
     const unchangedSet = new Set(unchanged);
+    const mtimeOf = (p) => { try { return fs.statSync(p).mtimeMs; } catch (_) { return null; } };
+    // A declaration entry is valid while every file it was read from is unchanged: a
+    // barrel's names live in its children, so the entry file's own mtime says nothing (#990).
+    const partsCurrent = (c, p) => !!c && Array.isArray(c.parts) && c.mtime === mtimeOf(p)
+      && c.parts.every(([f, m]) => mtimeOf(f) === m);
 
     const symbols = new Set();
     const libraries = [];
     const fresh = [];
 
+    let dirty = false;
     for (const e of entries) {
       let names;
+      let unread = 0;
       if (!e.sourcePath) {
         names = [];
+      } else if (e.kind === 'dts') {
+        const hit = cache.get(e.sourcePath);
+        if (useCache && partsCurrent(hit, e.sourcePath)) {
+          names = hit.sigs || [];
+          unread = hit.unread || 0;
+        } else {
+          const closure = readDtsClosure(e.sourcePath, e.pkgDir);
+          names = closure.names;
+          unread = closure.unread;
+          cache.set(e.sourcePath, { mtime: mtimeOf(e.sourcePath), sigs: names, parts: closure.parts, unread });
+          dirty = true;
+        }
       } else if (unchangedSet.has(e.sourcePath) && cache.get(e.sourcePath)) {
         names = cache.get(e.sourcePath).sigs || [];
       } else {
@@ -41243,14 +41485,14 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
         try {
           if (fs.statSync(e.sourcePath).size <= MAX_DTS_BYTES) src = fs.readFileSync(e.sourcePath, 'utf8');
         } catch (_) { /* unreadable → empty */ }
-        names = e.kind === 'py' ? extractPyExports(src) : extractDtsExports(src);
+        names = extractPyExports(src);
         fresh.push({ file: e.sourcePath, sigs: names });
       }
       for (const n of names) symbols.add(n);
-      libraries.push({ name: e.name, version: e.version, symbols: names.length, typed: !!e.sourcePath });
+      libraries.push({ name: e.name, version: e.version, symbols: names.length, typed: !!e.sourcePath, ...(unread > 0 ? { partial: true } : {}) });
     }
 
-    if (useCache && fresh.length) {
+    if (useCache && (fresh.length || dirty)) {
       updateCacheEntries(cache, fresh);
       saveCache(cwd, version, cache);
     }
@@ -41295,7 +41537,7 @@ __factories["./src/verify/lib-index"] = function(module, exports) {
   }
 
   module.exports = {
-    buildLibraryIndex, extractDtsExports, directDeps, resolveEntry, formatVersionPins,
+    buildLibraryIndex, extractDtsExports, directDeps, resolveEntry, readDtsClosure, formatVersionPins,
     collectVersionPins,
     extractPyExports, pythonDirectDeps, findSitePackages, resolvePyEntry,
   };

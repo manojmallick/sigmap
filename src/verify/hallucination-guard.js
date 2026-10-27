@@ -486,7 +486,7 @@ function verify(answerText, cwd, opts = {}) {
     symbolsConfirmed: sourceConfirmed.size,
     withSuggestion: issues.filter((i) => i.suggestion).length,
     librariesIndexed: libraries.length,
-    libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed })),
+    libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed, ...(l.partial ? { partial: true } : {}) })),
     // Claims each class decided (#989): the number a clean verdict is a verdict ON.
     claims: { ...claims, total: claims.files + claims.imports + claims.symbols + claims.scripts },
     // Which claim classes actually ran (J1, #640): lets callers distinguish

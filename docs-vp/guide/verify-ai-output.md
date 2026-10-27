@@ -185,14 +185,44 @@ The suggestion on each flag is the actual repo signature and its file.
 The `fake-symbol` check no longer knows only your repo's own symbols. It also
 grounds against the **libraries actually installed** in `node_modules`: for each
 **direct** dependency in `package.json`, SigMap reads that package's TypeScript
-declaration entry (`types`/`typings`, else `index.d.ts`) and unions its exported
-symbols into the known-symbol universe. So a genuine call like `` `Router()` ``
+declaration entry and unions its exported symbols into the known-symbol universe.
+The entry is found the way TypeScript finds it — `types`/`typings`, the `types`
+condition of the `exports` map, `typesVersions`, `index.d.ts`, `main` — and, for a
+package that ships none, in `node_modules/@types/<dep>`. So a genuine call like `` `Router()` ``
 or `` `debounce(fn)` `` from a real installed library is **no longer
 false-flagged**, while a call to a symbol that exists in neither the repo nor an
 installed library still surfaces. This is grounding no public-doc tool can do —
 it verifies against the *real installed tree*, with each library's version
 pinned in the summary (`name@version`). It's deterministic (byte-stable given a
 fixed installed tree), zero-dependency, cached, and runs automatically.
+
+**Barrels.** Most large libraries keep their names behind `export * from './…'`
+re-exports (zod, rxjs, date-fns, valibot), so SigMap follows those — relative ones,
+and ones that name another installed package or a subpath of the package itself —
+within fixed read limits. Before v8.84.0 only the entry file was read, and zod read
+as 1 name and rxjs as 0 while the output still said it was "grounded against" them.
+
+**What the output says about each library.** `verify_suggestion` lists every
+installed library with the number of names read:
+
+```text
+2 installed libraries read:
+  rxjs@7.8.2: 228 names indexed
+  lodash@4.18.1: 1 name indexed (partial: not every name could be read, so a name that is absent is not proof)
+```
+
+A library with no readable declarations is reported as `no readable types — library
+imports not checked`; it is never described as grounded against. **Partial** means
+something could not be enumerated — a re-export whose file is missing, a read limit,
+or an `export =` namespace (lodash, express, debug: their members are not listed
+yet) — so the count is a floor. `summary.libraries[].partial` carries the same flag.
+A named import is **not** checked against these names in this release; the lists
+currently only stop a real library call from being flagged as fake.
+
+Measure it on your own tree, or on the pinned 46-package sample, with
+`node scripts/measure-lib-index.mjs --dir <dir>` (it installs with
+`--ignore-scripts`; `--runtime` also compares with the package's runtime exports and
+does `require()` each one, so it is off by default).
 
 **Ecosystems:** JS/TS from `node_modules` (`.d.ts` exports). **Since v8.3.0,
 Python** too — SigMap reads direct deps from `requirements.txt`/`pyproject.toml`,

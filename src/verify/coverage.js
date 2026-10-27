@@ -127,6 +127,7 @@ function libraryLines(libraries) {
   return (libraries || []).map((l) => {
     const pin = l.version ? `${l.name}@${l.version}` : l.name;
     if (!l.symbols) return `${pin}: no readable types — library imports not checked`;
+    if (l.partial) return `${pin}: ${l.symbols} name${l.symbols === 1 ? '' : 's'} indexed (partial: not every name could be read, so a name that is absent is not proof)`;
     return `${pin}: ${l.symbols} name${l.symbols === 1 ? '' : 's'} indexed`;
   });
 }
