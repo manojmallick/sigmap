@@ -378,6 +378,8 @@ Every config key and its default:
 ```
 output = .github/copilot-instructions.md
 outputs = ["copilot"]
+codexMaxBytes = null
+claudeMaxLines = null
 adapters = null
 srcDirs = ["src","app","lib","packages","services","api","server","client","web","frontend","backend","desktop","mobile","shared","common","core","workers","functions","lambda","cmd","pages","components","hooks","routes","controllers","models","views","resources","config","db","projects","apps","libs","instance","blueprints","src/main/java","src/main/kotlin","src/main/scala","app/src/main/java","app/src/main/kotlin","src/test/java","src/test/kotlin"]
 exclude = ["node_modules",".git","dist","build","out","__pycache__",".next","coverage","target","vendor",".context","playwright-tmp","playwright-report","test-results",".turbo","storybook-static",".docusaurus"]

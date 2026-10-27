@@ -1,24 +1,24 @@
 {
   "overall": {
     "tasks": 208,
-    "hits": 115,
-    "hitAt5": 0.5528846153846154,
-    "mrr": 0.37934615384615383,
-    "precisionAt5": 0.1124903846153846
+    "hits": 118,
+    "hitAt5": 0.5673076923076923,
+    "mrr": 0.38590865384615386,
+    "precisionAt5": 0.11537499999999999
   },
   "why": {
-    "hits": 115,
+    "hits": 118,
     "misses": {
-      "answer not indexed": 13,
+      "answer not indexed": 8,
       "demoted by a path penalty": 0,
       "no token in common with the question": 3,
-      "ranked 6-10": 22,
-      "ranked 11-20": 15,
-      "ranked 21-50": 23,
-      "ranked beyond 50": 17
+      "ranked 6-10": 18,
+      "ranked 11-20": 19,
+      "ranked 21-50": 24,
+      "ranked beyond 50": 18
     },
-    "reachable": 192,
-    "reachableHits": 115,
+    "reachable": 197,
+    "reachableHits": 118,
     "noTokenWords": {
       "distinctive": 0,
       "commonOnly": 2,
@@ -51,14 +51,13 @@
       "tasks": 8,
       "hits": 3,
       "hitAt5": 0.375,
-      "mrr": 0.104,
+      "mrr": 0.098,
       "precisionAt5": 0.075,
       "unreachable": [
-        "x163",
-        "x165"
+        "x163"
       ],
       "ranks": {
-        "x161": 4,
+        "x161": 5,
         "x162": null,
         "x163": null,
         "x164": null,
@@ -89,7 +88,7 @@
       "tasks": 7,
       "hits": 4,
       "hitAt5": 0.571,
-      "mrr": 0.476,
+      "mrr": 0.464,
       "precisionAt5": 0.114,
       "unreachable": [
         "x071"
@@ -99,7 +98,7 @@
         "x067": 1,
         "x068": 1,
         "x069": null,
-        "x070": 3,
+        "x070": 4,
         "x071": null,
         "x072": null
       }
@@ -160,11 +159,11 @@
       "tasks": 6,
       "hits": 3,
       "hitAt5": 0.5,
-      "mrr": 0.389,
+      "mrr": 0.375,
       "precisionAt5": 0.1,
       "unreachable": [],
       "ranks": {
-        "x021": 3,
+        "x021": 4,
         "x022": null,
         "x023": null,
         "x024": null,
@@ -193,13 +192,13 @@
       "tasks": 4,
       "hits": 3,
       "hitAt5": 0.75,
-      "mrr": 0.438,
+      "mrr": 0.375,
       "precisionAt5": 0.15,
       "unreachable": [],
       "ranks": {
-        "x037": 1,
+        "x037": 2,
         "x038": 2,
-        "x039": 4,
+        "x039": 2,
         "x040": null
       }
     },
@@ -431,21 +430,16 @@
     "rails": {
       "language": "ruby",
       "tasks": 5,
-      "hits": 1,
-      "hitAt5": 0.2,
-      "mrr": 0.2,
-      "precisionAt5": 0.04,
-      "unreachable": [
-        "x084",
-        "x085",
-        "x087",
-        "x088"
-      ],
+      "hits": 3,
+      "hitAt5": 0.6,
+      "mrr": 0.467,
+      "precisionAt5": 0.12,
+      "unreachable": [],
       "ranks": {
-        "x084": null,
+        "x084": 1,
         "x085": null,
         "x086": 1,
-        "x087": null,
+        "x087": 3,
         "x088": null
       }
     },
@@ -509,15 +503,15 @@
       "tasks": 5,
       "hits": 3,
       "hitAt5": 0.6,
-      "mrr": 0.45,
+      "mrr": 0.4,
       "precisionAt5": 0.12,
       "unreachable": [],
       "ranks": {
-        "x089": 4,
+        "x089": 2,
         "x090": 1,
         "x091": null,
         "x092": null,
-        "x093": 1
+        "x093": 2
       }
     },
     "spdlog": {
@@ -610,28 +604,28 @@
       "tasks": 5,
       "hits": 2,
       "hitAt5": 0.4,
-      "mrr": 0.14,
+      "mrr": 0.24,
       "precisionAt5": 0.08,
       "unreachable": [],
       "ranks": {
         "x041": 5,
         "x042": null,
         "x043": null,
-        "x044": 2,
+        "x044": 1,
         "x045": null
       }
     },
     "zod": {
       "language": "typescript",
       "tasks": 8,
-      "hits": 3,
-      "hitAt5": 0.375,
-      "mrr": 0.375,
-      "precisionAt5": 0.075,
+      "hits": 4,
+      "hitAt5": 0.5,
+      "mrr": 0.406,
+      "precisionAt5": 0.1,
       "unreachable": [],
       "ranks": {
         "x201": null,
-        "x202": null,
+        "x202": 4,
         "x203": 1,
         "x204": null,
         "x205": null,

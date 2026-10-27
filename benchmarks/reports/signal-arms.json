@@ -13,34 +13,35 @@
   "corpora": {
     "xrepo": {
       "plain": {
-        "hits": 115,
+        "hits": 118,
         "tasks": 208,
-        "mrr": 0.379,
+        "mrr": 0.386,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "centrality": {
-        "hits": 115,
+        "hits": 118,
         "tasks": 208,
-        "mrr": 0.379,
+        "mrr": 0.386,
         "gained": [],
         "lost": [],
-        "moved": 0
+        "moved": 1
       },
       "surface": {
-        "hits": 115,
+        "hits": 118,
         "tasks": 208,
-        "mrr": 0.385,
+        "mrr": 0.388,
         "gained": [],
         "lost": [],
-        "moved": 5
+        "moved": 3
       },
       "mined": {
-        "hits": 115,
+        "hits": 118,
         "tasks": 208,
-        "mrr": 0.375,
+        "mrr": 0.378,
         "gained": [
+          "express/x040",
           "spdlog/x102",
           "newtonsoft-json/x113",
           "gorm/x196"
@@ -48,14 +49,15 @@
         "lost": [
           "flask/x033",
           "spdlog/x100",
-          "svelte/x131"
+          "svelte/x131",
+          "zod/x202"
         ],
-        "moved": 34
+        "moved": 36
       },
       "callgraph": {
-        "hits": 114,
+        "hits": 117,
         "tasks": 208,
-        "mrr": 0.376,
+        "mrr": 0.382,
         "gained": [],
         "lost": [
           "flask/x033"
@@ -65,11 +67,10 @@
       "body": {
         "hits": 78,
         "tasks": 208,
-        "mrr": 0.248,
+        "mrr": 0.245,
         "gained": [
           "express/x040",
-          "abseil-cpp/x177",
-          "zod/x202"
+          "abseil-cpp/x177"
         ],
         "lost": [
           "okhttp/x008",
@@ -79,7 +80,6 @@
           "django/x031",
           "flask/x032",
           "express/x038",
-          "vue-core/x041",
           "vue-core/x044",
           "laravel/x049",
           "serilog/x054",
@@ -90,6 +90,8 @@
           "astro/x067",
           "astro/x070",
           "plenary/x075",
+          "rails/x084",
+          "rails/x087",
           "sidekiq/x089",
           "sidekiq/x090",
           "libuv/x094",
@@ -111,14 +113,15 @@
           "abseil-cpp/x180",
           "gson/x186",
           "gson/x187",
-          "gson/x190"
+          "gson/x190",
+          "zod/x202"
         ],
-        "moved": 91
+        "moved": 92
       },
       "nograph": {
-        "hits": 114,
+        "hits": 117,
         "tasks": 208,
-        "mrr": 0.377,
+        "mrr": 0.384,
         "gained": [],
         "lost": [
           "phoenix/x062"
@@ -480,35 +483,35 @@
   },
   "total": {
     "plain": {
-      "hits": 376,
+      "hits": 379,
       "tasks": 564,
       "gained": 0,
       "lost": 0,
       "moved": 0
     },
     "centrality": {
-      "hits": 261,
+      "hits": 264,
       "tasks": 439,
       "gained": 0,
       "lost": 0,
-      "moved": 6
+      "moved": 7
     },
     "surface": {
-      "hits": 376,
+      "hits": 379,
       "tasks": 564,
       "gained": 0,
       "lost": 0,
-      "moved": 9
+      "moved": 7
     },
     "mined": {
-      "hits": 373,
+      "hits": 376,
       "tasks": 564,
-      "gained": 7,
-      "lost": 10,
-      "moved": 105
+      "gained": 8,
+      "lost": 11,
+      "moved": 107
     },
     "callgraph": {
-      "hits": 369,
+      "hits": 372,
       "tasks": 564,
       "gained": 2,
       "lost": 9,
@@ -517,12 +520,12 @@
     "body": {
       "hits": 327,
       "tasks": 564,
-      "gained": 8,
-      "lost": 57,
-      "moved": 168
+      "gained": 7,
+      "lost": 59,
+      "moved": 169
     },
     "nograph": {
-      "hits": 258,
+      "hits": 261,
       "tasks": 439,
       "gained": 5,
       "lost": 8,
@@ -531,8 +534,8 @@
   },
   "recorded": {
     "xrepo": {
-      "version": "8.82.0",
-      "generated": "2026-10-26T20:27:16.297Z"
+      "version": "8.84.0",
+      "generated": "2026-10-27T16:10:49.166Z"
     },
     "hard": {
       "version": "8.81.0",
@@ -556,5 +559,5 @@
     }
   },
   "version": "8.84.0",
-  "generated": "2026-10-27T11:40:53.699Z"
+  "generated": "2026-10-27T16:10:49.166Z"
 }

@@ -1,0 +1,257 @@
+{
+  "schema": "sigmap/extraction-recall-typescript/1",
+  "issue": "#996",
+  "note": "TypeScript extraction recall before and after #996, measured against the TypeScript compiler API (parse only) on the pinned clones. before = develop at e2d4b2b (v8.84.0); after = the #996 commit. index = a first-time sigmap run on each clone. Re-run: node scripts/run-extraction-recall.mjs --only typescript --typescript <typescript.js>; the before column needs the old extractor (--extractor).",
+  "reference": {
+    "name": "TypeScript compiler API (parse only)",
+    "version": "6.0.3"
+  },
+  "pins": {
+    "zod": "912f0f5",
+    "vue-core": "7df0edd",
+    "excalidraw": "ed10ac7",
+    "vitepress": "8ffc07c"
+  },
+  "before": {
+    "extractor": {
+      "filesCompared": 326,
+      "rows": [
+        {
+          "kind": "function",
+          "reference": 771,
+          "found": 671,
+          "recall": 87
+        },
+        {
+          "kind": "class",
+          "reference": 71,
+          "found": 29,
+          "recall": 40.8
+        },
+        {
+          "kind": "interface",
+          "reference": 736,
+          "found": 356,
+          "recall": 48.4
+        },
+        {
+          "kind": "type",
+          "reference": 653,
+          "found": 401,
+          "recall": 61.4
+        },
+        {
+          "kind": "enum",
+          "reference": 25,
+          "found": 25,
+          "recall": 100
+        },
+        {
+          "kind": "arrow",
+          "reference": 510,
+          "found": 379,
+          "recall": 74.3
+        },
+        {
+          "kind": "factory",
+          "reference": 363,
+          "found": 0,
+          "recall": 0
+        },
+        {
+          "kind": "default",
+          "reference": 52,
+          "found": 0,
+          "recall": 0
+        },
+        {
+          "kind": "dollar",
+          "reference": 517,
+          "found": 0,
+          "recall": 0
+        }
+      ]
+    },
+    "index": {
+      "filesCompared": 227,
+      "filesTotal": 326,
+      "rows": [
+        {
+          "kind": "function",
+          "reference": 766,
+          "found": 666,
+          "recall": 86.9
+        },
+        {
+          "kind": "class",
+          "reference": 71,
+          "found": 29,
+          "recall": 40.8
+        },
+        {
+          "kind": "interface",
+          "reference": 669,
+          "found": 355,
+          "recall": 53.1
+        },
+        {
+          "kind": "type",
+          "reference": 634,
+          "found": 401,
+          "recall": 63.2
+        },
+        {
+          "kind": "enum",
+          "reference": 25,
+          "found": 25,
+          "recall": 100
+        },
+        {
+          "kind": "arrow",
+          "reference": 494,
+          "found": 379,
+          "recall": 76.7
+        },
+        {
+          "kind": "factory",
+          "reference": 328,
+          "found": 0,
+          "recall": 0
+        },
+        {
+          "kind": "default",
+          "reference": 0,
+          "found": 0,
+          "recall": null
+        },
+        {
+          "kind": "dollar",
+          "reference": 433,
+          "found": 0,
+          "recall": 0
+        }
+      ]
+    }
+  },
+  "after": {
+    "extractor": {
+      "filesCompared": 326,
+      "rows": [
+        {
+          "kind": "function",
+          "reference": 771,
+          "found": 672,
+          "recall": 87.2
+        },
+        {
+          "kind": "class",
+          "reference": 71,
+          "found": 35,
+          "recall": 49.3
+        },
+        {
+          "kind": "interface",
+          "reference": 736,
+          "found": 552,
+          "recall": 75
+        },
+        {
+          "kind": "type",
+          "reference": 653,
+          "found": 501,
+          "recall": 76.7
+        },
+        {
+          "kind": "enum",
+          "reference": 25,
+          "found": 25,
+          "recall": 100
+        },
+        {
+          "kind": "arrow",
+          "reference": 510,
+          "found": 456,
+          "recall": 89.4
+        },
+        {
+          "kind": "factory",
+          "reference": 363,
+          "found": 140,
+          "recall": 38.6
+        },
+        {
+          "kind": "default",
+          "reference": 52,
+          "found": 52,
+          "recall": 100
+        },
+        {
+          "kind": "dollar",
+          "reference": 517,
+          "found": 299,
+          "recall": 57.8
+        }
+      ]
+    },
+    "index": {
+      "filesCompared": 284,
+      "filesTotal": 326,
+      "rows": [
+        {
+          "kind": "function",
+          "reference": 766,
+          "found": 667,
+          "recall": 87.1
+        },
+        {
+          "kind": "class",
+          "reference": 71,
+          "found": 35,
+          "recall": 49.3
+        },
+        {
+          "kind": "interface",
+          "reference": 735,
+          "found": 551,
+          "recall": 75
+        },
+        {
+          "kind": "type",
+          "reference": 652,
+          "found": 501,
+          "recall": 76.8
+        },
+        {
+          "kind": "enum",
+          "reference": 25,
+          "found": 25,
+          "recall": 100
+        },
+        {
+          "kind": "arrow",
+          "reference": 510,
+          "found": 456,
+          "recall": 89.4
+        },
+        {
+          "kind": "factory",
+          "reference": 363,
+          "found": 140,
+          "recall": 38.6
+        },
+        {
+          "kind": "default",
+          "reference": 52,
+          "found": 52,
+          "recall": 100
+        },
+        {
+          "kind": "dollar",
+          "reference": 517,
+          "found": 299,
+          "recall": 57.8
+        }
+      ]
+    }
+  }
+}

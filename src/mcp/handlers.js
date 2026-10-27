@@ -295,6 +295,30 @@ function getRouting(args, cwd) {
 }
 
 /**
+ * Why a file with no indexed signatures is not indexed, when the answer is that it is
+ * generated (#876): re-running the generator would not change it, so the generic
+ * "Run: node gen-context.js" is advice that cannot help.
+ * @returns {string|null}
+ */
+function _generatedNote(abs, rel) {
+  let fd;
+  try {
+    const size = fs.statSync(abs).size;
+    fd = fs.openSync(abs, 'r');
+    const head = Buffer.alloc(Math.min(4096, size));
+    fs.readSync(fd, head, 0, head.length, 0);
+    const tail = Buffer.alloc(Math.min(512, size));
+    fs.readSync(fd, tail, 0, tail.length, size - tail.length);
+    const why = require('../util/file-class').generatedReason(rel, head.toString('utf8'), tail.toString('utf8'));
+    return why ? `_Not indexed: this file looks generated (${why}). Index the sources it is built from; re-running the generator will not add it._` : null;
+  } catch (_) {
+    return null;
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) { /* already closed */ } }
+  }
+}
+
+/**
  * explain_file({ path }) → string
  *
  * Returns a file's signatures, its direct imports, and files that import it.
@@ -328,7 +352,7 @@ function explainFile(args, cwd) {
     if (sigs && sigs.length > 0) {
       lines.push(...sigs);
     } else {
-      lines.push('_No signatures indexed for this file. Run: node gen-context.js_');
+      lines.push(_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_');
     }
     indexedFiles = [...index.keys()].map((rel) => path.resolve(cwd, rel));
   } catch (_) {

@@ -142,6 +142,16 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 | `output` | `string` | `.github/copilot-instructions.md` | Path to write the primary context file for the `"copilot"` target. |
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
 | `adapters` | `string[]\|null` | `null` | v3.0+ alias for `outputs`. `loadConfig` mirrors it into `outputs` for `"copilot"`, `"claude"`, `"cursor"` and `"windsurf"`; `"openai"`, `"gemini"` and `"codex"` are dropped by that mirror, so list those in `outputs` instead. |
+| `codexMaxBytes` | `number\|null` | `null` | Size limit for `AGENTS.md`, the file the `"codex"` output writes. `null` reads `project_doc_max_bytes` from `$CODEX_HOME/config.toml` (`~/.codex/config.toml`) and falls back to Codex's own default of 32768. `0` turns the cap off. See [the size a host reads](#the-size-a-host-reads). |
+| `claudeMaxLines` | `number\|null` | `null` | Line budget for `CLAUDE.md`, the file the `"claude"` output writes (Claude Code asks for a short one). `null` applies its guidance of 200 lines. `0` turns the cap off. See [the size a host reads](#the-size-a-host-reads). |
+
+### The size a host reads
+
+A host loads a bounded part of an instruction file and says nothing about the rest. Codex reads at most `project_doc_max_bytes` of an `AGENTS.md` (32 KiB by default; the key in your `config.toml` wins when it is set), so a 43 KB file reaches the agent cut in the middle of a section. Claude Code asks for a short `CLAUDE.md`, about 200 lines.
+
+The `"codex"` and `"claude"` outputs are therefore written to fit. SigMap measures the finished file, the lines you wrote above its block included, and re-sizes the block with the same drop order the token budget uses (test files first, then config, generated, least recently changed, fewest signatures) until it fits. The file says how many files it left out, and so does the run: `AGENTS.md: kept 61 of 118 files to fit Codex's limit of 32.0 KiB`. When a limit is tighter than the optional sections (`## deps`, `## versions`, `## todos`, `## changes`), those are left out of that one file; every other output is unchanged, and `.context/sig-index.json` still holds every file for `sigmap ask`. If the lines you wrote above the block already exceed the limit, the run says so and the block shrinks to its fixed header.
+
+`sigmap doctor` prints each instruction file's size against its limit and warns when one is over. Set `codexMaxBytes` or `claudeMaxLines` to a number to choose your own limit, or to `0` to write the whole map as before. Only a single budgeted file is sized this way; `per-module`, `hot-cold` and `index` already write small files.
 
 ### What SigMap writes into an existing file
 
@@ -311,6 +321,20 @@ Source sets are discovered rather than assumed, so Kotlin Multiplatform layouts 
 Detection is structural: two or more module source directories on disk is what makes a build multi-module, with `settings.gradle` `include`, Maven `<modules>` and sbt `lazy val … = project` as secondary evidence. A build file that declares a module which is not present cannot mislead it.
 
 Before v8.51.0 these layouts were badly under-detected — the scan looked two directory levels deep while module source sits at four, so okhttp indexed 4 files of 596. If you pinned `srcDirs` by hand to work around that, you can now drop the override and re-check with `sigmap roots --explain`.
+
+### How much of the repository the roots cover
+
+A directory's code is counted through its whole subtree, and the roots come in the order of the code they hold. Six roots is where the choice starts, not where it stops: when more directories than that scored above zero, the next-ranked ones are added until the roots hold 95% of the code in all the candidates, up to 40. A layout that keeps its code deep — Rails, a gem per directory with `lib/active_record/…` three levels down — used to resolve to six roots and index 42% of the code (659 of 1,578 files in the pinned clone) while the summary read "Indexed 100%". It now resolves to eleven roots and 96% (1,509 of 1,578).
+
+Every surface that reports roots prints the share of the repository's implementation code they sit under, in one sentence:
+
+```
+97% of the repository's code (280 of 290 files) is under the source roots
+```
+
+`sigmap` (the summary after a run), `sigmap validate` (and its `--json`, as `repositoryCoverage`), `sigmap doctor` and `sigmap roots` all say it the same way. Under **80%** the run adds a warning that names the largest directories left out, with their file counts, and `doctor` turns its "Config & source roots" row to a warning; the fix is to widen `srcDirs`, or to look at `sigmap roots --explain`, which lists each root with the number of code files it holds and how many scored candidates the cap left out. Every code file under a root counts as covered (a gem's own `test/` is under its root). Outside the roots only implementation files are counted against them: tests, docs, examples, mocks, CI configuration and the usual tooling directories are expected there.
+
+A directory a scorer penalises by name (`docs/`, `examples/`, `tests/`, `documentation-*`) is still counted two levels deep, as before, so the deeper count does not promote it to a root; in a multi-module JVM build a module's own directory is not a root next to the source sets it holds.
 
 ## Strategy
 

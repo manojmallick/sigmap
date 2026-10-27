@@ -52,7 +52,7 @@ RepoMix packs a repository into one AI-friendly file. SigMap extracts signatures
 |---|---|---|
 | What it produces | A ranked signature map, per query | One packed file of the repository (or the files its include and ignore patterns select) |
 | Token reduction | **95.4%** average (the map against every source file, 21 repos) | ~70% with `--compress`, which uses Tree-sitter to keep signatures (its README's figure) |
-| Retrieval accuracy (hit@5) | **80.4%** on the retrieval corpus; **55.3%** on repositories we do not control | No retrieval metric in its README |
+| Retrieval accuracy (hit@5) | **80.4%** on the retrieval corpus; **56.7%** on repositories we do not control | No retrieval metric in its README |
 | Query-aware context | **Yes** — ranked per query | Not described: it packs. Its MCP server can search a packed file (`grep_repomix_output`) |
 | Dependency graph | **Yes** — import-aware BFS | Not described in its README |
 | Learn from usage | **Yes** — `sigmap learn` | Not described in its README |

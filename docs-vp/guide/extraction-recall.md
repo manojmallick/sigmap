@@ -1,6 +1,6 @@
 ---
 title: Extraction recall
-description: How many of the symbols a language's own parser finds does SigMap list? Measured against CPython's ast, Ruby's Ripper and clangd on pinned Flask, Django, Rails, Sidekiq, libuv, spdlog and abseil-cpp checkouts, with floors enforced in CI for Python and Ruby and every other language listed as unmeasured.
+description: How many of the symbols a language's own parser finds does SigMap list? Measured against CPython's ast, Ruby's Ripper, clangd and the TypeScript compiler on pinned Flask, Django, Rails, Sidekiq, libuv, spdlog, abseil-cpp, zod and vue-core checkouts, with floors enforced in CI for Python and Ruby and every other language listed as unmeasured.
 head:
   - - meta
     - property: og:title
@@ -118,9 +118,29 @@ done
 cd .. && node scripts/extraction-recall/cpp.mjs --held-out --repos "$PWD/held-out" --index
 ```
 
+## TypeScript — against the TypeScript compiler API 6.0.3
+
+zod (`912f0f5`: `packages/zod/src`), vue-core (`7df0edd`: `runtime-core`, `reactivity` and `compiler-core` sources), excalidraw (`ed10ac7`: `packages/element/src`) and vitepress (`8ffc07c`: `src/node`): 326 `.ts` files, without declaration files, tests and fixtures. The reference is the compiler's own *parse* (`createSourceFile`; nothing is type-checked and no file is run). zod's `locales/` directory is kept on purpose: every file in it is `export default function () {}`.
+
+What is asked, for every top-level export: functions, classes, interfaces, type aliases and enums by name; **arrow** (an exported const bound to an arrow function, plain, generic or behind a type annotation); **factory** (an exported const bound to a call, `export const x = make(...)`); **default** (an anonymous default export, asked once per file); and **`$` names** (every name above that starts with `$`, counted a second time because that is the share [#996](https://github.com/manojmallick/sigmap/issues/996) reports: 517 of the 3,129 exports asked for here). Not asked, because the extractor does not claim them: function expressions, object and literal constants, destructuring, namespaces and re-exports.
+
+| Population | Files | function | class | interface | type | enum | arrow | factory | default | `$` names |
+|---|---|---|---|---|---|---|---|---|---|---|
+| extractor, before #996 | 326 | 87.0% | 40.8% | 48.4% | 61.4% | 100.0% | 74.3% | 0.0% | 0.0% | 0.0% |
+| extractor, after #996 | 326 | 87.2% | 49.3% | 75.0% | 76.7% | 100.0% | 89.4% | 38.6% | 100.0% | 57.8% |
+| index as shipped, before #996 | 227 of 326 | 86.9% | 40.8% | 53.1% | 63.2% | 100.0% | 76.7% | 0.0% | n/a | 0.0% |
+| index as shipped, after #996 | 284 of 326 | 87.1% | 49.3% | 75.0% | 76.8% | 100.0% | 89.4% | 38.6% | 100.0% | 57.8% |
+
+- **Before #996 four shapes were dropped without a word**: a `$` in a name (`\w+` does not match it), a generic or curried arrow, an export bound to a call, and an anonymous default export. The "before" rows are that extractor, taken from `develop` at `e2d4b2b` and run against the same files. Nothing the extractor already listed is lost: over the 8,610 JavaScript and TypeScript files in the 54 pinned clones and SigMap's own sources, no signature that was listed before is missing now (the only differences are the count in a "+N more" notice).
+- **The shapes read since #996 are listed after the ones always read.** A first version of the change interleaved them in file order, and `function` recall fell from 87.0% to 81.5%: zod's `api.ts` went from 116 entries to a full 200, and 43 functions it used to list were cut by the cap. Appending the new shapes means the cap can only ever cut an entry that was never listed, and a file with none of them is byte-identical to before.
+- **`class` also moved for a reason that is not one of the four.** The scan for a class body took the `=` in a generic default (`class ZodError<T = any> extends Error`) for an assignment and gave up, so `ZodError`, `ReactiveEffect` and `ComputedRefImpl` were not listed at all. Found by this harness; fixed in the same change.
+- **The 200-signature cap is most of what is missing.** Of the 223 factory misses, 216 are in three zod `schemas.ts` files that hold 513, 768 and 283 entries; of the 218 `$` misses, 211 are in two zod files at the cap. The cap is the same for every extractor and is a separate decision.
+- **The index holds more files.** 284 of 326 files reach the first-run index where 227 did: the rest produced no signature at all (zod's locale files, files of nothing but `$` names), so they were not in it. `sigmap` now also says, at the end of a run, how many JavaScript and TypeScript files declare exports and still list none, and `sigmap explain` shows the export lines it saw.
+- **No floors for TypeScript.** The reference is a package SigMap does not depend on (ADR 0002: hand-written extractors, no compiler), so it is found by `--typescript <path>`, `SIGMAP_TYPESCRIPT` or a `typescript` that resolves from the repository; without one the language is reported as unmeasured and the run exits 0, as C and C++ are without clangd. The figures above are recorded in [`benchmarks/reports/extraction-recall-typescript.json`](https://github.com/manojmallick/sigmap/blob/main/benchmarks/reports/extraction-recall-typescript.json).
+
 ## Not measured
 
-A language is measured only where a reference parser can be run on the machine that runs the benchmark. These 35 have no adapter yet and are listed rather than left out: astro, csharp, css, dart, dockerfile, elixir, gdscript, go, graphql, html, java, javascript, kotlin, lua, markdown, objc, php, pipeline, powershell, properties, protobuf, r, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript, typescript_react, vue_sfc, xml, yaml. The report lists them under `unmeasured`.
+A language is measured only where a reference parser can be run on the machine that runs the benchmark. These 34 have no adapter yet and are listed rather than left out: astro, csharp, css, dart, dockerfile, elixir, gdscript, go, graphql, html, java, javascript, kotlin, lua, markdown, objc, php, pipeline, powershell, properties, protobuf, r, rust, scala, shell, sql, svelte, swift, terraform, toml, typescript_react, vue_sfc, xml, yaml. TypeScript is measured for `.ts` files; `.tsx` is `typescript_react` and is not. The report lists them under `unmeasured`.
 
 A measured language with no interpreter or no clones on the machine is also reported as unmeasured, and the run exits 0, unless `--require-reference` is given (CI passes it).
 
@@ -136,7 +156,8 @@ A measured language with no interpreter or no clones on the machine is also repo
 
 ```bash
 node scripts/fetch-xrepo-repos.mjs          # the pinned clones
-node scripts/run-extraction-recall.mjs      # report every measured language (C and C++ need clangd on PATH)
+node scripts/run-extraction-recall.mjs      # report every measured language (C and C++ need clangd on PATH, TypeScript a typescript package)
+node scripts/run-extraction-recall.mjs --only typescript --typescript path/to/typescript.js
 node scripts/run-extraction-recall.mjs --only python --misses 10
 npm run validate:extraction-recall          # the gate
 ```
@@ -148,6 +169,7 @@ npm run validate:extraction-recall          # the gate
 A floor is a promise about one reference parser. A different version parses a different set of files, so a run is compared only with the floors recorded for its own version, by version prefix. On any other version the numbers are printed with "floors not enforced". CI passes `--require-reference`, a stricter gate: it also fails unless every language that has floors was measured, on a version the floors cover, with every floored population run, so a runner whose Python or Ruby no floor covers fails the job instead of passing without checking. The remedy is to record floors for that version, never to lower one.
 
 - The Python floors apply to any CPython 3 and were checked on 3.9, 3.11 and 3.14.
+- TypeScript has no floors either: the reference is a package SigMap does not depend on and CI does not install (see the section above).
 - C and C++ have no floors: the reference is a language server, CI does not install one, and a floor that cannot run on the runner would guard nothing (see the section above).
 - The Ruby floors are recorded twice: for Ruby 2.6 (the local reference) and for Ruby 3, from 3.2.3, the version on the CI runner. The Ruby 3 prefix rests on that one run. Going from Ruby 2.6 to 3.2.3 moved the index class recall from 92.1% to 87.1% through the file set alone (298 to 331 indexed files), against a margin of one point, so a later 3.x could trip a floor without any change to the extractor.
 - The index floors guard recall over the files the index holds, not how many it holds ([#997](https://github.com/manojmallick/sigmap/issues/997)); when that changes, they may need new values.

@@ -164,6 +164,24 @@ function diagnose(cwd, opts = {}) {
     if (!checks.some((c) => c.id === 'config')) add('config', 'Config & source roots', 'warn', `could not load config: ${e.message}`);
   }
 
+  // 2b. The repository figure `generate` and `validate` print: the same words, the same count, and a
+  // warning when the roots cover less than 80% of it (#997). The row above only said which roots were
+  // picked, and was green for a layout that left 97% of the repository out.
+  try {
+    if (config && Array.isArray(config.srcDirs) && config.srcDirs.length) {
+      const cov = require('../analysis/coverage-score');
+      const rc = cov.repositoryCoverage(cwd, config);
+      const row = checks.find((c) => c.id === 'config');
+      if (row && rc.all > 0) {
+        row.detail += ` \u2014 ${cov.formatRepositoryCoverage(rc)}`;
+        if (rc.pct < 80 && row.status === 'ok') {
+          row.status = 'warn';
+          row.fix = 'run: sigmap roots --explain   or widen "srcDirs" in gen-context.config.json';
+        }
+      }
+    }
+  } catch (_) {}
+
   // 3. Generated context file
   const ctxFiles = _contextFiles(cwd);
   if (ctxFiles.length === 0) {
@@ -265,6 +283,44 @@ function diagnose(cwd, opts = {}) {
       const line = formatCoverage(cov, 'in-context');
       if (cov.score < 70) add('coverage', 'Coverage', 'warn', line, 'increase maxTokens or expand srcDirs in gen-context.config.json');
       else add('coverage', 'Coverage', 'ok', line);
+    }
+  } catch (_) {}
+
+  // 6b. Instruction files against what the host reads (#995)
+  //
+  // Codex loads at most `project_doc_max_bytes` of an AGENTS.md and Claude Code asks for
+  // a short CLAUDE.md. Truncation is silent, so a file over its limit is a warning here,
+  // whoever wrote the lines that put it there.
+  try {
+    const hl = require('../util/host-limits');
+    const home = opts.home || os.homedir();
+    const env = opts.env || process.env;
+    const rows = [];
+    const over = [];
+    for (const [file, target] of [['AGENTS.md', 'codex'], ['CLAUDE.md', 'claude']]) {
+      let text;
+      try { text = fs.readFileSync(path.join(cwd, file), 'utf8'); } catch (_) { continue; }
+      const limit = hl.hostLimit(target, config, env, home);
+      if (!limit) {
+        const unit = target === 'claude' ? 'lines' : 'bytes';
+        rows.push(`${file} ${hl.formatSize(unit, hl.measure(unit, text))} (cap off)`);
+        continue;
+      }
+      const size = hl.measure(limit.unit, text);
+      rows.push(`${file} ${hl.formatSize(limit.unit, size)} of ${hl.formatSize(limit.unit, limit.max)}`);
+      if (size > limit.max) {
+        over.push(target === 'codex'
+          ? `${file} is over Codex's limit: it reads the first ${hl.formatSize('bytes', limit.max)} and cuts the rest`
+          : `${file} is over ${limit.max} lines: Claude Code asks for a short file`);
+      }
+    }
+    if (rows.length) {
+      if (over.length) {
+        add('instructions', 'Instruction files', 'warn', `${rows.join(' · ')} — ${over.join('; ')}`,
+          'run: sigmap   (the "codex" and "claude" outputs are written to fit); the lines you wrote above SigMap\'s block are yours to trim, and codexMaxBytes / claudeMaxLines set the limit');
+      } else {
+        add('instructions', 'Instruction files', 'ok', rows.join(' · '));
+      }
     }
   } catch (_) {}
 
