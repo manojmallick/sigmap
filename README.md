@@ -78,11 +78,11 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 
 ## 🔒 `sigmap verify` — the grounding flagship
 
-The one thing an agentic-grep loop cannot give you: **prove an AI answer is anchored to real signatures and line numbers before you trust it.** Deterministic, offline, no LLM — SigMap indexes your repo *plus the libraries actually installed here* and flags every fabricated file, import, imported name, symbol, test, or npm script.
+A zero-config, offline linter for the claims an AI answer makes about *your* repo: the files and test files it names, its `npm run` scripts, its relative and Python imports and the names it takes from repo modules, the functions it calls in backticks, and the argument counts of top-level calls — each looked up in a fresh SigMap index. Deterministic, no LLM. It **cannot** tell you that a method, an option or a library API exists, so it complements `tsc` / `pyright` rather than replacing them, and every run prints what it checked and what it did not.
 
 ```bash
-sigmap verify answer.md                 # ✓ grounded, or a line-by-line list of fabrications
-sigmap verify answer.md --json          # machine-readable report; exits 1 if any issue (CI gate)
+sigmap verify answer.md                 # a line-by-line list of what the repo does not have, and what was not checked
+sigmap verify answer.md --json          # machine-readable report (CI gate): exit 0 clean · 1 issues · 2 usage · 3 index missing or stale
 sigmap verify answer.md --report        # standalone red/amber/green HTML report
 ```
 
@@ -91,9 +91,12 @@ sigmap verify answer.md --report        # standalone red/amber/green HTML report
   fake-file: 1  fake-test-file: 0  fake-import: 0  fake-import-name: 0  fake-symbol: 1  fake-npm-script: 0
 
   L2  [Fake file]  File not found on disk: src/auth/session-store.js
-         ↳ Did you mean `sig-index-store.js` in src/retrieval/sig-index-store.js?
+         ↳ Did you mean `session-store.test.js` in test/integration/session-store.test.js?
   L2  [Fake symbol]  Symbol not found in repo index: authorize()
-         ↳ Did you mean `summarize()` in src/deps/sbom.js?
+         ↳ Did you mean `summarize()` in scripts/lib/agent-ab.mjs?
+
+  checked 2 claims — 1 file path · 1 backticked call
+  not checked: calls in fenced or raw code · member calls (obj.method()) · library APIs (named imports from, and members of, installed libraries)
 ```
 
 <sub>Real output of `sigmap verify` on a two-line `answer.md` that names a file and a function this repository does not have; the "Did you mean" targets depend on the repository.</sub>

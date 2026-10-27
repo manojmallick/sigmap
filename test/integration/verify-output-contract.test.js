@@ -171,6 +171,7 @@ test('verify-ai-output <directory>: the long name behaves the same', () => {
 });
 
 test('exit 1 still means "issues found", exit 0 still means clean', () => {
+  spawnSync('node', [SCRIPT, '--cwd', repo], { cwd: ROOT, encoding: 'utf8' }); // an index: 0 is only an all-clear against one (#989)
   fs.writeFileSync(path.join(tmp, 'clean.md'), 'Nothing here names a file.\n');
   const clean = spawnSync('node', [SCRIPT, 'verify', path.join(tmp, 'clean.md'), '--cwd', repo], { cwd: ROOT, encoding: 'utf8' });
   assert.strictEqual(clean.status, 0, clean.stdout + clean.stderr);

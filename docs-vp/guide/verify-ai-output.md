@@ -1,17 +1,30 @@
 # Hallucination Guard (`verify-ai-output`)
 
 `verify-ai-output` flags claims in an AI answer that don't match your real
-repository — fabricated files, imports, imported names, symbols, test paths, and npm scripts.
+repository — fabricated files, imports, imported names, backticked calls, test paths, and npm scripts.
 It is **deterministic and fully offline**: no network, no second LLM. It reuses
-SigMap's symbol index, file map, and import resolver, so every check is grounded
-in your actual code.
+SigMap's symbol index, file map, and import resolver, so each claim it checks is
+looked up in your actual code.
+
+It is a name-level linter, not a type checker: it **cannot** confirm that a
+method, an option or a library API exists, so it complements `tsc` / `pyright`
+rather than replacing them. Every run prints what it checked and what it did not
+(see [What it checks, and what it does not](#what-it-checks-and-what-it-does-not)).
 
 ```bash
 sigmap verify-ai-output answer.md
 ```
 
-Exit code is `1` when any issue is found, `0` when the answer is clean — drop it
-straight into CI.
+| Exit code | Meaning |
+|---|---|
+| `0` | No issue found, against a current index |
+| `1` | At least one issue found |
+| `2` | Usage error — no argument, or a path that is missing, a directory or unreadable |
+| `3` | No issue found, but the index is missing or stale, so that is **not** an all-clear |
+
+Drop it straight into CI. Exit `3` is the one to read: a fresh checkout that has
+not been indexed has no symbol index, so the symbol check does not run, and
+"nothing flagged" says nothing about function names. Run `sigmap`, then verify again.
 
 ## What it detects
 
@@ -25,8 +38,9 @@ straight into CI.
 | `fake-npm-script` | `npm run X` where `X` isn't a `package.json` script | High |
 | `arity-mismatch` | A **known** repo function is called with an argument count outside its signature's `[min, max]` (v8.28.0, D1) | Medium |
 
-Node/Python builtins, scoped packages, and language globals are allow-listed to
-keep precision high. A **third-party** Python import is left alone — which
+Node/Python builtins (including `node:`-prefixed imports such as `node:fs`), scoped packages, and language globals are allow-listed to
+keep precision high. A bare file name (`util.js`, no directory) stands when the
+repo has a file of that name anywhere. A **third-party** Python import is left alone — which
 distribution provides `import yaml` is not decidable offline — while one the repo
 can decide is checked (below).
 
@@ -37,6 +51,28 @@ literal that stopped at `encodeURIComponent`, so `structuredClone(obj)` — a No
 and browser global since Node 17 — was reported as fabricated at `high`
 confidence (#777). A missing global is now a one-line addition to the right
 group.
+
+## What it checks, and what it does not
+
+Each run states both, in the terminal, in `--json` (`summary.coverage`), in the
+HTML report and in the `verify_suggestion` MCP tool:
+
+```text
+  checked 7 claims — 2 file paths · 3 imports · 1 backticked call · 1 npm script
+  not checked: calls in fenced or raw code · member calls (obj.method()) · library APIs (named imports from, and members of, installed libraries)
+```
+
+| Checked | Not checked |
+|---|---|
+| File and test-file paths the answer names | Calls in fenced or raw code (only backticked `name(...)` calls are read) |
+| Relative imports, Python and Go imports of the repo's own packages, `node:` built-ins, bare packages against `package.json` | Member calls (`obj.method()`) and options |
+| Names imported from a repo module that resolves to one file | Whether a library API exists — a named import from, or a member of, an installed library |
+| Backticked `name(...)` calls against the index, then your source | Anything the index does not hold (excluded files, files over budget) |
+| `npm run X` against `package.json` scripts | |
+| Argument counts of top-level calls to known functions | |
+
+An answer that names nothing checkable is reported as **nothing to check**, never
+as clean. A run with no symbol index says the symbol check was skipped and exits `3`.
 
 ### Imports and the names they take (#909)
 
@@ -233,13 +269,16 @@ sigmap verify-ai-output answer.md --json
     "withSuggestion": 1,
     "librariesIndexed": 12,
     "libraries": [{ "name": "express", "version": "4.19.2", "symbols": 41, "typed": true }],
+    "claims": { "files": 1, "imports": 3, "symbols": 2, "scripts": 0, "total": 6 },
+    "repoSymbolsIndexed": 1790,
     "checks": { "symbols": true, "files": true, "relativeImports": true, "bareImports": true, "scripts": true },
+    "coverage": { "index": "ok", "vacuous": false, "checked": ["file paths", "imports", "backticked calls", "npm scripts"], "notChecked": ["calls in fenced or raw code", "member calls (obj.method())", "library APIs (named imports from, and members of, installed libraries)"] },
     "verifiedImports": ["./src/util", "fs", "app.config"]
   }
 }
 ```
 
-`checks` (v8.45.0, J1) states which claim classes actually ran — `symbols` is `false` when no signature index exists, `bareImports`/`scripts` when there is no `package.json` — so a consumer never mistakes "not flagged" for "verified". `verifiedImports` (#909) lists the import claims the run *positively resolved* — a repo module, the standard library, a `go.mod` requirement, a declared dependency — in any language; an import it could not decide is in neither list. [`sigmap judge`](/guide/cli#judge) keys its structural claim grounding off both fields.
+`claims` counts what each class decided — a clean verdict is a verdict on those. `coverage` names the classes checked and not checked, and `coverage.index` is `ok`, `stale` or `missing`; the exit code is `3` for a run with no issue and an index that is not `ok`. `checks` (v8.45.0, J1) states which claim classes actually ran — `symbols` is `false` when no signature index exists; `repoSymbolsIndexed` is the repository's own count before installed libraries are added — `0` means the symbol check ran against library names only, and `coverage.index` is `missing`, `bareImports`/`scripts` when there is no `package.json` — so a consumer never mistakes "not flagged" for "verified". `verifiedImports` (#909) lists the import claims the run *positively resolved* — a repo module, the standard library, a `go.mod` requirement, a declared dependency — in any language; an import it could not decide is in neither list. [`sigmap judge`](/guide/cli#judge) keys its structural claim grounding off both fields.
 
 ### HTML report
 
@@ -261,7 +300,7 @@ publish or paste as a screenshot into a PR. `--report` can be combined with
     npx sigmap verify-ai-output answer.md --report verify-report.html
 ```
 
-A non-zero exit fails the job when the answer contains fabricated references.
+A non-zero exit fails the job: `1` when the answer contains fabricated references, `3` when the index is missing or stale (run `npx sigmap` before the verify step), `2` for a bad path.
 
 ## Precision
 

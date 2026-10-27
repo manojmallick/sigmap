@@ -12,7 +12,7 @@
  *   1. un-indexed, every other claim clean → names the skipped check, no unqualified verdict
  *   2. un-indexed, another claim fails     → the failure is reported AND the skip is named
  *   3. indexed                             → the same repo, same answer: the fake symbol is found, no skip note
- *   4. --json and the exit code are unchanged by the skip note
+ *   4. --json still reports checks.symbols=false (the exit code for this case is #989's: 3, not an all-clear)
  */
 
 const assert = require('assert');
@@ -58,7 +58,7 @@ spawnSync('node', [SCRIPT, '--cwd', indexed], { cwd: ROOT, encoding: 'utf8' });
 
 test('un-indexed repo, other claims clean: the skipped symbol check is named', () => {
   const res = verify(unindexed, 'clean.md');
-  assert.strictEqual(res.status, 0, res.stdout + res.stderr);
+  assert.strictEqual(res.status, 3, res.stdout + res.stderr); // not 0: see verify-coverage-contract.test.js
   assert.ok(/symbol check skipped/.test(res.stdout), `expected a skip note, got:\n${res.stdout}`);
   assert.ok(!/no hallucinations detected/.test(res.stdout), `must not claim an unqualified clean verdict:\n${res.stdout}`);
   assert.ok(!/✓/.test(res.stdout), `no green mark when a claim class was not checked:\n${res.stdout}`);
@@ -88,7 +88,7 @@ test('indexed repo, nothing fabricated: the verdict line is unchanged', () => {
 
 test('--json still reports checks.symbols=false and the skip note is not mixed into it', () => {
   const res = verify(unindexed, 'clean.md', ['--json']);
-  assert.strictEqual(res.status, 0, res.stdout + res.stderr);
+  assert.strictEqual(res.status, 3, res.stdout + res.stderr);
   const lines = res.stdout.trim().split('\n').filter((l) => !l.startsWith('[sigmap] --cwd'));
   assert.strictEqual(lines.length, 1, `--json prints a single document:\n${res.stdout}`);
   const obj = JSON.parse(lines[0]);

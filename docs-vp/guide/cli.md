@@ -881,11 +881,11 @@ A plan with any **error** exits non-zero (useful as a gate before execution); wa
 
 ## verify
 
-**The grounding flagship (v8.6.0+).** `sigmap verify` is the first-class short alias of [`verify-ai-output`](#verify-ai-output) — identical behaviour, flags, and exit codes. It is the headline command because deterministic, offline grounding is the one capability no agentic-grep loop or competitor offers: prove an AI answer is anchored to real signatures and line numbers before you trust it.
+**The grounding flagship (v8.6.0+).** `sigmap verify` is the first-class short alias of [`verify-ai-output`](#verify-ai-output) — identical behaviour, flags, and exit codes. It is the headline command: a deterministic, offline check of the files, imports, scripts and backticked calls an AI answer names against your repo's index. It is a name-level linter — it does **not** check member calls, calls in raw code, or whether a library API exists, so it complements `tsc` / `pyright` rather than replacing them. Every run prints what it checked and what it did not.
 
 ```bash
-sigmap verify answer.md               # ✓ grounded, or a line-by-line list of fabrications
-sigmap verify answer.md --json        # machine-readable report; exits 1 if any issue (CI gate)
+sigmap verify answer.md               # a line-by-line list of what the repo does not have, and what was not checked
+sigmap verify answer.md --json        # machine-readable report (CI gate): exit 0 clean · 1 issues · 2 usage · 3 index missing or stale
 sigmap verify answer.md --report      # standalone red/amber/green HTML report
 ```
 
@@ -960,7 +960,7 @@ JSON output (`--json`) for CI:
 | `--json` | Emit machine-readable `{ file, issues, summary }` instead of the markdown report |
 | `--report [out.html]` | Write a standalone, self-contained HTML report (red/amber/green per issue, suggestions inline); defaults to `sigmap-verify-report.html`. Combinable with `--json`. |
 
-Exit code `0` = clean (no hallucinations), `1` = at least one issue found. Use in CI to gate AI-generated patches or answers before they are trusted. See the [Hallucination Guard guide](/guide/verify-ai-output) for the full workflow.
+Exit codes: `0` = no issue found, against a current index · `1` = at least one issue found · `2` = usage error (no argument, a path that is missing, a directory, or unreadable) · `3` = no issue found, but the index is missing or stale (or its symbol check did not run), so that is not an all-clear — run `sigmap` and verify again. `--json` output reaches a pipe whole at any size. Use in CI to gate AI-generated patches or answers before they are trusted. See the [Hallucination Guard guide](/guide/verify-ai-output) for the full workflow.
 
 ---
 
