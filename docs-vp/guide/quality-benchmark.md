@@ -1,13 +1,13 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v8.83.0. 14/21 repos overflow GPT-4o without SigMap, 5,339 files would be hidden, 16,259 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
+description: What token reduction means operationally in v8.84.0. 14/21 repos overflow GPT-4o without SigMap, 5,335 files would be hidden, 17,823 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
 head:
   - - meta
     - property: og:title
       content: "SigMap quality benchmark — overflow, hidden files, and cost"
   - - meta
     - property: og:description
-      content: "14/21 repos overflow GPT-4o without SigMap. 5,339 files would be hidden. 16,259 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $12,000+ Claude Sonnet, $4,000+ Claude Haiku at 10 calls/day."
+      content: "14/21 repos overflow GPT-4o without SigMap. 5,335 files would be hidden. 17,823 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $12,000+ Claude Sonnet, $4,000+ Claude Haiku at 10 calls/day."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/quality-benchmark"
@@ -15,17 +15,17 @@ head:
 
 # Quality benchmark
 
-::: info Official v8.83.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.80-main &nbsp;·&nbsp; **Date:** 2026-10-18 (with R language)
+::: info Official v8.84.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.84-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 40.0% single-shot grep — **2.30× lift** |
-| Honest lift (vs grep agent) | **2.30×** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 39.2% single-shot grep — **2.35× lift** |
+| Honest lift (vs grep agent) | **2.35×** |
 | Prompt reduction | **43.7%** (2.84 → 1.6) |
 | Task success proxy | **60.0%** |
-| Overall token reduction | **95.7%** |
+| Overall token reduction | **95.4%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
@@ -35,7 +35,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-10-26 (v8.83.0)**
+Latest saved run: **2026-10-27 (v8.84.0)**
 
 How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
 
@@ -44,8 +44,8 @@ How the repos and tasks are picked, and what the token numbers do and don't prov
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | GPT-4o overflow repos | **14 / 21** | 0 / 21 |
-| Files left out of the context | **5,339** | 4,745 (omitted from the written map by its token budget; still reachable through `sigmap ask`) |
-| Grounded symbols surfaced | 0 | **16,259** |
+| Files left out of the context | **5,335** | 4,555 (omitted from the written map by its token budget; still reachable through `sigmap ask`) |
+| Grounded symbols surfaced | 0 | **17,823** |
 | Monthly input savings (10 calls/day) | — | **$10,000+** GPT-4o · **$12,000+** Sonnet · **$4,000+** Haiku |
 
 ## 1. Context window fit
@@ -62,7 +62,7 @@ That means a tool has to omit or truncate content before the model answers. SigM
 
 ## 2. Hidden-file risk
 
-Across the benchmark repos, **5,339** files would be hidden from the model in the raw-flow scenario.
+Across the benchmark repos, **5,335** files would be hidden from the model in the raw-flow scenario.
 
 This is the clearest explanation for why "just send the repo" is unreliable:
 
@@ -74,35 +74,35 @@ SigMap changes that by surfacing compact signatures for the project structure ah
 
 ## 3. Grounded symbols
 
-The latest saved run surfaced **16,259** grounded symbols across the benchmark repos, against **52,218** that stay dark without SigMap. That is the structural map the model can actually reason over.
+The latest saved run surfaced **17,823** grounded symbols across the benchmark repos, against **50,595** that stay dark without SigMap. That is the structural map the model can actually reason over.
 
 Counting is **structural** — non-empty lines inside the fenced blocks the generated context already delimits. Until v8.51.4 the counter matched each line against a keyword-prefix allowlist (`function `, `class `, `def `, …), so every language whose signature begins with the identifier read as zero. R was the worst case: `name <- function(args)` matched nothing, so ggplot2 reported **1** grounded symbol against 964 real ones and this page published **0% grounding for R**. See [#694](https://github.com/manojmallick/sigmap/issues/694).
 
 | Repo | Language | Grounded symbols | Grounding % |
 |---|---|---:|---:|
 | express | JavaScript | 45 | 58% |
-| flask | Python | 255 | 60% |
-| gin | Go | 638 | 57% |
-| spring-petclinic | Java | 380 | 71% |
-| rails | Ruby | 1,901 | 25% |
+| flask | Python | 274 | 65% |
+| gin | Go | 709 | 67% |
+| spring-petclinic | Java | 411 | 77% |
+| rails | Ruby | 2,147 | 29% |
 | axios | TypeScript | 235 | ≥100%* |
-| rust-analyzer | Rust | 1,610 | 9% |
-| abseil-cpp | C++ | 1,402 | 12% |
-| serilog | C# | 222 | 37% |
-| riverpod | Dart | 1,591 | 43% |
+| rust-analyzer | Rust | 1,747 | 10% |
+| abseil-cpp | C++ | 1,501 | 13% |
+| serilog | C# | 269 | 45% |
+| riverpod | Dart | 1,765 | 47% |
 | okhttp | Kotlin | 209 | ≥100%* |
-| laravel | PHP | 1,485 | 18% |
-| akka | Scala | 1,599 | 31% |
-| vapor | Swift | 400 | 36% |
-| vue-core | Vue | 692 | 27% |
-| svelte | Svelte | 1,132 | 51% |
+| laravel | PHP | 1,638 | 20% |
+| akka | Scala | 1,737 | 34% |
+| vapor | Swift | 479 | 43% |
+| vue-core | Vue | 792 | 30% |
+| svelte | Svelte | 1,254 | 57% |
 | fastify | JavaScript | 231 | 74% |
 | fastapi | Python | 340 | 38% |
-| ggplot2 | R | 882 | 46% |
-| dplyr | R | 483 | 67% |
-| shiny | R | 527 | 40% |
+| ggplot2 | R | 955 | 50% |
+| dplyr | R | 531 | 73% |
+| shiny | R | 554 | 42% |
 
-Average across the **19 of 21** repos whose raw-symbol estimate held: **42%**.
+Average across the **19 of 21** repos whose raw-symbol estimate held: **46%**.
 
 \* `Grounding %` divides by `estimatedRawSymbols`, a `rawTokens / 200` heuristic. For **axios** (235 measured vs 182 estimated) and **okhttp** (209 measured vs 156 estimated) the measured count exceeds the estimate, so the ratio is not meaningful — the estimate is what is wrong there, not the measurement. Those rows are clamped, flagged, and excluded from the average rather than published as the impossible percentages they used to be (okhttp read 114%).
 
@@ -112,9 +112,9 @@ At 10 calls per day across the benchmark set. Token reduction is model-agnostic;
 
 | Model | Input $/1M | Saved / day | Saved / month |
 |---|:---:|---:|---:|
-| GPT-4o | $2.50 | **$335+** | **$10,000+** |
+| GPT-4o | $2.50 | **$334+** | **$10,000+** |
 | Claude Sonnet | $3.00 | **$400+** | **$12,000+** |
-| Claude Haiku | $1.00 | **$134+** | **$4,000+** |
+| Claude Haiku | $1.00 | **$133+** | **$4,000+** |
 
 ::: warning These rates are the benchmark's own, and one is out of date (v8.63.0)
 The table is priced from a literal inside `scripts/run-quality-benchmark.mjs`, last verified 2026-07 — not from the dated [model profile](/guide/config#models) that `gain`, `--cost` and `ask` price from since v8.63.0. The two disagree on Claude Sonnet. The profile, checked against Anthropic's pricing page on 2026-10-04, prices the current Sonnet (5.5) at **$2.00**, and that page lists Sonnet 5 at $2.00 as well; only Sonnet 4.6 is $3.00. Read the Sonnet row as a Sonnet 4.6 figure: at $2.00 it scales to two-thirds of what is shown. The GPT-4o and Haiku rates match the profile.

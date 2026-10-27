@@ -1,6 +1,6 @@
 ---
 title: How I built SigMap
-description: How I fixed the LLM context problem — deterministic AI code retrieval without embeddings, vector databases, or external services. 80.4% hit@5, 95.7% token reduction.
+description: How I fixed the LLM context problem — deterministic AI code retrieval without embeddings, vector databases, or external services. 80.4% hit@5, 95.4% token reduction.
 head:
   - - meta
     - property: og:title
