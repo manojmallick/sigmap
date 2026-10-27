@@ -195,6 +195,7 @@ Token figures are chars/4 of the serialized `tools/list`, the estimate SigMap us
 { "mcp": { "tools": "core" } }
 ```
 
+- **`sigmap mcp install` does not choose a profile.** It registers the server in your client's config and writes nothing into your repository, so a plain `sigmap mcp install claude` advertises all 22 tools. `sigmap --init` is what writes `{ "mcp": { "autoRegister": true, "tools": "core" } }`; to get the 7-tool profile after an install, add the snippet above to `gen-context.config.json`. A project that already has a config keeps whatever it has.
 - **The profile applies to `tools/call` too.** A tool the server does not advertise is refused with a message that names the setting rather than answered anyway — otherwise the setting would be a suggestion, not a switch. A name that is not a tool at all still reads `Unknown tool`.
 - **`log_session_usage` is not part of any profile.** It exists only when [`session.mcpCapture`](#opt-in-log-session-usage) is on, whatever `mcp.tools` says.
 - **It is read once, and held for as long as it runs** — when the server first handles a `tools/list`, a `tools/call` or a `server/discover` (`initialize` does not read it), like the tool list your editor caches. Restart the server (or the editor) after changing it.

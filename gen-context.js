@@ -212,6 +212,22 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
    */
   function write(context, cwd, opts = {}) {
     const filePath = outputPath(cwd);
+    const placed = place(context, cwd, opts);
+    if (placed.warning) console.warn(`[sigmap] ${path.relative(cwd, filePath)}: ${placed.warning}`);
+    fs.writeFileSync(filePath, placed.content, 'utf8');
+  }
+
+  /**
+   * What AGENTS.md would contain after `write`, without writing it: the human lines
+   * above the managed section, kept, and the formatted block below them. Lets a caller
+   * measure the finished file against a host's limit (#995).
+   * @param {string} context - Raw signature context string
+   * @param {string} cwd - Project root
+   * @param {object} [opts]
+   * @returns {{ content: string, warning?: string }}
+   */
+  function place(context, cwd, opts = {}) {
+    const filePath = outputPath(cwd);
     let existing = '';
     if (fs.existsSync(filePath)) {
       existing = fs.readFileSync(filePath, 'utf8');
@@ -220,14 +236,10 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
     const formatted = format(context, opts);
     // A mention of the marker in prose or a code block is never the marker, and
     // only a file that is ENTIRELY generated is replaced whole (#873).
-    const placed = replaceManagedSection(existing, formatted, { legacy: true });
-    if (placed.warning) console.warn(`[sigmap] ${path.relative(cwd, filePath)}: ${placed.warning}`);
-    const newContent = placed.content;
-
-    fs.writeFileSync(filePath, newContent, 'utf8');
+    return replaceManagedSection(existing, formatted, { legacy: true });
   }
 
-  module.exports = { name, format, outputPath, write };
+  module.exports = { name, format, outputPath, write, place };
   
 };
 
@@ -3344,6 +3356,15 @@ __factories["./src/config/defaults"] = function(module, exports) {
 
     // Output targets: 'copilot' | 'claude' | 'cursor' | 'windsurf'
     outputs: ['copilot'],
+
+    // How much of the instruction file a host reads (#995). Codex loads at most
+    // `project_doc_max_bytes` of an AGENTS.md (32 KiB by default, or what its own
+    // config.toml sets); Claude Code asks for a short CLAUDE.md (about 200 lines). The
+    // 'codex' and 'claude' outputs are trimmed to fit, lowest-priority files first.
+    // `null` is the host's own limit (Codex's config.toml, else 32 KiB; Claude Code's 200
+    // lines), so a run can say where its limit came from; a number is yours; 0 turns a cap off.
+    codexMaxBytes: null,
+    claudeMaxLines: null,
 
     // Adapter targets (v3.0+): replaces 'outputs'. Same names, adds 'openai' | 'gemini'.
     // Old 'outputs' config key is still accepted and silently maps to 'adapters'.
@@ -8094,6 +8115,44 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
         const line = formatCoverage(cov, 'in-context');
         if (cov.score < 70) add('coverage', 'Coverage', 'warn', line, 'increase maxTokens or expand srcDirs in gen-context.config.json');
         else add('coverage', 'Coverage', 'ok', line);
+      }
+    } catch (_) {}
+
+    // 6b. Instruction files against what the host reads (#995)
+    //
+    // Codex loads at most `project_doc_max_bytes` of an AGENTS.md and Claude Code asks for
+    // a short CLAUDE.md. Truncation is silent, so a file over its limit is a warning here,
+    // whoever wrote the lines that put it there.
+    try {
+      const hl = __require('./src/util/host-limits');
+      const home = opts.home || os.homedir();
+      const env = opts.env || process.env;
+      const rows = [];
+      const over = [];
+      for (const [file, target] of [['AGENTS.md', 'codex'], ['CLAUDE.md', 'claude']]) {
+        let text;
+        try { text = fs.readFileSync(path.join(cwd, file), 'utf8'); } catch (_) { continue; }
+        const limit = hl.hostLimit(target, config, env, home);
+        if (!limit) {
+          const unit = target === 'claude' ? 'lines' : 'bytes';
+          rows.push(`${file} ${hl.formatSize(unit, hl.measure(unit, text))} (cap off)`);
+          continue;
+        }
+        const size = hl.measure(limit.unit, text);
+        rows.push(`${file} ${hl.formatSize(limit.unit, size)} of ${hl.formatSize(limit.unit, limit.max)}`);
+        if (size > limit.max) {
+          over.push(target === 'codex'
+            ? `${file} is over Codex's limit: it reads the first ${hl.formatSize('bytes', limit.max)} and cuts the rest`
+            : `${file} is over ${limit.max} lines: Claude Code asks for a short file`);
+        }
+      }
+      if (rows.length) {
+        if (over.length) {
+          add('instructions', 'Instruction files', 'warn', `${rows.join(' · ')} — ${over.join('; ')}`,
+            'run: sigmap   (the "codex" and "claude" outputs are written to fit); the lines you wrote above SigMap\'s block are yours to trim, and codexMaxBytes / claudeMaxLines set the limit');
+        } else {
+          add('instructions', 'Instruction files', 'ok', rows.join(' · '));
+        }
       }
     } catch (_) {}
 
@@ -39001,6 +39060,97 @@ __factories["./src/util/git"] = function(module, exports) {
   
 };
 
+// ── ./src/util/host-limits ──
+__factories["./src/util/host-limits"] = function(module, exports) {
+  
+  /**
+   * host-limits.js — how much of an instruction file each host reads (#995).
+   *
+   * A host loads a bounded part of the file SigMap writes for it and says nothing
+   * about the rest:
+   *
+   *   - Codex reads at most `project_doc_max_bytes` of an `AGENTS.md` (32 KiB unless
+   *     the user's `~/.codex/config.toml` says otherwise), so a 43 KB file reaches the
+   *     agent cut in the middle of a section.
+   *   - Claude Code's own guidance is to keep `CLAUDE.md` short, about 200 lines; a
+   *     file of 887 lines is mostly paid for and mostly unread.
+   *
+   * This module answers "what is the limit for this target" in one place, so the
+   * writer that trims to it and `sigmap doctor` that reports against it cannot
+   * disagree. Zero dependencies; the only I/O is one bounded read of the host's own
+   * config file, with no TOML parser.
+   */
+
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+
+  const CODEX_DEFAULT_BYTES = 32 * 1024;
+  const CLAUDE_DEFAULT_LINES = 200;
+
+  /**
+   * `project_doc_max_bytes` from Codex's own config, or null when it is absent.
+   * `CODEX_HOME` moves the directory, exactly as it does for Codex itself.
+   */
+  function codexConfiguredBytes(env, home) {
+    const dir = (env && env.CODEX_HOME) || path.join(home || os.homedir(), '.codex');
+    try {
+      const text = fs.readFileSync(path.join(dir, 'config.toml'), 'utf8').slice(0, 262144);
+      const m = /^\s*project_doc_max_bytes\s*=\s*(\d[\d_]*)\s*(?:#.*)?$/m.exec(text);
+      if (m) {
+        const n = parseInt(m[1].replace(/_/g, ''), 10); // TOML allows 65_536
+        if (n > 0) return n;
+      }
+    } catch (_) { /* no Codex config: the default applies */ }
+    return null;
+  }
+
+  /**
+   * The limit on the instruction file written for `target`, or null when the host has
+   * none or the project turned the cap off (`codexMaxBytes` / `claudeMaxLines` of 0).
+   *
+   * @param {string} target - 'codex' | 'claude'
+   * @param {object} [config] - loaded SigMap config
+   * @param {object} [env] - process.env (for CODEX_HOME)
+   * @param {string} [home] - home directory (for tests)
+   * @returns {{ unit: 'bytes'|'lines', max: number, source: string, host: string }|null}
+   */
+  function hostLimit(target, config, env, home) {
+    const cfg = config || {};
+    if (target === 'codex') {
+      if (cfg.codexMaxBytes === 0) return null;
+      if (Number.isFinite(cfg.codexMaxBytes) && cfg.codexMaxBytes > 0) {
+        return { unit: 'bytes', max: cfg.codexMaxBytes, source: 'codexMaxBytes in gen-context.config.json', host: 'Codex' };
+      }
+      const fromHost = codexConfiguredBytes(env || process.env, home);
+      if (fromHost) return { unit: 'bytes', max: fromHost, source: "project_doc_max_bytes in Codex's config.toml", host: 'Codex' };
+      return { unit: 'bytes', max: CODEX_DEFAULT_BYTES, source: "Codex's default project_doc_max_bytes", host: 'Codex' };
+    }
+    if (target === 'claude') {
+      if (cfg.claudeMaxLines === 0) return null;
+      if (Number.isFinite(cfg.claudeMaxLines) && cfg.claudeMaxLines > 0) {
+        return { unit: 'lines', max: cfg.claudeMaxLines, source: 'claudeMaxLines in gen-context.config.json', host: 'Claude Code' };
+      }
+      return { unit: 'lines', max: CLAUDE_DEFAULT_LINES, source: "Claude Code's guidance for CLAUDE.md", host: 'Claude Code' };
+    }
+    return null;
+  }
+
+  /** The size of `text` in the limit's own unit. */
+  function measure(unit, text) {
+    const s = String(text == null ? '' : text);
+    return unit === 'lines' ? s.split('\n').length : Buffer.byteLength(s, 'utf8');
+  }
+
+  /** `28.4 KiB` or `187 lines`. */
+  function formatSize(unit, n) {
+    return unit === 'lines' ? `${n.toLocaleString('en-US')} lines` : `${(n / 1024).toFixed(1)} KiB`;
+  }
+
+  module.exports = { hostLimit, measure, formatSize, codexConfiguredBytes, CODEX_DEFAULT_BYTES, CLAUDE_DEFAULT_LINES };
+  
+};
+
 // ── ./src/util/ignore ──
 __factories["./src/util/ignore"] = function(module, exports) {
   
@@ -43330,7 +43480,7 @@ function pruneStaleContextSplits(cwd, keep) {
   return removed;
 }
 
-function applyTokenBudget(fileEntries, maxTokens, cwd = process.cwd()) {
+function applyTokenBudget(fileEntries, maxTokens, cwd = process.cwd(), opts = {}) {
   // fileEntries: [{ filePath, sigs, mtime }]
   // Per-file rendered overhead: "### <path>", code fences, trailing blank line.
   // A signature-only budget undercounts this, so when many files survive the
@@ -43509,8 +43659,10 @@ function applyTokenBudget(fileEntries, maxTokens, cwd = process.cwd()) {
     const parts = [];
     if (verboseDropped.length) parts.push(`dropped ${verboseDropped.length} file(s)`);
     if (collapsedCount) parts.push(`collapsed ${collapsedCount} low-priority file(s) to anchors`);
-    console.warn(`[sigmap] budget: ${parts.join(', ')} to stay under ${maxTokens} tokens`);
-    if (process.argv.includes('--verbose')) {
+    // A caller that sizes the same entries for a second target (an adapter with a host limit) says
+    // what it did itself; the generic line would report the second pass as if it were the first.
+    if (!opts.quiet) console.warn(`[sigmap] budget: ${parts.join(', ')} to stay under ${maxTokens} tokens`);
+    if (process.argv.includes('--verbose') && !opts.quiet) {
       for (const { filePath, reason } of verboseDropped) {
         console.warn(`[sigmap] dropped: ${path.relative(process.cwd(), filePath)} — ${reason}`);
       }
@@ -44057,7 +44209,71 @@ function outputPaths(targets, cwd, config) {
   return [...seen];
 }
 
-function writeOutputs(content, targets, cwd, config) {
+/**
+ * Fit the content written for a host under the limit that host reads (#995).
+ *
+ * Codex loads at most `project_doc_max_bytes` of an AGENTS.md (32 KiB by default) and
+ * Claude Code asks for a short CLAUDE.md (about 200 lines); what lies past the limit is
+ * cut without a word. So the file is measured as it will be WRITTEN, human lines above
+ * SigMap's block included, and `shrink` re-sizes the same entries with the existing
+ * budget until it fits: the lowest-priority files go first, by the order the main
+ * budget already uses (tests, config, generated, least recently changed, fewest
+ * signatures), and the artifact says how many it left out. The optional sections
+ * (deps, versions, todos, changes) are dropped for this file only when the limit is
+ * tighter than they are. A limit that the lines above the block already exceed is
+ * said, and the block shrinks to its fixed header.
+ *
+ * `shrink(tokens, lean)` → { content, kept, total }. Without it (every strategy but the
+ * single budgeted file) the content is returned as it is.
+ */
+function fitToHostLimit(target, content, cwd, config, adapterOpts, shrink) {
+  if (typeof shrink !== 'function') return content;
+  const hl = __require('./src/util/host-limits');
+  const limit = hl.hostLimit(target, config, process.env);
+  if (!limit) return content;
+  let place;
+  if (target === 'codex') {
+    const mod = __require('./packages/adapters/codex');
+    place = (c) => mod.place(stripFormatHeader(c), cwd, adapterOpts).content;
+  } else {
+    place = (c) => placeClaude(c, cwd).content;
+  }
+  const sizeOf = (c) => hl.measure(limit.unit, place(c));
+  if (sizeOf(content) <= limit.max) return content;
+
+  const label = target === 'codex' ? 'AGENTS.md' : 'CLAUDE.md';
+  const said = `${hl.formatSize(limit.unit, limit.max)} (${limit.source})`;
+  for (const lean of [false, true]) {
+    const floor = shrink(0, lean);
+    const floorSize = sizeOf(floor.content);
+    if (floorSize > limit.max) {
+      if (lean) {
+        console.warn(`[sigmap] ${label}: ${hl.formatSize(limit.unit, floorSize)} with no signatures at all — the lines above SigMap's block are already over ${limit.host}'s limit of ${said}`);
+        return floor.content;
+      }
+      continue; // the optional sections alone are over: try without them
+    }
+    // A fit exists. The size is a fixed part (the floor) plus a part that grows with the
+    // budget in steps (a file is in or out), so: start from the linear estimate, reach up a
+    // little after every fit, bisect after every miss, and keep the largest budget that fit.
+    let lo = 0;
+    let best = floor;
+    let hi = shrink.startTokens || 1; // the main budget's own render did not fit
+    let t = Math.floor(hi * (limit.max - floorSize) / Math.max(1, sizeOf(content) - floorSize) * 0.97);
+    for (let i = 0; i < 8 && hi - lo > Math.max(4, Math.floor(lo * 0.03)); i++) {
+      t = Math.max(lo + 1, Math.min(hi - 1, t));
+      const probe = shrink(t, lean);
+      if (sizeOf(probe.content) <= limit.max) { lo = t; best = probe; t = Math.floor(t * 1.15); }
+      else { hi = t; t = Math.floor((lo + hi) / 2); }
+    }
+    const cur = best;
+    console.warn(`[sigmap] ${label}: kept ${cur.kept} of ${cur.total} files to fit ${limit.host}'s limit of ${said}${lean ? ', without the deps, todos and changes sections' : ''}`);
+    return cur.content;
+  }
+  return content;
+}
+
+function writeOutputs(content, targets, cwd, config, shrink) {
   config = config || {};
   // Adapters place their wall-clock stamp by layout (#683).
   const adapterOpts = {
@@ -44076,7 +44292,7 @@ function writeOutputs(content, targets, cwd, config) {
 
   for (const target of targets) {
     if (target === 'claude') {
-      writeClaude(content, cwd);
+      writeClaude(fitToHostLimit('claude', content, cwd, config, adapterOpts, shrink), cwd);
       continue;
     }
     // v3.0+ adapter targets (copilot, openai, gemini, codex) — use bundled adapter to format + write
@@ -44086,7 +44302,9 @@ function writeOutputs(content, targets, cwd, config) {
         // Adapters add their own header via format() — strip the formatOutput() header
         // so the content body (## src, ## deps, etc.) is passed without a pre-existing
         // header, preventing duplicate "# Code signatures" blocks on every run.
-        const adapterContent = stripFormatHeader(content);
+        const adapterContent = stripFormatHeader(target === 'codex'
+          ? fitToHostLimit('codex', content, cwd, config, adapterOpts, shrink)
+          : content);
         // copilot: honour config.output custom path (redirects away from default .github/copilot-instructions.md)
         if (target === 'copilot') {
           const outPath = resolveAdapterPath('copilot', cwd, config);
@@ -44152,7 +44370,8 @@ function stripFormatHeader(content) {
   return afterMarker.startsWith('\n') ? afterMarker.slice(1) : afterMarker;
 }
 
-function writeClaude(content, cwd) {
+/** What CLAUDE.md would contain after `writeClaude`, without writing it (#995). */
+function placeClaude(content, cwd) {
   const claudePath = path.join(cwd, 'CLAUDE.md');
   let existing = '';
   if (fs.existsSync(claudePath)) {
@@ -44164,7 +44383,12 @@ function writeClaude(content, cwd) {
   // The managed section is found by src/util/managed-section.js: a mention of the
   // marker in prose or a code block is never the marker, so human lines after it
   // are never discarded (#873).
-  const placed = __require('./src/util/managed-section').replaceManagedSection(existing, sigHeader + body);
+  return __require('./src/util/managed-section').replaceManagedSection(existing, sigHeader + body);
+}
+
+function writeClaude(content, cwd) {
+  const claudePath = path.join(cwd, 'CLAUDE.md');
+  const placed = placeClaude(content, cwd);
   if (placed.warning) console.warn(`[sigmap] CLAUDE.md: ${placed.warning}`);
   fs.writeFileSync(claudePath, placed.content, 'utf8');
   console.warn(`[sigmap] wrote CLAUDE.md (appended signatures)`);
@@ -45562,10 +45786,18 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       // 'full' writes no split files — anything left from a previous
       // strategy would still be merged into the index at read time (#555).
       pruneStaleContextSplits(cwd, []);
+      const allEntries = fileEntries;
       fileEntries = applyTokenBudget(fileEntries, effectiveMaxTokens, cwd);
       const droppedCount = beforeCount - fileEntries.length;
       const routingEnabled = !!(config.routing || process.argv.includes('--routing'));
       const content = formatOutput(fileEntries, cwd, routingEnabled, config, null);
+      // Re-sizes the same entries for a target whose host reads less than the main file (#995).
+      const shrinkForHost = (tokens, lean) => {
+        const kept = applyTokenBudget(allEntries.slice(), tokens, cwd, { quiet: true });
+        const cfg = lean ? Object.assign({}, config, { depMap: false, versionPins: false, todos: false, changes: false }) : config;
+        return { content: formatOutput(kept, cwd, routingEnabled, cfg, null), kept: kept.length, total: allEntries.length };
+      };
+      shrinkForHost.startTokens = effectiveMaxTokens;
       const finalTokens = estimateTokens(content);
       const formatIdx = process.argv.indexOf('--format');
       const formatValue = formatIdx >= 0 ? process.argv[formatIdx + 1] : (config.format || 'default');
@@ -45590,7 +45822,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
         const syncContext = { projectName: path.basename(cwd), fileEntries, srcDirs: config.srcDirs || [] };
         fs.writeFileSync(llmTxtMod.outputPath(cwd),  llmTxtMod.format(syncContext, cwd, VERSION));
         llmFullMod.write(syncContext, cwd, { version: VERSION });
-        writeOutputs(content, config.outputs, cwd, config);
+        writeOutputs(content, config.outputs, cwd, config, shrinkForHost);
         const llmsContent = llmsMod.format(syncContext, cwd, [
           { path: llmTxtMod.outputPath(cwd),  label: 'llm.txt' },
           { path: llmFullMod.outputPath(cwd), label: 'llm-full.txt' },
@@ -45598,7 +45830,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
         fs.writeFileSync(llmsMod.outputPath(cwd), llmsContent);
         console.warn(`[sigmap] --mode both → copilot-instructions.md + llm.txt + llm-full.txt + llms.txt`);
       } else {
-        writeOutputs(content, config.outputs, cwd, config);
+        writeOutputs(content, config.outputs, cwd, config, shrinkForHost);
       }
       if (formatValue === 'cache') writeCacheOutput(content, cwd, config);
 

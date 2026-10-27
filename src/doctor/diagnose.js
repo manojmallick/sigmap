@@ -268,6 +268,44 @@ function diagnose(cwd, opts = {}) {
     }
   } catch (_) {}
 
+  // 6b. Instruction files against what the host reads (#995)
+  //
+  // Codex loads at most `project_doc_max_bytes` of an AGENTS.md and Claude Code asks for
+  // a short CLAUDE.md. Truncation is silent, so a file over its limit is a warning here,
+  // whoever wrote the lines that put it there.
+  try {
+    const hl = require('../util/host-limits');
+    const home = opts.home || os.homedir();
+    const env = opts.env || process.env;
+    const rows = [];
+    const over = [];
+    for (const [file, target] of [['AGENTS.md', 'codex'], ['CLAUDE.md', 'claude']]) {
+      let text;
+      try { text = fs.readFileSync(path.join(cwd, file), 'utf8'); } catch (_) { continue; }
+      const limit = hl.hostLimit(target, config, env, home);
+      if (!limit) {
+        const unit = target === 'claude' ? 'lines' : 'bytes';
+        rows.push(`${file} ${hl.formatSize(unit, hl.measure(unit, text))} (cap off)`);
+        continue;
+      }
+      const size = hl.measure(limit.unit, text);
+      rows.push(`${file} ${hl.formatSize(limit.unit, size)} of ${hl.formatSize(limit.unit, limit.max)}`);
+      if (size > limit.max) {
+        over.push(target === 'codex'
+          ? `${file} is over Codex's limit: it reads the first ${hl.formatSize('bytes', limit.max)} and cuts the rest`
+          : `${file} is over ${limit.max} lines: Claude Code asks for a short file`);
+      }
+    }
+    if (rows.length) {
+      if (over.length) {
+        add('instructions', 'Instruction files', 'warn', `${rows.join(' · ')} — ${over.join('; ')}`,
+          'run: sigmap   (the "codex" and "claude" outputs are written to fit); the lines you wrote above SigMap\'s block are yours to trim, and codexMaxBytes / claudeMaxLines set the limit');
+      } else {
+        add('instructions', 'Instruction files', 'ok', rows.join(' · '));
+      }
+    }
+  } catch (_) {}
+
   // 7. Model profile (#688)
   //
   // Every model name, price and window SigMap prints comes from one dated

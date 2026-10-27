@@ -142,6 +142,16 @@ The base file is a plain `gen-context.config.json` without an `extends` key itse
 | `output` | `string` | `.github/copilot-instructions.md` | Path to write the primary context file for the `"copilot"` target. |
 | `outputs` | `string[]` | `["copilot"]` | Which output files to write. Values: `"copilot"` (`.github/copilot-instructions.md`), `"claude"` (`CLAUDE.md`). |
 | `adapters` | `string[]\|null` | `null` | v3.0+ alias for `outputs`. `loadConfig` mirrors it into `outputs` for `"copilot"`, `"claude"`, `"cursor"` and `"windsurf"`; `"openai"`, `"gemini"` and `"codex"` are dropped by that mirror, so list those in `outputs` instead. |
+| `codexMaxBytes` | `number\|null` | `null` | Size limit for `AGENTS.md`, the file the `"codex"` output writes. `null` reads `project_doc_max_bytes` from `$CODEX_HOME/config.toml` (`~/.codex/config.toml`) and falls back to Codex's own default of 32768. `0` turns the cap off. See [the size a host reads](#the-size-a-host-reads). |
+| `claudeMaxLines` | `number\|null` | `null` | Line budget for `CLAUDE.md`, the file the `"claude"` output writes (Claude Code asks for a short one). `null` applies its guidance of 200 lines. `0` turns the cap off. See [the size a host reads](#the-size-a-host-reads). |
+
+### The size a host reads
+
+A host loads a bounded part of an instruction file and says nothing about the rest. Codex reads at most `project_doc_max_bytes` of an `AGENTS.md` (32 KiB by default; the key in your `config.toml` wins when it is set), so a 43 KB file reaches the agent cut in the middle of a section. Claude Code asks for a short `CLAUDE.md`, about 200 lines.
+
+The `"codex"` and `"claude"` outputs are therefore written to fit. SigMap measures the finished file, the lines you wrote above its block included, and re-sizes the block with the same drop order the token budget uses (test files first, then config, generated, least recently changed, fewest signatures) until it fits. The file says how many files it left out, and so does the run: `AGENTS.md: kept 61 of 118 files to fit Codex's limit of 32.0 KiB`. When a limit is tighter than the optional sections (`## deps`, `## versions`, `## todos`, `## changes`), those are left out of that one file; every other output is unchanged, and `.context/sig-index.json` still holds every file for `sigmap ask`. If the lines you wrote above the block already exceed the limit, the run says so and the block shrinks to its fixed header.
+
+`sigmap doctor` prints each instruction file's size against its limit and warns when one is over. Set `codexMaxBytes` or `claudeMaxLines` to a number to choose your own limit, or to `0` to write the whole map as before. Only a single budgeted file is sized this way; `per-module`, `hot-cold` and `index` already write small files.
 
 ### What SigMap writes into an existing file
 
