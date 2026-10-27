@@ -29,7 +29,7 @@ Before the story, the outcome — so you know what you're reading toward. These 
 
 | | Number |
 |---|---|
-| File retrieval accuracy | **80.4% hit@5** (vs 13.6% baseline — 5.9× lift) |
+| File retrieval accuracy | **80.4% hit@5** (vs 13.6% for picking files at random — 5.9× that random baseline; against a content-search baseline the saved run reads 2.3×) |
 | Token reduction | **40–98%** across 18 real open-source repos |
 | Task success rate | **60.0%** (vs 10% without context) |
 | Prompts per task | **1.69** (down from 2.84) |
@@ -207,7 +207,7 @@ Measured on 90 coding tasks across 21 real public repos (18 core + 3 R repos). N
 **Benchmark resources:**
 - [Full methodology →](/guide/methodology)
 - [Benchmark suite (GitHub)](https://github.com/manojmallick/sigmap-benchmark-suite) — scripts and tasks
-- [Archived dataset (Zenodo)](https://zenodo.org/records/19898842) — for independent verification
+- [Archived dataset (Zenodo)](https://zenodo.org/records/19898842) — 2026-04-29 snapshot; **known defect:** the `final_tokens` column of its results file is 0 in all 405 rows (and `reduction_percent` is 100 in 395), so do not reload results from it — `benchmarks/reports/` in this repository is the current record
 
 ---
 

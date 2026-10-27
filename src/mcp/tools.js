@@ -330,8 +330,9 @@ const TOOLS = [
     description:
       'Ground an AI code suggestion before writing it: check a snippet or answer against the ' +
       'repository AND the libraries actually installed in node_modules. Flags fake file paths, ' +
-      'unresolvable imports, symbols in neither the repo nor the installed libraries, and ' +
-      'non-existent npm scripts. Deterministic, offline, no LLM.',
+      'unresolvable imports, backticked calls in neither the repo nor the installed libraries, and ' +
+      'non-existent npm scripts. Does not check member calls, calls in raw code, or whether a ' +
+      'library API exists, and reports what it checked and what it did not. Deterministic, offline, no LLM.',
     inputSchema: {
       type: 'object',
       properties: {

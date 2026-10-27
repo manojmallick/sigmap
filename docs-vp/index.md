@@ -46,7 +46,7 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.6 with SigMap. That is a 43.7% reduction across 105 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.6 with SigMap. That is a 43.7% reduction across 105 benchmark tasks, modeled from retrieval tiers rather than measured in live sessions."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯

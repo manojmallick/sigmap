@@ -792,3 +792,5 @@ cd public-benchmarks
 ```
 
 Because the repos are pinned and the map is byte-stable, the harness returns the **same numbers on any machine** — turning the headline hit@5 from a claim into a third-party-verifiable fact (v9.0 G1). Zero deps, no LLM, no API keys.
+
+**Byte-stable includes the checkout path.** Until v8.84.0 the token budget priced each section by its *absolute* path while the heading renders the repo-relative one, so the same commit lost sections the deeper it was cloned (gin: 72 sections at a 79-character path, 55 at 255) and a file under a directory named `test` counted as a test. `node scripts/check-path-independence.mjs --repo benchmarks/repos/gin` copies a repository to checkout paths of different length, generates the map in each, and exits 1 if they disagree (only the trailing `Updated:` line may differ).

@@ -151,7 +151,10 @@ for (const repo of tokenData.repos) {
     ? Math.floor(gpt4oLimit / avgTokPerFile)
     : repo.fileCount;
   const filesHiddenRaw     = Math.max(0, repo.fileCount - filesVisibleRaw);
-  const filesHiddenSigMap  = 0; // SigMap always shows all files (signatures only)
+  // Files the token budget left out of the written map — measured by the run that produced
+  // token-reduction.json, not assumed. They stay reachable through `sigmap ask` (the retrieval
+  // index holds them all), but they are not in the file an agent reads (#992).
+  const filesHiddenSigMap  = repo.droppedCount || 0;
 
   // Clarifying-question risk: any repo that overflows GPT-4o forces the LLM to ask
   const clarifyingQRisk =
@@ -405,6 +408,7 @@ console.log(sep);
 const totalDark = results.reduce((s, r) => s + r.darkSymbols, 0);
 const totalGrounded = results.reduce((s, r) => s + r.groundedSymbols, 0);
 const totalHiddenFiles = results.reduce((s, r) => s + r.filesHiddenRaw, 0);
+const totalHiddenFilesSigMap = results.reduce((s, r) => s + r.filesHiddenSigMap, 0);
 const overflowsGPT4o = results.filter(r => r.rawTokens > 128_000).length;
 // Per-model aggregate monthly / daily input-cost savings across all repos.
 const costByModel = PRICING.map(p => ({
@@ -418,7 +422,7 @@ const gpt4oCostAll = costByModel.find(m => m.model === 'GPT-4o').savedMonth;
 console.log(`
   Context overflow (GPT-4o)  : ${overflowsGPT4o}/${results.length} repos overflow without SigMap → 0/${results.length} with SigMap
   Symbols grounded           : ~${totalGrounded.toLocaleString()} visible with SigMap  /  ~${totalDark.toLocaleString()} dark without
-  Files hidden from LLM      : ${totalHiddenFiles.toLocaleString()} files hidden without SigMap → 0 with SigMap
+  Files hidden from LLM      : ${totalHiddenFiles.toLocaleString()} files hidden without SigMap → ${totalHiddenFilesSigMap.toLocaleString()} left out of the written map with SigMap
   API cost saved (GPT-4o/mo) : ~${fmtDollars(gpt4oCostAll)}/month across ${results.length} repos at ${CALLS_PER_DAY} calls/day
 
   Clarifying-question trigger : any repo with raw > 128K tokens forces the LLM to ask
@@ -459,10 +463,10 @@ mdLines.push('');
 mdLines.push('| Repo | Total files | Visible without SigMap | Hidden without SigMap | With SigMap |');
 mdLines.push('|------|:-----------:|:----------------------:|:---------------------:|:-----------:|');
 for (const r of results) {
-  mdLines.push(`| **${r.repo}** | ${r.filesVisible} | ${r.filesVisibleRaw} | **${r.filesHiddenRaw}** | 0 |`);
+  mdLines.push(`| **${r.repo}** | ${r.filesVisible} | ${r.filesVisibleRaw} | **${r.filesHiddenRaw}** | ${r.filesHiddenSigMap} |`);
 }
 mdLines.push('');
-mdLines.push(`**${totalHiddenFiles.toLocaleString()} total files hidden from LLM across all repos without SigMap. With SigMap: 0.**`);
+mdLines.push(`**${totalHiddenFiles.toLocaleString()} total files hidden from LLM across all repos without SigMap. With SigMap: ${totalHiddenFilesSigMap.toLocaleString()} left out of the written map by its token budget (still reachable through \`sigmap ask\`).**`);
 
 mdLines.push('');
 mdLines.push('### 4. API cost savings (GPT-4o, 10 calls/day)');
@@ -525,6 +529,7 @@ if (SAVE) {
       totalGroundedSymbols: totalGrounded,
       totalDarkSymbols: totalDark,
       totalHiddenFiles,
+      totalHiddenFilesSigMap,
       gpt4oSavedPerMonth: parseFloat(gpt4oCostAll.toFixed(2)),
     },
   };
