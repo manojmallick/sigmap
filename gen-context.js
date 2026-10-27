@@ -48750,7 +48750,17 @@ function main() {
       process.exit(summary.total > 0 ? 1 : 0);
     }
 
+    // The symbol check needs an index; without one it does not run, and a clean
+    // verdict then covers fewer claim classes than the line would suggest (#1007).
+    const symbolsSkipped = !!(summary.checks && summary.checks.symbols === false);
+    const skipNote = '[sigmap] ⚠ symbol check skipped: no symbol index, so function names were not checked — run `sigmap` to build it, then verify again';
+
     if (summary.total === 0) {
+      if (symbolsSkipped) {
+        console.log(`[sigmap] ⚠ ${rel} — no issues in the claims checked, but the symbol check did not run`);
+        console.log(skipNote);
+        process.exit(0);
+      }
       console.log(`[sigmap] ✓ ${rel} — no hallucinations detected (${summary.symbolsIndexed} symbols indexed)`);
       process.exit(0);
     }
@@ -48767,6 +48777,10 @@ function main() {
     for (const issue of issues) {
       console.log(`  L${issue.line}  [${labels[issue.type] || issue.type}]  ${issue.message}`);
       if (issue.suggestion) console.log(`         ↳ ${issue.suggestion}`);
+    }
+    if (symbolsSkipped) {
+      console.log('');
+      console.log(skipNote);
     }
     process.exit(1);
   }
