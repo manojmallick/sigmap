@@ -5,6 +5,7 @@ const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
 const { stripComments, maskCode, readBalanced } = require('./scan');
 const { scanComponentMarkers, markersForClass, componentMembers } = require('./component-surface');
 const { lateLast } = require('../util/late-last');
+const { atStatementStart } = require('../util/statement-start');
 
 // Class bodies are scanned to this many characters — guard against
 // pathological input only; the old 4KB window silently hid members (#576).
@@ -131,7 +132,8 @@ function extract(src) {
   // Exported named functions — `export function f` and `export default function f`.
   // The modifiers are CAPTURED, never searched for in the whole match: `export
   // function async(` must not read as an async function because of its NAME (#902).
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*\(/gm)) {
+  for (const m of stripped.matchAll(/export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*\(/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     const asyncKw = m[2] ? 'async ' : '';
     const retStr = formatReturnHint(returnHints.get(m[3]));
     const startLn = lineAt(stripped, m.index);
@@ -142,7 +144,8 @@ function extract(src) {
   }
 
   // `export default function () {}`: nothing names it, so the entry carries no name (#996).
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?function\s*\(/gm)) {
+  for (const m of stripped.matchAll(/export\s+default\s+(async\s+)?function\s*\(/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     const startLn = lineAt(stripped, m.index);
     const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
     sigs.push(`export default ${m[1] ? 'async ' : ''}function (${normalizeParams(params)})`);
@@ -164,12 +167,14 @@ function extract(src) {
   };
 
   // Exported arrow functions
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+const\s+([\w$]+)\s*=\s*(?:async\s+)?\(/gm)) {
+  for (const m of stripped.matchAll(/export\s+const\s+([\w$]+)\s*=\s*(?:async\s+)?\(/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     pushArrow(m.index, m.index + m[0].length - 1, m[1], m[0].includes('async') ? 'async ' : '', 'export ');
   }
 
   // `export default (a) => …`: an anonymous default arrow.
-  for (const m of masked.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?\(/gm)) {
+  for (const m of masked.matchAll(/export\s+default\s+(async\s+)?\(/gm)) {
+    if (!atStatementStart(masked, m.index)) continue;
     pushArrow(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
   }
 

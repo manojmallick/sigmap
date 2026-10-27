@@ -271,6 +271,59 @@ test('explain on a file with no exports keeps its remedy; on a $-only file it no
   assert.ok(/INCLUDED/.test(d) && !/check that the file contains/.test(d), d);
 });
 
+// ─── 8. a long string literal must not make the scan quadratic ──────────────────────────────
+// The first version asked "does `export` begin a statement" with `(?<=[;}][ \t]*)`. V8 up to
+// Node 22 walks back over the whole run of blanks at every position, and a string literal is
+// masked to blanks before the scan: excalidraw's 790 KB base64 wasm module ran for more than ten
+// minutes in CI and timed the job out. Node 25 optimises it away, so a clock alone proves nothing
+// on a laptop — the first test reads the mechanism, the second the clock.
+
+const { atStatementStart } = require(path.join(ROOT, 'src', 'util', 'statement-start'));
+
+test('the TypeScript and JavaScript extractors use no lookbehind (it walks back over a blank run at every position)', () => {
+  for (const f of ['typescript.js', 'javascript.js']) {
+    const src = fs.readFileSync(path.join(ROOT, 'src', 'extractors', f), 'utf8');
+    const hit = src.split('\n').findIndex((l) => /\(\?<[=!]/.test(l));
+    assert.strictEqual(hit, -1, `${f}:${hit + 1} has a lookbehind`);
+  }
+});
+
+test('a 1 MB string literal does not stall extraction, and what follows it is still read', () => {
+  const blank = ' '.repeat(1000000);
+  for (const [name, lang, body] of [
+    ['wasm.ts', ts, `export const WASM = "${blank}";\nexport const after = (n: number) => n + 1;\nexport function done(): void {}\n`],
+    ['wasm.js', js, `export const WASM = "${blank}";\nexport const after = (n) => n + 1;\nexport function done() {}\n`],
+  ]) {
+    const t0 = Date.now();
+    const sigs = lang.extract(body, name);
+    const ms = Date.now() - t0;
+    assert.ok(ms < 10000, `${name} took ${ms} ms`);
+    assert.ok(has(sigs, /export const after/) && has(sigs, /export function done/), name + show(sigs));
+  }
+});
+
+test('atStatementStart: a line start, or behind ";" / "}" and blanks; never mid-expression', () => {
+  const at = (text, needle) => atStatementStart(text, text.indexOf(needle));
+  assert.strictEqual(at('export const a = 1', 'export'), true, 'start of text');
+  assert.strictEqual(at('x\nexport const a = 1', 'export'), true, 'start of line');
+  assert.strictEqual(at('x\r\nexport const a = 1', 'export'), true, 'after CRLF');
+  assert.strictEqual(at('const x = 1; export const a = 1', 'export'), true, 'after ;');
+  assert.strictEqual(at('function f() {}\t export const a = 1', 'export'), true, 'after } and blanks');
+  assert.strictEqual(at('  export const a = 1', 'export'), false, 'indented: not a top-level statement');
+  assert.strictEqual(at('const x = reexport const a = 1', 'export'), false, 'inside a word');
+  assert.strictEqual(at('call(a) export const a = 1', 'export'), false, 'behind ")"');
+  assert.strictEqual(at('x\n   ' + ' '.repeat(200000) + 'export const a = 1', 'export'), false, 'a long blank run walks back once, and says no');
+});
+
+test('exports after ";" or "}" on the same line are still read (what the lookbehind was for)', () => {
+  const sigs = ts.extract('const a = 1; export const b = (x: number) => x; function f() {} export function g(y: string): string { return y; }\nexport interface I { k: string } export type T = string;\n', 'one.ts');
+  for (const re of [/export const b/, /export function g/, /export interface I/, /export type T/]) {
+    assert.ok(has(sigs, re), String(re) + show(sigs));
+  }
+  const none = ts.extract('const s = a export function nope() {}\n  export function indented() {}\n', 'two.ts');
+  assert.ok(!has(none, /nope|indented/), show(none));
+});
+
 try { fs.rmSync(tmpRoot, { recursive: true, force: true }); } catch (_) {}
 
 console.log(`\nts-declaration-shapes: ${passed} passed, ${failed} failed`);

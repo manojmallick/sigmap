@@ -12548,6 +12548,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
   const { lateLast } = __require('./src/util/late-last');
+  const { atStatementStart } = __require('./src/util/statement-start');
 
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
@@ -12674,7 +12675,8 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     // Exported named functions — `export function f` and `export default function f`.
     // The modifiers are CAPTURED, never searched for in the whole match: `export
     // function async(` must not read as an async function because of its NAME (#902).
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       const asyncKw = m[2] ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[3]));
       const startLn = lineAt(stripped, m.index);
@@ -12685,7 +12687,8 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     }
 
     // `export default function () {}`: nothing names it, so the entry carries no name (#996).
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?function\s*\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+default\s+(async\s+)?function\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       const startLn = lineAt(stripped, m.index);
       const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
       sigs.push(`export default ${m[1] ? 'async ' : ''}function (${normalizeParams(params)})`);
@@ -12707,12 +12710,14 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     };
 
     // Exported arrow functions
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+const\s+([\w$]+)\s*=\s*(?:async\s+)?\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+const\s+([\w$]+)\s*=\s*(?:async\s+)?\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       pushArrow(m.index, m.index + m[0].length - 1, m[1], m[0].includes('async') ? 'async ' : '', 'export ');
     }
 
     // `export default (a) => …`: an anonymous default arrow.
-    for (const m of masked.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?\(/gm)) {
+    for (const m of masked.matchAll(/export\s+default\s+(async\s+)?\(/gm)) {
+      if (!atStatementStart(masked, m.index)) continue;
       pushArrow(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
@@ -18970,6 +18975,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
   const { lateLast } = __require('./src/util/late-last');
+  const { atStatementStart } = __require('./src/util/statement-start');
 
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
@@ -19020,7 +19026,8 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
 
     // Exported interfaces
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+interface\s+([\w$]+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+    for (const m of stripped.matchAll(/export\s+interface\s+([\w$]+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       const bodyStart = m.index + m[0].length;
       sigs.push(`export interface ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -19034,13 +19041,15 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
 
     // Exported type aliases
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+type\s+([\w$]+)(?:<[^=]*>)?\s*=/gm)) {
+    for (const m of stripped.matchAll(/export\s+type\s+([\w$]+)(?:<[^=]*>)?\s*=/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       sigs.push(`export type ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, m.index + m[0].length)]);
     }
 
     // Exported enums
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+(?:const\s+)?enum\s+([\w$]+)\s*\{/gm)) {
+    for (const m of stripped.matchAll(/export\s+(?:const\s+)?enum\s+([\w$]+)\s*\{/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       const bodyStart = m.index + m[0].length;
       sigs.push(`export enum ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -19163,13 +19172,15 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // Exported top-level functions (not methods). The modifiers are CAPTURED, never
     // searched for in the whole match: `export function async(` must not read as an
     // async function because of its NAME (#902 — svelte has exactly that function).
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
     }
 
     // `export default function () {}`: nothing names it, so the entry carries no name (zod's locale
     // files are all this shape, and a file of them extracted as nothing).
-    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+default\s+(async\s+)?function\s*(?:<[^(]*>)?\s*\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+default\s+(async\s+)?function\s*(?:<[^(]*>)?\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       pushFunction(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
@@ -19233,7 +19244,8 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // may itself contain `=>` (`: (e: Error) => Function = …`), an arrow may be generic
     // (`= <T>(x: T) => x`), and a factory call has no arrow at all. An arrow's own signature is
     // unchanged from before; only the shapes that used to be missed are new.
-    for (const m of masked.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+const\s+([\w$]+)/gm)) {
+    for (const m of masked.matchAll(/export\s+const\s+([\w$]+)/gm)) {
+      if (!atStatementStart(masked, m.index)) continue;
       let p = skipSpace(masked, m.index + m[0].length);
       if (masked[p] === ':') {
         const eq = findAssign(masked, p + 1);
@@ -39917,6 +39929,35 @@ __factories["./src/util/post-commit-hook"] = function(module, exports) {
   }
 
   module.exports = { HOOK_FLAG, hookLine, isOwnLine, scriptOf, installPostCommitHook, inspectPostCommitHook };
+  
+};
+
+// ── ./src/util/statement-start ──
+__factories["./src/util/statement-start"] = function(module, exports) {
+  
+  /**
+   * Whether `index` begins a statement on its line: at the start of a line, or behind a `;` or a
+   * `}` and any blanks (`} export const a = 1`).
+   *
+   * The extractors asked this with a lookbehind, `(?<=[;}][ \t]*)`. V8 up to Node 22 tries it at
+   * every position and walks back over the whole run of blanks, so a long string literal masked
+   * to spaces costs time with the square of its length: excalidraw's 790 KB base64 file did not
+   * finish on Node 22. Looking back from a match instead costs one short walk per `export`.
+   *
+   * @param {string} text
+   * @param {number} index  where the match begins
+   * @returns {boolean}
+   */
+  function atStatementStart(text, index) {
+    if (index <= 0) return true;
+    const prev = text[index - 1];
+    if (prev === '\n' || prev === '\r' || prev === '\u2028' || prev === '\u2029') return true;
+    let i = index - 1;
+    while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+    return i >= 0 && (text[i] === ';' || text[i] === '}');
+  }
+
+  module.exports = { atStatementStart };
   
 };
 

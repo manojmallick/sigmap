@@ -5,6 +5,7 @@ const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
 const { stripComments, maskCode, readBalanced } = require('./scan');
 const { scanComponentMarkers, markersForClass, componentMembers } = require('./component-surface');
 const { lateLast } = require('../util/late-last');
+const { atStatementStart } = require('../util/statement-start');
 
 // Class bodies are scanned to this many characters — guard against
 // pathological input only; the old 4KB window silently hid members (#576).
@@ -55,7 +56,8 @@ function extract(src) {
   const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
 
   // Exported interfaces
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+interface\s+([\w$]+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+  for (const m of stripped.matchAll(/export\s+interface\s+([\w$]+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     const bodyStart = m.index + m[0].length;
     sigs.push(`export interface ${m[1]}`);
     anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -69,13 +71,15 @@ function extract(src) {
   }
 
   // Exported type aliases
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+type\s+([\w$]+)(?:<[^=]*>)?\s*=/gm)) {
+  for (const m of stripped.matchAll(/export\s+type\s+([\w$]+)(?:<[^=]*>)?\s*=/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     sigs.push(`export type ${m[1]}`);
     anchors.push([lineAt(stripped, m.index), lineAt(stripped, m.index + m[0].length)]);
   }
 
   // Exported enums
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+(?:const\s+)?enum\s+([\w$]+)\s*\{/gm)) {
+  for (const m of stripped.matchAll(/export\s+(?:const\s+)?enum\s+([\w$]+)\s*\{/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     const bodyStart = m.index + m[0].length;
     sigs.push(`export enum ${m[1]}`);
     anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -198,13 +202,15 @@ function extract(src) {
   // Exported top-level functions (not methods). The modifiers are CAPTURED, never
   // searched for in the whole match: `export function async(` must not read as an
   // async function because of its NAME (#902 — svelte has exactly that function).
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+  for (const m of stripped.matchAll(/export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
   }
 
   // `export default function () {}`: nothing names it, so the entry carries no name (zod's locale
   // files are all this shape, and a file of them extracted as nothing).
-  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+default\s+(async\s+)?function\s*(?:<[^(]*>)?\s*\(/gm)) {
+  for (const m of stripped.matchAll(/export\s+default\s+(async\s+)?function\s*(?:<[^(]*>)?\s*\(/gm)) {
+    if (!atStatementStart(stripped, m.index)) continue;
     pushFunction(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
   }
 
@@ -268,7 +274,8 @@ function extract(src) {
   // may itself contain `=>` (`: (e: Error) => Function = …`), an arrow may be generic
   // (`= <T>(x: T) => x`), and a factory call has no arrow at all. An arrow's own signature is
   // unchanged from before; only the shapes that used to be missed are new.
-  for (const m of masked.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+const\s+([\w$]+)/gm)) {
+  for (const m of masked.matchAll(/export\s+const\s+([\w$]+)/gm)) {
+    if (!atStatementStart(masked, m.index)) continue;
     let p = skipSpace(masked, m.index + m[0].length);
     if (masked[p] === ':') {
       const eq = findAssign(masked, p + 1);
