@@ -2,43 +2,37 @@
   "benchmark": "honest-autopsy",
   "method": "run-honest-benchmark.mjs --autopsy: SigMap scored without an import graph, against the published grep scan and against the same scan with the files SigMap itself writes left out",
   "tasks": 125,
-  "sigmapHits": 115,
+  "sigmapHits": 116,
   "grepHits": {
     "published": 49,
     "withoutSigmapFiles": 58
   },
   "sigmapFilesInGrepTop5": {
     "places": 625,
-    "polluted": 135
+    "polluted": 136
   },
   "sigmapMisses": {
-    "no token in common with the question": 3,
-    "ranked 6-10": 4,
+    "answer not indexed": 1,
+    "no token in common with the question": 1,
+    "ranked 6-10": 5,
     "ranked 11-20": 1,
-    "ranked 21-50": 1,
-    "ranked beyond 50": 1
+    "ranked 21-50": 1
   },
   "againstScanWithoutSigmapFiles": {
     "allTasks": {
-      "both": 56,
+      "both": 57,
       "sigmapOnly": 59,
-      "grepOnly": 2,
+      "grepOnly": 1,
       "neither": 8
     },
     "hardSplit": {
-      "both": 7,
+      "both": 8,
       "sigmapOnly": 4,
-      "grepOnly": 1,
+      "grepOnly": 0,
       "neither": 3
     }
   },
   "grepOnlyTasks": [
-    {
-      "task": "express/express-h003",
-      "split": "hard",
-      "sigmap": "no token in common with the question",
-      "grepRank": 3
-    },
     {
       "task": "fastapi/fastapi-t004",
       "split": "easy",
@@ -46,6 +40,6 @@
       "grepRank": 5
     }
   ],
-  "version": "8.84.0",
-  "generated": "2026-10-27T11:39:47.343Z"
+  "version": "8.85.0",
+  "generated": "2026-10-27T23:23:54.803Z"
 }

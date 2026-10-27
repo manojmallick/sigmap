@@ -1,6 +1,6 @@
 ---
 title: How I built SigMap
-description: How I fixed the LLM context problem — deterministic AI code retrieval without embeddings, vector databases, or external services. 80.4% hit@5, 95.4% token reduction.
+description: How I fixed the LLM context problem — deterministic AI code retrieval without embeddings, vector databases, or external services. 80.4% hit@5, 95.2% token reduction.
 head:
   - - meta
     - property: og:title
@@ -31,7 +31,7 @@ Before the story, the outcome — so you know what you're reading toward. These 
 |---|---|
 | File retrieval accuracy | **80.4% hit@5** (vs 13.6% for picking files at random — 5.9× that random baseline; against a content-search baseline the saved run reads 2.3×) |
 | Token reduction | **40–98%** across 18 real open-source repos |
-| Task success rate | **60.0%** (vs 10% without context) |
+| Task success rate | **61.9%** (vs 10% without context) |
 | Prompts per task | **1.69** (down from 2.84) |
 | Dependencies | **Zero** |
 

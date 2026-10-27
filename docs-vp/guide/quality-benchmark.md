@@ -1,13 +1,13 @@
 ---
 title: Quality benchmark
-description: What token reduction means operationally in v8.84.0. 14/21 repos overflow GPT-4o without SigMap, 5,335 files would be hidden, 17,823 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
+description: What token reduction means operationally in v8.85.0. 14/21 repos overflow GPT-4o without SigMap, 5,345 files would be hidden, 17,979 symbols are grounded, and input-cost savings reach $10,000+/month (GPT-4o), $12,000+ (Claude Sonnet), or $4,000+ (Claude Haiku) at 10 calls/day.
 head:
   - - meta
     - property: og:title
       content: "SigMap quality benchmark — overflow, hidden files, and cost"
   - - meta
     - property: og:description
-      content: "14/21 repos overflow GPT-4o without SigMap. 5,335 files would be hidden. 17,823 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $12,000+ Claude Sonnet, $4,000+ Claude Haiku at 10 calls/day."
+      content: "14/21 repos overflow GPT-4o without SigMap. 5,345 files would be hidden. 17,979 symbols grounded. Input-cost savings: $10,000+/mo GPT-4o, $12,000+ Claude Sonnet, $4,000+ Claude Haiku at 10 calls/day."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/quality-benchmark"
@@ -15,17 +15,17 @@ head:
 
 # Quality benchmark
 
-::: info Official v8.84.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.84-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
+::: info Official v8.85.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.85-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 39.2% single-shot grep — **2.35× lift** |
-| Honest lift (vs grep agent) | **2.35×** |
-| Prompt reduction | **43.7%** (2.84 → 1.6) |
-| Task success proxy | **60.0%** |
-| Overall token reduction | **95.4%** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 39.2% single-shot grep — **2.37× lift** |
+| Honest lift (vs grep agent) | **2.37×** |
+| Prompt reduction | **44.4%** (2.84 → 1.58) |
+| Task success proxy | **61.9%** |
+| Overall token reduction | **95.2%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
@@ -35,7 +35,7 @@ Token reduction is the mechanism. This benchmark shows the operational consequen
 - how much code would be hidden without SigMap?
 - what does that mean for API cost?
 
-Latest saved run: **2026-10-27 (v8.84.0)**
+Latest saved run: **2026-10-27 (v8.85.0)**
 
 How the repos and tasks are picked, and what the token numbers do and don't prove, is in [benchmark methodology](/guide/methodology).
 
@@ -44,8 +44,8 @@ How the repos and tasks are picked, and what the token numbers do and don't prov
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | GPT-4o overflow repos | **14 / 21** | 0 / 21 |
-| Files left out of the context | **5,335** | 4,555 (omitted from the written map by its token budget; still reachable through `sigmap ask`) |
-| Grounded symbols surfaced | 0 | **17,823** |
+| Files left out of the context | **5,345** | 4,557 (omitted from the written map by its token budget; still reachable through `sigmap ask`) |
+| Grounded symbols surfaced | 0 | **17,979** |
 | Monthly input savings (10 calls/day) | — | **$10,000+** GPT-4o · **$12,000+** Sonnet · **$4,000+** Haiku |
 
 ## 1. Context window fit
@@ -62,7 +62,7 @@ That means a tool has to omit or truncate content before the model answers. SigM
 
 ## 2. Hidden-file risk
 
-Across the benchmark repos, **5,335** files would be hidden from the model in the raw-flow scenario.
+Across the benchmark repos, **5,345** files would be hidden from the model in the raw-flow scenario.
 
 This is the clearest explanation for why "just send the repo" is unreliable:
 
@@ -74,18 +74,18 @@ SigMap changes that by surfacing compact signatures for the project structure ah
 
 ## 3. Grounded symbols
 
-The latest saved run surfaced **17,823** grounded symbols across the benchmark repos, against **50,595** that stay dark without SigMap. That is the structural map the model can actually reason over.
+The latest saved run surfaced **17,979** grounded symbols across the benchmark repos, against **50,589** that stay dark without SigMap. That is the structural map the model can actually reason over.
 
 Counting is **structural** — non-empty lines inside the fenced blocks the generated context already delimits. Until v8.51.4 the counter matched each line against a keyword-prefix allowlist (`function `, `class `, `def `, …), so every language whose signature begins with the identifier read as zero. R was the worst case: `name <- function(args)` matched nothing, so ggplot2 reported **1** grounded symbol against 964 real ones and this page published **0% grounding for R**. See [#694](https://github.com/manojmallick/sigmap/issues/694).
 
 | Repo | Language | Grounded symbols | Grounding % |
 |---|---|---:|---:|
-| express | JavaScript | 45 | 58% |
+| express | JavaScript | 94 | ≥100%* |
 | flask | Python | 274 | 65% |
 | gin | Go | 709 | 67% |
 | spring-petclinic | Java | 411 | 77% |
 | rails | Ruby | 2,147 | 29% |
-| axios | TypeScript | 235 | ≥100%* |
+| axios | TypeScript | 239 | ≥100%* |
 | rust-analyzer | Rust | 1,747 | 10% |
 | abseil-cpp | C++ | 1,501 | 13% |
 | serilog | C# | 269 | 45% |
@@ -94,8 +94,8 @@ Counting is **structural** — non-empty lines inside the fenced blocks the gene
 | laravel | PHP | 1,638 | 20% |
 | akka | Scala | 1,737 | 34% |
 | vapor | Swift | 479 | 43% |
-| vue-core | Vue | 792 | 30% |
-| svelte | Svelte | 1,254 | 57% |
+| vue-core | Vue | 893 | 33% |
+| svelte | Svelte | 1,256 | 57% |
 | fastify | JavaScript | 231 | 74% |
 | fastapi | Python | 340 | 38% |
 | ggplot2 | R | 955 | 50% |

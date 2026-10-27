@@ -63,11 +63,11 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 **Proof it pays off** (full benchmark below):
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
-- **92.0% vs 39.2% single-shot grep baseline** — 2.35× measured lift on the honest corpus (125 tasks / 19 repos)
+- **92.8% vs 39.2% single-shot grep baseline** — 2.37× measured lift on the honest corpus (125 tasks / 19 repos)
 - **56.7% hit@5 on repositories we do not control** — the third-party corpus: 118 of 208 questions over 35 repos, 95% interval 49.9–63.3%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
-- **95.4% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
-- **60.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
-- **1.6 prompts per task** — down from 2.84 (43.7% fewer retries, modeled)
+- **95.2% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
+- **61.9% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
+- **1.58 prompts per task** — down from 2.84 (44.4% fewer retries, modeled)
 <!--/SM:whyMetrics-->
 - **<!--SM:languages-->38<!--/SM:languages--> languages supported** — TypeScript, Python, Go, Rust, Java, R, and more
 - **No vendor lock-in** — works with any AI assistant or local LLM
@@ -134,15 +134,15 @@ Ask → Rank → Context → Validate → Judge → Learn
 
 <!--SM:benchmarkBlock-->
 ```
-Benchmark : sigmap-v8.84-main (21 repositories, including R language)
+Benchmark : sigmap-v8.85-main (21 repositories, including R language)
 Date      : 2026-10-27
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
-Honest vs grep : 92.0% vs 39.2% grep baseline — 2.35× lift (125 tasks / 19 repos)
+Honest vs grep : 92.8% vs 39.2% grep baseline — 2.37× lift (125 tasks / 19 repos)
 Third-party    : 56.7% hit@5 (118 of 208 questions / 35 repos, 95% interval 49.9–63.3%)
-Map vs repo    : 95.4% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
-Prompt reduction : 43.7% (2.84 → 1.6 prompts per task, modeled)
-Task success   : 60.0%   (proxy — modeled from retrieval tiers)
+Map vs repo    : 95.2% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
+Prompt reduction : 44.4% (2.84 → 1.58 prompts per task, modeled)
+Task success   : 61.9%   (proxy — modeled from retrieval tiers)
 Repos tested   : 21 (JavaScript, Python, Go, Rust, Java, R, C++, C#, Dart, Swift, Ruby, PHP, Scala, Kotlin, and more)
 ```
 <!--/SM:benchmarkBlock-->
