@@ -166,6 +166,7 @@ const STALE_TAILS = {
   judge: 'the answer is being judged against stale ground',
   ask:   'this answer is ranked against stale ground; re-run `sigmap` to refresh the index',
   mcp:   'this result is ranked against stale ground; re-run `sigmap` to refresh the index',
+  verify: 'a symbol deleted or renamed since then still resolves, so a clean verdict is not an all-clear; re-run `sigmap` to refresh the index',
 };
 
 module.exports = { resolveContextFile, contextStaleness, stalenessWarning, STALE_TAILS, ADAPTER_OUTPUTS };

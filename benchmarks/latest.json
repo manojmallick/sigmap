@@ -1,25 +1,25 @@
 {
-  "benchmark_id": "sigmap-v8.83-main",
-  "benchmark_date": "2026-10-26",
+  "benchmark_id": "sigmap-v8.84-main",
+  "benchmark_date": "2026-10-27",
   "repos_token": 21,
   "repos_retrieval": 18,
   "metrics": {
     "hit_at_5": 0.804,
     "baseline_hit_at_5": 0.136,
     "retrieval_lift": 5.9,
-    "overall_token_reduction_pct": 95.7,
+    "overall_token_reduction_pct": 95.4,
     "task_success_proxy_pct": 60,
     "prompts_per_task": 1.6,
     "baseline_prompts_per_task": 2.84,
     "prompt_reduction_pct": 43.7,
     "graph_boosted_hit_at_5": 0.804,
-    "grep_baseline_hit_at_5": 0.4,
-    "grep_lift": 2.3
+    "grep_baseline_hit_at_5": 0.392,
+    "grep_lift": 2.35
   },
   "honest": {
     "sigmap_hit_at_5": 0.92,
-    "grep_baseline_hit_at_5": 0.4,
-    "lift": 2.3,
+    "grep_baseline_hit_at_5": 0.392,
+    "lift": 2.35,
     "tasks": 125,
     "repos": 19
   },
@@ -52,28 +52,28 @@
   },
   "sources": {
     "benchmark-matrix.json": {
-      "version": "8.83.0",
-      "generated": "2026-10-26"
+      "version": "8.84.0",
+      "generated": "2026-10-27"
     },
     "grounding-regression.json": {
-      "version": "8.83.0",
-      "generated": "2026-10-26"
+      "version": "8.84.0",
+      "generated": "2026-10-27"
     },
     "honest-baseline.json": {
-      "version": "8.83.0",
-      "generated": "2026-10-26"
+      "version": "8.84.0",
+      "generated": "2026-10-27"
     },
     "task-benchmark.json": {
-      "version": "8.83.0",
-      "generated": "2026-10-26"
+      "version": "8.84.0",
+      "generated": "2026-10-27"
     },
     "test-discovery.json": {
-      "version": "8.83.0",
-      "generated": "2026-10-26"
+      "version": "8.84.0",
+      "generated": "2026-10-27"
     },
     "token-reduction.json": {
-      "version": "8.83.0",
-      "generated": "2026-10-26"
+      "version": "8.84.0",
+      "generated": "2026-10-27"
     }
   }
 }

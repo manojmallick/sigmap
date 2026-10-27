@@ -15,6 +15,7 @@ const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../../..');
 const { TOOLS } = require(path.join(ROOT, 'src', 'mcp', 'tools'));
@@ -61,8 +62,16 @@ test('dirty code: fake symbol flagged, real installed-library call NOT flagged',
   });
 });
 
-test('clean code (only real library calls) → clean verdict', () => {
+test('clean code (only real library calls) → nothing flagged; with a repo index, a clean verdict', () => {
   withProject((dir) => {
+    const unindexed = verifySuggestion({ code: 'Use `Router()` and `debounce(fn)`.' }, dir);
+    assert.ok(!/✗/.test(unindexed), `real library calls must not be flagged, got: ${unindexed}`);
+    // No repo index: the library names ran the symbol check, but this is not an all-clear (#989).
+    assert.ok(/⚠/.test(unindexed) && /no repo index/.test(unindexed) && !/✓/.test(unindexed), `expected a qualified verdict, got: ${unindexed}`);
+
+    fs.mkdirSync(path.join(dir, 'src'));
+    fs.writeFileSync(path.join(dir, 'src', 'app.js'), 'function main() { return 1; }\nmodule.exports = { main };\n');
+    spawnSync('node', [path.join(ROOT, 'gen-context.js'), '--cwd', dir], { cwd: ROOT, encoding: 'utf8' });
     const out = verifySuggestion({ code: 'Use `Router()` and `debounce(fn)`.' }, dir);
     assert.ok(/✓ Grounded/.test(out), `expected clean verdict, got: ${out}`);
   });

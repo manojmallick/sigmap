@@ -1017,25 +1017,42 @@ function verifySuggestion(args, cwd) {
   }
 
   const { issues, summary } = result;
+  const cov = require('../verify/coverage');
+  let config = {};
+  try { config = require('../config/loader').loadConfig(cwd); } catch (_) {}
+  const index = cov.indexState(cwd, summary, config);
+  const coverage = cov.coverageOf(summary, index);
+  summary.coverage = coverage;
+
+  // A verdict is a statement about the claims that were checked, against an index
+  // that is there and current (#989): never "Grounded" for an empty or skipped check.
   const out = [];
-  if (summary.clean) {
-    out.push('✓ Grounded — no fake files, imports, symbols, or scripts detected.');
-  } else {
+  if (!summary.clean) {
     out.push(`✗ ${summary.total} issue(s) found:`);
     for (const i of issues) {
       out.push(`  L${i.line}  [${i.type}]  ${i.message}`);
       if (i.suggestion) out.push(`         ↳ ${i.suggestion}`);
     }
+  } else if (index.state !== 'ok') {
+    out.push(`⚠ No issues in the claims checked, but ${index.state === 'missing' ? (index.symbolsRan === false ? 'the symbol check did not run' : 'there is no repo index') : 'the index is out of date'}.`);
+  } else if (coverage.vacuous) {
+    out.push('⚠ Nothing to check — the snippet names no file path, import, backticked call or npm script.');
+  } else {
+    out.push('✓ Grounded — no fake files, imports, symbols, or scripts found in the claims checked.');
   }
+  if (index.warning) out.push(`  ${index.warning}`);
 
-  // D8: report the installed libraries the suggestion was verified against.
-  const pins = (summary.libraries || []).filter((l) => l.version).map((l) => `${l.name}@${l.version}`);
-  const n = summary.librariesIndexed || 0;
   out.push('');
-  out.push(
-    `Grounded against ${summary.symbolsIndexed} repo + library symbol(s)` +
-    (n ? ` · ${n} installed librar${n === 1 ? 'y' : 'ies'}${pins.length ? ': ' + pins.join(', ') : ''}` : '')
-  );
+  for (const l of cov.detailLines(coverage)) out.push(l);
+
+  // D8: the installed libraries the suggestion was read against, with how much of
+  // each was readable — a library at 0 names grounds nothing (#990).
+  const libs = summary.libraries || [];
+  out.push(`Symbols indexed: ${summary.symbolsIndexed} (repo + installed libraries)`);
+  if (libs.length) {
+    out.push(`${libs.length} installed librar${libs.length === 1 ? 'y' : 'ies'} read:`);
+    for (const l of cov.libraryLines(libs)) out.push(`  ${l}`);
+  }
   return out.join('\n');
 }
 

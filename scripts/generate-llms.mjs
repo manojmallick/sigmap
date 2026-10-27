@@ -145,7 +145,7 @@ export function buildConcise(d) {
     '## Optional',
     `- [GitHub repository](${d.repo})`,
     '- [npm package](https://www.npmjs.com/package/sigmap)',
-    '- [Benchmark dataset (Zenodo)](https://doi.org/10.5281/zenodo.19898842)',
+    '- [Benchmark dataset (Zenodo)](https://doi.org/10.5281/zenodo.19898842) — 2026-04-29 snapshot; known defect: its final_tokens column is 0 in all 405 rows, so reproduce from benchmarks/reports/ instead',
     `- [Full LLM reference](${d.home}llms-full.txt)`,
     '',
     positioning,
@@ -216,7 +216,7 @@ export function buildFull(d) {
     `- Repository: ${d.repo}`,
     `- Documentation: ${d.home}`,
     '- npm: https://www.npmjs.com/package/sigmap',
-    '- Benchmark dataset: https://doi.org/10.5281/zenodo.19898842',
+    '- Benchmark dataset: https://doi.org/10.5281/zenodo.19898842 (2026-04-29 snapshot; known defect: its final_tokens column is 0 in all 405 rows, so reproduce from benchmarks/reports/ instead)',
     `- Issues: ${d.repo}/issues`,
     '', '---', '');
 

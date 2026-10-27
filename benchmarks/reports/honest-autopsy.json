@@ -4,12 +4,12 @@
   "tasks": 125,
   "sigmapHits": 115,
   "grepHits": {
-    "published": 50,
+    "published": 49,
     "withoutSigmapFiles": 58
   },
   "sigmapFilesInGrepTop5": {
     "places": 625,
-    "polluted": 130
+    "polluted": 135
   },
   "sigmapMisses": {
     "no token in common with the question": 3,
@@ -46,6 +46,6 @@
       "grepRank": 5
     }
   ],
-  "version": "8.83.0",
-  "generated": "2026-10-26T22:08:51.405Z"
+  "version": "8.84.0",
+  "generated": "2026-10-27T11:39:47.343Z"
 }

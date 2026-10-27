@@ -62,9 +62,9 @@ Example tasks:
 
 **Metric:** Hit@5 — the right file appears in the top 5 ranked results
 
-**Baseline:** Single-shot grep agent = 40.0% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
+**Baseline:** Single-shot grep agent = 39.2% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
 
-**SigMap score:** 92.0% on the same 125-task honest corpus — a measured **2.30× lift** over the grep baseline (92.0 ÷ 40.0). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
+**SigMap score:** 92.0% on the same 125-task honest corpus — a measured **2.35× lift** over the grep baseline (92.0 ÷ 39.2). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
 
 ### 2. Task success proxy (correct rank)
 
@@ -102,7 +102,7 @@ Example tasks:
 **Metric:** Token count of final context
 - **Full repo signatures:** 13.7M tokens (before SigMap)
 - **SigMap output:** 257K tokens (after ranking/filtering)
-- **Reduction:** 95.7% average, 89–99% per repo
+- **Reduction:** 95.4% average, 89–99% per repo
 
 **Impact:** Without SigMap, 14 of 21 repos overflow GPT-4o's 128K context window. With SigMap, all 21 fit.
 
@@ -124,7 +124,7 @@ All benchmarks are reproducible:
 - **Task set:** 105 tasks committed in `benchmarks/tasks/`
 - **Repositories:** 18 open-source projects cloned from GitHub
 - **Scripts:** Benchmark runners in `scripts/run-*.mjs`
-- **Raw data:** Available in [Zenodo archive](https://zenodo.org/records/19898842)
+- **Raw data:** [Zenodo archive](https://zenodo.org/records/19898842), a 2026-04-29 snapshot with a **known defect:** the `final_tokens` column of its results file is 0 in all 405 rows (and `reduction_percent` is 100 in 395), so do not reload results from it — `benchmarks/reports/` in this repository is the current record
 - **Dashboard:** Self-contained HTML report in `benchmarks/reports/benchmark-report.html`
 
 Run the benchmarks yourself:

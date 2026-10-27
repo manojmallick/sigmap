@@ -1,14 +1,14 @@
 ---
 layout: home
 title: SigMap — the deterministic, verifiable grounding layer for AI code work
-description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 80.4% hit@5, 43.7% fewer prompts, 95.7% average token reduction, 38 languages with R support.
+description: SigMap builds a deterministic, auditable signature-and-evidence map that AI agents, CI, and reviewers can trust and verify. Zero dependencies, no embeddings, fully offline. Proof — 80.4% hit@5, 43.7% fewer prompts, 95.4% average token reduction, 38 languages with R support.
 head:
   - - meta
     - property: og:title
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - property: og:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 80.4% hit@5, 43.7% fewer prompts, 95.7% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 80.4% hit@5, 43.7% fewer prompts, 95.4% overall token reduction."
   - - meta
     - property: og:url
       content: "https://sigmap.io/"
@@ -20,7 +20,7 @@ head:
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
   - - meta
     - name: twitter:description
-      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 80.4% hit@5, 43.7% fewer prompts, 95.7% overall token reduction."
+      content: "A reproducible signature-and-evidence map agents and CI can audit. Proof — 80.4% hit@5, 43.7% fewer prompts, 95.4% overall token reduction."
   - - meta
     - name: twitter:image:alt
       content: "SigMap — the deterministic, verifiable grounding layer for AI code work"
@@ -31,7 +31,7 @@ head:
 hero:
   name: SigMap
   text: Grounded context AI can trust. Deterministic. Verifiable.
-  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 80.4% hit@5 · 95.7% token reduction · zero deps, fully offline."
+  tagline: "The deterministic, verifiable grounding layer for AI code work. Proof — 80.4% hit@5 · 95.4% token reduction · zero deps, fully offline."
   actions:
     - theme: brand
       text: Get Started →
@@ -46,12 +46,12 @@ hero:
 features:
   - icon: 💬
     title: Fewer prompts to finish the task
-    details: "Latest saved run: 2.84 prompts without SigMap vs 1.6 with SigMap. That is a 43.7% reduction across 105 real coding tasks."
+    details: "Latest saved run: 2.84 prompts without SigMap vs 1.6 with SigMap. That is a 43.7% reduction across 105 benchmark tasks, modeled from retrieval tiers rather than measured in live sessions."
     link: /guide/task-benchmark
     linkText: Task benchmark →
   - icon: 🎯
     title: Right file in context
-    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 92.0% where a single-shot grep agent finds the right file 40.0% of the time — a measured 2.30× better.
+    details: 80.4% hit@5 across 18 repos and 105 tasks. On the 125-task honest corpus SigMap scores 92.0% where a single-shot grep agent finds the right file 39.2% of the time — a measured 2.35× better.
     link: /guide/retrieval-benchmark
     linkText: Retrieval benchmark →
   - icon: ⚖️
@@ -78,14 +78,14 @@ features:
 
 <div style="max-width:840px;margin:0 auto;padding:18px 24px 0;text-align:center">
 <div style="display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-brand-soft,#ede9fe);border:1px solid rgba(124,106,247,.25);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-1)">
-  <span><strong>Release:</strong> v8.83.0</span>
+  <span><strong>Release:</strong> v8.84.0</span>
   <span>·</span>
-  <span><strong>New — Ruby and C/C++ carry line anchors, and both graphs are measured:</strong> Ruby is read as nested structure and C/C++ as declarations, so <code>get_lines</code> reads one symbol, not the file (anchors equal to Ripper's lines 9,701 of 9,701; C++ classes found against clangd 49.5% to 95.6%). The import graph reads fifteen language families (PHP 100% and C/C++ 99.7% against each language's own tooling), and the call graph is scored against compiler-derived edges, misses published. The third-party benchmark moves one task, to 115 of 208, and says why.</span>
+  <span><strong>New — <code>verify</code> says what it checked:</strong> every run prints the claims it checked and the ones it did not, an answer with nothing checkable is "nothing to check" and not a green tick, and a missing or stale index is its own exit code (3). Installed libraries are read through their barrels, <code>typesVersions</code> and <code>@types</code> (18 of 46 sampled packages read as empty before, none after), and the generated map no longer depends on where the repository is checked out (gin kept 55 to 72 sections across four path lengths, now 83 at all four). Token reduction reads 95.4%, not 95.7%, and the page says why.</span>
 </div>
 <div style="margin-top:.4rem;display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;background:var(--vp-c-default-soft,#f3f4f6);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:.55rem .9rem;font-size:.9rem;color:var(--vp-c-text-2)">
-  <span><strong>Benchmark:</strong> sigmap-v8.83-main</span>
+  <span><strong>Benchmark:</strong> sigmap-v8.84-main</span>
   <span>·</span>
-  <span>80.4% hit@5 · 95.7% token reduction · 2026-10-26</span>
+  <span>80.4% hit@5 · 95.4% token reduction · 2026-10-27</span>
 </div>
 </div>
 
@@ -173,11 +173,11 @@ See the full [end-to-end walkthrough](/guide/walkthrough) to watch this in actio
 | Task success proxy | — (proxy, modeled from retrieval tiers) | **60.0%** |
 | Prompts per task | 2.84 | **1.6** |
 | Retrieval hit@5 (retrieval corpus) | — | **80.4%** |
-| Honest corpus hit@5 (125 tasks) | 40.0% (single-shot grep) | **92.0%** (2.30× lift) |
-| Overall token reduction | — | **95.7%** |
+| Honest corpus hit@5 (125 tasks) | 39.2% (single-shot grep) | **92.0%** (2.35× lift) |
+| Overall token reduction | — | **95.4%** |
 | GPT-4o overflow repos | 14/21 | **0/21** |
 
-Latest saved benchmark run: **2026-10-26 (v8.83.0)**.
+Latest saved benchmark run: **2026-10-27 (v8.84.0)**.
 
 </div>
 

@@ -43,7 +43,11 @@ const NODE_BUILTINS = new Set([
   'tls', 'dns', 'buffer', 'process', 'vm', 'module', 'console', 'timers',
   'string_decoder', 'perf_hooks', 'worker_threads', 'cluster', 'dgram', 'v8',
   'tty', 'repl', 'async_hooks', 'inspector', 'fs/promises', 'path/posix',
+  'http2', 'diagnostics_channel',
 ]);
+
+// Core modules that exist only behind the `node:` scheme: `import test from 'node:test'`.
+const NODE_PREFIX_ONLY = new Set(['test', 'sqlite', 'sea']);
 
 const PY_BUILTINS = new Set([
   'os', 'sys', 're', 'json', 'math', 'typing', 'collections', 'itertools',
@@ -201,6 +205,9 @@ function verify(answerText, cwd, opts = {}) {
     }
   }
   if (!fileBasenames) fileBasenames = new Set();
+  // Whether the REPO had symbols, before installed libraries are unioned in: library
+  // names alone make the symbol check run, against a set that holds none of the repo's own.
+  const repoSymbolCount = symbolSet.size;
 
   // Installed-library grounding (G5/D5, the moat): union the exported symbols of
   // the libraries actually installed in node_modules, so genuine library calls
@@ -252,9 +259,22 @@ function verify(answerText, cwd, opts = {}) {
     issues.push(issue);
   };
 
+  // How many claims of each class this run actually decided (#989). "Nothing was
+  // flagged" only means something next to "N were checked": an answer with no
+  // checkable claim is not a clean answer, it is an empty check.
+  const claims = { files: 0, imports: 0, symbols: 0, scripts: 0 };
+
   // 1. fake-file / fake-test-file
-  for (const { path: p, line } of parsers.extractFilePaths(answerText)) {
+  //
+  // A bare file name (`util.js`, no directory) names no path to look up. The answer
+  // is relative to a place we cannot know, so it stands when the repo has a file
+  // of that name anywhere — `src/util.js` answers "edit util.js" (#989).
+  const indexedNames = new Set(fileCandidates.map((f) => path.basename(f)));
+  const fileRefs = parsers.extractFilePaths(answerText);
+  claims.files = fileRefs.length;
+  for (const { path: p, line } of fileRefs) {
     if (fileExists(p)) continue;
+    if (!p.includes('/') && indexedNames.has(p)) continue;
     const isTest = isTestPath(p);
     const match = closestMatch(path.basename(p), fileBasenameCandidates, { minLen: 4 });
     add({
@@ -299,10 +319,12 @@ function verify(answerText, cwd, opts = {}) {
     if (imp.kind === 'py' || imp.kind === 'go') {
       const r = classifyImport(imp, importCtx);
       if (r.status === 'unresolved') {
+        claims.imports++;
         add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });
         continue;
       }
       if (r.status === 'resolved') {
+        claims.imports++;
         verifiedImports.add(imp.module);
         checkNames(imp);
         continue;
@@ -312,6 +334,7 @@ function verify(answerText, cwd, opts = {}) {
       if (!(imp.kind === 'py' && imp.relative)) continue;
     }
     if (imp.relative) {
+      claims.imports++;
       if (!relativeResolvable(imp.module)) {
         add({ type: 'fake-import', value: imp.module, line: imp.line, message: `Import does not resolve: ${imp.module}`, confidence: 'high' });
         continue;
@@ -323,7 +346,20 @@ function verify(answerText, cwd, opts = {}) {
     // Bare module — only verifiable for JS when a package.json exists.
     const top = imp.module.split('/')[0];
     if (imp.kind === 'js') {
+      // `node:` is the scheme for Node's own modules — a claim about the runtime,
+      // not a package to find in package.json. It was reported as "Package not in
+      // dependencies" (#989). A `node:` name this list does not know is left alone
+      // rather than guessed at: Node adds core modules.
+      if (imp.module.startsWith('node:')) {
+        const core = imp.module.slice(5).split('/')[0];
+        if (NODE_BUILTINS.has(core) || NODE_PREFIX_ONLY.has(core)) {
+          claims.imports++;
+          verifiedImports.add(imp.module);
+        }
+        continue;
+      }
       if (!hasPkg) continue;
+      claims.imports++;
       if (NODE_BUILTINS.has(imp.module) || NODE_BUILTINS.has(top)) { verifiedImports.add(imp.module); continue; }
       if (top.startsWith('@')) {
         const scoped = imp.module.split('/').slice(0, 2).join('/');
@@ -359,7 +395,9 @@ function verify(answerText, cwd, opts = {}) {
       : null);
   if (symbolSet.size > 0) {
     const pending = [];
-    for (const { name, line } of parsers.extractSymbols(answerText)) {
+    const calls = parsers.extractSymbols(answerText);
+    claims.symbols = calls.length;
+    for (const { name, line } of calls) {
       if (symbolSet.has(name)) continue;
       if (LANG_GLOBALS.has(name) || NODE_BUILTINS.has(name) || PY_BUILTINS.has(name)) continue;
       pending.push({ name, line });
@@ -412,7 +450,9 @@ function verify(answerText, cwd, opts = {}) {
 
   // 4. fake-npm-script
   if (hasPkg && scripts.size > 0) {
-    for (const { name, line } of parsers.extractNpmScripts(answerText)) {
+    const invoked = parsers.extractNpmScripts(answerText);
+    claims.scripts = invoked.length;
+    for (const { name, line } of invoked) {
       if (scripts.has(name)) continue;
       const match = closestMatch(name, [...scripts], { minLen: 2 });
       add({
@@ -439,11 +479,16 @@ function verify(answerText, cwd, opts = {}) {
     byType,
     clean: issues.length === 0,
     symbolsIndexed: symbolSet.size,
+    // The repo's own symbols, before installed libraries are unioned in (#989): library
+    // names alone make the symbol check run, against a set that holds none of the repo's.
+    repoSymbolsIndexed: repoSymbolCount,
     // Names the index lacked that the source calls or defines (#914) — not findings.
     symbolsConfirmed: sourceConfirmed.size,
     withSuggestion: issues.filter((i) => i.suggestion).length,
     librariesIndexed: libraries.length,
-    libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed })),
+    libraries: libraries.map((l) => ({ name: l.name, version: l.version, symbols: l.symbols, typed: l.typed, ...(l.partial ? { partial: true } : {}) })),
+    // Claims each class decided (#989): the number a clean verdict is a verdict ON.
+    claims: { ...claims, total: claims.files + claims.imports + claims.symbols + claims.scripts },
     // Which claim classes actually ran (J1, #640): lets callers distinguish
     // "checked and clean" from "check skipped" — a symbol NOT flagged means
     // nothing when no symbol index exists.

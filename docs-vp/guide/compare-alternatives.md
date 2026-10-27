@@ -51,7 +51,7 @@ RepoMix packs a repository into one AI-friendly file. SigMap extracts signatures
 | | SigMap | RepoMix (characterized: [README, 2026-10-18](https://github.com/yamadashy/repomix/blob/e696384d062f08f0246ffd2580d5a206484fc0a4/README.md)) |
 |---|---|---|
 | What it produces | A ranked signature map, per query | One packed file of the repository (or the files its include and ignore patterns select) |
-| Token reduction | **95.7%** average (the map against every source file, 21 repos) | ~70% with `--compress`, which uses Tree-sitter to keep signatures (its README's figure) |
+| Token reduction | **95.4%** average (the map against every source file, 21 repos) | ~70% with `--compress`, which uses Tree-sitter to keep signatures (its README's figure) |
 | Retrieval accuracy (hit@5) | **80.4%** on the retrieval corpus; **55.3%** on repositories we do not control | No retrieval metric in its README |
 | Query-aware context | **Yes** — ranked per query | Not described: it packs. Its MCP server can search a packed file (`grep_repomix_output`) |
 | Dependency graph | **Yes** — import-aware BFS | Not described in its README |
@@ -131,7 +131,7 @@ Some teams maintain a hand-written `AGENTS.md` or instructions file. SigMap gene
 |---|---|---|
 | Keeps up with code changes | **Yes** — regenerates on every commit | Manual update required |
 | Structured by module | **Yes** — per-module signature blocks | Usually flat text |
-| Benchmark-tested accuracy | **80.4% hit@5** (retrieval corpus); **2.30× vs grep** on the honest corpus (92.0% vs 40.0%) | Not measured |
+| Benchmark-tested accuracy | **80.4% hit@5** (retrieval corpus); **2.35× vs grep** on the honest corpus (92.0% vs 39.2%) | Not measured |
 | Time to set up | **30 seconds** | Hours |
 
 *Right-hand column: typical figures for the category, not measurements of a named product.*

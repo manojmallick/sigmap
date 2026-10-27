@@ -1,13 +1,13 @@
 ---
 title: Benchmark overview
-description: Official v8.83.0 benchmark snapshot. 95.7% average token reduction across 21 repos, 80.4% retrieval hit@5, 43.7% fewer prompts, and R language support verified.
+description: Official v8.84.0 benchmark snapshot. 95.4% average token reduction across 21 repos, 80.4% retrieval hit@5, 43.7% fewer prompts, and R language support verified.
 head:
   - - meta
     - property: og:title
-      content: "SigMap benchmark overview — v8.83.0 snapshot with R language"
+      content: "SigMap benchmark overview — v8.84.0 snapshot with R language"
   - - meta
     - property: og:description
-      content: "Token, retrieval, quality, and task metrics from latest v8.83.0 benchmark run (2026-10-26) with 21 repositories including R language support."
+      content: "Token, retrieval, quality, and task metrics from latest v8.84.0 benchmark run (2026-10-27) with 21 repositories including R language support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/benchmark"
@@ -15,15 +15,15 @@ head:
 
 # Benchmark overview
 
-::: info Official v8.83.0 benchmark snapshot (21 repos, including R language)
-**Benchmark ID:** sigmap-v8.80-main &nbsp;·&nbsp; **Date:** 2026-10-18
+::: info Official v8.84.0 benchmark snapshot (21 repos, including R language)
+**Benchmark ID:** sigmap-v8.84-main &nbsp;·&nbsp; **Date:** 2026-10-27
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 40.0% single-shot grep — **2.30× lift** |
-| Token reduction (21 repos) | **95.7%** |
-| Honest lift (vs grep agent) | **2.30×** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 39.2% single-shot grep — **2.35× lift** |
+| Token reduction (21 repos) | **95.4%** |
+| Honest lift (vs grep agent) | **2.35×** |
 | Prompt reduction | **43.7%** (2.84 → 1.6) |
 | Task success proxy | **60.0%** |
 | Test discovery (impl→test) | **F1 98.0%** · hit@1 97.4% (28 repos) |
@@ -39,11 +39,27 @@ This is the landing page for the public benchmark story. It answers four differe
 | SigMap reduces retries and wrong-context answers | [Task benchmark](/guide/task-benchmark) |
 | SigMap keeps large repos inside model limits | [Quality benchmark](/guide/quality-benchmark) |
 
-## Official v8.83.0 snapshot (with R language support)
+## Official v8.84.0 snapshot (with R language support)
 
-Latest saved benchmark run: **2026-10-26 (v8.83.0)**
+Latest saved benchmark run: **2026-10-27 (v8.84.0)**
 
 Task selection, metric definitions, baselines, and the limits of what these tests cover are in [benchmark methodology](/guide/methodology).
+
+::: tip Why token reduction moved 95.7% → 95.4% in v8.84.0
+It is a measurement fix, not worse compression. The token budget priced each section of the generated map by its **absolute** path, although the section heading renders the path relative to the project root, so the map held fewer sections than its budget allowed, and how many fewer depended on how long the checkout path was ([#993](https://github.com/manojmallick/sigmap/issues/993): on `gin` the same commit gave 72, 65, 61 and 55 sections at four path lengths and now gives 83 at all four). The benchmark clones sit under a long path, so **the published 95.7% depended on where they live**. It now prices the path the heading shows.
+
+The cause was separated, not assumed. Each row is the same 21-repository matrix on the same shared clones, summed over the repositories:
+
+| Tree | Average reduction | Final tokens | Signatures | Grounded symbols |
+|---|---:|---:|---:|---:|
+| v8.83.0, saved reports | 95.67% | 258,439 | 1,622 | 16,259 |
+| v8.83.0 tag, re-run here (control) | 95.67% | 258,439 | 1,622 | 16,259 |
+| this release, absolute-path pricing put back | 95.66% | 258,399 | 1,620 | 16,257 |
+| this release, SigMap's own output counted as source again | 95.42% | 281,034 | 1,788 | 17,833 |
+| **this release** | **95.40%** | **280,959** | **1,786** | **17,823** |
+
+Putting the old pricing back reproduces the old numbers; putting the old handling of SigMap's own output back changes almost nothing. So the whole move is the pricing: 22,520 more tokens of signatures in the maps (about 8.7% more), 0.27 points of reduction less, 1,564 more grounded symbols, and **hit@5 unchanged at 80.4%**, task success at 60.0% and prompt reduction at 43.7%. The raw-token total and file count move a little for a different reason (a generated file left in a clone is no longer counted as source), and the control reproduces every other saved leaf except `gin`'s raw count, which differs by 808 tokens because of that same left-over file. Three runs of this release on clones in three different states give identical reports, and the old code could not do that.
+:::
 
 ::: tip Why token reduction moved 96.6% → 96.2% in v8.51.2
 The Python AST extractor began running in production for the first time ([#693](https://github.com/manojmallick/sigmap/issues/693)). It was always the documented Tier-1 path — `KNOWN_LIMITATIONS.md` describes it as a native CPython AST parse when `python3` is on PATH — but nothing in the shipped pipeline passed it a file path, so Python files silently used the Tier-2 regex tier instead.
@@ -60,27 +76,27 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 | Token reduction repos | 21 (including R: ggplot2, dplyr, shiny) |
 | Retrieval benchmark repos | 18 (core languages) |
 | Total tasks | 105 |
-| Average token reduction (all 21) | **95.7%** |
+| Average token reduction (all 21) | **95.4%** |
 | Retrieval hit@5 (18 core) | **80.4%** |
 | Graph-boosted hit@5 | **80.4%** |
-| Grep-agent baseline hit@5 (125 tasks, 19 repos) | 40.0% — **2.30× honest lift** |
+| Grep-agent baseline hit@5 (125 tasks, 19 repos) | 39.2% — **2.35× honest lift** |
 | Random baseline hit@5 (data only, no longer quoted) | 13.6% |
 | Prompt reduction | **43.7%** (2.84 → 1.6 prompts) |
 | GPT-4o overflow repos without SigMap | **14 / 21** |
-| GPT-4o monthly input savings at 10 calls/day | **$10,062.65** |
+| GPT-4o monthly input savings at 10 calls/day | **$10,036.15** |
 
 ## What each benchmark proves
 
 ### 1. Token reduction (21 repositories)
 
-- Raw source across benchmark set: **13,674,144** tokens (21 repos)
-- Final SigMap output: **257,273** tokens
-- Pooled reduction across the whole corpus: **98.1%**
-- Average per-repo reduction — **the published figure**: **95.7%**
+- Raw source across benchmark set: **13,662,499** tokens (21 repos)
+- Final SigMap output: **280,959** tokens
+- Pooled reduction across the whole corpus: **97.9%**
+- Average per-repo reduction — **the published figure**: **95.4%**
 - **New in v6.11.1:** R language support verified
-  - ggplot2: 95.1% reduction (381.5K → 18.6K tokens)
-  - dplyr: 94.2% reduction (145.1K → 8.3K tokens)
-  - shiny: 96.7% reduction (264.6K → 8.8K tokens)
+  - ggplot2: 94.7% reduction (381.5K → 20.1K tokens)
+  - dplyr: 93.7% reduction (145.1K → 9.1K tokens)
+  - shiny: 96.4% reduction (264.6K → 9.4K tokens)
 - **New in v6.12.0:** demand-driven *Surgical Context* (`ask --mode index` + the `get_lines` MCP tool) cuts upfront `ask` context further on top of the figures above by emitting symbol pointers instead of bodies — see the [Surgical Context guide](/guide/surgical-context).
 - **Line anchors (v6.13.0):** extended to JavaScript and to class methods / interface members (TS & JS), raising index-mode token reduction on real repos from ~4.6% to 32–42% (axios 43.4%, fastify 41.1%, svelte 36.8%, vue-core 32.4%).
 
@@ -88,8 +104,8 @@ So this is a deliberate trade, not drift: more accurate Python grounding at slig
 
 - SigMap hit@5 (honest corpus, 125 tasks): **92.0%**
 - SigMap hit@5 (retrieval corpus, 105 tasks): **80.4%** — graph-boosted **80.4%** (+0.0pp)
-- Grep-agent baseline: **40.0%** (single-shot, `npm run benchmark:honest`)
-- Honest lift: **2.30x** (+52.0pt vs grep; random baseline 13.6% kept as data only)
+- Grep-agent baseline: **39.2%** (single-shot, `npm run benchmark:honest`)
+- Honest lift: **2.35x** (+52.8pt vs grep; random baseline 13.6% kept as data only)
 
 This is the best benchmark when the question is: *"Does SigMap actually put the right file in context?"*
 
@@ -107,7 +123,7 @@ This is the best benchmark when the question is: *"Does the developer need fewer
 - **14/21** repos overflow GPT-4o's 128K context window without SigMap
 - R repos add to overflow risk: ggplot2 and shiny both overflow without SigMap
 - **5,200+** files would be hidden from the model in the raw-flow scenario
-- **16,259** symbols are surfaced in SigMap output across all benchmark repos
+- **17,823** symbols are surfaced in SigMap output across all benchmark repos
 - With SigMap: **0/21 repos overflow** — all repos fit within 128K context
 
 This is the best benchmark when the question is: *"Why does token reduction matter operationally?"*
@@ -202,5 +218,5 @@ The matrix run writes:
 ## Benchmark resources
 
 - **[Benchmark suite →](https://github.com/manojmallick/sigmap-benchmark-suite)** — Open-source scripts, 90 real-world coding tasks, and per-repo raw results
-- **[Archived data (Zenodo) →](https://zenodo.org/records/19898842)** — Full benchmark dataset for reproducibility and independent analysis
+- **[Archived data (Zenodo) →](https://zenodo.org/records/19898842)** — 2026-04-29 snapshot; **known defect:** the `final_tokens` column of its results file is 0 in all 405 rows (and `reduction_percent` is 100 in 395), so do not reload results from it — `benchmarks/reports/` in this repository is the current record
 - **[Hacker News discussion →](https://news.ycombinator.com/item?id=47956790)** — Community feedback and related work

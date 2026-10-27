@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.83.0, with the latest release moving Ruby and C/C++ to the anchored tier (9,701 of 9,701 Ruby anchors equal to Ripper's lines; C++ classes found against clangd 49.5% to 95.6%), reading seven more import families and measuring the import graph and the call graph against what each language's own tooling resolves, after v8.82.0 growing the third-party corpus from 128 questions over 25 repositories to 208 over 35 (hit@5 63.3% to 55.8%, every earlier repository unchanged) and printing an exact paired test beside every won/lost count, after v8.81.0 giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
+description: SigMap version history and roadmap. From v0.0 to v8.84.0, with the latest release making `verify` say what it checked and exit 3 when its index cannot vouch for the answer, reading installed libraries through their barrels (18 of 46 sampled packages read as empty before, none after) and making the generated map independent of the checkout path (gin 72 to 55 sections across four path lengths before, 83 at all four), after v8.83.0 moving Ruby and C/C++ to the anchored tier (9,701 of 9,701 Ruby anchors equal to Ripper's lines; C++ classes found against clangd 49.5% to 95.6%), reading seven more import families and measuring the import graph and the call graph against what each language's own tooling resolves, after v8.82.0 growing the third-party corpus from 128 questions over 25 repositories to 208 over 35 (hit@5 63.3% to 55.8%, every earlier repository unchanged) and printing an exact paired test beside every won/lost count, after v8.81.0 giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Two hundred fifty versions shipped. MIT open source from day one.
 
-**Stats:** 95.7% overall token reduction · 80.4% retrieval hit@5 · 2.30× measured lift vs single-shot grep (92.0% vs 40.0%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
+**Stats:** 95.4% overall token reduction · 80.4% retrieval hit@5 · 2.35× measured lift vs single-shot grep (92.0% vs 39.2%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,28 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.84.0 — `verify` says what it checked, the generated map stops depending on where it is checked out, and installed libraries are read through their barrels ✓ (2026-10-27)
+
+**Minor.** The R1 release of the 2026-10-27 plan, and the one that stops three surfaces from reading as more than they measured ([#989](https://github.com/manojmallick/sigmap/issues/989), [#990](https://github.com/manojmallick/sigmap/issues/990), [#992](https://github.com/manojmallick/sigmap/issues/992), [#993](https://github.com/manojmallick/sigmap/issues/993), [#998](https://github.com/manojmallick/sigmap/issues/998), [#1007](https://github.com/manojmallick/sigmap/issues/1007); PR [#1035](https://github.com/manojmallick/sigmap/pull/1035)). **`verify` prints what it checked and what it did not**, in the terminal, in `--json`, in the HTML report and in the `verify_suggestion` tool; an answer with nothing checkable is "nothing to check" and never a green tick; and a run whose index is missing or stale exits **3** rather than 0 (a usage error is now 2). **The installed-library index follows `export *` barrels, `typesVersions`, the `exports` map and `@types`**, so a package that keeps its names behind a barrel no longer reads as empty while the output says it grounded against it. **The token budget prices a section by the path it renders**, so the same commit gives the same map wherever it is cloned. Five published statements that ran ahead of their measurement are corrected and a test pins them.
+
+```
+verify exit codes                              0 clean · 1 issues · 1 usage  ->  0 clean · 1 issues · 2 usage · 3 index missing or stale
+installed packages read as empty (46 sampled)  18                            ->  0   (14 partial)
+zod / rxjs / date-fns names read               1 / 0 / 0                     ->  302 / 228 / 459
+gin sections at four checkout path lengths     72 / 65 / 61 / 55             ->  83 / 83 / 83 / 83
+verify --json through a pipe                   65,536 bytes                  ->  1,083,545 bytes
+token reduction (21 repos, average)            95.7%                         ->  95.4%
+retrieval gate floor on hard                   70.0% (63 of 90)              ->  68.0% (62 of 90)
+```
+
+Two of those rows are not improvements and the release says so. **Token reduction moves 95.7% → 95.4% because the old number was partly an artefact of where the benchmark clones live**: the old budget charged every section for the absolute path of the checkout, a prefix the section heading never shows, so the map kept fewer sections than its budget allowed (final tokens 258,439 → 280,959, signatures 1,622 → 1,786, grounded symbols 16,259 → 17,823). A control run of the v8.83.0 tag in the same layout reproduces the saved reports, and two hybrid trees with one of the two budget changes reverted put the move on the pricing and not on the exclusion of SigMap's own output. **The retrieval gate's `hard` floor is loosened by one task** — the split scores this repository's own source, so adding one indexed module and editing six more costs a task (63 → 62 of 90); the floor is a constant, re-saving the baseline does not clear it, and nothing was edited to chase a query. CI's first run also found a limit the release does not fix: the checkout *path* no longer changes the map, but on a filesystem with a coarse clock (Linux, about 4 ms) the checkout *moment* can, because the drop order ranks by file age. Four fresh Linux copies of `gin` gave identical maps, which is one repository and one run.
+
+**Tags:** `verify`, `coverage contract`, `exit 3`, `barrels`, `typesVersions`, `@types`, `writeAll`, `path independence`, `published claims`, `#989`, `#990`, `#992`, `#993`, `#998`, `#1007`
+
+**Impact:** retrieval hit@5 80.4%, the task-success proxy 60.0%, prompt reduction 43.7%, test-discovery F1 98.0%, the third-party gate (115 of 208), the grounding corpus and the hallucination guard reproduce v8.83.0. The honest comparison reads SigMap 92.0% against a grep baseline of 39.2% (it read 40.0%; the grep side scans the working tree, documentation included), a 2.35× lift (2.30×). Token reduction 95.7% → 95.4% and grounded symbols 16,259 → 17,823 are the pricing change, attributed by a control and two hybrids. Three runs of the new code on clones in three different states give identical reports; the old code could not. `verify` through a pipe delivers its whole document, and a CI job that ran `verify` before indexing now exits 3, not 0.
 
 ---
 
