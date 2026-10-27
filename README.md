@@ -40,7 +40,7 @@ Zero config. Zero dependencies. Under 10 seconds.
 
 ## What is SigMap?
 
-SigMap builds a **deterministic, auditable signature-and-evidence map** of your codebase — no LLM calls, no embeddings, byte-stable output — so AI agents, CI, and reviewers can *trust and verify* which files and symbols are real before acting. Same repo in, same map out, every time.
+SigMap builds a **deterministic, auditable signature-and-evidence map** of your codebase — no LLM calls, no embeddings, byte-stable output (apart from one trailing timestamp line, and independent of where the repo is checked out) — so AI agents, CI, and reviewers can *trust and verify* which files and symbols are real before acting. Same repo in, same map out, every time.
 
 That map is exactly what agentic grep is worst at: reproducible, auditable context an agent can consume without a copy-paste, and a grounding check that proves an AI answer is anchored to real signatures and line numbers. Token reduction comes for free — but trust is the point.
 

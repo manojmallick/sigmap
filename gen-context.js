@@ -42885,9 +42885,33 @@ function prefetchPythonAst(files) {
   } catch (_) { /* the per-file path still works */ }
 }
 
+// Repo-relative paths of the files SigMap itself writes, per project root.
+const __ownOutputs = new Map();
+
+/**
+ * Content with SigMap's own generated block left out, or '' when the whole file is
+ * one (#993). A run that indexes the file the previous run wrote is not a fixed
+ * point: the second map describes the first, the third describes the second, and
+ * the section count moves with it (gin: 118 files, then 119). A human-owned file
+ * (CLAUDE.md, AGENTS.md) keeps the lines above the managed section; an adapter's
+ * output that is entirely generated is dropped.
+ */
+function withoutOwnOutput(content, rel, cwd) {
+  if (typeof content !== 'string' || content === '') return content;
+  const ms = requireSourceOrBundled('./src/util/managed-section');
+  if (!__ownOutputs.has(cwd)) __ownOutputs.set(cwd, generatedOutputPaths(cwd, {}));
+  if (__ownOutputs.get(cwd).has(rel) && ms.isEntirelyGenerated(content.slice(0, 400))) return '';
+  if (!content.includes(ms.HEADING)) return content;
+  const section = ms.findManagedSection(content);
+  if (!section || !(section.stamped || ms.looksGenerated(content, section.index))) return content;
+  return content.slice(0, ms.managedSectionLineStart(content));
+}
+
 function detectAndExtract(filePath, content, maxSigsPerFile, exactness, cwd) {
   const absFilePath = path.resolve(cwd || process.cwd(), filePath);
   const base = path.basename(filePath);
+  content = withoutOwnOutput(content, path.relative(cwd || process.cwd(), absFilePath).replace(/\\/g, '/'), cwd || process.cwd());
+  if (content === '') return [];
 
   // CI/pipeline definitions route by PATH before the extension map (#3, v8.50):
   // `.github/workflows/ci.yml` is a workflow first and YAML second. An empty
@@ -43191,12 +43215,19 @@ function pruneStaleContextSplits(cwd, keep) {
   return removed;
 }
 
-function applyTokenBudget(fileEntries, maxTokens) {
+function applyTokenBudget(fileEntries, maxTokens, cwd = process.cwd()) {
   // fileEntries: [{ filePath, sigs, mtime }]
   // Per-file rendered overhead: "### <path>", code fences, trailing blank line.
   // A signature-only budget undercounts this, so when many files survive the
   // section headers alone can blow maxTokens.
-  const sectionOverhead = (e) => estimateTokens(String(e.filePath || '')) + 6;
+  //
+  // The heading renders the path RELATIVE to the project root, so that is what it
+  // costs. Pricing the absolute path made the map depend on how long the checkout
+  // path is: the same commit lost 19 of 69 sections 180 characters deeper (#993).
+  // The same goes for what a file IS — a project checked out under a directory
+  // named `test`, `tests` or `mocks` made every file in it a test or a mock.
+  const relOf = (e) => path.relative(cwd, String(e.filePath || ''));
+  const sectionOverhead = (e) => estimateTokens(relOf(e)) + 6;
   const renderedTotal = (entries) =>
     entries.reduce((s, e) => s + estimateTokens(e.sigs.join('\n')) + sectionOverhead(e), 0);
   // The generated file also carries a fixed preamble the entry budget does not
@@ -43231,11 +43262,12 @@ function applyTokenBudget(fileEntries, maxTokens) {
   const withPriority = fileEntries.map((e) => {
     let priority = 0;
     let dropReason = 'budget: low recency';
-    if (isGeneratedFile(e.filePath)) { priority = 10; dropReason = 'budget: generated file'; }
-    else if (isMockFile(e.filePath)) { priority = 9;  dropReason = 'budget: mock file'; }
-    else if (isTestFile(e.filePath)) { priority = 8;  dropReason = 'budget: test file'; }
-    else if (isConfigFile(e.filePath)) { priority = 6; dropReason = 'budget: config file'; }
-    else if (isEntryPointFile(e.filePath)) { priority = 3; dropReason = 'budget: entry point'; }
+    const rel = relOf(e);
+    if (isGeneratedFile(rel)) { priority = 10; dropReason = 'budget: generated file'; }
+    else if (isMockFile(rel)) { priority = 9;  dropReason = 'budget: mock file'; }
+    else if (isTestFile(rel)) { priority = 8;  dropReason = 'budget: test file'; }
+    else if (isConfigFile(rel)) { priority = 6; dropReason = 'budget: config file'; }
+    else if (isEntryPointFile(rel)) { priority = 3; dropReason = 'budget: entry point'; }
     else priority = 4;
     const loc = typeof e.loc === 'number' ? e.loc : (e.content ? e.content.split('\n').length : 1);
     const signalQuality = loc > 0 ? (e.sigs ? e.sigs.length : 0) / loc : 0;
@@ -43286,7 +43318,7 @@ function applyTokenBudget(fileEntries, maxTokens) {
   // best-first order is preserved, and a SINGLE-module repo yields exactly the
   // former sequence — so only genuinely multi-module repos change.
   const moduleKeyFor = (filePath) => {
-    const rel = path.relative(process.cwd(), String(filePath || ''));
+    const rel = path.relative(cwd, String(filePath || ''));
     if (!rel || rel.startsWith('..')) return '';
     const seg = rel.split(path.sep)[0];
     return seg === rel ? '' : seg; // a root-level file belongs to no module
@@ -44614,7 +44646,7 @@ function runPerModuleStrategy(cwd, config, fileEntries, inputTokenTotal) {
     // Per-module budget: each module gets its own full effective budget
     // (per-module strategy is the recommended path for large repos — no sharing needed)
     const modBudget = Math.max(1000, config.maxTokens);
-    const budgeted = applyTokenBudget(modEntries, modBudget);
+    const budgeted = applyTokenBudget(modEntries, modBudget, cwd);
 
     const content = formatOutput(budgeted, cwd, false, config, null);
     ensureDir(outPath);
@@ -44859,7 +44891,7 @@ function runIndexStrategy(cwd, config, fileEntries, inputTokenTotal, indexWritte
     // and measure it. One sort+filter over entries already in memory.
     let fullWouldEmit = indexTokens;
     try {
-      const budgeted = applyTokenBudget(fileEntries.slice(), config.maxTokens);
+      const budgeted = applyTokenBudget(fileEntries.slice(), config.maxTokens, cwd);
       fullWouldEmit = budgeted.reduce((n, e) => n + estimateTokens(e.sigs.join('\n')), 0);
     } catch (_) { /* fall back to the uncapped figure */ }
     const perTurn = Math.max(0, fullWouldEmit - stubTokens);
@@ -45415,7 +45447,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       // 'full' writes no split files — anything left from a previous
       // strategy would still be merged into the index at read time (#555).
       pruneStaleContextSplits(cwd, []);
-      fileEntries = applyTokenBudget(fileEntries, effectiveMaxTokens);
+      fileEntries = applyTokenBudget(fileEntries, effectiveMaxTokens, cwd);
       const droppedCount = beforeCount - fileEntries.length;
       const routingEnabled = !!(config.routing || process.argv.includes('--routing'));
       const content = formatOutput(fileEntries, cwd, routingEnabled, config, null);
@@ -45480,7 +45512,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     }
   } else {
     // report mode: always run full pipeline for accurate stats
-    const budgeted = applyTokenBudget([...fileEntries], effectiveMaxTokens);
+    const budgeted = applyTokenBudget([...fileEntries], effectiveMaxTokens, cwd);
     const droppedCount = beforeCount - budgeted.length;
     const content = formatOutput(budgeted, cwd, false, configWithBudget, null);
     const finalTokens = estimateTokens(content);
