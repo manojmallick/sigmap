@@ -12398,6 +12398,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
+  const { lateLast } = __require('./src/util/late-last');
 
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
@@ -12481,7 +12482,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     // expression works. Leading whitespace is allowed as well, which is what
     // makes the mixin-factory form (`superclass => class X extends superclass`)
     // reachable — its class sits indented on its own line.
-    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+(\w+)\b/gm;
+    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+([\w$]+)(?![\w$])/gm;
     // Web-component surface (#537) — gated on detection, see typescript.js.
     const compMarkers = scanComponentMarkers(stripped);
     for (const m of stripped.matchAll(classRegex)) {
@@ -12524,13 +12525,21 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     // Exported named functions — `export function f` and `export default function f`.
     // The modifiers are CAPTURED, never searched for in the whole match: `export
     // function async(` must not read as an async function because of its NAME (#902).
-    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*\(/gm)) {
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*\(/gm)) {
       const asyncKw = m[2] ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[3]));
       const startLn = lineAt(stripped, m.index);
       const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
       sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[3]}(${normalizeParams(params)})${retStr}`);
       docHintFor[sigs.length - 1] = docHints.get(m[3]);
+      anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+    }
+
+    // `export default function () {}`: nothing names it, so the entry carries no name (#996).
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?function\s*\(/gm)) {
+      const startLn = lineAt(stripped, m.index);
+      const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+      sigs.push(`export default ${m[1] ? 'async ' : ''}function (${normalizeParams(params)})`);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
 
@@ -12542,15 +12551,20 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       if (closeIdx === -1 || !/^\s*=>/.test(masked.slice(closeIdx + 1, closeIdx + 40))) return;
       const retStr = formatReturnHint(returnHints.get(name));
       const startLn = lineAt(stripped, declIdx);
-      sigs.push(`${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
+      sigs.push(name ? `${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}` : `${prefix}${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
       docHintFor[sigs.length - 1] = docHints.get(name);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
       emittedArrows.add(name);
     };
 
     // Exported arrow functions
-    for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/gm)) {
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+const\s+([\w$]+)\s*=\s*(?:async\s+)?\(/gm)) {
       pushArrow(m.index, m.index + m[0].length - 1, m[1], m[0].includes('async') ? 'async ' : '', 'export ');
+    }
+
+    // `export default (a) => …`: an anonymous default arrow.
+    for (const m of masked.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?\(/gm)) {
+      pushArrow(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
     // `export default <identifier>` over a const-bound arrow (#900). A function
@@ -12576,8 +12590,39 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       }
     }
 
+    // CommonJS assignment methods — `app.use = function use(fn) {…}` — on the module's exported
+    // object (#996). That object is `exports`, `module.exports`, a name bound to
+    // `module.exports` (`var app = module.exports = {}`) or one that `module.exports = name`
+    // names; a local object that is never exported is not the module's API.
+    const exportedObjects = new Set(['exports', 'module.exports']);
+    for (const m of masked.matchAll(/^(?:(?:var|let|const)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(?:exports\s*=\s*)?module\.exports\s*=/gm)) exportedObjects.add(m[1]);
+    for (const m of masked.matchAll(/^module\.exports\s*=\s*([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/gm)) exportedObjects.add(m[1]);
+    const arrowEndLine = (closeIdx, startLn) => {
+      const arrow = /^\s*=>\s*/.exec(masked.slice(closeIdx + 1, closeIdx + 40));
+      if (!arrow) return -1;
+      const bodyAt = closeIdx + 1 + arrow[0].length;
+      return masked[bodyAt] === '{' ? lineAt(stripped, blockEndIdx(bodyAt + 1)) : lineAt(stripped, masked.indexOf(';', bodyAt) === -1 ? bodyAt : masked.indexOf(';', bodyAt));
+    };
+    for (const obj of exportedObjects) {
+      const o = obj.replace(/[$.]/g, '\\$&');
+      for (const m of masked.matchAll(new RegExp('^' + o + '\\.([\\w$]+)\\s*=\\s*(async\\s+)?function\\b\\s*([\\w$]*)\\s*\\(', 'gm'))) {
+        const startLn = lineAt(stripped, m.index);
+        const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+        sigs.push(`${obj}.${m[1]} = ${m[2] ? 'async ' : ''}function ${m[3]}(${normalizeParams(params)})`);
+        anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+      }
+      for (const m of masked.matchAll(new RegExp('^' + o + '\\.([\\w$]+)\\s*=\\s*(async\\s+)?\\(', 'gm'))) {
+        const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+        const startLn = lineAt(stripped, m.index);
+        const endLn = closeIdx === -1 ? -1 : arrowEndLine(closeIdx, startLn);
+        if (endLn === -1) continue; // a parenthesised expression, not an arrow
+        sigs.push(`${obj}.${m[1]} = ${m[2] ? 'async ' : ''}(${normalizeParams(params)}) =>`);
+        anchors.push([startLn, endLn]);
+      }
+    }
+
     // Top-level named functions (non-exported)
-    for (const m of stripped.matchAll(/^(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
+    for (const m of stripped.matchAll(/^(?:async\s+)?function\s+([\w$]+)\s*\(/gm)) {
       const asyncKw = m[0].startsWith('async') ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[1]));
       const startLn = lineAt(stripped, m.index);
@@ -12587,9 +12632,11 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
 
-    const withAnchors = sigs.map((s, i) => {
-      const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
-      return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+    // The shapes read since #996 follow the ones always read, so the 200-entry cap can never push an old entry out.
+    const ordered = lateLast(sigs, anchors, docHintFor);
+    const withAnchors = ordered.sigs.map((s, i) => {
+      const anchored = ordered.anchors[i] ? withAnchor(s, ordered.anchors[i][0], ordered.anchors[i][1]) : s;
+      return ordered.docHints[i] ? `${anchored}  # ${ordered.docHints[i]}` : anchored;
     });
     return capWithNotice(withAnchors, 200, 'signatures');
   }
@@ -18773,6 +18820,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
+  const { lateLast } = __require('./src/util/late-last');
 
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
@@ -18797,6 +18845,9 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // Kept parallel to `sigs` so existing push/mutation logic stays untouched;
     // anchors are applied once at return.
     const anchors = [];
+    // Indexes of declarations whose shape this extractor could not read before #996 and that the text of the
+    // signature does not give away; they are listed after the rest (see late-last.js).
+    const lateAt = new Set();
 
     // stripComments is string-aware (a `//` inside a string literal survives);
     // maskCode additionally blanks string/template contents so every delimiter
@@ -18820,7 +18871,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
 
     // Exported interfaces
-    for (const m of stripped.matchAll(/^export\s+interface\s+(\w+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+interface\s+([\w$]+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
       const bodyStart = m.index + m[0].length;
       sigs.push(`export interface ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -18834,13 +18885,13 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
 
     // Exported type aliases
-    for (const m of stripped.matchAll(/^export\s+type\s+(\w+)(?:<[^=]*>)?\s*=/gm)) {
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+type\s+([\w$]+)(?:<[^=]*>)?\s*=/gm)) {
       sigs.push(`export type ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, m.index + m[0].length)]);
     }
 
     // Exported enums
-    for (const m of stripped.matchAll(/^export\s+(?:const\s+)?enum\s+(\w+)\s*\{/gm)) {
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+(?:const\s+)?enum\s+([\w$]+)\s*\{/gm)) {
       const bodyStart = m.index + m[0].length;
       sigs.push(`export enum ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -18852,7 +18903,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // never matched the old inline form, so the whole class was dropped:
     // no class line, no members. Leading whitespace is allowed so an indented
     // class expression — the mixin-factory form — is reachable too.
-    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?(abstract\s+)?class\s+(\w+)\b/gm;
+    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?(abstract\s+)?class\s+([\w$]+)(?![\w$])/gm;
 
     /**
      * Index of the `{` that opens a class body, or -1. Depth-aware so a
@@ -18867,7 +18918,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         if (c === '(' || c === '<' || c === '[') depth++;
         else if (c === ')' || c === '>' || c === ']') depth = Math.max(0, depth - 1);
         else if (c === '{' && depth === 0) return i;
-        else if (c === ';' || c === '=') return -1;
+        else if (c === ';' || (c === '=' && depth === 0)) return -1;
       }
       return -1;
     };
@@ -18895,6 +18946,8 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       // a plain `extends Base` stays gated on component detection so existing
       // output is unchanged.
       const base = heritage && (isComponent || heritage.includes('(')) ? ` extends ${heritage}` : '';
+      // `class X<T = any>` was dropped whole: the scan took the default's `=` for an assignment (#996).
+      if (stripped.slice(m.index + m[0].length, bodyBrace).includes('=')) lateAt.add(sigs.length);
       sigs.push(`${prefix}${abs}class ${m[3]}${base}`);
       const classStartLn = lineAt(stripped, m.index);
       anchors.push([classStartLn, lineAt(stripped, blockEnd)]);
@@ -18961,20 +19014,27 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // Exported top-level functions (not methods). The modifiers are CAPTURED, never
     // searched for in the whole match: `export function async(` must not read as an
     // async function because of its NAME (#902 — svelte has exactly that function).
-    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*(?:<[^(]*>)?\s*\(/gm)) {
       pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
+    }
+
+    // `export default function () {}`: nothing names it, so the entry carries no name (zod's locale
+    // files are all this shape, and a file of them extracted as nothing).
+    for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+default\s+(async\s+)?function\s*(?:<[^(]*>)?\s*\(/gm)) {
+      pushFunction(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
     // Arrow-function counterpart of pushFunction: `export const f = (…) =>`, and
     // the `const f = (…) =>` an `export default f` names.
-    const pushArrow = (declIdx, openIdx, name, asyncKw, prefix) => {
+    const pushArrow = (declIdx, openIdx, name, asyncKw, prefix, late) => {
       const { params: rawParams, closeIdx } = paramsFrom(openIdx);
       if (closeIdx === -1) return;
       // Arrow shape check, mirroring the old `\)\s*(?::\s*[^=>{]+)?\s*=>` tail.
       const tail = masked.slice(closeIdx + 1, closeIdx + 200).match(/^\s*(?::\s*[^=>{]+)?\s*=>/);
       if (!tail) return;
       const params = normalizeParams(rawParams);
-      sigs.push(`${prefix}const ${name} = ${asyncKw}(${params}) =>`);
+      if (late) lateAt.add(sigs.length);
+      sigs.push(name ? `${prefix}const ${name} = ${asyncKw}(${params}) =>` : `${prefix}${asyncKw}(${params}) =>`);
       docHintFor[sigs.length - 1] = docHints.get(name);
       const matchEnd = closeIdx + 1 + tail[0].length;
       const bodyStart = masked.indexOf('{', matchEnd);
@@ -19003,9 +19063,54 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     };
 
-    // Exported arrow functions / const functions
-    for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/gm)) {
-      pushArrow(m.index, m.index + m[0].length - 1, m[1], /=\s*async\s+/.test(m[0]) ? 'async ' : '', 'export ');
+    // `export const name = make(…)`: a const bound to a call is listed by its name and its anchor,
+    // without the call's arguments, which are its body (#996). The zustand store form below has
+    // its own entry, so it is skipped here.
+    const pushFactory = (declIdx, from, name) => {
+      const cm = /^([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*(?:<[^()]*>)?\s*\(/.exec(masked.slice(from, from + 200));
+      if (!cm) return;
+      const callee = cm[1].replace(/\s+/g, '');
+      if (/^(?:new|await|typeof|void|function|class|require|import|async|super)$/.test(callee)) return;
+      if (callee === 'create' && /^use\w+Store$/.test(name)) return;
+      const closeIdx = readBalanced(masked, from + cm[0].length - 1);
+      if (closeIdx === -1) return;
+      sigs.push(`export const ${name} = ${callee}(...)`);
+      docHintFor[sigs.length - 1] = docHints.get(name);
+      anchors.push([lineAt(stripped, declIdx), lineAt(stripped, closeIdx)]);
+      emitted.add(name);
+    };
+
+    // Exported consts. The initialiser is found by scanning, not by one pattern: a type annotation
+    // may itself contain `=>` (`: (e: Error) => Function = …`), an arrow may be generic
+    // (`= <T>(x: T) => x`), and a factory call has no arrow at all. An arrow's own signature is
+    // unchanged from before; only the shapes that used to be missed are new.
+    for (const m of masked.matchAll(/(?:^|(?<=[;}][ \t]*))export\s+const\s+([\w$]+)/gm)) {
+      let p = skipSpace(masked, m.index + m[0].length);
+      if (masked[p] === ':') {
+        const eq = findAssign(masked, p + 1);
+        if (eq === -1) continue;
+        p = eq;
+      }
+      if (masked[p] !== '=' || masked[p + 1] === '=' || masked[p + 1] === '>') continue;
+      p = skipSpace(masked, p + 1);
+      let asyncKw = '';
+      const am = /^async\s+/.exec(masked.slice(p, p + 12));
+      if (am) { asyncKw = 'async '; p += am[0].length; }
+      if (masked[p] === '<') {
+        const close = skipAngles(masked, p);
+        if (close === -1) continue;
+        p = skipSpace(masked, close + 1);
+      }
+      // An arrow the old pattern already matched keeps its place; a generic one, or one behind an annotation
+      // that contains `=>`, is a shape that was missed before and is listed after the rest.
+      const legacy = /^export\s+const\s+\w+\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/.test(stripped.slice(m.index, m.index + 600));
+      if (masked[p] === '(') { pushArrow(m.index, p, m[1], asyncKw, 'export ', !legacy); continue; }
+      if (!asyncKw) pushFactory(m.index, p, m[1]);
+    }
+
+    // `export default (a) => …`: an anonymous default arrow.
+    for (const m of masked.matchAll(/^export\s+default\s+(async\s+)?\(/gm)) {
+      pushArrow(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
     // `export default <identifier>` — the declaration it names is usually NOT
@@ -19049,11 +19154,53 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     }
 
-    const withAnchors = sigs.map((s, i) => {
-      const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
-      return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+    // The shapes read since #996 follow the ones always read, so the 200-entry cap can never push an old entry out.
+    const ordered = lateLast(sigs, anchors, docHintFor, lateAt);
+    const withAnchors = ordered.sigs.map((s, i) => {
+      const anchored = ordered.anchors[i] ? withAnchor(s, ordered.anchors[i][0], ordered.anchors[i][1]) : s;
+      return ordered.docHints[i] ? `${anchored}  # ${ordered.docHints[i]}` : anchored;
     });
     return capWithNotice(withAnchors, 200, 'signatures');
+  }
+
+  function skipSpace(src, i) {
+    while (i < src.length && /\s/.test(src[i])) i++;
+    return i;
+  }
+
+  /**
+   * Index of the `=` that ends a type annotation, or -1. Brackets are tracked, and the arrow of
+   * a function TYPE (`(e: Error) => Function`) is not an assignment.
+   */
+  function findAssign(masked, from) {
+    let depth = 0;
+    const limit = Math.min(masked.length, from + 800);
+    for (let i = from; i < limit; i++) {
+      const c = masked[i];
+      if (c === '=') {
+        if (masked[i + 1] === '>') { i++; continue; }
+        if (depth === 0 && masked[i + 1] !== '=') return i;
+        continue;
+      }
+      if (c === '(' || c === '[' || c === '{' || c === '<') depth++;
+      else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
+      else if (c === ';' && depth === 0) return -1;
+    }
+    return -1;
+  }
+
+  /** Index of the `>` that closes the generic list opened at `from`, or -1. */
+  function skipAngles(masked, from) {
+    let depth = 0;
+    const limit = Math.min(masked.length, from + 400);
+    for (let i = from; i < limit; i++) {
+      const c = masked[i];
+      if (c === '=' && masked[i + 1] === '>') { i++; continue; }
+      if (c === '<') depth++;
+      else if (c === '>') { depth--; if (depth === 0) return i; }
+      else if (c === ';') return -1;
+    }
+    return -1;
   }
 
   function extractBlock(src, startIndex) {
@@ -39222,6 +39369,72 @@ __factories["./src/util/ignore"] = function(module, exports) {
   
 };
 
+// ── ./src/util/late-last ──
+__factories["./src/util/late-last"] = function(module, exports) {
+  
+  /**
+   * Order a file's signature groups so that the entries for shapes an extractor LEARNED
+   * to read (#996) come after every entry it always listed.
+   *
+   * An extractor lists at most 200 signatures a file and appends a "+N more" marker. Teach
+   * it a new shape and, if the new entries are interleaved in file order, they push older
+   * ones past that cap: zod's `api.ts` went from 116 entries to a full 200 and lost 43 functions
+   * it used to list. Appending them instead means nothing previously listed can be displaced,
+   * a file with no new-shape entry is byte-identical to what it was, and a file already at the
+   * cap keeps exactly what it kept.
+   *
+   * A group is a declaration and its indented members. It is "late" when its head is one the
+   * extractor could not read before: a `$` name, an anonymous default export, a const bound to
+   * a call, a CommonJS assignment method, or a head the caller marked (a generic or typed arrow,
+   * a class whose generic list has a default).
+   */
+
+  const NAME = /^(?:export\s+)?(?:default\s+)?(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(?:const|function|class|interface|type|enum)\s+([\w$]+)/;
+  const LATE_HEAD = new RegExp([
+    '^export\\s+default\\s+(?:async\\s+)?(?:function\\s*\\(|\\()',                 // export default function () / export default (a) =>
+    '^export\\s+const\\s+[\\w$]+\\s*=\\s*[\\w$.]+\\(\\.\\.\\.\\)',                 // export const x = make(...)
+    '^[\\w$]+(?:\\.[\\w$]+)*\\.[\\w$]+\\s*=\\s*(?:async\\s+)?(?:function\\b|\\()',  // app.use = function use(fn)
+  ].join('|'));
+
+  /**
+   * @param {string[]} sigs
+   * @param {Array<[number, number]|null>} anchors parallel to sigs
+   * @param {string[]} docHints parallel to sigs (may be sparse)
+   * @param {Set<number>} [marked] indexes of heads the caller knows are new-shape
+   * @returns {{ sigs: string[], anchors: Array, docHints: string[] }}
+   */
+  function lateLast(sigs, anchors, docHints, marked) {
+    const groups = [];
+    for (let i = 0; i < sigs.length; ) {
+      let j = i + 1;
+      while (j < sigs.length && /^\s/.test(sigs[j])) j++;
+      groups.push([i, j]);
+      i = j;
+    }
+    const isLate = (i) => {
+      if ((marked && marked.has(i)) || LATE_HEAD.test(sigs[i])) return true;
+      const m = NAME.exec(sigs[i]);
+      return !!(m && m[1].includes('$'));
+    };
+    const first = [];
+    const last = [];
+    for (const g of groups) (isLate(g[0]) ? last : first).push(g);
+    if (last.length === 0 || first.length === 0) return { sigs, anchors, docHints };
+    const out = { sigs: [], anchors: [], docHints: [] };
+    for (const [a, b] of first.concat(last)) {
+      for (let k = a; k < b; k++) {
+        out.sigs.push(sigs[k]);
+        out.anchors.push(anchors[k]);
+        out.docHints.push(docHints[k]);
+      }
+    }
+    return out;
+  }
+
+  module.exports = { lateLast };
+  
+};
+
 // ── ./src/util/managed-section ──
 __factories["./src/util/managed-section"] = function(module, exports) {
   
@@ -45392,6 +45605,32 @@ function finishFileSigs(sigs, filePath, cwd, config, testIndex, redactedEarlier)
 }
 
 /**
+ * The lines of a JavaScript or TypeScript file that declare something exported, for the
+ * run summary and for `explain` (#996). A re-export is not a declaration: a barrel
+ * (`export * from`, `export { a } from`, `export type { T }`) is meant to list nothing,
+ * so it is never counted as a file the extractor failed on.
+ */
+const EXPORT_DECLARATION = /^\s*(?:export\s+(?:declare\s+)?(?:default\b|(?:async\s+)?function\b|(?:abstract\s+)?class\b|(?:const|let|var)\s+[\w$\{\[]|(?:const\s+)?enum\s+[\w$]|interface\s+[\w$]|type\s+[\w$])|(?:module\.)?exports\b\s*(?:\.[\w$]+|\[[^\]]+\])?\s*=(?!=))/;
+function exportLinesOf(text) {
+  const out = [];
+  for (const line of String(text || '').split('\n')) {
+    if (EXPORT_DECLARATION.test(line)) out.push(line.trim());
+  }
+  return out;
+}
+
+/** Remember a file that declares exports and produced no signatures at all (#996). */
+function noteUnreadExporter(list, filePath, content, cwd) {
+  if (!/\.[cm]?[jt]sx?$/.test(filePath) || /\.d\.[cm]?ts$/.test(filePath) || /\.min\.[cm]?js$/.test(filePath)) return;
+  const rel = path.relative(cwd, filePath).split(path.sep).join('/');
+  if (isTestFile(rel) || isGeneratedFile(rel)) return;
+  let text = content;
+  // A file served from the extraction cache is not read; this one produced nothing, so read it now.
+  if (!text) { try { text = fs.readFileSync(filePath, 'utf8'); } catch (_) { return; } }
+  if (exportLinesOf(text).length > 0) list.push(rel);
+}
+
+/**
  * The same file as the retrieval index stores it: a leading module-doc line and,
  * with `terse`, the compact encoding (src/cache/entry.js).
  *
@@ -45509,6 +45748,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
 
   let inputTokenTotal = 0;
   let fileEntries = [];
+  const unreadExporters = []; // files that declare exports and yielded no signature (#996)
   let testIndex = null;
   if (config.testCoverage) {
     try {
@@ -45623,7 +45863,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     } else {
       sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
     }
-    if (sigs.length === 0) continue;
+    if (sigs.length === 0) { noteUnreadExporter(unreadExporters, filePath, content, cwd); continue; }
 
     // Annotated and secret-scanned in full, so what the index keeps is scanned too;
     // the context file then takes the first `maxSigsPerFile` of the same list.
@@ -45658,6 +45898,14 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       entry.content = content;
     }
     fileEntries.push(entry);
+  }
+
+  // A file that declares exports and yielded nothing is invisible to retrieval, `verify` and the
+  // call graph. Say how many, and which, so the loss is not silent (#996).
+  if (unreadExporters.length > 0 && !reportJson) {
+    const n = unreadExporters.length;
+    const shown = unreadExporters.slice().sort().slice(0, 5).join(', ');
+    console.warn(`[sigmap] ${n} file${n === 1 ? '' : 's'} with exports produced 0 signatures: ${shown}${n > 5 ? ` (+${n - 5} more)` : ''} — \`sigmap explain <file>\` says what the extractor saw`);
   }
 
   // v6.5: Coverage feedback loop — warn if symbol density is suspiciously low
@@ -49900,6 +50148,22 @@ function main() {
     }
 
     if (!sigs.length) {
+      // A file that declares exports and still extracts as nothing is an extractor gap, not a
+      // configuration problem: say what was there instead of advice that cannot apply (#996).
+      let seen = [];
+      try { seen = exportLinesOf(fs.readFileSync(absPath, 'utf8')); } catch (_) { /* unreadable: the generic answer */ }
+      if (seen.length > 0) {
+        const fix = 'no configuration change indexes it: the extractor does not read this declaration shape (see KNOWN_LIMITATIONS.md); the file stays reachable by its path';
+        if (jsonOut) {
+          writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, exports: seen.length, saw: seen.slice(0, 3), fix }) + '\n');
+        } else {
+          console.log(`[sigmap] ${rel} — EXCLUDED`);
+          console.log(`  Reason: no extractable signatures (extractor: ${extractorName}) — ${seen.length} export line${seen.length === 1 ? '' : 's'}, none of a shape it reads`);
+          for (const l of seen.slice(0, 3)) console.log(`  Saw:    ${l.length > 110 ? l.slice(0, 107) + '...' : l}`);
+          console.log(`  Fix:    ${fix}`);
+        }
+        process.exit(0);
+      }
       if (jsonOut) {
         writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, fix: 'check that the file contains function/class definitions' }) + '\n');
       } else {

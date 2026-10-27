@@ -57,9 +57,64 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
   const rb = await import('../../scripts/extraction-recall/ruby.mjs');
   const cx = await import('../../scripts/extraction-recall/cpp.mjs');
   const cref = await import('../../scripts/extraction-recall/cpp-reference.mjs');
+  const tsx = await import('../../scripts/extraction-recall/typescript.mjs');
+  const tsRef = await import('../../scripts/extraction-recall/typescript-reference.mjs');
   const runner = await import('../../scripts/run-extraction-recall.mjs');
 
   // ── the arithmetic ────────────────────────────────────────────────────────
+
+  await test('typescript: the extractor\'s lines are read as functions, classes, interfaces, types, enums, arrows, factories and anonymous defaults', () => {
+    const got = tsx.parseSigs([
+      'export function plain(a, b?) → void  :1-3', 'export default function main()  :4-5', 'export async function $load(x)  :6-7',
+      'export default function ()  :8-9', 'export default async (ctx) =>  :10-11',
+      'export class Store extends Base  :12-20', '  load(id)  :13-15', 'class Internal  :21-22',
+      'export interface $Options  :23-27', '  name: string', 'export type Id  :28-28', 'export enum Mode  :29-31',
+      'export const mapIt = async (a) =>  :32-33', 'export const $parse = (s, v) =>  :34-34',
+      'export const wrapped = makeThing(...)  :35-37', 'export const shape = z.object(...)  :38-40',
+      'export const useCartStore = create<State>(...)  :41-45',
+    ]);
+    assert.deepStrictEqual([...got.function].sort(), ['$load', 'main', 'plain']);
+    assert.deepStrictEqual([...got.class].sort(), ['Internal', 'Store']);
+    assert.deepStrictEqual([...got.interface], ['$Options']);
+    assert.deepStrictEqual([...got.type], ['Id']);
+    assert.deepStrictEqual([...got.enum], ['Mode']);
+    assert.deepStrictEqual([...got.arrow].sort(), ['$parse', 'mapIt']);
+    // a zustand store (`create<State>(...)`) is a call to a name too, which is how the reference counts it
+    assert.deepStrictEqual([...got.factory].sort(), ['shape', 'useCartStore', 'wrapped']);
+    assert.deepStrictEqual([...got.default], ['(default)']);
+    assert.deepStrictEqual([...got.dollar].sort(), ['$Options', '$load', '$parse']);
+    assert.ok(!got.function.has('load'), 'an indented member is not a top-level declaration');
+  });
+
+  await test('typescript: recall by name once per file and kind; the $ row counts a name a second time; an absent default is a miss', () => {
+    const t = lib.newTally(tsx.KINDS);
+    tsx.compareFile(t, [['function', 'a'], ['function', 'a'], ['function', 'b'], ['interface', '$I'], ['dollar', '$I'], ['default', '(default)']],
+      tsx.parseSigs(['export function a()  :1-1', 'export interface $I  :2-2']), 'x.ts');
+    const by = Object.fromEntries(lib.rowsOf(t).map((r) => [r.kind, r]));
+    assert.deepStrictEqual([by.function.found, by.function.reference], [1, 2], 'overloads are one name');
+    assert.deepStrictEqual([by.dollar.found, by.dollar.reference], [1, 1]);
+    assert.deepStrictEqual([by.default.found, by.default.reference], [0, 1]);
+  });
+
+  await test('typescript: without a compiler or clones the language is unmeasured, never a failure or a zero', () => {
+    const empty = tmp('sigmap-recall-ts-');
+    assert.strictEqual(tsx.measure({ reposDir: empty, index: false }).measured, false);
+    const withClone = tmp('sigmap-recall-ts-');
+    put(path.join(withClone, 'zod/packages/zod/src/a.ts'), 'export const x = 1;\n');
+    const r = tsx.measure({ reposDir: withClone, index: false, typescript: path.join(withClone, 'no-such-compiler') });
+    if (!tsRef.findTypeScript()) assert.ok(/no typescript package found/.test(r.reason), JSON.stringify(r));
+  });
+
+  await test('typescript reference: exports are read from the compiler\'s parse, and calls to nothing named are not factories', () => {
+    const found = tsRef.findTypeScript();
+    if (!found) { skip('typescript reference', 'no typescript package on this machine (--typescript <path> or SIGMAP_TYPESCRIPT)'); return; }
+    const truth = tsRef.truthOf(found.ts, [
+      'export function a() {}', 'export default function () {}', 'export class C {}', 'export interface $I {}', 'export type T = 1;',
+      'export enum E { A }', 'export const arrow = (x) => x;', 'export const wrapped = make(1);', 'export const dotted = z.object({});',
+      'export const iife = (() => 1)();', "export const req = require('x');", 'export const lit = 1;', 'const hidden = make();', '',
+    ].join('\n'), 'x.ts');
+    assert.deepStrictEqual(truth.map((p) => p.join(':')), ['function:a', 'default:(default)', 'class:C', 'interface:$I', 'dollar:$I', 'type:T', 'enum:E', 'arrow:arrow', 'factory:wrapped', 'factory:dotted']);
+  });
 
   await test('python: what the extractors omit on purpose is left out of the comparison, and nothing else', () => {
     for (const [kind, n] of [['func', '_x'], ['method', 'A._x'], ['method', 'A.__eq__'], ['method', 'A.__call__'], ['func', '__main__']]) assert.strictEqual(py.isOmitted(kind, n), true, `${kind} ${n}`);
@@ -522,25 +577,30 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
         put(path.join(repos, 'sidekiq/lib/a.rb'), RB_SRC);
         put(path.join(repos, 'spdlog/include/spdlog/a.h'), 'class C {\n public:\n  void m();\n};\nenum class E { A };\nvoid f();\n');
         const out = path.join(tmp('sigmap-recall-out-'), 'report.json');
+        put(path.join(repos, 'zod/packages/zod/src/a.ts'), 'export function plain(a: number) { return a; }\nexport const $g = (x: number) => x;\n');
+        // C and C++ are measured against clangd and TypeScript against a typescript package SigMap does not
+        // depend on: without either, that language is unmeasured and nothing is saved.
+        const found = tsRef.findTypeScript();
+        const withTs = found ? ['--typescript', found.path] : [];
+        const unmeasured = [!have('clangd', ['--version']) && 'cpp', !found && 'typescript'].filter(Boolean);
         const only = run(['--repos', repos, '--only', 'python', '--save', '--out', out]);
         assert.strictEqual(only.status, 1, only.stdout + only.stderr);
         assert.ok(/a partial run \(--only\)/.test(only.stderr), only.stderr);
-        const noIndex = run(['--repos', repos, '--no-index', '--save', '--out', out]);
+        const noIndex = run(['--repos', repos, ...withTs, '--no-index', '--save', '--out', out]);
         assert.strictEqual(noIndex.status, 1, noIndex.stdout + noIndex.stderr);
-        // without clangd C and C++ are unmeasured, which the runner names first; either way nothing is saved
-        assert.ok((have('clangd', ['--version']) ? /without the index/ : /unmeasured cpp/).test(noIndex.stderr), noIndex.stderr);
+        // an unmeasured language is named first; either way nothing is saved
+        assert.ok((unmeasured.length ? new RegExp(`unmeasured ${unmeasured.join(', ')}`) : /without the index/).test(noIndex.stderr), noIndex.stderr);
         assert.strictEqual(fs.existsSync(out), false, 'a partial run wrote a report');
-        const whole = run(['--repos', repos, '--save', '--out', out]);
-        if (!have('clangd', ['--version'])) {
-          // C and C++ are measured against clangd; without it that language is unmeasured and nothing is saved
+        const whole = run(['--repos', repos, ...withTs, '--save', '--out', out]);
+        if (unmeasured.length) {
           assert.strictEqual(whole.status, 1, whole.stdout + whole.stderr);
-          assert.ok(/unmeasured cpp/.test(whole.stderr), whole.stderr);
+          assert.ok(new RegExp(`unmeasured ${unmeasured.join(', ')}`).test(whole.stderr), whole.stderr);
           assert.strictEqual(fs.existsSync(out), false);
           return;
         }
         assert.strictEqual(whole.status, 0, whole.stdout + whole.stderr);
         const saved = JSON.parse(fs.readFileSync(out, 'utf8'));
-        assert.deepStrictEqual(Object.keys(saved.languages).sort(), ['cpp', 'python', 'ruby']);
+        assert.deepStrictEqual(Object.keys(saved.languages).sort(), ['cpp', 'python', 'ruby', 'typescript']);
         assert.ok(saved.version && saved.generated, 'stamped');
       });
     } else {
@@ -617,6 +677,32 @@ const run = (args) => spawnSync(process.execPath, [RUNNER, ...args], { encoding:
     for (const [name, spec] of Object.entries(floorsFile.languages)) {
       for (const ref of spec.references) check(ref.measuredWith.pins, `floors/${name}/${ref.match}`);
     }
+  });
+
+  await test('typescript: the docs table publishes the committed before/after report, and its "after" rows are the saved report\'s', () => {
+    const page = fs.readFileSync(path.join(ROOT, 'docs-vp/guide/extraction-recall.md'), 'utf8');
+    const t = JSON.parse(fs.readFileSync(path.join(ROOT, 'benchmarks/reports/extraction-recall-typescript.json'), 'utf8'));
+    const pct = (r) => (r.recall == null ? 'n/a' : `${r.recall.toFixed(1)}%`);
+    const cellsOf = (label) => {
+      const line = page.split('\n').find((l) => l.startsWith(`| ${label} |`));
+      assert.ok(line, `no row for ${label}`);
+      return line.split('|').slice(2, -1).map((c) => c.trim());
+    };
+    for (const [label, pop] of [['extractor, before #996', t.before.extractor], ['extractor, after #996', t.after.extractor], ['index as shipped, before #996', t.before.index], ['index as shipped, after #996', t.after.index]]) {
+      const cells = cellsOf(label);
+      assert.deepStrictEqual(cells.slice(1), tsx.KINDS.map((k) => pct(pop.rows.find((r) => r.kind === k))), label);
+      assert.strictEqual(cells[0], pop.filesTotal && pop.filesTotal !== pop.filesCompared ? `${pop.filesCompared} of ${pop.filesTotal}` : String(pop.filesCompared), label);
+    }
+    const saved = report.languages.typescript;
+    for (const pop of ['extractor', 'index']) {
+      for (const k of tsx.KINDS) {
+        const a = t.after[pop].rows.find((r) => r.kind === k);
+        const b = saved.populations[pop].rows.find((r) => r.kind === k);
+        assert.deepStrictEqual([a.found, a.reference], [b.found, b.reference], `${pop}/${k}`);
+      }
+    }
+    assert.ok(page.includes(t.reference.version) && page.includes('benchmarks/reports/extraction-recall-typescript.json'));
+    for (const sha of Object.values(t.pins)) assert.ok(page.includes(sha), `pin ${sha} not on the page`);
   });
 
   await test('the docs page publishes the numbers of the saved report, and the language table links to it', () => {

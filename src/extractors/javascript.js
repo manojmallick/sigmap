@@ -4,6 +4,7 @@ const { lineAt, withAnchor } = require('./line-anchor');
 const { capWithNotice, capMembersWithNotice } = require('../util/truncate');
 const { stripComments, maskCode, readBalanced } = require('./scan');
 const { scanComponentMarkers, markersForClass, componentMembers } = require('./component-surface');
+const { lateLast } = require('../util/late-last');
 
 // Class bodies are scanned to this many characters — guard against
 // pathological input only; the old 4KB window silently hid members (#576).
@@ -87,7 +88,7 @@ function extract(src) {
   // expression works. Leading whitespace is allowed as well, which is what
   // makes the mixin-factory form (`superclass => class X extends superclass`)
   // reachable — its class sits indented on its own line.
-  const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+(\w+)\b/gm;
+  const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+([\w$]+)(?![\w$])/gm;
   // Web-component surface (#537) — gated on detection, see typescript.js.
   const compMarkers = scanComponentMarkers(stripped);
   for (const m of stripped.matchAll(classRegex)) {
@@ -130,13 +131,21 @@ function extract(src) {
   // Exported named functions — `export function f` and `export default function f`.
   // The modifiers are CAPTURED, never searched for in the whole match: `export
   // function async(` must not read as an async function because of its NAME (#902).
-  for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*\(/gm)) {
+  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*\(/gm)) {
     const asyncKw = m[2] ? 'async ' : '';
     const retStr = formatReturnHint(returnHints.get(m[3]));
     const startLn = lineAt(stripped, m.index);
     const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
     sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[3]}(${normalizeParams(params)})${retStr}`);
     docHintFor[sigs.length - 1] = docHints.get(m[3]);
+    anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+  }
+
+  // `export default function () {}`: nothing names it, so the entry carries no name (#996).
+  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?function\s*\(/gm)) {
+    const startLn = lineAt(stripped, m.index);
+    const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+    sigs.push(`export default ${m[1] ? 'async ' : ''}function (${normalizeParams(params)})`);
     anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
   }
 
@@ -148,15 +157,20 @@ function extract(src) {
     if (closeIdx === -1 || !/^\s*=>/.test(masked.slice(closeIdx + 1, closeIdx + 40))) return;
     const retStr = formatReturnHint(returnHints.get(name));
     const startLn = lineAt(stripped, declIdx);
-    sigs.push(`${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
+    sigs.push(name ? `${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}` : `${prefix}${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
     docHintFor[sigs.length - 1] = docHints.get(name);
     anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     emittedArrows.add(name);
   };
 
   // Exported arrow functions
-  for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/gm)) {
+  for (const m of stripped.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+const\s+([\w$]+)\s*=\s*(?:async\s+)?\(/gm)) {
     pushArrow(m.index, m.index + m[0].length - 1, m[1], m[0].includes('async') ? 'async ' : '', 'export ');
+  }
+
+  // `export default (a) => …`: an anonymous default arrow.
+  for (const m of masked.matchAll(/(?:^|(?<=[;}][ \\t]*))export\s+default\s+(async\s+)?\(/gm)) {
+    pushArrow(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
   }
 
   // `export default <identifier>` over a const-bound arrow (#900). A function
@@ -182,8 +196,39 @@ function extract(src) {
     }
   }
 
+  // CommonJS assignment methods — `app.use = function use(fn) {…}` — on the module's exported
+  // object (#996). That object is `exports`, `module.exports`, a name bound to
+  // `module.exports` (`var app = module.exports = {}`) or one that `module.exports = name`
+  // names; a local object that is never exported is not the module's API.
+  const exportedObjects = new Set(['exports', 'module.exports']);
+  for (const m of masked.matchAll(/^(?:(?:var|let|const)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(?:exports\s*=\s*)?module\.exports\s*=/gm)) exportedObjects.add(m[1]);
+  for (const m of masked.matchAll(/^module\.exports\s*=\s*([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/gm)) exportedObjects.add(m[1]);
+  const arrowEndLine = (closeIdx, startLn) => {
+    const arrow = /^\s*=>\s*/.exec(masked.slice(closeIdx + 1, closeIdx + 40));
+    if (!arrow) return -1;
+    const bodyAt = closeIdx + 1 + arrow[0].length;
+    return masked[bodyAt] === '{' ? lineAt(stripped, blockEndIdx(bodyAt + 1)) : lineAt(stripped, masked.indexOf(';', bodyAt) === -1 ? bodyAt : masked.indexOf(';', bodyAt));
+  };
+  for (const obj of exportedObjects) {
+    const o = obj.replace(/[$.]/g, '\\$&');
+    for (const m of masked.matchAll(new RegExp('^' + o + '\\.([\\w$]+)\\s*=\\s*(async\\s+)?function\\b\\s*([\\w$]*)\\s*\\(', 'gm'))) {
+      const startLn = lineAt(stripped, m.index);
+      const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+      sigs.push(`${obj}.${m[1]} = ${m[2] ? 'async ' : ''}function ${m[3]}(${normalizeParams(params)})`);
+      anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+    }
+    for (const m of masked.matchAll(new RegExp('^' + o + '\\.([\\w$]+)\\s*=\\s*(async\\s+)?\\(', 'gm'))) {
+      const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+      const startLn = lineAt(stripped, m.index);
+      const endLn = closeIdx === -1 ? -1 : arrowEndLine(closeIdx, startLn);
+      if (endLn === -1) continue; // a parenthesised expression, not an arrow
+      sigs.push(`${obj}.${m[1]} = ${m[2] ? 'async ' : ''}(${normalizeParams(params)}) =>`);
+      anchors.push([startLn, endLn]);
+    }
+  }
+
   // Top-level named functions (non-exported)
-  for (const m of stripped.matchAll(/^(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
+  for (const m of stripped.matchAll(/^(?:async\s+)?function\s+([\w$]+)\s*\(/gm)) {
     const asyncKw = m[0].startsWith('async') ? 'async ' : '';
     const retStr = formatReturnHint(returnHints.get(m[1]));
     const startLn = lineAt(stripped, m.index);
@@ -193,9 +238,11 @@ function extract(src) {
     anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
   }
 
-  const withAnchors = sigs.map((s, i) => {
-    const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
-    return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+  // The shapes read since #996 follow the ones always read, so the 200-entry cap can never push an old entry out.
+  const ordered = lateLast(sigs, anchors, docHintFor);
+  const withAnchors = ordered.sigs.map((s, i) => {
+    const anchored = ordered.anchors[i] ? withAnchor(s, ordered.anchors[i][0], ordered.anchors[i][1]) : s;
+    return ordered.docHints[i] ? `${anchored}  # ${ordered.docHints[i]}` : anchored;
   });
   return capWithNotice(withAnchors, 200, 'signatures');
 }
