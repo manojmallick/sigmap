@@ -949,11 +949,27 @@ JSON output (`--json`) for CI:
 {
   "file": "ai-answer.md",
   "issues": [
-    { "type": "fake-symbol", "value": "loadConfg", "line": 4, "location": "L4", "message": "Symbol not found in repo index: loadConfg()", "confidence": "medium", "suggestion": "Did you mean `loadConfig()` in src/config/loader.js:42?" }
+    { "type": "fake-symbol", "value": "loadConfg", "line": 1, "location": "L1", "message": "Symbol not found in repo index: loadConfg()", "confidence": "medium", "suggestion": "Did you mean `loadConfig()` in src/config/loader.js?" }
   ],
-  "summary": { "total": 1, "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-import-name": 0, "fake-symbol": 1, "fake-npm-script": 0 }, "clean": false, "symbolsIndexed": 288, "symbolsConfirmed": 0, "withSuggestion": 1 }
+  "summary": {
+    "total": 1,
+    "byType": { "fake-file": 0, "fake-test-file": 0, "fake-import": 0, "fake-import-name": 0, "fake-symbol": 1, "fake-npm-script": 0 },
+    "clean": false,
+    "symbolsIndexed": 6686, "repoSymbolsIndexed": 6686, "symbolsConfirmed": 0, "withSuggestion": 1,
+    "librariesIndexed": 0, "libraries": [],
+    "claims": { "files": 0, "imports": 0, "symbols": 1, "scripts": 0, "total": 1 },
+    "coverage": {
+      "claims": { "files": 0, "imports": 0, "symbols": 1, "scripts": 0, "total": 1 },
+      "checked": ["file paths", "imports", "backticked calls", "npm scripts"],
+      "notChecked": ["calls in fenced or raw code", "member calls (obj.method())", "library APIs (named imports from, and members of, installed libraries)"],
+      "index": "ok",
+      "vacuous": false
+    }
+  }
 }
 ```
+
+(Real output for a one-line answer, abridged: `summary.checks` and `summary.verifiedImports` are left out.) `coverage.index` is `ok`, `stale` or `missing`; `coverage.vacuous` is `true` when the run had nothing it could check, and a run in that state never reads as clean.
 
 | Option | Description |
 |--------|-------------|
@@ -2196,9 +2212,9 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.0% vs 40.0%   (2.30× lift)
+ hit@5         92.0% vs 39.2%   (2.35× lift)
  Corpus        125 tasks · 19 repos (honest split)
- Token cut     95.7% average (saved benchmark, 21 repos)
+ Token cut     95.4% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
 ```
 
@@ -2223,7 +2239,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.7% fewer tokens · 78% retrieval accuracy (this repo) · 2.30× vs a grep agent (published)
+95.4% fewer tokens · 78% retrieval accuracy (this repo) · 2.35× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2233,7 +2249,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.30× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.35× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2354,7 +2370,7 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
  hit@5          : 80.4%
- token reduction: 95.7%
+ token reduction: 95.4%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
 ────────────────────────────────────────────────────────
@@ -2513,7 +2529,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.83.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.84.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3216,7 +3232,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.83.0
+# 8.84.0
 ```
 
 ---

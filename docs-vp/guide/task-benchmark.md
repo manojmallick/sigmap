@@ -1,6 +1,6 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v8.83.0. 60.0% correct, 43.7% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
+description: Latest saved task benchmark for SigMap v8.84.0. 60.0% correct, 43.7% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
 head:
   - - meta
     - property: og:title
@@ -15,22 +15,22 @@ head:
 
 # Task benchmark
 
-::: info Official v8.83.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.80-main &nbsp;·&nbsp; **Date:** 2026-10-18 (with R language)
+::: info Official v8.84.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.84-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 40.0% single-shot grep — **2.30× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 39.2% single-shot grep — **2.35× lift** |
 | Graph-boosted hit@5 | **80.4%** |
-| Honest lift (vs grep agent) | **2.30×** |
+| Honest lift (vs grep agent) | **2.35×** |
 | Prompt reduction | **43.7%** (2.84 → 1.6) |
 | Task success proxy | **60.0%** |
-| Token reduction (21 repos) | **95.7%** |
+| Token reduction (21 repos) | **95.4%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-26 (v8.83.0)** — includes R language support (ggplot2, dplyr, shiny)
+Latest saved run: **2026-10-27 (v8.84.0)** — includes R language support (ggplot2, dplyr, shiny)
 
 The success/proxy definitions and the task corpus are described in [benchmark methodology](/guide/methodology).
 
@@ -46,7 +46,7 @@ This page answers the question people care about most:
 | Prompts per task | 2.84 | **1.6** |
 | Prompt reduction | — | **43.7%** |
 | Retrieval hit@5 | 13.6% | **80.4%** |
-| Token reduction | — | **95.7%** |
+| Token reduction | — | **95.4%** |
 
 ## Why the task benchmark exists
 
@@ -77,7 +77,7 @@ The task benchmark models that outcome from the ranked file quality tiers:
 | Average prompts without SigMap | 2.84 |
 | Average prompts with SigMap | **1.6** |
 | Reduction | **43.7%** |
-| Honest hit@5 lift | **2.30x** — 92.0% vs 40.0% on the honest corpus (125 tasks / 19 repos); per-repo random lifts remain in the report as data |
+| Honest hit@5 lift | **2.35x** — 92.0% vs 39.2% on the honest corpus (125 tasks / 19 repos); per-repo random lifts remain in the report as data |
 
 ## What changed in the v5 story
 

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-26T21:28:10.440Z",
+  "generated": "2026-10-27T11:13:50.696Z",
   "repos": [
     {
       "repo": "express",
@@ -104,7 +104,7 @@
     {
       "repo": "flask",
       "fileCount": 19,
-      "sigCount": 15,
+      "sigCount": 16,
       "tasks": 8,
       "hitAt5": 0.625,
       "mrr": 0.625,
@@ -206,7 +206,7 @@
     {
       "repo": "gin",
       "fileCount": 107,
-      "sigCount": 75,
+      "sigCount": 80,
       "tasks": 8,
       "hitAt5": 1,
       "mrr": 0.938,
@@ -309,7 +309,7 @@
     {
       "repo": "spring-petclinic",
       "fileCount": 13,
-      "sigCount": 35,
+      "sigCount": 43,
       "tasks": 5,
       "hitAt5": 0.8,
       "mrr": 0.8,
@@ -378,7 +378,7 @@
     {
       "repo": "rails",
       "fileCount": 1179,
-      "sigCount": 211,
+      "sigCount": 235,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.733,
@@ -441,7 +441,7 @@
             "actionview/lib/action_view/renderer/template_renderer.rb",
             "actionview/lib/action_view/template/handlers/erb.rb"
           ],
-          "top1": "railties/lib/rails/templates/rails/mailers/email.html.erb",
+          "top1": "actionview/lib/action_view/template/handlers/erb/erubi.rb",
           "firstHitRank": 3,
           "tier": "partial"
         }
@@ -553,7 +553,7 @@
     {
       "repo": "rust-analyzer",
       "fileCount": 635,
-      "sigCount": 142,
+      "sigCount": 155,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -628,7 +628,7 @@
     {
       "repo": "abseil-cpp",
       "fileCount": 700,
-      "sigCount": 114,
+      "sigCount": 122,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.733,
@@ -701,7 +701,7 @@
     {
       "repo": "serilog",
       "fileCount": 99,
-      "sigCount": 50,
+      "sigCount": 60,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.1,
@@ -730,7 +730,7 @@
           "expected": [
             "src/Serilog/Configuration/LoggerSinkConfiguration.cs"
           ],
-          "top1": "src/Serilog/Settings/KeyValuePairs/SurrogateConfigurationMethods.cs",
+          "top1": "src/Serilog/Core/Sinks/AggregateSink.cs",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -772,7 +772,7 @@
     {
       "repo": "riverpod",
       "fileCount": 446,
-      "sigCount": 186,
+      "sigCount": 192,
       "tasks": 5,
       "hitAt5": 0.8,
       "mrr": 0.829,
@@ -907,7 +907,7 @@
     {
       "repo": "laravel",
       "fileCount": 1533,
-      "sigCount": 171,
+      "sigCount": 207,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.9,
@@ -978,7 +978,7 @@
     {
       "repo": "akka",
       "fileCount": 211,
-      "sigCount": 125,
+      "sigCount": 141,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.617,
@@ -1048,7 +1048,7 @@
     {
       "repo": "vapor",
       "fileCount": 131,
-      "sigCount": 95,
+      "sigCount": 113,
       "tasks": 5,
       "hitAt5": 0.2,
       "mrr": 0.05,
@@ -1089,7 +1089,7 @@
             "Sources/Vapor/Content/ContentContainer.swift",
             "Sources/Vapor/Content/Request+Content.swift"
           ],
-          "top1": "Sources/VaporTestUtils/TestingHTTPRequest.swift",
+          "top1": "Sources/Vapor/Request/Request.swift",
           "firstHitRank": null,
           "tier": "wrong"
         },
@@ -1120,15 +1120,15 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 130,
+      "sigCount": 140,
       "tasks": 5,
       "hitAt5": 1,
-      "mrr": 0.9,
+      "mrr": 0.8,
       "randomBaseline": 0.022,
       "improvement": 46.4,
       "tiers": {
-        "correct": 4,
-        "partial": 1,
+        "correct": 3,
+        "partial": 2,
         "wrong": 0
       },
       "taskDetails": [
@@ -1140,9 +1140,9 @@
             "packages/runtime-core/src/componentProps.ts",
             "packages/runtime-core/src/componentOptions.ts"
           ],
-          "top1": "packages/runtime-core/src/componentEmits.ts",
-          "firstHitRank": 1,
-          "tier": "correct"
+          "top1": "packages/runtime-core/src/apiSetupHelpers.ts",
+          "firstHitRank": 2,
+          "tier": "partial"
         },
         {
           "id": "vue-t002",
@@ -1194,15 +1194,15 @@
     {
       "repo": "svelte",
       "fileCount": 370,
-      "sigCount": 142,
+      "sigCount": 151,
       "tasks": 5,
       "hitAt5": 0.8,
-      "mrr": 0.589,
+      "mrr": 0.689,
       "randomBaseline": 0.014,
       "improvement": 59.2,
       "tiers": {
-        "correct": 2,
-        "partial": 2,
+        "correct": 3,
+        "partial": 1,
         "wrong": 1
       },
       "taskDetails": [
@@ -1245,9 +1245,9 @@
             "packages/svelte/src/internal/server/renderer.js",
             "packages/svelte/src/internal/server/blocks/snippet.js"
           ],
-          "top1": "packages/svelte/src/internal/server/types.d.ts",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "packages/svelte/src/internal/server/blocks/snippet.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "svelte-t005",

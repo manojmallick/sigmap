@@ -62,9 +62,9 @@ Example tasks:
 
 **Metric:** Hit@5 — the right file appears in the top 5 ranked results
 
-**Baseline:** Single-shot grep agent = 40.0% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
+**Baseline:** Single-shot grep agent = 39.2% hit@5 — whole-repo term scan ranked by coverage then occurrences (`npm run benchmark:honest`). The old random-selection figure (~13.6%) remains in the reports as data but is no longer the quoted comparison.
 
-**SigMap score:** 92.0% on the same 125-task honest corpus — a measured **2.30× lift** over the grep baseline (92.0 ÷ 40.0). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
+**SigMap score:** 92.0% on the same 125-task honest corpus — a measured **2.35× lift** over the grep baseline (92.0 ÷ 39.2). The retrieval corpus (105 tasks / 18 repos) is scored separately at 80.4% hit@5; the two corpora differ, so the lift is only ever quoted against the honest pair it is computed from.
 
 ### 2. Task success proxy (correct rank)
 
@@ -102,7 +102,7 @@ Example tasks:
 **Metric:** Token count of final context
 - **Full repo signatures:** 13.7M tokens (before SigMap)
 - **SigMap output:** 257K tokens (after ranking/filtering)
-- **Reduction:** 95.7% average, 89–99% per repo
+- **Reduction:** 95.4% average, 89–99% per repo
 
 **Impact:** Without SigMap, 14 of 21 repos overflow GPT-4o's 128K context window. With SigMap, all 21 fit.
 
