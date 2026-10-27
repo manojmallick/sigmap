@@ -97,7 +97,7 @@ test('G2: `verify` alias matches `verify-ai-output` (output + exit code)', () =>
 
 test('G2: `verify` with no target prints its own usage name', () => {
   const r = spawnSync('node', [SCRIPT, 'verify'], { cwd: ROOT, encoding: 'utf8' });
-  assert.strictEqual(r.status, 1);
+  assert.strictEqual(r.status, 2, 'a usage error is not "issues found" (#998)');
   assert.ok(/Usage: sigmap verify </.test(r.stderr), 'usage should name the invoked alias');
 });
 

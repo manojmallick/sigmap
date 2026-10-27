@@ -18,7 +18,7 @@
  *    9. dirty answer exits 1 and reports fake-file + fake-import
  *   10. clean answer exits 0
  *   11. --json emits { file, issues, summary } and exits 1 on issues
- *   12. missing file / missing arg → exit 1 with usage
+ *   12. missing file / missing arg → exit 2 with usage (1 is reserved for "issues found", #998)
  */
 
 const assert = require('assert');
@@ -502,15 +502,15 @@ test('CLI: --json emits { file, issues, summary } and exits 1 on issues', () => 
   assert.ok(obj.issues.every((i) => i.type && typeof i.line === 'number' && i.message));
 });
 
-test('CLI: missing file → exit 1', () => {
+test('CLI: missing file → exit 2 (a usage error, not "issues found")', () => {
   const res = runVerify(fixtureDir, path.join(fixtureDir, 'does-not-exist.md'));
-  assert.strictEqual(res.status, 1);
+  assert.strictEqual(res.status, 2);
   assert.ok(/file not found/i.test(res.stderr));
 });
 
-test('CLI: missing arg → exit 1 with usage', () => {
+test('CLI: missing arg → exit 2 with usage', () => {
   const res = spawnSync('node', [SCRIPT, 'verify-ai-output', '--cwd', fixtureDir], { cwd: ROOT, encoding: 'utf8' });
-  assert.strictEqual(res.status, 1);
+  assert.strictEqual(res.status, 2);
   assert.ok(/Usage: sigmap verify-ai-output/.test(res.stderr));
 });
 

@@ -42091,6 +42091,27 @@ function __tryGit(args, opts = {}) {
   catch (_) { return ''; }
 }
 
+// Write a whole document to a file descriptor before the process exits. When
+// stdout is a pipe, process.stdout.write returns after the first 64 KB and
+// queues the rest, and process.exit() then discards what is still queued — a
+// large `--json` document reached `jq` cut off mid-string (#998). A synchronous
+// write that retries a full pipe has delivered every byte before the next line
+// runs. Same shape as scripts/lib/write-sync.mjs, which fixed this for the
+// benchmark gates.
+function writeAll(fd, text) {
+  const buf = Buffer.from(text);
+  const pause = new Int32Array(new SharedArrayBuffer(4));
+  for (let off = 0; off < buf.length;) {
+    try {
+      off += fs.writeSync(fd, buf, off);
+    } catch (e) {
+      if (e.code === 'EPIPE') return; // the reader closed early (`| head`): nothing is left to deliver
+      if (e.code !== 'EAGAIN') throw e;
+      Atomics.wait(pause, 0, 0, 1); // the pipe is full: give the reader a moment to drain it
+    }
+  }
+}
+
 const VERSION = '8.83.0';
 // A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
 // (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
@@ -43638,7 +43659,7 @@ function printReport(inputTokens, finalTokens, fileCount, droppedCount, asJson, 
         ),
       };
     }
-    process.stdout.write(JSON.stringify(payload) + '\n');
+    writeAll(1, JSON.stringify(payload) + '\n');
   } else {
     const budgetLabel = isAutoBudget
       ? `${budgetLimit || 6000} (auto-scaled)`
@@ -46059,7 +46080,7 @@ function main() {
       const { formatExplainTable } = requireSourceOrBundled('./src/retrieval/ranker');
       const __view = ranked.slice(0, askTopK);
       Object.assign(__view, __explainMeta);
-      process.stdout.write(formatExplainTable(__view, query));
+      writeAll(1, formatExplainTable(__view, query));
       process.exit(0);
     }
 
@@ -46189,7 +46210,7 @@ function main() {
     })();
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify({
+      writeAll(1, JSON.stringify({
         intent, coverage: coveragePct, contextTokens: ctxTok,
         // #806: the bare `coverage` number is kept for compatibility and now
         // ships with the population it measures, so a consumer cannot read it
@@ -46381,7 +46402,7 @@ function main() {
         process.exit(1);
       }
     } else {
-      process.stdout.write(rendered + '\n');
+      writeAll(1, rendered + '\n');
     }
     for (const line of summarize(built.stats)) process.stderr.write(line + '\n');
     process.exit(0);
@@ -46398,7 +46419,7 @@ function main() {
     }
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(inventory, null, 2) + '\n');
+      writeAll(1, JSON.stringify(inventory, null, 2) + '\n');
       process.exit(0);
     }
 
@@ -46436,7 +46457,7 @@ function main() {
     out.push(' Vulnerability scanning is deliberately out of scope — export and pipe:');
     out.push('   sigmap sbom --out sbom.json && osv-scanner --sbom sbom.json');
     out.push(bar, '');
-    process.stdout.write(out.join('\n'));
+    writeAll(1, out.join('\n'));
     process.exit(0);
   }
 
@@ -46492,7 +46513,7 @@ function main() {
       }
     }
 
-    process.stdout.write(rendered + '\n');
+    writeAll(1, rendered + '\n');
     process.exit(0);
   }
 
@@ -46519,7 +46540,7 @@ function main() {
           const alias = pr.model !== k ? `  → ${pr.model}` : '';
           return `  ${k.padEnd(24)} $${pr.perMtok}/MTok${alias}${k === DEFAULT_MODEL ? '  (default)' : ''}`;
         });
-        process.stdout.write(`Known pricing models (sigmap gain --model <name>) — input prices ${__models.asOfLabel(__profile)}:\n${lines.join('\n')}\n`);
+        writeAll(1, `Known pricing models (sigmap gain --model <name>) — input prices ${__models.asOfLabel(__profile)}:\n${lines.join('\n')}\n`);
         process.exit(0);
       }
       if (args.indexOf('--model') >= 0) {
@@ -46539,12 +46560,12 @@ function main() {
         top: parseInt(valOf('--top', args.includes('--all') ? '0' : '10'), 10),
       });
       if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify(agg, null, 2) + '\n');
+        writeAll(1, JSON.stringify(agg, null, 2) + '\n');
       } else {
         const out = args.includes('--all')
           ? renderSummary(agg, { version: VERSION }) + '\n' + renderBreakdown(agg)
           : renderSummary(agg, { version: VERSION });
-        process.stdout.write(out + '\n');
+        writeAll(1, out + '\n');
       }
     } catch (e) {
       console.error(`[sigmap] gain: ${e.message}`);
@@ -46664,7 +46685,7 @@ function main() {
 
       if (!retrieval && !tokens) {
         if (args.includes('--json')) {
-          process.stdout.write(JSON.stringify({ mode: 'history', available: false, runs: 0 }) + '\n');
+          writeAll(1, JSON.stringify({ mode: 'history', available: false, runs: 0 }) + '\n');
         } else {
           console.log('[sigmap] compare: no local benchmark history yet.');
           console.log('  The 21-repo comparison needs the sigmap source checkout with its benchmark corpus.');
@@ -46674,7 +46695,7 @@ function main() {
       }
 
       if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify({
+        writeAll(1, JSON.stringify({
           mode: 'history',
           available: true,
           runs: Math.max(retrieval ? retrieval.runs : 0, tokens ? tokens.runs : 0),
@@ -46735,7 +46756,7 @@ function main() {
     }
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(results, null, 2) + '\n');
+      writeAll(1, JSON.stringify(results, null, 2) + '\n');
     } else {
       const pct = (v) => `${(v * 100).toFixed(1)}%`;
       // The old token row was `fileCount * 4000` — an assumed 4k-per-file
@@ -46847,7 +46868,7 @@ function main() {
     const impact = plan.impactRadius;
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify({
+      writeAll(1, JSON.stringify({
         goal: plan.goal,
         intent: plan.intent,
         inspectFirst: plan.inspectFirst,
@@ -46959,7 +46980,7 @@ function main() {
     };
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(submission, null, 2) + '\n');
+      writeAll(1, JSON.stringify(submission, null, 2) + '\n');
     } else {
       const bar = '─'.repeat(56);
       const lines = [
@@ -47089,7 +47110,7 @@ function main() {
     const entries = Object.entries(weights).sort(([, a], [, b]) => b - a || 0);
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(weights, null, 2) + '\n');
+      writeAll(1, JSON.stringify(weights, null, 2) + '\n');
       process.exit(0);
     }
 
@@ -47255,7 +47276,7 @@ function main() {
         outsideSrcDirs: __valOutside,
       };
       if (queryReport) payload.query = queryReport;
-      process.stdout.write(JSON.stringify(payload) + '\n');
+      writeAll(1, JSON.stringify(payload) + '\n');
     } else {
       for (const w of warnings) console.warn(`[sigmap] ⚠  ${w}`);
       if (issues.length === 0) {
@@ -47391,7 +47412,7 @@ function main() {
     if (_staleWarning) result.warnings = (result.warnings || []).concat(_staleWarning);
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      writeAll(1, JSON.stringify(result) + '\n');
     } else {
       const bar = '─'.repeat(44);
       // Per-claim detail (#780): on anything but a clean pass the reader needs
@@ -47438,7 +47459,7 @@ function main() {
     const last = entries.slice(-n);
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(last) + '\n');
+      writeAll(1, JSON.stringify(last) + '\n');
       process.exit(0);
     }
 
@@ -47569,7 +47590,7 @@ function main() {
     const result = resolveSourceRoots(cwd);
 
     if (args.includes('--json')) {
-      console.log(JSON.stringify(result, null, 2));
+      writeAll(1, JSON.stringify(result, null, 2) + '\n');
       process.exit(0);
     }
 
@@ -47630,7 +47651,7 @@ function main() {
     if (args.includes('--apply') && proposal.changes.length > 0) {
       const res = applyTuneProposal(cwd, proposal);
       if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify({ ...proposal, applied: res.applied, path: res.path }) + '\n');
+        writeAll(1, JSON.stringify({ ...proposal, applied: res.applied, path: res.path }) + '\n');
       } else {
         console.log(formatTuneProposal(proposal));
         console.log(`[sigmap] tune: wrote ${res.applied.join(', ')} → ${path.relative(cwd, res.path)} — run: sigmap validate`);
@@ -47638,7 +47659,7 @@ function main() {
       process.exit(0);
     }
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(proposal) + '\n');
+      writeAll(1, JSON.stringify(proposal) + '\n');
     } else {
       console.log(formatTuneProposal(proposal));
     }
@@ -47657,7 +47678,7 @@ function main() {
     if (sub === 'list' || sub === undefined) {
       const clients = listSkillClients({ cwd });
       if (jsonOut) {
-        process.stdout.write(JSON.stringify(clients, null, 2) + '\n');
+        writeAll(1, JSON.stringify(clients, null, 2) + '\n');
         process.exit(0);
       }
       console.log('Supported skill clients:\n');
@@ -47688,7 +47709,7 @@ function main() {
         process.exit(1);
       }
       if (jsonOut) {
-        process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+        writeAll(1, JSON.stringify(out, null, 2) + '\n');
         process.exit(0);
       }
       for (const r of out) {
@@ -47725,7 +47746,7 @@ function main() {
         process.exit(1);
       }
       if (jsonOut) {
-        process.stdout.write(JSON.stringify({ cleared: removed }) + '\n');
+        writeAll(1, JSON.stringify({ cleared: removed }) + '\n');
       } else {
         console.log(removed.length
           ? `[sigmap] cleared: ${removed.join(', ')}`
@@ -47736,7 +47757,7 @@ function main() {
 
     const stores = inspectMemory(cwd);
     if (jsonOut) {
-      process.stdout.write(JSON.stringify({ stores }) + '\n');
+      writeAll(1, JSON.stringify({ stores }) + '\n');
       process.exit(0);
     }
     const fmtAge = (iso) => {
@@ -47767,7 +47788,7 @@ function main() {
     if (bIdx !== -1 && args[bIdx + 1] && !args[bIdx + 1].startsWith('--')) opts.budgetTokens = Number(args[bIdx + 1]);
     const st = budgetStatus(cwd, opts);
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(st) + '\n');
+      writeAll(1, JSON.stringify(st) + '\n');
       process.exit(0);
     }
     console.log('[sigmap] session spend (estimates — chars/4; SigMap-emitted tokens only)');
@@ -47814,10 +47835,10 @@ function main() {
     }
     const r = redactText(input);
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(r) + '\n');
+      writeAll(1, JSON.stringify(r) + '\n');
       process.exit(0);
     }
-    process.stdout.write(r.text);
+    writeAll(1, r.text);
     const parts = Object.entries(r.counts).map(([k, v]) => `${k}×${v}`);
     console.error(r.redacted
       ? `[sigmap] redact: masked ${r.findings.length} secret(s) — ${parts.join(', ')}`
@@ -47870,7 +47891,7 @@ function main() {
       console.error('[sigmap] ' + out);
       process.exit(1);
     }
-    process.stdout.write(out + '\n');
+    writeAll(1, out + '\n');
     process.exit(0);
   }
 
@@ -47894,7 +47915,7 @@ function main() {
       const limit = Number.isFinite(limArg) && limArg > 0 ? limArg : 10;
       const notes = readNotes(cwd, limit);
       if (jsonOut) {
-        process.stdout.write(JSON.stringify({ notes }) + '\n');
+        writeAll(1, JSON.stringify({ notes }) + '\n');
       } else {
         console.log(`[sigmap] ${notes.length} recent note${notes.length === 1 ? '' : 's'}`);
         console.log(formatNotes(notes.slice().reverse()));
@@ -47912,7 +47933,7 @@ function main() {
       process.exit(1);
     }
     if (jsonOut) {
-      process.stdout.write(JSON.stringify({ added: entry }) + '\n');
+      writeAll(1, JSON.stringify({ added: entry }) + '\n');
     } else {
       console.log(`[sigmap] noted${entry.branch ? ` (${entry.branch})` : ''}: ${entry.text}`);
     }
@@ -47967,7 +47988,7 @@ function main() {
           fail('nothing to log: pass --transcript <file> --id <session_id>, --from-json <file|->, or --ci');
         }
         const rec = _store.readSessions(cwd).sessions.find((s) => s.id === id);
-        if (jsonOut) process.stdout.write(JSON.stringify({ logged: rec || { id } }) + '\n');
+        if (jsonOut) writeAll(1, JSON.stringify({ logged: rec || { id } }) + '\n');
         else console.log(`[sigmap] logged ${id} [${rec ? rec.provenance : 'unavailable'}] ${_render.formatUsage(rec ? rec.usage : null)}`);
       } catch (err) {
         fail(err.message);
@@ -47983,7 +48004,7 @@ function main() {
       let sessions = agent ? all.sessions.filter((s) => s.agent === agent) : all.sessions;
       sessions = sessions.slice(-limit);
       if (jsonOut) {
-        process.stdout.write(JSON.stringify({ sessions, rollups: all.rollups, totals: _render.totalsByProvenance(sessions), corrupt: all.corrupt }) + '\n');
+        writeAll(1, JSON.stringify({ sessions, rollups: all.rollups, totals: _render.totalsByProvenance(sessions), corrupt: all.corrupt }) + '\n');
       } else if (sessions.length === 0 && all.rollups.length === 0) {
         console.log('[sigmap] no sessions recorded yet — capture them with: sigmap hooks install claude');
       } else {
@@ -47999,7 +48020,7 @@ function main() {
       const exact = hits.find((s) => s.id === want);
       const hit = exact || (hits.length === 1 ? hits[0] : null);
       if (!hit) fail(hits.length > 1 ? `"${want}" matches ${hits.length} sessions — give more of the id` : `no session "${want}" (see: sigmap session list)`);
-      if (jsonOut) process.stdout.write(JSON.stringify({ session: hit }) + '\n');
+      if (jsonOut) writeAll(1, JSON.stringify({ session: hit }) + '\n');
       else console.log(_render.renderShow(hit));
       process.exit(0);
     }
@@ -48007,21 +48028,21 @@ function main() {
     if (sub === 'summary') {
       // The last session is the only window there is, so `summary` and `summary --last` are the same call.
       const sum = requireSourceOrBundled('./src/session/summary').buildSummary(cwd, { config });
-      if (jsonOut) process.stdout.write(JSON.stringify({ summary: sum, window: 'last-session' }) + '\n');
+      if (jsonOut) writeAll(1, JSON.stringify({ summary: sum, window: 'last-session' }) + '\n');
       else if (!sum) console.log('[sigmap] no sessions recorded yet — capture them with: sigmap hooks install claude');
-      else process.stdout.write(sum.text + '\n');
+      else writeAll(1, sum.text + '\n');
       process.exit(0);
     }
 
     if (sub === 'compact') {
       const sc = _store.sessionConfig(config);
       if (sc.retention.compact === 'off') {
-        if (jsonOut) process.stdout.write(JSON.stringify({ action: 'off', sessions: 0, removedEvents: 0 }) + '\n');
+        if (jsonOut) writeAll(1, JSON.stringify({ action: 'off', sessions: 0, removedEvents: 0 }) + '\n');
         else console.log('[sigmap] session.retention.compact is "off" — compaction is disabled, every raw event is kept');
         process.exit(0);
       }
       const res = _store.compact(cwd, { days: sc.retention.days });
-      if (jsonOut) process.stdout.write(JSON.stringify(res) + '\n');
+      if (jsonOut) writeAll(1, JSON.stringify(res) + '\n');
       else if (res.action === 'compacted') console.log(`[sigmap] compacted ${res.sessions} session(s) older than ${sc.retention.days}d into ${res.rollups} monthly rollup(s); dropped ${res.removedEvents} event(s)`);
       else if (res.action === 'locked') console.log('[sigmap] another sigmap process is compacting; try again in a moment');
       else console.log(`[sigmap] nothing older than ${sc.retention.days} day(s) to compact`);
@@ -48039,7 +48060,7 @@ function main() {
     const rel = (p) => path.relative(cwd, p) || p;
     if (sub === 'status') {
       const st = hi.inspectClaudeHooks(cwd);
-      if (jsonOut) { process.stdout.write(JSON.stringify(st) + '\n'); process.exit(0); }
+      if (jsonOut) { writeAll(1, JSON.stringify(st) + '\n'); process.exit(0); }
       console.log(st.wired ? '[sigmap] Claude Code session hooks: wired' : '[sigmap] Claude Code session hooks: not wired (install: sigmap hooks install claude)');
       for (const f of st.files) console.log(`  ${rel(f.path)}  ${f.error ? 'unreadable: ' + f.error : f.events.join(', ')}`);
       for (const s of st.missingScript) console.log(`  ⚠ a hook runs ${s}, which no longer exists — re-run: sigmap hooks install claude`);
@@ -48049,14 +48070,14 @@ function main() {
       if (sub === 'remove') {
         const res = hi.removeClaudeHooks(cwd);
         if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
-        if (jsonOut) process.stdout.write(JSON.stringify(res) + '\n');
+        if (jsonOut) writeAll(1, JSON.stringify(res) + '\n');
         else if (res.files.length === 0) console.log('[sigmap] no SigMap session hooks to remove');
         else for (const f of res.files) console.log(`[sigmap] removed ${f.removed} hook(s) from ${rel(f.path)}`);
         process.exit(0);
       }
       const res = hi.installClaudeHooks(cwd, scriptPath, { stop: args.includes('--stop'), shared: args.includes('--shared') });
       if (res.error) { console.error(`[sigmap] hooks: ${res.error}`); process.exit(1); }
-      if (jsonOut) { process.stdout.write(JSON.stringify(res) + '\n'); process.exit(0); }
+      if (jsonOut) { writeAll(1, JSON.stringify(res) + '\n'); process.exit(0); }
       console.log(`[sigmap] Claude Code hooks → ${rel(res.path)}`);
       for (const c of res.changes) console.log(`  ${c.event}: ${c.action}`);
       if (/[\\/]_npx[\\/]/.test(path.resolve(scriptPath))) {
@@ -48133,7 +48154,7 @@ function main() {
     } catch (_) {}
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(st) + '\n');
+      writeAll(1, JSON.stringify(st) + '\n');
       process.exit(0);
     }
 
@@ -48186,7 +48207,7 @@ function main() {
     if (sub === 'list') {
       const clients = listClients({ cwd });
       if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify(clients, null, 2) + '\n');
+        writeAll(1, JSON.stringify(clients, null, 2) + '\n');
         process.exit(0);
       }
       console.log('Supported MCP clients:\n');
@@ -48253,7 +48274,7 @@ function main() {
 
     if (sub === 'start') {
       const r = daemon.start(cwd, { scriptPath });
-      if (jsonOut) { process.stdout.write(JSON.stringify(r) + '\n'); process.exit(0); }
+      if (jsonOut) { writeAll(1, JSON.stringify(r) + '\n'); process.exit(0); }
       if (r.status === 'already') {
         console.log(`[sigmap] daemon already running (pid ${r.pid})`);
       } else {
@@ -48265,7 +48286,7 @@ function main() {
 
     if (sub === 'stop') {
       const r = daemon.stop(cwd);
-      if (jsonOut) { process.stdout.write(JSON.stringify(r) + '\n'); process.exit(0); }
+      if (jsonOut) { writeAll(1, JSON.stringify(r) + '\n'); process.exit(0); }
       if (r.status === 'not-running') console.log('[sigmap] daemon not running');
       else if (r.status === 'stale') console.log(`[sigmap] removed stale pid file (pid ${r.pid} no longer alive)`);
       else console.log(`[sigmap] daemon stopped (pid ${r.pid})`);
@@ -48274,7 +48295,7 @@ function main() {
 
     if (sub === 'status') {
       const r = daemon.status(cwd);
-      if (jsonOut) { process.stdout.write(JSON.stringify(r) + '\n'); process.exit(r.running ? 0 : 1); }
+      if (jsonOut) { writeAll(1, JSON.stringify(r) + '\n'); process.exit(r.running ? 0 : 1); }
       if (r.running) console.log(`[sigmap] daemon running (pid ${r.pid}) — logs: ${_displayPath(r.logFile, cwd)}`);
       else console.log('[sigmap] daemon not running');
       process.exit(r.running ? 0 : 1);
@@ -48291,7 +48312,7 @@ function main() {
     const { diagnose, formatDoctor, formatDoctorJSON } = requireSourceOrBundled('./src/doctor/diagnose');
     const result = diagnose(cwd);
     if (args.includes('--json')) {
-      process.stdout.write(formatDoctorJSON(result) + '\n');
+      writeAll(1, formatDoctorJSON(result) + '\n');
     } else {
       console.log(formatDoctor(result));
     }
@@ -48303,7 +48324,7 @@ function main() {
     const { buildWiki } = requireSourceOrBundled('./src/wiki/generate');
     const result = buildWiki(cwd, { version: VERSION, config });
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(result.data, null, 2) + '\n');
+      writeAll(1, JSON.stringify(result.data, null, 2) + '\n');
       process.exit(0);
     }
     const outIdx = args.indexOf('--out');
@@ -48367,7 +48388,7 @@ function main() {
       }
       const payload = { stale: plan.stale, wrote, snapshotExists: plan.snapshotExists, changed: plan.changed.length, scanned: result.scannedFiles };
       if (jsonOut) {
-        process.stdout.write(JSON.stringify(payload) + '\n');
+        writeAll(1, JSON.stringify(payload) + '\n');
         process.exit(0);
       }
       if (!plan.stale) {
@@ -48384,7 +48405,7 @@ function main() {
       const { buildFixList } = requireSourceOrBundled('./src/conventions/fix');
       const fixList = buildFixList(cwd, files, result);
       if (jsonOut) {
-        process.stdout.write(JSON.stringify(fixList) + '\n');
+        writeAll(1, JSON.stringify(fixList) + '\n');
         process.exit(0);
       }
       console.log('[sigmap] conventions --fix  (TS/JS/Python)');
@@ -48416,7 +48437,7 @@ function main() {
       }
       const gate = ciGate(result, { min, noRegress }, prior);
       if (jsonOut) {
-        process.stdout.write(JSON.stringify(gate) + '\n');
+        writeAll(1, JSON.stringify(gate) + '\n');
         process.exit(gate.ok ? 0 : 1);
       }
       const pctC = (n) => `${(n * 100).toFixed(0)}%`;
@@ -48446,7 +48467,7 @@ function main() {
       } catch (_) {}
 
       if (jsonOut) {
-        process.stdout.write(JSON.stringify(report) + '\n');
+        writeAll(1, JSON.stringify(report) + '\n');
         process.exit(0);
       }
       const pctR = (n) => `${(n * 100).toFixed(0)}%`;
@@ -48466,7 +48487,7 @@ function main() {
       const { analyzeConflicts } = requireSourceOrBundled('./src/conventions/conflicts');
       const report = analyzeConflicts(result);
       if (jsonOut) {
-        process.stdout.write(JSON.stringify(report) + '\n');
+        writeAll(1, JSON.stringify(report) + '\n');
         process.exit(0);
       }
       const pctC = (n) => `${(n * 100).toFixed(0)}%`;
@@ -48504,7 +48525,7 @@ function main() {
     }
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      writeAll(1, JSON.stringify(result) + '\n');
       process.exit(0);
     }
 
@@ -48560,7 +48581,7 @@ function main() {
     }
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify({ ...decision, persistedTo }) + '\n');
+      writeAll(1, JSON.stringify({ ...decision, persistedTo }) + '\n');
       process.exit(decision.ok ? 0 : 1);
     }
 
@@ -48628,7 +48649,7 @@ function main() {
     } catch (_) {}
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify({
+      writeAll(1, JSON.stringify({
         category: sq.category, confidence: sq.confidence,
         rawTokens: sq.rawTokens, squeezedTokens: sq.squeezedTokens,
         reduction: sq.reduction, enriched: sq.enriched, squeezed: sq.squeezed,
@@ -48637,11 +48658,11 @@ function main() {
     }
     if (!sq.category) {
       process.stderr.write('[sigmap] no squeezable structure detected — input unchanged\n');
-      process.stdout.write(input);
+      writeAll(1, input);
       process.exit(0);
     }
     process.stderr.write(formatSummary(sq) + '\n\n');
-    process.stdout.write(sq.squeezed + '\n');
+    writeAll(1, sq.squeezed + '\n');
     process.exit(0);
   }
 
@@ -48674,7 +48695,7 @@ function main() {
     const result = verifyPlan(planText, cwd, creates.length ? { creates } : {});
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      writeAll(1, JSON.stringify(result) + '\n');
       process.exit(result.summary.ok ? 0 : 1);
     }
 
@@ -48721,17 +48742,26 @@ function main() {
     const reportOut = reportIdx !== -1
       ? (args[reportIdx + 1] && !args[reportIdx + 1].startsWith('--') ? args[reportIdx + 1] : 'sigmap-verify-report.html')
       : null;
+    // Exit codes: 1 is "issues found", so a usage error must not share it — a CI job
+    // that gates on `verify` has to tell a typo'd path from a fabricated symbol (#998).
+    const usage = `[sigmap] Usage: sigmap ${cmdName} <answer.md> [--json] [--report [out.html]]`;
     if (!target || target.startsWith('--')) {
-      console.error(`[sigmap] Usage: sigmap ${cmdName} <answer.md> [--json] [--report [out.html]]`);
-      process.exit(1);
+      console.error(usage);
+      process.exit(2);
     }
     const absTarget = path.resolve(cwd, target);
-    if (!fs.existsSync(absTarget)) {
-      console.error(`[sigmap] file not found: ${target}`);
-      process.exit(1);
+    let answerText;
+    try {
+      if (!fs.statSync(absTarget).isFile()) throw Object.assign(new Error('not a file'), { code: 'ENOTFILE' });
+      answerText = fs.readFileSync(absTarget, 'utf8');
+    } catch (e) {
+      console.error(e.code === 'ENOENT' ? `[sigmap] file not found: ${target}`
+        : e.code === 'ENOTFILE' ? `[sigmap] not a file: ${target}`
+        : `[sigmap] cannot read ${target}: ${e.code || e.message}`);
+      console.error(usage);
+      process.exit(2);
     }
 
-    const answerText = fs.readFileSync(absTarget, 'utf8');
     const { verify } = requireSourceOrBundled('./src/verify/hallucination-guard');
     const { issues, summary } = verify(answerText, cwd);
     const rel = path.relative(cwd, absTarget) || target;
@@ -48746,7 +48776,7 @@ function main() {
     }
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      writeAll(1, JSON.stringify(result) + '\n');
       process.exit(summary.total > 0 ? 1 : 0);
     }
 
@@ -48819,7 +48849,7 @@ function main() {
       const { buildPrEvidence, formatPrEvidenceMarkdown } = requireSourceOrBundled('./src/review/pr-evidence');
       const scope = staged ? 'staged' : (baseArg ? `vs ${baseArg}` : 'branch');
       const ev = buildPrEvidence(changedFiles, cwd, { scope });
-      process.stdout.write(formatPrEvidenceMarkdown(ev) + '\n');
+      writeAll(1, formatPrEvidenceMarkdown(ev) + '\n');
       process.exit(ev.review.summary.ok ? 0 : 1);
     }
 
@@ -48827,7 +48857,7 @@ function main() {
     const result = reviewPr(changedFiles, cwd, {});
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      writeAll(1, JSON.stringify(result) + '\n');
       process.exit(result.summary.ok ? 0 : 1);
     }
 
@@ -48903,7 +48933,7 @@ function main() {
     const result = orchestrate(ctx, cwd);
 
     if (jsonOut) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      writeAll(1, JSON.stringify(result) + '\n');
       process.exit(result.summary.nothingRan ? EXIT_NOTHING_RAN : (result.summary.ok ? 0 : 1));
     }
 
@@ -48953,7 +48983,7 @@ function main() {
     // checks existence; the CLI path did not.
     if (!fs.existsSync(absPath)) {
       if (jsonOut) {
-        process.stdout.write(JSON.stringify({ status: 'not-found', reason: 'file does not exist on disk', path: rel, fix: 'check the path — nothing at this location to explain' }) + '\n');
+        writeAll(1, JSON.stringify({ status: 'not-found', reason: 'file does not exist on disk', path: rel, fix: 'check the path — nothing at this location to explain' }) + '\n');
       } else {
         console.log(`[sigmap] ${rel} — NOT FOUND`);
         console.log(`  Reason: no such file on disk`);
@@ -48967,7 +48997,7 @@ function main() {
     const ignored = matchesIgnore(rel.replace(/\\/g, '/'), ignorePatterns);
     if (ignored) {
       if (jsonOut) {
-        process.stdout.write(JSON.stringify({ status: 'excluded', reason: '.contextignore', fix: `remove the pattern or add '!${rel}' as an exception` }) + '\n');
+        writeAll(1, JSON.stringify({ status: 'excluded', reason: '.contextignore', fix: `remove the pattern or add '!${rel}' as an exception` }) + '\n');
       } else {
         console.log(`[sigmap] ${rel} — EXCLUDED`);
         console.log(`  Reason: matched .contextignore`);
@@ -48980,7 +49010,7 @@ function main() {
     const inSrcDirs = (config.srcDirs || []).some(d => absPath.startsWith(path.resolve(cwd, d)));
     if (!inSrcDirs) {
       if (jsonOut) {
-        process.stdout.write(JSON.stringify({ status: 'excluded', reason: 'not in srcDirs', srcDirs: config.srcDirs, fix: 'add the containing directory to srcDirs in gen-context.config.json' }) + '\n');
+        writeAll(1, JSON.stringify({ status: 'excluded', reason: 'not in srcDirs', srcDirs: config.srcDirs, fix: 'add the containing directory to srcDirs in gen-context.config.json' }) + '\n');
       } else {
         console.log(`[sigmap] ${rel} — EXCLUDED`);
         console.log(`  Reason: not under any srcDir (${(config.srcDirs || []).join(', ')})`);
@@ -49007,7 +49037,7 @@ function main() {
 
     if (!sigs.length) {
       if (jsonOut) {
-        process.stdout.write(JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, fix: 'check that the file contains function/class definitions' }) + '\n');
+        writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, fix: 'check that the file contains function/class definitions' }) + '\n');
       } else {
         console.log(`[sigmap] ${rel} — EXCLUDED`);
         console.log(`  Reason: no extractable signatures (extractor: ${extractorName})`);
@@ -49018,7 +49048,7 @@ function main() {
 
     // 4. Included
     if (jsonOut) {
-      process.stdout.write(JSON.stringify({ status: 'included', extractor: extractorName, signatures: sigs.length, preview: sigs.slice(0, 3), sigs }) + '\n');
+      writeAll(1, JSON.stringify({ status: 'included', extractor: extractorName, signatures: sigs.length, preview: sigs.slice(0, 3), sigs }) + '\n');
     } else {
       console.log(`[sigmap] ${rel} — INCLUDED`);
       console.log(`  Extractor : ${extractorName}`);
@@ -49088,7 +49118,7 @@ function main() {
       if (cacheStats) {
         payload.cacheStats = cacheStats;
       }
-      process.stdout.write(JSON.stringify(payload) + '\n');
+      writeAll(1, JSON.stringify(payload) + '\n');
     } else {
       console.log('[sigmap] health:');
       console.log(`  score           : ${result.score}/100 (grade ${result.grade})`);
@@ -49143,7 +49173,7 @@ function main() {
       fs.mkdirSync(path.dirname(outPath), { recursive: true });
       fs.writeFileSync(outPath, out.html, 'utf8');
       if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify({ ok: true, file: path.relative(cwd, outPath), summary: out.data.summary }) + '\n');
+        writeAll(1, JSON.stringify({ ok: true, file: path.relative(cwd, outPath), summary: out.data.summary }) + '\n');
       } else {
         console.log(`[sigmap] dashboard written: ${path.relative(cwd, outPath)}`);
       }
@@ -49166,7 +49196,7 @@ function main() {
     const __profile = __models.resolveProfile(config);
     const result = suggestTool(taskDesc, __profile);
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(result) + '\n');
+      writeAll(1, JSON.stringify(result) + '\n');
     } else {
       console.log('[sigmap] suggest-tool:');
       console.log(`  tier   : ${result.tier}`);
@@ -49198,7 +49228,7 @@ function main() {
             top1: t.ranked[0] || null,
           })),
         };
-        process.stdout.write(JSON.stringify(compact) + '\n');
+        writeAll(1, JSON.stringify(compact) + '\n');
       } else {
         console.log(formatMetrics(result.metrics));
         if (result.tasks.length > 0) {
@@ -49251,7 +49281,7 @@ function main() {
         return; // exit is handled by the callback above
       } else {
         const table = formatAnalysisTable(stats, slow);
-        process.stdout.write(table);
+        writeAll(1, table);
       }
     } catch (err) {
       console.error(`[sigmap] analyze error: ${err.message}`);
@@ -49437,7 +49467,7 @@ function main() {
       const __queryExplain = args.includes('--explain');
       const results = rank(query, index, { topK, recencyBoost, cwd, callGraph: queryCallGraph, centrality: queryCentrality, expansions: queryExpansions, bodyWords: queryBodyWords, explain: __queryExplain });
       if (__queryExplain) {
-        process.stdout.write(formatExplainTable(results, query));
+        writeAll(1, formatExplainTable(results, query));
       } else if (args.includes('--context')) {
         const miniCtx  = buildMiniContext(results, cwd);
         const ctxOut   = path.join(cwd, '.context', 'query-context.md');
@@ -49445,9 +49475,9 @@ function main() {
         fs.writeFileSync(ctxOut, miniCtx, 'utf8');
         console.log(`[sigmap] query context → ${path.relative(cwd, ctxOut)}  (${estimateTokens(miniCtx)} tokens)`);
       } else if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify(formatRankJSON(results, query)) + '\n');
+        writeAll(1, JSON.stringify(formatRankJSON(results, query)) + '\n');
       } else {
-        process.stdout.write(formatRankTable(results, query));
+        writeAll(1, formatRankTable(results, query));
       }
     } catch (err) {
       console.error(`[sigmap] query error: ${err.message}`);
@@ -49493,7 +49523,7 @@ function main() {
       if (args.includes('--json')) {
         const adapterMod = __require('./packages/adapters/' + adapterName);
         const outPath = adapterMod.outputPath(cwd);
-        process.stdout.write(JSON.stringify({ adapter: adapterName, outputPath: outPath, version: VERSION }) + '\n');
+        writeAll(1, JSON.stringify({ adapter: adapterName, outputPath: outPath, version: VERSION }) + '\n');
         process.exit(0);
       }
       // Run generate with this adapter's output targets
@@ -49527,10 +49557,10 @@ function main() {
       const results = analyzeImpact(targetFile, cwd, { depth });
       if (args.includes('--json')) {
         const out = results.map((r) => formatImpactJSON(r.impact));
-        process.stdout.write(JSON.stringify(out.length === 1 ? out[0] : out) + '\n');
+        writeAll(1, JSON.stringify(out.length === 1 ? out[0] : out) + '\n');
       } else {
         for (const r of results) {
-          process.stdout.write(formatImpact(r.impact) + '\n');
+          writeAll(1, formatImpact(r.impact) + '\n');
         }
       }
     } catch (err) {
@@ -49560,9 +49590,9 @@ function main() {
         ? methodCallees(symbol, cwd, { depth, srcDirs })
         : methodImpact(symbol, cwd, { depth, srcDirs });
       if (args.includes('--json')) {
-        process.stdout.write(JSON.stringify(formatCallGraphJSON(result, kind)) + '\n');
+        writeAll(1, JSON.stringify(formatCallGraphJSON(result, kind)) + '\n');
       } else {
-        process.stdout.write(formatCallGraph(result, kind) + '\n');
+        writeAll(1, formatCallGraph(result, kind) + '\n');
       }
     } catch (err) {
       console.error(`[sigmap] call-graph error: ${err.message}`);
@@ -49586,7 +49616,7 @@ function main() {
           config, agent: _sval('--agent'), limit: Number.isFinite(limArg) && limArg > 0 ? limArg : 20,
         });
         if (args.includes('--json')) {
-          process.stdout.write(JSON.stringify(sessionsReport) + '\n');
+          writeAll(1, JSON.stringify(sessionsReport) + '\n');
         } else {
           console.log(requireSourceOrBundled('./src/session/render').renderReport(sessionsReport));
         }
@@ -49619,7 +49649,7 @@ function main() {
                 },
               }
             : summary;
-          process.stdout.write(JSON.stringify(payload) + '\n');
+          writeAll(1, JSON.stringify(payload) + '\n');
         } else {
           console.log('[sigmap] usage history:');
           console.log(`  total runs      : ${summary.totalRuns}`);
@@ -49709,7 +49739,7 @@ function main() {
     };
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify(out) + '\n');
+      writeAll(1, JSON.stringify(out) + '\n');
     } else {
       console.log(`\n Cost estimate (${__priceCost.model} @ $${__priceCost.perMtok}/Mtok input as of ${__priceCost.asOf}; tokens ${__costBasis.label}):`);
       console.log(` Without SigMap : ${rawTok.toLocaleString()} tok  $${out.costRaw}/query  (counterfactual: whole repo)`);
@@ -49740,7 +49770,7 @@ function main() {
     const pass = coveragePct >= minCoverage;
 
     if (args.includes('--json')) {
-      process.stdout.write(JSON.stringify({ pass, coverage: coveragePct, threshold: minCoverage }) + '\n');
+      writeAll(1, JSON.stringify({ pass, coverage: coveragePct, threshold: minCoverage }) + '\n');
     } else if (pass) {
       console.log(`[sigmap] ✓ CI gate passed — coverage: ${_ciCov.formatCoverage(ciCoverage, 'indexed', { grade: false })} ≥ ${minCoverage}%`);
     } else {
