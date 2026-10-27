@@ -103,8 +103,9 @@ test('the gate fails when a repo collapses below the floor', () => {
   const corpus = fs.mkdtempSync(path.join(os.tmpdir(), 'sigmap-corpus-'));
   try {
     const repo = path.join(corpus, 'tinylib');
-    // 40 source files, but all buried where nothing will claim them as a root.
-    const buried = path.join(repo, 'nested', 'deeply', 'hidden', 'away', 'code');
+    // 40 source files, but all buried where nothing will claim them as a root: deeper than the
+    // eight levels detection counts a candidate's code through (#997 raised that from two).
+    const buried = path.join(repo, 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9', 'code');
     fs.mkdirSync(buried, { recursive: true });
     for (let i = 0; i < 40; i++) {
       fs.writeFileSync(path.join(buried, `F${i}.kt`), `class F${i} { fun go(): Int = 1 }\n`);

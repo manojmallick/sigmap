@@ -5,13 +5,20 @@ const path = require('path');
 const { REGISTRY }              = require('./source-root-registry');
 const { detectLanguages }       = require('./language-detector');
 const { detectFrameworks }      = require('./framework-detector');
-const { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, CODE_EXTS, AUTO_SKIP } = require('./source-root-scorer');
+const { scoreCandidate, sourceFileCountFor, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, CODE_EXTS, AUTO_SKIP } = require('./source-root-scorer');
 const { loadIgnorePatterns, matchesIgnorePattern } = require('./sigmapignore');
 const { detectMonorepo }         = require('./monorepo');
 
 module.exports = { resolveSourceRoots };
 
 const MAX_ROOTS = 6;
+
+// Six roots is where the choice starts, not where it stops. A layout with more modules than that
+// (Rails has twelve, each a gem with its own `lib/` and `test/`) went on indexing six and left the
+// rest out without a word (#997). Past MAX_ROOTS, the next-ranked candidates are added until the roots
+// hold COVERAGE_TARGET of the code in all the candidates, up to MAX_COVERAGE_ROOTS.
+const COVERAGE_TARGET = 0.95;
+const MAX_COVERAGE_ROOTS = 40;
 
 // A Gradle/Maven multi-module build legitimately has one source root per
 // module — okhttp has 27 — so the 6-root cap tuned for JS layouts would
@@ -148,14 +155,16 @@ function resolveSourceRoots(cwd, opts = {}) {
     }
   }
 
-  // Score each candidate
+  // Score each candidate, on the code in its whole subtree. A candidate that holds other candidates
+  // (`packages/` over `packages/a`, a JVM module over its source sets) keeps the two-level count it
+  // was scored on before: the full-depth count would put it above its members, and the dedupe below
+  // keeps the parent.
+  const holdsOthers = (name) => candidates.some((o) => o.name !== name && o.name.startsWith(name + '/'));
   const scored = candidates
-    .map(({ name, full, packageSrc }) => ({
-      dir:   name,
-      full,
-      packageSrc,
-      score: scoreCandidate(name, full, context),
-    }))
+    .map(({ name, full, packageSrc }) => {
+      const files = sourceFileCountFor(name, full, frameworkSrcDirs, holdsOthers(name));
+      return { dir: name, full, packageSrc, files, score: scoreCandidate(name, full, context, files) };
+    })
     .filter(c => c.score > 0)
     // In a package workspace the members' source directories ARE the source;
     // whatever else sits at the top of the repo — a docs site, benchmarks,
@@ -166,7 +175,7 @@ function resolveSourceRoots(cwd, opts = {}) {
     // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
     // (candidate order comes from filesystem readdir), changing which files are
     // collected and making the generated context non-reproducible.
-    .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
+    .sort((a, b) => b.score - a.score || (b.files || 0) - (a.files || 0) || a.dir.localeCompare(b.dir));
 
   // Handle special rules
   let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []), registry);
@@ -177,7 +186,18 @@ function resolveSourceRoots(cwd, opts = {}) {
   // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
   // per module is the correct answer rather than over-detection.
   const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : isPackageWorkspace ? MAX_PACKAGE_ROOTS : MAX_ROOTS;
-  roots = roots.slice(0, cap).map(r => r.dir);
+  let picked = roots.slice(0, cap);
+  let omitted = roots.length - picked.length;
+  if (omitted > 0 && cap === MAX_ROOTS) {
+    const all = roots.reduce((n, r) => n + (r.files || 0), 0);
+    let have = picked.reduce((n, r) => n + (r.files || 0), 0);
+    for (let i = cap; i < roots.length && picked.length < MAX_COVERAGE_ROOTS && all > 0 && have / all < COVERAGE_TARGET; i++) {
+      picked.push(roots[i]);
+      have += roots[i].files || 0;
+    }
+    omitted = roots.length - picked.length;
+  }
+  roots = picked.map(r => r.dir);
 
   // Fallback: if nothing scored, return empty (caller falls back to legacy)
   const confidence = _computeConfidence(frameworks, languages, scored.length);
@@ -187,11 +207,15 @@ function resolveSourceRoots(cwd, opts = {}) {
     languages,
     frameworks,
     confidence,
-    explanation: scored.slice(0, 8).map(c => ({
+    explanation: scored.slice(0, Math.max(8, roots.length)).map(c => ({
       dir:   c.dir,
       score: c.score,
+      files: c.files,
       reason: `score: ${c.score}`,
     })),
+    // Candidates left out because the cap was reached before the code was covered.
+    truncated: omitted > 0,
+    omitted,
     isMonorepo,
     monorepo,
     isJvmMultiModule,

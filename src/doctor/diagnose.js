@@ -164,6 +164,24 @@ function diagnose(cwd, opts = {}) {
     if (!checks.some((c) => c.id === 'config')) add('config', 'Config & source roots', 'warn', `could not load config: ${e.message}`);
   }
 
+  // 2b. The repository figure `generate` and `validate` print: the same words, the same count, and a
+  // warning when the roots cover less than 80% of it (#997). The row above only said which roots were
+  // picked, and was green for a layout that left 97% of the repository out.
+  try {
+    if (config && Array.isArray(config.srcDirs) && config.srcDirs.length) {
+      const cov = require('../analysis/coverage-score');
+      const rc = cov.repositoryCoverage(cwd, config);
+      const row = checks.find((c) => c.id === 'config');
+      if (row && rc.all > 0) {
+        row.detail += ` \u2014 ${cov.formatRepositoryCoverage(rc)}`;
+        if (rc.pct < 80 && row.status === 'ok') {
+          row.status = 'warn';
+          row.fix = 'run: sigmap roots --explain   or widen "srcDirs" in gen-context.config.json';
+        }
+      }
+    }
+  } catch (_) {}
+
   // 3. Generated context file
   const ctxFiles = _contextFiles(cwd);
   if (ctxFiles.length === 0) {

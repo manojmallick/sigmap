@@ -64,7 +64,7 @@ That map is exactly what agentic grep is worst at: reproducible, auditable conte
 <!--SM:whyMetrics-->
 - **80.4% hit@5** — right file in top 5 results (retrieval corpus, 18 repos)
 - **92.0% vs 39.2% single-shot grep baseline** — 2.35× measured lift on the honest corpus (125 tasks / 19 repos)
-- **55.3% hit@5 on repositories we do not control** — the third-party corpus: 115 of 208 questions over 35 repos, 95% interval 48.5–61.9%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
+- **56.7% hit@5 on repositories we do not control** — the third-party corpus: 118 of 208 questions over 35 repos, 95% interval 49.9–63.3%, labelled by two language-model annotators before SigMap ran on them. The stricter number to read beside the honest corpus above, which includes this repository
 - **95.4% smaller than the full repository** — the generated map vs every source file, averaged across 21 real repos. A map-size measurement, not a per-call cost saving: an agent's context footprint is not the whole repo
 - **60.0% task-success proxy** — modeled from retrieval tiers, not measured LLM sessions
 - **1.6 prompts per task** — down from 2.84 (43.7% fewer retries, modeled)
@@ -139,7 +139,7 @@ Date      : 2026-10-27
 
 Hit@5          : 80.4%   (retrieval corpus, 18 repos)
 Honest vs grep : 92.0% vs 39.2% grep baseline — 2.35× lift (125 tasks / 19 repos)
-Third-party    : 55.3% hit@5 (115 of 208 questions / 35 repos, 95% interval 48.5–61.9%)
+Third-party    : 56.7% hit@5 (118 of 208 questions / 35 repos, 95% interval 49.9–63.3%)
 Map vs repo    : 95.4% smaller   (generated map vs all source files, 21 repos — not a per-call cost saving)
 Prompt reduction : 43.7% (2.84 → 1.6 prompts per task, modeled)
 Task success   : 60.0%   (proxy — modeled from retrieval tiers)

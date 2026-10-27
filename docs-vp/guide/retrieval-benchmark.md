@@ -430,7 +430,7 @@ Every other corpus on this page is one this project wrote or can influence: `har
 | Astro | astro | pnpm-workspace-subtree | zero-config | 7 | 4 | 57.1% | 1 |
 | plenary.nvim | lua | lua-module | zero-config | 6 | 6 | 100.0% | — |
 | godot-demo-projects | gdscript | godot-projects | zero-config | 5 | 3 | 60.0% | — |
-| Rails | ruby | multi-gem-monorepo | zero-config | 5 | 1 | 20.0% | 4 |
+| Rails | ruby | multi-gem-monorepo | zero-config | 5 | 3 | 60.0% | — |
 | Sidekiq | ruby | single-gem-lib | zero-config | 5 | 3 | 60.0% | — |
 | libuv | cpp | c-platform-split | zero-config | 5 | 3 | 60.0% | 1 |
 | spdlog | cpp | header-mostly | zero-config | 5 | 2 | 40.0% | — |
@@ -443,15 +443,15 @@ Every other corpus on this page is one this project wrote or can influence: `har
 | Fastify | javascript | plugin-framework-lib-and-docs | zero-config | 8 | 3 | 37.5% | — |
 | FastAPI | python | package-at-repo-root | zero-config | 8 | 5 | 62.5% | — |
 | dplyr | r | r-package-R-dir | zero-config | 8 | 2 | 25.0% | — |
-| Akka | scala | sbt-multimodule-scala-and-java | zero-config | 8 | 3 | 37.5% | 2 |
+| Akka | scala | sbt-multimodule-scala-and-java | zero-config | 8 | 3 | 37.5% | 1 |
 | rust-analyzer | rust | crates-dir-workspace | zero-config | 8 | 1 | 12.5% | 3 |
 | Abseil | cpp | absl-subdirs-headers-and-sources | zero-config | 8 | 1 | 12.5% | — |
 | Gson | java | maven-library-plus-extras | zero-config | 8 | 6 | 75.0% | — |
 | GORM | go | root-package-plus-subpackages | zero-config | 8 | 5 | 62.5% | — |
-| Zod | typescript | pnpm-monorepo-packages-zod | zero-config | 8 | 3 | 37.5% | — |
-| **Overall** | | | | **208** | **115** | **55.3%** | **13** |
+| Zod | typescript | pnpm-monorepo-packages-zod | zero-config | 8 | 4 | 50.0% | — |
+| **Overall** | | | | **208** | **118** | **56.7%** | **8** |
 
-**Read it as a band, not a point.** One task is 0.5pp, and the 95% interval over 208 tasks is **48.5–61.9%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, thirty-one tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. Until v8.74.0 it scored far below `hard` and `mined` (42 of 83, 50.6%, 40.1–61.1%) for the reason it exists: those corpora are easier because they are closer to home. With body words on by default the original 83 questions sit level with them — 59 of 83, 71.1% — because the largest class of its misses was the one body words reach ([below](#why-a-task-misses-why)). The 45 questions added since read 22 of 45 (10 of the first 20, 12 of the next 25) and took the whole to 81 of 128, 63.3%; the 80 added last read 35 of 80 (43.8%) and take it to **116 of 208, 55.8%**. All 25 earlier repositories still score exactly what they did (the 16 original ones 59 of 83, the rest 22 of 45), so the lower figure is the new repositories: ten larger, harder-to-index repositories whose questions paraphrase the code (Abseil, rust-analyzer and dplyr hit 1, 1 and 2 of 8), five of whose answers are absent from the zero-config index (see *Unreachable* below). The interval is 13.4 points wide, against 16.4 over 128 tasks and 19.1 over the original 83. The self-scored corpora read higher because they are closer to home, and the figure is not a claim that SigMap finds the right file for one question in two on any repository: its questions were written by reading the code, which favours a lever that indexes the code's own words.
+**Read it as a band, not a point.** One task is 0.5pp, and the 95% interval over 208 tasks is **49.9–63.3%**. The level is uncertain by about that much. A *drop in any repo's hit count* is a different matter: the ranker is deterministic and every repo is pinned, so a count moves only when SigMap's code does. The gate therefore enforces both an overall floor (40%, thirty-four tasks of headroom — it guards a collapse) and per-repo no-regress (the sharp check), and neither is a claim about the headline. Until v8.74.0 it scored far below `hard` and `mined` (42 of 83, 50.6%, 40.1–61.1%) for the reason it exists: those corpora are easier because they are closer to home. With body words on by default the original 83 questions sit level with them — 59 of 83, 71.1% — because the largest class of its misses was the one body words reach ([below](#why-a-task-misses-why)). The 45 questions added since read 22 of 45 (10 of the first 20, 12 of the next 25) and took the whole to 81 of 128, 63.3%; the 80 added last read 35 of 80 (43.8%) and take it to **116 of 208, 55.8%**. All 25 earlier repositories still score exactly what they did (the 16 original ones 59 of 83, the rest 22 of 45), so the lower figure is the new repositories: ten larger, harder-to-index repositories whose questions paraphrase the code (Abseil, rust-analyzer and dplyr hit 1, 1 and 2 of 8), five of whose answers are absent from the zero-config index (see *Unreachable* below). The interval is 13.4 points wide, against 16.4 over 128 tasks and 19.1 over the original 83. The self-scored corpora read higher because they are closer to home, and the figure is not a claim that SigMap finds the right file for one question in two on any repository: its questions were written by reading the code, which favours a lever that indexes the code's own words.
 
 **Zero-config.** Each repo is indexed the way a first-time user's `sigmap` run indexes it — auto-detected `srcDirs`, no config. When this corpus was first scored, three repos could not be: the resolver never reached Riverpod's `packages/*/lib`, Phoenix's `lib/` or the Godot demos, so every answer was unindexed (0/5 each) and their manifest entries pinned `srcDirs` to measure ranking regardless. Detection now reaches all three, the pins are gone, and the table is zero-config throughout ([#900](https://github.com/manojmallick/sigmap/issues/900)). A manifest entry may still pin `srcDirs` — with a `srcDirsWhy` recording the measured reason — if a future layout defeats detection; none does today.
 
@@ -524,19 +524,19 @@ npm run benchmark:graph-damping-sweep      # the table and the folds above, reco
 
 ### Why a task misses (`--why`)
 
-A hit rate says how many tasks miss and nothing about the remedy, and the remedy depends on the reason. `--why` places every miss in exactly one class. The table is the 93 misses behind the 115/208 above (the shipped ranker — body words on):
+A hit rate says how many tasks miss and nothing about the remedy, and the remedy depends on the reason. `--why` places every miss in exactly one class. The table is the 90 misses behind the 118/208 above (the shipped ranker — body words on):
 
 | Why the task misses | Tasks | What it needs |
 |---|---:|---|
-| answer not indexed | 13 | detection or an extractor |
+| answer not indexed | 8 | detection or an extractor |
 | demoted by a path penalty | 0 | a path classifier |
 | no token in common with the question | 3 | a way across the vocabulary — not a re-weighting |
-| ranked 6–10 | 22 | ranking |
-| ranked 11–20 | 15 | ranking |
-| ranked 21–50 | 23 | ranking |
-| ranked beyond 50 | 17 | ranking |
+| ranked 6–10 | 18 | ranking |
+| ranked 11–20 | 19 | ranking |
+| ranked 21–50 | 24 | ranking |
+| ranked beyond 50 | 18 | ranking |
 
-The first two rows are decided by code that is not the ranker, and fixing one never costs another split: at the first run they held 4 tasks (plus 15 hidden behind the pinned `srcDirs`) and 1, and they hold 13 and 0 now: the original 83 questions still hold 1 and 0, five of the others are in the Ruby and C/C++ repositories added by [#984](https://github.com/manojmallick/sigmap/issues/984), two are in the next batch (Newtonsoft.Json and VitePress) and five in the last (Akka and rust-analyzer). The other 79 misses are the ranker's. Twenty-two sit within five places of the top 5. The class that share no token with the question scored zero at v8.74.0 — the question and the answer's index entry have no word in common, so a lexical ranker has nothing to compare, and no re-weighting changes that — and held 12 of the 41 misses; the lever that reached them was not a re-weighting but the answer's *own* words, which [body words](#body-words) add, and four tasks are left in it (one original question, three added since). Repo-mined expansions, the other lever [#674](https://github.com/manojmallick/sigmap/issues/674) and [#703](https://github.com/manojmallick/sigmap/issues/703) asked about, are net negative on this corpus with body words on (−1).
+The first two rows are decided by code that is not the ranker, and fixing one never costs another split: at the first run they held 4 tasks (plus 15 hidden behind the pinned `srcDirs`) and 1, and they hold 8 and 0 now: the original 83 questions still hold 1 and 0, one of the others is in the Ruby and C/C++ repositories added by [#984](https://github.com/manojmallick/sigmap/issues/984), two are in the next batch (Newtonsoft.Json and VitePress) and four in the last (Akka and rust-analyzer). The other 82 misses are the ranker's. Eighteen sit within five places of the top 5. The class that share no token with the question scored zero at v8.74.0 — the question and the answer's index entry have no word in common, so a lexical ranker has nothing to compare, and no re-weighting changes that — and held 12 of the 41 misses; the lever that reached them was not a re-weighting but the answer's *own* words, which [body words](#body-words) add, and four tasks are left in it (one original question, three added since). Repo-mined expansions, the other lever [#674](https://github.com/manojmallick/sigmap/issues/674) and [#703](https://github.com/manojmallick/sigmap/issues/703) asked about, are net negative on this corpus with body words on (−1).
 
 The penalty row is a counterfactual: the path penalty is divided out of the file's final score and the list re-sorted with the ranker's own tie-break, so it answers "would this file have made the top 5 had its path not demoted it" and nothing more. The row is the baseline's own account (`--save` records it beside the hit count); it is not a gate.
 
@@ -579,15 +579,15 @@ A hit rate says how many tasks miss and nothing about the remedy. Every gate can
 
 | Why the task misses | xrepo | jvm |
 |---|---:|---:|
-| answer not indexed | 13 | 0 |
+| answer not indexed | 8 | 0 |
 | demoted by a path penalty | 0 | 2 |
 | no token in common with the question | 3 | **16** |
-| ranked 6–10 | 22 | 6 |
-| ranked 11–20 | 15 | 3 |
-| ranked 21–50 | 23 | 6 |
-| ranked beyond 50 | 17 | 3 |
-| **hits / tasks** | 115 / 208 | 25 / 61 |
-| **hit rate over the tasks a word can reach** | 59.9% (115 / 192) | 55.6% (25 / 45) |
+| ranked 6–10 | 18 | 6 |
+| ranked 11–20 | 19 | 3 |
+| ranked 21–50 | 24 | 6 |
+| ranked beyond 50 | 18 | 3 |
+| **hits / tasks** | 118 / 208 | 25 / 61 |
+| **hit rate over the tasks a word can reach** | 59.9% (118 / 197) | 55.6% (25 / 45) |
 
 *A word can reach a task* when its answer is indexed and shares a word with the question. A task outside that set cannot be won by any method that matches words, so the rate over the set is the one a ranking change can move; the rate over every task also moves when the corpus does.
 
@@ -629,20 +629,20 @@ Each signal against the shipped ranker, task by task. A cell is the net number o
 
 | signal | xrepo | hard | mined | easy | jvm | honest | all |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| plain (as shipped) | 115 / 208 | 63 / 90 | 40 / 60 | 18 / 20 | 25 / 61 | 115 / 125 | 376 / 564 |
+| plain (as shipped) | 118 / 208 | 63 / 90 | 40 / 60 | 18 / 20 | 25 / 61 | 115 / 125 | 379 / 564 |
 | centrality blend | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | — | +0 (0 / 0) |
 | surface enrichment | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) | +0 (0 / 0) |
-| mined expansions | +0 (3 / 3) | -3 (1 / 4) | -1 (1 / 2) | +0 (0 / 0) | +1 (2 / 1) | +0 (0 / 0) | -3 (7 / 10) |
+| mined expansions | +0 (4 / 4) | -3 (1 / 4) | -1 (1 / 2) | +0 (0 / 0) | +1 (2 / 1) | +0 (0 / 0) | -3 (8 / 11) |
 | call-graph boost | -1 (0 / 1) | -4 (0 / 4) | -4 (0 / 4) | +0 (0 / 0) | +2 (2 / 0) | +0 (0 / 0) | -7 (2 / 9) |
-| **body words (flag off)** | -37 (3 / 40) | +1 (4 / 3) | -3 (1 / 4) | -1 (0 / 1) | -4 (0 / 4) | -5 (0 / 5) | -49 (8 / 57) |
+| **body words (flag off)** | -40 (2 / 42) | +1 (4 / 3) | -3 (1 / 4) | -1 (0 / 1) | -4 (0 / 4) | -5 (0 / 5) | -52 (7 / 59) |
 | no import graph (as `ask`) | -1 (0 / 1) | +1 (3 / 2) | -3 (0 / 3) | +1 (1 / 0) | -1 (1 / 2) | — | -3 (5 / 8) |
 
-- **Centrality blend: deprecated.** It moved the rank of 6 of 439 tasks and changed no hit.
+- **Centrality blend: deprecated.** It moved the rank of 7 of 439 tasks and changed no hit.
 - **Surface enrichment: deprecated.** It changed no hit, and adds pseudo-signatures to the index. Its best case is a web framework asked a route-worded question, and across the corpora that case is net zero.
-- **Mined expansions: stays opt-in.** Net −3 (won 7, lost 10), negative on two of the six corpora: ±0 on the third-party corpus, −3 on `hard`, −1 on `mined`, and +1 on `jvm`. With body words on it no longer wins where it was +3 with the words off (the v8.67.0 recording), and 17 tasks changed hit, so it is neither a default nor deprecated; it does not reach the no-token class.
+- **Mined expansions: stays opt-in.** Net −3 (won 8, lost 11), negative on two of the six corpora: ±0 on the third-party corpus, −3 on `hard`, −1 on `mined`, and +1 on `jvm`. With body words on it no longer wins where it was +3 with the words off (the v8.67.0 recording), and 19 tasks changed hit, so it is neither a default nor deprecated; it does not reach the no-token class.
 - **Call-graph boost: not decided here**, because [#703](https://github.com/manojmallick/sigmap/issues/703) does not cover it. Net −7 (won 2, lost 9), negative on three of the six corpora: it is the next decision.
 - **No import graph** is not a signal but a configuration. `sigmap ask` and `--query` call `rank()` without one, while the benchmark runner and the MCP tool pass one, so the neighbour boost the benchmarks include is not what `ask` runs. Removing it is net −3 over the five corpora it applies to (won 5, lost 8), and it is not a loss everywhere: `hard` reads +1 without it and `mined` -3. A task or two of `mined` moves with the commit the index was generated at — the generated recent-changes block is indexed — so a re-run on another history can read differently.
-- **Body words: the default, by one task of `hard` short of the rule.** Switching the flag off costs **37** tasks on the third-party corpus (won 3, lost 40), 3 on `mined` (won 1, lost 4), 4 on `jvm`, 5 on the honest corpus and 1 on `easy`, and **gains 1 on `hard`** (won 4, lost 3): as shipped, the words read one task worse there.
+- **Body words: the default, by one task of `hard` short of the rule.** Switching the flag off costs **40** tasks on the third-party corpus (won 2, lost 42), 3 on `mined` (won 1, lost 4), 4 on `jvm`, 5 on the honest corpus and 1 on `easy`, and **gains 1 on `hard`** (won 4, lost 3): as shipped, the words read one task worse there.
 
 **The rule a signal is held to.** A signal becomes a default when it wins at least five more tasks than it loses on the third-party corpus — a margin where a sign test starts to separate a win from chance — and loses net on no other corpus. It is deprecated when its net is not positive and it changes at most two hits. Anything else stays opt-in and measured. The rule was written with the v8.67.0 numbers in hand, so it is a standard the next measurement is held to, not a result — and it was held to: body words met it as an addition at v8.67.0 and as shipped at v8.75.0. They miss its second clause on the tree of this re-recording, by one task: switching them off is −38 on the third-party corpus and worse on four of the other five, and +1 on `hard` (won 4, lost 3), so by the rule as written they would not be a default. `hard` is 90 tasks scored against this repository and moves with every commit, one task is 1.1 points, and the v8.74.0 tree read the same −1 for the words (the placement in the next section was the answer then). The flag stays on, nothing in the code changed, and whether one task of `hard` outweighs +38 on the third-party corpus is the maintainer's call; this paragraph records the measurement and does not make it.
 
@@ -650,7 +650,7 @@ Each signal against the shipped ranker, task by task. A cell is the net number o
 
 `retrieval.bodyWords` is the lever the first section points at, and it ships on since v8.75.0. It indexes each file's *body words* — the rare words of its source that its signatures drop — into a field of their own at BM25's prose weight that adds nothing to a document's length, so a question asked in the words the code uses to do something can reach the file that does it. A word counts when no more than 5% of the indexed files hold it, the file's own index entry lacks it, and it is not a number, a word under three characters, or one that only frames a question (`how`, `does`, `whether`); a file keeps its 200 best, ordered by the lines that hold them, so the result never depends on the order files arrive in.
 
-On `xrepo` switching it off takes 115 of 208 to **78** (55.3% → 37.5%): it wins **40** tasks and loses **3**, and lifts MRR from 0.248 to 0.379, so it is not a hit@5-only effect. It wins on corpora it was not chosen on, too: `mined` +3, `jvm` +4, `easy` +1 and the honest corpus **110 → 115** of 125 (88.0% → **92.0%**) without losing a task. `hard` is the exception: the words win 3 of its tasks and lose 4 (`hard` h006, h031, h045, h064 are the tasks they lose), so no corpus but `hard` is worse off with them, and `hard` by one task, as it was on the v8.74.0 tree. One caveat the corpus cannot remove: `xrepo`'s questions were written by reading the code, which favours a lever that indexes the code's own words, so its +38 is the upper end. The mined and JVM subjects, written by people describing a change, gain less, and `jvm` loses nothing.
+On `xrepo` switching it off takes 118 of 208 to **78** (56.7% → 37.5%): it wins **42** tasks and loses **2**, and lifts MRR from 0.245 to 0.386, so it is not a hit@5-only effect. It wins on corpora it was not chosen on, too: `mined` +3, `jvm` +4, `easy` +1 and the honest corpus **110 → 115** of 125 (88.0% → **92.0%**) without losing a task. `hard` is the exception: the words win 3 of its tasks and lose 4 (`hard` h006, h031, h045, h064 are the tasks they lose), so no corpus but `hard` is worse off with them, and `hard` by one task, as it was on the v8.74.0 tree. One caveat the corpus cannot remove: `xrepo`'s questions were written by reading the code, which favours a lever that indexes the code's own words, so its +38 is the upper end. The mined and JVM subjects, written by people describing a change, gain less, and `jvm` loses nothing.
 
 The two constants were chosen from a sweep, not from a peak (measured at v8.67.0, with the words in the prose field; the placement's own sweep is [below](#weighting-the-body-words-943)). Net tasks over plain, won / lost beside it, summed over the six corpora:
 
@@ -719,7 +719,7 @@ The sweep puts the words in a field of their own and varies both things the 90-c
 
 ### How far is 90%?
 
-[#674](https://github.com/manojmallick/sigmap/issues/674) asked for the honest corpus at 90%, or a statement of why not. As shipped it reads **92.0%** (115 of 125); with the words switched off it reads 88.0% (110 of 125), three tasks short of 90%. That clears 90% by two tasks, on a corpus where any signal that wins one task does so, so the third-party corpus is the figure to watch: 55.3% as shipped, 37.5% without the words. Its 10 misses are the 3 that share no word with their index entry — which no method that matches words can win — and 7 ranking misses, 4 of them ranked 6th–10th.
+[#674](https://github.com/manojmallick/sigmap/issues/674) asked for the honest corpus at 90%, or a statement of why not. As shipped it reads **92.0%** (115 of 125); with the words switched off it reads 88.0% (110 of 125), three tasks short of 90%. That clears 90% by two tasks, on a corpus where any signal that wins one task does so, so the third-party corpus is the figure to watch: 56.7% as shipped, 37.5% without the words. Its 10 misses are the 3 that share no word with their index entry — which no method that matches words can win — and 7 ranking misses, 4 of them ranked 6th–10th.
 
 ### Run it
 

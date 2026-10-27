@@ -1189,6 +1189,69 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
   }
 
   /**
+   * How much of the REPOSITORY the source roots cover: the one figure `generate`, `validate` and
+   * `doctor` all print (#997).
+   *
+   * Each of them used to grade a population of its own, and every one of those denominators was
+   * the detector's own scope. A run that indexed 10 of a repository's 309 files printed "100%"
+   * (the 10 it had picked), and the run that indexed more read LOWER, because the grade divided by
+   * what fits the context file. The denominator here is the repository: the code files under the
+   * roots (tests inside them included) plus the implementation files outside them (tests, docs, CI,
+   * mocks and the conventional tooling directories legitimately sit outside, and are not counted
+   * against it; see `outsideSrcDirs`).
+   *
+   * @param {string} cwd
+   * @param {{srcDirs:string[], exclude:string[]}} config
+   * @returns {{ covered: number, outside: number, all: number, pct: number, dirs: string[], byDir: Array<{dir:string,count:number}> }}
+   */
+  function repositoryCoverage(cwd, config) {
+    const fs = require('fs');
+    const path = require('path');
+    cwd = path.resolve(cwd); // the walks compare absolute paths: a relative cwd made every file look outside
+    const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length > 0) ? config.srcDirs : [];
+    // A root of '.' is the whole repository: everything is covered, whatever it is called.
+    if (srcDirs.some((d) => d === '.' || d === './')) {
+      const excludeSet = new Set(['node_modules', '.git', 'dist', 'build', 'out', '__pycache__', '.next', 'coverage', 'target', 'vendor', '.context']);
+      if (config && Array.isArray(config.exclude)) for (const x of config.exclude) excludeSet.add(String(x));
+      const all = [];
+      _walkOwned(path.resolve(cwd), excludeSet, all, 0);
+      const n = all.filter((f) => CODE_EXTS.has(path.extname(f).toLowerCase())).length;
+      return { covered: n, outside: 0, all: n, pct: coveragePct(n, n), dirs: [], byDir: [] };
+    }
+    const out = outsideSrcDirs(cwd, config);
+    const all = out.inScope + out.total;
+    // The outside implementation files by top-level directory, most first: what the warning names.
+    const byDir = new Map();
+    if (out.total > 0) {
+      const excludeSet = new Set(['node_modules', '.git', 'dist', 'build', 'out', '__pycache__', '.next', 'coverage', 'target', 'vendor', '.context']);
+      if (config && Array.isArray(config.exclude)) for (const x of config.exclude) excludeSet.add(String(x));
+      const files = [];
+      _walkOwned(path.resolve(cwd), excludeSet, files, 0);
+      const srcAbs = srcDirs.map((d) => path.resolve(cwd, d));
+      let cls = null;
+      try { cls = __require('./src/util/file-class'); } catch (_) { /* optional */ }
+      const OUT = new Set(['test', 'tests', 'spec', 'specs', '__tests__', 'e2e', 'docs', 'doc', 'documentation', 'examples', 'example', 'samples', 'scripts', 'benchmarks', 'fixtures', 'mocks', '__mocks__', 'testdata', 'demo', 'demos', 'tools', 'migrations']);
+      for (const file of files) {
+        if (!CODE_EXTS.has(path.extname(file).toLowerCase())) continue;
+        if (srcAbs.some((a) => file === a || file.startsWith(a + path.sep))) continue;
+        const rel = path.relative(cwd, file).split(path.sep).join('/');
+        const top = rel.includes('/') ? rel.split('/')[0] : '.';
+        if (OUT.has(top)) continue;
+        if (cls && (cls.isTestFile(rel) || cls.isDocsFile(rel) || cls.isCiFile(rel) || cls.isMockFile(rel))) continue;
+        byDir.set(top, (byDir.get(top) || 0) + 1);
+      }
+    }
+    const ranked = [...byDir.entries()].map(([dir, count]) => ({ dir, count })).sort((a, b) => b.count - a.count || a.dir.localeCompare(b.dir));
+    return { covered: out.inScope, outside: out.total, all, pct: coveragePct(out.inScope, all), dirs: ranked.map((r) => r.dir), byDir: ranked };
+  }
+
+  /** The words every surface uses for the repository figure. */
+  function formatRepositoryCoverage(rc) {
+    const n = (x) => x.toLocaleString('en-US');
+    return `${rc.pct}% of the repository's code (${n(rc.covered)} of ${n(rc.all)} files) is under the source roots`;
+  }
+
+  /**
    * Depth-bounded walk that stops at NESTED REPOSITORIES.
    *
    * A vendored or cloned repo is not this repo's source, and walking it is both
@@ -1322,7 +1385,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     return [...out].map((filePath) => ({ filePath }));
   }
 
-  module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
+  module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, repositoryCoverage, formatRepositoryCoverage, POPULATIONS, CODE_EXTS };
   
 };
 
@@ -7290,13 +7353,20 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   const { REGISTRY }              = __require('./src/discovery/source-root-registry');
   const { detectLanguages }       = __require('./src/discovery/language-detector');
   const { detectFrameworks }      = __require('./src/discovery/framework-detector');
-  const { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, CODE_EXTS, AUTO_SKIP } = __require('./src/discovery/source-root-scorer');
+  const { scoreCandidate, sourceFileCountFor, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, CODE_EXTS, AUTO_SKIP } = __require('./src/discovery/source-root-scorer');
   const { loadIgnorePatterns, matchesIgnorePattern } = __require('./src/discovery/sigmapignore');
   const { detectMonorepo }         = __require('./src/discovery/monorepo');
 
   module.exports = { resolveSourceRoots };
 
   const MAX_ROOTS = 6;
+
+  // Six roots is where the choice starts, not where it stops. A layout with more modules than that
+  // (Rails has twelve, each a gem with its own `lib/` and `test/`) went on indexing six and left the
+  // rest out without a word (#997). Past MAX_ROOTS, the next-ranked candidates are added until the roots
+  // hold COVERAGE_TARGET of the code in all the candidates, up to MAX_COVERAGE_ROOTS.
+  const COVERAGE_TARGET = 0.95;
+  const MAX_COVERAGE_ROOTS = 40;
 
   // A Gradle/Maven multi-module build legitimately has one source root per
   // module — okhttp has 27 — so the 6-root cap tuned for JS layouts would
@@ -7433,14 +7503,16 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       }
     }
 
-    // Score each candidate
+    // Score each candidate, on the code in its whole subtree. A candidate that holds other candidates
+    // (`packages/` over `packages/a`, a JVM module over its source sets) keeps the two-level count it
+    // was scored on before: the full-depth count would put it above its members, and the dedupe below
+    // keeps the parent.
+    const holdsOthers = (name) => candidates.some((o) => o.name !== name && o.name.startsWith(name + '/'));
     const scored = candidates
-      .map(({ name, full, packageSrc }) => ({
-        dir:   name,
-        full,
-        packageSrc,
-        score: scoreCandidate(name, full, context),
-      }))
+      .map(({ name, full, packageSrc }) => {
+        const files = sourceFileCountFor(name, full, frameworkSrcDirs, holdsOthers(name));
+        return { dir: name, full, packageSrc, files, score: scoreCandidate(name, full, context, files) };
+      })
       .filter(c => c.score > 0)
       // In a package workspace the members' source directories ARE the source;
       // whatever else sits at the top of the repo — a docs site, benchmarks,
@@ -7451,7 +7523,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
       // (candidate order comes from filesystem readdir), changing which files are
       // collected and making the generated context non-reproducible.
-      .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
+      .sort((a, b) => b.score - a.score || (b.files || 0) - (a.files || 0) || a.dir.localeCompare(b.dir));
 
     // Handle special rules
     let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []), registry);
@@ -7462,7 +7534,18 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
     // per module is the correct answer rather than over-detection.
     const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : isPackageWorkspace ? MAX_PACKAGE_ROOTS : MAX_ROOTS;
-    roots = roots.slice(0, cap).map(r => r.dir);
+    let picked = roots.slice(0, cap);
+    let omitted = roots.length - picked.length;
+    if (omitted > 0 && cap === MAX_ROOTS) {
+      const all = roots.reduce((n, r) => n + (r.files || 0), 0);
+      let have = picked.reduce((n, r) => n + (r.files || 0), 0);
+      for (let i = cap; i < roots.length && picked.length < MAX_COVERAGE_ROOTS && all > 0 && have / all < COVERAGE_TARGET; i++) {
+        picked.push(roots[i]);
+        have += roots[i].files || 0;
+      }
+      omitted = roots.length - picked.length;
+    }
+    roots = picked.map(r => r.dir);
 
     // Fallback: if nothing scored, return empty (caller falls back to legacy)
     const confidence = _computeConfidence(frameworks, languages, scored.length);
@@ -7472,11 +7555,15 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       languages,
       frameworks,
       confidence,
-      explanation: scored.slice(0, 8).map(c => ({
+      explanation: scored.slice(0, Math.max(8, roots.length)).map(c => ({
         dir:   c.dir,
         score: c.score,
+        files: c.files,
         reason: `score: ${c.score}`,
       })),
+      // Candidates left out because the cap was reached before the code was covered.
+      truncated: omitted > 0,
+      omitted,
       isMonorepo,
       monorepo,
       isJvmMultiModule,
@@ -7783,7 +7870,51 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     } catch { return new Set(); }
   }
 
-  function scoreCandidate(dirName, fullPath, context) {
+  /**
+   * Code files in a whole subtree, walking at most `TREE_COUNT_DEPTH` levels, skipping vendor and
+   * build directories, dot directories and NESTED REPOSITORIES (a vendored or cloned repo is not
+   * this repo's source). `activerecord/` in Rails keeps its code at `lib/active_record/…`, three
+   * levels down: the two-level sample this replaced counted a handful of its 1,143 files, scored
+   * the directory 0 and never offered it as a root (#997).
+   */
+  const TREE_COUNT_DEPTH = 8;
+  function countTreeCode(dir, depth = 0) {
+    if (depth > TREE_COUNT_DEPTH) return 0;
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return 0; }
+    if (depth > 0 && entries.some((e) => e.name === '.git')) return 0; // a repository of its own
+    let n = 0;
+    for (const e of entries) {
+      if (e.isFile()) { if (CODE_EXTS.has(path.extname(e.name).toLowerCase())) n++; }
+      else if (e.isDirectory() && !AUTO_SKIP.has(e.name) && !e.name.startsWith('.')) n += countTreeCode(path.join(dir, e.name), depth + 1);
+    }
+    return n;
+  }
+
+  /**
+   * The code a candidate holds, as the score reads it: the whole subtree, except in a directory the
+   * scorer treats as noise by name — `docs/`, `examples/`, `tests/`, `documentation-website/` — which is
+   * counted as before, two levels deep. The flat -3.0 penalty was tuned against that count; a full-depth
+   * count lifts such a directory above zero and makes it a root, which the tree-wide count was never
+   * meant to do (flask took `examples`, libuv `docs`, exposed `documentation-website`, and the index
+   * grew files nobody asks about).
+   *
+   * A CONTAINER is counted that way too: a candidate that holds other candidates (`packages/` over
+   * `packages/a`, `src/` over `src/test/java`, `okhttp/` over its source sets). Its full-depth count
+   * outscores its members and the parent-wins dedupe then replaces them with it, so a JS monorepo
+   * resolved to `packages` and a module to its own directory, tests and docs included. So is a dot
+   * directory (`.github`, `.yarn`, `.configs`): tooling, which rust-analyzer's `.github` was made a root
+   * for once its scripts were counted to the bottom.
+   */
+  const DOCS_LIKE = /^(docs?|documentation)([-_.].*)?$/i;
+  function sourceFileCountFor(dirName, fullPath, frameworkSrcDirs, container) {
+    const lower = dirName.toLowerCase();
+    const noise = (PENALTY_DIRS.has(lower) || DOCS_LIKE.test(lower)) && !(frameworkSrcDirs && frameworkSrcDirs.has(dirName));
+    const dotted = dirName.split('/').some((seg) => seg.startsWith('.'));
+    return noise || container || dotted ? _countSourceFiles(fullPath, 2) : countTreeCode(fullPath);
+  }
+
+  function scoreCandidate(dirName, fullPath, context, precounted) {
     const { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties } = context;
 
     // Auto-skip noise
@@ -7798,8 +7929,8 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     // Framework match: +3.0 if this dir is in the framework's srcDirs
     if (frameworkSrcDirs.has(dirName)) score += 3.0;
 
-    // Count source files in dir (depth 2)
-    const sourceFileCount = _countSourceFiles(fullPath, 2);
+    // Count source files (the resolver passes the count it already took)
+    const sourceFileCount = typeof precounted === 'number' ? precounted : sourceFileCountFor(dirName, fullPath, frameworkSrcDirs);
     const density = Math.min(1.0, sourceFileCount / 10);
 
     // Language density: +2.5
@@ -7843,7 +7974,7 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     return count;
   }
 
-  module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS };
+  module.exports = { scoreCandidate, countTreeCode, sourceFileCountFor, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS };
   
 };
 
@@ -8013,6 +8144,24 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
     } catch (e) {
       if (!checks.some((c) => c.id === 'config')) add('config', 'Config & source roots', 'warn', `could not load config: ${e.message}`);
     }
+
+    // 2b. The repository figure `generate` and `validate` print: the same words, the same count, and a
+    // warning when the roots cover less than 80% of it (#997). The row above only said which roots were
+    // picked, and was green for a layout that left 97% of the repository out.
+    try {
+      if (config && Array.isArray(config.srcDirs) && config.srcDirs.length) {
+        const cov = __require('./src/analysis/coverage-score');
+        const rc = cov.repositoryCoverage(cwd, config);
+        const row = checks.find((c) => c.id === 'config');
+        if (row && rc.all > 0) {
+          row.detail += ` \u2014 ${cov.formatRepositoryCoverage(rc)}`;
+          if (rc.pct < 80 && row.status === 'ok') {
+            row.status = 'warn';
+            row.fix = 'run: sigmap roots --explain   or widen "srcDirs" in gen-context.config.json';
+          }
+        }
+      }
+    } catch (_) {}
 
     // 3. Generated context file
     const ctxFiles = _contextFiles(cwd);
@@ -46238,6 +46387,22 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     if (config.strategy === 'index') {
       lines.push(' Always-on only : signatures live in .context/sig-index.json — pulled by `sigmap ask`');
     }
+    // The roots the run chose and how much of the REPOSITORY they cover: the figure `validate` and `doctor`
+    // print too. The "Indexed" and "In context" lines grade populations the detector picked, so a run that
+    // indexed 10 of 309 files read 100% on both (#997).
+    try {
+      const cov = requireSourceOrBundled('./src/analysis/coverage-score');
+      const rc = cov.repositoryCoverage(cwd, config);
+      if (rc.all > 0) {
+        const names = config.srcDirs || [];
+        lines.push(` Source roots   : ${names.slice(0, 4).join(', ') || '(none)'}${names.length > 4 ? ` (+${names.length - 4} more)` : ''}`);
+        lines.push(` Repository     : ${cov.formatRepositoryCoverage(rc)}`);
+        if (rc.pct < 80) {
+          const left = rc.byDir.slice(0, 4).map((d) => `${d.dir} (${d.count.toLocaleString('en-US')})`).join(', ');
+          lines.push(` [sigmap] \u26a0 ${100 - rc.pct}% of the repository's code is outside the source roots${left ? `: ${left}` : ''} \u2014 widen "srcDirs", or run: sigmap roots --explain`);
+        }
+      }
+    } catch (_) { /* a failed count must not fail a run */ }
     if (coverageLine) lines.push(coverageLine);
     const __written = outputPaths(config.outputs, cwd, config);
     if (__written.length) {
@@ -48341,8 +48506,10 @@ function main() {
     // visible without reading the detector's output. Computed before the
     // json/human split so both surfaces report the same number.
     let __valOutside = { total: 0, byExt: [], dirs: [] };
+    let __valRepo = null;
     try {
       __valOutside = __require('./src/analysis/coverage-score').outsideSrcDirs(cwd, config);
+      __valRepo = __require('./src/analysis/coverage-score').repositoryCoverage(cwd, config);
     } catch (_) {}
 
     if (args.includes('--json')) {
@@ -48360,6 +48527,7 @@ function main() {
         outOfScopeEntries: valClass.outOfScope.length,
         totalFiles: valTotal,
         outsideSrcDirs: __valOutside,
+        repositoryCoverage: __valRepo ? { covered: __valRepo.covered, outside: __valRepo.outside, all: __valRepo.all, pct: __valRepo.pct } : null,
       };
       if (queryReport) payload.query = queryReport;
       writeAll(1, JSON.stringify(payload) + '\n');
@@ -48382,6 +48550,11 @@ function main() {
           { score: coveragePct, grade: '' }, 'indexed',
           { included: valCovered, total: valTotal, grade: false }
         );
+        // The repository figure first: the "indexed" line below grades the in-scope set only (#997).
+        if (__valRepo && __valRepo.all > 0) {
+          const _roots = config.srcDirs || [];
+          console.log(`[sigmap] source roots: ${_roots.slice(0, 6).join(', ') || '(none)'}${_roots.length > 6 ? ` (+${_roots.length - 6} more)` : ''} \u2014 ${_cov.formatRepositoryCoverage(__valRepo)}`);
+        }
         console.log(`[sigmap] ✓ config valid  coverage: ${_line}${residual ? `  — ${residual}` : ''}`);
         if (__valOutside.total > 0 && __valOutside.share >= 0.10) {
           const _exts = __valOutside.byExt.slice(0, 4).map((e) => `${e.count}${e.ext}`).join(' ');
@@ -48711,8 +48884,16 @@ function main() {
     if (result.roots.length === 0) console.log('  (none — legacy fallback used)');
     result.roots.forEach((r, i) => {
       const exp = result.explanation?.find(e => e.dir === r);
-      console.log(`  ${i + 1}. ${r.padEnd(20)} ${exp ? 'score ' + exp.score : ''}`);
+      console.log(`  ${i + 1}. ${r.padEnd(20)} ${exp ? 'score ' + exp.score + (typeof exp.files === 'number' ? ` · ${exp.files.toLocaleString('en-US')} code file(s)` : '') : ''}`);
     });
+    // The same figure `generate`, `validate` and `doctor` print, and what the cap left out (#997).
+    try {
+      const cov = requireSourceOrBundled('./src/analysis/coverage-score');
+      const rcfg = Object.assign({}, requireSourceOrBundled('./src/config/loader').loadConfig(cwd), { srcDirs: result.roots });
+      const rc = cov.repositoryCoverage(cwd, rcfg);
+      if (rc.all > 0 && result.roots.length > 0) console.log(`\n${cov.formatRepositoryCoverage(rc)}`);
+    } catch (_) { /* the figure is advice, not the answer */ }
+    if (result.omitted > 0) console.log(result.omitted === 1 ? '1 more candidate directory scored above zero and was not chosen — pin "srcDirs" to take it' : `${result.omitted} more candidate directories scored above zero and were not chosen — pin "srcDirs" to take them`);
     // Name the evidence: a declared workspace and a layout-only match are
     // different facts, and reporting a bare yes/no is what let `roots` and
     // `--monorepo` disagree in silence (#781).

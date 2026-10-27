@@ -247,19 +247,30 @@ test('loadIgnorePatterns falls back to .contextignore when .sigmapignore missing
   assert(patterns.includes('temp/'), 'should read from .contextignore');
 });
 
-test('resolveSourceRoots caps roots at MAX_ROOTS (6)', () => {
-  const cwd = makeRepo({
-    'src/a.ts': '',
-    'lib/b.ts': '',
-    'api/c.ts': '',
-    'handlers/d.ts': '',
-    'services/e.ts': '',
-    'middleware/f.ts': '',
-    'routes/g.ts': '',
-    'utils/h.ts': '',
-  });
+test('resolveSourceRoots caps roots at MAX_ROOTS (6) when six roots hold the code', () => {
+  // Six directories of twenty files and two of one: the six hold 98% of it, so the cap stands (#997
+  // lets the choice go past six only while the roots hold less than 95% of the candidates' code).
+  const files = {};
+  for (const d of ['src', 'lib', 'api', 'handlers', 'services', 'middleware']) {
+    for (let i = 0; i < 20; i++) files[`${d}/f${i}.ts`] = '';
+  }
+  files['routes/g.ts'] = '';
+  files['utils/h.ts'] = '';
+  const cwd = makeRepo(files);
   const result = resolveSourceRoots(cwd);
   assert(result.roots.length <= 6, `roots should be capped at 6, got ${result.roots.length}`);
+  assert.strictEqual(result.omitted, 2, 'the two small directories are reported as left out');
+});
+
+test('resolveSourceRoots goes past MAX_ROOTS while the roots hold less than 95% of the code (#997)', () => {
+  const files = {};
+  for (const d of ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel']) {
+    for (let i = 0; i < 20; i++) files[`${d}/lib/${d}/f${i}.ts`] = '';
+  }
+  const cwd = makeRepo(files);
+  const result = resolveSourceRoots(cwd);
+  assert.strictEqual(result.roots.length, 8, `eight equal directories are eight roots: ${result.roots.join(', ')}`);
+  assert.strictEqual(result.omitted, 0);
 });
 
 test('scoreCandidate penalizes test directories', () => {

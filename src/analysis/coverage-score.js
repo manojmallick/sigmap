@@ -218,6 +218,69 @@ function outsideSrcDirs(cwd, config) {
 }
 
 /**
+ * How much of the REPOSITORY the source roots cover: the one figure `generate`, `validate` and
+ * `doctor` all print (#997).
+ *
+ * Each of them used to grade a population of its own, and every one of those denominators was
+ * the detector's own scope. A run that indexed 10 of a repository's 309 files printed "100%"
+ * (the 10 it had picked), and the run that indexed more read LOWER, because the grade divided by
+ * what fits the context file. The denominator here is the repository: the code files under the
+ * roots (tests inside them included) plus the implementation files outside them (tests, docs, CI,
+ * mocks and the conventional tooling directories legitimately sit outside, and are not counted
+ * against it; see `outsideSrcDirs`).
+ *
+ * @param {string} cwd
+ * @param {{srcDirs:string[], exclude:string[]}} config
+ * @returns {{ covered: number, outside: number, all: number, pct: number, dirs: string[], byDir: Array<{dir:string,count:number}> }}
+ */
+function repositoryCoverage(cwd, config) {
+  const fs = require('fs');
+  const path = require('path');
+  cwd = path.resolve(cwd); // the walks compare absolute paths: a relative cwd made every file look outside
+  const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length > 0) ? config.srcDirs : [];
+  // A root of '.' is the whole repository: everything is covered, whatever it is called.
+  if (srcDirs.some((d) => d === '.' || d === './')) {
+    const excludeSet = new Set(['node_modules', '.git', 'dist', 'build', 'out', '__pycache__', '.next', 'coverage', 'target', 'vendor', '.context']);
+    if (config && Array.isArray(config.exclude)) for (const x of config.exclude) excludeSet.add(String(x));
+    const all = [];
+    _walkOwned(path.resolve(cwd), excludeSet, all, 0);
+    const n = all.filter((f) => CODE_EXTS.has(path.extname(f).toLowerCase())).length;
+    return { covered: n, outside: 0, all: n, pct: coveragePct(n, n), dirs: [], byDir: [] };
+  }
+  const out = outsideSrcDirs(cwd, config);
+  const all = out.inScope + out.total;
+  // The outside implementation files by top-level directory, most first: what the warning names.
+  const byDir = new Map();
+  if (out.total > 0) {
+    const excludeSet = new Set(['node_modules', '.git', 'dist', 'build', 'out', '__pycache__', '.next', 'coverage', 'target', 'vendor', '.context']);
+    if (config && Array.isArray(config.exclude)) for (const x of config.exclude) excludeSet.add(String(x));
+    const files = [];
+    _walkOwned(path.resolve(cwd), excludeSet, files, 0);
+    const srcAbs = srcDirs.map((d) => path.resolve(cwd, d));
+    let cls = null;
+    try { cls = require('../util/file-class'); } catch (_) { /* optional */ }
+    const OUT = new Set(['test', 'tests', 'spec', 'specs', '__tests__', 'e2e', 'docs', 'doc', 'documentation', 'examples', 'example', 'samples', 'scripts', 'benchmarks', 'fixtures', 'mocks', '__mocks__', 'testdata', 'demo', 'demos', 'tools', 'migrations']);
+    for (const file of files) {
+      if (!CODE_EXTS.has(path.extname(file).toLowerCase())) continue;
+      if (srcAbs.some((a) => file === a || file.startsWith(a + path.sep))) continue;
+      const rel = path.relative(cwd, file).split(path.sep).join('/');
+      const top = rel.includes('/') ? rel.split('/')[0] : '.';
+      if (OUT.has(top)) continue;
+      if (cls && (cls.isTestFile(rel) || cls.isDocsFile(rel) || cls.isCiFile(rel) || cls.isMockFile(rel))) continue;
+      byDir.set(top, (byDir.get(top) || 0) + 1);
+    }
+  }
+  const ranked = [...byDir.entries()].map(([dir, count]) => ({ dir, count })).sort((a, b) => b.count - a.count || a.dir.localeCompare(b.dir));
+  return { covered: out.inScope, outside: out.total, all, pct: coveragePct(out.inScope, all), dirs: ranked.map((r) => r.dir), byDir: ranked };
+}
+
+/** The words every surface uses for the repository figure. */
+function formatRepositoryCoverage(rc) {
+  const n = (x) => x.toLocaleString('en-US');
+  return `${rc.pct}% of the repository's code (${n(rc.covered)} of ${n(rc.all)} files) is under the source roots`;
+}
+
+/**
  * Depth-bounded walk that stops at NESTED REPOSITORIES.
  *
  * A vendored or cloned repo is not this repo's source, and walking it is both
@@ -351,5 +414,5 @@ function inContextFiles(cwd) {
   return [...out].map((filePath) => ({ filePath }));
 }
 
-module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
+module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, repositoryCoverage, formatRepositoryCoverage, POPULATIONS, CODE_EXTS };
 

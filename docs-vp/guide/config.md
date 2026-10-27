@@ -322,6 +322,20 @@ Detection is structural: two or more module source directories on disk is what m
 
 Before v8.51.0 these layouts were badly under-detected — the scan looked two directory levels deep while module source sits at four, so okhttp indexed 4 files of 596. If you pinned `srcDirs` by hand to work around that, you can now drop the override and re-check with `sigmap roots --explain`.
 
+### How much of the repository the roots cover
+
+A directory's code is counted through its whole subtree, and the roots come in the order of the code they hold. Six roots is where the choice starts, not where it stops: when more directories than that scored above zero, the next-ranked ones are added until the roots hold 95% of the code in all the candidates, up to 40. A layout that keeps its code deep — Rails, a gem per directory with `lib/active_record/…` three levels down — used to resolve to six roots and index 42% of the code (659 of 1,578 files in the pinned clone) while the summary read "Indexed 100%". It now resolves to eleven roots and 96% (1,509 of 1,578).
+
+Every surface that reports roots prints the share of the repository's implementation code they sit under, in one sentence:
+
+```
+97% of the repository's code (280 of 290 files) is under the source roots
+```
+
+`sigmap` (the summary after a run), `sigmap validate` (and its `--json`, as `repositoryCoverage`), `sigmap doctor` and `sigmap roots` all say it the same way. Under **80%** the run adds a warning that names the largest directories left out, with their file counts, and `doctor` turns its "Config & source roots" row to a warning; the fix is to widen `srcDirs`, or to look at `sigmap roots --explain`, which lists each root with the number of code files it holds and how many scored candidates the cap left out. Every code file under a root counts as covered (a gem's own `test/` is under its root). Outside the roots only implementation files are counted against them: tests, docs, examples, mocks, CI configuration and the usual tooling directories are expected there.
+
+A directory a scorer penalises by name (`docs/`, `examples/`, `tests/`, `documentation-*`) is still counted two levels deep, as before, so the deeper count does not promote it to a root; in a multi-module JVM build a module's own directory is not a root next to the source sets it holds.
+
 ## Strategy
 
 | Key | Type | Default | Description |
