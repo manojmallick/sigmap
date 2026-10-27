@@ -52,7 +52,7 @@ npx sigmap --mcp                    # start the MCP server over stdio
 ## Optional
 - [GitHub repository](https://github.com/manojmallick/sigmap)
 - [npm package](https://www.npmjs.com/package/sigmap)
-- [Benchmark dataset (Zenodo)](https://doi.org/10.5281/zenodo.19898842)
+- [Benchmark dataset (Zenodo)](https://doi.org/10.5281/zenodo.19898842) — 2026-04-29 snapshot; known defect: its final_tokens column is 0 in all 405 rows, so reproduce from benchmarks/reports/ instead
 - [Full LLM reference](https://sigmap.io/llms-full.txt)
 
 SigMap — the deterministic, verifiable grounding layer for AI code work. The

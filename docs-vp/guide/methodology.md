@@ -124,7 +124,7 @@ All benchmarks are reproducible:
 - **Task set:** 105 tasks committed in `benchmarks/tasks/`
 - **Repositories:** 18 open-source projects cloned from GitHub
 - **Scripts:** Benchmark runners in `scripts/run-*.mjs`
-- **Raw data:** Available in [Zenodo archive](https://zenodo.org/records/19898842)
+- **Raw data:** [Zenodo archive](https://zenodo.org/records/19898842), a 2026-04-29 snapshot with a **known defect:** the `final_tokens` column of its results file is 0 in all 405 rows (and `reduction_percent` is 100 in 395), so do not reload results from it — `benchmarks/reports/` in this repository is the current record
 - **Dashboard:** Self-contained HTML report in `benchmarks/reports/benchmark-report.html`
 
 Run the benchmarks yourself:

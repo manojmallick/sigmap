@@ -7,7 +7,7 @@ head:
       content: "SigMap Generalization — 80.4% hit@5 across 38 languages with R support"
   - - meta
     - property: og:description
-      content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains without per-repo tuning."
+      content: "SigMap's latest public snapshot spans 18 repos, 13 languages, and 9 domains; the benchmark pins each repo's source directories."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/generalization"
@@ -38,14 +38,14 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 105 tasks is yes — 80.4% hit@5 with no per-repo tuning in the latest saved v8.83.0 run.
+these 105 tasks is yes — 80.4% hit@5 in the latest saved v8.83.0 run — with one caveat that matters: the benchmark pins each repo's `srcDirs` in `benchmarks/config-overrides.json` (all 21 repos). The zero-config, third-party measurement is the [xrepo corpus](/guide/retrieval-benchmark): 55.3% hit@5 over 208 tasks in 35 repos, indexed the way a first-time user's `sigmap` run would.
 :::
 
 - **21 repos** (including 3 R language repos)
 - **38 languages** (added R, GDScript, and CI/pipeline definitions)
 - **multiple domains**
 - **80.4%** overall hit@5
-- **no per-repo tuning**
+- **source directories pinned per repo** (`benchmarks/config-overrides.json`, 21 of 21 repos) — the only per-repo setting; no extractor or ranking parameter differs between repos
 
 That snapshot is shared with the [retrieval benchmark](/guide/retrieval-benchmark) and the [task benchmark](/guide/task-benchmark), so the public docs now use one release number set instead of mixing older runs.
 
@@ -114,8 +114,8 @@ inspected during development.
 
 Key signals that the results are not overfit:
 
-- **Zero per-repo tuning** — the same `gen-context.js` command with default config ran on all 18 repos
-- **Blind selection** — repos were chosen by GitHub star count and language diversity, not by testing which ones scored well
+- **One tool, one ranker** — the same `gen-context.js` and the same ranking ran on every repo; the only per-repo setting is the pinned `srcDirs` in `benchmarks/config-overrides.json`, which exists because default source-root detection is not good enough for some layouts (rails, akka, laravel). That is tuning to these repos, which is why the zero-config [xrepo corpus](/guide/retrieval-benchmark) is reported beside the headline
+- **Selection** — repos were chosen by GitHub star count and language diversity ([methodology](/guide/methodology)); the pins were added afterwards, where detection failed
 - **Failure modes are honest** — C#/serilog 20%, Swift/vapor 20%, TypeScript/axios 62.5%, JS/fastify 62.5%, Python/flask 62.5% — genuine weak spots, not massaged away
 - **Large repos score *higher*** — if the extractor patterns were memorized, they'd degrade on unseen large codebases; instead they improve (95% vs 81% for small repos)
 

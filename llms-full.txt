@@ -455,7 +455,7 @@ the relevant regulation before publication; SigMap makes no legal claims.
 - Repository: https://github.com/manojmallick/sigmap
 - Documentation: https://sigmap.io/
 - npm: https://www.npmjs.com/package/sigmap
-- Benchmark dataset: https://doi.org/10.5281/zenodo.19898842
+- Benchmark dataset: https://doi.org/10.5281/zenodo.19898842 (2026-04-29 snapshot; known defect: its final_tokens column is 0 in all 405 rows, so reproduce from benchmarks/reports/ instead)
 - Issues: https://github.com/manojmallick/sigmap/issues
 
 ---

@@ -202,5 +202,5 @@ The matrix run writes:
 ## Benchmark resources
 
 - **[Benchmark suite →](https://github.com/manojmallick/sigmap-benchmark-suite)** — Open-source scripts, 90 real-world coding tasks, and per-repo raw results
-- **[Archived data (Zenodo) →](https://zenodo.org/records/19898842)** — Full benchmark dataset for reproducibility and independent analysis
+- **[Archived data (Zenodo) →](https://zenodo.org/records/19898842)** — 2026-04-29 snapshot; **known defect:** the `final_tokens` column of its results file is 0 in all 405 rows (and `reduction_percent` is 100 in 395), so do not reload results from it — `benchmarks/reports/` in this repository is the current record
 - **[Hacker News discussion →](https://news.ycombinator.com/item?id=47956790)** — Community feedback and related work

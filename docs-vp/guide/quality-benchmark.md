@@ -44,7 +44,7 @@ How the repos and tasks are picked, and what the token numbers do and don't prov
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
 | GPT-4o overflow repos | **14 / 21** | 0 / 21 |
-| Hidden files | **5,200+** | 0 |
+| Files left out of the context | **5,339** | 4,745 (omitted from the written map by its token budget; still reachable through `sigmap ask`) |
 | Grounded symbols surfaced | 0 | **16,259** |
 | Monthly input savings (10 calls/day) | — | **$10,000+** GPT-4o · **$12,000+** Sonnet · **$4,000+** Haiku |
 

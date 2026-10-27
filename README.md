@@ -154,7 +154,7 @@ Measured on 105 coding tasks across 18 real public repos. No LLM API — fully r
 **Resources:**
 - [Full methodology →](https://sigmap.io/guide/methodology.html)
 - [Benchmark suite (GitHub)](https://github.com/manojmallick/sigmap-benchmark-suite) — scripts, tasks, and raw data
-- [Benchmark data (Zenodo)](https://zenodo.org/records/19898842) — archived results for reproducibility
+- [Benchmark data (Zenodo)](https://zenodo.org/records/19898842) — 2026-04-29 snapshot, **known defect:** the `final_tokens` column of its results file is 0 in all 405 rows (and `reduction_percent` is 100 in 395), so do not reload results from it — `benchmarks/reports/` in this repository is the current record
 
 <div align="center">
 <img src="docs/comparison-chart.svg" alt="SigMap benchmark — before vs after across 3 RAG quality metrics" width="700" />
