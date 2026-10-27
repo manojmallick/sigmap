@@ -11,6 +11,11 @@
  * length, generates the map in each, and compares them. The wall-clock line
  * (`<!-- Updated: … -->`) is the only line allowed to differ.
  *
+ * The copy keeps each file's timestamps. The drop order ranks files by mtime, so a
+ * copy with fresh timestamps compares two recency orderings, not two paths: on a
+ * filesystem with a coarse clock (Linux) a copy loop spreads a repository over a few
+ * dozen distinct mtimes whose boundaries fall wherever the copy happened to be.
+ *
  *   node scripts/check-path-independence.mjs --repo benchmarks/repos/gin
  *   node scripts/check-path-independence.mjs --repo <dir> --pads 0,100,200 --keep
  *
@@ -47,6 +52,7 @@ for (const pad of pads) {
   const dest = join(work, pad ? 'p'.repeat(pad) : 'near', basename(src));
   cpSync(src, dest, {
     recursive: true,
+    preserveTimestamps: true,
     filter: (p) => !SKIP.has(basename(p)) && !(p.includes(`${join(src, '.github')}`) && OWN.has(basename(p))),
   });
   const res = spawnSync(process.execPath, [join(ROOT, 'gen-context.js')], { cwd: dest, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });

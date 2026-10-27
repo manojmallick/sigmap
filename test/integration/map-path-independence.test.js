@@ -67,6 +67,28 @@ function makeRepo(dir, { adapters } = {}) {
     maxTokens: 1500, autoMaxTokens: false, srcDirs: ['src', 'test'],
     ...(adapters ? { adapters } : {}),
   }));
+  stampMtimes(dir);
+}
+
+/**
+ * Recency is a drop-order input, so two checkouts only differ by their PATH if their
+ * timestamps agree. Linux stamps files from a coarse clock (about 4 ms): 92 files written
+ * in a loop land on a few dozen distinct mtimes, and where the boundaries fall depends on
+ * timing, not on the repo. Fixed whole-second mtimes, increasing in path order, put the
+ * same recency ranking in every checkout and keep the mtime branch of the comparator live.
+ */
+function stampMtimes(dir) {
+  const files = [];
+  const walk = (d) => {
+    for (const name of fs.readdirSync(d).sort()) {
+      const full = path.join(d, name);
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else files.push(full);
+    }
+  };
+  walk(dir);
+  const base = 1700000000;
+  files.forEach((f, i) => fs.utimesSync(f, base + i, base + i));
 }
 
 function generate(dir) {
