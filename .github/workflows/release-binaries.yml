@@ -10,7 +10,7 @@ on:
       - 'v[0-9]*'
 
 permissions:
-  contents: write   # upload release assets
+  contents: read
 
 jobs:
   # ── Build matrix: one job per platform ──────────────────────────────────────
@@ -29,9 +29,9 @@ jobs:
             artifact: sigmap-win32-x64.exe
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
 
@@ -42,7 +42,7 @@ jobs:
         run: node scripts/verify-binary.mjs
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.artifact }}
@@ -53,13 +53,15 @@ jobs:
   release-attach:
     name: Attach to GitHub Release
     needs: build
+    permissions:
+      contents: write   # create the release and upload its assets
     if: always() && !cancelled() && needs.build.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: dist/release
           merge-multiple: true
