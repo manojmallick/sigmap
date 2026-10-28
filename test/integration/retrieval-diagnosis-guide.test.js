@@ -122,16 +122,17 @@ const WORDS = ['none', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
     assert.deepStrictEqual(rows[0], ['every task', String(au.tasks), ...[c.allTasks.both, c.allTasks.sigmapOnly, c.allTasks.grepOnly, c.allTasks.neither].map(String)]);
     assert.deepStrictEqual(rows[1], ['hard split', String(hb.summary.splits.hard.tasks), ...[c.hardSplit.both, c.hardSplit.sigmapOnly, c.hardSplit.grepOnly, c.hardSplit.neither].map(String)]);
     assert.strictEqual(au.grepOnlyTasks.length, c.allTasks.grepOnly);
-    assert.match(section, new RegExp(`The ${WORDS[au.grepOnlyTasks.length]} tasks grep finds and SigMap does not`));
+    assert.match(section, new RegExp(`The ${au.grepOnlyTasks.length === 1 ? 'one task' : `${WORDS[au.grepOnlyTasks.length]} tasks`} grep finds and SigMap does not`));
     for (const t of au.grepOnlyTasks) {
       const name = t.task.split('/')[1];
       assert.match(section, new RegExp(`\`${name}\`[^.]*grep ranks ${ordinal(t.grepRank)}|grep ranks ${ordinal(t.grepRank)}[^.]*\`${name}\``), `${name}: the section names the task and where grep ranks it`);
     }
     const m = au.sigmapMisses;
     const ranked = m['ranked 6-10'] + (m['ranked 11-20'] || 0) + (m['ranked 21-50'] || 0) + (m['ranked beyond 50'] || 0);
-    const t = match(/are \*\*(\d+)\*\* that share no word with their index entry and \*\*(\d+)\*\* ranked misses, \*\*(\d+)\*\* of them ranked/, 'the honest corpus\'s misses');
-    assert.deepStrictEqual(t.slice(1).map(Number), [m[NT], ranked, m['ranked 6-10']]);
-    assert.strictEqual(m[NT] + ranked, au.tasks - au.sigmapHits);
+    const t = match(/are \*\*(\d+)\*\* that shares? no word with (?:their|its) index entry(?:, \*\*(\d+)\*\* whose answer is not indexed(?: \([^)]*\))?)? and \*\*(\d+)\*\* ranked misses, \*\*(\d+)\*\* of them ranked/, 'the honest corpus\'s misses');
+    const unindexed = m['answer not indexed'] || 0;
+    assert.deepStrictEqual(t.slice(1).map((x) => Number(x || 0)), [m[NT], unindexed, ranked, m['ranked 6-10']]);
+    assert.strictEqual(m[NT] + unindexed + ranked, au.tasks - au.sigmapHits);
     assert.match(section, new RegExp(`SigMap's ${au.tasks - au.sigmapHits} misses on this corpus`));
   });
 

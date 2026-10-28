@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: SigMap version history and roadmap. From v0.0 to v8.84.0, with the latest release making `verify` say what it checked and exit 3 when its index cannot vouch for the answer, reading installed libraries through their barrels (18 of 46 sampled packages read as empty before, none after) and making the generated map independent of the checkout path (gin 72 to 55 sections across four path lengths before, 83 at all four), after v8.83.0 moving Ruby and C/C++ to the anchored tier (9,701 of 9,701 Ruby anchors equal to Ripper's lines; C++ classes found against clangd 49.5% to 95.6%), reading seven more import families and measuring the import graph and the call graph against what each language's own tooling resolves, after v8.82.0 growing the third-party corpus from 128 questions over 25 repositories to 208 over 35 (hit@5 63.3% to 55.8%, every earlier repository unchanged) and printing an exact paired test beside every won/lost count, after v8.81.0 giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
+description: SigMap version history and roadmap. From v0.0 to v8.85.0, with the latest release leaving a generated bundle out of the index, indexing 95.6% of Rails' code on a first run where it indexed 41.8%, reading the TypeScript and JavaScript shapes it dropped (`$` names, generic and wrapped consts, anonymous defaults, CommonJS methods) and sizing the codex and claude outputs to what each host reads, after v8.84.0 making `verify` say what it checked and exit 3 when its index cannot vouch for the answer, reading installed libraries through their barrels (18 of 46 sampled packages read as empty before, none after) and making the generated map independent of the checkout path (gin 72 to 55 sections across four path lengths before, 83 at all four), after v8.83.0 moving Ruby and C/C++ to the anchored tier (9,701 of 9,701 Ruby anchors equal to Ripper's lines; C++ classes found against clangd 49.5% to 95.6%), reading seven more import families and measuring the import graph and the call graph against what each language's own tooling resolves, after v8.82.0 growing the third-party corpus from 128 questions over 25 repositories to 208 over 35 (hit@5 63.3% to 55.8%, every earlier repository unchanged) and printing an exact paired test beside every won/lost count, after v8.81.0 giving the retrieval index its own limit of 200 signatures a file (Python method recall against the language's own parser 57.5% to 98.6%), making a re-run cost about a sixth of the first (Django, CPU time) and measuring extraction recall against CPython's `ast` and Ruby's Ripper, after v8.80.1 made a blast-radius query on a language the graph cannot read say "not tracked" and the Ruby extractor read nested classes (class recall against Ruby's own parser 13.8% to 100.0%), after v8.80.0 made the Python AST tier start one process per thousand files instead of one per file (Django's first run 182 s to 5 s), MCP setup write the config files Claude Code, Codex CLI and OpenCode read, and the third-party retrieval corpus reach PHP, C#, Swift, Kotlin and Vue (128 questions over 25 repositories).
 head:
   - - meta
     - property: og:title
@@ -22,7 +22,7 @@ head:
 
 Two hundred fifty versions shipped. MIT open source from day one.
 
-**Stats:** 95.4% overall token reduction · 80.4% retrieval hit@5 · 2.35× measured lift vs single-shot grep (92.0% vs 39.2%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
+**Stats:** 95.2% overall token reduction · 80.4% retrieval hit@5 · 2.37× measured lift vs single-shot grep (92.8% vs 39.2%, honest corpus) · 98.0% test-discovery F1 · installed-library grounding (JS/TS + Python) · method-level call-graph (JS/TS, Python, Java, Go, Rust, Kotlin, Scala) · 22 MCP tools · 38 languages · 17-language source resolver · 0 npm deps
 
 ## Token reduction by version
 
@@ -835,6 +835,26 @@ Two milestones in one release. **`verify-ai-output` Reliable MVP** (#232) grows 
 **Tags:** `KNOWN_LIMITATIONS.md` · `extraction honesty` · `tier label` · `drift guard` · `G1` · `#520` · `PR #521`
 
 **Impact:** the credibility gap a skeptical reviewer finds first is closed in writing; 6 new guard checks (133 files); zero runtime changes.
+
+---
+
+### v8.85.0 — the index drops a generated bundle, a first run covers the code of a deep layout, the TypeScript and JavaScript extractors read four shapes they dropped, and the codex and claude outputs fit what the host reads ✓ (2026-10-27)
+
+**Minor.** R2 of the 2026-10-27 plan ([#1038](https://github.com/manojmallick/sigmap/issues/1038); [#876](https://github.com/manojmallick/sigmap/issues/876), [#995](https://github.com/manojmallick/sigmap/issues/995), [#996](https://github.com/manojmallick/sigmap/issues/996), [#997](https://github.com/manojmallick/sigmap/issues/997); PR [#1039](https://github.com/manojmallick/sigmap/pull/1039)), and the release where four defects of "the index holds less than it says" are fixed together. A package that ships a generated bundle as its `bin` no longer has it indexed (on this repository that was the 42,000-line `gen-context.js`, every function listed twice). Detection counts a directory's code through its whole tree and takes roots until they hold 95% of it, so a first run on Rails indexes 1,509 of its 1,578 files where it indexed 659 while the summary read "Indexed 100%", and every surface now says how much of the repository the roots cover. The TypeScript and JavaScript extractors read `$` names, generic and wrapped consts, anonymous defaults and CommonJS methods, and a run says how many files declared exports and listed none. The codex and claude outputs are written to fit what each host reads (32 KiB of `AGENTS.md`, about 200 lines of `CLAUDE.md`) and `doctor` checks them. CI found a Node 22 stall in the new extractor before it shipped, a variable-length lookbehind that took minutes on a 790 KB base64 literal, and it is replaced by a short look-back.
+
+```
+generated bundle declared as bin               indexed, every function twice           ->  left out, and explain says why
+indexed share of Rails' code on a first run    659 of 1,578 files (41.8%)              ->  1,509 of 1,578 (95.6%)
+roots past the old cap of six                  never                                   ->  added until they hold 95% of the code (cap 40)
+zod names with a $ read (TypeScript recall)    0%                                      ->  57.8%
+codex AGENTS.md on gin                         43 KB (Codex reads 32 KiB)              ->  fits project_doc_max_bytes
+claude CLAUDE.md on gin                        887 lines                               ->  about 200
+xrepo (third-party)                            115 of 208 (55.3%)                      ->  118 of 208 (56.7%)
+```
+
+**Tags:** `generated entrypoint`, `host limits`, `codexMaxBytes`, `claudeMaxLines`, `source-root coverage`, `$ names`, `CommonJS methods`, `late-last`, `atStatementStart`, `Node 22`, `TypeScript recall`, `#876`, `#995`, `#996`, `#997`, `#1038`
+
+**Impact:** token reduction 95.4% → 95.2% (four repositories list more: 2,081 more tokens of signatures), retrieval hit@5 80.4% unchanged, the task-success proxy 60.0% → 61.9% and prompt reduction 43.7% → 44.4% (`express` MRR 0.781 → 0.938), the honest comparison 92.0% → 92.8% (116 of 125; grep 39.2%, 49 of 125; 2.37×); test-discovery F1 98.0%, the grounding corpus and the hallucination guard reproduce v8.84.0 leaf for leaf. A control at the v8.84.0 tag reproduces its saved reports and an untouched merged `develop` reproduces this release's. `hard` reads 63 of 90 (70.0%) against a floor of 68.0%, one task of headroom. The npm package goes from 225 to 227 files.
 
 ---
 

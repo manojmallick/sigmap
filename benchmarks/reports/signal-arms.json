@@ -434,56 +434,57 @@
     },
     "honest": {
       "plain": {
-        "hits": 115,
+        "hits": 116,
         "tasks": 125,
-        "mrr": 0.759,
+        "mrr": 0.771,
         "gained": [],
         "lost": [],
         "moved": 0
       },
       "surface": {
-        "hits": 115,
+        "hits": 116,
         "tasks": 125,
-        "mrr": 0.759,
+        "mrr": 0.766,
         "gained": [],
         "lost": [],
-        "moved": 2
+        "moved": 1
       },
       "mined": {
         "hits": 115,
         "tasks": 125,
-        "mrr": 0.759,
+        "mrr": 0.766,
         "gained": [],
-        "lost": [],
+        "lost": [
+          "fastify/fastify-h001"
+        ],
         "moved": 11
       },
       "callgraph": {
-        "hits": 115,
+        "hits": 116,
         "tasks": 125,
-        "mrr": 0.767,
+        "mrr": 0.775,
         "gained": [],
         "lost": [],
         "moved": 9
       },
       "body": {
-        "hits": 110,
+        "hits": 112,
         "tasks": 125,
-        "mrr": 0.704,
+        "mrr": 0.729,
         "gained": [],
         "lost": [
           "abseil-cpp/absl-t004",
           "axios/axios-t002",
-          "express/express-h001",
           "retrieval/t005",
           "svelte/svelte-t002"
         ],
-        "moved": 23
+        "moved": 22
       }
     }
   },
   "total": {
     "plain": {
-      "hits": 379,
+      "hits": 380,
       "tasks": 564,
       "gained": 0,
       "lost": 0,
@@ -497,32 +498,32 @@
       "moved": 7
     },
     "surface": {
-      "hits": 379,
+      "hits": 380,
       "tasks": 564,
       "gained": 0,
       "lost": 0,
-      "moved": 7
+      "moved": 6
     },
     "mined": {
       "hits": 376,
       "tasks": 564,
       "gained": 8,
-      "lost": 11,
+      "lost": 12,
       "moved": 107
     },
     "callgraph": {
-      "hits": 372,
+      "hits": 373,
       "tasks": 564,
       "gained": 2,
       "lost": 9,
       "moved": 76
     },
     "body": {
-      "hits": 327,
+      "hits": 329,
       "tasks": 564,
       "gained": 7,
-      "lost": 59,
-      "moved": 169
+      "lost": 58,
+      "moved": 168
     },
     "nograph": {
       "hits": 261,
@@ -554,10 +555,10 @@
       "generated": "2026-10-23T00:10:09.305Z"
     },
     "honest": {
-      "version": "8.84.0",
-      "generated": "2026-10-27T11:40:53.699Z"
+      "version": "8.85.0",
+      "generated": "2026-10-27T23:26:12.191Z"
     }
   },
-  "version": "8.84.0",
-  "generated": "2026-10-27T16:10:49.166Z"
+  "version": "8.85.0",
+  "generated": "2026-10-27T23:26:12.191Z"
 }
