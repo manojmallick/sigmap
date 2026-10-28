@@ -41,9 +41,8 @@ We will acknowledge your report within 48 hours and work with you to fix the iss
 
 | Version | Security Support |
 |---------|------------------|
-| v6.x    | Current release  |
-| v5.x    | Community        |
-| < v5.0  | Unsupported      |
+| v8.x    | Current release  |
+| < v8.0  | Unsupported      |
 
 ## Zero Dependencies
 
