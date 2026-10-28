@@ -48,6 +48,22 @@ function outputPath(cwd) {
  */
 function write(context, cwd, opts = {}) {
   const filePath = outputPath(cwd);
+  const placed = place(context, cwd, opts);
+  if (placed.warning) console.warn(`[sigmap] ${path.relative(cwd, filePath)}: ${placed.warning}`);
+  fs.writeFileSync(filePath, placed.content, 'utf8');
+}
+
+/**
+ * What AGENTS.md would contain after `write`, without writing it: the human lines
+ * above the managed section, kept, and the formatted block below them. Lets a caller
+ * measure the finished file against a host's limit (#995).
+ * @param {string} context - Raw signature context string
+ * @param {string} cwd - Project root
+ * @param {object} [opts]
+ * @returns {{ content: string, warning?: string }}
+ */
+function place(context, cwd, opts = {}) {
+  const filePath = outputPath(cwd);
   let existing = '';
   if (fs.existsSync(filePath)) {
     existing = fs.readFileSync(filePath, 'utf8');
@@ -56,11 +72,7 @@ function write(context, cwd, opts = {}) {
   const formatted = format(context, opts);
   // A mention of the marker in prose or a code block is never the marker, and
   // only a file that is ENTIRELY generated is replaced whole (#873).
-  const placed = replaceManagedSection(existing, formatted, { legacy: true });
-  if (placed.warning) console.warn(`[sigmap] ${path.relative(cwd, filePath)}: ${placed.warning}`);
-  const newContent = placed.content;
-
-  fs.writeFileSync(filePath, newContent, 'utf8');
+  return replaceManagedSection(existing, formatted, { legacy: true });
 }
 
-module.exports = { name, format, outputPath, write };
+module.exports = { name, format, outputPath, write, place };

@@ -1,13 +1,13 @@
 ---
 title: Task benchmark
-description: Latest saved task benchmark for SigMap v8.84.0. 60.0% correct, 43.7% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
+description: Latest saved task benchmark for SigMap v8.85.0. 61.9% correct, 44.4% fewer prompts, 80.4% hit@5 across 105 tasks, with R language support.
 head:
   - - meta
     - property: og:title
       content: "SigMap task benchmark — fewer retries, better context (with R language)"
   - - meta
     - property: og:description
-      content: "Latest saved run: 60.0% correct, 1.6 prompts per task, 43.7% prompt reduction, 105 tasks, 18 repos with R support."
+      content: "Latest saved run: 61.9% correct, 1.58 prompts per task, 44.4% prompt reduction, 105 tasks, 18 repos with R support."
   - - meta
     - property: og:url
       content: "https://sigmap.io/guide/task-benchmark"
@@ -15,22 +15,22 @@ head:
 
 # Task benchmark
 
-::: info Official v8.84.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.84-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
+::: info Official v8.85.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.85-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 39.2% single-shot grep — **2.35× lift** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 39.2% single-shot grep — **2.37× lift** |
 | Graph-boosted hit@5 | **80.4%** |
-| Honest lift (vs grep agent) | **2.35×** |
-| Prompt reduction | **43.7%** (2.84 → 1.6) |
-| Task success proxy | **60.0%** |
-| Token reduction (21 repos) | **95.4%** |
+| Honest lift (vs grep agent) | **2.37×** |
+| Prompt reduction | **44.4%** (2.84 → 1.58) |
+| Task success proxy | **61.9%** |
+| Token reduction (21 repos) | **95.2%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
-Latest saved run: **2026-10-27 (v8.84.0)** — includes R language support (ggplot2, dplyr, shiny)
+Latest saved run: **2026-10-27 (v8.85.0)** — includes R language support (ggplot2, dplyr, shiny)
 
 The success/proxy definitions and the task corpus are described in [benchmark methodology](/guide/methodology).
 
@@ -42,11 +42,11 @@ This page answers the question people care about most:
 
 | Metric | Without SigMap | With SigMap |
 |---|:---:|:---:|
-| Task success proxy | 10% | **60.0%** |
+| Task success proxy | 10% | **61.9%** |
 | Prompts per task | 2.84 | **1.6** |
-| Prompt reduction | — | **43.7%** |
+| Prompt reduction | — | **44.4%** |
 | Retrieval hit@5 | 13.6% | **80.4%** |
-| Token reduction | — | **95.4%** |
+| Token reduction | — | **95.2%** |
 
 ## Why the task benchmark exists
 
@@ -66,8 +66,8 @@ The task benchmark models that outcome from the ranked file quality tiers:
 
 | Tier | Meaning | Tasks | Share |
 |---|---|---:|---:|
-| Correct | Right file was ranked first | 63 | **60.0%** |
-| Partial | Right file was present but not first | 21 | **20.0%** |
+| Correct | Right file was ranked first | 65 | **61.9%** |
+| Partial | Right file was present but not first | 19 | **18.1%** |
 | Wrong | Right file never surfaced in top 5 | 21 | **20.0%** |
 
 ## Prompt model summary
@@ -76,8 +76,8 @@ The task benchmark models that outcome from the ranked file quality tiers:
 |---|---:|
 | Average prompts without SigMap | 2.84 |
 | Average prompts with SigMap | **1.6** |
-| Reduction | **43.7%** |
-| Honest hit@5 lift | **2.35x** — 92.0% vs 39.2% on the honest corpus (125 tasks / 19 repos); per-repo random lifts remain in the report as data |
+| Reduction | **44.4%** |
+| Honest hit@5 lift | **2.37x** — 92.8% vs 39.2% on the honest corpus (125 tasks / 19 repos); per-repo random lifts remain in the report as data |
 
 ## What changed in the v5 story
 
@@ -94,7 +94,7 @@ That makes the benchmark more than a marketing claim. It maps onto the actual da
 
 | Repo | Prompt reduction | Correct / Partial / Wrong |
 |---|---:|---:|
-| express | 31.3% | 5 / 3 / 0 |
+| express | 43.8% | 7 / 1 / 0 |
 | flask | 34.8% | 5 / 0 / 3 |
 | gin | 61.8% | 7 / 1 / 0 |
 | spring-petclinic | 44.8% | 4 / 0 / 1 |

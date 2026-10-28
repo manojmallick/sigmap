@@ -9,7 +9,7 @@
  *   node scripts/run-extraction-recall.mjs --save                 # write benchmarks/reports/extraction-recall.json
  *   node scripts/run-extraction-recall.mjs --save --out <file>   # write it elsewhere (the tests do)
  *   node scripts/run-extraction-recall.mjs --only python --misses 10
- *   node scripts/run-extraction-recall.mjs --json | --no-index | --repos <dir> | --floors <file>
+ *   node scripts/run-extraction-recall.mjs --json | --no-index | --repos <dir> | --floors <file> | --typescript <path>
  *
  * WHY: every other gate scores ranking, which hides what the extractor never emitted. A file
  * the extractor misses is a file the ranker cannot find, whatever the ranker does. This
@@ -47,7 +47,7 @@ export const FLOORS_REL = 'benchmarks/extraction-recall-floors.json';
 export const REPORT_REL = 'benchmarks/reports/extraction-recall.json';
 
 /** The languages that have a reference-parser adapter, in report order. */
-export const ADAPTERS = ['python', 'ruby', 'cpp'];
+export const ADAPTERS = ['python', 'ruby', 'cpp', 'typescript'];
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -80,7 +80,7 @@ async function main() {
   for (const name of ADAPTERS) {
     if (only && !only.has(name)) continue;
     const adapter = await import(`./extraction-recall/${name}.mjs`);
-    results[name] = adapter.measure({ reposDir, index: !flag('--no-index') });
+    results[name] = adapter.measure({ reposDir, index: !flag('--no-index'), typescript: opt('--typescript') });
   }
   const verdicts = Object.fromEntries(Object.entries(results).map(([n, r]) => [n, evaluate(r, floors.languages[n])]));
   const unmeasured = Object.fromEntries(

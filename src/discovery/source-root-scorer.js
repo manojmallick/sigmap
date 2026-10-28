@@ -61,7 +61,51 @@ function getRecentlyChangedDirs(cwd) {
   } catch { return new Set(); }
 }
 
-function scoreCandidate(dirName, fullPath, context) {
+/**
+ * Code files in a whole subtree, walking at most `TREE_COUNT_DEPTH` levels, skipping vendor and
+ * build directories, dot directories and NESTED REPOSITORIES (a vendored or cloned repo is not
+ * this repo's source). `activerecord/` in Rails keeps its code at `lib/active_record/…`, three
+ * levels down: the two-level sample this replaced counted a handful of its 1,143 files, scored
+ * the directory 0 and never offered it as a root (#997).
+ */
+const TREE_COUNT_DEPTH = 8;
+function countTreeCode(dir, depth = 0) {
+  if (depth > TREE_COUNT_DEPTH) return 0;
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return 0; }
+  if (depth > 0 && entries.some((e) => e.name === '.git')) return 0; // a repository of its own
+  let n = 0;
+  for (const e of entries) {
+    if (e.isFile()) { if (CODE_EXTS.has(path.extname(e.name).toLowerCase())) n++; }
+    else if (e.isDirectory() && !AUTO_SKIP.has(e.name) && !e.name.startsWith('.')) n += countTreeCode(path.join(dir, e.name), depth + 1);
+  }
+  return n;
+}
+
+/**
+ * The code a candidate holds, as the score reads it: the whole subtree, except in a directory the
+ * scorer treats as noise by name — `docs/`, `examples/`, `tests/`, `documentation-website/` — which is
+ * counted as before, two levels deep. The flat -3.0 penalty was tuned against that count; a full-depth
+ * count lifts such a directory above zero and makes it a root, which the tree-wide count was never
+ * meant to do (flask took `examples`, libuv `docs`, exposed `documentation-website`, and the index
+ * grew files nobody asks about).
+ *
+ * A CONTAINER is counted that way too: a candidate that holds other candidates (`packages/` over
+ * `packages/a`, `src/` over `src/test/java`, `okhttp/` over its source sets). Its full-depth count
+ * outscores its members and the parent-wins dedupe then replaces them with it, so a JS monorepo
+ * resolved to `packages` and a module to its own directory, tests and docs included. So is a dot
+ * directory (`.github`, `.yarn`, `.configs`): tooling, which rust-analyzer's `.github` was made a root
+ * for once its scripts were counted to the bottom.
+ */
+const DOCS_LIKE = /^(docs?|documentation)([-_.].*)?$/i;
+function sourceFileCountFor(dirName, fullPath, frameworkSrcDirs, container) {
+  const lower = dirName.toLowerCase();
+  const noise = (PENALTY_DIRS.has(lower) || DOCS_LIKE.test(lower)) && !(frameworkSrcDirs && frameworkSrcDirs.has(dirName));
+  const dotted = dirName.split('/').some((seg) => seg.startsWith('.'));
+  return noise || container || dotted ? _countSourceFiles(fullPath, 2) : countTreeCode(fullPath);
+}
+
+function scoreCandidate(dirName, fullPath, context, precounted) {
   const { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties } = context;
 
   // Auto-skip noise
@@ -76,8 +120,8 @@ function scoreCandidate(dirName, fullPath, context) {
   // Framework match: +3.0 if this dir is in the framework's srcDirs
   if (frameworkSrcDirs.has(dirName)) score += 3.0;
 
-  // Count source files in dir (depth 2)
-  const sourceFileCount = _countSourceFiles(fullPath, 2);
+  // Count source files (the resolver passes the count it already took)
+  const sourceFileCount = typeof precounted === 'number' ? precounted : sourceFileCountFor(dirName, fullPath, frameworkSrcDirs);
   const density = Math.min(1.0, sourceFileCount / 10);
 
   // Language density: +2.5
@@ -121,4 +165,4 @@ function _countSourceFiles(dir, depth) {
   return count;
 }
 
-module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS };
+module.exports = { scoreCandidate, countTreeCode, sourceFileCountFor, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS };

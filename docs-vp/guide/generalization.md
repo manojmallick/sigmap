@@ -1,6 +1,6 @@
 ---
 title: Generalization — SigMap across languages, domains & repo sizes
-description: SigMap generalizes across 21 repos, 38 languages, and multiple domains with 80.4% hit@5 in the latest saved v8.84.0 retrieval run.
+description: SigMap generalizes across 21 repos, 38 languages, and multiple domains with 80.4% hit@5 in the latest saved v8.85.0 retrieval run.
 head:
   - - meta
     - property: og:title
@@ -19,17 +19,17 @@ head:
 SigMap was not tuned for one repo. This benchmark matters because it shows the same workflow transfers across different languages, repo sizes, and architectures without manual tuning.
 :::
 
-::: info Official v8.84.0 benchmark snapshot
-**Benchmark ID:** sigmap-v8.84-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
+::: info Official v8.85.0 benchmark snapshot
+**Benchmark ID:** sigmap-v8.85-main &nbsp;·&nbsp; **Date:** 2026-10-27 (with R language)
 
 | Metric | Value |
 |---|---:|
 | Hit@5 (retrieval corpus, 105 tasks / 18 repos) | **80.4%** |
-| Honest grep comparison (125 tasks / 19 repos) | **92.0%** vs 39.2% single-shot grep — **2.35× lift** |
-| Honest lift (vs grep agent) | **2.35×** |
-| Prompt reduction | **43.7%** (2.84 → 1.6) |
-| Task success proxy | **60.0%** |
-| Overall token reduction | **95.4%** |
+| Honest grep comparison (125 tasks / 19 repos) | **92.8%** vs 39.2% single-shot grep — **2.37× lift** |
+| Honest lift (vs grep agent) | **2.37×** |
+| Prompt reduction | **44.4%** (2.84 → 1.58) |
+| Task success proxy | **61.9%** |
+| Overall token reduction | **95.2%** |
 | GPT-4o overflow (without → with) | **14/21 → 0/21** |
 :::
 
@@ -38,7 +38,7 @@ The important part of SigMap's benchmark story is not just the topline score. It
 ::: info What "generalization" means here
 SigMap's signature extractors are hand-written regex patterns, not ML models. Generalization
 means: *do the patterns hold up on codebases the authors never inspected?* The answer across
-these 105 tasks is yes — 80.4% hit@5 in the latest saved v8.84.0 run — with one caveat that matters: the benchmark pins each repo's `srcDirs` in `benchmarks/config-overrides.json` (all 21 repos). The zero-config, third-party measurement is the [xrepo corpus](/guide/retrieval-benchmark): 55.3% hit@5 over 208 tasks in 35 repos, indexed the way a first-time user's `sigmap` run would.
+these 105 tasks is yes — 80.4% hit@5 in the latest saved v8.85.0 run — with one caveat that matters: the benchmark pins each repo's `srcDirs` in `benchmarks/config-overrides.json` (all 21 repos). The zero-config, third-party measurement is the [xrepo corpus](/guide/retrieval-benchmark): 55.3% hit@5 over 208 tasks in 35 repos, indexed the way a first-time user's `sigmap` run would.
 :::
 
 - **21 repos** (including 3 R language repos)
@@ -70,7 +70,7 @@ SigMap uses hand-written extractors and lightweight ranking rather than a hosted
 
 ## Practical takeaway
 
-If you want one number to carry into launch messaging, use the shared `v8.84.0` snapshot rather than an older per-page variant:
+If you want one number to carry into launch messaging, use the shared `v8.85.0` snapshot rather than an older per-page variant:
 
 | Domain | Repos | Hit@5 | Example repo |
 |---|---|---|---|

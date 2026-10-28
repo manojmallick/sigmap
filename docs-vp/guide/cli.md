@@ -1700,13 +1700,14 @@ sigmap doctor
 sigmap doctor
 
 ✓ Git repository — recency boost + impact analysis enabled
-✓ Config & source roots — srcDirs: src, packages
+✓ Config & source roots — srcDirs: src, packages — 98% of the repository's code (214 of 218 files) is under the source roots
 ✓ Source files in scope — 176 in scope · 4 outside (2%) — 2.js 1.mjs 1.sh in ., public-benchmarks
 ✓ Generated context — 1 file(s): .github/copilot-instructions.md
 ✓ Signature index — 179 in-scope file(s) indexed · 268 beyond srcDirs (256 test, 10 CI, 2 entrypoint)
 ⚠ Index freshness — 1 source file(s) changed since last generate (from .context/sig-index.json)
     ↳ run: sigmap   (or: sigmap --watch to auto-refresh)
 ✓ Coverage — in-context 71% (54/76 scoped source files) grade B
+✓ Instruction files — AGENTS.md 18.4 KiB of 32.0 KiB · CLAUDE.md 142 of 200 lines
 ✓ Model profile — as of 2026-10-04 (shipped profile) · no roster declared — advice names the shipped defaults
 ✓ MCP wiring — registered in .claude/settings.json
 ✓ MCP tool profile — all (22 tools, ~2,517 tokens of definitions) · "mcp.tools": "core" would advertise 7 tools, ~908 tokens
@@ -1963,7 +1964,7 @@ Selected roots:
   3. lib/        — confidence: medium — score: 4.1 (git activity +2.0, density +2.1)
   4. components/ — confidence: low   — score: 2.0
 
-Explanation: Next.js app detected; app/ and src/ are primary Next.js directories with high confidence. lib/ has recent git activity. Max roots capped at 6.
+Explanation: Next.js app detected; app/ and src/ are primary Next.js directories with high confidence. lib/ has recent git activity. Six roots is where the choice starts: past that, the next-ranked directories are added until the roots hold 95% of the candidates' code (at most 40).
 ```
 
 **`--json`**
@@ -1977,9 +1978,13 @@ Outputs structured JSON:
   "confidence": "high",
   "isMonorepo": false,
   "monorepo": { "isMonorepo": false, "source": "none", "evidence": "no: no workspace marker and no sibling packages", "marker": null, "packages": [] },
-  "explanation": [...]
+  "explanation": [...],
+  "truncated": false,
+  "omitted": 0
 }
 ```
+
+`--explain` also lists the number of code files each root holds, prints the share of the repository the roots cover (`97% of the repository's code (280 of 290 files) is under the source roots` — the sentence `sigmap`, `validate` and `doctor` print too), and says how many candidate directories scored above zero and were left out (`omitted` in the JSON). It is the first thing to run when that share is under 80%.
 
 ### Flat layouts: the repo root is a source root (v8.56.0)
 
@@ -2212,9 +2217,9 @@ sigmap compare --json
 ────────────────────────────────────────────
  SigMap vs grep agent
 ────────────────────────────────────────────
- hit@5         92.0% vs 39.2%   (2.35× lift)
+ hit@5         92.8% vs 39.2%   (2.37× lift)
  Corpus        125 tasks · 19 repos (honest split)
- Token cut     95.4% average (saved benchmark, 21 repos)
+ Token cut     95.2% average (saved benchmark, 21 repos)
 ────────────────────────────────────────────
 ```
 
@@ -2239,7 +2244,7 @@ sigmap share
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-95.4% fewer tokens · 78% retrieval accuracy (this repo) · 2.35× vs a grep agent (published)
+95.2% fewer tokens · 78% retrieval accuracy (this repo) · 2.37× vs a grep agent (published)
 https://sigmap.io
 [sigmap] Copied to clipboard.
 ```
@@ -2249,7 +2254,7 @@ On a repo that has never been benchmarked there are no local numbers to print, a
 
 ```
 Generated with SigMap — the deterministic, verifiable grounding layer for AI code work
-not benchmarked locally yet — run `sigmap compare` · 2.35× vs a grep agent (published)
+not benchmarked locally yet — run `sigmap compare` · 2.37× vs a grep agent (published)
 https://sigmap.io
 ```
 
@@ -2370,7 +2375,7 @@ sigmap bench --submit --json
 ────────────────────────────────────────────────────────
  Canonical metrics (official release):
  hit@5          : 80.4%
- token reduction: 95.4%
+ token reduction: 95.2%
 ────────────────────────────────────────────────────────
  Local run metrics: none yet — run node scripts/run-retrieval-benchmark.mjs
 ────────────────────────────────────────────────────────
@@ -2529,7 +2534,7 @@ SigMap treats the index as **live** when *a file save is reflected in query resu
 
 ```
 $ sigmap status
-  Last index:    4m ago (v8.84.0, 508 files) — from .context/sig-index.json
+  Last index:    4m ago (v8.85.0, 508 files) — from .context/sig-index.json
   Live index:    watcher running (pid 41234) · 3 files in the live overlay · last save → index 346 ms (patch) · written files refresh after 5000 ms quiet
 ```
 
@@ -3232,7 +3237,7 @@ A **counted** result is a lower bound too, so the qualifier appears there as wel
 
 ```bash
 sigmap --version
-# 8.84.0
+# 8.85.0
 ```
 
 ---

@@ -1,5 +1,5 @@
 {
-  "benchmark_id": "sigmap-v8.84-main",
+  "benchmark_id": "sigmap-v8.85-main",
   "benchmark_date": "2026-10-27",
   "repos_token": 21,
   "repos_retrieval": 18,
@@ -7,29 +7,29 @@
     "hit_at_5": 0.804,
     "baseline_hit_at_5": 0.136,
     "retrieval_lift": 5.9,
-    "overall_token_reduction_pct": 95.4,
-    "task_success_proxy_pct": 60,
-    "prompts_per_task": 1.6,
+    "overall_token_reduction_pct": 95.2,
+    "task_success_proxy_pct": 61.9,
+    "prompts_per_task": 1.58,
     "baseline_prompts_per_task": 2.84,
-    "prompt_reduction_pct": 43.7,
+    "prompt_reduction_pct": 44.4,
     "graph_boosted_hit_at_5": 0.804,
     "grep_baseline_hit_at_5": 0.392,
-    "grep_lift": 2.35
+    "grep_lift": 2.37
   },
   "honest": {
-    "sigmap_hit_at_5": 0.92,
+    "sigmap_hit_at_5": 0.928,
     "grep_baseline_hit_at_5": 0.392,
-    "lift": 2.35,
+    "lift": 2.37,
     "tasks": 125,
     "repos": 19
   },
   "third_party": {
     "repos": 35,
     "tasks": 208,
-    "hits": 115,
-    "hit_at_5_pct": 55.3,
-    "interval_low_pct": 48.5,
-    "interval_high_pct": 61.9
+    "hits": 118,
+    "hit_at_5_pct": 56.7,
+    "interval_low_pct": 49.9,
+    "interval_high_pct": 63.3
   },
   "test_discovery": {
     "repos": 28,
@@ -52,27 +52,27 @@
   },
   "sources": {
     "benchmark-matrix.json": {
-      "version": "8.84.0",
+      "version": "8.85.0",
       "generated": "2026-10-27"
     },
     "grounding-regression.json": {
-      "version": "8.84.0",
+      "version": "8.85.0",
       "generated": "2026-10-27"
     },
     "honest-baseline.json": {
-      "version": "8.84.0",
+      "version": "8.85.0",
       "generated": "2026-10-27"
     },
     "task-benchmark.json": {
-      "version": "8.84.0",
+      "version": "8.85.0",
       "generated": "2026-10-27"
     },
     "test-discovery.json": {
-      "version": "8.84.0",
+      "version": "8.85.0",
       "generated": "2026-10-27"
     },
     "token-reduction.json": {
-      "version": "8.84.0",
+      "version": "8.85.0",
       "generated": "2026-10-27"
     }
   }

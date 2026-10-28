@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-27T11:13:50.696Z",
+  "generated": "2026-10-27T22:49:36.788Z",
   "repos": [
     {
       "repo": "express",
@@ -7,12 +7,12 @@
       "sigCount": 6,
       "tasks": 8,
       "hitAt5": 1,
-      "mrr": 0.781,
+      "mrr": 0.938,
       "randomBaseline": 0.833,
       "improvement": 1.2,
       "tiers": {
-        "correct": 5,
-        "partial": 3,
+        "correct": 7,
+        "partial": 1,
         "wrong": 0
       },
       "taskDetails": [
@@ -53,9 +53,9 @@
             "lib/application.js",
             "lib/express.js"
           ],
-          "top1": "lib/request.js",
-          "firstHitRank": 2,
-          "tier": "partial"
+          "top1": "lib/application.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         },
         {
           "id": "express-t005",
@@ -95,9 +95,9 @@
           "expected": [
             "lib/request.js"
           ],
-          "top1": "lib/utils.js",
-          "firstHitRank": 4,
-          "tier": "partial"
+          "top1": "lib/request.js",
+          "firstHitRank": 1,
+          "tier": "correct"
         }
       ]
     },
@@ -450,7 +450,7 @@
     {
       "repo": "axios",
       "fileCount": 25,
-      "sigCount": 47,
+      "sigCount": 49,
       "tasks": 8,
       "hitAt5": 0.625,
       "mrr": 0.575,
@@ -1120,7 +1120,7 @@
     {
       "repo": "vue-core",
       "fileCount": 232,
-      "sigCount": 140,
+      "sigCount": 146,
       "tasks": 5,
       "hitAt5": 1,
       "mrr": 0.8,

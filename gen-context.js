@@ -212,6 +212,22 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
    */
   function write(context, cwd, opts = {}) {
     const filePath = outputPath(cwd);
+    const placed = place(context, cwd, opts);
+    if (placed.warning) console.warn(`[sigmap] ${path.relative(cwd, filePath)}: ${placed.warning}`);
+    fs.writeFileSync(filePath, placed.content, 'utf8');
+  }
+
+  /**
+   * What AGENTS.md would contain after `write`, without writing it: the human lines
+   * above the managed section, kept, and the formatted block below them. Lets a caller
+   * measure the finished file against a host's limit (#995).
+   * @param {string} context - Raw signature context string
+   * @param {string} cwd - Project root
+   * @param {object} [opts]
+   * @returns {{ content: string, warning?: string }}
+   */
+  function place(context, cwd, opts = {}) {
+    const filePath = outputPath(cwd);
     let existing = '';
     if (fs.existsSync(filePath)) {
       existing = fs.readFileSync(filePath, 'utf8');
@@ -220,14 +236,10 @@ __factories["./packages/adapters/codex"] = function(module, exports) {
     const formatted = format(context, opts);
     // A mention of the marker in prose or a code block is never the marker, and
     // only a file that is ENTIRELY generated is replaced whole (#873).
-    const placed = replaceManagedSection(existing, formatted, { legacy: true });
-    if (placed.warning) console.warn(`[sigmap] ${path.relative(cwd, filePath)}: ${placed.warning}`);
-    const newContent = placed.content;
-
-    fs.writeFileSync(filePath, newContent, 'utf8');
+    return replaceManagedSection(existing, formatted, { legacy: true });
   }
 
-  module.exports = { name, format, outputPath, write };
+  module.exports = { name, format, outputPath, write, place };
   
 };
 
@@ -1177,6 +1189,69 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
   }
 
   /**
+   * How much of the REPOSITORY the source roots cover: the one figure `generate`, `validate` and
+   * `doctor` all print (#997).
+   *
+   * Each of them used to grade a population of its own, and every one of those denominators was
+   * the detector's own scope. A run that indexed 10 of a repository's 309 files printed "100%"
+   * (the 10 it had picked), and the run that indexed more read LOWER, because the grade divided by
+   * what fits the context file. The denominator here is the repository: the code files under the
+   * roots (tests inside them included) plus the implementation files outside them (tests, docs, CI,
+   * mocks and the conventional tooling directories legitimately sit outside, and are not counted
+   * against it; see `outsideSrcDirs`).
+   *
+   * @param {string} cwd
+   * @param {{srcDirs:string[], exclude:string[]}} config
+   * @returns {{ covered: number, outside: number, all: number, pct: number, dirs: string[], byDir: Array<{dir:string,count:number}> }}
+   */
+  function repositoryCoverage(cwd, config) {
+    const fs = require('fs');
+    const path = require('path');
+    cwd = path.resolve(cwd); // the walks compare absolute paths: a relative cwd made every file look outside
+    const srcDirs = (config && Array.isArray(config.srcDirs) && config.srcDirs.length > 0) ? config.srcDirs : [];
+    // A root of '.' is the whole repository: everything is covered, whatever it is called.
+    if (srcDirs.some((d) => d === '.' || d === './')) {
+      const excludeSet = new Set(['node_modules', '.git', 'dist', 'build', 'out', '__pycache__', '.next', 'coverage', 'target', 'vendor', '.context']);
+      if (config && Array.isArray(config.exclude)) for (const x of config.exclude) excludeSet.add(String(x));
+      const all = [];
+      _walkOwned(path.resolve(cwd), excludeSet, all, 0);
+      const n = all.filter((f) => CODE_EXTS.has(path.extname(f).toLowerCase())).length;
+      return { covered: n, outside: 0, all: n, pct: coveragePct(n, n), dirs: [], byDir: [] };
+    }
+    const out = outsideSrcDirs(cwd, config);
+    const all = out.inScope + out.total;
+    // The outside implementation files by top-level directory, most first: what the warning names.
+    const byDir = new Map();
+    if (out.total > 0) {
+      const excludeSet = new Set(['node_modules', '.git', 'dist', 'build', 'out', '__pycache__', '.next', 'coverage', 'target', 'vendor', '.context']);
+      if (config && Array.isArray(config.exclude)) for (const x of config.exclude) excludeSet.add(String(x));
+      const files = [];
+      _walkOwned(path.resolve(cwd), excludeSet, files, 0);
+      const srcAbs = srcDirs.map((d) => path.resolve(cwd, d));
+      let cls = null;
+      try { cls = __require('./src/util/file-class'); } catch (_) { /* optional */ }
+      const OUT = new Set(['test', 'tests', 'spec', 'specs', '__tests__', 'e2e', 'docs', 'doc', 'documentation', 'examples', 'example', 'samples', 'scripts', 'benchmarks', 'fixtures', 'mocks', '__mocks__', 'testdata', 'demo', 'demos', 'tools', 'migrations']);
+      for (const file of files) {
+        if (!CODE_EXTS.has(path.extname(file).toLowerCase())) continue;
+        if (srcAbs.some((a) => file === a || file.startsWith(a + path.sep))) continue;
+        const rel = path.relative(cwd, file).split(path.sep).join('/');
+        const top = rel.includes('/') ? rel.split('/')[0] : '.';
+        if (OUT.has(top)) continue;
+        if (cls && (cls.isTestFile(rel) || cls.isDocsFile(rel) || cls.isCiFile(rel) || cls.isMockFile(rel))) continue;
+        byDir.set(top, (byDir.get(top) || 0) + 1);
+      }
+    }
+    const ranked = [...byDir.entries()].map(([dir, count]) => ({ dir, count })).sort((a, b) => b.count - a.count || a.dir.localeCompare(b.dir));
+    return { covered: out.inScope, outside: out.total, all, pct: coveragePct(out.inScope, all), dirs: ranked.map((r) => r.dir), byDir: ranked };
+  }
+
+  /** The words every surface uses for the repository figure. */
+  function formatRepositoryCoverage(rc) {
+    const n = (x) => x.toLocaleString('en-US');
+    return `${rc.pct}% of the repository's code (${n(rc.covered)} of ${n(rc.all)} files) is under the source roots`;
+  }
+
+  /**
    * Depth-bounded walk that stops at NESTED REPOSITORIES.
    *
    * A vendored or cloned repo is not this repo's source, and walking it is both
@@ -1310,7 +1385,7 @@ __factories["./src/analysis/coverage-score"] = function(module, exports) {
     return [...out].map((filePath) => ({ filePath }));
   }
 
-  module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, POPULATIONS, CODE_EXTS };
+  module.exports = { coverageScore, coveragePct, indexedCoverage, formatCoverage, inContextFiles, outsideSrcDirs, repositoryCoverage, formatRepositoryCoverage, POPULATIONS, CODE_EXTS };
   
 };
 
@@ -3344,6 +3419,15 @@ __factories["./src/config/defaults"] = function(module, exports) {
 
     // Output targets: 'copilot' | 'claude' | 'cursor' | 'windsurf'
     outputs: ['copilot'],
+
+    // How much of the instruction file a host reads (#995). Codex loads at most
+    // `project_doc_max_bytes` of an AGENTS.md (32 KiB by default, or what its own
+    // config.toml sets); Claude Code asks for a short CLAUDE.md (about 200 lines). The
+    // 'codex' and 'claude' outputs are trimmed to fit, lowest-priority files first.
+    // `null` is the host's own limit (Codex's config.toml, else 32 KiB; Claude Code's 200
+    // lines), so a run can say where its limit came from; a number is yours; 0 turns a cap off.
+    codexMaxBytes: null,
+    claudeMaxLines: null,
 
     // Adapter targets (v3.0+): replaces 'outputs'. Same names, adds 'openai' | 'gemini'.
     // Old 'outputs' config key is still accepted and silently maps to 'adapters'.
@@ -7269,13 +7353,20 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
   const { REGISTRY }              = __require('./src/discovery/source-root-registry');
   const { detectLanguages }       = __require('./src/discovery/language-detector');
   const { detectFrameworks }      = __require('./src/discovery/framework-detector');
-  const { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, CODE_EXTS, AUTO_SKIP } = __require('./src/discovery/source-root-scorer');
+  const { scoreCandidate, sourceFileCountFor, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, CODE_EXTS, AUTO_SKIP } = __require('./src/discovery/source-root-scorer');
   const { loadIgnorePatterns, matchesIgnorePattern } = __require('./src/discovery/sigmapignore');
   const { detectMonorepo }         = __require('./src/discovery/monorepo');
 
   module.exports = { resolveSourceRoots };
 
   const MAX_ROOTS = 6;
+
+  // Six roots is where the choice starts, not where it stops. A layout with more modules than that
+  // (Rails has twelve, each a gem with its own `lib/` and `test/`) went on indexing six and left the
+  // rest out without a word (#997). Past MAX_ROOTS, the next-ranked candidates are added until the roots
+  // hold COVERAGE_TARGET of the code in all the candidates, up to MAX_COVERAGE_ROOTS.
+  const COVERAGE_TARGET = 0.95;
+  const MAX_COVERAGE_ROOTS = 40;
 
   // A Gradle/Maven multi-module build legitimately has one source root per
   // module — okhttp has 27 — so the 6-root cap tuned for JS layouts would
@@ -7412,14 +7503,16 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       }
     }
 
-    // Score each candidate
+    // Score each candidate, on the code in its whole subtree. A candidate that holds other candidates
+    // (`packages/` over `packages/a`, a JVM module over its source sets) keeps the two-level count it
+    // was scored on before: the full-depth count would put it above its members, and the dedupe below
+    // keeps the parent.
+    const holdsOthers = (name) => candidates.some((o) => o.name !== name && o.name.startsWith(name + '/'));
     const scored = candidates
-      .map(({ name, full, packageSrc }) => ({
-        dir:   name,
-        full,
-        packageSrc,
-        score: scoreCandidate(name, full, context),
-      }))
+      .map(({ name, full, packageSrc }) => {
+        const files = sourceFileCountFor(name, full, frameworkSrcDirs, holdsOthers(name));
+        return { dir: name, full, packageSrc, files, score: scoreCandidate(name, full, context, files) };
+      })
       .filter(c => c.score > 0)
       // In a package workspace the members' source directories ARE the source;
       // whatever else sits at the top of the repo — a docs site, benchmarks,
@@ -7430,7 +7523,7 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       // top-MAX_ROOTS slice below would otherwise admit different dirs run to run
       // (candidate order comes from filesystem readdir), changing which files are
       // collected and making the generated context non-reproducible.
-      .sort((a, b) => b.score - a.score || a.dir.localeCompare(b.dir));
+      .sort((a, b) => b.score - a.score || (b.files || 0) - (a.files || 0) || a.dir.localeCompare(b.dir));
 
     // Handle special rules
     let roots = _applySpecialRules(scored, cwd, primaryFw, fwEntry, frameworks, new Set(opts.exclude || []), registry);
@@ -7441,7 +7534,18 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
     // Cap at MAX_ROOTS — raised for a multi-module JVM build, where one root
     // per module is the correct answer rather than over-detection.
     const cap = isJvmMultiModule ? MAX_JVM_MODULE_ROOTS : isPackageWorkspace ? MAX_PACKAGE_ROOTS : MAX_ROOTS;
-    roots = roots.slice(0, cap).map(r => r.dir);
+    let picked = roots.slice(0, cap);
+    let omitted = roots.length - picked.length;
+    if (omitted > 0 && cap === MAX_ROOTS) {
+      const all = roots.reduce((n, r) => n + (r.files || 0), 0);
+      let have = picked.reduce((n, r) => n + (r.files || 0), 0);
+      for (let i = cap; i < roots.length && picked.length < MAX_COVERAGE_ROOTS && all > 0 && have / all < COVERAGE_TARGET; i++) {
+        picked.push(roots[i]);
+        have += roots[i].files || 0;
+      }
+      omitted = roots.length - picked.length;
+    }
+    roots = picked.map(r => r.dir);
 
     // Fallback: if nothing scored, return empty (caller falls back to legacy)
     const confidence = _computeConfidence(frameworks, languages, scored.length);
@@ -7451,11 +7555,15 @@ __factories["./src/discovery/source-root-resolver"] = function(module, exports) 
       languages,
       frameworks,
       confidence,
-      explanation: scored.slice(0, 8).map(c => ({
+      explanation: scored.slice(0, Math.max(8, roots.length)).map(c => ({
         dir:   c.dir,
         score: c.score,
+        files: c.files,
         reason: `score: ${c.score}`,
       })),
+      // Candidates left out because the cap was reached before the code was covered.
+      truncated: omitted > 0,
+      omitted,
       isMonorepo,
       monorepo,
       isJvmMultiModule,
@@ -7762,7 +7870,51 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     } catch { return new Set(); }
   }
 
-  function scoreCandidate(dirName, fullPath, context) {
+  /**
+   * Code files in a whole subtree, walking at most `TREE_COUNT_DEPTH` levels, skipping vendor and
+   * build directories, dot directories and NESTED REPOSITORIES (a vendored or cloned repo is not
+   * this repo's source). `activerecord/` in Rails keeps its code at `lib/active_record/…`, three
+   * levels down: the two-level sample this replaced counted a handful of its 1,143 files, scored
+   * the directory 0 and never offered it as a root (#997).
+   */
+  const TREE_COUNT_DEPTH = 8;
+  function countTreeCode(dir, depth = 0) {
+    if (depth > TREE_COUNT_DEPTH) return 0;
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return 0; }
+    if (depth > 0 && entries.some((e) => e.name === '.git')) return 0; // a repository of its own
+    let n = 0;
+    for (const e of entries) {
+      if (e.isFile()) { if (CODE_EXTS.has(path.extname(e.name).toLowerCase())) n++; }
+      else if (e.isDirectory() && !AUTO_SKIP.has(e.name) && !e.name.startsWith('.')) n += countTreeCode(path.join(dir, e.name), depth + 1);
+    }
+    return n;
+  }
+
+  /**
+   * The code a candidate holds, as the score reads it: the whole subtree, except in a directory the
+   * scorer treats as noise by name — `docs/`, `examples/`, `tests/`, `documentation-website/` — which is
+   * counted as before, two levels deep. The flat -3.0 penalty was tuned against that count; a full-depth
+   * count lifts such a directory above zero and makes it a root, which the tree-wide count was never
+   * meant to do (flask took `examples`, libuv `docs`, exposed `documentation-website`, and the index
+   * grew files nobody asks about).
+   *
+   * A CONTAINER is counted that way too: a candidate that holds other candidates (`packages/` over
+   * `packages/a`, `src/` over `src/test/java`, `okhttp/` over its source sets). Its full-depth count
+   * outscores its members and the parent-wins dedupe then replaces them with it, so a JS monorepo
+   * resolved to `packages` and a module to its own directory, tests and docs included. So is a dot
+   * directory (`.github`, `.yarn`, `.configs`): tooling, which rust-analyzer's `.github` was made a root
+   * for once its scripts were counted to the bottom.
+   */
+  const DOCS_LIKE = /^(docs?|documentation)([-_.].*)?$/i;
+  function sourceFileCountFor(dirName, fullPath, frameworkSrcDirs, container) {
+    const lower = dirName.toLowerCase();
+    const noise = (PENALTY_DIRS.has(lower) || DOCS_LIKE.test(lower)) && !(frameworkSrcDirs && frameworkSrcDirs.has(dirName));
+    const dotted = dirName.split('/').some((seg) => seg.startsWith('.'));
+    return noise || container || dotted ? _countSourceFiles(fullPath, 2) : countTreeCode(fullPath);
+  }
+
+  function scoreCandidate(dirName, fullPath, context, precounted) {
     const { frameworks, languages, recentDirs, frameworkSrcDirs, entrypoints, frameworkPenalties } = context;
 
     // Auto-skip noise
@@ -7777,8 +7929,8 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     // Framework match: +3.0 if this dir is in the framework's srcDirs
     if (frameworkSrcDirs.has(dirName)) score += 3.0;
 
-    // Count source files in dir (depth 2)
-    const sourceFileCount = _countSourceFiles(fullPath, 2);
+    // Count source files (the resolver passes the count it already took)
+    const sourceFileCount = typeof precounted === 'number' ? precounted : sourceFileCountFor(dirName, fullPath, frameworkSrcDirs);
     const density = Math.min(1.0, sourceFileCount / 10);
 
     // Language density: +2.5
@@ -7822,7 +7974,7 @@ __factories["./src/discovery/source-root-scorer"] = function(module, exports) {
     return count;
   }
 
-  module.exports = { scoreCandidate, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS };
+  module.exports = { scoreCandidate, countTreeCode, sourceFileCountFor, getRecentlyChangedDirs, ROOT_ENTRYPOINTS, JVM_PATH_PATTERN, CODE_EXTS, AUTO_SKIP, PENALTY_DIRS };
   
 };
 
@@ -7993,6 +8145,24 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
       if (!checks.some((c) => c.id === 'config')) add('config', 'Config & source roots', 'warn', `could not load config: ${e.message}`);
     }
 
+    // 2b. The repository figure `generate` and `validate` print: the same words, the same count, and a
+    // warning when the roots cover less than 80% of it (#997). The row above only said which roots were
+    // picked, and was green for a layout that left 97% of the repository out.
+    try {
+      if (config && Array.isArray(config.srcDirs) && config.srcDirs.length) {
+        const cov = __require('./src/analysis/coverage-score');
+        const rc = cov.repositoryCoverage(cwd, config);
+        const row = checks.find((c) => c.id === 'config');
+        if (row && rc.all > 0) {
+          row.detail += ` \u2014 ${cov.formatRepositoryCoverage(rc)}`;
+          if (rc.pct < 80 && row.status === 'ok') {
+            row.status = 'warn';
+            row.fix = 'run: sigmap roots --explain   or widen "srcDirs" in gen-context.config.json';
+          }
+        }
+      }
+    } catch (_) {}
+
     // 3. Generated context file
     const ctxFiles = _contextFiles(cwd);
     if (ctxFiles.length === 0) {
@@ -8094,6 +8264,44 @@ __factories["./src/doctor/diagnose"] = function(module, exports) {
         const line = formatCoverage(cov, 'in-context');
         if (cov.score < 70) add('coverage', 'Coverage', 'warn', line, 'increase maxTokens or expand srcDirs in gen-context.config.json');
         else add('coverage', 'Coverage', 'ok', line);
+      }
+    } catch (_) {}
+
+    // 6b. Instruction files against what the host reads (#995)
+    //
+    // Codex loads at most `project_doc_max_bytes` of an AGENTS.md and Claude Code asks for
+    // a short CLAUDE.md. Truncation is silent, so a file over its limit is a warning here,
+    // whoever wrote the lines that put it there.
+    try {
+      const hl = __require('./src/util/host-limits');
+      const home = opts.home || os.homedir();
+      const env = opts.env || process.env;
+      const rows = [];
+      const over = [];
+      for (const [file, target] of [['AGENTS.md', 'codex'], ['CLAUDE.md', 'claude']]) {
+        let text;
+        try { text = fs.readFileSync(path.join(cwd, file), 'utf8'); } catch (_) { continue; }
+        const limit = hl.hostLimit(target, config, env, home);
+        if (!limit) {
+          const unit = target === 'claude' ? 'lines' : 'bytes';
+          rows.push(`${file} ${hl.formatSize(unit, hl.measure(unit, text))} (cap off)`);
+          continue;
+        }
+        const size = hl.measure(limit.unit, text);
+        rows.push(`${file} ${hl.formatSize(limit.unit, size)} of ${hl.formatSize(limit.unit, limit.max)}`);
+        if (size > limit.max) {
+          over.push(target === 'codex'
+            ? `${file} is over Codex's limit: it reads the first ${hl.formatSize('bytes', limit.max)} and cuts the rest`
+            : `${file} is over ${limit.max} lines: Claude Code asks for a short file`);
+        }
+      }
+      if (rows.length) {
+        if (over.length) {
+          add('instructions', 'Instruction files', 'warn', `${rows.join(' · ')} — ${over.join('; ')}`,
+            'run: sigmap   (the "codex" and "claude" outputs are written to fit); the lines you wrote above SigMap\'s block are yours to trim, and codexMaxBytes / claudeMaxLines set the limit');
+        } else {
+          add('instructions', 'Instruction files', 'ok', rows.join(' · '));
+        }
       }
     } catch (_) {}
 
@@ -12339,6 +12547,8 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
+  const { lateLast } = __require('./src/util/late-last');
+  const { atStatementStart } = __require('./src/util/statement-start');
 
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
@@ -12422,7 +12632,7 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     // expression works. Leading whitespace is allowed as well, which is what
     // makes the mixin-factory form (`superclass => class X extends superclass`)
     // reachable — its class sits indented on its own line.
-    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+(\w+)\b/gm;
+    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?class\s+([\w$]+)(?![\w$])/gm;
     // Web-component surface (#537) — gated on detection, see typescript.js.
     const compMarkers = scanComponentMarkers(stripped);
     for (const m of stripped.matchAll(classRegex)) {
@@ -12465,13 +12675,23 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
     // Exported named functions — `export function f` and `export default function f`.
     // The modifiers are CAPTURED, never searched for in the whole match: `export
     // function async(` must not read as an async function because of its NAME (#902).
-    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       const asyncKw = m[2] ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[3]));
       const startLn = lineAt(stripped, m.index);
       const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
       sigs.push(`export ${m[1] ? 'default ' : ''}${asyncKw}function ${m[3]}(${normalizeParams(params)})${retStr}`);
       docHintFor[sigs.length - 1] = docHints.get(m[3]);
+      anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+    }
+
+    // `export default function () {}`: nothing names it, so the entry carries no name (#996).
+    for (const m of stripped.matchAll(/export\s+default\s+(async\s+)?function\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
+      const startLn = lineAt(stripped, m.index);
+      const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+      sigs.push(`export default ${m[1] ? 'async ' : ''}function (${normalizeParams(params)})`);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
 
@@ -12483,15 +12703,22 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       if (closeIdx === -1 || !/^\s*=>/.test(masked.slice(closeIdx + 1, closeIdx + 40))) return;
       const retStr = formatReturnHint(returnHints.get(name));
       const startLn = lineAt(stripped, declIdx);
-      sigs.push(`${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
+      sigs.push(name ? `${prefix}const ${name} = ${asyncKw}(${normalizeParams(params)}) =>${retStr}` : `${prefix}${asyncKw}(${normalizeParams(params)}) =>${retStr}`);
       docHintFor[sigs.length - 1] = docHints.get(name);
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
       emittedArrows.add(name);
     };
 
     // Exported arrow functions
-    for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*=\s*(?:async\s+)?\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+const\s+([\w$]+)\s*=\s*(?:async\s+)?\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       pushArrow(m.index, m.index + m[0].length - 1, m[1], m[0].includes('async') ? 'async ' : '', 'export ');
+    }
+
+    // `export default (a) => …`: an anonymous default arrow.
+    for (const m of masked.matchAll(/export\s+default\s+(async\s+)?\(/gm)) {
+      if (!atStatementStart(masked, m.index)) continue;
+      pushArrow(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
     // `export default <identifier>` over a const-bound arrow (#900). A function
@@ -12517,8 +12744,39 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       }
     }
 
+    // CommonJS assignment methods — `app.use = function use(fn) {…}` — on the module's exported
+    // object (#996). That object is `exports`, `module.exports`, a name bound to
+    // `module.exports` (`var app = module.exports = {}`) or one that `module.exports = name`
+    // names; a local object that is never exported is not the module's API.
+    const exportedObjects = new Set(['exports', 'module.exports']);
+    for (const m of masked.matchAll(/^(?:(?:var|let|const)\s+)?([A-Za-z_$][\w$]*)\s*=\s*(?:exports\s*=\s*)?module\.exports\s*=/gm)) exportedObjects.add(m[1]);
+    for (const m of masked.matchAll(/^module\.exports\s*=\s*([A-Za-z_$][\w$]*)[ \t]*;?[ \t]*$/gm)) exportedObjects.add(m[1]);
+    const arrowEndLine = (closeIdx, startLn) => {
+      const arrow = /^\s*=>\s*/.exec(masked.slice(closeIdx + 1, closeIdx + 40));
+      if (!arrow) return -1;
+      const bodyAt = closeIdx + 1 + arrow[0].length;
+      return masked[bodyAt] === '{' ? lineAt(stripped, blockEndIdx(bodyAt + 1)) : lineAt(stripped, masked.indexOf(';', bodyAt) === -1 ? bodyAt : masked.indexOf(';', bodyAt));
+    };
+    for (const obj of exportedObjects) {
+      const o = obj.replace(/[$.]/g, '\\$&');
+      for (const m of masked.matchAll(new RegExp('^' + o + '\\.([\\w$]+)\\s*=\\s*(async\\s+)?function\\b\\s*([\\w$]*)\\s*\\(', 'gm'))) {
+        const startLn = lineAt(stripped, m.index);
+        const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+        sigs.push(`${obj}.${m[1]} = ${m[2] ? 'async ' : ''}function ${m[3]}(${normalizeParams(params)})`);
+        anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
+      }
+      for (const m of masked.matchAll(new RegExp('^' + o + '\\.([\\w$]+)\\s*=\\s*(async\\s+)?\\(', 'gm'))) {
+        const { params, closeIdx } = paramsFrom(m.index + m[0].length - 1);
+        const startLn = lineAt(stripped, m.index);
+        const endLn = closeIdx === -1 ? -1 : arrowEndLine(closeIdx, startLn);
+        if (endLn === -1) continue; // a parenthesised expression, not an arrow
+        sigs.push(`${obj}.${m[1]} = ${m[2] ? 'async ' : ''}(${normalizeParams(params)}) =>`);
+        anchors.push([startLn, endLn]);
+      }
+    }
+
     // Top-level named functions (non-exported)
-    for (const m of stripped.matchAll(/^(?:async\s+)?function\s+(\w+)\s*\(/gm)) {
+    for (const m of stripped.matchAll(/^(?:async\s+)?function\s+([\w$]+)\s*\(/gm)) {
       const asyncKw = m[0].startsWith('async') ? 'async ' : '';
       const retStr = formatReturnHint(returnHints.get(m[1]));
       const startLn = lineAt(stripped, m.index);
@@ -12528,9 +12786,11 @@ __factories["./src/extractors/javascript"] = function(module, exports) {
       anchors.push([startLn, fnEndLine(closeIdx + 1, startLn)]);
     }
 
-    const withAnchors = sigs.map((s, i) => {
-      const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
-      return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+    // The shapes read since #996 follow the ones always read, so the 200-entry cap can never push an old entry out.
+    const ordered = lateLast(sigs, anchors, docHintFor);
+    const withAnchors = ordered.sigs.map((s, i) => {
+      const anchored = ordered.anchors[i] ? withAnchor(s, ordered.anchors[i][0], ordered.anchors[i][1]) : s;
+      return ordered.docHints[i] ? `${anchored}  # ${ordered.docHints[i]}` : anchored;
     });
     return capWithNotice(withAnchors, 200, 'signatures');
   }
@@ -18714,6 +18974,8 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
   const { capWithNotice, capMembersWithNotice } = __require('./src/util/truncate');
   const { stripComments, maskCode, readBalanced } = __require('./src/extractors/scan');
   const { scanComponentMarkers, markersForClass, componentMembers } = __require('./src/extractors/component-surface');
+  const { lateLast } = __require('./src/util/late-last');
+  const { atStatementStart } = __require('./src/util/statement-start');
 
   // Class bodies are scanned to this many characters — guard against
   // pathological input only; the old 4KB window silently hid members (#576).
@@ -18738,6 +19000,9 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // Kept parallel to `sigs` so existing push/mutation logic stays untouched;
     // anchors are applied once at return.
     const anchors = [];
+    // Indexes of declarations whose shape this extractor could not read before #996 and that the text of the
+    // signature does not give away; they are listed after the rest (see late-last.js).
+    const lateAt = new Set();
 
     // stripComments is string-aware (a `//` inside a string literal survives);
     // maskCode additionally blanks string/template contents so every delimiter
@@ -18761,7 +19026,8 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     const blockEndIdx = (bodyStart) => bodyStart + extractBlock(masked, bodyStart).length;
 
     // Exported interfaces
-    for (const m of stripped.matchAll(/^export\s+interface\s+(\w+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+    for (const m of stripped.matchAll(/export\s+interface\s+([\w$]+)(?:<[^{]*>)?\s*(?:extends\s+[^{]+)?\{/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       const bodyStart = m.index + m[0].length;
       sigs.push(`export interface ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -18775,13 +19041,15 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     }
 
     // Exported type aliases
-    for (const m of stripped.matchAll(/^export\s+type\s+(\w+)(?:<[^=]*>)?\s*=/gm)) {
+    for (const m of stripped.matchAll(/export\s+type\s+([\w$]+)(?:<[^=]*>)?\s*=/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       sigs.push(`export type ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, m.index + m[0].length)]);
     }
 
     // Exported enums
-    for (const m of stripped.matchAll(/^export\s+(?:const\s+)?enum\s+(\w+)\s*\{/gm)) {
+    for (const m of stripped.matchAll(/export\s+(?:const\s+)?enum\s+([\w$]+)\s*\{/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       const bodyStart = m.index + m[0].length;
       sigs.push(`export enum ${m[1]}`);
       anchors.push([lineAt(stripped, m.index), lineAt(stripped, blockEndIdx(bodyStart))]);
@@ -18793,7 +19061,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // never matched the old inline form, so the whole class was dropped:
     // no class line, no members. Leading whitespace is allowed so an indented
     // class expression — the mixin-factory form — is reachable too.
-    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?(abstract\s+)?class\s+(\w+)\b/gm;
+    const classRegex = /^[ \t]*(export\s+(?:default\s+)?)?(abstract\s+)?class\s+([\w$]+)(?![\w$])/gm;
 
     /**
      * Index of the `{` that opens a class body, or -1. Depth-aware so a
@@ -18808,7 +19076,7 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
         if (c === '(' || c === '<' || c === '[') depth++;
         else if (c === ')' || c === '>' || c === ']') depth = Math.max(0, depth - 1);
         else if (c === '{' && depth === 0) return i;
-        else if (c === ';' || c === '=') return -1;
+        else if (c === ';' || (c === '=' && depth === 0)) return -1;
       }
       return -1;
     };
@@ -18836,6 +19104,8 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       // a plain `extends Base` stays gated on component detection so existing
       // output is unchanged.
       const base = heritage && (isComponent || heritage.includes('(')) ? ` extends ${heritage}` : '';
+      // `class X<T = any>` was dropped whole: the scan took the default's `=` for an assignment (#996).
+      if (stripped.slice(m.index + m[0].length, bodyBrace).includes('=')) lateAt.add(sigs.length);
       sigs.push(`${prefix}${abs}class ${m[3]}${base}`);
       const classStartLn = lineAt(stripped, m.index);
       anchors.push([classStartLn, lineAt(stripped, blockEnd)]);
@@ -18902,20 +19172,29 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
     // Exported top-level functions (not methods). The modifiers are CAPTURED, never
     // searched for in the whole match: `export function async(` must not read as an
     // async function because of its NAME (#902 — svelte has exactly that function).
-    for (const m of stripped.matchAll(/^export\s+(default\s+)?(async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+    for (const m of stripped.matchAll(/export\s+(default\s+)?(async\s+)?function\s+([\w$]+)\s*(?:<[^(]*>)?\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
       pushFunction(m.index, m.index + m[0].length - 1, m[3], m[2] ? 'async ' : '', m[1] ? 'export default ' : 'export ');
+    }
+
+    // `export default function () {}`: nothing names it, so the entry carries no name (zod's locale
+    // files are all this shape, and a file of them extracted as nothing).
+    for (const m of stripped.matchAll(/export\s+default\s+(async\s+)?function\s*(?:<[^(]*>)?\s*\(/gm)) {
+      if (!atStatementStart(stripped, m.index)) continue;
+      pushFunction(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
     // Arrow-function counterpart of pushFunction: `export const f = (…) =>`, and
     // the `const f = (…) =>` an `export default f` names.
-    const pushArrow = (declIdx, openIdx, name, asyncKw, prefix) => {
+    const pushArrow = (declIdx, openIdx, name, asyncKw, prefix, late) => {
       const { params: rawParams, closeIdx } = paramsFrom(openIdx);
       if (closeIdx === -1) return;
       // Arrow shape check, mirroring the old `\)\s*(?::\s*[^=>{]+)?\s*=>` tail.
       const tail = masked.slice(closeIdx + 1, closeIdx + 200).match(/^\s*(?::\s*[^=>{]+)?\s*=>/);
       if (!tail) return;
       const params = normalizeParams(rawParams);
-      sigs.push(`${prefix}const ${name} = ${asyncKw}(${params}) =>`);
+      if (late) lateAt.add(sigs.length);
+      sigs.push(name ? `${prefix}const ${name} = ${asyncKw}(${params}) =>` : `${prefix}${asyncKw}(${params}) =>`);
       docHintFor[sigs.length - 1] = docHints.get(name);
       const matchEnd = closeIdx + 1 + tail[0].length;
       const bodyStart = masked.indexOf('{', matchEnd);
@@ -18944,9 +19223,55 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     };
 
-    // Exported arrow functions / const functions
-    for (const m of stripped.matchAll(/^export\s+const\s+(\w+)\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/gm)) {
-      pushArrow(m.index, m.index + m[0].length - 1, m[1], /=\s*async\s+/.test(m[0]) ? 'async ' : '', 'export ');
+    // `export const name = make(…)`: a const bound to a call is listed by its name and its anchor,
+    // without the call's arguments, which are its body (#996). The zustand store form below has
+    // its own entry, so it is skipped here.
+    const pushFactory = (declIdx, from, name) => {
+      const cm = /^([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*(?:<[^()]*>)?\s*\(/.exec(masked.slice(from, from + 200));
+      if (!cm) return;
+      const callee = cm[1].replace(/\s+/g, '');
+      if (/^(?:new|await|typeof|void|function|class|require|import|async|super)$/.test(callee)) return;
+      if (callee === 'create' && /^use\w+Store$/.test(name)) return;
+      const closeIdx = readBalanced(masked, from + cm[0].length - 1);
+      if (closeIdx === -1) return;
+      sigs.push(`export const ${name} = ${callee}(...)`);
+      docHintFor[sigs.length - 1] = docHints.get(name);
+      anchors.push([lineAt(stripped, declIdx), lineAt(stripped, closeIdx)]);
+      emitted.add(name);
+    };
+
+    // Exported consts. The initialiser is found by scanning, not by one pattern: a type annotation
+    // may itself contain `=>` (`: (e: Error) => Function = …`), an arrow may be generic
+    // (`= <T>(x: T) => x`), and a factory call has no arrow at all. An arrow's own signature is
+    // unchanged from before; only the shapes that used to be missed are new.
+    for (const m of masked.matchAll(/export\s+const\s+([\w$]+)/gm)) {
+      if (!atStatementStart(masked, m.index)) continue;
+      let p = skipSpace(masked, m.index + m[0].length);
+      if (masked[p] === ':') {
+        const eq = findAssign(masked, p + 1);
+        if (eq === -1) continue;
+        p = eq;
+      }
+      if (masked[p] !== '=' || masked[p + 1] === '=' || masked[p + 1] === '>') continue;
+      p = skipSpace(masked, p + 1);
+      let asyncKw = '';
+      const am = /^async\s+/.exec(masked.slice(p, p + 12));
+      if (am) { asyncKw = 'async '; p += am[0].length; }
+      if (masked[p] === '<') {
+        const close = skipAngles(masked, p);
+        if (close === -1) continue;
+        p = skipSpace(masked, close + 1);
+      }
+      // An arrow the old pattern already matched keeps its place; a generic one, or one behind an annotation
+      // that contains `=>`, is a shape that was missed before and is listed after the rest.
+      const legacy = /^export\s+const\s+\w+\s*(?::\s*[^=]+)?\s*=\s*(?:async\s+)?\(/.test(stripped.slice(m.index, m.index + 600));
+      if (masked[p] === '(') { pushArrow(m.index, p, m[1], asyncKw, 'export ', !legacy); continue; }
+      if (!asyncKw) pushFactory(m.index, p, m[1]);
+    }
+
+    // `export default (a) => …`: an anonymous default arrow.
+    for (const m of masked.matchAll(/^export\s+default\s+(async\s+)?\(/gm)) {
+      pushArrow(m.index, m.index + m[0].length - 1, '', m[1] ? 'async ' : '', 'export default ');
     }
 
     // `export default <identifier>` — the declaration it names is usually NOT
@@ -18990,11 +19315,53 @@ __factories["./src/extractors/typescript"] = function(module, exports) {
       }
     }
 
-    const withAnchors = sigs.map((s, i) => {
-      const anchored = anchors[i] ? withAnchor(s, anchors[i][0], anchors[i][1]) : s;
-      return docHintFor[i] ? `${anchored}  # ${docHintFor[i]}` : anchored;
+    // The shapes read since #996 follow the ones always read, so the 200-entry cap can never push an old entry out.
+    const ordered = lateLast(sigs, anchors, docHintFor, lateAt);
+    const withAnchors = ordered.sigs.map((s, i) => {
+      const anchored = ordered.anchors[i] ? withAnchor(s, ordered.anchors[i][0], ordered.anchors[i][1]) : s;
+      return ordered.docHints[i] ? `${anchored}  # ${ordered.docHints[i]}` : anchored;
     });
     return capWithNotice(withAnchors, 200, 'signatures');
+  }
+
+  function skipSpace(src, i) {
+    while (i < src.length && /\s/.test(src[i])) i++;
+    return i;
+  }
+
+  /**
+   * Index of the `=` that ends a type annotation, or -1. Brackets are tracked, and the arrow of
+   * a function TYPE (`(e: Error) => Function`) is not an assignment.
+   */
+  function findAssign(masked, from) {
+    let depth = 0;
+    const limit = Math.min(masked.length, from + 800);
+    for (let i = from; i < limit; i++) {
+      const c = masked[i];
+      if (c === '=') {
+        if (masked[i + 1] === '>') { i++; continue; }
+        if (depth === 0 && masked[i + 1] !== '=') return i;
+        continue;
+      }
+      if (c === '(' || c === '[' || c === '{' || c === '<') depth++;
+      else if (c === ')' || c === ']' || c === '}' || c === '>') depth = Math.max(0, depth - 1);
+      else if (c === ';' && depth === 0) return -1;
+    }
+    return -1;
+  }
+
+  /** Index of the `>` that closes the generic list opened at `from`, or -1. */
+  function skipAngles(masked, from) {
+    let depth = 0;
+    const limit = Math.min(masked.length, from + 400);
+    for (let i = from; i < limit; i++) {
+      const c = masked[i];
+      if (c === '=' && masked[i + 1] === '>') { i++; continue; }
+      if (c === '<') depth++;
+      else if (c === '>') { depth--; if (depth === 0) return i; }
+      else if (c === ';') return -1;
+    }
+    return -1;
   }
 
   function extractBlock(src, startIndex) {
@@ -28261,6 +28628,30 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
   }
 
   /**
+   * Why a file with no indexed signatures is not indexed, when the answer is that it is
+   * generated (#876): re-running the generator would not change it, so the generic
+   * "Run: node gen-context.js" is advice that cannot help.
+   * @returns {string|null}
+   */
+  function _generatedNote(abs, rel) {
+    let fd;
+    try {
+      const size = fs.statSync(abs).size;
+      fd = fs.openSync(abs, 'r');
+      const head = Buffer.alloc(Math.min(4096, size));
+      fs.readSync(fd, head, 0, head.length, 0);
+      const tail = Buffer.alloc(Math.min(512, size));
+      fs.readSync(fd, tail, 0, tail.length, size - tail.length);
+      const why = __require('./src/util/file-class').generatedReason(rel, head.toString('utf8'), tail.toString('utf8'));
+      return why ? `_Not indexed: this file looks generated (${why}). Index the sources it is built from; re-running the generator will not add it._` : null;
+    } catch (_) {
+      return null;
+    } finally {
+      if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) { /* already closed */ } }
+    }
+  }
+
+  /**
    * explain_file({ path }) → string
    *
    * Returns a file's signatures, its direct imports, and files that import it.
@@ -28294,7 +28685,7 @@ __factories["./src/mcp/handlers"] = function(module, exports) {
       if (sigs && sigs.length > 0) {
         lines.push(...sigs);
       } else {
-        lines.push('_No signatures indexed for this file. Run: node gen-context.js_');
+        lines.push(_generatedNote(targetAbs, targetRel) || '_No signatures indexed for this file. Run: node gen-context.js_');
       }
       indexedFiles = [...index.keys()].map((rel) => path.resolve(cwd, rel));
     } catch (_) {
@@ -29631,7 +30022,7 @@ __factories["./src/mcp/server"] = function(module, exports) {
 
   const SERVER_INFO = {
     name: 'sigmap',
-    version: '8.84.0',
+    version: '8.85.0',
     description: 'SigMap MCP server — code signatures on demand',
   };
 
@@ -38778,6 +39169,62 @@ __factories["./src/util/file-class"] = function(module, exports) {
     return /(^|\/)(dist|build|\.next|\.nuxt|out|\.venv|venv|vendor|target)(\/|$)/i.test(_norm(filePath));
   }
 
+  // A comment line that opens with one of these says the file is machine-made. The bare
+  // word must open a sentence ("Generated by …"): a wrapped line that merely STARTS with
+  // a lowercase "generated JS client)" is prose, and read as a header it would drop a
+  // hand-written file without a word.
+  const _GENERATED_STRONG = /^\s*(?:\/\/+|\/\*+!?|\*|#|<!--)\s*(?:@generated\b|auto-?generated\b|code generated\b|this (?:file|code) (?:is|was) (?:auto-?)?generated\b)/i;
+  const _GENERATED_BARE = /^\s*(?:\/\/+|\/\*+!?|\*|#|<!--)\s*(?:Generated|GENERATED)\b/;
+  const _DO_NOT_EDIT = /\bDO NOT (?:EDIT|MODIFY)\b/i;
+  // A comment line that names both a bundle and the act of generating it.
+  const _BUNDLE_HEADER = /^\s*(?:\/\/+|\/\*+!?|\*|#)\s*.*\bbundle[ds]?\b.*\bgenerated\b|^\s*(?:\/\/+|\/\*+!?|\*|#)\s*.*\bgenerated\b.*\bbundle[ds]?\b/i;
+  // What a bundler or a compiler writes at the top of its output and nobody writes by hand.
+  const _BUILD_RUNTIME = [
+    [/\bwebpackBootstrap\b|\b__webpack_require__\b/, 'webpack runtime'],
+    [/\bvar __commonJS = |\bvar __toESM = |\bvar __defProp = Object\.defineProperty\b/, 'esbuild runtime helpers'],
+    [/\bparcelRequire\b/, 'parcel runtime'],
+    [/Object\.defineProperty\(exports,\s*["']__esModule["']/, 'compiled module (__esModule)'],
+  ];
+
+  /**
+   * Why a file reads as generated, or null when it does not.
+   *
+   * Path and content only: the caller supplies the first and last bytes it read, so
+   * this stays a pure predicate. Four independent signals, any one of which is
+   * enough, none of them a size guess:
+   *   - the path names a build-output directory or a `.generated.` / `.pb.` file;
+   *   - a comment in the first lines OPENS with "generated" / "auto-generated" /
+   *     `@generated`, or says "DO NOT EDIT", or names a generated bundle;
+   *   - the file opens with a bundler's or compiler's own runtime helpers;
+   *   - the last line points at a source map.
+   *
+   * A hand-written file that merely mentions generated code in prose ("reads
+   * the files webpack generated") matches none of them: the comment has to open
+   * with the word, or be about a bundle.
+   *
+   * @param {string} filePath - repo-relative
+   * @param {string} [head] - the first few KiB of the file
+   * @param {string} [tail] - the last few hundred bytes
+   * @returns {string|null} a short human reason, or null
+   */
+  function generatedReason(filePath, head, tail) {
+    const p = _norm(filePath);
+    if (isGeneratedFile(p)) return 'machine-emitted file name';
+    const dir = /(^|\/)(dist|build|\.next|\.nuxt|out|vendor|target)(\/|$)/i.exec(p);
+    if (dir) return `build-output directory (${dir[2].toLowerCase()}/)`;
+    const text = typeof head === 'string' ? head : '';
+    const lines = text.split('\n', 14);
+    for (const line of lines) {
+      if (_GENERATED_STRONG.test(line) || _GENERATED_BARE.test(line)) return 'header says it is generated';
+      if (_DO_NOT_EDIT.test(line) && /^\s*(?:\/\/+|\/\*+|\*|#)/.test(line)) return 'header says do not edit';
+      if (_BUNDLE_HEADER.test(line)) return 'header says it is a generated bundle';
+    }
+    const top = text.slice(0, 4096);
+    for (const [re, why] of _BUILD_RUNTIME) if (re.test(top)) return `opens with ${why}`;
+    if (typeof tail === 'string' && /(?:\/\/[#@]|\/\*[#@])\s*sourceMappingURL=/.test(tail)) return 'points at a source map';
+    return null;
+  }
+
   /**
    * Prose documentation.
    *
@@ -38834,6 +39281,7 @@ __factories["./src/util/file-class"] = function(module, exports) {
     isMockFile,
     isGeneratedFile,
     isGeneratedDir,
+    generatedReason,
     isDocsFile,
     isCiFile,
   };
@@ -38920,6 +39368,97 @@ __factories["./src/util/git"] = function(module, exports) {
   
 };
 
+// ── ./src/util/host-limits ──
+__factories["./src/util/host-limits"] = function(module, exports) {
+  
+  /**
+   * host-limits.js — how much of an instruction file each host reads (#995).
+   *
+   * A host loads a bounded part of the file SigMap writes for it and says nothing
+   * about the rest:
+   *
+   *   - Codex reads at most `project_doc_max_bytes` of an `AGENTS.md` (32 KiB unless
+   *     the user's `~/.codex/config.toml` says otherwise), so a 43 KB file reaches the
+   *     agent cut in the middle of a section.
+   *   - Claude Code's own guidance is to keep `CLAUDE.md` short, about 200 lines; a
+   *     file of 887 lines is mostly paid for and mostly unread.
+   *
+   * This module answers "what is the limit for this target" in one place, so the
+   * writer that trims to it and `sigmap doctor` that reports against it cannot
+   * disagree. Zero dependencies; the only I/O is one bounded read of the host's own
+   * config file, with no TOML parser.
+   */
+
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+
+  const CODEX_DEFAULT_BYTES = 32 * 1024;
+  const CLAUDE_DEFAULT_LINES = 200;
+
+  /**
+   * `project_doc_max_bytes` from Codex's own config, or null when it is absent.
+   * `CODEX_HOME` moves the directory, exactly as it does for Codex itself.
+   */
+  function codexConfiguredBytes(env, home) {
+    const dir = (env && env.CODEX_HOME) || path.join(home || os.homedir(), '.codex');
+    try {
+      const text = fs.readFileSync(path.join(dir, 'config.toml'), 'utf8').slice(0, 262144);
+      const m = /^\s*project_doc_max_bytes\s*=\s*(\d[\d_]*)\s*(?:#.*)?$/m.exec(text);
+      if (m) {
+        const n = parseInt(m[1].replace(/_/g, ''), 10); // TOML allows 65_536
+        if (n > 0) return n;
+      }
+    } catch (_) { /* no Codex config: the default applies */ }
+    return null;
+  }
+
+  /**
+   * The limit on the instruction file written for `target`, or null when the host has
+   * none or the project turned the cap off (`codexMaxBytes` / `claudeMaxLines` of 0).
+   *
+   * @param {string} target - 'codex' | 'claude'
+   * @param {object} [config] - loaded SigMap config
+   * @param {object} [env] - process.env (for CODEX_HOME)
+   * @param {string} [home] - home directory (for tests)
+   * @returns {{ unit: 'bytes'|'lines', max: number, source: string, host: string }|null}
+   */
+  function hostLimit(target, config, env, home) {
+    const cfg = config || {};
+    if (target === 'codex') {
+      if (cfg.codexMaxBytes === 0) return null;
+      if (Number.isFinite(cfg.codexMaxBytes) && cfg.codexMaxBytes > 0) {
+        return { unit: 'bytes', max: cfg.codexMaxBytes, source: 'codexMaxBytes in gen-context.config.json', host: 'Codex' };
+      }
+      const fromHost = codexConfiguredBytes(env || process.env, home);
+      if (fromHost) return { unit: 'bytes', max: fromHost, source: "project_doc_max_bytes in Codex's config.toml", host: 'Codex' };
+      return { unit: 'bytes', max: CODEX_DEFAULT_BYTES, source: "Codex's default project_doc_max_bytes", host: 'Codex' };
+    }
+    if (target === 'claude') {
+      if (cfg.claudeMaxLines === 0) return null;
+      if (Number.isFinite(cfg.claudeMaxLines) && cfg.claudeMaxLines > 0) {
+        return { unit: 'lines', max: cfg.claudeMaxLines, source: 'claudeMaxLines in gen-context.config.json', host: 'Claude Code' };
+      }
+      return { unit: 'lines', max: CLAUDE_DEFAULT_LINES, source: "Claude Code's guidance for CLAUDE.md", host: 'Claude Code' };
+    }
+    return null;
+  }
+
+  /** The size of `text` in the limit's own unit. */
+  function measure(unit, text) {
+    const s = String(text == null ? '' : text);
+    return unit === 'lines' ? s.split('\n').length : Buffer.byteLength(s, 'utf8');
+  }
+
+  /** `28.4 KiB` or `187 lines`. */
+  function formatSize(unit, n) {
+    return unit === 'lines' ? `${n.toLocaleString('en-US')} lines` : `${(n / 1024).toFixed(1)} KiB`;
+  }
+
+  module.exports = { hostLimit, measure, formatSize, codexConfiguredBytes, CODEX_DEFAULT_BYTES, CLAUDE_DEFAULT_LINES };
+  
+};
+
 // ── ./src/util/ignore ──
 __factories["./src/util/ignore"] = function(module, exports) {
   
@@ -38988,6 +39527,72 @@ __factories["./src/util/ignore"] = function(module, exports) {
   }
 
   module.exports = { loadIgnorePatterns, matchesIgnore };
+  
+};
+
+// ── ./src/util/late-last ──
+__factories["./src/util/late-last"] = function(module, exports) {
+  
+  /**
+   * Order a file's signature groups so that the entries for shapes an extractor LEARNED
+   * to read (#996) come after every entry it always listed.
+   *
+   * An extractor lists at most 200 signatures a file and appends a "+N more" marker. Teach
+   * it a new shape and, if the new entries are interleaved in file order, they push older
+   * ones past that cap: zod's `api.ts` went from 116 entries to a full 200 and lost 43 functions
+   * it used to list. Appending them instead means nothing previously listed can be displaced,
+   * a file with no new-shape entry is byte-identical to what it was, and a file already at the
+   * cap keeps exactly what it kept.
+   *
+   * A group is a declaration and its indented members. It is "late" when its head is one the
+   * extractor could not read before: a `$` name, an anonymous default export, a const bound to
+   * a call, a CommonJS assignment method, or a head the caller marked (a generic or typed arrow,
+   * a class whose generic list has a default).
+   */
+
+  const NAME = /^(?:export\s+)?(?:default\s+)?(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(?:const|function|class|interface|type|enum)\s+([\w$]+)/;
+  const LATE_HEAD = new RegExp([
+    '^export\\s+default\\s+(?:async\\s+)?(?:function\\s*\\(|\\()',                 // export default function () / export default (a) =>
+    '^export\\s+const\\s+[\\w$]+\\s*=\\s*[\\w$.]+\\(\\.\\.\\.\\)',                 // export const x = make(...)
+    '^[\\w$]+(?:\\.[\\w$]+)*\\.[\\w$]+\\s*=\\s*(?:async\\s+)?(?:function\\b|\\()',  // app.use = function use(fn)
+  ].join('|'));
+
+  /**
+   * @param {string[]} sigs
+   * @param {Array<[number, number]|null>} anchors parallel to sigs
+   * @param {string[]} docHints parallel to sigs (may be sparse)
+   * @param {Set<number>} [marked] indexes of heads the caller knows are new-shape
+   * @returns {{ sigs: string[], anchors: Array, docHints: string[] }}
+   */
+  function lateLast(sigs, anchors, docHints, marked) {
+    const groups = [];
+    for (let i = 0; i < sigs.length; ) {
+      let j = i + 1;
+      while (j < sigs.length && /^\s/.test(sigs[j])) j++;
+      groups.push([i, j]);
+      i = j;
+    }
+    const isLate = (i) => {
+      if ((marked && marked.has(i)) || LATE_HEAD.test(sigs[i])) return true;
+      const m = NAME.exec(sigs[i]);
+      return !!(m && m[1].includes('$'));
+    };
+    const first = [];
+    const last = [];
+    for (const g of groups) (isLate(g[0]) ? last : first).push(g);
+    if (last.length === 0 || first.length === 0) return { sigs, anchors, docHints };
+    const out = { sigs: [], anchors: [], docHints: [] };
+    for (const [a, b] of first.concat(last)) {
+      for (let k = a; k < b; k++) {
+        out.sigs.push(sigs[k]);
+        out.anchors.push(anchors[k]);
+        out.docHints.push(docHints[k]);
+      }
+    }
+    return out;
+  }
+
+  module.exports = { lateLast };
   
 };
 
@@ -39324,6 +39929,35 @@ __factories["./src/util/post-commit-hook"] = function(module, exports) {
   }
 
   module.exports = { HOOK_FLAG, hookLine, isOwnLine, scriptOf, installPostCommitHook, inspectPostCommitHook };
+  
+};
+
+// ── ./src/util/statement-start ──
+__factories["./src/util/statement-start"] = function(module, exports) {
+  
+  /**
+   * Whether `index` begins a statement on its line: at the start of a line, or behind a `;` or a
+   * `}` and any blanks (`} export const a = 1`).
+   *
+   * The extractors asked this with a lookbehind, `(?<=[;}][ \t]*)`. V8 up to Node 22 tries it at
+   * every position and walks back over the whole run of blanks, so a long string literal masked
+   * to spaces costs time with the square of its length: excalidraw's 790 KB base64 file did not
+   * finish on Node 22. Looking back from a match instead costs one short walk per `export`.
+   *
+   * @param {string} text
+   * @param {number} index  where the match begins
+   * @returns {boolean}
+   */
+  function atStatementStart(text, index) {
+    if (index <= 0) return true;
+    const prev = text[index - 1];
+    if (prev === '\n' || prev === '\r' || prev === '\u2028' || prev === '\u2029') return true;
+    let i = index - 1;
+    while (i >= 0 && (text[i] === ' ' || text[i] === '\t')) i--;
+    return i >= 0 && (text[i] === ';' || text[i] === '}');
+  }
+
+  module.exports = { atStatementStart };
   
 };
 
@@ -42571,7 +43205,7 @@ function writeAll(fd, text) {
   }
 }
 
-const VERSION = '8.84.0';
+const VERSION = '8.85.0';
 // A module resolves to the same thing for the life of the process, and this is asked for in per-file loops
 // (thousands of calls a run), so the answer is kept: each call used to cost a filesystem probe.
 const __sourceOrBundled = new Map();
@@ -42661,8 +43295,11 @@ function buildFileList(cwd, config) {
     for (const f of found) files.push(f);
   }
   files.push(...declaredEntrypoints(cwd, config, files));
+  // A declared entrypoint that is generated or ignored is not source even when srcDirs
+  // reached it, and repeats the modules it was built from (#876).
+  const kept = __skippedEntrypoints.size ? files.filter((f) => !__skippedEntrypoints.has(f)) : files;
   // Deduplicate
-  return [...new Set(files)];
+  return [...new Set(kept)];
 }
 
 /**
@@ -42810,22 +43447,53 @@ function collectPipelineEntries(cwd, config, existing) {
   return out;
 }
 
+// Declared entrypoints left out of the index, and why (absolute path → reason), as of
+// the last `declaredEntrypoints` call — what `sigmap explain` reports for them (#876).
+const __skippedEntrypoints = new Map();
+
+/** The first `head` and last `tail` bytes of a file as text, or null when it cannot be read. */
+function readFileEnds(file, head, tail) {
+  let fd;
+  try {
+    fd = fs.openSync(file, 'r');
+    const size = fs.fstatSync(fd).size;
+    const a = Buffer.alloc(Math.min(head, size));
+    fs.readSync(fd, a, 0, a.length, 0);
+    const b = Buffer.alloc(Math.min(tail, size));
+    fs.readSync(fd, b, 0, b.length, size - b.length);
+    return { head: a.toString('utf8'), tail: b.toString('utf8') };
+  } catch (_) {
+    return null;
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) { /* already closed */ } }
+  }
+}
+
 function declaredEntrypoints(cwd, config, existing) {
   const out = [];
+  __skippedEntrypoints.clear();
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
     const have = new Set(existing);
+    const ignorePatterns = loadIgnorePatterns(cwd);
     const refs = [];
     if (typeof pkg.main === 'string') refs.push(pkg.main);
     if (typeof pkg.bin === 'string') refs.push(pkg.bin);
     else if (pkg.bin && typeof pkg.bin === 'object') refs.push(...Object.values(pkg.bin).filter((v) => typeof v === 'string'));
     for (const ref of refs) {
       const abs = path.resolve(cwd, ref);
-      if (have.has(abs) || out.includes(abs)) continue;
       const rel = path.relative(cwd, abs);
       if (!rel || rel.startsWith('..')) continue;                       // outside the repo
       if ((config.exclude || []).some((x) => rel.split(path.sep).includes(x))) continue;
       if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) continue;
+      // Judged BEFORE the "already walked" test: with srcDirs ['.'] a bundle is
+      // walked like any file, and is still not source (#876).
+      const relPosix = rel.split(path.sep).join('/');
+      if (matchesIgnore(relPosix, ignorePatterns)) { __skippedEntrypoints.set(abs, 'matched .contextignore'); continue; }
+      const ends = readFileEnds(abs, 4096, 512);
+      const why = _fileClass().generatedReason(relPosix, ends && ends.head, ends && ends.tail);
+      if (why) { __skippedEntrypoints.set(abs, why); continue; }
+      if (have.has(abs) || out.includes(abs)) continue;
       out.push(abs);
     }
   } catch (_) { /* no package.json, or unreadable → nothing to add */ }
@@ -43215,7 +43883,7 @@ function pruneStaleContextSplits(cwd, keep) {
   return removed;
 }
 
-function applyTokenBudget(fileEntries, maxTokens, cwd = process.cwd()) {
+function applyTokenBudget(fileEntries, maxTokens, cwd = process.cwd(), opts = {}) {
   // fileEntries: [{ filePath, sigs, mtime }]
   // Per-file rendered overhead: "### <path>", code fences, trailing blank line.
   // A signature-only budget undercounts this, so when many files survive the
@@ -43394,8 +44062,10 @@ function applyTokenBudget(fileEntries, maxTokens, cwd = process.cwd()) {
     const parts = [];
     if (verboseDropped.length) parts.push(`dropped ${verboseDropped.length} file(s)`);
     if (collapsedCount) parts.push(`collapsed ${collapsedCount} low-priority file(s) to anchors`);
-    console.warn(`[sigmap] budget: ${parts.join(', ')} to stay under ${maxTokens} tokens`);
-    if (process.argv.includes('--verbose')) {
+    // A caller that sizes the same entries for a second target (an adapter with a host limit) says
+    // what it did itself; the generic line would report the second pass as if it were the first.
+    if (!opts.quiet) console.warn(`[sigmap] budget: ${parts.join(', ')} to stay under ${maxTokens} tokens`);
+    if (process.argv.includes('--verbose') && !opts.quiet) {
       for (const { filePath, reason } of verboseDropped) {
         console.warn(`[sigmap] dropped: ${path.relative(process.cwd(), filePath)} — ${reason}`);
       }
@@ -43942,7 +44612,71 @@ function outputPaths(targets, cwd, config) {
   return [...seen];
 }
 
-function writeOutputs(content, targets, cwd, config) {
+/**
+ * Fit the content written for a host under the limit that host reads (#995).
+ *
+ * Codex loads at most `project_doc_max_bytes` of an AGENTS.md (32 KiB by default) and
+ * Claude Code asks for a short CLAUDE.md (about 200 lines); what lies past the limit is
+ * cut without a word. So the file is measured as it will be WRITTEN, human lines above
+ * SigMap's block included, and `shrink` re-sizes the same entries with the existing
+ * budget until it fits: the lowest-priority files go first, by the order the main
+ * budget already uses (tests, config, generated, least recently changed, fewest
+ * signatures), and the artifact says how many it left out. The optional sections
+ * (deps, versions, todos, changes) are dropped for this file only when the limit is
+ * tighter than they are. A limit that the lines above the block already exceed is
+ * said, and the block shrinks to its fixed header.
+ *
+ * `shrink(tokens, lean)` → { content, kept, total }. Without it (every strategy but the
+ * single budgeted file) the content is returned as it is.
+ */
+function fitToHostLimit(target, content, cwd, config, adapterOpts, shrink) {
+  if (typeof shrink !== 'function') return content;
+  const hl = __require('./src/util/host-limits');
+  const limit = hl.hostLimit(target, config, process.env);
+  if (!limit) return content;
+  let place;
+  if (target === 'codex') {
+    const mod = __require('./packages/adapters/codex');
+    place = (c) => mod.place(stripFormatHeader(c), cwd, adapterOpts).content;
+  } else {
+    place = (c) => placeClaude(c, cwd).content;
+  }
+  const sizeOf = (c) => hl.measure(limit.unit, place(c));
+  if (sizeOf(content) <= limit.max) return content;
+
+  const label = target === 'codex' ? 'AGENTS.md' : 'CLAUDE.md';
+  const said = `${hl.formatSize(limit.unit, limit.max)} (${limit.source})`;
+  for (const lean of [false, true]) {
+    const floor = shrink(0, lean);
+    const floorSize = sizeOf(floor.content);
+    if (floorSize > limit.max) {
+      if (lean) {
+        console.warn(`[sigmap] ${label}: ${hl.formatSize(limit.unit, floorSize)} with no signatures at all — the lines above SigMap's block are already over ${limit.host}'s limit of ${said}`);
+        return floor.content;
+      }
+      continue; // the optional sections alone are over: try without them
+    }
+    // A fit exists. The size is a fixed part (the floor) plus a part that grows with the
+    // budget in steps (a file is in or out), so: start from the linear estimate, reach up a
+    // little after every fit, bisect after every miss, and keep the largest budget that fit.
+    let lo = 0;
+    let best = floor;
+    let hi = shrink.startTokens || 1; // the main budget's own render did not fit
+    let t = Math.floor(hi * (limit.max - floorSize) / Math.max(1, sizeOf(content) - floorSize) * 0.97);
+    for (let i = 0; i < 8 && hi - lo > Math.max(4, Math.floor(lo * 0.03)); i++) {
+      t = Math.max(lo + 1, Math.min(hi - 1, t));
+      const probe = shrink(t, lean);
+      if (sizeOf(probe.content) <= limit.max) { lo = t; best = probe; t = Math.floor(t * 1.15); }
+      else { hi = t; t = Math.floor((lo + hi) / 2); }
+    }
+    const cur = best;
+    console.warn(`[sigmap] ${label}: kept ${cur.kept} of ${cur.total} files to fit ${limit.host}'s limit of ${said}${lean ? ', without the deps, todos and changes sections' : ''}`);
+    return cur.content;
+  }
+  return content;
+}
+
+function writeOutputs(content, targets, cwd, config, shrink) {
   config = config || {};
   // Adapters place their wall-clock stamp by layout (#683).
   const adapterOpts = {
@@ -43961,7 +44695,7 @@ function writeOutputs(content, targets, cwd, config) {
 
   for (const target of targets) {
     if (target === 'claude') {
-      writeClaude(content, cwd);
+      writeClaude(fitToHostLimit('claude', content, cwd, config, adapterOpts, shrink), cwd);
       continue;
     }
     // v3.0+ adapter targets (copilot, openai, gemini, codex) — use bundled adapter to format + write
@@ -43971,7 +44705,9 @@ function writeOutputs(content, targets, cwd, config) {
         // Adapters add their own header via format() — strip the formatOutput() header
         // so the content body (## src, ## deps, etc.) is passed without a pre-existing
         // header, preventing duplicate "# Code signatures" blocks on every run.
-        const adapterContent = stripFormatHeader(content);
+        const adapterContent = stripFormatHeader(target === 'codex'
+          ? fitToHostLimit('codex', content, cwd, config, adapterOpts, shrink)
+          : content);
         // copilot: honour config.output custom path (redirects away from default .github/copilot-instructions.md)
         if (target === 'copilot') {
           const outPath = resolveAdapterPath('copilot', cwd, config);
@@ -44037,7 +44773,8 @@ function stripFormatHeader(content) {
   return afterMarker.startsWith('\n') ? afterMarker.slice(1) : afterMarker;
 }
 
-function writeClaude(content, cwd) {
+/** What CLAUDE.md would contain after `writeClaude`, without writing it (#995). */
+function placeClaude(content, cwd) {
   const claudePath = path.join(cwd, 'CLAUDE.md');
   let existing = '';
   if (fs.existsSync(claudePath)) {
@@ -44049,7 +44786,12 @@ function writeClaude(content, cwd) {
   // The managed section is found by src/util/managed-section.js: a mention of the
   // marker in prose or a code block is never the marker, so human lines after it
   // are never discarded (#873).
-  const placed = __require('./src/util/managed-section').replaceManagedSection(existing, sigHeader + body);
+  return __require('./src/util/managed-section').replaceManagedSection(existing, sigHeader + body);
+}
+
+function writeClaude(content, cwd) {
+  const claudePath = path.join(cwd, 'CLAUDE.md');
+  const placed = placeClaude(content, cwd);
   if (placed.warning) console.warn(`[sigmap] CLAUDE.md: ${placed.warning}`);
   fs.writeFileSync(claudePath, placed.content, 'utf8');
   console.warn(`[sigmap] wrote CLAUDE.md (appended signatures)`);
@@ -45053,6 +45795,32 @@ function finishFileSigs(sigs, filePath, cwd, config, testIndex, redactedEarlier)
 }
 
 /**
+ * The lines of a JavaScript or TypeScript file that declare something exported, for the
+ * run summary and for `explain` (#996). A re-export is not a declaration: a barrel
+ * (`export * from`, `export { a } from`, `export type { T }`) is meant to list nothing,
+ * so it is never counted as a file the extractor failed on.
+ */
+const EXPORT_DECLARATION = /^\s*(?:export\s+(?:declare\s+)?(?:default\b|(?:async\s+)?function\b|(?:abstract\s+)?class\b|(?:const|let|var)\s+[\w$\{\[]|(?:const\s+)?enum\s+[\w$]|interface\s+[\w$]|type\s+[\w$])|(?:module\.)?exports\b\s*(?:\.[\w$]+|\[[^\]]+\])?\s*=(?!=))/;
+function exportLinesOf(text) {
+  const out = [];
+  for (const line of String(text || '').split('\n')) {
+    if (EXPORT_DECLARATION.test(line)) out.push(line.trim());
+  }
+  return out;
+}
+
+/** Remember a file that declares exports and produced no signatures at all (#996). */
+function noteUnreadExporter(list, filePath, content, cwd) {
+  if (!/\.[cm]?[jt]sx?$/.test(filePath) || /\.d\.[cm]?ts$/.test(filePath) || /\.min\.[cm]?js$/.test(filePath)) return;
+  const rel = path.relative(cwd, filePath).split(path.sep).join('/');
+  if (isTestFile(rel) || isGeneratedFile(rel)) return;
+  let text = content;
+  // A file served from the extraction cache is not read; this one produced nothing, so read it now.
+  if (!text) { try { text = fs.readFileSync(filePath, 'utf8'); } catch (_) { return; } }
+  if (exportLinesOf(text).length > 0) list.push(rel);
+}
+
+/**
  * The same file as the retrieval index stores it: a leading module-doc line and,
  * with `terse`, the compact encoding (src/cache/entry.js).
  *
@@ -45170,6 +45938,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
 
   let inputTokenTotal = 0;
   let fileEntries = [];
+  const unreadExporters = []; // files that declare exports and yielded no signature (#996)
   let testIndex = null;
   if (config.testCoverage) {
     try {
@@ -45284,7 +46053,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     } else {
       sigs = detectAndExtract(filePath, content, readLimit, config.exactness, cwd);
     }
-    if (sigs.length === 0) continue;
+    if (sigs.length === 0) { noteUnreadExporter(unreadExporters, filePath, content, cwd); continue; }
 
     // Annotated and secret-scanned in full, so what the index keeps is scanned too;
     // the context file then takes the first `maxSigsPerFile` of the same list.
@@ -45319,6 +46088,14 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       entry.content = content;
     }
     fileEntries.push(entry);
+  }
+
+  // A file that declares exports and yielded nothing is invisible to retrieval, `verify` and the
+  // call graph. Say how many, and which, so the loss is not silent (#996).
+  if (unreadExporters.length > 0 && !reportJson) {
+    const n = unreadExporters.length;
+    const shown = unreadExporters.slice().sort().slice(0, 5).join(', ');
+    console.warn(`[sigmap] ${n} file${n === 1 ? '' : 's'} with exports produced 0 signatures: ${shown}${n > 5 ? ` (+${n - 5} more)` : ''} — \`sigmap explain <file>\` says what the extractor saw`);
   }
 
   // v6.5: Coverage feedback loop — warn if symbol density is suspiciously low
@@ -45447,10 +46224,18 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
       // 'full' writes no split files — anything left from a previous
       // strategy would still be merged into the index at read time (#555).
       pruneStaleContextSplits(cwd, []);
+      const allEntries = fileEntries;
       fileEntries = applyTokenBudget(fileEntries, effectiveMaxTokens, cwd);
       const droppedCount = beforeCount - fileEntries.length;
       const routingEnabled = !!(config.routing || process.argv.includes('--routing'));
       const content = formatOutput(fileEntries, cwd, routingEnabled, config, null);
+      // Re-sizes the same entries for a target whose host reads less than the main file (#995).
+      const shrinkForHost = (tokens, lean) => {
+        const kept = applyTokenBudget(allEntries.slice(), tokens, cwd, { quiet: true });
+        const cfg = lean ? Object.assign({}, config, { depMap: false, versionPins: false, todos: false, changes: false }) : config;
+        return { content: formatOutput(kept, cwd, routingEnabled, cfg, null), kept: kept.length, total: allEntries.length };
+      };
+      shrinkForHost.startTokens = effectiveMaxTokens;
       const finalTokens = estimateTokens(content);
       const formatIdx = process.argv.indexOf('--format');
       const formatValue = formatIdx >= 0 ? process.argv[formatIdx + 1] : (config.format || 'default');
@@ -45475,7 +46260,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
         const syncContext = { projectName: path.basename(cwd), fileEntries, srcDirs: config.srcDirs || [] };
         fs.writeFileSync(llmTxtMod.outputPath(cwd),  llmTxtMod.format(syncContext, cwd, VERSION));
         llmFullMod.write(syncContext, cwd, { version: VERSION });
-        writeOutputs(content, config.outputs, cwd, config);
+        writeOutputs(content, config.outputs, cwd, config, shrinkForHost);
         const llmsContent = llmsMod.format(syncContext, cwd, [
           { path: llmTxtMod.outputPath(cwd),  label: 'llm.txt' },
           { path: llmFullMod.outputPath(cwd), label: 'llm-full.txt' },
@@ -45483,7 +46268,7 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
         fs.writeFileSync(llmsMod.outputPath(cwd), llmsContent);
         console.warn(`[sigmap] --mode both → copilot-instructions.md + llm.txt + llm-full.txt + llms.txt`);
       } else {
-        writeOutputs(content, config.outputs, cwd, config);
+        writeOutputs(content, config.outputs, cwd, config, shrinkForHost);
       }
       if (formatValue === 'cache') writeCacheOutput(content, cwd, config);
 
@@ -45643,6 +46428,22 @@ function runGenerateOnce(cwd, config, reportMode, reportJson = false) {
     if (config.strategy === 'index') {
       lines.push(' Always-on only : signatures live in .context/sig-index.json — pulled by `sigmap ask`');
     }
+    // The roots the run chose and how much of the REPOSITORY they cover: the figure `validate` and `doctor`
+    // print too. The "Indexed" and "In context" lines grade populations the detector picked, so a run that
+    // indexed 10 of 309 files read 100% on both (#997).
+    try {
+      const cov = requireSourceOrBundled('./src/analysis/coverage-score');
+      const rc = cov.repositoryCoverage(cwd, config);
+      if (rc.all > 0) {
+        const names = config.srcDirs || [];
+        lines.push(` Source roots   : ${names.slice(0, 4).join(', ') || '(none)'}${names.length > 4 ? ` (+${names.length - 4} more)` : ''}`);
+        lines.push(` Repository     : ${cov.formatRepositoryCoverage(rc)}`);
+        if (rc.pct < 80) {
+          const left = rc.byDir.slice(0, 4).map((d) => `${d.dir} (${d.count.toLocaleString('en-US')})`).join(', ');
+          lines.push(` [sigmap] \u26a0 ${100 - rc.pct}% of the repository's code is outside the source roots${left ? `: ${left}` : ''} \u2014 widen "srcDirs", or run: sigmap roots --explain`);
+        }
+      }
+    } catch (_) { /* a failed count must not fail a run */ }
     if (coverageLine) lines.push(coverageLine);
     const __written = outputPaths(config.outputs, cwd, config);
     if (__written.length) {
@@ -47746,8 +48547,10 @@ function main() {
     // visible without reading the detector's output. Computed before the
     // json/human split so both surfaces report the same number.
     let __valOutside = { total: 0, byExt: [], dirs: [] };
+    let __valRepo = null;
     try {
       __valOutside = __require('./src/analysis/coverage-score').outsideSrcDirs(cwd, config);
+      __valRepo = __require('./src/analysis/coverage-score').repositoryCoverage(cwd, config);
     } catch (_) {}
 
     if (args.includes('--json')) {
@@ -47765,6 +48568,7 @@ function main() {
         outOfScopeEntries: valClass.outOfScope.length,
         totalFiles: valTotal,
         outsideSrcDirs: __valOutside,
+        repositoryCoverage: __valRepo ? { covered: __valRepo.covered, outside: __valRepo.outside, all: __valRepo.all, pct: __valRepo.pct } : null,
       };
       if (queryReport) payload.query = queryReport;
       writeAll(1, JSON.stringify(payload) + '\n');
@@ -47787,6 +48591,11 @@ function main() {
           { score: coveragePct, grade: '' }, 'indexed',
           { included: valCovered, total: valTotal, grade: false }
         );
+        // The repository figure first: the "indexed" line below grades the in-scope set only (#997).
+        if (__valRepo && __valRepo.all > 0) {
+          const _roots = config.srcDirs || [];
+          console.log(`[sigmap] source roots: ${_roots.slice(0, 6).join(', ') || '(none)'}${_roots.length > 6 ? ` (+${_roots.length - 6} more)` : ''} \u2014 ${_cov.formatRepositoryCoverage(__valRepo)}`);
+        }
         console.log(`[sigmap] ✓ config valid  coverage: ${_line}${residual ? `  — ${residual}` : ''}`);
         if (__valOutside.total > 0 && __valOutside.share >= 0.10) {
           const _exts = __valOutside.byExt.slice(0, 4).map((e) => `${e.count}${e.ext}`).join(' ');
@@ -48116,8 +48925,16 @@ function main() {
     if (result.roots.length === 0) console.log('  (none — legacy fallback used)');
     result.roots.forEach((r, i) => {
       const exp = result.explanation?.find(e => e.dir === r);
-      console.log(`  ${i + 1}. ${r.padEnd(20)} ${exp ? 'score ' + exp.score : ''}`);
+      console.log(`  ${i + 1}. ${r.padEnd(20)} ${exp ? 'score ' + exp.score + (typeof exp.files === 'number' ? ` · ${exp.files.toLocaleString('en-US')} code file(s)` : '') : ''}`);
     });
+    // The same figure `generate`, `validate` and `doctor` print, and what the cap left out (#997).
+    try {
+      const cov = requireSourceOrBundled('./src/analysis/coverage-score');
+      const rcfg = Object.assign({}, requireSourceOrBundled('./src/config/loader').loadConfig(cwd), { srcDirs: result.roots });
+      const rc = cov.repositoryCoverage(cwd, rcfg);
+      if (rc.all > 0 && result.roots.length > 0) console.log(`\n${cov.formatRepositoryCoverage(rc)}`);
+    } catch (_) { /* the figure is advice, not the answer */ }
+    if (result.omitted > 0) console.log(result.omitted === 1 ? '1 more candidate directory scored above zero and was not chosen — pin "srcDirs" to take it' : `${result.omitted} more candidate directories scored above zero and were not chosen — pin "srcDirs" to take them`);
     // Name the evidence: a declared workspace and a layout-only match are
     // different facts, and reporting a bare yes/no is what let `roots` and
     // `--monorepo` disagree in silence (#781).
@@ -49506,8 +50323,25 @@ function main() {
       process.exit(0);
     }
 
-    // 2. Check srcDirs membership
-    const inSrcDirs = (config.srcDirs || []).some(d => absPath.startsWith(path.resolve(cwd, d)));
+    // 1b. A declared `main` / `bin` is source only when it is not generated (#876).
+    // `declaredEntrypoints` fills __skippedEntrypoints with every one it left out.
+    const declaredKept = declaredEntrypoints(cwd, config, []);
+    const skippedWhy = __skippedEntrypoints.get(absPath);
+    if (skippedWhy) {
+      const fix = 'index the sources it is built from (srcDirs); a generated entrypoint repeats them';
+      if (jsonOut) {
+        writeAll(1, JSON.stringify({ status: 'excluded', reason: 'generated entrypoint', detail: skippedWhy, fix }) + '\n');
+      } else {
+        console.log(`[sigmap] ${rel} — EXCLUDED`);
+        console.log(`  Reason: generated entrypoint declared in package.json (${skippedWhy})`);
+        console.log(`  Fix:    ${fix}`);
+      }
+      process.exit(0);
+    }
+
+    // 2. Check srcDirs membership — a declared entrypoint outside srcDirs is indexed all the same
+    const inSrcDirs = declaredKept.includes(absPath)
+      || (config.srcDirs || []).some(d => absPath.startsWith(path.resolve(cwd, d)));
     if (!inSrcDirs) {
       if (jsonOut) {
         writeAll(1, JSON.stringify({ status: 'excluded', reason: 'not in srcDirs', srcDirs: config.srcDirs, fix: 'add the containing directory to srcDirs in gen-context.config.json' }) + '\n');
@@ -49536,6 +50370,22 @@ function main() {
     }
 
     if (!sigs.length) {
+      // A file that declares exports and still extracts as nothing is an extractor gap, not a
+      // configuration problem: say what was there instead of advice that cannot apply (#996).
+      let seen = [];
+      try { seen = exportLinesOf(fs.readFileSync(absPath, 'utf8')); } catch (_) { /* unreadable: the generic answer */ }
+      if (seen.length > 0) {
+        const fix = 'no configuration change indexes it: the extractor does not read this declaration shape (see KNOWN_LIMITATIONS.md); the file stays reachable by its path';
+        if (jsonOut) {
+          writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, exports: seen.length, saw: seen.slice(0, 3), fix }) + '\n');
+        } else {
+          console.log(`[sigmap] ${rel} — EXCLUDED`);
+          console.log(`  Reason: no extractable signatures (extractor: ${extractorName}) — ${seen.length} export line${seen.length === 1 ? '' : 's'}, none of a shape it reads`);
+          for (const l of seen.slice(0, 3)) console.log(`  Saw:    ${l.length > 110 ? l.slice(0, 107) + '...' : l}`);
+          console.log(`  Fix:    ${fix}`);
+        }
+        process.exit(0);
+      }
       if (jsonOut) {
         writeAll(1, JSON.stringify({ status: 'excluded', reason: 'no signatures', extractor: extractorName, fix: 'check that the file contains function/class definitions' }) + '\n');
       } else {

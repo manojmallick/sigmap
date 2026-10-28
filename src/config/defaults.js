@@ -11,6 +11,15 @@ const DEFAULTS = {
   // Output targets: 'copilot' | 'claude' | 'cursor' | 'windsurf'
   outputs: ['copilot'],
 
+  // How much of the instruction file a host reads (#995). Codex loads at most
+  // `project_doc_max_bytes` of an AGENTS.md (32 KiB by default, or what its own
+  // config.toml sets); Claude Code asks for a short CLAUDE.md (about 200 lines). The
+  // 'codex' and 'claude' outputs are trimmed to fit, lowest-priority files first.
+  // `null` is the host's own limit (Codex's config.toml, else 32 KiB; Claude Code's 200
+  // lines), so a run can say where its limit came from; a number is yours; 0 turns a cap off.
+  codexMaxBytes: null,
+  claudeMaxLines: null,
+
   // Adapter targets (v3.0+): replaces 'outputs'. Same names, adds 'openai' | 'gemini'.
   // Old 'outputs' config key is still accepted and silently maps to 'adapters'.
   adapters: null,

@@ -5,9 +5,9 @@
     {
       "repo": "akka",
       "roots": 40,
-      "reached": 947,
+      "reached": 1170,
       "present": 1240,
-      "ratio": 0.764,
+      "ratio": 0.944,
       "jvmMultiModule": true
     },
     {
@@ -28,10 +28,10 @@
     },
     {
       "repo": "clap",
-      "roots": 6,
-      "reached": 120,
+      "roots": 10,
+      "reached": 124,
       "present": 124,
-      "ratio": 0.968,
+      "ratio": 1,
       "jvmMultiModule": false
     },
     {
@@ -44,10 +44,10 @@
     },
     {
       "repo": "dio",
-      "roots": 4,
-      "reached": 74,
+      "roots": 5,
+      "reached": 100,
       "present": 101,
-      "ratio": 0.733,
+      "ratio": 0.99,
       "jvmMultiModule": false
     },
     {
@@ -124,10 +124,10 @@
     },
     {
       "repo": "kotlinx-coroutines",
-      "roots": 8,
-      "reached": 42,
+      "roots": 14,
+      "reached": 383,
       "present": 401,
-      "ratio": 0.105,
+      "ratio": 0.955,
       "jvmMultiModule": true
     },
     {
@@ -140,10 +140,10 @@
     },
     {
       "repo": "okhttp",
-      "roots": 31,
-      "reached": 290,
+      "roots": 37,
+      "reached": 296,
       "present": 360,
-      "ratio": 0.806,
+      "ratio": 0.822,
       "jvmMultiModule": true
     },
     {
@@ -156,10 +156,10 @@
     },
     {
       "repo": "rails",
-      "roots": 6,
-      "reached": 659,
+      "roots": 11,
+      "reached": 1509,
       "present": 1578,
-      "ratio": 0.418,
+      "ratio": 0.956,
       "jvmMultiModule": false
     },
     {
@@ -196,10 +196,10 @@
     },
     {
       "repo": "rust-analyzer",
-      "roots": 2,
-      "reached": 1343,
+      "roots": 4,
+      "reached": 1387,
       "present": 1387,
-      "ratio": 0.968,
+      "ratio": 1,
       "jvmMultiModule": false
     },
     {
@@ -212,18 +212,18 @@
     },
     {
       "repo": "shiny",
-      "roots": 2,
-      "reached": 180,
+      "roots": 3,
+      "reached": 293,
       "present": 294,
-      "ratio": 0.612,
+      "ratio": 0.997,
       "jvmMultiModule": false
     },
     {
       "repo": "sidekiq",
-      "roots": 4,
-      "reached": 105,
+      "roots": 5,
+      "reached": 113,
       "present": 113,
-      "ratio": 0.929,
+      "ratio": 1,
       "jvmMultiModule": false
     },
     {
@@ -236,10 +236,10 @@
     },
     {
       "repo": "upickle",
-      "roots": 2,
-      "reached": 31,
+      "roots": 4,
+      "reached": 91,
       "present": 91,
-      "ratio": 0.341,
+      "ratio": 1,
       "jvmMultiModule": false
     },
     {
@@ -261,9 +261,9 @@
     {
       "repo": "zod",
       "roots": 6,
-      "reached": 218,
+      "reached": 217,
       "present": 224,
-      "ratio": 0.973,
+      "ratio": 0.969,
       "jvmMultiModule": false
     }
   ]
