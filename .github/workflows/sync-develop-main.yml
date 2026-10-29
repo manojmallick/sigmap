@@ -16,19 +16,52 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      # A GitHub App installation token (#1050): minted for this job and revoked
+      # when it ends, where SYNC_PAT is a personal token with no expiry. Skipped
+      # until the repository variable is set; a failed mint falls through to
+      # SYNC_PAT. `workflows: write` is asked for because the merge commit this
+      # job pushes can carry an edit to .github/workflows (v8.85.1's did), and
+      # GitHub refuses a push with a workflow-file change from a token without it.
+      - name: Mint a GitHub App token
+        id: app
+        if: vars.RELEASE_APP_CLIENT_ID != ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-          # Use a PAT so the push to `develop` is authenticated as a ruleset
-          # bypass actor. The default GITHUB_TOKEN (github-actions[bot]) is NOT
-          # in the develop ruleset bypass list, so its direct push is rejected
-          # ("Changes must be made through a pull request"). SYNC_PAT must belong
-          # to an account/role listed under Settings → Rules → develop → Bypass.
-          # Falls back to GITHUB_TOKEN if the secret is unset (will still be
-          # blocked by the ruleset, but the workflow stays valid).
-          token: ${{ secrets.SYNC_PAT || secrets.GITHUB_TOKEN }}
+          # The push to `develop` must be authenticated as a ruleset bypass
+          # actor. The default GITHUB_TOKEN (github-actions[bot]) is NOT in the
+          # develop ruleset bypass list, so its direct push is rejected
+          # ("Changes must be made through a pull request"). The App must be
+          # listed under Settings → Rules → develop → Bypass; SYNC_PAT must
+          # belong to an account/role listed there. Falls back to GITHUB_TOKEN
+          # if neither is set (will still be blocked by the ruleset, but the
+          # workflow stays valid).
+          token: ${{ steps.app.outputs.token || secrets.SYNC_PAT || secrets.GITHUB_TOKEN }}
           persist-credentials: true
+
+      - name: Say which credential pushes
+        env:
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+          APP_CLIENT_ID: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          SYNC_PAT: ${{ secrets.SYNC_PAT }}
+        run: |
+          if [ -n "${APP_TOKEN:-}" ]; then
+            echo "::notice::Pushing with a GitHub App installation token."
+          elif [ -n "${SYNC_PAT:-}" ]; then
+            [ -z "${APP_CLIENT_ID:-}" ] || echo "::warning::RELEASE_APP_CLIENT_ID is set but no App token was minted (see the 'Mint a GitHub App token' step); falling back to SYNC_PAT."
+            echo "::notice::Pushing with SYNC_PAT."
+          else
+            echo "::warning::Neither a GitHub App token nor SYNC_PAT is available; the push to develop will be blocked by the ruleset."
+          fi
 
       - name: Configure git
         run: |
