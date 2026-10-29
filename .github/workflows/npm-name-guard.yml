@@ -1,0 +1,53 @@
+name: npm name guard
+
+# Daily, read-only check that every SigMap look-alike npm name is still owned by
+# the maintainer, and that no new look-alike package has appeared (#1000 item 7).
+# The checker is scripts/check-npm-names.mjs: anonymous GETs against the npm
+# registry, no token, no secrets. The only write is the tracking issue opened
+# when it fails.
+# Scheduled workflows run from the default branch (main), so this goes live with
+# the next release. A public repository's schedules are disabled after 60 days
+# without activity, which this repository does not have; if that ever changes,
+# re-enable it.
+
+on:
+  schedule:
+    - cron: '17 5 * * *'   # off the hour: GitHub delays or drops jobs queued at the top of the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-name-guard
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Reserved npm names
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write        # only the failure step below uses it
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Check reserved names and look-alikes
+        run: node scripts/check-npm-names.mjs
+
+      - name: Open or update a tracking issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="npm name guard: a reserved npm name is not owned by the maintainer"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          n=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title npm name guard" --json number --jq '.[0].number // empty')
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body "Still failing: $run_url"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The scheduled guard failed. Details are in the run summary: $run_url"
+          fi
