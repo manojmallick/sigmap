@@ -28,8 +28,9 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
-const SCRIPT = path.join(ROOT, 'scripts/check-npm-names.mjs');
-const WORKFLOW = path.join(ROOT, '.github/workflows/npm-name-guard.yml');
+// GUARD_SCRIPT lets a mutation sweep point the tests at a temporary mutant copy, so the real script is never edited.
+const SCRIPT = process.env.GUARD_SCRIPT || path.join(ROOT, 'scripts/check-npm-names.mjs');
+const WORKFLOW = process.env.GUARD_WORKFLOW || path.join(ROOT, '.github/workflows/npm-name-guard.yml');
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -141,6 +142,15 @@ const row = (out, name, status) => new RegExp('\\| `' + name.replace(/[/@-]/g, '
     assert.match(r.out, /published 2026-10-30 by squatter/);
   });
 
+  await test('a package under the @sigmap scope, which the maintainer cannot own, fails with NEW-LOOKALIKE when anyone else publishes it', async () => {
+    const r = await against({ search: [{ name: '@sigmap/cli', date: '2026-11-02T09:00:00Z', publisher: { username: 'someone-else' }, maintainers: [{ username: 'someone-else' }] }] });
+    assert.strictEqual(r.code, 1, r.out);
+    assert.ok(row(r.out, '@sigmap/cli', '\\*\\*NEW-LOOKALIKE\\*\\*'), r.out);
+    assert.match(r.out, /published 2026-11-02 by someone-else/);
+    const own = await against({ search: [{ name: '@sigmap/cli', date: '2026-11-02T09:00:00Z', maintainers: [{ username: 'manojmallick' }] }] });
+    assert.strictEqual(own.code, 0, 'the maintainer publishing under it would be fine');
+  });
+
   await test('reviewed foreign packages, unrelated hits and the maintainer\'s own packages do not fail it', async () => {
     const r = await against({
       search: [
@@ -225,7 +235,7 @@ const row = (out, name, status) => new RegExp('\\| `' + name.replace(/[/@-]/g, '
     assert.match(step, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   });
 
-  await test('the script keeps the owned names it publishes and does not reserve the unclaimed @sigmap/cli', () => {
+  await test('the script keeps the owned names it publishes and does not reserve @sigmap/cli, which cannot be claimed', () => {
     const src = fs.readFileSync(SCRIPT, 'utf8');
     const list = /'(sigmap-cli,[^']+)'\)\.split/.exec(src)[1].split(',');
     assert.deepStrictEqual(list, ['sigmap-cli', 'sigmap-core', 'sigmap-mcp', 'sigmap-mcp-server', 'gen-project-map']);

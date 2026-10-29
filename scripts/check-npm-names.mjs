@@ -20,8 +20,12 @@ import fs from 'node:fs';
 const OWNER = process.env.GUARD_OWNER || 'manojmallick';
 
 // Names the maintainer holds and publishes as official redirect packages.
-// Add `@sigmap/cli` here once the `sigmap` npm organisation exists and the
-// package is published; listing a name before that makes the guard fail daily.
+// `@sigmap/cli` is NOT here and cannot be: the `@sigmap` npm scope belongs to
+// someone else (npm's website answers "The organization name 'sigmap' is not
+// available", 2026-10-29), and listing a name the maintainer cannot own would
+// fail the guard daily. The search check below still reports any `@sigmap/*`
+// package published by anyone but the maintainer, because its name matches the
+// brand.
 const RESERVED = (process.env.GUARD_RESERVED ||
   'sigmap-cli,sigmap-core,sigmap-mcp,sigmap-mcp-server,gen-project-map').split(',').filter(Boolean);
 
