@@ -160,7 +160,30 @@ const kinds = (r) => r.problems.map((p) => p.kind).sort();
         if (/^\s+id-token:\s*write\b/.test(line) && !line.trim().startsWith('#')) holders.push(`${f}#${job === null ? '(workflow)' : job}`);
       }
     }
-    assert.deepStrictEqual(holders, ['npm-publish.yml#publish-npm', 'pages.yml#deploy']);
+    assert.deepStrictEqual(holders, ['npm-publish.yml#publish-npm', 'pages.yml#deploy', 'prerelease-publish.yml#publish-npm']);
+  });
+
+  await test('no workflow reads NPM_TOKEN: both npm publishes use Trusted Publishing (#1050)', () => {
+    const dir = path.join(ROOT, '.github/workflows');
+    for (const f of fs.readdirSync(dir).filter((x) => /\.ya?ml$/.test(x))) {
+      const code = fs.readFileSync(path.join(dir, f), 'utf8').split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+      assert.doesNotMatch(code, /NPM_TOKEN/, `${f} reads NPM_TOKEN`);
+    }
+  });
+
+  await test('the prerelease npm publish mints an OIDC token on that one job, publishes with provenance, and sets up node without a registry token', () => {
+    const text = fs.readFileSync(path.join(ROOT, '.github/workflows/prerelease-publish.yml'), 'utf8');
+    const block = (name) => new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n  [\\w-]+:\\n|$)`).exec(text)[1];
+    const npm = block('publish-npm');
+    assert.match(npm, /needs: update-versions/);
+    assert.match(npm, /id-token: write/);
+    assert.doesNotMatch(npm, /contents: write|packages: write/);
+    assert.match(npm, /npm install -g npm@\^11\.5\.1/, 'Trusted Publishing needs npm 11.5.1 or newer');
+    assert.match(npm, /npm publish --tag \$\{\{ inputs\.prerelease_type \}\} --provenance --access public/);
+    assert.doesNotMatch(npm, /registry-url|NODE_AUTH_TOKEN/, 'an .npmrc that reads NODE_AUTH_TOKEN would shadow the OIDC exchange');
+    for (const other of ['test', 'update-versions', 'publish-github', 'publish-vscode', 'publish-openvsx', 'publish-jetbrains', 'release']) {
+      assert.doesNotMatch(block(other), /id-token: write/, `${other} must not mint an OIDC token`);
+    }
   });
 
   await test('the npm publish job is the only one that publishes, and it is gated on the test job', () => {

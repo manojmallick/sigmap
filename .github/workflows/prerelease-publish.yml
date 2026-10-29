@@ -19,7 +19,8 @@ on:
         type: string
 
 # Read-only by default; each job below asks for the scopes it needs (#1000).
-# No job here needs id-token: this workflow publishes with NPM_TOKEN and no --provenance.
+# Only publish-npm mints an OIDC token: it publishes with npm Trusted Publishing,
+# so no NPM_TOKEN secret is read here (#1050).
 permissions:
   contents: read
 
@@ -121,9 +122,16 @@ jobs:
           grep "^version = " jetbrains-plugin/build.gradle.kts
 
   # ── 3. Publish to npmjs.com (prerelease tag) ──────────────────────────────
+  # Auth is npm Trusted Publishing (OIDC), as in npm-publish.yml: the npmjs.com
+  # package settings must list THIS workflow file as a trusted publisher (a
+  # second entry beside npm-publish.yml). Requires npm ≥ 11.5.1. No registry-url
+  # on setup-node: it writes an .npmrc that reads NODE_AUTH_TOKEN, and none is set.
   publish-npm:
     name: Publish → npmjs.com (prerelease)
     needs: update-versions
+    permissions:
+      contents: read
+      id-token: write   # npm Trusted Publishing (OIDC) + provenance
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -131,13 +139,15 @@ jobs:
           ref: ${{ github.ref }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '22'
 
-      - name: Publish to npm with prerelease tag
-        run: npm publish --tag ${{ inputs.prerelease_type }} --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Upgrade npm for Trusted Publishing
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
+      - name: Publish to npm with prerelease tag (Trusted Publishing)
+        run: npm publish --tag ${{ inputs.prerelease_type }} --provenance --access public
 
       - name: Show published version
         run: npm info sigmap@latest && npm info sigmap@${{ inputs.prerelease_type }}

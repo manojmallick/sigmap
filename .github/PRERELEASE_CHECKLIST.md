@@ -137,7 +137,7 @@ Once sign-off criteria met:
 | Problem | Solution |
 |---------|----------|
 | Workflow fails on test gate | Fix failing tests, merge to main, retry prerelease |
-| npm publish fails | Check NPM_TOKEN secret, rerun with incremented build |
+| npm publish fails | Check that `prerelease-publish.yml` is listed as a trusted publisher in the package's npmjs.com settings (the workflow publishes with Trusted Publishing; there is no npm token), rerun with incremented build |
 | VS Code upload fails | Check VSCE_PAT secret, rerun (often timeout) |
 | JetBrains fails | Check JETBRAINS_PUBLISH_TOKEN secret, verify version not duplicate |
 | Open VSX upload fails | Check OVSX_PAT secret, verify credentials valid |

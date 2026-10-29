@@ -18,15 +18,29 @@ name: Tag prepared release
 # half-prepared state must never be published by accident. Pushing the tag is
 # what triggers `npm-publish.yml` and `release-binaries.yml`.
 #
-# SYNC_PAT is required, NOT an optimisation: a tag pushed with GITHUB_TOKEN does
-# not start other workflows, so the tag would exist with no release behind it —
-# strictly worse than not tagging. Without the secret this job refuses rather
-# than creating that state.
+# A prepared release is also tagged ONLY when a runtime file changed since the
+# last release (`scripts/check-runtime-change.mjs`, #999): a new npm version
+# whose runtime files equal the previous one's carries nothing for a user to
+# install. Dispatch this workflow with `force` to tag such a release anyway. If
+# the check itself fails, the release is tagged as before, so the guard cannot
+# become a new way for a release to stall.
+#
+# A credential that can start other workflows is required, NOT an optimisation:
+# a tag pushed with GITHUB_TOKEN does not start them, so the tag would exist
+# with no release behind it — strictly worse than not tagging. Without one this
+# job refuses rather than creating that state. The credential is a GitHub App
+# installation token when `vars.RELEASE_APP_CLIENT_ID` is set (minted for this
+# job, revoked when it ends), else the long-lived SYNC_PAT it replaces (#1050).
 
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Tag a prepared release even when no runtime file changed since the last release'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,12 +50,24 @@ jobs:
     name: Tag if the release is prepared
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # push the tag (the GITHUB_TOKEN fallback; SYNC_PAT is what normally pushes)
+      contents: write   # push the tag (the GITHUB_TOKEN fallback; the App token or SYNC_PAT is what normally pushes)
     steps:
+      # Skipped until the repository variable is set; a failed mint falls
+      # through to SYNC_PAT (the `credential` step says which one is in use).
+      - name: Mint a GitHub App token
+        id: app
+        if: vars.RELEASE_APP_CLIENT_ID != ''
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-          token: ${{ secrets.SYNC_PAT || secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app.outputs.token || secrets.SYNC_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Decide whether this commit is a prepared release
         id: decide
@@ -73,23 +99,56 @@ jobs:
           echo "version=$V"     >> "$GITHUB_OUTPUT"
 
       # The `secrets` context is NOT available in a step `if`, so the check has
-      # to run inside the script with the value passed through `env`.
-      - name: Refuse rather than create a tag nothing reacts to
-        if: steps.decide.outputs.skip == 'false'
+      # to run inside the script with the value passed through `env`. It runs on
+      # every push so a dispatch on an already-tagged `main` shows which
+      # credential would push, but it refuses only when a tag is about to be pushed.
+      - name: Say which credential pushes, and refuse rather than create a tag nothing reacts to
+        id: credential
         env:
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+          APP_CLIENT_ID: ${{ vars.RELEASE_APP_CLIENT_ID }}
           SYNC_PAT: ${{ secrets.SYNC_PAT }}
+          SKIP: ${{ steps.decide.outputs.skip }}
           V: ${{ steps.decide.outputs.version }}
         run: |
-          if [ -z "${SYNC_PAT:-}" ]; then
-            echo "::error::v$V is ready to tag, but SYNC_PAT is not set."
+          if [ -n "${APP_TOKEN:-}" ]; then
+            echo "::notice::Pushing with a GitHub App installation token."
+            exit 0
+          fi
+          if [ -n "${APP_CLIENT_ID:-}" ]; then
+            echo "::warning::RELEASE_APP_CLIENT_ID is set but no App token was minted (see the 'Mint a GitHub App token' step); falling back to SYNC_PAT."
+          fi
+          if [ -n "${SYNC_PAT:-}" ]; then
+            echo "::notice::Pushing with SYNC_PAT."
+            exit 0
+          fi
+          if [ "${SKIP:-true}" = "false" ]; then
+            echo "::error::v$V is ready to tag, but neither a GitHub App token nor SYNC_PAT is available."
             echo "A tag pushed with GITHUB_TOKEN does not trigger npm-publish or release-binaries,"
             echo "so tagging here would leave a tag with no release behind it. Tag manually instead:"
             echo "  git tag -a v$V <merge-commit> -m '...' && git push origin v$V"
             exit 1
           fi
+          echo "::notice::No credential that can start the publish workflow is configured; nothing is being tagged here, so this is fine."
+
+      # `continue-on-error`: a failure here leaves `runtime_changed` unset, and the
+      # tag step below tags unless it reads exactly `false`.
+      - name: Has a runtime file changed since the last release?
+        id: runtime
+        if: steps.decide.outputs.skip == 'false'
+        continue-on-error: true
+        run: node scripts/check-runtime-change.mjs --github-output "$GITHUB_OUTPUT"
+
+      - name: Explain why nothing was tagged
+        if: steps.decide.outputs.skip == 'false' && steps.runtime.outputs.runtime_changed == 'false' && !inputs.force
+        env:
+          V: ${{ steps.decide.outputs.version }}
+          PREV: ${{ steps.runtime.outputs.previous_tag }}
+        run: |
+          echo "::notice::Not tagging v$V — no runtime file changed since $PREV, so npm would get a version that carries nothing. Dispatch this workflow with force=true to tag it anyway."
 
       - name: Tag and push
-        if: steps.decide.outputs.skip == 'false'
+        if: steps.decide.outputs.skip == 'false' && (steps.runtime.outputs.runtime_changed != 'false' || inputs.force)
         env:
           V: ${{ steps.decide.outputs.version }}
         run: |
