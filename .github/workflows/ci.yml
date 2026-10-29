@@ -11,6 +11,9 @@ on:
   # and removes a trap that silently skipped the test matrix.
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test (Node ${{ matrix.node }})
@@ -19,13 +22,15 @@ jobs:
       matrix:
         node: ['18', '20', '22']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ matrix.node }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.x'
+      - name: Workflow hygiene (actions pinned to a commit SHA, default token read-only)
+        run: npm run check:workflows
       - name: Bundle integrity (src/ modules present in gen-context.js __factories)
         run: node scripts/check-bundle.mjs
       - name: Bundle reproducibility (committed gen-context.js == fresh build from src/)
@@ -52,15 +57,15 @@ jobs:
     name: Third-party retrieval gate (xrepo)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
       # The pinned repos are gitignored. Keyed on the manifest, so a re-pin or a
       # new repo invalidates it; fetch-xrepo-repos.mjs fetches only what is
       # missing or off-pin, so a partial restore still saves most of the download.
       - name: Cache pinned third-party repos
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: benchmarks/repos
           key: xrepo-repos-${{ hashFiles('benchmarks/xrepo-repos.json') }}
@@ -89,7 +94,7 @@ jobs:
         run: node scripts/run-perf-benchmark.mjs --repos django --runs 3 --save
       - name: Upload the perf report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: perf-report
           path: benchmarks/reports/perf.json

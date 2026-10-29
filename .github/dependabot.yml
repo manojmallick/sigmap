@@ -1,0 +1,27 @@
+# Keeps the commit-pinned actions in .github/workflows current (#1000).
+#
+# Every `uses:` names a full commit SHA with its release in a trailing comment, so a tag that moves
+# upstream changes nothing here until a pull request moves the pin and CI runs on it. Minor and patch
+# updates arrive together in one weekly pull request; a major update arrives alone, because that is the
+# one a person should read. Pull requests target develop, where the rest of the work lands, and not the
+# default branch.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - chore
+    groups:
+      actions-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

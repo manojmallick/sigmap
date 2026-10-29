@@ -44,8 +44,11 @@ Before opening a PR, please check:
 ## Local commands
 
 ```bash
-npm test
+npm test            # the fast unit tests, for the loop while you work
+npm run test:ci     # what CI's required test job runs
 ```
+
+`npm run test:ci` chains the workflow hygiene check, bundle integrity and reproducibility, the metrics consistency check, the unit, Python and integration tests, and the retrieval and grounding gates. A change is ready for review when it passes; a test in `test/integration/` fails if the script and the CI job drift apart. The third-party retrieval gate (`npm run validate:xrepo`) is a separate CI job because it needs the pinned clones; run it when you change extraction, ranking or source-root detection.
 
 If the change affects parsing, ranking, context generation, or token output, please also run the relevant benchmark command documented in the benchmark guide.
 
@@ -76,8 +79,8 @@ Co-authored-by: Name <email@example.com>
 2. Create `test/fixtures/{language}.{ext}` with representative code
 3. Run `node test/run.js --update {language}` to generate expected output
 4. Review the expected output — it should contain only signatures, no bodies
-5. Run `node test/run.js` — must be 21/21 PASS before opening a PR
-6. Run `node test/integration/all.js` — 17/17 integration suites must pass
+5. Run `node test/run.js` — every fixture must pass before opening a PR
+6. Run `node test/integration/all.js` — every integration suite must pass
 
 ## Extractor contract
 

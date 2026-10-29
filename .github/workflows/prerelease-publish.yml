@@ -18,10 +18,10 @@ on:
         default: '1'
         type: string
 
+# Read-only by default; each job below asks for the scopes it needs (#1000).
+# No job here needs id-token: this workflow publishes with NPM_TOKEN and no --provenance.
 permissions:
-  contents: write   # create GitHub Releases and commits
-  id-token: write   # npm provenance
-  packages: write   # GitHub Packages
+  contents: read
 
 jobs:
   # ── 1. Gate: all tests must pass ─────────────────────────────────────────
@@ -29,8 +29,8 @@ jobs:
     name: Test (Node 20)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
       - name: Run test suite
@@ -40,13 +40,15 @@ jobs:
   update-versions:
     name: Update Versions
     needs: test
+    permissions:
+      contents: write   # commits the version bump to the branch
     runs-on: ubuntu-latest
     outputs:
       npm_version: ${{ steps.version.outputs.npm_version }}
       vscode_version: ${{ steps.version.outputs.vscode_version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
@@ -124,10 +126,10 @@ jobs:
     needs: update-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
@@ -144,12 +146,15 @@ jobs:
   publish-github:
     name: Publish → GitHub Packages (prerelease)
     needs: update-versions
+    permissions:
+      contents: read
+      packages: write   # GitHub Packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
@@ -174,10 +179,10 @@ jobs:
     needs: update-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
@@ -203,10 +208,10 @@ jobs:
     needs: update-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
@@ -239,17 +244,17 @@ jobs:
     needs: update-versions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
 
       - name: Build and verify plugin
         working-directory: jetbrains-plugin
@@ -273,14 +278,17 @@ jobs:
   # ── 8. Create GitHub Prerelease (after all publishes succeed) ──────────────
   release:
     name: Create GitHub Prerelease
-    needs: [publish-npm, publish-github, publish-vscode, publish-openvsx, publish-jetbrains]
+    # update-versions is listed because tag_name below reads its output; `needs` only exposes direct dependencies.
+    needs: [update-versions, publish-npm, publish-github, publish-vscode, publish-openvsx, publish-jetbrains]
+    permissions:
+      contents: write   # create the GitHub Prerelease
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
 
@@ -290,7 +298,7 @@ jobs:
           cd vscode-extension && vsce package --pre-release --no-dependencies
 
       - name: Create GitHub Prerelease
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: v${{ needs.update-versions.outputs.npm_version }}
           prerelease: true

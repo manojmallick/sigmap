@@ -39,6 +39,10 @@ To ensure proper attribution:
 
 We welcome contributions! See [Contributing](./docs/CONTRIBUTING.md) for guidelines.
 
+### Recent Contributors (v8.85.1)
+- **@manojmallick** — chore(ci): every one of the 53 workflow `uses:` references is pinned to a commit SHA with its release in a comment, every workflow's default token is read-only with write scopes on the job that needs them (23 jobs: 10 unchanged, 13 narrowed, none widened), `.github/dependabot.yml` moves the pins by pull request, and `scripts/check-workflow-pins.mjs` fails CI on a floating tag or a workflow-level write scope (#1042; #1000).
+- **@manojmallick** — chore(package): `CHANGELOG.md` leaves the npm tarball (227 → 226 files, 4699 → 3960 KB unpacked), `npm run test:ci` is CI's `test` job step for step, `CONTRIBUTING.md` loses its hand-typed counts and `SECURITY.md` names the 8.x line (#999); the prerelease workflow's release job lists `update-versions` in `needs`.
+- **@manojmallick** — test: `workflow-pins` and `release-hygiene` added, each rule shown to fail on a planted breach.
 ### Recent Contributors (v8.85.0)
 - **@manojmallick** — fix(index): a declared bin or main that is generated (a bundle header, `@generated`, a build-output directory, a source-map trailer) is left out of the index and `explain` says why (#876); feat(adapters): the codex AGENTS.md fits `project_doc_max_bytes` and the claude CLAUDE.md about 200 lines, with `codexMaxBytes` / `claudeMaxLines` and a `doctor` row, and the MCP default is documented (#995).
 - **@manojmallick** — fix(extractors): the TypeScript and JavaScript extractors read `$` names, generic and wrapped consts, anonymous defaults and CommonJS methods and say what an unread file held, with TypeScript joining the extraction-recall harness (#996); fix(discovery): detection counts a directory's code through its whole tree and takes roots until they hold 95% of it, so a first run on Rails covers 95.6% of its code where it covered 41.8%, and every surface says how much of the repository the roots cover (#997).
