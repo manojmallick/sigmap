@@ -20,7 +20,13 @@
  *
  *   - Provenance on every figure (`agent-reported`, `table (asOf)`, `measured`).
  *   - Nothing is summed across classes: each metric is its own series, so there
- *     is no grand total a renderer could print by accident.
+ *     is no grand total a renderer could print by accident. The one total,
+ *     `totalTokens`, is a series on purpose: it says "derived, unweighted" in its
+ *     label and its provenance, and it exists so the token view and the cost view
+ *     can be read side by side (they can differ in sign).
+ *   - "Did it save?" is answered per repetition and in two ways — the workload
+ *     total and the typical task (`agent-ab-stats.mjs`) — and a saving counts only
+ *     if it points the same way in every repetition.
  *   - Unknown is unknown. A run with no usage contributes to a metric's `n`
  *     shortfall, never as a zero; a timed-out run is a failed run with unknown
  *     usage.
@@ -34,6 +40,10 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import {
+  BOOTSTRAP_ITERATIONS, BOOTSTRAP_SEED, CI_LEVEL,
+  workloadChange, geometricChange, consistency,
+} from './agent-ab-stats.mjs';
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -338,6 +348,18 @@ export const METRICS = Object.freeze([
   { key: 'out', label: 'Output tokens', unit: 'tokens', provenance: 'agent-reported', pick: (r) => r.usage && r.usage.out },
   { key: 'cacheRead', label: 'Cache-read tokens', unit: 'tokens', provenance: 'agent-reported', pick: (r) => r.usage && r.usage.cacheRead },
   { key: 'cacheWrite', label: 'Cache-write tokens', unit: 'tokens', provenance: 'agent-reported', pick: (r) => r.usage && r.usage.cacheWrite },
+  {
+    key: 'totalTokens', label: 'Total tokens (derived)', unit: 'tokens',
+    provenance: 'derived: input + output + cache-read + cache-write, each agent-reported; unweighted, so a cache read counts like a fresh token — Cost is the priced view',
+    // Unknown stays unknown: one category the run did not report makes the sum
+    // unknown, never the sum of the categories that did report.
+    pick: (r) => {
+      const u = r.usage;
+      if (!u) return null;
+      const parts = [u.in, u.out, u.cacheRead, u.cacheWrite];
+      return parts.every((x) => Number.isFinite(x)) ? parts.reduce((a, b) => a + b, 0) : null;
+    },
+  },
   { key: 'costUsd', label: 'Cost', unit: 'usd', provenance: 'agent-reported (the agent\'s own total_cost_usd)', pick: (r) => (r.cost && r.cost.source === 'agent-reported' ? r.cost.usd : null) },
   { key: 'costFloorUsd', label: 'Cost floor', unit: 'usd', provenance: `table (as of ${PRICE_AS_OF}): uncached input only, a floor`, pick: (r) => (r.cost && r.cost.source === 'table' ? r.cost.usd : null) },
   { key: 'durationMs', label: 'Wall time', unit: 'ms', provenance: 'measured (wall clock of the agent process)', pick: (r) => r.durationMs },
@@ -475,6 +497,88 @@ export function rollup(cells) {
 }
 
 /**
+ * "Did SigMap's arm use less?" answered per repetition and in two ways.
+ *
+ * A repetition is one pass over every task in both arms (run index r). Within it,
+ * a task is a PAIR only when both arms completed that run and reported the metric:
+ * a failed or silent run drops its pair, it is never a zero. Per metric and per
+ * repetition this returns the workload-total change and the typical-task change
+ * with its bootstrap interval (see `agent-ab-stats.mjs`), and across repetitions a
+ * verdict — fewer / more in every repetition, or mixed. A saving that appears in
+ * one repetition and reverses in the next is not a saving.
+ *
+ * The same tasks are repeated, so repetitions measure consistency, not
+ * generalisation to other tasks.
+ *
+ * For hit@5 it counts, per repetition, the pairs where the SigMap arm found the
+ * file and the other did not (better), the reverse (worse) and the rest (tie).
+ * Localisation only: this harness cannot grade an edit.
+ *
+ * @param {Array} entries output of runPlan
+ * @param {Array} tasks
+ */
+export function repetitionEstimates(entries, tasks) {
+  const done = new Map();
+  const runSet = new Set();
+  for (const e of entries) {
+    runSet.add(e.run);
+    if (e.record.ok) done.set(`${e.task.repo}/${e.task.id}|${e.arm}|${e.run}`, e.record);
+  }
+  const runs = [...runSet].sort((a, b) => a - b);
+  const keys = tasks.map((t) => `${t.repo}/${t.id}`);
+  const at = (key, arm, run) => done.get(`${key}|${arm}|${run}`);
+
+  const metrics = {};
+  for (const m of METRICS) {
+    const reps = runs.map((run) => {
+      const pairs = [];
+      for (const k of keys) {
+        const x = at(k, 'without', run);
+        const y = at(k, 'with', run);
+        if (!x || !y) continue;
+        const a = m.pick(x);
+        const b = m.pick(y);
+        if (Number.isFinite(a) && Number.isFinite(b)) pairs.push({ without: a, with: b });
+      }
+      return { run, workload: workloadChange(pairs), typical: geometricChange(pairs) };
+    });
+    // Nothing estimable in any repetition (not reported, or a zero baseline): no row.
+    if (reps.every((r) => r.workload.change === null && r.typical.change === null)) { metrics[m.key] = null; continue; }
+    const typical = consistency(reps.map((r) => r.typical.change));
+    const measured = reps.filter((r) => r.typical.change !== null);
+    // Outside the noise: a one-sided verdict AND, in every repetition, an interval
+    // that excludes zero on that same side. `null` when there is no such verdict —
+    // which already needs 2+ measurable repetitions, so none is checked again here.
+    const outsideNoise = typical === null || typical === 'mixed' || typical === 'unchanged' ? null
+      : measured.every((r) => r.typical.lo !== null
+        && (typical === 'fewer-every-repetition' ? r.typical.hi < 0 : r.typical.lo > 0));
+    metrics[m.key] = { reps, workload: consistency(reps.map((r) => r.workload.change)), typical, typicalOutsideNoise: outsideNoise };
+  }
+
+  const outcomeReps = runs.map((run) => {
+    let better = 0; let worse = 0; let ties = 0;
+    for (const k of keys) {
+      const x = at(k, 'without', run);
+      const y = at(k, 'with', run);
+      if (!x || !y) continue;
+      if (y.score.pass && !x.score.pass) better++;
+      else if (x.score.pass && !y.score.pass) worse++;
+      else ties++;
+    }
+    return { run, tasks: better + worse + ties, better, worse, ties };
+  });
+  const sum = (f) => outcomeReps.reduce((s, r) => s + r[f], 0);
+
+  return {
+    runs,
+    taskCount: tasks.length,
+    bootstrap: { iterations: BOOTSTRAP_ITERATIONS, seed: BOOTSTRAP_SEED, level: CI_LEVEL },
+    metrics,
+    outcome: { reps: outcomeReps, total: { tasks: sum('tasks'), better: sum('better'), worse: sum('worse'), ties: sum('ties') } },
+  };
+}
+
+/**
  * Why a report may or may not be published as a result. The minimum counts
  * COMPLETED runs: fewer than MIN_RUNS requested per arm is a smoke test, and so
  * is a plan that asked for enough but lost some — a cell whose median rests on
@@ -508,6 +612,10 @@ export const CAVEATS = Object.freeze([
   'The SigMap arm adds SigMap\'s generated section to the system prompt, so its input and cache figures include that cost.',
   'Cost is the agent\'s own account. Prompt caching makes it depend on run order; arms are interleaved and counterbalanced to spread that, not to remove it.',
   'The self repo is excluded: its tree holds its own answer key and its own generated context.',
+  'Repetitions reuse the same tasks, so they measure consistency, not generalisation to other tasks.',
+  'The workload total is dominated by the largest tasks; the typical-task estimate gives every task equal weight. The two can disagree in sign on the same runs, and neither is a correction of the other.',
+  'A typical-task interval that includes zero (†) is inside the noise: the runs cannot tell that change from none.',
+  'Total tokens is a derived, unweighted sum of the four billing categories, so a cache read counts like a fresh token. Read Cost for the priced view: a token change and a cost change can differ in sign.',
 ]);
 
 /**
@@ -537,6 +645,7 @@ export function buildReport({ entries, tasks, method }) {
     caveats: [...CAVEATS],
     cells,
     ...rollup(cells),
+    repetitions: repetitionEstimates(entries, tasks),
   };
 }
 
@@ -563,6 +672,78 @@ const mdTable = (head, rows) => [
   ...rows.map((r) => `| ${r.join(' | ')} |`),
 ].join('\n');
 
+/** A fractional change as a signed whole percent: -0.254 → `−25%`; below half a percent → `0%`. */
+function fmtChange(c) {
+  if (c === null || c === undefined || Number.isNaN(c)) return NA;
+  const r = Math.round(Math.abs(c) * 100);
+  return r === 0 ? '0%' : `${c > 0 ? '+' : '−'}${r}%`;
+}
+
+const VERDICT = Object.freeze({
+  'fewer-every-repetition': 'fewer in every repetition',
+  'more-every-repetition': 'more in every repetition',
+  unchanged: 'unchanged',
+  mixed: 'mixed',
+});
+
+/** The repetition section: workload total, typical task, and the hit@5 outcome — one column per repetition. */
+function renderRepetitions(rp) {
+  const lines = [];
+  const runCols = rp.runs.map((r) => `R${r}`);
+  const shown = METRICS.filter((m) => rp.metrics[m.key]);
+  lines.push('## Repetitions — workload total vs typical task');
+  lines.push('');
+  lines.push(`Each repetition (${runCols.join(', ') || 'none'}) is one pass over every task in both arms. A task counts in a repetition only when both arms completed it and reported the metric; \`n=\` marks fewer than all ${rp.taskCount}. `
+    + 'A change is the SigMap arm against the no-SigMap arm: negative means SigMap used less. The repetitions reuse the same tasks, so they measure consistency, not generalisation.');
+  lines.push('');
+
+  if (shown.length) {
+    lines.push('### Workload total');
+    lines.push('');
+    lines.push('Σ with ÷ Σ without − 1 over the paired tasks: the closest view to the bill for this exact batch, and the largest tasks dominate it.');
+    lines.push('');
+    lines.push(mdTable(['metric', ...runCols, 'verdict'], shown.map((m) => {
+      const x = rp.metrics[m.key];
+      return [m.label, ...x.reps.map((r) => `${fmtChange(r.workload.change)}${r.workload.n < rp.taskCount && r.workload.n > 0 ? ` n=${r.workload.n}` : ''}`),
+        x.workload ? VERDICT[x.workload] : NA];
+    })));
+    lines.push('');
+
+    lines.push('### Typical task');
+    lines.push('');
+    lines.push(`The geometric mean of with ÷ without on each paired task, so every task has equal weight, with a ${Math.round(rp.bootstrap.level * 100)}% paired-bootstrap interval `
+      + `(${rp.bootstrap.iterations.toLocaleString('en-US')} resamples, seed ${rp.bootstrap.seed}). † = the interval includes zero: inside the noise. A pair with a 0 on either side has no ratio and is left out.`);
+    lines.push('');
+    lines.push(mdTable(['metric', ...runCols, 'verdict'], shown.map((m) => {
+      const x = rp.metrics[m.key];
+      const cell = (r) => {
+        const t = r.typical;
+        if (t.change === null) return NA;
+        const ci = t.lo === null ? '' : ` [${fmtChange(t.lo)}, ${fmtChange(t.hi)}]`;
+        const short = t.n < rp.taskCount ? ` n=${t.n}` : '';
+        return `${fmtChange(t.change)}${ci}${t.inNoise ? ' †' : ''}${short}`;
+      };
+      const noise = x.typicalOutsideNoise === true ? ', outside the noise' : x.typicalOutsideNoise === false ? ', within the noise' : '';
+      const verdict = x.typical ? `${VERDICT[x.typical]}${noise}` : NA;
+      return [m.label, ...x.reps.map(cell), verdict];
+    })));
+    lines.push('');
+  } else {
+    lines.push('No metric was reported by both arms in any repetition, so there is nothing to estimate.');
+    lines.push('');
+  }
+
+  lines.push('### Outcome (hit@5), by repetition');
+  lines.push('');
+  lines.push('Per paired task: **better** = the SigMap arm named the file and the other did not; **worse** = the reverse; **tie** = both found it or both missed. Localisation only.');
+  lines.push('');
+  const orow = (label, o) => [label, String(o.tasks), String(o.better), String(o.worse), String(o.ties)];
+  lines.push(mdTable(['repetition', 'paired tasks', 'better', 'worse', 'tie'],
+    [...rp.outcome.reps.map((r) => orow(`R${r.run}`, r)), orow('all', rp.outcome.total)]));
+  lines.push('');
+  return lines;
+}
+
 /** The report as Markdown. Pure: the same object always renders the same text. */
 export function renderMarkdown(report) {
   const m = report.method;
@@ -577,6 +758,7 @@ export function renderMarkdown(report) {
   lines.push(`- Both arms: the same prompt, model, tool allowlist (${m.tools.join(', ')}), per-run budget cap $${m.budgetUsd} and timeout ${Math.round(m.timeoutMs / 1000)} s; run in a clean copy of the commit pinned in \`benchmarks/xrepo-repos.json\`.`);
   lines.push(`- Questions: ${m.selection} of \`${m.corpus}\`. Pass = ${m.passDefinition}.`);
   lines.push('- Statistics: the median over runs per task per arm; the repo row is the median over tasks, with the paired per-task delta (with − without) and how many tasks the SigMap arm used fewer / the same / more.');
+  lines.push('- Repetitions: each run index is one repetition, reported on its own in two ways — the workload total and the typical task (paired geometric mean, with a bootstrap interval) — and a saving counts only if it points the same way in every repetition.');
   lines.push('');
   lines.push('## Caveats');
   lines.push('');
@@ -593,6 +775,8 @@ export function renderMarkdown(report) {
   lines.push(mdTable(['repo', 'tasks', 'pass without', 'pass with', 'failed runs (without / with)'],
     [...report.repos.map(passRow), passRow(report.total)]));
   lines.push('');
+
+  if (report.repetitions) lines.push(...renderRepetitions(report.repetitions));
 
   for (const metric of METRICS) {
     const rows = [...report.repos, Object.assign({ repo: 'all' }, report.total)].map((r) => {

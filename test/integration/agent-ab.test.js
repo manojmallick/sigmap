@@ -132,6 +132,7 @@ const treeHash = (dir) => {
   const ab = await import('../../scripts/lib/agent-ab.mjs');
   const claude = await import('../../scripts/lib/agent-ab-claude.mjs');
   const arms = await import('../../scripts/lib/agent-ab-arms.mjs');
+  const stats = await import('../../scripts/lib/agent-ab-stats.mjs');
 
   // ── questions ──────────────────────────────────────────────────────────────
 
@@ -777,6 +778,13 @@ const treeHash = (dir) => {
     assert.deepStrictEqual([rep.total.spend.without.failed.runs, rep.total.spend.with.failed.runs], [0, 0]);
     assert.ok(Math.abs(rep.total.spend.without.all.agentReportedUsd - 0.24) < 1e-9, 'the spend is the sum over every run');
     assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /## Spend/);
+    // The repetition view, end to end: 2 tasks × 4 repetitions, SigMap's arm cheaper by the same ratio every time.
+    assert.deepStrictEqual(rep.repetitions.runs, [1, 2, 3, 4]);
+    assert.deepStrictEqual(rep.repetitions.outcome.total, { tasks: 8, better: 0, worse: 0, ties: 8 });
+    assert.strictEqual(rep.repetitions.metrics.costUsd.workload, 'fewer-every-repetition');
+    assert.strictEqual(rep.repetitions.metrics.costUsd.typical, 'fewer-every-repetition');
+    assert.strictEqual(rep.repetitions.metrics.costUsd.typicalOutsideNoise, true);
+    assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /## Repetitions — workload total vs typical task/);
     const raw = JSON.parse(fs.readFileSync(path.join(f.out, 'raw.json'), 'utf8'));
     assert.ok(raw.every((r) => r.cacheGaps === 0 && r.usageSource === 'result'), 'the raw record carries the gap count and where usage came from');
     assert.match(fs.readFileSync(path.join(f.out, 'agent-ab.md'), 'utf8'), /claude-code 9\.9\.9 \(Fake Claude\) · claude-sonnet-5-5/);
@@ -826,7 +834,7 @@ const treeHash = (dir) => {
   // ── guards ─────────────────────────────────────────────────────────────────
 
   await test('the harness never spawns through a shell and stays out of the published package and CI', () => {
-    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs'];
+    const files = ['scripts/run-agent-ab.mjs', 'scripts/lib/agent-ab.mjs', 'scripts/lib/agent-ab-claude.mjs', 'scripts/lib/agent-ab-arms.mjs', 'scripts/lib/agent-ab-stats.mjs'];
     for (const rel of files) {
       const src = fs.readFileSync(path.join(ROOT, rel), 'utf8').split('\n').filter((l) => !/^\s*(\*|\/\/)/.test(l)).join('\n');
       assert.ok(!/\bexecSync\b|shell:\s*true|\bexec\(/.test(src), `${rel} spawns through a shell`);
@@ -839,6 +847,220 @@ const treeHash = (dir) => {
     for (const w of fs.existsSync(wf) ? fs.readdirSync(wf) : []) {
       assert.ok(!/agent-ab/.test(fs.readFileSync(path.join(wf, w), 'utf8')), `${w} runs the paid harness`);
     }
+  });
+
+  // ── "did it save?": workload total vs typical task, per repetition ─────────
+
+  const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
+
+  await test('workloadChange sums each arm; geometricChange weighs each task once — the two disagree in sign on the same pairs', () => {
+    const pairs = [{ without: 1000, with: 1200 }, { without: 10, with: 5 }];
+    const w = stats.workloadChange(pairs);
+    near(w.change, 1205 / 1010 - 1);
+    assert.deepStrictEqual([w.n, w.without, w.with], [2, 1010, 1205]);
+    const g = stats.geometricChange(pairs);
+    near(g.change, Math.sqrt(1.2 * 0.5) - 1);
+    assert.ok(w.change > 0 && g.change < 0, 'a few large tasks dominate the sum, not the typical task');
+  });
+
+  await test('unknown stays unknown: an unreported value is no pair, a zero has no ratio and is counted, not folded in', () => {
+    assert.deepStrictEqual(stats.workloadChange([]), { n: 0, without: null, with: null, change: null });
+    const w = stats.workloadChange([{ without: null, with: 5 }, { without: 4, with: NaN }, { without: 4, with: 2 }]);
+    assert.deepStrictEqual([w.n, w.change], [1, -0.5], 'only the pair with two known values counts');
+    assert.strictEqual(stats.workloadChange([{ without: 0, with: 3 }]).change, null, 'a zero baseline total has no ratio');
+    const g = stats.geometricChange([{ without: 100, with: 50 }, { without: 0, with: 10 }, { without: 10, with: 0 }, { without: 20, with: 10 }]);
+    assert.deepStrictEqual([g.n, g.dropped], [2, 2]);
+    near(g.change, -0.5);
+    assert.deepStrictEqual(stats.geometricChange([{ without: 0, with: 0 }]).change, null);
+  });
+
+  await test('the bootstrap interval: degenerate on equal ratios, exact on a two-pair sample, none for one pair', () => {
+    const same = stats.geometricChange([{ without: 10, with: 5 }, { without: 100, with: 50 }, { without: 7, with: 3.5 }]);
+    near(same.lo, -0.5); near(same.hi, -0.5); near(same.change, -0.5);
+    assert.strictEqual(same.inNoise, false, 'an interval that excludes zero is outside the noise');
+    // Two pairs, ratios 0.5 and 2: a resample's mean is ln0.5, 0 or ln2, so the 95% band is exactly [-50%, +100%].
+    const two = stats.geometricChange([{ without: 10, with: 5 }, { without: 10, with: 20 }]);
+    near(two.change, 0); near(two.lo, -0.5); near(two.hi, 1);
+    assert.strictEqual(two.inNoise, true);
+    const one = stats.geometricChange([{ without: 10, with: 5 }]);
+    assert.deepStrictEqual([one.n, one.lo, one.hi, one.inNoise], [1, null, null, null]);
+    near(one.change, -0.5);
+    assert.deepStrictEqual(stats.geometricChange([]), { n: 0, dropped: 0, change: null, lo: null, hi: null, inNoise: null });
+    // An interval that touches zero includes it: an unchanged pair of tasks is inside the noise, not outside.
+    const flat = stats.geometricChange([{ without: 10, with: 10 }, { without: 20, with: 20 }]);
+    assert.deepStrictEqual([flat.change, flat.lo, flat.hi, flat.inNoise], [0, 0, 0, true]);
+  });
+
+  await test('the bootstrap is deterministic and an estimate never depends on which one was computed first', () => {
+    const a = [{ without: 10, with: 7 }, { without: 20, with: 9 }, { without: 5, with: 6 }, { without: 8, with: 3 }, { without: 50, with: 20 }];
+    const b = [{ without: 3, with: 9 }, { without: 4, with: 5 }, { without: 100, with: 40 }];
+    const aFirst = [stats.geometricChange(a), stats.geometricChange(b)];
+    const bFirst = [stats.geometricChange(b), stats.geometricChange(a)].reverse();
+    assert.deepStrictEqual(aFirst, bFirst);
+    assert.deepStrictEqual(stats.geometricChange(a), stats.geometricChange(a.map((p) => Object.assign({}, p))));
+    assert.ok(aFirst[0].lo <= aFirst[0].change && aFirst[0].change <= aFirst[0].hi);
+    assert.deepStrictEqual([stats.BOOTSTRAP_ITERATIONS, stats.BOOTSTRAP_SEED, stats.CI_LEVEL], [10000, 1, 0.95]);
+    const r1 = stats.makeRng(1); const r1b = stats.makeRng(1); const r2 = stats.makeRng(2);
+    const seq = (r) => [r(), r(), r()];
+    assert.deepStrictEqual(seq(r1), seq(r1b));
+    assert.notDeepStrictEqual(seq(stats.makeRng(1)), seq(r2));
+    assert.ok(seq(stats.makeRng(7)).every((x) => x >= 0 && x < 1));
+  });
+
+  await test('consistency: a saving counts only if it points the same way in every repetition', () => {
+    assert.strictEqual(stats.consistency([-0.1, -0.2, -0.05]), 'fewer-every-repetition');
+    assert.strictEqual(stats.consistency([0.1, 0.2]), 'more-every-repetition');
+    assert.strictEqual(stats.consistency([-0.1, 0.2]), 'mixed');
+    assert.strictEqual(stats.consistency([0, 0]), 'unchanged');
+    assert.strictEqual(stats.consistency([-0.1, 0]), 'mixed', 'a 0 is no saving');
+    assert.strictEqual(stats.consistency([-0.1]), null, 'one repetition shows no consistency');
+    assert.strictEqual(stats.consistency([-0.1, null]), null, 'an unmeasurable repetition is not a vote');
+    assert.strictEqual(stats.consistency([]), null);
+  });
+
+  // Four tasks of very different size. `mult[run][task]` scales SigMap's arm against the baseline.
+  const SIZED = ['big', 'mid', 'small', 'tiny'].map((id) => ({ id, repo: 'r', query: 'q', expected_files: ['a.js'] }));
+  const BASE = { big: 1000000, mid: 200000, small: 50000, tiny: 10000 };
+  const METHOD = { agent: 'claude-code', agentVersion: '1', model: 'claude-sonnet-5-5', runs: 2, tasksPerRepo: 4, budgetUsd: 1, timeoutMs: 1000, date: '2026-11-07' };
+  const sizedRunner = (mult, over = () => ({})) => async (job) => {
+    const n = Math.round(BASE[job.task.id] * (job.arm === 'with' ? mult[job.run][job.task.id] : 1));
+    return stub(Object.assign({
+      usage: { in: n, out: 10, cacheRead: 0, cacheWrite: 0 },
+      cost: { usd: n * 1e-6 * (job.arm === 'with' ? 0.5 : 1), source: 'agent-reported' },
+    }, over(job)))(job);
+  };
+  const sizedReport = async (mult, over, runs = 2) => {
+    const entries = await ab.runPlan({ tasks: SIZED, runs, runner: sizedRunner(mult, over) });
+    return ab.buildReport({ entries, tasks: SIZED, method: Object.assign({}, METHOD, { runs }) });
+  };
+  const every = (v) => ({ big: v, mid: v, small: v, tiny: v });
+
+  await test('the report gives each repetition both estimates: tokens up by total and down for the typical task, cost down', async () => {
+    const mult = { 1: { big: 1.3, mid: 0.6, small: 0.55, tiny: 0.5 }, 2: { big: 1.2, mid: 0.7, small: 0.6, tiny: 0.65 } };
+    const rp = (await sizedReport(mult)).repetitions;
+    assert.deepStrictEqual(rp.runs, [1, 2]);
+    const m = rp.metrics.in;
+    for (const run of [1, 2]) {
+      const rep = m.reps[run - 1];
+      const withTok = SIZED.map((t) => Math.round(BASE[t.id] * mult[run][t.id]));
+      const withoutTok = SIZED.map((t) => BASE[t.id]);
+      near(rep.workload.change, withTok.reduce((a, b) => a + b, 0) / withoutTok.reduce((a, b) => a + b, 0) - 1);
+      const logs = withTok.map((w, i) => Math.log(w / withoutTok[i]));
+      near(rep.typical.change, Math.exp(logs.reduce((a, b) => a + b, 0) / logs.length) - 1);
+      assert.ok(rep.workload.change > 0 && rep.typical.change < 0, `repetition ${run}: the two views disagree in sign`);
+      assert.strictEqual(rep.typical.inNoise, true, `repetition ${run}: the typical-task interval includes zero`);
+    }
+    assert.strictEqual(m.workload, 'more-every-repetition');
+    assert.strictEqual(m.typical, 'fewer-every-repetition');
+    assert.strictEqual(m.typicalOutsideNoise, false, 'fewer every time, but inside the noise');
+    assert.strictEqual(rp.metrics.costUsd.workload, 'fewer-every-repetition', 'the token view and the cost view can differ in sign');
+    assert.strictEqual(rp.metrics.costUsd.typicalOutsideNoise, true, 'a constant halving is outside the noise');
+    assert.strictEqual(rp.metrics.toolCalls.workload, 'fewer-every-repetition', 'the stub gives SigMap 2 calls to the baseline\'s 6');
+  });
+
+  await test('a saving that reverses between repetitions is mixed, and is not outside the noise', async () => {
+    const rp = (await sizedReport({ 1: every(0.5), 2: every(2) })).repetitions;
+    for (const view of ['workload', 'typical']) assert.strictEqual(rp.metrics.in[view], 'mixed');
+    assert.strictEqual(rp.metrics.in.typicalOutsideNoise, null, 'no one-sided verdict, so nothing can be outside the noise');
+  });
+
+  await test('a saving of the same ratio in every repetition is outside the noise; an unchanged series is unchanged', async () => {
+    const rp = (await sizedReport({ 1: every(0.5), 2: every(0.5) })).repetitions;
+    assert.strictEqual(rp.metrics.in.typical, 'fewer-every-repetition');
+    assert.strictEqual(rp.metrics.in.typicalOutsideNoise, true);
+    assert.strictEqual(rp.metrics.out.typical, 'unchanged', 'output tokens are 10 in both arms');
+    assert.strictEqual(rp.metrics.out.typicalOutsideNoise, null);
+  });
+
+  await test('one repetition cannot show consistency, so it gets no verdict', async () => {
+    const rp = (await sizedReport({ 1: every(0.5) }, undefined, 1)).repetitions;
+    assert.deepStrictEqual(rp.runs, [1]);
+    assert.strictEqual(rp.metrics.in.workload, null);
+    assert.strictEqual(rp.metrics.in.typical, null);
+    near(rp.metrics.in.reps[0].workload.change, -0.5);
+  });
+
+  await test('a failed run drops its pair from that repetition; it is never a zero', async () => {
+    const mult = { 1: every(0.5), 2: every(0.5) };
+    const entries = await ab.runPlan({
+      tasks: SIZED, runs: 2,
+      runner: async (job) => (job.run === 2 && job.arm === 'with' && job.task.id === 'big'
+        ? { ok: false, error: 'timeout', init: null, cwds: [], durationMs: 1 } : sizedRunner(mult)(job)),
+    });
+    const m = ab.buildReport({ entries, tasks: SIZED, method: METHOD }).repetitions.metrics.in;
+    assert.deepStrictEqual([m.reps[0].workload.n, m.reps[1].workload.n], [4, 3]);
+    assert.deepStrictEqual([m.reps[0].typical.n, m.reps[1].typical.n], [4, 3]);
+    near(m.reps[1].workload.change, -0.5, 1e-6);
+    assert.deepStrictEqual([m.reps[1].workload.without, m.reps[1].workload.with], [260000, 130000], 'the big task is in neither sum');
+  });
+
+  await test('a completed run that reported no usage drops its pair from the usage metrics; it is never a zero', async () => {
+    const mult = { 1: every(0.5), 2: every(0.5) };
+    const silent = (job) => (job.run === 2 && job.arm === 'with' && job.task.id === 'big'
+      ? { usage: null, usageSource: 'unavailable', cost: { usd: null, source: 'unavailable' } } : {});
+    const rp = (await sizedReport(mult, silent)).repetitions;
+    // Without the silent pair, repetition 2 is the three smaller tasks. Output is 10 tokens in both arms, so the total is not exactly half;
+    // and the stub already halves SigMap's price, so cost is a quarter.
+    const expected = { in: -0.5, costUsd: -0.75, totalTokens: 130030 / 260030 - 1 };
+    for (const key of Object.keys(expected)) {
+      assert.deepStrictEqual(rp.metrics[key].reps.map((r) => r.workload.n), [4, 3], `${key}: the silent run's pair is not counted`);
+      near(rp.metrics[key].reps[1].workload.change, expected[key]);
+    }
+    assert.deepStrictEqual(rp.metrics.toolCalls.reps.map((r) => r.workload.n), [4, 4], 'a metric it did report keeps its pair');
+  });
+
+  await test('total tokens is the sum of the four billing categories, and unknown if any one is unknown', () => {
+    const total = ab.METRICS.find((m) => m.key === 'totalTokens');
+    assert.ok(/derived/.test(total.label) && /unweighted/.test(total.provenance), 'it is labelled as derived and unweighted');
+    assert.strictEqual(total.pick({ usage: { in: 1, out: 2, cacheRead: 3, cacheWrite: 4 } }), 10);
+    assert.strictEqual(total.pick({ usage: { in: 1, out: 2, cacheRead: null, cacheWrite: 4 } }), null, 'not the sum of the three that reported');
+    assert.strictEqual(total.pick({ usage: null }), null);
+    assert.strictEqual(total.pick({}), null);
+  });
+
+  await test('hit@5 is counted per repetition as better / worse / tie, only over pairs both arms completed', async () => {
+    const miss = '`z.js`';
+    const over = (job) => {
+      if (job.run === 1 && job.task.id === 'big' && job.arm === 'with') return { answer: miss };
+      if (job.run === 2 && job.task.id === 'mid' && job.arm === 'without') return { answer: miss };
+      if (job.run === 2 && job.task.id === 'small' && job.arm === 'with') return { ok: false, error: 'timeout', init: null, cwds: [], durationMs: 1 };
+      return {};
+    };
+    const rp = (await sizedReport({ 1: every(0.5), 2: every(0.5) }, over)).repetitions;
+    assert.deepStrictEqual(rp.outcome.reps, [
+      { run: 1, tasks: 4, better: 0, worse: 1, ties: 3 },
+      { run: 2, tasks: 3, better: 1, worse: 0, ties: 2 },
+    ]);
+    assert.deepStrictEqual(rp.outcome.total, { tasks: 7, better: 1, worse: 1, ties: 5 });
+  });
+
+  await test('the repetition section renders: tables, the noise mark, the derived total, no NaN, deterministic', async () => {
+    const mult = { 1: { big: 1.3, mid: 0.6, small: 0.55, tiny: 0.5 }, 2: { big: 1.2, mid: 0.7, small: 0.6, tiny: 0.65 } };
+    const report = await sizedReport(mult);
+    const md = ab.renderMarkdown(report);
+    assert.match(md, /## Repetitions — workload total vs typical task/);
+    assert.match(md, /### Workload total/);
+    assert.match(md, /### Typical task/);
+    assert.match(md, /### Outcome \(hit@5\), by repetition/);
+    assert.match(md, /\| Input tokens \(uncached\) \| \+15% \| \+9% \| more in every repetition \|/);
+    assert.match(md, /\| Input tokens \(uncached\) \| −32% \[−\d+%, \+\d+%\] † \| −24% \[−\d+%, \+\d+%\] † \| fewer in every repetition, within the noise \|/);
+    assert.match(md, /\| Cost \| −42% \| −45% \| fewer in every repetition \|/);
+    assert.match(md, /Total tokens \(derived\)/);
+    assert.match(md, /resamples, seed 1/);
+    assert.ok(report.caveats.some((c) => /neither is a correction/.test(c)) && md.includes('inside the noise'));
+    assert.ok(!/NaN|undefined|Infinity/.test(md), 'no unformatted number reaches the report');
+    assert.ok(!/\| Cache-read tokens \|/.test(md.slice(md.indexOf('## Repetitions'), md.indexOf('### Outcome'))), 'a row with nothing estimable is left out');
+    const again = ab.buildReport({ entries: await ab.runPlan({ tasks: SIZED, runs: 2, runner: sizedRunner(mult) }), tasks: SIZED, method: METHOD });
+    assert.strictEqual(ab.renderMarkdown(again), md, 'the same runs render the same text');
+    assert.deepStrictEqual(report.repetitions.bootstrap, { iterations: 10000, seed: 1, level: 0.95 });
+  });
+
+  await test('a report saved before the repetition section existed still renders', async () => {
+    const report = await sizedReport({ 1: every(0.5), 2: every(0.5) });
+    const old = JSON.parse(JSON.stringify(report));
+    delete old.repetitions;
+    const md = ab.renderMarkdown(old);
+    assert.ok(!md.includes('## Repetitions') && md.includes('## Outcome'));
   });
 
   for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (_) { /* best effort */ } }
